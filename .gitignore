@@ -1,0 +1,28 @@
+# JetBrains (WebStorm)
+.idea/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor/OS
+.DS_Store
+Thumbs.db
+
+# Electron build artifacts (필요 시)
+out/
+release/
