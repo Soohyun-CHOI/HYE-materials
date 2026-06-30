@@ -23,6 +23,5 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Electron build artifacts (필요 시)
-out/
-release/
+# Vercel
+.vercel
