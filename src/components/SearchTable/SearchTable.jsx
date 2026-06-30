@@ -11,7 +11,7 @@ export default function SearchTable({records}) {
         const set = new Set()
         records.forEach((r) => {
             const s = r.fields['Section']
-            if (s) set.add(s.trim())  // trim으로 앞뒤 공백 제거
+            if (s) set.add(s.trim())
         })
         return Array.from(set).sort()
     }, [records])
@@ -142,10 +142,10 @@ export default function SearchTable({records}) {
                     <thead>
                     <tr className={styles.tableHead}>
                         <th>Description</th>
+                        <th>Vendor</th>
+                        <th>Unit Price</th>
                         <th>Project Name</th>
                         <th>Section</th>
-                        <th>Vendor</th>
-                        <th>Unit Price ↑</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -167,14 +167,14 @@ export default function SearchTable({records}) {
                                     }
                                 >
                                     <td>{record.fields['Description'] ?? ''}</td>
-                                    <td>{record.fields['Project Name'] ?? ''}</td>
-                                    <td>{record.fields['Section'] ?? ''}</td>
                                     <td>{record.fields['Vendor'] ?? ''}</td>
                                     <td>
                                         {record.fields['UNIT PRICE'] != null
                                             ? record.fields['UNIT PRICE'].toLocaleString()
                                             : ''}
                                     </td>
+                                    <td>{record.fields['Project Name'] ?? ''}</td>
+                                    <td>{record.fields['Section'] ?? ''}</td>
                                 </tr>
                             </>
                         )
