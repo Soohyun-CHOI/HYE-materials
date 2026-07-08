@@ -27,7 +27,7 @@ Replacing an entirely email-and-Excel-based Purchase Request → Purchase Order 
 
 ---
 
-## The full data model (12 tables) — current state as of this writing
+## The full data model (15 tables) — current state as of this writing
 
 ### Users
 User Name (primary), Email, Phone, Role (`Employee`/`President`), Is Admin (checkbox, independent of Role), Status (`Active`/`Inactive`), Created At. Plus several auto-generated reverse-link fields from other tables (all renamed to be unambiguous, e.g. `Jobs (as PIC)` vs `Jobs (as Manager)`, `Purchase Orders (as PIC)` vs `Purchase Orders (as Manager)`, `Correction Requests (Initiated)` vs `Correction Requests (Sent To)`).
@@ -39,10 +39,10 @@ Job Code (primary), Job Name, Business Unit (select: EPC/HT/SYS), Line (text —
 Vendor Name (primary), PIC Name/Phone/Email (plain text — **external contact, deliberately NOT linked to Users**, unlike Jobs' PIC/Manager who are internal staff), Address (link → Addresses, single-record), Purchase Orders (Lookup, chained Vendor→PR→PO — shows which POs used this vendor without duplicating data).
 
 ### Purchase Requests (PR)
-PR ID (plain text, **backend-generated**, format `HYE-YYYYMMDD-####` resetting daily — see ID rules), Requester (link → Users, single), Job (link → Jobs, single), Vendor (link → Vendors, single), Date Created, Status (select: `Draft`/`In Review`/`Approved`/`Converted to PO` — **no "Rejected" status**, rejection essentially never happens in this workflow), Current Signer Step (number), Total Amount (rollup, sum of PR Items.Amount), Notes, Quotation File (Lookup, chained through the linked Quotations record's File attachment).
+PR ID (plain text, **backend-generated**, format `HYE-PR-YYMMDD-##` resetting daily — see ID rules), Requester (link → Users, single), Job (link → Jobs, single), Vendor (link → Vendors, single), Created Date, Status (select: `Draft`/`In Review`/`Approved`/`Converted to PO` — **no "Rejected" status**, rejection essentially never happens in this workflow), Current Signer Step (number), Total Amount (rollup, sum of PR Items.Amount), Notes, Quotation File (Lookup, chained through the linked Quotations record's File attachment).
 
 ### PR Signers — the dynamic ordered approval chain
-**This is the most important non-obvious design in the whole system.** One row per signer per PR. PR Signer ID (plain text, backend-generated, format `{PR ID}-{seq}` resetting per PR, e.g. `HYE-20260710-0007-001`), PR (link, single), Signer (link → Users, single), Sequence Order (number — **assigned by the requester at PR creation time, not a fixed role-based panel**), Status (select: `Pending`/`Approved`/`Edited`/`Returned` — no Rejected), Signed At, Notes.
+**This is the most important non-obvious design in the whole system.** One row per signer per PR. PR Signer ID (plain text, backend-generated, format `{PR ID}-{seq}` resetting per PR, e.g. `HYE-PR-260710-01-001`), PR (link, single), Signer (link → Users, single), Sequence Order (number — **assigned by the requester at PR creation time, not a fixed role-based panel**), Status (select: `Pending`/`Approved`/`Edited`/`Returned` — no Rejected), Signed At, Notes.
 
 Key business rules for this table:
 - Signers are NOT a fixed "3 responsibilities + 1 head" panel. The requester picks an arbitrary ordered list of people (mixing site and office staff in any order) when creating the PR.
@@ -60,32 +60,55 @@ Logs the "return to an earlier signer" action specifically. Correction Request I
 Field-level change history — the general evidence trail (separate from Correction Requests, which is specifically about the return-for-correction action). Edit Log ID (plain text, backend-generated, `{PR ID}-{seq}`), PR (link, single), Changed By (link → Users, single), Field Name (select, bounded list: Item Name/Size/Unit/Qty/Rate/Remark), Old Value, New Value, Changed At.
 
 ### Purchase Orders (PO)
-Strict **1:1 with PR** (enforced single-record-link on both sides — a PR becomes exactly one PO, matching how office currently builds POs by copying PR contents). PO ID (plain text, backend-generated, `HYE-PO-YYYYMMDD-##` resetting daily), PR (link, single), Vendor (**Lookup via PR**, not a duplicate link — same vendor data, one source of truth), Quotation File (Lookup, chained PO→PR→Quotations→File — two-hop chain), Our PIC (link → Users, single), Our Manager (link → Users, single), Created Date, President Signed (checkbox) + President Signed At, Status (`Draft`/`Signed`/`Sent to Vendor`), PO PDF File (attachment — **the one place in this whole system that still produces a real output file**, since it's sent to an external vendor), Total Amount (rollup), Delivery Address Used (select: `Primary`/`Alternate`).
+Strict **1:1 with PR** (enforced single-record-link on both sides — a PR becomes exactly one PO, matching how office currently builds POs by copying PR contents). PO ID (plain text, backend-generated, `HYE-PO-YYMMDD-##` resetting daily), PR (link, single), Vendor (**Lookup via PR**, not a duplicate link — same vendor data, one source of truth), Quotation File (Lookup, chained PO→PR→Quotations→File — two-hop chain), Our PIC (link → Users, single), Our Manager (link → Users, single), Created Date, President Signed (checkbox) + President Signed At, Status (`Draft`/`Signed`/`Sent to Vendor`), PO PDF File (attachment — **the one place in this whole system that still produces a real output file**, since it's sent to an external vendor), Total Amount (rollup), Delivery Address Used (select: `Primary`/`Alternate`).
 
 ### PO Items
 Deliberately a **frozen snapshot**, copied from PR Items at the moment the PO is generated — NOT a live formula or lookup. PO Item ID (plain text, backend-generated, `{PO ID}-{seq}` per PO), PO (link, single), Item Name, Size, Unit, Qty, Rate, **Amount = static currency value written once by the backend, NOT a formula** (this is intentional: PO Items must never silently change after a PO has been issued to a vendor, even if something upstream in PR Items changes later), Remark.
 
 ### Quotations
-Quotation ID (primary, plain text), Vendor (link, single), PR (link, single), File (attachment). Stored as attachments only — **not auto-parsed**. Quotations are unfixed-form documents (vary per vendor) and automated extraction was deliberately scoped OUT as a much harder future-phase problem, unlike the PR itself which the app now creates natively (no PDF-reading involved for PRs at all, since the whole point was to stop relying on parsing external documents).
+Quotation ID (primary, plain text, **backend-generated** — treated as a 6th child-ID pattern: `{PR ID}-Q{seq}`, see "internal ID vs. vendor-issued code" below), Vendor Quotation Code (plain text, **human-entered** — the vendor's own quotation number as printed on their document, e.g. "Qte1763957"), Vendor (link, single), PR (link, single), File (attachment). Files stored as attachments only — **not auto-parsed**. Quotations are unfixed-form documents (vary per vendor) and automated extraction was deliberately scoped OUT as a much harder future-phase problem, unlike the PR itself which the app now creates natively (no PDF-reading involved for PRs at all, since the whole point was to stop relying on parsing external documents).
 
-### Invoices / Invoice–PO Link / Invoice Items — *not yet built in Airtable, planned for Phase 3*
-Design already decided: Invoice ↔ PO is **many-to-many** via a join table (`Invoice–PO Link`) — the common case is one PO having several invoices (partial shipments), but one invoice spanning several POs is a real, supported edge case, not rare enough to ignore. Each **Invoice Item line** (not just the invoice header) carries its own PO reference, so a multi-PO invoice can be reconciled line-by-line against the correct PO. Payment tracking is deliberately lean — just a `Paid` checkbox + date on Invoice, since actual payment happens on an external site outside this app's scope.
+### Invoices / Invoice–PO Link / Invoice Items — built, Phase 3 logic not yet implemented
+Invoice ID (primary, plain text, **backend-generated** — **a top-level document ID, same tier as PR ID/PO ID, NOT a child ID**. This is a deliberate correction from an earlier draft of this doc: an Invoice is not a child of any single PO, since Invoice↔PO is many-to-many — it needs its own independent daily-reset counter, exactly like PR/PO, rather than a `{Parent ID}-{seq}` pattern that assumes one parent. Format `HYE-INV-YYMMDD-##`, generated by `generateNextInvoiceId()` in `lib/ids.js`, already manually implemented — check it matches this shape rather than writing a new one), Vendor Invoice Code (plain text, **human-entered** — the vendor's own invoice number, same reasoning as Vendor Quotation Code below), Vendor (link, single), Issue Date, Due Date, Amount Due, Shipping Fee, Paid (checkbox) + Paid Date — payment tracking deliberately lean, since actual payment happens on an external site outside this app's scope.
+
+Invoice ↔ PO is **many-to-many** via the `Invoice–PO Link` join table (primary field is a plain autoNumber — this table is pure relationship, never independently browsed or referenced by ID, so no readable label was needed here, unlike every other primary field in this base). Both `Invoice` and `PO` link fields on the join table are correctly single-record — the many-to-many is achieved through multiple join rows, not multi-select link fields. The common case is one PO having several invoices (partial shipments); one invoice spanning several POs is a real, supported edge case — and this many-to-many-ness is exactly why Invoice ID can't be a child ID of PO.
+
+**Invoice Items**: Invoice Item ID (plain text, backend-generated, `{Invoice ID}-{seq}` per invoice — **this one IS a true child ID**, since each line item belongs to exactly one Invoice, unlike the Invoice itself relative to PO), Invoice (link, single) + PO (link, single — **critical**: each line item reconciles against exactly one PO, which is what makes line-level matching on a multi-PO invoice possible), Item Name, Qty, Unit Price, Amount (live formula `Qty × Unit Price`), Variance Flag (checkbox — deliberately **not** a formula; this gets set by backend reconciliation logic, not auto-computed in Airtable, consistent with the "logic lives in backend" rule).
+
+### Internal ID vs. vendor-issued code — applies to Quotations and Invoices
+Both Quotations and Invoices reference a real-world document issued by a vendor, not by us — so a single ID field can't do both jobs (guaranteed-unique internal identifier AND faithfully representing what the vendor actually printed). Two vendors can easily reuse the same number by coincidence (e.g. both happen to send "Invoice #1001"), so the vendor's own number is **never guaranteed unique on its own** — only the combination of (Vendor, vendor-issued code) is a real key. Resolution: split into two fields per document type —
+- `Quotation ID` (child ID, `{PR ID}-Q{seq}`) / `Invoice ID` (**top-level ID**, `HYE-INV-YYMMDD-##` — see correction above, these two are NOT the same shape despite both being "internal IDs for vendor documents").
+- `Vendor Quotation Code` / `Vendor Invoice Code`: human-entered, purely informational, mirrors what's on the vendor's actual document. **Never look up or match by this field alone — always scope by Vendor too**, the same rule as the Materials table's natural key (Item + Size + Unit + **Vendor**).
 
 ### Addresses
 Structured reference table (Address Label primary — human-picked, NOT an auto-generated ID, since this table is a reference table like Vendors/Jobs where readability matters for the link-picker UI). Line 1, Line 2, City, State, Zip Code, Country, Formatted Address (formula). Linked from Jobs (Delivery Address, Alternate Delivery Address) and Vendors (Address), all single-record-link enforced.
 
-### Materials — *not yet built, planned for Phase 4*
-Latest-known-price cache (item + size + unit + vendor as natural key, upserted by backend). **Not** the source of price history — that lives in the dated PR Items records. The cache is just a fast "what's the current price" lookup; historical trend queries hit PR Items directly.
+### Materials — built, Phase 4 upsert logic not yet implemented
+Item Name, Size, Unit, Vendor (link, single) — natural key is the combination of all four, not Item/Size/Unit alone. Unit Price, Latest Job (link, single), Latest Date, Latest PO (link, single). This is a latest-known-price cache, upserted by backend as PRs get signed. **Not** the source of price history — that lives in the dated PR Items records. The cache is just a fast "what's the current price" lookup; historical trend queries hit PR Items directly. (No separate `Currency` field — all vendors are US-based, USD assumed throughout.)
 
 ---
 
 ## ID generation rules (see `lib/ids.js`)
 
-Two shapes, and the reasoning matters:
-1. **PR ID / PO ID**: `HYE-YYYYMMDD-####` / `HYE-PO-YYYYMMDD-##`, resets daily. Must be backend-generated (Airtable formulas can't count "how many created today," only "my row's position in the whole table ever") — these fields are plain text, not formulas, specifically so the backend can write real values into them.
-2. **Child-table IDs** (PR Item, PR Signer, Correction Request, Edit Log, PO Item): `{Parent ID}-{seq}`, resets **per parent**, also backend-generated for the same reason. These were originally built as Airtable formulas concatenating things like Item Name (broke — Airtable's `-` operator is subtraction, not concatenation, and long item names were also a real risk) — moved to backend generation once true per-parent-reset numbering was wanted, which Airtable's Autonumber field (table-wide only) can't do.
+Three shapes, and the reasoning matters:
+1. **Top-level document IDs — PR ID / PO ID / Invoice ID**: `HYE-PR-YYMMDD-##` / `HYE-PO-YYMMDD-##` / `HYE-INV-YYMMDD-##`, each resets daily on its own independent counter. Must be backend-generated (Airtable formulas can't count "how many created today," only "my row's position in the whole table ever") — these fields are plain text, not formulas, specifically so the backend can write real values into them. **Invoice ID belongs in this tier, not the child-ID tier below** — even though an Invoice is conceptually "related to" a PO, Invoice↔PO is many-to-many, so an Invoice can't be numbered as if it belongs to exactly one parent. This was corrected from an earlier draft of this doc that mistakenly treated Invoice ID as a 7th child ID.
+2. **Child-table IDs** (PR Item, PR Signer, Correction Request, Edit Log, PO Item, Quotation, **Invoice Item**): `{Parent ID}-{seq}`, resets **per parent**, also backend-generated for the same reason. These were originally built as Airtable formulas concatenating things like Item Name (broke — Airtable's `-` operator is subtraction, not concatenation, and long item names were also a real risk) — moved to backend generation once true per-parent-reset numbering was wanted, which Airtable's Autonumber field (table-wide only) can't do. Quotation ID exists alongside a separate human-entered `Vendor Quotation Code` field — see the "internal ID vs. vendor-issued code" note above. Invoice Item ID is a true child of Invoice (not of PO), even though each Invoice Item also links to a PO for reconciliation purposes.
+3. **Vendor-issued codes** (`Vendor Quotation Code`, `Vendor Invoice Code`): human-entered, not backend-generated at all, and not guaranteed unique — see the dedicated note above.
 
 **Naming convention**: fields that are guaranteed-unique auto-generated identifiers are named `X ID`. Fields that are human-typed descriptive text for picking from a list (like `Address Label`, `Vendor Name`, `Job Name`) are named `X Label` or just the plain name — never converted to auto-IDs, because readability in the link-picker UI matters more there than machine-uniqueness.
+
+**Date/time field naming**: plain `date` fields (calendar date only, time doesn't matter — e.g. when a document was created, an invoice's issue/due date) use **`X Date`** (e.g. `Created Date`, `Issue Date`, `Due Date`, `Paid Date`, `Latest Date`). `dateTime` fields (time genuinely matters — audit trail / signing events) use **`X At`** (e.g. `Signed At`, `Requested At`, `Resolved At`, `Changed At`, `President Signed At`, `Created At`). If a new field is added later, pick based on whether the *time-of-day* is meaningful for that field, not just copy whichever pattern looks similar — that's the actual test, not the suffix itself.
+
+---
+
+## Git workflow rules
+
+- Never commit directly to `main`. One branch per issue: `{issue#}-{short-desc}` (e.g. `12-signer-chain-state-machine`).
+- Commit format: `{type}: {description} (#{issue#})` — types: `feat`/`fix`/`chore`/`refactor`.
+- Every PR description must include `Closes #{issue#}` so merging auto-closes the issue and updates its Milestone (Phase) progress automatically.
+- GitHub Milestones = Phases (0–5), Issues = individual tasks within a phase, assigned to the matching Milestone.
+- Work stays scoped to the issue's Milestone (Phase) — don't start Phase 2 work while Phase 1 issues are still open, unless explicitly told to.
+- Don't open a PR unless explicitly asked to — sometimes the request is just "implement this and push to the current branch," with the PR to be opened manually later.
 
 ---
 
@@ -102,14 +125,3 @@ Two shapes, and the reasoning matters:
 
 - Variance tolerance rule for invoice-vs-PO reconciliation (exact match vs. % tolerance) — blocks Phase 3
 - Notification channel is assumed to be email but not yet built — blocks Phase 1 completion
-
----
-
-## Git workflow rules
-
-- Never commit directly to main. One branch per issue: `{issue#}-{short-desc}`.
-- Commit format: `{type}: {description} (#{issue#})` — types: feat/fix/chore/refactor.
-- Every PR description must include `Closes #{issue#}` so merging auto-closes
-  the issue and updates its Milestone progress.
-- Work stays scoped to the issue's Milestone (Phase) — don't start Phase 2
-  work while Phase 1 issues are still open, unless explicitly told to.
