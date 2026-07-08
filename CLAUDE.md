@@ -101,6 +101,16 @@ Three shapes, and the reasoning matters:
 
 ---
 
+## Link-field filtering rule
+
+Airtable's `filterByFormula` cannot compare a link field directly to a record ID — a link field evaluates to its linked record's display text in formula context, not its record ID, so `{SomeLinkField} = "recXXXXXXXXXXXXXX"` silently matches nothing. Every table that needs to filter its own rows by a parent/related link (for ID generation via `generateChildId`, or for `getXByParent`-style lookups) has a `"{Parent} Record ID"` lookup field instead: a `RECORD_ID()` formula field on the parent (e.g. `Purchase Requests._Record ID`), pulled through the link as a lookup on the child (e.g. `PR Items.PR Record ID`). Filter on that lookup field, never on the raw link field.
+
+This isn't just about ID generation — it applies to any table that will keep growing over time and needs to look up rows by a parent/related link. Materials.Vendor Record ID follows the same pattern — Materials is a table that grows indefinitely (new item/vendor/spec combos over time), so its natural-key lookup by Vendor (a link field) needs Record ID lookup filtering, same as any other growing table. Plain fields in a natural key (Item Name, Size, Unit) filter normally; only link-field components need the lookup.
+
+**Known risk with this pattern**: a child's `"{Parent} Record ID"` lookup is computed asynchronously by Airtable after the record is created — if sibling records are created immediately after the parent itself (e.g. PO Items created right after their PO), the lookup may not have propagated yet, and a `filterByFormula`-based count (as in `generateChildId`) can undercount and produce a duplicate ID. Reproduced consistently for PO Items across repeated test runs (`scripts/test-phase0.js`, not committed) — not yet resolved, see conversation history.
+
+---
+
 ## Git workflow rules
 
 - Never commit directly to `main`. One branch per issue: `{issue#}-{short-desc}` (e.g. `12-signer-chain-state-machine`).
@@ -109,6 +119,15 @@ Three shapes, and the reasoning matters:
 - GitHub Milestones = Phases (0–5), Issues = individual tasks within a phase, assigned to the matching Milestone.
 - Work stays scoped to the issue's Milestone (Phase) — don't start Phase 2 work while Phase 1 issues are still open, unless explicitly told to.
 - Don't open a PR unless explicitly asked to — sometimes the request is just "implement this and push to the current branch," with the PR to be opened manually later.
+- **Never run `git commit` (or `git add`/`git commit`) directly — this applies even when explicitly asked to "finish" a task.** Instead, once a chunk of work is done, leave the working tree as-is and output the commit message as a copy-pasteable block:
+
+  ```
+  {type}: {short summary} (#{issue#})
+
+  {body — bullet points on what changed and why, if non-trivial}
+  ```
+
+  The user reviews the diff and commits manually in the terminal themselves.
 
 ---
 
