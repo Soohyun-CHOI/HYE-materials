@@ -49,3 +49,6 @@ next-env.d.ts
 
 # logs
 *.log
+
+# local commit message file
+commit-msg.txt

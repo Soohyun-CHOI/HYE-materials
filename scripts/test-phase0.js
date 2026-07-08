@@ -288,9 +288,16 @@ async function main() {
         );
 
         // ---- PO Items (mirroring PR Items' current values) -------------------
+        // Deliberately 3 items, created sequentially with no delay right
+        // after the PO itself — this exact shape (parent freshly created,
+        // then 3+ children in immediate succession) is what reproduced the
+        // generateChildId race condition consistently before the fix.
+        const poItemSpecs = [
+            ...prItemSpecs,
+            { itemName: "Test Washer", size: "M8", unit: "EA", qty: 5, rate: 0.5 },
+        ];
         const poItems = [];
-        for (let i = 0; i < prItemSpecs.length; i++) {
-            const spec = prItemSpecs[i];
+        for (const spec of poItemSpecs) {
             const poItem = await createPOItem({
                 poRecordId: po.id,
                 poId: po.poId,
@@ -319,7 +326,7 @@ async function main() {
             );
         }
         checkUnique(
-            "PO Item IDs",
+            "PO Item IDs (3 created in immediate succession after PO — the race-condition repro case)",
             poItems.map((i) => i.poItemId),
             "lib/ids.js:generateChildId (via lib/airtable/poItems.js:createPOItem)"
         );
