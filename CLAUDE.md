@@ -14,7 +14,7 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 - Next.js (App Router, JavaScript, Tailwind), deployed on Vercel.
 - Airtable as data store only (base: "Material Purchases"). All business logic — ID generation, signing-chain rules, PDF generation, notifications, variance checks, locking — lives in the backend. Airtable formulas are only used for pure data transforms (`PR Items.Amount = Qty × Rate`, address formatting), never workflow logic.
-- Auth: email/password or magic-link, restricted to company email domain, verified. New signups always land as plain Employee (`Is Admin: false`) — promotion to Admin/President is a manual Airtable edit.
+- Auth: magic link only (decided over email/password — see "Auth" section below), restricted to company email domain, verified. New signups always land as plain Employee (`Is Admin: false`) — promotion to Admin/President is a manual Airtable edit.
 
 ## Service layer pattern
 
@@ -25,7 +25,7 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 ---
 
-## Data model (15 tables)
+## Data model (16 tables)
 
 **Users**: User Name (primary), Email, Phone, Role (`Employee`/`President`), Is Admin, Status (`Active`/`Inactive`), Created At.
 
@@ -64,6 +64,8 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 **Materials**: latest-price cache, upserted as PRs get signed. Natural key = Item Name + Size + Unit + Vendor (all four, not fewer). Unit Price, Latest Job/PO (links), Latest Date. NOT the source of price history (that's PR Items). No Currency field — USD only.
 
+**Auth Tokens**: Token (primary, random hex string), Email, Expires At, Used, Created At. Single-use, 15-min TTL, backend-generated. Deliberately separate from Users (which is linked from most other tables in this base) — transient auth-flow data, not identity data.
+
 ---
 
 ## ID generation (`lib/ids.js`)
@@ -95,6 +97,22 @@ Known residual risks:
 
 ---
 
+## Auth (`lib/auth.js`, `lib/session.js`, `lib/email.js`)
+
+Magic link only, not email/password — decided so verification (mandatory per the issue) and login are the same mechanism, and no password hash ever sits in Airtable (not a hardened secrets store; other staff have collaborator access to unrelated tables in this same base).
+
+- `requestMagicLink(email)`: domain check (`ALLOWED_EMAIL_DOMAIN` env var) first, then issues a token and emails it. Does NOT create a Users record yet — that only happens in `verifyMagicLink`, once the token is actually confirmed, so an unconfirmed attempt never creates an orphaned Employee row.
+- `verifyMagicLink(token)`: consumes the token, finds-or-creates the User, starts the session. The find-or-create is wrapped in `withKeyLock` keyed by normalized email — same duplicate-write race as `generateChildId`/`upsertMaterial`, same fix, since two valid tokens for one new email opened close together could otherwise both see "no user" and both create one.
+- `lib/airtable/authTokens.js`: token CRUD against `Auth Tokens`. `consumeAuthToken` is wrapped in `withKeyLock` keyed by the token itself, so the same link can't be consumed twice by near-simultaneous requests.
+- `lib/session.js`: `iron-session`, httpOnly/Secure/SameSite=Lax cookie. Payload is deliberately just `{ userId }` — Role/Is Admin/Status are never cached in the cookie, since promotion and deactivation (both manual Airtable edits) must take effect immediately, not whenever a long-lived session happens to expire. Route-protection logic (issue #4, not yet built) should use `getCurrentUser()` (below), not trust the cookie.
+- `getCurrentUser()` (`lib/session.js`): resolves a session into the actual User, and is the required way to do so — never call `getUserByRecordId(session.userId)` directly. Airtable's `.find()` *rejects* for a record ID that no longer exists rather than returning null, so a session that outlives its Users record (deleted, or just stale test data) would otherwise crash the calling page instead of behaving like "not logged in." Found this the hard way: it crashed the home page with an Airtable `NOT_AUTHORIZED` error during testing. `getCurrentUser()` catches that and returns `null` — but only for that specific case. It checks `err.error === "NOT_AUTHORIZED"` (confirmed empirically to be exactly how Airtable reports a missing record, not a distinguishable 404) rather than a blanket catch-all; any other failure (bad API key, rate limiting, a real outage, network errors — confirmed distinguishable via `err.error === "AUTHENTICATION_REQUIRED"` etc.) is logged via `console.error` and re-thrown, so a real infrastructure problem surfaces as an error instead of silently masquerading as a logged-out user.
+- `lib/email.js`: Resend. Its SDK returns `{ data, error }` instead of throwing on API failures (invalid key, unverified sending domain, etc.) — `sendMagicLinkEmail` explicitly checks `error` and throws; without that check a failed send silently looks like a success to the caller (confirmed while testing — this was a real bug, not a hypothetical). Re-verified against a real Resend account and a deliberately-wrong-but-real-shaped key, not just the empty-key case.
+- Required env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional, has a fallback `from` address). All follow the same fail-fast-at-module-load pattern as `AIRTABLE_API_KEY` — a missing one breaks `next build` entirely, not just the requests that touch it. Same list needs setting in Vercel's project env vars before deploy — `.env.local` never ships.
+- Verified end-to-end against a real Resend account and a real company inbox — request, email delivery, click-through verify, session, sign-out all confirmed working.
+- Not built: rate-limiting on `requestMagicLink` (someone could spam a company email with sign-in links), role-based route protection (issue #4).
+
+---
+
 ## Git workflow rules
 
 - Never commit directly to `main`. One branch per issue: `{issue#}-{short-desc}`.
@@ -103,7 +121,7 @@ Known residual risks:
 - GitHub Milestones = Phases (0–5), Issues = tasks within a phase.
 - Stay scoped to the current issue's Milestone unless told otherwise.
 - Don't open a PR unless explicitly asked to.
-- Never run `git commit` yourself, even when asked to "finish" a task. Output the commit message as a copy-pasteable block instead; the user commits manually.
+- Never run `git commit` yourself, even when asked to "finish" a task. Write the commit message to `commit-msg.txt` at the repo root (overwrite, don't append) instead; the user reviews the diff and commits manually. `commit-msg.txt` is gitignored — never remove that entry.
 
 ---
 
