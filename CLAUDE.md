@@ -121,7 +121,7 @@ Magic link only, not email/password — decided so verification (mandatory per t
 - GitHub Milestones = Phases (0–5), Issues = tasks within a phase.
 - Stay scoped to the current issue's Milestone unless told otherwise.
 - Don't open a PR unless explicitly asked to.
-- Never run `git commit` yourself, even when asked to "finish" a task. Output the commit message as a copy-pasteable block instead; the user commits manually.
+- Never run `git commit` yourself, even when asked to "finish" a task. Write the commit message to `commit-msg.txt` at the repo root (overwrite, don't append) instead; the user reviews the diff and commits manually. `commit-msg.txt` is gitignored — never remove that entry.
 
 ---
 
