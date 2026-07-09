@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/lib/authz";
-import { createLineAction } from "./actions";
+import LineForm from "./LineForm";
 
 export default async function NewLinePage({ searchParams }) {
     const { authorized } = await requireAdmin();
@@ -23,39 +23,7 @@ export default async function NewLinePage({ searchParams }) {
                 </p>
             )}
 
-            <form action={createLineAction} className="mt-6 space-y-4">
-                <div>
-                    <label htmlFor="jobCode" className="block text-sm font-medium">
-                        Job Code
-                    </label>
-                    <input
-                        id="jobCode"
-                        name="jobCode"
-                        required
-                        placeholder="e.g. 25-USA-02"
-                        className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
-                    />
-                </div>
-
-                <div>
-                    <label htmlFor="lineName" className="block text-sm font-medium">
-                        Line Name
-                    </label>
-                    <input
-                        id="lineName"
-                        name="lineName"
-                        required
-                        className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
-                    />
-                </div>
-
-                <button
-                    type="submit"
-                    className="w-full rounded bg-foreground px-3 py-2 text-background"
-                >
-                    Create Line
-                </button>
-            </form>
+            <LineForm />
         </div>
     );
 }
