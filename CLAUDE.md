@@ -118,6 +118,9 @@ Magic link only, not email/password — decided so verification (mandatory per t
 - Never commit directly to `main`. One branch per issue: `{issue#}-{short-desc}`.
 - Commit format: `{type}: {description} (#{issue#})` — types: `feat`/`fix`/`chore`/`refactor`.
 - PR description must include `Closes #{issue#}`.
+- Squash merge is configured on this repo — the PR description becomes the final commit message body on `main`, not the individual branch commits. Write PR descriptions with that in mind.
+- Line-wrap by destination: commit message bodies and PR descriptions wrap at 72 chars; issue comments don't need wrapping.
+- If an issue's core logic turns out to already be implemented as a byproduct of another issue's work, don't silently close it via a PR's `Closes #`. Comment on that issue first explaining what already covers it, then close it from there.
 - GitHub Milestones = Phases (0–5), Issues = tasks within a phase.
 - Stay scoped to the current issue's Milestone unless told otherwise.
 - Don't open a PR unless explicitly asked to.
