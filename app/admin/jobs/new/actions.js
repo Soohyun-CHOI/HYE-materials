@@ -17,7 +17,6 @@ export async function createJobAction(formData) {
         jobCode: formData.get("jobCode"),
         jobName: formData.get("jobName"),
         businessUnit: formData.get("businessUnit"),
-        line: formData.get("line"),
     });
 
     redirect(`/admin/jobs/new?created=${encodeURIComponent(jobCode)}`);

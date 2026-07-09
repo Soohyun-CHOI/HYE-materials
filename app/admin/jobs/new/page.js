@@ -64,17 +64,6 @@ export default async function NewJobPage({ searchParams }) {
                     </select>
                 </div>
 
-                <div>
-                    <label htmlFor="line" className="block text-sm font-medium">
-                        Line
-                    </label>
-                    <input
-                        id="line"
-                        name="line"
-                        className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
-                    />
-                </div>
-
                 <button
                     type="submit"
                     className="w-full rounded bg-foreground px-3 py-2 text-background"
