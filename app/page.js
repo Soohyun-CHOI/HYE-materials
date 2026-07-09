@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { getSession } from "@/lib/session";
-import { getUserByRecordId } from "@/lib/airtable/users";
+import { getCurrentUser } from "@/lib/session";
 
 export default async function Home() {
-    const session = await getSession();
-    const user = session.userId ? await getUserByRecordId(session.userId) : null;
+    const user = await getCurrentUser();
 
     return (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-zinc-50 p-8 dark:bg-black">
