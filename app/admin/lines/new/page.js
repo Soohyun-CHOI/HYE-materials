@@ -1,7 +1,7 @@
 import { requireAdmin } from "@/lib/authz";
-import { createJobAction } from "./actions";
+import { createLineAction } from "./actions";
 
-export default async function NewJobPage({ searchParams }) {
+export default async function NewLinePage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
@@ -15,15 +15,15 @@ export default async function NewJobPage({ searchParams }) {
 
     return (
         <div className="mx-auto w-full max-w-sm p-8">
-            <h1 className="text-2xl font-semibold">New Job</h1>
+            <h1 className="text-2xl font-semibold">New Line</h1>
 
             {created && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    Created job {created}.
+                    Created line {created}.
                 </p>
             )}
 
-            <form action={createJobAction} className="mt-6 space-y-4">
+            <form action={createLineAction} className="mt-6 space-y-4">
                 <div>
                     <label htmlFor="jobCode" className="block text-sm font-medium">
                         Job Code
@@ -32,43 +32,28 @@ export default async function NewJobPage({ searchParams }) {
                         id="jobCode"
                         name="jobCode"
                         required
+                        placeholder="e.g. 25-USA-02"
                         className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
                     />
                 </div>
 
                 <div>
-                    <label htmlFor="jobName" className="block text-sm font-medium">
-                        Job Name
+                    <label htmlFor="lineName" className="block text-sm font-medium">
+                        Line Name
                     </label>
                     <input
-                        id="jobName"
-                        name="jobName"
+                        id="lineName"
+                        name="lineName"
                         required
                         className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
                     />
-                </div>
-
-                <div>
-                    <label htmlFor="businessUnit" className="block text-sm font-medium">
-                        Business Unit
-                    </label>
-                    <select
-                        id="businessUnit"
-                        name="businessUnit"
-                        required
-                        className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
-                    >
-                        <option value="EPC">EPC</option>
-                        <option value="HT">HT</option>
-                        <option value="SYS">SYS</option>
-                    </select>
                 </div>
 
                 <button
                     type="submit"
                     className="w-full rounded bg-foreground px-3 py-2 text-background"
                 >
-                    Create Job
+                    Create Line
                 </button>
             </form>
         </div>
