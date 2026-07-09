@@ -25,15 +25,17 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 ---
 
-## Data model (16 tables)
+## Data model (18 tables)
 
-**Users**: User Name (primary), Email, Phone, Role (`Employee`/`President`), Is Admin, Status (`Active`/`Inactive`), Created At.
+**Users**: User Name (primary), Email, Phone, Role (`Employee`/`President`), Is Admin, Status (`Active`/`Inactive`), Created At, Assigned Jobs (link → Jobs, multiple, optional — the Job(s) this employee usually works). A person can be assigned to more than one Job, and the assignment can change, so this is a convenience default for narrowing pickers (see Phase 1 below), never an access-control restriction — an Employee is not blocked from picking a Job/Line outside their Assigned Jobs.
 
-**Jobs**: Job Code (primary), Job Name, Business Unit, Line, PIC/Manager (link → Users) + Phone/Email (Lookups), Delivery/Alternate Address (link → Addresses, single).
+**Jobs**: Job Code (primary), Job Name, Business Unit, PIC/Manager (link → Users) + Phone/Email (Lookups), Delivery/Alternate Address (link → Addresses, single), Lines (reverse-link, children — see **Lines** below), Users (reverse-link of Users.Assigned Jobs, above).
+
+**Lines**: child of Jobs — a Job can have multiple Lines (process/production lines within a site). Line Label (primary, formula = `{Job} – {Line Name}`, since Line Name alone isn't guaranteed unique across Jobs — e.g. more than one site uses plain "FAB"), Line Name (human-entered), Job (link → Jobs, single), Purchase Requests / Materials (reverse-links — see below).
 
 **Vendors**: Vendor Name (primary), PIC Name/Phone/Email (plain text, external contact — not linked to Users), Address (link, single), Purchase Orders (Lookup via PR chain).
 
-**Purchase Requests**: PR ID (`HYE-PR-YYMMDD-##`, backend-generated), Requester/Job/Vendor (links, single), Created Date, Status (`Draft`/`In Review`/`Approved`/`Converted to PO` — no Rejected), Current Signer Step, Total Amount (rollup), Notes, Quotation File (Lookup).
+**Purchase Requests**: PR ID (`HYE-PR-YYMMDD-##`, backend-generated), Requester/Vendor (links, single), Line (link → Lines, single — the actual field a Requester picks), Job (Lookup via Line, read-only — auto-follows the picked Line, so a mismatched Job/Line pairing is structurally impossible), Created Date, Status (`Draft`/`In Review`/`Approved`/`Converted to PO` — no Rejected), Current Signer Step, Total Amount (rollup), Notes, Quotation File (Lookup).
 
 **PR Signers** — dynamic ordered approval chain, the core design of this system:
 - Requester assigns an arbitrary ordered list of signers (any mix of people) at PR creation — not a fixed panel.
@@ -62,7 +64,7 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 **Addresses**: Address Label (primary, human-picked, NOT an auto-ID — readability matters for the link-picker), Line 1/2, City, State, Zip, Country, Formatted Address (formula). Linked from Jobs/Vendors, single-record enforced.
 
-**Materials**: latest-price cache, upserted as PRs get signed. Natural key = Item Name + Size + Unit + Vendor (all four, not fewer). Unit Price, Latest Job/PO (links), Latest Date. NOT the source of price history (that's PR Items). No Currency field — USD only.
+**Materials**: latest-price cache, upserted as PRs get signed. Natural key = Item Name + Size + Unit + Vendor (all four, not fewer). Unit Price, Latest Line (link → Lines, single), Latest Job (Lookup via Latest Line, read-only — same auto-follow pattern as Purchase Requests.Job), Latest PO (link), Latest Date. NOT the source of price history (that's PR Items). No Currency field — USD only.
 
 **Auth Tokens**: Token (primary, random hex string), Email, Expires At, Used, Created At. Single-use, 15-min TTL, backend-generated. Deliberately separate from Users (which is linked from most other tables in this base) — transient auth-flow data, not identity data.
 
@@ -152,6 +154,15 @@ Phase 0's exit test ("create a Job, Vendor, and User record through the app, not
 3. Invoice handling — many-to-many reconciliation, variance checking
 4. Materials price history + reporting
 5. Deferred: automated quotation/invoice parsing, real payment integration, formal rejection flow, multi-PIC vendors, backup president approver
+
+### Phase 1 requirement: Line picker defaults to the Requester's Assigned Jobs
+
+On the PR creation form, the field a Requester actually picks is Line (Job just follows via Lookup — see **Purchase Requests** above). The logged-in Requester's `Users.Assigned Jobs`, if set, should shape that Line picker as a default, not a restriction:
+- One Assigned Job: narrow the Line list to that Job's Lines.
+- Multiple Assigned Jobs: sort/prioritize Lines belonging to those Jobs to the top of the list, rather than narrowing outright.
+- Empty Assigned Jobs: show the full, unfiltered Line list.
+
+In every case the Requester must still be able to reach any Job's Line — this is a convenience default (fewer clicks for the common case), not an enforced constraint, matching how Assigned Jobs itself is documented above.
 
 ## Open decisions (don't block Phase 0/1)
 
