@@ -14,7 +14,7 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 - Next.js (App Router, JavaScript, Tailwind), deployed on Vercel.
 - Airtable as data store only (base: "Material Purchases"). All business logic — ID generation, signing-chain rules, PDF generation, notifications, variance checks, locking — lives in the backend. Airtable formulas are only used for pure data transforms (`PR Items.Amount = Qty × Rate`, address formatting), never workflow logic.
-- Auth: email/password or magic-link, restricted to company email domain, verified. New signups always land as plain Employee (`Is Admin: false`) — promotion to Admin/President is a manual Airtable edit.
+- Auth: magic link only (decided over email/password — see "Auth" section below), restricted to company email domain, verified. New signups always land as plain Employee (`Is Admin: false`) — promotion to Admin/President is a manual Airtable edit.
 
 ## Service layer pattern
 
@@ -25,7 +25,7 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 ---
 
-## Data model (15 tables)
+## Data model (16 tables)
 
 **Users**: User Name (primary), Email, Phone, Role (`Employee`/`President`), Is Admin, Status (`Active`/`Inactive`), Created At.
 
@@ -64,6 +64,8 @@ Replacing an email-and-Excel-based Purchase Request → Purchase Order → Invoi
 
 **Materials**: latest-price cache, upserted as PRs get signed. Natural key = Item Name + Size + Unit + Vendor (all four, not fewer). Unit Price, Latest Job/PO (links), Latest Date. NOT the source of price history (that's PR Items). No Currency field — USD only.
 
+**Auth Tokens**: Token (primary, random hex string), Email, Expires At, Used, Created At. Single-use, 15-min TTL, backend-generated. Deliberately separate from Users (which is linked from most other tables in this base) — transient auth-flow data, not identity data.
+
 ---
 
 ## ID generation (`lib/ids.js`)
@@ -92,6 +94,20 @@ Date/time naming: calendar-only dates -> `X Date` (`Created Date`, `Issue Date`,
 Known residual risks:
 1. `withKeyLock` only serializes within one process/invocation, not across separate serverless invocations — two genuinely simultaneous requests touching the same key could still race. Judged low-probability given the signing chain already serializes who can act on a PR to one signer at a time.
 2. Double-submit (double-click) is a separate, higher-probability risk not covered by the reasoning above — needs frontend handling (disable submit / `isSubmitting` guard on click) once PR/PO forms exist in Phase 1/2. Not a backend concern; track as a form-building checklist item.
+
+---
+
+## Auth (`lib/auth.js`, `lib/session.js`, `lib/email.js`)
+
+Magic link only, not email/password — decided so verification (mandatory per the issue) and login are the same mechanism, and no password hash ever sits in Airtable (not a hardened secrets store; other staff have collaborator access to unrelated tables in this same base).
+
+- `requestMagicLink(email)`: domain check (`ALLOWED_EMAIL_DOMAIN` env var) first, then issues a token and emails it. Does NOT create a Users record yet — that only happens in `verifyMagicLink`, once the token is actually confirmed, so an unconfirmed attempt never creates an orphaned Employee row.
+- `verifyMagicLink(token)`: consumes the token, finds-or-creates the User, starts the session. The find-or-create is wrapped in `withKeyLock` keyed by normalized email — same duplicate-write race as `generateChildId`/`upsertMaterial`, same fix, since two valid tokens for one new email opened close together could otherwise both see "no user" and both create one.
+- `lib/airtable/authTokens.js`: token CRUD against `Auth Tokens`. `consumeAuthToken` is wrapped in `withKeyLock` keyed by the token itself, so the same link can't be consumed twice by near-simultaneous requests.
+- `lib/session.js`: `iron-session`, httpOnly/Secure/SameSite=Lax cookie. Payload is deliberately just `{ userId }` — Role/Is Admin/Status are never cached in the cookie, since promotion and deactivation (both manual Airtable edits) must take effect immediately, not whenever a long-lived session happens to expire. Route-protection logic (issue #4, not yet built) should re-fetch those fresh per request via `getUserByRecordId`, not trust the cookie.
+- `lib/email.js`: Resend. Its SDK returns `{ data, error }` instead of throwing on API failures (invalid key, unverified sending domain, etc.) — `sendMagicLinkEmail` explicitly checks `error` and throws; without that check a failed send silently looks like a success to the caller (confirmed while testing — this was a real bug, not a hypothetical).
+- Required env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional, has a fallback `from` address). All follow the same fail-fast-at-module-load pattern as `AIRTABLE_API_KEY` — a missing one breaks `next build` entirely, not just the requests that touch it.
+- Not built: rate-limiting on `requestMagicLink` (someone could spam a company email with sign-in links), role-based route protection (issue #4).
 
 ---
 
