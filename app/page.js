@@ -12,6 +12,12 @@ export default async function Home() {
                         Signed in as <strong>{user.email}</strong> ({user.role}
                         {user.isAdmin ? ", Admin" : ""})
                     </p>
+                    <Link
+                        href="/prs/new"
+                        className="rounded bg-foreground px-4 py-2 text-background"
+                    >
+                        New Purchase Request
+                    </Link>
                     <form action="/api/auth/logout" method="POST">
                         <button
                             type="submit"
