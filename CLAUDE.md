@@ -218,6 +218,17 @@ Confirmed against Resend's own docs (resend.com/docs/dashboard/domains) — do t
    - Can also be checked directly, without waiting on the dashboard: `dig TXT <subdomain> +short`, `dig MX <subdomain> +short`, `dig CNAME resend._domainkey.<subdomain> +short`.
 5. Once `verified`, update `EMAIL_FROM` (already a recognized env var — see the Auth section above) from the current fallback `onboarding@resend.dev` to an address on the newly verified (sub)domain, e.g. `Material PO Automation <notifications@mail.hyeusa.com>`. Set it in both `.env.local` and Vercel's project env vars, same as every other required env var in this project.
 
+### Approval history view (`app/prs/[prId]/page.js`, issue #9)
+
+Purely a presentation task, not a new-logic one — `getCorrectionRequestsByPR()` and `getEditLogByPR()` (`lib/airtable/correctionRequests.js`/`editLog.js`) already existed and were already exercised by #6/#8, just never rendered anywhere. No writes, so #5/#6's rollback pattern doesn't apply here — nothing to roll back on a page that only reads.
+
+- Rendered as **one merged, chronologically-sorted timeline** on the existing PR detail page (not a separate route/tab) — a product decision, since three separate lists (signers/corrections/edits) would force the reader to cross-reference timestamps by hand to reconstruct what actually happened and in what order.
+- Sources merged: PR creation (`Created Date` + Requester), each `PR Signers.Signed At` (labeled "approved" or "edited and continued" based on `Status`), each `Correction Requests` row (`Requested At` for the return, plus a synthesized "resolved" entry at `Resolved At`), each `Edit Log` entry (`Changed At`, field, old→new).
+- **"Resolved by" isn't a stored field** on Correction Requests (only `Resolved At` is) — inferred as the `Sent To` person instead, since resolving a correction only ever happens as a side effect of that person's own turn (see `lib/prSigning.js:findPendingCorrectionForActor`). No new field/data needed.
+- **Gotcha found while building this**: `Created Date` is calendar-only (no time-of-day — see the ID-generation section's date/time naming rule), but `new Date("YYYY-MM-DD")` parses as UTC midnight; converting that straight to a browser's local timezone for display can shift it to the *previous* day (reproduced: showed "7/9" for a PR actually created "7/10"). Fixed by building the `Date` from its `(year, month, day)` components directly (`formatDateOnly()`) instead of round-tripping through UTC — every other timeline entry is a real timestamp (`Signed At`/`Requested At`/`Changed At`) and doesn't have this problem, only the one calendar-only field does.
+- No new auth: the PR detail page already required only `requireUser()` (any active Employee/President, not restricted to participants) — History is additive content on that same already-open page, not a new access surface.
+- Verified end-to-end against the real Airtable base, satisfying Phase 1's exit test directly: created a PR, routed it through a 2-signer chain with one correction round-trip (signer 1 → Requester, Requester edited a Qty, resumed to signer 1), reached `Approved` — and confirmed History rendered all six events (create, return, edit, resolve, two approvals) in the correct chronological order with the date-shift bug fixed.
+
 ## Open decisions (don't block Phase 0/1)
 
 - Variance tolerance rule (exact vs. %) — blocks Phase 3
