@@ -1,0 +1,51 @@
+"use client";
+
+import { useActionState } from "react";
+import { approveAction } from "./actions";
+
+export default function ApproveForm({ prId, onCancel }) {
+    const [state, formAction, pending] = useActionState(approveAction, null);
+
+    return (
+        <form
+            action={formAction}
+            className="space-y-3 rounded border border-zinc-300 p-4 dark:border-zinc-700"
+        >
+            {state?.error && (
+                <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {state.error}
+                </p>
+            )}
+            <input type="hidden" name="prId" value={prId} />
+
+            <div>
+                <label htmlFor="approveNotes" className="block text-sm font-medium">
+                    Notes (optional)
+                </label>
+                <textarea
+                    id="approveNotes"
+                    name="notes"
+                    rows={2}
+                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                />
+            </div>
+
+            <div className="flex gap-2">
+                <button
+                    type="submit"
+                    disabled={pending}
+                    className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+                >
+                    {pending ? "Approving..." : "Confirm approval"}
+                </button>
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                >
+                    Cancel
+                </button>
+            </div>
+        </form>
+    );
+}

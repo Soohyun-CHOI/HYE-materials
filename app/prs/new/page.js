@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
@@ -31,7 +32,10 @@ export default async function NewPRPage({ searchParams }) {
 
             {created && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    Created PR {created}.
+                    Created PR {created}.{" "}
+                    <Link href={`/prs/${created}`} className="underline">
+                        View it
+                    </Link>
                 </p>
             )}
 

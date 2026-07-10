@@ -1,0 +1,287 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/authz";
+import { base, TABLES } from "@/lib/airtable/client";
+import { getPRById, updatePR } from "@/lib/airtable/purchaseRequests";
+import { getSignersByPR, updateSigner } from "@/lib/airtable/prSigners";
+import { getItemsByPR, updateItem } from "@/lib/airtable/prItems";
+import {
+    getCorrectionRequestsByPR,
+    createCorrectionRequest,
+    resolveCorrectionRequest,
+} from "@/lib/airtable/correctionRequests";
+import { createEditLogEntry } from "@/lib/airtable/editLog";
+import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
+
+const ITEM_FIELDS = ["itemName", "size", "unit", "qty", "rate", "remark"];
+const ITEM_FIELD_LABELS = {
+    itemName: "Item Name",
+    size: "Size",
+    unit: "Unit",
+    qty: "Qty",
+    rate: "Rate",
+    remark: "Remark",
+};
+
+async function loadPRContext(prId) {
+    const pr = await getPRById(prId);
+    if (!pr) throw new Error("PR not found");
+
+    const [signers, correctionRequests] = await Promise.all([
+        getSignersByPR(pr.id),
+        getCorrectionRequestsByPR(pr.id),
+    ]);
+
+    return { pr, signers, correctionRequests };
+}
+
+/**
+ * Shared by approveAction and editAndContinueAction: both "finish" a turn
+ * the same way once the actor's own record is updated — resolve a pending
+ * Correction Request and resume to its initiator if the actor was
+ * resuming from a return, otherwise advance normally (see
+ * lib/prSigning.js:computeAdvance). Rolls back everything it wrote on
+ * failure, using the pre-write snapshots the caller already has.
+ */
+async function finishTurn({ pr, turn, signers, correctionRequests }) {
+    const { resolveCorrectionId, nextStep, prApproved } = computeAdvance({
+        turn,
+        signers,
+        correctionRequests,
+    });
+
+    let resolvedCorrectionId = null;
+    let resumedSignerId = null;
+
+    try {
+        if (resolveCorrectionId) {
+            await resolveCorrectionRequest(resolveCorrectionId);
+            resolvedCorrectionId = resolveCorrectionId;
+
+            // The person we're resuming to had their PR Signer status set
+            // to "Returned" when they delegated the correction — flip it
+            // back to "Pending" now that it's their turn again, so the UI
+            // shows them as actionable instead of stale "Returned".
+            const initiatorSigner = signers.find((s) => s.sequenceOrder === nextStep);
+            if (initiatorSigner) {
+                await updateSigner(initiatorSigner.id, { status: "Pending" });
+                resumedSignerId = initiatorSigner.id;
+            }
+        }
+
+        await updatePR(pr.id, prApproved ? { status: "Approved" } : { currentSignerStep: nextStep });
+    } catch (err) {
+        if (resumedSignerId) {
+            await updateSigner(resumedSignerId, { status: "Returned" }).catch(() => {});
+        }
+        if (resolvedCorrectionId) {
+            await base(TABLES.CORRECTION_REQUESTS)
+                .update(resolvedCorrectionId, { Status: "Pending", "Resolved At": null })
+                .catch(() => {});
+        }
+        throw err;
+    }
+}
+
+export async function approveAction(prevState, formData) {
+    const user = await requireUser();
+    const prId = formData.get("prId");
+    const notes = formData.get("notes") || "";
+
+    const { pr, signers, correctionRequests } = await loadPRContext(prId);
+    const turn = getCurrentTurn(pr, signers);
+
+    if (!turn || turn.type !== "signer" || turn.userId !== user.id) {
+        return { error: "It's not your turn to act on this PR." };
+    }
+    if (pr.status !== "In Review") {
+        return { error: "This PR isn't currently in review." };
+    }
+
+    const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
+
+    try {
+        await updateSigner(turn.prSignerRecordId, {
+            status: "Approved",
+            signedAt: new Date().toISOString(),
+            notes,
+        });
+
+        await finishTurn({ pr, turn, signers, correctionRequests });
+    } catch (err) {
+        await updateSigner(turn.prSignerRecordId, {
+            status: signerBefore.status,
+            signedAt: signerBefore.signedAt || null,
+            notes: signerBefore.notes || "",
+        }).catch(() => {});
+
+        console.error("approveAction failed, rolled back", err);
+        return { error: "Something went wrong recording your approval. Please try again." };
+    }
+
+    redirect(`/prs/${pr.prId}?done=approved`);
+}
+
+export async function editAndContinueAction(prevState, formData) {
+    const user = await requireUser();
+    const prId = formData.get("prId");
+    const notes = formData.get("notes") || "";
+    const editedItems = JSON.parse(formData.get("itemsJson") || "[]");
+
+    const { pr, signers, correctionRequests } = await loadPRContext(prId);
+    const turn = getCurrentTurn(pr, signers);
+
+    if (!turn || turn.userId !== user.id) {
+        return { error: "It's not your turn to act on this PR." };
+    }
+    if (pr.status !== "In Review") {
+        return { error: "This PR isn't currently in review." };
+    }
+
+    const originalItems = await getItemsByPR(pr.id);
+    const originalById = Object.fromEntries(originalItems.map((it) => [it.id, it]));
+
+    // Diff submitted values against what's actually on record — only
+    // fields that really changed get an Edit Log entry and a write,
+    // matching Edit Log's per-field granularity (CLAUDE.md).
+    const changes = []; // { itemId, field, oldValue, newValue }
+    for (const submitted of editedItems) {
+        const original = originalById[submitted.id];
+        if (!original) continue;
+
+        for (const field of ITEM_FIELDS) {
+            const oldValue = original[field];
+            const newValue = field === "qty" || field === "rate" ? parseFloat(submitted[field]) : submitted[field];
+            if (String(oldValue ?? "") !== String(newValue ?? "")) {
+                changes.push({ itemId: submitted.id, field, oldValue, newValue });
+            }
+        }
+    }
+
+    const createdEditLogIds = [];
+    const touchedItemIds = new Set(changes.map((c) => c.itemId));
+
+    try {
+        // One updateItem call per item (batching its changed fields), but
+        // one Edit Log entry per changed field.
+        for (const itemId of touchedItemIds) {
+            const itemChanges = changes.filter((c) => c.itemId === itemId);
+            const fields = Object.fromEntries(itemChanges.map((c) => [c.field, c.newValue]));
+            await updateItem(itemId, fields);
+
+            for (const change of itemChanges) {
+                const entry = await createEditLogEntry({
+                    prRecordId: pr.id,
+                    prId: pr.prId,
+                    changedById: user.id,
+                    fieldName: ITEM_FIELD_LABELS[change.field],
+                    oldValue: change.oldValue,
+                    newValue: change.newValue,
+                });
+                createdEditLogIds.push(entry.id);
+            }
+        }
+
+        if (turn.type === "signer") {
+            await updateSigner(turn.prSignerRecordId, {
+                status: "Edited",
+                signedAt: new Date().toISOString(),
+                notes,
+            });
+        }
+
+        await finishTurn({ pr, turn, signers, correctionRequests });
+    } catch (err) {
+        for (const itemId of touchedItemIds) {
+            const original = originalById[itemId];
+            await updateItem(itemId, {
+                itemName: original.itemName,
+                size: original.size,
+                unit: original.unit,
+                qty: original.qty,
+                rate: original.rate,
+                remark: original.remark,
+            }).catch(() => {});
+        }
+        await Promise.allSettled(
+            createdEditLogIds.map((id) => base(TABLES.EDIT_LOG).destroy(id))
+        );
+        if (turn.type === "signer") {
+            const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
+            await updateSigner(turn.prSignerRecordId, {
+                status: signerBefore.status,
+                signedAt: signerBefore.signedAt || null,
+                notes: signerBefore.notes || "",
+            }).catch(() => {});
+        }
+
+        console.error("editAndContinueAction failed, rolled back", err);
+        return { error: "Something went wrong saving your changes. Please try again." };
+    }
+
+    redirect(`/prs/${pr.prId}?done=edited`);
+}
+
+export async function returnForCorrectionAction(prevState, formData) {
+    const user = await requireUser();
+    const prId = formData.get("prId");
+    const targetValue = formData.get("target");
+    const notes = formData.get("notes");
+
+    if (!notes) {
+        return { error: "Explain what needs to be corrected." };
+    }
+
+    const { pr, signers, correctionRequests } = await loadPRContext(prId);
+    const turn = getCurrentTurn(pr, signers);
+
+    if (!turn || turn.type !== "signer" || turn.userId !== user.id) {
+        return { error: "It's not your turn to act on this PR." };
+    }
+    if (pr.status !== "In Review") {
+        return { error: "This PR isn't currently in review." };
+    }
+
+    // Recompute the valid target set server-side rather than trusting the
+    // submitted value — same reasoning as re-checking requireAdmin() in
+    // every admin Server Action.
+    const validTargets = getReturnTargets(pr, signers, turn.sequenceOrder);
+    const target = validTargets.find((t) => t.value === targetValue);
+    if (!target) {
+        return { error: "Not a valid target for this PR's current step." };
+    }
+
+    const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
+    const targetStep = target.type === "requester" ? 0 : target.sequenceOrder;
+
+    let createdCorrectionId = null;
+
+    try {
+        const correction = await createCorrectionRequest({
+            prRecordId: pr.id,
+            prId: pr.prId,
+            initiatedById: user.id,
+            sentToId: target.userId,
+            notes,
+        });
+        createdCorrectionId = correction.id;
+
+        await updateSigner(turn.prSignerRecordId, { status: "Returned" });
+        await updatePR(pr.id, { currentSignerStep: targetStep });
+    } catch (err) {
+        if (createdCorrectionId) {
+            await base(TABLES.CORRECTION_REQUESTS).destroy(createdCorrectionId).catch(() => {});
+        }
+        await updateSigner(turn.prSignerRecordId, {
+            status: signerBefore.status,
+            signedAt: signerBefore.signedAt || null,
+            notes: signerBefore.notes || "",
+        }).catch(() => {});
+
+        console.error("returnForCorrectionAction failed, rolled back", err);
+        return { error: "Something went wrong sending this back for correction. Please try again." };
+    }
+
+    redirect(`/prs/${pr.prId}?done=returned`);
+}
