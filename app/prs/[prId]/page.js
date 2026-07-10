@@ -3,12 +3,24 @@ import { getPRById } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR } from "@/lib/airtable/prSigners";
 import { getItemsByPR } from "@/lib/airtable/prItems";
 import { getCorrectionRequestsByPR } from "@/lib/airtable/correctionRequests";
+import { getEditLogByPR } from "@/lib/airtable/editLog";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import SigningPanel from "./SigningPanel";
+
+// Formats a calendar-only "YYYY-MM-DD" date (e.g. Created Date — no
+// time-of-day) without letting it round-trip through UTC first: `new
+// Date("YYYY-MM-DD")` parses as UTC midnight, and converting that back to
+// a timezone behind UTC for display shifts it to the previous day.
+// Building the Date from its already-local (y, m, d) components sidesteps
+// that entirely.
+function formatDateOnly(isoDate) {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString();
+}
 
 const DONE_MESSAGES = {
     approved: "Recorded your approval.",
@@ -26,16 +38,23 @@ export default async function PRDetailPage({ params, searchParams }) {
         return <div className="p-8">PR not found.</div>;
     }
 
-    const [signers, items, vendors, lines, jobs] = await Promise.all([
+    const [signers, items, correctionRequests, editLog, vendors, lines, jobs] = await Promise.all([
         getSignersByPR(pr.id),
         getItemsByPR(pr.id),
+        getCorrectionRequestsByPR(pr.id),
+        getEditLogByPR(pr.id),
         getAllVendors(),
         getAllLines(),
         getAllJobs(),
     ]);
 
     const userIds = new Set(
-        [pr.requester?.[0], ...signers.map((s) => s.signer?.[0])].filter(Boolean)
+        [
+            pr.requester?.[0],
+            ...signers.map((s) => s.signer?.[0]),
+            ...correctionRequests.flatMap((c) => [c.initiatedBy?.[0], c.sentTo?.[0]]),
+            ...editLog.map((e) => e.changedBy?.[0]),
+        ].filter(Boolean)
     );
     const userList = await Promise.all([...userIds].map((id) => getUserByRecordId(id)));
     const usersById = Object.fromEntries(userList.filter(Boolean).map((u) => [u.id, u]));
@@ -55,6 +74,51 @@ export default async function PRDetailPage({ params, searchParams }) {
     const job = jobsById[pr.job?.[0]];
     const jobDisplay = job ? `${job.jobCode} — ${job.jobName}` : "—";
     const requesterName = usersById[pr.requester?.[0]]?.userName || "—";
+
+    // Read-only trail of the full signing chain (issue #9): every source
+    // table already existed (PR Signers.Signed At, Correction Requests,
+    // Edit Log) — this just merges them into one chronological timeline
+    // instead of leaving them as three disconnected lists a reader would
+    // have to cross-reference by hand. "Resolved by" isn't a field on
+    // Correction Requests, but is always the Sent To person (resolving
+    // only ever happens as a side effect of that person's own turn), so
+    // that's inferred rather than stored.
+    const historyEntries = [
+        // Created Date is a calendar-only field (no time-of-day — see
+        // CLAUDE.md's date/time naming rule), so it's formatted without a
+        // clock time, unlike every other entry below (all real
+        // timestamps). Formatting it as a full date+time would imply a
+        // precision ("7:00 PM") that was never actually recorded.
+        { at: pr.createdDate, text: `${requesterName} created the PR`, dateOnly: true },
+        ...signers
+            .filter((s) => s.signedAt)
+            .map((s) => {
+                const name = usersById[s.signer?.[0]]?.userName || "Unknown";
+                const verb = s.status === "Edited" ? "edited and continued" : "approved";
+                return { at: s.signedAt, text: `${name} ${verb} (step ${s.sequenceOrder})` };
+            }),
+        ...correctionRequests.flatMap((c) => {
+            const initiator = usersById[c.initiatedBy?.[0]]?.userName || "Unknown";
+            const target = usersById[c.sentTo?.[0]]?.userName || "Unknown";
+            const entries = [
+                {
+                    at: c.requestedAt,
+                    text: `${initiator} returned it to ${target} for correction: "${c.notes}"`,
+                },
+            ];
+            if (c.resolvedAt) {
+                entries.push({ at: c.resolvedAt, text: `${target} resolved the correction` });
+            }
+            return entries;
+        }),
+        ...editLog.map((e) => {
+            const name = usersById[e.changedBy?.[0]]?.userName || "Unknown";
+            return {
+                at: e.changedAt,
+                text: `${name} changed ${e.fieldName}: "${e.oldValue}" → "${e.newValue}"`,
+            };
+        }),
+    ].sort((a, b) => new Date(a.at) - new Date(b.at));
 
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
@@ -128,6 +192,20 @@ export default async function PRDetailPage({ params, searchParams }) {
                                 </li>
                             );
                         })}
+                </ol>
+            </div>
+
+            <div className="mt-6">
+                <h2 className="text-lg font-semibold">History</h2>
+                <ol className="mt-2 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    {historyEntries.map((entry, i) => (
+                        <li key={i}>
+                            <span className="text-zinc-400 dark:text-zinc-500">
+                                {entry.dateOnly ? formatDateOnly(entry.at) : new Date(entry.at).toLocaleString()}
+                            </span>{" "}
+                            — {entry.text}
+                        </li>
+                    ))}
                 </ol>
             </div>
 
