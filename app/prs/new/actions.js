@@ -6,6 +6,7 @@ import { base, TABLES } from "@/lib/airtable/client";
 import { createPR, updatePR } from "@/lib/airtable/purchaseRequests";
 import { createItem } from "@/lib/airtable/prItems";
 import { createSigner } from "@/lib/airtable/prSigners";
+import { notifyCurrentTurn } from "@/lib/notifications";
 
 // Bound to useActionState (see PRForm.js): takes (prevState, formData),
 // returns { error } on a validation/write failure instead of throwing —
@@ -88,6 +89,10 @@ export async function createPRAction(prevState, formData) {
         console.error("createPRAction failed, rolled back", err);
         return { error: "Something went wrong creating the PR. Please try again." };
     }
+
+    // Best-effort — see lib/notifications.js. Signer #1 is signerIds[0]
+    // (Sequence Order 1, the PR's starting Current Signer Step).
+    await notifyCurrentTurn({ pr, turn: { type: "signer", userId: signerIds[0] } });
 
     redirect(`/prs/new?created=${encodeURIComponent(pr.prId)}`);
 }
