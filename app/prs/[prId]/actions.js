@@ -13,6 +13,7 @@ import {
 } from "@/lib/airtable/correctionRequests";
 import { createEditLogEntry } from "@/lib/airtable/editLog";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
+import { notifyCurrentTurn } from "@/lib/notifications";
 
 const ITEM_FIELDS = ["itemName", "size", "unit", "qty", "rate", "remark"];
 const ITEM_FIELD_LABELS = {
@@ -43,6 +44,10 @@ async function loadPRContext(prId) {
  * resuming from a return, otherwise advance normally (see
  * lib/prSigning.js:computeAdvance). Rolls back everything it wrote on
  * failure, using the pre-write snapshots the caller already has.
+ *
+ * Returns { nextStep, prApproved } so the caller can notify whoever the
+ * chain now points at (see notifyCurrentTurn calls below) — nextStep is
+ * null when prApproved is true, since there's no next signer to notify.
  */
 async function finishTurn({ pr, turn, signers, correctionRequests }) {
     const { resolveCorrectionId, nextStep, prApproved } = computeAdvance({
@@ -82,6 +87,8 @@ async function finishTurn({ pr, turn, signers, correctionRequests }) {
         }
         throw err;
     }
+
+    return { nextStep, prApproved };
 }
 
 export async function approveAction(prevState, formData) {
@@ -100,6 +107,7 @@ export async function approveAction(prevState, formData) {
     }
 
     const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
+    let advance;
 
     try {
         await updateSigner(turn.prSignerRecordId, {
@@ -108,7 +116,7 @@ export async function approveAction(prevState, formData) {
             notes,
         });
 
-        await finishTurn({ pr, turn, signers, correctionRequests });
+        advance = await finishTurn({ pr, turn, signers, correctionRequests });
     } catch (err) {
         await updateSigner(turn.prSignerRecordId, {
             status: signerBefore.status,
@@ -118,6 +126,13 @@ export async function approveAction(prevState, formData) {
 
         console.error("approveAction failed, rolled back", err);
         return { error: "Something went wrong recording your approval. Please try again." };
+    }
+
+    // Best-effort — see lib/notifications.js. No notification when the PR
+    // just reached its final Approved state (no next signer, per scope).
+    if (!advance.prApproved) {
+        const nextTurn = getCurrentTurn({ ...pr, currentSignerStep: advance.nextStep }, signers);
+        await notifyCurrentTurn({ pr, turn: nextTurn });
     }
 
     redirect(`/prs/${pr.prId}?done=approved`);
@@ -161,6 +176,7 @@ export async function editAndContinueAction(prevState, formData) {
 
     const createdEditLogIds = [];
     const touchedItemIds = new Set(changes.map((c) => c.itemId));
+    let advance;
 
     try {
         // One updateItem call per item (batching its changed fields), but
@@ -191,7 +207,7 @@ export async function editAndContinueAction(prevState, formData) {
             });
         }
 
-        await finishTurn({ pr, turn, signers, correctionRequests });
+        advance = await finishTurn({ pr, turn, signers, correctionRequests });
     } catch (err) {
         for (const itemId of touchedItemIds) {
             const original = originalById[itemId];
@@ -218,6 +234,13 @@ export async function editAndContinueAction(prevState, formData) {
 
         console.error("editAndContinueAction failed, rolled back", err);
         return { error: "Something went wrong saving your changes. Please try again." };
+    }
+
+    // Best-effort — see lib/notifications.js. No notification when the PR
+    // just reached its final Approved state (no next signer, per scope).
+    if (!advance.prApproved) {
+        const nextTurn = getCurrentTurn({ ...pr, currentSignerStep: advance.nextStep }, signers);
+        await notifyCurrentTurn({ pr, turn: nextTurn });
     }
 
     redirect(`/prs/${pr.prId}?done=edited`);
@@ -282,6 +305,13 @@ export async function returnForCorrectionAction(prevState, formData) {
         console.error("returnForCorrectionAction failed, rolled back", err);
         return { error: "Something went wrong sending this back for correction. Please try again." };
     }
+
+    // Best-effort — see lib/notifications.js.
+    await notifyCurrentTurn({
+        pr,
+        turn: { type: target.type, userId: target.userId },
+        context: `Returned for correction: ${notes}`,
+    });
 
     redirect(`/prs/${pr.prId}?done=returned`);
 }
