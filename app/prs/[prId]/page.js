@@ -9,8 +9,10 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getAllJobs } from "@/lib/airtable/jobs";
+import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import SigningPanel from "./SigningPanel";
+import GeneratePOForm from "./GeneratePOForm";
 
 // Formats a calendar-only "YYYY-MM-DD" date (e.g. Created Date — no
 // time-of-day) without letting it round-trip through UTC first: `new
@@ -27,6 +29,7 @@ const DONE_MESSAGES = {
     approved: "Recorded your approval.",
     edited: "Saved your changes.",
     returned: "Sent back for correction.",
+    "po-generated": "Generated the Purchase Order.",
 };
 
 export default async function PRDetailPage({ params, searchParams }) {
@@ -50,6 +53,8 @@ export default async function PRDetailPage({ params, searchParams }) {
             getAllLines(),
             getAllJobs(),
         ]);
+
+    const po = pr.purchaseOrders?.[0] ? await getPOByRecordId(pr.purchaseOrders[0]) : null;
 
     const userIds = new Set(
         [
@@ -241,6 +246,24 @@ export default async function PRDetailPage({ params, searchParams }) {
                     ))}
                 </ol>
             </div>
+
+            {pr.status === "Approved" && (
+                <div className="mt-8">
+                    <h2 className="text-lg font-semibold">Purchase Order</h2>
+                    {po ? (
+                        <p className="mt-2 text-sm">
+                            {po.poId} — <strong>{po.status}</strong>
+                        </p>
+                    ) : (
+                        <div className="mt-2 space-y-2">
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                PO generation hasn&apos;t completed yet for this PR.
+                            </p>
+                            <GeneratePOForm prId={pr.prId} />
+                        </div>
+                    )}
+                </div>
+            )}
 
             {pr.status === "In Review" && (
                 <div className="mt-8">
