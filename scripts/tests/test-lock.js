@@ -19,11 +19,11 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/test-lock.js
 // ============================================================================
 
-import { base, TABLES, withKeyLock, _debugLockKeys } from "../lib/airtable/client.js";
-import { generateChildId } from "../lib/ids.js";
-import { createVendor } from "../lib/airtable/vendors.js";
-import { createJob } from "../lib/airtable/jobs.js";
-import { createPR } from "../lib/airtable/purchaseRequests.js";
+import { base, TABLES, withKeyLock, _debugLockKeys } from "../../lib/airtable/client.js";
+import { generateChildId } from "../../lib/ids.js";
+import { createVendor } from "../../lib/airtable/vendors.js";
+import { createJob } from "../../lib/airtable/jobs.js";
+import { createPR } from "../../lib/airtable/purchaseRequests.js";
 
 const results = [];
 function check(label, pass, detail) {

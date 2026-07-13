@@ -15,12 +15,12 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/test-verify.js
 // ============================================================================
 
-import { base, TABLES, getLinkedRecords } from "../lib/airtable/client.js";
-import { createVendor } from "../lib/airtable/vendors.js";
-import { createJob } from "../lib/airtable/jobs.js";
-import { createPR } from "../lib/airtable/purchaseRequests.js";
-import { createItem } from "../lib/airtable/prItems.js";
-import { getMaterialByKey, upsertMaterial } from "../lib/airtable/materials.js";
+import { base, TABLES, getLinkedRecords } from "../../lib/airtable/client.js";
+import { createVendor } from "../../lib/airtable/vendors.js";
+import { createJob } from "../../lib/airtable/jobs.js";
+import { createPR } from "../../lib/airtable/purchaseRequests.js";
+import { createItem } from "../../lib/airtable/prItems.js";
+import { getMaterialByKey, upsertMaterial } from "../../lib/airtable/materials.js";
 
 const results = [];
 function check(label, pass, detail) {
