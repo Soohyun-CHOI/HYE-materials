@@ -4,6 +4,7 @@ import { getSignersByPR } from "@/lib/airtable/prSigners";
 import { getItemsByPR } from "@/lib/airtable/prItems";
 import { getCorrectionRequestsByPR } from "@/lib/airtable/correctionRequests";
 import { getEditLogByPR } from "@/lib/airtable/editLog";
+import { getQuotationsByPR } from "@/lib/airtable/quotations";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllLines } from "@/lib/airtable/lines";
@@ -38,15 +39,17 @@ export default async function PRDetailPage({ params, searchParams }) {
         return <div className="p-8">PR not found.</div>;
     }
 
-    const [signers, items, correctionRequests, editLog, vendors, lines, jobs] = await Promise.all([
-        getSignersByPR(pr.id),
-        getItemsByPR(pr.id),
-        getCorrectionRequestsByPR(pr.id),
-        getEditLogByPR(pr.id),
-        getAllVendors(),
-        getAllLines(),
-        getAllJobs(),
-    ]);
+    const [signers, items, quotations, correctionRequests, editLog, vendors, lines, jobs] =
+        await Promise.all([
+            getSignersByPR(pr.id),
+            getItemsByPR(pr.id),
+            getQuotationsByPR(pr.id),
+            getCorrectionRequestsByPR(pr.id),
+            getEditLogByPR(pr.id),
+            getAllVendors(),
+            getAllLines(),
+            getAllJobs(),
+        ]);
 
     const userIds = new Set(
         [
@@ -171,6 +174,36 @@ export default async function PRDetailPage({ params, searchParams }) {
                     </tbody>
                 </table>
             </div>
+
+            {quotations.length > 0 && (
+                <div className="mt-6">
+                    <h2 className="text-lg font-semibold">Quotations</h2>
+                    <ul className="mt-2 space-y-1 text-sm">
+                        {quotations.map((q) => {
+                            // Airtable's own copy of the file — the URL it
+                            // returns is a short-lived signed URL (~2
+                            // hours, confirmed empirically), not the
+                            // original Vercel Blob URL from upload time.
+                            // See CLAUDE.md's "Quotation file upload"
+                            // section for why this link can go stale on a
+                            // page loaded from a bookmark/old tab.
+                            const file = q.file?.[0];
+                            return (
+                                <li key={q.id}>
+                                    {file ? (
+                                        <a href={file.url} target="_blank" rel="noreferrer" className="underline">
+                                            {file.filename || q.quotationId}
+                                        </a>
+                                    ) : (
+                                        q.quotationId
+                                    )}
+                                    {q.vendorQuotationCode && ` (Vendor code: ${q.vendorQuotationCode})`}
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+            )}
 
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">Signers</h2>

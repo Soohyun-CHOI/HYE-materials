@@ -6,6 +6,7 @@ import { base, TABLES } from "@/lib/airtable/client";
 import { createPR, updatePR } from "@/lib/airtable/purchaseRequests";
 import { createItem } from "@/lib/airtable/prItems";
 import { createSigner } from "@/lib/airtable/prSigners";
+import { createQuotation } from "@/lib/airtable/quotations";
 import { notifyCurrentTurn } from "@/lib/notifications";
 
 // Bound to useActionState (see PRForm.js): takes (prevState, formData),
@@ -19,6 +20,9 @@ export async function createPRAction(prevState, formData) {
     const notes = formData.get("notes") || "";
     const items = JSON.parse(formData.get("itemsJson") || "[]");
     const signerIds = JSON.parse(formData.get("signerIdsJson") || "[]");
+    const quotationUrl = formData.get("quotationUrl");
+    const quotationFilename = formData.get("quotationFilename");
+    const vendorQuotationCode = formData.get("vendorQuotationCode") || "";
 
     if (!lineId) return { error: "Select a Line." };
     if (!vendorId) return { error: "Select a Vendor." };
@@ -37,6 +41,7 @@ export async function createPRAction(prevState, formData) {
     let pr;
     const createdItemIds = [];
     const createdSignerIds = [];
+    let createdQuotationId = null;
 
     try {
         pr = await createPR({ requesterId: user.id, lineId, vendorId, notes });
@@ -65,6 +70,22 @@ export async function createPRAction(prevState, formData) {
             createdSignerIds.push(created.id);
         }
 
+        // Optional — only if a file was actually uploaded. Kept inside this
+        // same try/catch (not a best-effort side effect like the
+        // notification below): the Requester explicitly attached this
+        // file, so silently dropping it on a write failure would be worse
+        // than rolling back the whole submission and letting them retry.
+        if (quotationUrl) {
+            const quotation = await createQuotation({
+                prRecordId: pr.id,
+                prId: pr.prId,
+                vendorId,
+                vendorQuotationCode,
+                file: [{ url: quotationUrl, filename: quotationFilename || undefined }],
+            });
+            createdQuotationId = quotation.id;
+        }
+
         // Creating a PR here means the Requester has finished assigning
         // signers in the same step — submission IS the start of the review
         // chain, not a Draft left for later. Current Signer Step: 1 means
@@ -77,6 +98,9 @@ export async function createPRAction(prevState, formData) {
         // Delete everything created so far, in reverse order, so a failed
         // submission leaves no trace rather than a confusing partial PR.
         if (pr) {
+            if (createdQuotationId) {
+                await base(TABLES.QUOTATIONS).destroy(createdQuotationId).catch(() => {});
+            }
             await Promise.allSettled([
                 ...createdSignerIds.map((id) => base(TABLES.PR_SIGNERS).destroy(id)),
                 ...createdItemIds.map((id) => base(TABLES.PR_ITEMS).destroy(id)),

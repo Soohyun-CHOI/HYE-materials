@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
 import { createPRAction } from "./actions";
 import SignerList from "./SignerList";
 
@@ -17,6 +18,29 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     const [lineId, setLineId] = useState("");
     const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
     const [signerIds, setSignerIds] = useState([]);
+    // Quotation file is optional and uploaded in the background as soon as
+    // it's picked (client-side direct upload to Vercel Blob — see
+    // CLAUDE.md's "Quotation file upload" section for why: it needs to
+    // stay under the Server Action body-size limit). idle -> uploading ->
+    // done | error. A failed upload never blocks submitting the PR itself
+    // — it just means no quotation gets attached.
+    const [quotation, setQuotation] = useState({ status: "idle" });
+
+    async function handleFileChange(e) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setQuotation({ status: "uploading", filename: file.name });
+        try {
+            const blob = await upload(file.name, file, {
+                access: "public",
+                handleUploadUrl: "/api/quotations/upload",
+            });
+            setQuotation({ status: "done", url: blob.url, filename: file.name });
+        } catch (err) {
+            setQuotation({ status: "error", filename: file.name, error: err.message });
+        }
+    }
 
     const linesForJob = useMemo(
         () => lines.filter((l) => l.jobId === jobId),
@@ -217,19 +241,56 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                 <SignerList users={users} signerIds={signerIds} onChange={setSignerIds} />
             </div>
 
-            <div className="rounded border border-dashed border-zinc-300 p-3 text-sm text-zinc-500 dark:border-zinc-700">
-                Quotation file attachment coming soon.
+            <div>
+                <h2 className="text-lg font-semibold">Quotation (optional)</h2>
+                <div className="mt-2 space-y-2">
+                    <input
+                        type="file"
+                        accept="application/pdf,image/jpeg,image/png"
+                        onChange={handleFileChange}
+                        className="block text-sm"
+                    />
+                    {quotation.status === "uploading" && (
+                        <p className="text-sm text-zinc-500">Uploading {quotation.filename}...</p>
+                    )}
+                    {quotation.status === "done" && (
+                        <p className="text-sm text-green-700">
+                            Uploaded{" "}
+                            <a href={quotation.url} target="_blank" rel="noreferrer" className="underline">
+                                {quotation.filename}
+                            </a>
+                        </p>
+                    )}
+                    {quotation.status === "error" && (
+                        <p className="text-sm text-red-600">
+                            Upload failed: {quotation.error}. You can try a different file or submit without one.
+                        </p>
+                    )}
+                    {quotation.status === "done" && (
+                        <input
+                            placeholder="Vendor Quotation Code (optional)"
+                            name="vendorQuotationCode"
+                            className={inputClass}
+                        />
+                    )}
+                </div>
             </div>
 
             <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
             <input type="hidden" name="signerIdsJson" value={JSON.stringify(signerIds)} />
+            {quotation.status === "done" && (
+                <>
+                    <input type="hidden" name="quotationUrl" value={quotation.url} />
+                    <input type="hidden" name="quotationFilename" value={quotation.filename} />
+                </>
+            )}
 
             <button
                 type="submit"
-                disabled={pending}
+                disabled={pending || quotation.status === "uploading"}
                 className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
             >
-                {pending ? "Submitting..." : "Submit PR"}
+                {pending ? "Submitting..." : quotation.status === "uploading" ? "Uploading file..." : "Submit PR"}
             </button>
         </form>
     );
