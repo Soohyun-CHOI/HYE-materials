@@ -14,6 +14,7 @@ import {
 import { createEditLogEntry } from "@/lib/airtable/editLog";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn } from "@/lib/notifications";
+import { generatePOForApprovedPR } from "@/lib/poGeneration";
 
 const ITEM_FIELDS = ["itemName", "size", "unit", "qty", "rate", "remark"];
 const ITEM_FIELD_LABELS = {
@@ -133,6 +134,17 @@ export async function approveAction(prevState, formData) {
     if (!advance.prApproved) {
         const nextTurn = getCurrentTurn({ ...pr, currentSignerStep: advance.nextStep }, signers);
         await notifyCurrentTurn({ pr, turn: nextTurn });
+    } else {
+        // Best-effort, but unlike notifications a failure here leaves a
+        // real gap (an Approved PR with no PO) rather than just a missed
+        // email — see lib/poGeneration.js. Never rolls back the approval
+        // that just committed; app/prs/[prId]/page.js surfaces a manual
+        // "generate PO" retry (generatePOAction below) when this fails.
+        try {
+            await generatePOForApprovedPR(pr);
+        } catch (err) {
+            console.error("Auto PO generation failed after PR approval (non-fatal, retry available on PR page)", err);
+        }
     }
 
     redirect(`/prs/${pr.prId}?done=approved`);
@@ -241,6 +253,17 @@ export async function editAndContinueAction(prevState, formData) {
     if (!advance.prApproved) {
         const nextTurn = getCurrentTurn({ ...pr, currentSignerStep: advance.nextStep }, signers);
         await notifyCurrentTurn({ pr, turn: nextTurn });
+    } else {
+        // Best-effort, but unlike notifications a failure here leaves a
+        // real gap (an Approved PR with no PO) rather than just a missed
+        // email — see lib/poGeneration.js. Never rolls back the approval
+        // that just committed; app/prs/[prId]/page.js surfaces a manual
+        // "generate PO" retry (generatePOAction below) when this fails.
+        try {
+            await generatePOForApprovedPR(pr);
+        } catch (err) {
+            console.error("Auto PO generation failed after PR approval (non-fatal, retry available on PR page)", err);
+        }
     }
 
     redirect(`/prs/${pr.prId}?done=edited`);
@@ -314,4 +337,31 @@ export async function returnForCorrectionAction(prevState, formData) {
     });
 
     redirect(`/prs/${pr.prId}?done=returned`);
+}
+
+/**
+ * Manual fallback for when the auto-trigger in approveAction/
+ * editAndContinueAction failed (see lib/poGeneration.js) — re-invokes the
+ * exact same generation function. Safe to click more than once: it's a
+ * no-op if a PO already exists for this PR (see generatePOForApprovedPR).
+ */
+export async function generatePOAction(prevState, formData) {
+    await requireUser();
+    const prId = formData.get("prId");
+
+    const pr = await getPRById(prId);
+    if (!pr) throw new Error("PR not found");
+
+    if (pr.status !== "Approved") {
+        return { error: "This PR isn't fully approved yet." };
+    }
+
+    try {
+        await generatePOForApprovedPR(pr);
+    } catch (err) {
+        console.error("Manual PO generation retry failed", err);
+        return { error: "Something went wrong generating the PO. Please try again." };
+    }
+
+    redirect(`/prs/${pr.prId}?done=po-generated`);
 }
