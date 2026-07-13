@@ -252,7 +252,10 @@ export default async function PRDetailPage({ params, searchParams }) {
                     <h2 className="text-lg font-semibold">Purchase Order</h2>
                     {po ? (
                         <p className="mt-2 text-sm">
-                            {po.poId} — <strong>{po.status}</strong>
+                            <a href={`/pos/${po.poId}`} className="underline">
+                                {po.poId}
+                            </a>{" "}
+                            — <strong>{po.status}</strong>
                         </p>
                     ) : (
                         <div className="mt-2 space-y-2">
