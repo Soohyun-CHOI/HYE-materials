@@ -99,16 +99,85 @@ AIRTABLE_API_ROOT = "https://api.airtable.com/v0"
 BATCH_SIZE = 10  # Airtable allows up to 10 records per request
 REQUEST_PAUSE_SEC = 0.25  # stay under Airtable's rate limit (5 req/sec)
 
+# Multi-word/hyphenated phrases with inconsistent spacing/hyphenation/case in
+# source spreadsheets. Matched case-insensitively regardless of spaces or
+# hyphens, and normalized to one exact canonical spelling. Runs BEFORE
+# title-casing so the canonical form is protected from being re-cased.
+PHRASE_NORMALIZATIONS = [
+    (re.compile(r"\bset[\s\-]+up\b", re.IGNORECASE), "Set Up"),
+    (re.compile(r"\bhook[\s\-]+up\b", re.IGNORECASE), "Hook-up"),
+]
+
 # Known inconsistent spellings found in source spreadsheets, normalized to
 # a single canonical form. Add new (wrong, right) pairs here as they're found.
 NAME_NORMALIZATIONS = [
     ("T-PJT", "T PJT"),
 ]
 
+# Obvious abbreviations/acronyms that must stay fully uppercase regardless of
+# title-casing. Compared case-insensitively against each whitespace-separated
+# word. Add new ones here as they're found (e.g. "GCS", "H2SO4").
+ABBREVIATIONS = {"PJT", "OM", "FAB", "GCS", "CCSS", "SAS", "NBA", "MDU", "CUB",
+                 "SCTA", "SPM", "SECAI", "SE&A", "B&D", "GA"}
+
+# Words that must render in one specific exact casing, neither ALL CAPS
+# (like an abbreviation) nor standard Title Case. Compared case-insensitively.
+EXACT_CASE_WORDS = {"NAOH": "NaOH"}
+
+# Already-canonical phrases (from PHRASE_NORMALIZATIONS above) that must be
+# protected from further title-casing -- e.g. "Hook-up" should stay "Hook-up",
+# not become "Hook-Up".
+PROTECTED_PHRASES = {"Set Up", "Hook-up"}
+
 
 # ----------------------------------------------------------------------------
 # Utility functions
 # ----------------------------------------------------------------------------
+def title_case_preserving(job_name: str) -> str:
+    words = job_name.split(" ")
+    result = []
+    skip_until = -1
+    for i, word in enumerate(words):
+        if i <= skip_until:
+            continue
+        matched_phrase = None
+        for phrase in PROTECTED_PHRASES:
+            phrase_words = phrase.split(" ")
+            if words[i:i + len(phrase_words)] == phrase_words:
+                matched_phrase = phrase
+                skip_until = i + len(phrase_words) - 1
+                break
+        if matched_phrase:
+            result.append(matched_phrase)
+        elif any(ch.isdigit() for ch in word):
+            # Alphanumeric codes/measurements (FAB2, U4, 2nm, 2Drum, 49HF...)
+            # -- preserve exactly as extracted rather than risk mangling
+            # embedded capitals.
+            result.append(word)
+        elif word.upper() in EXACT_CASE_WORDS:
+            result.append(EXACT_CASE_WORDS[word.upper()])
+        elif word.upper() in ABBREVIATIONS:
+            result.append(word.upper())
+        elif word == "":
+            result.append(word)
+        else:
+            result.append(word[:1].upper() + word[1:].lower())
+    return " ".join(result)
+
+
+def normalize_job_name(job_name: str) -> str:
+    # Exact 1:1 literal replacements (e.g. T-PJT -> T PJT)
+    for wrong, right in NAME_NORMALIZATIONS:
+        job_name = job_name.replace(wrong, right)
+
+    # Case/spacing/hyphenation-insensitive phrase normalization
+    for pattern, canonical in PHRASE_NORMALIZATIONS:
+        job_name = pattern.sub(canonical, job_name)
+
+    # Title-case everything else, protecting abbreviations/canonical phrases
+    return title_case_preserving(job_name)
+
+
 def normalize_str(value):
     """Trim leading/trailing whitespace, normalize nbsp, and collapse
     internal runs of whitespace into a single space."""
@@ -177,12 +246,6 @@ def extract_rows_from_sheet(ws):
 
         bu = normalize_str(bu_raw)
         code = normalize_str(code_raw)
-
-        def normalize_job_name(job_name: str) -> str:
-            for wrong, right in NAME_NORMALIZATIONS:
-                job_name = job_name.replace(wrong, right)
-            return job_name
-
         name = normalize_str(name_raw)
         name = normalize_job_name(name)
 
@@ -253,12 +316,11 @@ class AirtableClient:
             "Content-Type": "application/json",
         }
 
-    def fetch_existing_job_codes(self):
-        """Fetches every Job Code already in the Jobs table and returns them
-        as a set of normalized strings. Read-only (GET) -- safe to call even
-        during --dry-run, so a dry-run's create/skip counts reflect reality."""
-        codes = set()
-        params = {"fields[]": FIELD_JOB_CODE, "pageSize": 100}
+    def fetch_existing_jobs(self):
+        """Fetches every Job Code + Job Name already in the Jobs table.
+        Returns a dict of {normalized_job_code: normalized_job_name}."""
+        jobs = {}
+        params: dict[str, str | int | list[str]] = {"fields[]": [FIELD_JOB_CODE, FIELD_JOB_NAME], "pageSize": 100}
         offset: str | None = None
         while True:
             if offset:
@@ -267,14 +329,16 @@ class AirtableClient:
             resp.raise_for_status()
             data = resp.json()
             for record in data.get("records", []):
-                raw = record.get("fields", {}).get(FIELD_JOB_CODE)
-                if raw:
-                    codes.add(normalize_str(raw))
+                fields = record.get("fields", {})
+                code = fields.get(FIELD_JOB_CODE)
+                name = fields.get(FIELD_JOB_NAME)
+                if code:
+                    jobs[normalize_str(code)] = normalize_job_name(normalize_str(name or ""))
             offset = data.get("offset")
             if not offset:
                 break
             time.sleep(REQUEST_PAUSE_SEC)
-        return codes
+        return jobs
 
     def create_records(self, records, dry_run=False):
         """records: [{business_unit, job_code, job_name}] -> batch-creates
@@ -361,14 +425,13 @@ def main():
     # create/skip counts diverge from what a real run would actually do.
     client = AirtableClient(token, args.base_id, args.table)
     print("Fetching existing Job Codes from Airtable...")
-    existing_codes = client.fetch_existing_job_codes()
-    print(f"Found {len(existing_codes)} existing Job Codes.\n")
-    if args.dry_run:
-        print("(dry-run mode: previewing only, no writes will be made)\n")
+    existing_jobs = client.fetch_existing_jobs()
+    print(f"Found {len(existing_jobs)} existing Job Codes.\n")
 
-    seen_this_run = set(existing_codes)  # accumulates codes seen so far in this run, for dedup
+    seen_this_run = dict(existing_jobs)  # {code: name}
     total_created = 0
     total_skipped_dup = 0
+    total_name_mismatches = 0
 
     for (_year, _month), filepath in targets:
         _, rows = load_rows_from_file(filepath)
@@ -377,11 +440,19 @@ def main():
 
         to_create = []
         for r in rows:
-            code_key = r["job_code"]  # already normalized by normalize_str
+            code_key = r["job_code"]
+            normalized_name = normalize_job_name(r["job_name"])
+
             if code_key in seen_this_run:
+                existing_name = seen_this_run[code_key]
+                if existing_name and normalized_name != existing_name:
+                    print(f"  [WARN] Job Code '{code_key}' already exists with a different "
+                          f"Job Name -- existing: '{existing_name}' | this file: '{normalized_name}'")
+                    total_name_mismatches += 1
                 total_skipped_dup += 1
                 continue
-            seen_this_run.add(code_key)
+
+            seen_this_run[code_key] = normalized_name
             to_create.append(r)
 
         print(f"  -> {len(to_create)} new / {len(rows) - len(to_create)} skipped as duplicates")
@@ -392,8 +463,8 @@ def main():
         print()
 
     print("=" * 50)
-    print(
-        f"Done: {total_created} record(s) created (dry-run={args.dry_run}), {total_skipped_dup} skipped as duplicates")
+    print(f"Done: {total_created} record(s) created, {total_skipped_dup} skipped as duplicates "
+          f"({total_name_mismatches} of those had a Job Name mismatch worth reviewing)")
 
 
 if __name__ == "__main__":
