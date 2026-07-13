@@ -52,3 +52,12 @@ next-env.d.ts
 
 # local commit message file
 commit-msg.txt
+
+# raw data
+scripts/import/data/
+scripts/import/output/
+
+# python
+/.venv/
+__pycache__/
+*.py[cod]

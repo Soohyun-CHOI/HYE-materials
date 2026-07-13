@@ -21,27 +21,27 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/test-updates.js
 // ============================================================================
 
-import { base, TABLES } from "../lib/airtable/client.js";
-import { createUser } from "../lib/airtable/users.js";
-import { createJob } from "../lib/airtable/jobs.js";
-import { createVendor } from "../lib/airtable/vendors.js";
-import { createPR, updatePR, getPRByRecordId } from "../lib/airtable/purchaseRequests.js";
-import { createItem, updateItem, getItemsByPR } from "../lib/airtable/prItems.js";
-import { createSigner, updateSigner, getSignersByPR } from "../lib/airtable/prSigners.js";
+import { base, TABLES } from "../../lib/airtable/client.js";
+import { createUser } from "../../lib/airtable/users.js";
+import { createJob } from "../../lib/airtable/jobs.js";
+import { createVendor } from "../../lib/airtable/vendors.js";
+import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
+import { createItem, updateItem, getItemsByPR } from "../../lib/airtable/prItems.js";
+import { createSigner, updateSigner, getSignersByPR } from "../../lib/airtable/prSigners.js";
 import {
     createCorrectionRequest,
     resolveCorrectionRequest,
     getCorrectionRequestsByPR,
-} from "../lib/airtable/correctionRequests.js";
-import { createPO, updatePO, getPOByRecordId } from "../lib/airtable/purchaseOrders.js";
-import { createPOItem } from "../lib/airtable/poItems.js";
-import { createQuotation } from "../lib/airtable/quotations.js";
-import { createInvoice, updateInvoice, getInvoiceById, linkInvoiceToPO } from "../lib/airtable/invoices.js";
+} from "../../lib/airtable/correctionRequests.js";
+import { createPO, updatePO, getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
+import { createPOItem } from "../../lib/airtable/poItems.js";
+import { createQuotation } from "../../lib/airtable/quotations.js";
+import { createInvoice, updateInvoice, getInvoiceById, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
 import {
     createInvoiceItem,
     updateInvoiceItem,
     getItemsByInvoice,
-} from "../lib/airtable/invoiceItems.js";
+} from "../../lib/airtable/invoiceItems.js";
 
 const results = [];
 function check(label, pass, detail, source) {

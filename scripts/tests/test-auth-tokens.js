@@ -3,8 +3,8 @@
 // create -> consume once (succeeds) -> consume again (rejected) -> expired
 // token is rejected. Cleans up after itself.
 
-import { base, TABLES } from "../lib/airtable/client.js";
-import { createAuthToken, consumeAuthToken } from "../lib/airtable/authTokens.js";
+import { base, TABLES } from "../../lib/airtable/client.js";
+import { createAuthToken, consumeAuthToken } from "../../lib/airtable/authTokens.js";
 
 const results = [];
 function check(label, pass, detail) {

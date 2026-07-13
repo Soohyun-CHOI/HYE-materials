@@ -20,27 +20,27 @@
 // to this folder only, so the rest of the repo is untouched.
 // ============================================================================
 
-import { base, TABLES } from "../lib/airtable/client.js";
-import { createUser } from "../lib/airtable/users.js";
-import { createJob } from "../lib/airtable/jobs.js";
-import { createVendor } from "../lib/airtable/vendors.js";
-import { createPR } from "../lib/airtable/purchaseRequests.js";
-import { createItem, getItemsByPR, updateItem } from "../lib/airtable/prItems.js";
-import { createSigner, getSignersByPR } from "../lib/airtable/prSigners.js";
+import { base, TABLES } from "../../lib/airtable/client.js";
+import { createUser } from "../../lib/airtable/users.js";
+import { createJob } from "../../lib/airtable/jobs.js";
+import { createVendor } from "../../lib/airtable/vendors.js";
+import { createPR } from "../../lib/airtable/purchaseRequests.js";
+import { createItem, getItemsByPR, updateItem } from "../../lib/airtable/prItems.js";
+import { createSigner, getSignersByPR } from "../../lib/airtable/prSigners.js";
 import {
     createCorrectionRequest,
     getCorrectionRequestsByPR,
     resolveCorrectionRequest,
-} from "../lib/airtable/correctionRequests.js";
-import { createPO } from "../lib/airtable/purchaseOrders.js";
-import { createPOItem, getItemsByPO } from "../lib/airtable/poItems.js";
-import { createQuotation, getQuotationsByPR } from "../lib/airtable/quotations.js";
-import { createInvoice, linkInvoiceToPO } from "../lib/airtable/invoices.js";
+} from "../../lib/airtable/correctionRequests.js";
+import { createPO } from "../../lib/airtable/purchaseOrders.js";
+import { createPOItem, getItemsByPO } from "../../lib/airtable/poItems.js";
+import { createQuotation, getQuotationsByPR } from "../../lib/airtable/quotations.js";
+import { createInvoice, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
 import {
     createInvoiceItem,
     getItemsByInvoice,
-} from "../lib/airtable/invoiceItems.js";
-import { getMaterialByKey, upsertMaterial } from "../lib/airtable/materials.js";
+} from "../../lib/airtable/invoiceItems.js";
+import { getMaterialByKey, upsertMaterial } from "../../lib/airtable/materials.js";
 
 // ---- tiny test harness -----------------------------------------------------
 
