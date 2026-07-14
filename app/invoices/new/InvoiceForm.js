@@ -20,6 +20,16 @@ const fieldClass =
 export default function InvoiceForm({ vendors, pos }) {
     const [state, formAction, pending] = useActionState(createInvoiceAction, null);
 
+    // Local copy, not just the prop directly — issue #46's detection can
+    // confirm a PO that was created *after* this page's initial server-side
+    // getAllPOs() fetch (e.g. approved moments earlier in the same
+    // session), which wouldn't be in `pos` yet. Without this, the <select>
+    // would have no matching <option> for a detected PO: the browser then
+    // visually renders some other option as "selected" while the real
+    // value silently stays correct underneath — a misleading display, not
+    // just a cosmetic gap, since the user has no reason to notice the
+    // mismatch and fix it before submitting.
+    const [posList, setPosList] = useState(pos);
     const [vendorId, setVendorId] = useState("");
     const [defaultPoId, setDefaultPoId] = useState("");
     const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
@@ -30,26 +40,126 @@ export default function InvoiceForm({ vendors, pos }) {
     // Quotations otherwise: uploads the moment it's picked (background),
     // never blocks on Server Action body-size limits.
     const [invoiceFile, setInvoiceFile] = useState({ status: "idle" });
+    // Issue #46 — best-effort, informational only: null | { level: "info" |
+    // "warning", message }. Never blocks anything; the manual Vendor/PO
+    // pickers below are the same controls this just pre-fills, so whatever
+    // it sets is still fully editable before submit.
+    const [poDetection, setPoDetection] = useState(null);
 
     async function handleInvoiceFileChange(e) {
         const file = e.target.files?.[0];
         if (!file) return;
 
         setInvoiceFile({ status: "uploading", filename: file.name });
+        setPoDetection(null);
         try {
             const blob = await upload(file.name, file, {
                 access: "public",
                 handleUploadUrl: "/api/invoices/upload",
             });
             setInvoiceFile({ status: "done", url: blob.url, filename: file.name });
+            await detectAndApplyPOs(blob.url);
         } catch (err) {
             setInvoiceFile({ status: "error", filename: file.name, error: err.message });
         }
     }
 
+    async function detectAndApplyPOs(blobUrl) {
+        try {
+            const res = await fetch("/api/invoices/detect-po", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ blobUrl }),
+            });
+            const { confirmed = [], unconfirmed = [], vendorConflict = false } = await res.json();
+
+            if (vendorConflict) {
+                setPoDetection({
+                    level: "warning",
+                    message: `Found PO references from more than one Vendor (${confirmed
+                        .map((c) => c.poId)
+                        .join(", ")}) — please verify and select manually below.`,
+                });
+                return;
+            }
+
+            if (confirmed.length === 0) {
+                if (unconfirmed.length > 0) {
+                    setPoDetection({
+                        level: "warning",
+                        message: `Found what looks like a PO number (${unconfirmed.join(
+                            ", "
+                        )}) but no matching PO exists — check it wasn't mistyped, or select manually below.`,
+                    });
+                }
+                return; // Nothing to auto-fill — falls back to manual entry as-is.
+            }
+
+            // Merge any confirmed PO that isn't already in posList — see
+            // the posList comment above for why this can happen (a PO
+            // created after this page's own data was fetched).
+            setPosList((prev) => {
+                const missing = confirmed.filter((c) => !prev.some((po) => po.id === c.recordId));
+                if (missing.length === 0) return prev;
+                return [
+                    ...prev,
+                    ...missing.map((c) => ({ id: c.recordId, poId: c.poId, vendorId: c.vendorId })),
+                ];
+            });
+
+            // Detection is more authoritative than an early Vendor guess —
+            // the item PO pickers are Vendor-scoped (see posForVendor
+            // below), so the detected PO can't even be selected until the
+            // matching Vendor is set.
+            if (confirmed[0].vendorId) {
+                setVendorId(confirmed[0].vendorId);
+            }
+
+            if (confirmed.length === 1) {
+                const poRecordId = confirmed[0].recordId;
+                setDefaultPoId(poRecordId);
+                // Same non-destructive back-fill as handleDefaultPoChange —
+                // only fills items that don't have their own PO yet.
+                setItems((prev) =>
+                    prev.map((item) => (item.poRecordId ? item : { ...item, poRecordId }))
+                );
+                setPoDetection({
+                    level: "info",
+                    message: `Detected PO: ${confirmed[0].poId} (auto-filled below).`,
+                });
+            } else {
+                // Multi-PO case: there's no single "default" to seed, so
+                // scaffold one item row per detected PO instead — but only
+                // if every current item is still untouched (no name/qty/
+                // price entered), so this never overwrites real input from
+                // someone who uploaded the file after already starting to
+                // fill the form in.
+                setItems((prev) => {
+                    const pristine = prev.every((item) => !item.itemName && !item.qty && !item.unitPrice);
+                    if (!pristine) return prev;
+                    return confirmed.map((c) => ({ ...EMPTY_ITEM, poRecordId: c.recordId }));
+                });
+                const unconfirmedNote =
+                    unconfirmed.length > 0
+                        ? ` (${unconfirmed.length} unrecognized reference${unconfirmed.length > 1 ? "s" : ""} ignored)`
+                        : "";
+                setPoDetection({
+                    level: "info",
+                    message: `Detected ${confirmed.length} POs: ${confirmed
+                        .map((c) => c.poId)
+                        .join(", ")} — auto-filled below, verify each item's assignment.${unconfirmedNote}`,
+                });
+            }
+        } catch (err) {
+            // Silent — convenience feature only, manual entry is always
+            // available regardless of whether this request itself failed.
+            console.error("PO detection request failed", err);
+        }
+    }
+
     const posForVendor = useMemo(
-        () => pos.filter((po) => po.vendorId === vendorId),
-        [pos, vendorId]
+        () => posList.filter((po) => po.vendorId === vendorId),
+        [posList, vendorId]
     );
 
     function handleVendorChange(e) {
@@ -240,6 +350,17 @@ export default function InvoiceForm({ vendors, pos }) {
                     )}
                     {invoiceFile.status === "idle" && (
                         <p className="text-sm text-zinc-500">No file attached yet.</p>
+                    )}
+                    {poDetection && (
+                        <p
+                            className={
+                                poDetection.level === "warning"
+                                    ? "text-sm text-amber-700"
+                                    : "text-sm text-blue-700"
+                            }
+                        >
+                            {poDetection.message}
+                        </p>
                     )}
                 </div>
             </div>
