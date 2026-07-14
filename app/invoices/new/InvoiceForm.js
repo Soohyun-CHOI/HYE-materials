@@ -11,6 +11,22 @@ const inputClass =
 const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
 
+// "PDF Upload" vs "Manual Entry" (added after the initial build) is a
+// single form/single state tree with two tabs, not two separate forms —
+// PDF or hand-typed, it's the same underlying task (entering an invoice),
+// and switching tabs must never lose whatever's already been
+// attached/detected/typed. So `activeTab` only ever changes which order
+// these render helpers appear in below — every one of them reads/writes
+// the exact same state regardless of which tab is active, and PO
+// detection (issue #46) always runs on any file upload in either tab
+// (a product decision — detection is harmless best-effort, so there's no
+// real reason to disable it just because someone started on the Manual
+// tab).
+const TABS = [
+    { id: "pdf", label: "PDF Upload" },
+    { id: "manual", label: "Manual Entry" },
+];
+
 // The common case (per product decision) is one PO with several invoices —
 // an invoice spanning several POs is the supported edge case, not the
 // default flow. So "PO" is picked once at the header and seeds every new
@@ -19,6 +35,8 @@ const fieldClass =
 // case, since Invoice Items each carry their own required PO link.
 export default function InvoiceForm({ vendors, pos }) {
     const [state, formAction, pending] = useActionState(createInvoiceAction, null);
+    // Default "pdf" — the primary path most people try first.
+    const [activeTab, setActiveTab] = useState("pdf");
 
     // Local copy, not just the prop directly — issue #46's detection can
     // confirm a PO that was created *after* this page's initial server-side
@@ -205,14 +223,8 @@ export default function InvoiceForm({ vendors, pos }) {
         return sum + qty * unitPrice;
     }, 0);
 
-    return (
-        <form action={formAction} className="mt-6 space-y-8">
-            {state?.error && (
-                <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {state.error}
-                </p>
-            )}
-
+    function renderHeaderFields() {
+        return (
             <div className="space-y-4">
                 <div>
                     <label htmlFor="vendorId" className="block text-sm font-medium">
@@ -318,7 +330,11 @@ export default function InvoiceForm({ vendors, pos }) {
                     </p>
                 </div>
             </div>
+        );
+    }
 
+    function renderFileSection() {
+        return (
             <div>
                 <h2 className="text-lg font-semibold">Invoice File</h2>
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -364,7 +380,11 @@ export default function InvoiceForm({ vendors, pos }) {
                     )}
                 </div>
             </div>
+        );
+    }
 
+    function renderItemsSection() {
+        return (
             <div>
                 <h2 className="text-lg font-semibold">Items</h2>
                 <div className="mt-2 space-y-3">
@@ -439,6 +459,52 @@ export default function InvoiceForm({ vendors, pos }) {
                 </button>
                 <p className="mt-2 text-sm font-medium">Items total (preview): {itemsTotal.toFixed(2)}</p>
             </div>
+        );
+    }
+
+    return (
+        <form action={formAction} className="mt-6 space-y-8">
+            {state?.error && (
+                <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {state.error}
+                </p>
+            )}
+
+            <div className="flex gap-2 border-b border-zinc-300 dark:border-zinc-700">
+                {TABS.map((tab) => (
+                    <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={
+                            activeTab === tab.id
+                                ? "border-b-2 border-foreground px-3 pb-2 text-sm font-semibold"
+                                : "px-3 pb-2 text-sm text-zinc-500"
+                        }
+                    >
+                        {tab.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* Same state, same fields, every time — the tab only ever
+                reorders these three blocks. PDF Upload leads with the file
+                (and whatever it auto-fills below); Manual Entry leads with
+                the fields to fill in by hand, with the still-required file
+                attachment last. */}
+            {activeTab === "pdf" ? (
+                <>
+                    {renderFileSection()}
+                    {renderHeaderFields()}
+                    {renderItemsSection()}
+                </>
+            ) : (
+                <>
+                    {renderHeaderFields()}
+                    {renderItemsSection()}
+                    {renderFileSection()}
+                </>
+            )}
 
             <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
             {invoiceFile.status === "done" && (
