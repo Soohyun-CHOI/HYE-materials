@@ -22,10 +22,18 @@ export async function createInvoiceAction(prevState, formData) {
     const amountDue = formData.get("amountDue");
     const shippingFee = formData.get("shippingFee") || 0;
     const items = JSON.parse(formData.get("itemsJson") || "[]");
+    const invoiceFileUrl = formData.get("invoiceFileUrl");
+    const invoiceFileFilename = formData.get("invoiceFileFilename");
 
     if (!vendorId) return { error: "Select a Vendor." };
     if (!issueDate) return { error: "Issue Date is required." };
     if (!amountDue) return { error: "Amount Due is required." };
+    // Required, unlike Quotations (#34) — every received vendor invoice
+    // must be kept on file. The submit button is already disabled client-
+    // side until the upload finishes, but Server Actions are callable
+    // directly regardless of what the page rendered, so this is re-checked
+    // here too.
+    if (!invoiceFileUrl) return { error: "Attach the invoice file." };
     if (items.length === 0) return { error: "Add at least one item." };
     for (const item of items) {
         if (!item.itemName || !item.qty || !item.unitPrice) {
@@ -41,6 +49,12 @@ export async function createInvoiceAction(prevState, formData) {
     const createdLinkIds = [];
 
     try {
+        // The file is written as part of this same create() call, not a
+        // separate record the way Quotations are (#34's Quotation record
+        // is its own table row) — so there's no intermediate state where
+        // the Invoice exists but the file doesn't; either this single
+        // write succeeds with both, or it fails and nothing was created at
+        // all (the catch block below has nothing to roll back in that case).
         invoice = await createInvoice({
             vendorId,
             vendorInvoiceCode,
@@ -48,6 +62,7 @@ export async function createInvoiceAction(prevState, formData) {
             dueDate,
             amountDue: parseFloat(amountDue),
             shippingFee: parseFloat(shippingFee) || 0,
+            file: [{ url: invoiceFileUrl, filename: invoiceFileFilename || undefined }],
         });
 
         for (const item of items) {
