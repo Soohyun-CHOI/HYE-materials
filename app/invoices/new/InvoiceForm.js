@@ -49,7 +49,12 @@ export default function InvoiceForm({ vendors, pos }) {
     // mismatch and fix it before submitting.
     const [posList, setPosList] = useState(pos);
     const [vendorId, setVendorId] = useState("");
-    const [defaultPoId, setDefaultPoId] = useState("");
+    // Header PO is multi-select — this invoice can cover more than one PO
+    // (the supported edge case). `poPickerValue` is just the "add a PO"
+    // dropdown's own pending value, mirroring SignerList.js's add-then-
+    // clear pattern; it never itself represents which POs are selected.
+    const [selectedPoIds, setSelectedPoIds] = useState([]);
+    const [poPickerValue, setPoPickerValue] = useState("");
     const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
     // Unlike Quotations (#34), the Invoice file is required, not optional —
     // every received vendor invoice must be kept on file — so submit stays
@@ -133,23 +138,21 @@ export default function InvoiceForm({ vendors, pos }) {
                 setVendorId(confirmed[0].vendorId);
             }
 
+            applyPoSelection(confirmed.map((c) => c.recordId));
+
             if (confirmed.length === 1) {
-                const poRecordId = confirmed[0].recordId;
-                setDefaultPoId(poRecordId);
-                // Same non-destructive back-fill as handleDefaultPoChange —
-                // only fills items that don't have their own PO yet.
-                setItems((prev) =>
-                    prev.map((item) => (item.poRecordId ? item : { ...item, poRecordId }))
-                );
                 setPoDetection({
                     level: "info",
                     message: `Detected PO: ${confirmed[0].poId} (auto-filled below).`,
                 });
             } else {
-                // Multi-PO case: there's no single "default" to seed, so
-                // scaffold one item row per detected PO instead — but only
-                // if every current item is still untouched (no name/qty/
-                // price entered), so this never overwrites real input from
+                // Multi-PO case: applyPoSelection already resets any item
+                // whose PO fell out of the new selection, but there's still
+                // no single "default" to seed a brand-new invoice's blank
+                // row with — so scaffold one item row per detected PO
+                // instead, each pre-set to a different one. Only if every
+                // current item is still untouched (no name/qty/price
+                // entered), so this never overwrites real input from
                 // someone who uploaded the file after already starting to
                 // fill the form in.
                 setItems((prev) => {
@@ -179,32 +182,58 @@ export default function InvoiceForm({ vendors, pos }) {
         () => posList.filter((po) => po.vendorId === vendorId),
         [posList, vendorId]
     );
+    // What each item's own PO <select> is allowed to offer — restricted to
+    // the header's selection, not the full Vendor PO list, since an item
+    // can only belong to a PO this invoice actually claims to cover.
+    const selectedPos = useMemo(
+        () => posList.filter((po) => selectedPoIds.includes(po.id)),
+        [posList, selectedPoIds]
+    );
+
+    // Single sync point for every way the header PO selection can change —
+    // manual add, manual remove, or issue #46's detection setting it
+    // wholesale. Exactly one PO selected means there's no real choice left
+    // for any line, so every item is forced to it (the per-item picker
+    // isn't even rendered in that case — see renderItemsSection). Two or
+    // more means each item keeps its own PO *if* it's still one of the
+    // selected ones, otherwise it's reset to unset rather than silently
+    // reassigned to something the user didn't pick.
+    function applyPoSelection(newSelectedPoIds) {
+        setSelectedPoIds(newSelectedPoIds);
+        if (newSelectedPoIds.length === 1) {
+            const only = newSelectedPoIds[0];
+            setItems((prev) => prev.map((item) => ({ ...item, poRecordId: only })));
+        } else {
+            setItems((prev) =>
+                prev.map((item) =>
+                    newSelectedPoIds.includes(item.poRecordId) ? item : { ...item, poRecordId: "" }
+                )
+            );
+        }
+    }
 
     function handleVendorChange(e) {
         const newVendorId = e.target.value;
         setVendorId(newVendorId);
         // POs picked under the previous Vendor almost certainly don't
-        // belong to the new one — clear rather than leave a stale,
-        // now-invalid selection sitting in state.
-        setDefaultPoId("");
-        setItems((prev) => prev.map((item) => ({ ...item, poRecordId: "" })));
+        // belong to the new one — clear rather than leave stale, now-
+        // invalid selections sitting in state.
+        setPoPickerValue("");
+        applyPoSelection([]);
     }
 
-    function handleDefaultPoChange(e) {
-        const newDefaultPoId = e.target.value;
-        setDefaultPoId(newDefaultPoId);
-        // Back-fills any item that doesn't have its own PO set yet —
-        // covers the item(s) already on the form before this was picked
-        // (e.g. the first row, added on page load before any selection
-        // exists) — without overwriting a line someone already customized
-        // for the multi-PO edge case.
-        setItems((prev) =>
-            prev.map((item) => (item.poRecordId ? item : { ...item, poRecordId: newDefaultPoId }))
-        );
+    function handleAddPo() {
+        if (!poPickerValue) return;
+        applyPoSelection([...selectedPoIds, poPickerValue]);
+        setPoPickerValue("");
+    }
+
+    function handleRemovePo(poId) {
+        applyPoSelection(selectedPoIds.filter((id) => id !== poId));
     }
 
     function addItem() {
-        setItems((prev) => [...prev, { ...EMPTY_ITEM, poRecordId: defaultPoId }]);
+        setItems((prev) => [...prev, { ...EMPTY_ITEM, poRecordId: selectedPoIds[0] || "" }]);
     }
 
     function removeItem(index) {
@@ -305,29 +334,59 @@ export default function InvoiceForm({ vendors, pos }) {
                 </div>
 
                 <div>
-                    <label htmlFor="defaultPoId" className="block text-sm font-medium">
-                        PO
-                    </label>
-                    <select
-                        id="defaultPoId"
-                        value={defaultPoId}
-                        onChange={handleDefaultPoChange}
-                        disabled={!vendorId}
-                        className={fieldClass}
-                    >
-                        <option value="">
-                            {vendorId ? "Select a PO (fills in below, per-line still changeable)" : "Select a Vendor first"}
-                        </option>
-                        {posForVendor.map((po) => (
-                            <option key={po.id} value={po.id}>
-                                {po.poId}
-                            </option>
-                        ))}
-                    </select>
+                    <span className="block text-sm font-medium">PO</span>
                     <p className="mt-1 text-xs text-zinc-500">
-                        Most invoices cover a single PO — this fills in every line below.
-                        Only change a line&apos;s own PO if this invoice actually spans more than one.
+                        Pick every PO this invoice covers. One PO fills in every line below
+                        automatically; two or more lets each line pick which one it belongs to.
                     </p>
+
+                    {selectedPoIds.length > 0 && (
+                        <ul className="mt-2 space-y-1">
+                            {selectedPos.map((po) => (
+                                <li
+                                    key={po.id}
+                                    className="flex items-center justify-between rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700"
+                                >
+                                    <span>{po.poId}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemovePo(po.id)}
+                                        className="text-red-600"
+                                    >
+                                        Remove
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+
+                    <div className="mt-2 flex gap-2">
+                        <select
+                            value={poPickerValue}
+                            onChange={(e) => setPoPickerValue(e.target.value)}
+                            disabled={!vendorId}
+                            className={fieldClass}
+                        >
+                            <option value="">
+                                {vendorId ? "Select a PO to add..." : "Select a Vendor first"}
+                            </option>
+                            {posForVendor
+                                .filter((po) => !selectedPoIds.includes(po.id))
+                                .map((po) => (
+                                    <option key={po.id} value={po.id}>
+                                        {po.poId}
+                                    </option>
+                                ))}
+                        </select>
+                        <button
+                            type="button"
+                            onClick={handleAddPo}
+                            disabled={!poPickerValue}
+                            className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                        >
+                            Add
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -390,9 +449,21 @@ export default function InvoiceForm({ vendors, pos }) {
                 <div className="mt-2 space-y-3">
                     {items.map((item, i) => {
                         const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
+                        // The per-item PO picker only makes sense (and only
+                        // renders) once the header has claimed 2+ POs —
+                        // with exactly one selected, applyPoSelection()
+                        // already forced every item to it, so there's no
+                        // real choice left to show.
+                        const showPoPicker = selectedPoIds.length >= 2;
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
-                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                <div
+                                    className={
+                                        showPoPicker
+                                            ? "grid grid-cols-2 gap-2 sm:grid-cols-4"
+                                            : "grid grid-cols-2 gap-2 sm:grid-cols-3"
+                                    }
+                                >
                                     <input
                                         placeholder="Item Name"
                                         required
@@ -417,22 +488,23 @@ export default function InvoiceForm({ vendors, pos }) {
                                         onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
                                         className={inputClass}
                                     />
-                                    <select
-                                        required
-                                        value={item.poRecordId}
-                                        onChange={(e) => updateItem(i, "poRecordId", e.target.value)}
-                                        disabled={!vendorId}
-                                        className={inputClass}
-                                    >
-                                        <option value="" disabled>
-                                            PO
-                                        </option>
-                                        {posForVendor.map((po) => (
-                                            <option key={po.id} value={po.id}>
-                                                {po.poId}
+                                    {showPoPicker && (
+                                        <select
+                                            required
+                                            value={item.poRecordId}
+                                            onChange={(e) => updateItem(i, "poRecordId", e.target.value)}
+                                            className={inputClass}
+                                        >
+                                            <option value="" disabled>
+                                                PO
                                             </option>
-                                        ))}
-                                    </select>
+                                            {selectedPos.map((po) => (
+                                                <option key={po.id} value={po.id}>
+                                                    {po.poId}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
                                 </div>
                                 <div className="mt-2 flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
                                     <span>Amount (preview): {amount.toFixed(2)}</span>
