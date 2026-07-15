@@ -1,11 +1,60 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createInvoiceAction } from "./actions";
 
-const EMPTY_ITEM = { itemName: "", qty: "", unitPrice: "", poRecordId: "", poItemRecordId: "" };
+// poItemTouched: false until the user (or #57's auto-default below) makes
+// an explicit choice in the PO Item dropdown — distinguishes "still
+// unset" from "deliberately Other (free text)", both of which otherwise
+// collapse to poItemRecordId: "". unitPriceEditing: whether the Unit
+// Price lock (#57) is currently open for a linked PO Item; irrelevant
+// (and ignored) once poItemRecordId is empty, since free-text lines were
+// never locked to begin with.
+const EMPTY_ITEM = {
+    itemName: "",
+    qty: "",
+    unitPrice: "",
+    poRecordId: "",
+    poItemRecordId: "",
+    poItemTouched: false,
+    unitPriceEditing: false,
+    remark: "",
+};
+
+// Issue #57 — items with remaining un-invoiced qty first (stable, so
+// relative order within each group is untouched), fully-invoiced/over-
+// invoiced pushed to the bottom rather than hidden.
+function sortByRemaining(poItems) {
+    return [...poItems].sort((a, b) => {
+        const aOpen = a.remainingQty > 0 ? 0 : 1;
+        const bOpen = b.remainingQty > 0 ? 0 : 1;
+        return aOpen - bOpen;
+    });
+}
+
+// Issue #57 — the one place that decides whether a line gets defaulted to
+// its PO's first (Remaining-sorted) item. Pure function of (item, cache)
+// rather than a setItems side effect, so it's usable both the moment a
+// line's poRecordId is first assigned/changed (addItem, updateItem,
+// applyPoSelection's single-PO-force branch — cases where that PO's items
+// may *already* be cached from earlier in the session) and again later
+// when a fetch that was still in flight at that moment finishes
+// (applyDefaultPoItemSelection). Never touches a line once poItemTouched
+// is true, or one with no PO / whose PO's items aren't loaded yet.
+function defaultedItem(item, cache) {
+    if (item.poItemTouched || !item.poRecordId) return item;
+    const entry = cache[item.poRecordId];
+    if (!entry || entry.status !== "done" || entry.items.length === 0) return item;
+    const first = entry.items[0];
+    return {
+        ...item,
+        poItemRecordId: first.id,
+        itemName: first.itemName,
+        unitPrice: first.rate != null ? String(first.rate) : item.unitPrice,
+    };
+}
 const inputClass =
     "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
 const fieldClass =
@@ -78,6 +127,27 @@ export default function InvoiceForm({ vendors, pos }) {
     // items" — an "error" entry is retried the next time that PO re-enters
     // selectedPoIds.
     const [poItemsCache, setPoItemsCache] = useState({});
+    // Issue #57 — Shipping Fee/Amount Due were plain uncontrolled inputs
+    // (read only via FormData at submit) until now; they need to be
+    // controlled state so the calculated-total preview can react to them
+    // live. `amountDue` is renamed `vendorStatedTotal` here to match its
+    // real role (the ground-truth figure from the vendor's own document,
+    // still submitted under the `amountDue` form field/Airtable column —
+    // only the label and local variable name change).
+    const [vendorStatedTotal, setVendorStatedTotal] = useState("");
+    const [shippingFee, setShippingFee] = useState("");
+    const [tariffEnabled, setTariffEnabled] = useState(false);
+    const [tariff, setTariff] = useState("");
+    // "Show all / search closed POs" — deliberately separate from posList/
+    // posForVendor: a result only ever gets merged into posList (below),
+    // never used to render its own results UI, so the existing "Select a
+    // PO to add..." dropdown stays the single place a PO is ever chosen
+    // from (same principle as #46's detection reusing that same dropdown).
+    const [showClosedSearch, setShowClosedSearch] = useState(false);
+    const [closedSearchQuery, setClosedSearchQuery] = useState("");
+    const [closedSearchStatus, setClosedSearchStatus] = useState("idle");
+    const [closedSearchResultCount, setClosedSearchResultCount] = useState(0);
+    const closedSearchTimeoutRef = useRef(null);
 
     async function handleInvoiceFileChange(e) {
         const file = e.target.files?.[0];
@@ -168,7 +238,9 @@ export default function InvoiceForm({ vendors, pos }) {
                 setItems((prev) => {
                     const pristine = prev.every((item) => !item.itemName && !item.qty && !item.unitPrice);
                     if (!pristine) return prev;
-                    return confirmed.map((c) => ({ ...EMPTY_ITEM, poRecordId: c.recordId }));
+                    return confirmed.map((c) =>
+                        defaultedItem({ ...EMPTY_ITEM, poRecordId: c.recordId }, poItemsCache)
+                    );
                 });
                 const unconfirmedNote =
                     unconfirmed.length > 0
@@ -220,7 +292,28 @@ export default function InvoiceForm({ vendors, pos }) {
         setSelectedPoIds(newSelectedPoIds);
         if (newSelectedPoIds.length === 1) {
             const only = newSelectedPoIds[0];
-            setItems((prev) => prev.map((item) => ({ ...item, poRecordId: only })));
+            setItems((prev) =>
+                prev.map((item) => {
+                    // Already on the surviving PO — leave poItemRecordId/
+                    // poItemTouched alone, just let defaultedItem fill in a
+                    // default if it's still pristine and the cache is
+                    // ready. Actually changing PO (the other branch this
+                    // collapsed from) needs the same reset updateItem's
+                    // manual PO change uses — a poItemRecordId from the PO
+                    // this line is leaving is never valid for `only`.
+                    if (item.poRecordId === only) return defaultedItem(item, poItemsCache);
+                    return defaultedItem(
+                        {
+                            ...item,
+                            poRecordId: only,
+                            poItemRecordId: "",
+                            poItemTouched: false,
+                            unitPriceEditing: false,
+                        },
+                        poItemsCache
+                    );
+                })
+            );
         } else {
             setItems((prev) =>
                 prev.map((item) =>
@@ -246,12 +339,27 @@ export default function InvoiceForm({ vendors, pos }) {
         try {
             const res = await fetch(`/api/pos/${poRecordId}/items`);
             if (!res.ok) throw new Error("Request failed");
-            const { items: poItems } = await res.json();
-            setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "done", items: poItems } }));
+            const { items: rawItems } = await res.json();
+            const sorted = sortByRemaining(rawItems);
+            setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "done", items: sorted } }));
+            applyDefaultPoItemSelection(poRecordId, sorted);
         } catch (err) {
             console.error("Failed to load PO Items for", poRecordId, err);
             setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "error", items: [] } }));
         }
+    }
+
+    // Issue #57 — once a PO's items finish loading, any line still pointing
+    // at that PO with poItemTouched still false gets defaulted to the
+    // first item in Remaining-sorted order — a UI affordance making clear
+    // the dropdown is the primary path, not a guess at the correct item.
+    // Thin wrapper around defaultedItem: builds a one-PO cache override so
+    // it only ever touches lines pointing at this poRecordId, using data
+    // that (per the caller, fetchPoItems) isn't in poItemsCache state yet.
+    function applyDefaultPoItemSelection(poRecordId, sortedItems) {
+        if (sortedItems.length === 0) return;
+        const cacheOverride = { [poRecordId]: { status: "done", items: sortedItems } };
+        setItems((prev) => prev.map((item) => defaultedItem(item, cacheOverride)));
     }
 
     function handleVendorChange(e) {
@@ -274,8 +382,52 @@ export default function InvoiceForm({ vendors, pos }) {
         applyPoSelection(selectedPoIds.filter((id) => id !== poId));
     }
 
+    // Issue #57 — debounced (300ms), server-side on every keystroke after
+    // the pause, never a client-side filter over posList. A result is only
+    // ever merged into posList (same "merge what's missing" pattern #46's
+    // detection already uses) — there's no separate results list rendered
+    // here, so the existing "Select a PO to add..." dropdown stays the one
+    // place a PO is ever picked from.
+    function handleClosedSearchChange(e) {
+        const q = e.target.value;
+        setClosedSearchQuery(q);
+        if (closedSearchTimeoutRef.current) clearTimeout(closedSearchTimeoutRef.current);
+
+        if (!q.trim()) {
+            setClosedSearchStatus("idle");
+            return;
+        }
+
+        setClosedSearchStatus("loading");
+        closedSearchTimeoutRef.current = setTimeout(() => runClosedSearch(q), 300);
+    }
+
+    async function runClosedSearch(q) {
+        try {
+            const res = await fetch(`/api/pos/search?q=${encodeURIComponent(q)}`);
+            if (!res.ok) throw new Error("Request failed");
+            const { pos: results } = await res.json();
+            setPosList((prev) => {
+                const missing = results.filter((r) => !prev.some((po) => po.id === r.id));
+                if (missing.length === 0) return prev;
+                return [...prev, ...missing];
+            });
+            setClosedSearchResultCount(results.length);
+            setClosedSearchStatus("done");
+        } catch (err) {
+            console.error("PO search failed", err);
+            setClosedSearchStatus("error");
+        }
+    }
+
     function addItem() {
-        setItems((prev) => [...prev, { ...EMPTY_ITEM, poRecordId: selectedPoIds[0] || "" }]);
+        // Issue #57 — routed through defaultedItem too: the new row's PO
+        // (selectedPoIds[0]) may already have its items cached from
+        // earlier in the session, in which case there's no fetch here to
+        // trigger applyDefaultPoItemSelection later — this is the only
+        // chance to default it.
+        const fresh = { ...EMPTY_ITEM, poRecordId: selectedPoIds[0] || "" };
+        setItems((prev) => [...prev, defaultedItem(fresh, poItemsCache)]);
     }
 
     function removeItem(index) {
@@ -293,7 +445,21 @@ export default function InvoiceForm({ vendors, pos }) {
                     // selection above). Item Name is left as-is rather than
                     // cleared — it becomes ordinary editable free text
                     // instead of a stale-but-still-accurate label.
-                    return { ...item, poRecordId: value, poItemRecordId: "" };
+                    // Issue #57 — poItemTouched/unitPriceEditing reset too,
+                    // and routed through defaultedItem: the new PO's items
+                    // might already be cached (e.g. switching back to a PO
+                    // used earlier on this same invoice), in which case
+                    // there's no fetch here to trigger the default later.
+                    return defaultedItem(
+                        {
+                            ...item,
+                            poRecordId: value,
+                            poItemRecordId: "",
+                            poItemTouched: false,
+                            unitPriceEditing: false,
+                        },
+                        poItemsCache
+                    );
                 }
                 return { ...item, [field]: value };
             })
@@ -301,23 +467,27 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     // Issue #51 — the single sync point for a line's PO Item choice.
-    // Selecting a real PO Item copies its name in (so Item Name always
-    // reflects what's actually linked); selecting empty means "Other
-    // (free text)" and leaves Item Name as whatever's already typed there —
-    // this is also a real PO Item's initial/unset state, since defaulting
-    // an untouched line to "Other" rather than an arbitrary catalog pick is
-    // the safer default (never silently mislink).
+    // Selecting a real PO Item copies its name (and, per #57, its Rate
+    // into Unit Price, freshly re-locked) in; selecting empty means
+    // "Other (free text)". Issue #57 — poItemTouched is set true on any
+    // explicit choice here (including Other), so applyDefaultPoItemSelection
+    // never later overwrites a deliberate pick with its own default.
     function updatePoItemSelection(index, poItemRecordId) {
         setItems((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
-                if (!poItemRecordId) return { ...item, poItemRecordId: "" };
+                if (!poItemRecordId) {
+                    return { ...item, poItemRecordId: "", poItemTouched: true };
+                }
                 const candidates = poItemsCache[item.poRecordId]?.items || [];
                 const matched = candidates.find((poItem) => poItem.id === poItemRecordId);
                 return {
                     ...item,
                     poItemRecordId,
+                    poItemTouched: true,
                     itemName: matched ? matched.itemName : item.itemName,
+                    unitPrice: matched && matched.rate != null ? String(matched.rate) : item.unitPrice,
+                    unitPriceEditing: false,
                 };
             })
         );
@@ -328,6 +498,16 @@ export default function InvoiceForm({ vendors, pos }) {
         const unitPrice = parseFloat(item.unitPrice) || 0;
         return sum + qty * unitPrice;
     }, 0);
+
+    // Issue #57 — sanity-check preview only, never what's stored (Amount
+    // Due/vendorStatedTotal is). Tariff only counts once the optional
+    // field is actually shown, matching what's actually submitted.
+    const calculatedTotal =
+        itemsTotal + (parseFloat(shippingFee) || 0) + (tariffEnabled ? parseFloat(tariff) || 0 : 0);
+    const totalsMismatch =
+        vendorStatedTotal !== "" &&
+        !Number.isNaN(parseFloat(vendorStatedTotal)) &&
+        Math.abs(parseFloat(vendorStatedTotal) - calculatedTotal) > 0.01;
 
     function renderHeaderFields() {
         return (
@@ -385,7 +565,7 @@ export default function InvoiceForm({ vendors, pos }) {
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="amountDue" className="block text-sm font-medium">
-                            Amount Due
+                            Vendor&apos;s Stated Total
                         </label>
                         <input
                             type="number"
@@ -393,6 +573,8 @@ export default function InvoiceForm({ vendors, pos }) {
                             id="amountDue"
                             name="amountDue"
                             required
+                            value={vendorStatedTotal}
+                            onChange={(e) => setVendorStatedTotal(e.target.value)}
                             className={fieldClass}
                         />
                     </div>
@@ -405,9 +587,55 @@ export default function InvoiceForm({ vendors, pos }) {
                             step="0.01"
                             id="shippingFee"
                             name="shippingFee"
+                            value={shippingFee}
+                            onChange={(e) => setShippingFee(e.target.value)}
                             className={fieldClass}
                         />
                     </div>
+                </div>
+
+                <div>
+                    {!tariffEnabled ? (
+                        <button
+                            type="button"
+                            onClick={() => setTariffEnabled(true)}
+                            className="text-xs text-zinc-500 underline"
+                        >
+                            + Add Tariff
+                        </button>
+                    ) : (
+                        <div>
+                            <label htmlFor="tariff" className="block text-sm font-medium">
+                                Tariff
+                            </label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                id="tariff"
+                                name="tariff"
+                                value={tariff}
+                                onChange={(e) => setTariff(e.target.value)}
+                                className={fieldClass}
+                            />
+                        </div>
+                    )}
+
+                    {/* Issue #57 — sanity check, not enforcement: Amount Due
+                        (Vendor's Stated Total) is still what gets stored and
+                        submitted regardless of whether it agrees with this
+                        preview. Catches a vendor's own arithmetic error or a
+                        missed line — the calculation alone can't. */}
+                    <p className="mt-2 text-xs text-zinc-500">
+                        Calculated total (Items + Shipping{tariffEnabled ? " + Tariff" : ""}):{" "}
+                        {calculatedTotal.toFixed(2)}
+                    </p>
+                    {totalsMismatch && (
+                        <p className="mt-1 text-xs text-amber-700">
+                            Vendor&apos;s Stated Total ({(parseFloat(vendorStatedTotal) || 0).toFixed(2)}) doesn&apos;t
+                            match the calculated total ({calculatedTotal.toFixed(2)}) — double-check before
+                            submitting.
+                        </p>
+                    )}
                 </div>
 
                 <div>
@@ -463,6 +691,47 @@ export default function InvoiceForm({ vendors, pos }) {
                         >
                             Add
                         </button>
+                    </div>
+
+                    {/* Issue #57 — the dropdown above only ever offers open
+                        POs (posForVendor, derived from posList, which loads
+                        open-only by default). This is the escape hatch for
+                        the rare extra/adjustment invoice against an
+                        already-fully-invoiced PO — search results merge into
+                        posList so they show up in that same dropdown rather
+                        than a separate results UI. */}
+                    <div className="mt-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowClosedSearch((v) => !v)}
+                            className="text-xs text-zinc-500 underline"
+                        >
+                            {showClosedSearch ? "Hide search" : "Show all / search closed POs"}
+                        </button>
+                        {showClosedSearch && (
+                            <div className="mt-2">
+                                <input
+                                    type="text"
+                                    placeholder="Search by PO number..."
+                                    value={closedSearchQuery}
+                                    onChange={handleClosedSearchChange}
+                                    className={fieldClass}
+                                />
+                                {closedSearchStatus === "loading" && (
+                                    <p className="mt-1 text-xs text-zinc-500">Searching...</p>
+                                )}
+                                {closedSearchStatus === "error" && (
+                                    <p className="mt-1 text-xs text-red-600">Search failed — try again.</p>
+                                )}
+                                {closedSearchStatus === "done" && (
+                                    <p className="mt-1 text-xs text-zinc-500">
+                                        {closedSearchResultCount === 0
+                                            ? "No matching POs."
+                                            : `Found ${closedSearchResultCount} — matching POs now appear in the picker above.`}
+                                    </p>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -539,6 +808,19 @@ export default function InvoiceForm({ vendors, pos }) {
                         // to the old plain free-text input.
                         const poItemsEntry = item.poRecordId ? poItemsCache[item.poRecordId] : null;
                         const poItemOptions = poItemsEntry?.items || [];
+                        // Issue #57 — only meaningful once a real PO Item is
+                        // linked; "Other" lines have nothing to compare
+                        // against, so neither the Unit Price lock nor the
+                        // Qty warning ever applies to them.
+                        const linkedPoItem = item.poItemRecordId
+                            ? poItemOptions.find((p) => p.id === item.poItemRecordId)
+                            : null;
+                        const qtyExceedsRemaining =
+                            linkedPoItem != null &&
+                            linkedPoItem.remainingQty != null &&
+                            (parseFloat(item.qty) || 0) > linkedPoItem.remainingQty;
+                        const unitPriceLocked = !!item.poItemRecordId && !item.unitPriceEditing;
+                        const showRemark = item.unitPriceEditing || qtyExceedsRemaining;
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
                                 <div
@@ -560,6 +842,9 @@ export default function InvoiceForm({ vendors, pos }) {
                                                     <option key={poItem.id} value={poItem.id}>
                                                         {poItem.itemName}
                                                         {poItem.size ? ` — ${poItem.size}` : ""}
+                                                        {poItem.remainingQty != null
+                                                            ? ` (Remaining: ${poItem.remainingQty})`
+                                                            : ""}
                                                     </option>
                                                 ))}
                                             </select>
@@ -599,15 +884,27 @@ export default function InvoiceForm({ vendors, pos }) {
                                         onChange={(e) => updateItem(i, "qty", e.target.value)}
                                         className={inputClass}
                                     />
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        placeholder="Unit Price"
-                                        required
-                                        value={item.unitPrice}
-                                        onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
-                                        className={inputClass}
-                                    />
+                                    <div className="flex items-center gap-1">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="Unit Price"
+                                            required
+                                            disabled={unitPriceLocked}
+                                            value={item.unitPrice}
+                                            onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
+                                            className={inputClass + " flex-1"}
+                                        />
+                                        {unitPriceLocked && (
+                                            <button
+                                                type="button"
+                                                onClick={() => updateItem(i, "unitPriceEditing", true)}
+                                                className="shrink-0 text-xs text-zinc-500 underline"
+                                            >
+                                                Edit
+                                            </button>
+                                        )}
+                                    </div>
                                     {showPoPicker && (
                                         <select
                                             required
@@ -626,6 +923,20 @@ export default function InvoiceForm({ vendors, pos }) {
                                         </select>
                                     )}
                                 </div>
+                                {qtyExceedsRemaining && (
+                                    <p className="mt-2 text-xs text-amber-700">
+                                        Qty ({item.qty}) exceeds this PO Item&apos;s remaining un-invoiced quantity (
+                                        {linkedPoItem.remainingQty}) — not blocked, but worth a note below.
+                                    </p>
+                                )}
+                                {showRemark && (
+                                    <input
+                                        placeholder="Remark — why this differs from the PO"
+                                        value={item.remark}
+                                        onChange={(e) => updateItem(i, "remark", e.target.value)}
+                                        className={inputClass + " mt-2 w-full"}
+                                    />
+                                )}
                                 <div className="mt-2 flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
                                     <span>Amount (preview): {amount.toFixed(2)}</span>
                                     {items.length > 1 && (
