@@ -1,6 +1,6 @@
-import { requireRole } from "@/lib/authz";
+import { requireUser } from "@/lib/authz";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
-import { getItemsByPO } from "@/lib/airtable/poItems";
+import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
@@ -13,15 +13,22 @@ const DONE_MESSAGES = {
     "pdf-regenerated": "Regenerated the PDF.",
 };
 
+// President-or-Admin (issue #48 widened this from President-only): the
+// un-invoiced tracking this page now shows is day-to-day useful to Admins
+// actually reconciling invoices, not just to the President signing the PO.
+// A single requireUser() call plus an inline role/isAdmin check — not
+// requireRole() *and* requireAdmin() back to back, which would resolve the
+// session against Airtable twice for no reason.
 export default async function PODetailPage({ params, searchParams }) {
-    const { authorized } = await requireRole("President");
+    const user = await requireUser();
+    const authorized = user.role === "President" || user.isAdmin === true;
     const { poId } = await params;
     const { done } = await searchParams;
 
     if (!authorized) {
         return (
             <div className="flex flex-1 items-center justify-center p-8">
-                <p>Not authorized. This page is President-only.</p>
+                <p>Not authorized. This page is President/Admin-only.</p>
             </div>
         );
     }
@@ -38,7 +45,7 @@ export default async function PODetailPage({ params, searchParams }) {
     // PR chain instead of trusting the Lookup's raw value.
     const pr = await getPRByRecordId(po.pr[0]);
     const [items, job, vendor, ourPic, ourManager] = await Promise.all([
-        getItemsByPO(po.id),
+        getInvoicingStatusByPO(po.id),
         pr.job?.[0] ? getJobByRecordId(pr.job[0]) : null,
         pr.vendor?.[0] ? getVendorByRecordId(pr.vendor[0]) : null,
         po.ourPic?.[0] ? getUserByRecordId(po.ourPic[0]) : null,
@@ -81,6 +88,8 @@ export default async function PODetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Qty</th>
                             <th className="pr-2 text-right">Rate</th>
                             <th className="pr-2 text-right">Amount</th>
+                            <th className="pr-2 text-right">Invoiced</th>
+                            <th className="pr-2 text-right">Remaining</th>
                             <th className="pr-2">Remark</th>
                         </tr>
                     </thead>
@@ -93,6 +102,17 @@ export default async function PODetailPage({ params, searchParams }) {
                                 <td className="py-1 pr-2 text-right">{it.qty}</td>
                                 <td className="py-1 pr-2 text-right">{it.rate}</td>
                                 <td className="py-1 pr-2 text-right">{it.amount}</td>
+                                <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
+                                <td
+                                    className={
+                                        it.remainingQty < 0
+                                            ? "py-1 pr-2 text-right text-red-600"
+                                            : "py-1 pr-2 text-right"
+                                    }
+                                >
+                                    {it.remainingQty}
+                                    {it.remainingQty < 0 && " (over)"}
+                                </td>
                                 <td className="py-1 pr-2">{it.remark}</td>
                             </tr>
                         ))}
