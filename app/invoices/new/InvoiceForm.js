@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createInvoiceAction } from "./actions";
 
-const EMPTY_ITEM = { itemName: "", qty: "", unitPrice: "", poRecordId: "" };
+const EMPTY_ITEM = { itemName: "", qty: "", unitPrice: "", poRecordId: "", poItemRecordId: "" };
 const inputClass =
     "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
 const fieldClass =
@@ -68,6 +68,16 @@ export default function InvoiceForm({ vendors, pos }) {
     // pickers below are the same controls this just pre-fills, so whatever
     // it sets is still fully editable before submit.
     const [poDetection, setPoDetection] = useState(null);
+    // Issue #51 — { [poRecordId]: { status: "loading"|"done"|"error", items } }.
+    // Keyed indefinitely, never evicted on remove: unlike posList above, PO
+    // Items are a frozen snapshot taken at PO-generation time (CLAUDE.md —
+    // no edit path exists anywhere in this codebase), so a PO that's
+    // removed and re-added mid-session can safely reuse what's already
+    // cached instead of re-fetching. The status field exists purely so a
+    // failed request doesn't get mistaken for "this PO genuinely has zero
+    // items" — an "error" entry is retried the next time that PO re-enters
+    // selectedPoIds.
+    const [poItemsCache, setPoItemsCache] = useState({});
 
     async function handleInvoiceFileChange(e) {
         const file = e.target.files?.[0];
@@ -199,6 +209,14 @@ export default function InvoiceForm({ vendors, pos }) {
     // selected ones, otherwise it's reset to unset rather than silently
     // reassigned to something the user didn't pick.
     function applyPoSelection(newSelectedPoIds) {
+        // Issue #51 — newly-selected POs need their PO Items loaded before
+        // the per-item dropdown (renderItemsSection) has anything to show.
+        // Computed against the current selectedPoIds closure, not derived
+        // inside a useEffect, to match this component's existing style of
+        // one imperative sync point rather than reactive watchers.
+        const added = newSelectedPoIds.filter((id) => !selectedPoIds.includes(id));
+        added.forEach((id) => ensurePoItemsLoaded(id));
+
         setSelectedPoIds(newSelectedPoIds);
         if (newSelectedPoIds.length === 1) {
             const only = newSelectedPoIds[0];
@@ -209,6 +227,30 @@ export default function InvoiceForm({ vendors, pos }) {
                     newSelectedPoIds.includes(item.poRecordId) ? item : { ...item, poRecordId: "" }
                 )
             );
+        }
+    }
+
+    // Fetch-if-missing, guarded against duplicate in-flight requests for
+    // the same PO. Never re-fetches a "done" entry (see poItemsCache
+    // comment above for why that's safe) but always retries an "error" one.
+    function ensurePoItemsLoaded(poRecordId) {
+        setPoItemsCache((prev) => {
+            const entry = prev[poRecordId];
+            if (entry && (entry.status === "done" || entry.status === "loading")) return prev;
+            fetchPoItems(poRecordId);
+            return { ...prev, [poRecordId]: { status: "loading", items: [] } };
+        });
+    }
+
+    async function fetchPoItems(poRecordId) {
+        try {
+            const res = await fetch(`/api/pos/${poRecordId}/items`);
+            if (!res.ok) throw new Error("Request failed");
+            const { items: poItems } = await res.json();
+            setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "done", items: poItems } }));
+        } catch (err) {
+            console.error("Failed to load PO Items for", poRecordId, err);
+            setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "error", items: [] } }));
         }
     }
 
@@ -242,7 +284,42 @@ export default function InvoiceForm({ vendors, pos }) {
 
     function updateItem(index, field, value) {
         setItems((prev) =>
-            prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+            prev.map((item, i) => {
+                if (i !== index) return item;
+                if (field === "poRecordId") {
+                    // Issue #51 — a PO Item picked under the line's previous
+                    // PO almost certainly doesn't belong to the new one
+                    // (same reasoning as handleVendorChange clearing PO
+                    // selection above). Item Name is left as-is rather than
+                    // cleared — it becomes ordinary editable free text
+                    // instead of a stale-but-still-accurate label.
+                    return { ...item, poRecordId: value, poItemRecordId: "" };
+                }
+                return { ...item, [field]: value };
+            })
+        );
+    }
+
+    // Issue #51 — the single sync point for a line's PO Item choice.
+    // Selecting a real PO Item copies its name in (so Item Name always
+    // reflects what's actually linked); selecting empty means "Other
+    // (free text)" and leaves Item Name as whatever's already typed there —
+    // this is also a real PO Item's initial/unset state, since defaulting
+    // an untouched line to "Other" rather than an arbitrary catalog pick is
+    // the safer default (never silently mislink).
+    function updatePoItemSelection(index, poItemRecordId) {
+        setItems((prev) =>
+            prev.map((item, i) => {
+                if (i !== index) return item;
+                if (!poItemRecordId) return { ...item, poItemRecordId: "" };
+                const candidates = poItemsCache[item.poRecordId]?.items || [];
+                const matched = candidates.find((poItem) => poItem.id === poItemRecordId);
+                return {
+                    ...item,
+                    poItemRecordId,
+                    itemName: matched ? matched.itemName : item.itemName,
+                };
+            })
         );
     }
 
@@ -455,6 +532,13 @@ export default function InvoiceForm({ vendors, pos }) {
                         // already forced every item to it, so there's no
                         // real choice left to show.
                         const showPoPicker = selectedPoIds.length >= 2;
+                        // Issue #51 — the PO Item dropdown can't be scoped
+                        // until the line actually has a PO (either forced
+                        // by the header's single-PO case, or picked via
+                        // showPoPicker above); until then this falls back
+                        // to the old plain free-text input.
+                        const poItemsEntry = item.poRecordId ? poItemsCache[item.poRecordId] : null;
+                        const poItemOptions = poItemsEntry?.items || [];
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
                                 <div
@@ -464,13 +548,49 @@ export default function InvoiceForm({ vendors, pos }) {
                                             : "grid grid-cols-2 gap-2 sm:grid-cols-3"
                                     }
                                 >
-                                    <input
-                                        placeholder="Item Name"
-                                        required
-                                        value={item.itemName}
-                                        onChange={(e) => updateItem(i, "itemName", e.target.value)}
-                                        className={inputClass}
-                                    />
+                                    {item.poRecordId ? (
+                                        <div className="space-y-1">
+                                            <select
+                                                value={item.poItemRecordId}
+                                                onChange={(e) => updatePoItemSelection(i, e.target.value)}
+                                                className={inputClass + " w-full"}
+                                            >
+                                                <option value="">Other (free text)</option>
+                                                {poItemOptions.map((poItem) => (
+                                                    <option key={poItem.id} value={poItem.id}>
+                                                        {poItem.itemName}
+                                                        {poItem.size ? ` — ${poItem.size}` : ""}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {poItemsEntry?.status === "loading" && (
+                                                <p className="text-xs text-zinc-500">Loading PO items...</p>
+                                            )}
+                                            {poItemsEntry?.status === "error" && (
+                                                <p className="text-xs text-red-600">
+                                                    Couldn&apos;t load this PO&apos;s items — use &quot;Other&quot; or
+                                                    re-pick the PO to retry.
+                                                </p>
+                                            )}
+                                            {!item.poItemRecordId && (
+                                                <input
+                                                    placeholder="Item Name"
+                                                    required
+                                                    value={item.itemName}
+                                                    onChange={(e) => updateItem(i, "itemName", e.target.value)}
+                                                    className={inputClass + " w-full"}
+                                                />
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <input
+                                            placeholder="Item Name"
+                                            required
+                                            value={item.itemName}
+                                            onChange={(e) => updateItem(i, "itemName", e.target.value)}
+                                            className={inputClass}
+                                        />
+                                    )}
                                     <input
                                         type="number"
                                         placeholder="Qty"
