@@ -70,6 +70,7 @@ export async function createInvoiceAction(prevState, formData) {
                 invoiceRecordId: invoice.id,
                 invoiceId: invoice.invoiceId,
                 poRecordId: item.poRecordId,
+                poItemRecordId: item.poItemRecordId || null,
                 itemName: item.itemName,
                 qty: parseFloat(item.qty),
                 unitPrice: parseFloat(item.unitPrice),
