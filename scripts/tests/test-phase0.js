@@ -82,7 +82,7 @@ const in30days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
 // ---- ID format regexes, per CLAUDE.md "ID generation rules" ---------------
 
 const TOP_LEVEL_PR_ID = /^HYE-PR-\d{6}-\d{2}$/;
-const TOP_LEVEL_PO_ID = /^HYE-PO-\d{6}-\d{2}$/;
+const TOP_LEVEL_PO_ID = /^HYE-PO-\d{8}-\d{2}$/; // 4-digit year — PO ID only, see CLAUDE.md
 const TOP_LEVEL_INVOICE_ID = /^HYE-INV-\d{6}-\d{2}$/;
 const childOf = (parentId, opts = {}) =>
     new RegExp(`^${escapeRegex(parentId)}-${opts.seqPrefix || ""}\\d{${opts.digits || 3}}$`);
@@ -281,7 +281,7 @@ async function main() {
         console.log(`Created PO ${po.poId} (${po.id})`);
 
         check(
-            "PO ID matches HYE-PO-YYMMDD-##",
+            "PO ID matches HYE-PO-YYYYMMDD-##",
             TOP_LEVEL_PO_ID.test(po.poId),
             po.poId,
             "lib/airtable/purchaseOrders.js:createPO (via lib/ids.js:generateNextPOId)"
