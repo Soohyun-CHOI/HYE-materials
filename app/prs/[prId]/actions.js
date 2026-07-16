@@ -352,7 +352,12 @@ export async function generatePOAction(prevState, formData) {
     const pr = await getPRById(prId);
     if (!pr) throw new Error("PR not found");
 
-    if (pr.status !== "Approved") {
+    // "PO Signed" is included alongside "Approved" (issue #63: PR Status
+    // advances again once the President signs) — generatePOForApprovedPR
+    // is a no-op once a PO already exists, so this stays safe to call in
+    // either state; it's just that the retry form itself never renders
+    // once a PO exists (see app/prs/[prId]/page.js).
+    if (pr.status !== "Approved" && pr.status !== "PO Signed") {
         return { error: "This PR isn't fully approved yet." };
     }
 

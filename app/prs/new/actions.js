@@ -20,7 +20,7 @@ function itemKey(item) {
 // Issue #61 — flags a PR as a likely re-submission when some prior PR on
 // the same Line has the exact same set of items (Name/Qty/Rate, order and
 // multiplicity insensitive). Checked against every prior PR on the Line
-// regardless of Status, since even one already Converted to PO is still a
+// regardless of Status, since even one already PO Signed is still a
 // forgotten-resubmission candidate.
 async function findDuplicatePR(lineId, items) {
     const submittedKey = items.map(itemKey).sort().join(",");

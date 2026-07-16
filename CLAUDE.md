@@ -35,7 +35,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Vendors**: Vendor Name (primary), PIC Name/Phone/Email (plain text, external), Address (link, single), Purchase Orders (Lookup via PR chain).
 
-**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/Converted to PO — no Rejected), Current Signer Step, Total Amount (rollup), Notes, Quotation File (Lookup).
+**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when the President signs the generated PO, not when the PO is merely created — see Purchase Orders), Current Signer Step, Total Amount (rollup), Notes, Quotation File (Lookup).
 
 **PR Signers** — dynamic ordered approval chain:
 - Requester assigns an arbitrary ordered list of signers at PR creation.

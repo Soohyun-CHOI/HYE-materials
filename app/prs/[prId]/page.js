@@ -247,7 +247,7 @@ export default async function PRDetailPage({ params, searchParams }) {
                 </ol>
             </div>
 
-            {pr.status === "Approved" && (
+            {(pr.status === "Approved" || pr.status === "PO Signed") && (
                 <div className="mt-8">
                     <h2 className="text-lg font-semibold">Purchase Order</h2>
                     {po ? (
