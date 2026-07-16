@@ -18,6 +18,36 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+const CONFIRMATION_TYPES = ["Approval", "Agreement"];
+
+// Segmented control, not a sliding toggle: Approval/Agreement are two
+// equally-weighted procedural roles, not an on/off state, so both labels
+// stay visible side by side with the active one highlighted (issue #66
+// UI refinement). Used both inline while adding a signer and inside each
+// already-added row, so the role stays editable either way.
+function ConfirmationTypeToggle({ value, onChange }) {
+    return (
+        <div className="inline-flex overflow-hidden rounded-full border border-zinc-300 text-sm dark:border-zinc-700">
+            {CONFIRMATION_TYPES.map((option) => (
+                <button
+                    key={option}
+                    type="button"
+                    onClick={() => onChange(option)}
+                    aria-pressed={value === option}
+                    className={
+                        "px-3 py-1 " +
+                        (value === option
+                            ? "bg-foreground text-background"
+                            : "bg-transparent text-zinc-600 dark:text-zinc-400")
+                    }
+                >
+                    {option}
+                </button>
+            ))}
+        </div>
+    );
+}
+
 function SortableSignerRow({ id, user, index, confirmationType, onConfirmationTypeChange, onRemove }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
         useSortable({ id });
@@ -46,14 +76,7 @@ function SortableSignerRow({ id, user, index, confirmationType, onConfirmationTy
             <span className="flex-1">
                 {user ? `${user.userName} (${user.role})` : "Unknown user"}
             </span>
-            <select
-                value={confirmationType}
-                onChange={(e) => onConfirmationTypeChange(e.target.value)}
-                className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-black"
-            >
-                <option value="Approval">Approval</option>
-                <option value="Agreement">Agreement</option>
-            </select>
+            <ConfirmationTypeToggle value={confirmationType} onChange={onConfirmationTypeChange} />
             <button type="button" onClick={onRemove} className="text-sm text-red-600">
                 Remove
             </button>
@@ -71,6 +94,10 @@ function SortableSignerRow({ id, user, index, confirmationType, onConfirmationTy
 // unchanged; only the per-row confirmationType is new.
 export default function SignerList({ users, signers, onChange }) {
     const [pickerValue, setPickerValue] = useState("");
+    // Confirmation Type for the signer about to be added — pre-selected to
+    // Approval from the moment this row appears (issue #66 UI refinement),
+    // not just after the signer is already in the list.
+    const [pickerConfirmationType, setPickerConfirmationType] = useState("Approval");
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -82,8 +109,9 @@ export default function SignerList({ users, signers, onChange }) {
 
     function handleAdd() {
         if (!pickerValue) return;
-        onChange([...signers, { userId: pickerValue, confirmationType: "Approval" }]);
+        onChange([...signers, { userId: pickerValue, confirmationType: pickerConfirmationType }]);
         setPickerValue("");
+        setPickerConfirmationType("Approval");
     }
 
     function handleRemove(userId) {
@@ -132,7 +160,7 @@ export default function SignerList({ users, signers, onChange }) {
                 </DndContext>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <select
                     value={pickerValue}
                     onChange={(e) => setPickerValue(e.target.value)}
@@ -145,6 +173,10 @@ export default function SignerList({ users, signers, onChange }) {
                         </option>
                     ))}
                 </select>
+                <ConfirmationTypeToggle
+                    value={pickerConfirmationType}
+                    onChange={setPickerConfirmationType}
+                />
                 <button
                     type="button"
                     onClick={handleAdd}
