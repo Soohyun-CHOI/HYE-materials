@@ -56,6 +56,7 @@ commit-msg.txt
 # raw data
 scripts/import/data/
 scripts/import/output/
+scripts/demo/output/
 
 # python
 /.venv/
