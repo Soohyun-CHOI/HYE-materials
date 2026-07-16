@@ -589,31 +589,146 @@ export default function InvoiceForm({ vendors, pos }) {
         !Number.isNaN(parseFloat(vendorStatedTotal)) &&
         Math.abs(parseFloat(vendorStatedTotal) - calculatedTotal) > 0.01;
 
+    // Issue #57 layout follow-up — extracted so the same slot rendering
+    // can be called once inline (poSlots[0], next to Vendor) and again for
+    // any additional slots below; no behavior changed from before, just
+    // where it's invoked from.
+    function renderPoSlot(slot, slotIndex) {
+        const optionsForSlot = posForVendor.filter(
+            (po) => po.id === slot.poRecordId || !selectedPoIds.includes(po.id)
+        );
+        // Same exclusion as optionsForSlot above — a search result for a PO
+        // another slot already holds isn't a valid pick here, so it's
+        // filtered out rather than letting two slots end up pointing at the
+        // same PO.
+        const visibleResults = slot.results.filter(
+            (po) =>
+                po.vendorId === vendorId &&
+                (po.id === slot.poRecordId || !selectedPoIds.includes(po.id))
+        );
+        return (
+            <div key={slotIndex} className="flex items-start gap-2">
+                <div className="flex-1">
+                    {slot.searchMode ? (
+                        <div>
+                            <input
+                                type="text"
+                                placeholder="Search all POs by number..."
+                                value={slot.query}
+                                onChange={(e) => handleSlotSearchChange(slotIndex, e.target.value)}
+                                disabled={!vendorId}
+                                className={fieldClass}
+                            />
+                            {slot.status === "loading" && (
+                                <p className="mt-1 text-xs text-zinc-500">Searching...</p>
+                            )}
+                            {slot.status === "error" && (
+                                <p className="mt-1 text-xs text-red-600">Search failed — try again.</p>
+                            )}
+                            {slot.status === "done" && (
+                                <ul className="mt-1 divide-y divide-zinc-200 rounded border border-zinc-300 text-sm dark:divide-zinc-800 dark:border-zinc-700">
+                                    {visibleResults.length === 0 ? (
+                                        <li className="px-3 py-1.5 text-zinc-500">No matching POs.</li>
+                                    ) : (
+                                        visibleResults.map((po) => (
+                                            <li key={po.id}>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSlotChange(slotIndex, po.id)}
+                                                    className="block w-full px-3 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                                                >
+                                                    {po.poId}
+                                                </button>
+                                            </li>
+                                        ))
+                                    )}
+                                </ul>
+                            )}
+                        </div>
+                    ) : (
+                        <select
+                            value={slot.poRecordId}
+                            onChange={(e) => handleSlotChange(slotIndex, e.target.value)}
+                            disabled={!vendorId}
+                            className={fieldClass}
+                        >
+                            <option value="">{vendorId ? "Select a PO..." : "Select a Vendor first"}</option>
+                            {optionsForSlot.map((po) => (
+                                <option key={po.id} value={po.id}>
+                                    {po.poId}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                    <label className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
+                        <input
+                            type="checkbox"
+                            checked={slot.searchMode}
+                            onChange={() => handleToggleSlotSearch(slotIndex)}
+                        />
+                        Show all / search closed POs
+                    </label>
+                </div>
+                {slotIndex > 0 && (
+                    <button
+                        type="button"
+                        onClick={() => handleRemoveSlot(slotIndex)}
+                        className="mt-2 shrink-0 text-xs text-red-600"
+                    >
+                        Remove
+                    </button>
+                )}
+            </div>
+        );
+    }
+
     function renderHeaderFields() {
         return (
             <div className="space-y-4">
-                <div>
-                    <label htmlFor="vendorId" className="block text-sm font-medium">
-                        Vendor
-                    </label>
-                    <select
-                        id="vendorId"
-                        name="vendorId"
-                        value={vendorId}
-                        onChange={handleVendorChange}
-                        required
-                        className={fieldClass}
-                    >
-                        <option value="" disabled>
-                            Select a Vendor
-                        </option>
-                        {vendors.map((v) => (
-                            <option key={v.id} value={v.id}>
-                                {v.vendorName}
+                {/* Issue #57 layout follow-up — Vendor and the primary PO
+                    slot sit side by side, directly under the file upload
+                    section above (see the tab-order comment near the
+                    bottom): the common path is "attach PDF, both auto-
+                    fill" or "pick Vendor, PO narrows to it" — putting them
+                    in the same row makes that pairing visible at a glance. */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="vendorId" className="block text-sm font-medium">
+                            Vendor
+                        </label>
+                        <select
+                            id="vendorId"
+                            name="vendorId"
+                            value={vendorId}
+                            onChange={handleVendorChange}
+                            required
+                            className={fieldClass}
+                        >
+                            <option value="" disabled>
+                                Select a Vendor
                             </option>
-                        ))}
-                    </select>
+                            {vendors.map((v) => (
+                                <option key={v.id} value={v.id}>
+                                    {v.vendorName}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <div>
+                        <span className="block text-sm font-medium">PO</span>
+                        {renderPoSlot(poSlots[0], 0)}
+                    </div>
                 </div>
+
+                {poSlots.length > 1 && (
+                    <div className="space-y-3">{poSlots.slice(1).map((slot, i) => renderPoSlot(slot, i + 1))}</div>
+                )}
+                {/* Minimal presence, per issue #57 — the exception path for
+                    an invoice spanning more than one PO, not a feature to
+                    advertise alongside the primary Vendor/PO row above. */}
+                <button type="button" onClick={handleAddSlot} className="text-xs text-zinc-400 underline">
+                    + Add another PO
+                </button>
 
                 <div>
                     <label htmlFor="vendorInvoiceCode" className="block text-sm font-medium">
@@ -640,214 +755,6 @@ export default function InvoiceForm({ vendors, pos }) {
                         </label>
                         <input type="date" id="dueDate" name="dueDate" className={fieldClass} />
                     </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="amountDue" className="block text-sm font-medium">
-                            Vendor&apos;s Stated Total
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            id="amountDue"
-                            name="amountDue"
-                            required
-                            value={vendorStatedTotal}
-                            onChange={(e) => setVendorStatedTotal(e.target.value)}
-                            className={fieldClass}
-                        />
-                    </div>
-                    <div>
-                        <label htmlFor="shippingFee" className="block text-sm font-medium">
-                            Shipping Fee
-                        </label>
-                        <input
-                            type="number"
-                            step="0.01"
-                            id="shippingFee"
-                            name="shippingFee"
-                            value={shippingFee}
-                            onChange={(e) => setShippingFee(e.target.value)}
-                            className={fieldClass}
-                        />
-                    </div>
-                </div>
-
-                <div>
-                    {!tariffEnabled ? (
-                        <button
-                            type="button"
-                            onClick={() => setTariffEnabled(true)}
-                            className="text-xs text-zinc-500 underline"
-                        >
-                            + Add Tariff
-                        </button>
-                    ) : (
-                        <div>
-                            <label htmlFor="tariff" className="block text-sm font-medium">
-                                Tariff
-                            </label>
-                            <div className="mt-1 flex items-center gap-1">
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    id="tariff"
-                                    name="tariff"
-                                    value={tariff}
-                                    onChange={(e) => setTariff(e.target.value)}
-                                    className={inputClass + " flex-1"}
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setTariffEnabled(false);
-                                        setTariff("");
-                                    }}
-                                    className="shrink-0 text-xs text-zinc-500 underline"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Issue #57 — sanity check, not enforcement: Amount Due
-                        (Vendor's Stated Total) is still what gets stored and
-                        submitted regardless of whether it agrees with this
-                        preview. Catches a vendor's own arithmetic error or a
-                        missed line — the calculation alone can't. */}
-                    <p className="mt-2 text-xs text-zinc-500">
-                        Calculated total (Items + Shipping{tariffEnabled ? " + Tariff" : ""}):{" "}
-                        {calculatedTotal.toFixed(2)}
-                    </p>
-                    {totalsMismatch && (
-                        <p className="mt-1 text-xs text-amber-700">
-                            Vendor&apos;s Stated Total ({(parseFloat(vendorStatedTotal) || 0).toFixed(2)}) doesn&apos;t
-                            match the calculated total ({calculatedTotal.toFixed(2)}) — double-check before
-                            submitting.
-                        </p>
-                    )}
-                </div>
-
-                <div>
-                    <span className="block text-sm font-medium">PO</span>
-                    <p className="mt-1 text-xs text-zinc-500">
-                        Pick the PO this invoice covers — selecting one confirms it immediately.
-                    </p>
-
-                    <div className="mt-2 space-y-3">
-                        {poSlots.map((slot, slotIndex) => {
-                            const optionsForSlot = posForVendor.filter(
-                                (po) => po.id === slot.poRecordId || !selectedPoIds.includes(po.id)
-                            );
-                            // Same exclusion as optionsForSlot above — a
-                            // search result for a PO another slot already
-                            // holds isn't a valid pick here, so it's
-                            // filtered out rather than letting two slots
-                            // end up pointing at the same PO.
-                            const visibleResults = slot.results.filter(
-                                (po) =>
-                                    po.vendorId === vendorId &&
-                                    (po.id === slot.poRecordId || !selectedPoIds.includes(po.id))
-                            );
-                            return (
-                                <div key={slotIndex} className="flex items-start gap-2">
-                                    <div className="flex-1">
-                                        {slot.searchMode ? (
-                                            <div>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search all POs by number..."
-                                                    value={slot.query}
-                                                    onChange={(e) =>
-                                                        handleSlotSearchChange(slotIndex, e.target.value)
-                                                    }
-                                                    disabled={!vendorId}
-                                                    className={fieldClass}
-                                                />
-                                                {slot.status === "loading" && (
-                                                    <p className="mt-1 text-xs text-zinc-500">Searching...</p>
-                                                )}
-                                                {slot.status === "error" && (
-                                                    <p className="mt-1 text-xs text-red-600">
-                                                        Search failed — try again.
-                                                    </p>
-                                                )}
-                                                {slot.status === "done" && (
-                                                    <ul className="mt-1 divide-y divide-zinc-200 rounded border border-zinc-300 text-sm dark:divide-zinc-800 dark:border-zinc-700">
-                                                        {visibleResults.length === 0 ? (
-                                                            <li className="px-3 py-1.5 text-zinc-500">
-                                                                No matching POs.
-                                                            </li>
-                                                        ) : (
-                                                            visibleResults.map((po) => (
-                                                                <li key={po.id}>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            handleSlotChange(slotIndex, po.id)
-                                                                        }
-                                                                        className="block w-full px-3 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900"
-                                                                    >
-                                                                        {po.poId}
-                                                                    </button>
-                                                                </li>
-                                                            ))
-                                                        )}
-                                                    </ul>
-                                                )}
-                                            </div>
-                                        ) : (
-                                            <select
-                                                value={slot.poRecordId}
-                                                onChange={(e) => handleSlotChange(slotIndex, e.target.value)}
-                                                disabled={!vendorId}
-                                                className={fieldClass}
-                                            >
-                                                <option value="">
-                                                    {vendorId ? "Select a PO..." : "Select a Vendor first"}
-                                                </option>
-                                                {optionsForSlot.map((po) => (
-                                                    <option key={po.id} value={po.id}>
-                                                        {po.poId}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        )}
-                                        <label className="mt-1 flex items-center gap-1 text-xs text-zinc-500">
-                                            <input
-                                                type="checkbox"
-                                                checked={slot.searchMode}
-                                                onChange={() => handleToggleSlotSearch(slotIndex)}
-                                            />
-                                            Show all / search closed POs
-                                        </label>
-                                    </div>
-                                    {slotIndex > 0 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => handleRemoveSlot(slotIndex)}
-                                            className="mt-2 shrink-0 text-xs text-red-600"
-                                        >
-                                            Remove
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Minimal presence, per issue #57 — the exception path
-                        for an invoice spanning more than one PO, not a
-                        feature to advertise alongside the primary slot. */}
-                    <button
-                        type="button"
-                        onClick={handleAddSlot}
-                        className="mt-2 text-xs text-zinc-400 underline"
-                    >
-                        + Add another PO
-                    </button>
                 </div>
             </div>
         );
@@ -1090,6 +997,106 @@ export default function InvoiceForm({ vendors, pos }) {
         );
     }
 
+    // Issue #57 layout follow-up — moved below Items (was previously part
+    // of renderHeaderFields, above Items). Shipping Fee and Vendor's
+    // Stated Total sit side by side; Tariff, when added, takes the middle
+    // slot between them rather than a separate row, so the row is 2
+    // columns normally and 3 once Tariff is added — flex-1 on each column
+    // means the widths reflow automatically either way, no fixed grid to
+    // keep in sync with tariffEnabled.
+    function renderTotalsSection() {
+        return (
+            <div>
+                <div className="flex gap-4">
+                    <div className="flex-1">
+                        <label htmlFor="shippingFee" className="block text-sm font-medium">
+                            Shipping Fee
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            id="shippingFee"
+                            name="shippingFee"
+                            value={shippingFee}
+                            onChange={(e) => setShippingFee(e.target.value)}
+                            className={fieldClass}
+                        />
+                    </div>
+                    {tariffEnabled && (
+                        <div className="flex-1">
+                            <label htmlFor="tariff" className="block text-sm font-medium">
+                                Tariff
+                            </label>
+                            <div className="mt-1 flex items-center gap-1">
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    id="tariff"
+                                    name="tariff"
+                                    value={tariff}
+                                    onChange={(e) => setTariff(e.target.value)}
+                                    className={inputClass + " flex-1"}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setTariffEnabled(false);
+                                        setTariff("");
+                                    }}
+                                    className="shrink-0 text-xs text-zinc-500 underline"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                    <div className="flex-1">
+                        <label htmlFor="amountDue" className="block text-sm font-medium">
+                            Vendor&apos;s Stated Total
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            id="amountDue"
+                            name="amountDue"
+                            required
+                            value={vendorStatedTotal}
+                            onChange={(e) => setVendorStatedTotal(e.target.value)}
+                            className={fieldClass}
+                        />
+                    </div>
+                </div>
+
+                {!tariffEnabled && (
+                    <button
+                        type="button"
+                        onClick={() => setTariffEnabled(true)}
+                        className="mt-2 text-xs text-zinc-500 underline"
+                    >
+                        + Add Tariff
+                    </button>
+                )}
+
+                {/* Issue #57 — sanity check, not enforcement: Amount Due
+                    (Vendor's Stated Total) is still what gets stored and
+                    submitted regardless of whether it agrees with this
+                    preview. Catches a vendor's own arithmetic error or a
+                    missed line — the calculation alone can't. */}
+                <p className="mt-2 text-xs text-zinc-500">
+                    Calculated total (Items + Shipping{tariffEnabled ? " + Tariff" : ""}):{" "}
+                    {calculatedTotal.toFixed(2)}
+                </p>
+                {totalsMismatch && (
+                    <p className="mt-1 text-xs text-amber-700">
+                        Vendor&apos;s Stated Total ({(parseFloat(vendorStatedTotal) || 0).toFixed(2)}) doesn&apos;t
+                        match the calculated total ({calculatedTotal.toFixed(2)}) — double-check before
+                        submitting.
+                    </p>
+                )}
+            </div>
+        );
+    }
+
     return (
         <form action={formAction} className="mt-6 space-y-8">
             {state?.error && (
@@ -1116,20 +1123,23 @@ export default function InvoiceForm({ vendors, pos }) {
             </div>
 
             {/* Same state, same fields, every time — the tab only ever
-                reorders these three blocks. PDF Upload leads with the file
+                reorders these four blocks. PDF Upload leads with the file
                 (and whatever it auto-fills below); Manual Entry leads with
                 the fields to fill in by hand, with the still-required file
-                attachment last. */}
+                attachment last. Totals stays pinned right after Items in
+                both orders. */}
             {activeTab === "pdf" ? (
                 <>
                     {renderFileSection()}
                     {renderHeaderFields()}
                     {renderItemsSection()}
+                    {renderTotalsSection()}
                 </>
             ) : (
                 <>
                     {renderHeaderFields()}
                     {renderItemsSection()}
+                    {renderTotalsSection()}
                     {renderFileSection()}
                 </>
             )}
