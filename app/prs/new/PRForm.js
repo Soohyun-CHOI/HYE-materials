@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createPRAction } from "./actions";
 import SignerList from "./SignerList";
@@ -16,6 +16,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
 
     const [jobId, setJobId] = useState("");
     const [lineId, setLineId] = useState("");
+    const [vendorId, setVendorId] = useState("");
     const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
     const [signerIds, setSignerIds] = useState([]);
     // Quotation file is optional and uploaded in the background as soon as
@@ -25,6 +26,27 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     // done | error. A failed upload never blocks submitting the PR itself
     // — it just means no quotation gets attached.
     const [quotation, setQuotation] = useState({ status: "idle" });
+
+    // Issue #61 — the duplicate-submission warning is a confirm-then-resubmit
+    // round trip through the same Server Action, not a separate pre-check
+    // fetch. `confirmedRef` is a plain DOM ref (not React state) so "Submit
+    // anyway" can flip the hidden input's value synchronously before the
+    // native form submission fires — a state update here wouldn't reliably
+    // commit to the DOM in time. `warningDismissed` resets on every new
+    // action result so a later real resubmission re-evaluates the warning.
+    const confirmedRef = useRef(null);
+    const [warningDismissed, setWarningDismissed] = useState(false);
+
+    useEffect(() => {
+        setWarningDismissed(false);
+        // A generic error (unrelated to the duplicate warning) means this
+        // attempt already carried confirmed=true and still failed — reset it
+        // so the next honest resubmission re-runs the duplicate check rather
+        // than silently skipping it forever.
+        if (state?.error && confirmedRef.current) {
+            confirmedRef.current.value = "false";
+        }
+    }, [state]);
 
     async function handleFileChange(e) {
         const file = e.target.files?.[0];
@@ -71,6 +93,8 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
         const rate = parseFloat(item.rate) || 0;
         return sum + qty * rate;
     }, 0);
+
+    const showDuplicateWarning = Boolean(state?.duplicateWarning) && !warningDismissed;
 
     return (
         <form action={formAction} className="mt-6 space-y-8">
@@ -136,7 +160,14 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                     <label htmlFor="vendorId" className="block text-sm font-medium">
                         Vendor
                     </label>
-                    <select id="vendorId" name="vendorId" required defaultValue="" className={fieldClass}>
+                    <select
+                        id="vendorId"
+                        name="vendorId"
+                        value={vendorId}
+                        onChange={(e) => setVendorId(e.target.value)}
+                        required
+                        className={fieldClass}
+                    >
                         <option value="" disabled>
                             Select a Vendor
                         </option>
@@ -284,14 +315,45 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                     <input type="hidden" name="quotationFilename" value={quotation.filename} />
                 </>
             )}
+            <input type="hidden" name="confirmed" ref={confirmedRef} defaultValue="false" />
 
-            <button
-                type="submit"
-                disabled={pending || quotation.status === "uploading"}
-                className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
-            >
-                {pending ? "Submitting..." : quotation.status === "uploading" ? "Uploading file..." : "Submit PR"}
-            </button>
+            {showDuplicateWarning ? (
+                <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+                    <p>
+                        A matching PR already exists for this Line —{" "}
+                        <strong>{state.duplicateWarning.priorPrId}</strong>, submitted by{" "}
+                        {state.duplicateWarning.priorRequesterName} on{" "}
+                        {state.duplicateWarning.priorDate}. Submit this one anyway?
+                    </p>
+                    <div className="flex gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setWarningDismissed(true)}
+                            className="rounded border border-yellow-600 px-3 py-1 text-yellow-900 dark:text-yellow-200"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={pending}
+                            onClick={() => {
+                                confirmedRef.current.value = "true";
+                            }}
+                            className="rounded bg-yellow-600 px-3 py-1 text-white disabled:opacity-50"
+                        >
+                            {pending ? "Submitting..." : "Submit anyway"}
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <button
+                    type="submit"
+                    disabled={pending || quotation.status === "uploading"}
+                    className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
+                >
+                    {pending ? "Submitting..." : quotation.status === "uploading" ? "Uploading file..." : "Submit PR"}
+                </button>
+            )}
         </form>
     );
 }

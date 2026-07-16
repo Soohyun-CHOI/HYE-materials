@@ -3,11 +3,47 @@
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
-import { createPR, updatePR } from "@/lib/airtable/purchaseRequests";
-import { createItem } from "@/lib/airtable/prItems";
+import { createPR, updatePR, getPRsByLine } from "@/lib/airtable/purchaseRequests";
+import { createItem, getItemsByPR } from "@/lib/airtable/prItems";
 import { createSigner } from "@/lib/airtable/prSigners";
 import { createQuotation } from "@/lib/airtable/quotations";
+import { getUserByRecordId } from "@/lib/airtable/users";
 import { notifyCurrentTurn } from "@/lib/notifications";
+
+// Canonical key for an item's duplicate-match identity — Item Name
+// (case/whitespace-insensitive) + Qty + Rate, per issue #61. Size/Unit/
+// Remark deliberately excluded: the issue only calls out Name/Qty/Rate.
+function itemKey(item) {
+    return `${(item.itemName || "").trim().toLowerCase()}|${parseFloat(item.qty)}|${parseFloat(item.rate)}`;
+}
+
+// Issue #61 — flags a PR as a likely re-submission when some prior PR on
+// the same Line has the exact same set of items (Name/Qty/Rate, order and
+// multiplicity insensitive). Checked against every prior PR on the Line
+// regardless of Status, since even one already Converted to PO is still a
+// forgotten-resubmission candidate.
+async function findDuplicatePR(lineId, items) {
+    const submittedKey = items.map(itemKey).sort().join(",");
+
+    const priorPRs = await getPRsByLine(lineId);
+    for (const priorPr of priorPRs) {
+        const priorItems = await getItemsByPR(priorPr.id);
+        const priorKey = priorItems.map(itemKey).sort().join(",");
+        if (priorKey !== submittedKey) continue;
+
+        const requester = priorPr.requester?.[0]
+            ? await getUserByRecordId(priorPr.requester[0])
+            : null;
+
+        return {
+            priorPrId: priorPr.prId,
+            priorDate: priorPr.createdDate,
+            priorRequesterName: requester?.userName || "Unknown",
+        };
+    }
+
+    return null;
+}
 
 // Bound to useActionState (see PRForm.js): takes (prevState, formData),
 // returns { error } on a validation/write failure instead of throwing —
@@ -23,6 +59,7 @@ export async function createPRAction(prevState, formData) {
     const quotationUrl = formData.get("quotationUrl");
     const quotationFilename = formData.get("quotationFilename");
     const vendorQuotationCode = formData.get("vendorQuotationCode") || "";
+    const confirmed = formData.get("confirmed") === "true";
 
     if (!lineId) return { error: "Select a Line." };
     if (!vendorId) return { error: "Select a Vendor." };
@@ -36,6 +73,16 @@ export async function createPRAction(prevState, formData) {
     }
     if (signerIds.length === 0) {
         return { error: "Assign at least one signer." };
+    }
+
+    // Real submit-time check (this app has no separate Draft-save step —
+    // reaching here already is the actual submission), skipped once the
+    // Requester has confirmed past a previously-shown warning.
+    if (!confirmed) {
+        const duplicate = await findDuplicatePR(lineId, items);
+        if (duplicate) {
+            return { duplicateWarning: duplicate };
+        }
     }
 
     let pr;
