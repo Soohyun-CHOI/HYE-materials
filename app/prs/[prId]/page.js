@@ -102,7 +102,16 @@ export default async function PRDetailPage({ params, searchParams }) {
             .filter((s) => s.signedAt)
             .map((s) => {
                 const name = usersById[s.signer?.[0]]?.userName || "Unknown";
-                const verb = s.status === "Edited" ? "edited and continued" : "approved";
+                // "Edited" isn't an Approval or Agreement itself (issue
+                // #66), so it keeps its own label regardless of
+                // confirmationType — only a genuine "Approved" status
+                // splits into "approved"/"agreed" by tag.
+                const verb =
+                    s.status === "Edited"
+                        ? "edited and continued"
+                        : s.confirmationType === "Agreement"
+                          ? "agreed"
+                          : "approved";
                 return { at: s.signedAt, text: `${name} ${verb} (step ${s.sequenceOrder})` };
             }),
         ...correctionRequests.flatMap((c) => {
@@ -225,7 +234,8 @@ export default async function PRDetailPage({ params, searchParams }) {
                                 pr.status === "In Review" && pr.currentSignerStep === s.sequenceOrder;
                             return (
                                 <li key={s.id} className={isCurrent ? "font-medium" : ""}>
-                                    {s.sequenceOrder}. {u?.userName || "Unknown"} ({u?.role}) — {s.status}
+                                    {s.sequenceOrder}. {u?.userName || "Unknown"} ({u?.role}) —{" "}
+                                    {s.confirmationType} — {s.status}
                                     {isCurrent ? " ← current" : ""}
                                 </li>
                             );
@@ -279,6 +289,11 @@ export default async function PRDetailPage({ params, searchParams }) {
                                 turn.type === "signer" ? getReturnTargets(pr, signers, turn.sequenceOrder) : []
                             }
                             usersById={usersById}
+                            confirmationType={
+                                turn.type === "signer"
+                                    ? signers.find((s) => s.id === turn.prSignerRecordId)?.confirmationType
+                                    : null
+                            }
                         />
                     ) : (
                         <p className="text-sm text-zinc-600 dark:text-zinc-400">

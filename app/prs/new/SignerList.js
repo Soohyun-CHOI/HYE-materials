@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-function SortableSignerRow({ id, user, index, onRemove }) {
+function SortableSignerRow({ id, user, index, confirmationType, onConfirmationTypeChange, onRemove }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
         useSortable({ id });
     const style = {
@@ -46,6 +46,14 @@ function SortableSignerRow({ id, user, index, onRemove }) {
             <span className="flex-1">
                 {user ? `${user.userName} (${user.role})` : "Unknown user"}
             </span>
+            <select
+                value={confirmationType}
+                onChange={(e) => onConfirmationTypeChange(e.target.value)}
+                className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-black"
+            >
+                <option value="Approval">Approval</option>
+                <option value="Agreement">Agreement</option>
+            </select>
             <button type="button" onClick={onRemove} className="text-sm text-red-600">
                 Remove
             </button>
@@ -56,8 +64,12 @@ function SortableSignerRow({ id, user, index, onRemove }) {
 // Ordered signer-assignment list for the PR creation form: pick a person
 // from the dropdown to add them to the end of the chain, then drag rows to
 // reorder — array order becomes Sequence Order on submit (see
-// app/prs/new/actions.js).
-export default function SignerList({ users, signerIds, onChange }) {
+// app/prs/new/actions.js). Each entry also carries a Confirmation Type
+// (Approval/Agreement, issue #66) the Requester picks per signer — userId
+// doubles as the stable DnD identity (a person can only appear once in the
+// chain, same as before), so the reorder/add/remove logic below is
+// unchanged; only the per-row confirmationType is new.
+export default function SignerList({ users, signers, onChange }) {
     const [pickerValue, setPickerValue] = useState("");
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -65,16 +77,23 @@ export default function SignerList({ users, signerIds, onChange }) {
     );
 
     const usersById = Object.fromEntries(users.map((u) => [u.id, u]));
+    const signerIds = signers.map((s) => s.userId);
     const availableUsers = users.filter((u) => !signerIds.includes(u.id));
 
     function handleAdd() {
         if (!pickerValue) return;
-        onChange([...signerIds, pickerValue]);
+        onChange([...signers, { userId: pickerValue, confirmationType: "Approval" }]);
         setPickerValue("");
     }
 
-    function handleRemove(id) {
-        onChange(signerIds.filter((s) => s !== id));
+    function handleRemove(userId) {
+        onChange(signers.filter((s) => s.userId !== userId));
+    }
+
+    function handleConfirmationTypeChange(userId, confirmationType) {
+        onChange(
+            signers.map((s) => (s.userId === userId ? { ...s, confirmationType } : s))
+        );
     }
 
     function handleDragEnd(event) {
@@ -82,12 +101,12 @@ export default function SignerList({ users, signerIds, onChange }) {
         if (!over || active.id === over.id) return;
         const oldIndex = signerIds.indexOf(active.id);
         const newIndex = signerIds.indexOf(over.id);
-        onChange(arrayMove(signerIds, oldIndex, newIndex));
+        onChange(arrayMove(signers, oldIndex, newIndex));
     }
 
     return (
         <div className="mt-2 space-y-3">
-            {signerIds.length > 0 && (
+            {signers.length > 0 && (
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
@@ -95,13 +114,17 @@ export default function SignerList({ users, signerIds, onChange }) {
                 >
                     <SortableContext items={signerIds} strategy={verticalListSortingStrategy}>
                         <ul className="space-y-2">
-                            {signerIds.map((id, i) => (
+                            {signers.map((s, i) => (
                                 <SortableSignerRow
-                                    key={id}
-                                    id={id}
-                                    user={usersById[id]}
+                                    key={s.userId}
+                                    id={s.userId}
+                                    user={usersById[s.userId]}
                                     index={i}
-                                    onRemove={() => handleRemove(id)}
+                                    confirmationType={s.confirmationType}
+                                    onConfirmationTypeChange={(value) =>
+                                        handleConfirmationTypeChange(s.userId, value)
+                                    }
+                                    onRemove={() => handleRemove(s.userId)}
                                 />
                             ))}
                         </ul>

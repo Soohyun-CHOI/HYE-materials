@@ -38,10 +38,10 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 **Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when the President signs the generated PO, not when the PO is merely created — see Purchase Orders), Current Signer Step, Total Amount (rollup), Notes, Quotation File (Lookup).
 
 **PR Signers** — dynamic ordered approval chain:
-- Requester assigns an arbitrary ordered list of signers at PR creation.
-- Each turn: Approve, Edit and continue, or Return for correction (to any earlier signer/requester/self — pauses and resumes, never restarts).
+- Requester assigns an arbitrary ordered list of signers at PR creation, each tagged Approval or Agreement (Confirmation Type) — a procedural label only, not a workflow branch: the confirm-and-advance action is identical either way, it only changes what the signing UI and history log call it ("Approve"/"Approved" vs "Agree"/"Agreed").
+- Each turn: Approve (or Agree, per tag), Edit and continue, or Return for correction (to any earlier signer/requester/self — pauses and resumes, never restarts). Edit and continue and Return are neither Approval nor Agreement — they keep their own distinct labels regardless of a signer's Confirmation Type.
 - Editing after signing does NOT invalidate approval.
-- Fields: PR Signer ID, PR/Signer (link, single), Sequence Order, Status (Pending/Approved/Edited/Returned), Signed At, Notes.
+- Fields: PR Signer ID, PR/Signer (link, single), Sequence Order, Status (Pending/Approved/Edited/Returned), Confirmation Type (Approval/Agreement), Signed At, Notes.
 
 **PR Items**: PR Item ID, PR (link), Item Name, Size, Unit, Qty, Rate, Amount = live formula, Remark.
 
