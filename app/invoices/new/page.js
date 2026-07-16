@@ -1,6 +1,6 @@
 import { requireAdmin } from "@/lib/authz";
 import { getAllVendors } from "@/lib/airtable/vendors";
-import { getAllPOs } from "@/lib/airtable/purchaseOrders";
+import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
 import InvoiceForm from "./InvoiceForm";
 
 // Admin-only (issue #14) — manual invoice entry is back-office data entry,
@@ -16,7 +16,12 @@ export default async function NewInvoicePage({ searchParams }) {
         );
     }
 
-    const [vendors, pos] = await Promise.all([getAllVendors(), getAllPOs()]);
+    // Issue #57 — defaults to open POs only (Remaining Qty > 0 on at least
+    // one PO Item), not the full historical list. A closed PO is never
+    // truly unreachable — InvoiceForm.js's "Show all / search closed POs"
+    // queries the complete set server-side, on demand, instead of this
+    // page ever loading it all upfront.
+    const [vendors, pos] = await Promise.all([getAllVendors(), getOpenPOs()]);
 
     // po.vendor is a raw Vendor record ID (Purchase Orders.Vendor is a
     // Lookup through PR -> Purchase Requests.Vendor, itself a link field —

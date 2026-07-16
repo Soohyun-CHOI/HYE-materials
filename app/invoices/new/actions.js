@@ -21,6 +21,7 @@ export async function createInvoiceAction(prevState, formData) {
     const dueDate = formData.get("dueDate") || null;
     const amountDue = formData.get("amountDue");
     const shippingFee = formData.get("shippingFee") || 0;
+    const tariff = formData.get("tariff"); // issue #57 — optional, only present once the header's "+ Add Tariff" was used
     const items = JSON.parse(formData.get("itemsJson") || "[]");
     const invoiceFileUrl = formData.get("invoiceFileUrl");
     const invoiceFileFilename = formData.get("invoiceFileFilename");
@@ -62,6 +63,7 @@ export async function createInvoiceAction(prevState, formData) {
             dueDate,
             amountDue: parseFloat(amountDue),
             shippingFee: parseFloat(shippingFee) || 0,
+            tariff: tariff ? parseFloat(tariff) : null,
             file: [{ url: invoiceFileUrl, filename: invoiceFileFilename || undefined }],
         });
 
@@ -74,6 +76,7 @@ export async function createInvoiceAction(prevState, formData) {
                 itemName: item.itemName,
                 qty: parseFloat(item.qty),
                 unitPrice: parseFloat(item.unitPrice),
+                remark: item.remark || "",
             });
             createdItemIds.push(created.id);
         }
