@@ -77,6 +77,11 @@ export async function createPRAction(prevState, formData) {
     if (signers.length === 0) {
         return { error: "Assign at least one signer." };
     }
+    // At least one Quotation is required (not optional) — a PR always
+    // needs the vendor's actual quote on file.
+    if (quotations.length === 0) {
+        return { error: "Add at least one quotation." };
+    }
     // A Quotation entry with no file attached can't become a real
     // Quotations record — the Requester must either attach one or remove
     // the entry (PRForm.js disables Submit for this same reason; this is

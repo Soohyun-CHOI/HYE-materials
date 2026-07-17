@@ -26,16 +26,15 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     // Issue #67 — a PR can have more than one Quotation over its lifetime
     // (a Vendor can send more than one quote), each with its own file and
     // Vendor Quotation Code; PR Items link to whichever one they're
-    // actually based on. Starts empty, same as Items starting with one
-    // row but Quotations being fully optional — "+ Add another quotation"
-    // grows the list. Each entry's file is uploaded in the background as
-    // soon as it's picked (client-side direct upload to Vercel Blob — see
-    // CLAUDE.md's "Quotation file upload" section: keeps the Server
-    // Action body under Vercel's size limit). idle -> uploading -> done |
-    // error — unlike the old single-quotation design, a file is required
-    // per entry here (once an entry exists, it must resolve to "done"
-    // before the PR can submit; the entry can always just be removed
-    // instead).
+    // actually based on. At least one is required — starts empty and
+    // "+ Add another quotation" grows the list, but Submit stays disabled
+    // until there's at least one. Each entry's file is uploaded in the
+    // background as soon as it's picked (client-side direct upload to
+    // Vercel Blob — see CLAUDE.md's "Quotation file upload" section:
+    // keeps the Server Action body under Vercel's size limit). idle ->
+    // uploading -> done | error — a file is required per entry (once an
+    // entry exists, it must resolve to "done" before the PR can submit;
+    // the entry can always just be removed instead).
     const [quotations, setQuotations] = useState([]);
 
     // Issue #61 — the duplicate-submission warning is a confirm-then-resubmit
@@ -147,7 +146,9 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     // resolves to the same (possibly nonexistent) one automatically.
     const showQuotationColumn = quotations.length >= 2;
     const quotationLabel = (index) => quotations[index]?.vendorQuotationCode || `Quotation ${index + 1}`;
-    const quotationsIncomplete = quotations.some((q) => q.file.status !== "done");
+    // At least one Quotation is required (not optional) — a PR always
+    // needs the vendor's actual quote on file.
+    const quotationsIncomplete = quotations.length === 0 || quotations.some((q) => q.file.status !== "done");
 
     const showDuplicateWarning = Boolean(state?.duplicateWarning) && !warningDismissed;
 
@@ -233,12 +234,70 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                         ))}
                     </select>
                 </div>
+            </div>
 
-                <div>
-                    <label htmlFor="notes" className="block text-sm font-medium">
-                        Notes
-                    </label>
-                    <textarea id="notes" name="notes" rows={3} className={fieldClass} />
+            <div>
+                <h2 className="text-lg font-semibold">Quotations</h2>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    A Vendor can send more than one quotation — add one entry per quotation received.
+                </p>
+                <div className="mt-2 space-y-3">
+                    {quotations.map((q, i) => (
+                        <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">{quotationLabel(i)}</span>
+                                <button
+                                    type="button"
+                                    onClick={() => removeQuotation(i)}
+                                    className="text-sm text-red-600"
+                                >
+                                    Remove
+                                </button>
+                            </div>
+                            <div className="mt-2 space-y-2">
+                                <input
+                                    type="file"
+                                    accept="application/pdf,image/jpeg,image/png"
+                                    onChange={(e) => handleQuotationFileChange(i, e)}
+                                    className="block text-sm"
+                                />
+                                {q.file.status === "uploading" && (
+                                    <p className="text-sm text-zinc-500">Uploading {q.file.filename}...</p>
+                                )}
+                                {q.file.status === "done" && (
+                                    <p className="text-sm text-green-700">
+                                        Uploaded{" "}
+                                        <a href={q.file.url} target="_blank" rel="noreferrer" className="underline">
+                                            {q.file.filename}
+                                        </a>
+                                    </p>
+                                )}
+                                {q.file.status === "error" && (
+                                    <p className="text-sm text-red-600">
+                                        Upload failed: {q.file.error}. Try a different file, or remove this entry.
+                                    </p>
+                                )}
+                                {q.file.status !== "done" && (
+                                    <p className="text-sm text-zinc-500">
+                                        A file is required for each quotation — attach one or remove this entry.
+                                    </p>
+                                )}
+                                <input
+                                    placeholder="Vendor Quotation Code (optional)"
+                                    value={q.vendorQuotationCode}
+                                    onChange={(e) => updateQuotationCode(i, e.target.value)}
+                                    className={inputClass}
+                                />
+                            </div>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={addQuotation}
+                        className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
+                    >
+                        + Add another quotation
+                    </button>
                 </div>
             </div>
 
@@ -344,68 +403,10 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
             </div>
 
             <div>
-                <h2 className="text-lg font-semibold">Quotations (optional)</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                    A Vendor can send more than one quotation — add one entry per quotation received.
-                </p>
-                <div className="mt-2 space-y-3">
-                    {quotations.map((q, i) => (
-                        <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">{quotationLabel(i)}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => removeQuotation(i)}
-                                    className="text-sm text-red-600"
-                                >
-                                    Remove
-                                </button>
-                            </div>
-                            <div className="mt-2 space-y-2">
-                                <input
-                                    type="file"
-                                    accept="application/pdf,image/jpeg,image/png"
-                                    onChange={(e) => handleQuotationFileChange(i, e)}
-                                    className="block text-sm"
-                                />
-                                {q.file.status === "uploading" && (
-                                    <p className="text-sm text-zinc-500">Uploading {q.file.filename}...</p>
-                                )}
-                                {q.file.status === "done" && (
-                                    <p className="text-sm text-green-700">
-                                        Uploaded{" "}
-                                        <a href={q.file.url} target="_blank" rel="noreferrer" className="underline">
-                                            {q.file.filename}
-                                        </a>
-                                    </p>
-                                )}
-                                {q.file.status === "error" && (
-                                    <p className="text-sm text-red-600">
-                                        Upload failed: {q.file.error}. Try a different file, or remove this entry.
-                                    </p>
-                                )}
-                                {q.file.status !== "done" && (
-                                    <p className="text-sm text-zinc-500">
-                                        A file is required for each quotation — attach one or remove this entry.
-                                    </p>
-                                )}
-                                <input
-                                    placeholder="Vendor Quotation Code (optional)"
-                                    value={q.vendorQuotationCode}
-                                    onChange={(e) => updateQuotationCode(i, e.target.value)}
-                                    className={inputClass}
-                                />
-                            </div>
-                        </div>
-                    ))}
-                    <button
-                        type="button"
-                        onClick={addQuotation}
-                        className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
-                    >
-                        + Add another quotation
-                    </button>
-                </div>
+                <label htmlFor="notes" className="block text-sm font-medium">
+                    Notes
+                </label>
+                <textarea id="notes" name="notes" rows={3} className={fieldClass} />
             </div>
 
             <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
@@ -459,9 +460,11 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                 >
                     {pending
                         ? "Submitting..."
-                        : quotationsIncomplete
-                          ? "Attach a file to every quotation..."
-                          : "Submit PR"}
+                        : quotations.length === 0
+                          ? "Add at least one quotation..."
+                          : quotationsIncomplete
+                            ? "Attach a file to every quotation..."
+                            : "Submit PR"}
                 </button>
             )}
         </form>
