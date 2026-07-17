@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { approveAction } from "./actions";
 
-export default function ApproveForm({ prId, onCancel }) {
+export default function ApproveForm({ prId, isAgreement, onCancel }) {
     const [state, formAction, pending] = useActionState(approveAction, null);
 
     return (
@@ -36,7 +36,13 @@ export default function ApproveForm({ prId, onCancel }) {
                     disabled={pending}
                     className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
                 >
-                    {pending ? "Approving..." : "Confirm approval"}
+                    {pending
+                        ? isAgreement
+                            ? "Agreeing..."
+                            : "Approving..."
+                        : isAgreement
+                          ? "Confirm agreement"
+                          : "Confirm approval"}
                 </button>
                 <button
                     type="button"

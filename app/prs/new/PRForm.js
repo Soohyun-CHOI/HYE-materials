@@ -18,7 +18,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     const [lineId, setLineId] = useState("");
     const [vendorId, setVendorId] = useState("");
     const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
-    const [signerIds, setSignerIds] = useState([]);
+    const [signers, setSigners] = useState([]);
     // Quotation file is optional and uploaded in the background as soon as
     // it's picked (client-side direct upload to Vercel Blob — see
     // CLAUDE.md's "Quotation file upload" section for why: it needs to
@@ -269,7 +269,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                 <p className="text-sm text-zinc-600 dark:text-zinc-400">
                     Drag to reorder — this is the order they&apos;ll sign in.
                 </p>
-                <SignerList users={users} signerIds={signerIds} onChange={setSignerIds} />
+                <SignerList users={users} signers={signers} onChange={setSigners} />
             </div>
 
             <div>
@@ -308,7 +308,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
             </div>
 
             <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
-            <input type="hidden" name="signerIdsJson" value={JSON.stringify(signerIds)} />
+            <input type="hidden" name="signersJson" value={JSON.stringify(signers)} />
             {quotation.status === "done" && (
                 <>
                     <input type="hidden" name="quotationUrl" value={quotation.url} />

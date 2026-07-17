@@ -55,7 +55,9 @@ export async function createPRAction(prevState, formData) {
     const vendorId = formData.get("vendorId");
     const notes = formData.get("notes") || "";
     const items = JSON.parse(formData.get("itemsJson") || "[]");
-    const signerIds = JSON.parse(formData.get("signerIdsJson") || "[]");
+    // Each entry: { userId, confirmationType } — issue #66's per-signer
+    // Approval/Agreement tag, picked by the Requester in SignerList.js.
+    const signers = JSON.parse(formData.get("signersJson") || "[]");
     const quotationUrl = formData.get("quotationUrl");
     const quotationFilename = formData.get("quotationFilename");
     const vendorQuotationCode = formData.get("vendorQuotationCode") || "";
@@ -71,7 +73,7 @@ export async function createPRAction(prevState, formData) {
             return { error: "Every item needs a name, quantity, and rate." };
         }
     }
-    if (signerIds.length === 0) {
+    if (signers.length === 0) {
         return { error: "Assign at least one signer." };
     }
 
@@ -107,12 +109,13 @@ export async function createPRAction(prevState, formData) {
             createdItemIds.push(created.id);
         }
 
-        for (let i = 0; i < signerIds.length; i++) {
+        for (let i = 0; i < signers.length; i++) {
             const created = await createSigner({
                 prRecordId: pr.id,
                 prId: pr.prId,
-                signerUserId: signerIds[i],
+                signerUserId: signers[i].userId,
                 sequenceOrder: i + 1,
+                confirmationType: signers[i].confirmationType,
             });
             createdSignerIds.push(created.id);
         }
@@ -161,9 +164,9 @@ export async function createPRAction(prevState, formData) {
         return { error: "Something went wrong creating the PR. Please try again." };
     }
 
-    // Best-effort — see lib/notifications.js. Signer #1 is signerIds[0]
+    // Best-effort — see lib/notifications.js. Signer #1 is signers[0]
     // (Sequence Order 1, the PR's starting Current Signer Step).
-    await notifyCurrentTurn({ pr, turn: { type: "signer", userId: signerIds[0] } });
+    await notifyCurrentTurn({ pr, turn: { type: "signer", userId: signers[0].userId } });
 
     redirect(`/prs/new?created=${encodeURIComponent(pr.prId)}`);
 }

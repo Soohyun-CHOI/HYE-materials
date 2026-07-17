@@ -18,7 +18,37 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-function SortableSignerRow({ id, user, index, onRemove }) {
+const CONFIRMATION_TYPES = ["Approval", "Agreement"];
+
+// Segmented control, not a sliding toggle: Approval/Agreement are two
+// equally-weighted procedural roles, not an on/off state, so both labels
+// stay visible side by side with the active one highlighted (issue #66
+// UI refinement). Used both inline while adding a signer and inside each
+// already-added row, so the role stays editable either way.
+function ConfirmationTypeToggle({ value, onChange }) {
+    return (
+        <div className="inline-flex overflow-hidden rounded-full border border-zinc-300 text-sm dark:border-zinc-700">
+            {CONFIRMATION_TYPES.map((option) => (
+                <button
+                    key={option}
+                    type="button"
+                    onClick={() => onChange(option)}
+                    aria-pressed={value === option}
+                    className={
+                        "px-3 py-1 " +
+                        (value === option
+                            ? "bg-foreground text-background"
+                            : "bg-transparent text-zinc-600 dark:text-zinc-400")
+                    }
+                >
+                    {option}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+function SortableSignerRow({ id, user, index, confirmationType, onConfirmationTypeChange, onRemove }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
         useSortable({ id });
     const style = {
@@ -46,6 +76,7 @@ function SortableSignerRow({ id, user, index, onRemove }) {
             <span className="flex-1">
                 {user ? `${user.userName} (${user.role})` : "Unknown user"}
             </span>
+            <ConfirmationTypeToggle value={confirmationType} onChange={onConfirmationTypeChange} />
             <button type="button" onClick={onRemove} className="text-sm text-red-600">
                 Remove
             </button>
@@ -56,25 +87,41 @@ function SortableSignerRow({ id, user, index, onRemove }) {
 // Ordered signer-assignment list for the PR creation form: pick a person
 // from the dropdown to add them to the end of the chain, then drag rows to
 // reorder — array order becomes Sequence Order on submit (see
-// app/prs/new/actions.js).
-export default function SignerList({ users, signerIds, onChange }) {
+// app/prs/new/actions.js). Each entry also carries a Confirmation Type
+// (Approval/Agreement, issue #66) the Requester picks per signer — userId
+// doubles as the stable DnD identity (a person can only appear once in the
+// chain, same as before), so the reorder/add/remove logic below is
+// unchanged; only the per-row confirmationType is new.
+export default function SignerList({ users, signers, onChange }) {
     const [pickerValue, setPickerValue] = useState("");
+    // Confirmation Type for the signer about to be added — pre-selected to
+    // Approval from the moment this row appears (issue #66 UI refinement),
+    // not just after the signer is already in the list.
+    const [pickerConfirmationType, setPickerConfirmationType] = useState("Approval");
     const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
     const usersById = Object.fromEntries(users.map((u) => [u.id, u]));
+    const signerIds = signers.map((s) => s.userId);
     const availableUsers = users.filter((u) => !signerIds.includes(u.id));
 
     function handleAdd() {
         if (!pickerValue) return;
-        onChange([...signerIds, pickerValue]);
+        onChange([...signers, { userId: pickerValue, confirmationType: pickerConfirmationType }]);
         setPickerValue("");
+        setPickerConfirmationType("Approval");
     }
 
-    function handleRemove(id) {
-        onChange(signerIds.filter((s) => s !== id));
+    function handleRemove(userId) {
+        onChange(signers.filter((s) => s.userId !== userId));
+    }
+
+    function handleConfirmationTypeChange(userId, confirmationType) {
+        onChange(
+            signers.map((s) => (s.userId === userId ? { ...s, confirmationType } : s))
+        );
     }
 
     function handleDragEnd(event) {
@@ -82,12 +129,12 @@ export default function SignerList({ users, signerIds, onChange }) {
         if (!over || active.id === over.id) return;
         const oldIndex = signerIds.indexOf(active.id);
         const newIndex = signerIds.indexOf(over.id);
-        onChange(arrayMove(signerIds, oldIndex, newIndex));
+        onChange(arrayMove(signers, oldIndex, newIndex));
     }
 
     return (
         <div className="mt-2 space-y-3">
-            {signerIds.length > 0 && (
+            {signers.length > 0 && (
                 <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
@@ -95,13 +142,17 @@ export default function SignerList({ users, signerIds, onChange }) {
                 >
                     <SortableContext items={signerIds} strategy={verticalListSortingStrategy}>
                         <ul className="space-y-2">
-                            {signerIds.map((id, i) => (
+                            {signers.map((s, i) => (
                                 <SortableSignerRow
-                                    key={id}
-                                    id={id}
-                                    user={usersById[id]}
+                                    key={s.userId}
+                                    id={s.userId}
+                                    user={usersById[s.userId]}
                                     index={i}
-                                    onRemove={() => handleRemove(id)}
+                                    confirmationType={s.confirmationType}
+                                    onConfirmationTypeChange={(value) =>
+                                        handleConfirmationTypeChange(s.userId, value)
+                                    }
+                                    onRemove={() => handleRemove(s.userId)}
                                 />
                             ))}
                         </ul>
@@ -109,7 +160,7 @@ export default function SignerList({ users, signerIds, onChange }) {
                 </DndContext>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
                 <select
                     value={pickerValue}
                     onChange={(e) => setPickerValue(e.target.value)}
@@ -122,6 +173,10 @@ export default function SignerList({ users, signerIds, onChange }) {
                         </option>
                     ))}
                 </select>
+                <ConfirmationTypeToggle
+                    value={pickerConfirmationType}
+                    onChange={setPickerConfirmationType}
+                />
                 <button
                     type="button"
                     onClick={handleAdd}
