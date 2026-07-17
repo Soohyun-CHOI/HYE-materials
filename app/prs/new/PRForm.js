@@ -23,6 +23,9 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     const [vendorId, setVendorId] = useState("");
     const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
     const [signers, setSigners] = useState([]);
+    // Issue #69 — optional, left blank when the Requester doesn't know the
+    // shipping cost yet at creation time.
+    const [shippingFee, setShippingFee] = useState("");
     // Issue #67 — a PR can have more than one Quotation over its lifetime
     // (a Vendor can send more than one quote), each with its own file and
     // Vendor Quotation Code; PR Items link to whichever one they're
@@ -140,6 +143,9 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
         const rate = parseFloat(item.rate) || 0;
         return sum + qty * rate;
     }, 0);
+    // Issue #69 — preview only, mirrors the Grand Total formula field
+    // (Total Amount + Shipping Fee, blank treated as 0).
+    const grandTotal = total + (parseFloat(shippingFee) || 0);
 
     // Issue #67 — the per-item Quotation column only earns its keep once
     // there's an actual choice to make; with 0 or 1 Quotations every item
@@ -396,6 +402,24 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                     + Add item
                 </button>
                 <p className="mt-2 text-sm font-medium">Total (preview): {total.toFixed(2)}</p>
+            </div>
+
+            <div>
+                <label htmlFor="shippingFee" className="block text-sm font-medium">
+                    Shipping Fee (optional)
+                </label>
+                <input
+                    type="number"
+                    step="0.01"
+                    id="shippingFee"
+                    name="shippingFee"
+                    value={shippingFee}
+                    onChange={(e) => setShippingFee(e.target.value)}
+                    className={fieldClass}
+                />
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    Grand Total (preview): {grandTotal.toFixed(2)}
+                </p>
             </div>
 
             <div>

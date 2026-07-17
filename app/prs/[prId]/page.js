@@ -142,7 +142,9 @@ export default async function PRDetailPage({ params, searchParams }) {
             const name = usersById[e.changedBy?.[0]]?.userName || "Unknown";
             return {
                 at: e.changedAt,
-                text: `${name} changed ${e.fieldName}: "${e.oldValue}" → "${e.newValue}"`,
+                text: `${name} changed ${e.fieldName}: "${e.oldValue}" → "${e.newValue}"${
+                    e.notes ? ` (${e.notes})` : ""
+                }`,
             };
         }),
     ].sort((a, b) => new Date(a.at) - new Date(b.at));
@@ -167,6 +169,8 @@ export default async function PRDetailPage({ params, searchParams }) {
                 <p>Requester: {requesterName}</p>
                 {pr.notes && <p>Notes: {pr.notes}</p>}
                 <p>Total Amount: {pr.totalAmount ?? 0}</p>
+                {pr.shippingFee != null && <p>Shipping Fee: {pr.shippingFee}</p>}
+                <p>Grand Total: {pr.grandTotal ?? pr.totalAmount ?? 0}</p>
             </div>
 
             <div className="mt-6">
@@ -305,6 +309,7 @@ export default async function PRDetailPage({ params, searchParams }) {
                             turn={turn}
                             items={items}
                             quotations={quotations}
+                            shippingFee={pr.shippingFee}
                             returnTargets={
                                 turn.type === "signer" ? getReturnTargets(pr, signers, turn.sequenceOrder) : []
                             }

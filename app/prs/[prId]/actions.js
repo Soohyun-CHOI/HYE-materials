@@ -159,9 +159,17 @@ export async function editAndContinueAction(prevState, formData) {
     // Issue #67 — Quotations added in this same edit session (a PR can
     // pick up a 2nd, 3rd, ... Quotation later, not just at submission).
     const newQuotations = JSON.parse(formData.get("newQuotationsJson") || "[]");
+    // Issue #69 — Shipping Fee is the one PR-header-level field editable
+    // through this same action, alongside PR Items: same gating (only
+    // reachable via Edit and continue, never a free-standing edit form).
+    const shippingFeeRaw = formData.get("shippingFee");
+    const newShippingFee = shippingFeeRaw === "" || shippingFeeRaw === null ? null : parseFloat(shippingFeeRaw);
 
     for (const q of newQuotations) {
         if (!q.url) return { error: "Every quotation needs a file attached." };
+    }
+    if (shippingFeeRaw && Number.isNaN(newShippingFee)) {
+        return { error: "Shipping Fee must be a number." };
     }
 
     const { pr, signers, correctionRequests } = await loadPRContext(prId);
@@ -173,6 +181,8 @@ export async function editAndContinueAction(prevState, formData) {
     if (pr.status !== "In Review") {
         return { error: "This PR isn't currently in review." };
     }
+
+    const shippingFeeChanged = String(pr.shippingFee ?? "") !== String(newShippingFee ?? "");
 
     const originalItems = await getItemsByPR(pr.id);
     const originalById = Object.fromEntries(originalItems.map((it) => [it.id, it]));
@@ -265,9 +275,32 @@ export async function editAndContinueAction(prevState, formData) {
                     fieldName: ITEM_FIELD_LABELS[change.field],
                     oldValue: change.oldValue,
                     newValue: change.newValue,
+                    // Issue #69 — Edit Log gained a shared Notes field;
+                    // the turn's own Notes doubles as the reason for every
+                    // field this same edit session touched, not just
+                    // Shipping Fee.
+                    notes,
                 });
                 createdEditLogIds.push(entry.id);
             }
+        }
+
+        // Issue #69 — same Edit Log trail as item fields, but a PR-level
+        // (not per-item) change; the turn's own Notes doubles as the
+        // "reason for this change" the issue asks for, rather than adding
+        // a second note field just for this one field.
+        if (shippingFeeChanged) {
+            await updatePR(pr.id, { shippingFee: newShippingFee });
+            const entry = await createEditLogEntry({
+                prRecordId: pr.id,
+                prId: pr.prId,
+                changedById: user.id,
+                fieldName: "Shipping Fee",
+                oldValue: pr.shippingFee,
+                newValue: newShippingFee,
+                notes,
+            });
+            createdEditLogIds.push(entry.id);
         }
 
         if (turn.type === "signer") {
@@ -291,6 +324,9 @@ export async function editAndContinueAction(prevState, formData) {
                 remark: original.remark,
                 quotationRecordId: original.quotation?.[0] || null,
             }).catch(() => {});
+        }
+        if (shippingFeeChanged) {
+            await updatePR(pr.id, { shippingFee: pr.shippingFee ?? null }).catch(() => {});
         }
         await Promise.allSettled(
             createdEditLogIds.map((id) => base(TABLES.EDIT_LOG).destroy(id))

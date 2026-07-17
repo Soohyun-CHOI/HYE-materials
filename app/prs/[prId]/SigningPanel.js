@@ -15,6 +15,7 @@ export default function SigningPanel({
     turn,
     items,
     quotations,
+    shippingFee,
     returnTargets,
     usersById,
     confirmationType,
@@ -33,6 +34,7 @@ export default function SigningPanel({
                 prId={prId}
                 items={items}
                 quotations={quotations}
+                shippingFee={shippingFee}
                 onCancel={() => setMode(null)}
             />
         );

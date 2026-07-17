@@ -1021,6 +1021,15 @@ export default function InvoiceForm({ vendors, pos }) {
                             onChange={(e) => setShippingFee(e.target.value)}
                             className={fieldClass}
                         />
+                        {/* Issue #69 — reference only, no computed variance:
+                            only shown for the common single-PO case, since
+                            an invoice spanning several POs has no single PR
+                            Shipping Fee to compare against. */}
+                        {selectedPos.length === 1 && selectedPos[0].prShippingFee != null && (
+                            <p className="mt-1 text-xs text-zinc-500">
+                                PR estimated: {selectedPos[0].prShippingFee}
+                            </p>
+                        )}
                     </div>
                     {tariffEnabled && (
                         <div className="flex-1">

@@ -75,6 +75,12 @@ export default async function PODetailPage({ params, searchParams }) {
                 <p>Our Manager: {ourManager?.userName || "—"}</p>
                 <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>
                 <p>Total Amount: {po.totalAmount ?? 0}</p>
+                {pr.shippingFee != null && (
+                    <p>
+                        PR Shipping Fee: {pr.shippingFee} — compare against each invoice&apos;s own
+                        Shipping Fee at reconciliation time.
+                    </p>
+                )}
             </div>
 
             <div className="mt-6">
