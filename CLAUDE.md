@@ -35,7 +35,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Vendors**: Vendor Name (primary), PIC Name/Phone/Email (plain text, external), Address (link, single), Purchase Orders (Lookup via PR chain).
 
-**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when the President signs the generated PO), Current Signer Step, Total Amount (rollup), Notes, Quotation Files (Lookup, plural — a PR can have more than one Quotation).
+**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when the President signs the generated PO), Current Signer Step, Total Amount (rollup), Shipping Fee (optional currency — issue #69, entered by the Requester when known; fixed once set, changeable only via Edit and continue), Grand Total (formula = Total Amount + Shipping Fee, blank treated as 0), Notes, Quotation Files (Lookup, plural — a PR can have more than one Quotation).
 
 **PR Signers** — dynamic ordered approval chain:
 - Requester assigns an arbitrary ordered list of signers at PR creation, each tagged Confirmation Type (Approval/Agreement) — label only; the confirm-and-advance action is identical, it only changes what the signing UI/history log call it.
@@ -47,9 +47,9 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Correction Requests**: Correction Request ID, PR, Initiated By, Sent To, Notes, Requested At, Resolved At, Status (Pending/Resolved).
 
-**Edit Log**: Edit Log ID, PR, Changed By, Field Name (select), Old Value, New Value, Changed At.
+**Edit Log**: Edit Log ID, PR, Changed By, Field Name (select — item fields plus "Shipping Fee", issue #69), Old Value, New Value, Changed At, Notes (optional — reason for the change; shared field, not Shipping-Fee-specific, so pre-#69 item-edit entries just leave it blank).
 
-**Purchase Orders**: strict 1:1 with PR. PO ID (HYE-PO-YYYYMMDD-## — 4-digit year, the one exception to this project's 2-digit-year convention), PR (link), Vendor (Lookup via PR), Quotation File (Lookup), Our PIC/Manager (links), Created Date, President Signed(+At), Status (Draft/Signed/Sent to Vendor), PO PDF File, Total Amount (rollup), Delivery Address Used (Primary/Alternate — internal tracking only, never a UI choice).
+**Purchase Orders**: strict 1:1 with PR. PO ID (HYE-PO-YYYYMMDD-## — 4-digit year, the one exception to this project's 2-digit-year convention), PR (link), Vendor (Lookup via PR), Quotation File (Lookup), Our PIC/Manager (links), Created Date, President Signed(+At), Status (Draft/Signed/Sent to Vendor), PO PDF File, Total Amount (rollup), PR Shipping Fee (Lookup via PR — issue #69, lets the invoice form show a reference figure without an extra per-PO fetch), Delivery Address Used (Primary/Alternate — internal tracking only, never a UI choice).
 
 **PO Items**: frozen snapshot from PR Items at PO-generation time — NOT live. PO Item ID, PO (link), Item Name, Size, Unit, Qty, Rate, Amount = static value, Remark, Invoice Items (reverse-link, multiple — line-level partial invoicing is real).
 
@@ -146,6 +146,6 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 
 **Phase 5** (AI-assisted invoice PDF line-item parsing) — separate milestone, not started. Deferred since real vendor invoice layouts vary too much for a single positional heuristic.
 
-**PR Stage Fixes & Enhancements** (milestone, cross-cutting, alongside Phase 3) — #61, #62, #63, #66, #67 done. #68 (reconsider whether Approve needs a Notes field at all) and #69 (optional shipping fee on PR, carried through to invoice reconciliation) open.
+**PR Stage Fixes & Enhancements** (milestone, cross-cutting, alongside Phase 3) — #61, #62, #63, #66, #67, #69 done. #70 (reconsider whether Approve needs a Notes field at all) open.
 
 **PR Draft Support** (milestone) — 3 issues created (save PR as draft; resume-prompt on re-entry; draft list page), not started.

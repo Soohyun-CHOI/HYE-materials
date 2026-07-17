@@ -31,6 +31,11 @@ export default async function NewInvoicePage({ searchParams }) {
     const posWithVendorId = pos.map((po) => ({
         ...po,
         vendorId: po.vendor?.[0] || null,
+        // Issue #69 — Lookup via PR (see purchaseOrders.js), an array like
+        // every Lookup field even though the source is single. Used by the
+        // form as a reference figure next to Invoice.Shipping Fee — no
+        // computed comparison, just a display hint.
+        prShippingFee: po.prShippingFee?.[0] ?? null,
     }));
 
     const { created } = await searchParams;

@@ -20,6 +20,11 @@ export async function GET(request) {
 
     const pos = await searchPOs(q.trim());
     return NextResponse.json({
-        pos: pos.map((po) => ({ id: po.id, poId: po.poId, vendorId: po.vendor?.[0] || null })),
+        pos: pos.map((po) => ({
+            id: po.id,
+            poId: po.poId,
+            vendorId: po.vendor?.[0] || null,
+            prShippingFee: po.prShippingFee?.[0] ?? null,
+        })),
     });
 }

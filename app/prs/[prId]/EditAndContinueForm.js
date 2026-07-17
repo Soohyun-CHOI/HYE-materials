@@ -7,7 +7,7 @@ import { editAndContinueAction } from "./actions";
 const inputClass = "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
 const EMPTY_NEW_QUOTATION = { file: { status: "idle" }, vendorQuotationCode: "" };
 
-export default function EditAndContinueForm({ prId, items, quotations, onCancel }) {
+export default function EditAndContinueForm({ prId, items, quotations, shippingFee, onCancel }) {
     const [state, formAction, pending] = useActionState(editAndContinueAction, null);
     // Issue #67 — quotationChoice encodes either an existing Quotation
     // ("existing:<recordId>") or one being added in this same session
@@ -32,6 +32,11 @@ export default function EditAndContinueForm({ prId, items, quotations, onCancel 
     // New Quotations being added in this edit session — same shape/upload
     // flow as the creation form's list (see app/prs/new/PRForm.js).
     const [newQuotations, setNewQuotations] = useState([]);
+    // Issue #69 — the one PR-header-level field editable here, alongside
+    // items; pre-filled from the PR's actual current value.
+    const [shippingFeeValue, setShippingFeeValue] = useState(
+        shippingFee != null ? String(shippingFee) : ""
+    );
 
     function updateRow(index, field, value) {
         setRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
@@ -252,9 +257,27 @@ export default function EditAndContinueForm({ prId, items, quotations, onCancel 
             </div>
 
             <div>
+                <label htmlFor="editShippingFee" className="block text-sm font-medium">
+                    Shipping Fee (optional)
+                </label>
+                <input
+                    type="number"
+                    step="0.01"
+                    id="editShippingFee"
+                    name="shippingFee"
+                    value={shippingFeeValue}
+                    onChange={(e) => setShippingFeeValue(e.target.value)}
+                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                />
+            </div>
+
+            <div>
                 <label htmlFor="editNotes" className="block text-sm font-medium">
                     Notes (optional)
                 </label>
+                <p className="text-xs text-zinc-500">
+                    If you changed the Shipping Fee, explain why — this is saved to the edit history.
+                </p>
                 <textarea
                     id="editNotes"
                     name="notes"

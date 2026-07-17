@@ -54,6 +54,10 @@ export async function createPRAction(prevState, formData) {
     const lineId = formData.get("lineId");
     const vendorId = formData.get("vendorId");
     const notes = formData.get("notes") || "";
+    // Issue #69 — optional; the Requester leaves it blank when the
+    // shipping cost isn't known yet at PR creation time.
+    const shippingFeeRaw = formData.get("shippingFee");
+    const shippingFee = shippingFeeRaw ? parseFloat(shippingFeeRaw) : null;
     const items = JSON.parse(formData.get("itemsJson") || "[]");
     // Each entry: { userId, confirmationType } — issue #66's per-signer
     // Approval/Agreement tag, picked by the Requester in SignerList.js.
@@ -76,6 +80,9 @@ export async function createPRAction(prevState, formData) {
     }
     if (signers.length === 0) {
         return { error: "Assign at least one signer." };
+    }
+    if (shippingFeeRaw && Number.isNaN(shippingFee)) {
+        return { error: "Shipping Fee must be a number." };
     }
     // At least one Quotation is required (not optional) — a PR always
     // needs the vendor's actual quote on file.
@@ -108,7 +115,7 @@ export async function createPRAction(prevState, formData) {
     const createdQuotationIds = [];
 
     try {
-        pr = await createPR({ requesterId: user.id, lineId, vendorId, notes });
+        pr = await createPR({ requesterId: user.id, lineId, vendorId, notes, shippingFee });
 
         // Quotations are created before Items: each entry becomes its own
         // Quotations record ({PR ID}-Q{seq}), and an item's Quotation link
