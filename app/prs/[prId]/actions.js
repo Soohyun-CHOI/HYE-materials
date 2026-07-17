@@ -12,6 +12,7 @@ import {
     resolveCorrectionRequest,
 } from "@/lib/airtable/correctionRequests";
 import { createEditLogEntry } from "@/lib/airtable/editLog";
+import { createQuotation } from "@/lib/airtable/quotations";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
@@ -155,6 +156,13 @@ export async function editAndContinueAction(prevState, formData) {
     const prId = formData.get("prId");
     const notes = formData.get("notes") || "";
     const editedItems = JSON.parse(formData.get("itemsJson") || "[]");
+    // Issue #67 — Quotations added in this same edit session (a PR can
+    // pick up a 2nd, 3rd, ... Quotation later, not just at submission).
+    const newQuotations = JSON.parse(formData.get("newQuotationsJson") || "[]");
+
+    for (const q of newQuotations) {
+        if (!q.url) return { error: "Every quotation needs a file attached." };
+    }
 
     const { pr, signers, correctionRequests } = await loadPRContext(prId);
     const turn = getCurrentTurn(pr, signers);
@@ -188,14 +196,65 @@ export async function editAndContinueAction(prevState, formData) {
 
     const createdEditLogIds = [];
     const touchedItemIds = new Set(changes.map((c) => c.itemId));
+    // itemId -> { newQuotationId, oldQuotationId } — only populated for
+    // items whose resolved Quotation choice actually differs from what's
+    // currently stored (see below), so an edit session that never touches
+    // Quotations writes nothing here.
+    const quotationLinkChanges = new Map();
     let advance;
+    const createdQuotationIds = [];
 
     try {
-        // One updateItem call per item (batching its changed fields), but
-        // one Edit Log entry per changed field.
+        // Newly-added Quotations are created before resolving item links
+        // below, since a "new:<index>" choice needs the real record id —
+        // sequential (not Promise.all), same reasoning as the PR creation
+        // form's loop.
+        for (const q of newQuotations) {
+            const created = await createQuotation({
+                prRecordId: pr.id,
+                prId: pr.prId,
+                vendorId: pr.vendor?.[0],
+                vendorQuotationCode: q.vendorQuotationCode,
+                file: [{ url: q.url, filename: q.filename || undefined }],
+            });
+            createdQuotationIds.push(created.id);
+        }
+
+        // Resolve each submitted item's Quotation choice ("existing:<id>"
+        // | "new:<index>" | "") against its actually-stored current link
+        // — an item whose choice didn't change (the common case: it was
+        // never shown a dropdown, or the Requester left it alone) gets no
+        // write at all.
+        for (const submitted of editedItems) {
+            const original = originalById[submitted.id];
+            if (!original) continue;
+
+            let newQuotationId = null;
+            if (submitted.quotationChoice?.startsWith("existing:")) {
+                newQuotationId = submitted.quotationChoice.slice("existing:".length);
+            } else if (submitted.quotationChoice?.startsWith("new:")) {
+                newQuotationId = createdQuotationIds[Number(submitted.quotationChoice.slice(4))];
+            }
+
+            const oldQuotationId = original.quotation?.[0] || null;
+            if (newQuotationId !== oldQuotationId) {
+                quotationLinkChanges.set(submitted.id, { newQuotationId, oldQuotationId });
+                touchedItemIds.add(submitted.id);
+            }
+        }
+
+        // One updateItem call per item (batching its changed fields, plus
+        // any Quotation link change), but one Edit Log entry per changed
+        // field — Quotation link changes aren't logged (Edit Log's Field
+        // Name is a fixed select without a Quotation option, and this is
+        // a linking correction, not a value edit the way Item Name/Qty/
+        // etc. are).
         for (const itemId of touchedItemIds) {
             const itemChanges = changes.filter((c) => c.itemId === itemId);
             const fields = Object.fromEntries(itemChanges.map((c) => [c.field, c.newValue]));
+            if (quotationLinkChanges.has(itemId)) {
+                fields.quotationRecordId = quotationLinkChanges.get(itemId).newQuotationId;
+            }
             await updateItem(itemId, fields);
 
             for (const change of itemChanges) {
@@ -230,10 +289,14 @@ export async function editAndContinueAction(prevState, formData) {
                 qty: original.qty,
                 rate: original.rate,
                 remark: original.remark,
+                quotationRecordId: original.quotation?.[0] || null,
             }).catch(() => {});
         }
         await Promise.allSettled(
             createdEditLogIds.map((id) => base(TABLES.EDIT_LOG).destroy(id))
+        );
+        await Promise.allSettled(
+            createdQuotationIds.map((id) => base(TABLES.QUOTATIONS).destroy(id))
         );
         if (turn.type === "signer") {
             const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);

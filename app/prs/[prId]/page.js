@@ -71,6 +71,16 @@ export default async function PRDetailPage({ params, searchParams }) {
     const linesById = Object.fromEntries(lines.map((l) => [l.id, l]));
     const jobsById = Object.fromEntries(jobs.map((j) => [j.id, j]));
 
+    // Issue #67 — same fallback labeling as the creation form: the
+    // Vendor Quotation Code once entered, else a positional placeholder
+    // so the column/dropdown is never blank. Only shown once there's an
+    // actual choice among Quotations to display (see the Items table and
+    // EditAndContinueForm below).
+    const quotationLabel = (q, i) => q.vendorQuotationCode || `Quotation ${i + 1}`;
+    const quotationLabelsById = Object.fromEntries(
+        quotations.map((q, i) => [q.id, quotationLabel(q, i)])
+    );
+
     const turn = pr.status === "In Review" ? getCurrentTurn(pr, signers) : null;
     const isMyTurn = !!turn && turn.userId === user.id;
 
@@ -171,6 +181,10 @@ export default async function PRDetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Rate</th>
                             <th className="pr-2 text-right">Amount</th>
                             <th className="pr-2">Remark</th>
+                            {/* Issue #67 — only earns its keep with an
+                                actual choice among 2+ Quotations; with 0 or
+                                1, every item resolves to the same one. */}
+                            {quotations.length >= 2 && <th className="pr-2">Quotation</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -183,6 +197,11 @@ export default async function PRDetailPage({ params, searchParams }) {
                                 <td className="py-1 pr-2 text-right">{it.rate}</td>
                                 <td className="py-1 pr-2 text-right">{it.amount}</td>
                                 <td className="py-1 pr-2">{it.remark}</td>
+                                {quotations.length >= 2 && (
+                                    <td className="py-1 pr-2">
+                                        {quotationLabelsById[it.quotation?.[0]] || "—"}
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>
@@ -285,6 +304,7 @@ export default async function PRDetailPage({ params, searchParams }) {
                             prId={pr.prId}
                             turn={turn}
                             items={items}
+                            quotations={quotations}
                             returnTargets={
                                 turn.type === "signer" ? getReturnTargets(pr, signers, turn.sequenceOrder) : []
                             }

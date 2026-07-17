@@ -58,9 +58,10 @@ export async function createPRAction(prevState, formData) {
     // Each entry: { userId, confirmationType } — issue #66's per-signer
     // Approval/Agreement tag, picked by the Requester in SignerList.js.
     const signers = JSON.parse(formData.get("signersJson") || "[]");
-    const quotationUrl = formData.get("quotationUrl");
-    const quotationFilename = formData.get("quotationFilename");
-    const vendorQuotationCode = formData.get("vendorQuotationCode") || "";
+    // Each entry: { url, filename, vendorQuotationCode } — issue #67: a
+    // Vendor can send more than one Quotation, each becoming its own
+    // Quotations record; PR Items.quotationIndex (below) picks which one.
+    const quotations = JSON.parse(formData.get("quotationsJson") || "[]");
     const confirmed = formData.get("confirmed") === "true";
 
     if (!lineId) return { error: "Select a Line." };
@@ -76,6 +77,15 @@ export async function createPRAction(prevState, formData) {
     if (signers.length === 0) {
         return { error: "Assign at least one signer." };
     }
+    // A Quotation entry with no file attached can't become a real
+    // Quotations record — the Requester must either attach one or remove
+    // the entry (PRForm.js disables Submit for this same reason; this is
+    // the authoritative check).
+    for (const quotation of quotations) {
+        if (!quotation.url) {
+            return { error: "Every quotation needs a file attached." };
+        }
+    }
 
     // Real submit-time check (this app has no separate Draft-save step —
     // reaching here already is the actual submission), skipped once the
@@ -90,12 +100,41 @@ export async function createPRAction(prevState, formData) {
     let pr;
     const createdItemIds = [];
     const createdSignerIds = [];
-    let createdQuotationId = null;
+    const createdQuotationIds = [];
 
     try {
         pr = await createPR({ requesterId: user.id, lineId, vendorId, notes });
 
+        // Quotations are created before Items: each entry becomes its own
+        // Quotations record ({PR ID}-Q{seq}), and an item's Quotation link
+        // needs that real record id to point at — sequential (not
+        // Promise.all) since generateChildId reads the PR's current
+        // Quotations reverse-link count on each call to assign the next
+        // seq, same reasoning as the Items/Signers loops below.
+        for (const quotation of quotations) {
+            const created = await createQuotation({
+                prRecordId: pr.id,
+                prId: pr.prId,
+                vendorId,
+                vendorQuotationCode: quotation.vendorQuotationCode,
+                file: [{ url: quotation.url, filename: quotation.filename || undefined }],
+            });
+            createdQuotationIds.push(created.id);
+        }
+
         for (const item of items) {
+            // 0 Quotations: no link at all. Exactly 1: every item auto-
+            // links to it, regardless of quotationIndex (PRForm.js hides
+            // the picker in this case, so quotationIndex is meaningless
+            // here). 2+: quotationIndex picks which one, defaulting to the
+            // first if somehow unset (matches the <select>'s own default).
+            const quotationRecordId =
+                createdQuotationIds.length === 0
+                    ? null
+                    : createdQuotationIds.length === 1
+                      ? createdQuotationIds[0]
+                      : createdQuotationIds[item.quotationIndex ?? 0];
+
             const created = await createItem({
                 prRecordId: pr.id,
                 prId: pr.prId,
@@ -105,6 +144,7 @@ export async function createPRAction(prevState, formData) {
                 qty: parseFloat(item.qty),
                 rate: parseFloat(item.rate),
                 remark: item.remark,
+                quotationRecordId,
             });
             createdItemIds.push(created.id);
         }
@@ -120,22 +160,6 @@ export async function createPRAction(prevState, formData) {
             createdSignerIds.push(created.id);
         }
 
-        // Optional — only if a file was actually uploaded. Kept inside this
-        // same try/catch (not a best-effort side effect like the
-        // notification below): the Requester explicitly attached this
-        // file, so silently dropping it on a write failure would be worse
-        // than rolling back the whole submission and letting them retry.
-        if (quotationUrl) {
-            const quotation = await createQuotation({
-                prRecordId: pr.id,
-                prId: pr.prId,
-                vendorId,
-                vendorQuotationCode,
-                file: [{ url: quotationUrl, filename: quotationFilename || undefined }],
-            });
-            createdQuotationId = quotation.id;
-        }
-
         // Creating a PR here means the Requester has finished assigning
         // signers in the same step — submission IS the start of the review
         // chain, not a Draft left for later. Current Signer Step: 1 means
@@ -148,12 +172,10 @@ export async function createPRAction(prevState, formData) {
         // Delete everything created so far, in reverse order, so a failed
         // submission leaves no trace rather than a confusing partial PR.
         if (pr) {
-            if (createdQuotationId) {
-                await base(TABLES.QUOTATIONS).destroy(createdQuotationId).catch(() => {});
-            }
             await Promise.allSettled([
                 ...createdSignerIds.map((id) => base(TABLES.PR_SIGNERS).destroy(id)),
                 ...createdItemIds.map((id) => base(TABLES.PR_ITEMS).destroy(id)),
+                ...createdQuotationIds.map((id) => base(TABLES.QUOTATIONS).destroy(id)),
             ]);
             await base(TABLES.PURCHASE_REQUESTS)
                 .destroy(pr.id)

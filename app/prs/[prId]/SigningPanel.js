@@ -10,7 +10,15 @@ import ReturnForCorrectionForm from "./ReturnForCorrectionForm";
 // aren't offered on the Requester's turn (Current Signer Step: 0), since
 // there's nobody earlier to return to and "approving" isn't meaningful for
 // the person who authored the PR; see lib/prSigning.js's REQUESTER_STEP.
-export default function SigningPanel({ prId, turn, items, returnTargets, usersById, confirmationType }) {
+export default function SigningPanel({
+    prId,
+    turn,
+    items,
+    quotations,
+    returnTargets,
+    usersById,
+    confirmationType,
+}) {
     const [mode, setMode] = useState(null);
     // Issue #66 — label only, not a workflow branch: the underlying action
     // is always approveAction either way.
@@ -20,7 +28,14 @@ export default function SigningPanel({ prId, turn, items, returnTargets, usersBy
         return <ApproveForm prId={prId} isAgreement={isAgreement} onCancel={() => setMode(null)} />;
     }
     if (mode === "edit") {
-        return <EditAndContinueForm prId={prId} items={items} onCancel={() => setMode(null)} />;
+        return (
+            <EditAndContinueForm
+                prId={prId}
+                items={items}
+                quotations={quotations}
+                onCancel={() => setMode(null)}
+            />
+        );
     }
     if (mode === "return") {
         return (

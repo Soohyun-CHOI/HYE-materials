@@ -43,7 +43,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 - Editing after signing does NOT invalidate approval.
 - Fields: PR Signer ID, PR/Signer (link, single), Sequence Order, Status (Pending/Approved/Edited/Returned), Confirmation Type (Approval/Agreement), Signed At, Notes.
 
-**PR Items**: PR Item ID, PR (link), Item Name, Size, Unit, Qty, Rate, Amount = live formula, Remark.
+**PR Items**: PR Item ID, PR (link), Item Name, Size, Unit, Qty, Rate, Amount = live formula, Remark (free text only — never conflate with Quotation Code, which lives on Quotations, not here), Quotation (link, single — same pattern as Invoice Items -> PO Item; auto-linked to the PR's sole Quotation when there's only one, user-picked via a dropdown once 2+ exist, never silently changed when a 2nd Quotation is added later).
 
 **Correction Requests**: Correction Request ID, PR, Initiated By, Sent To, Notes, Requested At, Resolved At, Status (Pending/Resolved).
 
@@ -53,7 +53,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **PO Items**: frozen snapshot from PR Items at PO-generation time — NOT live. PO Item ID, PO (link), Item Name, Size, Unit, Qty, Rate, Amount = static value, Remark, Invoice Items (reverse-link, multiple — a PO Item can have more than one Invoice Item against it; line-level partial invoicing is real, same reasoning as PO-level).
 
-**Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, not auto-parsed).
+**Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, not auto-parsed, required at creation in the app's own flow even though Airtable itself can't enforce that). A PR can have more than one over its lifetime (a Vendor can send more than one quote) — created via a dynamic list on the PR submission form and, for one added after the PR already exists, via Edit and continue.
 
 **Invoices**: Invoice ID (HYE-INV-YYMMDD-##, top-level), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due (labeled "Vendor's Stated Total" on the form — vendor's own printed total, compared against but never overwritten by the calculated total), Shipping Fee, Tariff (optional, added via a toggle rather than always shown), Paid(+Date), File (attachment, required).
 
