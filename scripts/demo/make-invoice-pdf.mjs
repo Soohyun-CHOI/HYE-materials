@@ -98,17 +98,17 @@ async function main() {
     const rows =
         items.length > 0
             ? items
-            : [{ itemName: "(no PO Items found on this PO)", size: "", unit: "", qty: "", rate: null, amount: 0 }];
+            : [{ itemName: "(no PO Items found on this PO)", size: "", unit: "", qty: "", unitPrice: null, amount: 0 }];
     let computedTotal = 0;
     for (const item of rows) {
-        const amount = item.amount ?? (Number(item.qty) || 0) * (Number(item.rate) || 0);
+        const amount = item.amount ?? (Number(item.qty) || 0) * (Number(item.unitPrice) || 0);
         computedTotal += amount;
         const values = [
             item.itemName || "",
             item.size || "",
             item.unit || "",
             item.qty != null ? String(item.qty) : "",
-            item.rate != null ? `$${Number(item.rate).toFixed(2)}` : "",
+            item.unitPrice != null ? `$${Number(item.unitPrice).toFixed(2)}` : "",
             `$${Number(amount).toFixed(2)}`,
         ];
         values.forEach((val, i) => page.drawText(val, { x: cols[i].x, y, size: 10, font, color: black }));

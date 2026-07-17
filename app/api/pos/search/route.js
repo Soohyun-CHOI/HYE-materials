@@ -24,7 +24,7 @@ export async function GET(request) {
             id: po.id,
             poId: po.poId,
             vendorId: po.vendor?.[0] || null,
-            prShippingFee: po.prShippingFee?.[0] ?? null,
+            shippingFee: po.shippingFee ?? null,
         })),
     });
 }

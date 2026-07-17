@@ -74,13 +74,14 @@ export default async function PODetailPage({ params, searchParams }) {
                 <p>Our PIC: {ourPic?.userName || "—"}</p>
                 <p>Our Manager: {ourManager?.userName || "—"}</p>
                 <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>
-                <p>Total Amount: {po.totalAmount ?? 0}</p>
-                {pr.shippingFee != null && (
+                <p>Items Subtotal: {po.itemsSubtotal ?? 0}</p>
+                {po.shippingFee != null && (
                     <p>
-                        PR Shipping Fee: {pr.shippingFee} — compare against each invoice&apos;s own
+                        Shipping Fee: {po.shippingFee} — compare against each invoice&apos;s own
                         Shipping Fee at reconciliation time.
                     </p>
                 )}
+                <p>Total Amount: {po.totalAmount ?? po.itemsSubtotal ?? 0}</p>
             </div>
 
             <div className="mt-6">
@@ -92,7 +93,7 @@ export default async function PODetailPage({ params, searchParams }) {
                             <th className="pr-2">Size</th>
                             <th className="pr-2">Unit</th>
                             <th className="pr-2 text-right">Qty</th>
-                            <th className="pr-2 text-right">Rate</th>
+                            <th className="pr-2 text-right">Unit Price</th>
                             <th className="pr-2 text-right">Amount</th>
                             <th className="pr-2 text-right">Invoiced</th>
                             <th className="pr-2 text-right">Remaining</th>
@@ -106,7 +107,7 @@ export default async function PODetailPage({ params, searchParams }) {
                                 <td className="py-1 pr-2">{it.size}</td>
                                 <td className="py-1 pr-2">{it.unit}</td>
                                 <td className="py-1 pr-2 text-right">{it.qty}</td>
-                                <td className="py-1 pr-2 text-right">{it.rate}</td>
+                                <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
                                 <td className="py-1 pr-2 text-right">{it.amount}</td>
                                 <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
                                 <td

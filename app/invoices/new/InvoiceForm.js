@@ -59,7 +59,7 @@ function defaultedItem(item, cache) {
         ...item,
         poItemRecordId: first.id,
         itemName: first.itemName,
-        unitPrice: first.rate != null ? String(first.rate) : item.unitPrice,
+        unitPrice: first.unitPrice != null ? String(first.unitPrice) : item.unitPrice,
     };
 }
 
@@ -526,8 +526,8 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     // Issue #51 — the single sync point for a line's PO Item choice.
-    // Selecting a real PO Item copies its name (and, per #57, its Rate
-    // into Unit Price, freshly re-locked) in; selecting empty means
+    // Selecting a real PO Item copies its name (and, per #57, its
+    // Unit Price, freshly re-locked) in; selecting empty means
     // "Other (free text)". Issue #57 — poItemTouched is set true on any
     // explicit choice here (including Other), so applyDefaultPoItemSelection
     // never later overwrites a deliberate pick with its own default.
@@ -545,7 +545,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     poItemRecordId,
                     poItemTouched: true,
                     itemName: matched ? matched.itemName : item.itemName,
-                    unitPrice: matched && matched.rate != null ? String(matched.rate) : item.unitPrice,
+                    unitPrice: matched && matched.unitPrice != null ? String(matched.unitPrice) : item.unitPrice,
                     unitPriceEditing: false,
                 };
             })
@@ -553,7 +553,7 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     // Issue #57 — reverts the Unit Price lock back to the linked PO
-    // Item's original Rate (re-derived from poItemsCache rather than
+    // Item's original Unit Price (re-derived from poItemsCache rather than
     // stored separately — the link itself never changed while editing,
     // just the typed value) and clears whatever Remark was written for
     // the edit, re-locking the field.
@@ -565,7 +565,7 @@ export default function InvoiceForm({ vendors, pos }) {
                 const matched = candidates.find((p) => p.id === item.poItemRecordId);
                 return {
                     ...item,
-                    unitPrice: matched && matched.rate != null ? String(matched.rate) : item.unitPrice,
+                    unitPrice: matched && matched.unitPrice != null ? String(matched.unitPrice) : item.unitPrice,
                     unitPriceEditing: false,
                     remark: "",
                 };
@@ -1021,13 +1021,14 @@ export default function InvoiceForm({ vendors, pos }) {
                             onChange={(e) => setShippingFee(e.target.value)}
                             className={fieldClass}
                         />
-                        {/* Issue #69 — reference only, no computed variance:
-                            only shown for the common single-PO case, since
-                            an invoice spanning several POs has no single PR
-                            Shipping Fee to compare against. */}
-                        {selectedPos.length === 1 && selectedPos[0].prShippingFee != null && (
+                        {/* Issue #69, updated #78 — reference only, no
+                            computed variance: only shown for the common
+                            single-PO case, since an invoice spanning several
+                            POs has no single PO Shipping Fee to compare
+                            against. */}
+                        {selectedPos.length === 1 && selectedPos[0].shippingFee != null && (
                             <p className="mt-1 text-xs text-zinc-500">
-                                PR estimated: {selectedPos[0].prShippingFee}
+                                PO&apos;s Shipping Fee: {selectedPos[0].shippingFee}
                             </p>
                         )}
                     </div>

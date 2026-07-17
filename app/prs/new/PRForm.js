@@ -8,7 +8,7 @@ import SignerList from "./SignerList";
 // quotationIndex: null until the Requester picks one (issue #67) — only
 // meaningful once 2+ Quotations exist; ignored (and auto-resolved server-
 // side to the sole Quotation, if any) when there's 0 or 1.
-const EMPTY_ITEM = { itemName: "", size: "", unit: "", qty: "", rate: "", remark: "", quotationIndex: null };
+const EMPTY_ITEM = { itemName: "", size: "", unit: "", qty: "", unitPrice: "", remark: "", quotationIndex: null };
 const EMPTY_QUOTATION = { file: { status: "idle" }, vendorQuotationCode: "" };
 const inputClass =
     "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
@@ -138,14 +138,14 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
         );
     }
 
-    const total = items.reduce((sum, item) => {
+    const itemsSubtotal = items.reduce((sum, item) => {
         const qty = parseFloat(item.qty) || 0;
-        const rate = parseFloat(item.rate) || 0;
-        return sum + qty * rate;
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        return sum + qty * unitPrice;
     }, 0);
-    // Issue #69 — preview only, mirrors the Grand Total formula field
-    // (Total Amount + Shipping Fee, blank treated as 0).
-    const grandTotal = total + (parseFloat(shippingFee) || 0);
+    // Issue #69, renamed #78 — preview only, mirrors the Total Amount
+    // formula field (Items Subtotal + Shipping Fee, blank treated as 0).
+    const totalAmount = itemsSubtotal + (parseFloat(shippingFee) || 0);
 
     // Issue #67 — the per-item Quotation column only earns its keep once
     // there's an actual choice to make; with 0 or 1 Quotations every item
@@ -315,7 +315,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                 <h2 className="text-lg font-semibold">Items</h2>
                 <div className="mt-2 space-y-3">
                     {items.map((item, i) => {
-                        const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.rate) || 0);
+                        const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
                                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -349,10 +349,10 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                                     <input
                                         type="number"
                                         step="0.01"
-                                        placeholder="Rate"
+                                        placeholder="Unit Price"
                                         required
-                                        value={item.rate}
-                                        onChange={(e) => updateItem(i, "rate", e.target.value)}
+                                        value={item.unitPrice}
+                                        onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
                                         className={inputClass}
                                     />
                                     <input
@@ -401,7 +401,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                 >
                     + Add item
                 </button>
-                <p className="mt-2 text-sm font-medium">Total (preview): {total.toFixed(2)}</p>
+                <p className="mt-2 text-sm font-medium">Items Subtotal (preview): {itemsSubtotal.toFixed(2)}</p>
             </div>
 
             <div>
@@ -418,7 +418,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                     className={fieldClass}
                 />
                 <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    Grand Total (preview): {grandTotal.toFixed(2)}
+                    Total Amount (preview): {totalAmount.toFixed(2)}
                 </p>
             </div>
 
