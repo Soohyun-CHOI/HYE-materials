@@ -42,6 +42,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 - Each turn: Approve/Agree (per tag), Edit and continue, or Return for correction (to any earlier signer/requester/self — pauses and resumes, never restarts). Edit and continue / Return keep their own labels regardless of Confirmation Type.
 - Editing after signing does NOT invalidate approval.
 - Fields: PR Signer ID, PR/Signer (link, single), Sequence Order, Status (Pending/Approved/Edited/Returned), Confirmation Type (Approval/Agreement), Signed At, Notes.
+- Notes has no input on the plain Approve/Agree action (issue #70 — zero real usage, and it was never surfaced anywhere in the UI even when filled in). Edit and continue and Return for correction still collect it: Return's Notes is required and always shown in the PR's History; Edit and continue's Notes is written to Edit Log per changed field (issue #78).
 
 **PR Items**: PR Item ID, PR (link), Item Name, Size, Unit, Qty, Unit Price (renamed from "Rate" in #78, matching Invoice Items' naming for the same concept), Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — same pattern as Invoice Items -> PO Item; auto-linked to the PR's sole Quotation when only one exists, user-picked via dropdown once 2+ exist, never silently reassigned when a new Quotation is added later).
 
@@ -146,7 +147,7 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 
 **Phase 5** (AI-assisted invoice PDF line-item parsing) — separate milestone, not started. Deferred since real vendor invoice layouts vary too much for a single positional heuristic.
 
-**PR Stage Fixes & Enhancements** (milestone, cross-cutting, alongside Phase 3) — #61, #62, #63, #66, #67, #69 done. #70 (reconsider whether Approve needs a Notes field at all) open.
+**PR Stage Fixes & Enhancements** (milestone, cross-cutting, alongside Phase 3) — #61, #62, #63, #66, #67, #69, #70 done.
 
 **PR Draft Support** (milestone) — 3 issues created (save PR as draft; resume-prompt on re-entry; draft list page), not started.
 
