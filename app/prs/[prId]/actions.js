@@ -96,7 +96,6 @@ async function finishTurn({ pr, turn, signers, correctionRequests }) {
 export async function approveAction(prevState, formData) {
     const user = await requireUser();
     const prId = formData.get("prId");
-    const notes = formData.get("notes") || "";
 
     const { pr, signers, correctionRequests } = await loadPRContext(prId);
     const turn = getCurrentTurn(pr, signers);
@@ -115,7 +114,6 @@ export async function approveAction(prevState, formData) {
         await updateSigner(turn.prSignerRecordId, {
             status: "Approved",
             signedAt: new Date().toISOString(),
-            notes,
         });
 
         advance = await finishTurn({ pr, turn, signers, correctionRequests });
@@ -123,7 +121,6 @@ export async function approveAction(prevState, formData) {
         await updateSigner(turn.prSignerRecordId, {
             status: signerBefore.status,
             signedAt: signerBefore.signedAt || null,
-            notes: signerBefore.notes || "",
         }).catch(() => {});
 
         console.error("approveAction failed, rolled back", err);
