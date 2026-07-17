@@ -11,15 +11,16 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { notifyCurrentTurn } from "@/lib/notifications";
 
 // Canonical key for an item's duplicate-match identity — Item Name
-// (case/whitespace-insensitive) + Qty + Rate, per issue #61. Size/Unit/
-// Remark deliberately excluded: the issue only calls out Name/Qty/Rate.
+// (case/whitespace-insensitive) + Qty + Unit Price, per issue #61. Size/Unit/
+// Remark deliberately excluded: the issue only calls out Name/Qty/Rate
+// (Rate renamed to Unit Price in #78).
 function itemKey(item) {
-    return `${(item.itemName || "").trim().toLowerCase()}|${parseFloat(item.qty)}|${parseFloat(item.rate)}`;
+    return `${(item.itemName || "").trim().toLowerCase()}|${parseFloat(item.qty)}|${parseFloat(item.unitPrice)}`;
 }
 
 // Issue #61 — flags a PR as a likely re-submission when some prior PR on
-// the same Line has the exact same set of items (Name/Qty/Rate, order and
-// multiplicity insensitive). Checked against every prior PR on the Line
+// the same Line has the exact same set of items (Name/Qty/Unit Price, order
+// and multiplicity insensitive). Checked against every prior PR on the Line
 // regardless of Status, since even one already PO Signed is still a
 // forgotten-resubmission candidate.
 async function findDuplicatePR(lineId, items) {
@@ -74,8 +75,8 @@ export async function createPRAction(prevState, formData) {
         return { error: "Add at least one item." };
     }
     for (const item of items) {
-        if (!item.itemName || !item.qty || !item.rate) {
-            return { error: "Every item needs a name, quantity, and rate." };
+        if (!item.itemName || !item.qty || !item.unitPrice) {
+            return { error: "Every item needs a name, quantity, and unit price." };
         }
     }
     if (signers.length === 0) {
@@ -154,7 +155,7 @@ export async function createPRAction(prevState, formData) {
                 size: item.size,
                 unit: item.unit,
                 qty: parseFloat(item.qty),
-                rate: parseFloat(item.rate),
+                unitPrice: parseFloat(item.unitPrice),
                 remark: item.remark,
                 quotationRecordId,
             });

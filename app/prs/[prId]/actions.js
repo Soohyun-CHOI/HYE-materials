@@ -17,13 +17,13 @@ import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSignin
 import { notifyCurrentTurn } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
 
-const ITEM_FIELDS = ["itemName", "size", "unit", "qty", "rate", "remark"];
+const ITEM_FIELDS = ["itemName", "size", "unit", "qty", "unitPrice", "remark"];
 const ITEM_FIELD_LABELS = {
     itemName: "Item Name",
     size: "Size",
     unit: "Unit",
     qty: "Qty",
-    rate: "Rate",
+    unitPrice: "Unit Price",
     remark: "Remark",
 };
 
@@ -197,7 +197,7 @@ export async function editAndContinueAction(prevState, formData) {
 
         for (const field of ITEM_FIELDS) {
             const oldValue = original[field];
-            const newValue = field === "qty" || field === "rate" ? parseFloat(submitted[field]) : submitted[field];
+            const newValue = field === "qty" || field === "unitPrice" ? parseFloat(submitted[field]) : submitted[field];
             if (String(oldValue ?? "") !== String(newValue ?? "")) {
                 changes.push({ itemId: submitted.id, field, oldValue, newValue });
             }
@@ -320,7 +320,7 @@ export async function editAndContinueAction(prevState, formData) {
                 size: original.size,
                 unit: original.unit,
                 qty: original.qty,
-                rate: original.rate,
+                unitPrice: original.unitPrice,
                 remark: original.remark,
                 quotationRecordId: original.quotation?.[0] || null,
             }).catch(() => {});

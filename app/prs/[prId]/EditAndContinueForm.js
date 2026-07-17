@@ -24,7 +24,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
             size: it.size || "",
             unit: it.unit || "",
             qty: it.qty ?? "",
-            rate: it.rate ?? "",
+            unitPrice: it.unitPrice ?? "",
             remark: it.remark || "",
             quotationChoice: it.quotation?.[0] ? `existing:${it.quotation[0]}` : "",
         }))
@@ -156,9 +156,9 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                             <input
                                 type="number"
                                 step="0.01"
-                                value={row.rate}
-                                onChange={(e) => updateRow(i, "rate", e.target.value)}
-                                placeholder="Rate"
+                                value={row.unitPrice}
+                                onChange={(e) => updateRow(i, "unitPrice", e.target.value)}
+                                placeholder="Unit Price"
                                 className={inputClass}
                             />
                             <input

@@ -168,9 +168,9 @@ export default async function PRDetailPage({ params, searchParams }) {
                 <p>Vendor: {vendorName}</p>
                 <p>Requester: {requesterName}</p>
                 {pr.notes && <p>Notes: {pr.notes}</p>}
-                <p>Total Amount: {pr.totalAmount ?? 0}</p>
+                <p>Items Subtotal: {pr.itemsSubtotal ?? 0}</p>
                 {pr.shippingFee != null && <p>Shipping Fee: {pr.shippingFee}</p>}
-                <p>Grand Total: {pr.grandTotal ?? pr.totalAmount ?? 0}</p>
+                <p>Total Amount: {pr.totalAmount ?? pr.itemsSubtotal ?? 0}</p>
             </div>
 
             <div className="mt-6">
@@ -182,7 +182,7 @@ export default async function PRDetailPage({ params, searchParams }) {
                             <th className="pr-2">Size</th>
                             <th className="pr-2">Unit</th>
                             <th className="pr-2 text-right">Qty</th>
-                            <th className="pr-2 text-right">Rate</th>
+                            <th className="pr-2 text-right">Unit Price</th>
                             <th className="pr-2 text-right">Amount</th>
                             <th className="pr-2">Remark</th>
                             {/* Issue #67 — only earns its keep with an
@@ -198,7 +198,7 @@ export default async function PRDetailPage({ params, searchParams }) {
                                 <td className="py-1 pr-2">{it.size}</td>
                                 <td className="py-1 pr-2">{it.unit}</td>
                                 <td className="py-1 pr-2 text-right">{it.qty}</td>
-                                <td className="py-1 pr-2 text-right">{it.rate}</td>
+                                <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
                                 <td className="py-1 pr-2 text-right">{it.amount}</td>
                                 <td className="py-1 pr-2">{it.remark}</td>
                                 {quotations.length >= 2 && (
