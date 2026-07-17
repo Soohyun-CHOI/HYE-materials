@@ -26,16 +26,16 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     // Issue #67 — a PR can have more than one Quotation over its lifetime
     // (a Vendor can send more than one quote), each with its own file and
     // Vendor Quotation Code; PR Items link to whichever one they're
-    // actually based on. At least one is required — starts empty and
-    // "+ Add another quotation" grows the list, but Submit stays disabled
-    // until there's at least one. Each entry's file is uploaded in the
-    // background as soon as it's picked (client-side direct upload to
-    // Vercel Blob — see CLAUDE.md's "Quotation file upload" section:
-    // keeps the Server Action body under Vercel's size limit). idle ->
-    // uploading -> done | error — a file is required per entry (once an
-    // entry exists, it must resolve to "done" before the PR can submit;
-    // the entry can always just be removed instead).
-    const [quotations, setQuotations] = useState([]);
+    // actually based on. At least one is required, so — like Items —
+    // this starts with one entry already visible rather than making the
+    // Requester click "+ Add another quotation" first; the last
+    // remaining entry can't be removed (see the Remove button below),
+    // only added to. Each entry's file is uploaded in the background as
+    // soon as it's picked (client-side direct upload to Vercel Blob — see
+    // CLAUDE.md's "Quotation file upload" section: keeps the Server
+    // Action body under Vercel's size limit). idle -> uploading -> done |
+    // error — a file is required per entry before the PR can submit.
+    const [quotations, setQuotations] = useState([{ ...EMPTY_QUOTATION }]);
 
     // Issue #61 — the duplicate-submission warning is a confirm-then-resubmit
     // round trip through the same Server Action, not a separate pre-check
@@ -246,13 +246,15 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                         <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium">{quotationLabel(i)}</span>
-                                <button
-                                    type="button"
-                                    onClick={() => removeQuotation(i)}
-                                    className="text-sm text-red-600"
-                                >
-                                    Remove
-                                </button>
+                                {quotations.length > 1 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => removeQuotation(i)}
+                                        className="text-sm text-red-600"
+                                    >
+                                        Remove
+                                    </button>
+                                )}
                             </div>
                             <div className="mt-2 space-y-2">
                                 <input
@@ -274,12 +276,14 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                                 )}
                                 {q.file.status === "error" && (
                                     <p className="text-sm text-red-600">
-                                        Upload failed: {q.file.error}. Try a different file, or remove this entry.
+                                        Upload failed: {q.file.error}. Try a different file
+                                        {quotations.length > 1 ? ", or remove this entry." : "."}
                                     </p>
                                 )}
                                 {q.file.status !== "done" && (
                                     <p className="text-sm text-zinc-500">
-                                        A file is required for each quotation — attach one or remove this entry.
+                                        A file is required for each quotation — attach one
+                                        {quotations.length > 1 ? " or remove this entry." : "."}
                                     </p>
                                 )}
                                 <input
@@ -458,13 +462,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                     disabled={pending || quotationsIncomplete}
                     className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
                 >
-                    {pending
-                        ? "Submitting..."
-                        : quotations.length === 0
-                          ? "Add at least one quotation..."
-                          : quotationsIncomplete
-                            ? "Attach a file to every quotation..."
-                            : "Submit PR"}
+                    {pending ? "Submitting..." : "Submit PR"}
                 </button>
             )}
         </form>
