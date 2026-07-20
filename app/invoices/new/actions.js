@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
-import { createInvoice, linkInvoiceToPO } from "@/lib/airtable/invoices";
-import { createInvoiceItem } from "@/lib/airtable/invoiceItems";
+import { createInvoice, linkInvoiceToPO, getInvoiceByRecordId, updateInvoice } from "@/lib/airtable/invoices";
+import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
+import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
+import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
 
 // Server Actions are directly callable regardless of what the page
 // rendered, so the Admin check happens here too, not just in the page
@@ -67,6 +69,7 @@ export async function createInvoiceAction(prevState, formData) {
             file: [{ url: invoiceFileUrl, filename: invoiceFileFilename || undefined }],
         });
 
+        const createdItems = [];
         for (const item of items) {
             const created = await createInvoiceItem({
                 invoiceRecordId: invoice.id,
@@ -81,6 +84,7 @@ export async function createInvoiceAction(prevState, formData) {
                 remark: item.remark || "",
             });
             createdItemIds.push(created.id);
+            createdItems.push(created);
         }
 
         // One Invoice-PO Link row per distinct PO actually used across the
@@ -91,6 +95,35 @@ export async function createInvoiceAction(prevState, formData) {
         for (const poId of distinctPoIds) {
             const link = await linkInvoiceToPO(invoice.id, poId);
             createdLinkIds.push(link.id);
+        }
+
+        // Variance checking (#15), per the tolerance rules decided in #17.
+        // Line-level checks only apply to items linked to a real PO Item —
+        // free-text "Other" lines have nothing to compare against. Qty is a
+        // creation-time snapshot: it reads the cumulative invoiced Qty
+        // (already including this line, since it's linked by now) and is
+        // never retroactively recomputed for sibling Invoice Items created
+        // earlier against the same PO Item.
+        for (const created of createdItems) {
+            const poItemRecordId = created.poItem?.[0];
+            if (!poItemRecordId) continue;
+
+            const poItem = await getPOItemByRecordId(poItemRecordId);
+            const unitPriceVariance = checkUnitPriceVariance(created.unitPrice, poItem.unitPrice);
+            const invoicedQty = await getInvoicedQtyForPOItem(poItemRecordId);
+            const qtyVariance = invoicedQty > poItem.qty;
+
+            if (unitPriceVariance || qtyVariance) {
+                await updateInvoiceItem(created.id, { varianceFlag: true });
+            }
+        }
+
+        // Header-level check needs Calculated Total's rollup (Items
+        // Subtotal -> Calculated Total) to have caught up, so it's read
+        // back fresh rather than trusted from the pre-Items `invoice`.
+        const invoiceAfterItems = await getInvoiceByRecordId(invoice.id);
+        if (checkHeaderVariance(invoiceAfterItems.amountDue, invoiceAfterItems.calculatedTotal || 0)) {
+            await updateInvoice(invoice.id, { varianceFlag: true });
         }
     } catch (err) {
         // Same create-then-delete rollback pattern as #5/#10: Airtable has

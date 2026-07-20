@@ -1,6 +1,9 @@
+import { Fragment } from "react";
 import { requireUser } from "@/lib/authz";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
+import { getItemsByPOItem } from "@/lib/airtable/invoiceItems";
+import { getInvoiceByRecordId } from "@/lib/airtable/invoices";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
@@ -52,6 +55,29 @@ export default async function PODetailPage({ params, searchParams }) {
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
     ]);
 
+    // Issue #15 — the line-level breakdown behind each PO Item's
+    // invoiced/remaining aggregate above, so line-level Variance Flags are
+    // actually visible somewhere rather than only being stored.
+    const itemsWithInvoiceLines = await Promise.all(
+        items.map(async (it) => ({
+            ...it,
+            invoiceLines: await getItemsByPOItem(it.id),
+        }))
+    );
+
+    // Each Invoice Item's header-level Variance Flag lives on its parent
+    // Invoice, not on the line itself — resolve the distinct invoices once
+    // rather than once per line.
+    const invoiceRecordIds = [
+        ...new Set(
+            itemsWithInvoiceLines.flatMap((it) =>
+                it.invoiceLines.map((line) => line.invoice?.[0]).filter(Boolean)
+            )
+        ),
+    ];
+    const invoiceRecords = await Promise.all(invoiceRecordIds.map((id) => getInvoiceByRecordId(id)));
+    const invoiceByRecordId = new Map(invoiceRecords.map((inv) => [inv.id, inv]));
+
     const pdfFile = po.poPdfFile?.[0];
 
     return (
@@ -101,27 +127,56 @@ export default async function PODetailPage({ params, searchParams }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map((it) => (
-                            <tr key={it.id} className="border-t border-zinc-200 dark:border-zinc-800">
-                                <td className="py-1 pr-2">{it.itemName}</td>
-                                <td className="py-1 pr-2">{it.size}</td>
-                                <td className="py-1 pr-2">{it.unit}</td>
-                                <td className="py-1 pr-2 text-right">{it.qty}</td>
-                                <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
-                                <td className="py-1 pr-2 text-right">{it.amount}</td>
-                                <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
-                                <td
-                                    className={
-                                        it.remainingQty < 0
-                                            ? "py-1 pr-2 text-right text-red-600"
-                                            : "py-1 pr-2 text-right"
-                                    }
-                                >
-                                    {it.remainingQty}
-                                    {it.remainingQty < 0 && " (over)"}
-                                </td>
-                                <td className="py-1 pr-2">{it.remark}</td>
-                            </tr>
+                        {itemsWithInvoiceLines.map((it) => (
+                            <Fragment key={it.id}>
+                                <tr className="border-t border-zinc-200 dark:border-zinc-800">
+                                    <td className="py-1 pr-2">{it.itemName}</td>
+                                    <td className="py-1 pr-2">{it.size}</td>
+                                    <td className="py-1 pr-2">{it.unit}</td>
+                                    <td className="py-1 pr-2 text-right">{it.qty}</td>
+                                    <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
+                                    <td className="py-1 pr-2 text-right">{it.amount}</td>
+                                    <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
+                                    <td
+                                        className={
+                                            it.remainingQty < 0
+                                                ? "py-1 pr-2 text-right text-red-600"
+                                                : "py-1 pr-2 text-right"
+                                        }
+                                    >
+                                        {it.remainingQty}
+                                        {it.remainingQty < 0 && " (over)"}
+                                    </td>
+                                    <td className="py-1 pr-2">{it.remark}</td>
+                                </tr>
+                                {it.invoiceLines.length > 0 && (
+                                    <tr className="border-t border-dashed border-zinc-200 dark:border-zinc-800">
+                                        <td colSpan={9} className="py-1 pl-4 text-xs text-zinc-500">
+                                            <ul className="space-y-0.5">
+                                                {it.invoiceLines.map((line) => {
+                                                    const parentInvoice = invoiceByRecordId.get(line.invoice?.[0]);
+                                                    return (
+                                                        <li key={line.id}>
+                                                            {parentInvoice?.invoiceId || "—"}: Qty {line.qty} @{" "}
+                                                            {line.unitPrice}
+                                                            {line.varianceFlag && (
+                                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700 dark:bg-red-950 dark:text-red-400">
+                                                                    ⚠ Line Variance
+                                                                </span>
+                                                            )}
+                                                            {parentInvoice?.varianceFlag && (
+                                                                <span className="ml-1 rounded bg-amber-100 px-1 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                                                                    ⚠ Header Variance
+                                                                </span>
+                                                            )}
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                )}
+                            </Fragment>
                         ))}
                     </tbody>
                 </table>
