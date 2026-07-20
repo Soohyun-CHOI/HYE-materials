@@ -5,11 +5,20 @@ import { getSignerChainProgress } from "@/lib/prSigning";
 // current state; the History timeline below still owns the full log.
 // Server Component (no interactivity beyond native `title` tooltips), so
 // step positions can be computed analytically from array index rather
-// than measured client-side — see CIRCLE/GAP below.
+// than measured client-side — see CIRCLE/COLUMN/GAP below.
+//
+// Each step is a circle with its name always visible underneath (rather
+// than hover-only) — COLUMN is wider than CIRCLE so short names mostly
+// fit without truncating; longer ones still get the full name via
+// `title`. Widening the columns means 8 steps (Requester + 6 Signers +
+// PO Signed) no longer reliably fits the page width without scrolling —
+// the container's overflow-x-auto (already in place) is the intended
+// fallback, not a bug.
 
 const CIRCLE = 36;
-const GAP = 28;
-const PITCH = CIRCLE + GAP;
+const COLUMN = 64;
+const GAP = 24;
+const PITCH = COLUMN + GAP;
 const ARC_LANE_HEIGHT = 18;
 const ARC_BASE = 14;
 
@@ -31,7 +40,7 @@ const CATEGORY_STYLES = {
 };
 
 function centerX(index) {
-    return index * PITCH + CIRCLE / 2;
+    return index * PITCH + COLUMN / 2;
 }
 
 function StepCircle({ label, title, category }) {
@@ -50,16 +59,20 @@ function StepCircle({ label, title, category }) {
     );
 }
 
+// Vertically centered on the circle, not the column (the name label
+// below the circle adds height only to the column, not to this line) —
+// marginTop offsets from the column's top by half the circle, minus half
+// the connector's own thickness.
 function Connector({ solid }) {
     return (
         <div
             className={
-                "shrink-0 self-center " +
+                "shrink-0 " +
                 (solid
                     ? "h-0.5 bg-zinc-400 dark:bg-zinc-500"
                     : "h-0 border-t-2 border-dashed border-zinc-300 dark:border-zinc-700")
             }
-            style={{ width: GAP }}
+            style={{ width: GAP, marginTop: CIRCLE / 2 - 1 }}
         />
     );
 }
@@ -130,12 +143,13 @@ export default function SignerProgressBar({ pr, signers, correctionRequests, po,
                     </svg>
                 )}
 
-                <div className="flex items-center" role="list" aria-label="Signing chain progress">
+                <div className="flex items-start" role="list" aria-label="Signing chain progress">
                     {allSteps.map((step, i) => {
                         const isRequester = step.type === "requester";
                         const isPO = step.type === "po";
                         const user = !isPO ? usersById[step.userId] : null;
                         const label = isRequester ? "R" : isPO ? "PO" : String(step.sequenceOrder);
+                        const name = isPO ? "PO Signed" : user?.userName || "Unknown";
                         const statusWord =
                             step.category === "current"
                                 ? "current turn"
@@ -145,15 +159,23 @@ export default function SignerProgressBar({ pr, signers, correctionRequests, po,
                                     ? "done"
                                     : "not reached yet";
                         const title = isRequester
-                            ? `Requester: ${user?.userName || "Unknown"} — ${statusWord}`
+                            ? `Requester: ${name} — ${statusWord}`
                             : isPO
                               ? `PO Signed — ${statusWord}`
-                              : `Step ${step.sequenceOrder}: ${user?.userName || "Unknown"} (${step.confirmationType}) — ${statusWord}`;
+                              : `Step ${step.sequenceOrder}: ${name} (${step.confirmationType}) — ${statusWord}`;
 
                         return (
-                            <div key={`${step.type}-${step.sequenceOrder}`} className="flex items-center" role="listitem">
+                            <div key={`${step.type}-${step.sequenceOrder}`} className="flex items-start" role="listitem">
                                 {i > 0 && <Connector solid={step.category !== "not-reached"} />}
-                                <StepCircle label={label} title={title} category={step.category} />
+                                <div className="flex flex-col items-center" style={{ width: COLUMN }}>
+                                    <StepCircle label={label} title={title} category={step.category} />
+                                    <span
+                                        title={name}
+                                        className="mt-1 max-w-full truncate text-center text-[10px] text-zinc-600 dark:text-zinc-400"
+                                    >
+                                        {name}
+                                    </span>
+                                </div>
                             </div>
                         );
                     })}
