@@ -115,7 +115,7 @@ generateChildId and upsertMaterial wrap their read-then-write sequence in withKe
 
 ## Route protection (lib/authz.js)
 
-Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new — Admin-only forms, Server Action re-checks requireAdmin() independently of the page. app/pos/[poId] is President-or-Admin (Admins need it for day-to-day invoice reconciliation).
+Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new — Admin-only forms, Server Action re-checks requireAdmin() independently of the page. app/pos/[poId] and app/invoices/[invoiceId] are President-or-Admin for viewing (Admins need it for day-to-day invoice reconciliation); app/invoices/[invoiceId]'s Paid toggle action is Admin-only, re-checked in its own Server Action same as the admin forms above.
 
 ---
 
@@ -150,8 +150,9 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 
 **Phase 0** (Foundations), **Phase 1** (PR creation + signing chain), **Phase 2** (PO generation) — done.
 
-**Phase 3** (Invoice handling) — in progress. Done: #14, #46, #51, #48, #57, #84, #17 (decision), #15. Remaining, working now:
-- **Payment tracking** (#16) — Invoices.Paid(+Date) exists as a field but no UI/workflow around it yet.
+**Phase 3** (Invoice handling) — in progress. Done: #14, #46, #51, #48, #57, #84, #17 (decision), #15, #16.
+
+**Payment tracking** (#16, `app/invoices/[invoiceId]`) — the first page that shows a single Invoice on its own (header, Items, Variance Flag badges), reached by ID like `app/pos/[poId]`/`app/prs/[prId]` — no Invoice list page yet, matching the same not-built-yet gap as PR/PO lists. Viewing is President-or-Admin (same reasoning as `app/pos/[poId]`); marking Paid is Admin-only, matching who already creates invoices (`createInvoiceAction`). Checking Paid requires a Paid Date (defaults to today, editable); unchecking always clears Paid Date too, so a stale date can't linger. If the invoice (header or any line) has a Variance Flag, a review warning shows above the Paid toggle — never blocking, since variance review and payment confirmation are independent judgment calls. `app/pos/[poId]/page.js`'s Invoice Item breakdown also shows a read-only Paid/Paid Date badge per line, linking to the Invoice page rather than duplicating the action there.
 
 **Variance checking** (#15, `lib/variance.js`) — not a single uniform rule:
 - Header (Invoice.Amount Due vs Calculated Total): hybrid tolerance — passes if within $5 or 1% of Calculated Total, whichever is more permissive. Invoices.Variance Flag (checkbox), computed once at invoice-creation time after Invoice Items are linked (so the Items Subtotal -> Calculated Total rollup is current).

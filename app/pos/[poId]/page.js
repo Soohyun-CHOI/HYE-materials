@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
@@ -157,8 +158,17 @@ export default async function PODetailPage({ params, searchParams }) {
                                                     const parentInvoice = invoiceByRecordId.get(line.invoice?.[0]);
                                                     return (
                                                         <li key={line.id}>
-                                                            {parentInvoice?.invoiceId || "—"}: Qty {line.qty} @{" "}
-                                                            {line.unitPrice}
+                                                            {parentInvoice?.invoiceId ? (
+                                                                <Link
+                                                                    href={`/invoices/${parentInvoice.invoiceId}`}
+                                                                    className="underline"
+                                                                >
+                                                                    {parentInvoice.invoiceId}
+                                                                </Link>
+                                                            ) : (
+                                                                "—"
+                                                            )}
+                                                            : Qty {line.qty} @ {line.unitPrice}
                                                             {line.varianceFlag && (
                                                                 <span className="ml-1 rounded bg-red-100 px-1 text-red-700 dark:bg-red-950 dark:text-red-400">
                                                                     ⚠ Line Variance
@@ -167,6 +177,15 @@ export default async function PODetailPage({ params, searchParams }) {
                                                             {parentInvoice?.varianceFlag && (
                                                                 <span className="ml-1 rounded bg-amber-100 px-1 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
                                                                     ⚠ Header Variance
+                                                                </span>
+                                                            )}
+                                                            {parentInvoice?.paid ? (
+                                                                <span className="ml-1 rounded bg-green-100 px-1 text-green-700 dark:bg-green-950 dark:text-green-400">
+                                                                    ✓ Paid {parentInvoice.paidDate || ""}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="ml-1 rounded bg-zinc-100 px-1 text-zinc-500 dark:bg-zinc-900">
+                                                                    Not paid
                                                                 </span>
                                                             )}
                                                         </li>
