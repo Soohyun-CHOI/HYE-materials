@@ -45,7 +45,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 - Notes has no input on the plain Approve/Agree action (issue #70 — zero real usage, and it was never surfaced anywhere in the UI even when filled in). Edit and continue and Return for correction still collect it: Return's Notes is required and always shown in the PR's History; Edit and continue's Notes is written to Edit Log per changed field (issue #78).
 - The PR detail page shows the chain as a linear progress bar (Requester -> each Signer -> PO Signed, issue #81; `lib/prSigning.js:getSignerChainProgress` + `app/prs/[prId]/SignerProgressBar.js`), current state only — History remains the full log. A signer who passed through but got pushed back by a nested correction ("paused") shares the same neutral color as "not yet reached", distinguished only by a dashed border, since a correction can itself be returned further before the first resolves (a real LIFO stack — each resolve unwinds exactly one level, never jumps straight to the original sender). Known gap found while building this: Correction Requests.Sent To stores only a user id, not which role (Requester vs a specific Signer slot) was targeted — ambiguous if that person is both (nothing stops a Requester from also being one of their own PR's signers). The progress bar defaults to the signer interpretation; this never affects computeAdvance's actual state machine, since it resolves the current turn's correction via Current Signer Step, not by re-deriving role from Sent To.
 
-**PR Items**: PR Item ID, PR (link), Item Name, Size, Unit, Qty, Unit Price (renamed from "Rate" in #78, matching Invoice Items' naming for the same concept), Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — same pattern as Invoice Items -> PO Item; auto-linked to the PR's sole Quotation when only one exists, user-picked via dropdown once 2+ exist, never silently reassigned when a new Quotation is added later).
+**PR Items**: PR Item ID, PR (link), Item Name, Size, Unit (single select — manually converted from free text; canonical list shared with PO Items/Invoice Items, issue #83: EA, FT, SET, LS, LOT, M, ROLL, PCS, SHEET, M/D, FIT, SQFT, IN, Lengths, KG, PSI, TUBES, PACK, ST), Qty, Unit Price (renamed from "Rate" in #78, matching Invoice Items' naming for the same concept), Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — same pattern as Invoice Items -> PO Item; auto-linked to the PR's sole Quotation when only one exists, user-picked via dropdown once 2+ exist, never silently reassigned when a new Quotation is added later).
 
 **Correction Requests**: Correction Request ID, PR, Initiated By, Sent To, Notes, Requested At, Resolved At, Status (Pending/Resolved).
 
@@ -53,7 +53,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Purchase Orders**: strict 1:1 with PR. PO ID (HYE-PO-YYYYMMDD-## — 4-digit year, the one exception to this project's 2-digit-year convention), PR (link), Vendor (Lookup via PR), Quotation File (Lookup), Our PIC/Manager (links), Created Date, President Signed(+At), Status (Draft/Signed/Sent to Vendor), PO PDF File, Items Subtotal (rollup of PO Items only — renamed from "Total Amount" in #78), Shipping Fee (plain currency, frozen copy of the PR's Shipping Fee at PO-generation time — issue #78, replaces the earlier "PR Shipping Fee" Lookup from #69: confirmed no live path changes PR.Shipping Fee once a PO exists, since Edit and continue requires PR.Status = In Review), Total Amount (formula = Items Subtotal + Shipping Fee, blank treated as 0 — new in #78, and what's printed as the PO PDF's TOTAL line), Delivery Address Used (Primary/Alternate — internal tracking only, never a UI choice).
 
-**PO Items**: frozen snapshot from PR Items at PO-generation time — NOT live. PO Item ID, PO (link), Item Name, Size, Unit, Qty, Unit Price (renamed from "Rate" in #78), Amount = static value, Remark, Invoice Items (reverse-link, multiple — line-level partial invoicing is real).
+**PO Items**: frozen snapshot from PR Items at PO-generation time — NOT live. PO Item ID, PO (link), Item Name, Size, Unit (single select, same canonical list as PR Items/Invoice Items — issue #83), Qty, Unit Price (renamed from "Rate" in #78), Amount = static value, Remark, Invoice Items (reverse-link, multiple — line-level partial invoicing is real).
 
 **Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in the app's flow — Airtable itself can't enforce this at the schema level). At least one Quotation is required per PR; a PR can have more than one over its lifetime, created via a dynamic list on the PR form (at submission or, for later ones, via Edit and continue).
 
@@ -61,7 +61,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Invoice-PO Link**: join table for many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
-**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single — the specific PO line this reconciles against), Item Name, Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared for Unit Price/Qty discrepancy notes).
+**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single — the specific PO line this reconciles against), Item Name, Size, Unit (single select, same canonical list as PR Items/PO Items — issue #83; Size/Unit are both newly added fields, this table originally had neither), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared for Unit Price/Qty discrepancy notes).
 
 **Addresses**: Address Label (primary, human-picked), Line 1/2, City, State, Zip, Country, Formatted Address (formula).
 
@@ -114,7 +114,7 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 ## Utility scripts (scripts/)
 
 - scripts/tests/ — temporary/verification scripts, deleted from Airtable after use.
-- scripts/import/ — reusable one-time backfill scripts. data/ and output/ gitignored.
+- scripts/import/ — reusable one-time backfill scripts. data/ and output/ gitignored. Python (not the Next.js app's JS), talks to Airtable directly via `requests` + `.env.local`'s AIRTABLE_API_KEY — see import_jobs.py and add_unit_options.py (issue #83). Airtable's Metadata API can't edit a select field's option list (confirmed by direct testing — PATCHing a field's `options.choices` 422s regardless of payload shape or token scope, while name/description PATCHes succeed fine; a platform limitation, not a scope issue, and the same regardless of client library, e.g. pyairtable). The only way to add a select choice via the API is the `typecast=True` side effect of a normal record write — add_unit_options.py cycles one throwaway scratch record (created, written 19x, deleted) per table to do this without touching real data.
 - scripts/demo/ — reusable live-demo prep, kept in repo, NOT deleted from Airtable:
   - seed_demo_fixtures.mjs: creates demo Job (26-DEMO-01) + Line + Vendor + Address via real service-layer functions. Skip-if-exists.
   - make-invoice-pdf.mjs: given a PO ID, generates a matching demo invoice PDF (output/, gitignored) for demoing PDF auto-detection.
@@ -153,3 +153,5 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 **PR Draft Support** (milestone) — 3 issues created (save PR as draft; resume-prompt on re-entry; draft list page), not started.
 
 **#78** (no milestone, cross-cutting PR/PO/Invoice naming unification) — done: Rate -> Unit Price (PR Items/PO Items), Total Amount -> Items Subtotal + new Total Amount = Items Subtotal + Shipping Fee (PR and PO), PO Shipping Fee switched from a Lookup to a plain copy frozen at PO-generation time, Invoice gained Items Subtotal + Calculated Total (additive only, Amount Due/comparison logic untouched).
+
+**#83** (no milestone, cross-cutting Unit naming unification) — done: PR Items/PO Items' Unit converted from free text to single select, Invoice Items gained new Size/Unit fields, all three now share one canonical 19-value Unit option list (scripts/import/add_unit_options.py).
