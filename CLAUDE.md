@@ -61,7 +61,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Invoice-PO Link**: join table for many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
-**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single — the specific PO line this reconciles against), Item Name, Size, Unit (single select, same canonical list as PR Items/PO Items — issue #83; Size/Unit are both newly added fields, this table originally had neither), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared for Unit Price/Qty discrepancy notes).
+**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single — the specific PO line this reconciles against), Item Name, Size, Unit (single select, same canonical list as PR Items/PO Items — issue #83; Size/Unit are both newly added fields, this table originally had neither), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared for Unit Price/Qty discrepancy notes). Size/Unit are frozen copies from the linked PO Item at line-creation time (issue #84, same convention as Item Name/Unit Price — never a live Lookup), reference-only display in the invoice form with no edit path: a mismatch means the wrong PO Item was picked, not a value to correct in place. Blank on a free-text "Other" line (no PO Item to copy from).
 
 **Addresses**: Address Label (primary, human-picked), Line 1/2, City, State, Zip, Country, Formatted Address (formula).
 
@@ -142,7 +142,7 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 
 **Phase 0** (Foundations), **Phase 1** (PR creation + signing chain), **Phase 2** (PO generation) — done.
 
-**Phase 3** (Invoice handling) — in progress. Done: #14, #46, #51, #48, #57. Remaining: #15, #16, #17.
+**Phase 3** (Invoice handling) — in progress. Done: #14, #46, #51, #48, #57, #84. Remaining: #15, #16, #17.
 
 **Phase 4** (Materials price history + reporting) — not started.
 

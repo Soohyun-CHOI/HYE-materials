@@ -74,6 +74,8 @@ export async function createInvoiceAction(prevState, formData) {
                 poRecordId: item.poRecordId,
                 poItemRecordId: item.poItemRecordId || null,
                 itemName: item.itemName,
+                size: item.size,
+                unit: item.unit,
                 qty: parseFloat(item.qty),
                 unitPrice: parseFloat(item.unitPrice),
                 remark: item.remark || "",
