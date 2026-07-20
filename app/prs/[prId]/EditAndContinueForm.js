@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { editAndContinueAction } from "./actions";
+import { CANONICAL_UNITS } from "@/lib/units";
 
 const inputClass = "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
 const EMPTY_NEW_QUOTATION = { file: { status: "idle" }, vendorQuotationCode: "" };
@@ -125,7 +126,17 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
             <input type="hidden" name="prId" value={prId} />
 
             <div className="space-y-2">
-                {rows.map((row, i) => (
+                {rows.map((row, i) => {
+                    // Issue #86 — if this row's current Unit (loaded from
+                    // an existing PR Item) isn't one of the canonical
+                    // choices, keep it selectable rather than silently
+                    // dropping/blanking it on render; the Requester has to
+                    // deliberately pick something else to change it.
+                    const unitOptions =
+                        row.unit && !CANONICAL_UNITS.includes(row.unit)
+                            ? [row.unit, ...CANONICAL_UNITS]
+                            : CANONICAL_UNITS;
+                    return (
                     <div key={row.id} className="space-y-2 border-b border-zinc-200 pb-2 dark:border-zinc-800">
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                             <input
@@ -140,12 +151,18 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                                 placeholder="Size"
                                 className={inputClass}
                             />
-                            <input
+                            <select
                                 value={row.unit}
                                 onChange={(e) => updateRow(i, "unit", e.target.value)}
-                                placeholder="Unit"
                                 className={inputClass}
-                            />
+                            >
+                                <option value="">Unit</option>
+                                {unitOptions.map((u) => (
+                                    <option key={u} value={u}>
+                                        {u}
+                                    </option>
+                                ))}
+                            </select>
                             <input
                                 type="number"
                                 value={row.qty}
@@ -186,7 +203,8 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                             </div>
                         )}
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             <div>

@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createPRAction } from "./actions";
 import SignerList from "./SignerList";
+import { CANONICAL_UNITS } from "@/lib/units";
 
 // quotationIndex: null until the Requester picks one (issue #67) — only
 // meaningful once 2+ Quotations exist; ignored (and auto-resolved server-
@@ -332,12 +333,18 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                                         onChange={(e) => updateItem(i, "size", e.target.value)}
                                         className={inputClass}
                                     />
-                                    <input
-                                        placeholder="Unit"
+                                    <select
                                         value={item.unit}
                                         onChange={(e) => updateItem(i, "unit", e.target.value)}
                                         className={inputClass}
-                                    />
+                                    >
+                                        <option value="">Unit</option>
+                                        {CANONICAL_UNITS.map((u) => (
+                                            <option key={u} value={u}>
+                                                {u}
+                                            </option>
+                                        ))}
+                                    </select>
                                     <input
                                         type="number"
                                         placeholder="Qty"

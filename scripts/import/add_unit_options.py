@@ -81,7 +81,11 @@ FIELD_UNIT = "Unit"
 # for readability, same as import_jobs.py's AIRTABLE_TABLE_NAME.
 TARGET_TABLES = ["PR Items", "PO Items", "Invoice Items"]
 
-# Canonical Unit list (issue #83) -- shared across all three tables.
+# Canonical Unit list (issue #83) -- shared across all three tables, and
+# with the Next.js app's own copy at lib/units.js (issue #86), which
+# renders this same list as the Unit dropdown on the PR forms. A plain
+# Python script can't import a JS module, so this list is necessarily
+# duplicated -- if it ever changes, update both places.
 CANONICAL_UNITS = [
     "EA", "FT", "SET", "LS", "LOT", "M", "ROLL", "PCS", "SHEET", "M/D",
     "FIT", "SQFT", "IN", "Lengths", "KG", "PSI", "TUBES", "PACK", "ST",
