@@ -13,6 +13,7 @@ import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
+import SignerProgressBar from "./SignerProgressBar";
 
 // Formats a calendar-only "YYYY-MM-DD" date (e.g. Created Date — no
 // time-of-day) without letting it round-trip through UTC first: `new
@@ -244,26 +245,15 @@ export default async function PRDetailPage({ params, searchParams }) {
 
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">Signers</h2>
-                <ol className="mt-2 space-y-1 text-sm">
-                    {pr.status === "In Review" && pr.currentSignerStep === 0 && (
-                        <li className="font-medium">Requester ({requesterName}) ← current</li>
-                    )}
-                    {signers
-                        .slice()
-                        .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-                        .map((s) => {
-                            const u = usersById[s.signer?.[0]];
-                            const isCurrent =
-                                pr.status === "In Review" && pr.currentSignerStep === s.sequenceOrder;
-                            return (
-                                <li key={s.id} className={isCurrent ? "font-medium" : ""}>
-                                    {s.sequenceOrder}. {u?.userName || "Unknown"} ({u?.role}) —{" "}
-                                    {s.confirmationType} — {s.status}
-                                    {isCurrent ? " ← current" : ""}
-                                </li>
-                            );
-                        })}
-                </ol>
+                <div className="mt-2">
+                    <SignerProgressBar
+                        pr={pr}
+                        signers={signers}
+                        correctionRequests={correctionRequests}
+                        po={po}
+                        usersById={usersById}
+                    />
+                </div>
             </div>
 
             <div className="mt-6">
