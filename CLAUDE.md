@@ -43,6 +43,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 - Editing after signing does NOT invalidate approval.
 - Fields: PR Signer ID, PR/Signer (link, single), Sequence Order, Status (Pending/Approved/Edited/Returned), Confirmation Type (Approval/Agreement), Signed At, Notes.
 - Notes has no input on the plain Approve/Agree action (issue #70 — zero real usage, and it was never surfaced anywhere in the UI even when filled in). Edit and continue and Return for correction still collect it: Return's Notes is required and always shown in the PR's History; Edit and continue's Notes is written to Edit Log per changed field (issue #78).
+- The PR detail page shows the chain as a linear progress bar (Requester -> each Signer -> PO Signed, issue #81; `lib/prSigning.js:getSignerChainProgress` + `app/prs/[prId]/SignerProgressBar.js`), current state only — History remains the full log. A signer who passed through but got pushed back by a nested correction ("paused") shares the same neutral color as "not yet reached", distinguished only by a dashed border, since a correction can itself be returned further before the first resolves (a real LIFO stack — each resolve unwinds exactly one level, never jumps straight to the original sender). Known gap found while building this: Correction Requests.Sent To stores only a user id, not which role (Requester vs a specific Signer slot) was targeted — ambiguous if that person is both (nothing stops a Requester from also being one of their own PR's signers). The progress bar defaults to the signer interpretation; this never affects computeAdvance's actual state machine, since it resolves the current turn's correction via Current Signer Step, not by re-deriving role from Sent To.
 
 **PR Items**: PR Item ID, PR (link), Item Name, Size, Unit, Qty, Unit Price (renamed from "Rate" in #78, matching Invoice Items' naming for the same concept), Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — same pattern as Invoice Items -> PO Item; auto-linked to the PR's sole Quotation when only one exists, user-picked via dropdown once 2+ exist, never silently reassigned when a new Quotation is added later).
 
@@ -147,7 +148,7 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 
 **Phase 5** (AI-assisted invoice PDF line-item parsing) — separate milestone, not started. Deferred since real vendor invoice layouts vary too much for a single positional heuristic.
 
-**PR Stage Fixes & Enhancements** (milestone, cross-cutting, alongside Phase 3) — #61, #62, #63, #66, #67, #69, #70 done.
+**PR Stage Fixes & Enhancements** (milestone, cross-cutting, alongside Phase 3) — #61, #62, #63, #66, #67, #69, #70, #81 done.
 
 **PR Draft Support** (milestone) — 3 issues created (save PR as draft; resume-prompt on re-entry; draft list page), not started.
 
