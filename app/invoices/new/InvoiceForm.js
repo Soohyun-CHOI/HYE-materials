@@ -14,6 +14,11 @@ import { createInvoiceAction } from "./actions";
 // never locked to begin with.
 const EMPTY_ITEM = {
     itemName: "",
+    // Issue #84 — frozen copies from the linked PO Item, same as itemName/
+    // unitPrice: never manually entered, never editable. Blank for a
+    // free-text "Other" line, since there's no PO Item to copy from.
+    size: "",
+    unit: "",
     qty: "",
     unitPrice: "",
     poRecordId: "",
@@ -59,6 +64,8 @@ function defaultedItem(item, cache) {
         ...item,
         poItemRecordId: first.id,
         itemName: first.itemName,
+        size: first.size || "",
+        unit: first.unit || "",
         unitPrice: first.unitPrice != null ? String(first.unitPrice) : item.unitPrice,
     };
 }
@@ -527,16 +534,18 @@ export default function InvoiceForm({ vendors, pos }) {
 
     // Issue #51 — the single sync point for a line's PO Item choice.
     // Selecting a real PO Item copies its name (and, per #57, its
-    // Unit Price, freshly re-locked) in; selecting empty means
-    // "Other (free text)". Issue #57 — poItemTouched is set true on any
-    // explicit choice here (including Other), so applyDefaultPoItemSelection
-    // never later overwrites a deliberate pick with its own default.
+    // Unit Price, freshly re-locked, plus per #84, its Size/Unit) in;
+    // selecting empty means "Other (free text)", which also clears
+    // Size/Unit -- there's no PO Item left to have copied them from.
+    // Issue #57 — poItemTouched is set true on any explicit choice here
+    // (including Other), so applyDefaultPoItemSelection never later
+    // overwrites a deliberate pick with its own default.
     function updatePoItemSelection(index, poItemRecordId) {
         setItems((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
                 if (!poItemRecordId) {
-                    return { ...item, poItemRecordId: "", poItemTouched: true };
+                    return { ...item, poItemRecordId: "", poItemTouched: true, size: "", unit: "" };
                 }
                 const candidates = poItemsCache[item.poRecordId]?.items || [];
                 const matched = candidates.find((poItem) => poItem.id === poItemRecordId);
@@ -545,6 +554,8 @@ export default function InvoiceForm({ vendors, pos }) {
                     poItemRecordId,
                     poItemTouched: true,
                     itemName: matched ? matched.itemName : item.itemName,
+                    size: matched?.size || "",
+                    unit: matched?.unit || "",
                     unitPrice: matched && matched.unitPrice != null ? String(matched.unitPrice) : item.unitPrice,
                     unitPriceEditing: false,
                 };
@@ -878,6 +889,15 @@ export default function InvoiceForm({ vendors, pos }) {
                                                 <p className="text-xs text-red-600">
                                                     Couldn&apos;t load this PO&apos;s items — use &quot;Other&quot; or
                                                     re-pick the PO to retry.
+                                                </p>
+                                            )}
+                                            {/* Issue #84 — reference-only, frozen from the linked
+                                                PO Item at selection time; no input, no edit path.
+                                                A mismatch here means the wrong PO Item was picked,
+                                                not a value to correct in place. */}
+                                            {item.poItemRecordId && (item.size || item.unit) && (
+                                                <p className="text-xs text-zinc-500">
+                                                    Size: {item.size || "—"} · Unit: {item.unit || "—"}
                                                 </p>
                                             )}
                                             {!item.poItemRecordId && (
