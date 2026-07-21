@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createInvoiceAction } from "./actions";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes
 // an explicit choice in the PO Item dropdown — distinguishes "still
@@ -120,7 +121,7 @@ function usedElsewhereIds(itemsList, exceptIndex) {
 }
 
 const inputClass =
-    "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
+    "rounded border border-zinc-300 px-2 py-1 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
 const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
 
@@ -140,8 +141,12 @@ const TABS = [
     { id: "manual", label: "Manual Entry" },
 ];
 
-const CONFIRM_PO_CHANGE_MESSAGE =
-    "PO를 바꾸면 지금까지 입력한 항목이 모두 사라집니다. 계속하시겠습니까?";
+// Shared by both triggers that reset items the same way (a direct PO
+// change, or a Vendor change that swaps the PO indirectly) — names
+// whichever field the user actually touched, rather than a single
+// hardcoded "PO" wording used for both.
+const confirmChangeMessage = (subject) =>
+    `Changing the ${subject} will clear the items you've entered so far. Continue?`;
 
 // Issue #96 — decided in #93: no legitimate free-text use case has
 // surfaced yet, so hidden from the UI for now. Backend path (PO-Item-less
@@ -185,6 +190,11 @@ export default function InvoiceForm({ vendors, pos }) {
     // Quotations otherwise: uploads the moment it's picked (background),
     // never blocks on Server Action body-size limits.
     const [invoiceFile, setInvoiceFile] = useState({ status: "idle" });
+    // Replaces window.confirm() — { proceed, subject } | null. Set by
+    // confirmIfDirty when items has actually diverged from its auto-
+    // inserted default; the ConfirmDialog rendered below runs `proceed`
+    // on confirm, or just clears this on cancel.
+    const [pendingConfirm, setPendingConfirm] = useState(null);
     // Issue #46 — best-effort, informational only: null | { level: "info" |
     // "warning", message }. Never blocks anything; the manual Vendor/PO
     // pickers below are the same controls this just pre-fills, so whatever
@@ -230,6 +240,17 @@ export default function InvoiceForm({ vendors, pos }) {
     // racing two independent defaulting passes against each other and
     // occasionally landing on the second PO Item instead of the first.
     const poItemsFetchStartedRef = useRef(new Set());
+    // Issue #99 — a snapshot of `items` as of the last *automatic*
+    // mutation (initial default row, PO-forced defaulting, PO Items
+    // finishing loading, detection auto-fill) — never updated by a
+    // user-driven one (addItem, removeItem, updateItem,
+    // updatePoItemSelection, handleCancelUnitPriceEdit). Comparing current
+    // `items` against this is the single source of truth for "has the
+    // user actually changed anything", regardless of whether the compare
+    // happens mid-load, right after load, or long after real edits —
+    // replacing the old itemName/qty/unitPrice truthiness check, which
+    // couldn't tell an auto-filled value from a typed one.
+    const autoInsertedItemsRef = useRef(JSON.stringify([{ ...EMPTY_ITEM }]));
 
     async function handleInvoiceFileChange(e) {
         const file = e.target.files?.[0];
@@ -368,12 +389,14 @@ export default function InvoiceForm({ vendors, pos }) {
 
             if (newSlots.length === 1) {
                 const only = newSlots[0].poRecordId;
-                setItems((prev) =>
-                    applyDefaultsAcrossItems(
+                setItems((prev) => {
+                    const next = applyDefaultsAcrossItems(
                         prev.map((item) => ({ ...item, poRecordId: only })),
                         poItemsCache
-                    )
-                );
+                    );
+                    autoInsertedItemsRef.current = JSON.stringify(next);
+                    return next;
+                });
                 setPoDetection({
                     level: detectionLevel,
                     message: `Detected PO: ${confirmed[0].poId} (auto-filled below)${fullyInvoicedNote}${unconfirmedNote}.`,
@@ -382,11 +405,11 @@ export default function InvoiceForm({ vendors, pos }) {
                 // Multi-PO case: scaffold one item row per detected PO,
                 // each pre-set to a different one, rather than leaving a
                 // single blank row with no default PO to seed it with.
-                setItems(
-                    confirmed.map((c) =>
-                        defaultedItem({ ...EMPTY_ITEM, poRecordId: c.recordId }, poItemsCache)
-                    )
+                const nextItems = confirmed.map((c) =>
+                    defaultedItem({ ...EMPTY_ITEM, poRecordId: c.recordId }, poItemsCache)
                 );
+                setItems(nextItems);
+                autoInsertedItemsRef.current = JSON.stringify(nextItems);
                 setPoDetection({
                     level: detectionLevel,
                     message: `Detected ${confirmed.length} POs: ${confirmed
@@ -432,6 +455,17 @@ export default function InvoiceForm({ vendors, pos }) {
         () => posList.filter((po) => selectedPoIds.includes(po.id)),
         [posList, selectedPoIds]
     );
+    // Issue #99 — Items stays locked (visible but faded/disabled, not
+    // hidden — so the overall shape of the invoice is visible right away)
+    // until at least one PO is chosen and every currently-selected PO's
+    // items have actually finished loading. Mirrors the existing Vendor-
+    // before-PO gating. Requiring *every* selectedPoId to be "done" (not
+    // just the first) keeps this simple for the multi-PO case, at the
+    // cost of Items staying locked slightly longer than strictly
+    // necessary if only one of several POs is still loading.
+    const itemsReady =
+        selectedPoIds.length > 0 &&
+        selectedPoIds.every((id) => poItemsCache[id]?.status === "done");
 
     // Issue #91 — prefills Shipping Fee from the single selected PO's own
     // Shipping Fee, in addition to (not replacing) the reference text
@@ -492,16 +526,28 @@ export default function InvoiceForm({ vendors, pos }) {
     function applyDefaultPoItemSelection(poRecordId, sortedItems) {
         if (sortedItems.length === 0) return;
         const cacheOverride = { [poRecordId]: { status: "done", items: sortedItems } };
-        setItems((prev) => applyDefaultsAcrossItems(prev, cacheOverride));
+        setItems((prev) => {
+            const next = applyDefaultsAcrossItems(prev, cacheOverride);
+            autoInsertedItemsRef.current = JSON.stringify(next);
+            return next;
+        });
     }
 
+    // Issue #99 — Vendor change swaps the PO (and wipes items) exactly the
+    // same way a direct PO change does, so it now goes through the same
+    // confirmIfDirty gate instead of resetting silently — previously the
+    // asymmetry meant a genuine in-progress edit could get wiped with no
+    // warning just because the swap happened to come from the Vendor
+    // picker instead of the PO picker.
     function handleVendorChange(e) {
-        setVendorId(e.target.value);
-        // POs picked under the previous Vendor almost certainly don't
-        // belong to the new one — reset silently (no confirm dialog here;
-        // that's specific to a deliberate PO swap within the same Vendor,
-        // not this already-existing, already-silent Vendor-change reset).
-        replacePoSlots([{ ...EMPTY_SLOT }]);
+        const newVendorId = e.target.value;
+        confirmIfDirty(() => {
+            setVendorId(newVendorId);
+            // POs picked under the previous Vendor almost certainly don't
+            // belong to the new one — same reset replacePoSlots always
+            // does on a real swap.
+            replacePoSlots([{ ...EMPTY_SLOT }]);
+        }, "Vendor");
     }
 
     // Issue #57 — the actual "PO changed, items get wiped" side effect,
@@ -515,21 +561,30 @@ export default function InvoiceForm({ vendors, pos }) {
         const activeIds = newSlots.map((s) => s.poRecordId).filter(Boolean);
         const only = activeIds.length === 1 ? activeIds[0] : "";
         const fresh = { ...EMPTY_ITEM, poRecordId: only };
-        setItems([defaultedItem(fresh, poItemsCache)]);
+        const nextItems = [defaultedItem(fresh, poItemsCache)];
+        setItems(nextItems);
+        autoInsertedItemsRef.current = JSON.stringify(nextItems);
         activeIds.forEach((id) => ensurePoItemsLoaded(id));
         // Issue #91 — a real PO swap gets a fresh Shipping Fee prefill
         // opportunity too, same as items resetting above.
         setShippingFeeTouched(false);
     }
 
-    // Only prompts if there's actually something to lose — an empty
-    // invoice's items array (still just the pristine single blank row)
-    // means "replace" and "confirm-then-replace" produce an identical
-    // result, so skipping the popup in that case isn't a shortcut, it's
-    // just not asking a question with only one real answer.
-    function confirmIfDirty(proceed) {
-        const dirty = items.some((item) => item.itemName || item.qty || item.unitPrice);
-        if (dirty && !window.confirm(CONFIRM_PO_CHANGE_MESSAGE)) {
+    // Issue #99 — "dirty" now means items has actually diverged from its
+    // last auto-inserted snapshot (see autoInsertedItemsRef), not just
+    // "some field happens to be non-empty" — an auto-filled default looked
+    // identical to real content under the old check, firing the warning
+    // even when nothing had been touched. Only prompts if there's actually
+    // something to lose.
+    // Issue: confirmation now goes through the in-app ConfirmDialog below
+    // instead of window.confirm() — unlike that native call, showing a
+    // React modal can't block synchronously, so a dirty check defers
+    // `proceed` into pendingConfirm state and runs it only once the user
+    // actually clicks through (handled by the dialog's onConfirm below).
+    function confirmIfDirty(proceed, subject) {
+        const dirty = JSON.stringify(items) !== autoInsertedItemsRef.current;
+        if (dirty) {
+            setPendingConfirm({ proceed, subject });
             return;
         }
         proceed();
@@ -553,18 +608,20 @@ export default function InvoiceForm({ vendors, pos }) {
                 ensurePoItemsLoaded(newValue);
                 const activeIds = nextSlots.map((s) => s.poRecordId).filter(Boolean);
                 if (activeIds.length === 1) {
-                    setItems((prev) =>
-                        applyDefaultsAcrossItems(
+                    setItems((prev) => {
+                        const next = applyDefaultsAcrossItems(
                             prev.map((item) => ({ ...item, poRecordId: newValue })),
                             poItemsCache
-                        )
-                    );
+                        );
+                        autoInsertedItemsRef.current = JSON.stringify(next);
+                        return next;
+                    });
                 }
             }
             return;
         }
 
-        confirmIfDirty(() => replacePoSlots(nextSlots));
+        confirmIfDirty(() => replacePoSlots(nextSlots), "PO");
     }
 
     function handleRemoveSlot(slotIndex) {
@@ -576,7 +633,7 @@ export default function InvoiceForm({ vendors, pos }) {
             return;
         }
 
-        confirmIfDirty(() => replacePoSlots(nextSlots));
+        confirmIfDirty(() => replacePoSlots(nextSlots), "PO");
     }
 
     // Purely additive — reveals an empty slot, doesn't touch any existing
@@ -995,10 +1052,27 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     function renderItemsSection() {
+        // Issue #99 — locked (visible but faded/disabled, not hidden — so
+        // the shape of the invoice is visible right away) until a PO is
+        // chosen and its items have finished loading. Fixes two things at
+        // once: the item dropdown briefly rendering with zero options
+        // before the first real item loads, and Item Name being a live
+        // free-text box before any PO (and thus any PO Item list to
+        // constrain it) even exists.
+        const locked = !itemsReady;
         return (
             <div>
                 <h2 className="text-lg font-semibold">Items</h2>
-                <div className="mt-2 space-y-3">
+                {locked && (
+                    <p className="mt-1 text-xs text-zinc-500">
+                        {selectedPoIds.length === 0
+                            ? "Select a PO above to add items."
+                            : selectedPoIds.some((id) => poItemsCache[id]?.status === "error")
+                                ? "Couldn't load this PO's items — try re-selecting the PO."
+                                : "Loading PO items..."}
+                    </p>
+                )}
+                <div className={locked ? "mt-2 space-y-3 opacity-50" : "mt-2 space-y-3"}>
                     {items.map((item, i) => {
                         const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
                         // The per-item PO picker only makes sense (and only
@@ -1045,7 +1119,18 @@ export default function InvoiceForm({ vendors, pos }) {
                                             : "grid grid-cols-2 gap-2 sm:grid-cols-3"
                                     }
                                 >
-                                    {item.poRecordId ? (
+                                    {/* Issue #99 — the PO Item select only ever renders once
+                                        this row's PO is actually loaded (`!locked`); while no PO
+                                        is chosen yet, or one is chosen but still loading, this
+                                        falls to the single plain Item Name box below instead —
+                                        previously both rendered at once (an empty, 0-option
+                                        select stacked above a free-text box) whenever a PO was
+                                        picked but poItemRecordId hadn't been auto-filled yet. The
+                                        old per-row "Loading PO items..."/error messages here are
+                                        gone too — always dead once `!locked` guarantees every
+                                        selected PO's fetch already succeeded; the section-level
+                                        message above now covers both. */}
+                                    {item.poRecordId && !locked ? (
                                         <div className="space-y-1">
                                             <select
                                                 value={item.poItemRecordId}
@@ -1069,15 +1154,6 @@ export default function InvoiceForm({ vendors, pos }) {
                                                     <option value="">Other (free text)</option>
                                                 )}
                                             </select>
-                                            {poItemsEntry?.status === "loading" && (
-                                                <p className="text-xs text-zinc-500">Loading PO items...</p>
-                                            )}
-                                            {poItemsEntry?.status === "error" && (
-                                                <p className="text-xs text-red-600">
-                                                    Couldn&apos;t load this PO&apos;s items — use &quot;Other&quot; or
-                                                    re-pick the PO to retry.
-                                                </p>
-                                            )}
                                             {/* Issue #84 — reference-only, frozen from the linked
                                                 PO Item at selection time; no input, no edit path.
                                                 A mismatch here means the wrong PO Item was picked,
@@ -1101,6 +1177,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                         <input
                                             placeholder="Item Name"
                                             required
+                                            disabled={locked}
                                             value={item.itemName}
                                             onChange={(e) => updateItem(i, "itemName", e.target.value)}
                                             className={inputClass}
@@ -1110,6 +1187,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                         type="number"
                                         placeholder="Qty"
                                         required
+                                        disabled={locked}
                                         value={item.qty}
                                         onChange={(e) => updateItem(i, "qty", e.target.value)}
                                         className={inputClass}
@@ -1120,7 +1198,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                             step="0.01"
                                             placeholder="Unit Price"
                                             required
-                                            disabled={unitPriceLocked}
+                                            disabled={locked || unitPriceLocked}
                                             value={item.unitPrice}
                                             onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
                                             className={inputClass + " flex-1"}
@@ -1129,7 +1207,8 @@ export default function InvoiceForm({ vendors, pos }) {
                                             <button
                                                 type="button"
                                                 onClick={() => updateItem(i, "unitPriceEditing", true)}
-                                                className="shrink-0 text-xs text-zinc-500 underline"
+                                                disabled={locked}
+                                                className="shrink-0 text-xs text-zinc-500 underline disabled:opacity-50"
                                             >
                                                 Edit
                                             </button>
@@ -1138,7 +1217,8 @@ export default function InvoiceForm({ vendors, pos }) {
                                             <button
                                                 type="button"
                                                 onClick={() => handleCancelUnitPriceEdit(i)}
-                                                className="shrink-0 text-xs text-zinc-500 underline"
+                                                disabled={locked}
+                                                className="shrink-0 text-xs text-zinc-500 underline disabled:opacity-50"
                                             >
                                                 Cancel
                                             </button>
@@ -1147,6 +1227,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                     {showPoPicker && (
                                         <select
                                             required
+                                            disabled={locked}
                                             value={item.poRecordId}
                                             onChange={(e) => updateItem(i, "poRecordId", e.target.value)}
                                             className={inputClass}
@@ -1171,6 +1252,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                 {showRemark && (
                                     <input
                                         placeholder="Remark — why this differs from the PO"
+                                        disabled={locked}
                                         value={item.remark}
                                         onChange={(e) => updateItem(i, "remark", e.target.value)}
                                         className={inputClass + " mt-2 w-full"}
@@ -1182,7 +1264,8 @@ export default function InvoiceForm({ vendors, pos }) {
                                         <button
                                             type="button"
                                             onClick={() => removeItem(i)}
-                                            className="text-red-600"
+                                            disabled={locked}
+                                            className="text-red-600 disabled:opacity-50"
                                         >
                                             Remove
                                         </button>
@@ -1195,7 +1278,8 @@ export default function InvoiceForm({ vendors, pos }) {
                 <button
                     type="button"
                     onClick={addItem}
-                    className="mt-3 rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
+                    disabled={locked}
+                    className="mt-3 rounded border border-zinc-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-zinc-700"
                 >
                     + Add item
                 </button>
@@ -1328,6 +1412,7 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     return (
+        <>
         <form action={formAction} className="mt-6 space-y-8">
             {state?.error && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -1384,7 +1469,7 @@ export default function InvoiceForm({ vendors, pos }) {
 
             <button
                 type="submit"
-                disabled={pending || invoiceFile.status !== "done"}
+                disabled={pending || invoiceFile.status !== "done" || !itemsReady}
                 className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
             >
                 {pending
@@ -1396,5 +1481,17 @@ export default function InvoiceForm({ vendors, pos }) {
                             : "Create Invoice"}
             </button>
         </form>
+
+        <ConfirmDialog
+            open={pendingConfirm !== null}
+            message={pendingConfirm ? confirmChangeMessage(pendingConfirm.subject) : ""}
+            onConfirm={() => {
+                const proceed = pendingConfirm?.proceed;
+                setPendingConfirm(null);
+                proceed?.();
+            }}
+            onCancel={() => setPendingConfirm(null)}
+        />
+        </>
     );
 }

@@ -19,16 +19,17 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 ## Service layer pattern
 
 - lib/airtable/client.js — shared connection, TABLES constants, getLinkedRecords(), withKeyLock().
-- lib/airtable/{table}.js — one file per table, plain async functions. Build only what the current phase needs.
+- lib/airtable/{table}.js — one file per table, plain async functions.
 - lib/ids.js — all ID generation.
-- lib/units.js — CANONICAL_UNITS, the single JS-side source of truth for the Unit select list.
+- lib/units.js — CANONICAL_UNITS, single JS-side source of truth for the Unit select list.
+- lib/variance.js — invoice/PO variance checks.
 - AIRTABLE_API_KEY server-side only, never in the client bundle.
 
 ---
 
 ## Data model (19 tables)
 
-**Users**: User Name (primary), Email, Phone, Role (Employee/President), Is Admin, Status (Active/Inactive), Created At, Assigned Jobs (link -> Jobs, multiple, optional — convenience default, never access control).
+**Users**: User Name (primary), Email, Phone, Role (Employee/President), Is Admin, Status (Active/Inactive), Created At, Assigned Jobs (link -> Jobs, multiple, optional).
 
 **Jobs**: Job Code (primary), Job Name, Business Unit, PIC/Manager (link -> Users) + Phone/Email (Lookups), Delivery/Alternate Address (link -> Addresses, single), Lines/Users (reverse-links).
 
@@ -36,138 +37,120 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Vendors**: Vendor Name (primary), PIC Name/Phone/Email (plain text, external), Address (link, single), Purchase Orders (Lookup via PR chain).
 
-**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when the President signs the generated PO), Current Signer Step, Items Subtotal (rollup, PR Items only), Shipping Fee (optional currency, Requester enters when known; fixed once set, changeable only via Edit and continue), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0 — the PR's final figure), Notes, Quotation Files (Lookup, plural — a PR can have more than one Quotation).
+**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when President signs the generated PO), Current Signer Step, Items Subtotal (rollup, PR Items only), Shipping Fee (optional currency; fixed once set, changeable only via Edit and continue), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0), Notes, Quotation Files (Lookup, plural).
 
 **PR Signers** — dynamic ordered approval chain:
-- Requester assigns an arbitrary ordered list of signers at creation, each tagged Confirmation Type (Approval/Agreement) — label only, the confirm-and-advance action is identical either way.
-- Each turn: Approve/Agree, Edit and continue, or Return for correction (to any earlier signer/requester/self — pauses and resumes, never restarts). Nested corrections form a real LIFO stack: each resolve unwinds exactly one level, never jumps straight to the original sender.
+- Requester assigns an ordered signer list at creation, each tagged Confirmation Type (Approval/Agreement) — label only, same underlying action.
+- Each turn: Approve/Agree, Edit and continue, or Return for correction (to any earlier signer/requester/self — pauses/resumes, never restarts; nested corrections are a LIFO stack, each resolve unwinds one level).
 - Editing after signing does NOT invalidate approval.
-- Fields: PR Signer ID, PR/Signer (link, single), Sequence Order, Status (Pending/Approved/Edited/Returned), Confirmation Type, Signed At, Notes (no input on plain Approve/Agree — Edit and continue and Return still collect it; Return's Notes is required and shown in History, Edit and continue's is written to Edit Log per changed field).
-- PR detail page shows the chain as a linear progress bar (`lib/prSigning.js:getSignerChainProgress` + `app/prs/[prId]/SignerProgressBar.js`), current state only — History remains the full log. A signer passed through but pushed back by a correction ("paused") shares neutral color with "not yet reached", distinguished only by a dashed border. Known gap: Correction Requests.Sent To stores only a user id, ambiguous when that person is both Requester and a Signer — the progress bar defaults to the signer interpretation; this never affects the actual signing state machine, which resolves via Current Signer Step, not Sent To.
+- Fields: PR Signer ID, PR/Signer (link, single), Sequence Order, Status (Pending/Approved/Edited/Returned), Confirmation Type, Signed At, Notes (no input on plain Approve/Agree; Edit and continue/Return still collect it).
+- PR detail page: linear progress bar (`lib/prSigning.js:getSignerChainProgress` + `app/prs/[prId]/SignerProgressBar.js`), current state only. Paused (passed through, pushed back by correction) shares neutral color with not-yet-reached, dashed border only. Correction Requests.Sent To stores only a user id (ambiguous if Requester = a Signer); progress bar defaults to signer interpretation — doesn't affect the actual state machine (uses Current Signer Step).
 
-**PR Items**: PR Item ID, PR (link), Item Name, Size, Unit (single select, canonical 19-value list shared with PO Items/Invoice Items — see Units below), Qty, Unit Price, Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — auto-linked when only one exists, user-picked via dropdown once 2+ exist, never silently reassigned when a new one is added later).
+**PR Items**: PR Item ID, PR (link), Item Name, Size, Unit (single select, canonical list — see Units), Qty, Unit Price, Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — auto-linked when only one exists, dropdown once 2+, never silently reassigned).
 
 **Correction Requests**: Correction Request ID, PR, Initiated By, Sent To, Notes, Requested At, Resolved At, Status (Pending/Resolved).
 
-**Edit Log**: Edit Log ID, PR, Changed By, Field Name (select — item fields plus Shipping Fee and Unit Price), Old Value, New Value, Changed At, Notes (optional reason; shared field, older item-edit entries just leave it blank).
+**Edit Log**: Edit Log ID, PR, Changed By, Field Name (select — item fields, Shipping Fee, Unit Price), Old Value, New Value, Changed At, Notes (optional).
 
-**Purchase Orders**: strict 1:1 with PR. PO ID (HYE-PO-YYYYMMDD-## — 4-digit year, the one exception to this project's 2-digit-year convention), PR (link), Vendor (Lookup via PR), Quotation File (Lookup), Our PIC/Manager (links), Created Date, President Signed(+At), Status (Draft/Signed/Sent to Vendor), PO PDF File, Items Subtotal (rollup, PO Items only), Shipping Fee (plain currency, copied from the PR's Shipping Fee at PO-generation time — frozen, not a Lookup), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0 — printed as the PO PDF's TOTAL line), Delivery Address Used (Primary/Alternate — internal tracking only, never a UI choice).
+**Purchase Orders**: strict 1:1 with PR. PO ID (HYE-PO-YYYYMMDD-## — 4-digit year, the one exception to the 2-digit convention), PR (link), Vendor (Lookup via PR), Quotation File (Lookup), Our PIC/Manager (links), Created Date, President Signed(+At), Status (Draft/Signed/Sent to Vendor), PO PDF File, Items Subtotal (rollup, PO Items only), Shipping Fee (plain currency, frozen copy from PR at PO-generation time), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0 — PO PDF's TOTAL line), Delivery Address Used (Primary/Alternate — internal only).
 
-**PO Items**: frozen snapshot from PR Items at PO-generation time — NOT live. PO Item ID, PO (link), Item Name, Size, Unit (single select, same canonical list), Qty, Unit Price, Amount = static value, Remark, Invoice Items (reverse-link, multiple — line-level partial invoicing is real).
+**PO Items**: frozen snapshot from PR Items at PO-generation — NOT live. PO Item ID, PO (link), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = static value, Remark, Invoice Items (reverse-link, multiple — partial invoicing is real). No free-text/user-facing Unit entry point; only written by lib/poGeneration.js.
 
-**Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in the app's flow). At least one Quotation is required per PR; a PR can have more than one over its lifetime, created via a dynamic list on the PR form (at submission, or later via Edit and continue).
+**Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in-app). At least one required per PR; can have more than one over its lifetime (dynamic list on PR form, or later via Edit and continue).
 
-**Invoices**: Invoice ID (HYE-INV-YYMMDD-##, top-level), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due (labeled "Vendor's Stated Total" — compared against but never overwritten by the calculated total), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup of Invoice Items.Amount), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0 — stores what the submit-time comparison against Amount Due computes), Variance Flag (checkbox, backend-set — see Variance checking below), Paid(+Date), File (attachment, required).
+**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never overwritten), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0), Variance Flag (checkbox, backend-set), Paid(+Date), File (attachment, required).
 
-**Invoice-PO Link**: join table for many-to-many. Primary = plain autoNumber. Both link fields single-record.
+**Invoice-PO Link**: join table, many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
-**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single — the specific PO line this reconciles against), Item Name, Size, Unit (single select, same canonical list), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set — see Variance checking below), Remark (shared for Unit Price/Qty discrepancy notes). Size/Unit are frozen copies from the linked PO Item at line-creation time, reference-only in the invoice form with no edit path — a mismatch means the wrong PO Item was picked, not a value to correct. Blank on a free-text "Other" line (no PO Item to copy from).
+**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared, Unit Price/Qty discrepancies). Size/Unit are frozen copies from the linked PO Item, reference-only, no edit path (mismatch = wrong PO Item picked). Blank on a free-text line (no PO Item to copy from). Free-text "Other" option is currently hidden from the form UI (see Status).
 
-**Addresses**: Address Label (primary, human-picked), Line 1/2, City, State, Zip, Country, Formatted Address (formula).
+**Addresses**: Address Label (primary), Line 1/2, City, State, Zip, Country, Formatted Address (formula).
 
-**Materials**: latest-price cache. Natural key = Item Name + Size + Unit + Vendor. Unit Price, Latest Line (link, single), Latest Job (Lookup via Latest Line), Latest PO, Latest Date. Not the source of price history (that's PR Items). USD only.
+**Materials**: latest-price cache. Natural key = Item Name + Size + Unit + Vendor. Unit Price, Latest Line/Job/PO/Date. Not the price-history source (that's PR Items). USD only.
 
 **Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
 ### Units (PR Items / PO Items / Invoice Items)
 
-All three share one single-select field with the same 19-value canonical list: EA, FT, SET, LS, LOT, M, ROLL, PCS, SHEET, M/D, FIT, SQFT, IN, Lengths, KG, PSI, TUBES, PACK, ST.
-- JS source of truth: `lib/units.js` CANONICAL_UNITS, rendered as a dropdown on PRForm.js and EditAndContinueForm.js. If an existing PR Item's Unit holds a value outside this list, the dropdown still shows/preserves it as an extra option rather than blanking it — only changes on deliberate re-selection.
-- `scripts/import/add_unit_options.py` keeps its own duplicate copy (Python can't import a JS module) — update both if the list changes.
-- Airtable's Metadata API cannot edit a select field's option list (confirmed by direct testing — PATCHing `options.choices` 422s regardless of payload/token scope). The only way to add a choice via the API is the `typecast=True` side effect of a normal record write — add_unit_options.py cycles one throwaway scratch record per table to do this without touching real data.
-- PO Items has no free-text/user-facing Unit entry point — only ever written by lib/poGeneration.js as a frozen copy from PR Items.
+One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PCS, SHEET, M/D, FIT, SQFT, IN, Lengths, KG, PSI, TUBES, PACK, ST.
+- JS source of truth: `lib/units.js` CANONICAL_UNITS, dropdown on PRForm.js/EditAndContinueForm.js. Out-of-list existing values are preserved as an extra option, never silently blanked.
+- `scripts/import/add_unit_options.py` keeps its own duplicate list (Python can't import JS).
+- Airtable's Metadata API can't edit a select field's option list; only way to add a choice is `typecast=True` via a normal record write — the script cycles a throwaway scratch record per table.
 
 ---
 
 ## ID generation (lib/ids.js)
 
-1. Top-level IDs — PR ID / PO ID / Invoice ID: independent daily-reset counters, backend-generated. PO ID uses 4-digit year; PR ID/Invoice ID use 2-digit.
-2. Child-table IDs (PR Item, PR Signer, Correction Request, Edit Log, PO Item, Quotation, Invoice Item): {Parent ID}-{seq}, resets per parent.
-3. Vendor-issued codes (Vendor Quotation Code, Vendor Invoice Code): human-entered, not unique alone — always scope by Vendor too.
+1. Top-level IDs (PR/PO/Invoice): independent daily-reset counters. PO uses 4-digit year; PR/Invoice use 2-digit.
+2. Child-table IDs: {Parent ID}-{seq}, resets per parent.
+3. Vendor-issued codes (Vendor Quotation Code, Vendor Invoice Code): human-entered, scope by Vendor.
 
-Naming: auto-generated unique fields -> `X ID`. Human-typed picker text -> `X Label`/plain name.
-Date/time naming: calendar-only -> `X Date`. Time-meaningful -> `X At`.
+Naming: auto-generated -> `X ID`. Human-typed -> `X Label`/plain name. Calendar-only -> `X Date`. Time-meaningful -> `X At`.
 
 ---
 
 ## Querying parent/child data
 
-filterByFormula cannot match a link field against a record ID. Always read the parent's own reverse-link field via .find(parentRecordId) for counts/listing (getLinkedRecords() in client.js), never filter the child table directly. Exception: materials.js:getMaterialByKey uses a Vendor Record ID lookup field.
+filterByFormula can't match a link field against a record ID. Read the parent's reverse-link field via .find(parentRecordId) (getLinkedRecords() in client.js), never filter the child table directly. Exception: materials.js:getMaterialByKey uses a Vendor Record ID lookup field.
 
 ## Concurrency: withKeyLock()
 
-generateChildId and upsertMaterial wrap their read-then-write sequence in withKeyLock() to prevent duplicate IDs/records under concurrent calls. Serializes only within one process/invocation, not across serverless invocations. Double-submit needs frontend disable-on-click guards, not a backend concern.
+generateChildId and upsertMaterial wrap read-then-write in withKeyLock(). Serializes only within one process/invocation. Double-submit needs frontend disable-on-click guards.
 
 ---
 
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
-- Magic link only. requestMagicLink() domain-checks then emails a token; verifyMagicLink() consumes the token (withKeyLock-protected) and finds-or-creates the User.
-- lib/session.js: iron-session, payload is `{ userId }`. getCurrentUser() resolves session -> User, treating a missing Users record as "not logged in" while re-throwing real Airtable errors.
-- getActiveUser() (lib/authz.js) additionally treats Status: Inactive as logged-out.
-- requireUser()/requireRole(role)/requireAdmin(): Server Component/Action helpers. Route Handlers use getActiveUser() directly + 401/403 JSON.
-- No proxy.js/middleware — Role/Is Admin can't be cached in a cookie, so each page's own requireUser() call is the gate.
-- Required env vars: SESSION_SECRET, RESEND_API_KEY, ALLOWED_EMAIL_DOMAIN, EMAIL_FROM (optional). Fail-fast at module load. Must be set in Vercel too.
-- Resend account still sandbox mode (no verified sending domain) — can only deliver to the account owner's own address. Domain verification needed before real multi-user use.
+- Magic link only. requestMagicLink() domain-checks then emails a token; verifyMagicLink() consumes it (withKeyLock-protected), finds-or-creates the User.
+- lib/session.js: iron-session, payload `{ userId }`. getCurrentUser() treats a missing Users record as logged-out, re-throws real Airtable errors.
+- getActiveUser() (lib/authz.js) also treats Status: Inactive as logged-out.
+- requireUser()/requireRole(role)/requireAdmin(): Server Component/Action helpers. Route Handlers use getActiveUser() + 401/403 JSON.
+- No proxy.js/middleware — each page's own requireUser() call is the gate.
+- Env vars: SESSION_SECRET, RESEND_API_KEY, ALLOWED_EMAIL_DOMAIN, EMAIL_FROM (optional). Fail-fast at module load; set in Vercel too.
+- Resend still sandbox mode — can only deliver to the account owner's address. Domain verification needed before real multi-user use.
 - Not built: rate-limiting on requestMagicLink.
 
 ---
 
 ## Route protection (lib/authz.js)
 
-Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new — Admin-only forms, Server Action re-checks requireAdmin() independently of the page. app/pos/[poId] and app/invoices/[invoiceId] are President-or-Admin for viewing (Admins need it for day-to-day invoice reconciliation); app/invoices/[invoiceId]'s Paid toggle action is Admin-only, re-checked in its own Server Action same as the admin forms above.
+app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks requireAdmin(). app/pos/[poId] and app/invoices/[invoiceId] — viewing is President-or-Admin; invoices/[invoiceId]'s Paid toggle action is Admin-only.
 
 ---
 
 ## Utility scripts (scripts/)
 
-- scripts/tests/ — temporary/verification scripts, deleted from Airtable after use.
-- scripts/import/ — reusable one-time backfill scripts. data/ and output/ gitignored. Python, talks to Airtable directly via `requests` + `.env.local`'s AIRTABLE_API_KEY (import_jobs.py, add_unit_options.py).
-- scripts/demo/ — reusable live-demo prep, kept in repo, NOT deleted from Airtable:
-  - seed_demo_fixtures.mjs: creates demo Job (26-DEMO-01) + Line + Vendor + Address via real service-layer functions. Skip-if-exists.
-  - make-invoice-pdf.mjs: given a PO ID, generates a matching demo invoice PDF (output/, gitignored) for demoing PDF auto-detection.
-  - Demo runs from one login-capable account standing in for every Requester/Signer role; President access via temporarily flipping that account's Role in Airtable.
-- lib/airtable/addresses.js has createAddress() (writer) for the demo seed script, reused from the real service layer.
+- scripts/tests/ — temporary/verification, deleted from Airtable after use.
+- scripts/import/ — reusable one-time backfills. Python via `requests` + `.env.local` (import_jobs.py, add_unit_options.py).
+- scripts/demo/ — kept in repo, NOT deleted from Airtable: seed_demo_fixtures.mjs (demo Job 26-DEMO-01 + Line/Vendor/Address, skip-if-exists), make-invoice-pdf.mjs (demo invoice PDF from a real PO). Demo runs from one account standing in for every role; President access via temporarily flipping Role.
+- lib/airtable/addresses.js has createAddress() (writer) for the demo seed script.
 
 ---
 
 ## Git workflow rules
 
-- Never commit directly to main. One branch per issue: {issue#}-{short-desc}. Non-issue work: plain descriptive branch name.
+- Never commit to main. One branch per issue: {issue#}-{short-desc}.
 - Commit format: `{type}: {description} (#{issue#})` — feat/fix/chore/refactor.
-- PR description must include `Closes #{issue#}`. Squash merge configured — PR description becomes the final commit body on main.
-- Line-wrap: commit bodies + PR descriptions at 72 chars. Issue comments and Claude Code prompts don't need wrapping.
-- Wrap literal `<tag>`-looking text in backticks in PR descriptions (GitHub's Markdown renderer can swallow content into an unclosed tag).
-- If an issue's logic is already covered by another issue's work, comment explaining why first, then close — never silently close via a PR's Closes #.
-- GitHub Milestones = Phases (0-5) or standalone cross-cutting milestones (e.g. "PR Stage Fixes & Enhancements", "PR Draft Support"). Stay scoped to the current issue's Milestone unless told otherwise.
-- Don't open a PR unless explicitly asked to.
-- Never run git commit yourself. Write the commit message to commit-msg.txt at the repo root (overwrite, gitignored); the user commits manually.
-- All GitHub milestones/issues/PRs, project markdown, and web-app-facing text are in English, regardless of what language the conversation with Claude happens in.
+- PR description must include `Closes #{issue#}`. Squash merge — PR description becomes the final commit body.
+- Line-wrap commit bodies + PR descriptions at 72 chars. Prompts/comments don't need wrapping.
+- Wrap literal `<tag>`-looking text in backticks in PR descriptions.
+- If an issue is already covered by other work, comment explaining why, then close — never silently close via Closes #.
+- Milestones = Phases (0-5) or standalone cross-cutting milestones. Stay scoped to the current issue's Milestone unless told otherwise.
+- Don't open a PR unless asked. Never commit yourself — write commit-msg.txt at repo root (gitignored), user commits manually.
+- All GitHub content, project markdown, and web-app-facing text is English regardless of conversation language.
 
 ---
 
 ## Status
 
-**Phase 0** (Foundations), **Phase 1** (PR creation + signing chain), **Phase 2** (PO generation) — done.
-
-**Phase 3** (Invoice handling) — in progress. Done: #14, #46, #51, #48, #57, #84, #17 (decision), #15, #16, #91, #92, #93 (decision), #96.
-
-**Free-text "Other" item option** (#93 decision, #96) — hidden from the Invoice form's PO Item dropdown behind `SHOW_OTHER_ITEM_OPTION` (InvoiceForm.js, currently `false`) since no legitimate use case had surfaced; re-exposing is a one-line flip, no other code change. The backend path for a PO-Item-less Invoice Item is untouched (createInvoiceAction, lib/airtable/invoiceItems.js) — this is UI-only. No existing Invoice Items were free-text at the time this shipped.
-
-**Payment tracking** (#16, `app/invoices/[invoiceId]`) — the first page that shows a single Invoice on its own (header, Items, Variance Flag badges), reached by ID like `app/pos/[poId]`/`app/prs/[prId]` — no Invoice list page yet, matching the same not-built-yet gap as PR/PO lists. Viewing is President-or-Admin (same reasoning as `app/pos/[poId]`); marking Paid is Admin-only, matching who already creates invoices (`createInvoiceAction`). Checking Paid requires a Paid Date (defaults to today, editable); unchecking always clears Paid Date too, so a stale date can't linger. If the invoice (header or any line) has a Variance Flag, a review warning shows above the Paid toggle — never blocking, since variance review and payment confirmation are independent judgment calls. `app/pos/[poId]/page.js`'s Invoice Item breakdown also shows a read-only Paid/Paid Date badge per line, linking to the Invoice page rather than duplicating the action there.
-
-**Variance checking** (#15, `lib/variance.js`) — not a single uniform rule:
-- Header (Invoice.Amount Due vs Calculated Total): hybrid tolerance — passes if within $5 or 1% of Calculated Total, whichever is more permissive. Invoices.Variance Flag (checkbox), computed once at invoice-creation time after Invoice Items are linked (so the Items Subtotal -> Calculated Total rollup is current).
-- Line, Unit Price (Invoice Item vs its linked PO Item): near-exact match — $0.01 absolute tolerance only (floating-point/rounding noise), no percentage rule.
-- Line, Qty (Invoice Item vs its linked PO Item): not a tolerance comparison. Flags when the sum of Qty across all Invoice Items linked to a given PO Item exceeds that PO Item's Qty (`getInvoicedQtyForPOItem` in poItems.js) — a creation-time snapshot, never retroactively recomputed for sibling Invoice Items created earlier against the same PO Item. Free-text "Other" lines (no PO Item link) are skipped entirely for both line checks.
-- Both line checks share Invoice Items' existing Variance Flag/Remark fields. Visible on `app/pos/[poId]/page.js` — each PO Item's invoiced/remaining aggregate now expands to show the actual reconciling Invoice Items, with line- and header-level Variance Flag badges.
+**Phase 0-3** (Foundations, PR creation, PO generation, Invoice handling) — done.
 
 **Phase 4** (Materials price history + reporting) — not started.
 
 **Phase 5** (AI-assisted invoice PDF line-item parsing) — not started.
 
-**PR Stage Fixes & Enhancements** (milestone, cross-cutting, alongside Phase 3) — done.
-
 **PR Draft Support** (milestone) — 3 issues created (save PR as draft; resume-prompt on re-entry; draft list page), not started.
 
-**Naming unification** (no milestone, cross-cutting, done): Rate -> Unit Price (PR/PO Items); Total Amount -> Items Subtotal + new Total Amount = Items Subtotal + Shipping Fee (PR and PO); PO Shipping Fee is now a frozen copy, not a Lookup; Invoice gained Items Subtotal + Calculated Total. PR/PO/Invoice Items' Unit converted to a shared single-select (see Units above); Invoice Items gained Size/Unit as new fields entirely.
+**Known follow-ups, not yet scheduled**:
+- PR.Created Date is date-only (unlike PR Signers/Correction Requests, which track time) — revisit once back to PR-side work.
+- Invoice creation still redirects to the new-invoice page on success rather than the new `app/invoices/[invoiceId]` detail page — acceptable for now, no Invoice list page exists yet either.
