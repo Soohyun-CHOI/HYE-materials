@@ -264,15 +264,57 @@ export default function InvoiceForm({ vendors, pos }) {
 
             if (confirmed.length === 0) {
                 if (unconfirmed.length > 0) {
+                    // Issue #92, case 2 — a PO-number-looking string was
+                    // found, but no real PO matches it.
                     setPoDetection({
                         level: "warning",
                         message: `Found what looks like a PO number (${unconfirmed.join(
                             ", "
                         )}) but no matching PO exists — check it wasn't mistyped, or select manually below.`,
                     });
+                } else {
+                    // Issue #92, case 3 — nothing PO-number-like was found
+                    // at all (also covers the PDF fetch/parse itself
+                    // failing — the route's catch below returns this same
+                    // empty shape, indistinguishable to the user either
+                    // way). Deliberately neutral wording, not "mismatch"
+                    // styled: there's nothing to validate, just nothing to
+                    // auto-fill.
+                    setPoDetection({
+                        level: "info",
+                        message: "Auto-detection didn't find a PO number in this file — select the PO manually below.",
+                    });
                 }
                 return; // Nothing to auto-fill — falls back to manual entry as-is.
             }
+
+            // Issue #92, case 1 — a matched PO that's already fully
+            // invoiced (every PO Item's cumulative invoiced Qty already
+            // meets its ordered Qty), independent of PO.Status. Computed
+            // server-side (detect-po/route.js) via #15's isPoOpen(), so
+            // this is just reading a flag already on each confirmed entry.
+            // Non-blocking — an unusual but legitimate scenario (e.g. a
+            // correction or late add-on charge) — so it only ever changes
+            // the message's tone (level: "warning"), never what auto-fills.
+            const closedPos = confirmed.filter((c) => c.isOpen === false);
+            // Only spells out which PO IDs when there's more than one
+            // confirmed PO to disambiguate between — with just one, it was
+            // already just named earlier in the same message.
+            const fullyInvoicedNote =
+                closedPos.length === 0
+                    ? ""
+                    : confirmed.length > 1
+                        ? ` — already fully invoiced: ${closedPos.map((c) => c.poId).join(", ")} (double-check before submitting)`
+                        : " — already fully invoiced (double-check before submitting)";
+            // Issue #92 — previously only ever surfaced in the multi-PO
+            // branch below; a single confirmed PO with co-occurring
+            // unconfirmed references silently dropped them. Computed once
+            // here so every branch below can share it.
+            const unconfirmedNote =
+                unconfirmed.length > 0
+                    ? ` (${unconfirmed.length} unrecognized reference${unconfirmed.length > 1 ? "s" : ""} ignored)`
+                    : "";
+            const detectionLevel = closedPos.length > 0 ? "warning" : "info";
 
             // Merge any confirmed PO that isn't already in posList — see
             // the posList comment above for why this can happen.
@@ -306,10 +348,10 @@ export default function InvoiceForm({ vendors, pos }) {
 
             if (!pristine) {
                 setPoDetection({
-                    level: "info",
+                    level: detectionLevel,
                     message: `Detected PO${confirmed.length > 1 ? "s" : ""}: ${confirmed
                         .map((c) => c.poId)
-                        .join(", ")} — not auto-applied since a PO or items are already entered. Select manually above if needed.`,
+                        .join(", ")}${fullyInvoicedNote}${unconfirmedNote} — not auto-applied since a PO or items are already entered. Select manually above if needed.`,
                 });
                 return;
             }
@@ -327,8 +369,8 @@ export default function InvoiceForm({ vendors, pos }) {
                     )
                 );
                 setPoDetection({
-                    level: "info",
-                    message: `Detected PO: ${confirmed[0].poId} (auto-filled below).`,
+                    level: detectionLevel,
+                    message: `Detected PO: ${confirmed[0].poId} (auto-filled below)${fullyInvoicedNote}${unconfirmedNote}.`,
                 });
             } else {
                 // Multi-PO case: scaffold one item row per detected PO,
@@ -339,15 +381,11 @@ export default function InvoiceForm({ vendors, pos }) {
                         defaultedItem({ ...EMPTY_ITEM, poRecordId: c.recordId }, poItemsCache)
                     )
                 );
-                const unconfirmedNote =
-                    unconfirmed.length > 0
-                        ? ` (${unconfirmed.length} unrecognized reference${unconfirmed.length > 1 ? "s" : ""} ignored)`
-                        : "";
                 setPoDetection({
-                    level: "info",
+                    level: detectionLevel,
                     message: `Detected ${confirmed.length} POs: ${confirmed
                         .map((c) => c.poId)
-                        .join(", ")} — auto-filled below, verify each item's assignment.${unconfirmedNote}`,
+                        .join(", ")} — auto-filled below, verify each item's assignment.${fullyInvoicedNote}${unconfirmedNote}`,
                 });
             }
         } catch (err) {

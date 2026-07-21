@@ -150,7 +150,7 @@ Reference usage: app/admin/jobs/new, app/admin/vendors/new, app/admin/lines/new 
 
 **Phase 0** (Foundations), **Phase 1** (PR creation + signing chain), **Phase 2** (PO generation) — done.
 
-**Phase 3** (Invoice handling) — in progress. Done: #14, #46, #51, #48, #57, #84, #17 (decision), #15, #16, #91.
+**Phase 3** (Invoice handling) — in progress. Done: #14, #46, #51, #48, #57, #84, #17 (decision), #15, #16, #91, #92.
 
 **Payment tracking** (#16, `app/invoices/[invoiceId]`) — the first page that shows a single Invoice on its own (header, Items, Variance Flag badges), reached by ID like `app/pos/[poId]`/`app/prs/[prId]` — no Invoice list page yet, matching the same not-built-yet gap as PR/PO lists. Viewing is President-or-Admin (same reasoning as `app/pos/[poId]`); marking Paid is Admin-only, matching who already creates invoices (`createInvoiceAction`). Checking Paid requires a Paid Date (defaults to today, editable); unchecking always clears Paid Date too, so a stale date can't linger. If the invoice (header or any line) has a Variance Flag, a review warning shows above the Paid toggle — never blocking, since variance review and payment confirmation are independent judgment calls. `app/pos/[poId]/page.js`'s Invoice Item breakdown also shows a read-only Paid/Paid Date badge per line, linking to the Invoice page rather than duplicating the action there.
 

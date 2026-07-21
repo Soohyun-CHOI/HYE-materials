@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
 import { getActiveUser } from "@/lib/authz";
-import { getPOById } from "@/lib/airtable/purchaseOrders";
+import { getPOById, isPoOpen } from "@/lib/airtable/purchaseOrders";
 
 // Issue #46. The company's real, historically-issued PO numbers use the
 // same HYE-PO-YYYYMMDD-## shape this system now generates (4-digit year —
@@ -52,6 +52,16 @@ export async function POST(request) {
             } else {
                 unconfirmed.push(poId);
             }
+        });
+
+        // Issue #92 — whether each matched PO is already fully invoiced
+        // (every PO Item's cumulative invoiced Qty already meets its
+        // ordered Qty), independent of PO.Status. Reuses #15's isPoOpen()
+        // rather than reimplementing it; computed here so the client gets
+        // it in the same response, no extra round-trip.
+        const openFlags = await Promise.all(confirmed.map((c) => isPoOpen(c.recordId)));
+        confirmed.forEach((c, i) => {
+            c.isOpen = openFlags[i];
         });
 
         // An invoice's Vendor is a single header field, so confirmed POs
