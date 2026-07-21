@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createInvoiceAction } from "./actions";
@@ -55,11 +55,19 @@ function sortByRemaining(poItems) {
 // still in flight at that moment finishes (applyDefaultPoItemSelection).
 // Never touches a line once poItemTouched is true, or one with no PO / //
 // whose PO's items aren't loaded yet.
-function defaultedItem(item, cache) {
+// Issue #91 — usedElsewhere (a Set of PO Item record IDs already claimed
+// by sibling lines) is now honored here too, not just in the rendered
+// dropdown: without this, auto-defaulting a second untouched line pointed
+// at the same PO would silently pick the exact same "first" item the
+// first line already got, resurfacing the bug the dropdown filter alone
+// doesn't cover. Falls back to the line as-is if every item for this PO
+// is already claimed elsewhere.
+function defaultedItem(item, cache, usedElsewhere = new Set()) {
     if (item.poItemTouched || !item.poRecordId) return item;
     const entry = cache[item.poRecordId];
     if (!entry || entry.status !== "done" || entry.items.length === 0) return item;
-    const first = entry.items[0];
+    const first = entry.items.find((poItem) => !usedElsewhere.has(poItem.id));
+    if (!first) return item;
     return {
         ...item,
         poItemRecordId: first.id,
@@ -68,6 +76,47 @@ function defaultedItem(item, cache) {
         unit: first.unit || "",
         unitPrice: first.unitPrice != null ? String(first.unitPrice) : item.unitPrice,
     };
+}
+
+// Issue #91 — applies defaultedItem across a whole list of lines in
+// order, so a line's auto-default takes into account whatever the ones
+// before it in the same pass just claimed (rather than each computing its
+// default in isolation and possibly colliding on the same PO Item). Must
+// stay idempotent — safe to run more than once over lines that are
+// already (auto-)defaulted, not just ones still blank — since
+// poItemTouched never becomes true from an auto-default alone, so a
+// second pass over the same lines is always possible (e.g. a duplicate
+// fetch resolving twice). Each line's own current poItemRecordId is
+// excluded from what counts as "used by a sibling" while computing its
+// own default — otherwise re-running this over an already-correctly-
+// defaulted line would see that line's own pick reflected in `used` and
+// bump it to the next item instead of leaving it alone.
+function applyDefaultsAcrossItems(itemsList, cache) {
+    const used = new Set();
+    itemsList.forEach((item) => {
+        if (item.poItemRecordId) used.add(item.poItemRecordId);
+    });
+    return itemsList.map((item) => {
+        const usedBySiblings = item.poItemRecordId
+            ? new Set([...used].filter((id) => id !== item.poItemRecordId))
+            : used;
+        const next = defaultedItem(item, cache, usedBySiblings);
+        if (next.poItemRecordId) used.add(next.poItemRecordId);
+        return next;
+    });
+}
+
+// Issue #91 — PO Item IDs already claimed by every line except the one at
+// exceptIndex (pass -1 for "none", e.g. a brand-new line not in the list
+// yet) — what a single line's own default/selection must avoid colliding
+// with.
+function usedElsewhereIds(itemsList, exceptIndex) {
+    return new Set(
+        itemsList
+            .filter((_, idx) => idx !== exceptIndex)
+            .map((it) => it.poItemRecordId)
+            .filter(Boolean)
+    );
 }
 
 const inputClass =
@@ -154,11 +203,27 @@ export default function InvoiceForm({ vendors, pos }) {
     // only the label and local variable name change).
     const [vendorStatedTotal, setVendorStatedTotal] = useState("");
     const [shippingFee, setShippingFee] = useState("");
+    // Issue #91 — whether the user has directly edited Shipping Fee since
+    // the last time it was (re)defaulted. Same idiom as items' own
+    // poItemTouched: distinguishes "still showing an auto-prefill" from
+    // "deliberately set/cleared", so the effect below never clobbers a
+    // real edit.
+    const [shippingFeeTouched, setShippingFeeTouched] = useState(false);
     const [tariffEnabled, setTariffEnabled] = useState(false);
     const [tariff, setTariff] = useState("");
     // One debounce timer per slot index, since each slot's search toggle
     // is independent.
     const slotSearchTimeoutsRef = useRef({});
+    // Issue #91 — a ref, not state: ensurePoItemsLoaded needs a
+    // synchronous check-and-mark that never starts the same PO's fetch
+    // twice, but a setState updater isn't a safe place for that (React can
+    // invoke an updater more than once — e.g. Strict Mode deliberately
+    // double-invokes updaters in dev to catch exactly this kind of
+    // impurity). fetchPoItems used to be called as a side effect inside
+    // setPoItemsCache's updater, so a double-invoke fired it twice,
+    // racing two independent defaulting passes against each other and
+    // occasionally landing on the second PO Item instead of the first.
+    const poItemsFetchStartedRef = useRef(new Set());
 
     async function handleInvoiceFileChange(e) {
         const file = e.target.files?.[0];
@@ -256,7 +321,10 @@ export default function InvoiceForm({ vendors, pos }) {
             if (newSlots.length === 1) {
                 const only = newSlots[0].poRecordId;
                 setItems((prev) =>
-                    prev.map((item) => defaultedItem({ ...item, poRecordId: only }, poItemsCache))
+                    applyDefaultsAcrossItems(
+                        prev.map((item) => ({ ...item, poRecordId: only })),
+                        poItemsCache
+                    )
                 );
                 setPoDetection({
                     level: "info",
@@ -289,8 +357,21 @@ export default function InvoiceForm({ vendors, pos }) {
         }
     }
 
+    // Issue #91 — most-recently-created first, since the PO someone just
+    // generated is the common case being invoiced. Sorted by PO ID text,
+    // not Created Date: that field is date-only (no time), so same-day POs
+    // would otherwise tie and fall back to arbitrary API order. PO ID
+    // (HYE-PO-YYYYMMDD-##) is fixed-width and zero-padded throughout, so a
+    // plain string sort already gives the exact chronological + same-day-
+    // sequence order — no timestamp needed. Sorted here rather than once
+    // at the getOpenPOs() source, since posList also grows from PO
+    // detection and the "search closed POs" toggle, both of which just
+    // append whatever's missing without re-sorting.
     const posForVendor = useMemo(
-        () => posList.filter((po) => po.vendorId === vendorId),
+        () =>
+            posList
+                .filter((po) => po.vendorId === vendorId)
+                .sort((a, b) => (a.poId < b.poId ? 1 : a.poId > b.poId ? -1 : 0)),
         [posList, vendorId]
     );
     // Every PO currently occupying a header slot — what each item's own
@@ -308,16 +389,38 @@ export default function InvoiceForm({ vendors, pos }) {
         [posList, selectedPoIds]
     );
 
+    // Issue #91 — prefills Shipping Fee from the single selected PO's own
+    // Shipping Fee, in addition to (not replacing) the reference text
+    // below the field — still fully editable. Only while untouched — once
+    // the user edits (or replacePoSlots resets the touched flag on a real
+    // PO swap), this never overwrites it again. Always resolves to a
+    // concrete value while untouched (falls back to "" when the new
+    // selection has no single-PO fee to prefill from) rather than only
+    // ever setting a value and never clearing one — otherwise switching
+    // from a PO with a fee to one without (or to no/multiple POs) would
+    // silently leave the previous PO's stale fee sitting in the field. A
+    // single effect here rather than threading this into every place
+    // poSlots can change (handleSlotChange's first-pick branch,
+    // replacePoSlots, detection's own setPoSlots call) since selectedPos
+    // already reacts correctly to all of them.
+    useEffect(() => {
+        if (shippingFeeTouched) return;
+        setShippingFee(
+            selectedPos.length === 1 && selectedPos[0].shippingFee != null
+                ? String(selectedPos[0].shippingFee)
+                : ""
+        );
+    }, [selectedPos, shippingFeeTouched]);
+
     // Fetch-if-missing, guarded against duplicate in-flight requests for
-    // the same PO. Never re-fetches a "done" entry (see poItemsCache
+    // the same PO via the ref above (never a setState updater — see its
+    // comment for why). Never re-fetches a "done" entry (see poItemsCache
     // comment above for why that's safe) but always retries an "error" one.
     function ensurePoItemsLoaded(poRecordId) {
-        setPoItemsCache((prev) => {
-            const entry = prev[poRecordId];
-            if (entry && (entry.status === "done" || entry.status === "loading")) return prev;
-            fetchPoItems(poRecordId);
-            return { ...prev, [poRecordId]: { status: "loading", items: [] } };
-        });
+        if (poItemsFetchStartedRef.current.has(poRecordId)) return;
+        poItemsFetchStartedRef.current.add(poRecordId);
+        setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "loading", items: [] } }));
+        fetchPoItems(poRecordId);
     }
 
     async function fetchPoItems(poRecordId) {
@@ -331,6 +434,7 @@ export default function InvoiceForm({ vendors, pos }) {
         } catch (err) {
             console.error("Failed to load PO Items for", poRecordId, err);
             setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "error", items: [] } }));
+            poItemsFetchStartedRef.current.delete(poRecordId);
         }
     }
 
@@ -344,7 +448,7 @@ export default function InvoiceForm({ vendors, pos }) {
     function applyDefaultPoItemSelection(poRecordId, sortedItems) {
         if (sortedItems.length === 0) return;
         const cacheOverride = { [poRecordId]: { status: "done", items: sortedItems } };
-        setItems((prev) => prev.map((item) => defaultedItem(item, cacheOverride)));
+        setItems((prev) => applyDefaultsAcrossItems(prev, cacheOverride));
     }
 
     function handleVendorChange(e) {
@@ -369,6 +473,9 @@ export default function InvoiceForm({ vendors, pos }) {
         const fresh = { ...EMPTY_ITEM, poRecordId: only };
         setItems([defaultedItem(fresh, poItemsCache)]);
         activeIds.forEach((id) => ensurePoItemsLoaded(id));
+        // Issue #91 — a real PO swap gets a fresh Shipping Fee prefill
+        // opportunity too, same as items resetting above.
+        setShippingFeeTouched(false);
     }
 
     // Only prompts if there's actually something to lose — an empty
@@ -403,7 +510,10 @@ export default function InvoiceForm({ vendors, pos }) {
                 const activeIds = nextSlots.map((s) => s.poRecordId).filter(Boolean);
                 if (activeIds.length === 1) {
                     setItems((prev) =>
-                        prev.map((item) => defaultedItem({ ...item, poRecordId: newValue }, poItemsCache))
+                        applyDefaultsAcrossItems(
+                            prev.map((item) => ({ ...item, poRecordId: newValue })),
+                            poItemsCache
+                        )
                     );
                 }
             }
@@ -492,8 +602,13 @@ export default function InvoiceForm({ vendors, pos }) {
         // earlier in the session, in which case there's no fetch here to
         // trigger applyDefaultPoItemSelection later — this is the only
         // chance to default it.
-        const fresh = { ...EMPTY_ITEM, poRecordId: selectedPoIds[0] || "" };
-        setItems((prev) => [...prev, defaultedItem(fresh, poItemsCache)]);
+        // Issue #91 — excludes whatever every existing line already has
+        // selected, so a fresh "+ Add item" line never auto-defaults to a
+        // PO Item that's already on the invoice.
+        setItems((prev) => {
+            const fresh = { ...EMPTY_ITEM, poRecordId: selectedPoIds[0] || "" };
+            return [...prev, defaultedItem(fresh, poItemsCache, usedElsewhereIds(prev, -1))];
+        });
     }
 
     function removeItem(index) {
@@ -501,8 +616,9 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     function updateItem(index, field, value) {
-        setItems((prev) =>
-            prev.map((item, i) => {
+        setItems((prev) => {
+            const used = usedElsewhereIds(prev, index);
+            return prev.map((item, i) => {
                 if (i !== index) return item;
                 if (field === "poRecordId") {
                     // Issue #51 — a PO Item picked under the line's previous
@@ -516,6 +632,8 @@ export default function InvoiceForm({ vendors, pos }) {
                     // might already be cached (e.g. switching back to a PO
                     // used earlier on this same invoice), in which case
                     // there's no fetch here to trigger the default later.
+                    // Issue #91 — used excludes sibling lines' PO Items, so
+                    // this never re-defaults onto one already claimed.
                     return defaultedItem(
                         {
                             ...item,
@@ -524,12 +642,13 @@ export default function InvoiceForm({ vendors, pos }) {
                             poItemTouched: false,
                             unitPriceEditing: false,
                         },
-                        poItemsCache
+                        poItemsCache,
+                        used
                     );
                 }
                 return { ...item, [field]: value };
-            })
-        );
+            });
+        });
     }
 
     // Issue #51 — the single sync point for a line's PO Item choice.
@@ -599,6 +718,16 @@ export default function InvoiceForm({ vendors, pos }) {
         vendorStatedTotal !== "" &&
         !Number.isNaN(parseFloat(vendorStatedTotal)) &&
         Math.abs(parseFloat(vendorStatedTotal) - calculatedTotal) > 0.01;
+    // Issue #91 — same sanity-check idea as totalsMismatch, scoped to
+    // Shipping Fee vs. the single selected PO's own figure: the field
+    // stays freely editable (prefilled, not locked), so this is what
+    // catches it having quietly drifted from the PO's reference value.
+    const shippingFeeMismatch =
+        selectedPos.length === 1 &&
+        selectedPos[0].shippingFee != null &&
+        shippingFee !== "" &&
+        !Number.isNaN(parseFloat(shippingFee)) &&
+        Math.abs(parseFloat(shippingFee) - selectedPos[0].shippingFee) > 0.01;
 
     // Issue #57 layout follow-up — extracted so the same slot rendering
     // can be called once inline (poSlots[0], next to Vendor) and again for
@@ -840,6 +969,16 @@ export default function InvoiceForm({ vendors, pos }) {
                         // to the old plain free-text input.
                         const poItemsEntry = item.poRecordId ? poItemsCache[item.poRecordId] : null;
                         const poItemOptions = poItemsEntry?.items || [];
+                        // Issue #91 — once a PO Item is picked on one line,
+                        // it shouldn't still be pickable on another line of
+                        // the same invoice. Always keeps this line's own
+                        // current selection available regardless — same
+                        // "selected value needs a matching <option>"
+                        // concern as posList's own comment above.
+                        const usedElsewhere = usedElsewhereIds(items, i);
+                        const availablePoItemOptions = poItemOptions.filter(
+                            (poItem) => poItem.id === item.poItemRecordId || !usedElsewhere.has(poItem.id)
+                        );
                         // Issue #57 — only meaningful once a real PO Item is
                         // linked; "Other" lines have nothing to compare
                         // against, so neither the Unit Price lock nor the
@@ -869,7 +1008,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                                 onChange={(e) => updatePoItemSelection(i, e.target.value)}
                                                 className={inputClass + " w-full"}
                                             >
-                                                {poItemOptions.map((poItem) => (
+                                                {availablePoItemOptions.map((poItem) => (
                                                     <option key={poItem.id} value={poItem.id}>
                                                         {poItem.itemName}
                                                         {poItem.size ? ` — ${poItem.size}` : ""}
@@ -1038,17 +1177,30 @@ export default function InvoiceForm({ vendors, pos }) {
                             id="shippingFee"
                             name="shippingFee"
                             value={shippingFee}
-                            onChange={(e) => setShippingFee(e.target.value)}
+                            onChange={(e) => {
+                                setShippingFeeTouched(true);
+                                setShippingFee(e.target.value);
+                            }}
                             className={fieldClass}
                         />
-                        {/* Issue #69, updated #78 — reference only, no
+                        {/* Issue #69, updated #78/#91 — reference only, no
                             computed variance: only shown for the common
                             single-PO case, since an invoice spanning several
                             POs has no single PO Shipping Fee to compare
-                            against. */}
+                            against. Kept alongside the prefill above (not
+                            replaced by it) — the field is still freely
+                            editable, so this is what catches a since-edited
+                            value quietly drifting from the PO's own figure. */}
                         {selectedPos.length === 1 && selectedPos[0].shippingFee != null && (
                             <p className="mt-1 text-xs text-zinc-500">
                                 PO&apos;s Shipping Fee: {selectedPos[0].shippingFee}
+                            </p>
+                        )}
+                        {shippingFeeMismatch && (
+                            <p className="mt-1 text-xs text-amber-700">
+                                Shipping Fee ({(parseFloat(shippingFee) || 0).toFixed(2)}) doesn&apos;t match the
+                                PO&apos;s Shipping Fee ({selectedPos[0].shippingFee}) — double-check before
+                                submitting.
                             </p>
                         )}
                     </div>
