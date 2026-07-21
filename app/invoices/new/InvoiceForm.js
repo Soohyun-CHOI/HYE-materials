@@ -143,6 +143,12 @@ const TABS = [
 const CONFIRM_PO_CHANGE_MESSAGE =
     "PO를 바꾸면 지금까지 입력한 항목이 모두 사라집니다. 계속하시겠습니까?";
 
+// Issue #96 — decided in #93: no legitimate free-text use case has
+// surfaced yet, so hidden from the UI for now. Backend path (PO-Item-less
+// Invoice Item) is untouched. Flip to true to re-expose — no other code
+// change needed.
+const SHOW_OTHER_ITEM_OPTION = false;
+
 // The common case (per product decision) is one PO with several invoices —
 // an invoice spanning several POs is the supported edge case, not the
 // default flow. So the header owns one always-visible PO slot, and
@@ -1056,8 +1062,12 @@ export default function InvoiceForm({ vendors, pos }) {
                                                     </option>
                                                 ))}
                                                 {/* Issue #57 — moved to the end of the list, a
-                                                    deliberate choice rather than the default. */}
-                                                <option value="">Other (free text)</option>
+                                                    deliberate choice rather than the default.
+                                                    Issue #96 — hidden by default (see
+                                                    SHOW_OTHER_ITEM_OPTION above). */}
+                                                {SHOW_OTHER_ITEM_OPTION && (
+                                                    <option value="">Other (free text)</option>
+                                                )}
                                             </select>
                                             {poItemsEntry?.status === "loading" && (
                                                 <p className="text-xs text-zinc-500">Loading PO items...</p>
