@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createInvoiceAction } from "./actions";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes
 // an explicit choice in the PO Item dropdown — distinguishes "still
@@ -140,8 +141,12 @@ const TABS = [
     { id: "manual", label: "Manual Entry" },
 ];
 
-const CONFIRM_PO_CHANGE_MESSAGE =
-    "PO를 바꾸면 지금까지 입력한 항목이 모두 사라집니다. 계속하시겠습니까?";
+// Shared by both triggers that reset items the same way (a direct PO
+// change, or a Vendor change that swaps the PO indirectly) — names
+// whichever field the user actually touched, rather than a single
+// hardcoded "PO" wording used for both.
+const confirmChangeMessage = (subject) =>
+    `Changing the ${subject} will clear the items you've entered so far. Continue?`;
 
 // Issue #96 — decided in #93: no legitimate free-text use case has
 // surfaced yet, so hidden from the UI for now. Backend path (PO-Item-less
@@ -185,6 +190,11 @@ export default function InvoiceForm({ vendors, pos }) {
     // Quotations otherwise: uploads the moment it's picked (background),
     // never blocks on Server Action body-size limits.
     const [invoiceFile, setInvoiceFile] = useState({ status: "idle" });
+    // Replaces window.confirm() — { proceed, subject } | null. Set by
+    // confirmIfDirty when items has actually diverged from its auto-
+    // inserted default; the ConfirmDialog rendered below runs `proceed`
+    // on confirm, or just clears this on cancel.
+    const [pendingConfirm, setPendingConfirm] = useState(null);
     // Issue #46 — best-effort, informational only: null | { level: "info" |
     // "warning", message }. Never blocks anything; the manual Vendor/PO
     // pickers below are the same controls this just pre-fills, so whatever
@@ -537,7 +547,7 @@ export default function InvoiceForm({ vendors, pos }) {
             // belong to the new one — same reset replacePoSlots always
             // does on a real swap.
             replacePoSlots([{ ...EMPTY_SLOT }]);
-        });
+        }, "Vendor");
     }
 
     // Issue #57 — the actual "PO changed, items get wiped" side effect,
@@ -566,9 +576,15 @@ export default function InvoiceForm({ vendors, pos }) {
     // identical to real content under the old check, firing the warning
     // even when nothing had been touched. Only prompts if there's actually
     // something to lose.
-    function confirmIfDirty(proceed) {
+    // Issue: confirmation now goes through the in-app ConfirmDialog below
+    // instead of window.confirm() — unlike that native call, showing a
+    // React modal can't block synchronously, so a dirty check defers
+    // `proceed` into pendingConfirm state and runs it only once the user
+    // actually clicks through (handled by the dialog's onConfirm below).
+    function confirmIfDirty(proceed, subject) {
         const dirty = JSON.stringify(items) !== autoInsertedItemsRef.current;
-        if (dirty && !window.confirm(CONFIRM_PO_CHANGE_MESSAGE)) {
+        if (dirty) {
+            setPendingConfirm({ proceed, subject });
             return;
         }
         proceed();
@@ -605,7 +621,7 @@ export default function InvoiceForm({ vendors, pos }) {
             return;
         }
 
-        confirmIfDirty(() => replacePoSlots(nextSlots));
+        confirmIfDirty(() => replacePoSlots(nextSlots), "PO");
     }
 
     function handleRemoveSlot(slotIndex) {
@@ -617,7 +633,7 @@ export default function InvoiceForm({ vendors, pos }) {
             return;
         }
 
-        confirmIfDirty(() => replacePoSlots(nextSlots));
+        confirmIfDirty(() => replacePoSlots(nextSlots), "PO");
     }
 
     // Purely additive — reveals an empty slot, doesn't touch any existing
@@ -1396,6 +1412,7 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     return (
+        <>
         <form action={formAction} className="mt-6 space-y-8">
             {state?.error && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -1464,5 +1481,17 @@ export default function InvoiceForm({ vendors, pos }) {
                             : "Create Invoice"}
             </button>
         </form>
+
+        <ConfirmDialog
+            open={pendingConfirm !== null}
+            message={pendingConfirm ? confirmChangeMessage(pendingConfirm.subject) : ""}
+            onConfirm={() => {
+                const proceed = pendingConfirm?.proceed;
+                setPendingConfirm(null);
+                proceed?.();
+            }}
+            onCancel={() => setPendingConfirm(null)}
+        />
+        </>
     );
 }
