@@ -81,14 +81,26 @@ function defaultedItem(item, cache, usedElsewhere = new Set()) {
 // Issue #91 — applies defaultedItem across a whole list of lines in
 // order, so a line's auto-default takes into account whatever the ones
 // before it in the same pass just claimed (rather than each computing its
-// default in isolation and possibly colliding on the same PO Item).
+// default in isolation and possibly colliding on the same PO Item). Must
+// stay idempotent — safe to run more than once over lines that are
+// already (auto-)defaulted, not just ones still blank — since
+// poItemTouched never becomes true from an auto-default alone, so a
+// second pass over the same lines is always possible (e.g. a duplicate
+// fetch resolving twice). Each line's own current poItemRecordId is
+// excluded from what counts as "used by a sibling" while computing its
+// own default — otherwise re-running this over an already-correctly-
+// defaulted line would see that line's own pick reflected in `used` and
+// bump it to the next item instead of leaving it alone.
 function applyDefaultsAcrossItems(itemsList, cache) {
     const used = new Set();
     itemsList.forEach((item) => {
         if (item.poItemRecordId) used.add(item.poItemRecordId);
     });
     return itemsList.map((item) => {
-        const next = defaultedItem(item, cache, used);
+        const usedBySiblings = item.poItemRecordId
+            ? new Set([...used].filter((id) => id !== item.poItemRecordId))
+            : used;
+        const next = defaultedItem(item, cache, usedBySiblings);
         if (next.poItemRecordId) used.add(next.poItemRecordId);
         return next;
     });
@@ -202,6 +214,16 @@ export default function InvoiceForm({ vendors, pos }) {
     // One debounce timer per slot index, since each slot's search toggle
     // is independent.
     const slotSearchTimeoutsRef = useRef({});
+    // Issue #91 — a ref, not state: ensurePoItemsLoaded needs a
+    // synchronous check-and-mark that never starts the same PO's fetch
+    // twice, but a setState updater isn't a safe place for that (React can
+    // invoke an updater more than once — e.g. Strict Mode deliberately
+    // double-invokes updaters in dev to catch exactly this kind of
+    // impurity). fetchPoItems used to be called as a side effect inside
+    // setPoItemsCache's updater, so a double-invoke fired it twice,
+    // racing two independent defaulting passes against each other and
+    // occasionally landing on the second PO Item instead of the first.
+    const poItemsFetchStartedRef = useRef(new Set());
 
     async function handleInvoiceFileChange(e) {
         const file = e.target.files?.[0];
@@ -391,15 +413,14 @@ export default function InvoiceForm({ vendors, pos }) {
     }, [selectedPos, shippingFeeTouched]);
 
     // Fetch-if-missing, guarded against duplicate in-flight requests for
-    // the same PO. Never re-fetches a "done" entry (see poItemsCache
+    // the same PO via the ref above (never a setState updater — see its
+    // comment for why). Never re-fetches a "done" entry (see poItemsCache
     // comment above for why that's safe) but always retries an "error" one.
     function ensurePoItemsLoaded(poRecordId) {
-        setPoItemsCache((prev) => {
-            const entry = prev[poRecordId];
-            if (entry && (entry.status === "done" || entry.status === "loading")) return prev;
-            fetchPoItems(poRecordId);
-            return { ...prev, [poRecordId]: { status: "loading", items: [] } };
-        });
+        if (poItemsFetchStartedRef.current.has(poRecordId)) return;
+        poItemsFetchStartedRef.current.add(poRecordId);
+        setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "loading", items: [] } }));
+        fetchPoItems(poRecordId);
     }
 
     async function fetchPoItems(poRecordId) {
@@ -413,6 +434,7 @@ export default function InvoiceForm({ vendors, pos }) {
         } catch (err) {
             console.error("Failed to load PO Items for", poRecordId, err);
             setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "error", items: [] } }));
+            poItemsFetchStartedRef.current.delete(poRecordId);
         }
     }
 
@@ -696,6 +718,16 @@ export default function InvoiceForm({ vendors, pos }) {
         vendorStatedTotal !== "" &&
         !Number.isNaN(parseFloat(vendorStatedTotal)) &&
         Math.abs(parseFloat(vendorStatedTotal) - calculatedTotal) > 0.01;
+    // Issue #91 — same sanity-check idea as totalsMismatch, scoped to
+    // Shipping Fee vs. the single selected PO's own figure: the field
+    // stays freely editable (prefilled, not locked), so this is what
+    // catches it having quietly drifted from the PO's reference value.
+    const shippingFeeMismatch =
+        selectedPos.length === 1 &&
+        selectedPos[0].shippingFee != null &&
+        shippingFee !== "" &&
+        !Number.isNaN(parseFloat(shippingFee)) &&
+        Math.abs(parseFloat(shippingFee) - selectedPos[0].shippingFee) > 0.01;
 
     // Issue #57 layout follow-up — extracted so the same slot rendering
     // can be called once inline (poSlots[0], next to Vendor) and again for
@@ -1162,6 +1194,13 @@ export default function InvoiceForm({ vendors, pos }) {
                         {selectedPos.length === 1 && selectedPos[0].shippingFee != null && (
                             <p className="mt-1 text-xs text-zinc-500">
                                 PO&apos;s Shipping Fee: {selectedPos[0].shippingFee}
+                            </p>
+                        )}
+                        {shippingFeeMismatch && (
+                            <p className="mt-1 text-xs text-amber-700">
+                                Shipping Fee ({(parseFloat(shippingFee) || 0).toFixed(2)}) doesn&apos;t match the
+                                PO&apos;s Shipping Fee ({selectedPos[0].shippingFee}) — double-check before
+                                submitting.
                             </p>
                         )}
                     </div>
