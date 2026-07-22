@@ -16,7 +16,7 @@ const inputClass =
 const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
 
-export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
+export default function PRForm({ myJobs, otherJobs, lines, vendors, users, initialDraft = null, draftLabel = null }) {
     const [submitState, submitAction, submitPending] = useActionState(createPRAction, null);
     const [draftState, draftAction, draftPending] = useActionState(saveDraftAction, null);
     // Issue #72 — once a Draft has been saved (or resumed, in #73), the PR
@@ -46,6 +46,62 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     // Action body under Vercel's size limit). idle -> uploading -> done |
     // error — a file is required per entry before the PR can submit.
     const [quotations, setQuotations] = useState([{ ...EMPTY_QUOTATION }]);
+    // Controlled so a resumed Draft (#73) can populate it — was previously an
+    // uncontrolled textarea read only at submit time.
+    const [notes, setNotes] = useState("");
+
+    // Issue #73 — when the page passes an existing Draft, gate the form
+    // behind a resume/start-fresh prompt instead of silently showing a blank
+    // form. Resume hydrates every field from the Draft; Start fresh leaves
+    // the Draft untouched and just dismisses the prompt.
+    const [showResumePrompt, setShowResumePrompt] = useState(Boolean(initialDraft));
+
+    function resumeDraft() {
+        setJobId(initialDraft.jobId || "");
+        setLineId(initialDraft.lineId || "");
+        setVendorId(initialDraft.vendorId || "");
+        setShippingFee(
+            initialDraft.shippingFee === "" || initialDraft.shippingFee == null
+                ? ""
+                : String(initialDraft.shippingFee)
+        );
+        setNotes(initialDraft.notes || "");
+        setItems(
+            initialDraft.items.length
+                ? initialDraft.items.map((it) => ({
+                      itemName: it.itemName || "",
+                      size: it.size || "",
+                      unit: it.unit || "",
+                      qty: it.qty === "" || it.qty == null ? "" : String(it.qty),
+                      unitPrice:
+                          it.unitPrice === "" || it.unitPrice == null ? "" : String(it.unitPrice),
+                      remark: it.remark || "",
+                      quotationIndex: it.quotationIndex ?? null,
+                  }))
+                : [{ ...EMPTY_ITEM }]
+        );
+        setSigners(
+            initialDraft.signers.map((s) => ({
+                userId: s.userId,
+                confirmationType: s.confirmationType || "Approval",
+            }))
+        );
+        setQuotations(
+            initialDraft.quotations.length
+                ? initialDraft.quotations.map((q) => ({
+                      file: q.url
+                          ? { status: "done", url: q.url, filename: q.filename }
+                          : { status: "idle" },
+                      vendorQuotationCode: q.vendorQuotationCode || "",
+                  }))
+                : [{ ...EMPTY_QUOTATION }]
+        );
+        // Seed the #72 draft identity so Save Draft updates — and Submit
+        // promotes (Draft -> In Review) — this same record rather than
+        // creating a new PR.
+        setDraftRecordId(initialDraft.recordId || "");
+        setShowResumePrompt(false);
+    }
 
     // Issue #61 — the duplicate-submission warning is a confirm-then-resubmit
     // round trip through the same Server Action, not a separate pre-check
@@ -174,7 +230,57 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     const showDuplicateWarning = Boolean(submitState?.duplicateWarning) && !warningDismissed;
 
     return (
-        <form action={submitAction} className="mt-6 space-y-8">
+        <>
+            {showResumePrompt && draftLabel && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black">
+                        <h2 className="text-lg font-semibold">Resume your draft?</h2>
+                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            You have an unfinished draft. Resume where you left off, or start a new
+                            PR — starting fresh leaves the draft saved for later.
+                        </p>
+                        <div className="mt-3 rounded border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+                            <p className="font-medium">{draftLabel.prId}</p>
+                            <p className="text-zinc-500">
+                                Saved{" "}
+                                {new Date(draftLabel.createdAt).toLocaleString(undefined, {
+                                    year: "numeric",
+                                    month: "numeric",
+                                    day: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                })}
+                            </p>
+                            {(draftLabel.lineLabel || draftLabel.vendorName) && (
+                                <p className="text-zinc-500">
+                                    {draftLabel.lineLabel || "—"}
+                                    {draftLabel.vendorName ? ` · ${draftLabel.vendorName}` : ""}
+                                </p>
+                            )}
+                            <p className="text-zinc-500">
+                                {draftLabel.itemCount} item{draftLabel.itemCount === 1 ? "" : "s"}
+                            </p>
+                        </div>
+                        <div className="mt-4 flex flex-row-reverse gap-3">
+                            <button
+                                type="button"
+                                onClick={resumeDraft}
+                                className="flex-1 rounded bg-foreground px-3 py-2 text-background"
+                            >
+                                Resume draft
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setShowResumePrompt(false)}
+                                className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700"
+                            >
+                                Start fresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            <form action={submitAction} className="mt-6 space-y-8">
             {(submitState?.error || draftState?.error) && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {submitState?.error || draftState?.error}
@@ -461,7 +567,14 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                 <label htmlFor="notes" className="block text-sm font-medium">
                     Notes
                 </label>
-                <textarea id="notes" name="notes" rows={3} className={fieldClass} />
+                <textarea
+                    id="notes"
+                    name="notes"
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className={fieldClass}
+                />
             </div>
 
             <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
@@ -543,6 +656,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                     </button>
                 </div>
             </div>
-        </form>
+            </form>
+        </>
     );
 }
