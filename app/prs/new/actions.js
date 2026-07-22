@@ -38,7 +38,9 @@ async function findDuplicatePR(lineId, items) {
 
         return {
             priorPrId: priorPr.prId,
-            priorDate: priorPr.createdDate,
+            // Issue #105 — now a full ISO timestamp (Created At); PRForm
+            // formats it to a readable date in the browser's locale.
+            priorDate: priorPr.createdAt,
             priorRequesterName: requester?.userName || "Unknown",
         };
     }

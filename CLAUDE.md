@@ -37,7 +37,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Vendors**: Vendor Name (primary), PIC Name/Phone/Email (plain text, external), Address (link, single), Purchase Orders (Lookup via PR chain).
 
-**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created Date, Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when President signs the generated PO), Current Signer Step, Items Subtotal (rollup, PR Items only), Shipping Fee (optional currency; fixed once set, changeable only via Edit and continue), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0), Notes, Quotation Files (Lookup, plural).
+**Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created At (datetime, UTC — timestamped per the *At convention; migrated from date-only Created Date in #105), Status (Draft/In Review/Approved/PO Signed — no Rejected; PO Signed fires when President signs the generated PO), Current Signer Step, Items Subtotal (rollup, PR Items only), Shipping Fee (optional currency; fixed once set, changeable only via Edit and continue), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0), Notes, Quotation Files (Lookup, plural).
 
 **PR Signers** — dynamic ordered approval chain:
 - Requester assigns an ordered signer list at creation, each tagged Confirmation Type (Approval/Agreement) — label only, same underlying action.
@@ -152,5 +152,4 @@ app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks require
 **PR Draft Support** (milestone) — 3 issues created (save PR as draft; resume-prompt on re-entry; draft list page), not started.
 
 **Known follow-ups, not yet scheduled**:
-- PR.Created Date is date-only (unlike PR Signers/Correction Requests, which track time) — revisit once back to PR-side work.
 - Invoice creation still redirects to the new-invoice page on success rather than the new `app/invoices/[invoiceId]` detail page — acceptable for now, no Invoice list page exists yet either.
