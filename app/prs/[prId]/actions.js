@@ -14,7 +14,7 @@ import {
 import { createEditLogEntry } from "@/lib/airtable/editLog";
 import { createQuotation } from "@/lib/airtable/quotations";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
-import { notifyCurrentTurn } from "@/lib/notifications";
+import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
 
 const ITEM_FIELDS = ["itemName", "size", "unit", "qty", "unitPrice", "remark"];
@@ -139,7 +139,10 @@ export async function approveAction(prevState, formData) {
         // that just committed; app/prs/[prId]/page.js surfaces a manual
         // "generate PO" retry (generatePOAction below) when this fails.
         try {
-            await generatePOForApprovedPR(pr);
+            const result = await generatePOForApprovedPR(pr);
+            if (!result.alreadyExisted) {
+                await notifyPOAwaitingSignature({ poRecordId: result.poRecordId, pr });
+            }
         } catch (err) {
             console.error("Auto PO generation failed after PR approval (non-fatal, retry available on PR page)", err);
         }
@@ -356,7 +359,10 @@ export async function editAndContinueAction(prevState, formData) {
         // that just committed; app/prs/[prId]/page.js surfaces a manual
         // "generate PO" retry (generatePOAction below) when this fails.
         try {
-            await generatePOForApprovedPR(pr);
+            const result = await generatePOForApprovedPR(pr);
+            if (!result.alreadyExisted) {
+                await notifyPOAwaitingSignature({ poRecordId: result.poRecordId, pr });
+            }
         } catch (err) {
             console.error("Auto PO generation failed after PR approval (non-fatal, retry available on PR page)", err);
         }
@@ -457,11 +463,16 @@ export async function generatePOAction(prevState, formData) {
         return { error: "This PR isn't fully approved yet." };
     }
 
+    let result;
     try {
-        await generatePOForApprovedPR(pr);
+        result = await generatePOForApprovedPR(pr);
     } catch (err) {
         console.error("Manual PO generation retry failed", err);
         return { error: "Something went wrong generating the PO. Please try again." };
+    }
+
+    if (!result.alreadyExisted) {
+        await notifyPOAwaitingSignature({ poRecordId: result.poRecordId, pr });
     }
 
     redirect(`/prs/${pr.prId}?done=po-generated`);
