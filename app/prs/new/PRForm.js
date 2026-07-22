@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import { createPRAction, saveDraftAction } from "./actions";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
+import { formatUSD } from "@/lib/format";
 
 // quotationIndex: null until the Requester picks one (issue #67) — only
 // meaningful once 2+ Quotations exist; ignored (and auto-resolved server-
@@ -16,23 +18,78 @@ const inputClass =
 const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
 
-export default function PRForm({ myJobs, otherJobs, lines, vendors, users, initialDraft = null, draftLabel = null }) {
+// Maps a loadPRDraft() result (#72 reload contract) into PRForm's client
+// state shape. Shared by the #73 "Resume" button and the #74 open-a-draft
+// path so both hydrate identically.
+function formStateFromDraft(d) {
+    return {
+        jobId: d.jobId || "",
+        lineId: d.lineId || "",
+        vendorId: d.vendorId || "",
+        shippingFee: d.shippingFee === "" || d.shippingFee == null ? "" : String(d.shippingFee),
+        notes: d.notes || "",
+        items: d.items.length
+            ? d.items.map((it) => ({
+                  itemName: it.itemName || "",
+                  size: it.size || "",
+                  unit: it.unit || "",
+                  qty: it.qty === "" || it.qty == null ? "" : String(it.qty),
+                  unitPrice: it.unitPrice === "" || it.unitPrice == null ? "" : String(it.unitPrice),
+                  remark: it.remark || "",
+                  quotationIndex: it.quotationIndex ?? null,
+              }))
+            : [{ ...EMPTY_ITEM }],
+        signers: d.signers.map((s) => ({
+            userId: s.userId,
+            confirmationType: s.confirmationType || "Approval",
+        })),
+        quotations: d.quotations.length
+            ? d.quotations.map((q) => ({
+                  file: q.url
+                      ? { status: "done", url: q.url, filename: q.filename }
+                      : { status: "idle" },
+                  vendorQuotationCode: q.vendorQuotationCode || "",
+              }))
+            : [{ ...EMPTY_QUOTATION }],
+        draftRecordId: d.recordId || "",
+    };
+}
+
+export default function PRForm({
+    myJobs,
+    otherJobs,
+    lines,
+    vendors,
+    users,
+    initialDraft = null,
+    draftLabel = null,
+    autoResume = false,
+    draftList = [],
+}) {
     const [submitState, submitAction, submitPending] = useActionState(createPRAction, null);
     const [draftState, draftAction, draftPending] = useActionState(saveDraftAction, null);
-    // Issue #72 — once a Draft has been saved (or resumed, in #73), the PR
-    // already exists; both Save Draft and Submit re-target that same record
-    // via this hidden id instead of creating a new PR. Empty until the first
-    // successful save.
-    const [draftRecordId, setDraftRecordId] = useState("");
 
-    const [jobId, setJobId] = useState("");
-    const [lineId, setLineId] = useState("");
-    const [vendorId, setVendorId] = useState("");
-    const [items, setItems] = useState([{ ...EMPTY_ITEM }]);
-    const [signers, setSigners] = useState([]);
+    // Issue #74 — when the page hands us a Draft to open directly
+    // (autoResume: an explicit pick from the drafts list, via ?draft), seed
+    // the form straight from it. Initializing state from this avoids a
+    // blank-then-fill flash and needs no resume prompt (the user already
+    // chose it). The #73 "Resume" button applies the same mapping on click.
+    const seed = autoResume && initialDraft ? formStateFromDraft(initialDraft) : null;
+
+    // Issue #72 — draft identity: both Save Draft and Submit re-target this
+    // same record (Submit promoting Draft -> In Review) rather than creating
+    // a new PR. Seeded when a Draft is opened directly, else set by
+    // resumeDraft() or after the first successful Save.
+    const [draftRecordId, setDraftRecordId] = useState(seed?.draftRecordId ?? "");
+
+    const [jobId, setJobId] = useState(seed?.jobId ?? "");
+    const [lineId, setLineId] = useState(seed?.lineId ?? "");
+    const [vendorId, setVendorId] = useState(seed?.vendorId ?? "");
+    const [items, setItems] = useState(seed?.items ?? [{ ...EMPTY_ITEM }]);
+    const [signers, setSigners] = useState(seed?.signers ?? []);
     // Issue #69 — optional, left blank when the Requester doesn't know the
     // shipping cost yet at creation time.
-    const [shippingFee, setShippingFee] = useState("");
+    const [shippingFee, setShippingFee] = useState(seed?.shippingFee ?? "");
     // Issue #67 — a PR can have more than one Quotation over its lifetime
     // (a Vendor can send more than one quote), each with its own file and
     // Vendor Quotation Code; PR Items link to whichever one they're
@@ -45,61 +102,32 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users, initi
     // CLAUDE.md's "Quotation file upload" section: keeps the Server
     // Action body under Vercel's size limit). idle -> uploading -> done |
     // error — a file is required per entry before the PR can submit.
-    const [quotations, setQuotations] = useState([{ ...EMPTY_QUOTATION }]);
+    const [quotations, setQuotations] = useState(seed?.quotations ?? [{ ...EMPTY_QUOTATION }]);
     // Controlled so a resumed Draft (#73) can populate it — was previously an
     // uncontrolled textarea read only at submit time.
-    const [notes, setNotes] = useState("");
+    const [notes, setNotes] = useState(seed?.notes ?? "");
 
-    // Issue #73 — when the page passes an existing Draft, gate the form
-    // behind a resume/start-fresh prompt instead of silently showing a blank
-    // form. Resume hydrates every field from the Draft; Start fresh leaves
-    // the Draft untouched and just dismisses the prompt.
-    const [showResumePrompt, setShowResumePrompt] = useState(Boolean(initialDraft));
+    // Issue #73 — resume prompt for the most-recent Draft. Suppressed when
+    // the Draft was opened directly from the #74 list (autoResume), which
+    // already hydrated the form above.
+    const [showResumePrompt, setShowResumePrompt] = useState(Boolean(initialDraft) && !autoResume);
+    // Issue #74 — the "Open a saved draft" list modal.
+    const [showDraftList, setShowDraftList] = useState(false);
 
     function resumeDraft() {
-        setJobId(initialDraft.jobId || "");
-        setLineId(initialDraft.lineId || "");
-        setVendorId(initialDraft.vendorId || "");
-        setShippingFee(
-            initialDraft.shippingFee === "" || initialDraft.shippingFee == null
-                ? ""
-                : String(initialDraft.shippingFee)
-        );
-        setNotes(initialDraft.notes || "");
-        setItems(
-            initialDraft.items.length
-                ? initialDraft.items.map((it) => ({
-                      itemName: it.itemName || "",
-                      size: it.size || "",
-                      unit: it.unit || "",
-                      qty: it.qty === "" || it.qty == null ? "" : String(it.qty),
-                      unitPrice:
-                          it.unitPrice === "" || it.unitPrice == null ? "" : String(it.unitPrice),
-                      remark: it.remark || "",
-                      quotationIndex: it.quotationIndex ?? null,
-                  }))
-                : [{ ...EMPTY_ITEM }]
-        );
-        setSigners(
-            initialDraft.signers.map((s) => ({
-                userId: s.userId,
-                confirmationType: s.confirmationType || "Approval",
-            }))
-        );
-        setQuotations(
-            initialDraft.quotations.length
-                ? initialDraft.quotations.map((q) => ({
-                      file: q.url
-                          ? { status: "done", url: q.url, filename: q.filename }
-                          : { status: "idle" },
-                      vendorQuotationCode: q.vendorQuotationCode || "",
-                  }))
-                : [{ ...EMPTY_QUOTATION }]
-        );
+        const s = formStateFromDraft(initialDraft);
+        setJobId(s.jobId);
+        setLineId(s.lineId);
+        setVendorId(s.vendorId);
+        setShippingFee(s.shippingFee);
+        setNotes(s.notes);
+        setItems(s.items);
+        setSigners(s.signers);
+        setQuotations(s.quotations);
         // Seed the #72 draft identity so Save Draft updates — and Submit
         // promotes (Draft -> In Review) — this same record rather than
         // creating a new PR.
-        setDraftRecordId(initialDraft.recordId || "");
+        setDraftRecordId(s.draftRecordId);
         setShowResumePrompt(false);
     }
 
@@ -280,7 +308,72 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users, initi
                     </div>
                 </div>
             )}
+
+            {/* Issue #74 — full list of the Requester's saved drafts. Opened
+                only from the "Open a saved draft" button below (never chained
+                off the resume prompt, to avoid a modal-to-modal hop). Picking
+                a row navigates to ?draft=<prId>, which reloads this form
+                pre-filled with that draft via the same loadPRDraft path. */}
+            {showDraftList && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-lg rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black">
+                        <div className="flex items-center justify-between">
+                            <h2 className="text-lg font-semibold">Your saved drafts</h2>
+                            <button
+                                type="button"
+                                onClick={() => setShowDraftList(false)}
+                                className="text-sm text-zinc-500"
+                            >
+                                Close
+                            </button>
+                        </div>
+                        <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto">
+                            {draftList.map((d) => (
+                                <li key={d.prId}>
+                                    <Link
+                                        href={`/prs/new?draft=${encodeURIComponent(d.prId)}`}
+                                        className="block rounded border border-zinc-200 p-3 text-sm hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-medium">{d.prId}</span>
+                                            <span className="text-zinc-500">{formatUSD(d.total)}</span>
+                                        </div>
+                                        <p className="text-zinc-500">
+                                            Saved{" "}
+                                            {new Date(d.createdAt).toLocaleString(undefined, {
+                                                year: "numeric",
+                                                month: "numeric",
+                                                day: "numeric",
+                                                hour: "numeric",
+                                                minute: "2-digit",
+                                            })}
+                                        </p>
+                                        {(d.lineLabel || d.vendorName) && (
+                                            <p className="text-zinc-500">
+                                                {d.lineLabel || "—"}
+                                                {d.vendorName ? ` · ${d.vendorName}` : ""}
+                                            </p>
+                                        )}
+                                    </Link>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
             <form action={submitAction} className="mt-6 space-y-8">
+            {/* Issue #74 — entry point to the drafts list. Always shown for a
+                consistent layout; disabled and faded when there are none. */}
+            <div className="flex justify-end">
+                <button
+                    type="button"
+                    onClick={() => setShowDraftList(true)}
+                    disabled={draftList.length === 0}
+                    className="rounded border border-zinc-300 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700"
+                >
+                    Open a saved draft ({draftList.length})
+                </button>
+            </div>
             {(submitState?.error || draftState?.error) && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {submitState?.error || draftState?.error}
