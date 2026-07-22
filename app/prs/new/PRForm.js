@@ -481,7 +481,7 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
             <input type="hidden" name="existingDraftRecordId" value={draftRecordId} />
 
             <div className="space-y-3">
-                {showDuplicateWarning ? (
+                {showDuplicateWarning && (
                     <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
                         <p>
                             A matching PR already exists for this Line —{" "}
@@ -510,29 +510,38 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                             </button>
                         </div>
                     </div>
-                ) : (
-                    <button
-                        type="submit"
-                        disabled={submitPending || quotationsIncomplete}
-                        className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
-                    >
-                        {submitPending ? "Submitting..." : "Submit PR"}
-                    </button>
                 )}
 
-                {/* Issue #72 — Save Draft persists whatever's filled so far
-                    (no required-field validation, hence formNoValidate) and
-                    never blocks on incomplete quotations. Placed after Submit
-                    so Enter still triggers submission, not a draft save. */}
-                <button
-                    type="submit"
-                    formAction={draftAction}
-                    formNoValidate
-                    disabled={draftPending || submitPending}
-                    className="w-full rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
-                >
-                    {draftPending ? "Saving draft..." : draftRecordId ? "Save draft" : "Save as draft"}
-                </button>
+                {/* Final actions sit side by side. Submit stays FIRST in DOM
+                    so Enter still triggers submission, not a draft save (a #72
+                    decision); flex-row-reverse then places it on the RIGHT as
+                    the emphasized primary (filled), with Save Draft on the
+                    LEFT as the secondary (outline) — purely visual, DOM order
+                    unchanged (#73 layout fix). Submit is hidden while the
+                    duplicate warning owns the primary action above. */}
+                <div className="flex flex-row-reverse gap-3">
+                    {!showDuplicateWarning && (
+                        <button
+                            type="submit"
+                            disabled={submitPending || quotationsIncomplete}
+                            className="flex-1 rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
+                        >
+                            {submitPending ? "Submitting..." : "Submit PR"}
+                        </button>
+                    )}
+                    {/* Issue #72 — Save Draft persists whatever's filled so
+                        far (no required-field validation, hence formNoValidate)
+                        and never blocks on incomplete quotations. */}
+                    <button
+                        type="submit"
+                        formAction={draftAction}
+                        formNoValidate
+                        disabled={draftPending || submitPending}
+                        className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                    >
+                        {draftPending ? "Saving draft..." : draftRecordId ? "Save draft" : "Save as draft"}
+                    </button>
+                </div>
             </div>
         </form>
     );
