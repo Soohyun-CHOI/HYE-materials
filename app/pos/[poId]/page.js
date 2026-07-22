@@ -9,6 +9,8 @@ import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
+import { formatUSD } from "@/lib/format";
+import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import SignForm from "./SignForm";
 import RegeneratePDFForm from "./RegeneratePDFForm";
 
@@ -91,6 +93,13 @@ export default async function PODetailPage({ params, searchParams }) {
                 </p>
             )}
 
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Total Amount</p>
+                <p className="text-3xl font-semibold">
+                    {formatUSD(po.totalAmount ?? po.itemsSubtotal)}
+                </p>
+            </div>
+
             <div className="mt-4 space-y-1 text-sm">
                 <p>
                     Status: <strong>{po.status}</strong>
@@ -101,14 +110,6 @@ export default async function PODetailPage({ params, searchParams }) {
                 <p>Our PIC: {ourPic?.userName || "—"}</p>
                 <p>Our Manager: {ourManager?.userName || "—"}</p>
                 <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>
-                <p>Items Subtotal: {po.itemsSubtotal ?? 0}</p>
-                {po.shippingFee != null && (
-                    <p>
-                        Shipping Fee: {po.shippingFee} — compare against each invoice&apos;s own
-                        Shipping Fee at reconciliation time.
-                    </p>
-                )}
-                <p>Total Amount: {po.totalAmount ?? po.itemsSubtotal ?? 0}</p>
             </div>
 
             <div className="mt-6">
@@ -198,7 +199,18 @@ export default async function PODetailPage({ params, searchParams }) {
                             </Fragment>
                         ))}
                     </tbody>
+                    <ItemsSummaryRows
+                        itemsSubtotal={po.itemsSubtotal}
+                        shippingFee={po.shippingFee}
+                        totalAmount={po.totalAmount}
+                        labelColSpan={5}
+                        trailingColSpan={3}
+                    />
                 </table>
+                <p className="mt-2 text-xs text-zinc-500">
+                    Shipping Fee is a frozen copy from the PR — compare against each invoice&apos;s
+                    own Shipping Fee at reconciliation time.
+                </p>
             </div>
 
             <div className="mt-8">
