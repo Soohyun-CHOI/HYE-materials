@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { createPRAction } from "./actions";
+import { createPRAction, saveDraftAction } from "./actions";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
 
@@ -17,7 +17,13 @@ const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
 
 export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
-    const [state, formAction, pending] = useActionState(createPRAction, null);
+    const [submitState, submitAction, submitPending] = useActionState(createPRAction, null);
+    const [draftState, draftAction, draftPending] = useActionState(saveDraftAction, null);
+    // Issue #72 — once a Draft has been saved (or resumed, in #73), the PR
+    // already exists; both Save Draft and Submit re-target that same record
+    // via this hidden id instead of creating a new PR. Empty until the first
+    // successful save.
+    const [draftRecordId, setDraftRecordId] = useState("");
 
     const [jobId, setJobId] = useState("");
     const [lineId, setLineId] = useState("");
@@ -57,10 +63,18 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
         // attempt already carried confirmed=true and still failed — reset it
         // so the next honest resubmission re-runs the duplicate check rather
         // than silently skipping it forever.
-        if (state?.error && confirmedRef.current) {
+        if (submitState?.error && confirmedRef.current) {
             confirmedRef.current.value = "false";
         }
-    }, [state]);
+    }, [submitState]);
+
+    // Issue #72 — after a successful Draft save, remember the PR's record id
+    // so subsequent Save Draft / Submit target the same record.
+    useEffect(() => {
+        if (draftState?.savedDraft?.recordId) {
+            setDraftRecordId(draftState.savedDraft.recordId);
+        }
+    }, [draftState]);
 
     function addQuotation() {
         setQuotations((prev) => [...prev, { ...EMPTY_QUOTATION }]);
@@ -157,13 +171,19 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
     // needs the vendor's actual quote on file.
     const quotationsIncomplete = quotations.length === 0 || quotations.some((q) => q.file.status !== "done");
 
-    const showDuplicateWarning = Boolean(state?.duplicateWarning) && !warningDismissed;
+    const showDuplicateWarning = Boolean(submitState?.duplicateWarning) && !warningDismissed;
 
     return (
-        <form action={formAction} className="mt-6 space-y-8">
-            {state?.error && (
+        <form action={submitAction} className="mt-6 space-y-8">
+            {(submitState?.error || draftState?.error) && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {state.error}
+                    {submitState?.error || draftState?.error}
+                </p>
+            )}
+            {draftState?.savedDraft && (
+                <p className="rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
+                    Draft saved as {draftState.savedDraft.prId}. You can keep editing and save
+                    again, or submit when it&apos;s ready.
                 </p>
             )}
 
@@ -458,45 +478,62 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                 )}
             />
             <input type="hidden" name="confirmed" ref={confirmedRef} defaultValue="false" />
+            <input type="hidden" name="existingDraftRecordId" value={draftRecordId} />
 
-            {showDuplicateWarning ? (
-                <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
-                    <p>
-                        A matching PR already exists for this Line —{" "}
-                        <strong>{state.duplicateWarning.priorPrId}</strong>, submitted by{" "}
-                        {state.duplicateWarning.priorRequesterName} on{" "}
-                        {new Date(state.duplicateWarning.priorDate).toLocaleDateString()}. Submit
-                        this one anyway?
-                    </p>
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={() => setWarningDismissed(true)}
-                            className="rounded border border-yellow-600 px-3 py-1 text-yellow-900 dark:text-yellow-200"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            disabled={pending || quotationsIncomplete}
-                            onClick={() => {
-                                confirmedRef.current.value = "true";
-                            }}
-                            className="rounded bg-yellow-600 px-3 py-1 text-white disabled:opacity-50"
-                        >
-                            {pending ? "Submitting..." : "Submit anyway"}
-                        </button>
+            <div className="space-y-3">
+                {showDuplicateWarning ? (
+                    <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+                        <p>
+                            A matching PR already exists for this Line —{" "}
+                            <strong>{submitState.duplicateWarning.priorPrId}</strong>, submitted by{" "}
+                            {submitState.duplicateWarning.priorRequesterName} on{" "}
+                            {new Date(submitState.duplicateWarning.priorDate).toLocaleDateString()}.
+                            Submit this one anyway?
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setWarningDismissed(true)}
+                                className="rounded border border-yellow-600 px-3 py-1 text-yellow-900 dark:text-yellow-200"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={submitPending || quotationsIncomplete}
+                                onClick={() => {
+                                    confirmedRef.current.value = "true";
+                                }}
+                                className="rounded bg-yellow-600 px-3 py-1 text-white disabled:opacity-50"
+                            >
+                                {submitPending ? "Submitting..." : "Submit anyway"}
+                            </button>
+                        </div>
                     </div>
-                </div>
-            ) : (
+                ) : (
+                    <button
+                        type="submit"
+                        disabled={submitPending || quotationsIncomplete}
+                        className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
+                    >
+                        {submitPending ? "Submitting..." : "Submit PR"}
+                    </button>
+                )}
+
+                {/* Issue #72 — Save Draft persists whatever's filled so far
+                    (no required-field validation, hence formNoValidate) and
+                    never blocks on incomplete quotations. Placed after Submit
+                    so Enter still triggers submission, not a draft save. */}
                 <button
                     type="submit"
-                    disabled={pending || quotationsIncomplete}
-                    className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
+                    formAction={draftAction}
+                    formNoValidate
+                    disabled={draftPending || submitPending}
+                    className="w-full rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
                 >
-                    {pending ? "Submitting..." : "Submit PR"}
+                    {draftPending ? "Saving draft..." : draftRecordId ? "Save draft" : "Save as draft"}
                 </button>
-            )}
+            </div>
         </form>
     );
 }

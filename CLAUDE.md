@@ -149,7 +149,7 @@ app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks require
 
 **Phase 5** (AI-assisted invoice PDF line-item parsing) — not started.
 
-**PR Draft Support** (milestone) — 3 issues created (save PR as draft; resume-prompt on re-entry; draft list page), not started.
+**PR Draft Support** (milestone) — #72 (save PR as draft) done; #73 (resume-prompt on re-entry) and #74 (draft list page) not started. Save/submit share one persist path (`persistPRFromForm` in `app/prs/new/actions.js`): first Save Draft mints the real PR ID + Status Draft, re-saves update the same record and rebuild children (create-new-then-delete-old). Submit promotes the same Draft record to In Review (PR ID/Created At/history continuous). `lib/prDraft.js:loadPRDraft(prId)` is the reload contract #73/#74 call to hydrate the form; drafts relax all submit-time validation and order by Created At (#105).
 
 **Known follow-ups, not yet scheduled**:
 - Invoice creation still redirects to the new-invoice page on success rather than the new `app/invoices/[invoiceId]` detail page — acceptable for now, no Invoice list page exists yet either.
