@@ -130,7 +130,7 @@ app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks require
 ## Git workflow rules
 
 - Never commit to main. One branch per issue: {issue#}-{short-desc}.
-- Commit format: `{type}: {description} (#{issue#})` — feat/fix/chore/refactor.
+- Commit format: `{type}: {description} (#{issue#})` — feat / fix / chore / refactor / docs (project markdown/CLAUDE.md changes) / test (changes under scripts/tests/).
 - PR description must include `Closes #{issue#}`. Squash merge — PR description becomes the final commit body.
 - Line-wrap commit bodies + PR descriptions at 72 chars. Prompts/comments don't need wrapping.
 - Wrap literal `<tag>`-looking text in backticks in PR descriptions.
