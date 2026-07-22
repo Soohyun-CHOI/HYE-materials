@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/authz";
 import { getPOById, updatePO } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
 import { generateAndAttachPOPdf } from "@/lib/poPdf";
+import { notifyPOSigned } from "@/lib/notifications";
 
 // Issue #63 — the linked PR's Status only ever reaches "Approved" (see
 // app/prs/[prId]/actions.js's finishTurn): PO creation happens
@@ -79,6 +80,11 @@ export async function signPOAction(prevState, formData) {
         console.error("signPOAction failed to record signature", err);
         return { error: "Something went wrong recording your signature. Please try again." };
     }
+
+    // Best-effort — see lib/notifications.js. Independent of PDF generation
+    // below: the signature is the real evidence, same principle as the
+    // rest of this action.
+    await notifyPOSigned({ poRecordId: po.id });
 
     try {
         await generateAndAttachPOPdf(po.id);
