@@ -465,7 +465,8 @@ export default function PRForm({ myJobs, otherJobs, lines, vendors, users }) {
                         A matching PR already exists for this Line —{" "}
                         <strong>{state.duplicateWarning.priorPrId}</strong>, submitted by{" "}
                         {state.duplicateWarning.priorRequesterName} on{" "}
-                        {state.duplicateWarning.priorDate}. Submit this one anyway?
+                        {new Date(state.duplicateWarning.priorDate).toLocaleDateString()}. Submit
+                        this one anyway?
                     </p>
                     <div className="flex gap-2">
                         <button

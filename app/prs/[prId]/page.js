@@ -17,17 +17,6 @@ import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
 
-// Formats a calendar-only "YYYY-MM-DD" date (e.g. Created Date — no
-// time-of-day) without letting it round-trip through UTC first: `new
-// Date("YYYY-MM-DD")` parses as UTC midnight, and converting that back to
-// a timezone behind UTC for display shifts it to the previous day.
-// Building the Date from its already-local (y, m, d) components sidesteps
-// that entirely.
-function formatDateOnly(isoDate) {
-    const [y, m, d] = isoDate.split("-").map(Number);
-    return new Date(y, m - 1, d).toLocaleDateString();
-}
-
 const DONE_MESSAGES = {
     approved: "Recorded your approval.",
     edited: "Saved your changes.",
@@ -105,12 +94,10 @@ export default async function PRDetailPage({ params, searchParams }) {
     // only ever happens as a side effect of that person's own turn), so
     // that's inferred rather than stored.
     const historyEntries = [
-        // Created Date is a calendar-only field (no time-of-day — see
-        // CLAUDE.md's date/time naming rule), so it's formatted without a
-        // clock time, unlike every other entry below (all real
-        // timestamps). Formatting it as a full date+time would imply a
-        // precision ("7:00 PM") that was never actually recorded.
-        { at: pr.createdDate, text: `${requesterName} created the PR`, dateOnly: true },
+        // Issue #105 — Created At is now a real timestamp (migrated from
+        // the old date-only "Created Date"), so it renders with a clock
+        // time like every other entry below.
+        { at: pr.createdAt, text: `${requesterName} created the PR` },
         ...signers
             .filter((s) => s.signedAt)
             .map((s) => {
@@ -275,7 +262,13 @@ export default async function PRDetailPage({ params, searchParams }) {
                     {historyEntries.map((entry, i) => (
                         <li key={i}>
                             <span className="text-zinc-400 dark:text-zinc-500">
-                                {entry.dateOnly ? formatDateOnly(entry.at) : new Date(entry.at).toLocaleString()}
+                                {new Date(entry.at).toLocaleString(undefined, {
+                                    year: "numeric",
+                                    month: "numeric",
+                                    day: "numeric",
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                })}
                             </span>{" "}
                             — {entry.text}
                         </li>
