@@ -4,6 +4,8 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getActiveUsers } from "@/lib/airtable/users";
+import { getDraftsByRequester } from "@/lib/airtable/purchaseRequests";
+import { loadPRDraft } from "@/lib/prDraft";
 import PRForm from "./PRForm";
 
 export default async function NewPRPage({ searchParams }) {
@@ -16,6 +18,27 @@ export default async function NewPRPage({ searchParams }) {
         getActiveUsers(),
     ]);
 
+    const { created } = await searchParams;
+
+    // Issue #73 — on a genuine re-entry (not the reload right after a
+    // successful submit, which carries ?created), offer to resume the
+    // Requester's most-recent Draft. loadPRDraft (#72) hydrates the full
+    // form-state shape so the client can resume instantly without a second
+    // round trip; only the single most-recent Draft is offered here (the
+    // full list is #74) and no other Draft is touched.
+    const drafts = created ? [] : await getDraftsByRequester(user.id);
+    const mostRecentDraft = drafts[0] || null;
+    const initialDraft = mostRecentDraft ? await loadPRDraft(mostRecentDraft.prId) : null;
+    const draftLabel = initialDraft
+        ? {
+              prId: initialDraft.prId,
+              createdAt: mostRecentDraft.createdAt,
+              lineLabel: lines.find((l) => l.id === initialDraft.lineId)?.lineLabel || null,
+              vendorName: vendors.find((v) => v.id === initialDraft.vendorId)?.vendorName || null,
+              itemCount: initialDraft.items.length,
+          }
+        : null;
+
     // Phase 1 requirement: default-sort the Job/Line picker toward the
     // Requester's Assigned Jobs, without ever hiding the rest — see
     // CLAUDE.md's "Phase 1 requirement: Line picker defaults to the
@@ -23,8 +46,6 @@ export default async function NewPRPage({ searchParams }) {
     const assignedJobIds = new Set(user.assignedJobs || []);
     const myJobs = jobs.filter((j) => assignedJobIds.has(j.id));
     const otherJobs = jobs.filter((j) => !assignedJobIds.has(j.id));
-
-    const { created } = await searchParams;
 
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
@@ -39,7 +60,15 @@ export default async function NewPRPage({ searchParams }) {
                 </p>
             )}
 
-            <PRForm myJobs={myJobs} otherJobs={otherJobs} lines={lines} vendors={vendors} users={users} />
+            <PRForm
+                myJobs={myJobs}
+                otherJobs={otherJobs}
+                lines={lines}
+                vendors={vendors}
+                users={users}
+                initialDraft={initialDraft}
+                draftLabel={draftLabel}
+            />
         </div>
     );
 }
