@@ -11,6 +11,8 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
+import { formatUSD } from "@/lib/format";
+import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
@@ -160,6 +162,13 @@ export default async function PRDetailPage({ params, searchParams }) {
                 </p>
             )}
 
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Total Amount</p>
+                <p className="text-3xl font-semibold">
+                    {formatUSD(pr.totalAmount ?? pr.itemsSubtotal)}
+                </p>
+            </div>
+
             <div className="mt-4 space-y-1 text-sm">
                 <p>
                     Status: <strong>{pr.status}</strong>
@@ -169,9 +178,6 @@ export default async function PRDetailPage({ params, searchParams }) {
                 <p>Vendor: {vendorName}</p>
                 <p>Requester: {requesterName}</p>
                 {pr.notes && <p>Notes: {pr.notes}</p>}
-                <p>Items Subtotal: {pr.itemsSubtotal ?? 0}</p>
-                {pr.shippingFee != null && <p>Shipping Fee: {pr.shippingFee}</p>}
-                <p>Total Amount: {pr.totalAmount ?? pr.itemsSubtotal ?? 0}</p>
             </div>
 
             <div className="mt-6">
@@ -210,6 +216,13 @@ export default async function PRDetailPage({ params, searchParams }) {
                             </tr>
                         ))}
                     </tbody>
+                    <ItemsSummaryRows
+                        itemsSubtotal={pr.itemsSubtotal}
+                        shippingFee={pr.shippingFee}
+                        totalAmount={pr.totalAmount}
+                        labelColSpan={5}
+                        trailingColSpan={quotations.length >= 2 ? 2 : 1}
+                    />
                 </table>
             </div>
 
