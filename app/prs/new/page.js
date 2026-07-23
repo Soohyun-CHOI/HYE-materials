@@ -18,7 +18,7 @@ export default async function NewPRPage({ searchParams }) {
         getActiveUsers(),
     ]);
 
-    const { created, draft: draftParam } = await searchParams;
+    const { draft: draftParam } = await searchParams;
 
     // The Requester's own saved Drafts, most-recent first (Created At, #105),
     // scoped to them by getDraftsByRequester reading their own reverse-link —
@@ -42,14 +42,13 @@ export default async function NewPRPage({ searchParams }) {
     //    the user's OWN drafts (a forged id for someone else's PR simply
     //    won't match) and auto-hydrate without the resume prompt — the user
     //    already chose it.
-    //  - otherwise, on a genuine re-entry (not the ?created reload right
-    //    after a submit): offer the most-recent Draft via the #73 resume
-    //    prompt.
+    //  - otherwise, on a genuine re-entry: offer the most-recent Draft via
+    //    the #73 resume prompt. (Submitting no longer bounces back here — it
+    //    redirects to the new PR's detail page, #121 — so there's no
+    //    post-submit reload of this page to suppress.)
     const chosenDraft = draftParam
         ? drafts.find((d) => d.prId === draftParam) || null
-        : created
-          ? null
-          : drafts[0] || null;
+        : drafts[0] || null;
     const autoResume = Boolean(draftParam && chosenDraft);
 
     // loadPRDraft (#72) hydrates the full form-state shape — the single load
@@ -81,15 +80,6 @@ export default async function NewPRPage({ searchParams }) {
                     View all PRs
                 </Link>
             </div>
-
-            {created && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    Created PR {created}.{" "}
-                    <Link href={`/prs/${created}`} className="underline">
-                        View it
-                    </Link>
-                </p>
-            )}
 
             <PRForm
                 // Remount when the opened Draft changes: a query-only

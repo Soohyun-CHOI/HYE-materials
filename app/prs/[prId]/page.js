@@ -19,6 +19,7 @@ import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
 
 const DONE_MESSAGES = {
+    submitted: "Submitted for review.",
     approved: "Recorded your approval.",
     edited: "Saved your changes.",
     returned: "Sent back for correction.",
