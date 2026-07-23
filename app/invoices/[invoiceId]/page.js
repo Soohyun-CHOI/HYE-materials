@@ -1,10 +1,14 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
+import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
+import { formatUSD } from "@/lib/format";
 import PaidForm from "./PaidForm";
 
 const DONE_MESSAGES = {
+    created: "Invoice created.",
     "paid-updated": "Payment status updated.",
 };
 
@@ -36,14 +40,41 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
         invoice.vendor?.[0] ? getVendorByRecordId(invoice.vendor[0]) : null,
     ]);
 
-    // Issue #16 — surfaced but never blocking: variance is a review
-    // prompt, not a gate on marking something paid.
+    // Linked PO(s): each Invoice Item carries the PO it reconciles against
+    // (a multi-PO invoice is real), so the distinct POs are derived from the
+    // items rather than reading the Invoice-PO Link join table separately —
+    // the two are equivalent by construction (see invoices/new/actions.js).
+    const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
+    const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
+    const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
+
+    // Issue #16 — surfaced but never blocking: variance is a review prompt,
+    // not a gate on marking something paid.
     const hasVariance = invoice.varianceFlag || items.some((it) => it.varianceFlag);
     const file = invoice.file?.[0];
 
+    // Summary rows in the same invoice-style shape as PR/PO (#102), but with
+    // invoice's own figures: Shipping Fee and Tariff always render (as $0.00
+    // when blank) so the rows visibly sum to the Calculated Total.
+    const summaryRows = [
+        { label: "Items Subtotal", value: invoice.itemsSubtotal, strong: false },
+        { label: "Shipping Fee", value: invoice.shippingFee, strong: false },
+        { label: "Tariff", value: invoice.tariff, strong: false },
+        {
+            label: "Calculated Total",
+            value: invoice.calculatedTotal ?? invoice.itemsSubtotal,
+            strong: true,
+        },
+    ];
+
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
-            <h1 className="text-2xl font-semibold">{invoice.invoiceId}</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold">{invoice.invoiceId}</h1>
+                <Link href="/invoices" className="text-sm underline">
+                    ← All invoices
+                </Link>
+            </div>
 
             {done && DONE_MESSAGES[done] && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
@@ -51,19 +82,18 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 </p>
             )}
 
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Amount Due (vendor&apos;s stated total)
+                </p>
+                <p className="text-3xl font-semibold">{formatUSD(invoice.amountDue)}</p>
+            </div>
+
             <div className="mt-4 space-y-1 text-sm">
                 <p>Vendor: {vendor?.vendorName || "—"}</p>
                 <p>Vendor Invoice #: {invoice.vendorInvoiceCode || "—"}</p>
                 <p>Issue Date: {invoice.issueDate}</p>
                 <p>Due Date: {invoice.dueDate || "—"}</p>
-                <p>Amount Due (Vendor&apos;s Stated Total): {invoice.amountDue}</p>
-                <p>Shipping Fee: {invoice.shippingFee ?? 0}</p>
-                {invoice.tariff != null && <p>Tariff: {invoice.tariff}</p>}
-                <p>Items Subtotal: {invoice.itemsSubtotal ?? 0}</p>
-                <p>Calculated Total: {invoice.calculatedTotal ?? 0}</p>
-                {invoice.varianceFlag && (
-                    <p className="text-red-600">⚠ Header Variance (Amount Due vs Calculated Total)</p>
-                )}
                 {file && (
                     <p>
                         <a href={file.url} target="_blank" rel="noreferrer" className="underline">
@@ -74,11 +104,30 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
             </div>
 
             <div className="mt-6">
+                <h2 className="text-lg font-semibold">Purchase Order{poRecords.length === 1 ? "" : "s"}</h2>
+                {poRecords.length === 0 ? (
+                    <p className="mt-2 text-sm text-zinc-500">None linked.</p>
+                ) : (
+                    <ul className="mt-2 space-y-1 text-sm">
+                        {poRecords.map((po) => (
+                            <li key={po.id}>
+                                <Link href={`/pos/${po.poId}`} className="underline">
+                                    {po.poId}
+                                </Link>{" "}
+                                — <strong>{po.status}</strong>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            <div className="mt-6">
                 <h2 className="text-lg font-semibold">Items</h2>
                 <table className="mt-2 w-full text-sm">
                     <thead>
                         <tr className="text-left text-zinc-500">
                             <th className="pr-2">Item</th>
+                            <th className="pr-2">PO</th>
                             <th className="pr-2">Size</th>
                             <th className="pr-2">Unit</th>
                             <th className="pr-2 text-right">Qty</th>
@@ -98,16 +147,54 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                         </span>
                                     )}
                                 </td>
+                                <td className="py-1 pr-2">{poById[it.po?.[0]]?.poId || "—"}</td>
                                 <td className="py-1 pr-2">{it.size}</td>
                                 <td className="py-1 pr-2">{it.unit}</td>
                                 <td className="py-1 pr-2 text-right">{it.qty}</td>
-                                <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
-                                <td className="py-1 pr-2 text-right">{it.amount}</td>
+                                <td className="py-1 pr-2 text-right">{formatUSD(it.unitPrice)}</td>
+                                <td className="py-1 pr-2 text-right">{formatUSD(it.amount)}</td>
                                 <td className="py-1 pr-2">{it.remark}</td>
                             </tr>
                         ))}
                     </tbody>
+                    <tfoot>
+                        {summaryRows.map((row, i) => (
+                            <tr
+                                key={row.label}
+                                className={
+                                    i === 0 ? "border-t-2 border-zinc-300 dark:border-zinc-700" : undefined
+                                }
+                            >
+                                <td
+                                    colSpan={6}
+                                    className={
+                                        row.strong
+                                            ? "py-1 pr-2 text-right font-semibold"
+                                            : "py-1 pr-2 text-right text-zinc-500"
+                                    }
+                                >
+                                    {row.label}
+                                </td>
+                                <td
+                                    className={
+                                        row.strong
+                                            ? "py-1 pr-2 text-right font-semibold"
+                                            : "py-1 pr-2 text-right"
+                                    }
+                                >
+                                    {formatUSD(row.value)}
+                                </td>
+                                <td />
+                            </tr>
+                        ))}
+                    </tfoot>
                 </table>
+                {invoice.varianceFlag && (
+                    <p className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+                        ⚠ Header Variance — the vendor&apos;s Amount Due ({formatUSD(invoice.amountDue)})
+                        doesn&apos;t match our Calculated Total ({formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)}).
+                    </p>
+                )}
             </div>
 
             <div className="mt-8">

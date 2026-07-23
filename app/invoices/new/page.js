@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireAdmin } from "@/lib/authz";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
@@ -6,7 +7,7 @@ import InvoiceForm from "./InvoiceForm";
 // Admin-only (issue #14) — manual invoice entry is back-office data entry,
 // same category as the Job/Vendor/Line admin forms, not a floor-level
 // action like PR creation (requireUser()).
-export default async function NewInvoicePage({ searchParams }) {
+export default async function NewInvoicePage() {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
@@ -38,17 +39,14 @@ export default async function NewInvoicePage({ searchParams }) {
         shippingFee: po.shippingFee ?? null,
     }));
 
-    const { created } = await searchParams;
-
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
-            <h1 className="text-2xl font-semibold">New Invoice</h1>
-
-            {created && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    Created invoice {created}.
-                </p>
-            )}
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold">New Invoice</h1>
+                <Link href="/invoices" className="text-sm underline">
+                    View all invoices
+                </Link>
+            </div>
 
             <InvoiceForm vendors={vendors} pos={posWithVendorId} />
         </div>

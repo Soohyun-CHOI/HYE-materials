@@ -142,5 +142,8 @@ export async function createInvoiceAction(prevState, formData) {
         return { error: "Something went wrong creating the invoice. Please try again." };
     }
 
-    redirect(`/invoices/new?created=${encodeURIComponent(invoice.invoiceId)}`);
+    // Issue #115 — land on the new invoice's detail page (was the
+    // new-invoice page, a known follow-up), so the full record is shown
+    // straight after creation.
+    redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}?done=created`);
 }
