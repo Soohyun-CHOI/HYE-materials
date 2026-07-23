@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getPRById } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR } from "@/lib/airtable/prSigners";
@@ -141,7 +142,15 @@ export default async function PRDetailPage({ params, searchParams }) {
 
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
-            <h1 className="text-2xl font-semibold">{pr.prId}</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold">{pr.prId}</h1>
+                {/* Always the unfiltered full list — returning to a filtered
+                    list is the back button's job (the filter URL is preserved
+                    there), so this link deliberately carries no filter params. */}
+                <Link href="/prs" className="text-sm underline">
+                    ← All PRs
+                </Link>
+            </div>
 
             {done && DONE_MESSAGES[done] && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">

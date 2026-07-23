@@ -75,7 +75,12 @@ export default async function NewPRPage({ searchParams }) {
 
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
-            <h1 className="text-2xl font-semibold">New Purchase Request</h1>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold">New Purchase Request</h1>
+                <Link href="/prs" className="text-sm underline">
+                    View all PRs
+                </Link>
+            </div>
 
             {created && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
