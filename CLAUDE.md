@@ -58,7 +58,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 **Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in-app). At least one required per PR; can have more than one over its lifetime (dynamic list on PR form, or later via Edit and continue).
 
-**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never overwritten), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0), Variance Flag (checkbox, backend-set), Paid(+Date), File (attachment, required).
+**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend, unlike Items Subtotal/Calculated Total/Variance Flag; human edits allowed and recompute variance — #117), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0), Variance Flag (checkbox, backend-set), Paid(+Date), File (attachment, required).
 
 **Invoice-PO Link**: join table, many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
