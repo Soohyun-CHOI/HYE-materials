@@ -17,6 +17,7 @@ import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
+import WithdrawPRForm from "./WithdrawPRForm";
 
 const DONE_MESSAGES = {
     submitted: "Submitted for review.",
@@ -24,6 +25,7 @@ const DONE_MESSAGES = {
     edited: "Saved your changes.",
     returned: "Sent back for correction.",
     "po-generated": "Generated the Purchase Order.",
+    withdrawn: "Withdrew this PR.",
 };
 
 export default async function PRDetailPage({ params, searchParams }) {
@@ -139,6 +141,12 @@ export default async function PRDetailPage({ params, searchParams }) {
                 }`,
             };
         }),
+        // Issue #122 — the terminal withdrawal event, only ever the
+        // Requester's own action (withdrawAction gates on requester + In
+        // Review), sorted into the timeline by its Withdrawn At stamp.
+        ...(pr.withdrawnAt
+            ? [{ at: pr.withdrawnAt, text: `${requesterName} withdrew the PR` }]
+            : []),
     ].sort((a, b) => new Date(a.at) - new Date(b.at));
 
     return (
@@ -332,6 +340,17 @@ export default async function PRDetailPage({ params, searchParams }) {
                             act.
                         </p>
                     )}
+                </div>
+            )}
+
+            {/* Issue #122 — the Requester can withdraw their own PR while it's
+                still in review, independent of whose turn it currently is (so
+                this sits outside the turn-gated SigningPanel above). Allowed
+                only from In Review this pass; requester-only, re-checked
+                server-side in withdrawAction regardless of this gate. */}
+            {pr.status === "In Review" && pr.requester?.[0] === user.id && (
+                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                    <WithdrawPRForm prId={pr.prId} />
                 </div>
             )}
         </div>
