@@ -6,6 +6,7 @@ import { base, TABLES } from "@/lib/airtable/client";
 import {
     createPR,
     updatePR,
+    getPRById,
     getPRByRecordId,
     getPRsByLine,
 } from "@/lib/airtable/purchaseRequests";
@@ -258,6 +259,37 @@ export async function saveDraftAction(prevState, formData) {
         console.error("saveDraftAction failed", err);
         return { error: "Couldn't save the draft. Please try again." };
     }
+}
+
+// Issue #109 — delete one of the Requester's own Draft PRs from the drafts
+// list. Re-checks server-side, independent of any frontend guard, that the
+// PR exists, is still a Draft, and belongs to the caller: a forged prId for
+// someone else's PR or one already In Review is rejected. Removes the child
+// records first (destroying a Quotations record also drops its Airtable File
+// attachment), then the PR itself. The Vercel Blob originals of quotation
+// files are intentionally not touched here (tracked separately).
+export async function deleteDraftAction(prId) {
+    const user = await requireUser();
+
+    const pr = await getPRById(prId);
+    if (!pr) return { error: "That draft no longer exists." };
+    if (pr.status !== "Draft") return { error: "Only drafts can be deleted here." };
+    if (pr.requester?.[0] !== user.id) return { error: "You can only delete your own drafts." };
+
+    try {
+        // Children (best-effort, allSettled) before the PR, so a mid-failure
+        // can only leave harmless orphan child rows — never a half-deleted PR
+        // still visible in the list. The list row is removed by the client
+        // only on { ok: true }, so a failed PR destroy keeps the row.
+        const childIds = await collectChildIds(pr.id);
+        await destroyChildren(childIds);
+        await base(TABLES.PURCHASE_REQUESTS).destroy(pr.id);
+    } catch (err) {
+        console.error("deleteDraftAction failed", err);
+        return { error: "Couldn't delete the draft. Please try again." };
+    }
+
+    return { ok: true, deletedPrId: prId };
 }
 
 // Bound to useActionState (see PRForm.js): takes (prevState, formData),
