@@ -6,9 +6,11 @@ import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
 import PaidForm from "./PaidForm";
+import DeleteInvoiceButton from "./DeleteInvoiceButton";
 
 const DONE_MESSAGES = {
     created: "Invoice created.",
+    updated: "Invoice updated.",
     "paid-updated": "Payment status updated.",
 };
 
@@ -80,9 +82,16 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
         <div className="mx-auto w-full max-w-2xl p-8">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">{invoice.invoiceId}</h1>
-                <Link href="/invoices" className="text-sm underline">
-                    ← All invoices
-                </Link>
+                <div className="flex items-center gap-4">
+                    {user.isAdmin && (
+                        <Link href={`/invoices/${invoice.invoiceId}/edit`} className="text-sm underline">
+                            Edit
+                        </Link>
+                    )}
+                    <Link href="/invoices" className="text-sm underline">
+                        ← All invoices
+                    </Link>
+                </div>
             </div>
 
             {done && DONE_MESSAGES[done] && (
@@ -223,6 +232,12 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                     </p>
                 )}
             </div>
+
+            {user.isAdmin && (
+                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                    <DeleteInvoiceButton invoiceId={invoice.invoiceId} />
+                </div>
+            )}
         </div>
     );
 }
