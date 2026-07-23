@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
-import { createPRAction, saveDraftAction } from "./actions";
+import { createPRAction, saveDraftAction, deleteDraftAction } from "./actions";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
 import { formatUSD } from "@/lib/format";
@@ -113,6 +113,47 @@ export default function PRForm({
     const [showResumePrompt, setShowResumePrompt] = useState(Boolean(initialDraft) && !autoResume);
     // Issue #74 — the "Open a saved draft" list modal.
     const [showDraftList, setShowDraftList] = useState(false);
+    // Issue #109 — the drafts list is a client mirror of the server-rendered
+    // prop so a delete can drop a row (and the count) in place. openDraftPrId
+    // is the PR ID of whichever Draft is currently loaded in the form, used
+    // to mark its row "Editing" and to detach the form if that Draft is the
+    // one deleted. confirmingPrId is the single row currently showing its
+    // inline delete confirm (only one at a time).
+    const [drafts, setDrafts] = useState(draftList);
+    const [openDraftPrId, setOpenDraftPrId] = useState(
+        autoResume && initialDraft ? initialDraft.prId : null
+    );
+    const [confirmingPrId, setConfirmingPrId] = useState(null);
+    const [deletingPrId, setDeletingPrId] = useState(null);
+    const [deleteError, setDeleteError] = useState(null);
+    const [deletedOpenDraftNotice, setDeletedOpenDraftNotice] = useState(false);
+
+    async function handleDelete(prId) {
+        setDeletingPrId(prId);
+        setDeleteError(null);
+        try {
+            const res = await deleteDraftAction(prId);
+            if (res?.error) {
+                setDeleteError(res.error);
+                setDeletingPrId(null);
+                return;
+            }
+            setDrafts((prev) => prev.filter((d) => d.prId !== prId));
+            // If the deleted Draft is the one open in the form, keep the
+            // typed content but detach it so Save/Submit creates a NEW PR
+            // rather than trying to update a now-deleted record.
+            if (prId === openDraftPrId) {
+                setDraftRecordId("");
+                setOpenDraftPrId(null);
+                setDeletedOpenDraftNotice(true);
+            }
+            setConfirmingPrId(null);
+            setDeletingPrId(null);
+        } catch {
+            setDeleteError("Couldn't delete the draft. Please try again.");
+            setDeletingPrId(null);
+        }
+    }
 
     function resumeDraft() {
         const s = formStateFromDraft(initialDraft);
@@ -128,6 +169,7 @@ export default function PRForm({
         // promotes (Draft -> In Review) — this same record rather than
         // creating a new PR.
         setDraftRecordId(s.draftRecordId);
+        setOpenDraftPrId(initialDraft.prId);
         setShowResumePrompt(false);
     }
 
@@ -153,10 +195,14 @@ export default function PRForm({
     }, [submitState]);
 
     // Issue #72 — after a successful Draft save, remember the PR's record id
-    // so subsequent Save Draft / Submit target the same record.
+    // so subsequent Save Draft / Submit target the same record. Also track
+    // its PR ID (#109) as the currently-open draft, and clear any stale
+    // "deleted draft" notice now that a fresh copy has been saved.
     useEffect(() => {
         if (draftState?.savedDraft?.recordId) {
             setDraftRecordId(draftState.savedDraft.recordId);
+            setOpenDraftPrId(draftState.savedDraft.prId);
+            setDeletedOpenDraftNotice(false);
         }
     }, [draftState]);
 
@@ -328,35 +374,115 @@ export default function PRForm({
                             </button>
                         </div>
                         <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto">
-                            {draftList.map((d) => (
-                                <li key={d.prId}>
-                                    <Link
-                                        href={`/prs/new?draft=${encodeURIComponent(d.prId)}`}
-                                        className="block rounded border border-zinc-200 p-3 text-sm hover:border-zinc-400 dark:border-zinc-800 dark:hover:border-zinc-600"
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-medium">{d.prId}</span>
-                                            <span className="text-zinc-500">{formatUSD(d.total)}</span>
-                                        </div>
-                                        <p className="text-zinc-500">
-                                            Saved{" "}
-                                            {new Date(d.createdAt).toLocaleString(undefined, {
-                                                year: "numeric",
-                                                month: "numeric",
-                                                day: "numeric",
-                                                hour: "numeric",
-                                                minute: "2-digit",
-                                            })}
-                                        </p>
-                                        {(d.lineLabel || d.vendorName) && (
-                                            <p className="text-zinc-500">
-                                                {d.lineLabel || "—"}
-                                                {d.vendorName ? ` · ${d.vendorName}` : ""}
-                                            </p>
-                                        )}
-                                    </Link>
+                            {drafts.length === 0 ? (
+                                <li className="rounded border border-zinc-200 p-3 text-sm text-zinc-500 dark:border-zinc-800">
+                                    No saved drafts.
                                 </li>
-                            ))}
+                            ) : (
+                                drafts.map((d) => (
+                                    <li
+                                        key={d.prId}
+                                        className="rounded border border-zinc-200 dark:border-zinc-800"
+                                    >
+                                        {confirmingPrId === d.prId ? (
+                                            // Inline confirm — the row itself morphs, so no
+                                            // second modal is stacked on the list (#109).
+                                            <div className="p-3 text-sm">
+                                                <p>
+                                                    {d.prId === openDraftPrId
+                                                        ? "Delete the saved copy of this draft? What you've typed stays in the form and can be saved as a new PR."
+                                                        : "Delete this saved draft? This can't be undone."}
+                                                </p>
+                                                {deleteError && (
+                                                    <p className="mt-1 text-red-600">{deleteError}</p>
+                                                )}
+                                                <div className="mt-2 flex flex-row-reverse gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleDelete(d.prId)}
+                                                        disabled={deletingPrId === d.prId}
+                                                        className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-50"
+                                                    >
+                                                        {deletingPrId === d.prId ? "Deleting..." : "Delete"}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setConfirmingPrId(null);
+                                                            setDeleteError(null);
+                                                        }}
+                                                        disabled={deletingPrId === d.prId}
+                                                        className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-50 dark:border-zinc-700"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-stretch">
+                                                <Link
+                                                    href={`/prs/new?draft=${encodeURIComponent(d.prId)}`}
+                                                    className="block flex-1 p-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="font-medium">
+                                                            {d.prId}
+                                                            {d.prId === openDraftPrId && (
+                                                                <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-normal text-zinc-500 dark:bg-zinc-800">
+                                                                    Editing
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                        <span className="text-zinc-500">{formatUSD(d.total)}</span>
+                                                    </div>
+                                                    <p className="text-zinc-500">
+                                                        Saved{" "}
+                                                        {new Date(d.createdAt).toLocaleString(undefined, {
+                                                            year: "numeric",
+                                                            month: "numeric",
+                                                            day: "numeric",
+                                                            hour: "numeric",
+                                                            minute: "2-digit",
+                                                        })}
+                                                    </p>
+                                                    {(d.lineLabel || d.vendorName) && (
+                                                        <p className="text-zinc-500">
+                                                            {d.lineLabel || "—"}
+                                                            {d.vendorName ? ` · ${d.vendorName}` : ""}
+                                                        </p>
+                                                    )}
+                                                </Link>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setConfirmingPrId(d.prId);
+                                                        setDeleteError(null);
+                                                    }}
+                                                    aria-label={`Delete draft ${d.prId}`}
+                                                    className="flex items-center px-3 text-zinc-400 hover:text-red-600"
+                                                >
+                                                    <svg
+                                                        width="16"
+                                                        height="16"
+                                                        viewBox="0 0 24 24"
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        strokeWidth="2"
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <polyline points="3 6 5 6 21 6" />
+                                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                        <line x1="10" y1="11" x2="10" y2="17" />
+                                                        <line x1="14" y1="11" x2="14" y2="17" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        )}
+                                    </li>
+                                ))
+                            )}
                         </ul>
                     </div>
                 </div>
@@ -368,10 +494,10 @@ export default function PRForm({
                 <button
                     type="button"
                     onClick={() => setShowDraftList(true)}
-                    disabled={draftList.length === 0}
+                    disabled={drafts.length === 0}
                     className="rounded border border-zinc-300 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700"
                 >
-                    Open a saved draft ({draftList.length})
+                    Open a saved draft ({drafts.length})
                 </button>
             </div>
             {(submitState?.error || draftState?.error) && (
@@ -383,6 +509,12 @@ export default function PRForm({
                 <p className="rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
                     Draft saved as {draftState.savedDraft.prId}. You can keep editing and save
                     again, or submit when it&apos;s ready.
+                </p>
+            )}
+            {deletedOpenDraftNotice && (
+                <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                    The saved draft was deleted. Your changes are still here and will be saved as a
+                    new PR.
                 </p>
             )}
 
