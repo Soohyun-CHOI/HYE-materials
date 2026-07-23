@@ -364,5 +364,8 @@ export async function createPRAction(prevState, formData) {
     // (Sequence Order 1, the PR's starting Current Signer Step).
     await notifyCurrentTurn({ pr, turn: { type: "signer", userId: signers[0].userId } });
 
-    redirect(`/prs/new?created=${encodeURIComponent(pr.prId)}`);
+    // Issue #121 — land on the submitted PR's detail page (matching the
+    // invoice flow, #115), whether this was a fresh submit or a promoted
+    // Draft: both end as the same In Review PR, so both go to its detail.
+    redirect(`/prs/${encodeURIComponent(pr.prId)}?done=submitted`);
 }
