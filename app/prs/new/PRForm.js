@@ -487,6 +487,36 @@ export default function PRForm({
                     </div>
                 </div>
             )}
+
+            {/* Issue #124 — a saved draft usually means "set this aside for
+                later," not "keep editing," so on a successful save (whether a
+                brand-new draft or a re-save of an existing one — both come back
+                as draftState.savedDraft) we confirm and leave the form rather
+                than staying in it. The single action takes the Requester to the
+                PR list; the draft record itself is untouched and still
+                resumable via the resume prompt (#73) / drafts list (#74). No
+                "new PR" action here — starting another PR right after setting
+                one aside is the rare case. */}
+            {draftState?.savedDraft && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black">
+                        <h2 className="text-lg font-semibold">Draft saved</h2>
+                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            Your draft was saved as{" "}
+                            <span className="font-medium">{draftState.savedDraft.prId}</span>. You
+                            can pick it back up anytime from your saved drafts.
+                        </p>
+                        <div className="mt-4 flex flex-row-reverse gap-3">
+                            <Link
+                                href="/prs"
+                                className="flex-1 rounded bg-foreground px-3 py-2 text-center text-background"
+                            >
+                                Go to PR list
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            )}
             <form action={submitAction} className="mt-6 space-y-8">
             {/* Issue #74 — entry point to the drafts list. Always shown for a
                 consistent layout; disabled and faded when there are none. */}
@@ -503,12 +533,6 @@ export default function PRForm({
             {(submitState?.error || draftState?.error) && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {submitState?.error || draftState?.error}
-                </p>
-            )}
-            {draftState?.savedDraft && (
-                <p className="rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    Draft saved as {draftState.savedDraft.prId}. You can keep editing and save
-                    again, or submit when it&apos;s ready.
                 </p>
             )}
             {deletedOpenDraftNotice && (
