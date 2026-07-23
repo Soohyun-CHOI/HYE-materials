@@ -6,6 +6,7 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { formatUSD } from "@/lib/format";
+import JobFilterDropdown from "./JobFilterDropdown";
 
 const STATUSES = ["In Review", "Approved", "PO Signed"];
 
@@ -81,50 +82,33 @@ export default async function PRListPage({ searchParams }) {
                 </Link>
             </div>
 
-            <form method="get" className="mt-6 space-y-3 rounded border border-zinc-200 p-4 text-sm dark:border-zinc-800">
+            <form method="get" className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm dark:border-zinc-800">
                 {accessibleJobs.length > 0 && (
-                    <fieldset>
-                        <legend className="font-medium">Jobs</legend>
-                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-                            {accessibleJobs.map((j) => (
-                                <label key={j.id} className="flex items-center gap-1">
-                                    <input
-                                        type="checkbox"
-                                        name="job"
-                                        value={j.id}
-                                        defaultChecked={selectedJobs.includes(j.id)}
-                                    />
-                                    {j.jobCode} — {j.jobName}
-                                </label>
-                            ))}
-                        </div>
-                    </fieldset>
+                    <JobFilterDropdown jobs={accessibleJobs} selectedJobs={selectedJobs} />
                 )}
-                <div className="flex flex-wrap items-center gap-4">
-                    <label className="flex items-center gap-1">
-                        <input type="checkbox" name="mine" value="1" defaultChecked={mine} />
-                        Raised by me
-                    </label>
-                    <label className="flex items-center gap-1">
-                        Status:
-                        <select name="status" defaultValue={status} className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black">
-                            <option value="">All</option>
-                            {STATUSES.map((s) => (
-                                <option key={s} value={s}>
-                                    {s}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <button type="submit" className="rounded border border-zinc-300 px-3 py-1 dark:border-zinc-700">
-                        Apply
-                    </button>
-                    {filtersActive && (
-                        <Link href="/prs" className="underline">
-                            Clear
-                        </Link>
-                    )}
-                </div>
+                <label className="flex items-center gap-1">
+                    <input type="checkbox" name="mine" value="1" defaultChecked={mine} />
+                    Raised by me
+                </label>
+                <label className="flex items-center gap-1">
+                    Status:
+                    <select name="status" defaultValue={status} className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black">
+                        <option value="">All</option>
+                        {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                                {s}
+                            </option>
+                        ))}
+                    </select>
+                </label>
+                <button type="submit" className="rounded border border-zinc-300 px-3 py-1 dark:border-zinc-700">
+                    Apply
+                </button>
+                {filtersActive && (
+                    <Link href="/prs" className="underline">
+                        Clear
+                    </Link>
+                )}
             </form>
 
             {rows.length === 0 ? (
