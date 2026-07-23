@@ -53,13 +53,22 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const hasVariance = invoice.varianceFlag || items.some((it) => it.varianceFlag);
     const file = invoice.file?.[0];
 
-    // Summary rows in the same invoice-style shape as PR/PO (#102), but with
-    // invoice's own figures: Shipping Fee and Tariff always render (as $0.00
-    // when blank) so the rows visibly sum to the Calculated Total.
+    // Summary rows in the same invoice-style shape as PR/PO (#102), with
+    // invoice's own figures. Shipping Fee always renders (as $0.00 when
+    // blank): "$0.00 shipping" is accurate info for this invoice. Tariff is
+    // deliberately asymmetric — it renders only when the invoice actually
+    // itemizes one, because customs duty is often billed separately, so a
+    // blank Tariff means "no duty line on this invoice", not "$0.00 of duty";
+    // showing "Tariff: $0.00" would wrongly assert the latter. Hiding the row
+    // doesn't affect Calculated Total: it's the Airtable formula (Items
+    // Subtotal + Shipping Fee + Tariff, blank = 0), so an absent Tariff
+    // contributes 0 whether or not the row is shown.
     const summaryRows = [
         { label: "Items Subtotal", value: invoice.itemsSubtotal, strong: false },
         { label: "Shipping Fee", value: invoice.shippingFee, strong: false },
-        { label: "Tariff", value: invoice.tariff, strong: false },
+        ...(invoice.tariff != null
+            ? [{ label: "Tariff", value: invoice.tariff, strong: false }]
+            : []),
         {
             label: "Calculated Total",
             value: invoice.calculatedTotal ?? invoice.itemsSubtotal,
