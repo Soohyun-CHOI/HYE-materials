@@ -7,6 +7,7 @@ import { createPRAction, saveDraftAction, deleteDraftAction } from "./actions";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
 import { formatUSD } from "@/lib/format";
+import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 
 // quotationIndex: null until the Requester picks one (issue #67) — only
 // meaningful once 2+ Quotations exist; ignored (and auto-resolved server-
@@ -306,8 +307,8 @@ export default function PRForm({
     return (
         <>
             {showResumePrompt && draftLabel && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black">
+                <div className={MODAL_BACKDROP}>
+                    <div className={`${MODAL_CARD} max-w-md`}>
                         <h2 className="text-lg font-semibold">Resume your draft?</h2>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                             You have an unfinished draft. Resume where you left off, or start a new
@@ -361,8 +362,8 @@ export default function PRForm({
                 a row navigates to ?draft=<prId>, which reloads this form
                 pre-filled with that draft via the same loadPRDraft path. */}
             {showDraftList && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-lg rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black">
+                <div className={MODAL_BACKDROP}>
+                    <div className={`${MODAL_CARD} max-w-lg`}>
                         <div className="flex items-center justify-between">
                             <h2 className="text-lg font-semibold">Your saved drafts</h2>
                             <button
@@ -498,8 +499,8 @@ export default function PRForm({
                 "new PR" action here — starting another PR right after setting
                 one aside is the rare case. */}
             {draftState?.savedDraft && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black">
+                <div className={MODAL_BACKDROP}>
+                    <div className={`${MODAL_CARD} max-w-md`}>
                         <h2 className="text-lg font-semibold">Draft saved</h2>
                         <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
                             Your draft was saved as{" "}
