@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/authz";
-import { getJobByCode } from "@/lib/airtable/jobs";
+import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { createLine } from "@/lib/airtable/lines";
 
 // Server Actions are directly callable regardless of what the page renders
@@ -20,10 +20,23 @@ export async function createLineAction(prevState, formData) {
         throw new Error("Not authorized");
     }
 
-    const jobCode = formData.get("jobCode");
-    const job = await getJobByCode(jobCode);
+    // Issue #30 — the form now submits a Job record id chosen from a
+    // dropdown of existing Jobs, not a free-text Job Code. The UI can only
+    // offer real Jobs, but a forged/stale direct call could still submit one
+    // that doesn't exist, so re-verify existence server-side — the UI
+    // constraint doesn't replace this guarantee (issue #29's non-existent-Job
+    // rejection, now keyed on the record id). getJobByRecordId throws on an
+    // unknown/malformed id (Airtable 404/422), so a forged id is caught and
+    // surfaced as the same graceful { error } the form renders, not a 500.
+    const jobId = formData.get("jobId");
+    let job = null;
+    try {
+        job = jobId ? await getJobByRecordId(jobId) : null;
+    } catch {
+        job = null;
+    }
     if (!job) {
-        return { error: `No Job found with Job Code "${jobCode}"` };
+        return { error: "That Job doesn't exist. Pick one from the list." };
     }
 
     const { lineLabel } = await createLine({
