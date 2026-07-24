@@ -78,7 +78,7 @@ function Connector({ solid }) {
 }
 
 export default function SignerProgressBar({ pr, signers, correctionRequests, po, usersById }) {
-    const { steps, arcs } = getSignerChainProgress(pr, signers, correctionRequests);
+    const { steps, arcs, withdrawn } = getSignerChainProgress(pr, signers, correctionRequests);
 
     // PO Signed is a distinct final step this module doesn't know about
     // (driven by the PO record, not PR Signers/Correction Requests) —
@@ -94,91 +94,106 @@ export default function SignerProgressBar({ pr, signers, correctionRequests, po,
     const svgHeight = arcs.length > 0 ? ARC_BASE + arcs.length * ARC_LANE_HEIGHT : 0;
 
     return (
-        <div className="overflow-x-auto pb-1">
-            <div style={{ width: totalWidth, minWidth: totalWidth }}>
-                {arcs.length > 0 && (
-                    <svg
-                        width={totalWidth}
-                        height={svgHeight}
-                        viewBox={`0 0 ${totalWidth} ${svgHeight}`}
-                        className="block"
-                    >
-                        <defs>
-                            <marker
-                                id="correction-arrowhead"
-                                markerWidth="8"
-                                markerHeight="8"
-                                refX="6"
-                                refY="4"
-                                orient="auto"
-                            >
-                                <path d="M0,0 L8,4 L0,8 Z" className="fill-amber-500" />
-                            </marker>
-                        </defs>
-                        {/* Return for correction: sender -> receiver, always solid --
-                            per issue #81, the return itself is a synchronous, already-
-                            delivered action, never "in progress." Stacked corrections
-                            (a real LIFO, per investigation) get one lane each, widest
-                            span outermost so nested arcs don't collide. */}
-                        {arcs
-                            .slice()
-                            .sort((a, b) => Math.abs(b.to - b.from) - Math.abs(a.to - a.from))
-                            .map((arc, i) => {
-                                const fromX = centerX(arc.from);
-                                const toX = centerX(arc.to);
-                                const baseY = svgHeight;
-                                const peakY = svgHeight - ARC_BASE - i * ARC_LANE_HEIGHT;
-                                const midX = (fromX + toX) / 2;
-                                return (
-                                    <path
-                                        key={arc.correctionRequestId}
-                                        d={`M ${fromX} ${baseY} Q ${midX} ${peakY} ${toX} ${baseY}`}
-                                        fill="none"
-                                        strokeWidth="2"
-                                        className="stroke-amber-500"
-                                        markerEnd="url(#correction-arrowhead)"
-                                    />
-                                );
-                            })}
-                    </svg>
-                )}
-
-                <div className="flex items-start" role="list" aria-label="Signing chain progress">
-                    {allSteps.map((step, i) => {
-                        const isRequester = step.type === "requester";
-                        const isPO = step.type === "po";
-                        const user = !isPO ? usersById[step.userId] : null;
-                        const label = isRequester ? "R" : isPO ? "PO" : String(step.sequenceOrder);
-                        const name = isPO ? "PO Signed" : user?.userName || "Unknown";
-                        const statusWord =
-                            step.category === "current"
-                                ? "current turn"
-                                : step.category === "paused"
-                                  ? "paused (returned for correction)"
-                                  : step.category === "done"
-                                    ? "done"
-                                    : "not reached yet";
-                        const title = isRequester
-                            ? `Requester: ${name} — ${statusWord}`
-                            : isPO
-                              ? `PO Signed — ${statusWord}`
-                              : `Step ${step.sequenceOrder}: ${name} (${step.confirmationType}) — ${statusWord}`;
-
-                        return (
-                            <div key={`${step.type}-${step.sequenceOrder}`} className="flex items-start" role="listitem">
-                                {i > 0 && <Connector solid={step.category !== "not-reached"} />}
-                                <div className="flex flex-col items-center" style={{ width: COLUMN }}>
-                                    <StepCircle label={label} title={title} category={step.category} />
-                                    <span
-                                        title={name}
-                                        className="mt-1 max-w-full truncate text-center text-[10px] text-zinc-600 dark:text-zinc-400"
-                                    >
-                                        {name}
-                                    </span>
+        <div>
+            {/* Issue #122 — a withdrawn PR drops its correction arcs and has
+                no "current" step, so without this the bar would sit in
+                "paused"/"not-reached" neutral colors that read the same as a
+                chain that simply hasn't started. This explicit terminal
+                caption (plus the dimmed bar below) makes "ended by the
+                requester" legible; the frozen circles still honestly show how
+                far the chain got before it was withdrawn. */}
+            {withdrawn && (
+                <div className="mb-2 inline-flex items-center gap-1.5 rounded border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                    <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+                    Withdrawn — the requester ended this request; no further signing.
+                </div>
+            )}
+            <div className={"overflow-x-auto pb-1" + (withdrawn ? " opacity-60" : "")}>
+                <div style={{ width: totalWidth, minWidth: totalWidth }}>
+                    {arcs.length > 0 && (
+                        <svg
+                            width={totalWidth}
+                            height={svgHeight}
+                            viewBox={`0 0 ${totalWidth} ${svgHeight}`}
+                            className="block"
+                        >
+                            <defs>
+                                <marker
+                                    id="correction-arrowhead"
+                                    markerWidth="8"
+                                    markerHeight="8"
+                                    refX="6"
+                                    refY="4"
+                                    orient="auto"
+                                >
+                                    <path d="M0,0 L8,4 L0,8 Z" className="fill-amber-500" />
+                                </marker>
+                            </defs>
+                            {/* Return for correction: sender -> receiver, always solid --
+                                per issue #81, the return itself is a synchronous, already-
+                                delivered action, never "in progress." Stacked corrections
+                                (a real LIFO, per investigation) get one lane each, widest
+                                span outermost so nested arcs don't collide. */}
+                            {arcs
+                                .slice()
+                                .sort((a, b) => Math.abs(b.to - b.from) - Math.abs(a.to - a.from))
+                                .map((arc, i) => {
+                                    const fromX = centerX(arc.from);
+                                    const toX = centerX(arc.to);
+                                    const baseY = svgHeight;
+                                    const peakY = svgHeight - ARC_BASE - i * ARC_LANE_HEIGHT;
+                                    const midX = (fromX + toX) / 2;
+                                    return (
+                                        <path
+                                            key={arc.correctionRequestId}
+                                            d={`M ${fromX} ${baseY} Q ${midX} ${peakY} ${toX} ${baseY}`}
+                                            fill="none"
+                                            strokeWidth="2"
+                                            className="stroke-amber-500"
+                                            markerEnd="url(#correction-arrowhead)"
+                                        />
+                                    );
+                                })}
+                        </svg>
+                    )}
+    
+                    <div className="flex items-start" role="list" aria-label="Signing chain progress">
+                        {allSteps.map((step, i) => {
+                            const isRequester = step.type === "requester";
+                            const isPO = step.type === "po";
+                            const user = !isPO ? usersById[step.userId] : null;
+                            const label = isRequester ? "R" : isPO ? "PO" : String(step.sequenceOrder);
+                            const name = isPO ? "PO Signed" : user?.userName || "Unknown";
+                            const statusWord =
+                                step.category === "current"
+                                    ? "current turn"
+                                    : step.category === "paused"
+                                      ? "paused (returned for correction)"
+                                      : step.category === "done"
+                                        ? "done"
+                                        : "not reached yet";
+                            const title = isRequester
+                                ? `Requester: ${name} — ${statusWord}`
+                                : isPO
+                                  ? `PO Signed — ${statusWord}`
+                                  : `Step ${step.sequenceOrder}: ${name} (${step.confirmationType}) — ${statusWord}`;
+    
+                            return (
+                                <div key={`${step.type}-${step.sequenceOrder}`} className="flex items-start" role="listitem">
+                                    {i > 0 && <Connector solid={step.category !== "not-reached"} />}
+                                    <div className="flex flex-col items-center" style={{ width: COLUMN }}>
+                                        <StepCircle label={label} title={title} category={step.category} />
+                                        <span
+                                            title={name}
+                                            className="mt-1 max-w-full truncate text-center text-[10px] text-zinc-600 dark:text-zinc-400"
+                                        >
+                                            {name}
+                                        </span>
+                                    </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         </div>
