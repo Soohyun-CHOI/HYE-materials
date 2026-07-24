@@ -133,23 +133,40 @@ export default function PRListClient({
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.map((r) => (
-                            <tr key={r.id} className="border-t border-zinc-200 dark:border-zinc-800">
-                                <td className="py-1 pr-2">
-                                    <Link href={`/prs/${r.prId}`} className="underline">
-                                        {r.prId}
-                                    </Link>
-                                </td>
-                                <td className="py-1 pr-2">{r.requesterName}</td>
-                                <td className="py-1 pr-2">{r.vendorName}</td>
-                                <td className="py-1 pr-2">
-                                    {r.jobCode || "—"}
-                                    {r.lineName ? ` · ${r.lineName}` : ""}
-                                </td>
-                                <td className="py-1 pr-2 text-right">{formatUSD(r.total)}</td>
-                                <td className="py-1 pr-2">{r.status}</td>
-                            </tr>
-                        ))}
+                        {filtered.map((r) => {
+                            // Issue #122 — a Withdrawn PR is a terminal, ended
+                            // request. It stays in the list (that's the point
+                            // of withdraw being a state transition, not a
+                            // delete), but it shouldn't compete visually with
+                            // live PRs — so the whole row is dimmed, the same
+                            // "dimmed = ended" language the signer progress bar
+                            // uses for a withdrawn PR. The PR ID link inherits
+                            // the muted color and stays clickable.
+                            const isWithdrawn = r.status === "Withdrawn";
+                            return (
+                                <tr
+                                    key={r.id}
+                                    className={
+                                        "border-t border-zinc-200 dark:border-zinc-800" +
+                                        (isWithdrawn ? " text-zinc-400 dark:text-zinc-600" : "")
+                                    }
+                                >
+                                    <td className="py-1 pr-2">
+                                        <Link href={`/prs/${r.prId}`} className="underline">
+                                            {r.prId}
+                                        </Link>
+                                    </td>
+                                    <td className="py-1 pr-2">{r.requesterName}</td>
+                                    <td className="py-1 pr-2">{r.vendorName}</td>
+                                    <td className="py-1 pr-2">
+                                        {r.jobCode || "—"}
+                                        {r.lineName ? ` · ${r.lineName}` : ""}
+                                    </td>
+                                    <td className="py-1 pr-2 text-right">{formatUSD(r.total)}</td>
+                                    <td className="py-1 pr-2">{r.status}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             )}

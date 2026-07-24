@@ -7,7 +7,10 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import PRListClient from "./PRListClient";
 
-const STATUSES = ["In Review", "Approved", "PO Signed"];
+// Withdrawn (issue #122) is a real submitted-PR status, so it's a filter
+// option here too — getSubmittedPRs returns Withdrawn PRs (they aren't
+// Drafts), and this list keeps them visible/distinguishable.
+const STATUSES = ["In Review", "Approved", "PO Signed", "Withdrawn"];
 
 // Open to any active user (issue #119) — unlike the invoice list, this is a
 // floor-level view. The SERVER decides which PRs a user may see and sends only

@@ -442,6 +442,65 @@ export async function returnForCorrectionAction(prevState, formData) {
 }
 
 /**
+ * Issue #122 — a Requester withdraws their own still-in-review PR
+ * (circumstances changed, or it was submitted in error). This is a state
+ * transition to a new terminal Status "Withdrawn", NOT a delete: the PR,
+ * its signer chain, correction history, and Edit Log all stay on record so
+ * the request remains distinguishable and auditable (contrast the Draft
+ * *delete* path in app/prs/new/actions.js — Drafts are deleted, submitted
+ * PRs are withdrawn).
+ *
+ * Distinct from a signer's "Return for correction": withdraw ENDS the
+ * request rather than starting a correction cycle, and only the Requester
+ * can do it (signers keep Return; modeling withdraw as a signer rejection
+ * would break the deliberate "no Rejected status" design — see CLAUDE.md).
+ *
+ * Scope (issue #122): allowed ONLY from "In Review". Approved / PO Signed /
+ * Draft / already-Withdrawn are all rejected here. Approved is deferred to
+ * a follow-up because an Approved PR already has an auto-generated Draft PO
+ * whose lifecycle would need handling; an In-Review PR has no PO yet, so
+ * this narrower scope sidesteps that entirely.
+ *
+ * No in-flight chain cleanup is needed beyond the Status flip: every
+ * actionable path (getCurrentTurn/SigningPanel on the page, and the
+ * approve/edit/return actions above) is gated behind Status === "In
+ * Review", so flipping Status to "Withdrawn" is the single master switch
+ * that makes the whole chain non-actionable. Pending PR Signers rows, any
+ * open Correction Requests, and Current Signer Step are deliberately left
+ * untouched — overwriting them would corrupt the audit trail ("this signer
+ * never actually acted" is the truth worth preserving); the signer
+ * progress bar reads Withdrawn as ended via lib/prSigning.js instead.
+ */
+export async function withdrawAction(prevState, formData) {
+    const user = await requireUser();
+    const prId = formData.get("prId");
+
+    const pr = await getPRById(prId);
+    if (!pr) return { error: "PR not found." };
+    // Re-checked server-side, independent of any UI gating — a forged prId
+    // for someone else's PR, or a stale request against a PR that has since
+    // advanced, must both be rejected.
+    if (pr.requester?.[0] !== user.id) {
+        return { error: "You can only withdraw your own PR." };
+    }
+    if (pr.status !== "In Review") {
+        return { error: "Only a PR that's still in review can be withdrawn." };
+    }
+
+    try {
+        await updatePR(pr.id, {
+            status: "Withdrawn",
+            withdrawnAt: new Date().toISOString(),
+        });
+    } catch (err) {
+        console.error("withdrawAction failed", err);
+        return { error: "Something went wrong withdrawing this PR. Please try again." };
+    }
+
+    redirect(`/prs/${pr.prId}?done=withdrawn`);
+}
+
+/**
  * Manual fallback for when the auto-trigger in approveAction/
  * editAndContinueAction failed (see lib/poGeneration.js) — re-invokes the
  * exact same generation function. Safe to click more than once: it's a
