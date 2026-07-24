@@ -24,6 +24,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 - lib/units.js — CANONICAL_UNITS, single JS-side source of truth for the Unit select list.
 - lib/variance.js — invoice/PO variance checks.
 - AIRTABLE_API_KEY server-side only, never in the client bundle.
+- app/components/modalStyles.js — MODAL_BACKDROP / MODAL_CARD, the single source for modal backdrop/card styling. New modals must consume these rather than inlining the strings (width stays per-call-site: append max-w-md, or max-w-lg for wider dialogs).
 
 ---
 
