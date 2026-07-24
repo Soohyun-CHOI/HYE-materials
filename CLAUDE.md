@@ -24,6 +24,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 - lib/units.js — CANONICAL_UNITS, single JS-side source of truth for the Unit select list.
 - lib/variance.js — invoice/PO variance checks.
 - AIRTABLE_API_KEY server-side only, never in the client bundle.
+- app/components/modalStyles.js — MODAL_BACKDROP / MODAL_CARD, the single source for modal backdrop/card styling. New modals must consume these rather than inlining the strings (width stays per-call-site: append max-w-md, or max-w-lg for wider dialogs).
 
 ---
 
@@ -38,7 +39,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 **Vendors**: Vendor Name (primary), PIC Name/Phone/Email (plain text, external), Address (link, single), Purchase Orders (Lookup via PR chain).
 
 **Purchase Requests**: PR ID (HYE-PR-YYMMDD-##), Requester/Vendor (links, single), Line (link, single), Job (Lookup via Line, read-only), Created At (datetime, UTC — timestamped per the *At convention; migrated from date-only Created Date in #105), Status (Draft/In Review/Approved/PO Signed/Withdrawn; PO Signed fires when President signs the generated PO), Withdrawn At (datetime, UTC, *At convention — stamped only when withdrawn, #122), Current Signer Step, Items Subtotal (rollup, PR Items only), Shipping Fee (optional currency; fixed once set, changeable only via Edit and continue), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0), Notes, Quotation Files (Lookup, plural).
-  - **Withdrawn (#122)** is the documented exception to the "no Rejected status" posture: it's the Requester's own *self-retraction* of a submitted PR (circumstances changed / submitted in error), NOT a signer's rejection — signers keep Return for correction. It's a state transition (not a delete — contrast Draft delete): the PR, signer chain, correction history, and Edit Log all stay on record. Requester-only, allowed **only from In Review** this pass, terminal (no revive — re-request = a new PR). The Status flip is the single lever needed (every actionable path is gated behind In Review); Pending signers / open Correction Requests / Current Signer Step are left untouched to preserve the audit trail, and the signer progress bar drops correction arcs off-In-Review so a withdrawn PR reads as ended. `getSubmittedPRs` returns Withdrawn PRs (they aren't Drafts) so they stay visible/filterable in the #119 list. Withdraw from **Approved** is deferred to a follow-up: an Approved PR already holds an auto-generated Draft PO, and `signPOAction` doesn't yet check PR status, so signing it would resurrect the PR — that PO-lifecycle guard must land with the Approved case.
+- **Withdrawn (#122)** is the documented exception to the "no Rejected status" posture: it's the Requester's own *self-retraction* of a submitted PR (circumstances changed / submitted in error), NOT a signer's rejection — signers keep Return for correction. It's a state transition (not a delete — contrast Draft delete): the PR, signer chain, correction history, and Edit Log all stay on record. Requester-only, allowed **only from In Review** this pass, terminal (no revive — re-request = a new PR). The Status flip is the single lever needed (every actionable path is gated behind In Review); Pending signers / open Correction Requests / Current Signer Step are left untouched to preserve the audit trail, and the signer progress bar drops correction arcs off-In-Review so a withdrawn PR reads as ended. `getSubmittedPRs` returns Withdrawn PRs (they aren't Drafts) so they stay visible/filterable in the #119 list. Withdraw from **Approved** is deferred to a follow-up: an Approved PR already holds an auto-generated Draft PO, and `signPOAction` doesn't yet check PR status, so signing it would resurrect the PR — that PO-lifecycle guard must land with the Approved case.
 
 **PR Signers** — dynamic ordered approval chain:
 - Requester assigns an ordered signer list at creation, each tagged Confirmation Type (Approval/Agreement) — label only, same underlying action.
@@ -115,7 +116,7 @@ generateChildId and upsertMaterial wrap read-then-write in withKeyLock(). Serial
 
 ## Route protection (lib/authz.js)
 
-app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks requireAdmin(). app/pos/[poId] and app/invoices/[invoiceId] — viewing is President-or-Admin; invoices/[invoiceId]'s Paid toggle action is Admin-only.
+app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks requireAdmin(). app/prs (list) + app/prs/[prId] (detail) — any active user; the list applies a server-side row-visibility gate (President/Admin see all submitted PRs, an Employee sees only PRs they raised or on their assigned Jobs, #119). app/pos/[poId], app/invoices (list), and app/invoices/[invoiceId] (detail) — viewing is President-or-Admin. app/invoices/[invoiceId]/edit and the invoice edit/delete/Paid-toggle Server Actions — Admin-only.
 
 ---
 
@@ -144,13 +145,23 @@ app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks require
 
 ## Status
 
-**Phase 0-3** (Foundations, PR creation, PO generation, Invoice handling) — done.
+The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support milestone has been implemented and merged. Not yet started: Phase 4 (materials reporting), the AI invoice-parsing milestone (Phase 5), three standalone enhancements, and the follow-ups tracked below. "Merged" here means the work is on `main`, not that an area is closed to further change — follow-up issues may still touch any of it.
 
-**Phase 4** (Materials price history + reporting) — not started.
+**Merged — Phase 0 (Foundations):** Airtable service layer, ID generation, magic-link auth (company-domain), role/admin route protection, admin create-forms for Jobs/Vendors/Lines. The Line form's Job field is a searchable combobox over existing Jobs (#30, `app/admin/lines/new/JobCombobox.js`).
 
-**Phase 5** (AI-assisted invoice PDF line-item parsing) — not started.
+**Merged — Phase 1 (PR creation + dynamic signing chain):** PR creation form (Job→Line picker, items, quotation file uploads, ordered signer chain with Approval/Agreement tags, optional shipping fee); signing state machine — approve / edit-and-continue / return-for-correction with a LIFO correction stack (`lib/prSigning.js`, `app/prs/[prId]/actions.js`); Edit Log; chronological approval history + linear signer progress bar (#81); next-signer email; duplicate-PR warning (#61); role-scoped PR list (#119) + detail page; requester withdraw, In Review only (#122).
 
-**PR Draft Support** (milestone) — #72 (save PR as draft) done; #73 (resume-prompt on re-entry) and #74 (draft list page) not started. Save/submit share one persist path (`persistPRFromForm` in `app/prs/new/actions.js`): first Save Draft mints the real PR ID + Status Draft, re-saves update the same record and rebuild children (create-new-then-delete-old). Submit promotes the same Draft record to In Review (PR ID/Created At/history continuous). `lib/prDraft.js:loadPRDraft(prId)` is the reload contract #73/#74 call to hydrate the form; drafts relax all submit-time validation and order by Created At (#105).
+**Merged — Phase 2 (PO generation):** auto-generated on full PR approval as a frozen PO Items snapshot (`lib/poGeneration.js`), President signing, PO PDF (`lib/poPdf.js`), Primary/Alternate delivery-address selection.
 
-**Known follow-ups, not yet scheduled**:
-- (none currently — the Invoice list page + create-redirects-to-detail follow-up was resolved in #115.)
+**Merged — Phase 3 (Invoice handling):** manual invoice entry with PDF upload + PO auto-detect (#46/#92), Invoice Items linked to a specific PO Item (#51), variance checking (line + header, % tolerance, `lib/variance.js`), un-invoiced PO-item tracking (#48), payment tracking, invoice list/detail/edit/delete (#115/#117).
+
+**Merged — PR Draft Support (milestone):** save-as-draft, resume-prompt on re-entry, drafts list (open/delete). Save and submit share `persistPRFromForm` (`app/prs/new/actions.js`); submit promotes the same Draft record to In Review (PR ID/Created At/history continuous); `lib/prDraft.js:loadPRDraft(prId)` hydrates the form. After a successful save the form shows a confirm modal and leaves to the PR list (#124).
+
+**App surface (routes):** `/`, `/login`; `/prs` (list), `/prs/new`, `/prs/[prId]`; `/pos/[poId]`; `/invoices` (list), `/invoices/new`, `/invoices/[invoiceId]`, `/invoices/[invoiceId]/edit`; `/admin/{jobs,lines,vendors}/new`. API route handlers under `/api/*` (auth, quotation/invoice uploads, PO search + items, invoice PO-detect).
+
+**Not yet started:**
+- **Phase 4 — Materials price history + reporting**: #18 materials cache upsert (natural-key latest price), #19 price search view, #20 materials order log.
+- **Phase 5 — AI-assisted invoice PDF line-item parsing**: #52 extract candidate line items (Qty/Price/Amount) from invoice PDF text, #53 LLM match of extracted lines to PO Items, #54 confirm screen for auto-parsed data.
+- **Standalone enhancements** (no milestone): #32 job-based signer suggestions in the PR form, #33 saved signer-chain templates (personal/shared approval lines), #40 PO PDF — merge image-format Quotation files as an appendix.
+- **Withdraw follow-ups (depend on #122):** extend withdraw to the **Approved** state — an Approved PR already holds an auto-generated Draft PO, so this must resolve that unsigned PO (candidate approaches: guard `signPOAction` against a Withdrawn PR + a PO-page notice, leaving the Draft PO as a preserved snapshot; or transition the PO into a terminal status), and relax the In-Review-only guard to admit Approved; and **notify signers** who were mid-chain when a PR is withdrawn (best-effort email, folded into a broader notification pass over other state transitions — blocked on Resend leaving sandbox mode + domain verification).
+- **Orphaned Blob cleanup** (cross-cutting): file-dropping paths (draft delete / re-save, quotation replacement, invoice delete / file replacement) currently leave their Vercel Blob files behind; reconcile and clean them up. Scope (one sweep vs per-path vs a shared cleanup layer first) is not yet decided.
