@@ -5,6 +5,7 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
+import { canViewPR } from "@/lib/prVisibility";
 import PRListClient from "./PRListClient";
 
 // Withdrawn (issue #122) is a real submitted-PR status, so it's a filter
@@ -33,16 +34,12 @@ export default async function PRListPage({ searchParams }) {
     const vendorsById = Object.fromEntries(vendors.map((v) => [v.id, v.vendorName]));
 
     // SERVER-SIDE VISIBILITY GATE (#119) — the security boundary, never moved
-    // to the client. President/Admin see every submitted PR; a plain Employee
-    // sees the union of PRs they raised and PRs on their assigned job(s).
-    // Optional chaining keeps this safe for a PR missing a requester/job (a
-    // submitted PR always has both; an unattributable one simply fails both
-    // checks — the safe default). Empty Assigned Jobs still leaves the
-    // requester half of the union, so a user always sees their own.
+    // to the client. The per-PR rule lives in canViewPR (lib/prVisibility.js,
+    // extracted in #132) so the PO detail page gates on exactly the same rule:
+    // President/Admin see everything, anyone else sees PRs they raised or on
+    // their assigned job(s).
     const myJobIds = new Set(user.assignedJobs || []);
-    const visible = isPrivileged
-        ? allPRs
-        : allPRs.filter((pr) => pr.requester?.[0] === user.id || myJobIds.has(pr.job?.[0]));
+    const visible = allPRs.filter((pr) => canViewPR(user, pr));
 
     // Job filter options are limited to jobs the user can access, so the
     // client filter can only narrow within the visible set, never widen it.

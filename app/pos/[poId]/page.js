@@ -1,8 +1,9 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
+import { canViewPR } from "@/lib/prVisibility";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
-import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
+import { getInvoicingStatusByPO, getItemsByPO } from "@/lib/airtable/poItems";
 import { getItemsByPOItem } from "@/lib/airtable/invoiceItems";
 import { getInvoiceByRecordId } from "@/lib/airtable/invoices";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
@@ -19,25 +20,17 @@ const DONE_MESSAGES = {
     "pdf-regenerated": "Regenerated the PDF.",
 };
 
-// President-or-Admin (issue #48 widened this from President-only): the
-// un-invoiced tracking this page now shows is day-to-day useful to Admins
-// actually reconciling invoices, not just to the President signing the PO.
-// A single requireUser() call plus an inline role/isAdmin check — not
-// requireRole() *and* requireAdmin() back to back, which would resolve the
-// session against Airtable twice for no reason.
+// Viewing is row-scoped (issue #132): President/Admin see every PO; any other
+// active user sees a PO only for a PR they raised or on their assigned Job —
+// the same rule as the PR list (#119), shared via canViewPR. Invoice-derived
+// data (Invoiced/Remaining + the per-item invoice-line breakdown) and the
+// sign/regenerate write controls stay President/Admin-only; the PO PDF is
+// visible to everyone who can see the PO (site staff place the order from it).
 export default async function PODetailPage({ params, searchParams }) {
     const user = await requireUser();
-    const authorized = user.role === "President" || user.isAdmin === true;
+    const isPrivileged = user.role === "President" || user.isAdmin === true;
     const { poId } = await params;
     const { done } = await searchParams;
-
-    if (!authorized) {
-        return (
-            <div className="flex flex-1 items-center justify-center p-8">
-                <p>Not authorized. This page is President/Admin-only.</p>
-            </div>
-        );
-    }
 
     const po = await getPOById(poId);
     if (!po) {
@@ -48,38 +41,54 @@ export default async function PODetailPage({ params, searchParams }) {
     // Vendor, itself a link field (confirmed via Airtable's field config
     // during #10's design) — po.vendor is a raw Vendor record ID, not
     // display text, same gotcha as Purchase Requests.Job. Resolve via the
-    // PR chain instead of trusting the Lookup's raw value.
+    // PR chain instead of trusting the Lookup's raw value. This PR is also
+    // what the visibility gate reads (requester + Job), so it's fetched
+    // before the gate — no extra query.
     const pr = await getPRByRecordId(po.pr[0]);
-    const [items, job, vendor, ourPic, ourManager] = await Promise.all([
-        getInvoicingStatusByPO(po.id),
+
+    // A PO the viewer isn't entitled to reads as not-found, not a role-style
+    // "not authorized": never confirm a PO exists for a PR/Job outside their
+    // scope. Server-side — the security boundary, not a hidden link.
+    if (!canViewPR(user, pr)) {
+        return <div className="p-8">PO not found.</div>;
+    }
+
+    const [job, vendor, ourPic, ourManager] = await Promise.all([
         pr.job?.[0] ? getJobByRecordId(pr.job[0]) : null,
         pr.vendor?.[0] ? getVendorByRecordId(pr.vendor[0]) : null,
         po.ourPic?.[0] ? getUserByRecordId(po.ourPic[0]) : null,
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
     ]);
 
-    // Issue #15 — the line-level breakdown behind each PO Item's
-    // invoiced/remaining aggregate above, so line-level Variance Flags are
-    // actually visible somewhere rather than only being stored.
-    const itemsWithInvoiceLines = await Promise.all(
-        items.map(async (it) => ({
-            ...it,
-            invoiceLines: await getItemsByPOItem(it.id),
-        }))
-    );
-
-    // Each Invoice Item's header-level Variance Flag lives on its parent
-    // Invoice, not on the line itself — resolve the distinct invoices once
-    // rather than once per line.
-    const invoiceRecordIds = [
-        ...new Set(
-            itemsWithInvoiceLines.flatMap((it) =>
-                it.invoiceLines.map((line) => line.invoice?.[0]).filter(Boolean)
-            )
-        ),
-    ];
-    const invoiceRecords = await Promise.all(invoiceRecordIds.map((id) => getInvoiceByRecordId(id)));
-    const invoiceByRecordId = new Map(invoiceRecords.map((inv) => [inv.id, inv]));
+    // Invoiced/Remaining (#48) and the per-item invoice-line breakdown (#15)
+    // are invoice-derived. The invoice pages are President/Admin-only (route
+    // protection), so a plain employee viewing their own PO must not obtain
+    // that data through this page. Non-privileged viewers fetch plain PO Items
+    // only; the invoice fetches below never run, so the data never leaves
+    // Airtable — a server-side omission, not a client-side hide.
+    let itemsWithInvoiceLines;
+    let invoiceByRecordId = new Map();
+    if (isPrivileged) {
+        const items = await getInvoicingStatusByPO(po.id);
+        itemsWithInvoiceLines = await Promise.all(
+            items.map(async (it) => ({
+                ...it,
+                invoiceLines: await getItemsByPOItem(it.id),
+            }))
+        );
+        const invoiceRecordIds = [
+            ...new Set(
+                itemsWithInvoiceLines.flatMap((it) =>
+                    it.invoiceLines.map((line) => line.invoice?.[0]).filter(Boolean)
+                )
+            ),
+        ];
+        const invoiceRecords = await Promise.all(invoiceRecordIds.map((id) => getInvoiceByRecordId(id)));
+        invoiceByRecordId = new Map(invoiceRecords.map((inv) => [inv.id, inv]));
+    } else {
+        const items = await getItemsByPO(po.id);
+        itemsWithInvoiceLines = items.map((it) => ({ ...it, invoiceLines: [] }));
+    }
 
     const pdfFile = po.poPdfFile?.[0];
 
@@ -109,7 +118,9 @@ export default async function PODetailPage({ params, searchParams }) {
                 <p>Vendor: {vendor?.vendorName || "—"}</p>
                 <p>Our PIC: {ourPic?.userName || "—"}</p>
                 <p>Our Manager: {ourManager?.userName || "—"}</p>
-                <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>
+                {/* Internal-only field (CLAUDE.md) — Primary/Alternate tracking,
+                    not shown to non-privileged viewers (#132). */}
+                {isPrivileged && <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>}
             </div>
 
             <div className="mt-6">
@@ -123,8 +134,9 @@ export default async function PODetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Qty</th>
                             <th className="pr-2 text-right">Unit Price</th>
                             <th className="pr-2 text-right">Amount</th>
-                            <th className="pr-2 text-right">Invoiced</th>
-                            <th className="pr-2 text-right">Remaining</th>
+                            {/* Invoice-derived (#48) — President/Admin only (#132). */}
+                            {isPrivileged && <th className="pr-2 text-right">Invoiced</th>}
+                            {isPrivileged && <th className="pr-2 text-right">Remaining</th>}
                             <th className="pr-2">Remark</th>
                         </tr>
                     </thead>
@@ -138,17 +150,21 @@ export default async function PODetailPage({ params, searchParams }) {
                                     <td className="py-1 pr-2 text-right">{it.qty}</td>
                                     <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
                                     <td className="py-1 pr-2 text-right">{it.amount}</td>
-                                    <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
-                                    <td
-                                        className={
-                                            it.remainingQty < 0
-                                                ? "py-1 pr-2 text-right text-red-600"
-                                                : "py-1 pr-2 text-right"
-                                        }
-                                    >
-                                        {it.remainingQty}
-                                        {it.remainingQty < 0 && " (over)"}
-                                    </td>
+                                    {isPrivileged && (
+                                        <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
+                                    )}
+                                    {isPrivileged && (
+                                        <td
+                                            className={
+                                                it.remainingQty < 0
+                                                    ? "py-1 pr-2 text-right text-red-600"
+                                                    : "py-1 pr-2 text-right"
+                                            }
+                                        >
+                                            {it.remainingQty}
+                                            {it.remainingQty < 0 && " (over)"}
+                                        </td>
+                                    )}
                                     <td className="py-1 pr-2">{it.remark}</td>
                                 </tr>
                                 {it.invoiceLines.length > 0 && (
@@ -199,12 +215,15 @@ export default async function PODetailPage({ params, searchParams }) {
                             </Fragment>
                         ))}
                     </tbody>
+                    {/* Trailing columns after Amount: privileged has
+                        Invoiced + Remaining + Remark (3); non-privileged has
+                        only Remark (1). */}
                     <ItemsSummaryRows
                         itemsSubtotal={po.itemsSubtotal}
                         shippingFee={po.shippingFee}
                         totalAmount={po.totalAmount}
                         labelColSpan={5}
-                        trailingColSpan={3}
+                        trailingColSpan={isPrivileged ? 3 : 1}
                     />
                 </table>
                 <p className="mt-2 text-xs text-zinc-500">
@@ -213,10 +232,13 @@ export default async function PODetailPage({ params, searchParams }) {
                 </p>
             </div>
 
+            {/* Signing/regeneration are President-only write actions, so those
+                controls render only for privileged viewers. The PO PDF itself
+                is visible to everyone who can see the PO (#132) — site staff
+                place the order from it — so the download link is outside the
+                privileged gate. */}
             <div className="mt-8">
-                {!po.presidentSigned ? (
-                    <SignForm poId={po.poId} />
-                ) : (
+                {po.presidentSigned ? (
                     <div className="space-y-2 text-sm">
                         <p>
                             Signed at {po.presidentSignedAt ? new Date(po.presidentSignedAt).toLocaleString() : "—"}
@@ -225,15 +247,25 @@ export default async function PODetailPage({ params, searchParams }) {
                             <a href={pdfFile.url} target="_blank" rel="noreferrer" className="underline">
                                 {pdfFile.filename || "PO PDF"}
                             </a>
-                        ) : (
+                        ) : isPrivileged ? (
                             <div className="space-y-2">
                                 <p className="text-zinc-600 dark:text-zinc-400">
                                     PDF generation hasn&apos;t completed yet for this PO.
                                 </p>
                                 <RegeneratePDFForm poId={po.poId} />
                             </div>
+                        ) : (
+                            <p className="text-zinc-600 dark:text-zinc-400">
+                                The PO document isn&apos;t available yet.
+                            </p>
                         )}
                     </div>
+                ) : isPrivileged ? (
+                    <SignForm poId={po.poId} />
+                ) : (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        This PO hasn&apos;t been signed yet.
+                    </p>
                 )}
             </div>
         </div>
