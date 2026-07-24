@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteInvoiceAction } from "./actions";
+import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 
 // Issue #117 — delete control on the invoice detail page. Clicking Delete
 // opens a centered confirm modal (dimmed backdrop) rather than an inline
@@ -45,12 +46,9 @@ export default function DeleteInvoiceButton({ invoiceId }) {
             </button>
 
             {open && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                    onClick={close}
-                >
+                <div className={MODAL_BACKDROP} onClick={close}>
                     <div
-                        className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black"
+                        className={`${MODAL_CARD} max-w-md`}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h2 className="text-lg font-semibold">Delete this invoice?</h2>

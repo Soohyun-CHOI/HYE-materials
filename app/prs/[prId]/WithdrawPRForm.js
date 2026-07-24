@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { withdrawAction } from "./actions";
+import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 
 // Issue #122 — the Requester's own "withdraw this PR" control. Distinct
 // from SigningPanel (which is the current signer's turn-gated actions):
@@ -13,10 +14,9 @@ import { withdrawAction } from "./actions";
 // page — the same weight as the invoice delete confirm
 // (DeleteInvoiceButton.js), and unlike the drafts-list inline confirm
 // (#109), which was inline only to avoid stacking a second modal on top of
-// the already-open drafts modal. The backdrop/card classes are the same
-// byte-identical strings the other modals use (invoice delete, PRForm's
-// resume / draft-list / draft-saved) — a follow-up issue will extract these
-// into a shared style module and swap all of them over at once.
+// the already-open drafts modal. The backdrop/card chrome comes from the
+// shared modal-style constants (app/components/modalStyles.js, #126); this
+// modal supplies its own max-w-md width.
 //
 // Only the confirmation UI is a modal — withdrawAction, its requester +
 // In-Review re-validation, and the ?done=withdrawn redirect are unchanged;
@@ -44,15 +44,12 @@ export default function WithdrawPRForm({ prId }) {
             </button>
 
             {open && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-                    onClick={close}
-                >
+                <div className={MODAL_BACKDROP} onClick={close}>
                     {/* On success withdrawAction redirects away; only an error
                         returns here, so the modal stays open to show it. */}
                     <form
                         action={formAction}
-                        className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black"
+                        className={`${MODAL_CARD} max-w-md`}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <input type="hidden" name="prId" value={prId} />
