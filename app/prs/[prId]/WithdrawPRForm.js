@@ -8,68 +8,81 @@ import { withdrawAction } from "./actions";
 // withdraw is a Requester-level action independent of whose turn it is, so
 // it lives in its own section on the detail page.
 //
-// Progressive-disclosure confirm rather than a browser confirm() —
-// consistent with ReturnForCorrectionForm's reveal-in-place and the drafts
-// list's inline delete confirm (#109). The button reveals a short warning
-// plus Confirm/Cancel; withdraw is terminal (no revive path), so the
-// warning says so. No reason field: withdraw ends the request, it isn't a
-// correction dialogue.
+// A centered confirm modal (not an inline reveal) guards this: withdraw is
+// a terminal action on a top-level entity, occurring on its own full detail
+// page — the same weight as the invoice delete confirm
+// (DeleteInvoiceButton.js), and unlike the drafts-list inline confirm
+// (#109), which was inline only to avoid stacking a second modal on top of
+// the already-open drafts modal. The backdrop/card classes are the same
+// byte-identical strings the other modals use (invoice delete, PRForm's
+// resume / draft-list / draft-saved) — a follow-up issue will extract these
+// into a shared style module and swap all of them over at once.
+//
+// Only the confirmation UI is a modal — withdrawAction, its requester +
+// In-Review re-validation, and the ?done=withdrawn redirect are unchanged;
+// the confirm button still submits the same form (useActionState +
+// formData with a hidden prId). No reason field: withdraw ends the request,
+// it isn't a correction dialogue.
 export default function WithdrawPRForm({ prId }) {
     const [state, formAction, pending] = useActionState(withdrawAction, null);
-    const [confirming, setConfirming] = useState(false);
+    const [open, setOpen] = useState(false);
 
-    if (!confirming) {
-        return (
-            <div>
-                {state?.error && (
-                    <p className="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {state.error}
-                    </p>
-                )}
-                <button
-                    type="button"
-                    onClick={() => setConfirming(true)}
-                    className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 dark:border-red-800"
-                >
-                    Withdraw this PR
-                </button>
-            </div>
-        );
+    function close() {
+        // Never yank the modal out from under an in-flight submit.
+        if (pending) return;
+        setOpen(false);
     }
 
     return (
-        <form
-            action={formAction}
-            className="space-y-3 rounded border border-red-300 p-4 dark:border-red-800"
-        >
-            {state?.error && (
-                <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {state.error}
-                </p>
+        <>
+            <button
+                type="button"
+                onClick={() => setOpen(true)}
+                className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:text-red-400"
+            >
+                Withdraw this PR
+            </button>
+
+            {open && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                    onClick={close}
+                >
+                    {/* On success withdrawAction redirects away; only an error
+                        returns here, so the modal stays open to show it. */}
+                    <form
+                        action={formAction}
+                        className="w-full max-w-md rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <input type="hidden" name="prId" value={prId} />
+                        <h2 className="text-lg font-semibold">Withdraw this PR?</h2>
+                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            This ends the request and can&apos;t be undone. {prId} stays on record as{" "}
+                            <strong>Withdrawn</strong> with its history intact — it just can no longer
+                            be signed.
+                        </p>
+                        {state?.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
+                        <div className="mt-4 flex flex-row-reverse gap-3">
+                            <button
+                                type="submit"
+                                disabled={pending}
+                                className="rounded bg-red-600 px-3 py-2 text-sm text-white disabled:opacity-50"
+                            >
+                                {pending ? "Withdrawing..." : "Withdraw PR"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={close}
+                                disabled={pending}
+                                className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
             )}
-            <input type="hidden" name="prId" value={prId} />
-            <p className="text-sm">
-                Withdraw this PR? This ends the request and can&apos;t be undone. The PR stays on
-                record as <strong>Withdrawn</strong> with its history intact — it just can no longer
-                be signed.
-            </p>
-            <div className="flex gap-2">
-                <button
-                    type="submit"
-                    disabled={pending}
-                    className="rounded bg-red-600 px-4 py-2 text-sm text-white disabled:opacity-50"
-                >
-                    {pending ? "Withdrawing..." : "Withdraw PR"}
-                </button>
-                <button
-                    type="button"
-                    onClick={() => setConfirming(false)}
-                    disabled={pending}
-                    className="rounded border border-zinc-300 px-4 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
-                >
-                    Cancel
-                </button>
-            </div>
-        </form>
+        </>
     );
 }
