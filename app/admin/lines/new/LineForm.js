@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { createLineAction } from "./actions";
 
-export default function LineForm() {
+export default function LineForm({ jobs }) {
     const [state, formAction, pending] = useActionState(createLineAction, null);
 
     return (
@@ -14,17 +14,31 @@ export default function LineForm() {
                 </p>
             )}
 
+            {/* Issue #30 — pick from existing Jobs instead of free-typing a
+                Job Code, so a Line can never be attached to a nonexistent (or,
+                worse, a wrong-but-real) Job by a typo. Native select mirrors
+                PRForm's Job picker; the value submitted is the Job's record id,
+                which createLineAction re-verifies server-side. */}
             <div>
-                <label htmlFor="jobCode" className="block text-sm font-medium">
-                    Job Code
+                <label htmlFor="jobId" className="block text-sm font-medium">
+                    Job
                 </label>
-                <input
-                    id="jobCode"
-                    name="jobCode"
+                <select
+                    id="jobId"
+                    name="jobId"
                     required
-                    placeholder="e.g. 25-USA-02"
+                    defaultValue=""
                     className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
-                />
+                >
+                    <option value="" disabled>
+                        Select a Job
+                    </option>
+                    {jobs.map((j) => (
+                        <option key={j.id} value={j.id}>
+                            {j.jobCode} — {j.jobName}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             <div>
