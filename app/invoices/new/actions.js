@@ -7,6 +7,7 @@ import { createInvoice, linkInvoiceToPO, getInvoiceByRecordId, updateInvoice } f
 import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
+import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
 
@@ -180,6 +181,23 @@ export async function createInvoiceAction(prevState, formData) {
         console.error("createInvoiceAction failed, rolled back", err);
         return { error: "Something went wrong creating the invoice. Please try again." };
     }
+
+    // Issue #140 — every write above succeeded, so the uploaded object has
+    // served its purpose: Airtable holds the invoice file now. Deliberately
+    // outside the try above — a rollback must leave the object alive, because
+    // the Requester's retry re-submits this same URL from the still-open
+    // form. /api/invoices/detect-po already read it (at upload time, long
+    // before this point), so nothing else needs it either.
+    await confirmIngestThenDelete([
+        {
+            table: TABLES.INVOICES,
+            recordId: invoice.id,
+            field: "File",
+            blobUrl: invoiceFileUrl,
+            attachmentId: invoice.file?.[0]?.id,
+            label: `invoice file ${invoice.invoiceId}`,
+        },
+    ]);
 
     // Issue #115 — land on the new invoice's detail page (was the
     // new-invoice page, a known follow-up), so the full record is shown

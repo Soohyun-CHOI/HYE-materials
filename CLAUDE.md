@@ -24,6 +24,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 - lib/units.js — CANONICAL_UNITS, single JS-side source of truth for the Unit select list.
 - lib/variance.js — invoice/PO variance checks.
 - lib/poWithdraw.js — the PO-withdrawal concern in one module (#138): the eligibility predicate, both voices of its user-facing copy, and the guarded write. New call sites import from here rather than re-deriving the rule or re-wording the copy.
+- lib/blobIngest.js — confirm-then-delete for uploaded files (#140), plus `isOurBlobUrl`. Every upload path imports `confirmIngestThenDelete` instead of restating the sequence. See "File uploads" below.
 - AIRTABLE_API_KEY server-side only, never in the client bundle.
 - app/components/modalStyles.js — MODAL_BACKDROP / MODAL_CARD, the single source for modal backdrop/card styling. New modals must consume these rather than inlining the strings (width stays per-call-site: append max-w-md, or max-w-lg for wider dialogs).
 
@@ -104,6 +105,30 @@ generateChildId and upsertMaterial wrap read-then-write in withKeyLock(). Serial
 
 ---
 
+## File uploads (Vercel Blob -> Airtable)
+
+Every file — quotation files, invoice files, generated PO PDFs — is written to Vercel Blob first and then handed to Airtable as an attachment URL, which Airtable fetches to keep its own copy. **Airtable's copy is the copy of record**; the Blob object exists only so Airtable has something to fetch. Four write paths, one lifecycle (#140):
+
+| Path | Blob write | Ingested by | Cleanup runs in |
+|---|---|---|---|
+| Quotation file, PR form | client `upload()` (PRForm.js) | `createQuotation` in `persistPRFromForm` | `saveDraftAction` / `createPRAction`, after their last write |
+| Quotation file, Edit and continue | client `upload()` (EditAndContinueForm.js) | `createQuotation` | `editAndContinueAction`, right after its try/catch |
+| Invoice file | client `upload()` (InvoiceForm.js) | `createInvoice` | `createInvoiceAction`, after the last write |
+| PO PDF | server `put()` (lib/poPdf.js) | `updatePO` | `generateAndAttachPOPdf` itself |
+
+- `lib/blobIngest.js:confirmIngestThenDelete` owns the sequence. Call sites pass `{ table, recordId, field, blobUrl }` and never restate it.
+- **Cleanup runs at the END of the enclosing action, never straight after the attachment write.** All four actions roll their writes back on failure, and the user's retry re-submits the same Blob URL from the still-open form — deleting at ingest time would charge the user for a failure they didn't cause. The rule is "no Blob object outlives its ingest *and the action that ingested it*".
+- **Confirmation signal**: the attachment no longer carries the URL we submitted (Airtable replaces it with its own). Deliberately not Airtable's CDN hostname (versioned) and not a populated `size`. An empty field counts as NOT ingested: an attachment write pointing at a URL Airtable can't fetch **returns success and silently leaves the field empty** (measured — a write against a deleted object was still empty 30s later).
+- Observed ingest latency on this base: 825/890/913/959/943 ms (5 samples). Hence poll every 300 ms (stays inside Airtable's ~5 req/s per-base budget, ~3 polls to confirm) with a 10 s ceiling (~10x the slowest observed, so it fires on breakage rather than slowness). Targets are confirmed one at a time, so a multi-quotation PR pays ~1 s per file at the end of the action.
+- **Timeout keeps the object** and logs it: a late ingest must not find a deleted URL. One orphan beats an empty attachment. Only the PO PDF path offers a user-facing retry for the not-confirmed case (`Regenerate PDF`) — the other paths have no regeneration path to offer, so they just log.
+- On a *failed* attachment write the object is deleted immediately (no ingest can follow) — the two failure directions are opposite, see `generateAndAttachPOPdf`.
+- Cleanup is **best-effort**: a failed `del()` is logged and nothing more, since Airtable already holds the file and failing the user's action over housekeeping would be backwards. So an orphan is still possible; this is a convention, not an absolute invariant.
+- **The one orphan source that survives by design**: a file uploaded and then abandoned (form closed before submit). It was never ingested, so it has no ingest to outlive, there is no record to hang cleanup on, and finding it needs the store sweep #140 excludes.
+- Airtable's own attachment URLs are short-lived signed URLs (**~2h**, confirmed empirically), so nothing durable may store one — re-read the record instead. Every in-app link (PR detail Quotations, invoice detail, PO PDF) renders Airtable's URL and can go stale on a page held open past that window; `lib/prDraft.js` carries the same caveat for a re-opened Draft. **No table holds a Blob URL or pathname in a sibling field** — the attachment field is the only record of the file, which is what makes delete-at-ingest safe.
+- `Purchase Orders."Quotation File"` is a Lookup chain (PR -> Purchase Requests."Quotation Files" -> Quotations.File) exposing attachment objects on the PO. Mapped in `recordToPO`, read by nothing — not a dependency.
+
+---
+
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
 - Magic link only. requestMagicLink() domain-checks then emails a token; verifyMagicLink() consumes it (withKeyLock-protected), finds-or-creates the User.
@@ -175,4 +200,7 @@ The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support
 - **Withdraw follow-ups (#122 + #138).** Extending PR withdraw to **Approved** is *not* one of them — that need is met by the PO's own terminal Withdrawn (#138); see the Purchase Requests note above for why the object is the PO and why the once-wanted PR-status check in `signPOAction` no longer applies. What remains:
   - **Withdrawal notifications** — no email is sent on withdrawal today, and none is written yet: this belongs to the broader notification pass over state transitions, still blocked on Resend leaving sandbox mode + domain verification. Planning note, not a description of existing code: the recipient splits two ways, and one line for it would be too narrow. A PO withdrawn from **Awaiting Signature** cancels a task the President is actively holding, so the President belongs in that branch; withdrawal from **Signed** cancels nothing pending and is office-facing (invoice reconciliation is who needs to know). PR withdraw's own case is separate again — the mid-chain signers.
   - **Cancelling after `Sent to Vendor`** — deliberately no in-app path, and none planned here. The expected handling is a vendor conversation plus manual Airtable correction; what comes back is a credit memo or a corrected invoice, which makes it invoice-side work. The app says nothing about it (the withdraw control is simply absent at that status): promising a process that doesn't exist would be worse than silence. This attaches to `Sent to Vendor` modelling generally — itself only a CLAUDE.md note at this point, with no issue open for it.
-- **Orphaned Blob cleanup** (cross-cutting): file-dropping paths (draft delete / re-save, quotation replacement, invoice delete / file replacement) currently leave their Vercel Blob files behind; reconcile and clean them up. Scope (one sweep vs per-path vs a shared cleanup layer first) is not yet decided.
+- **Upload follow-ups (#140).** The Blob lifecycle itself is covered by the "File uploads" section above — these are the two things #140 deliberately left out, plus the objects predating it:
+  - **Expired-Airtable-URL re-save** (live, not latent): re-opening a Draft and saving it more than ~2h later re-submits Airtable's expired attachment URL through `createQuotation`, because `persistPRFromForm` regenerates every Quotations record from form state (`lib/prDraft.js` hydrates `url` from Airtable). The write returns success and the attachment lands **empty** — same silent-drop behaviour measured for #140. This is an Airtable-URL lifetime problem, not a Blob one, and the fix is different in kind: leave unchanged attachments alone instead of rewriting them.
+  - **Direct Airtable attachment upload for the PO PDF**: the only path where the server already holds the bytes, so it could skip Blob entirely. Deliberately not bundled with #140 (same path twice in a row) and not immediate either. Note for whoever picks it up: the direct-upload endpoint has a file-size ceiling and doesn't generalise to arbitrary user uploads, so it can't become the pattern for the other three paths.
+  - Objects already in the store from before #140 are cleared by hand — no sweep, no orphan-detection oracle.
