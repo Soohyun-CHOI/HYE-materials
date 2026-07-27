@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/authz";
+import { requirePresident } from "@/lib/authz";
 import { getPOById, updatePO } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
 import { generateAndAttachPOPdf } from "@/lib/poPdf";
@@ -33,17 +33,6 @@ async function syncPRStatusToPOSigned(po) {
             "Syncing PR status to PO Signed failed (non-fatal, retried on next Regenerate PDF click)",
             err
         );
-    }
-}
-
-// Server Actions are directly callable regardless of what the page renders,
-// so the President-only check happens here too, independently of
-// app/pos/[poId]/page.js's own requireRole() check — same principle as
-// every other role-gated action in this project (see lib/authz.js).
-async function requirePresident() {
-    const { authorized } = await requireRole("President");
-    if (!authorized) {
-        throw new Error("Only the President can sign a PO.");
     }
 }
 

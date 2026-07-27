@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
-import { getActiveUser } from "@/lib/authz";
+import { requireAdminApi } from "@/lib/authz";
 import { searchPOs } from "@/lib/airtable/purchaseOrders";
 
-// Issue #57. Backs "Show all / search closed POs" in InvoiceForm.js —
-// same getActiveUser() check as the sibling PO Items route, not a fresh
-// Admin re-check (the page itself is already Admin-gated; this is a read
-// with no write side effect).
+// Issue #57. Backs "Show all / search closed POs" in InvoiceForm.js.
+// Admin-only (#134): re-checked here via requireAdminApi to match the
+// Admin-only invoice form that's its only consumer — a Route Handler is
+// directly callable, so the gate can't be left to the page.
 export async function GET(request) {
-    const user = await getActiveUser();
-    if (!user) {
-        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    const gate = await requireAdminApi();
+    if (gate instanceof Response) return gate;
 
     const { searchParams } = new URL(request.url);
     const q = searchParams.get("q") || "";

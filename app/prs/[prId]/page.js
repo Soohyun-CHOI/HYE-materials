@@ -79,6 +79,10 @@ export default async function PRDetailPage({ params, searchParams }) {
 
     const turn = pr.status === "In Review" ? getCurrentTurn(pr, signers) : null;
     const isMyTurn = !!turn && turn.userId === user.id;
+    // Issue #134 — the PO-generation retry is Admin-only (generatePOAction),
+    // so its control renders only for Admins; otherwise the action and its UI
+    // would sit at different levels.
+    const isAdmin = user.isAdmin === true;
 
     const vendorName = vendorsById[pr.vendor?.[0]]?.vendorName || "—";
     const lineLabel = linesById[pr.line?.[0]]?.lineLabel || "—";
@@ -309,7 +313,7 @@ export default async function PRDetailPage({ params, searchParams }) {
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">
                                 PO generation hasn&apos;t completed yet for this PR.
                             </p>
-                            <GeneratePOForm prId={pr.prId} />
+                            {isAdmin && <GeneratePOForm prId={pr.prId} />}
                         </div>
                     )}
                 </div>

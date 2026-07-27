@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/authz";
+import { requireUser, requireAdmin } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import { getPRById, updatePR } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR, updateSigner } from "@/lib/airtable/prSigners";
@@ -507,7 +507,14 @@ export async function withdrawAction(prevState, formData) {
  * no-op if a PO already exists for this PR (see generatePOForApprovedPR).
  */
 export async function generatePOAction(prevState, formData) {
-    await requireUser();
+    // Issue #134 — Admin-only: generating a PO (even the retry) is office
+    // work, not a floor action, and must not be reachable by any active user
+    // for an arbitrary Approved PR. Kept in step with the retry control's
+    // render gate in app/prs/[prId]/page.js.
+    const { authorized } = await requireAdmin();
+    if (!authorized) {
+        return { error: "Only an Admin can generate a PO." };
+    }
     const prId = formData.get("prId");
 
     const pr = await getPRById(prId);
