@@ -92,7 +92,7 @@ try {
     const users = await getActiveUsers();
     if (users.length === 0) throw new Error("No active users to attribute the fixture PR to.");
 
-    // Fixture: an unsigned Draft PO, via PR -> Approved -> generatePOForApprovedPR.
+    // Fixture: an unsigned PO (Awaiting Signature), via PR -> Approved -> generatePOForApprovedPR.
     const created = await createPR({ requesterId: users[0].id });
     createdPrId = created.id;
     await updatePR(created.id, { status: "Approved" });
@@ -101,7 +101,7 @@ try {
     createdPoId = gen.poRecordId;
 
     let po = await getPOByRecordId(gen.poRecordId);
-    check("fixture PO starts Draft", po.status, "Draft");
+    check("fixture PO starts Awaiting Signature", po.status, "Awaiting Signature");
     check("fixture PO starts unsigned", po.presidentSigned, false);
 
     // Employee call: requirePresident throws before any PO write.
@@ -111,7 +111,7 @@ try {
     // Because the call was rejected, no updatePO ran — re-fetch proves it.
     po = await getPOByRecordId(gen.poRecordId);
     check("PO still unsigned after rejected call", po.presidentSigned, false);
-    check("PO still Draft after rejected call", po.status, "Draft");
+    check("PO still Awaiting Signature after rejected call", po.status, "Awaiting Signature");
     // Control: President passes the guard.
     check("President sign call allowed past guard", signAuthGate("President").rejected, false);
 } finally {
