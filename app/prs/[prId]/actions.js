@@ -457,8 +457,9 @@ export async function returnForCorrectionAction(prevState, formData) {
  *
  * Scope (issue #122): allowed ONLY from "In Review". Approved / PO Signed /
  * Draft / already-Withdrawn are all rejected here. Approved is deferred to
- * a follow-up because an Approved PR already has an auto-generated Draft PO
- * whose lifecycle would need handling; an In-Review PR has no PO yet, so
+ * a follow-up because an Approved PR already has an auto-generated PO
+ * (Awaiting Signature) whose lifecycle would need handling; an In-Review
+ * PR has no PO yet, so
  * this narrower scope sidesteps that entirely.
  *
  * No in-flight chain cleanup is needed beyond the Status flip: every
