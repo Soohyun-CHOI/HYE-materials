@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireUser, requireAdmin } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import { getPRById, updatePR } from "@/lib/airtable/purchaseRequests";
@@ -364,10 +365,10 @@ export async function editAndContinueAction(prevState, formData) {
     }
 
     // Issue #140 — every rollback-able write of this turn has landed, so the
-    // uploaded quotation objects can go. Ahead of the notification and
-    // PO-generation steps below, which are explicitly best-effort and never
-    // undo what was just committed.
-    await confirmIngestThenDelete(blobCleanups);
+    // uploaded quotation objects can go. Scheduled with after() (see
+    // saveDraftAction) so the signer isn't held for it; ordering is unaffected
+    // since it can only run once the writes above have succeeded.
+    after(() => confirmIngestThenDelete(blobCleanups));
 
     // Best-effort — see lib/notifications.js. No notification when the PR
     // just reached its final Approved state (no next signer, per scope).

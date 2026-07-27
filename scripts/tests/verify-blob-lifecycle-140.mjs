@@ -125,6 +125,19 @@ check(
     afterRollback(createInvoiceBody, 'return { error: "Something went wrong creating the invoice'),
     true
 );
+// Cleanup is scheduled, not awaited: it must not sit on the user's response
+// path, and three of these actions end in redirect() (which throws), so an
+// awaited call would be positional.
+for (const [name, body] of [
+    ["saveDraftAction", saveDraftBody],
+    ["createPRAction", createPRBody],
+    ["editAndContinueAction", editContinueBody],
+    ["createInvoiceAction", createInvoiceBody],
+    ["generateAndAttachPOPdf", bodyOf(poPdf, "generateAndAttachPOPdf")],
+]) {
+    check(`${name} schedules cleanup with after()`, /after\(\s*\(\)\s*=>/.test(body), true);
+    check(`${name} does not await cleanup inline`, body.includes("await confirmIngestThenDelete("), false);
+}
 // Every target must name the attachment it is confirming — the id is what
 // makes "our file was taken" distinguishable from "some file is attached".
 for (const [name, body] of [

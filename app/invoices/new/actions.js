@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireAdmin } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import { createInvoice, linkInvoiceToPO, getInvoiceByRecordId, updateInvoice } from "@/lib/airtable/invoices";
@@ -188,16 +189,22 @@ export async function createInvoiceAction(prevState, formData) {
     // the Requester's retry re-submits this same URL from the still-open
     // form. /api/invoices/detect-po already read it (at upload time, long
     // before this point), so nothing else needs it either.
-    await confirmIngestThenDelete([
-        {
-            table: TABLES.INVOICES,
-            recordId: invoice.id,
-            field: "File",
-            blobUrl: invoiceFileUrl,
-            attachmentId: invoice.file?.[0]?.id,
-            label: `invoice file ${invoice.invoiceId}`,
-        },
-    ]);
+    //
+    // Scheduled with after() (see app/prs/new/actions.js) so the Admin isn't
+    // held for it, and so the cleanup no longer depends on sitting above the
+    // redirect() below.
+    after(() =>
+        confirmIngestThenDelete([
+            {
+                table: TABLES.INVOICES,
+                recordId: invoice.id,
+                field: "File",
+                blobUrl: invoiceFileUrl,
+                attachmentId: invoice.file?.[0]?.id,
+                label: `invoice file ${invoice.invoiceId}`,
+            },
+        ])
+    );
 
     // Issue #115 — land on the new invoice's detail page (was the
     // new-invoice page, a known follow-up), so the full record is shown

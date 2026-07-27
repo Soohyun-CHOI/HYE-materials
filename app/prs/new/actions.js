@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireUser } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import {
@@ -277,10 +278,16 @@ export async function saveDraftAction(prevState, formData) {
     try {
         const { pr, blobCleanups } = await persistPRFromForm({ userId: user.id, state });
         // Issue #140 — the Draft save IS this action's whole transaction, so
-        // its end is here: Airtable has the quotation files, the Blob objects
+        // this is its end: Airtable has the quotation files, the Blob objects
         // can go. Never inside persistPRFromForm, whose rollback has to be
         // able to hand the same URLs back to a retry.
-        await confirmIngestThenDelete(blobCleanups);
+        //
+        // Scheduled with after() rather than awaited: the Requester has no
+        // stake in cleanup and shouldn't wait ~1s per file for it. Ordering is
+        // unaffected — after() only runs once the writes above have succeeded
+        // and the response is on its way — and if it doesn't run at all the
+        // result is one orphan, the same outcome a failed del() already has.
+        after(() => confirmIngestThenDelete(blobCleanups));
         return { savedDraft: { prId: pr.prId, recordId: pr.id } };
     } catch (err) {
         console.error("saveDraftAction failed", err);
@@ -392,8 +399,11 @@ export async function createPRAction(prevState, formData) {
     // Issue #140 — after the last write of the submit transaction (the
     // Draft -> In Review flip above), not after the quotation write inside
     // persistPRFromForm: a failure between the two rolls the children back,
-    // and the Requester's retry re-submits these same URLs.
-    await confirmIngestThenDelete(blobCleanups);
+    // and the Requester's retry re-submits these same URLs. Deferred via
+    // after() (see saveDraftAction), which also removes a placement trap
+    // here: this action ends in redirect(), which throws, so an awaited
+    // cleanup only works while it sits above that line.
+    after(() => confirmIngestThenDelete(blobCleanups));
 
     // Best-effort — see lib/notifications.js. Signer #1 is signers[0]
     // (Sequence Order 1, the PR's starting Current Signer Step).
