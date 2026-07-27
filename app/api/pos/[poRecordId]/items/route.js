@@ -1,19 +1,16 @@
 import { NextResponse } from "next/server";
-import { getActiveUser } from "@/lib/authz";
+import { requireAdminApi } from "@/lib/authz";
 import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
 
 // Issue #51, extended by #57. Backs the per-invoice-line PO Item dropdown
-// in InvoiceForm.js — same getActiveUser() check as detect-po's Route
-// Handler (the page itself is already Admin-gated; this just needs a
-// logged-in session, not a fresh Admin re-check, since it's a read with
-// no write side effect). Switched from getItemsByPO() to
-// getInvoicingStatusByPO() (#48) so each item carries remainingQty —
-// the dropdown needs it to sort open items first and show "(Remaining: N)".
+// in InvoiceForm.js. Admin-only (#134): re-checked here via requireAdminApi
+// to match the Admin-only invoice form (its only consumer) and to close the
+// #132 PO row-gate read bypass — a Route Handler is directly callable.
+// Uses getInvoicingStatusByPO (#48) so each item carries remainingQty for
+// the dropdown's "(Remaining: N)".
 export async function GET(request, { params }) {
-    const user = await getActiveUser();
-    if (!user) {
-        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    const gate = await requireAdminApi();
+    if (gate instanceof Response) return gate;
 
     const { poRecordId } = await params;
     const items = await getInvoicingStatusByPO(poRecordId);

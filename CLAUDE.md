@@ -106,7 +106,7 @@ generateChildId and upsertMaterial wrap read-then-write in withKeyLock(). Serial
 - Magic link only. requestMagicLink() domain-checks then emails a token; verifyMagicLink() consumes it (withKeyLock-protected), finds-or-creates the User.
 - lib/session.js: iron-session, payload `{ userId }`. getCurrentUser() treats a missing Users record as logged-out, re-throws real Airtable errors.
 - getActiveUser() (lib/authz.js) also treats Status: Inactive as logged-out.
-- requireUser()/requireRole(role)/requireAdmin(): Server Component/Action helpers. Route Handlers use getActiveUser() + 401/403 JSON.
+- requireUser()/requireRole(role)/requireAdmin()/requirePresident(): Server Component/Action helpers. Failure modes differ: all four redirect to /login on no session; on insufficient permission requireRole/requireAdmin return `{ authorized: false }` (caller renders inline), while requirePresident() throws (its PO-signing callers have no per-branch UI). Route Handlers can't use these (redirect() is for the page-render pipeline) — they call getActiveUser() (any active user) or requireAdminApi() (Admin-only), which return the user or a 401/403 JSON Response.
 - No proxy.js/middleware — each page's own requireUser() call is the gate.
 - Env vars: SESSION_SECRET, RESEND_API_KEY, ALLOWED_EMAIL_DOMAIN, EMAIL_FROM (optional). Fail-fast at module load; set in Vercel too.
 - Resend still sandbox mode — can only deliver to the account owner's address. Domain verification needed before real multi-user use.
@@ -116,7 +116,13 @@ generateChildId and upsertMaterial wrap read-then-write in withKeyLock(). Serial
 
 ## Route protection (lib/authz.js)
 
+**Operating convention:** office staff run with Is Admin: true; a non-Admin Employee is site staff. So gating an endpoint to Admin scopes it to the office, not merely to a higher privilege tier — e.g. the invoice routes are Admin because invoicing is office work, not because Admin is "more trusted."
+
 app/admin/jobs|vendors|lines/new — Admin-only, Server Action re-checks requireAdmin(). app/prs (list) + app/prs/[prId] (detail) — any active user; the list applies a server-side row-visibility gate (President/Admin see all submitted PRs, an Employee sees only PRs they raised or on their assigned Jobs, #119). app/pos/[poId], app/invoices (list), and app/invoices/[invoiceId] (detail) — viewing is President-or-Admin. app/invoices/[invoiceId]/edit and the invoice edit/delete/Paid-toggle Server Actions — Admin-only.
+
+**Caller obligation:** requireRole()/requireAdmin() only *report* the decision — a caller must destructure the returned `{ authorized }` and short-circuit on false (throw, return `{ error }`, or render a refusal). Calling one without acting on the flag protects nothing (the code runs on). requirePresident() (throws) and requireAdminApi() (returns a 401/403 Response the handler returns as-is) can't be dropped this way, which is why they're preferred for the cases that use them.
+
+**Re-authorization rule (#134):** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI — a page being the only caller isn't a substitute, since Route Handlers and Server Actions are reachable directly. Server Actions reuse the helpers above (signPOAction/regeneratePDFAction call requirePresident(); generatePOAction, the PO-generation retry, is Admin via requireAdmin() with a matching isAdmin render gate on app/prs/[prId]). `/api/*`: the magic-link auth routes are intentionally public, /api/quotations/upload is any-active-user (matching the PR form that consumes it); /api/invoices/upload, /api/invoices/detect-po, /api/pos/search, /api/pos/[poRecordId]/items are Admin-only via requireAdminApi() (their sole consumer is the Admin-only invoice form). Any route that fetches a caller-supplied URL also restricts it to our Vercel Blob host (detect-po's SSRF guard), independent of auth.
 
 ---
 

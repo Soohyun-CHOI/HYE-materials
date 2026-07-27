@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
-import { getActiveUser } from "@/lib/authz";
+import { requireAdminApi } from "@/lib/authz";
 import { getPOById, isPoOpen } from "@/lib/airtable/purchaseOrders";
 
 // Issue #46. The company's real, historically-issued PO numbers use the
@@ -10,18 +10,34 @@ import { getPOById, isPoOpen } from "@/lib/airtable/purchaseOrders";
 // to us in their invoice text.
 const PO_ID_PATTERN = /HYE-PO-\d{8}-\d{2}/g;
 
-// Route Handler, not a Server Action — getActiveUser() directly, same
-// reasoning as app/api/quotations/upload/route.js (redirect() isn't meant
-// for a plain Request/Response function).
+// Route Handler, not a Server Action — Admin-only (#134) via
+// requireAdminApi(), not the redirect-based requireAdmin() (redirect()
+// isn't meant for a plain Request/Response function).
 export async function POST(request) {
-    const user = await getActiveUser();
-    if (!user) {
-        return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-    }
+    const gate = await requireAdminApi();
+    if (gate instanceof Response) return gate;
 
     const { blobUrl } = await request.json();
     if (!blobUrl) {
         return NextResponse.json({ error: "Missing blobUrl" }, { status: 400 });
+    }
+
+    // Issue #134 — SSRF guard. This route fetches blobUrl server-side, so
+    // restrict it to our Vercel Blob store: an authorized Admin still must
+    // not be able to make the server fetch an arbitrary address (internal
+    // metadata endpoints, etc.). Legitimate blobUrls are always the public
+    // Blob host returned by the client upload() call.
+    let parsedBlobUrl;
+    try {
+        parsedBlobUrl = new URL(blobUrl);
+    } catch {
+        return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
+    }
+    if (
+        parsedBlobUrl.protocol !== "https:" ||
+        !parsedBlobUrl.hostname.endsWith(".public.blob.vercel-storage.com")
+    ) {
+        return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
     }
 
     // Best-effort from here on — this feature only ever saves the user a
