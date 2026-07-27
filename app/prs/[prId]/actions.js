@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireUser, requireAdmin } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import { getPRById, updatePR } from "@/lib/airtable/purchaseRequests";
@@ -13,6 +14,7 @@ import {
 } from "@/lib/airtable/correctionRequests";
 import { createEditLogEntry } from "@/lib/airtable/editLog";
 import { createQuotation } from "@/lib/airtable/quotations";
+import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
@@ -213,6 +215,8 @@ export async function editAndContinueAction(prevState, formData) {
     const quotationLinkChanges = new Map();
     let advance;
     const createdQuotationIds = [];
+    // Issue #140 — Blob objects ingested by this turn's new Quotations.
+    const blobCleanups = [];
 
     try {
         // Newly-added Quotations are created before resolving item links
@@ -228,6 +232,19 @@ export async function editAndContinueAction(prevState, formData) {
                 file: [{ url: q.url, filename: q.filename || undefined }],
             });
             createdQuotationIds.push(created.id);
+            // Issue #140 — collected now, cleaned up after this action's last
+            // write (below the catch): the rollback destroys these Quotations,
+            // and the signer's retry re-submits the same URLs.
+            if (isOurBlobUrl(q.url)) {
+                blobCleanups.push({
+                    table: TABLES.QUOTATIONS,
+                    recordId: created.id,
+                    field: "File",
+                    blobUrl: q.url,
+                    attachmentId: created.file?.[0]?.id,
+                    label: `quotation file ${created.quotationId}`,
+                });
+            }
         }
 
         // Resolve each submitted item's Quotation choice ("existing:<id>"
@@ -346,6 +363,12 @@ export async function editAndContinueAction(prevState, formData) {
         console.error("editAndContinueAction failed, rolled back", err);
         return { error: "Something went wrong saving your changes. Please try again." };
     }
+
+    // Issue #140 — every rollback-able write of this turn has landed, so the
+    // uploaded quotation objects can go. Scheduled with after() (see
+    // saveDraftAction) so the signer isn't held for it; ordering is unaffected
+    // since it can only run once the writes above have succeeded.
+    after(() => confirmIngestThenDelete(blobCleanups));
 
     // Best-effort — see lib/notifications.js. No notification when the PR
     // just reached its final Approved state (no next signer, per scope).

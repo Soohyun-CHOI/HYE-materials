@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { requireUser } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import {
@@ -14,6 +15,7 @@ import { createItem, getItemsByPR } from "@/lib/airtable/prItems";
 import { createSigner, getSignersByPR } from "@/lib/airtable/prSigners";
 import { createQuotation, getQuotationsByPR } from "@/lib/airtable/quotations";
 import { getUserByRecordId } from "@/lib/airtable/users";
+import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { notifyCurrentTurn } from "@/lib/notifications";
 
 // Canonical key for an item's duplicate-match identity — Item Name
@@ -154,6 +156,10 @@ async function persistPRFromForm({ userId, state }) {
     const createdQuotationIds = [];
     const createdItemIds = [];
     const createdSignerIds = [];
+    // Issue #140 — Blob objects this persist ingested, handed back to the
+    // caller (saveDraftAction / createPRAction) to clean up at the end of its
+    // transaction rather than here, mid-transaction.
+    const blobCleanups = [];
 
     try {
         // Quotations first — each becomes its own record and items link to
@@ -177,6 +183,23 @@ async function persistPRFromForm({ userId, state }) {
             });
             quotationByIndex.push(created.id);
             createdQuotationIds.push(created.id);
+            // Issue #140 — remember what to clean up, but don't clean up here:
+            // the caller does it once its own last write has landed, so a
+            // rollback below leaves the object available for the retry.
+            // isOurBlobUrl filters out a re-opened Draft's Airtable URL
+            // (lib/prDraft.js), which was never ours to delete.
+            if (isOurBlobUrl(q.url)) {
+                blobCleanups.push({
+                    table: TABLES.QUOTATIONS,
+                    recordId: created.id,
+                    field: "File",
+                    blobUrl: q.url,
+                    // Airtable's id for the attachment it just accepted; the
+                    // confirm check follows this exact attachment.
+                    attachmentId: created.file?.[0]?.id,
+                    label: `quotation file ${created.quotationId}`,
+                });
+            }
         }
         const persistedQuotationIds = quotationByIndex.filter(Boolean);
 
@@ -236,7 +259,7 @@ async function persistPRFromForm({ userId, state }) {
         await destroyChildren(oldChildIds);
     }
 
-    return { pr };
+    return { pr, blobCleanups };
 }
 
 // Issue #72 — persist the in-progress PR as a Draft. Deliberately skips the
@@ -253,7 +276,18 @@ export async function saveDraftAction(prevState, formData) {
     }
 
     try {
-        const { pr } = await persistPRFromForm({ userId: user.id, state });
+        const { pr, blobCleanups } = await persistPRFromForm({ userId: user.id, state });
+        // Issue #140 — the Draft save IS this action's whole transaction, so
+        // this is its end: Airtable has the quotation files, the Blob objects
+        // can go. Never inside persistPRFromForm, whose rollback has to be
+        // able to hand the same URLs back to a retry.
+        //
+        // Scheduled with after() rather than awaited: the Requester has no
+        // stake in cleanup and shouldn't wait ~1s per file for it. Ordering is
+        // unaffected — after() only runs once the writes above have succeeded
+        // and the response is on its way — and if it doesn't run at all the
+        // result is one orphan, the same outcome a failed del() already has.
+        after(() => confirmIngestThenDelete(blobCleanups));
         return { savedDraft: { prId: pr.prId, recordId: pr.id } };
     } catch (err) {
         console.error("saveDraftAction failed", err);
@@ -342,9 +376,11 @@ export async function createPRAction(prevState, formData) {
     }
 
     let pr;
+    let blobCleanups = [];
     try {
         const result = await persistPRFromForm({ userId: user.id, state });
         pr = result.pr;
+        blobCleanups = result.blobCleanups;
         // Submission starts the review chain — whether this PR began as a
         // fresh form or a resumed Draft (issue #72), reaching here is the
         // actual submission. Current Signer Step 1 = the first signer's turn.
@@ -359,6 +395,15 @@ export async function createPRAction(prevState, formData) {
         console.error("createPRAction failed", err);
         return { error: "Something went wrong creating the PR. Please try again." };
     }
+
+    // Issue #140 — after the last write of the submit transaction (the
+    // Draft -> In Review flip above), not after the quotation write inside
+    // persistPRFromForm: a failure between the two rolls the children back,
+    // and the Requester's retry re-submits these same URLs. Deferred via
+    // after() (see saveDraftAction), which also removes a placement trap
+    // here: this action ends in redirect(), which throws, so an awaited
+    // cleanup only works while it sits above that line.
+    after(() => confirmIngestThenDelete(blobCleanups));
 
     // Best-effort — see lib/notifications.js. Signer #1 is signers[0]
     // (Sequence Order 1, the PR's starting Current Signer Step).
