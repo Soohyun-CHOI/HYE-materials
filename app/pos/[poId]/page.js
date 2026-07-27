@@ -12,12 +12,20 @@ import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { formatUSD } from "@/lib/format";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
+import {
+    getPOWithdrawEligibility,
+    getWithdrawCopy,
+    isPOWithdrawn,
+    WITHDRAW_REFUSAL,
+} from "@/lib/poWithdraw";
 import SignForm from "./SignForm";
 import RegeneratePDFForm from "./RegeneratePDFForm";
+import WithdrawPOForm from "./WithdrawPOForm";
 
 const DONE_MESSAGES = {
     signed: "Signed the PO.",
     "pdf-regenerated": "Regenerated the PDF.",
+    withdrawn: "Withdrew this PO.",
 };
 
 // Viewing is row-scoped (issue #132): President/Admin see every PO; any other
@@ -52,6 +60,16 @@ export default async function PODetailPage({ params, searchParams }) {
     if (!canViewPR(user, pr)) {
         return <div className="p-8">PO not found.</div>;
     }
+
+    // Issue #138 — withdrawal is the requester's own action (the requester of
+    // the parent PR; a PO carries no requester of its own, and needs none).
+    // Eligibility comes from the one shared predicate, and the same
+    // president-signature branch drives both the modal wording and the
+    // banner below, resolved once here.
+    const isRequester = pr.requester?.[0] === user.id;
+    const withdrawn = isPOWithdrawn(po);
+    const withdrawCopy = getWithdrawCopy(po.presidentSigned);
+    const withdrawEligibility = isRequester ? getPOWithdrawEligibility(po) : null;
 
     const [job, vendor, ourPic, ourManager] = await Promise.all([
         pr.job?.[0] ? getJobByRecordId(pr.job[0]) : null,
@@ -100,6 +118,23 @@ export default async function PODetailPage({ params, searchParams }) {
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
                     {DONE_MESSAGES[done]}
                 </p>
+            )}
+
+            {/* Issue #138 — the terminal state, stated to whoever opens the
+                page rather than to whoever acted: third person, past tense,
+                paired in lib/poWithdraw.js with the second-person modal
+                wording so the two can't drift. Sits above the money and the
+                items, since "this order was called off" changes how every
+                figure below it should be read. */}
+            {withdrawn && (
+                <div className="mt-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                    <p>{withdrawCopy.banner}</p>
+                    {po.withdrawnAt && (
+                        <p className="mt-1 text-xs">
+                            Withdrawn at {new Date(po.withdrawnAt).toLocaleString()}
+                        </p>
+                    )}
+                </div>
             )}
 
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
@@ -243,10 +278,22 @@ export default async function PODetailPage({ params, searchParams }) {
                         <p>
                             Signed at {po.presidentSignedAt ? new Date(po.presidentSignedAt).toLocaleString() : "—"}
                         </p>
+                        {/* Issue #138 — an already-generated PDF stays
+                            downloadable on a withdrawn PO: the PO did exist
+                            and was signed, so that document is audit trail.
+                            Only *new* documents are refused — the
+                            regeneration control disappears (and
+                            regeneratePDFAction refuses it regardless of what
+                            renders here). */}
                         {pdfFile ? (
                             <a href={pdfFile.url} target="_blank" rel="noreferrer" className="underline">
                                 {pdfFile.filename || "PO PDF"}
                             </a>
+                        ) : withdrawn ? (
+                            <p className="text-zinc-600 dark:text-zinc-400">
+                                No PO document is on file, and none will be generated now that this PO is
+                                withdrawn.
+                            </p>
                         ) : isPrivileged ? (
                             <div className="space-y-2">
                                 <p className="text-zinc-600 dark:text-zinc-400">
@@ -260,6 +307,14 @@ export default async function PODetailPage({ params, searchParams }) {
                             </p>
                         )}
                     </div>
+                ) : withdrawn ? (
+                    /* Issue #138 — no SignForm for a withdrawn PO: signing
+                       would write Status back to "Signed" and resurrect it.
+                       signPOAction refuses it too, this just doesn't offer a
+                       button that can only fail. */
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        This PO was never signed.
+                    </p>
                 ) : isPrivileged ? (
                     <SignForm poId={po.poId} />
                 ) : (
@@ -268,6 +323,32 @@ export default async function PODetailPage({ params, searchParams }) {
                     </p>
                 )}
             </div>
+
+            {/* Issue #138 — the requester's own control, so it sits OUTSIDE
+                the isPrivileged gate above (site staff place the vendor order
+                and are the ones who decide not to; they're typically neither
+                President nor Admin). Both refusals come from the one shared
+                predicate: a wrong status renders nothing at all (there is
+                nothing the requester can do about "Sent to Vendor", and
+                promising a path that doesn't exist is worse than silence),
+                while a linked invoice explains what would have to happen
+                first rather than showing a dead control. Re-validated in
+                withdrawPOAction regardless of this gate. */}
+            {isRequester && withdrawEligibility.reason !== "wrong-status" && (
+                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                    {withdrawEligibility.eligible ? (
+                        <WithdrawPOForm
+                            poId={po.poId}
+                            title={withdrawCopy.modal.title}
+                            body={withdrawCopy.modal.body(po.poId)}
+                        />
+                    ) : (
+                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            {WITHDRAW_REFUSAL["invoice-linked"]}
+                        </p>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

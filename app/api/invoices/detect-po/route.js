@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
 import { requireAdminApi } from "@/lib/authz";
 import { getPOById, isPoOpen } from "@/lib/airtable/purchaseOrders";
+import { isPOWithdrawn } from "@/lib/poWithdraw";
 
 // Issue #46. The company's real, historically-issued PO numbers use the
 // same HYE-PO-YYYYMMDD-## shape this system now generates (4-digit year —
@@ -48,7 +49,12 @@ export async function POST(request) {
     try {
         const fileRes = await fetch(blobUrl);
         if (!fileRes.ok) {
-            return NextResponse.json({ confirmed: [], unconfirmed: [], vendorConflict: false });
+            return NextResponse.json({
+                confirmed: [],
+                unconfirmed: [],
+                withdrawn: [],
+                vendorConflict: false,
+            });
         }
         const bytes = Buffer.from(await fileRes.arrayBuffer());
 
@@ -61,9 +67,22 @@ export async function POST(request) {
 
         const confirmed = [];
         const unconfirmed = [];
+        // Issue #138 — its own bucket, neither confirmed nor unconfirmed. A
+        // withdrawn PO must not become a selectable candidate (nothing may be
+        // invoiced against it), but it must not fall silent either, and it is
+        // emphatically not a failed detection: this PO number was printed on
+        // a vendor invoice that arrived, which means either the vendor shipped
+        // against a cancelled order or the withdrawal was a mistake. Both need
+        // a human, and this is the only place in the system where that
+        // contradiction becomes visible. Reporting it as "no such PO" would
+        // bury the one signal that the linked-invoice invariant just broke in
+        // real life.
+        const withdrawn = [];
         matches.forEach((poId, i) => {
             const po = lookups[i];
-            if (po) {
+            if (po && isPOWithdrawn(po)) {
+                withdrawn.push({ recordId: po.id, poId: po.poId });
+            } else if (po) {
                 confirmed.push({ recordId: po.id, poId: po.poId, vendorId: po.vendor?.[0] || null });
             } else {
                 unconfirmed.push(poId);
@@ -87,9 +106,14 @@ export async function POST(request) {
         const vendorIds = new Set(confirmed.map((c) => c.vendorId).filter(Boolean));
         const vendorConflict = vendorIds.size > 1;
 
-        return NextResponse.json({ confirmed, unconfirmed, vendorConflict });
+        return NextResponse.json({ confirmed, unconfirmed, withdrawn, vendorConflict });
     } catch (error) {
         console.error("PO detection failed (non-fatal, falling back to manual entry)", error);
-        return NextResponse.json({ confirmed: [], unconfirmed: [], vendorConflict: false });
+        return NextResponse.json({
+            confirmed: [],
+            unconfirmed: [],
+            withdrawn: [],
+            vendorConflict: false,
+        });
     }
 }

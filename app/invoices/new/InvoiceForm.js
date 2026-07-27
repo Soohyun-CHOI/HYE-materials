@@ -277,20 +277,60 @@ export default function InvoiceForm({ vendors, pos }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ blobUrl }),
             });
-            const { confirmed = [], unconfirmed = [], vendorConflict = false } = await res.json();
+            const {
+                confirmed = [],
+                unconfirmed = [],
+                withdrawn = [],
+                vendorConflict = false,
+            } = await res.json();
+
+            // Issue #138 — a detected PO that has been withdrawn. Reported,
+            // never auto-selected: nothing can be invoiced against it. The
+            // wording has to be distinguishable from a failed detection,
+            // because the two mean opposite things — this PO number was
+            // printed on an invoice that actually arrived, so either the
+            // vendor shipped against a cancelled order or the withdrawal was
+            // a mistake. Either way a person has to sort it out, so it reads
+            // as a warning whatever else detection turned up.
+            const withdrawnNote =
+                withdrawn.length > 0
+                    ? ` ${withdrawn.map((w) => w.poId).join(", ")} ${
+                          withdrawn.length > 1 ? "are" : "is"
+                      } withdrawn, so no invoice can be entered against ${
+                          withdrawn.length > 1 ? "them" : "it"
+                      } and ${
+                          withdrawn.length > 1 ? "they weren't" : "it wasn't"
+                      } selected — confirm with the vendor before continuing.`
+                    : "";
+            // Issue #92 — previously only ever surfaced in the multi-PO
+            // branch below; a single confirmed PO with co-occurring
+            // unconfirmed references silently dropped them. Computed up here
+            // with withdrawnNote so every branch can share both.
+            const unconfirmedNote =
+                unconfirmed.length > 0
+                    ? ` (${unconfirmed.length} unrecognized reference${unconfirmed.length > 1 ? "s" : ""} ignored)`
+                    : "";
 
             if (vendorConflict) {
                 setPoDetection({
                     level: "warning",
                     message: `Found PO references from more than one Vendor (${confirmed
                         .map((c) => c.poId)
-                        .join(", ")}) — please verify and select manually below.`,
+                        .join(", ")}) — please verify and select manually below.${withdrawnNote}`,
                 });
                 return;
             }
 
             if (confirmed.length === 0) {
-                if (unconfirmed.length > 0) {
+                if (withdrawn.length > 0) {
+                    // Issue #138 — no selectable PO, but emphatically not a
+                    // detection failure: say which PO was found and that it's
+                    // withdrawn.
+                    setPoDetection({
+                        level: "warning",
+                        message: `No PO on this invoice can be invoiced against.${withdrawnNote}${unconfirmedNote}`,
+                    });
+                } else if (unconfirmed.length > 0) {
                     // Issue #92, case 2 — a PO-number-looking string was
                     // found, but no real PO matches it.
                     setPoDetection({
@@ -333,15 +373,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     : confirmed.length > 1
                         ? ` — already fully invoiced: ${closedPos.map((c) => c.poId).join(", ")} (double-check before submitting)`
                         : " — already fully invoiced (double-check before submitting)";
-            // Issue #92 — previously only ever surfaced in the multi-PO
-            // branch below; a single confirmed PO with co-occurring
-            // unconfirmed references silently dropped them. Computed once
-            // here so every branch below can share it.
-            const unconfirmedNote =
-                unconfirmed.length > 0
-                    ? ` (${unconfirmed.length} unrecognized reference${unconfirmed.length > 1 ? "s" : ""} ignored)`
-                    : "";
-            const detectionLevel = closedPos.length > 0 ? "warning" : "info";
+            const detectionLevel = closedPos.length > 0 || withdrawn.length > 0 ? "warning" : "info";
 
             // Merge any confirmed PO that isn't already in posList — see
             // the posList comment above for why this can happen.
@@ -378,7 +410,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     level: detectionLevel,
                     message: `Detected PO${confirmed.length > 1 ? "s" : ""}: ${confirmed
                         .map((c) => c.poId)
-                        .join(", ")}${fullyInvoicedNote}${unconfirmedNote} — not auto-applied since a PO or items are already entered. Select manually above if needed.`,
+                        .join(", ")}${fullyInvoicedNote}${unconfirmedNote} — not auto-applied since a PO or items are already entered. Select manually above if needed.${withdrawnNote}`,
                 });
                 return;
             }
@@ -399,7 +431,7 @@ export default function InvoiceForm({ vendors, pos }) {
                 });
                 setPoDetection({
                     level: detectionLevel,
-                    message: `Detected PO: ${confirmed[0].poId} (auto-filled below)${fullyInvoicedNote}${unconfirmedNote}.`,
+                    message: `Detected PO: ${confirmed[0].poId} (auto-filled below)${fullyInvoicedNote}${unconfirmedNote}.${withdrawnNote}`,
                 });
             } else {
                 // Multi-PO case: scaffold one item row per detected PO,
@@ -414,7 +446,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     level: detectionLevel,
                     message: `Detected ${confirmed.length} POs: ${confirmed
                         .map((c) => c.poId)
-                        .join(", ")} — auto-filled below, verify each item's assignment.${fullyInvoicedNote}${unconfirmedNote}`,
+                        .join(", ")} — auto-filled below, verify each item's assignment.${fullyInvoicedNote}${unconfirmedNote}${withdrawnNote}`,
                 });
             }
         } catch (err) {
