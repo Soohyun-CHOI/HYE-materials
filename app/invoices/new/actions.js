@@ -6,6 +6,8 @@ import { base, TABLES } from "@/lib/airtable/client";
 import { createInvoice, linkInvoiceToPO, getInvoiceByRecordId, updateInvoice } from "@/lib/airtable/invoices";
 import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
+import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
+import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
 
 // Server Actions are directly callable regardless of what the page
@@ -45,6 +47,42 @@ export async function createInvoiceAction(prevState, formData) {
         if (!item.poRecordId) {
             return { error: "Every item needs a PO — pick one at the top or per-line." };
         }
+    }
+
+    // Issue #138 — the inverse of the withdraw predicate's no-linked-invoice
+    // condition, and the reason that condition can be trusted: a withdrawn
+    // PO will never receive an invoice, so linking one is refused here.
+    // Deliberately only the status check, NOT getPOWithdrawEligibility() —
+    // that predicate would also reject a Sent to Vendor PO (the most normal
+    // thing to invoice) and a second invoice against a partly invoiced one
+    // (routine). The two rules share the status name, not the rule.
+    //
+    // Placed before the first write, not inside the try below: a refusal
+    // must create nothing at all rather than lean on the rollback path.
+    // Withdrawn POs are already absent from the picker and from PO detection
+    // (getAllPOs/searchPOs, /api/invoices/detect-po), but a Server Action is
+    // directly callable, and a PO can be withdrawn while this form sits open.
+    const distinctPoIds = [...new Set(items.map((item) => item.poRecordId))];
+    let linkedPos;
+    try {
+        linkedPos = await Promise.all(distinctPoIds.map((id) => getPOByRecordId(id)));
+    } catch (err) {
+        // .find() throws on an id that doesn't resolve. Before this guard
+        // existed such an id failed later, inside the rollback-protected
+        // block; now it's read up front, so it needs its own clean refusal
+        // rather than surfacing as an unhandled action error.
+        console.error("createInvoiceAction couldn't resolve a submitted PO", err);
+        return { error: "One of the selected POs no longer exists. Reload the form and try again." };
+    }
+    const withdrawnPos = linkedPos.filter((po) => isPOWithdrawn(po));
+    if (withdrawnPos.length > 0) {
+        const ids = withdrawnPos.map((po) => po.poId).join(", ");
+        return {
+            error:
+                withdrawnPos.length === 1
+                    ? `${ids} was withdrawn, so an invoice can't be linked to it.`
+                    : `${ids} were withdrawn, so an invoice can't be linked to them.`,
+        };
     }
 
     let invoice;
@@ -91,7 +129,8 @@ export async function createInvoiceAction(prevState, formData) {
         // items, not one per item — a PO referenced by three lines still
         // only needs a single join row (see CLAUDE.md's Invoice-PO Link
         // entry: it's a plain relationship table, no per-line semantics).
-        const distinctPoIds = [...new Set(items.map((item) => item.poRecordId))];
+        // Same distinctPoIds the withdrawn-PO guard above checked, so every
+        // PO about to be joined here was verified invoiceable.
         for (const poId of distinctPoIds) {
             const link = await linkInvoiceToPO(invoice.id, poId);
             createdLinkIds.push(link.id);

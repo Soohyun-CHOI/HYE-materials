@@ -1,11 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requirePresident } from "@/lib/authz";
+import { requirePresident, requireUser } from "@/lib/authz";
 import { getPOById, updatePO } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
 import { generateAndAttachPOPdf } from "@/lib/poPdf";
 import { notifyPOSigned } from "@/lib/notifications";
+import { isPOWithdrawn, withdrawPOAsRequester } from "@/lib/poWithdraw";
 
 // Issue #63 — the linked PR's Status only ever reaches "Approved" (see
 // app/prs/[prId]/actions.js's finishTurn): PO creation happens
@@ -53,6 +54,15 @@ export async function signPOAction(prevState, formData) {
 
     const po = await getPOById(poId);
     if (!po) throw new Error("PO not found");
+    // Issue #138 — without this, "Withdrawn" wouldn't be terminal at all:
+    // signing writes Status -> "Signed" below and syncPRStatusToPOSigned
+    // then advances the PR, so a signature after a withdrawal would
+    // resurrect the whole thing. The page hides SignForm for a withdrawn
+    // PO, but Server Actions are directly callable, so the real gate is
+    // here.
+    if (isPOWithdrawn(po)) {
+        return { error: "This PO was withdrawn and can no longer be signed." };
+    }
     if (po.presidentSigned) {
         return { error: "This PO has already been signed." };
     }
@@ -103,6 +113,16 @@ export async function regeneratePDFAction(prevState, formData) {
 
     const po = await getPOById(poId);
     if (!po) throw new Error("PO not found");
+    // Issue #138 — the PO PDF *is* the document sent to the vendor.
+    // Regenerating it after a withdrawal would print a fresh formal order
+    // for an order that was cancelled, which is exactly the confusion
+    // Withdrawn exists to prevent. The line is "no new documents, existing
+    // document preserved": an already-generated PDF stays downloadable on
+    // the PO page (the PO did exist and was signed — that's audit trail),
+    // only the regeneration control goes away.
+    if (isPOWithdrawn(po)) {
+        return { error: "This PO was withdrawn — its PDF can't be regenerated." };
+    }
     if (!po.presidentSigned) {
         return { error: "This PO hasn't been signed yet." };
     }
@@ -119,4 +139,30 @@ export async function regeneratePDFAction(prevState, formData) {
     }
 
     redirect(`/pos/${po.poId}?done=pdf-regenerated`);
+}
+
+/**
+ * Issue #138 — the parent PR's requester withdraws a PO they've decided not
+ * to order after all. Deliberately a thin wrapper: everything that decides
+ * anything (identity, status, no-linked-invoice) and the write itself live
+ * in lib/poWithdraw.js:withdrawPOAsRequester, so the guard this action
+ * enforces is the same object a verification script can call directly —
+ * this file contributes only the two things that can't leave Next, the
+ * session gate and the redirect.
+ *
+ * requireUser() is the right helper here and requireAdmin()/requireRole()
+ * would be wrong twice over: they only *report* a decision (a caller that
+ * ignores the flag protects nothing), and the axis isn't a role at all —
+ * withdrawal is scoped to one record's requester, compared per record
+ * inside withdrawPOAsRequester.
+ */
+export async function withdrawPOAction(prevState, formData) {
+    const user = await requireUser();
+    const poId = formData.get("poId");
+
+    const result = await withdrawPOAsRequester({ poId, actingUserId: user.id });
+    // Errors come back to the open modal; only success falls through.
+    if (result.error) return result;
+
+    redirect(`/pos/${result.poId}?done=withdrawn`);
 }
