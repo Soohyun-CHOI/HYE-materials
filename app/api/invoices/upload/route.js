@@ -39,10 +39,7 @@ export async function POST(request) {
                     maximumSizeInBytes: 20 * 1024 * 1024,
                 };
             },
-            // Not relied on — see CLAUDE.md's Quotation upload section for
-            // why (same reasoning applies here: the client already has the
-            // Blob URL from upload()'s return value, and Vercel can't call
-            // this back to localhost anyway).
+            // Not relied on — see CLAUDE.md's File uploads section for why.
             onUploadCompleted: async ({ blob }) => {
                 console.log("Invoice blob upload completed:", blob.url);
             },

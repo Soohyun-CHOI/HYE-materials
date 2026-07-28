@@ -28,12 +28,7 @@ export async function POST(request) {
                     access: "public",
                 };
             },
-            // Not relied on: the client already gets the blob URL directly
-            // from the upload() call's return value and carries it through
-            // the PR form submission. This project also has no way to
-            // receive this callback in local dev without a tunneling
-            // service (Vercel can't reach localhost), so nothing here is
-            // load-bearing — see CLAUDE.md's Quotation upload section.
+            // Not relied on — see CLAUDE.md's File uploads section for why.
             onUploadCompleted: async ({ blob }) => {
                 console.log("Quotation blob upload completed:", blob.url);
             },
