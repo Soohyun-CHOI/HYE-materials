@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
-import { requireAdminApi } from "@/lib/authz";
+import { withAdminApi } from "@/lib/authz";
 import { getPOById, isPoOpen } from "@/lib/airtable/purchaseOrders";
+import { isOurBlobUrl } from "@/lib/blobIngest";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 
 // Issue #46. The company's real, historically-issued PO numbers use the
@@ -11,13 +12,11 @@ import { isPOWithdrawn } from "@/lib/poWithdraw";
 // to us in their invoice text.
 const PO_ID_PATTERN = /HYE-PO-\d{8}-\d{2}/g;
 
-// Route Handler, not a Server Action — Admin-only (#134) via
-// requireAdminApi(), not the redirect-based requireAdmin() (redirect()
-// isn't meant for a plain Request/Response function).
-export async function POST(request) {
-    const gate = await requireAdminApi();
-    if (gate instanceof Response) return gate;
-
+// Route Handler, not a Server Action — Admin-only (#134), and since #147 via
+// the withAdminApi wrapper rather than a returned refusal this file has to
+// remember to pass along. Still not the redirect-based requireAdmin()
+// (redirect() isn't meant for a plain Request/Response function).
+export const POST = withAdminApi(async (request) => {
     const { blobUrl } = await request.json();
     if (!blobUrl) {
         return NextResponse.json({ error: "Missing blobUrl" }, { status: 400 });
@@ -28,16 +27,14 @@ export async function POST(request) {
     // not be able to make the server fetch an arbitrary address (internal
     // metadata endpoints, etc.). Legitimate blobUrls are always the public
     // Blob host returned by the client upload() call.
-    let parsedBlobUrl;
-    try {
-        parsedBlobUrl = new URL(blobUrl);
-    } catch {
-        return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
-    }
-    if (
-        parsedBlobUrl.protocol !== "https:" ||
-        !parsedBlobUrl.hostname.endsWith(".public.blob.vercel-storage.com")
-    ) {
+    //
+    // Issue #147 — the predicate itself is isOurBlobUrl (lib/blobIngest.js),
+    // which was already documented as "the same host predicate the detect-po
+    // SSRF guard uses" while in fact being a second copy of it. One
+    // definition now, so the guard and the Blob-cleanup path cannot drift;
+    // both rejection branches answered with this same 400 before, so the
+    // response is unchanged.
+    if (!isOurBlobUrl(blobUrl)) {
         return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
     }
 
@@ -116,4 +113,4 @@ export async function POST(request) {
             vendorConflict: false,
         });
     }
-}
+});

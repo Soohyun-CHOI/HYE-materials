@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requirePresident, requireUser } from "@/lib/authz";
+import { requireUser, withPresidentAction } from "@/lib/authz";
 import { getPOById, updatePO } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
 import { generateAndAttachPOPdf } from "@/lib/poPdf";
@@ -48,8 +48,9 @@ async function syncPRStatusToPOSigned(po) {
  * "Regenerate PDF" retry (regeneratePDFAction below) rather than silently
  * leaving the gap unaddressed.
  */
-export async function signPOAction(prevState, formData) {
-    await requirePresident();
+export const signPOAction = withPresidentAction(signPOHandler);
+
+async function signPOHandler(prevState, formData) {
     const poId = formData.get("poId");
 
     const po = await getPOById(poId);
@@ -107,8 +108,9 @@ export async function signPOAction(prevState, formData) {
  * there's no equivalent "already succeeded, don't redo it" case here the
  * way there is for PO creation.
  */
-export async function regeneratePDFAction(prevState, formData) {
-    await requirePresident();
+export const regeneratePDFAction = withPresidentAction(regeneratePDFHandler);
+
+async function regeneratePDFHandler(prevState, formData) {
     const poId = formData.get("poId");
 
     const po = await getPOById(poId);

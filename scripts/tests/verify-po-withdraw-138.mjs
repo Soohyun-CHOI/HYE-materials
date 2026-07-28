@@ -69,8 +69,10 @@ function check(label, actual, expected) {
     console.log(`  ${ok ? "PASS" : "FAIL"}  ${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
 }
 
-// Strip comments so a needle mentioned in prose can't be mistaken for a call
-// (same helper as verify-authz-134.mjs; also handles JSX {/* ... */}).
+// Strip comments so a needle mentioned in prose can't be mistaken for a call.
+// Also handles JSX {/* ... */}. This used to be shared in spirit with the authz
+// check; that one now parses with acorn instead (see verify-authz-structure.mjs
+// for why text matching wasn't enough), so this copy is on its own.
 function codeOnly(src) {
     return src
         .replace(/\/\*[\s\S]*?\*\//g, "")
