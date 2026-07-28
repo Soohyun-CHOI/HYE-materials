@@ -8,7 +8,7 @@ Read automatically by Claude Code at the start of every session.
 
 ## What this project is
 
-Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice workflow (Hanyang ENG, a construction company) with a web app owning the full lifecycle.
+Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice workflow (Hanyang ENG, a construction company) with a web app owning the full lifecycle. The core problem isn't any single step but that the three were never connected: the same order lived in a spreadsheet, an email thread, and a vendor's invoice with nothing tying them together, so reconciling what was ordered against what was billed was manual and after the fact.
 
 ## Architecture
 
@@ -200,7 +200,7 @@ None of the three passes the resolved user to the handler, because no Admin/Pres
 
 ## Status
 
-The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support milestone has been implemented and merged. Not yet started: Phase 4 (materials reporting), the AI invoice-parsing milestone (Phase 5), three standalone enhancements, and the follow-ups listed below. "Merged" here means the work is on `main`, not that an area is closed to further change — follow-up issues may still touch any of it.
+The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support milestone has been implemented and merged. Not yet started: Phase 4 (materials reporting), three enhancement issues, and the follow-ups listed below. AI-assisted invoice parsing is parked rather than pending — see below. "Merged" here means the work is on `main`, not that an area is closed to further change — follow-up issues may still touch any of it.
 
 **Merged — Phase 0 (Foundations):** Airtable service layer, ID generation, magic-link auth (company-domain), role/admin route protection, admin create-forms for Jobs/Vendors/Lines. The Line form's Job field is a searchable combobox over existing Jobs (#30, `app/admin/lines/new/JobCombobox.js`).
 
@@ -216,8 +216,8 @@ The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support
 
 **Not yet started:**
 - **Phase 4 — Materials price history + reporting**: #18 materials cache upsert (natural-key latest price), #19 price search view, #20 materials order log.
-- **Phase 5 — AI-assisted invoice PDF line-item parsing**: #52 extract candidate line items (Qty/Price/Amount) from invoice PDF text, #53 LLM match of extracted lines to PO Items, #54 confirm screen for auto-parsed data.
-- **Standalone enhancements** (no milestone): #32 job-based signer suggestions in the PR form, #33 saved signer-chain templates (personal/shared approval lines), #40 PO PDF — merge image-format Quotation files as an appendix.
+- **AI-assisted invoice PDF line-item parsing — parked, not planned for now**: #52 extract candidate line items (Qty/Price/Amount) from invoice PDF text, #53 LLM match of extracted lines to PO Items, #54 confirm screen for auto-parsed data. All three are closed as not planned and their milestone is closed, so the design reasoning stays readable in the issues without the work reading as pending. Revisit if manual entry ever becomes the bottleneck.
+- **Enhancement issues**: #32 job-based signer suggestions in the PR form, #33 saved signer-chain templates (personal/shared approval lines), #40 PO PDF — merge image-format Quotation files as an appendix.
 - **The follow-up lists below hold only work that has no issue.** Once an issue exists, the tracker is the record and the line goes — it is not replaced by a "tracked as #N" annotation, which would mean a doc edit every time an issue closes. The numbers in the two headings are the *parent* issues the follow-ups came out of, not tracking references for the follow-ups themselves.
 - **Withdraw follow-ups (#122 + #138).** Extending PR withdraw to **Approved** is *not* one of them — that need is met by the PO's own terminal Withdrawn (#138); see the Purchase Requests note above for why the object is the PO and why the once-wanted PR-status check in `signPOAction` no longer applies. What remains:
   - **Withdrawal notifications** — no email is sent on withdrawal today, and none is written yet: this belongs to the broader notification pass over state transitions, still blocked on Resend leaving sandbox mode + domain verification. Planning note, not a description of existing code: the recipient splits two ways, and one line for it would be too narrow. A PO withdrawn from **Awaiting Signature** cancels a task the President is actively holding, so the President belongs in that branch; withdrawal from **Signed** cancels nothing pending and is office-facing (invoice reconciliation is who needs to know). PR withdraw's own case is separate again — the mid-chain signers.
