@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { requireUser, requireAdmin } from "@/lib/authz";
+import { requireUser, withAdminAction } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import { getPRById, updatePR } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR, updateSigner } from "@/lib/airtable/prSigners";
@@ -415,8 +415,10 @@ export async function returnForCorrectionAction(prevState, formData) {
     }
 
     // Recompute the valid target set server-side rather than trusting the
-    // submitted value — same reasoning as re-checking requireAdmin() in
-    // every admin Server Action.
+    // submitted value — same reasoning as every admin Server Action being
+    // wrapped by withAdminAction (#147) instead of trusting whatever page
+    // rendered the form: what reaches a Server Action is caller-supplied,
+    // whoever the caller is.
     const validTargets = getReturnTargets(pr, signers, turn.sequenceOrder);
     const target = validTargets.find((t) => t.value === targetValue);
     if (!target) {
@@ -530,15 +532,19 @@ export async function withdrawAction(prevState, formData) {
  * exact same generation function. Safe to click more than once: it's a
  * no-op if a PO already exists for this PR (see generatePOForApprovedPR).
  */
-export async function generatePOAction(prevState, formData) {
-    // Issue #134 — Admin-only: generating a PO (even the retry) is office
-    // work, not a floor action, and must not be reachable by any active user
-    // for an arbitrary Approved PR. Kept in step with the retry control's
-    // render gate in app/prs/[prId]/page.js.
-    const { authorized } = await requireAdmin();
-    if (!authorized) {
-        return { error: "Only an Admin can generate a PO." };
-    }
+// Issue #134 — Admin-only: generating a PO (even the retry) is office work,
+// not a floor action, and must not be reachable by any active user for an
+// arbitrary Approved PR. Kept in step with the retry control's render gate in
+// app/prs/[prId]/page.js. Issue #147 — the check is the wrapper now, and the
+// hand-written mirror of this guard in the authz verification script is gone
+// with it: the structural check plus the wrapper's own control-flow test
+// cover what that copy claimed to.
+export const generatePOAction = withAdminAction(
+    () => ({ error: "Only an Admin can generate a PO." }),
+    generatePOHandler
+);
+
+async function generatePOHandler(prevState, formData) {
     const prId = formData.get("prId");
 
     const pr = await getPRById(prId);

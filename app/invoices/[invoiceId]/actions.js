@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/authz";
+import { withAdminAction } from "@/lib/authz";
 import { base, TABLES, getLinkedRecords } from "@/lib/airtable/client";
 import {
     getInvoiceById,
@@ -17,12 +17,11 @@ import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
 // createInvoiceAction (issue #16 keeps payment tracking Admin-only,
 // matching who already creates/reconciles invoices; viewing this page is
 // President-or-Admin, but marking Paid is not).
-async function requireAdminOrThrow() {
-    const { authorized } = await requireAdmin();
-    if (!authorized) {
-        throw new Error("Only an Admin can update payment status.");
-    }
-}
+//
+// Issue #147 — this file had already grown its own local requireAdminOrThrow
+// wrapper for exactly the reason #147 generalises: the flag was too easy to
+// drop. That local one is gone in favour of the shared withAdminAction, which
+// keeps its wording and its throw.
 
 /**
  * Toggles Invoices.Paid(+Date). Checking Paid requires a Date (this is a
@@ -30,9 +29,14 @@ async function requireAdminOrThrow() {
  * with no date is a weak record); unchecking always clears Paid Date too,
  * so a stale date never lingers if it's checked again later.
  */
-export async function updatePaidAction(prevState, formData) {
-    await requireAdminOrThrow();
+export const updatePaidAction = withAdminAction(
+    () => {
+        throw new Error("Only an Admin can update payment status.");
+    },
+    updatePaidHandler
+);
 
+async function updatePaidHandler(prevState, formData) {
     const invoiceId = formData.get("invoiceId");
     const paid = formData.get("paid") === "on";
     const paidDate = formData.get("paidDate") || null;
@@ -64,10 +68,12 @@ export async function updatePaidAction(prevState, formData) {
 // (a mistyped vendor total is correctable) — "never overwritten" means the
 // backend never auto-derives it, and any money change here recomputes the
 // Variance Flag below.
-export async function updateInvoiceAction(prevState, formData) {
-    const { authorized } = await requireAdmin();
-    if (!authorized) return { error: "Not authorized." };
+export const updateInvoiceAction = withAdminAction(
+    () => ({ error: "Not authorized." }),
+    updateInvoiceHandler
+);
 
+async function updateInvoiceHandler(prevState, formData) {
     const invoiceId = formData.get("invoiceId");
     const vendorId = formData.get("vendorId");
     const vendorInvoiceCode = formData.get("vendorInvoiceCode") || "";
@@ -167,10 +173,12 @@ export async function updateInvoiceAction(prevState, formData) {
 // rows go first so a mid-failure can only leave harmless orphan rows, never a
 // corrupted PO. Vercel Blob originals of the attached file are intentionally
 // left (separate file-lifecycle work).
-export async function deleteInvoiceAction(invoiceId) {
-    const { authorized } = await requireAdmin();
-    if (!authorized) return { error: "Only an Admin can delete invoices." };
+export const deleteInvoiceAction = withAdminAction(
+    () => ({ error: "Only an Admin can delete invoices." }),
+    deleteInvoiceHandler
+);
 
+async function deleteInvoiceHandler(invoiceId) {
     const invoice = await getInvoiceById(invoiceId);
     if (!invoice) return { error: "That invoice no longer exists." };
 

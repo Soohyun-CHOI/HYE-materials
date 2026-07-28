@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { requireAdmin } from "@/lib/authz";
+import { withAdminAction } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import { createInvoice, linkInvoiceToPO, getInvoiceByRecordId, updateInvoice } from "@/lib/airtable/invoices";
 import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
@@ -15,12 +15,16 @@ import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
 // Server Actions are directly callable regardless of what the page
 // rendered, so the Admin check happens here too, not just in the page
 // component — same principle as every other admin form in this project.
-export async function createInvoiceAction(prevState, formData) {
-    const { authorized } = await requireAdmin();
-    if (!authorized) {
-        return { error: "Not authorized." };
-    }
+// Issue #147: the check is now the wrapper, so the handler cannot run
+// unauthorized. The handler is passed by name rather than inlined only
+// because its body is long; both forms satisfy the structural check in
+// scripts/tests/verify-authz-structure.mjs.
+export const createInvoiceAction = withAdminAction(
+    () => ({ error: "Not authorized." }),
+    createInvoiceHandler
+);
 
+async function createInvoiceHandler(prevState, formData) {
     const vendorId = formData.get("vendorId");
     const vendorInvoiceCode = formData.get("vendorInvoiceCode") || "";
     const issueDate = formData.get("issueDate");
