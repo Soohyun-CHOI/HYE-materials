@@ -55,9 +55,9 @@ export async function createInvoiceAction(prevState, formData) {
     // condition, and the reason that condition can be trusted: a withdrawn
     // PO will never receive an invoice, so linking one is refused here.
     // Deliberately only the status check, NOT getPOWithdrawEligibility() —
-    // that predicate would also reject a Sent to Vendor PO (the most normal
-    // thing to invoice) and a second invoice against a partly invoiced one
-    // (routine). The two rules share the status name, not the rule.
+    // that predicate would also reject a second invoice against a partly
+    // invoiced PO, which is routine. The two rules share the status name, not
+    // the rule: being un-withdrawable doesn't make a PO un-invoiceable.
     //
     // Placed before the first write, not inside the try below: a refusal
     // must create nothing at all rather than lean on the rollback path.
