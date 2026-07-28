@@ -329,8 +329,9 @@ export default async function PODetailPage({ params, searchParams }) {
                 and are the ones who decide not to; they're typically neither
                 President nor Admin). Both refusals come from the one shared
                 predicate: a wrong status renders nothing at all (there is
-                nothing the requester can do about "Sent to Vendor", and
-                promising a path that doesn't exist is worse than silence),
+                nothing the requester can do from a status outside the
+                withdrawable list, and promising a path that doesn't exist is
+                worse than silence),
                 while a linked invoice explains what would have to happen
                 first rather than showing a dead control. Re-validated in
                 withdrawPOAction regardless of this gate. */}

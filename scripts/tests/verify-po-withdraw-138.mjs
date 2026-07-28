@@ -152,9 +152,14 @@ check(
     getPOWithdrawEligibility({ status: "Signed" }).eligible,
     true
 );
+// The subject here is "a value outside the eligible list", so the sentinel is
+// deliberately not a status Airtable has ever offered (#144 removed the last
+// one that was). That also states the property the allowlist gives us: an
+// option added to the field later, without a matching code change, lands here
+// and is refused rather than let through.
 check(
-    "Sent to Vendor reports wrong-status",
-    getPOWithdrawEligibility({ status: "Sent to Vendor" }).reason,
+    "a status outside the eligible list reports wrong-status",
+    getPOWithdrawEligibility({ status: "Not A Real Status" }).reason,
     "wrong-status"
 );
 check(
@@ -167,15 +172,16 @@ check(
     getPOWithdrawEligibility({ status: "Signed", invoiceItems: ["recItem"] }).reason,
     "invoice-linked"
 );
-// Precedence matters: a Sent to Vendor PO with invoices must not be told to
-// go ask an Admin to unlink, because unlinking wouldn't help.
+// Precedence matters: a PO that fails the status test and also has invoices
+// must not be told to go ask an Admin to unlink, because unlinking wouldn't
+// help.
 check(
     "wrong-status wins over invoice-linked",
-    getPOWithdrawEligibility({ status: "Sent to Vendor", invoicePoLinks: ["recLink"] }).reason,
+    getPOWithdrawEligibility({ status: "Not A Real Status", invoicePoLinks: ["recLink"] }).reason,
     "wrong-status"
 );
 check("isPOWithdrawn recognizes the status", isPOWithdrawn({ status: PO_WITHDRAWN_STATUS }), true);
-check("isPOWithdrawn ignores Sent to Vendor", isPOWithdrawn({ status: "Sent to Vendor" }), false);
+check("isPOWithdrawn ignores an unknown status", isPOWithdrawn({ status: "Not A Real Status" }), false);
 
 const createdPRs = [];
 const createdPOs = [];
@@ -271,16 +277,15 @@ try {
     check("case 1 non-requester rejected", "error" in r1, true);
     check("case 1 PO status unchanged", await statusOf(po1.id), "Awaiting Signature");
 
-    // Case 2 — Sent to Vendor is out of reach.
-    const po2 = await makePO(owner.id, "Sent to Vendor");
-    const r2 = await withdrawPOAsRequester({ poId: po2.poId, actingUserId: owner.id });
-    check("case 2 Sent to Vendor rejected", r2.reason, "wrong-status");
-    check("case 2 PO status unchanged", await statusOf(po2.id), "Sent to Vendor");
+    // Case 2 is gone (#144): it withdrew from a status the Status field no
+    // longer offers, so its fixture can't be built. The rule it covered — a
+    // status outside the eligible list is refused — is still checked in Part
+    // B above, against a sentinel rather than a real option. The gap in the
+    // numbering is deliberate; the remaining cases keep the numbers they had.
 
     // Case 4 — a real linked invoice via the join table. Ordered before case
-    // 3 on purpose: cases 1, 2 and 4 need no new Airtable schema, so they
-    // still run (and still have to pass) while the `Withdrawn` option is
-    // pending.
+    // 3 on purpose: cases 1 and 4 need no new Airtable schema, so they still
+    // run (and still have to pass) while the `Withdrawn` option is pending.
     const po4 = await makePO(owner.id, "Signed");
     const invoice = await createInvoice({
         vendorInvoiceCode: "VERIFY-138",
