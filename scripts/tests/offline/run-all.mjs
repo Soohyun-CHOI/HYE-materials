@@ -115,7 +115,19 @@ for (const file of files) {
 
     console.log(`\n${mod.title || file}`);
     const reporter = createReporter();
-    await mod.run(reporter);
+    // A check file that throws mid-run must cost its own file, not the whole
+    // tier. It used to propagate and abort the process, so the checks after it
+    // — including every other file — reported nothing at all, and the summary
+    // never printed. That matters more since #143 gave canViewPR a deliberate
+    // throw for a caller that omits required fields: a future check written
+    // without them should fail one line, not hide 100 passes.
+    try {
+        await mod.run(reporter);
+    } catch (err) {
+        console.log(`  FAIL  ${file} threw partway through: ${String(err?.message ?? err).split("\n")[0]}`);
+        reporter.state.failed++;
+        reporter.state.total++;
+    }
     const { failed, total } = reporter.state;
     failedTotal += failed;
     checkTotal += total;

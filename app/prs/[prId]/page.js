@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
+import { canViewPR } from "@/lib/prVisibility";
 import { getPRById } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR } from "@/lib/airtable/prSigners";
 import { getItemsByPR } from "@/lib/airtable/prItems";
@@ -35,6 +36,20 @@ export default async function PRDetailPage({ params, searchParams }) {
 
     const pr = await getPRById(prId);
     if (!pr) {
+        return <div className="p-8">PR not found.</div>;
+    }
+
+    // Issue #143 — viewing is row-scoped, by the same rule the PR list (#119)
+    // and the PO detail page (#132) already use. Until now this page opened on
+    // a session alone, which made both of those reachable around: the list's
+    // rule did not apply to anyone who knew a PR ID, and #132's PO gate reads
+    // the parent PR, so the PR it protects could simply be opened directly.
+    //
+    // A PR the viewer isn't entitled to reads as not-found, not as "not
+    // authorized" — the same wording and the same reasoning as the PO page:
+    // never confirm that a PR exists outside someone's scope. Placed before
+    // the loads below, so a refusal also stops doing the work.
+    if (!canViewPR(user, pr)) {
         return <div className="p-8">PR not found.</div>;
     }
 
