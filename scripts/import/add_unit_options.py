@@ -1,9 +1,17 @@
 """
 Adds the shared canonical Unit option list as select choices on PR Items,
-PO Items, and Invoice Items' Unit fields (issue #83). All three fields are
-already singleSelect (manually converted/added in Airtable) with an empty
-choice list -- this script only adds options, it never touches or maps
-existing record values.
+PO Items, Invoice Items, and Materials' Unit fields (issue #83; Materials
+joined in #18). All four fields are already singleSelect (manually
+converted/added in Airtable) with an empty choice list -- this script only
+adds options, it never touches or maps existing record values.
+
+Materials is the one table where the select does more than constrain
+input: its natural key is Item Name + Size + Unit + Vendor, so a text
+variant ("ea" or "EA " against "EA") would silently become a second cache
+row for the same material. Only the backend writes that table, copying
+Unit from a PR Item that is already constrained, so the select is a
+structural guarantee rather than a fix -- which is why it was converted
+while the table still held zero records.
 
 Usage examples (reads AIRTABLE_API_KEY / AIRTABLE_BASE_ID from .env.local
 at the repo root automatically, same as import_jobs.py -- no manual
@@ -79,9 +87,9 @@ FIELD_UNIT = "Unit"
 
 # Table name or table ID (tblXXXXXXXX) both work -- table names used here
 # for readability, same as import_jobs.py's AIRTABLE_TABLE_NAME.
-TARGET_TABLES = ["PR Items", "PO Items", "Invoice Items"]
+TARGET_TABLES = ["PR Items", "PO Items", "Invoice Items", "Materials"]
 
-# Canonical Unit list (issue #83) -- shared across all three tables, and
+# Canonical Unit list (issue #83) -- shared across all four tables, and
 # with the Next.js app's own copy at lib/units.js (issue #86), which
 # renders this same list as the Unit dropdown on the PR forms. A plain
 # Python script can't import a JS module, so this list is necessarily
@@ -133,6 +141,7 @@ class AirtableSchemaClient:
             raise ValueError(
                 f"'{table_name}'.{field_name} is a {field['type']}, not singleSelect -- "
                 "expected it to already be manually converted per issue #83."
+                "(#18 for Materials)."
             )
 
         choices = [c["name"] for c in field.get("options", {}).get("choices", [])]
@@ -199,7 +208,7 @@ def add_missing_units_to_table(client: AirtableSchemaClient, tables, table_name:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Add canonical Unit select options to PR Items, PO Items, Invoice Items")
+    parser = argparse.ArgumentParser(description="Add canonical Unit select options to PR Items, PO Items, Invoice Items, Materials")
     parser.add_argument("--base-id", default=AIRTABLE_BASE_ID, help="Airtable Base ID")
     parser.add_argument("--dry-run", action="store_true", help="Preview only, without writing to Airtable")
     args = parser.parse_args()
