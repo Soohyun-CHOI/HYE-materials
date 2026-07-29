@@ -180,8 +180,12 @@ async function persistPRFromForm({ userId, state }) {
     // generation, and the rollback cannot undo a write to it.
     const pendingCodeUpdates = [];
     // Which Quotation records this PR actually has right now. A recordId the
-    // form carries that is absent here (hand-deleted in Airtable between load
-    // and save) is not reusable, and falls through to the create path.
+    // form carries that is absent here is not reusable and falls through to
+    // the create path — with a url that may have expired, which is the hole
+    // #142 narrows rather than closes. Reaching it needs no Airtable edit:
+    // two tabs on the same Draft, one of which replaces a file and saves, is
+    // enough, since a replacement is a destroy-and-create and the other tab's
+    // copy of that record id is dead afterwards.
     const liveQuotationIds = new Set(oldChildIds?.quotationIds ?? []);
 
     try {

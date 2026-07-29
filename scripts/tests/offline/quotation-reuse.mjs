@@ -40,8 +40,10 @@ export function run({ check }) {
         false
     );
 
-    // The record was deleted in Airtable between load and save. Keeping a
-    // reference to it would preserve nothing.
+    // The record no longer exists, so keeping a reference to it would preserve
+    // nothing. The realistic way in is two tabs on one Draft where the other
+    // replaced a file and saved (a replacement is destroy-and-create, so the
+    // id this tab holds is dead), not someone hand-deleting the record.
     check(
         "hydrated entry whose record is gone -> do not reuse",
         shouldReuseQuotation({ recordId: "recGone", isLiveRecord: false, isFreshUpload: false }),
