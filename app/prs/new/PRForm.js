@@ -13,7 +13,9 @@ import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // meaningful once 2+ Quotations exist; ignored (and auto-resolved server-
 // side to the sole Quotation, if any) when there's 0 or 1.
 const EMPTY_ITEM = { itemName: "", size: "", unit: "", qty: "", unitPrice: "", remark: "", quotationIndex: null };
-const EMPTY_QUOTATION = { file: { status: "idle" }, vendorQuotationCode: "" };
+// recordId is "" for an entry added in this session and the stored Quotation's
+// record id for one hydrated from a Draft (#142).
+const EMPTY_QUOTATION = { recordId: "", file: { status: "idle" }, vendorQuotationCode: "" };
 const inputClass =
     "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
 const fieldClass =
@@ -46,6 +48,13 @@ function formStateFromDraft(d) {
         })),
         quotations: d.quotations.length
             ? d.quotations.map((q) => ({
+                  // #142 — carried so the save path can tell "the Requester
+                  // never touched this file" from "this is a new upload". It
+                  // travels in the same object as the url, so the two cannot
+                  // come to describe different records; picking a new file
+                  // replaces `file` and leaves recordId, which is exactly the
+                  // "replaced" signal.
+                  recordId: q.recordId || "",
                   file: q.url
                       ? { status: "done", url: q.url, filename: q.filename }
                       : { status: "idle" },
@@ -834,6 +843,8 @@ export default function PRForm({
                 name="quotationsJson"
                 value={JSON.stringify(
                     quotations.map((q) => ({
+                        // #142 — empty for an entry added in this session.
+                        recordId: q.recordId || "",
                         url: q.file.url,
                         filename: q.file.filename,
                         vendorQuotationCode: q.vendorQuotationCode,

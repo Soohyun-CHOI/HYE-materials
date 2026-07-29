@@ -247,6 +247,40 @@ export function run(reporter) {
     }
 
     log("");
+    log("Attachment writes (#142):");
+    // #142's structural guarantee. Re-submitting an attachment url Airtable
+    // handed us hours earlier returns success and empties the field, so the
+    // number of places that can write Quotations.File is the thing to hold
+    // down. createQuotation writes it from a freshly uploaded Blob url;
+    // updateQuotation deliberately has no file parameter, and a re-save that
+    // keeps a file keeps the whole record rather than rewriting the field.
+    const quotationsTable = fileOf("lib/airtable/quotations.js");
+    const fileWrites = [];
+    walk(quotationsTable.ast, (n) => {
+        if (n.type === "Property" && (n.key?.name === "File" || n.key?.value === "File")) {
+            fileWrites.push(n);
+        }
+    });
+    check("lib/airtable/quotations.js writes the File field in exactly one place", fileWrites.length, 1);
+    const createQuotationFn = resolveFunction(quotationsTable.ast, "createQuotation");
+    assert(
+        "that one write is inside createQuotation",
+        Boolean(createQuotationFn) &&
+            fileWrites.length === 1 &&
+            fileWrites[0].start > createQuotationFn.start &&
+            fileWrites[0].start < createQuotationFn.end
+    );
+    const updateQuotationFn = resolveFunction(quotationsTable.ast, "updateQuotation");
+    assert(
+        "updateQuotation exists and touches no attachment field",
+        Boolean(updateQuotationFn) &&
+            firstPositionOf(
+                updateQuotationFn,
+                (n) => n.type === "Property" && (n.key?.name === "File" || n.key?.value === "File")
+            ) === -1
+    );
+
+    log("");
     log("Withdrawn-PO guards (#138):");
     for (const g of WITHDRAW_GUARDS) {
         const fn = bodyOf(fileOf(g.file), g.fn, g.file, reporter);
