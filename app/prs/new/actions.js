@@ -13,10 +13,11 @@ import {
 } from "@/lib/airtable/purchaseRequests";
 import { createItem, getItemsByPR } from "@/lib/airtable/prItems";
 import { createSigner, getSignersByPR } from "@/lib/airtable/prSigners";
-import { createQuotation, getQuotationsByPR } from "@/lib/airtable/quotations";
+import { createQuotation, getQuotationsByPR, updateQuotation } from "@/lib/airtable/quotations";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { notifyCurrentTurn } from "@/lib/notifications";
+import { shouldReuseQuotation } from "@/lib/quotationReuse";
 
 // Canonical key for an item's duplicate-match identity — Item Name
 // (case/whitespace-insensitive) + Qty + Unit Price, per issue #61. Size/Unit/
@@ -136,6 +137,17 @@ async function destroyChildren({ itemIds = [], signerIds = [], quotationIds = []
 // generation intact — a re-save never loses already-saved children. On a
 // first-save failure the freshly created PR record is removed too, so a
 // failed save leaves no trace (same guarantee the original submit had).
+//
+// Issue #142 — Quotations are the exception to that rebuild, because they are
+// the only child here holding an attachment. Rebuilding one means handing
+// Airtable the url the form is carrying, and for an entry that came from a
+// re-opened Draft that url is Airtable's own signed url, good for ~2h. Past
+// that window the attachment write still SUCCEEDS and silently lands empty
+// (CLAUDE.md, File uploads), so re-saving a Draft the next morning deleted the
+// quotation file. The fix is not to refresh the url before re-submitting —
+// that narrows the window without closing it — but to stop rewriting an
+// attachment that never changed: such an entry keeps its existing Quotation
+// record, and only a genuinely new upload creates one.
 async function persistPRFromForm({ userId, state }) {
     const { existingDraftRecordId, lineId, vendorId, notes, shippingFee, items, signers, quotations } =
         state;
@@ -160,6 +172,17 @@ async function persistPRFromForm({ userId, state }) {
     // caller (saveDraftAction / createPRAction) to clean up at the end of its
     // transaction rather than here, mid-transaction.
     const blobCleanups = [];
+    // Issue #142 — Quotation records carried over from the previous generation
+    // instead of rebuilt, so the teardown below spares them.
+    const reusedQuotationIds = new Set();
+    // Code edits on those carried-over records, applied only once the new
+    // generation is fully in place: a reused record belongs to the previous
+    // generation, and the rollback cannot undo a write to it.
+    const pendingCodeUpdates = [];
+    // Which Quotation records this PR actually has right now. A recordId the
+    // form carries that is absent here (hand-deleted in Airtable between load
+    // and save) is not reusable, and falls through to the create path.
+    const liveQuotationIds = new Set(oldChildIds?.quotationIds ?? []);
 
     try {
         // Quotations first — each becomes its own record and items link to
@@ -174,6 +197,26 @@ async function persistPRFromForm({ userId, state }) {
                 quotationByIndex.push(null);
                 continue;
             }
+
+            // Issue #142 — the rule and its reasoning live in
+            // lib/quotationReuse.js; this supplies the two facts it needs.
+            // Picking a new file goes through upload(), so a replacement reads
+            // as a fresh upload and takes the create path below with a url
+            // Airtable can actually fetch. Editing only the code leaves the url
+            // alone, so the file is kept and only the code is written.
+            if (
+                shouldReuseQuotation({
+                    recordId: q.recordId,
+                    isLiveRecord: liveQuotationIds.has(q.recordId),
+                    isFreshUpload: isOurBlobUrl(q.url),
+                })
+            ) {
+                reusedQuotationIds.add(q.recordId);
+                pendingCodeUpdates.push({ recordId: q.recordId, vendorQuotationCode: code });
+                quotationByIndex.push(q.recordId);
+                continue;
+            }
+
             const created = await createQuotation({
                 prRecordId: pr.id,
                 prId: pr.prId,
@@ -254,9 +297,26 @@ async function persistPRFromForm({ userId, state }) {
     }
 
     // Success — on a re-save, drop the previous generation of children now
-    // that the new one is fully in place.
+    // that the new one is fully in place. Issue #142: except the Quotation
+    // records that were carried over rather than rebuilt, which ARE the new
+    // generation for their entries.
     if (oldChildIds) {
-        await destroyChildren(oldChildIds);
+        await destroyChildren({
+            ...oldChildIds,
+            quotationIds: oldChildIds.quotationIds.filter((id) => !reusedQuotationIds.has(id)),
+        });
+    }
+
+    // Issue #142 — deferred to here so a failure above leaves the carried-over
+    // records exactly as they were; the rollback can only undo what this pass
+    // created. Best-effort per record: the file is safe either way, and losing
+    // the user's save over a code that didn't take would be backwards.
+    for (const update of pendingCodeUpdates) {
+        await updateQuotation(update.recordId, {
+            vendorQuotationCode: update.vendorQuotationCode,
+        }).catch((err) =>
+            console.error(`[#142] couldn't update Vendor Quotation Code on ${update.recordId}`, err)
+        );
     }
 
     return { pr, blobCleanups };
