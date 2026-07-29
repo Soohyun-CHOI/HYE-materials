@@ -1,3 +1,9 @@
+// NO EXIT CODE, deliberately (#152): this script computes no verdict. It prints
+// what detection returned for four PDFs for a human to read, and has no
+// pass/fail variable to turn into a status. Giving it one would mean inventing a
+// verdict, which is a different job than #152's. An uncaught throw still exits
+// non-zero on its own.
+//
 // Ad hoc verification for issue #92 — mirrors app/api/invoices/detect-po/
 // route.js's core logic exactly (PDF text -> regex -> getPOById ->
 // isPoOpen), against real test PDFs, without going through the browser's

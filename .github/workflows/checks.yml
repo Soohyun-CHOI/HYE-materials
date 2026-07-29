@@ -1,0 +1,52 @@
+# Standing checks (issue #152).
+#
+# Runs the offline verification tier on every push and pull request. That tier
+# is deliberately the only thing here: it needs no secrets, no Airtable, no
+# Vercel Blob and no dev server, so it can run on every commit without touching
+# the shared base or leaving fixtures behind.
+#
+# What is NOT here, and why:
+#   - scripts/tests/verify-*.mjs — they need .env.local and write fixtures to
+#     the one shared Airtable base. Running them per-commit would have several
+#     workflows creating and deleting records in the same base at once. They
+#     stay human-initiated.
+#   - npm run lint — there is a known pre-existing error (InvoiceForm.js's
+#     set-state-in-effect). Adding lint now would make this workflow red on
+#     arrival, which trains people to ignore it. Add it in the change that
+#     fixes that error.
+#   - npm run build — `next build` loads lib/airtable/client.js, which throws
+#     without AIRTABLE_API_KEY. It needs repository secrets configured first.
+
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  offline-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned rather than left to the runner's default, so a change to that
+      # default cannot break CI on its own — a failure that reads as an
+      # environment problem is the kind people learn to ignore. Pinned to the
+      # major: 20.x still floats, which is the intended tradeoff (security
+      # patches without a version bump here).
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # --include=dev is explicit on purpose. It is npm ci's default, but the
+      # offline tier parses source with acorn/acorn-jsx, which are
+      # devDependencies, so the tier stops working entirely if anything ever
+      # makes this a production install. Stating it beats relying on a default
+      # nobody would think to check. If they are missing, run-all.mjs names the
+      # cause rather than printing a module-resolution stack.
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      - name: Offline verification tier
+        run: npm test

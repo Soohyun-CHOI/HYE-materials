@@ -1,32 +1,32 @@
-// Authorization verification — issue #134, reworked by #147.
+// Authorization verification, credentialed tier — #134, reworked by #147 and
+// split by #152.
 //
-// Named without an issue number on purpose: unlike verify-po-withdraw-138.mjs
-// or verify-blob-lifecycle-140.mjs, which are evidence for one issue and end
-// with it, Part A here is a standing check meant to be re-run whenever an
-// endpoint is added. An issue number in the filename reads as issue residue.
 // Provenance: #134 built the original (Admin gate wiring, the detect-po SSRF
-// guard, PO-generation idempotency); #147 replaced Part A's substring search
-// with a structural check, deleted two hand-copies of production logic, and
-// added Parts D and E.
+// guard, PO-generation idempotency); #147 replaced a substring search with a
+// structural check and deleted two hand-copies of production logic; #152 moved
+// everything that runs without credentials into scripts/tests/offline/.
 //
-// What #147 changed and why: Part A used to search the source for
-// `requireAdminApi(` over four hard-coded paths. A comment satisfied it, a real
-// call whose refusal Response was then discarded satisfied it, and a route
-// added later was not a subject of it at all. It reported green regardless of
-// the state of the code.
+// This file keeps no issue number because it is not one issue's evidence, but
+// it is no longer a standing check either — that role moved to the offline tier,
+// which runs on every push. Run this one by hand when you have reason to.
 //
-// Parts:
-//   A — structure, delegated to verify-authz-structure.mjs, which also runs
-//       standalone with no env/Airtable/server. That file carries the
-//       exemption list and the exact statement of what a wrapped vs an exempt
-//       PASS proves (ordering is structural for one, unchecked for the other).
+// #152 moved this script's two offline parts out. What used to be Part A (the
+// endpoint inventory) is scripts/tests/offline/authz-structure.mjs and what
+// used to be Part D (the wrappers' control flow) is
+// scripts/tests/offline/authz-wrappers.mjs. Both run with plain `node` on every
+// push now, which is the point: they were the parts that decay silently, and
+// they were unreachable without credentials while they lived here. Run them
+// with `npm test`; this file no longer repeats them.
+//
+// What is left here is everything that genuinely needs credentials or a server:
 //   B — the Blob host predicate the detect-po SSRF guard uses. Imports the real
-//       isOurBlobUrl; #147 deleted the hand-copy that used to live here.
+//       isOurBlobUrl; #147 deleted the hand-copy that used to live here. Stays
+//       credentialed because lib/blobIngest.js imports the Airtable client,
+//       which throws at module load without AIRTABLE_API_KEY.
 //   C — PO generation against a real throwaway PR+PO: fixture, then
 //       idempotency. #147 deleted this part's copy of generatePOAction's Admin
-//       guard (Parts A and D cover that now).
-//   D — the guard wrappers' own control flow: the production factories with a
-//       refusing gate injected, asserting the handler body never runs.
+//       guard; offline/authz-structure.mjs and offline/authz-wrappers.mjs cover
+//       what that copy claimed to.
 //   E — HTTP: the three wrapped Admin routes answer 401 / 403 / not-refused.
 //
 // Run the whole thing with (from the repo root):
@@ -37,13 +37,7 @@
 // but incomplete (a part could not run).
 
 import { readFileSync } from "fs";
-import { runStructureCheck } from "./verify-authz-structure.mjs";
 import { isOurBlobUrl } from "../../lib/blobIngest.js";
-import {
-    createResponseGuard,
-    createFlagGuard,
-    createThrowingGuard,
-} from "../../lib/authzWrap.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
@@ -61,12 +55,7 @@ function check(label, actual, expected) {
 }
 
 // ---------------------------------------------------------------------------
-console.log("Part A — endpoint inventory: every export wrapped, or exempt with a reason");
-console.log("  (see verify-authz-structure.mjs for what wrapped vs exempt actually proves)");
-if (!runStructureCheck({ check, log })) pass = false;
-
-// ---------------------------------------------------------------------------
-console.log("\nPart B — isOurBlobUrl, the host predicate the detect-po SSRF guard uses:");
+console.log("Part B — isOurBlobUrl, the host predicate the detect-po SSRF guard uses:");
 // #147: this used to be a local copy named blobUrlAllowed. It is the real
 // function now, and the route calls the same one, so there is nothing left to
 // drift. The six cases are unchanged so the before/after is comparable.
@@ -83,64 +72,6 @@ check(
 );
 
 // ---------------------------------------------------------------------------
-console.log("\nPart D — guard wrappers: a refused gate must not run the handler:");
-// The production factories, with a refusing gate injected. This is the one
-// property the structural check cannot see: that a refusal stops the body.
-{
-    let bodyRan = false;
-    const handler = async () => {
-        bodyRan = true;
-        return { ok: true };
-    };
-
-    const refusingResponse = new Response(JSON.stringify({ error: "Not authorized" }), { status: 403 });
-    const apiGuarded = createResponseGuard(async () => refusingResponse)(handler);
-    const apiResult = await apiGuarded(new Request("https://example.test/"));
-    check("withAdminApi shape — handler did not run", bodyRan, false);
-    check("withAdminApi shape — refusal is the gate's own Response", apiResult === refusingResponse, true);
-    check("withAdminApi shape — status preserved", apiResult.status, 403);
-
-    bodyRan = false;
-    const flagGuarded = createFlagGuard(async () => ({ authorized: false }))(
-        () => ({ error: "Not authorized." }),
-        handler
-    );
-    const flagResult = await flagGuarded(null, new FormData());
-    check("withAdminAction shape — handler did not run", bodyRan, false);
-    check("withAdminAction shape — refusal is the call site's { error }", flagResult?.error, "Not authorized.");
-
-    bodyRan = false;
-    const flagThrowing = createFlagGuard(async () => ({ authorized: false }))(() => {
-        throw new Error("Not authorized");
-    }, handler);
-    let threw = null;
-    await flagThrowing(null, new FormData()).catch((err) => {
-        threw = err.message;
-    });
-    check("withAdminAction shape — a throwing refusal still throws", threw, "Not authorized");
-    check("withAdminAction shape — handler did not run (throwing refusal)", bodyRan, false);
-
-    bodyRan = false;
-    const presidentGuarded = createThrowingGuard(async () => {
-        throw new Error("Only the President can sign a PO.");
-    })(handler);
-    let presidentThrew = null;
-    await presidentGuarded(null, new FormData()).catch((err) => {
-        presidentThrew = err.message;
-    });
-    check("withPresidentAction shape — gate's throw propagates", presidentThrew, "Only the President can sign a PO.");
-    check("withPresidentAction shape — handler did not run", bodyRan, false);
-
-    // And the authorized direction, so the wrappers aren't passing by refusing
-    // everything.
-    bodyRan = false;
-    const allowed = createFlagGuard(async () => ({ authorized: true }))(() => ({ error: "no" }), handler);
-    const allowedResult = await allowed(null, new FormData());
-    check("withAdminAction shape — authorized runs the handler", bodyRan, true);
-    check("withAdminAction shape — authorized returns the handler's value", allowedResult?.ok, true);
-}
-
-// ---------------------------------------------------------------------------
 let createdPrId = null;
 let createdPoId = null;
 try {
@@ -148,9 +79,10 @@ try {
     // #147 removed this part's generatePOAuthorized copy and the three checks
     // built on it: it restated generatePOAction's Admin guard, so once that
     // guard moved into a wrapper the copy would have kept passing while
-    // describing a shape that no longer existed — the same way Part A went
-    // stale. Part A now proves the wrapper is applied and Part D proves it
-    // stops the body; what is left here always exercised production code.
+    // describing a shape that no longer existed — the same way the old
+    // substring check went stale. offline/authz-structure.mjs now proves the
+    // wrapper is applied and offline/authz-wrappers.mjs proves it stops the
+    // body; what is left here always exercised production code.
     const users = await getActiveUsers();
     if (users.length === 0) throw new Error("No active users to attribute the fixture PR to.");
 

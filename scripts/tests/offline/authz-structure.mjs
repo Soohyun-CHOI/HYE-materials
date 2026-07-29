@@ -1,17 +1,13 @@
-// The standing authorization check (issues #134, #147).
+// Endpoint inventory — every export wrapped, or exempt with a reason.
 //
-// Unlike the other scripts under scripts/tests/, this one is not evidence for
-// a finished issue — it is meant to be run again every time an endpoint is
-// added or moved. That is why it is deliberately cheap: no environment
-// variables, no Airtable, no dev server, no module loader, and it creates
-// nothing. Run it from anywhere:
+// Moved here by #152 from scripts/tests/verify-authz-structure.mjs, and now
+// built on the shared _ast.mjs layer rather than its own copy of a parser and
+// a walker. Behaviour is unchanged; #147's history is below.
 //
-//   node scripts/tests/verify-authz-structure.mjs
-//
-// It is also Part A of scripts/tests/verify-authz.mjs, which adds the runtime
-// evidence (the wrappers' control flow, the Blob host predicate, PO
-// generation, and real HTTP refusals). One definition of the inventory and the
-// exemptions, used by both.
+// #147 replaced a substring search for `requireAdminApi(` over four hard-coded
+// paths. A comment satisfied it, a real call whose refusal Response was then
+// discarded satisfied it, and a route added later was not a subject of it at
+// all, so it reported green regardless of the state of the code.
 //
 // ---------------------------------------------------------------------------
 // WHAT A PASS PROVES, AND WHAT IT DOES NOT
@@ -22,9 +18,9 @@
 // verify, and none for an author to get wrong.
 //
 // For an EXEMPT export: only that the named helper is called somewhere inside
-// the exported function. ORDER IS NOT CHECKED. The old substring Part A
-// compared gateIdx < workIdx; nothing here replaces that comparison, so an
-// exempt route that does work before its gate still passes.
+// the exported function. ORDER IS NOT CHECKED. The old substring check compared
+// gateIdx < workIdx; nothing here replaces that comparison, so an exempt route
+// that does work before its gate still passes.
 //
 // That is not hypothetical. /api/invoices/upload and /api/quotations/upload
 // both call request.json() at the top of the handler, BEFORE authorization,
@@ -37,20 +33,22 @@
 // precedent the next author can copy.
 // ---------------------------------------------------------------------------
 
-import { readdirSync, readFileSync } from "fs";
-import { dirname, join, posix, resolve, sep } from "path";
-import { fileURLToPath } from "url";
-import { Parser } from "acorn";
-import jsx from "acorn-jsx";
+import { join } from "path";
+import {
+    callsFunction,
+    listJsFiles,
+    parseFile,
+    REPO_ROOT,
+    toPosix,
+    walk,
+} from "./_ast.mjs";
+import { isMain, standalone } from "./_harness.mjs";
 
-// Resolved from this file rather than from cwd, so the command above works
-// from any directory.
-const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
+export const title = "Endpoint inventory — every export wrapped, or exempt with a reason (#134/#147)";
 
 // The wrappers lib/authz.js exports, and how many arguments each takes. The
 // arity is checked too: it is what stops a call site from reaching past the
-// binding in lib/authz.js and supplying its own gate (the factories in
-// lib/authzWrap.js take one, but the bound wrappers expose no such argument).
+// binding in lib/authz.js and supplying its own gate.
 const WRAPPERS = {
     withAdminApi: 1,
     withAdminAction: 2,
@@ -79,7 +77,7 @@ const UPLOAD_CALLBACK_GATE =
 // Every endpoint NOT wrapped, with the reason. This list is the check's real
 // coverage. `mustCall` keeps an exemption from being a free pass — the named
 // helper must actually be called inside the exported function, verified on the
-// AST rather than in the text (a comment naming it proves nothing).
+// AST rather than in the text.
 const EXEMPTIONS = [
     {
         file: "app/api/auth/request/route.js",
@@ -118,26 +116,6 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
 ];
 
-// JSX-aware on purpose. Every file under the scan roots has to parse, because
-// a file this check cannot read is a file it does not check — and a
-// function-level "use server" directive can sit inside a component, so the
-// .js files holding JSX are part of the search space, not noise to skip.
-const JsxParser = Parser.extend(jsx());
-
-function toPosix(p) {
-    return p.split(sep).join(posix.sep);
-}
-
-function listJsFiles(dir, out = []) {
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-        if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
-        const full = join(dir, entry.name);
-        if (entry.isDirectory()) listJsFiles(full, out);
-        else if (entry.name.endsWith(".js")) out.push(full);
-    }
-    return out;
-}
-
 function directivesOf(body) {
     const out = [];
     for (const node of Array.isArray(body) ? body : []) {
@@ -149,9 +127,7 @@ function directivesOf(body) {
     return out;
 }
 
-function hasUseServerDirective(ast) {
-    return directivesOf(ast.body).includes("use server");
-}
+const hasUseServerDirective = (ast) => directivesOf(ast.body).includes("use server");
 
 // Function-level "use server" — an inline Server Action declared inside a
 // component rather than in an actions.js module. None exist today, and this
@@ -161,12 +137,7 @@ function hasUseServerDirective(ast) {
 // to add an exemption with a reason.
 function findInlineServerActions(ast) {
     const found = [];
-    (function visit(n) {
-        if (!n || typeof n !== "object") return;
-        if (Array.isArray(n)) {
-            for (const c of n) visit(c);
-            return;
-        }
+    walk(ast, (n) => {
         const isFn =
             n.type === "FunctionDeclaration" ||
             n.type === "FunctionExpression" ||
@@ -174,11 +145,7 @@ function findInlineServerActions(ast) {
         if (isFn && n.body?.type === "BlockStatement" && directivesOf(n.body.body).includes("use server")) {
             found.push(n.id?.name || "<anonymous inline action>");
         }
-        for (const key of Object.keys(n)) {
-            if (key === "type" || key === "start" || key === "end" || key === "loc") continue;
-            visit(n[key]);
-        }
-    })(ast);
+    });
     return found;
 }
 
@@ -214,59 +181,26 @@ function wrapperOf(init) {
     return { name, argCount: init.arguments.length, expectedArgs: WRAPPERS[name] };
 }
 
-// Does this subtree call `calleeName`? Walks the AST rather than the text, so a
-// mention in a comment cannot satisfy it — the specific weakness the old Part A
-// had.
-function subtreeCalls(node, calleeName) {
-    let hit = false;
-    (function visit(n) {
-        if (hit || !n || typeof n !== "object") return;
-        if (Array.isArray(n)) {
-            for (const c of n) visit(c);
-            return;
-        }
-        if (n.type === "CallExpression") {
-            const callee = n.callee;
-            if (
-                (callee?.type === "Identifier" && callee.name === calleeName) ||
-                (callee?.type === "MemberExpression" && callee.property?.name === calleeName)
-            ) {
-                hit = true;
-                return;
-            }
-        }
-        for (const key of Object.keys(n)) {
-            if (key === "type" || key === "start" || key === "end" || key === "loc") continue;
-            visit(n[key]);
-        }
-    })(node);
-    return hit;
-}
-
-/**
- * Runs the structural check. `check`/`log` are supplied by the caller so this
- * can be Part A of verify-authz.mjs and share its PASS/FAIL formatting.
- * Returns true when everything is wrapped or justifiably exempt.
- */
-export function runStructureCheck({ check, log }) {
+export function run({ check, assert, log }) {
     let ok = true;
     const fail = (msg) => {
         ok = false;
-        log(`  FAIL  ${msg}`);
+        assert(msg, false);
     };
 
     const inventory = [];
     for (const root of SCAN_ROOTS) {
-        for (const file of listJsFiles(join(REPO_ROOT, root))) {
-            const rel = toPosix(file.slice(REPO_ROOT.length + 1));
-            let ast;
+        for (const abs of listJsFiles(join(REPO_ROOT, root))) {
+            const rel = toPosix(abs.slice(REPO_ROOT.length + 1));
+            let parsed;
             try {
-                ast = JsxParser.parse(readFileSync(file, "utf8"), { ecmaVersion: "latest", sourceType: "module" });
+                parsed = parseFile(rel);
             } catch (err) {
                 // Loud, not skipped: an unparsed file is an unchecked file.
-                fail(`${rel}: could not parse (${err.message})`);
+                fail(err.message);
                 continue;
             }
+            const { ast } = parsed;
 
             for (const name of findInlineServerActions(ast)) {
                 inventory.push({ file: rel, name, init: null, ast, surface: "inline action" });
@@ -283,7 +217,7 @@ export function runStructureCheck({ check, log }) {
         }
     }
 
-    log(`  inventory: ${inventory.length} endpoint exports across ${new Set(inventory.map((e) => e.file)).size} files`);
+    log(`inventory: ${inventory.length} endpoint exports across ${new Set(inventory.map((e) => e.file)).size} files`);
 
     const exemptKey = (f, n) => `${f}::${n}`;
     const exemptionsByKey = new Map(EXEMPTIONS.map((e) => [exemptKey(e.file, e.name), e]));
@@ -298,7 +232,13 @@ export function runStructureCheck({ check, log }) {
         if (wrapper) {
             wrappedCount++;
             // Ordering needs no assertion here: the wrapper owns the call.
-            if (!check(`${entry.file} — ${entry.name} wrapped by ${wrapper.name}, ${wrapper.expectedArgs} arg(s)`, wrapper.argCount, wrapper.expectedArgs)) {
+            if (
+                !check(
+                    `${entry.file} — ${entry.name} wrapped by ${wrapper.name}, ${wrapper.expectedArgs} arg(s)`,
+                    wrapper.argCount,
+                    wrapper.expectedArgs
+                )
+            ) {
                 ok = false;
             }
             if (exemption) {
@@ -321,11 +261,16 @@ export function runStructureCheck({ check, log }) {
             // Presence only — see the scope note at the top of this file: order
             // is deliberately NOT asserted for an exempt export.
             const target = collectExports(entry.ast).find((e) => e.name === entry.name);
-            if (!check(`${entry.file} — ${entry.name} exempt, and still calls ${exemption.mustCall}() (presence, not order)`, subtreeCalls(target?.node, exemption.mustCall), true)) {
+            if (
+                !assert(
+                    `${entry.file} — ${entry.name} exempt, and still calls ${exemption.mustCall}() (presence, not order)`,
+                    Boolean(target?.node) && callsFunction(target.node, exemption.mustCall)
+                )
+            ) {
                 ok = false;
             }
         } else {
-            log(`  PASS  ${entry.file} — ${entry.name} exempt (no gate expected)`);
+            assert(`${entry.file} — ${entry.name} exempt (no gate expected)`, true);
         }
     }
 
@@ -335,26 +280,8 @@ export function runStructureCheck({ check, log }) {
         }
     }
 
-    log(`  summary: ${wrappedCount} wrapped, ${EXEMPTIONS.length} exempt, ${inventory.length} total`);
+    log(`summary: ${wrappedCount} wrapped, ${EXEMPTIONS.length} exempt, ${inventory.length} total`);
     return ok;
 }
 
-// Standalone entry point. `node scripts/tests/verify-authz-structure.mjs`
-// exits 0 when clean and 1 when not, so it is usable as a gate rather than
-// something whose output has to be read.
-const invokedDirectly =
-    process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
-
-if (invokedDirectly) {
-    const log = (m) => console.log(m);
-    const check = (label, actual, expected) => {
-        const good = actual === expected;
-        log(`  ${good ? "PASS" : "FAIL"}  ${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
-        return good;
-    };
-    log("Authorization structure — every endpoint export wrapped, or exempt with a reason");
-    const clean = runStructureCheck({ check, log });
-    log("\n" + "=".repeat(56));
-    log(clean ? "STRUCTURE OK" : "STRUCTURE CHECK FAILED");
-    process.exit(clean ? 0 : 1);
-}
+if (isMain(import.meta.url)) standalone(title, run);
