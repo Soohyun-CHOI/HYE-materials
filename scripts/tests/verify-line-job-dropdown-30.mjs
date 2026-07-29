@@ -85,7 +85,11 @@ async function run() {
     console.log("");
 
     console.log("=".repeat(56));
+    // Exit code added by #152: printing the verdict and returning 0 either way
+    // made a failure indistinguishable from a pass to anything but a reader.
+    // Set rather than exited on, so the cleanup in the finally below still runs.
     console.log(allPass ? "ALL CASES PASS" : "SOME CASES FAILED");
+    process.exitCode = allPass ? 0 : 1;
 }
 
 try {

@@ -1,3 +1,9 @@
+// NO EXIT CODE, deliberately (#152): this script computes no verdict. It prints
+// the variance figures it produced for a human to compare, and has no pass/fail
+// variable to turn into a status. Giving it one would mean inventing a verdict,
+// which is a different job than #152's. An uncaught throw still exits non-zero
+// on its own.
+//
 // Ad hoc verification for issue #15 (variance checking) — exercises the
 // same service-layer calls createInvoiceAction makes, against a real,
 // currently-un-invoiced PO Item (recffjh8PlB8SQfXk, "heyy", Qty 12, Unit

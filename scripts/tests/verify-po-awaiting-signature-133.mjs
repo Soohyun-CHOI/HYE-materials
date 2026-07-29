@@ -114,4 +114,7 @@ try {
 }
 
 console.log("\n" + "=".repeat(56));
+// Exit code added by #152: printing the verdict and returning 0 either way made
+// a failure indistinguishable from a pass to anything but a reader.
 console.log(pass ? "ALL CHECKS PASS" : "SOME CHECKS FAILED");
+process.exit(pass ? 0 : 1);

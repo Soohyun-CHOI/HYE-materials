@@ -2,21 +2,24 @@
 //
 // The PO detail page is a Server Component; its gate is the pure function
 // canViewPR (lib/prVisibility.js), called server-side, and a false result is
-// rendered as "PO not found" (never a hidden link). So the decisive server
-// proof is canViewPR's decision for the three required cases — this exercises
-// the exact function the page uses. Part B additionally shows that the
-// employee data path (getItemsByPO) carries none of the invoice-derived
-// fields the privileged path (getInvoicingStatusByPO) adds — i.e. the hidden
-// data is omitted server-side, not hidden in the client.
+// rendered as "PO not found" (never a hidden link).
 //
-// Parts A/B are read-only. Part C creates one throwaway PR+PO to prove the
-// sign action refuses a non-President and leaves the PO unsigned, then
+// #152 moved canViewPR's decision table (the old Part A) to
+// scripts/tests/offline/pr-visibility.mjs, where it runs with plain `node` on
+// every push. It was always a pure-function check; it only needed credentials
+// because it shared a file with the Airtable parts below. Run it with
+// `npm test`.
+//
+// What is left here needs the base: Part B shows that the employee data path
+// (getItemsByPO) carries none of the invoice-derived fields the privileged path
+// (getInvoicingStatusByPO) adds — i.e. the hidden data is omitted server-side,
+// not hidden in the client — and Part C creates one throwaway PR+PO to prove
+// the sign action refuses a non-President and leaves the PO unsigned, then
 // deletes the fixture.
 //
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-po-visibility-132.mjs
 
-import { canViewPR } from "../../lib/prVisibility.js";
 import { getItemsByPO, getInvoicingStatusByPO } from "../../lib/airtable/poItems.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
@@ -31,29 +34,7 @@ function check(label, actual, expected) {
     console.log(`  ${ok ? "PASS" : "FAIL"}  ${label}: got ${actual}, expected ${expected}`);
 }
 
-console.log("Part A — canViewPR decisions (the page's server-side gate):");
-const president = { id: "recPres", role: "President", isAdmin: false, assignedJobs: [] };
-const admin = { id: "recAdmin", role: "Employee", isAdmin: true, assignedJobs: [] };
-const employee = { id: "recEmp", role: "Employee", isAdmin: false, assignedJobs: ["recJobA"] };
-
-const prOfEmployee = { requester: ["recEmp"], job: ["recJobZ"] }; // employee raised it
-const prOnAssignedJob = { requester: ["recOther"], job: ["recJobA"] }; // on employee's job
-const prUnrelated = { requester: ["recOther"], job: ["recJobZ"] }; // neither
-
-// Privileged: everything.
-check("President sees unrelated PO's PR", canViewPR(president, prUnrelated), true);
-check("Admin sees unrelated PO's PR", canViewPR(admin, prUnrelated), true);
-// (a) employee's own PR.
-check("Employee sees PO for a PR they raised", canViewPR(employee, prOfEmployee), true);
-// (b) employee's assigned Job.
-check("Employee sees PO on their assigned Job", canViewPR(employee, prOnAssignedJob), true);
-// (c) unrelated → the page maps this false to "PO not found".
-check("Employee DENIED an unrelated PO", canViewPR(employee, prUnrelated), false);
-// Edge cases.
-check("null user denied", canViewPR(null, prUnrelated), false);
-check("null pr denied", canViewPR(employee, null), false);
-
-console.log("\nPart B — invoice-derived fields omitted from the employee path:");
+console.log("Part B — invoice-derived fields omitted from the employee path:");
 const poRecords = await base(TABLES.PURCHASE_ORDERS).select({ maxRecords: 1 }).all();
 if (poRecords.length === 0) {
     console.log("  (skipped — no PO records in the base to sample)");
@@ -135,4 +116,7 @@ try {
 }
 
 console.log("\n" + "=".repeat(56));
+// Exit code added by #152: printing the verdict and returning 0 either way made
+// a failure indistinguishable from a pass to anything but a reader.
 console.log(pass ? "ALL CHECKS PASS" : "SOME CHECKS FAILED");
+process.exit(pass ? 0 : 1);

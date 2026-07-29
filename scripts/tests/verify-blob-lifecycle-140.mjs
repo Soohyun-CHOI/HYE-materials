@@ -6,16 +6,28 @@
 // sequence — and checks the object's existence with head() before and after.
 //
 // The four upload paths run inside Server Actions, which plain node can't
-// enter (iron-session cookies, redirect()). Those are exercised through the
-// running app instead; Part A asserts here that each call site actually calls
-// the helper AND calls it outside its rollback boundary, so a path that moved
-// the cleanup back inside the try (where a rollback would strand the retry)
-// fails this script.
+// enter (iron-session cookies, redirect()), so "this call site calls the helper,
+// outside its rollback boundary, scheduled with after()" can only be asserted on
+// the source.
+//
+// #152 moved those assertions — the old Part A — to
+// scripts/tests/offline/guard-placement.mjs, alongside the equivalent ones from
+// verify-po-withdraw-138.mjs. Reasons: they need no credentials, so welding them
+// to this script's Airtable and Blob fixtures made them cost more than anyone
+// would pay; and they were text matching on `export async function NAME`, which
+// #147 invalidated by wrapping createInvoiceAction — four of them reported false
+// for weeks while the production code was correct. They are AST-based now, they
+// assert the actual property rather than a string proxy for it (no enclosing
+// try, rather than "positioned after this error message"), and they run on every
+// push via `npm test`.
+//
+// What stays here needs credentials: Parts A2/A3 read lib/blobIngest.js, which
+// imports the Airtable client and therefore throws at module load without
+// AIRTABLE_API_KEY, and Part B calls the real helper against real records.
 //
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-blob-lifecycle-140.mjs
 
-import { readFileSync } from "fs";
 import { head, put } from "@vercel/blob";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import {
@@ -38,17 +50,6 @@ function check(label, actual, expected) {
     console.log(`  ${ok ? "PASS" : "FAIL"}  ${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
 }
 
-function codeOnly(src) {
-    return src
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .split("\n")
-        .filter((l) => {
-            const t = l.trim();
-            return !t.startsWith("//") && !t.startsWith("*");
-        })
-        .join("\n");
-}
-
 // Does the Blob object still exist? head() throws once it's gone.
 async function blobExists(url) {
     try {
@@ -65,100 +66,6 @@ async function tinyPdf(label) {
     const font = await doc.embedFont(StandardFonts.Helvetica);
     page.drawText(label, { x: 20, y: 160, size: 10, font });
     return Buffer.from(await doc.save());
-}
-
-console.log("Part A — every path calls the shared helper, outside its rollback boundary:");
-const prNewActions = codeOnly(readFileSync("app/prs/new/actions.js", "utf8"));
-const prIdActions = codeOnly(readFileSync("app/prs/[prId]/actions.js", "utf8"));
-const invoiceActions = codeOnly(readFileSync("app/invoices/new/actions.js", "utf8"));
-const poPdf = codeOnly(readFileSync("lib/poPdf.js", "utf8"));
-
-// One top-level function's source, so "cleanup outside the rollback" is
-// asserted per function instead of on the first match in the file (three
-// functions in app/prs/new/actions.js touch this).
-function bodyOf(src, fnName) {
-    const start = src.search(new RegExp(`(export )?async function ${fnName}\\b`));
-    if (start === -1) return "";
-    const next = src.indexOf("\nasync function ", start + 1);
-    const nextExport = src.indexOf("\nexport ", start + 1);
-    const end = [next, nextExport].filter((i) => i > -1).sort((a, b) => a - b)[0];
-    return end === undefined ? src.slice(start) : src.slice(start, end);
-}
-
-// Each action's rollback lives in a catch that ends with its error return, so
-// a cleanup call positioned after that text is necessarily outside the try.
-function afterRollback(body, rollbackNeedle) {
-    const rollback = body.indexOf(rollbackNeedle);
-    const cleanup = body.indexOf("confirmIngestThenDelete(");
-    return rollback !== -1 && cleanup !== -1 && cleanup > rollback;
-}
-
-const persistBody = bodyOf(prNewActions, "persistPRFromForm");
-const saveDraftBody = bodyOf(prNewActions, "saveDraftAction");
-const createPRBody = bodyOf(prNewActions, "createPRAction");
-const editContinueBody = bodyOf(prIdActions, "editAndContinueAction");
-const createInvoiceBody = bodyOf(invoiceActions, "createInvoiceAction");
-
-check("W1 persistPRFromForm does NOT clean up mid-transaction", persistBody.includes("confirmIngestThenDelete("), false);
-check("W1 persistPRFromForm collects targets instead", persistBody.includes("blobCleanups.push("), true);
-check("W1 saveDraftAction cleans up", saveDraftBody.includes("confirmIngestThenDelete("), true);
-check("W1 createPRAction cleans up", createPRBody.includes("confirmIngestThenDelete("), true);
-check(
-    "W1 createPRAction's cleanup is after its rollback return",
-    afterRollback(createPRBody, 'return { error: "Something went wrong creating the PR'),
-    true
-);
-check(
-    "W1 createPRAction's cleanup is after the In Review flip",
-    createPRBody.indexOf("confirmIngestThenDelete(") > createPRBody.indexOf('status: "In Review"'),
-    true
-);
-check("W2 editAndContinueAction cleans up", editContinueBody.includes("confirmIngestThenDelete("), true);
-check(
-    "W2 cleanup is after its rollback return",
-    afterRollback(editContinueBody, 'return { error: "Something went wrong saving your changes'),
-    true
-);
-check("W3 createInvoiceAction cleans up", createInvoiceBody.includes("confirmIngestThenDelete("), true);
-check(
-    "W3 cleanup is after its rollback return",
-    afterRollback(createInvoiceBody, 'return { error: "Something went wrong creating the invoice'),
-    true
-);
-// Cleanup is scheduled, not awaited: it must not sit on the user's response
-// path, and three of these actions end in redirect() (which throws), so an
-// awaited call would be positional.
-for (const [name, body] of [
-    ["saveDraftAction", saveDraftBody],
-    ["createPRAction", createPRBody],
-    ["editAndContinueAction", editContinueBody],
-    ["createInvoiceAction", createInvoiceBody],
-    ["generateAndAttachPOPdf", bodyOf(poPdf, "generateAndAttachPOPdf")],
-]) {
-    check(`${name} schedules cleanup with after()`, /after\(\s*\(\)\s*=>/.test(body), true);
-    check(`${name} does not await cleanup inline`, body.includes("await confirmIngestThenDelete("), false);
-}
-// Every target must name the attachment it is confirming — the id is what
-// makes "our file was taken" distinguishable from "some file is attached".
-for (const [name, body] of [
-    ["persistPRFromForm", persistBody],
-    ["editAndContinueAction", editContinueBody],
-    ["createInvoiceAction", createInvoiceBody],
-    ["generateAndAttachPOPdf", bodyOf(poPdf, "generateAndAttachPOPdf")],
-]) {
-    check(`${name} passes attachmentId`, body.includes("attachmentId:"), true);
-}
-check("W4 generateAndAttachPOPdf calls it", poPdf.includes("confirmIngestThenDelete("), true);
-// W4's opposite direction: a failed attachment write deletes immediately.
-check("W4 deletes the object when the write throws", poPdf.includes("deleteBlobBestEffort("), true);
-check("W4 no longer hands back a deleted URL", poPdf.includes("return { url: blob.url }"), false);
-// No call site may restate the sequence.
-for (const [name, src] of [
-    ["app/prs/new/actions.js", prNewActions],
-    ["app/prs/[prId]/actions.js", prIdActions],
-    ["app/invoices/new/actions.js", invoiceActions],
-]) {
-    check(`${name} does not call del() itself`, /\bdel\s*\(/.test(src), false);
 }
 
 console.log("\nPart A2 — helper constants come from the measured latency:");
@@ -332,4 +239,7 @@ try {
 }
 
 console.log("\n" + "=".repeat(56));
+// Exit code added by #152: printing the verdict and returning 0 either way made
+// a failure indistinguishable from a pass to anything but a reader.
 console.log(pass ? "ALL CHECKS PASS" : "SOME CHECKS FAILED");
+process.exit(pass ? 0 : 1);

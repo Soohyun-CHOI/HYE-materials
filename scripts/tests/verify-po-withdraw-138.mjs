@@ -13,12 +13,18 @@
 // what requireUser().id supplies.
 //
 // What therefore cannot be exercised by direct call, and is covered by
-// Part A's static wiring assertions plus browser checks instead:
+// source-shape assertions plus browser checks instead:
 //   - requireUser() (the session gate) and redirect()
 //   - createInvoiceAction (a Server Action behind requireAdmin())
 //   - the /api/invoices/detect-po route body (next/server)
-// Part A asserts each of those call sites has the guard AND has it before
-// its first side effect, so a guard that is missing or misplaced fails here.
+//
+// #152 moved those assertions — the old Part A — to
+// scripts/tests/offline/guard-placement.mjs, together with the equivalent ones
+// from verify-blob-lifecycle-140.mjs, because they are the same kind of claim
+// about production call sites and they kept decaying in the same way. They were
+// text matching on `export async function NAME`; #147 wrapped two of these
+// exports and they silently reported false for weeks while the guards were
+// intact. They are AST-based now and run on every push via `npm test`.
 //
 // Part C exercises the real searchPOs()/getAllPOs() to prove a withdrawn PO
 // drops out of the invoice-side candidate set, before and after withdrawal.
@@ -34,7 +40,6 @@
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-po-withdraw-138.mjs
 
-import { readFileSync } from "fs";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { put, del } from "@vercel/blob";
 import {
@@ -68,79 +73,6 @@ function check(label, actual, expected) {
     if (!ok) pass = false;
     console.log(`  ${ok ? "PASS" : "FAIL"}  ${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
 }
-
-// Strip comments so a needle mentioned in prose can't be mistaken for a call.
-// Also handles JSX {/* ... */}. This used to be shared in spirit with the authz
-// check; that one now parses with acorn instead (see verify-authz-structure.mjs
-// for why text matching wasn't enough), so this copy is on its own.
-function codeOnly(src) {
-    return src
-        .replace(/\/\*[\s\S]*?\*\//g, "")
-        .split("\n")
-        .filter((l) => {
-            const t = l.trim();
-            return !t.startsWith("//") && !t.startsWith("*");
-        })
-        .join("\n");
-}
-
-// One top-level exported function's source, so "guard before side effect"
-// can be asserted per function rather than per file.
-function bodyOf(src, fnName) {
-    const start = src.indexOf(`export async function ${fnName}`);
-    if (start === -1) return "";
-    const next = src.indexOf("\nexport ", start + 1);
-    return next === -1 ? src.slice(start) : src.slice(start, next);
-}
-
-function before(src, gate, work) {
-    const g = src.indexOf(gate);
-    const w = src.indexOf(work);
-    return g !== -1 && w !== -1 && g < w;
-}
-
-console.log("Part A — guard wiring (present, and before the first side effect):");
-const poActions = codeOnly(readFileSync("app/pos/[poId]/actions.js", "utf8"));
-const invoiceActions = codeOnly(readFileSync("app/invoices/new/actions.js", "utf8"));
-const detectPo = codeOnly(readFileSync("app/api/invoices/detect-po/route.js", "utf8"));
-const poPage = codeOnly(readFileSync("app/pos/[poId]/page.js", "utf8"));
-const poTable = codeOnly(readFileSync("lib/airtable/purchaseOrders.js", "utf8"));
-
-const signBody = bodyOf(poActions, "signPOAction");
-const regenBody = bodyOf(poActions, "regeneratePDFAction");
-const withdrawBody = bodyOf(poActions, "withdrawPOAction");
-
-check("signPOAction refuses a withdrawn PO before writing", before(signBody, "isPOWithdrawn(", "updatePO("), true);
-check(
-    "regeneratePDFAction refuses a withdrawn PO before generating",
-    before(regenBody, "isPOWithdrawn(", "generateAndAttachPOPdf("),
-    true
-);
-check("withdrawPOAction gates the session first", before(withdrawBody, "requireUser(", "withdrawPOAsRequester("), true);
-// The action must own no decision and no write of its own — every refusal
-// path has to be the shared one, so a later edit can't add a second,
-// divergent rule here.
-check("withdrawPOAction contains no updatePO of its own", withdrawBody.includes("updatePO("), false);
-check(
-    "createInvoiceAction refuses a withdrawn PO before creating",
-    before(invoiceActions, "isPOWithdrawn(", "createInvoice("),
-    true
-);
-check(
-    "detect-po classifies withdrawn before pushing a candidate",
-    before(detectPo, "isPOWithdrawn(", "confirmed.push("),
-    true
-);
-// The page must consume the shared predicate rather than re-deriving the
-// rule from status literals.
-check("PO page uses the shared predicate", poPage.includes("getPOWithdrawEligibility("), true);
-check("PO page hardcodes no withdrawable-status literal", poPage.includes('"Awaiting Signature"'), false);
-// Both invoice-side PO queries must exclude the status.
-check(
-    "getAllPOs + searchPOs both exclude the withdrawn status",
-    (poTable.match(/\$\{PO_WITHDRAWN_STATUS\}/g) || []).length,
-    2
-);
 
 console.log("\nPart B — the production predicate's decisions (pure, no DB):");
 check("withdrawable statuses are exactly the two in scope", PO_WITHDRAWABLE_STATUSES.join(","), "Awaiting Signature,Signed");
@@ -439,3 +371,7 @@ if (blocked) {
 } else {
     console.log(pass ? "ALL CHECKS PASS" : "SOME CHECKS FAILED");
 }
+// Exit codes added by #152. `blocked` is the schema-prerequisite case this
+// script already distinguished in its output but not in its status: parts of it
+// could not run, which is exactly the state #147 gave exit 2 to.
+process.exit(!pass ? 1 : blocked ? 2 : 0);
