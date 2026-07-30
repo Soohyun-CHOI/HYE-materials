@@ -47,7 +47,7 @@
 //   - Only `filterByFormula` is inspected. No other Airtable option takes a
 //     formula today.
 
-import { formulaString } from "../../../lib/airtableFormula.js";
+import { andSearchAll, formulaString, orByField, orByRecordId } from "../../../lib/airtableFormula.js";
 import { isMain, standalone } from "./_harness.mjs";
 import { listJsFiles, parseFile, repoPath, toPosix, REPO_ROOT, walk } from "./_ast.mjs";
 
@@ -75,11 +75,39 @@ function sourceOf(source, node) {
     return source.slice(node.start, node.end);
 }
 
-function isFormulaStringCall(node) {
+/**
+ * The escape boundaries this check accepts, all exported from
+ * lib/airtableFormula.js.
+ *
+ * `formulaString` escapes ONE value. The two OR-list builders exist because a
+ * batched read interpolates a joined LIST, and a `chunk.map(...).join()` at the
+ * call site is invisible to this check — it would fail closed, correctly, since
+ * the AST cannot see whether anything inside was escaped (#19 hit exactly that).
+ * Moving the list-building next to the escape makes it one audited
+ * implementation instead of a per-call-site exemption saying "trust the code
+ * inside", which is the weak shape #147 warned about.
+ *
+ * Adding a name here widens what passes, so each must be a function whose entire
+ * job is escaping, living in that module, with its own behavioural cases below.
+ */
+const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "andSearchAll"]);
+
+/**
+ * Builders that return a COMPLETE formula, so a bare call to one is an accepted
+ * value for filterByFormula on its own — no template literal involved.
+ *
+ * This is stronger than the template-literal form, not weaker: there the check
+ * verifies each hole is escaped and takes the surrounding text on trust, whereas
+ * here the entire string comes from the audited module. formulaString is
+ * deliberately absent — it escapes a value, it does not produce a predicate.
+ */
+const WHOLE_FORMULA_BUILDERS = new Set(["orByRecordId", "orByField", "andSearchAll"]);
+
+function isEscapeBuilderCall(node) {
     return (
         node.type === "CallExpression" &&
         node.callee.type === "Identifier" &&
-        node.callee.name === "formulaString"
+        ESCAPE_BUILDERS.has(node.callee.name)
     );
 }
 
@@ -102,7 +130,7 @@ function importsCanonicalFormulaString({ ast, source }) {
         if (node.type !== "ImportDeclaration") return;
         if (!CANONICAL_IMPORT.test(node.source.value)) return;
         for (const spec of node.specifiers) {
-            if (spec.type === "ImportSpecifier" && spec.imported.name === "formulaString") ok = true;
+            if (spec.type === "ImportSpecifier" && ESCAPE_BUILDERS.has(spec.imported.name)) ok = true;
         }
     });
     return ok;
@@ -141,6 +169,50 @@ export function run({ check, log, assert }) {
     check("an ampersand is left alone", formulaString("a & b"), "a & b");
     check("a real newline is left alone", formulaString("a\nb"), "a\nb");
 
+    log("");
+    log("the OR-list builders — one audited boundary, not a per-site exemption:");
+    check(
+        "orByRecordId wraps and escapes every id",
+        orByRecordId(["recA", 'rec"B']),
+        'OR(RECORD_ID() = "recA", RECORD_ID() = "rec\\"B")'
+    );
+    // An empty list must match NOTHING rather than everything: Airtable rejects a
+    // bare OR(), and a caller with no ids wants no rows, not the whole table.
+    check("an empty id list matches nothing", orByRecordId([]), "FALSE()");
+    check("nullish ids are dropped", orByRecordId(["recA", null, undefined]), 'OR(RECORD_ID() = "recA")');
+    check(
+        "orByField escapes each value and keeps the field a reference",
+        orByField("Material Record ID", ["recA", 'a"b']),
+        'OR({Material Record ID} = "recA", {Material Record ID} = "a\\"b")'
+    );
+    check("an empty value list matches nothing", orByField("F", []), "FALSE()");
+    // The field name is a {reference}, not a string literal, so escaping it would
+    // be wrong. It is always our own constant, so a brace in it is a bug: the
+    // builder refuses rather than emitting a formula that means something else.
+    const refuses = (fn) => {
+        try {
+            fn();
+            return "accepted";
+        } catch {
+            return "refused";
+        }
+    };
+    check(
+        "a field name containing a brace is refused, not escaped",
+        refuses(() => orByField('F} = "x" OR {G', ["v"])),
+        "refused"
+    );
+    check("an empty field name is refused", refuses(() => orByField("", ["v"])), "refused");
+    check("a non-string field name is refused", refuses(() => orByField(null, ["v"])), "refused");
+    // AND, not OR: another typed word must narrow the result, never widen it.
+    check(
+        "andSearchAll ANDs one SEARCH per needle",
+        andSearchAll("Material Label", ["pipe", '2"']),
+        'AND(SEARCH("pipe", LOWER({Material Label})), SEARCH("2\\"", LOWER({Material Label})))'
+    );
+    check("no needles matches nothing, not everything", andSearchAll("F", []), "FALSE()");
+    check("a braced field name is refused here too", refuses(() => andSearchAll("F}{", ["v"])), "refused");
+
     // --- Part 2: every call site ----------------------------------------
     log("");
     log(`call sites under ${SEARCH_DIRS.join("/ and ")}/ (enumerated, fail-closed):`);
@@ -173,9 +245,27 @@ export function run({ check, log, assert }) {
         for (const prop of props) {
             totalSites++;
 
-            // Anything but a template literal is a shape this check cannot
-            // reason about — a variable, a concatenation, a call. Fail rather
-            // than skip: "unrecognized" must never read as "fine".
+            // A bare call to a whole-formula builder: the entire predicate comes
+            // from the audited module, so there is nothing left to inspect.
+            if (
+                prop.value.type === "CallExpression" &&
+                prop.value.callee.type === "Identifier" &&
+                WHOLE_FORMULA_BUILDERS.has(prop.value.callee.name)
+            ) {
+                if (!fileImportsCanonical) {
+                    violations.push(
+                        `${rel}: calls ${prop.value.callee.name}() but does not import it from ` +
+                        `lib/airtableFormula — a local definition of that name would pass this check`
+                    );
+                }
+                escapedSites.push(rel);
+                continue;
+            }
+
+            // Anything else that is not a template literal is a shape this check
+            // cannot reason about — a variable, a concatenation, an indirect
+            // call. Fail rather than skip: "unrecognized" must never read as
+            // "fine".
             if (prop.value.type !== "TemplateLiteral") {
                 violations.push(
                     `${rel}: filterByFormula is a ${prop.value.type}, not a template literal — ` +
@@ -189,7 +279,7 @@ export function run({ check, log, assert }) {
                 totalInterpolations++;
                 const text = sourceOf(parsed.source, expr);
 
-                if (isFormulaStringCall(expr)) {
+                if (isEscapeBuilderCall(expr)) {
                     usesEscape = true;
                     continue;
                 }
@@ -199,17 +289,17 @@ export function run({ check, log, assert }) {
                 }
                 violations.push(
                     `${rel}: \`\${${text}}\` is interpolated into a filterByFormula without ` +
-                    `formulaString() and is not an exemption`
+                    `an escape builder (${[...ESCAPE_BUILDERS].join(" / ")}) and is not an exemption`
                 );
             }
 
             if (usesEscape) {
                 escapedSites.push(rel);
                 if (!fileImportsCanonical) {
-                    // A local function named formulaString would satisfy the
+                    // A local function with one of those names would satisfy the
                     // shape check while escaping nothing.
                     violations.push(
-                        `${rel}: calls formulaString() but does not import it from lib/airtableFormula — ` +
+                        `${rel}: uses an escape builder but does not import one from lib/airtableFormula — ` +
                         `a local definition of that name would pass this check while doing nothing`
                     );
                 }
@@ -253,7 +343,7 @@ export function run({ check, log, assert }) {
         "the public /api/auth/verify token lookup escapes its token",
         authProps.length === 1 &&
             authProps[0].value.type === "TemplateLiteral" &&
-            authProps[0].value.expressions.every(isFormulaStringCall)
+            authProps[0].value.expressions.every(isEscapeBuilderCall)
     );
     assert(
         "and imports the escape from the canonical module",

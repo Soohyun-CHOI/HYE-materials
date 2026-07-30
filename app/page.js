@@ -18,6 +18,16 @@ export default async function Home() {
                     >
                         New Purchase Request
                     </Link>
+                    {/* Issue #19 — the app has no navigation shell, so a new
+                        route is otherwise reachable only by typing the URL.
+                        One link here rather than inventing a nav bar, which is
+                        a separate decision. */}
+                    <Link
+                        href="/materials"
+                        className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                    >
+                        Material prices
+                    </Link>
                     <form action="/api/auth/logout" method="POST">
                         <button
                             type="submit"
