@@ -47,7 +47,8 @@ import { remainingQty } from "../../lib/poItemQty.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
-import { base, TABLES, _debugLockKeys, formulaString } from "../../lib/airtable/client.js";
+import { base, TABLES, _debugLockKeys } from "../../lib/airtable/client.js";
+import { formulaString } from "../../lib/airtableFormula.js";
 
 let pass = true;
 let incomplete = null;
