@@ -1,4 +1,4 @@
-# Material PO Automation — Project Context
+# Material Workflow Automation — Project Context
 
 Read automatically by Claude Code at the start of every session.
 
