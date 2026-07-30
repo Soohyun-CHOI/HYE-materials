@@ -253,6 +253,33 @@ if (incomplete) {
         check("exactly one row is marked lowest", lowest.size, 1);
         check("and it is the 30, not the 99", group.rows.find((r) => lowest.has(r.id))?.unitPrice, 30);
 
+        // An EMPTY query is a browse, not an empty search: the screen lists
+        // everything under the search bar before anything is typed. Asserted
+        // against the search above rather than against a hard count, because the
+        // demo fixtures in scripts/demo/ change how many rows exist.
+        const browse = await searchMaterialPrices({ user: admin, query: "" });
+        check("an empty query returns no tokens", browse.tokens.length, 0);
+        assert(
+            `and still lists materials (${browse.materials.length}) — it is a browse, not "no results"`,
+            browse.materials.length > 0
+        );
+        assert(
+            "including at least everything the narrow search found",
+            browse.materials.length >= adminSearch.materials.length
+        );
+        assert(
+            "and this fixture's material is among them",
+            browse.materials.some((g) => g.material.id === material.id)
+        );
+        // Alphabetical by Material Label, sorted server-side so the cap takes a
+        // stable first N rather than an arbitrary one.
+        const labels = browse.materials.map((g) => g.material.materialLabel ?? "");
+        check(
+            "browse order is alphabetical by Material Label",
+            labels.join("|"),
+            [...labels].sort((a, b) => a.localeCompare(b)).join("|")
+        );
+
         // -------------------------------------------------------------------
         console.log("\nPart C — the same search as the non-Admin fixture user");
         const fixtureSearch = await searchMaterialPrices({ user: fixtureUser, query: `${TAG} ball valve` });

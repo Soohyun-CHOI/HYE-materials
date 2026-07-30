@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getMaterialPurchaseHistory } from "@/lib/materialHistory";
-import { countsAsOrdered } from "@/lib/materialPriceView";
+import { countsAsOrdered, statusTag } from "@/lib/materialPriceView";
 import { formatUSD } from "@/lib/format";
 
 // A page, not a modal (#19): this repo's modals are confirmation dialogs
@@ -54,7 +54,31 @@ export default async function MaterialHistoryPage({ params }) {
                 </p>
             ) : (
                 <div className="mt-4 overflow-x-auto">
-                    <table className="w-full text-sm">
+                    {/* Declared widths for the same reason as the search page: a
+                        status tag or a long vendor name must not decide how wide
+                        the figures column is. Only one table here, so there is no
+                        cross-table drift to fix — this keeps the two screens
+                        reading alike. */}
+                    <table className="w-full min-w-[52rem] table-fixed text-sm">
+                        {/* Widths measured against real content rather than guessed
+                            (px needed vs allotted, at this table's 832px): Date 80,
+                            Qty 40, Unit price 68 — its HEADER is wider than its
+                            figures — Amount 79, Order 228 for a PO ID plus a Job code.
+                            The numeric columns are deliberately trimmed close to what
+                            they need so Vendor gets 272px: it carries the status tag,
+                            and `PO withdrawn` beside a realistically long supplier
+                            name needs 249px. Vendor stays the flexible column because
+                            if anything has to wrap it should be a name rather than a
+                            figure, and under a fixed layout a wrapped name cannot drag
+                            the numbers out of line. */}
+                        <colgroup>
+                            <col className="w-24" />
+                            <col />
+                            <col className="w-12" />
+                            <col className="w-20" />
+                            <col className="w-24" />
+                            <col className="w-60" />
+                        </colgroup>
                         <thead>
                             <tr className="text-left text-zinc-500">
                                 <th className="pr-2">Date</th>
@@ -82,7 +106,19 @@ export default async function MaterialHistoryPage({ params }) {
                                         <td className="py-1 pr-2 whitespace-nowrap">
                                             {row.date || "—"}
                                         </td>
-                                        <td className="py-1 pr-2">{row.vendorName}</td>
+                                        {/* Status tag rides with the vendor, not with
+                                            the PO ID: the Order column has to hold a
+                                            PO ID and a Job code, while this one has
+                                            the slack. Same placement as the search
+                                            page, so the two screens read alike. */}
+                                        <td className="py-1 pr-2">
+                                            {row.vendorName}
+                                            {statusTag(row.poStatus) && (
+                                                <span className="ml-2 rounded bg-zinc-100 px-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                                                    {statusTag(row.poStatus)}
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="py-1 pr-2 text-right">
                                             {Number.isFinite(row.qty) ? row.qty : "—"}
                                         </td>
@@ -113,10 +149,12 @@ export default async function MaterialHistoryPage({ params }) {
                                                     {row.identifiers.jobCode}
                                                 </span>
                                             )}
-                                            <span className="ml-2 text-xs text-zinc-500">
-                                                {row.poStatus}
-                                                {counted ? "" : " — not counted as ordered"}
-                                            </span>
+                                            {/* No status and no "not counted" phrase
+                                                here. The tag is beside the vendor, and
+                                                the consequence is stated once in the
+                                                footnote below rather than repeated on
+                                                every affected row — which is what let
+                                                this column stop wrapping. */}
                                         </td>
                                     </tr>
                                 );
@@ -124,6 +162,17 @@ export default async function MaterialHistoryPage({ params }) {
                         </tbody>
                     </table>
                 </div>
+            )}
+
+            {/* Said once, and only when such a row exists. Per-row it was
+                "Withdrawn — not counted as ordered" in the Order cell, which is
+                what pushed that column past its width. The rows themselves are
+                already dimmed, so this names what the dimming means. */}
+            {rows.some((row) => !countsAsOrdered(row)) && (
+                <p className="mt-2 text-xs text-zinc-500">
+                    Dimmed rows come from orders that were withdrawn, so their quantities are
+                    not counted as ordered.
+                </p>
             )}
 
             <Link href="/materials" className="mt-6 inline-block text-sm underline">

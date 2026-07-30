@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { countMaterials } from "@/lib/airtable/materials";
 import { searchMaterialPrices } from "@/lib/materialHistory";
-import { lowestPriceRowIds, qtyDiffersAcross } from "@/lib/materialPriceView";
+import { lowestPriceRowIds, qtyDiffersAcross, statusTag } from "@/lib/materialPriceView";
 import { formatUSD } from "@/lib/format";
 import MaterialSearchForm from "./MaterialSearchForm";
 
@@ -46,17 +46,20 @@ export default async function MaterialPricesPage({ searchParams }) {
 
             <MaterialSearchForm initialQuery={q} />
 
-            {/* Three different answers, and they must not read alike: nothing
-                typed yet, nothing matched, and nothing indexed at all. */}
-            {!searched && (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
-                    Enter an item name to see what each vendor last charged.
-                </p>
-            )}
-
+            {/* Nothing typed is a BROWSE — the whole list is below — so there is
+                no prompt here. That leaves two empties, and they must not read
+                alike: nothing matched what was typed, and nothing indexed at all. */}
             {searched && materials.length === 0 && (
                 <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
                     No items match “{q}”.
+                </p>
+            )}
+
+            {!searched && materials.length > 0 && (
+                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                    {truncated
+                        ? `Showing ${materials.length} items. Search to find a specific one.`
+                        : `All ${materials.length} item${materials.length === 1 ? "" : "s"} bought so far.`}
                 </p>
             )}
 
@@ -77,7 +80,7 @@ export default async function MaterialPricesPage({ searchParams }) {
                 </div>
             )}
 
-            {truncated && (
+            {truncated && searched && (
                 <p className="mt-4 text-sm text-amber-700 dark:text-amber-500">
                     Showing the first {materials.length} matches. Add another word to narrow the
                     search.
@@ -116,7 +119,25 @@ export default async function MaterialPricesPage({ searchParams }) {
                             </p>
                         ) : (
                             <div className="mt-2 overflow-x-auto">
-                                <table className="w-full text-sm">
+                                {/* table-fixed + a declared colgroup, because every
+                                    item group renders its OWN table and an
+                                    auto-layout table sizes columns from its own
+                                    content — so three groups came out with three
+                                    different column widths. Declaring the widths
+                                    takes them out of the content's hands: they are
+                                    identical across groups, and neither a long
+                                    vendor name nor a status tag can move them. */}
+                                <table className="w-full min-w-[52rem] table-fixed text-sm">
+                                    <colgroup>
+                                        {/* Vendor absorbs whatever is left over. */}
+                                        <col />
+                                        <col className="w-36" />
+                                        <col className="w-28" />
+                                        <col className="w-16" />
+                                        {/* Only a PO ID lives here now, so this gives
+                                            the freed width back to Vendor. */}
+                                        <col className="w-40" />
+                                    </colgroup>
                                     <thead>
                                         <tr className="text-left text-zinc-500">
                                             <th className="pr-2">Vendor</th>
@@ -133,14 +154,40 @@ export default async function MaterialPricesPage({ searchParams }) {
                                                     key={row.id}
                                                     className="border-t border-zinc-200 dark:border-zinc-800"
                                                 >
-                                                    <td className="py-1 pr-2">{row.vendorName}</td>
+                                                    {/* The status tag rides with the
+                                                        vendor, not with the PO ID it
+                                                        describes. Measured reason: the
+                                                        Order column has 168px of room
+                                                        and a PO ID plus a tag needs
+                                                        214, so it wrapped — while this
+                                                        column had ~212px sitting empty
+                                                        behind the longest vendor name.
+                                                        Putting the tag where the slack
+                                                        already is reserves nothing on
+                                                        the majority of rows that have
+                                                        no tag. */}
+                                                    <td className="py-1 pr-2">
+                                                        {row.vendorName}
+                                                        {statusTag(row.poStatus) && (
+                                                            <span className="ml-2 rounded bg-zinc-100 px-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                                                                {statusTag(row.poStatus)}
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    {/* Badge BEFORE the price. The cell
+                                                        stays right-aligned, so every row's
+                                                        price still ends on the same edge
+                                                        whether or not it carries a badge —
+                                                        the tag grows leftwards into the
+                                                        column's slack instead of pushing
+                                                        the number out of line. */}
                                                     <td className="py-1 pr-2 text-right whitespace-nowrap">
-                                                        {formatUSD(row.unitPrice)}
                                                         {lowest.has(row.id) && (
-                                                            <span className="ml-2 rounded bg-zinc-100 px-1 text-xs font-normal text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                                            <span className="mr-2 rounded bg-zinc-100 px-1 text-xs font-normal text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                                                                 Lowest
                                                             </span>
                                                         )}
+                                                        {formatUSD(row.unitPrice)}
                                                     </td>
                                                     <td className="py-1 pr-2 whitespace-nowrap">
                                                         {row.latestDate || "—"}
@@ -164,11 +211,9 @@ export default async function MaterialPricesPage({ searchParams }) {
                                                                 —
                                                             </span>
                                                         )}
-                                                        {row.poStatus && (
-                                                            <span className="ml-2 text-xs text-zinc-500">
-                                                                {row.poStatus}
-                                                            </span>
-                                                        )}
+                                                        {/* No status here — it sits with
+                                                            the vendor, where the column
+                                                            has room for it. */}
                                                     </td>
                                                 </tr>
                                             );

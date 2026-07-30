@@ -17,6 +17,7 @@ import {
     qtyDiffersAcross,
     sortHistoryRows,
     sortVendorRows,
+    statusTag,
     MAX_SEARCH_TOKENS,
 } from "../../../lib/materialPriceView.js";
 import { isMain, standalone } from "./_harness.mjs";
@@ -25,7 +26,7 @@ export const title = "Material price view rules (#19)";
 
 const ids = (set) => [...set].sort().join(",");
 
-export function run({ check, log }) {
+export function run({ check, log, assert }) {
     log("buildSearchTokens — the typed query becomes match tokens:");
     check("a single word", buildSearchTokens("pipe").join("|"), "pipe");
     check("case is folded for matching", buildSearchTokens("PIPE").join("|"), "pipe");
@@ -169,6 +170,26 @@ export function run({ check, log }) {
     // Deliberately indistinguishable from withdrawn, which is why the screen
     // takes its LABEL from PO Status and only the judgement from here.
     check("a Qty-0 line on a live PO also does not", countsAsOrdered({ committedQty: 0 }), false);
+
+    log("");
+    log("statusTag — silence means Signed:");
+    // Signed is nearly every row, so labelling it is noise on every line.
+    check("Signed gets no tag", statusTag("Signed"), null);
+    check("a blank status gets no tag", statusTag(""), null);
+    check("undefined gets no tag", statusTag(undefined), null);
+    // Every label names its subject, because the tag renders beside the VENDOR
+    // rather than beside the PO ID it describes. A bare "Withdrawn" after a
+    // vendor name reads as a fact about the vendor.
+    check("Awaiting Signature names the PO and stays short", statusTag("Awaiting Signature"), "PO unsigned");
+    check("Withdrawn names the PO too", statusTag("Withdrawn"), "PO withdrawn");
+    assert(
+        "no label is ambiguous about what it describes",
+        ["Awaiting Signature", "Withdrawn", "Sent to Vendor"].every((s) => statusTag(s).startsWith("PO"))
+    );
+    // A status option added to the Airtable field later must SHOW rather than
+    // vanish — the failure mode #144 recorded for a denylist. Colon form, because
+    // an arbitrary option name will not read grammatically after a bare "PO".
+    check("an unknown status shows itself rather than disappearing", statusTag("Sent to Vendor"), "PO: Sent to Vendor");
 }
 
 if (isMain(import.meta.url)) standalone(title, run);
