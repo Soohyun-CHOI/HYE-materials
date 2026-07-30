@@ -132,18 +132,29 @@ export default async function MaterialPricesPage({ searchParams }) {
                                         {/* Vendor absorbs whatever is left over. */}
                                         <col />
                                         <col className="w-36" />
-                                        <col className="w-28" />
                                         <col className="w-16" />
+                                        <col className="w-28" />
                                         {/* Only a PO ID lives here now, so this gives
                                             the freed width back to Vendor. */}
                                         <col className="w-40" />
                                     </colgroup>
+                                    {/* Unit price then Qty, so the two figures that
+                                        qualify each other are adjacent and read as
+                                        "this much, at this quantity, on this date".
+                                        Note this is the REVERSE of the PR/PO/invoice
+                                        item tables, which run Qty then Unit Price —
+                                        deliberately, because those carry an Amount
+                                        column and Qty x Unit Price = Amount reads as
+                                        an equation. This table has no Amount, and the
+                                        price is the reason the screen exists, so it
+                                        leads. The history screen does have Amount and
+                                        keeps the item-table order. */}
                                     <thead>
                                         <tr className="text-left text-zinc-500">
                                             <th className="pr-2">Vendor</th>
                                             <th className="pr-2 text-right">Unit price</th>
-                                            <th className="pr-2">Date</th>
                                             <th className="pr-2 text-right">Qty</th>
+                                            <th className="pr-2">Date</th>
                                             <th className="pr-2">Order</th>
                                         </tr>
                                     </thead>
@@ -189,11 +200,11 @@ export default async function MaterialPricesPage({ searchParams }) {
                                                         )}
                                                         {formatUSD(row.unitPrice)}
                                                     </td>
-                                                    <td className="py-1 pr-2 whitespace-nowrap">
-                                                        {row.latestDate || "—"}
-                                                    </td>
                                                     <td className="py-1 pr-2 text-right">
                                                         {Number.isFinite(row.qty) ? row.qty : "—"}
+                                                    </td>
+                                                    <td className="py-1 pr-2 whitespace-nowrap">
+                                                        {row.latestDate || "—"}
                                                     </td>
                                                     <td className="py-1 pr-2">
                                                         {row.identifiers?.poId ? (
