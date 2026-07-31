@@ -15,7 +15,7 @@ grows.
 Where a target table's natural key includes Unit, the select does more
 than constrain input: a text variant ("ea" or "EA " against "EA") would
 silently become a second row for the same thing rather than merely
-mislabelling one. Those tables are written only by the backend, copying a
+mislabeling one. Those tables are written only by the backend, copying a
 Unit that is already constrained upstream, so the select is a structural
 guarantee rather than a fix -- which is why each is converted while it
 still holds zero records.
@@ -37,11 +37,12 @@ the CHOICE COLORS come out right:
 
   1. FIELD DOES NOT EXIST YET -> this script creates it, in one call, with
      every canonical option AND its color (POST to
-     /meta/bases/{base}/tables/{table}/fields; per Airtable's field spec a
-     choice may carry a color, and colors are auto-assigned when it is
-     omitted). This is the path that gets colors right, so it is the
-     preferred one: leave the Unit field off a new table and let this
-     script add it.
+     /meta/bases/{base}/tables/{table}/fields; a choice may carry a color
+     there, and colors are auto-assigned when it is omitted). This is the
+     path that gets colors right, so it is the preferred one: leave the Unit
+     field off a new table and let this script add it. Measured against this
+     base -- the field it created came back with the full palette walk,
+     identical to the fields that had been colored by hand.
   2. FIELD ALREADY EXISTS -> the only way to add a choice is the
      `typecast=True` side effect on a normal record write: writing a value
      that isn't yet a choice auto-creates it (same trick as
@@ -84,7 +85,7 @@ typecast=True), then deleted. A table whose Unit field already holds every
 canonical value gets no scratch record at all. Current choices are read
 from the Metadata API first, so a --dry-run's counts match what a real run
 would do and a re-run only writes what is actually still missing --
-naturally idempotent, matching typecast's own no-op behaviour for a choice
+naturally idempotent, matching typecast's own no-op behavior for a choice
 name that already exists.
 
 Requirements:
@@ -148,12 +149,12 @@ CANONICAL_UNITS = [
 # Choice colors, read off the fields that were colored by hand before this
 # script could do it and confirmed identical on all of them: the first
 # options walk Airtable's light palette from blue round to purple, and every
-# option past the end of that walk is grey.
+# option past the end of that walk is gray.
 #
 # Expressed as a cycle plus an overflow rather than as one color per unit,
 # so that adding a unit to CANONICAL_UNITS needs no edit here: it simply
-# takes the next palette color, or grey once the palette is used up. The
-# grey tail is not a leftover -- it is what "no color left to distinguish
+# takes the next palette color, or gray once the palette is used up. The
+# gray tail is not a leftover -- it is what "no color left to distinguish
 # this one" looks like, and it matches what a human would get by adding
 # options in the Airtable UI.
 CHOICE_COLOR_CYCLE = [
