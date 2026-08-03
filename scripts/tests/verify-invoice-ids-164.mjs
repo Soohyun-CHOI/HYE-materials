@@ -1,8 +1,9 @@
-// The Invoice ID daily counter — credentialed (#164).
+// Generated ID sequences — credentialed (#164).
 //
-// The offline tier pins the rule itself (scripts/tests/offline/id-sequence.mjs,
-// 54 checks: the prefixes, max-not-count, the membership test, and that lib/ids.js
-// names no date field in a formula). What only real records can answer is here:
+// The offline tier pins the rules themselves (scripts/tests/offline/id-sequence.mjs:
+// the prefixes, max-not-count for both shapes, the membership test, that lib/ids.js
+// names no date field in a formula, and every generateChildId call site). What only
+// real records can answer is here:
 //
 //   A — the live schema still holds the four ID fields the code counts, under the
 //       names it uses. A counter reading a field that was renamed in Airtable's UI
@@ -25,30 +26,47 @@
 //   F — prefixMatch against the live parser: the `= 1` anchor, case sensitivity, an
 //       unused prefix, and a hostile prefix carrying a quote (#159's property,
 //       scoped to the new builder).
+//   G — THE CHILD-ID HALF: three siblings, the MIDDLE one deleted, then a fourth —
+//       which must not re-issue the live number the old count would have. This is
+//       reachable without anyone choosing to delete anything, because
+//       persistPRFromForm creates the new generation before destroying the old.
+//   H — the two child sequences under one parent stay independent: a PR Item is
+//       {PR ID}-### and a Quotation is {PR ID}-Q##, and neither may shift the
+//       other. The live gap is on both at once (HYE-PR-260722-09 carries -002 and
+//       -Q02), so one function covering both shapes has to keep them apart.
+//   I — the guarantee the child fix RESTS on: a parent's link array holds the child
+//       on the FIRST read after it is created, with no polling. Re-measured rather
+//       than cited, because it is what made the parent's array the right source
+//       instead of a prefixMatch on the child table — which was measured seeing a
+//       fresh sibling 6 times out of 6 and being ~2x faster, and was still not
+//       chosen. See generateChildId for why.
 //
 // Everything calls production functions; nothing reimplements a rule.
 //
 // Run from the repo root:
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-invoice-ids-164.mjs
 //
-// Fixtures: creates Invoices, PRs, POs and Deliveries with no children and no
-// attachments, and DELETES ALL OF THEM in this same run. Creates nothing in Vercel
-// Blob. Reuses (never modifies, never deletes) one active User, one Vendor, one Line
-// and one Job. The only record it updates is a PO it created itself, to backdate
-// the field Part D is about.
+// Fixtures: creates Invoices, POs and Deliveries with no children, plus PRs with
+// PR Items and Quotations (no attachments), and DELETES ALL OF THEM in this same
+// run — children before their parent, with every cleanup failure counted as a run
+// failure. Creates nothing in Vercel Blob. Reuses (never modifies, never deletes)
+// one active User, one Vendor, one Line and one Job. The only record it updates is
+// a PO it created itself, to backdate the field Part D is about.
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
 import { execSync } from "child_process";
 import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createPR } from "../../lib/airtable/purchaseRequests.js";
+import { createItem, getItemsByPR } from "../../lib/airtable/prItems.js";
+import { createQuotation } from "../../lib/airtable/quotations.js";
 import { createPO } from "../../lib/airtable/purchaseOrders.js";
 import { createDelivery } from "../../lib/airtable/deliveries.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
 import { getAllJobs } from "../../lib/airtable/jobs.js";
-import { base, TABLES } from "../../lib/airtable/client.js";
+import { base, TABLES, findByRecordIds } from "../../lib/airtable/client.js";
 import { prefixMatch } from "../../lib/airtableFormula.js";
 import { ID_KINDS, dailyIdPrefix, nextSequence } from "../../lib/idSequence.js";
 
@@ -411,6 +429,136 @@ try {
         }
         check(`a hostile prefix is inert: ${JSON.stringify(hostile)}`, result, 0);
     }
+
+    // -----------------------------------------------------------------------
+    // The child-ID half. Same sentence as Part E, one level down: a count is the
+    // next free number only while nothing has been deleted. generateChildId
+    // counted the parent's link array, and a child is deleted by an ordinary Draft
+    // re-save rather than by anyone choosing to.
+    console.log("\nPart G — a child whose middle sibling was deleted:");
+    const prC = await createPR({ requesterId: user.id, lineId: lines[0].id, vendorId: vendor.id, notes: `${TAG} C` });
+    track("prs", prC.id);
+
+    const mkItem = (n) =>
+        createItem({
+            prRecordId: prC.id,
+            prId: prC.prId,
+            itemName: `${TAG} item ${n}`,
+            size: "",
+            unit: "EA",
+            qty: n,
+            unitPrice: 1,
+            remark: "",
+            quotationRecordId: null,
+        });
+
+    const item1 = await mkItem(1);
+    const item2 = await mkItem(2);
+    const item3 = await mkItem(3);
+    console.log(`  created ${[item1, item2, item3].map((i) => i.prItemId).join(", ")}`);
+    check("three siblings number 001..003", [item1, item2, item3].map((i) => seqOf(i.prItemId)).join(","), "1,2,3");
+
+    // Delete the MIDDLE one. This is what a Draft re-save does to the low end of
+    // the range, and what the old count could not survive.
+    await base(TABLES.PR_ITEMS).destroy(item2.id);
+    console.log(`  deleted the middle sibling ${item2.prItemId}`);
+
+    // What the array now says, which is exactly what the old rule counted.
+    const prAfter = await base(TABLES.PURCHASE_REQUESTS).find(prC.id);
+    const arrayLen = (prAfter.get("PR Items") || []).length;
+    check("the parent's link array is down to 2 (the old rule's whole input)", arrayLen, 2);
+
+    const item4 = await mkItem(4);
+    console.log(`  created ${item4.prItemId}`);
+    assert(
+        `the old rule would have minted ...-00${arrayLen + 1}, which is ${item3.prItemId}`,
+        arrayLen + 1 === seqOf(item3.prItemId)
+    );
+    assert(`the new one collides with nothing (${item4.prItemId})`, item4.prItemId !== item3.prItemId);
+    check("it is max + 1", seqOf(item4.prItemId), 4);
+
+    // Every ID under this parent is distinct — the property the whole change is
+    // for, asserted over the rows rather than over one comparison.
+    const liveItems = await getItemsByPR(prC.id);
+    const liveItemIds = liveItems.map((i) => i.prItemId);
+    check("three live siblings", liveItemIds.length, 3);
+    check("all distinct", new Set(liveItemIds).size, liveItemIds.length);
+
+    // -----------------------------------------------------------------------
+    console.log("\nPart H — the two child sequences under one parent stay independent:");
+    // A Quotation is {PR ID}-Q##, a PR Item is {PR ID}-###. Two sequences, one
+    // parent, and neither may see the other — the live gap is on both at once
+    // (HYE-PR-260722-09 carries -002 and -Q02).
+    const q1 = await createQuotation({
+        prRecordId: prC.id,
+        prId: prC.prId,
+        vendorId: vendor.id,
+        vendorQuotationCode: `${TAG}-Q1`,
+        file: [],
+    });
+    console.log(`  created ${q1.quotationId} on a PR that already has 3 PR Items`);
+    check("the Q sequence starts at Q01, not Q04", q1.quotationId, `${prC.prId}-Q01`);
+
+    const q2 = await createQuotation({
+        prRecordId: prC.id,
+        prId: prC.prId,
+        vendorId: vendor.id,
+        vendorQuotationCode: `${TAG}-Q2`,
+        file: [],
+    });
+    check("and continues Q02", q2.quotationId, `${prC.prId}-Q02`);
+
+    await base(TABLES.QUOTATIONS).destroy(q1.id);
+    console.log(`  deleted ${q1.quotationId}`);
+    const q3 = await createQuotation({
+        prRecordId: prC.id,
+        prId: prC.prId,
+        vendorId: vendor.id,
+        vendorQuotationCode: `${TAG}-Q3`,
+        file: [],
+    });
+    console.log(`  created ${q3.quotationId}`);
+    check("a deleted Q number is not re-issued either", q3.quotationId, `${prC.prId}-Q03`);
+
+    const nextItem = await mkItem(5);
+    console.log(`  created ${nextItem.prItemId}`);
+    assert(
+        "and the Quotations did not shift the PR Item sequence",
+        nextItem.prItemId === `${prC.prId}-005`
+    );
+
+    // -----------------------------------------------------------------------
+    // Why the parent's link array and not a prefixMatch on the child table. The
+    // filter was measured seeing a fresh sibling in 6 of 6 rounds and is ~2x
+    // faster, so this is not a lag reproduction — it is the measurement that the
+    // array, which generateChildId already depended on, is populated on the FIRST
+    // read after a child is created. That is the guarantee the choice rests on, so
+    // it is re-measured rather than cited.
+    console.log("\nPart I — the parent's link array on the first read after a child is created:");
+    const prD = await createPR({ requesterId: user.id, lineId: lines[0].id, vendorId: vendor.id, notes: `${TAG} D` });
+    track("prs", prD.id);
+    const fresh = await createItem({
+        prRecordId: prD.id,
+        prId: prD.prId,
+        itemName: `${TAG} freshness probe`,
+        size: "",
+        unit: "EA",
+        qty: 1,
+        unitPrice: 1,
+        remark: "",
+        quotationRecordId: null,
+    });
+    const parentFirstRead = await base(TABLES.PURCHASE_REQUESTS).find(prD.id);
+    const linkedNow = parentFirstRead.get("PR Items") || [];
+    assert("the link array already holds the child, with no polling", linkedNow.includes(fresh.id));
+    const siblingsNow = await findByRecordIds(TABLES.PR_ITEMS, linkedNow, { fields: ["PR Item ID"] });
+    const idsNow = siblingsNow.map((r) => r.get("PR Item ID"));
+    assert("and the batched read resolves it to its ID", idsNow.includes(fresh.prItemId));
+    check(
+        "so the next sequence is 2 rather than 1 (an unpopulated array would say 1)",
+        nextSequence(idsNow, prD.prId),
+        2
+    );
 } catch (err) {
     pass = false;
     console.error(`\n  ABORTED — ${err.message}`);
@@ -435,7 +583,19 @@ for (const id of created.deliveries) await destroy(TABLES.DELIVERIES, id, "Deliv
 // POs before PRs: a PO links its PR, so the other order leaves a dangling link for
 // as long as the loop takes.
 for (const id of created.pos) await destroy(TABLES.PURCHASE_ORDERS, id, "PO");
-for (const id of created.prs) await destroy(TABLES.PURCHASE_REQUESTS, id, "PR");
+// CHILDREN BEFORE THEIR PARENT, and every failure reported. Deleting a PR whose
+// PR Items and Quotations are still there strands them with no parent, which is
+// precisely the defect CLAUDE.md records for verify-blob-lifecycle-140.mjs — it
+// dropped a PO's items with a Promise.allSettled whose results it discarded and
+// then deleted the PO anyway, leaving two parentless PO Items that had to be
+// removed by hand in #162. `destroy` below counts a failure as a run failure, so
+// a stranded fixture cannot pass silently.
+for (const id of created.prs) {
+    const rec = await base(TABLES.PURCHASE_REQUESTS).find(id).catch(() => null);
+    for (const childId of rec?.get("PR Items") || []) await destroy(TABLES.PR_ITEMS, childId, "PR Item");
+    for (const childId of rec?.get("Quotations") || []) await destroy(TABLES.QUOTATIONS, childId, "Quotation");
+    await destroy(TABLES.PURCHASE_REQUESTS, id, "PR");
+}
 for (const id of created.invoices) await destroy(TABLES.INVOICES, id, "Invoice");
 
 console.log("\n" + "=".repeat(72));
