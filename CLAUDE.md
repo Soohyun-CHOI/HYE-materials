@@ -397,7 +397,7 @@ Checks are split by **cost of execution**, not by issue. A cheap check welded in
 - Line-wrap commit bodies + PR descriptions at 72 chars. Prompts/comments don't need wrapping.
 - Wrap literal `<tag>`-looking text in backticks in PR descriptions.
 - If an issue is already covered by other work, comment explaining why, then close — never silently close via Closes #.
-- Milestones = Phases (0-5) or standalone cross-cutting milestones. Stay scoped to the current issue's Milestone unless told otherwise.
+- Milestones = Phases (0-6) or standalone cross-cutting milestones. Stay scoped to the current issue's Milestone unless told otherwise.
 - Don't open a PR unless asked. Never commit yourself — write commit-msg.txt at repo root (gitignored), user commits manually.
 - All GitHub content, project markdown, and web-app-facing text is English regardless of conversation language.
 - **That English is US English** — prose as well as identifiers, and in code comments as much as in user-facing copy. `behavior`, `judgment`, `canceled`, `labeled`, `catalog`, `gray`, `normalize`, `license`, `while` (not `whilst`). The rule exists because this repo's comments carry its reasoning, so the same word spelled two ways across two files reads as two authors rather than one, and because a mixed convention gives every later edit a coin to flip. It is not a claim that US spelling is better. The one thing it does NOT reach is a value that belongs to something outside this repo — an Airtable select option, a dependency's package name (`@img/colour` in `package-lock.json`), a third-party field or CSS keyword — where the external spelling is the correct one and changing it breaks a lookup rather than fixing a style.
@@ -406,7 +406,7 @@ Checks are split by **cost of execution**, not by issue. A cheap check welded in
 
 ## Status
 
-The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support milestone has been implemented and merged, and Phase 4's item axis with it: #18 and #19 are both closed. Phase 5 has begun — #162 (recording deliveries) is on a branch. Not yet started: #20, three enhancement issues, and the follow-ups listed below. AI-assisted invoice parsing is parked rather than pending — see below. "Merged" here means the work is on `main`, not that an area is closed to further change — follow-up issues may still touch any of it.
+The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support milestone has been implemented and merged, and Phase 4's item axis with it: #18 and #19 are both closed. Phase 5 adds the arrival half of the lifecycle: #162 records deliveries from packing lists, with the app deciding which PO line each arrival belongs to. Not yet started: #20, three enhancement issues, and the follow-ups listed below. AI-assisted invoice parsing is parked rather than pending — see below. "Merged" here means the work is on `main`, not that an area is closed to further change — follow-up issues may still touch any of it. **And this file does not record branch state at all.** A phase entry says what has been merged; work in progress belongs to the tracker, where its status changes without anyone editing a document. That is the same distinction as the sentence before it, and ignoring it is exactly how #19's entry came to claim its screens were "on a branch, not yet closed" weeks after they were merged — a correction this very branch had to make while adding Phase 5 below.
 
 **Merged — Phase 0 (Foundations):** Airtable service layer, ID generation, magic-link auth (company-domain), role/admin route protection, admin create-forms for Jobs/Vendors/Lines. The Line form's Job field is a searchable combobox over existing Jobs (#30, `app/admin/lines/new/JobCombobox.js`).
 
@@ -414,9 +414,9 @@ The PR → PO → Invoice lifecycle across Phases 0–3 and the PR Draft Support
 
 **Merged — Phase 2 (PO generation):** auto-generated on full PR approval as a frozen PO Items snapshot (`lib/poGeneration.js`), President signing, PO PDF (`lib/poPdf.js`), Primary/Alternate delivery-address selection; requester withdrawal of a PO from Awaiting Signature or Signed, terminal, invoice-free only (#138, `lib/poWithdraw.js`).
 
-**On a branch — Phase 5 (Deliveries & Packing Lists):** #162 records deliveries from packing lists — new `Deliveries` / `Delivery Items` tables, allocation to a PO line by the app rather than by the recorder (`lib/deliveryAllocation.js`), a `PO Items."Delivered Qty"` rollup, and the `/deliveries` surface. See "Recording deliveries" above.
-
 **Merged — Phase 3 (Invoice handling):** manual invoice entry with PDF upload + PO auto-detect (#46/#92), Invoice Items linked to a specific PO Item (#51), variance checking (line + header, % tolerance, `lib/variance.js`), un-invoiced PO-item tracking (#48), payment tracking, invoice list/detail/edit/delete (#115/#117).
+
+**Merged — Phase 5 (Deliveries & Packing Lists):** #162 records deliveries from packing lists — new `Deliveries` / `Delivery Items` tables, allocation to a PO line by the app rather than by the recorder (`lib/deliveryAllocation.js`), a `PO Items."Delivered Qty"` rollup, and the `/deliveries` surface. See "Recording deliveries" above.
 
 **Merged — PR Draft Support (milestone):** save-as-draft, resume-prompt on re-entry, drafts list (open/delete). Save and submit share `persistPRFromForm` (`app/prs/new/actions.js`); submit promotes the same Draft record to In Review (PR ID/Created At/history continuous); `lib/prDraft.js:loadPRDraft(prId)` hydrates the form. After a successful save the form shows a confirm modal and leaves to the PR list (#124).
 
