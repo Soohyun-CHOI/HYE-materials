@@ -13,9 +13,11 @@
 
 import {
     ALLOCATION_COPY,
+    buildItemOptions,
     describeDelivery,
     describePlan,
     hasUndeliveredQty,
+    itemOptionLabel,
     planDelivery,
     selectCandidates,
     sortCandidates,
@@ -360,6 +362,46 @@ export function run({ check, assert, log }) {
     check("and the split is still reported alongside it", describeDelivery(storedOverLoose).length, 2);
     check("no rows does not throw", describeDelivery([]).length, 0);
     check("undefined rows does not throw", describeDelivery(undefined).length, 0);
+
+    log("");
+    log("The item dropdown is WIDER than the candidate set:");
+    // The point of the whole decision: an item whose orders are satisfied must
+    // stay listed. Dropping it would send the recorder to the "not in the
+    // dropdown" message, which says it may never have been ordered here — false.
+    const optionPool = [
+        line({ poItemId: "a", qty: 10, deliveredQty: 4 }),
+        line({ poItemId: "b", qty: 10, deliveredQty: 10 }),
+        line({ poItemId: "c", materialRecordId: OTHER_MATERIAL, qty: 5, deliveredQty: 5 }),
+        line({ poItemId: "d", materialRecordId: "recMatBolt", qty: 7, committedQty: 0 }),
+        line({ poItemId: "e", vendorRecordId: OTHER_VENDOR, materialRecordId: "recMatOther" }),
+    ];
+    const options = buildItemOptions(optionPool, VENDOR);
+    check("two materials offered for this vendor", options.length, 2);
+    const pipe = options.find((o) => o.materialRecordId === MATERIAL);
+    check("the partly delivered item shows its remainder", pipe.outstanding, 6);
+    check("  summed across its two lines", pipe.lineCount, 2);
+    check("  ordered totals both lines", pipe.ordered, 20);
+    const valve = options.find((o) => o.materialRecordId === OTHER_MATERIAL);
+    assert("a FULLY delivered item is still listed", Boolean(valve));
+    check("  showing nothing outstanding", valve.outstanding, 0);
+    assert(
+        "a withdrawn-only item is NOT listed (countsAsOrdered)",
+        !options.some((o) => o.materialRecordId === "recMatBolt")
+    );
+    assert(
+        "another vendor's item is not listed",
+        !options.some((o) => o.materialRecordId === "recMatOther")
+    );
+    check("an unknown vendor offers nothing", buildItemOptions(optionPool, "recNobody").length, 0);
+    check("an empty line list offers nothing", buildItemOptions([], VENDOR).length, 0);
+    check("a missing line list does not throw", buildItemOptions(undefined, VENDOR).length, 0);
+    // An over-delivered line must not report a negative remainder to the screen.
+    const overPool = [line({ poItemId: "o", qty: 5, deliveredQty: 9 })];
+    check("an over-delivered line clamps outstanding at 0", buildItemOptions(overPool, VENDOR)[0].outstanding, 0);
+
+    check("the label joins name, size and unit", itemOptionLabel({ itemName: "Pipe", size: '2"', unit: "EA" }), 'Pipe 2" (EA)');
+    check("blanks are omitted", itemOptionLabel({ itemName: "Gasket", size: "", unit: "PCS" }), "Gasket (PCS)");
+    check("a unit-less option has no empty parens", itemOptionLabel({ itemName: "Pipe", size: '2"', unit: "" }), 'Pipe 2"');
 
     log("");
     log("The planner does not mutate its input:");

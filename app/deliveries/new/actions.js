@@ -9,7 +9,8 @@ import { createDeliveryItem } from "@/lib/airtable/deliveryItems";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
-import { getDeliveryCandidatesForJob } from "@/lib/deliveryCandidates";
+import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
+import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { planDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 
@@ -78,8 +79,13 @@ export async function createDeliveryAction(prevState, formData) {
         }
     }
 
-    const candidates = await getDeliveryCandidatesForJob(jobRecordId);
-    if (!candidates) return { error: "That job no longer exists." };
+    // Re-read this ONE job's lines. The form was handed every accessible job's
+    // lines at once; the action needs only the submitted one, and reading it fresh
+    // is the point — a PO can be withdrawn, or another arrival recorded against
+    // the same line, while the form sits open.
+    const job = await getJobByRecordId(jobRecordId).catch(() => null);
+    if (!job) return { error: "That job no longer exists." };
+    const candidates = await getDeliveryCandidates([job]);
 
     const plan = planDelivery({
         lines: candidates.lines,

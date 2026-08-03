@@ -49,8 +49,8 @@ import { updatePO, PO_WITHDRAWN_STATUS } from "../../lib/airtable/purchaseOrders
 import { getPOItemsByRecordIds, getDeliveredQtyForPOItem } from "../../lib/airtable/poItems.js";
 import { createDelivery, getDeliveryById, replaceDeliveryPhoto, updateDelivery } from "../../lib/airtable/deliveries.js";
 import { createDeliveryItem, getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
-import { getDeliveryCandidatesForJob, buildItemOptions } from "../../lib/deliveryCandidates.js";
-import { planDelivery } from "../../lib/deliveryAllocation.js";
+import { getDeliveryCandidates } from "../../lib/deliveryCandidates.js";
+import { buildItemOptions, planDelivery } from "../../lib/deliveryAllocation.js";
 import { canAccessJobDeliveries } from "../../lib/deliveryAccess.js";
 import { canDeleteDelivery, deleteDeliveryAsUser, resolveDeleteCopy } from "../../lib/deliveryDelete.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
@@ -58,7 +58,7 @@ import { getMaterialPrice } from "../../lib/airtable/materialPrices.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
-import { getJobByRecordId } from "../../lib/airtable/jobs.js";
+import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { CANONICAL_UNITS } from "../../lib/units.js";
 
@@ -235,8 +235,29 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         itemName, size: '2"', unit: "EA", qty: 10, unitPrice: 32,
     });
 
-    const candidates = await getDeliveryCandidatesForJob(job.id);
+    const candidates = await getDeliveryCandidates([job]);
     const ourLines = candidates.lines.filter((l) => l.itemName === itemName);
+    assert("every candidate line is attributed to a Job", candidates.lines.every((l) => l.jobRecordId));
+    assert("and to this one", candidates.lines.every((l) => l.jobRecordId === job.id));
+
+    // The production shape is the MULTI-job read — the entry form is one page with
+    // a job dropdown, so it asks for every accessible job at once. Batched across
+    // jobs, so the query count does not grow with the number of them.
+    const allJobs = await getAllJobs();
+    const many = await getDeliveryCandidates(allJobs);
+    assert(
+        `reading all ${allJobs.length} jobs at once still attributes every line`,
+        many.lines.every((l) => l.jobRecordId)
+    );
+    assert(
+        "and includes this job's lines",
+        many.lines.filter((l) => l.itemName === itemName).length === ourLines.length
+    );
+    check(
+        "a job list with no lines yields nothing rather than throwing",
+        (await getDeliveryCandidates([])).lines.length,
+        0
+    );
     check("both new PO lines are candidates on this job", ourLines.length, 2);
     assert("each carries a Material link (#18 wrote it at PO generation)", ourLines.every((l) => l.materialRecordId));
     const materialRecordId = ourLines[0].materialRecordId;
@@ -296,7 +317,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
 
     // -----------------------------------------------------------------------
     console.log("\nPart C — one quantity spanning two POs becomes two rows:");
-    const fresh = await getDeliveryCandidatesForJob(job.id);
+    const fresh = await getDeliveryCandidates([job]);
     const freshLines = fresh.lines.filter((l) => l.itemName === itemName);
     const plan = planDelivery({
         lines: freshLines,
@@ -332,7 +353,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
 
     // -----------------------------------------------------------------------
     console.log("\nPart D — over-delivery: flagged, own row, attached only when attributable:");
-    const afterSplit = await getDeliveryCandidatesForJob(job.id);
+    const afterSplit = await getDeliveryCandidates([job]);
     const overPlan = planDelivery({
         lines: afterSplit.lines.filter((l) => l.itemName === itemName),
         vendorRecordId: vendorA.id,
@@ -378,7 +399,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         requester, vendor: vendorB, line,
         itemName: `${TAG} Valve`, size: "", unit: "PCS", qty: 8, unitPrice: 12,
     });
-    const beforeWithdraw = await getDeliveryCandidatesForJob(job.id);
+    const beforeWithdraw = await getDeliveryCandidates([job]);
     const valveBefore = beforeWithdraw.lines.filter((l) => l.itemName === `${TAG} Valve`);
     check("the new order's line is a candidate while live", valveBefore.length, 1);
 
@@ -389,7 +410,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     );
     check(`Committed Qty drops to 0 on withdrawal (${settleNote(committed)})`, committed.value, 0);
 
-    const afterWithdraw = await getDeliveryCandidatesForJob(job.id);
+    const afterWithdraw = await getDeliveryCandidates([job]);
     const valvePlan = planDelivery({
         lines: afterWithdraw.lines.filter((l) => l.itemName === `${TAG} Valve`),
         vendorRecordId: vendorB.id,
