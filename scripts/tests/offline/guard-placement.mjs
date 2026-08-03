@@ -86,6 +86,26 @@ const CLEANUP_SITES = [
         scheduled: true,
         attachmentId: true,
     },
+    // #162's two paths. The create path rolls back, so its cleanup must sit
+    // outside the try for the retry to re-submit the same url; the photo-replace
+    // path has nothing to roll back but still defers, for the same reason every
+    // other site does — the recorder is not held for ~1s of ingest polling.
+    {
+        file: "app/deliveries/new/actions.js",
+        fn: "createDeliveryAction",
+        cleansUp: true,
+        scheduled: true,
+        outsideTry: true,
+        attachmentId: true,
+    },
+    {
+        file: "app/deliveries/[deliveryId]/actions.js",
+        fn: "replaceDeliveryPhotoAction",
+        cleansUp: true,
+        scheduled: true,
+        outsideTry: true,
+        attachmentId: true,
+    },
 ];
 
 // Withdrawn-PO guards (#138): each must precede the side effect it protects.
@@ -242,7 +262,13 @@ export function run(reporter) {
                 )
         ) === -1
     );
-    for (const rel of ["app/prs/new/actions.js", "app/prs/[prId]/actions.js", "app/invoices/new/actions.js"]) {
+    for (const rel of [
+        "app/prs/new/actions.js",
+        "app/prs/[prId]/actions.js",
+        "app/invoices/new/actions.js",
+        "app/deliveries/new/actions.js",
+        "app/deliveries/[deliveryId]/actions.js",
+    ]) {
         check(`${rel} does not call del() itself`, callsFunction(fileOf(rel).ast, "del"), false);
     }
 
@@ -278,6 +304,49 @@ export function run(reporter) {
                 updateQuotationFn,
                 (n) => n.type === "Property" && (n.key?.name === "File" || n.key?.value === "File")
             ) === -1
+    );
+
+    // The same rule on the delivery side (#162), where the photo IS editable in
+    // place — so `Packing List File` has TWO writers rather than one, and the
+    // shape that makes that safe is what these checks pin. createDelivery writes
+    // it at creation; replaceDeliveryPhoto is the narrow second writer and must
+    // call isOurBlobUrl, which is what makes #142's failure mode (re-submitting an
+    // url Airtable issued) unreachable by construction rather than by discipline;
+    // updateDelivery, which the in-place edit of date and note goes through, must
+    // not touch the field at all.
+    const deliveriesTable = fileOf("lib/airtable/deliveries.js");
+    const isPackingListKey = (n) =>
+        n.type === "Property" &&
+        (n.key?.name === "Packing List File" || n.key?.value === "Packing List File");
+    const packingListWrites = [];
+    walk(deliveriesTable.ast, (n) => {
+        if (isPackingListKey(n)) packingListWrites.push(n);
+    });
+    check(
+        "lib/airtable/deliveries.js writes Packing List File in exactly two places",
+        packingListWrites.length,
+        2
+    );
+    const createDeliveryFn = resolveFunction(deliveriesTable.ast, "createDelivery");
+    const replacePhotoFn = resolveFunction(deliveriesTable.ast, "replaceDeliveryPhoto");
+    const within = (node, fn) => Boolean(fn) && node.start > fn.start && node.start < fn.end;
+    assert(
+        "one write is inside createDelivery",
+        packingListWrites.filter((w) => within(w, createDeliveryFn)).length === 1
+    );
+    assert(
+        "the other is inside replaceDeliveryPhoto",
+        packingListWrites.filter((w) => within(w, replacePhotoFn)).length === 1
+    );
+    check(
+        "replaceDeliveryPhoto refuses a url that is not ours (isOurBlobUrl)",
+        Boolean(replacePhotoFn) && callsFunction(replacePhotoFn, "isOurBlobUrl"),
+        true
+    );
+    const updateDeliveryFn = resolveFunction(deliveriesTable.ast, "updateDelivery");
+    assert(
+        "updateDelivery exists and touches no attachment field",
+        Boolean(updateDeliveryFn) && firstPositionOf(updateDeliveryFn, isPackingListKey) === -1
     );
 
     log("");

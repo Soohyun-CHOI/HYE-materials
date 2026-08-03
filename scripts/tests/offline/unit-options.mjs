@@ -30,10 +30,23 @@ export const title = "Canonical Unit list — lib/units.js vs add_unit_options.p
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/add_unit_options.py");
 
-// The four tables that carry the shared Unit select. Hard-coded rather than
-// read from lib/airtable/client.js's TABLES, which would drag the Airtable
-// client — and its throw-at-import env check — into the offline tier.
-const EXPECTED_TARGET_TABLES = ["PR Items", "PO Items", "Invoice Items", "Materials"];
+// Every table that carries the shared Unit select. Hard-coded rather than read
+// from lib/airtable/client.js's TABLES, which would drag the Airtable client —
+// and its throw-at-import env check — into the offline tier.
+//
+// A DELIBERATE SECOND COPY, and it must stay one. Reading the list out of
+// add_unit_options.py and comparing it to itself would pass unconditionally;
+// what this guards is a target being DROPPED from the script, which would leave
+// that table's Unit field short of options with nothing to say so. So adding a
+// table costs an entry here as well as there — that is the pin doing its job,
+// not the pin being in the way.
+const EXPECTED_TARGET_TABLES = [
+    "PR Items",
+    "PO Items",
+    "Invoice Items",
+    "Materials",
+    "Delivery Items",
+];
 
 /**
  * Pull a top-level Python list literal out of the source text. Anchored to the
@@ -86,12 +99,13 @@ export function run({ check, assert, log }) {
         0
     );
 
-    // Pins Materials as a target of the backfill script. Dropping it there
-    // would leave its Unit field short of options, and upsertMaterial does not
-    // use typecast, so the first PR Item carrying a missing unit would fail its
-    // cache write instead of inventing an option.
+    // Pins the script's full target list. Dropping a table there would leave
+    // its Unit field short of options, and no writer on this path uses
+    // typecast, so the first record carrying a missing unit fails its write
+    // outright rather than inventing an option — the failure is loud but it
+    // lands on a user, not here.
     check(
-        "add_unit_options.py targets the four Unit tables, in order",
+        `add_unit_options.py targets all ${EXPECTED_TARGET_TABLES.length} Unit tables, in order`,
         pyTables.join(","),
         EXPECTED_TARGET_TABLES.join(",")
     );
