@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { upload } from "@vercel/blob/client";
-import { replaceDeliveryPhotoAction, updateDeliveryAction } from "./actions";
+import { replaceDeliveryPhotoAction, updateDeliveryAction } from "../actions";
 
 /**
  * The three editable things on a recorded delivery (#162): the received date, the
@@ -36,13 +36,8 @@ export default function DeliveryEditForm({ deliveryId, receivedDate, notes }) {
     }
 
     return (
-        <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
-            <h2 className="text-lg font-medium">Correct the record</h2>
-            <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
-                Only the received date, the note and the photo can be changed here.
-            </p>
-
-            <form action={saveDetails} className="mt-4 space-y-4">
+        <div className="mt-6">
+            <form action={saveDetails} className="space-y-4">
                 <input type="hidden" name="deliveryId" value={deliveryId} />
                 <div className="grid grid-cols-2 gap-4">
                     <div>

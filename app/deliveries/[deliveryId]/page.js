@@ -10,24 +10,29 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { describeDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
-import DeliveryEditForm from "./DeliveryEditForm";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
 
 const DONE_MESSAGES = {
     recorded: "Delivery recorded.",
-    updated: "Saved.",
-    "photo-replaced": "Photo replaced.",
+    updated: "Delivery updated.",
+    "photo-replaced": "Packing list photo replaced.",
 };
 
 /**
  * One recorded arrival (#162).
  *
+ * Laid out like app/invoices/[invoiceId] — id and actions in the header, the
+ * headline figure in its own box, then the detail rows, the lines, and the
+ * destructive control alone at the foot behind a rule. Editing is its own page
+ * rather than a form on this one, so this page reads as the record and the edit
+ * page is where you go to change it.
+ *
  * NO PER-ROW IDENTIFIER GATE, unlike #19's price screens, and the reason is that
  * the page gate already subsumes it. Allocation only ever picks lines from POs on
  * THIS delivery's Job, and canViewPR clause 4 admits anyone assigned to a PR's
  * Job — so a viewer who passes canAccessJobDeliveries here would pass canViewPR
- * for every PR behind every row. Adding a second gate would be a re-derivation of
- * the same answer, and one that could drift from it.
+ * for every PR behind every row. A second gate would re-derive the same answer
+ * and could drift from it.
  */
 export default async function DeliveryDetailPage({ params, searchParams }) {
     const user = await requireUser();
@@ -43,7 +48,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
             <div className="mx-auto w-full max-w-3xl p-8">
                 <h1 className="text-2xl font-semibold">Delivery not found</h1>
                 <Link href="/deliveries" className="mt-6 inline-block text-sm underline">
-                    All deliveries
+                    ← All deliveries
                 </Link>
             </div>
         );
@@ -76,7 +81,6 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
             qty: item.qty,
             over: item.overDelivery,
             poId: po?.poId ?? null,
-            poRecordId: po?.id ?? null,
             poItemId: poItem?.poItemId ?? null,
         };
     });
@@ -86,124 +90,174 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
     const deleteCopy = mayDelete ? await resolveDeleteCopy(delivery, items) : null;
     const photo = delivery.packingListFile?.[0] ?? null;
 
+    // A delivery records ONE item, split across however many orders absorbed it,
+    // so the total quantity is the headline figure — the counterpart of the
+    // invoice's Amount Due. The unit is the same on every row (it is a frozen
+    // copy of one material's), so the first row's is the right label.
+    const totalQty = rows.reduce((sum, r) => sum + (r.qty || 0), 0);
+    const unit = rows[0]?.unit || "";
+    const itemLabel = [rows[0]?.itemName, rows[0]?.size].filter(Boolean).join(" ");
+
     return (
         <div className="mx-auto w-full max-w-3xl p-8">
-            <h1 className="text-2xl font-semibold">{delivery.deliveryId}</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                {job ? `${job.jobCode} — ${job.jobName}` : "Unknown job"} ·{" "}
-                {vendor?.vendorName ?? "Unknown vendor"}
-            </p>
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-semibold">{delivery.deliveryId}</h1>
+                <div className="flex items-center gap-4">
+                    {/* Editing is open to the same set that may view — Job
+                        membership — because what it changes (the received date,
+                        the note, the photo) is a correction to the record rather
+                        than to what the arrival was allocated against. */}
+                    <Link
+                        href={`/deliveries/${encodeURIComponent(delivery.deliveryId)}/edit`}
+                        className="text-sm underline"
+                    >
+                        Edit
+                    </Link>
+                    <Link href="/deliveries" className="text-sm underline">
+                        ← All deliveries
+                    </Link>
+                </div>
+            </div>
 
             {sp?.done && DONE_MESSAGES[sp.done] && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
                     {DONE_MESSAGES[sp.done]}
                 </p>
             )}
 
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
+                    Received{itemLabel ? ` — ${itemLabel}` : ""}
+                </p>
+                <p className="text-3xl font-semibold">
+                    {totalQty}
+                    {unit ? ` ${unit}` : ""}
+                </p>
+            </div>
+
             {banners.map((b) => (
                 <p
                     key={b.key}
-                    className="mt-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                    className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
                 >
                     {b.text}
                 </p>
             ))}
 
-            <dl className="mt-6 grid grid-cols-[10rem_1fr] gap-y-2 text-sm">
-                <dt className="text-zinc-500">Received</dt>
-                <dd>{delivery.receivedDate || "—"}</dd>
-                <dt className="text-zinc-500">Recorded by</dt>
-                <dd>{recorder?.userName ?? "—"}</dd>
-                <dt className="text-zinc-500">Recorded at</dt>
-                <dd>{delivery.createdAt ? new Date(delivery.createdAt).toLocaleString() : "—"}</dd>
-                <dt className="text-zinc-500">PO on packing list</dt>
-                <dd>
+            <div className="mt-4 space-y-1 text-sm">
+                <p>
+                    <span className="text-zinc-500">Job:</span>{" "}
+                    {job ? `${job.jobCode} — ${job.jobName}` : "—"}
+                </p>
+                <p>
+                    <span className="text-zinc-500">Vendor:</span> {vendor?.vendorName ?? "—"}
+                </p>
+                <p>
+                    <span className="text-zinc-500">Received Date:</span>{" "}
+                    {delivery.receivedDate || "—"}
+                </p>
+                <p>
+                    <span className="text-zinc-500">PO on packing list:</span>{" "}
                     {namedPo?.[0] ? (
-                        <Link href={`/pos/${encodeURIComponent(namedPo[0].poId)}`} className="underline">
+                        <Link
+                            href={`/pos/${encodeURIComponent(namedPo[0].poId)}`}
+                            className="underline"
+                        >
                             {namedPo[0].poId}
                         </Link>
                     ) : (
-                        <span className="text-zinc-500">none</span>
+                        "none"
                     )}
-                </dd>
-            </dl>
-
-            <h2 className="mt-8 text-lg font-medium">Recorded against</h2>
-            <div className="mt-2 overflow-x-auto">
-                <table className="w-full min-w-[32rem] table-fixed text-sm">
-                    <colgroup>
-                        <col style={{ width: "13rem" }} />
-                        <col style={{ width: "11rem" }} />
-                        <col style={{ width: "8rem" }} />
-                    </colgroup>
-                    <thead>
-                        <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
-                            <th className="py-2 font-medium">Item</th>
-                            <th className="py-2 font-medium">Order</th>
-                            <th className="py-2 text-right font-medium">Qty</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((row) => (
-                            <tr
-                                key={row.id}
-                                className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
-                            >
-                                <td className="py-2">
-                                    {[row.itemName, row.size].filter(Boolean).join(" ")}
-                                </td>
-                                <td className="py-2">
-                                    {row.poId ? (
-                                        <Link
-                                            href={`/pos/${encodeURIComponent(row.poId)}`}
-                                            className="underline"
-                                        >
-                                            {row.poId}
-                                        </Link>
-                                    ) : (
-                                        <span className="text-zinc-500">not against any order</span>
-                                    )}
-                                    {row.over && (
-                                        <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                            over-delivery
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="py-2 text-right tabular-nums">
-                                    {row.qty}
-                                    {row.unit ? ` ${row.unit}` : ""}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
-                The app allocated these lines — oldest outstanding order first. The item, the
-                quantity, the vendor and the PO cannot be edited; correcting one means deleting this
-                delivery and entering it again.
-            </p>
-
-            <h2 className="mt-8 text-lg font-medium">Packing list</h2>
-            {photo ? (
-                <a href={photo.url} target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm underline">
-                    {photo.filename || "Open the packing list"}
-                </a>
-            ) : (
-                <p className="mt-2 text-sm text-amber-700 dark:text-amber-500">
-                    No photo is attached. If it was just uploaded, reload in a moment; if it stays
-                    empty, replace it below.
                 </p>
-            )}
+                <p>
+                    <span className="text-zinc-500">Recorded by:</span> {recorder?.userName ?? "—"}{" "}
+                    {delivery.createdAt && (
+                        <span className="text-zinc-500">
+                            on {new Date(delivery.createdAt).toLocaleString()}
+                        </span>
+                    )}
+                </p>
+                <p>
+                    <span className="text-zinc-500">Packing list:</span>{" "}
+                    {photo ? (
+                        <a href={photo.url} target="_blank" rel="noreferrer" className="underline">
+                            {photo.filename || "Open"}
+                        </a>
+                    ) : (
+                        <span className="text-amber-700 dark:text-amber-500">
+                            not attached — if it was just uploaded, reload in a moment
+                        </span>
+                    )}
+                </p>
+                {delivery.notes && (
+                    <p>
+                        <span className="text-zinc-500">Notes:</span> {delivery.notes}
+                    </p>
+                )}
+            </div>
 
-            <DeliveryEditForm
-                deliveryId={delivery.deliveryId}
-                receivedDate={delivery.receivedDate || ""}
-                notes={delivery.notes || ""}
-            />
+            <div className="mt-8">
+                <h2 className="text-lg font-semibold">Recorded against</h2>
+                <div className="mt-2 overflow-x-auto">
+                    <table className="w-full min-w-[32rem] table-fixed text-sm">
+                        <colgroup>
+                            <col style={{ width: "13rem" }} />
+                            <col style={{ width: "11rem" }} />
+                            <col style={{ width: "8rem" }} />
+                        </colgroup>
+                        <thead>
+                            <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
+                                <th className="py-2 font-medium">Item</th>
+                                <th className="py-2 font-medium">Order</th>
+                                <th className="py-2 text-right font-medium">Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row) => (
+                                <tr
+                                    key={row.id}
+                                    className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
+                                >
+                                    <td className="py-2">
+                                        {[row.itemName, row.size].filter(Boolean).join(" ")}
+                                    </td>
+                                    <td className="py-2">
+                                        {row.poId ? (
+                                            <Link
+                                                href={`/pos/${encodeURIComponent(row.poId)}`}
+                                                className="underline"
+                                            >
+                                                {row.poId}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-zinc-500">
+                                                not against any order
+                                            </span>
+                                        )}
+                                        {row.over && (
+                                            <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                over-delivery
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="py-2 text-right tabular-nums">
+                                        {row.qty}
+                                        {row.unit ? ` ${row.unit}` : ""}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+                    The app allocated these lines — oldest outstanding order first. The item, the
+                    quantity, the vendor and the PO cannot be edited; correcting one means deleting
+                    this delivery and entering it again.
+                </p>
+            </div>
 
             {mayDelete && (
-                <div className="mt-10 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
                     <DeleteDeliveryButton
                         deliveryId={delivery.deliveryId}
                         title={deleteCopy.title}
@@ -211,10 +265,6 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                     />
                 </div>
             )}
-
-            <Link href="/deliveries" className="mt-8 inline-block text-sm underline">
-                All deliveries
-            </Link>
         </div>
     );
 }
