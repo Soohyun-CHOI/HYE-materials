@@ -289,7 +289,10 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     });
     track("deliveries", delivery1.id);
     assert(`Delivery ID follows HYE-DL-YYMMDD-## (${delivery1.deliveryId})`, /^HYE-DL-\d{6}-\d{2}$/.test(delivery1.deliveryId));
-    assert("Created At was stamped (the ID counter reads it, not Received Date)", Boolean(delivery1.createdAt));
+    // #164 moved the ID counter off this field onto the ID prefix, so the stamp is
+    // no longer load-bearing for the ID — it is still asserted because Created At
+    // remains the list's tie-break and the only timestamp nobody typed.
+    assert("Created At was stamped", Boolean(delivery1.createdAt));
 
     const di1 = await createDeliveryItem({
         deliveryRecordId: delivery1.id,

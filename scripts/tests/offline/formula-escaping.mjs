@@ -47,7 +47,7 @@
 //   - Only `filterByFormula` is inspected. No other Airtable option takes a
 //     formula today.
 
-import { andSearchAll, formulaString, orByField, orByRecordId } from "../../../lib/airtableFormula.js";
+import { andSearchAll, formulaString, orByField, orByRecordId, prefixMatch } from "../../../lib/airtableFormula.js";
 import { isMain, standalone } from "./_harness.mjs";
 import { listJsFiles, parseFile, repoPath, toPosix, REPO_ROOT, walk } from "./_ast.mjs";
 
@@ -90,7 +90,7 @@ function sourceOf(source, node) {
  * Adding a name here widens what passes, so each must be a function whose entire
  * job is escaping, living in that module, with its own behavioural cases below.
  */
-const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "andSearchAll"]);
+const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "andSearchAll", "prefixMatch"]);
 
 /**
  * Builders that return a COMPLETE formula, so a bare call to one is an accepted
@@ -101,7 +101,7 @@ const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "
  * here the entire string comes from the audited module. formulaString is
  * deliberately absent — it escapes a value, it does not produce a predicate.
  */
-const WHOLE_FORMULA_BUILDERS = new Set(["orByRecordId", "orByField", "andSearchAll"]);
+const WHOLE_FORMULA_BUILDERS = new Set(["orByRecordId", "orByField", "andSearchAll", "prefixMatch"]);
 
 function isEscapeBuilderCall(node) {
     return (
@@ -212,6 +212,21 @@ export function run({ check, log, assert }) {
     );
     check("no needles matches nothing, not everything", andSearchAll("F", []), "FALSE()");
     check("a braced field name is refused here too", refuses(() => andSearchAll("F}{", ["v"])), "refused");
+
+    // prefixMatch (#164) is here for the same reason the OR builders are: the ID
+    // counter needs a whole predicate, and the alternative was a per-call-site
+    // exemption saying "trust the code inside". Its behaviour against the live
+    // parser is in verify-invoice-ids-164.mjs; scripts/tests/offline/id-sequence.mjs
+    // pins what it means for the counter. These are its escaping cases.
+    check(
+        "prefixMatch anchors with FIND and escapes the prefix",
+        prefixMatch("Invoice ID", 'HYE-INV-2608"03'),
+        'FIND("HYE-INV-2608\\"03", {Invoice ID}) = 1'
+    );
+    // FIND("", x) = 1 for every row, so an empty prefix is the whole table — the
+    // answer MATCH_NOTHING exists to avoid. It refuses instead.
+    check("an empty prefix is refused, not matched against everything", refuses(() => prefixMatch("F", "")), "refused");
+    check("a braced field name is refused here too", refuses(() => prefixMatch("F}{", "HYE")), "refused");
 
     // --- Part 2: every call site ----------------------------------------
     log("");
