@@ -5,9 +5,13 @@
 // names no date field in a formula, and every generateChildId call site). What only
 // real records can answer is here:
 //
-//   A — the live schema still holds the four ID fields the code counts, under the
-//       names it uses. A counter reading a field that was renamed in Airtable's UI
-//       is invisible to every file-only check — the third tier CLAUDE.md describes.
+//   A — the live schema still holds the names the code counts on: the four daily ID
+//       fields, and the eight child relations' parent table + link field + child ID
+//       field. A rename in Airtable's UI is invisible to every file-only check —
+//       the third tier CLAUDE.md describes — and here it is not cosmetic: a renamed
+//       link field makes parentRecord.get() return undefined, which generateChildId
+//       reads as a childless parent, restarting a live sequence at 1. Part A also
+//       prints the link-field-name census behind CHILD_KINDS' composite key.
 //   B — the defect, on the real rows: `IS_SAME({Issue Date}, TODAY(), 'day')`
 //       against the population the sequence actually has to be unique within, plus
 //       the `LEFT({Invoice ID}, 13)` the issue was filed with, which matches 0 rows
@@ -68,7 +72,7 @@ import { getAllLines } from "../../lib/airtable/lines.js";
 import { getAllJobs } from "../../lib/airtable/jobs.js";
 import { base, TABLES, findByRecordIds } from "../../lib/airtable/client.js";
 import { prefixMatch } from "../../lib/airtableFormula.js";
-import { ID_KINDS, dailyIdPrefix, nextSequence } from "../../lib/idSequence.js";
+import { CHILD_KINDS, ID_KINDS, childKind, dailyIdPrefix, nextSequence } from "../../lib/idSequence.js";
 
 let pass = true;
 let incomplete = null;
@@ -181,6 +185,58 @@ try {
     console.log(
         `  note    Invoices."Created At" ${invoiceFields.includes("Created At") ? "EXISTS" : "does not exist"}` +
             ` — the counter needs no date field either way`
+    );
+
+    // The child registry names a PARENT TABLE, a LINK FIELD on it, and an ID FIELD
+    // on the child. All three are Airtable-side names, so a rename in the UI is
+    // invisible to every file-only check — and the failure is the one this whole
+    // issue is about: `parentRecord.get(link)` on a renamed field returns
+    // undefined, generateChildId reads that as a childless parent, and the
+    // sequence restarts at 1 on a parent that already has children.
+    console.log("\n  the eight child relations, against the live schema:");
+    const linkNameCensus = new Map();
+    for (const t of tables) {
+        for (const f of t.fields) {
+            if (f.type !== "multipleRecordLinks") continue;
+            if (!linkNameCensus.has(f.name)) linkNameCensus.set(f.name, []);
+            linkNameCensus.get(f.name).push(t.name);
+        }
+    }
+    for (const [key, kind] of Object.entries(CHILD_KINDS)) {
+        const [parentTable, linkField] = key.split("::");
+        const parent = tables.find((t) => t.name === parentTable);
+        const link = parent?.fields.find((f) => f.name === linkField);
+        assert(
+            `${key} — the parent carries that link field`,
+            Boolean(link) && link.type === "multipleRecordLinks"
+        );
+        // The child's own ID field, which nextSequence reads the sequence out of.
+        const childTable = tables.find((t) => t.fields.some((f) => f.name === kind.idField));
+        assert(`  and some table carries "${kind.idField}"`, Boolean(childTable));
+    }
+
+    // The census behind the composite key, re-measured rather than cited. This is
+    // not an assertion about how many tables share a name — that is Airtable's to
+    // change — but the number is printed so the registry's reasoning stays
+    // checkable, and the ONE thing that must hold is asserted below it.
+    const sharedKeys = Object.keys(CHILD_KINDS).filter(
+        (key) => (linkNameCensus.get(key.split("::")[1]) ?? []).length > 1
+    );
+    console.log(
+        `  census  ${linkNameCensus.size} distinct link-field names across ${tables.length} tables;` +
+            ` ${sharedKeys.length} of ${Object.keys(CHILD_KINDS).length} registered link fields are carried by 2+ tables`
+    );
+    for (const key of sharedKeys) {
+        const [, linkField] = key.split("::");
+        console.log(`            ${linkField.padEnd(20)} ${linkNameCensus.get(linkField).join(", ")}`);
+    }
+    // Keying on the field name alone would have collapsed exactly these.
+    assert(
+        "each registered pair still resolves to exactly one registry entry",
+        Object.keys(CHILD_KINDS).every((key) => {
+            const [parentTable, linkField] = key.split("::");
+            return childKind(parentTable, linkField) === CHILD_KINDS[key];
+        })
     );
 
     // -----------------------------------------------------------------------

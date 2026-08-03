@@ -47,6 +47,7 @@ import {
     CHILD_KINDS,
     ID_KINDS,
     SEQ_PAD_LENGTH,
+    childKeyFor,
     childKind,
     dailyIdPrefix,
     dailyStamp,
@@ -57,7 +58,7 @@ import { prefixMatch } from "../../../lib/airtableFormula.js";
 import { isMain, standalone } from "./_harness.mjs";
 import { REPO_ROOT, listJsFiles, parseFile, repoPath, toPosix, walk } from "./_ast.mjs";
 
-export const title = "Daily ID sequence — the counted population is the ID prefix (#164)";
+export const title = "ID sequences — the counted population, for daily and child IDs (#164)";
 
 /**
  * A local noon date, built from components so the assertions hold in any
@@ -288,9 +289,65 @@ export function run({ check, log, assert }) {
         "every entry names an ID field, never a date or a link field",
         Object.values(CHILD_KINDS).every((k) => /^[\w /]+ ID$/.test(k.idField))
     );
-    check("an unregistered link field throws rather than defaulting",
-        refuses(() => childKind("Notes")), "refused");
-    check("and so does a missing one", refuses(() => childKind(undefined)), "refused");
+
+    // The key is `Parent Table::Link Field`, because 7 of the 8 link-field names
+    // are carried by more than one table on this base (measured 2026-08-03).
+    assert(
+        "every key is a parent::field pair, not a bare field name",
+        Object.keys(CHILD_KINDS).every((key) => key.split("::").length === 2 && key.split("::").every(Boolean))
+    );
+    check("childKeyFor builds the same key the registry uses",
+        childKeyFor("Purchase Requests", "PR Items"), "Purchase Requests::PR Items");
+    assert("and that key resolves", Boolean(childKind("Purchase Requests", "PR Items")));
+    // The shared names, as the reason the pair exists. Each of these is a real
+    // link field on a second table; registering it would have collided under the
+    // old key.
+    check(
+        "Quotations.\"PR Items\" is a different relation from Purchase Requests'",
+        refuses(() => childKind("Quotations", "PR Items")),
+        "refused"
+    );
+    check(
+        "PO Items.\"Delivery Items\" likewise",
+        refuses(() => childKind("PO Items", "Delivery Items")),
+        "refused"
+    );
+    check(
+        "Materials.\"PO Items\" likewise",
+        refuses(() => childKind("Materials", "PO Items")),
+        "refused"
+    );
+    check("an unregistered pair throws rather than defaulting",
+        refuses(() => childKind("Purchase Requests", "Notes")), "refused");
+    check("a missing link field throws", refuses(() => childKind("Purchase Requests", undefined)), "refused");
+    check("so does a missing parent table", refuses(() => childKind(undefined, "PR Items")), "refused");
+
+    // DUPLICATE KEYS CANNOT BE SEEN FROM THE IMPORTED OBJECT. Two identical keys
+    // in an object literal are not an error: the later wins at parse time and the
+    // earlier is gone, so Object.keys reports one entry and every check that reads
+    // the imported object agrees with it. The only place the duplicate still
+    // exists is the source, so it has to be counted there.
+    log("");
+    log("duplicate registry keys — counted on the AST, since the object cannot show them:");
+    const seq = parseFile("lib/idSequence.js");
+    let registryProps = null;
+    walk(seq.ast, (node) => {
+        if (node.type !== "VariableDeclarator") return;
+        if (node.id?.name !== "CHILD_KINDS" || node.init?.type !== "ObjectExpression") return;
+        registryProps = node.init.properties
+            .filter((p) => p.type === "Property")
+            .map((p) => (p.key.type === "Literal" ? p.key.value : p.key.name));
+    });
+    assert("found the CHILD_KINDS object literal in the source", Array.isArray(registryProps));
+    check("the source lists as many entries as the object exposes",
+        registryProps?.length, Object.keys(CHILD_KINDS).length);
+    const dupes = (registryProps ?? []).filter((k, i, all) => all.indexOf(k) !== i);
+    assert(
+        dupes.length === 0
+            ? "no key is written twice (a repeat would be silently discarded)"
+            : `written twice, and the later silently wins: ${[...new Set(dupes)].join(", ")}`,
+        dupes.length === 0
+    );
 
     // --- Part 2: lib/ids.js's shape --------------------------------------
     log("");
@@ -381,6 +438,33 @@ export function run({ check, log, assert }) {
     log("");
     log("every generateChildId call site under lib/ (enumerated, fail-closed):");
 
+    // A call site names its parent as `TABLES.PURCHASE_REQUESTS`, so the composite
+    // key cannot be read straight off the AST. lib/airtable/client.js cannot be
+    // imported here — it throws without AIRTABLE_API_KEY, which is the whole
+    // reason this tier exists — so TABLES is read from its own object literal
+    // instead. That gives the check a second property for free: a call site whose
+    // TABLES.X does not exist is caught rather than silently resolving to
+    // undefined.
+    const client = parseFile("lib/airtable/client.js");
+    const TABLE_NAMES = new Map();
+    walk(client.ast, (node) => {
+        if (node.type !== "VariableDeclarator") return;
+        if (node.id?.name !== "TABLES" || node.init?.type !== "ObjectExpression") return;
+        for (const prop of node.init.properties) {
+            if (prop.type !== "Property" || prop.value.type !== "Literal") continue;
+            TABLE_NAMES.set(prop.key.type === "Identifier" ? prop.key.name : prop.key.value, prop.value.value);
+        }
+    });
+    check("resolved TABLES from client.js's own literal", TABLE_NAMES.size > 0, true);
+
+    /** `TABLES.PR_ITEMS` -> "PR Items", or null if it is not that shape. */
+    const resolveTable = (node) => {
+        if (node?.type !== "MemberExpression") return null;
+        if (node.object?.type !== "Identifier" || node.object.name !== "TABLES") return null;
+        const member = node.property?.type === "Identifier" ? node.property.name : null;
+        return member && TABLE_NAMES.has(member) ? TABLE_NAMES.get(member) : null;
+    };
+
     const callSites = [];
     const problems = [];
     for (const rel of listJsFiles(repoPath("lib")).map((f) => toPosix(f.slice(REPO_ROOT.length + 1)))) {
@@ -408,12 +492,18 @@ export function run({ check, log, assert }) {
             }
             const linkNode = props.get("parentLinkFieldName");
             const link = linkNode?.type === "Literal" ? linkNode.value : null;
-            callSites.push({ rel, link });
+            const parent = resolveTable(props.get("parentTableName"));
+            const key = parent && link ? childKeyFor(parent, link) : null;
+            callSites.push({ rel, key, link });
 
             if (link === null) {
                 problems.push(`${rel}: parentLinkFieldName is not a string literal, so it cannot be checked`);
-            } else if (!Object.prototype.hasOwnProperty.call(CHILD_KINDS, link)) {
-                problems.push(`${rel}: "${link}" is not registered in CHILD_KINDS (lib/idSequence.js)`);
+            }
+            if (parent === null) {
+                problems.push(`${rel}: parentTableName is not a TABLES.X this check can resolve`);
+            }
+            if (key !== null && !Object.prototype.hasOwnProperty.call(CHILD_KINDS, key)) {
+                problems.push(`${rel}: "${key}" is not registered in CHILD_KINDS (lib/idSequence.js)`);
             }
             if (!props.has("childTableName")) {
                 problems.push(`${rel}: no childTableName — the siblings' IDs cannot be fetched`);
@@ -428,7 +518,8 @@ export function run({ check, log, assert }) {
         });
     }
 
-    log(`found ${callSites.length} call site(s): ${callSites.map((c) => c.link).join(", ")}`);
+    log(`found ${callSites.length} call site(s):`);
+    for (const site of callSites) log(`    ${site.key ?? `UNRESOLVED (${site.rel})`}`);
     // A check that finds nothing has stopped checking.
     assert("the walk found call sites at all (else this check is inert)", callSites.length > 0);
     check("one per registered child relation", callSites.length, Object.keys(CHILD_KINDS).length);
@@ -440,9 +531,9 @@ export function run({ check, log, assert }) {
 
     // A registry entry no call site uses is a shape nothing creates — either a
     // dead entry or a caller that stopped going through generateChildId.
-    const used = new Set(callSites.map((c) => c.link));
-    for (const link of Object.keys(CHILD_KINDS)) {
-        assert(`"${link}" is still created through generateChildId`, used.has(link));
+    const used = new Set(callSites.map((c) => c.key));
+    for (const key of Object.keys(CHILD_KINDS)) {
+        assert(`"${key}" is still created through generateChildId`, used.has(key));
     }
 }
 
