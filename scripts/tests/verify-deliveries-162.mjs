@@ -23,7 +23,9 @@
 //       narrowed set held exactly one.
 //   E — a withdrawn PO's line is not a candidate, read through Committed Qty.
 //   F — deletion returns Delivered Qty to where it was, and touches no invoice.
-//   G — the real guards refuse: canDeleteDelivery, canAccessJobDeliveries, and
+//   G — one delivery holding several items: planned per material, read back and
+//       collapsed to items again, with the over-delivered one flagged.
+//   H — the real guards refuse: canDeleteDelivery, canAccessJobDeliveries, and
 //       replaceDeliveryPhoto's rejection of a non-Blob url.
 //
 // Everything calls production functions; nothing reimplements a rule.
@@ -50,7 +52,13 @@ import { getPOItemsByRecordIds, getDeliveredQtyForPOItem } from "../../lib/airta
 import { createDelivery, getDeliveryById, replaceDeliveryPhoto, updateDelivery } from "../../lib/airtable/deliveries.js";
 import { createDeliveryItem, getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
 import { getDeliveryCandidates } from "../../lib/deliveryCandidates.js";
-import { buildItemOptions, planDelivery } from "../../lib/deliveryAllocation.js";
+import {
+    buildItemOptions,
+    describeDelivery,
+    groupRowsByItem,
+    planDelivery,
+    summarizeDelivery,
+} from "../../lib/deliveryAllocation.js";
 import { canAccessJobDeliveries } from "../../lib/deliveryAccess.js";
 import { canDeleteDelivery, deleteDeliveryAsUser, resolveDeleteCopy } from "../../lib/deliveryDelete.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
@@ -448,7 +456,91 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     created.deliveryItems = created.deliveryItems.filter((id) => id !== di1.id && id !== di1b.id);
 
     // -----------------------------------------------------------------------
-    console.log("\nPart G — the real guards refuse:");
+    console.log("\nPart G — one delivery, several items:");
+    // The production shape since the form grew repeating item rows: two materials
+    // on one packing list, planned independently because they never compete for
+    // the same PO line, then read back and collapsed to items again.
+    const multiItemName = `${TAG} Bolt`;
+    const po4 = await makeOrder({
+        requester, vendor: vendorA, line,
+        itemName: multiItemName, size: "M12", unit: "EA", qty: 50, unitPrice: 1.2,
+    });
+    const forMulti = await getDeliveryCandidates([job]);
+    const pipeLines = forMulti.lines.filter((l) => l.itemName === itemName);
+    const boltLines = forMulti.lines.filter((l) => l.itemName === multiItemName);
+    check("the second material has its own candidate line", boltLines.length, 1);
+
+    const pipeMaterialId = pipeLines[0].materialRecordId;
+    const boltMaterialId = boltLines[0].materialRecordId;
+    assert("the two materials are distinct identities", pipeMaterialId !== boltMaterialId);
+
+    const multiDelivery = await createDelivery({
+        jobRecordId: job.id, vendorRecordId: vendorA.id, poRecordId: null,
+        receivedDate: new Date().toISOString().slice(0, 10),
+        recordedByUserId: requester.id, notes: `${TAG} two items`, file: [],
+    });
+    track("deliveries", multiDelivery.id);
+
+    for (const [materialId, qty] of [[pipeMaterialId, 2], [boltMaterialId, 60]]) {
+        const p = planDelivery({
+            lines: forMulti.lines, vendorRecordId: vendorA.id,
+            materialRecordId: materialId, qty,
+        });
+        for (const row of p.rows) {
+            const src = row.line || p.narrowed[0];
+            const di = await createDeliveryItem({
+                deliveryRecordId: multiDelivery.id, deliveryId: multiDelivery.deliveryId,
+                poItemRecordId: row.line?.id ?? null, materialRecordId: materialId,
+                itemName: src?.itemName ?? "", size: src?.size ?? "", unit: src?.unit ?? "",
+                qty: row.qty, overDelivery: row.over,
+            });
+            track("deliveryItems", di.id);
+        }
+    }
+
+    const multiRows = (await getItemsByDelivery(multiDelivery.id))
+        .sort((a, b) => a.deliveryItemId.localeCompare(b.deliveryItemId))
+        .map((i) => ({
+            materialRecordId: i.material?.[0] ?? null,
+            itemName: i.itemName, size: i.size, unit: i.unit,
+            qty: i.qty, over: i.overDelivery,
+        }));
+    const grouped = groupRowsByItem(multiRows);
+    check("the rows collapse back to two items", grouped.length, 2);
+    check("in the order they were recorded", grouped[0].itemName, itemName);
+    const summary = summarizeDelivery(multiRows);
+    check("the list summary leads with the first item", summary.first.label.startsWith(itemName), true);
+    check("and counts one more beyond it", summary.extraCount, 1);
+    // 60 arrived against 50 ordered, so the bolt is over-delivered.
+    check("the over-delivered item is flagged in the summary", summary.hasOverDelivery, true);
+    const boltGroup = grouped.find((g) => g.itemName === multiItemName);
+    check("the bolt's quantity is the full 60 across its slices", boltGroup.qty, 60);
+    check("  and it is flagged", boltGroup.over, true);
+    // 60 arrived against 50 ordered and the narrowed set held exactly ONE line, so
+    // the over-delivery row attaches to it — which means the line's rollup reads
+    // 60, EXCEEDING its Qty of 50. That is the intended shape, not a leak: an
+    // attached over-delivery is how the PO axis shows more arrived than was
+    // ordered, and it is what makes the line stop being a candidate (undelivered
+    // goes negative, so hasUndeliveredQty is false).
+    const boltDelivered = await getDeliveredQtyForPOItem(boltLines[0].id);
+    check("the attached over-delivery pushes the line's rollup past its Qty", boltDelivered, 60);
+    assert("delivered now exceeds ordered on that line", boltDelivered > boltLines[0].qty);
+    const boltAfter = await getDeliveryCandidates([job]);
+    assert(
+        "so the line is no longer a candidate for the next arrival",
+        !planDelivery({
+            lines: boltAfter.lines,
+            vendorRecordId: vendorA.id,
+            materialRecordId: boltMaterialId,
+            qty: 1,
+        }).candidates.some((l) => l.id === boltLines[0].id)
+    );
+    assert(
+        "the banner names the item now that there are several",
+        describeDelivery(multiRows).some((m) => m.text.includes(multiItemName))
+    );
+
+    console.log("\nPart H — the real guards refuse:");
     const stranger = { id: "recNotARealUser", role: "Employee", isAdmin: false, assignedJobs: [] };
     check("a stranger cannot delete", canDeleteDelivery(stranger, delivery2), false);
     check("the author can", canDeleteDelivery(requester, delivery2), true);

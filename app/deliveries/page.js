@@ -2,8 +2,10 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
+import { getDeliveryItemsByRecordIds } from "@/lib/airtable/deliveryItems";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
+import { summarizeDelivery } from "@/lib/deliveryAllocation";
 
 /**
  * Recorded deliveries, newest arrival first (#162).
@@ -44,15 +46,48 @@ export default async function DeliveriesListPage({ searchParams }) {
     ]);
     const vendorNameById = new Map(vendors.map((v) => [v.id, v.vendorName]));
 
+    // Every listed delivery's lines in ONE batched read, keyed on the ids the
+    // delivery records already carry — the list summarizes what arrived, and a
+    // read per delivery would be the per-row round trip #143 ruled out.
+    const allItems = await getDeliveryItemsByRecordIds(
+        deliveries.flatMap((d) => d.deliveryItems || [])
+    );
+    const itemsByDelivery = new Map();
+    for (const item of allItems) {
+        const parent = item.delivery?.[0];
+        if (!parent) continue;
+        if (!itemsByDelivery.has(parent)) itemsByDelivery.set(parent, []);
+        itemsByDelivery.get(parent).push(item);
+    }
+
     const rows = deliveries
-        .map((d) => ({
-            deliveryId: d.deliveryId,
-            receivedDate: d.receivedDate || "",
-            createdAt: d.createdAt || "",
-            jobCode: jobById.get(d.job?.[0])?.jobCode ?? "—",
-            vendorName: vendorNameById.get(d.vendor?.[0]) ?? "Unknown vendor",
-            lineCount: d.deliveryItems.length,
-        }))
+        .map((d) => {
+            // Airtable does not promise an order for a batched read, so sort the
+            // slices by their own child ID — which is creation order, which is the
+            // order the recorder entered the items. summarizeDelivery presents
+            // them by first appearance, so this is what makes "first item" mean
+            // the first one they typed.
+            const items = (itemsByDelivery.get(d.id) || []).sort((a, b) =>
+                (a.deliveryItemId || "").localeCompare(b.deliveryItemId || "")
+            );
+            return {
+                deliveryId: d.deliveryId,
+                receivedDate: d.receivedDate || "",
+                createdAt: d.createdAt || "",
+                jobCode: jobById.get(d.job?.[0])?.jobCode ?? "—",
+                vendorName: vendorNameById.get(d.vendor?.[0]) ?? "Unknown vendor",
+                summary: summarizeDelivery(
+                    items.map((i) => ({
+                        materialRecordId: i.material?.[0] ?? null,
+                        itemName: i.itemName,
+                        size: i.size,
+                        unit: i.unit,
+                        qty: i.qty,
+                        over: i.overDelivery,
+                    }))
+                ),
+            };
+        })
         .sort((a, b) => {
             if (a.receivedDate !== b.receivedDate) return b.receivedDate.localeCompare(a.receivedDate);
             return b.createdAt.localeCompare(a.createdAt);
@@ -90,13 +125,18 @@ export default async function DeliveriesListPage({ searchParams }) {
                 </p>
             ) : (
                 <div className="mt-6 overflow-x-auto">
-                    <table className="w-full min-w-[40rem] table-fixed text-sm">
+                    {/* The declared columns sum to 55rem, so the minimum matches
+                        them: below it `w-full` would shrink the table and the one
+                        flexible column would absorb the shortfall, wrapping every
+                        summary. The wrapper scrolls instead, so the page body
+                        never scrolls sideways — same reasoning as #19's tables. */}
+                    <table className="w-full min-w-[55rem] table-fixed text-sm">
                         <colgroup>
                             <col style={{ width: "12rem" }} />
                             <col style={{ width: "7rem" }} />
-                            <col style={{ width: "8rem" }} />
-                            <col style={{ width: "13rem" }} />
-                            <col style={{ width: "5rem" }} />
+                            <col style={{ width: "7rem" }} />
+                            <col style={{ width: "11rem" }} />
+                            <col style={{ width: "18rem" }} />
                         </colgroup>
                         <thead>
                             <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
@@ -104,7 +144,7 @@ export default async function DeliveriesListPage({ searchParams }) {
                                 <th className="py-2 font-medium">Received</th>
                                 <th className="py-2 font-medium">Job</th>
                                 <th className="py-2 font-medium">Vendor</th>
-                                <th className="py-2 text-right font-medium">Lines</th>
+                                <th className="py-2 font-medium">What arrived</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -124,7 +164,40 @@ export default async function DeliveriesListPage({ searchParams }) {
                                     <td className="py-2">{row.receivedDate || "—"}</td>
                                     <td className="py-2">{row.jobCode}</td>
                                     <td className="py-2">{row.vendorName}</td>
-                                    <td className="py-2 text-right tabular-nums">{row.lineCount}</td>
+                                    <td className="py-2">
+                                        {row.summary ? (
+                                            <span className="flex flex-wrap items-center gap-1.5">
+                                                <span>
+                                                    {row.summary.first.label}{" "}
+                                                    <span className="tabular-nums">
+                                                        {row.summary.first.qty}
+                                                    </span>
+                                                    {row.summary.first.unit
+                                                        ? ` ${row.summary.first.unit}`
+                                                        : ""}
+                                                </span>
+                                                {/* A COUNT, not part of the item name — so it
+                                                    carries its own chip. Reading "+2" as text
+                                                    after the label makes it look like a size or
+                                                    a grade on the item itself. */}
+                                                {row.summary.extraCount > 0 && (
+                                                    <span
+                                                        title={`${row.summary.itemCount} items on this delivery`}
+                                                        className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium tabular-nums text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200"
+                                                    >
+                                                        +{row.summary.extraCount}
+                                                    </span>
+                                                )}
+                                                {row.summary.hasOverDelivery && (
+                                                    <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                        over-delivery
+                                                    </span>
+                                                )}
+                                            </span>
+                                        ) : (
+                                            <span className="text-zinc-500">—</span>
+                                        )}
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

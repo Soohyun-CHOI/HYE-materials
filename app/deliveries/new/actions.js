@@ -36,8 +36,9 @@ export async function createDeliveryAction(prevState, formData) {
 
     const jobRecordId = formData.get("jobRecordId");
     const vendorRecordId = formData.get("vendorRecordId");
-    const materialRecordId = formData.get("materialRecordId");
-    const qtyRaw = formData.get("qty");
+    // One packing list usually lists several items, so the form submits an array
+    // the way the invoice form does — [{ materialRecordId, qty }].
+    const submittedItems = JSON.parse(formData.get("itemsJson") || "[]");
     const receivedDate = formData.get("receivedDate");
     const notes = formData.get("notes") || "";
     const poIdTyped = (formData.get("poId") || "").trim();
@@ -51,11 +52,25 @@ export async function createDeliveryAction(prevState, formData) {
         return { error: "You can only record deliveries on a job you are assigned to." };
     }
     if (!vendorRecordId) return { error: "Select the vendor who delivered." };
-    if (!materialRecordId) return { error: "Pick the item from the list." };
     if (!receivedDate) return { error: "Received Date is required." };
+    if (submittedItems.length === 0) return { error: "Add at least one item." };
 
-    const qty = Number(qtyRaw);
-    if (!Number.isFinite(qty) || qty <= 0) return { error: "Enter how much arrived." };
+    for (const row of submittedItems) {
+        if (!row.materialRecordId) return { error: "Every item needs to be picked from the list." };
+        const q = Number(row.qty);
+        if (!Number.isFinite(q) || q <= 0) return { error: "Every item needs how much arrived." };
+    }
+
+    // TWO ROWS OF ONE MATERIAL ARE SUMMED, not planned twice. Allocation runs
+    // against a single snapshot of the candidate lines, so planning the same
+    // material twice would let both plans claim the same undelivered quantity and
+    // double-allocate. Summing first is also what the recorder meant: two pallets
+    // of the same item on one packing list is one arrival of their total.
+    const wantedByMaterial = new Map();
+    for (const row of submittedItems) {
+        const prev = wantedByMaterial.get(row.materialRecordId) || 0;
+        wantedByMaterial.set(row.materialRecordId, prev + Number(row.qty));
+    }
 
     // Required, like the invoice file and unlike a Quotation: a delivery is a
     // claim that material arrived and this is the evidence. The submit button is
@@ -87,29 +102,34 @@ export async function createDeliveryAction(prevState, formData) {
     if (!job) return { error: "That job no longer exists." };
     const candidates = await getDeliveryCandidates([job]);
 
-    const plan = planDelivery({
-        lines: candidates.lines,
-        vendorRecordId,
-        materialRecordId,
-        poRecordId: po?.id ?? null,
-        qty,
-    });
-
-    if (plan.rows.length === 0) {
-        // planDelivery only returns no rows for a non-positive quantity, which is
-        // already refused above. Guarding anyway rather than creating a header
-        // with no lines, which nothing downstream expects.
-        return { error: "Nothing to record — check the quantity." };
+    // ONE PLAN PER MATERIAL, each against the same snapshot. Different materials
+    // never compete for the same PO line, so planning them independently is
+    // correct; the same material appearing twice was already summed above, which
+    // is what makes that true.
+    const plans = [];
+    for (const [material, qty] of wantedByMaterial) {
+        const plan = planDelivery({
+            lines: candidates.lines,
+            vendorRecordId,
+            materialRecordId: material,
+            poRecordId: po?.id ?? null,
+            qty,
+        });
+        if (plan.rows.length === 0) {
+            // planDelivery only returns no rows for a non-positive quantity, which
+            // is already refused above. Guarding anyway rather than creating a
+            // header with no lines, which nothing downstream expects.
+            return { error: "Nothing to record — check the quantities." };
+        }
+        // The identity of the item, for the frozen reference copies. An allocated
+        // row takes them from its own PO line; an unattributable over-delivery row
+        // has none, so it falls back to any narrowed line for the same material.
+        const fallback =
+            plan.narrowed[0] ||
+            candidates.lines.find((l) => l.materialRecordId === material) ||
+            null;
+        plans.push({ materialRecordId: material, plan, fallback });
     }
-
-    // The identity of the item, for the frozen reference copies. An allocated row
-    // takes them from its PO line; an unattributable over-delivery row has no
-    // line, so it falls back to any narrowed line for the same material, and to
-    // the form's own labels when even that is absent.
-    const fallback =
-        plan.narrowed[0] ||
-        candidates.lines.find((l) => l.materialRecordId === materialRecordId) ||
-        null;
 
     let delivery;
     const createdItemIds = [];
@@ -127,20 +147,25 @@ export async function createDeliveryAction(prevState, formData) {
             file: [{ url: fileUrl, filename: fileName || undefined }],
         });
 
-        for (const row of plan.rows) {
-            const source = row.line || fallback;
-            const created = await createDeliveryItem({
-                deliveryRecordId: delivery.id,
-                deliveryId: delivery.deliveryId,
-                poItemRecordId: row.line?.id ?? null,
-                materialRecordId,
-                itemName: source?.itemName ?? "",
-                size: source?.size ?? "",
-                unit: source?.unit ?? "",
-                qty: row.qty,
-                overDelivery: row.over,
-            });
-            createdItemIds.push(created.id);
+        // Items in the order they were entered, and each item's slices in
+        // allocation order, so `Delivery Item ID` order is the order a reader
+        // expects — which is what lets groupRowsByItem present them by entry.
+        for (const { materialRecordId, plan, fallback } of plans) {
+            for (const row of plan.rows) {
+                const source = row.line || fallback;
+                const created = await createDeliveryItem({
+                    deliveryRecordId: delivery.id,
+                    deliveryId: delivery.deliveryId,
+                    poItemRecordId: row.line?.id ?? null,
+                    materialRecordId,
+                    itemName: source?.itemName ?? "",
+                    size: source?.size ?? "",
+                    unit: source?.unit ?? "",
+                    qty: row.qty,
+                    overDelivery: row.over,
+                });
+                createdItemIds.push(created.id);
+            }
         }
     } catch (err) {
         // Same create-then-delete rollback as the invoice path: Airtable has no

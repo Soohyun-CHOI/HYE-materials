@@ -13,14 +13,17 @@
 
 import {
     ALLOCATION_COPY,
+    availableItemOptions,
     buildItemOptions,
     describeDelivery,
     describePlan,
     hasUndeliveredQty,
+    groupRowsByItem,
     itemOptionLabel,
     planDelivery,
     selectCandidates,
     sortCandidates,
+    summarizeDelivery,
     undeliveredQty,
 } from "../../../lib/deliveryAllocation.js";
 import { isMain, standalone } from "./_harness.mjs";
@@ -402,6 +405,142 @@ export function run({ check, assert, log }) {
     check("the label joins name, size and unit", itemOptionLabel({ itemName: "Pipe", size: '2"', unit: "EA" }), 'Pipe 2" (EA)');
     check("blanks are omitted", itemOptionLabel({ itemName: "Gasket", size: "", unit: "PCS" }), "Gasket (PCS)");
     check("a unit-less option has no empty parens", itemOptionLabel({ itemName: "Pipe", size: '2"', unit: "" }), 'Pipe 2"');
+
+    log("");
+    log("An item on one entry row is not offered on another:");
+    const threeOptions = [
+        { materialRecordId: "m1", itemName: "A", size: "", unit: "EA", outstanding: 5 },
+        { materialRecordId: "m2", itemName: "B", size: "", unit: "EA", outstanding: 5 },
+        { materialRecordId: "m3", itemName: "C", size: "", unit: "EA", outstanding: 5 },
+    ];
+    const entryRows = [
+        { materialRecordId: "m1", qty: "2" },
+        { materialRecordId: "", qty: "" },
+    ];
+    const forRow1 = availableItemOptions(threeOptions, entryRows, 1);
+    check("the empty row loses what row 0 claimed", forRow1.length, 2);
+    assert("specifically m1", !forRow1.some((o) => o.materialRecordId === "m1"));
+
+    // The claiming row must still see its OWN choice, or the select renders blank
+    // and silently drops it.
+    const forRow0 = availableItemOptions(threeOptions, entryRows, 0);
+    check("the claiming row keeps its own selection", forRow0.length, 3);
+    assert("including m1", forRow0.some((o) => o.materialRecordId === "m1"));
+
+    const twoClaimed = availableItemOptions(
+        threeOptions,
+        [{ materialRecordId: "m1" }, { materialRecordId: "m3" }, { materialRecordId: "" }],
+        2
+    );
+    check("two claimed leaves one", twoClaimed.length, 1);
+    check("  and it is m2", twoClaimed[0].materialRecordId, "m2");
+    check(
+        "all claimed leaves a new row nothing",
+        availableItemOptions(
+            threeOptions,
+            [{ materialRecordId: "m1" }, { materialRecordId: "m2" }, { materialRecordId: "m3" }, { materialRecordId: "" }],
+            3
+        ).length,
+        0
+    );
+    check("a single empty row sees everything", availableItemOptions(threeOptions, [{ materialRecordId: "" }], 0).length, 3);
+    check("no options yields none", availableItemOptions([], entryRows, 1).length, 0);
+    check("undefined options does not throw", availableItemOptions(undefined, entryRows, 1).length, 0);
+    check("undefined rows offers everything", availableItemOptions(threeOptions, undefined, 0).length, 3);
+    check("an index past the end still excludes the claimed", availableItemOptions(threeOptions, entryRows, 9).length, 2);
+
+    log("");
+    log("A delivery holds SEVERAL items, each possibly split across orders:");
+    // The rows as stored: two items, the first split across two POs, the second
+    // over-delivered. Entry order is Delivery Item ID order.
+    const multi = [
+        { materialRecordId: "recRebar", itemName: "Rebar D13", size: "", unit: "EA", qty: 150, over: false, poId: "HYE-PO-20260101-01" },
+        { materialRecordId: "recRebar", itemName: "Rebar D13", size: "", unit: "EA", qty: 50, over: false, poId: "HYE-PO-20260201-01" },
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 30, over: false, poId: "HYE-PO-20260201-01" },
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 5, over: true, poId: "HYE-PO-20260201-01" },
+    ];
+    const groups = groupRowsByItem(multi);
+    check("four rows collapse to two items", groups.length, 2);
+    check("in entry order", groups.map((g) => g.itemName).join(","), "Rebar D13,Pipe");
+    check("the split item's slices are summed", groups[0].qty, 200);
+    check("  and its slice count kept", groups[0].rowCount, 2);
+    check("  across two orders", groups[0].poIds.size, 2);
+    check("not flagged", groups[0].over, false);
+    check("the over-delivered item sums both slices too", groups[1].qty, 35);
+    check("  and IS flagged, because one slice was", groups[1].over, true);
+
+    // An unattributable over-delivery row carries no PO Item but does carry its
+    // Material, so it must still group with its own item rather than alone.
+    const looseGroups = groupRowsByItem([
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 10, over: false, poId: "HYE-PO-20260101-01" },
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 4, over: true, poId: null },
+    ]);
+    check("an unattached over row groups with its item", looseGroups.length, 1);
+    check("  contributing its quantity", looseGroups[0].qty, 14);
+    check("  and its flag", looseGroups[0].over, true);
+
+    // Rows with no material (nothing creates them today) fall back to the frozen
+    // name/size/unit rather than collapsing into one nameless group.
+    const noMaterial = groupRowsByItem([
+        { itemName: "A", size: "", unit: "EA", qty: 1, over: false },
+        { itemName: "B", size: "", unit: "EA", qty: 2, over: false },
+        { itemName: "A", size: "", unit: "EA", qty: 3, over: false },
+    ]);
+    check("materialless rows group on name/size/unit", noMaterial.length, 2);
+    check("  summing the repeat", noMaterial[0].qty, 4);
+
+    check("no rows groups to nothing", groupRowsByItem([]).length, 0);
+    check("undefined rows does not throw", groupRowsByItem(undefined).length, 0);
+
+    log("");
+    log("The list summary — first item in full, the rest as a count:");
+    const sum = summarizeDelivery(multi);
+    check("the first item entered leads", sum.first.label, "Rebar D13");
+    check("  with its summed quantity", sum.first.qty, 200);
+    check("  and its unit", sum.first.unit, "EA");
+    check("one more item beyond it", sum.extraCount, 1);
+    check("two items in total", sum.itemCount, 2);
+    check("and the delivery carries an over-delivery", sum.hasOverDelivery, true);
+
+    const single = summarizeDelivery([
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 30, over: false, poId: "P1" },
+    ]);
+    check("a one-item delivery has no extra count", single.extraCount, 0);
+    check("  and no over-delivery", single.hasOverDelivery, false);
+    check("  and its label includes the size", single.first.label, 'Pipe 2"');
+    assert("no rows summarizes to null rather than a blank row", summarizeDelivery([]) === null);
+    assert("undefined too", summarizeDelivery(undefined) === null);
+
+    log("");
+    log("Banner copy names the item only when there are several:");
+    const multiBanners = describeDelivery(multi);
+    assert(
+        "the over message names the item on a multi-item delivery",
+        multiBanners.some((m) => m.text.includes("Pipe"))
+    );
+    check("and reports the split across orders too", multiBanners[0].key, "split");
+    const singleOverBanners = describeDelivery([
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 30, over: false, poId: "P1" },
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 4, over: true, poId: "P1" },
+    ]);
+    assert(
+        "but NOT on a single-item delivery, where the name is already the headline",
+        !singleOverBanners.some((m) => m.text.includes("of Pipe"))
+    );
+    check("one message per over-delivered ITEM, not per flagged row", describeDelivery([
+        { materialRecordId: "recA", itemName: "A", size: "", unit: "EA", qty: 1, over: true, poId: "P1" },
+        { materialRecordId: "recA", itemName: "A", size: "", unit: "EA", qty: 2, over: true, poId: "P1" },
+    ]).length, 1);
+    check("  summing the flagged quantity across slices", describeDelivery([
+        { materialRecordId: "recA", itemName: "A", size: "", unit: "EA", qty: 1, over: true, poId: "P1" },
+        { materialRecordId: "recA", itemName: "A", size: "", unit: "EA", qty: 2, over: true, poId: "P1" },
+    ])[0].text.includes("3 EA"), true);
+    // Flagged slices spread over two orders cannot claim one, so it must fall to
+    // the unattached wording even though every slice names a PO.
+    check("flagged slices on two orders report as unattached", describeDelivery([
+        { materialRecordId: "recA", itemName: "A", size: "", unit: "EA", qty: 1, over: true, poId: "P1" },
+        { materialRecordId: "recA", itemName: "A", size: "", unit: "EA", qty: 2, over: true, poId: "P2" },
+    ])[0].key, "over-unattached");
 
     log("");
     log("The planner does not mutate its input:");

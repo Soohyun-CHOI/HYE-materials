@@ -7,7 +7,7 @@ import { getPOsByRecordIds } from "@/lib/airtable/purchaseOrders";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
-import { describeDelivery } from "@/lib/deliveryAllocation";
+import { describeDelivery, groupRowsByItem, summarizeDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
@@ -75,6 +75,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
         return {
             id: item.id,
             deliveryItemId: item.deliveryItemId,
+            materialRecordId: item.material?.[0] ?? null,
             itemName: item.itemName,
             size: item.size,
             unit: item.unit,
@@ -90,13 +91,13 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
     const deleteCopy = mayDelete ? await resolveDeleteCopy(delivery, items) : null;
     const photo = delivery.packingListFile?.[0] ?? null;
 
-    // A delivery records ONE item, split across however many orders absorbed it,
-    // so the total quantity is the headline figure — the counterpart of the
-    // invoice's Amount Due. The unit is the same on every row (it is a frozen
-    // copy of one material's), so the first row's is the right label.
-    const totalQty = rows.reduce((sum, r) => sum + (r.qty || 0), 0);
-    const unit = rows[0]?.unit || "";
-    const itemLabel = [rows[0]?.itemName, rows[0]?.size].filter(Boolean).join(" ");
+    // The headline is what arrived, in the same shape the list uses — one summary
+    // rule, so the row a reader clicked and the page they land on cannot describe
+    // the same delivery differently. There is no single figure to show instead:
+    // a delivery can hold several items with different units, so the invoice's
+    // Amount Due has no counterpart here.
+    const summary = summarizeDelivery(rows);
+    const grouped = groupRowsByItem(rows);
 
     return (
         <div className="mx-auto w-full max-w-3xl p-8">
@@ -127,17 +128,31 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
 
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
-                    Received{itemLabel ? ` — ${itemLabel}` : ""}
+                    Received{summary ? ` — ${summary.itemCount} item${summary.itemCount === 1 ? "" : "s"}` : ""}
                 </p>
-                <p className="text-3xl font-semibold">
-                    {totalQty}
-                    {unit ? ` ${unit}` : ""}
-                </p>
+                <ul className="mt-1 space-y-0.5">
+                    {grouped.map((item) => (
+                        <li key={item.key} className="flex items-baseline gap-2 text-lg font-semibold">
+                            <span className="tabular-nums">{item.qty}</span>
+                            <span>{item.unit}</span>
+                            <span className="text-base font-normal text-zinc-600 dark:text-zinc-400">
+                                {[item.itemName, item.size].filter(Boolean).join(" ")}
+                            </span>
+                            {item.over && (
+                                <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                    over-delivery
+                                </span>
+                            )}
+                        </li>
+                    ))}
+                </ul>
             </div>
 
-            {banners.map((b) => (
+            {/* Keyed by index: with several items the same branch can fire more
+                than once, so `key` is the semantic branch, not a unique id. */}
+            {banners.map((b, i) => (
                 <p
-                    key={b.key}
+                    key={`${b.key}-${i}`}
                     className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
                 >
                     {b.text}

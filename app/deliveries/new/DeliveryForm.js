@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createDeliveryAction } from "./actions";
 import {
+    availableItemOptions,
     buildItemOptions,
     describePlan,
     itemOptionLabel,
@@ -17,22 +18,31 @@ import {
 // lib/airtable/client.js, and client.js throws `Missing AIRTABLE_API_KEY` at
 // module load — so selecting a job blew up in the browser. Importing a module
 // EXECUTES it; "the readers are never called on this side" was not a defence.
+// scripts/tests/offline/client-import-safety.mjs now fails on any such import.
+
+const EMPTY_ROW = { materialRecordId: "", qty: "" };
 
 /**
- * One page, three narrowing selects (#162).
+ * One page: a header that narrows, then a repeating list of items (#162).
  *
- * Job -> vendor -> item, each narrowing the next, plus an optional PO number that
- * short-circuits two of them. WITHOUT a PO number the recorder picks the vendor
- * and then the item, in that order, because the item list is vendor-narrowed.
- * WITH one, the PO fixes the vendor — the packing list already says who shipped —
- * so the vendor picker disappears and the item list narrows to that PO's lines.
- * Fewer decisions, and the ones left cannot contradict the document.
+ * A packing list usually names SEVERAL items from one vendor on one day, so the
+ * item rows repeat the way the invoice form's do. What does not repeat is the
+ * header — job, vendor, optional PO number, date, photo — because those are
+ * properties of the arrival, not of a line.
  *
- * THE PREVIEW RUNS THE PRODUCTION ALLOCATION. planDelivery is pure, so this calls
- * the same function createDeliveryAction re-runs on submit; what the form promises
- * and what the server writes cannot be two implementations that drift. It is still
- * only a preview — the server re-reads and re-allocates, because a PO can be
- * withdrawn or another arrival recorded while this page sits open.
+ * Job -> vendor -> items, each narrowing the next. WITHOUT a PO number the
+ * recorder picks the vendor and then the items, in that order, because the item
+ * list is vendor-narrowed. WITH one, the PO fixes the vendor — the packing list
+ * already says who shipped — so the vendor picker disappears and the item list
+ * narrows to that PO's lines. Fewer decisions, and the ones left cannot
+ * contradict the document.
+ *
+ * THE PREVIEW RUNS THE PRODUCTION ALLOCATION, per row. planDelivery is pure, so
+ * this calls the same function createDeliveryAction re-runs on submit; what the
+ * form promises and what the server writes cannot be two implementations that
+ * drift. It is still only a preview — the server re-reads and re-allocates,
+ * because a PO can be withdrawn or another arrival recorded while this page sits
+ * open.
  */
 export default function DeliveryForm({ jobs, lines, vendorNames }) {
     const [state, formAction, pending] = useActionState(createDeliveryAction, {});
@@ -43,8 +53,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
     const [hasPoNumber, setHasPoNumber] = useState(false);
     const [poId, setPoId] = useState("");
     const [vendorId, setVendorId] = useState("");
-    const [materialId, setMaterialId] = useState("");
-    const [qty, setQty] = useState("");
+    const [rows, setRows] = useState([{ ...EMPTY_ROW }]);
     const [receivedDate, setReceivedDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [notes, setNotes] = useState("");
     const [photo, setPhoto] = useState({ status: "empty" });
@@ -88,34 +97,72 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
         () => buildItemOptions(usingPo ? matchedPoLines : jobLines, effectiveVendorId),
         [usingPo, matchedPoLines, jobLines, effectiveVendorId]
     );
+    const optionByMaterial = useMemo(
+        () => new Map(itemOptions.map((o) => [o.materialRecordId, o])),
+        [itemOptions]
+    );
 
-    const selectedItem = itemOptions.find((o) => o.materialRecordId === materialId) || null;
+    /**
+     * One plan per material. The dropdowns stop a material appearing on two rows
+     * (availableItemOptions), so in practice this is one plan per row — but the
+     * grouping stays, mirroring the action, which sums duplicates because a Server
+     * Action is callable regardless of what this form rendered.
+     */
+    const plansByMaterial = useMemo(() => {
+        if (!effectiveVendorId) return new Map();
+        const wanted = new Map();
+        for (const row of rows) {
+            const q = Number(row.qty);
+            if (!row.materialRecordId || !Number.isFinite(q) || q <= 0) continue;
+            wanted.set(row.materialRecordId, (wanted.get(row.materialRecordId) || 0) + q);
+        }
+        const out = new Map();
+        for (const [material, qty] of wanted) {
+            out.set(
+                material,
+                planDelivery({
+                    lines: jobLines,
+                    vendorRecordId: effectiveVendorId,
+                    materialRecordId: material,
+                    poRecordId,
+                    qty,
+                })
+            );
+        }
+        return out;
+    }, [rows, jobLines, effectiveVendorId, poRecordId]);
 
-    const plan = useMemo(() => {
-        if (!effectiveVendorId || !materialId) return null;
-        const parsed = Number(qty);
-        if (!Number.isFinite(parsed) || parsed <= 0) return null;
-        return planDelivery({
-            lines: jobLines,
-            vendorRecordId: effectiveVendorId,
-            materialRecordId: materialId,
-            poRecordId,
-            qty: parsed,
-        });
-    }, [jobLines, effectiveVendorId, materialId, poRecordId, qty]);
+    // Nothing left to add once every option is on a row, so the control that would
+    // add an unfillable row is disabled rather than left to produce one.
+    const allItemsClaimed =
+        itemOptions.length > 0 &&
+        new Set(rows.map((r) => r.materialRecordId).filter(Boolean)).size >= itemOptions.length;
 
-    const messages = plan
-        ? describePlan(plan, { unit: selectedItem?.unit || "", poId: usingPo ? poId.trim() : null })
-        : [];
+    const vendorHasNoItems = Boolean(effectiveVendorId) && itemOptions.length === 0;
 
     function pickJob(id) {
         setJobRecordId(id);
         // Everything downstream was narrowed by the old job, so none of it can
         // survive the change.
         setVendorId("");
-        setMaterialId("");
         setPoId("");
         setHasPoNumber(false);
+        setRows([{ ...EMPTY_ROW }]);
+    }
+
+    function pickVendor(id) {
+        setVendorId(id);
+        setRows([{ ...EMPTY_ROW }]);
+    }
+
+    function updateRow(index, field, value) {
+        setRows((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
+    }
+    function addRow() {
+        setRows((prev) => [...prev, { ...EMPTY_ROW }]);
+    }
+    function removeRow(index) {
+        setRows((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== index)));
     }
 
     async function onPhotoChange(e) {
@@ -133,13 +180,14 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
         }
     }
 
+    const filledRows = rows.filter((r) => r.materialRecordId && Number(r.qty) > 0);
     const canSubmit =
         !pending &&
         photo.status === "done" &&
         Boolean(jobRecordId) &&
         Boolean(effectiveVendorId) &&
-        Boolean(materialId) &&
-        Number(qty) > 0 &&
+        filledRows.length > 0 &&
+        filledRows.length === rows.filter((r) => r.materialRecordId || r.qty !== "").length &&
         Boolean(receivedDate);
 
     const inputClass =
@@ -149,8 +197,8 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
         <form action={formAction} className="mt-6 space-y-6">
             <input type="hidden" name="jobRecordId" value={jobRecordId} />
             <input type="hidden" name="vendorRecordId" value={effectiveVendorId} />
-            <input type="hidden" name="materialRecordId" value={materialId} />
             <input type="hidden" name="poId" value={usingPo ? poId.trim() : ""} />
+            <input type="hidden" name="itemsJson" value={JSON.stringify(filledRows)} />
             <input type="hidden" name="packingListUrl" value={photo.url || ""} />
             <input type="hidden" name="packingListFilename" value={photo.filename || ""} />
 
@@ -184,7 +232,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                         disabled={!jobRecordId}
                         onChange={(e) => {
                             setHasPoNumber(e.target.checked);
-                            setMaterialId("");
+                            setRows([{ ...EMPTY_ROW }]);
                             if (!e.target.checked) setPoId("");
                         }}
                     />
@@ -201,7 +249,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                             value={poId}
                             onChange={(e) => {
                                 setPoId(e.target.value);
-                                setMaterialId("");
+                                setRows([{ ...EMPTY_ROW }]);
                             }}
                             placeholder="HYE-PO-YYYYMMDD-##"
                             className={inputClass}
@@ -235,10 +283,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                     <select
                         id="vendorSelect"
                         value={vendorId}
-                        onChange={(e) => {
-                            setVendorId(e.target.value);
-                            setMaterialId("");
-                        }}
+                        onChange={(e) => pickVendor(e.target.value)}
                         disabled={!jobRecordId || vendors.length === 0}
                         className={`${inputClass} disabled:opacity-50`}
                     >
@@ -263,32 +308,26 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                 </div>
             )}
 
-            {/* --- Item --------------------------------------------------------- */}
+            {/* --- Items -------------------------------------------------------- */}
             <div>
-                <label htmlFor="itemSelect" className="block text-sm font-medium">
-                    Item
-                </label>
-                <select
-                    id="itemSelect"
-                    value={materialId}
-                    onChange={(e) => setMaterialId(e.target.value)}
-                    disabled={!effectiveVendorId || itemOptions.length === 0}
-                    className={`${inputClass} disabled:opacity-50`}
-                >
-                    <option value="">
-                        {effectiveVendorId ? "Select an item…" : "Pick a vendor first…"}
-                    </option>
-                    {itemOptions.map((o) => (
-                        <option key={o.materialRecordId} value={o.materialRecordId}>
-                            {itemOptionLabel(o)}
-                            {" — "}
-                            {o.outstanding > 0 ? `${o.outstanding} outstanding` : "none outstanding"}
-                        </option>
-                    ))}
-                </select>
+                <div className="flex items-baseline justify-between">
+                    <h2 className="text-sm font-medium">Items on the packing list</h2>
+                    <button
+                        type="button"
+                        onClick={addRow}
+                        disabled={!effectiveVendorId || itemOptions.length === 0 || allItemsClaimed}
+                        title={
+                            allItemsClaimed
+                                ? "Every item this vendor supplied to this job is already on the delivery"
+                                : undefined
+                        }
+                        className="text-sm underline disabled:opacity-50"
+                    >
+                        + Add item
+                    </button>
+                </div>
 
-                {/* Dead end (b)/(c): this vendor has no order on this job. */}
-                {effectiveVendorId && itemOptions.length === 0 && vendors.length > 0 && (
+                {vendorHasNoItems && (
                     <p className="mt-2 text-sm text-amber-700 dark:text-amber-500">
                         No purchase order on {selectedJob?.jobCode} names this vendor. If site placed
                         this order directly, the purchase request and PO have to exist here before the
@@ -297,43 +336,160 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                     </p>
                 )}
 
-                {/* Dead end (a): the item is genuinely not on the list. */}
+                <div className="mt-2 space-y-3">
+                    {rows.map((row, i) => {
+                        const option = optionByMaterial.get(row.materialRecordId) || null;
+                        const plan = plansByMaterial.get(row.materialRecordId) || null;
+                        // An item another row already claimed is not offered here —
+                        // same rule as the invoice form's per-line PO Item dropdown
+                        // (#91). This row's own selection always stays, or the
+                        // select would render blank and lose it.
+                        const rowOptions = availableItemOptions(itemOptions, rows, i);
+                        // The preview belongs to the material. The dropdowns keep a
+                        // material off two rows, so this is normally the only row
+                        // for it; the guard stays because a duplicate arriving some
+                        // other way must not print the same allocation twice.
+                        const isFirstOfMaterial =
+                            rows.findIndex((r) => r.materialRecordId === row.materialRecordId) === i;
+                        const messages =
+                            plan && isFirstOfMaterial
+                                ? describePlan(plan, {
+                                      unit: option?.unit || "",
+                                      poId: usingPo ? poId.trim() : null,
+                                  })
+                                : [];
+
+                        return (
+                            <div
+                                key={i}
+                                className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
+                            >
+                                <div className="flex gap-3">
+                                    <div className="flex-1">
+                                        <label
+                                            htmlFor={`item-${i}`}
+                                            className="block text-xs text-zinc-500"
+                                        >
+                                            Item
+                                        </label>
+                                        <select
+                                            id={`item-${i}`}
+                                            value={row.materialRecordId}
+                                            onChange={(e) =>
+                                                updateRow(i, "materialRecordId", e.target.value)
+                                            }
+                                            disabled={!effectiveVendorId || itemOptions.length === 0}
+                                            className={`${inputClass} disabled:opacity-50`}
+                                        >
+                                            <option value="">
+                                                {effectiveVendorId
+                                                    ? "Select an item…"
+                                                    : "Pick a vendor first…"}
+                                            </option>
+                                            {rowOptions.map((o) => (
+                                                <option
+                                                    key={o.materialRecordId}
+                                                    value={o.materialRecordId}
+                                                >
+                                                    {itemOptionLabel(o)}
+                                                    {" — "}
+                                                    {o.outstanding > 0
+                                                        ? `${o.outstanding} outstanding`
+                                                        : "none outstanding"}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="w-32">
+                                        <label
+                                            htmlFor={`qty-${i}`}
+                                            className="block text-xs text-zinc-500"
+                                        >
+                                            Qty{option?.unit ? ` (${option.unit})` : ""}
+                                        </label>
+                                        <input
+                                            id={`qty-${i}`}
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            value={row.qty}
+                                            onChange={(e) => updateRow(i, "qty", e.target.value)}
+                                            className={inputClass}
+                                        />
+                                    </div>
+                                    <div className="flex items-end">
+                                        <button
+                                            type="button"
+                                            onClick={() => removeRow(i)}
+                                            disabled={rows.length === 1}
+                                            aria-label={`Remove item ${i + 1}`}
+                                            className="px-2 py-2 text-sm text-zinc-500 disabled:opacity-30"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* The fourth state: ordered, but already fully delivered. */}
+                                {option && option.outstanding === 0 && (
+                                    <p className="mt-2 text-xs text-amber-700 dark:text-amber-500">
+                                        Everything ordered from this vendor for this item on this job
+                                        is already recorded as delivered. Recording it will be flagged
+                                        as over-delivery — check the packing list against the order.
+                                    </p>
+                                )}
+
+                                {plan && isFirstOfMaterial && (
+                                    <div className="mt-2 border-t border-zinc-100 pt-2 text-xs dark:border-zinc-900">
+                                        <ul className="space-y-0.5">
+                                            {plan.rows.map((r, k) => (
+                                                <li key={k} className="flex justify-between gap-4">
+                                                    <span>
+                                                        {r.line ? r.line.poId : "Not against any order"}
+                                                        {r.over && (
+                                                            <span className="ml-2 text-amber-700 dark:text-amber-500">
+                                                                over-delivery
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                    <span className="tabular-nums">
+                                                        {r.qty}
+                                                        {option?.unit ? ` ${option.unit}` : ""}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                        {messages.map((m) => (
+                                            <p
+                                                key={m.key}
+                                                className="mt-1 text-amber-700 dark:text-amber-500"
+                                            >
+                                                {m.text}
+                                            </p>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+
                 {effectiveVendorId && itemOptions.length > 0 && (
                     <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
                         This list holds only materials from purchase orders on this job for this
-                        vendor. If it was ordered from a different vendor, change the vendor above. An
-                        order placed before this app recorded deliveries will not appear here — keep
-                        the packing list and tell the office.
+                        vendor. If something was ordered from a different vendor, record it as its own
+                        delivery. An order placed before this app recorded deliveries will not appear
+                        here — keep the packing list and tell the office.
                     </p>
                 )}
-
-                {/* The fourth state: ordered, but already fully delivered. */}
-                {selectedItem && selectedItem.outstanding === 0 && (
-                    <p className="mt-2 text-sm text-amber-700 dark:text-amber-500">
-                        Everything ordered from this vendor for this item on this job is already
-                        recorded as delivered. Recording this will be flagged as over-delivery — check
-                        the packing list against the order first.
-                    </p>
-                )}
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                    The app decides which order each item belongs to. Correcting an item or a quantity
+                    later means deleting this delivery and entering it again.
+                </p>
             </div>
 
-            {/* --- Quantity, date ----------------------------------------------- */}
+            {/* --- Date, photo, notes ------------------------------------------- */}
             <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label htmlFor="qtyInput" className="block text-sm font-medium">
-                        Quantity that arrived{selectedItem?.unit ? ` (${selectedItem.unit})` : ""}
-                    </label>
-                    <input
-                        id="qtyInput"
-                        name="qty"
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={qty}
-                        onChange={(e) => setQty(e.target.value)}
-                        className={inputClass}
-                    />
-                </div>
                 <div>
                     <label htmlFor="receivedDateInput" className="block text-sm font-medium">
                         Received Date
@@ -349,43 +505,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                 </div>
             </div>
 
-            {/* --- Allocation preview ------------------------------------------- */}
-            {plan && (
-                <div className="rounded border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-                    <p className="font-medium">This will be recorded as:</p>
-                    <ul className="mt-2 space-y-1">
-                        {plan.rows.map((row, i) => (
-                            <li key={i} className="flex justify-between gap-4">
-                                <span>
-                                    {row.line ? row.line.poId : "Not against any order"}
-                                    {row.over && (
-                                        <span className="ml-2 text-amber-700 dark:text-amber-500">
-                                            over-delivery
-                                        </span>
-                                    )}
-                                </span>
-                                <span className="tabular-nums">
-                                    {row.qty}
-                                    {selectedItem?.unit ? ` ${selectedItem.unit}` : ""}
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                    {messages.length > 0 && (
-                        <div className="mt-3 space-y-1 text-amber-700 dark:text-amber-500">
-                            {messages.map((m) => (
-                                <p key={m.key}>{m.text}</p>
-                            ))}
-                        </div>
-                    )}
-                    <p className="mt-3 text-xs text-zinc-500 dark:text-zinc-500">
-                        The app decides which order a delivery belongs to. Correcting an item or a
-                        quantity later means deleting this delivery and entering it again.
-                    </p>
-                </div>
-            )}
-
-            {/* --- Packing list photo ------------------------------------------- */}
             <div>
                 <label htmlFor="photoInput" className="block text-sm font-medium">
                     Packing list photo
