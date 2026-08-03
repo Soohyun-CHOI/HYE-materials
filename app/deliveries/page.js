@@ -125,26 +125,34 @@ export default async function DeliveriesListPage({ searchParams }) {
                 </p>
             ) : (
                 <div className="mt-6 overflow-x-auto">
-                    {/* The declared columns sum to 55rem, so the minimum matches
-                        them: below it `w-full` would shrink the table and the one
-                        flexible column would absorb the shortfall, wrapping every
-                        summary. The wrapper scrolls instead, so the page body
-                        never scrolls sideways — same reasoning as #19's tables. */}
-                    <table className="w-full min-w-[55rem] table-fixed text-sm">
+                    {/* THE DECLARED COLUMNS SUM TO EXACTLY 52rem, WHICH IS WHAT THE
+                        PAGE HAS: `max-w-4xl` is 56rem and `p-8` takes 4rem, leaving
+                        832px. #19's tables are 52rem for that same reason. The
+                        first version declared 55rem, which overflowed by 3rem and
+                        put a scrollbar on every desktop render.
+
+                        Column order is Delivery / Vendor / Received / What arrived
+                        / Job. The four narrow columns are sized from their widest
+                        realistic content and the flexible one takes the remainder,
+                        so a long summary wraps inside its own cell rather than
+                        widening the table. `min-w` still guards the small-viewport
+                        case: below 832px the wrapper scrolls instead of letting
+                        `w-full` shrink the table and wrap every row. */}
+                    <table className="w-full min-w-[52rem] table-fixed text-sm">
                         <colgroup>
-                            <col style={{ width: "12rem" }} />
-                            <col style={{ width: "7rem" }} />
-                            <col style={{ width: "7rem" }} />
+                            <col style={{ width: "9rem" }} />
                             <col style={{ width: "11rem" }} />
-                            <col style={{ width: "18rem" }} />
+                            <col style={{ width: "6.5rem" }} />
+                            <col style={{ width: "19rem" }} />
+                            <col style={{ width: "6.5rem" }} />
                         </colgroup>
                         <thead>
                             <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
                                 <th className="py-2 font-medium">Delivery</th>
-                                <th className="py-2 font-medium">Received</th>
-                                <th className="py-2 font-medium">Job</th>
                                 <th className="py-2 font-medium">Vendor</th>
+                                <th className="py-2 font-medium">Received</th>
                                 <th className="py-2 font-medium">What arrived</th>
+                                <th className="py-2 font-medium">Job</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -161,9 +169,8 @@ export default async function DeliveriesListPage({ searchParams }) {
                                             {row.deliveryId}
                                         </Link>
                                     </td>
-                                    <td className="py-2">{row.receivedDate || "—"}</td>
-                                    <td className="py-2">{row.jobCode}</td>
                                     <td className="py-2">{row.vendorName}</td>
+                                    <td className="py-2">{row.receivedDate || "—"}</td>
                                     <td className="py-2">
                                         {row.summary ? (
                                             <span className="flex flex-wrap items-center gap-1.5">
@@ -198,6 +205,7 @@ export default async function DeliveriesListPage({ searchParams }) {
                                             <span className="text-zinc-500">—</span>
                                         )}
                                     </td>
+                                    <td className="py-2">{row.jobCode}</td>
                                 </tr>
                             ))}
                         </tbody>
