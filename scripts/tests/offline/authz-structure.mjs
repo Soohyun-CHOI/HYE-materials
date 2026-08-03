@@ -67,6 +67,21 @@ const REQUIRE_USER_AXIS =
     "and the actual authorization is the record-by-record comparison in the body. A wrapper here would cover the " +
     "half that was never at risk and leave the deciding half uncovered, while looking like coverage.";
 
+// #162's two axes. Both are the requireUser shape above — session plus a
+// per-record comparison — but they compare different things, and saying which
+// keeps an exemption from reading as a blanket "deliveries are exempt".
+const DELIVERY_JOB_AXIS =
+    "Session + membership of the delivery's Job, not a role. requireUser() already cannot be dropped (it " +
+    "redirects), and the actual authorization is canAccessJobDeliveries (lib/deliveryAccess.js) compared per " +
+    "record in the body — an axis no role helper covers, since a site employee assigned to the Job must pass and " +
+    "an Admin on no job must too. Same shape as withdrawPOAction (#138).";
+
+const DELIVERY_AUTHOR_AXIS =
+    "Session + authorship, not a role. The Job scope is checked first so someone outside it learns nothing, then " +
+    "canDeleteDelivery (lib/deliveryDelete.js) decides on author-or-Admin inside the shared write path. Admin is " +
+    "one branch of that predicate rather than the gate, so withAdminAction would refuse the author — who is " +
+    "typically neither President nor Admin — and admit nobody it should.";
+
 const UPLOAD_CALLBACK_GATE =
     "the gate has to run inside handleUpload's onBeforeGenerateToken callback, which rejects by throwing rather " +
     "than by returning a Response, so wrapping the export would answer 401/403 where the client currently gets the " +
@@ -106,6 +121,16 @@ const EXEMPTIONS = [
         mustCall: "getActiveUser",
         reason: `Any-active-user rather than Admin, so no Admin wrapper applies, and ${UPLOAD_CALLBACK_GATE}`,
     },
+    {
+        file: "app/api/deliveries/upload/route.js",
+        name: "POST",
+        mustCall: "getActiveUser",
+        reason:
+            "Any-active-user rather than Admin (recording a delivery is site work, open to anyone assigned to the " +
+            "Job), so no Admin wrapper applies. The Job itself CANNOT be checked here — the upload happens before " +
+            `the form is submitted, so this route does not know which Job the photo will belong to, and the Job ` +
+            `membership check lives in createDeliveryAction instead. And ${UPLOAD_CALLBACK_GATE}`,
+    },
     { file: "app/pos/[poId]/actions.js", name: "withdrawPOAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/[prId]/actions.js", name: "approveAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/[prId]/actions.js", name: "editAndContinueAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
@@ -114,6 +139,10 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
+    { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
+    { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
+    { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
+    { file: "app/deliveries/[deliveryId]/actions.js", name: "deleteDeliveryAction", mustCall: "requireUser", reason: DELIVERY_AUTHOR_AXIS },
 ];
 
 function directivesOf(body) {

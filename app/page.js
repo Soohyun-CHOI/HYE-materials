@@ -28,6 +28,13 @@ export default async function Home() {
                     >
                         Material prices
                     </Link>
+                    {/* Issue #162 — same reasoning as the link above. */}
+                    <Link
+                        href="/deliveries"
+                        className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                    >
+                        Deliveries
+                    </Link>
                     <form action="/api/auth/logout" method="POST">
                         <button
                             type="submit"

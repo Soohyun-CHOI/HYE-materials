@@ -30,8 +30,17 @@ import { CANONICAL_UNITS } from "../../lib/units.js";
 import { TABLES } from "../../lib/airtable/client.js";
 
 // The tables carrying the shared Unit select, by their production constants
-// rather than a fourth hand-typed copy of the names.
-const UNIT_TABLES = [TABLES.PR_ITEMS, TABLES.PO_ITEMS, TABLES.INVOICE_ITEMS, TABLES.MATERIALS];
+// rather than another hand-typed copy of the names. Delivery Items joined in
+// #162, where a missing option fails the write outright: createDeliveryItem does
+// not use typecast, so an unlisted unit would break recording an arrival rather
+// than mislabel one.
+const UNIT_TABLES = [
+    TABLES.PR_ITEMS,
+    TABLES.PO_ITEMS,
+    TABLES.INVOICE_ITEMS,
+    TABLES.MATERIALS,
+    TABLES.DELIVERY_ITEMS,
+];
 const FIELD = "Unit";
 
 let pass = true;
