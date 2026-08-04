@@ -19,9 +19,15 @@
 //   C — one entered quantity spanning two POs becomes two rows that roll up
 //       correctly to two different lines, which is the whole reason the split is
 //       structural rather than cosmetic.
-//   D — over-delivery: flagged, its own row, and attached to a line only when the
-//       narrowed set held exactly one.
-//   E — a withdrawn PO's line is not a candidate, read through Committed Qty.
+//   D — over-delivery: flagged, its own row, and ATTACHED (#165) — to the last
+//       line the arrival filled, even with two orders in play, where #162 left it
+//       unlinked and therefore invisible on the invoice axis. Also that the
+//       attached line's `Delivered Qty` then EXCEEDS its ordered `Qty`, which is
+//       the intended shape rather than a defect.
+//   E — a withdrawn PO's line is not a candidate, read through Committed Qty; and
+//       with nothing left to attach to, the plan is BLOCKED rather than writing an
+//       unlinked row (#165), which is the action finally refusing the same set the
+//       item dropdown already refused.
 //   F — deletion returns Delivered Qty to where it was, and touches no invoice.
 //   G — one delivery holding several items: planned per material, read back and
 //       collapsed to items again, with the over-delivered one flagged.
@@ -53,6 +59,7 @@ import { createDelivery, getDeliveryById, replaceDeliveryPhoto, updateDelivery }
 import { createDeliveryItem, getItemsByDelivery } from "../../lib/airtable/deliveryItems.js";
 import { getDeliveryCandidates } from "../../lib/deliveryCandidates.js";
 import {
+    BLOCKED,
     buildItemOptions,
     describeDelivery,
     groupRowsByItem,
@@ -228,6 +235,13 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     incomplete = "need one active User, TWO Vendors and one Line attached to a Job in the base";
     console.log(`\n  SKIP  ${incomplete}`);
 } else {
+  // EVERY FIXTURE THIS RUN CREATES IS DELETED BELOW, so an unexpected throw in
+  // here must not skip that. It did: #165 changed planDelivery's shape, a stale
+  // assertion dereferenced a row that no longer exists, and four aborted runs
+  // left 100 records on the shared base to be removed by hand. A failing CHECK
+  // was always survivable — check()/assert() only set `pass` — but a THROW was
+  // not, and the cleanup sits outside this block precisely so it always runs.
+  try {
     const job = await getJobByRecordId(line.jobId);
     console.log(
         `\nFixture context: job "${job.jobCode}", vendors "${vendorA.vendorName}" / "${vendorB.vendorName}", line "${line.lineLabel}" (all reused, not modified)`
@@ -363,7 +377,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("the second holds only its own share", await getDeliveredQtyForPOItem(plan.rows[1].line.id), 5);
 
     // -----------------------------------------------------------------------
-    console.log("\nPart D — over-delivery: flagged, own row, attached only when attributable:");
+    console.log("\nPart D — over-delivery: flagged, its own row, and ATTACHED (#165):");
     const afterSplit = await getDeliveryCandidates([job]);
     const overPlan = planDelivery({
         lines: afterSplit.lines.filter((l) => l.itemName === itemName),
@@ -374,9 +388,16 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("5 outstanding absorbed, 7 over", overPlan.over, 7);
     check("the excess is its own row", overPlan.rows.length, 2);
     check("and the flagged row's qty IS the excess", overPlan.rows[1].qty, overPlan.over);
-    assert(
-        "unattached, because TWO lines were narrowed to",
-        overPlan.narrowed.length === 2 && overPlan.rows[1].line === null
+    // THE #165 SCENARIO, on real records: two candidate lines, an over-delivery,
+    // and the flagged row attaches to the LAST ONE FILLED rather than to nothing.
+    // #162 left it unattached here, which put the quantity in no line's rollup and
+    // made a delivery that arrived in full read as less arrived than was billed.
+    check("two lines were narrowed to", overPlan.narrowed.length, 2);
+    assert("and the flagged row names one of them", overPlan.rows[1].line !== null);
+    check(
+        "the LAST line filled, which is the newer order (fill order is oldest-first)",
+        overPlan.rows[1].line.id,
+        overPlan.rows[0].line.id
     );
 
     const delivery3 = await createDelivery({
@@ -388,21 +409,50 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     for (const row of overPlan.rows) {
         const di = await createDeliveryItem({
             deliveryRecordId: delivery3.id, deliveryId: delivery3.deliveryId,
-            poItemRecordId: row.line?.id ?? null, materialRecordId,
+            poItemRecordId: row.line.id, materialRecordId,
             itemName, size: '2"', unit: "EA",
             qty: row.qty, overDelivery: row.over,
         });
         track("deliveryItems", di.id);
     }
     const d3Items = await getItemsByDelivery(delivery3.id);
-    const looseRow = d3Items.find((i) => i.overDelivery);
-    assert("the flagged row was stored with NO PO Item", looseRow && looseRow.poItem.length === 0);
-    assert("but still carries its Material, so it stays on the item axis", looseRow.material.length === 1);
-    check("Over Delivery persisted as true", looseRow.overDelivery, true);
-    // An unlinked row contributes to no line's rollup — by design, and worth
-    // proving rather than assuming, since it is the reason #20 must read
-    // Delivery Items directly instead of summing PO Items."Delivered Qty".
-    check("the second line's rollup counts only the attributed 10", await getDeliveredQtyForPOItem(overPlan.rows[0].line.id), 10);
+    const overRow = d3Items.find((i) => i.overDelivery);
+    assert("the flagged row was stored WITH a PO Item (#165)", overRow && overRow.poItem.length === 1);
+    check("the one the plan named", overRow.poItem[0], overPlan.rows[1].line.id);
+    assert("and still carries its Material, so it stays on the item axis", overRow.material.length === 1);
+    check("Over Delivery persisted as true", overRow.overDelivery, true);
+    assert(
+        "no row of this delivery lacks a PO Item — the #165 invariant, on real records",
+        d3Items.every((i) => i.poItem.length === 1)
+    );
+
+    // THE POINT OF ATTACHING: the quantity now reaches a line's rollup, so the
+    // arrival is visible on the invoice axis. Delivered Qty deliberately EXCEEDS
+    // the ordered Qty — that is the shape #162 already asserts and #165 keeps.
+    const attachedLine = overPlan.rows[1].line;
+    // Measured as a DELTA, not an absolute: this line already carried 5 from the
+    // split in Part C, so the property is that both of this delivery's slices
+    // reached it — the fill and the excess — not that the rollup equals 12.
+    const rolledBefore = attachedLine.deliveredQty || 0;
+    const expected = rolledBefore + 12;
+    const rolled = await waitFor(
+        async () => await getDeliveredQtyForPOItem(attachedLine.id),
+        (v) => v === expected
+    );
+    check(
+        `the attached line's Delivered Qty grew by both slices, ${rolledBefore} -> ${expected} (${settleNote(rolled)})`,
+        rolled.value,
+        expected
+    );
+    const attachedAfter = (await getPOItemsByRecordIds([attachedLine.id]))[0];
+    assert(
+        `Delivered Qty (${rolled.value}) EXCEEDS the ordered Qty (${attachedAfter.qty}) — intended, not a defect`,
+        rolled.value > attachedAfter.qty
+    );
+    // And the whole entered quantity is now reachable by summing the lines, which
+    // is what an unlinked row broke.
+    const d3Total = d3Items.reduce((sum, i) => sum + (i.qty || 0), 0);
+    check("every unit entered reached a line", d3Total, 12);
 
     // -----------------------------------------------------------------------
     console.log("\nPart E — a withdrawn PO's line stops being a candidate:");
@@ -429,9 +479,17 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         qty: 3,
     });
     check("it is no longer narrowed to", valvePlan.narrowed.length, 0);
-    check("so the arrival is all over-delivery", valvePlan.over, 3);
-    assert("with no line to attach to", valvePlan.rows[0].line === null);
-    // And it drops out of the item dropdown for that vendor.
+    // #165 — with nothing narrowed there is no line to attach to, and no row may
+    // be written without one, so the plan is BLOCKED rather than recorded as an
+    // unattributable over-delivery. That is a behaviour change from #162, and it
+    // makes the action agree with the form for the first time: the item was
+    // already absent from the dropdown (asserted below), so #162's unattached row
+    // was only ever reachable by calling the Server Action directly.
+    check("nothing is planned", valvePlan.rows.length, 0);
+    check("and the plan says why", valvePlan.blocked, BLOCKED.notOrdered);
+    check("no over-delivery is claimed either, since nothing is recorded", valvePlan.over, 0);
+    // And it drops out of the item dropdown for that vendor — the same judgement,
+    // reached independently, which is why the two now refuse the same set.
     const valveOptions = buildItemOptions(afterWithdraw.lines, vendorB.id).filter(
         (o) => o.itemName === `${TAG} Valve`
     );
@@ -493,7 +551,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
             const src = row.line || p.narrowed[0];
             const di = await createDeliveryItem({
                 deliveryRecordId: multiDelivery.id, deliveryId: multiDelivery.deliveryId,
-                poItemRecordId: row.line?.id ?? null, materialRecordId: materialId,
+                poItemRecordId: row.line.id, materialRecordId: materialId,
                 itemName: src?.itemName ?? "", size: src?.size ?? "", unit: src?.unit ?? "",
                 qty: row.qty, overDelivery: row.over,
             });
@@ -575,6 +633,14 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     });
     check("received date is editable in place", edited.receivedDate, "2026-01-15");
     check("so is the note", edited.notes, `${TAG} edited`);
+  } catch (err) {
+    // Not `incomplete`: an unexpected throw is a failure (exit 1), not a part
+    // that could not run. The cleanup below still runs either way.
+    pass = false;
+    console.error(`
+  ABORTED — ${err.message}`);
+    console.error(err.stack);
+  }
 }
 
 // ---------------------------------------------------------------------------

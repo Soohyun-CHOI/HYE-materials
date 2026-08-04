@@ -13,6 +13,7 @@
 
 import {
     ALLOCATION_COPY,
+    BLOCKED,
     availableItemOptions,
     buildItemOptions,
     describeDelivery,
@@ -28,7 +29,7 @@ import {
 } from "../../../lib/deliveryAllocation.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Delivery allocation — candidates, order, split, over-delivery (#162)";
+export const title = "Delivery allocation — candidates, order, split, over-delivery (#162, #165)";
 
 const VENDOR = "recVendorA";
 const OTHER_VENDOR = "recVendorB";
@@ -199,21 +200,29 @@ export function run({ check, assert, log }) {
     check("the excess is its own row", overOne.rows[1].qty, 3);
     check("flagged", overOne.rows[1].over, true);
     check("and it names the line", overOne.rows[1].line.poItemId, "a");
-    check("overAttached says so", overOne.overAttached, true);
     check("over reports the excess", overOne.over, 3);
     check("the excess row's qty IS the excess, no arithmetic needed", overOne.rows[1].qty, overOne.over);
 
     log("");
-    log("Over-delivery, case (b) — two orders in play, so the excess names none:");
+    log("Over-delivery, case (b) — two orders in play: the excess names the LAST FILLED (#165):");
+    // #162 left this row unattached, on the grounds that no single order had been
+    // over-delivered. The cost was worse than the imprecision: an unlinked row is
+    // in no line's Delivered Qty, so a delivery that arrived in full read as less
+    // arrived than was billed.
     const overTwo = planDelivery({ lines: two, vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 25 });
     check("three rows", overTwo.rows.length, 3);
     check("both orders filled", overTwo.rows.slice(0, 2).map((r) => r.qty).join(","), "10,10");
     check("the excess is 5", overTwo.rows[2].qty, 5);
     check("flagged", overTwo.rows[2].over, true);
-    assert("and carries NO line, because no single order was over-delivered", overTwo.rows[2].line === null);
-    check("overAttached says so", overTwo.overAttached, false);
+    assert("and it names a line", overTwo.rows[2].line !== null);
+    check(
+        "the LAST line filled, not the first",
+        overTwo.rows[2].line.poItemId,
+        overTwo.rows[1].line.poItemId
+    );
+    check("which is the newer order, since fill order is oldest-first", overTwo.rows[2].line.poItemId, "new");
     assert(
-        "its siblings still name the orders, so nothing is lost",
+        "its siblings still name the orders they filled",
         overTwo.rows.filter((r) => !r.over).every((r) => Boolean(r.line.poId))
     );
 
@@ -229,7 +238,8 @@ export function run({ check, assert, log }) {
     check("one row", noneLeft.rows.length, 1);
     check("all of it flagged", noneLeft.rows[0].over, true);
     check("with the full quantity", noneLeft.rows[0].qty, 4);
-    assert("attached, because the narrowed set still holds exactly one line", noneLeft.rows[0].line !== null);
+    assert("attached, even though nothing was filled", noneLeft.rows[0].line !== null);
+    check("to the only narrowed line", noneLeft.rows[0].line.poItemId, "a");
     check("nothing was allocated", noneLeft.allocated, 0);
     check("no candidates could absorb it", noneLeft.candidates.length, 0);
     assert("but the line was still narrowed to", noneLeft.narrowed.length === 1);
@@ -241,9 +251,8 @@ export function run({ check, assert, log }) {
         materialRecordId: MATERIAL,
         qty: 6,
     });
-    check("one flagged row", nothingOrdered.rows.length, 1);
-    check("flagged", nothingOrdered.rows[0].over, true);
-    assert("and unattached — there is no line at all", nothingOrdered.rows[0].line === null);
+    check("nothing is recorded at all — there is no line to attach to", nothingOrdered.rows.length, 0);
+    check("and the plan says why", nothingOrdered.blocked, BLOCKED.notOrdered);
     check("narrowed set is empty", nothingOrdered.narrowed.length, 0);
 
     log("");
@@ -265,9 +274,11 @@ export function run({ check, assert, log }) {
     );
     check("the excess names the narrowed order", narrowed.rows[1].line.poItemId, "old");
 
-    // One PO carrying two lines of the same material: the PO is unambiguous but
-    // the LINE is not, so the excess stays unattached and Deliveries.PO records
-    // the PO-level fact instead.
+    // One PO carrying two lines of the same material. #162 left this unattached —
+    // the PO was unambiguous but the line was not — and recorded only the PO-level
+    // fact on Deliveries.PO. #165 resolves it by fill order, which is why this
+    // feature no longer depends on a PO holding at most one line per material
+    // (and so does not wait on #170).
     const twoLinesOnePo = planDelivery({
         lines: [
             line({ poItemId: "HYE-PO-20260101-01-001", poRecordId: "recPO1", qty: 5 }),
@@ -280,11 +291,94 @@ export function run({ check, assert, log }) {
     });
     check("both lines of the one PO fill", twoLinesOnePo.rows.slice(0, 2).map((r) => r.qty).join(","), "5,5");
     check("the excess is 4", twoLinesOnePo.rows[2].qty, 4);
-    assert(
-        "unattached: the PO is unambiguous but the line is not",
-        twoLinesOnePo.rows[2].line === null
-    );
+    check("the excess names the second line, the last one filled", twoLinesOnePo.rows[2].line.poItemId, "HYE-PO-20260101-01-002");
     check("only one PO was drawn on", twoLinesOnePo.poRecordIds.length, 1);
+
+    log("");
+    log("THE #165 INVARIANT — a plan is blocked, or every row it makes names a line:");
+    // Stated over a spread of plans rather than asserted once per case, because
+    // this is the property the whole issue is: an unlinked row is in no line's
+    // Delivered Qty, so the delivery vanishes from the invoice axis.
+    const everyPlan = [
+        ["exact fill", exact],
+        ["split across two orders", split],
+        ["over, one order", overOne],
+        ["over, two orders", overTwo],
+        ["over, nothing outstanding", noneLeft],
+        ["over, PO-narrowed", narrowed],
+        ["over, two lines on one PO", twoLinesOnePo],
+        ["blocked, nothing ordered", nothingOrdered],
+    ];
+    for (const [label, plan] of everyPlan) {
+        assert(
+            `${label}: ${plan.blocked ? "blocked, so no rows" : "every row names a line"}`,
+            plan.blocked ? plan.rows.length === 0 : plan.rows.every((r) => Boolean(r.line))
+        );
+    }
+    assert(
+        "and the invariant is not vacuous — some of those plans do produce rows",
+        everyPlan.some(([, p]) => p.rows.length > 0)
+    );
+
+    log("");
+    log("Blocked: a supplied PO that does not carry the item (#165):");
+    // NOT reachable from the entry form — it builds its item options from the typed
+    // PO's own lines and resets the rows whenever the PO changes. Reachable at
+    // SUBMIT, where createDeliveryAction re-runs this from a fresh read and a PO
+    // may have been withdrawn in the meantime, and by a direct call on the action.
+    // #162 wrote an unlinked row with blank frozen fields for this.
+    const poWithoutItem = planDelivery({
+        lines: [line({ poItemId: "a", poRecordId: "recPO1" })],
+        vendorRecordId: VENDOR,
+        materialRecordId: MATERIAL,
+        poRecordId: "recPO2",
+        qty: 5,
+    });
+    check("nothing is recorded", poWithoutItem.rows.length, 0);
+    check("blocked with the PO-specific reason", poWithoutItem.blocked, BLOCKED.poHasNoLine);
+    check("narrowed to nothing, which is what blocked it", poWithoutItem.narrowed.length, 0);
+    // The two reasons are distinguished only by whether a PO was supplied, and
+    // they ask the recorder for different things.
+    assert("the two reasons are distinct values", BLOCKED.poHasNoLine !== BLOCKED.notOrdered);
+    const blockedCopy = describePlan(poWithoutItem, { poId: "HYE-PO-20260101-02", label: 'Pipe 2"' });
+    check("one message, and it is the reason", blockedCopy.length, 1);
+    check("keyed as blocked", blockedCopy[0].key, "blocked-po-has-no-line");
+    assert("it names the PO the recorder typed", blockedCopy[0].text.includes("HYE-PO-20260101-02"));
+    assert("and the item, since the reason is about this item", blockedCopy[0].text.includes('Pipe 2"'));
+    const notOrderedCopy = describePlan(nothingOrdered, { label: 'Pipe 2"' });
+    check("the other reason has its own message", notOrderedCopy[0].key, "blocked-not-ordered");
+    assert("which does not blame a PO", !notOrderedCopy[0].text.includes("purchase order"));
+    // A blocked plan says ONE thing. Anything else it might report is about rows
+    // that will not exist.
+    assert("a blocked plan reports nothing else", describePlan(poWithoutItem, { unit: "EA" }).length === 1);
+
+    log("");
+    log("The attach tail comes from sortCandidates, not a second comparator (#165):");
+    // Both branches are positions in the one order planDelivery already fills in.
+    // Branch 2 is literally its last element, so this pins them to each other.
+    const threeOrders = [
+        line({ poItemId: "c", poRecordId: "recPO3", poId: "HYE-PO-20260103-01", poCreatedDate: "2026-01-03", qty: 5, deliveredQty: 5 }),
+        line({ poItemId: "a", poRecordId: "recPO1", poId: "HYE-PO-20260101-01", poCreatedDate: "2026-01-01", qty: 5, deliveredQty: 5 }),
+        line({ poItemId: "b", poRecordId: "recPO2", poId: "HYE-PO-20260102-01", poCreatedDate: "2026-01-02", qty: 5, deliveredQty: 5 }),
+    ];
+    const allFull = planDelivery({ lines: threeOrders, vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 2 });
+    check("nothing could be filled", allFull.allocated, 0);
+    check("so the excess goes to the MOST RECENT order", allFull.rows[0].line.poItemId, "c");
+    check(
+        "which is exactly sortCandidates' last element",
+        allFull.rows[0].line.poItemId,
+        sortCandidates(allFull.narrowed).at(-1).poItemId
+    );
+    // An undated line sorts last so a data gap cannot take FIFO priority, so the
+    // tail picks it. Coherent under the same reading — last to be filled, last to
+    // be blamed — and unreachable on this base, where every PO carries a date.
+    const withUndated = planDelivery({
+        lines: [...threeOrders, line({ poItemId: "z", poRecordId: "recPO9", poCreatedDate: null, qty: 5, deliveredQty: 5 })],
+        vendorRecordId: VENDOR,
+        materialRecordId: MATERIAL,
+        qty: 2,
+    });
+    check("an undated line is the tail, as it is the tail of the fill order", withUndated.rows[0].line.poItemId, "z");
 
     log("");
     log("Degenerate inputs plan nothing rather than misbehaving:");
@@ -294,10 +388,10 @@ export function run({ check, assert, log }) {
         check(`  and nothing over`, p.over, 0);
     }
     const noLines = planDelivery({ lines: [], vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 5 });
-    check("an empty line list still records the arrival as over-delivery", noLines.rows.length, 1);
-    check("  flagged", noLines.rows[0].over, true);
+    check("an empty line list is blocked, not written unattached (#165)", noLines.rows.length, 0);
+    check("  with the not-ordered reason", noLines.blocked, BLOCKED.notOrdered);
     const undefinedLines = planDelivery({ vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 5 });
-    check("a missing line list does not throw", undefinedLines.rows.length, 1);
+    check("a missing line list does not throw", undefinedLines.rows.length, 0);
 
     log("");
     log("totalUndelivered counts only what candidates can absorb:");
@@ -319,7 +413,7 @@ export function run({ check, assert, log }) {
     check("a clean single-order fill says nothing", describePlan(exact).length, 0);
     check("a split is announced", describePlan(split)[0].key, "split");
     check("attached excess", describePlan(overOne, { unit: "EA" })[0].key, "over-attached");
-    check("unattached excess", describePlan(overTwo, { unit: "EA" }).at(-1).key, "over-unattached");
+    check("excess across two orders is attached too now (#165)", describePlan(overTwo, { unit: "EA" }).at(-1).key, "over-attached");
     check("a split AND excess reports both", describePlan(overTwo).length, 2);
     check(
         "nothing outstanding gets its own message, not the generic one",
@@ -338,8 +432,8 @@ export function run({ check, assert, log }) {
             .text.includes("HYE-PO-20260101-01")
     );
     assert(
-        "the unattached message says no single order was over-delivered",
-        ALLOCATION_COPY.preview.overUnattached(overTwo, "EA").text.includes("no single order")
+        "the nothing-outstanding message now names where the excess lands (#165)",
+        ALLOCATION_COPY.preview.overNothingOutstanding(noneLeft, "EA").text.includes("HYE-PO-20260101-01")
     );
 
     log("");
