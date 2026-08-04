@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
+import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
+import { describeInvoiceColumn, describeLineDetail } from "@/lib/deliveryStatus";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
@@ -49,6 +51,13 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
     const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
+
+    // Issue #166 — the delivery side of this invoice. Three operations on top of
+    // what the page already holds (PO Items, Delivery Items, Deliveries), keyed on
+    // ids from the level above; the invoice's own lines are already loaded, so
+    // there is no query for them. The rule is lib/deliveryStatus.js and nothing is
+    // stored — there is no `Invoices.Delivery` link, deliberately.
+    const reconciliation = await getInvoiceReconciliation(items);
 
     // Issue #16 — surfaced but never blocking: variance is a review prompt,
     // not a gate on marking something paid.
@@ -212,6 +221,120 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                         ⚠ Header Variance — the vendor&apos;s Amount Due ({formatUSD(invoice.amountDue)})
                         doesn&apos;t match our Calculated Total ({formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)}).
                     </p>
+                )}
+            </div>
+
+            {/* Issue #166 — did what this invoice billed for arrive, and which
+                arrivals touched the same ordered lines.
+
+                THE HEADING SAYS "the same order lines", NOT "the deliveries for
+                this invoice". The QUANTITY is attributed to this bill; WHICH
+                ARRIVAL brought it is not, and those are different claims.
+                Nothing links a delivery to an invoice, so when a line carries
+                several of each this lists all of them — naming one would assert
+                a pairing no field records. */}
+            <div className="mt-8">
+                <h2 className="text-lg font-semibold">Delivery</h2>
+                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    {describeInvoiceColumn(reconciliation.summary).text}
+                    {reconciliation.excludedCount > 0 && (
+                        <>
+                            {" "}
+                            <span className="text-zinc-500">
+                                ({reconciliation.excludedCount} line
+                                {reconciliation.excludedCount === 1 ? "" : "s"} with no ordered line
+                                {reconciliation.excludedCount === 1 ? " is" : " are"} not compared)
+                            </span>
+                        </>
+                    )}
+                </p>
+
+                {reconciliation.rows.length > 0 && (
+                    <ul className="mt-3 space-y-2 text-sm">
+                        {reconciliation.rows.map((row) => (
+                            <li
+                                key={row.invoiceItemId}
+                                className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
+                            >
+                                <div className="font-medium">
+                                    {[row.itemName, row.size].filter(Boolean).join(" ")}
+                                </div>
+                                {/* Issue #166 — this invoice's own share, then the
+                                    line's totals when other bills share it. Without
+                                    the second figure a reader cannot tell why the
+                                    share is what it is. */}
+                                <p className="mt-0.5 text-xs text-zinc-500">
+                                    This invoice bills {row.billedOnThisInvoice}
+                                    {row.unit ? ` ${row.unit}` : ""}
+                                    {row.billCount > 1 && (
+                                        <>
+                                            {" "}
+                                            of {row.line.invoiced}
+                                            {row.unit ? ` ${row.unit}` : ""} billed on this
+                                            order line across {row.billCount} bills
+                                        </>
+                                    )}
+                                    .
+                                </p>
+                                {describeLineDetail(row.status, row.unit).map((m) => (
+                                    <p
+                                        key={m.key}
+                                        className={
+                                            m.key === "matched"
+                                                ? "mt-1 text-zinc-600 dark:text-zinc-400"
+                                                : "mt-1 text-amber-700 dark:text-amber-500"
+                                        }
+                                    >
+                                        {m.text}
+                                    </p>
+                                ))}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+
+                <h3 className="mt-4 text-sm font-medium">
+                    Deliveries recorded against the same order lines
+                </h3>
+                {reconciliation.deliveries.length === 0 ? (
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        None yet.
+                    </p>
+                ) : (
+                    <ul className="mt-2 space-y-1 text-sm">
+                        {reconciliation.deliveries.map((d) => {
+                            // The packing list photo is the evidence the arrival
+                            // happened, so it is linked rather than described.
+                            // Airtable's attachment urls are short-lived signed
+                            // urls (~2h), so this renders the current one and can
+                            // go stale on a page held open — the same property
+                            // every other attachment link here has.
+                            const photo = d.packingListFile?.[0];
+                            return (
+                                <li key={d.id} className="flex flex-wrap items-center gap-2">
+                                    <Link
+                                        href={`/deliveries/${encodeURIComponent(d.deliveryId)}`}
+                                        className="underline"
+                                    >
+                                        {d.deliveryId}
+                                    </Link>
+                                    <span className="text-zinc-600 dark:text-zinc-400">
+                                        received {d.receivedDate || "—"}
+                                    </span>
+                                    {photo?.url && (
+                                        <a
+                                            href={photo.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="underline"
+                                        >
+                                            packing list
+                                        </a>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
             </div>
 
