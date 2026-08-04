@@ -11,8 +11,19 @@ import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
-import { planDelivery } from "@/lib/deliveryAllocation";
+import { describePlan, itemOptionLabel, planDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
+
+/**
+ * The item's printed name, for a refusal that has to say which item it means.
+ * Any line for the material will do — they all carry the same frozen copies —
+ * and a material with no line at all is named only by its record id, which is
+ * no use in a message, so it falls back to the generic wording (#165).
+ */
+function itemLabelFor(lines, materialRecordId) {
+    const line = (lines || []).find((l) => l.materialRecordId === materialRecordId);
+    return line ? itemOptionLabel(line) : "";
+}
 
 /**
  * Record one arrival: a Delivery header plus one Delivery Item per allocated PO
@@ -115,20 +126,24 @@ export async function createDeliveryAction(prevState, formData) {
             poRecordId: po?.id ?? null,
             qty,
         });
+        // Issue #165 — a blocked plan has no line to attach anything to, and every
+        // row must name one, so nothing is recorded and the reason is shown. The
+        // reachable case is a packing list naming a PO that does not carry the
+        // item picked: the dropdown is narrowed by vendor, not by the typed PO.
+        // Overriding the document would be worse than asking for a correction.
+        if (plan.blocked) {
+            const label = itemLabelFor(candidates.lines, material);
+            return {
+                error: describePlan(plan, { poId: poIdTyped || null, label })[0].text,
+            };
+        }
         if (plan.rows.length === 0) {
             // planDelivery only returns no rows for a non-positive quantity, which
             // is already refused above. Guarding anyway rather than creating a
             // header with no lines, which nothing downstream expects.
             return { error: "Nothing to record — check the quantities." };
         }
-        // The identity of the item, for the frozen reference copies. An allocated
-        // row takes them from its own PO line; an unattributable over-delivery row
-        // has none, so it falls back to any narrowed line for the same material.
-        const fallback =
-            plan.narrowed[0] ||
-            candidates.lines.find((l) => l.materialRecordId === material) ||
-            null;
-        plans.push({ materialRecordId: material, plan, fallback });
+        plans.push({ materialRecordId: material, plan });
     }
 
     let delivery;
@@ -150,17 +165,21 @@ export async function createDeliveryAction(prevState, formData) {
         // Items in the order they were entered, and each item's slices in
         // allocation order, so `Delivery Item ID` order is the order a reader
         // expects — which is what lets groupRowsByItem present them by entry.
-        for (const { materialRecordId, plan, fallback } of plans) {
+        for (const { materialRecordId, plan } of plans) {
             for (const row of plan.rows) {
-                const source = row.line || fallback;
+                // Issue #165 — every row names a line, including the over-delivery
+                // one, so the frozen reference copies always come from the PO line
+                // itself. The old fallback-to-any-narrowed-line is gone with the
+                // unattached row it existed for; a plan that could not attach is
+                // blocked above rather than written with a null link.
                 const created = await createDeliveryItem({
                     deliveryRecordId: delivery.id,
                     deliveryId: delivery.deliveryId,
-                    poItemRecordId: row.line?.id ?? null,
+                    poItemRecordId: row.line.id,
                     materialRecordId,
-                    itemName: source?.itemName ?? "",
-                    size: source?.size ?? "",
-                    unit: source?.unit ?? "",
+                    itemName: row.line.itemName ?? "",
+                    size: row.line.size ?? "",
+                    unit: row.line.unit ?? "",
                     qty: row.qty,
                     overDelivery: row.over,
                 });

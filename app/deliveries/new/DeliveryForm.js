@@ -181,6 +181,14 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
     }
 
     const filledRows = rows.filter((r) => r.materialRecordId && Number(r.qty) > 0);
+    // NO BLOCKED-PLAN BRANCH HERE, and that is measured rather than assumed (#165).
+    // This form cannot produce one: with a PO in use the item options are built
+    // from that PO's OWN lines (see itemOptions above), and both the checkbox and
+    // the PO input reset the rows, so a selection made before the PO was typed
+    // cannot survive into a mismatch either. Every material a row can hold
+    // therefore has a candidate line, so planDelivery never returns `blocked`.
+    // The refusal lives in createDeliveryAction, which is where it is reachable —
+    // a PO can be withdrawn while this form sits open, and the action re-reads.
     const canSubmit =
         !pending &&
         photo.status === "done" &&
