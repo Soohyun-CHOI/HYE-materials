@@ -2,6 +2,9 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
+import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
+import { describeInvoiceColumn, describeInvoiceLine, showsThisBillShare } from "@/lib/deliveryStatus";
+import { StatusChip } from "@/app/components/DeliveryChips";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
@@ -49,6 +52,13 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
     const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
+
+    // Issue #166 — the delivery side of this invoice. Three operations on top of
+    // what the page already holds (PO Items, Delivery Items, Deliveries), keyed on
+    // ids from the level above; the invoice's own lines are already loaded, so
+    // there is no query for them. The rule is lib/deliveryStatus.js and nothing is
+    // stored — there is no `Invoices.Delivery` link, deliberately.
+    const reconciliation = await getInvoiceReconciliation(items);
 
     // Issue #16 — surfaced but never blocking: variance is a review prompt,
     // not a gate on marking something paid.
@@ -212,6 +222,116 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                         ⚠ Header Variance — the vendor&apos;s Amount Due ({formatUSD(invoice.amountDue)})
                         doesn&apos;t match our Calculated Total ({formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)}).
                     </p>
+                )}
+            </div>
+
+            {/* Issue #166 — was the material this invoice billed for delivered.
+                One box per invoice line, in the items table's own order.
+
+                THE HEADING CHIP IS THE ONE THE LIST SHOWS, from the same function,
+                so the row a reader clicked and the page they land on cannot
+                describe the invoice differently — #162's summarizeDelivery is
+                shared between its list and its detail for the same reason.
+
+                THE THREE FIGURES ARE ALL THE ORDERED ITEM'S TOTALS, including
+                `Billed`, which is every bill on it rather than this one. That is
+                what makes them comparable with each other and with the deliveries
+                listed below them. Usually this invoice IS the only bill, so
+                `Billed` is also this invoice's figure; when it is not, the
+                `This bill:` line says so — and it appears on exactly the
+                condition the inferred marker does, because sharing the ordered
+                item with another bill is why the answer had to be inferred.
+
+                COLOR ON THE VERDICT ONLY. lib/deliveryStatus.js returns named
+                slots rather than a list precisely so a call site cannot color the
+                asides too, which is how the first version came out all amber with
+                the color distinguishing nothing. */}
+            <div className="mt-8">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">Delivery</h2>
+                    <StatusChip chip={describeInvoiceColumn(reconciliation.summary)} />
+                </div>
+
+                {reconciliation.rows.length === 0 ? (
+                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                        This invoice has no lines.
+                    </p>
+                ) : (
+                    <ul className="mt-3 space-y-2 text-sm">
+                        {reconciliation.rows.map((row) => {
+                            const lines = describeInvoiceLine(row.status, row.unit);
+                            return (
+                                <li
+                                    key={row.invoiceItemId}
+                                    className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
+                                >
+                                    <div className="font-medium">
+                                        {[row.itemName, row.size].filter(Boolean).join(" ") || "—"}
+                                    </div>
+
+                                    {row.line && (
+                                        <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
+                                            Ordered {row.line.ordered}
+                                            {row.unit ? ` ${row.unit}` : ""} · Billed{" "}
+                                            {row.line.invoiced}
+                                            {row.unit ? ` ${row.unit}` : ""} · Delivered{" "}
+                                            {row.line.delivered}
+                                            {row.unit ? ` ${row.unit}` : ""}
+                                        </p>
+                                    )}
+
+                                    {showsThisBillShare(row.status) && (
+                                        <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
+                                            This bill: {row.billedOnThisInvoice} of{" "}
+                                            {row.line.invoiced}
+                                            {row.unit ? ` ${row.unit}` : ""}
+                                        </p>
+                                    )}
+
+                                    <p
+                                        className={
+                                            lines.verdict.key === "all-delivered"
+                                                ? "mt-1 text-green-700 dark:text-green-400"
+                                                : lines.verdict.key === "not-compared"
+                                                  ? "mt-1 text-zinc-500"
+                                                  : "mt-1 text-amber-700 dark:text-amber-500"
+                                        }
+                                    >
+                                        {lines.verdict.text}
+                                    </p>
+
+                                    {lines.againstOrder && (
+                                        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                                            {lines.againstOrder.text}
+                                        </p>
+                                    )}
+
+                                    {lines.inferred && (
+                                        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                                            {lines.inferred.text}
+                                        </p>
+                                    )}
+
+                                    {row.deliveries.length > 0 && (
+                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-600 dark:text-zinc-400">
+                                            <span className="text-zinc-500">Deliveries ·</span>
+                                            {row.deliveries.map((d) => (
+                                                <span key={d.id}>
+                                                    <Link
+                                                        href={`/deliveries/${encodeURIComponent(d.deliveryId)}`}
+                                                        className="underline"
+                                                    >
+                                                        {d.deliveryId}
+                                                    </Link>{" "}
+                                                    ({d.receivedDate || "—"})
+                                                </span>
+                                            ))}
+                                        </p>
+                                    )}
+                                </li>
+                            );
+                        })}
+                    </ul>
                 )}
             </div>
 

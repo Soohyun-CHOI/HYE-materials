@@ -442,8 +442,8 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                                 {option && option.outstanding === 0 && (
                                     <p className="mt-2 text-xs text-amber-700 dark:text-amber-500">
                                         Everything ordered from this vendor for this item on this job
-                                        is already recorded as delivered. Recording it will be flagged
-                                        as over-delivery — check the packing list against the order.
+                                        is already delivered. Recording it will be flagged as
+                                        over-delivered — check the packing list against the order.
                                     </p>
                                 )}
 
@@ -456,7 +456,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                                                         {r.line ? r.line.poId : "Not against any order"}
                                                         {r.over && (
                                                             <span className="ml-2 text-amber-700 dark:text-amber-500">
-                                                                over-delivery
+                                                                over-delivered
                                                             </span>
                                                         )}
                                                     </span>

@@ -91,7 +91,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
     const deleteCopy = mayDelete ? await resolveDeleteCopy(delivery, items) : null;
     const photo = delivery.packingListFile?.[0] ?? null;
 
-    // The headline is what arrived, in the same shape the list uses — one summary
+    // The headline is what was delivered, in the same shape the list uses — one summary
     // rule, so the row a reader clicked and the page they land on cannot describe
     // the same delivery differently. There is no single figure to show instead:
     // a delivery can hold several items with different units, so the invoice's
@@ -140,7 +140,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                             </span>
                             {item.over && (
                                 <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                    over-delivery
+                                    Over-delivered
                                 </span>
                             )}
                         </li>
@@ -251,7 +251,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                                         )}
                                         {row.over && (
                                             <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                                over-delivery
+                                                Over-delivered
                                             </span>
                                         )}
                                     </td>

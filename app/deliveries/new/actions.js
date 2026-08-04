@@ -69,7 +69,7 @@ export async function createDeliveryAction(prevState, formData) {
     for (const row of submittedItems) {
         if (!row.materialRecordId) return { error: "Every item needs to be picked from the list." };
         const q = Number(row.qty);
-        if (!Number.isFinite(q) || q <= 0) return { error: "Every item needs how much arrived." };
+        if (!Number.isFinite(q) || q <= 0) return { error: "Every item needs how much was delivered." };
     }
 
     // TWO ROWS OF ONE MATERIAL ARE SUMMED, not planned twice. Allocation runs
