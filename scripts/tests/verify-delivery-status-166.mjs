@@ -1,9 +1,9 @@
 // Delivered against invoiced against ordered — credentialed (#166).
 //
 // The offline tier pins the judgment itself (scripts/tests/offline/
-// delivery-status.mjs, 82 checks: the two comparisons, the six states, the
-// freight exclusion, the copy branches, the worklist order). What only real
-// records can answer is here:
+// delivery-status.mjs: the two comparisons, the four verdicts, the chips, the
+// freight exclusion, the copy branches, the filters and the worklist order).
+// What only real records can answer is here:
 //
 //   A — the two reverse-links the join walks (`PO Items."Delivery Items"` and
 //       `PO Items."Invoice Items"`) are readable and populated, and the
@@ -60,7 +60,12 @@ import {
     getInvoiceDeliveryStatus,
     getInvoiceReconciliation,
 } from "../../lib/deliveryReconciliation.js";
-import { describeDeliveryColumn, describeInvoiceColumn, describeLineDetail } from "../../lib/deliveryStatus.js";
+import {
+    describeDeliveryColumn,
+    describeInvoiceColumn,
+    describeInvoiceLine,
+    showsThisBillShare,
+} from "../../lib/deliveryStatus.js";
 
 let pass = true;
 let incomplete = null;
@@ -315,38 +320,57 @@ try {
         const arrivedFull = await getInvoiceByRecordId(arrivedInvoice.id);
         const statusMap = await getInvoiceDeliveryStatus([arrivedFull]);
         const s = statusMap.get(arrivedFull.id);
-        check("everything billed is recorded as arrived", s.key, "all-arrived");
-        check("one ordered line judged", s.judged, 1);
+        check("everything billed is delivered", s.key, "delivered");
+        check("one ordered item judged", s.judged, 1);
         // The freight line is excluded rather than counted as short — without this
         // every invoice carrying one would read as not arrived.
         check("and the free-text line was excluded, not judged", s.excludedCount, 1);
-        check("the column says so", describeInvoiceColumn(s).text, "Arrived");
+        check("the chip says so", describeInvoiceColumn(s).text, "Delivered");
 
         const notArrived = await makeOrder({ itemName: `${TAG} Pending`, qty: 6 });
         const pendingInvoice = await bill({ po: notArrived.po, poLine: notArrived.poLine, qty: 6 });
         const pendingFull = await getInvoiceByRecordId(pendingInvoice.id);
         const pendingStatus = (await getInvoiceDeliveryStatus([pendingFull])).get(pendingFull.id);
-        check("billed with nothing recorded as arrived", pendingStatus.key, "none-arrived");
+        check("billed with nothing delivered", pendingStatus.key, "awaiting-delivery");
         check(
-            "and the phrase is a fact, not a verdict",
+            "and the chip is a fact, not a verdict",
             describeInvoiceColumn(pendingStatus).text,
-            "Nothing recorded as arrived yet"
+            "Awaiting delivery"
         );
 
-        // The detail section's per-line figures and the arrivals themselves.
+        // The detail section's per-item figures and the deliveries themselves.
         const recon = await getInvoiceReconciliation(await getItemsByInvoice(arrivedFull.id));
-        check("one judged row on the detail", recon.rows.length, 1);
-        // Two scopes, deliberately distinct: `status` is THIS invoice's share,
-        // `line` is the ordered line's own totals.
-        check("this invoice's billed share", recon.rows[0].status.invoiced, 10);
-        check("and what was allocated to it", recon.rows[0].status.delivered, 10);
-        check("so nothing billed-not-arrived", recon.rows[0].status.billedNotArrived, 0);
-        check("determined, not estimated — one bill on the line", recon.rows[0].status.determinate, true);
-        check("the line's ordered figure lives on the line", recon.rows[0].line.ordered, 10);
-        check("one bill shares the line", recon.rows[0].billCount, 1);
+        // ONE ROW PER INVOICE LINE, judged or not: the free-text line gets a box of
+        // its own saying why it was not compared, rather than a footnote about a
+        // line the reader cannot see.
+        check("a row for every invoice line", recon.rows.length, 2);
+        const judgedRow = recon.rows.find((r) => r.status);
+        const notComparedRow = recon.rows.find((r) => !r.status);
+        check("one of them is judged", Boolean(judgedRow), true);
         check("the freight line is counted as excluded", recon.excludedCount, 1);
-        assert("and the arrival itself is listed with its date", recon.deliveries.length === 1);
-        check("with the received date", recon.deliveries[0].receivedDate, "2026-07-15");
+        check(
+            "and its own row says so where it is",
+            describeInvoiceLine(notComparedRow.status, notComparedRow.unit).verdict.key,
+            "not-compared"
+        );
+        // Two scopes, deliberately distinct: `status` is THIS invoice's share,
+        // `line` is the ordered item's own totals — which is what the box's
+        // Ordered / Billed / Delivered figures show.
+        check("this invoice's billed share", judgedRow.status.invoiced, 10);
+        check("and what was allocated to it", judgedRow.status.delivered, 10);
+        check("so nothing billed-not-delivered", judgedRow.status.billedNotArrived, 0);
+        check("determined, not inferred — one bill on the ordered item", judgedRow.status.determinate, true);
+        check("the ordered figure lives on the ordered item", judgedRow.line.ordered, 10);
+        check("one bill shares the ordered item", judgedRow.billCount, 1);
+        // THE DELIVERIES ARE ON THE ROW, not in a section of their own: a row is
+        // scoped to one ordered item, so listing them there is exactly the claim
+        // the data supports and needs no heading to qualify it.
+        assert("the delivery is listed under the ordered item it touched", judgedRow.deliveries.length === 1);
+        check("with the received date", judgedRow.deliveries[0].receivedDate, "2026-07-15");
+        check("and a not-compared row claims none", notComparedRow.deliveries.length, 0);
+        // The share line and the marker are one condition, and this is the shape
+        // where neither should appear.
+        check("no share line is needed here", showsThisBillShare(judgedRow.status), false);
 
         // -------------------------------------------------------------------
         console.log("\nPart C — the delivery axis: an arrival with no invoice behind it:");
@@ -358,13 +382,13 @@ try {
         });
         const invoicingMap = await getDeliveryInvoicing([unbilledDelivery]);
         const di = invoicingMap.get(unbilledDelivery.id);
-        check("no invoice on the ordered line it filled", di.key, "none-invoiced");
-        check("the worklist phrase", describeDeliveryColumn(di).text, "No invoice yet");
+        check("no invoice on the ordered item it filled", di.key, "awaiting-invoice");
+        check("the worklist chip", describeDeliveryColumn(di).text, "Awaiting invoice");
 
         const billedDelivery = (await getDeliveriesByRecordIds([created.deliveries[0]]))[0];
         const billedDeliveryStatus = (await getDeliveryInvoicing([billedDelivery])).get(billedDelivery.id);
-        check("the arrival whose line IS billed reads invoiced", billedDeliveryStatus.key, "all-invoiced");
-        check("its phrase", describeDeliveryColumn(billedDeliveryStatus).text, "Invoiced");
+        check("the delivery whose ordered item IS billed reads invoiced", billedDeliveryStatus.key, "invoiced");
+        check("its chip", describeDeliveryColumn(billedDeliveryStatus).text, "Invoiced");
 
         // -------------------------------------------------------------------
         console.log("\nPart D — Invoiced Qty is the LINE's total, not one invoice's lines:");
@@ -382,29 +406,37 @@ try {
         // 10 arrived against 16 billed across two bills: covers one of them but not
         // both, which is the ONE shape that needs the oldest-first estimate.
         const bothStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(second.id)])).get(second.id);
-        check("the newer bill reads as not arrived", bothStatus.key, "none-arrived");
-        check("and is MARKED as an estimate", bothStatus.estimated, true);
+        check("the newer bill reads as not delivered", bothStatus.key, "awaiting-delivery");
+        check("and is MARKED as inferred", bothStatus.estimated, true);
 
         // The older bill on the same line keeps its determined answer: the arrival
         // covers it exactly, so oldest-first hands it the whole 10.
         const olderStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(arrivedFull.id)])).get(arrivedFull.id);
-        check("the older bill is treated as settled", olderStatus.key, "all-arrived");
-        check("and it is an estimate too, since the same line decided both", olderStatus.estimated, true);
+        check("the older bill is treated as settled", olderStatus.key, "delivered");
+        check("and it is inferred too, since the same ordered item decided both", olderStatus.estimated, true);
 
         const secondRecon = await getInvoiceReconciliation(await getItemsByInvoice(second.id));
+        // The one shape where the share line appears — and it appears on exactly
+        // the condition the inferred marker does.
+        assert(
+            "the share line fires exactly when the answer was inferred",
+            showsThisBillShare(secondRecon.rows[0].status) ===
+                (describeInvoiceLine(secondRecon.rows[0].status, "EA").inferred !== null)
+        );
+        check("and here it does fire", showsThisBillShare(secondRecon.rows[0].status), true);
         check("billed on THIS invoice", secondRecon.rows[0].status.invoiced, 6);
         check("allocated to THIS invoice", secondRecon.rows[0].status.delivered, 0);
-        check("so all 6 read as billed but not arrived", secondRecon.rows[0].status.billedNotArrived, 6);
+        check("so all 6 read as billed but not delivered", secondRecon.rows[0].status.billedNotArrived, 6);
         check("the LINE's own billed total is still available for context", secondRecon.rows[0].line.invoiced, 16);
-        check("and the line's arrived total", secondRecon.rows[0].line.delivered, 10);
-        check("two bills share the line", secondRecon.rows[0].billCount, 2);
+        check("and the ordered item's delivered total", secondRecon.rows[0].line.delivered, 10);
+        check("two bills share the ordered item", secondRecon.rows[0].billCount, 2);
         assert(
             "the share is attributed, not prorated — 0 of 6, never 3.75",
             secondRecon.rows[0].status.delivered === 0
         );
         assert(
-            "and the detail says it is an estimate",
-            describeLineDetail(secondRecon.rows[0].status, "EA").some((m) => m.key === "estimated")
+            "and the detail says the answer was inferred",
+            describeInvoiceLine(secondRecon.rows[0].status, "EA").inferred !== null
         );
 
         // -------------------------------------------------------------------

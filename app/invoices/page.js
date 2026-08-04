@@ -4,6 +4,7 @@ import { getAllInvoices } from "@/lib/airtable/invoices";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getInvoiceDeliveryStatus } from "@/lib/deliveryReconciliation";
 import { STATUS_COPY, describeInvoiceColumn } from "@/lib/deliveryStatus";
+import { InferredMarker, StatusChip } from "@/app/components/DeliveryChips";
 import { formatUSD } from "@/lib/format";
 
 // President-or-Admin, same access rule as the invoice detail and PO pages
@@ -49,7 +50,41 @@ export default async function InvoiceListPage() {
             {invoices.length === 0 ? (
                 <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">No invoices yet.</p>
             ) : (
-                <table className="mt-6 w-full text-sm">
+                <div className="mt-6 overflow-x-auto">
+                {/* THE DECLARED COLUMNS SUM TO EXACTLY 52rem, WHICH IS WHAT THE
+                    PAGE HAS: `max-w-4xl` is 56rem and `p-8` takes 4rem, leaving
+                    832px. #19's tables and the deliveries list are 52rem for the
+                    same reason.
+
+                    #166 gave this table a colgroup it did not have. An auto-layout
+                    table sizes its columns from its own rows, so the Delivery
+                    column was as wide as the longest phrase in it and every other
+                    column moved when one invoice's status changed. With chips the
+                    content is a closed set, so the widths can be declared from the
+                    widest chip rather than discovered per page load.
+
+                    MEASURED, NOT GUESSED, and this table has almost no slack:
+                    seven columns need 832px against the 832px the page has. Six of
+                    the seven are bounded by construction and cannot grow — an
+                    Invoice ID is a fixed format (128px), a date is 10 characters
+                    (80px), the Delivery column is a closed set of three chips plus
+                    a marker (120px), Amount Due is bound by its own header (78px),
+                    and Status by `Paid 2026-07-27` beside a `⚠ Variance` badge
+                    (176px, and the reason the last column drops its right padding).
+                    So VENDOR IS WHERE THE SLACK ISN'T: 8rem holds the longest name
+                    on this base at 16 characters with nothing to spare, and it is
+                    also the one column where wrapping would be least harmful if a
+                    longer supplier is ever added. */}
+                <table className="w-full min-w-[52rem] table-fixed text-sm">
+                    <colgroup>
+                        <col style={{ width: "8.5rem" }} />
+                        <col style={{ width: "8rem" }} />
+                        <col style={{ width: "5.5rem" }} />
+                        <col style={{ width: "5.5rem" }} />
+                        <col style={{ width: "5.5rem" }} />
+                        <col style={{ width: "8rem" }} />
+                        <col style={{ width: "11rem" }} />
+                    </colgroup>
                     <thead>
                         <tr className="text-left text-zinc-500">
                             <th className="pr-2">Invoice ID</th>
@@ -74,60 +109,46 @@ export default async function InvoiceListPage() {
                                 <td className="py-1 pr-2">{inv.dueDate || "—"}</td>
                                 <td className="py-1 pr-2 text-right">{formatUSD(inv.amountDue)}</td>
                                 {/* Issue #166 — a FACT, never a verdict: "more billed
-                                    than recorded as arrived" and not "over-billed",
-                                    because at any one moment the two are the same
-                                    measurement. The beyond-order tags are the second
-                                    comparison and sit beside the phrase rather than
-                                    inside it, since a line can be covered AND beyond
-                                    the order at once. */}
+                                    than delivered" and not "over-billed", because at
+                                    any one moment the two are the same measurement.
+
+                                    ONE CHIP, AND NO EXCEPTION TAGS. The two
+                                    beyond-the-order tags this column used to carry
+                                    both left it, for different reasons. `beyond
+                                    order` (billed > ordered) is already on this very
+                                    page as the `⚠ Variance` badge in the items
+                                    table, which `Invoice Items.Variance Flag`
+                                    drives — one fact rendered twice on one screen.
+                                    `over-delivery` (delivered > ordered) is not a
+                                    fact about THIS invoice at all but about the
+                                    ordered item, and inside a column headed
+                                    `Delivery` it reads as "more arrived than this
+                                    bill covers", which is a different and wrong
+                                    claim. Both facts are on the invoice detail,
+                                    under the ordered item they belong to. */}
                                 <td className="py-1 pr-2">
                                     {(() => {
                                         const summary = statusByInvoice.get(inv.id);
                                         if (!summary) return <span className="text-zinc-500">—</span>;
-                                        const phrase = describeInvoiceColumn(summary);
                                         return (
-                                            <span className="flex flex-wrap items-center gap-1">
-                                                <span
-                                                    className={
-                                                        summary.key === "all-arrived"
-                                                            ? "text-green-700 dark:text-green-400"
-                                                            : summary.key === "none-arrived"
-                                                              ? "text-amber-700 dark:text-amber-500"
-                                                              : "text-zinc-600 dark:text-zinc-400"
-                                                    }
-                                                >
-                                                    {phrase.text}
-                                                </span>
-                                                {/* Issue #166 — the estimate
-                                                    qualifier is a TAG, not a
-                                                    fourth set of copy: it
-                                                    composes with any state
-                                                    rather than doubling them,
-                                                    the same shape #19's
-                                                    `PO unsigned` uses. */}
+                                            <span className="flex items-center gap-1">
+                                                <StatusChip chip={describeInvoiceColumn(summary)} />
                                                 {summary.estimated && (
-                                                    <span
-                                                        title="This invoice shares an order line with another bill and the arrivals cannot be told apart, so the oldest bill is treated as settled first."
-                                                        className="whitespace-nowrap rounded bg-zinc-200 px-1 text-xs text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200"
-                                                    >
-                                                        {STATUS_COPY.column.estimated().text}
-                                                    </span>
-                                                )}
-                                                {summary.anyArrivedBeyondOrder && (
-                                                    <span className="whitespace-nowrap rounded bg-amber-100 px-1 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                                        over-delivery
-                                                    </span>
-                                                )}
-                                                {summary.anyBilledBeyondOrder && (
-                                                    <span className="whitespace-nowrap rounded bg-amber-100 px-1 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                                        beyond order
-                                                    </span>
+                                                    <InferredMarker
+                                                        label={STATUS_COPY.column.inferred().text}
+                                                    />
                                                 )}
                                             </span>
                                         );
                                     })()}
                                 </td>
-                                <td className="py-1 pr-2">
+                                {/* NO RIGHT PADDING ON THE LAST COLUMN — there is
+                                    nothing to its right to separate it from, and
+                                    this table's budget is tight enough that those
+                                    8px are the difference between `Paid 2026-07-27`
+                                    beside a `⚠ Variance` badge fitting on one line
+                                    and wrapping. */}
+                                <td className="py-1">
                                     <span
                                         className={
                                             inv.paid
@@ -147,6 +168,7 @@ export default async function InvoiceListPage() {
                         ))}
                     </tbody>
                 </table>
+                </div>
             )}
         </div>
     );

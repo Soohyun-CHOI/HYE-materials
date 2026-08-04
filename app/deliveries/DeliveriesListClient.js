@@ -13,25 +13,31 @@ import Link from "next/link";
 // and the back button all restore the view.
 //
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryStatus.js is pure and imports
-// nothing, which is why the sort rule can live there and be called from both
-// sides; lib/deliveryReconciliation.js reaches lib/airtable/ and must never be
-// imported here — an import executes the module and it throws
+// nothing, which is why the filter and sort rules can live there and be called
+// from both sides; lib/deliveryReconciliation.js reaches lib/airtable/ and must
+// never be imported here — an import executes the module and it throws
 // `Missing AIRTABLE_API_KEY` in the browser (#162).
-import { sortLongestWaitingFirst } from "@/lib/deliveryStatus";
+import {
+    isNotFullyInvoiced,
+    resolveDeliveryFilters,
+    sortLongestWaitingFirst,
+} from "@/lib/deliveryStatus";
+import { StatusChip } from "@/app/components/DeliveryChips";
 
-export default function DeliveriesListClient({
-    rows,
-    showInvoicing,
-    initialUninvoiced,
-    initialOver,
-}) {
+export default function DeliveriesListClient({ rows, showInvoicing, initialUnbilled, initialOver }) {
     const router = useRouter();
     const pathname = usePathname();
-    // `showInvoicing` is false for a viewer who may not see invoice data, and the
-    // server did not even fetch it for them — so the uninvoiced filter has no
-    // state to hold rather than a state that is ignored.
-    const [uninvoiced, setUninvoiced] = useState(showInvoicing ? initialUninvoiced : false);
-    const [over, setOver] = useState(initialOver);
+    // THE SAME RULE THE SERVER USED on the initial props, called again here rather
+    // than restated: `showInvoicing` is false for a viewer who may not see invoice
+    // data, and the server did not even fetch it for them — so the filter has no
+    // state to hold rather than a state that is quietly ignored.
+    const allowed = resolveDeliveryFilters({
+        unbilled: initialUnbilled,
+        over: initialOver,
+        showInvoicing,
+    });
+    const [unbilled, setUnbilled] = useState(allowed.unbilled);
+    const [over, setOver] = useState(allowed.over);
     const firstRun = useRef(true);
 
     useEffect(() => {
@@ -40,25 +46,28 @@ export default function DeliveriesListClient({
             return;
         }
         const p = new URLSearchParams();
-        if (uninvoiced) p.set("uninvoiced", "1");
+        if (unbilled) p.set("unbilled", "1");
         if (over) p.set("over", "1");
         const qs = p.toString();
         router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    }, [uninvoiced, over, router, pathname]);
+    }, [unbilled, over, router, pathname]);
 
     const visible = useMemo(() => {
         let out = rows;
         if (over) out = out.filter((r) => r.hasOverDelivery);
-        if (uninvoiced && showInvoicing) {
-            out = out.filter((r) => r.invoicingKey === "none-invoiced");
+        if (unbilled && showInvoicing) {
+            // BOTH INCOMPLETE STATES, not just the empty one — a delivery carrying
+            // two materials with only one billed is exactly the case this worklist
+            // is for. The rule is in lib/deliveryStatus.js so the offline tier can
+            // pin it.
+            out = out.filter((r) => isNotFullyInvoiced(r.invoicingKey));
             // THE ORDER IS PART OF THIS FILTER, not a separate control. It is the
-            // vendor-chasing worklist, so the longest-waiting arrival belongs at
-            // the top; the default list stays newest-first. The rule is in
-            // lib/deliveryStatus.js so the offline tier can pin it.
+            // vendor-chasing worklist, so the longest-waiting delivery belongs at
+            // the top; the default list stays newest-first.
             out = sortLongestWaitingFirst(out);
         }
         return out;
-    }, [rows, over, uninvoiced, showInvoicing]);
+    }, [rows, over, unbilled, showInvoicing]);
 
     const cols = showInvoicing ? 6 : 5;
 
@@ -69,17 +78,17 @@ export default function DeliveriesListClient({
                     <label className="flex items-center gap-2">
                         <input
                             type="checkbox"
-                            checked={uninvoiced}
-                            onChange={(e) => setUninvoiced(e.target.checked)}
+                            checked={unbilled}
+                            onChange={(e) => setUnbilled(e.target.checked)}
                         />
-                        No invoice yet, longest waiting first
+                        Not fully invoiced · oldest first
                     </label>
                 )}
                 <label className="flex items-center gap-2">
                     <input type="checkbox" checked={over} onChange={(e) => setOver(e.target.checked)} />
-                    Over-delivery only
+                    Over-delivered
                 </label>
-                {(uninvoiced || over) && (
+                {(unbilled || over) && (
                     <span className="text-zinc-500">
                         {visible.length} of {rows.length}
                     </span>
@@ -89,27 +98,31 @@ export default function DeliveriesListClient({
             <div className="mt-4 overflow-x-auto">
                 {/* THE DECLARED COLUMNS SUM TO EXACTLY 52rem, WHICH IS WHAT THE PAGE
                     HAS: `max-w-4xl` is 56rem and `p-8` takes 4rem, leaving 832px.
-                    #19's tables are 52rem for the same reason.
+                    #19's tables and the invoice list are 52rem for the same reason.
 
-                    #166 RE-BUDGETED rather than appended. The five-column shape
-                    keeps its measured widths exactly; the six-column one takes the
-                    new column's 7.5rem out of Delivery, Vendor, Received and What
-                    arrived, all of which had slack. 7.5rem holds "No invoice yet"
-                    and "1 of 2 invoiced" on one line, which is what the column copy
-                    was shortened for — see lib/deliveryStatus.js on the density
-                    pairing. Appending a sixth column would have overflowed by
-                    7.5rem and put a scrollbar on every desktop render, which is the
-                    mistake #162's own note records making. */}
+                    RE-BUDGETED AGAIN when the column became a chip. A chip is much
+                    narrower than the sentence it replaced, so Invoiced gives room
+                    back to Delivered — which is the column that needed it, since it
+                    carries an item label, a `+N` count and an `Over-delivered` tag
+                    on one line, and it was the only column wrapping at the previous
+                    budget. Adding width rather than moving it is what #162's own
+                    note records getting wrong: the sum is fixed at what the page
+                    has, so every change is a re-budget.
+
+                    Measured against this base's widest real cells — a 16-character
+                    vendor, `165-DEMO Elbow 3" 3 PCS` beside an `Over-delivered`
+                    tag (270px), `Awaiting invoice` (98px) — with an 8px gutter on
+                    top of each, since this table has no cell padding of its own. */}
                 <table className="w-full min-w-[52rem] table-fixed text-sm">
                     <colgroup>
                         {showInvoicing ? (
                             <>
                                 <col style={{ width: "8.5rem" }} />
-                                <col style={{ width: "10rem" }} />
-                                <col style={{ width: "6rem" }} />
-                                <col style={{ width: "13.5rem" }} />
-                                <col style={{ width: "7.5rem" }} />
-                                <col style={{ width: "6.5rem" }} />
+                                <col style={{ width: "8rem" }} />
+                                <col style={{ width: "5.5rem" }} />
+                                <col style={{ width: "17.5rem" }} />
+                                <col style={{ width: "6.75rem" }} />
+                                <col style={{ width: "5.75rem" }} />
                             </>
                         ) : (
                             <>
@@ -126,7 +139,7 @@ export default function DeliveriesListClient({
                             <th className="py-2 font-medium">Delivery</th>
                             <th className="py-2 font-medium">Vendor</th>
                             <th className="py-2 font-medium">Received</th>
-                            <th className="py-2 font-medium">What arrived</th>
+                            <th className="py-2 font-medium">Delivered</th>
                             {showInvoicing && <th className="py-2 font-medium">Invoiced</th>}
                             <th className="py-2 font-medium">Job</th>
                         </tr>
@@ -178,9 +191,16 @@ export default function DeliveriesListClient({
                                                         +{row.summary.extraCount}
                                                     </span>
                                                 )}
+                                                {/* KEPT HERE, unlike on the invoice list, and
+                                                    the difference is whose fact it is. An
+                                                    over-delivery is a fact about THIS delivery,
+                                                    so it sits on the delivery's own row without
+                                                    changing frame. On an invoice row it would be
+                                                    a fact about the ordered item read as one
+                                                    about the bill. */}
                                                 {row.summary.hasOverDelivery && (
                                                     <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
-                                                        over-delivery
+                                                        Over-delivered
                                                     </span>
                                                 )}
                                             </span>
@@ -190,15 +210,7 @@ export default function DeliveriesListClient({
                                     </td>
                                     {showInvoicing && (
                                         <td className="py-2">
-                                            <span
-                                                className={
-                                                    row.invoicingKey === "none-invoiced"
-                                                        ? "text-amber-700 dark:text-amber-500"
-                                                        : "text-zinc-600 dark:text-zinc-400"
-                                                }
-                                            >
-                                                {row.invoicingText}
-                                            </span>
+                                            <StatusChip chip={row.invoicingChip} />
                                         </td>
                                     )}
                                     <td className="py-2">{row.jobCode}</td>

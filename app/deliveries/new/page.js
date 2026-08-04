@@ -54,7 +54,7 @@ export default async function NewDeliveryPage() {
         <div className="mx-auto w-full max-w-3xl p-8">
             <h1 className="text-2xl font-semibold">Record a delivery</h1>
             <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                What arrived, and on which job. The app works out which order it belongs to.
+                What was delivered, and on which job. The app works out which order it belongs to.
             </p>
 
             <DeliveryForm

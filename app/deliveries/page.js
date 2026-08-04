@@ -7,7 +7,7 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
 import { getDeliveryInvoicing } from "@/lib/deliveryReconciliation";
-import { describeDeliveryColumn } from "@/lib/deliveryStatus";
+import { describeDeliveryColumn, resolveDeliveryFilters } from "@/lib/deliveryStatus";
 import DeliveriesListClient from "./DeliveriesListClient";
 
 /**
@@ -68,6 +68,16 @@ export default async function DeliveriesListPage({ searchParams }) {
         ? await getDeliveryInvoicing(deliveries)
         : new Map();
 
+    // WHICH FILTERS EXIST FOR THIS VIEWER, decided by the same rule the client
+    // re-applies to its own state — so `?unbilled=1` is treated as ABSENT rather
+    // than ignored for a viewer whose rows carry no invoicing key at all. A
+    // filter over a column that was never fetched would silently empty the list.
+    const filters = resolveDeliveryFilters({
+        unbilled: sp?.unbilled === "1",
+        over: sp?.over === "1",
+        showInvoicing,
+    });
+
     const itemsByDelivery = new Map();
     for (const item of allItems) {
         const parent = item.delivery?.[0];
@@ -97,8 +107,8 @@ export default async function DeliveriesListPage({ searchParams }) {
                 // rather than a coincidence.
                 hasOverDelivery: items.some((i) => i.overDelivery),
                 invoicingKey: invoicingByDelivery.get(d.id)?.key ?? null,
-                invoicingText: invoicingByDelivery.has(d.id)
-                    ? describeDeliveryColumn(invoicingByDelivery.get(d.id)).text
+                invoicingChip: invoicingByDelivery.has(d.id)
+                    ? describeDeliveryColumn(invoicingByDelivery.get(d.id))
                     : null,
                 summary: summarizeDelivery(
                     items.map((i) => ({
@@ -123,7 +133,7 @@ export default async function DeliveriesListPage({ searchParams }) {
                 <div>
                     <h1 className="text-2xl font-semibold">Deliveries</h1>
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        Material recorded as arrived, newest first.
+                        Material delivered to site, newest first.
                     </p>
                 </div>
                 <Link href="/deliveries/new" className="text-sm underline">
@@ -151,8 +161,8 @@ export default async function DeliveriesListPage({ searchParams }) {
                 <DeliveriesListClient
                     rows={rows}
                     showInvoicing={showInvoicing}
-                    initialUninvoiced={showInvoicing && sp?.uninvoiced === "1"}
-                    initialOver={sp?.over === "1"}
+                    initialUnbilled={filters.unbilled}
+                    initialOver={filters.over}
                 />
             )}
 

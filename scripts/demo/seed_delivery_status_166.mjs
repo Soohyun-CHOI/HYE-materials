@@ -79,6 +79,14 @@ console.log(`line     ${line.lineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
 console.log(`as       ${requester.userName} <${requester.email}>`);
 
+// DECLARED BEFORE THE SKIP CHECK, because the skip path prints the guide too and
+// the guide reads it. `printGuide` is a hoisted function declaration but `ids` is
+// a `const`, so a re-run — the only way to reach that path — died in the temporal
+// dead zone before printing anything. The guide then falls back to its `?? "A"`
+// placeholders, which is what those exist for: a re-run has the scenarios on the
+// base but not their ids in hand.
+const ids = {};
+
 const already = await getMaterialByKey({ itemName: FIRST_ITEM, size: SIZE, unit: UNIT }).catch(() => null);
 if (already) {
     console.log(`\nAlready seeded — "${FIRST_ITEM}" exists on the item axis. Nothing created.`);
@@ -201,14 +209,13 @@ async function bill({ lines: billLines, issueDate, freeText = false, note }) {
     return inv;
 }
 
-const ids = {};
 console.log("\nSeeding one scenario per state:");
 
 // --- A: everything billed arrived --------------------------------------------
 const a = await makeOrder({ itemName: FIRST_ITEM, qty: 20 });
 await deliver({ wants: [{ itemName: FIRST_ITEM, qty: 20 }], receivedDate: "2026-07-18", notes: "A, full arrival" });
 ids.a = (await bill({ lines: [{ ...a, qty: 20 }], issueDate: "2026-07-19", note: "A arrived" })).invoiceId;
-console.log(`  A  ${ids.a}  Arrived`);
+console.log(`  A  ${ids.a}  Delivered`);
 
 // --- B: billed, nothing arrived, plus a line with no ordered line ------------
 const b = await makeOrder({ itemName: "166-DEMO Gasket", qty: 15 });
@@ -218,7 +225,7 @@ ids.b = (await bill({
     freeText: true,
     note: "B not arrived",
 })).invoiceId;
-console.log(`  B  ${ids.b}  Nothing recorded as arrived yet (+ 1 line not compared)`);
+console.log(`  B  ${ids.b}  Awaiting delivery (+ 1 line not compared)`);
 
 // --- C: one invoice over two ordered lines, one arrived ----------------------
 const c1 = await makeOrder({ itemName: "166-DEMO Elbow", qty: 5 });
@@ -229,14 +236,14 @@ ids.c = (await bill({
     issueDate: "2026-07-22",
     note: "C partly arrived",
 })).invoiceId;
-console.log(`  C  ${ids.c}  1 of 2 lines arrived`);
+console.log(`  C  ${ids.c}  Partly delivered (1 of 2 ordered items)`);
 
 // --- D: TWO bills on one line, arrival covers one -> ESTIMATED ---------------
 const d = await makeOrder({ itemName: "166-DEMO Coupling", qty: 30 });
 await deliver({ wants: [{ itemName: "166-DEMO Coupling", qty: 15 }], receivedDate: "2026-07-23", notes: "D, half" });
 ids.dOld = (await bill({ lines: [{ ...d, qty: 15 }], issueDate: "2026-07-05", note: "D older bill" })).invoiceId;
 ids.dNew = (await bill({ lines: [{ ...d, qty: 15 }], issueDate: "2026-07-25", note: "D newer bill" })).invoiceId;
-console.log(`  D  ${ids.dOld} (older) + ${ids.dNew} (newer)  both ESTIMATED`);
+console.log(`  D  ${ids.dOld} (older) + ${ids.dNew} (newer)  both INFERRED`);
 
 // --- E: arrived beyond the order --------------------------------------------
 const e = await makeOrder({ itemName: "166-DEMO Nipple", qty: 10 });
@@ -246,13 +253,13 @@ const eDel = await deliver({
     notes: "E, 2 beyond the order",
 });
 ids.e = (await bill({ lines: [{ ...e, qty: 10 }], issueDate: "2026-07-26", note: "E over-delivered" })).invoiceId;
-console.log(`  E  ${ids.e}  arrived beyond this bill + over-delivery tag  [${eDel.written.join(", ")}]`);
+console.log(`  E  ${ids.e}  Delivered, and 2 beyond the order  [${eDel.written.join(", ")}]`);
 
 // --- F: billed beyond the order --------------------------------------------
 const f = await makeOrder({ itemName: "166-DEMO Union", qty: 10 });
 await deliver({ wants: [{ itemName: "166-DEMO Union", qty: 10 }], receivedDate: "2026-07-25", notes: "F, exact" });
 ids.f = (await bill({ lines: [{ ...f, qty: 13 }], issueDate: "2026-07-27", note: "F over-billed" })).invoiceId;
-console.log(`  F  ${ids.f}  3 more billed than recorded as arrived + beyond order tag`);
+console.log(`  F  ${ids.f}  Partly delivered — 3 more billed than delivered`);
 
 // --- G: arrived with no invoice at all — the vendor-chasing worklist --------
 await makeOrder({ itemName: "166-DEMO Bushing", qty: 8 });
@@ -264,7 +271,7 @@ const g = await deliver({
     notes: "G, never billed — tops the worklist",
 });
 ids.g = g.delivery.deliveryId;
-console.log(`  G  ${ids.g}  No invoice yet (oldest received date)`);
+console.log(`  G  ${ids.g}  Awaiting invoice (oldest received date)`);
 
 // --- I: one delivery over two lines, only one of them billed ---------------
 const i1 = await makeOrder({ itemName: "166-DEMO Cap", qty: 4 });
@@ -276,7 +283,7 @@ const iDel = await deliver({
 });
 ids.i = iDel.delivery.deliveryId;
 ids.iInvoice = (await bill({ lines: [{ ...i1, qty: 4 }], issueDate: "2026-07-28", note: "I one line only" })).invoiceId;
-console.log(`  I  ${ids.i}  1 of 2 invoiced  (its bill is ${ids.iInvoice})`);
+console.log(`  I  ${ids.i}  Partly invoiced  (its bill is ${ids.iInvoice})`);
 
 printGuide();
 
@@ -292,78 +299,115 @@ Start the dev server and sign in as an Admin (both real accounts are Admin).
 ------------------------------------------------------------------
 Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
 
-  ${ids.a ?? "A"}   Arrived
-  ${ids.b ?? "B"}   Nothing recorded as arrived yet   (nothing at all arrived)
-  ${ids.c ?? "C"}   1 of 2 lines arrived
-  ${ids.dOld ?? "D-old"}   Arrived            + [estimated]
-  ${ids.dNew ?? "D-new"}   Nothing recorded as arrived yet  + [estimated]
-  ${ids.e ?? "E"}   Arrived            + [over-delivery]
-  ${ids.f ?? "F"}   0 of 1 lines arrived             + [beyond order]
+  ${ids.a ?? "A"}   [Delivered]
+  ${ids.b ?? "B"}   [Awaiting delivery]      (nothing at all delivered)
+  ${ids.c ?? "C"}   [Partly delivered]
+  ${ids.dOld ?? "D-old"}   [Delivered]         + (!)
+  ${ids.dNew ?? "D-new"}   [Awaiting delivery] + (!)
+  ${ids.e ?? "E"}   [Delivered]
+  ${ids.f ?? "F"}   [Partly delivered]
 
-  The wording is the point: never "over-billed" or "short-shipped", because
-  at any one moment those are the same measurement as "the rest has not
-  arrived yet". Hover the [estimated] tag for why that pair is a guess.
+  THREE CHIP VALUES AND NOTHING ELSE, the way an Airtable single select
+  reads. No fractions: "1 of 2" changes per row, so the set would stop
+  being closed, and saying what it counts needs words a one-line cell does
+  not have. The figures are on the detail.
 
-  D IS THE HEADLINE. One order line of 30 carries two bills of 15, and 15
-  arrived. That covers exactly one of them, and nothing records which — so
-  the OLDER bill (issued 07-05) is treated as settled and the newer
-  (07-25) as not arrived, and BOTH are tagged estimated. Every other row
-  above is computed outright, not guessed.
+  The wording is the point: never "over-billed" or "short-shipped",
+  because at any one moment those are the same measurement as "the rest
+  has not been delivered yet".
 
-------------------------------------------------------------------
-2. /invoices/<id>  —  the new "Delivery" section
-------------------------------------------------------------------
-  ${ids.b ?? "B"}   "Nothing recorded as arrived yet against the 15 EA billed."
-       plus "(1 line with no ordered line is not compared)" — the
-       free-text line. The app cannot create one of those; this seed used
-       the backend path directly, which is still intact behind #96's flag.
+  E AND F CARRY NO EXCEPTION TAG HERE, and that is deliberate. F's
+  billed-beyond-order is already on F's own page as the ⚠ Variance badge
+  in the items table; E's over-delivery is a fact about the ORDERED ITEM,
+  and inside a column headed Delivery it would read as "more arrived than
+  this bill covers". Both facts are on the detail, under the ordered item.
 
-  ${ids.dNew ?? "D-new"}   the state sentence, then the estimate sentence right after
-       it: "This order line carries more than one bill and the arrivals
-       cannot be told apart, so the oldest bill is treated as settled
-       first." Above it, "This invoice bills 15 EA of 30 EA billed on this
-       order line across 2 bills."
-
-  ${ids.e ?? "E"}   "All 10 EA billed recorded as arrived." then "2 EA arrived
-       beyond the order" — two comparisons, two sentences. The bill is
-       covered AND the order was exceeded; neither masks the other.
-
-  ${ids.f ?? "F"}   "3 EA more billed than recorded as arrived — 13 EA billed,
-       10 EA recorded." and "3 EA more billed than ordered." Note the
-       column says "0 of 1 lines arrived", NOT "nothing recorded as
-       arrived yet": 10 of 13 did arrive, so the line is merely
-       incomplete. The two claims are different and the copy keeps them
-       apart — reading this seeded row is what caught the first version
-       saying the false one.
-
-  Every one of them ends with "Deliveries recorded against the same order
-  lines" — NOT "the deliveries for this invoice". The quantity is
-  attributed to a bill; which arrival brought it is not. The packing-list
-  link is absent because this seed uploads nothing to Blob.
+  D IS THE HEADLINE. One ordered item of 30 carries two bills of 15, and
+  15 was delivered. That covers exactly one of them, and nothing records
+  which — so the OLDER bill (issued 07-05) is treated as settled and the
+  newer (07-25) as not delivered, and BOTH carry the (!) marker. Hover it,
+  or tab to it with a screen reader, for why. Every other row above is
+  computed outright, not inferred.
 
 ------------------------------------------------------------------
-3. /deliveries  —  the new "Invoiced" column and two filters
+2. /invoices/<id>  —  the "Delivery" section, one box per line
 ------------------------------------------------------------------
-  ${ids.g ?? "G"}   No invoice yet      (received 2026-06-30, the oldest)
-  ${ids.i ?? "I"}   1 of 2 invoiced     (one delivery, two materials, one billed)
-  others           Invoiced
+The section heading carries the SAME CHIP the list showed, from the same
+function, so the row you clicked and the page you land on cannot disagree.
 
-  Tick "No invoice yet, longest waiting first": the list narrows and
-  re-orders oldest-received first, so ${ids.g ?? "G"} goes to the top. That is the
-  worklist replacing the month-end email. Tick "Over-delivery only" and
-  only the scenario-E arrival remains. Both filters land in the URL
-  (?uninvoiced=1&over=1), so refresh and the back button keep them.
+  ${ids.b ?? "B"}   two boxes. The judged one reads
+         "Ordered 15 EA · Billed 15 EA · Delivered 0 EA"
+         "Nothing delivered yet"
+       and the free-text one is a box of its own reading
+         "Not compared — no ordered item"
+       rather than a footnote about a line you cannot see. The app cannot
+       create such a line; this seed used the backend path directly, which
+       is still intact behind #96's flag.
 
-  Check the six-column layout here: the colgroup was re-budgeted to
-  8.5+10+6+13.5+7.5+6.5 = 52rem rather than appending a column, so
-  nothing should wrap and there should be no horizontal scrollbar above
-  ~832px.
+  ${ids.dNew ?? "D-new"}   the one shape where a share line appears:
+         "Ordered 30 EA · Billed 30 EA · Delivered 15 EA"
+         "This bill: 15 of 30 EA"
+         "15 EA more billed than delivered"
+         "Inferred — this ordered item carries more than one bill..."
+       The share line and the (!) marker fire on EXACTLY one condition, so
+       the reason the answer was inferred is explained where it is made.
+       All three figures are the ordered item's totals, which is what makes
+       them add up against the deliveries listed under them.
 
-  NOT DEMONSTRABLE with these accounts: the column and the "No invoice
-  yet" filter are withheld from a non-Admin, and the data is not fetched
-  for them at all. Both real accounts are Admin, and authz-fixture is
-  non-Admin but assigned to no job, so it sees no deliveries either way —
-  and its flags are a permanent fixture that must not be changed. Reading
+  ${ids.e ?? "E"}   "All billed material delivered" in green, then
+         "Against the order: 2 EA more delivered"
+       uncolored underneath. Two comparisons; the verdict is the invoice's
+       and the aside is the order's, and only the verdict is colored — with
+       all three lines amber, as the first version had them, the color
+       distinguished nothing.
+
+  ${ids.f ?? "F"}   "3 EA more billed than delivered", then
+         "Against the order: 3 EA more billed"
+       Note the chip says [Partly delivered], NOT [Awaiting delivery]:
+       10 of 13 did arrive, so the ordered item is merely incomplete. The
+       two claims are different and the copy keeps them apart — reading
+       this seeded row is what caught the first version saying the false
+       one.
+
+  The delivery links sit INSIDE the box, labelled just "Deliveries ·",
+  because the box is already scoped to one ordered item — which is the
+  claim the data supports. The old foot-of-page section needed the heading
+  "recorded against the same order lines" to avoid over-claiming; inside
+  the box that qualification is structural.
+
+------------------------------------------------------------------
+3. /deliveries  —  the "Invoiced" column and two filters
+------------------------------------------------------------------
+  ${ids.g ?? "G"}   [Awaiting invoice]   (received 2026-06-30, the oldest)
+  ${ids.i ?? "I"}   [Partly invoiced]    (one delivery, two materials, one billed)
+  others           [Invoiced]
+
+  Tick "Not fully invoiced · oldest first": BOTH ${ids.g ?? "G"} and ${ids.i ?? "I"} remain, and
+  that pair is the whole point of widening the filter. ${ids.i ?? "I"} is one
+  delivery carrying two materials with only one billed — material that is
+  here with no invoice for it, which is exactly what this worklist
+  replaces the month-end email with, and which filtering on the empty
+  state alone would have dropped. ${ids.g ?? "G"} goes to the top on
+  received-date ascending.
+
+  Tick "Over-delivered" and only the scenario-E arrival remains. Both
+  filters land in the URL (?unbilled=1&over=1), so refresh and the back
+  button keep them.
+
+  Check the six-column layout here: the colgroup was RE-BUDGETED to
+  8.5+9.5+6+14.5+7+6.5 = 52rem rather than appending a column, so nothing
+  should wrap and there should be no horizontal scrollbar above ~832px.
+  The chip is narrower than the sentence it replaced, so Invoiced gave
+  room back to Delivered — which needed it, since that column carries an
+  item label, a +N count and an Over-delivered tag on one line.
+
+  NOT DEMONSTRABLE with these accounts: the column and the "Not fully
+  invoiced" filter are withheld from a non-Admin, and the data is not
+  fetched for them at all — ?unbilled=1 is treated as absent rather than
+  ignored (lib/deliveryStatus.js:resolveDeliveryFilters, pinned offline).
+  Both real accounts are Admin, and authz-fixture is non-Admin but
+  assigned to no job, so it sees no deliveries either way — and its flags
+  are a permanent fixture that must not be changed. Reading
   app/deliveries/page.js's showInvoicing branch is the honest check.
 `);
 }

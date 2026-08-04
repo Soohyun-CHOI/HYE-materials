@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
-import { describeInvoiceColumn, describeLineDetail } from "@/lib/deliveryStatus";
+import { describeInvoiceColumn, describeInvoiceLine, showsThisBillShare } from "@/lib/deliveryStatus";
+import { StatusChip } from "@/app/components/DeliveryChips";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
@@ -224,112 +225,108 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {/* Issue #166 — did what this invoice billed for arrive, and which
-                arrivals touched the same ordered lines.
+            {/* Issue #166 — was the material this invoice billed for delivered.
+                One box per invoice line, in the items table's own order.
 
-                THE HEADING SAYS "the same order lines", NOT "the deliveries for
-                this invoice". The QUANTITY is attributed to this bill; WHICH
-                ARRIVAL brought it is not, and those are different claims.
-                Nothing links a delivery to an invoice, so when a line carries
-                several of each this lists all of them — naming one would assert
-                a pairing no field records. */}
+                THE HEADING CHIP IS THE ONE THE LIST SHOWS, from the same function,
+                so the row a reader clicked and the page they land on cannot
+                describe the invoice differently — #162's summarizeDelivery is
+                shared between its list and its detail for the same reason.
+
+                THE THREE FIGURES ARE ALL THE ORDERED ITEM'S TOTALS, including
+                `Billed`, which is every bill on it rather than this one. That is
+                what makes them comparable with each other and with the deliveries
+                listed below them. Usually this invoice IS the only bill, so
+                `Billed` is also this invoice's figure; when it is not, the
+                `This bill:` line says so — and it appears on exactly the
+                condition the inferred marker does, because sharing the ordered
+                item with another bill is why the answer had to be inferred.
+
+                COLOR ON THE VERDICT ONLY. lib/deliveryStatus.js returns named
+                slots rather than a list precisely so a call site cannot color the
+                asides too, which is how the first version came out all amber with
+                the color distinguishing nothing. */}
             <div className="mt-8">
-                <h2 className="text-lg font-semibold">Delivery</h2>
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                    {describeInvoiceColumn(reconciliation.summary).text}
-                    {reconciliation.excludedCount > 0 && (
-                        <>
-                            {" "}
-                            <span className="text-zinc-500">
-                                ({reconciliation.excludedCount} line
-                                {reconciliation.excludedCount === 1 ? "" : "s"} with no ordered line
-                                {reconciliation.excludedCount === 1 ? " is" : " are"} not compared)
-                            </span>
-                        </>
-                    )}
-                </p>
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">Delivery</h2>
+                    <StatusChip chip={describeInvoiceColumn(reconciliation.summary)} />
+                </div>
 
-                {reconciliation.rows.length > 0 && (
-                    <ul className="mt-3 space-y-2 text-sm">
-                        {reconciliation.rows.map((row) => (
-                            <li
-                                key={row.invoiceItemId}
-                                className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
-                            >
-                                <div className="font-medium">
-                                    {[row.itemName, row.size].filter(Boolean).join(" ")}
-                                </div>
-                                {/* Issue #166 — this invoice's own share, then the
-                                    line's totals when other bills share it. Without
-                                    the second figure a reader cannot tell why the
-                                    share is what it is. */}
-                                <p className="mt-0.5 text-xs text-zinc-500">
-                                    This invoice bills {row.billedOnThisInvoice}
-                                    {row.unit ? ` ${row.unit}` : ""}
-                                    {row.billCount > 1 && (
-                                        <>
-                                            {" "}
-                                            of {row.line.invoiced}
-                                            {row.unit ? ` ${row.unit}` : ""} billed on this
-                                            order line across {row.billCount} bills
-                                        </>
-                                    )}
-                                    .
-                                </p>
-                                {describeLineDetail(row.status, row.unit).map((m) => (
-                                    <p
-                                        key={m.key}
-                                        className={
-                                            m.key === "matched"
-                                                ? "mt-1 text-zinc-600 dark:text-zinc-400"
-                                                : "mt-1 text-amber-700 dark:text-amber-500"
-                                        }
-                                    >
-                                        {m.text}
-                                    </p>
-                                ))}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-
-                <h3 className="mt-4 text-sm font-medium">
-                    Deliveries recorded against the same order lines
-                </h3>
-                {reconciliation.deliveries.length === 0 ? (
+                {reconciliation.rows.length === 0 ? (
                     <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-                        None yet.
+                        This invoice has no lines.
                     </p>
                 ) : (
-                    <ul className="mt-2 space-y-1 text-sm">
-                        {reconciliation.deliveries.map((d) => {
-                            // The packing list photo is the evidence the arrival
-                            // happened, so it is linked rather than described.
-                            // Airtable's attachment urls are short-lived signed
-                            // urls (~2h), so this renders the current one and can
-                            // go stale on a page held open — the same property
-                            // every other attachment link here has.
-                            const photo = d.packingListFile?.[0];
+                    <ul className="mt-3 space-y-2 text-sm">
+                        {reconciliation.rows.map((row) => {
+                            const lines = describeInvoiceLine(row.status, row.unit);
                             return (
-                                <li key={d.id} className="flex flex-wrap items-center gap-2">
-                                    <Link
-                                        href={`/deliveries/${encodeURIComponent(d.deliveryId)}`}
-                                        className="underline"
+                                <li
+                                    key={row.invoiceItemId}
+                                    className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
+                                >
+                                    <div className="font-medium">
+                                        {[row.itemName, row.size].filter(Boolean).join(" ") || "—"}
+                                    </div>
+
+                                    {row.line && (
+                                        <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
+                                            Ordered {row.line.ordered}
+                                            {row.unit ? ` ${row.unit}` : ""} · Billed{" "}
+                                            {row.line.invoiced}
+                                            {row.unit ? ` ${row.unit}` : ""} · Delivered{" "}
+                                            {row.line.delivered}
+                                            {row.unit ? ` ${row.unit}` : ""}
+                                        </p>
+                                    )}
+
+                                    {showsThisBillShare(row.status) && (
+                                        <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
+                                            This bill: {row.billedOnThisInvoice} of{" "}
+                                            {row.line.invoiced}
+                                            {row.unit ? ` ${row.unit}` : ""}
+                                        </p>
+                                    )}
+
+                                    <p
+                                        className={
+                                            lines.verdict.key === "all-delivered"
+                                                ? "mt-1 text-green-700 dark:text-green-400"
+                                                : lines.verdict.key === "not-compared"
+                                                  ? "mt-1 text-zinc-500"
+                                                  : "mt-1 text-amber-700 dark:text-amber-500"
+                                        }
                                     >
-                                        {d.deliveryId}
-                                    </Link>
-                                    <span className="text-zinc-600 dark:text-zinc-400">
-                                        received {d.receivedDate || "—"}
-                                    </span>
-                                    {photo?.url && (
-                                        <a
-                                            href={photo.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="underline"
-                                        >
-                                            packing list
-                                        </a>
+                                        {lines.verdict.text}
+                                    </p>
+
+                                    {lines.againstOrder && (
+                                        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                                            {lines.againstOrder.text}
+                                        </p>
+                                    )}
+
+                                    {lines.inferred && (
+                                        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                                            {lines.inferred.text}
+                                        </p>
+                                    )}
+
+                                    {row.deliveries.length > 0 && (
+                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-600 dark:text-zinc-400">
+                                            <span className="text-zinc-500">Deliveries ·</span>
+                                            {row.deliveries.map((d) => (
+                                                <span key={d.id}>
+                                                    <Link
+                                                        href={`/deliveries/${encodeURIComponent(d.deliveryId)}`}
+                                                        className="underline"
+                                                    >
+                                                        {d.deliveryId}
+                                                    </Link>{" "}
+                                                    ({d.receivedDate || "—"})
+                                                </span>
+                                            ))}
+                                        </p>
                                     )}
                                 </li>
                             );
