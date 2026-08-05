@@ -44,6 +44,26 @@
 // rather than string concatenation (#159): the tag is interpolated into a
 // filterByFormula, and there is one escape for that in this repo.
 //
+// TWO RULES ABOUT THE TAG, both learned from a real bucket rather than reasoned:
+//
+//   DECLARE `tagField` ONLY IF THE TAG REACHES EVERY ROW IN THE BUCKET. Partial
+//   coverage is the same as none. verify-overage-167.mjs tracks six PRs; it
+//   creates four with a tagged `Notes` and the other two are the overage Drafts
+//   createOverageDraft raises, with notes of its own. Declaring the field anyway
+//   made the census report a mismatch and fall back on every single run — a
+//   standing warning for a permanent condition, which is how a warning stops
+//   being read. Leaving it off says the true thing once. Expect the same shape
+//   wherever production code creates some of a bucket's rows.
+//
+//   `discoverByTag` DELETES BY THIS RUN'S TAG, AND THAT TAG MUST BE UNIQUE PER
+//   RUN. It is the only path where the helper deletes a row the script never held
+//   an id for, so the prefix is the whole of what stops it reaching someone
+//   else's records. Every caller's tag is `V###-${Date.now().toString(36)}`, so
+//   this holds today — but widen the prefix to a fixed `V167-` and it silently
+//   becomes a base sweep, which CLAUDE.md forbids in as many words: a record that
+//   looks orphaned is either in use or someone's decision, and neither is yours
+//   to reverse.
+//
 // WHERE THE TAG CANNOT REACH, named rather than left to be discovered:
 //   - `Purchase Orders` — written by generatePOForApprovedPR, and a script sets
 //     no text field on it. Always tracked, so tracked-id re-reads cover it.
@@ -64,6 +84,9 @@
 
 import { base } from "../../lib/airtable/client.js";
 import { prefixMatch } from "../../lib/airtableFormula.js";
+
+/** The `reason` that marks a record whose fate this run could not establish. */
+const UNVERIFIED = "could not verify — the table did not answer";
 
 /**
  * One run's fixtures.
@@ -166,13 +189,43 @@ export function createFixtures({ tag, buckets }) {
         return records.map((r) => r.id);
     }
 
-    /** Is this record still there? `find` throws once it is gone. */
-    async function stillThere(table, id) {
+    // One probe per table per run, memoized: does this table still answer at all?
+    const reachability = new Map();
+    async function tableReachable(table) {
+        if (reachability.has(table)) return reachability.get(table);
+        let ok = false;
+        try {
+            await base(table).select({ maxRecords: 1 }).firstPage();
+            ok = true;
+        } catch {
+            ok = false;
+        }
+        reachability.set(table, ok);
+        return ok;
+    }
+
+    /**
+     * Is this tracked record still there — "present", "gone", or "unverified"?
+     *
+     * A GONE RECORD AND A REFUSED ONE ARE THE SAME RESPONSE, measured with
+     * scripts/inspect-airtable-errors.js: `find` on a valid-format id that does
+     * not exist answers 403 NOT_AUTHORIZED, "You are not authorized to perform
+     * this operation" — byte-identical to what an expired token or a revoked
+     * scope would give. So the error itself cannot say which.
+     *
+     * This used to fold every failure to "gone", which meant a run with dead
+     * credentials reported a perfectly clean cleanup: a vacuity hole inside the
+     * anti-vacuity machinery, exactly the shape of `require()` in an `.mjs` file.
+     * One probe settles it — if the TABLE still answers, the credential works and
+     * the failure was about that record, so it really is gone. If the table does
+     * not answer either, nothing is known and the run must not claim clean.
+     */
+    async function residueState(table, id) {
         try {
             await base(table).find(id);
-            return true;
+            return "present";
         } catch {
-            return false;
+            return (await tableReachable(table)) ? "gone" : "unverified";
         }
     }
 
@@ -323,17 +376,27 @@ export function createFixtures({ tag, buckets }) {
                         warn(`  residue: ${b.label} ${id} survived cleanup — remove manually`);
                     }
                 } catch (err) {
-                    warn(`  residue check could not run for ${b.name}: ${err.message}`);
+                    // The check itself could not run, so this bucket is unverified
+                    // rather than clean — same reasoning as residueState below.
+                    for (const id of ids(b.name)) {
+                        if (leaked.some((l) => l.id === id)) continue;
+                        leaked.push({ table: b.table, id, label: b.label, reason: UNVERIFIED });
+                    }
+                    warn(`  residue UNRELIABLE for ${b.name}: ${err.message} — ${ids(b.name).length} id(s) unverified`);
                 }
                 continue;
             }
             let left = 0;
             for (const id of ids(b.name)) {
                 if (leaked.some((l) => l.id === id)) continue;
-                if (await stillThere(b.table, id)) {
+                const state = await residueState(b.table, id);
+                if (state === "present") {
                     left += 1;
                     leaked.push({ table: b.table, id, label: b.label, reason: "still present after cleanup" });
                     warn(`  residue: ${b.label} ${id} survived cleanup — remove manually`);
+                } else if (state === "unverified") {
+                    leaked.push({ table: b.table, id, label: b.label, reason: UNVERIFIED });
+                    warn(`  residue UNRELIABLE: ${b.label} ${id} — ${b.table} did not answer, so "gone" cannot be claimed`);
                 }
             }
             residueCounts[b.name] = left;
@@ -396,9 +459,23 @@ export function createFixtures({ tag, buckets }) {
         if (report.leaked.length === 0) {
             return `CLEANUP CLEAN — ${report.deleted} record(s) deleted, none left on the base`;
         }
+        // A KNOWN LEAK AND AN UNVERIFIED ONE GET DIFFERENT WORDS AND THE SAME EXIT
+        // CODE. Both may need a hand, which is what makes 1 right for each and 2
+        // wrong for both: CLAUDE.md's 2 means a part could not run, and a run that
+        // may have left rows behind is not that. Only the sentence differs, so a
+        // reader knows whether to go delete something or to go check the token.
+        const unsure = report.leaked.filter((l) => l.reason === UNVERIFIED).length;
+        const known = report.leaked.length - unsure;
+        if (known === 0) {
+            return (
+                `CLEANUP UNVERIFIED — ${unsure} record(s) could not be checked ` +
+                `(listed above; tag ${TAG})`
+            );
+        }
         return (
-            `CLEANUP INCOMPLETE — ${report.leaked.length} record(s) left on the base ` +
-            `(listed above; tag ${TAG})`
+            `CLEANUP INCOMPLETE — ${known} record(s) left on the base` +
+            (unsure > 0 ? ` and ${unsure} unverified` : "") +
+            ` (listed above; tag ${TAG})`
         );
     }
 
