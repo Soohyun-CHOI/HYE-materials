@@ -10,7 +10,11 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { describeDelivery, groupRowsByItem, summarizeDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
+import { describeOveragePreview } from "@/lib/overage";
+import { getOverageContext } from "@/lib/overagePR";
+import { STATUS_COPY } from "@/lib/deliveryStatus";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
+import OverageButton from "./OverageButton";
 
 const DONE_MESSAGES = {
     recorded: "Delivery recorded.",
@@ -87,6 +91,30 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
     });
 
     const banners = describeDelivery(rows);
+
+    // Issue #167 — the correction affordance, one entry per over-delivered row.
+    // Costs no query on an ordinary delivery: getOverageContext returns immediately
+    // when no row is flagged and none carries a correction already. Job-scoped
+    // rather than office-gated, per the issue — raising the request is site work,
+    // which narrows what #166 withheld on the deliveries LIST. See
+    // createOverageDraftAction on what that reveals and what it does not.
+    const overageByRow = await getOverageContext(items, { deliveryId: delivery.deliveryId });
+    const overages = items
+        .filter((item) => overageByRow.has(item.id))
+        .map((item) => {
+            const context = overageByRow.get(item.id);
+            return {
+                id: item.id,
+                label: [item.itemName, item.size].filter(Boolean).join(" "),
+                eligible: context.eligibility.eligible,
+                inferred: Boolean(context.eligibility.inferred),
+                messages: describeOveragePreview(context.eligibility, {
+                    ...context.facts,
+                    signersDropped: 0,
+                }).map((m) => m.text),
+            };
+        });
+
     const mayDelete = canDeleteDelivery(user, delivery);
     const deleteCopy = mayDelete ? await resolveDeleteCopy(delivery, items) : null;
     const photo = delivery.packingListFile?.[0] ?? null;
@@ -157,6 +185,35 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                 >
                     {b.text}
                 </p>
+            ))}
+
+            {/* Issue #167 — the correction, right under the banner that reports the
+                over-delivery, because that is where a reader has just been told
+                there is one. An INELIGIBLE row still says why rather than showing
+                nothing: "there is no invoice yet" and "the excess spans two
+                invoices" are both answers, and a missing button is not. */}
+            {overages.map((overage) => (
+                <div
+                    key={overage.id}
+                    className="mt-2 rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                >
+                    <p className="font-medium">Correction — {overage.label}</p>
+                    {overage.messages.map((text, i) => (
+                        <p key={i} className="mt-1 text-zinc-600 dark:text-zinc-400">
+                            {text}
+                        </p>
+                    ))}
+                    {overage.eligible && (
+                        <div className="mt-2">
+                            <OverageButton
+                                deliveryItemId={overage.id}
+                                messages={overage.messages}
+                                inferred={overage.inferred}
+                                inferredLabel={STATUS_COPY.column.inferred().text}
+                            />
+                        </div>
+                    )}
+                </div>
             ))}
 
             <div className="mt-4 space-y-1 text-sm">

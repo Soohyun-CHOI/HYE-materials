@@ -13,6 +13,8 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
+import { describeOverageBanner } from "@/lib/overage";
+import { getOverageBannerFacts } from "@/lib/overagePR";
 import { formatUSD } from "@/lib/format";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import SigningPanel from "./SigningPanel";
@@ -66,6 +68,16 @@ export default async function PRDetailPage({ params, searchParams }) {
         ]);
 
     const po = pr.purchaseOrders?.[0] ? await getPOByRecordId(pr.purchaseOrders[0]) : null;
+
+    // Issue #167 — is this request an overage correction? Free on every ordinary PR:
+    // the reverse-link recordToPR exposes is empty unless a delivery row points here,
+    // and getOverageBannerFacts returns before its first query in that case.
+    const overageBanners =
+        (await getOverageBannerFacts(pr))?.map((banner) => ({
+            ...banner,
+            site: "overagePR",
+            facts: { ...banner.facts, thisPoId: banner.facts.overagePoId },
+        })) ?? [];
 
     const userIds = new Set(
         [
@@ -179,6 +191,32 @@ export default async function PRDetailPage({ params, searchParams }) {
                     ← All PRs
                 </Link>
             </div>
+
+
+            {/* Issue #167 — the overage banner. EVERY WORD OF IT IS DERIVED from
+                Delivery Items."Overage PR" and its provenance link, so nothing about
+                a correction is stored as state: withdrawing the request reopens the
+                row on its own, and a settled one is told apart from "the order
+                exists but the excess never moved" by the flag alone.
+
+                IT STAYS AFTER SIGNATURE, which is the point rather than an
+                oversight. An overage order read on its own looks like a duplicate
+                with no quotation of its own, and the invoice attached to it also
+                bills the original order — so a payment against that invoice matches
+                neither order's total alone, and whoever reconciles it needs telling
+                exactly once, here. */}
+            {overageBanners.map((banner) =>
+                describeOverageBanner({ site: banner.site, state: banner.state, facts: banner.facts }).map(
+                    (m) => (
+                        <p
+                            key={`${banner.rowId}-${m.key}`}
+                            className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                        >
+                            {m.text}
+                        </p>
+                    )
+                )
+            )}
 
             {done && DONE_MESSAGES[done] && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">

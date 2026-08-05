@@ -5,6 +5,7 @@ import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
 import { describeInvoiceColumn, describeInvoiceLine, showsThisBillShare } from "@/lib/deliveryStatus";
 import { StatusChip } from "@/app/components/DeliveryChips";
+import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
@@ -59,6 +60,18 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     // there is no query for them. The rule is lib/deliveryStatus.js and nothing is
     // stored — there is no `Invoices.Delivery` link, deliberately.
     const reconciliation = await getInvoiceReconciliation(items);
+
+    // Issue #167 — fold the rows an overage split produced back into one, so the
+    // table still reads line-for-line against the vendor's PDF. The key is #18's
+    // Material link plus the unit price (lib/invoiceItemFold.js); the material comes
+    // from the reconciliation, which already holds every line's ordered item, so
+    // folding costs no query. Nothing folds on an invoice no correction touched.
+    const materialByLine = new Map(
+        reconciliation.rows.map((r) => [r.invoiceItemId, r.materialRecordId])
+    );
+    const foldedItems = foldInvoiceItems(
+        items.map((it) => ({ ...it, materialRecordId: materialByLine.get(it.invoiceItemId) ?? null }))
+    );
 
     // Issue #16 — surfaced but never blocking: variance is a review prompt,
     // not a gate on marking something paid.
@@ -151,11 +164,19 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
 
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">Items</h2>
+                {/* Issue #167 — NO PO COLUMN, and dropping it is not a preference.
+                    A row an overage split produced spans two orders once folded, so
+                    there is no single value for that cell: it is unrepresentable
+                    rather than merely inconvenient. The order did not disappear from
+                    the page — the Delivery section below is one box per ORDERED
+                    ITEM, which by construction has exactly one, and a split shows as
+                    two boxes each naming its own. Both halves of that trade are in
+                    this one commit on purpose: removing the column alone would take
+                    the order off the page entirely. */}
                 <table className="mt-2 w-full text-sm">
                     <thead>
                         <tr className="text-left text-zinc-500">
                             <th className="pr-2">Item</th>
-                            <th className="pr-2">PO</th>
                             <th className="pr-2">Size</th>
                             <th className="pr-2">Unit</th>
                             <th className="pr-2 text-right">Qty</th>
@@ -165,8 +186,8 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {items.map((it) => (
-                            <tr key={it.id} className="border-t border-zinc-200 dark:border-zinc-800">
+                        {foldedItems.map((it) => (
+                            <tr key={it.key} className="border-t border-zinc-200 dark:border-zinc-800">
                                 <td className="py-1 pr-2">
                                     {it.itemName}
                                     {it.varianceFlag && (
@@ -175,7 +196,6 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                         </span>
                                     )}
                                 </td>
-                                <td className="py-1 pr-2">{poById[it.po?.[0]]?.poId || "—"}</td>
                                 <td className="py-1 pr-2">{it.size}</td>
                                 <td className="py-1 pr-2">{it.unit}</td>
                                 <td className="py-1 pr-2 text-right">{it.qty}</td>
@@ -194,7 +214,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                 }
                             >
                                 <td
-                                    colSpan={6}
+                                    colSpan={5}
                                     className={
                                         row.strong
                                             ? "py-1 pr-2 text-right font-semibold"
@@ -265,8 +285,22 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                     key={row.invoiceItemId}
                                     className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
                                 >
-                                    <div className="font-medium">
-                                        {[row.itemName, row.size].filter(Boolean).join(" ") || "—"}
+                                    <div className="flex flex-wrap items-baseline gap-x-2">
+                                        <span className="font-medium">
+                                            {[row.itemName, row.size].filter(Boolean).join(" ") || "—"}
+                                        </span>
+                                        {/* Issue #167 — the order this box is scoped
+                                            to. It moved here from the items table's
+                                            PO column, which a folded row cannot
+                                            fill; a box always has exactly one. */}
+                                        {row.poRecordId && poById[row.poRecordId] && (
+                                            <Link
+                                                href={`/pos/${encodeURIComponent(poById[row.poRecordId].poId)}`}
+                                                className="text-xs text-zinc-500 underline"
+                                            >
+                                                {poById[row.poRecordId].poId}
+                                            </Link>
+                                        )}
                                     </div>
 
                                     {row.line && (

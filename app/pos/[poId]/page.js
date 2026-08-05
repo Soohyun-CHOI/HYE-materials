@@ -11,6 +11,8 @@ import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { formatUSD } from "@/lib/format";
+import { describeOverageBanner } from "@/lib/overage";
+import { getOverageBannerFactsForPO } from "@/lib/overagePR";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import {
     getPOWithdrawEligibility,
@@ -108,11 +110,47 @@ export default async function PODetailPage({ params, searchParams }) {
         itemsWithInvoiceLines = items.map((it) => ({ ...it, invoiceLines: [] }));
     }
 
+    // Issue #167 — the overage banner, from whichever side this order is on: its own
+    // PR is the correction, or one of its ordered items is where an excess came from.
+    // The second case reads the PO Items' own provenance reverse-link rather than
+    // walking the shared Delivery, so an arrival that filled two orders cannot put
+    // the banner on the one that was not exceeded. Delivery data either way, so it is
+    // not withheld from a non-privileged viewer — but the invoice it names IS invoice
+    // data, and that is the same narrowing the delivery page makes deliberately
+    // (see createOverageDraftAction).
+    const overageBanners = await getOverageBannerFactsForPO(po, itemsWithInvoiceLines);
+
     const pdfFile = po.poPdfFile?.[0];
 
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
             <h1 className="text-2xl font-semibold">{po.poId}</h1>
+
+
+            {/* Issue #167 — the overage banner. EVERY WORD OF IT IS DERIVED from
+                Delivery Items."Overage PR" and its provenance link, so nothing about
+                a correction is stored as state: withdrawing the request reopens the
+                row on its own, and a settled one is told apart from "the order
+                exists but the excess never moved" by the flag alone.
+
+                IT STAYS AFTER SIGNATURE, which is the point rather than an
+                oversight. An overage order read on its own looks like a duplicate
+                with no quotation of its own, and the invoice attached to it also
+                bills the original order — so a payment against that invoice matches
+                neither order's total alone, and whoever reconciles it needs telling
+                exactly once, here. */}
+            {overageBanners.map((banner) =>
+                describeOverageBanner({ site: banner.site, state: banner.state, facts: banner.facts }).map(
+                    (m) => (
+                        <p
+                            key={`${banner.rowId}-${m.key}`}
+                            className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                        >
+                            {m.text}
+                        </p>
+                    )
+                )
+            )}
 
             {done && DONE_MESSAGES[done] && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
