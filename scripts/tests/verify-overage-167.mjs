@@ -4,11 +4,15 @@
 // offline/invoice-item-fold.mjs: eligibility, the shared ordering asserted on the
 // AST, the banner derivation, the fold key). What only real records can answer:
 //
-//   A — THE TWO NEW FIELDS. `Delivery Items."Overage PR"` and
-//       `Delivery Items."Overage Of PO Item"` plus both symmetric sides, none of
+//   A — THE TWO FIELDS. `Delivery Items."Overage PR"` and
+//       `Delivery Items."Original PO Item"` plus both symmetric sides, none of
 //       which any file-only check can see. This is the third tier CLAUDE.md
 //       describes: a link field renamed in the UI makes `record.get()` return
-//       undefined and every banner silently empty.
+//       undefined and every banner silently empty. Also the SINGLE-RECORD
+//       INVARIANT, which is app-enforced rather than schema-enforced
+//       (`prefersSingleRecordLink` is refused on create AND on update, both
+//       measured) — so it is checked on the DATA, where drift would actually
+//       show, rather than on a schema property nothing can set.
 //   B — THE WHOLE FLOW on real records: order 10, deliver 12, bill 12, raise the
 //       correction, approve it, generate its PO, and then assert that the excess
 //       MOVED — the delivery row re-attached and unflagged, the invoice line split,
@@ -56,7 +60,7 @@ import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { getOverageBannerFacts, getOverageBannerFactsForPO, getOverageContext, createOverageDraft } from "../../lib/overagePR.js";
-import { OVERAGE_BLOCKED, describeOverageBanner, isOverageApplied, originalPOItemRecordId } from "../../lib/overage.js";
+import { OVERAGE_BLOCKED, describeOverageBanner, isOverageApplied, resolveOriginalPOItem } from "../../lib/overage.js";
 import { lineStatus } from "../../lib/deliveryStatus.js";
 import { foldInvoiceItems } from "../../lib/invoiceItemFold.js";
 
@@ -114,7 +118,7 @@ function tinyPdfBytes(label) {
 
 try {
     // -------------------------------------------------------------------
-    console.log("\nPart A — the two new link fields, which no file-only check can see:");
+    console.log("\nPart A — the two link fields and the single-record invariant:");
     const meta = await fetch(
         `https://api.airtable.com/v0/meta/bases/${process.env.AIRTABLE_BASE_ID}/tables`,
         { headers: { Authorization: `Bearer ${process.env.AIRTABLE_API_KEY}` } }
@@ -124,9 +128,9 @@ try {
 
     const expectedFields = [
         ["Delivery Items", "Overage PR", "Purchase Requests"],
-        ["Delivery Items", "Overage Of PO Item", "PO Items"],
+        ["Delivery Items", "Original PO Item", "PO Items"],
         ["Purchase Requests", "Overage Delivery Items", "Delivery Items"],
-        ["PO Items", "Overage Delivery Items", "Delivery Items"],
+        ["PO Items", "Reattached Delivery Items", "Delivery Items"],
     ];
     let fieldsPresent = true;
     for (const [table, name, target] of expectedFields) {
@@ -144,6 +148,44 @@ try {
         incomplete = "the #167 link fields are missing — nothing downstream can run";
         console.log(`\n  SKIP  ${incomplete}`);
         throw new Error("__skip__");
+    }
+
+    // The old names, so a half-applied rename fails here rather than at runtime.
+    for (const [table, gone] of [
+        ["Delivery Items", "Overage Of PO Item"],
+        ["PO Items", "Overage Delivery Items"],
+    ]) {
+        assert(`${table}."${gone}" is gone — the rename was applied, not duplicated`, !fieldOn(table, gone));
+    }
+
+    // `prefersSingleRecordLink` is READABLE but not writable: refused 422 on field
+    // create (INVALID_FIELD_TYPE_OPTIONS_FOR_CREATE) and 422 on update
+    // (INVALID_REQUEST_UNKNOWN, with and without linkedTableId). Reported rather
+    // than asserted true, because asserting the current value would fail the day
+    // someone improves it in the UI — and reported rather than dropped, because
+    // "the schema does not enforce this" is exactly what the data check below is for.
+    for (const name of ["Overage PR", "Original PO Item"]) {
+        const field = fieldOn("Delivery Items", name);
+        assert(
+            `Delivery Items."${name}" exposes prefersSingleRecordLink (currently ${field.options?.prefersSingleRecordLink})`,
+            typeof field.options?.prefersSingleRecordLink === "boolean"
+        );
+    }
+
+    // THE INVARIANT THE APP PROMISES, measured on every stored row. An unenforced
+    // invariant drifts silently, and this is the only place that would notice.
+    const allDeliveryRows = await base(TABLES.DELIVERY_ITEMS)
+        .select({ fields: ["Delivery Item ID", "Overage PR", "Original PO Item"] })
+        .all();
+    for (const name of ["Overage PR", "Original PO Item"]) {
+        const multi = allDeliveryRows.filter((r) => (r.get(name) || []).length > 1);
+        assert(
+            `no stored row links more than one ${name} (${allDeliveryRows.length} rows scanned)`,
+            multi.length === 0
+        );
+        if (multi.length > 0) {
+            console.log(`    offenders: ${multi.map((r) => r.get("Delivery Item ID")).join(", ")}`);
+        }
     }
 
     const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
@@ -309,11 +351,11 @@ try {
 
         check(`${label}: the row is re-attached to the overage order`, moved.poItem?.[0], overageItems[0].id);
         check(`${label}: its flag is cleared`, moved.overDelivery, false);
-        check(`${label}: and it records where it came from`, moved.overageOfPOItemRecordId, order.poLine.id);
+        check(`${label}: and it records where it came from`, moved.originalPOItemRecordId, order.poLine.id);
         assert(`${label}: so the flag reads as applied`, isOverageApplied(moved) === true);
         check(
             `${label}: the original ordered item is still recoverable`,
-            originalPOItemRecordId(moved),
+            resolveOriginalPOItem(moved),
             order.poLine.id
         );
 

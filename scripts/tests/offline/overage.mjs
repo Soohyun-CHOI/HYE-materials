@@ -20,10 +20,10 @@ import {
     describeOverageBanner,
     describeOveragePreview,
     isOverageApplied,
-    originalPOItemRecordId,
     overageBannerState,
     overageEligibility,
     overagePRState,
+    resolveOriginalPOItem,
     selectOverageBill,
 } from "../../../lib/overage.js";
 import { INFERRED_PREMISE, STATUS_COPY } from "../../../lib/deliveryStatus.js";
@@ -42,7 +42,7 @@ const row = (over = {}) => ({
     overDelivery: true,
     poItem: ["recPOI1"],
     overagePRRecordId: null,
-    overageOfPOItemRecordId: null,
+    originalPOItemRecordId: null,
     ...over,
 });
 
@@ -243,17 +243,17 @@ export function run({ check, log, assert }) {
 
     log("");
     log("the original ordered item, in every state, as one expression:");
-    check("before the apply step it is the row's own link", originalPOItemRecordId(row()), "recPOI1");
+    check("before the apply step it is the row's own link", resolveOriginalPOItem(row()), "recPOI1");
     check(
         "after it, the provenance link",
-        originalPOItemRecordId(row({ poItem: ["recNEW"], overageOfPOItemRecordId: "recPOI1" })),
+        resolveOriginalPOItem(row({ poItem: ["recNEW"], originalPOItemRecordId: "recPOI1" })),
         "recPOI1"
     );
-    check("neither", originalPOItemRecordId({}), null);
+    check("neither", resolveOriginalPOItem({}), null);
     check("and the CURRENT attachment is its own accessor", attachedPOItemRecordId(row({ poItem: ["recNEW"] })), "recNEW");
-    check("  which differs from the original after the apply step", attachedPOItemRecordId(row({ poItem: ["recNEW"], overageOfPOItemRecordId: "recPOI1" })), "recNEW");
+    check("  which differs from the original after the apply step", attachedPOItemRecordId(row({ poItem: ["recNEW"], originalPOItemRecordId: "recPOI1" })), "recNEW");
     check("  nullish does not throw", attachedPOItemRecordId(null), null);
-    check("nullish does not throw", originalPOItemRecordId(null), null);
+    check("nullish does not throw", resolveOriginalPOItem(null), null);
 
     // --- THE BANNER --------------------------------------------------------
     log("");
