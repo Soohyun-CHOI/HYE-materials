@@ -66,6 +66,7 @@ import {
     describeInvoiceLine,
     showsThisBillShare,
 } from "../../lib/deliveryStatus.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -177,11 +178,66 @@ console.log(
 console.log(`ran at    ${new Date().toISOString()}`);
 console.log("=".repeat(72));
 
-const TAG = `V166-${Date.now().toString(36).toUpperCase()}`;
-const created = { prs: [], pos: [], deliveries: [], deliveryItems: [], invoices: [], invoiceItems: [] };
-const track = (bucket, id) => {
-    if (id && !created[bucket].includes(id)) created[bucket].push(id);
-};
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
+// order: children before parents throughout, and the item-axis rows last because
+// a Material Price links its Material.
+const fixtures = createFixtures({
+    tag: "V166",
+    buckets: [
+        { name: "invoiceItems", table: TABLES.INVOICE_ITEMS, label: "Invoice Item", tagField: "Item Name" },
+        {
+            name: "invoices",
+            table: TABLES.INVOICES,
+            label: "Invoice",
+            tagField: "Vendor Invoice Code",
+            children: [
+                { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
+                // Untaggable: an Invoice-PO Link row's primary field is an
+                // autoNumber and it carries no text at all, so it is reachable
+                // only as a discovered child.
+                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
+            ],
+        },
+        { name: "deliveryItems", table: TABLES.DELIVERY_ITEMS, label: "Delivery Item", tagField: "Item Name" },
+        {
+            name: "deliveries",
+            table: TABLES.DELIVERIES,
+            label: "Delivery",
+            tagField: "Notes",
+            children: [{ link: "Delivery Items", table: TABLES.DELIVERY_ITEMS, label: "Delivery Item" }],
+        },
+        // No tagField: written by generatePOForApprovedPR, and this script sets no
+        // text field on it. Tracked, so a tracked-id re-read is the residue check.
+        {
+            name: "pos",
+            table: TABLES.PURCHASE_ORDERS,
+            label: "PO",
+            children: [{ link: "PO Items", table: TABLES.PO_ITEMS, label: "PO Item" }],
+        },
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [{ link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" }],
+        },
+        // The item-axis rows PO generation writes as a side effect (#18). This
+        // script never holds their ids, so they are found by tag — and the prices
+        // hang off the Material's own link field rather than a text match on
+        // `Price Label`, which is a formula over two links and need not begin with
+        // the tag. Prices before materials falls out of children-before-parents.
+        {
+            name: "materials",
+            table: TABLES.MATERIALS,
+            label: "Material",
+            tagField: "Item Name",
+            discoverByTag: true,
+            children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+const track = fixtures.track;
 
 try {
     const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
@@ -385,7 +441,7 @@ try {
         check("no invoice on the ordered item it filled", di.key, "awaiting-invoice");
         check("the worklist chip", describeDeliveryColumn(di).text, "Awaiting invoice");
 
-        const billedDelivery = (await getDeliveriesByRecordIds([created.deliveries[0]]))[0];
+        const billedDelivery = (await getDeliveriesByRecordIds([fixtures.ids("deliveries")[0]]))[0];
         const billedDeliveryStatus = (await getDeliveryInvoicing([billedDelivery])).get(billedDelivery.id);
         check("the delivery whose ordered item IS billed reads invoiced", billedDeliveryStatus.key, "invoiced");
         check("its chip", describeDeliveryColumn(billedDeliveryStatus).text, "Invoiced");
@@ -443,7 +499,7 @@ try {
         console.log("\nPart E — the query budget does not grow with the rows:");
         const invoiceOne = [await getInvoiceByRecordId(arrivedFull.id)];
         const invoiceMany = await Promise.all(
-            created.invoices.map((id) => getInvoiceByRecordId(id))
+            fixtures.ids("invoices").map((id) => getInvoiceByRecordId(id))
         );
         const one = await countOps(() => getInvoiceDeliveryStatus(invoiceOne));
         const many = await countOps(() => getInvoiceDeliveryStatus(invoiceMany));
@@ -461,7 +517,7 @@ try {
         );
         check("and the ceiling is the five levels the module documents", one.total, 5);
 
-        const deliveryMany = await getDeliveriesByRecordIds(created.deliveries);
+        const deliveryMany = await getDeliveriesByRecordIds(fixtures.ids("deliveries"));
         // COMPARE LIKE WITH LIKE: the billed delivery, whose ordered line carries
         // invoice lines, so all three levels are non-empty in both measurements.
         // Starting from the UNBILLED one would compare 2 ops against 3 and read as
@@ -502,57 +558,16 @@ try {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const destroy = async (table, id, label) =>
-    base(table)
-        .destroy(id)
-        .then(() => console.log(`  deleted ${label} ${id}`))
-        .catch((e) => {
-            // A surviving fixture is not a silent outcome: it becomes a stray row
-            // on a shared base, which is what #165's aborted runs left 100 of.
-            pass = false;
-            console.error(`  cleanup FAILED: ${label} ${id} — remove manually:`, e.message);
-        });
-
-// Children before parents, throughout.
-for (const id of created.invoiceItems) await destroy(TABLES.INVOICE_ITEMS, id, "Invoice Item");
-for (const id of created.invoices) {
-    const rec = await base(TABLES.INVOICES).find(id).catch(() => null);
-    for (const child of rec?.get("Invoice Items") || []) await destroy(TABLES.INVOICE_ITEMS, child, "Invoice Item");
-    for (const child of rec?.get("Invoice-PO Link") || []) await destroy(TABLES.INVOICE_PO_LINK, child, "Invoice-PO Link");
-    await destroy(TABLES.INVOICES, id, "Invoice");
-}
-for (const id of created.deliveryItems) await destroy(TABLES.DELIVERY_ITEMS, id, "Delivery Item");
-for (const id of created.deliveries) {
-    const rec = await base(TABLES.DELIVERIES).find(id).catch(() => null);
-    for (const child of rec?.get("Delivery Items") || []) await destroy(TABLES.DELIVERY_ITEMS, child, "Delivery Item");
-    await destroy(TABLES.DELIVERIES, id, "Delivery");
-}
-for (const id of created.pos) {
-    const rec = await base(TABLES.PURCHASE_ORDERS).find(id).catch(() => null);
-    for (const child of rec?.get("PO Items") || []) await destroy(TABLES.PO_ITEMS, child, "PO Item");
-    await destroy(TABLES.PURCHASE_ORDERS, id, "PO");
-}
-for (const id of created.prs) {
-    const rec = await base(TABLES.PURCHASE_REQUESTS).find(id).catch(() => null);
-    for (const child of rec?.get("PR Items") || []) await destroy(TABLES.PR_ITEMS, child, "PR Item");
-    await destroy(TABLES.PURCHASE_REQUESTS, id, "PR");
-}
-// The item-axis rows PO generation writes as a side effect (#18). TAG-prefixed and
-// referenced by nothing outside this run, so leaving them would put fixture items
-// on the /materials screen for good — the same reasoning verify-deliveries-162.mjs
-// records. Prices before materials, so a price row's Material link never dangles.
-const materials = (await base(TABLES.MATERIALS).select({ fields: ["Item Name"] }).all()).filter((r) =>
-    (r.get("Item Name") || "").includes(TAG)
-);
-const prices = (await base(TABLES.MATERIAL_PRICES).select({ fields: ["Price Label"] }).all()).filter((r) =>
-    (r.get("Price Label") || "").includes(TAG)
-);
-for (const r of prices) await destroy(TABLES.MATERIAL_PRICES, r.id, "Material Price");
-for (const r of materials) await destroy(TABLES.MATERIALS, r.id, "Material");
+const teardown = await fixtures.teardown();
 
 console.log("\n" + "=".repeat(72));
 console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
+// TWO VERDICTS, TWO SENTENCES (#171). `pass` is about delivery status; a leak is
+// about this run's effect on a shared base. Until #171 a failed delete lowered
+// `pass`, so a leak printed `SOME CHECKS FAILED` — the right exit code attached to
+// a sentence that sends the reader to look at the wrong thing.
 if (!pass) console.log("SOME CHECKS FAILED");
 else if (incomplete) console.log(`INCOMPLETE — no failures, but: ${incomplete}`);
 else console.log("ALL CHECKS PASS");
-process.exit(!pass ? 1 : incomplete ? 2 : 0);
+console.log(fixtures.describe(teardown));
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : incomplete ? 2 : 0);

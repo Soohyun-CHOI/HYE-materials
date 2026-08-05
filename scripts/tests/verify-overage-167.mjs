@@ -39,7 +39,8 @@
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
 import { execSync } from "child_process";
-import { del, put } from "@vercel/blob";
+// `del` moved to scripts/tests/_fixtures.mjs with the rest of the cleanup (#171).
+import { put } from "@vercel/blob";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { createSigner } from "../../lib/airtable/prSigners.js";
@@ -63,6 +64,7 @@ import { getOverageBannerFacts, getOverageBannerFactsForPO, getOverageContext, c
 import { OVERAGE_BLOCKED, describeOverageBanner, isOverageApplied, resolveOriginalPOItem } from "../../lib/overage.js";
 import { lineStatus } from "../../lib/deliveryStatus.js";
 import { foldInvoiceItems } from "../../lib/invoiceItemFold.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -104,11 +106,74 @@ console.log(
 console.log(`ran at    ${new Date().toISOString()}`);
 console.log("=".repeat(72));
 
-const TAG = `V167-${Date.now().toString(36).toUpperCase()}`;
-const created = { prs: [], pos: [], deliveries: [], deliveryItems: [], invoices: [], invoiceItems: [], blobs: [] };
-const track = (bucket, id) => {
-    if (id && !created[bucket].includes(id)) created[bucket].push(id);
-};
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
+// order. Blob objects go through trackBlob and are verified with head() rather
+// than logged as "already gone or unreachable", which could not tell the two
+// apart.
+const fixtures = createFixtures({
+    tag: "V167",
+    buckets: [
+        { name: "invoiceItems", table: TABLES.INVOICE_ITEMS, label: "Invoice Item", tagField: "Item Name" },
+        {
+            name: "invoices",
+            table: TABLES.INVOICES,
+            label: "Invoice",
+            tagField: "Vendor Invoice Code",
+            children: [
+                { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
+                // Untaggable — an autoNumber primary and no text field at all.
+                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
+            ],
+        },
+        { name: "deliveryItems", table: TABLES.DELIVERY_ITEMS, label: "Delivery Item", tagField: "Item Name" },
+        {
+            name: "deliveries",
+            table: TABLES.DELIVERIES,
+            label: "Delivery",
+            tagField: "Notes",
+            children: [{ link: "Delivery Items", table: TABLES.DELIVERY_ITEMS, label: "Delivery Item" }],
+        },
+        // No tagField: written by generatePOForApprovedPR, no text field this
+        // script sets. Tracked, so its residue check is a tracked-id re-read.
+        {
+            name: "pos",
+            table: TABLES.PURCHASE_ORDERS,
+            label: "PO",
+            children: [{ link: "PO Items", table: TABLES.PO_ITEMS, label: "PO Item" }],
+        },
+        // NO tagField, and the census is what proved it has to be that way. Four
+        // of these PRs this script creates with a tagged `Notes`, but the other
+        // two are the overage Drafts `createOverageDraft` raises — production
+        // code, with notes of its own — so a tag query on `Notes` misses exactly
+        // those two. Declaring the field anyway made the helper report the
+        // mismatch and fall back on every run; leaving it off says the true thing
+        // once. Both are tracked, so tracked-id re-reads cover all six.
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            children: [
+                { link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" },
+                { link: "PR Signers", table: TABLES.PR_SIGNERS, label: "PR Signer" },
+                { link: "Quotations", table: TABLES.QUOTATIONS, label: "Quotation" },
+            ],
+        },
+        // The item-axis rows PO generation writes as a side effect (#18), found by
+        // tag because this script never holds their ids. The prices hang off the
+        // Material's own link rather than a text match on `Price Label`, a formula
+        // over two links that need not begin with the tag.
+        {
+            name: "materials",
+            table: TABLES.MATERIALS,
+            label: "Material",
+            tagField: "Item Name",
+            discoverByTag: true,
+            children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+const track = fixtures.track;
 
 /** A one-page PDF, enough for Airtable to ingest and for the flow to re-upload. */
 function tinyPdfBytes(label) {
@@ -274,7 +339,7 @@ try {
             contentType: "application/pdf",
             addRandomSuffix: true,
         });
-        created.blobs.push(blob.url);
+        fixtures.trackBlob(blob.url);
         const invoice = await createInvoice({
             vendorId: vendor.id,
             vendorInvoiceCode: `${TAG}-${Math.random().toString(36).slice(2, 7)}`,
@@ -330,7 +395,7 @@ try {
         for (const q of await getQuotationsByPR(draft.pr.id)) {
             // Tracked for cleanup; the Blob object the draft created is ours too.
         }
-        for (const cleanup of draft.blobCleanups) created.blobs.push(cleanup.blobUrl);
+        for (const cleanup of draft.blobCleanups) fixtures.trackBlob(cleanup.blobUrl);
 
         await updatePR(draft.pr.id, { status: "Approved" });
         const gen = await generatePOForApprovedPR(await getPRByRecordId(draft.pr.id));
@@ -407,7 +472,7 @@ try {
         assert(`${label}:   with a file Airtable actually took`, Boolean(quotations[0].file?.[0]?.url));
         assert(
             `${label}:   and it is Airtable's copy, not the Blob url we submitted`,
-            !created.blobs.includes(quotations[0].file?.[0]?.url)
+            !fixtures.blobUrls().includes(quotations[0].file?.[0]?.url)
         );
         check(
             `${label}:   coded with the vendor's invoice number`,
@@ -547,61 +612,16 @@ try {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const destroy = async (table, id, label) =>
-    base(table)
-        .destroy(id)
-        .then(() => console.log(`  deleted ${label} ${id}`))
-        .catch((e) => {
-            pass = false;
-            console.error(`  cleanup FAILED: ${label} ${id} — remove manually:`, e.message);
-        });
-
-for (const id of created.invoiceItems) await destroy(TABLES.INVOICE_ITEMS, id, "Invoice Item");
-for (const id of created.invoices) {
-    const rec = await base(TABLES.INVOICES).find(id).catch(() => null);
-    for (const child of rec?.get("Invoice Items") || []) await destroy(TABLES.INVOICE_ITEMS, child, "Invoice Item");
-    for (const child of rec?.get("Invoice-PO Link") || []) await destroy(TABLES.INVOICE_PO_LINK, child, "Invoice-PO Link");
-    await destroy(TABLES.INVOICES, id, "Invoice");
-}
-for (const id of created.deliveryItems) await destroy(TABLES.DELIVERY_ITEMS, id, "Delivery Item");
-for (const id of created.deliveries) {
-    const rec = await base(TABLES.DELIVERIES).find(id).catch(() => null);
-    for (const child of rec?.get("Delivery Items") || []) await destroy(TABLES.DELIVERY_ITEMS, child, "Delivery Item");
-    await destroy(TABLES.DELIVERIES, id, "Delivery");
-}
-for (const id of created.pos) {
-    const rec = await base(TABLES.PURCHASE_ORDERS).find(id).catch(() => null);
-    for (const child of rec?.get("PO Items") || []) await destroy(TABLES.PO_ITEMS, child, "PO Item");
-    await destroy(TABLES.PURCHASE_ORDERS, id, "PO");
-}
-for (const id of created.prs) {
-    const rec = await base(TABLES.PURCHASE_REQUESTS).find(id).catch(() => null);
-    for (const child of rec?.get("PR Items") || []) await destroy(TABLES.PR_ITEMS, child, "PR Item");
-    for (const child of rec?.get("PR Signers") || []) await destroy(TABLES.PR_SIGNERS, child, "PR Signer");
-    for (const child of rec?.get("Quotations") || []) await destroy(TABLES.QUOTATIONS, child, "Quotation");
-    await destroy(TABLES.PURCHASE_REQUESTS, id, "PR");
-}
-// The item-axis rows PO generation writes as a side effect (#18).
-const materials = (await base(TABLES.MATERIALS).select({ fields: ["Item Name"] }).all()).filter((r) =>
-    (r.get("Item Name") || "").includes(TAG)
-);
-const prices = (await base(TABLES.MATERIAL_PRICES).select({ fields: ["Price Label"] }).all()).filter((r) =>
-    (r.get("Price Label") || "").includes(TAG)
-);
-for (const r of prices) await destroy(TABLES.MATERIAL_PRICES, r.id, "Material Price");
-for (const r of materials) await destroy(TABLES.MATERIALS, r.id, "Material");
-// UNIQUE TO THIS SCRIPT: the Blob objects. The quotation path is a server put(),
-// and the invoice fixtures need a real file for it to re-upload, so this one does
-// create them — and therefore has to remove them.
-for (const url of created.blobs) {
-    await del(url)
-        .then(() => console.log(`  deleted blob ${url}`))
-        .catch((e) => console.log(`  blob already gone or unreachable (${e.message}) — ${url}`));
-}
+const teardown = await fixtures.teardown();
 
 console.log("\n" + "=".repeat(72));
 console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
+// TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the overage correction; a
+// leak is about this run's effect on a shared base and on the Blob store. Until
+// #171 a failed delete lowered `pass`, so a leak printed `SOME CHECKS FAILED` —
+// the right exit code attached to a sentence pointing at the wrong thing.
 if (!pass) console.log("SOME CHECKS FAILED");
 else if (incomplete) console.log(`INCOMPLETE — no failures, but: ${incomplete}`);
 else console.log("ALL CHECKS PASS");
-process.exit(!pass ? 1 : incomplete ? 2 : 0);
+console.log(fixtures.describe(teardown));
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : incomplete ? 2 : 0);
