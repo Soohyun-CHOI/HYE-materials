@@ -19,12 +19,20 @@
 // time.
 //
 // Run from the repo root:
-//   node --env-file=.env.local scripts/tests/verify-unit-options-18.mjs
+//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs \
+//     scripts/tests/verify-unit-options-18.mjs
 //
-// No module loader needed (every import here is extension-qualified and
-// lib/airtable/client.js pulls in no relative imports of its own) and no dev
-// server. Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete
-// (could not reach the schema).
+// THE LOADER IS REQUIRED, and this header claimed the opposite until #181. It
+// said "no module loader needed (every import here is extension-qualified and
+// lib/airtable/client.js pulls in no relative imports of its own)". The second
+// half stopped being true when #159 split the formula escape out: client.js now
+// imports `../airtableFormula` extensionless, so plain `node` dies with
+// ERR_MODULE_NOT_FOUND on lib/airtableFormula before a single check runs. Only
+// TABLES is wanted from client.js, which is what made the claim plausible — an
+// import is an execution either way. No dev server.
+//
+// Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete (could
+// not reach the schema).
 
 import { CANONICAL_UNITS } from "../../lib/units.js";
 import { TABLES } from "../../lib/airtable/client.js";

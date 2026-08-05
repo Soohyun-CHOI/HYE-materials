@@ -48,9 +48,19 @@
 //
 // No module loader needed and no dev server: lib/editLogFields.js imports
 // nothing, so unlike its Unit counterpart this reaches no extensionless
-// intra-lib import. The table name is therefore hard-coded rather than read from
-// TABLES, which would drag in lib/airtable/client.js and its own relative import
-// — a wrong name here fails loudly as "table not found", never as a silent pass.
+// intra-lib import (that one needs the loader precisely because client.js does
+// — see its header). The table name is therefore hard-coded rather than read
+// from TABLES, which would drag in lib/airtable/client.js and its own relative
+// import for the sake of one string this script otherwise never touches.
+//
+// BE HONEST ABOUT WHAT THAT COSTS: the name here is a SECOND COPY of what
+// TABLES.EDIT_LOG holds, and nothing checks that the two agree. Renaming the
+// table in Airtable and updating client.js would leave this script pointing at
+// a name the base no longer has. The trade is acceptable only because the
+// failure is loud and immediate — "table not found" fails the run, and a run
+// that cannot find its table can never read as a pass — and because a table
+// rename is far rarer than the field-level drift this exists to catch. If a
+// third script wants the same string, import TABLES and take the loader.
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete (could not
 // reach the base).
