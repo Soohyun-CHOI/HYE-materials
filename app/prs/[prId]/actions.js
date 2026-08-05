@@ -272,10 +272,11 @@ export async function editAndContinueAction(prevState, formData) {
 
         // One updateItem call per item (batching its changed fields, plus
         // any Quotation link change), but one Edit Log entry per changed
-        // field — Quotation link changes aren't logged (Edit Log's Field
-        // Name is a fixed select without a Quotation option, and this is
-        // a linking correction, not a value edit the way Item Name/Qty/
-        // etc. are).
+        // field — Quotation link changes aren't logged (Edit Log's `Field`
+        // is a fixed select without a Quotation option, and this is a
+        // linking correction, not a value edit the way Item Name/Qty/
+        // etc. are). Since #181 that select has no `typecast` behind it, so
+        // logging one would now fail the write rather than mint an option.
         for (const itemId of touchedItemIds) {
             const itemChanges = changes.filter((c) => c.itemId === itemId);
             const fields = Object.fromEntries(itemChanges.map((c) => [c.field, c.newValue]));
@@ -289,7 +290,7 @@ export async function editAndContinueAction(prevState, formData) {
                     prRecordId: pr.id,
                     prId: pr.prId,
                     changedById: user.id,
-                    fieldName: ITEM_FIELD_LABELS[change.field],
+                    field: ITEM_FIELD_LABELS[change.field],
                     oldValue: change.oldValue,
                     newValue: change.newValue,
                     // Issue #69 — Edit Log gained a shared Notes field;
@@ -312,7 +313,7 @@ export async function editAndContinueAction(prevState, formData) {
                 prRecordId: pr.id,
                 prId: pr.prId,
                 changedById: user.id,
-                fieldName: "Shipping Fee",
+                field: "Shipping Fee",
                 oldValue: pr.shippingFee,
                 newValue: newShippingFee,
                 notes,

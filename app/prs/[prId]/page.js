@@ -167,7 +167,7 @@ export default async function PRDetailPage({ params, searchParams }) {
             const name = usersById[e.changedBy?.[0]]?.userName || "Unknown";
             return {
                 at: e.changedAt,
-                text: `${name} changed ${e.fieldName}: "${e.oldValue}" → "${e.newValue}"${
+                text: `${name} changed ${e.field}: "${e.oldValue}" → "${e.newValue}"${
                     e.notes ? ` (${e.notes})` : ""
                 }`,
             };

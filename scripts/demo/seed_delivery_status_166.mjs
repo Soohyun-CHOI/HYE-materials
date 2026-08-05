@@ -16,6 +16,12 @@
 // falls out of asking for more than the order has undelivered rather than being
 // hand-flagged.
 //
+// ONE THING HERE IS NOT #166's (#181): scenario A's delivery carries
+// Deliveries."Packing List PO". No stored record did, so the only thing covering
+// that field's read path was a delivery created and deleted by hand while #181
+// verified the rename — which covers it once. This seed is where such a record
+// belongs, since it already builds the deliveries a reader opens. See deliver().
+//
 // KEPT, NOT DELETED, like the rest of scripts/demo/. Re-running is safe: it checks
 // for its own first Materials row and skips if present.
 //
@@ -124,13 +130,28 @@ async function makeOrder({ itemName, qty, unitPrice = 10 }) {
  * One delivery covering one or more materials, allocated by the PRODUCTION
  * planner. `wants` is [{ itemName, qty }]; the planner decides which line each
  * quantity lands on and whether any of it is beyond the order.
+ *
+ * `packingListPO` is optional and is the PO record the packing list itself
+ * names, i.e. `Deliveries."Packing List PO"`. IT GOES TO BOTH the header and the
+ * planner, because that is what createDeliveryAction does with a typed PO
+ * number: the header records what the document said, and the same id
+ * hard-narrows allocation to that order's lines. Passing it to only one of the
+ * two would seed a record the app cannot produce.
+ *
+ * #181 ADDED IT, and the reason is a verification gap rather than realism. No
+ * stored record carried that field, so the only thing exercising its read path
+ * — the `PO on packing list` row on the delivery detail — was a throwaway
+ * record created and deleted by hand, which covered it once and never again. A
+ * seeded delivery covers it on every run. Scenario A carries it because its
+ * material has exactly one order, so narrowing to that PO selects the same
+ * single candidate line and the seeded rows are unchanged by it.
  */
-async function deliver({ wants, receivedDate, notes }) {
+async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
     const candidates = await getDeliveryCandidates([await getJobByRecordId(job.id)]);
     const delivery = await createDelivery({
         jobRecordId: job.id,
         vendorRecordId: vendor.id,
-        packingListPORecordId: null,
+        packingListPORecordId: packingListPO?.id ?? null,
         receivedDate,
         recordedByUserId: requester.id,
         notes: `166-DEMO — ${notes}`,
@@ -144,6 +165,10 @@ async function deliver({ wants, receivedDate, notes }) {
             lines: candidates.lines,
             vendorRecordId: vendor.id,
             materialRecordId: material.id,
+            // Still `poRecordId` here, and deliberately: the planner's parameter
+            // means "narrow the candidates to this order", not the header field
+            // the same value lands in (#181).
+            poRecordId: packingListPO?.id ?? null,
             qty: want.qty,
         });
         if (plan.blocked) throw new Error(`could not plan ${want.itemName}: ${plan.blocked}`);
@@ -213,9 +238,18 @@ console.log("\nSeeding one scenario per state:");
 
 // --- A: everything billed arrived --------------------------------------------
 const a = await makeOrder({ itemName: FIRST_ITEM, qty: 20 });
-await deliver({ wants: [{ itemName: FIRST_ITEM, qty: 20 }], receivedDate: "2026-07-18", notes: "A, full arrival" });
+// The one delivery here whose packing list quotes a PO number (#181) — see
+// deliver() on why it is this scenario and why the rows are unaffected.
+const aDel = await deliver({
+    wants: [{ itemName: FIRST_ITEM, qty: 20 }],
+    receivedDate: "2026-07-18",
+    notes: "A, full arrival, packing list quotes the PO",
+    packingListPO: a.po,
+});
+ids.aDelivery = aDel.delivery.deliveryId;
+ids.aPO = a.po.poId;
 ids.a = (await bill({ lines: [{ ...a, qty: 20 }], issueDate: "2026-07-19", note: "A arrived" })).invoiceId;
-console.log(`  A  ${ids.a}  Delivered`);
+console.log(`  A  ${ids.a}  Delivered   (${ids.aDelivery} quotes ${ids.aPO} on its packing list)`);
 
 // --- B: billed, nothing arrived, plus a line with no ordered line ------------
 const b = await makeOrder({ itemName: "166-DEMO Gasket", qty: 15 });
@@ -409,5 +443,29 @@ function, so the row you clicked and the page you land on cannot disagree.
   assigned to no job, so it sees no deliveries either way — and its flags
   are a permanent fixture that must not be changed. Reading
   app/deliveries/page.js's showInvoicing branch is the honest check.
+
+------------------------------------------------------------------
+4. /deliveries/<id>  —  "PO on packing list"  (#181)
+------------------------------------------------------------------
+  ${ids.aDelivery ?? "A's delivery"}   PO on packing list: ${ids.aPO ?? "A's PO"}
+  every other delivery here            PO on packing list: none
+
+  THE ONLY SEEDED RECORD THAT CARRIES Deliveries."Packing List PO", and it
+  is here because nothing else covered that field's read path. #181 renamed
+  the field off a bare "PO" — which read as the order the arrival was
+  recorded AGAINST, a different thing living on Delivery Items."PO Item" —
+  and verified the new name by creating a delivery by hand and deleting it,
+  which covers a read path exactly once. This covers it on every run.
+
+  The same id goes to the header AND to planDelivery, because that is what
+  createDeliveryAction does with a typed PO number: one records what the
+  document said, the other hard-narrows allocation to that order. Scenario
+  A's material has one order, so the narrowing selects the same line and
+  the rows are what they would have been anyway.
+
+  Contrast the "Recorded against" table on the same page: that names a PO
+  per allocated slice, reached through the Material link rather than from
+  this number. Two levels of attribution, which is why the screen spells
+  the header one out instead of labelling it "PO".
 `);
 }
