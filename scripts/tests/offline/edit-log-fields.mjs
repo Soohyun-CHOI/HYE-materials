@@ -6,7 +6,8 @@
 // `typecast: true`, so a label that was not yet a choice got auto-created. That
 // hid a real cost: typecast gives every option it creates the same default
 // color and nothing can recolor it, which is why `Unit Price` and `Shipping Fee`
-// sit off the palette the other six choices walk. Removing it makes an
+// sat off the palette the other choices walk until they were corrected BY HAND
+// in the Airtable UI. Removing it makes an
 // unregistered label fail the write instead — measured,
 // `INVALID_MULTIPLE_CHOICE_OPTIONS: Insufficient permissions to create new
 // select option`.
@@ -40,6 +41,8 @@
 // and passes here — the same blind spot offline/unit-options.mjs records, and
 // the same answer: that comparison needs the Metadata API and the credentialed
 // tier. No credentialed script reads Edit Log today, so that half is a real gap.
+// DEMONSTRATED RATHER THAN THEORIZED: #181 deleted the `Rate` choice by hand,
+// since no API can, and this check stayed green through it.
 
 import { parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -57,9 +60,12 @@ const SERVICE = "lib/airtable/editLog.js";
 // do it for you, and shipping the label without the choice blocks the edit
 // action rather than mislabelling anything.
 //
-// `Rate` is deliberately NOT here. It is a choice on the field, held by three
-// pre-#78 rows, but no code writes it any more — this list is what the code can
-// SEND, not what the field offers.
+// This list is what the code can SEND. It happens to equal what the field
+// offers exactly, as of #181 — `Rate` was the one choice that did not
+// correspond to a writable label, and it is gone: `Field` points at a column's
+// IDENTITY rather than the label in use when a row was written, so #78's rename
+// of `Rate` -> `Unit Price` took its three log rows with it. That equality is
+// not something this check can confirm, though; see the note at the top.
 const EXPECTED_LABELS = [
     "Item Name",
     "Size",
