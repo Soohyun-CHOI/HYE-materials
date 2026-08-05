@@ -55,6 +55,19 @@
 //   being read. Leaving it off says the true thing once. Expect the same shape
 //   wherever production code creates some of a bucket's rows.
 //
+//   BUT WHERE THE SCRIPT ITSELF WRITES THE ROW, MAKE THE TAG REACH IT RATHER
+//   THAN DECLINING. The clause above is about rows a script cannot reach, and
+//   declining for one it CAN reach gives up the only advantage tag discovery has
+//   over tracking: it does not depend on the script's own bookkeeping being
+//   right. verify-deliveries-162.mjs is where that advantage was measured — it
+//   tracked Materials rows through `getMaterialByKey(...).catch(() => null)`
+//   guarded by `if (material)`, so a lookup that came back empty left the row
+//   created and untracked with nothing saying so. Its PRs were then left
+//   untagged on the narrower ground that `makeOrder` passed no `notes`, which is
+//   a fact about the script rather than about the table, so the fix was one
+//   argument. Decline only where the row is genuinely out of reach, as
+//   `Purchase Orders` is below.
+//
 //   `discoverByTag` DELETES BY THIS RUN'S TAG, AND THAT TAG MUST BE UNIQUE PER
 //   RUN. It is the only path where the helper deletes a row the script never held
 //   an id for, so the prefix is the whole of what stops it reaching someone

@@ -164,16 +164,17 @@ const fixtures = createFixtures({
             label: "PO",
             children: [{ link: "PO Items", table: TABLES.PO_ITEMS, label: "PO Item" }],
         },
-        // NO tagField EITHER, and for a different reason worth stating since it is
-        // the rule the helper's header now carries: makeOrder below creates these
-        // PRs with no `notes` at all, so a tag query on `Notes` would find none of
-        // them. Declaring a field the tag reaches only some of — or none of — is
-        // the same as declaring nothing, except that it also prints a warning on
-        // every run. Both PRs are tracked, so tracked-id re-reads cover them.
+        // TAGGED, and it is the counterpart to the bucket above rather than the
+        // same case: `makeOrder` creates these PRs, so nothing stops the tag from
+        // reaching them and the helper's rule says to make it reach rather than to
+        // decline (its second clause, added in this commit). They were untagged in
+        // the previous commit on the ground that `makeOrder` passed no `notes` —
+        // true, but a fact about this script, which is the half it can change.
         {
             name: "prs",
             table: TABLES.PURCHASE_REQUESTS,
             label: "PR",
+            tagField: "Notes",
             children: [{ link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" }],
         },
         // The item-axis rows PO generation writes as a side effect (#18), which
@@ -215,7 +216,12 @@ const track = fixtures.track;
  * census then reports how many it found either way.
  */
 async function makeOrder({ requester, vendor, line, itemName, size, unit, qty, unitPrice }) {
-    const pr = await createPR({ requesterId: requester.id, lineId: line.id, vendorId: vendor.id });
+    const pr = await createPR({
+        requesterId: requester.id,
+        lineId: line.id,
+        vendorId: vendor.id,
+        notes: `${TAG} fixture`,
+    });
     track("prs", pr.id);
     await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", itemName, size, unit, qty, unitPrice });
     await updatePR(pr.id, { status: "Approved" });
