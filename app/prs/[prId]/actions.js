@@ -13,21 +13,18 @@ import {
     resolveCorrectionRequest,
 } from "@/lib/airtable/correctionRequests";
 import { createEditLogEntry } from "@/lib/airtable/editLog";
+import { ITEM_FIELDS, ITEM_FIELD_LABELS, SHIPPING_FEE_LABEL } from "@/lib/editLogFields";
 import { createQuotation } from "@/lib/airtable/quotations";
 import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
 
-const ITEM_FIELDS = ["itemName", "size", "unit", "qty", "unitPrice", "remark"];
-const ITEM_FIELD_LABELS = {
-    itemName: "Item Name",
-    size: "Size",
-    unit: "Unit",
-    qty: "Qty",
-    unitPrice: "Unit Price",
-    remark: "Remark",
-};
+// #181 — the diffed keys and the labels they log under moved to lib/, so both
+// check tiers can read them: a `"use server"` module cannot be imported by a
+// plain `node` script, which had forced the offline check to parse this file as
+// text and had made the credentialed half unwritable. Nothing here may pass
+// createEditLogEntry a string literal, or that enumeration stops being complete.
 
 async function loadPRContext(prId) {
     const pr = await getPRById(prId);
@@ -313,7 +310,7 @@ export async function editAndContinueAction(prevState, formData) {
                 prRecordId: pr.id,
                 prId: pr.prId,
                 changedById: user.id,
-                field: "Shipping Fee",
+                field: SHIPPING_FEE_LABEL,
                 oldValue: pr.shippingFee,
                 newValue: newShippingFee,
                 notes,

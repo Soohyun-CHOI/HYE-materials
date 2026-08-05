@@ -1,16 +1,14 @@
 // The labels createEditLogEntry can write must all exist as `Edit Log."Field"`
-// choices — pinned here because the consequence of one that does not is a
-// blocked signing turn, not a missing log line (#181).
+// choices — this is the half that can be checked without credentials (#181).
 //
 // WHAT #181 CHANGED AND WHY THIS EXISTS. createEditLogEntry used to write with
 // `typecast: true`, so a label that was not yet a choice got auto-created. That
 // hid a real cost: typecast gives every option it creates the same default
 // color and nothing can recolor it, which is why `Unit Price` and `Shipping Fee`
 // sat off the palette the other choices walk until they were corrected BY HAND
-// in the Airtable UI. Removing it makes an
-// unregistered label fail the write instead — measured,
-// `INVALID_MULTIPLE_CHOICE_OPTIONS: Insufficient permissions to create new
-// select option`.
+// in the Airtable UI. Removing it makes an unregistered label fail the write
+// instead — measured, `INVALID_MULTIPLE_CHOICE_OPTIONS: Insufficient
+// permissions to create new select option`.
 //
 // THE BLAST RADIUS IS THE WHOLE TURN, which is why a comment was not enough.
 // The call sites sit inside editAndContinueAction's try, and its catch reverts
@@ -26,46 +24,46 @@
 // records the OLD value, which stops existing the moment updateItem lands.
 // Best-effort here would apply a price change and lose the only record of what
 // it changed — a hole in the evidence trail this table exists to be. Failing the
-// turn is the correct trade; the fix is for the label set never to drift.
+// turn is the correct trade; the label set never drifting is the fix.
 //
-// AND WHY THE CHECK IS HERE rather than a guard in the action: what would be
-// wrong is the AIRTABLE option list, which the app would have to fetch per edit
-// to know. Validating a label against ITEM_FIELD_LABELS is circular — that is
-// where the label came from. So the pin belongs in a check, and the file is read
-// as TEXT because app/prs/[prId]/actions.js is a "use server" module that pulls
-// next/navigation: importing it under plain node fails, the same reason
-// offline/unit-options.mjs parses the Python script instead of running it.
+// TWO DIRECTIONS, TWO TIERS, and this file is only one of them. A label added in
+// code with no matching choice is caught here, in CI, on the push that adds it.
+// A CHOICE DELETED IN AIRTABLE leaves every file untouched and cannot be seen
+// from here at all — that needs the live option list, and it is
+// scripts/tests/verify-edit-log-fields-181.mjs. Same split as the Unit pair
+// (offline/unit-options.mjs proves the files agree, verify-unit-options-18.mjs
+// proves the fields do), and neither half subsumes the other: #181 deleted the
+// `Rate` choice by hand, because no API can, and this check stayed green.
 //
-// WHAT THIS CANNOT SEE, by construction: whether the choices are actually on the
-// field. Someone deleting one by hand in Airtable leaves every file untouched
-// and passes here — the same blind spot offline/unit-options.mjs records, and
-// the same answer: that comparison needs the Metadata API and the credentialed
-// tier. No credentialed script reads Edit Log today, so that half is a real gap.
-// DEMONSTRATED RATHER THAN THEORIZED: #181 deleted the `Rate` choice by hand,
-// since no API can, and this check stayed green through it.
+// SINCE THE LABELS MOVED TO lib/ (#181) this imports them instead of parsing the
+// Server Action as text. What still has to be read as source is the SHAPE of the
+// call sites — that none of them passes a literal, which is what keeps the
+// enumeration complete — and that no `typecast` has come back.
 
 import { parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+import {
+    EDIT_LOG_FIELD_LABELS,
+    ITEM_FIELDS,
+    ITEM_FIELD_LABELS,
+    SHIPPING_FEE_LABEL,
+} from "../../../lib/editLogFields.js";
 
 export const title = "Edit Log labels — every one must be an existing `Field` choice (#181)";
 
 const ACTIONS = "app/prs/[prId]/actions.js";
 const SERVICE = "lib/airtable/editLog.js";
 
-// EVERY LABEL THE CODE CAN WRITE, and this list is the pin: adding one to
-// ITEM_FIELD_LABELS (or passing a new literal to createEditLogEntry) fails here
-// until it is added below too. That is the moment to create the choice in the
-// Airtable UI first — the Metadata API cannot write a select's option list at
-// all (measured, 422 on `options.choices`), so there is no code path that can
-// do it for you, and shipping the label without the choice blocks the edit
-// action rather than mislabelling anything.
+// EVERY LABEL THE CODE CAN WRITE. A DELIBERATE SECOND COPY of what
+// lib/editLogFields.js exports, and it has to stay one: comparing that module to
+// itself would pass unconditionally. What this guards is a label being ADDED,
+// which is the moment to create the choice in the Airtable UI first — the
+// Metadata API cannot write a select's option list at all (measured, 422 on
+// `options.choices`), so no code path can do it for you, and shipping the label
+// without the choice does not mislabel anything, it blocks the edit turn.
 //
-// This list is what the code can SEND. It happens to equal what the field
-// offers exactly, as of #181 — `Rate` was the one choice that did not
-// correspond to a writable label, and it is gone: `Field` points at a column's
-// IDENTITY rather than the label in use when a row was written, so #78's rename
-// of `Rate` -> `Unit Price` took its three log rows with it. That equality is
-// not something this check can confirm, though; see the note at the top.
+// The credentialed script compares the same module against the live field, so it
+// needs no copy; this one is the CI tripwire, which is why it keeps one.
 const EXPECTED_LABELS = [
     "Item Name",
     "Size",
@@ -76,24 +74,7 @@ const EXPECTED_LABELS = [
     "Shipping Fee",
 ];
 
-/** The string values of a top-level `const NAME = { ... }` object literal. */
-function objectLiteralValues(ast, name) {
-    let values = null;
-    walk(ast, (n) => {
-        if (
-            n.type === "VariableDeclarator" &&
-            n.id?.name === name &&
-            n.init?.type === "ObjectExpression"
-        ) {
-            values = n.init.properties
-                .filter((p) => p.type === "Property" && p.value?.type === "Literal")
-                .map((p) => p.value.value);
-        }
-    });
-    return values;
-}
-
-/** Literal `field:` values handed to createEditLogEntry — the non-map call sites. */
+/** Literal `field:` values handed to createEditLogEntry — there must be none. */
 function literalFieldArguments(ast) {
     const found = [];
     walk(ast, (n) => {
@@ -110,28 +91,53 @@ function literalFieldArguments(ast) {
     return found;
 }
 
+/** How many `field:` properties reach createEditLogEntry at all. */
+function fieldArgumentCount(ast) {
+    let n = 0;
+    walk(ast, (node) => {
+        if (node.type !== "CallExpression") return;
+        if (node.callee?.name !== "createEditLogEntry") return;
+        const arg = node.arguments?.[0];
+        if (arg?.type !== "ObjectExpression") return;
+        for (const p of arg.properties) {
+            if (p.type !== "Property") continue;
+            if ((p.key?.name ?? p.key?.value) === "field") n += 1;
+        }
+    });
+    return n;
+}
+
 export function run({ check, log }) {
-    const { ast } = parseFile(ACTIONS);
-
-    log("labels the code can write:");
-    const mapped = objectLiteralValues(ast, "ITEM_FIELD_LABELS");
-    check("ITEM_FIELD_LABELS is a parsable object literal", Array.isArray(mapped), true);
-
-    const literals = literalFieldArguments(ast);
-    check("createEditLogEntry has at least one literal-label call site", literals.length > 0, true);
-
-    const writable = [...new Set([...(mapped ?? []), ...literals])].sort();
-    const expected = [...EXPECTED_LABELS].sort();
-
+    log("the module's enumeration:");
     // The message names the remedy, because the failure is otherwise a puzzle:
-    // the label is fine, the code is fine, and Airtable is the thing that is
-    // short a choice.
+    // the label is fine, the code is fine, and Airtable is the thing short a
+    // choice.
     check(
-        `every writable label is registered here (add the Airtable choice first): ${writable.join(", ")}`,
-        writable.join("|"),
-        expected.join("|")
+        `every writable label is registered here (create the Airtable choice first): ${EDIT_LOG_FIELD_LABELS.join(", ")}`,
+        [...EDIT_LOG_FIELD_LABELS].sort().join("|"),
+        [...EXPECTED_LABELS].sort().join("|")
     );
-    check("no label is written twice under different spellings", writable.length, expected.length);
+    check("no label appears twice", new Set(EDIT_LOG_FIELD_LABELS).size, EDIT_LOG_FIELD_LABELS.length);
+    check("the PR-level label is in the enumeration", EDIT_LOG_FIELD_LABELS.includes(SHIPPING_FEE_LABEL), true);
+    // Derived, not restated — a diffed key with no label would send
+    // `Field: undefined` to a singleSelect. Pinned so the derivation is not
+    // quietly replaced by a second hand-typed list.
+    check("ITEM_FIELDS is exactly the label map's keys", ITEM_FIELDS.join(","), Object.keys(ITEM_FIELD_LABELS).join(","));
+    check("no label is blank or untrimmed", EDIT_LOG_FIELD_LABELS.filter((l) => l !== l.trim() || !l).length, 0);
+
+    log("");
+    log("call-site shape — what keeps that enumeration complete:");
+    const { ast } = parseFile(ACTIONS);
+    const literals = literalFieldArguments(ast);
+    // A literal here would be a label living outside lib/editLogFields.js, which
+    // both checks would then be blind to. `Shipping Fee` was exactly that until
+    // #181 exported it as SHIPPING_FEE_LABEL.
+    check(
+        `no createEditLogEntry call passes a literal label${literals.length ? ` (found ${literals.join(", ")})` : ""}`,
+        literals.length,
+        0
+    );
+    check("createEditLogEntry is still called with a `field`", fieldArgumentCount(ast) > 0, true);
 
     log("");
     log("the typecast that used to paper over a missing choice:");
