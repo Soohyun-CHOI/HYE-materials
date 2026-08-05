@@ -42,7 +42,7 @@ const row = (over = {}) => ({
     overDelivery: true,
     poItem: ["recPOI1"],
     overagePRRecordId: null,
-    originalPOItemRecordId: null,
+    formerPOItemRecordId: null,
     ...over,
 });
 
@@ -246,12 +246,12 @@ export function run({ check, log, assert }) {
     check("before the apply step it is the row's own link", resolveOriginalPOItem(row()), "recPOI1");
     check(
         "after it, the provenance link",
-        resolveOriginalPOItem(row({ poItem: ["recNEW"], originalPOItemRecordId: "recPOI1" })),
+        resolveOriginalPOItem(row({ poItem: ["recNEW"], formerPOItemRecordId: "recPOI1" })),
         "recPOI1"
     );
     check("neither", resolveOriginalPOItem({}), null);
     check("and the CURRENT attachment is its own accessor", attachedPOItemRecordId(row({ poItem: ["recNEW"] })), "recNEW");
-    check("  which differs from the original after the apply step", attachedPOItemRecordId(row({ poItem: ["recNEW"], originalPOItemRecordId: "recPOI1" })), "recNEW");
+    check("  which differs from the original after the apply step", attachedPOItemRecordId(row({ poItem: ["recNEW"], formerPOItemRecordId: "recPOI1" })), "recNEW");
     check("  nullish does not throw", attachedPOItemRecordId(null), null);
     check("nullish does not throw", resolveOriginalPOItem(null), null);
 

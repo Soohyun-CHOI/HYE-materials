@@ -5,7 +5,7 @@
 // AST, the banner derivation, the fold key). What only real records can answer:
 //
 //   A — THE TWO FIELDS. `Delivery Items."Overage PR"` and
-//       `Delivery Items."Original PO Item"` plus both symmetric sides, none of
+//       `Delivery Items."Former PO Item"` plus both symmetric sides, none of
 //       which any file-only check can see. This is the third tier CLAUDE.md
 //       describes: a link field renamed in the UI makes `record.get()` return
 //       undefined and every banner silently empty. Also the SINGLE-RECORD
@@ -128,9 +128,9 @@ try {
 
     const expectedFields = [
         ["Delivery Items", "Overage PR", "Purchase Requests"],
-        ["Delivery Items", "Original PO Item", "PO Items"],
+        ["Delivery Items", "Former PO Item", "PO Items"],
         ["Purchase Requests", "Overage Delivery Items", "Delivery Items"],
-        ["PO Items", "Reattached Delivery Items", "Delivery Items"],
+        ["PO Items", "Former Delivery Items", "Delivery Items"],
     ];
     let fieldsPresent = true;
     for (const [table, name, target] of expectedFields) {
@@ -152,8 +152,8 @@ try {
 
     // The old names, so a half-applied rename fails here rather than at runtime.
     for (const [table, gone] of [
-        ["Delivery Items", "Overage Of PO Item"],
-        ["PO Items", "Overage Delivery Items"],
+        ["Delivery Items", "Original PO Item"],
+        ["PO Items", "Reattached Delivery Items"],
     ]) {
         assert(`${table}."${gone}" is gone — the rename was applied, not duplicated`, !fieldOn(table, gone));
     }
@@ -164,7 +164,7 @@ try {
     // than asserted true, because asserting the current value would fail the day
     // someone improves it in the UI — and reported rather than dropped, because
     // "the schema does not enforce this" is exactly what the data check below is for.
-    for (const name of ["Overage PR", "Original PO Item"]) {
+    for (const name of ["Overage PR", "Former PO Item"]) {
         const field = fieldOn("Delivery Items", name);
         assert(
             `Delivery Items."${name}" exposes prefersSingleRecordLink (currently ${field.options?.prefersSingleRecordLink})`,
@@ -175,9 +175,9 @@ try {
     // THE INVARIANT THE APP PROMISES, measured on every stored row. An unenforced
     // invariant drifts silently, and this is the only place that would notice.
     const allDeliveryRows = await base(TABLES.DELIVERY_ITEMS)
-        .select({ fields: ["Delivery Item ID", "Overage PR", "Original PO Item"] })
+        .select({ fields: ["Delivery Item ID", "Overage PR", "Former PO Item"] })
         .all();
-    for (const name of ["Overage PR", "Original PO Item"]) {
+    for (const name of ["Overage PR", "Former PO Item"]) {
         const multi = allDeliveryRows.filter((r) => (r.get(name) || []).length > 1);
         assert(
             `no stored row links more than one ${name} (${allDeliveryRows.length} rows scanned)`,
@@ -351,7 +351,7 @@ try {
 
         check(`${label}: the row is re-attached to the overage order`, moved.poItem?.[0], overageItems[0].id);
         check(`${label}: its flag is cleared`, moved.overDelivery, false);
-        check(`${label}: and it records where it came from`, moved.originalPOItemRecordId, order.poLine.id);
+        check(`${label}: and it records where it came from`, moved.formerPOItemRecordId, order.poLine.id);
         assert(`${label}: so the flag reads as applied`, isOverageApplied(moved) === true);
         check(
             `${label}: the original ordered item is still recoverable`,
