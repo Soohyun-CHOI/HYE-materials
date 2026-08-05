@@ -122,7 +122,7 @@ async function partB_realUsageTest() {
         generateChildId(genArgs, (id) => {
             log.push("real-1-start");
             return base(TABLES.PR_ITEMS)
-                .create({ "PR Item ID": id, PR: [pr.id], "Item Name": "Lock Test Item 1", Qty: 1, Rate: 1 })
+                .create({ "PR Item ID": id, PR: [pr.id], "Item Name": "Lock Test Item 1", Qty: 1, "Unit Price": 1 })
                 .then((record) => {
                     log.push("real-1-end");
                     return record;
@@ -135,7 +135,7 @@ async function partB_realUsageTest() {
         generateChildId(genArgs, (id) => {
             log.push("real-3-start");
             return base(TABLES.PR_ITEMS)
-                .create({ "PR Item ID": id, PR: [pr.id], "Item Name": "Lock Test Item 3", Qty: 1, Rate: 1 })
+                .create({ "PR Item ID": id, PR: [pr.id], "Item Name": "Lock Test Item 3", Qty: 1, "Unit Price": 1 })
                 .then((record) => {
                     log.push("real-3-end");
                     return record;

@@ -6,7 +6,7 @@
 //
 // Ad hoc verification for issue #15 (variance checking) — exercises the
 // same service-layer calls createInvoiceAction makes, against a real,
-// currently-un-invoiced PO Item (recffjh8PlB8SQfXk, "heyy", Qty 12, Unit
+// currently-uninvoiced PO Item (recffjh8PlB8SQfXk, "heyy", Qty 12, Unit
 // Price 132 on PO HYE-PO-20260716-07 / Demo Vendor Co.), deliberately with
 // values chosen to trip every variance check at once. Cleans up every
 // record it creates.
@@ -22,7 +22,7 @@ import { checkHeaderVariance, checkUnitPriceVariance } from "../../lib/variance.
 
 const VENDOR_RECORD_ID = "rec5jSDWMNlyIbZDK"; // Demo Vendor Co.
 const PO_RECORD_ID = "rec5X300LEYkNrqe9"; // HYE-PO-20260716-07
-const PO_ITEM_RECORD_ID = "recffjh8PlB8SQfXk"; // "heyy", Qty 12, Unit Price 132, currently un-invoiced
+const PO_ITEM_RECORD_ID = "recffjh8PlB8SQfXk"; // "heyy", Qty 12, Unit Price 132, currently uninvoiced
 
 let invoice;
 let createdItemId;

@@ -36,19 +36,19 @@ const EMPTY_ITEM = {
 // they always change together and only ever matter per-slot.
 const EMPTY_SLOT = { poRecordId: "", searchMode: false, query: "", results: [], status: "idle" };
 
-// Issue #57 — items with remaining un-invoiced qty first (stable, so
+// Issue #57 — items with uninvoiced qty left first (stable, so
 // relative order within each group is untouched), fully-invoiced/over-
 // invoiced pushed to the bottom rather than hidden.
-function sortByRemaining(poItems) {
+function sortByUninvoiced(poItems) {
     return [...poItems].sort((a, b) => {
-        const aOpen = a.remainingQty > 0 ? 0 : 1;
-        const bOpen = b.remainingQty > 0 ? 0 : 1;
+        const aOpen = a.uninvoicedQty > 0 ? 0 : 1;
+        const bOpen = b.uninvoicedQty > 0 ? 0 : 1;
         return aOpen - bOpen;
     });
 }
 
 // Issue #57 — the one place that decides whether a line gets defaulted to
-// its PO's first (Remaining-sorted) item. Pure function of (item, cache)
+// its PO's first (Uninvoiced-sorted) item. Pure function of (item, cache)
 // rather than a setItems side effect, so it's usable both the moment a
 // line's poRecordId is first assigned/changed (addItem, updateItem,
 // replacePoSlots — cases where that PO's items may *already* be cached
@@ -538,7 +538,7 @@ export default function InvoiceForm({ vendors, pos }) {
             const res = await fetch(`/api/pos/${poRecordId}/items`);
             if (!res.ok) throw new Error("Request failed");
             const { items: rawItems } = await res.json();
-            const sorted = sortByRemaining(rawItems);
+            const sorted = sortByUninvoiced(rawItems);
             setPoItemsCache((prev) => ({ ...prev, [poRecordId]: { status: "done", items: sorted } }));
             applyDefaultPoItemSelection(poRecordId, sorted);
         } catch (err) {
@@ -550,7 +550,7 @@ export default function InvoiceForm({ vendors, pos }) {
 
     // Issue #57 — once a PO's items finish loading, any line still pointing
     // at that PO with poItemTouched still false gets defaulted to the
-    // first item in Remaining-sorted order — a UI affordance making clear
+    // first item in Uninvoiced-sorted order — a UI affordance making clear
     // the dropdown is the primary path, not a guess at the correct item.
     // Thin wrapper around defaultedItem: builds a one-PO cache override so
     // it only ever touches lines pointing at this poRecordId, using data
@@ -1136,12 +1136,12 @@ export default function InvoiceForm({ vendors, pos }) {
                         const linkedPoItem = item.poItemRecordId
                             ? poItemOptions.find((p) => p.id === item.poItemRecordId)
                             : null;
-                        const qtyExceedsRemaining =
+                        const qtyExceedsUninvoiced =
                             linkedPoItem != null &&
-                            linkedPoItem.remainingQty != null &&
-                            (parseFloat(item.qty) || 0) > linkedPoItem.remainingQty;
+                            linkedPoItem.uninvoicedQty != null &&
+                            (parseFloat(item.qty) || 0) > linkedPoItem.uninvoicedQty;
                         const unitPriceLocked = !!item.poItemRecordId && !item.unitPriceEditing;
-                        const showRemark = item.unitPriceEditing || qtyExceedsRemaining;
+                        const showRemark = item.unitPriceEditing || qtyExceedsUninvoiced;
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
                                 <div
@@ -1173,8 +1173,8 @@ export default function InvoiceForm({ vendors, pos }) {
                                                     <option key={poItem.id} value={poItem.id}>
                                                         {poItem.itemName}
                                                         {poItem.size ? ` — ${poItem.size}` : ""}
-                                                        {poItem.remainingQty != null
-                                                            ? ` (Remaining: ${poItem.remainingQty})`
+                                                        {poItem.uninvoicedQty != null
+                                                            ? ` (Uninvoiced: ${poItem.uninvoicedQty})`
                                                             : ""}
                                                     </option>
                                                 ))}
@@ -1275,10 +1275,10 @@ export default function InvoiceForm({ vendors, pos }) {
                                         </select>
                                     )}
                                 </div>
-                                {qtyExceedsRemaining && (
+                                {qtyExceedsUninvoiced && (
                                     <p className="mt-2 text-xs text-amber-700">
-                                        Qty ({item.qty}) exceeds this PO Item&apos;s remaining un-invoiced quantity (
-                                        {linkedPoItem.remainingQty}) — not blocked, but worth a note below.
+                                        Qty ({item.qty}) exceeds this PO Item&apos;s uninvoiced quantity (
+                                        {linkedPoItem.uninvoicedQty}) — not blocked, but worth a note below.
                                     </p>
                                 )}
                                 {showRemark && (

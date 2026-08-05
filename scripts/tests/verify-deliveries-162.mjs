@@ -293,7 +293,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     const delivery1 = await createDelivery({
         jobRecordId: job.id,
         vendorRecordId: vendorA.id,
-        poRecordId: null,
+        packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id,
         notes: `${TAG} first arrival`,
@@ -317,7 +317,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         size: targetLine.size,
         unit: targetLine.unit,
         qty: 4,
-        overDelivery: false,
+        overDelivered: false,
     });
     track("deliveryItems", di1.id);
     assert(`Delivery Item ID is {Delivery ID}-{seq} (${di1.deliveryItemId})`, di1.deliveryItemId === `${delivery1.deliveryId}-001`);
@@ -334,7 +334,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         deliveryRecordId: delivery1.id, deliveryId: delivery1.deliveryId,
         poItemRecordId: targetLine.id, materialRecordId,
         itemName: targetLine.itemName, size: targetLine.size, unit: targetLine.unit,
-        qty: 5, overDelivery: false,
+        qty: 5, overDelivered: false,
     });
     track("deliveryItems", di1b.id);
     const summed = await getDeliveredQtyForPOItem(targetLine.id);
@@ -357,7 +357,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("nothing flagged", plan.rows.some((r) => r.over), false);
 
     const delivery2 = await createDelivery({
-        jobRecordId: job.id, vendorRecordId: vendorA.id, poRecordId: null,
+        jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id, notes: `${TAG} split arrival`, file: [],
     });
@@ -367,7 +367,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
             deliveryRecordId: delivery2.id, deliveryId: delivery2.deliveryId,
             poItemRecordId: row.line.id, materialRecordId,
             itemName: row.line.itemName, size: row.line.size, unit: row.line.unit,
-            qty: row.qty, overDelivery: row.over,
+            qty: row.qty, overDelivered: row.over,
         });
         track("deliveryItems", di.id);
     }
@@ -385,7 +385,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         materialRecordId,
         qty: 12,
     });
-    check("5 outstanding absorbed, 7 over", overPlan.over, 7);
+    check("5 undelivered absorbed, 7 over", overPlan.over, 7);
     check("the excess is its own row", overPlan.rows.length, 2);
     check("and the flagged row's qty IS the excess", overPlan.rows[1].qty, overPlan.over);
     // THE #165 SCENARIO, on real records: two candidate lines, an over-delivery,
@@ -401,7 +401,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     );
 
     const delivery3 = await createDelivery({
-        jobRecordId: job.id, vendorRecordId: vendorA.id, poRecordId: null,
+        jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id, notes: `${TAG} over arrival`, file: [],
     });
@@ -411,16 +411,16 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
             deliveryRecordId: delivery3.id, deliveryId: delivery3.deliveryId,
             poItemRecordId: row.line.id, materialRecordId,
             itemName, size: '2"', unit: "EA",
-            qty: row.qty, overDelivery: row.over,
+            qty: row.qty, overDelivered: row.over,
         });
         track("deliveryItems", di.id);
     }
     const d3Items = await getItemsByDelivery(delivery3.id);
-    const overRow = d3Items.find((i) => i.overDelivery);
+    const overRow = d3Items.find((i) => i.overDelivered);
     assert("the flagged row was stored WITH a PO Item (#165)", overRow && overRow.poItem.length === 1);
     check("the one the plan named", overRow.poItem[0], overPlan.rows[1].line.id);
     assert("and still carries its Material, so it stays on the item axis", overRow.material.length === 1);
-    check("Over Delivery persisted as true", overRow.overDelivery, true);
+    check("Over Delivered persisted as true", overRow.overDelivered, true);
     assert(
         "no row of this delivery lacks a PO Item — the #165 invariant, on real records",
         d3Items.every((i) => i.poItem.length === 1)
@@ -536,7 +536,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     assert("the two materials are distinct identities", pipeMaterialId !== boltMaterialId);
 
     const multiDelivery = await createDelivery({
-        jobRecordId: job.id, vendorRecordId: vendorA.id, poRecordId: null,
+        jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id, notes: `${TAG} two items`, file: [],
     });
@@ -553,7 +553,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
                 deliveryRecordId: multiDelivery.id, deliveryId: multiDelivery.deliveryId,
                 poItemRecordId: row.line.id, materialRecordId: materialId,
                 itemName: src?.itemName ?? "", size: src?.size ?? "", unit: src?.unit ?? "",
-                qty: row.qty, overDelivery: row.over,
+                qty: row.qty, overDelivered: row.over,
             });
             track("deliveryItems", di.id);
         }
@@ -564,7 +564,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         .map((i) => ({
             materialRecordId: i.material?.[0] ?? null,
             itemName: i.itemName, size: i.size, unit: i.unit,
-            qty: i.qty, over: i.overDelivery,
+            qty: i.qty, over: i.overDelivered,
         }));
     const grouped = groupRowsByItem(multiRows);
     check("the rows collapse back to two items", grouped.length, 2);

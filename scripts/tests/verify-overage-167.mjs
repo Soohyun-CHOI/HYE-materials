@@ -243,7 +243,7 @@ try {
         const delivery = await createDelivery({
             jobRecordId: line.jobId,
             vendorRecordId: vendor.id,
-            poRecordId: null,
+            packingListPORecordId: null,
             receivedDate,
             recordedByUserId: requester.id,
             notes: `${TAG} delivery`,
@@ -260,7 +260,7 @@ try {
                 size: row.poLine.size,
                 unit: row.poLine.unit,
                 qty: row.qty,
-                overDelivery: Boolean(row.over),
+                overDelivered: Boolean(row.over),
             });
             track("deliveryItems", di.id);
         }
@@ -350,7 +350,7 @@ try {
         const overageItems = await getItemsByPO(result.overagePO.id);
 
         check(`${label}: the row is re-attached to the overage order`, moved.poItem?.[0], overageItems[0].id);
-        check(`${label}: its flag is cleared`, moved.overDelivery, false);
+        check(`${label}: its flag is cleared`, moved.overDelivered, false);
         check(`${label}: and it records where it came from`, moved.formerPOItemRecordId, order.poLine.id);
         assert(`${label}: so the flag reads as applied`, isOverageApplied(moved) === true);
         check(
@@ -427,7 +427,7 @@ try {
         receivedDate: "2026-07-20",
     });
     const invoiceB = await bill({ po: orderB.po, lines: [{ poLine: orderB.poLine, qty: 12 }], issueDate: "2026-07-21" });
-    const overRowB = (await getItemsByDelivery(deliveryB.id)).find((r) => r.overDelivery);
+    const overRowB = (await getItemsByDelivery(deliveryB.id)).find((r) => r.overDelivered);
     const resultB = await correct({ delivery: deliveryB, overRow: overRowB });
 
     check("the correction's PO carries one ordered item", (await getItemsByPO(resultB.overagePO.id)).length, 1);
@@ -460,7 +460,7 @@ try {
         paid: true,
     });
     check("the invoice is paid before the correction", invoiceC.paid, true);
-    const overRowC = (await getItemsByDelivery(deliveryC.id)).find((r) => r.overDelivery);
+    const overRowC = (await getItemsByDelivery(deliveryC.id)).find((r) => r.overDelivered);
     const resultC = await correct({ delivery: deliveryC, overRow: overRowC, paidNote: " (paid invoice)" });
     await assertSettled({
         label: "C",
@@ -509,7 +509,7 @@ try {
         rows: [{ poLine: orderE.poLine, qty: 4 }, { poLine: orderE.poLine, qty: 1, over: true }],
         receivedDate: "2026-07-24",
     });
-    const overRowE = (await getItemsByDelivery(deliveryE.id)).find((r) => r.overDelivery);
+    const overRowE = (await getItemsByDelivery(deliveryE.id)).find((r) => r.overDelivered);
     const contextE = (await getOverageContext(await getItemsByDelivery(deliveryE.id), {
         deliveryId: deliveryE.deliveryId,
     })).get(overRowE.id);
@@ -524,7 +524,7 @@ try {
     });
     await bill({ po: orderF.po, lines: [{ poLine: orderF.poLine, qty: 3 }], issueDate: "2026-07-01" });
     await bill({ po: orderF.po, lines: [{ poLine: orderF.poLine, qty: 12 }], issueDate: "2026-07-26" });
-    const overRowF = (await getItemsByDelivery(deliveryF.id)).find((r) => r.overDelivery);
+    const overRowF = (await getItemsByDelivery(deliveryF.id)).find((r) => r.overDelivered);
     const contextF = (await getOverageContext(await getItemsByDelivery(deliveryF.id), {
         deliveryId: deliveryF.deliveryId,
     })).get(overRowF.id);

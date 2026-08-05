@@ -46,9 +46,13 @@ the CHOICE COLORS come out right:
   2. FIELD ALREADY EXISTS -> the only way to add a choice is the
      `typecast=True` side effect on a normal record write: writing a value
      that isn't yet a choice auto-creates it (same trick as
-     import_jobs.py's Business Unit field, and lib/airtable/editLog.js's
-     Field Name select in the Next.js app). A select field holds one value
+     import_jobs.py's Business Unit field). A select field holds one value
      per record, so this costs one sequential write per missing choice.
+     lib/airtable/editLog.js's `Field` select used to be a third example
+     and is no longer one: #181 removed the typecast, because the two
+     options it had silently minted (`Unit Price`, `Shipping Fee`) came out
+     off-palette and nothing can recolor them. That is this file's own
+     warning below, observed on another field.
      TYPECAST GIVES EVERY OPTION IT CREATES THE SAME DEFAULT COLOR, and
      nothing can then recolor it -- see below.
 

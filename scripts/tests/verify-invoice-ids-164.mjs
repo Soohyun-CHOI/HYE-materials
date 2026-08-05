@@ -393,7 +393,7 @@ try {
     const dlA = await createDelivery({
         jobRecordId: jobs[0].id,
         vendorRecordId: vendor.id,
-        poRecordId: null,
+        packingListPORecordId: null,
         // Backdated on purpose: the packing-list date is routinely earlier than
         // entry, and it is the field #162 refused to count. Nothing counts it now.
         receivedDate: "2026-01-10",
@@ -405,7 +405,7 @@ try {
     const dlB = await createDelivery({
         jobRecordId: jobs[0].id,
         vendorRecordId: vendor.id,
-        poRecordId: null,
+        packingListPORecordId: null,
         receivedDate: "2026-01-11",
         recordedByUserId: user.id,
         notes: `${TAG} B`,

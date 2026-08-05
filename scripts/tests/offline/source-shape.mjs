@@ -1,4 +1,13 @@
-// Call-site shape: guards before side effects, cleanup outside rollbacks.
+// Source shape: guards before side effects, cleanup outside rollbacks, one
+// writer per attachment field.
+//
+// RENAMED FROM guard-placement.mjs BY #181, because half of what it holds is not
+// about a guard and had not been for a while. #142's "Quotations.File is written
+// in exactly one function" and #162's "Packing List File has exactly two writers,
+// one each" are writer counts on a module, not the placement of a gate — and
+// CLAUDE.md had already made this file the home of "source-shape checks",
+// which is the category all of them are in. The exported title said `Call-site
+// shape` before the filename caught up, which is the drift #181 is about.
 //
 // Consolidated here by #152 from two places that asserted the same KIND of
 // property about production call sites: verify-po-withdraw-138.mjs Part A
@@ -34,7 +43,8 @@ import {
 } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Call-site shape — guards before side effects, cleanup outside rollbacks";
+export const title =
+    "Source shape — guards before side effects, cleanup outside rollbacks, one writer per attachment";
 
 const CLEANUP = "confirmIngestThenDelete";
 

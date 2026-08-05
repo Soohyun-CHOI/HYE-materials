@@ -105,7 +105,7 @@ export default async function DeliveriesListPage({ searchParams }) {
                 // Only ever populated when showInvoicing — see above. The
                 // filter has nothing to act on otherwise, which is the rule
                 // rather than a coincidence.
-                hasOverDelivery: items.some((i) => i.overDelivery),
+                hasOverDelivery: items.some((i) => i.overDelivered),
                 invoicingKey: invoicingByDelivery.get(d.id)?.key ?? null,
                 invoicingChip: invoicingByDelivery.has(d.id)
                     ? describeDeliveryColumn(invoicingByDelivery.get(d.id))
@@ -117,7 +117,7 @@ export default async function DeliveriesListPage({ searchParams }) {
                         size: i.size,
                         unit: i.unit,
                         qty: i.qty,
-                        over: i.overDelivery,
+                        over: i.overDelivered,
                     }))
                 ),
             };

@@ -11,7 +11,7 @@
 // the source.
 //
 // #152 moved those assertions — the old Part A — to
-// scripts/tests/offline/guard-placement.mjs, alongside the equivalent ones from
+// scripts/tests/offline/source-shape.mjs, alongside the equivalent ones from
 // verify-po-withdraw-138.mjs. Reasons: they need no credentials, so welding them
 // to this script's Airtable and Blob fixtures made them cost more than anyone
 // would pay; and they were text matching on `export async function NAME`, which

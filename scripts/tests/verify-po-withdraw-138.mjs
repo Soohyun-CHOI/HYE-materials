@@ -19,7 +19,7 @@
 //   - the /api/invoices/detect-po route body (next/server)
 //
 // #152 moved those assertions — the old Part A — to
-// scripts/tests/offline/guard-placement.mjs, together with the equivalent ones
+// scripts/tests/offline/source-shape.mjs, together with the equivalent ones
 // from verify-blob-lifecycle-140.mjs, because they are the same kind of claim
 // about production call sites and they kept decaying in the same way. They were
 // text matching on `export async function NAME`; #147 wrapped two of these
@@ -155,7 +155,7 @@ async function waitForAttachment(poRecordId, tries = 10) {
 // Fixture: one PR (Approved) + its generated PO, moved to `status`. The PR
 // gets a real item so the PO snapshot has a PO Item with nothing invoiced
 // against it — which is what makes the getOpenPOs check below meaningful: an
-// item-less PO would be excluded from getOpenPOs for having no remaining qty,
+// item-less PO would be excluded from getOpenPOs for having no uninvoiced qty,
 // so it could never show that the *status* exclusion is doing the work.
 async function makePO(requesterId, status) {
     const pr = await createPR({ requesterId });
@@ -298,7 +298,7 @@ try {
     check("getAllPOs drops the withdrawn PO", allPos.some((po) => po.id === po6.id), false);
     check("getAllPOs returns no withdrawn PO at all", allPos.some(isPOWithdrawn), false);
     // getOpenPOs needs no change of its own — it filters getAllPOs()'s result
-    // by remaining un-invoiced qty — but "inherits the exclusion" is only
+    // by uninvoiced qty — but "inherits the exclusion" is only
     // worth stating if it's checked. po7 has an item with nothing invoiced
     // against it, so openness can't be what keeps it out; only the status
     // exclusion can.

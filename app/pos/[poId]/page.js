@@ -33,7 +33,7 @@ const DONE_MESSAGES = {
 // Viewing is row-scoped (issue #132): President/Admin see every PO; any other
 // active user sees a PO only for a PR they raised or on their assigned Job —
 // the same rule as the PR list (#119), shared via canViewPR. Invoice-derived
-// data (Invoiced/Remaining + the per-item invoice-line breakdown) and the
+// data (Invoiced/Uninvoiced + the per-item invoice-line breakdown) and the
 // sign/regenerate write controls stay President/Admin-only; the PO PDF is
 // visible to everyone who can see the PO (site staff place the order from it).
 export default async function PODetailPage({ params, searchParams }) {
@@ -80,7 +80,7 @@ export default async function PODetailPage({ params, searchParams }) {
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
     ]);
 
-    // Invoiced/Remaining (#48) and the per-item invoice-line breakdown (#15)
+    // Invoiced/Uninvoiced (#48) and the per-item invoice-line breakdown (#15)
     // are invoice-derived. The invoice pages are President/Admin-only (route
     // protection), so a plain employee viewing their own PO must not obtain
     // that data through this page. Non-privileged viewers fetch plain PO Items
@@ -209,7 +209,7 @@ export default async function PODetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Amount</th>
                             {/* Invoice-derived (#48) — President/Admin only (#132). */}
                             {isPrivileged && <th className="pr-2 text-right">Invoiced</th>}
-                            {isPrivileged && <th className="pr-2 text-right">Remaining</th>}
+                            {isPrivileged && <th className="pr-2 text-right">Uninvoiced</th>}
                             <th className="pr-2">Remark</th>
                         </tr>
                     </thead>
@@ -229,13 +229,13 @@ export default async function PODetailPage({ params, searchParams }) {
                                     {isPrivileged && (
                                         <td
                                             className={
-                                                it.remainingQty < 0
+                                                it.uninvoicedQty < 0
                                                     ? "py-1 pr-2 text-right text-red-600"
                                                     : "py-1 pr-2 text-right"
                                             }
                                         >
-                                            {it.remainingQty}
-                                            {it.remainingQty < 0 && " (over)"}
+                                            {it.uninvoicedQty}
+                                            {it.uninvoicedQty < 0 && " (over)"}
                                         </td>
                                     )}
                                     <td className="py-1 pr-2">{it.remark}</td>
@@ -289,7 +289,7 @@ export default async function PODetailPage({ params, searchParams }) {
                         ))}
                     </tbody>
                     {/* Trailing columns after Amount: privileged has
-                        Invoiced + Remaining + Remark (3); non-privileged has
+                        Invoiced + Uninvoiced + Remark (3); non-privileged has
                         only Remark (1). */}
                     <ItemsSummaryRows
                         itemsSubtotal={po.itemsSubtotal}

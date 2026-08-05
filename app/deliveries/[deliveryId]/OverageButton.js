@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
-import { InferredMarker } from "@/app/components/DeliveryChips";
+import { InferredMarker } from "@/app/components/DeliveryStatusMarks";
 import { createOverageDraftAction } from "./actions";
 
 /**

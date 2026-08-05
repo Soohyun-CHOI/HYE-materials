@@ -143,7 +143,7 @@ for (const [key, id] of [["poA1", poA1], ["poA2", poA2], ["poB1", poB1], ["poB2"
 // --- scenario B needs its orders already satisfied ---------------------------
 // Through the production allocation, so the fixture is what the app would have
 // written rather than something hand-shaped.
-console.log("\nDelivering scenario B in full, so nothing is left outstanding:");
+console.log("\nDelivering scenario B in full, so nothing is left undelivered:");
 const elbowMaterial = await getMaterialByKey(ELBOW);
 const candidates = await getDeliveryCandidates([await getJobByRecordId(job.id)]);
 const fillPlan = planDelivery({
@@ -158,10 +158,10 @@ if (fillPlan.over > 0) throw new Error("scenario B fill went over — the orders
 const delivery = await createDelivery({
     jobRecordId: job.id,
     vendorRecordId: vendor.id,
-    poRecordId: null,
+    packingListPORecordId: null,
     receivedDate: "2026-07-25",
     recordedByUserId: requester.id,
-    notes: "165-DEMO fixture — fills both Elbow orders so scenario B has nothing outstanding",
+    notes: "165-DEMO fixture — fills both Elbow orders so scenario B is fully delivered",
     file: [],
 });
 for (const row of fillPlan.rows) {
@@ -174,7 +174,7 @@ for (const row of fillPlan.rows) {
         size: row.line.size,
         unit: row.line.unit,
         qty: row.qty,
-        overDelivery: row.over,
+        overDelivered: row.over,
     });
     console.log(`  ${row.qty} ${row.line.unit} against ${row.line.poId}`);
 }
@@ -211,7 +211,7 @@ A. OVER-DELIVERY ACROSS TWO ORDERS — the case #165 is about
    Two orders of 10 are open (${o.poA1}, ${o.poA2}), so 20 is absorbed and
    5 is excess. Expect two messages:
      - spans 2 purchase orders, recorded as 2 lines
-     - 5 EA more than the 20 still outstanding on ${o.poA2}, recorded
+     - 5 EA more than the 20 still undelivered on ${o.poA2}, recorded
        against it and flagged as over-delivery
    Under #162 the second one said the excess could NOT be attributed to
    any one order. It names ${o.poA2} now — the last order filled.

@@ -22,7 +22,7 @@ import {
     resolveDeliveryFilters,
     sortLongestWaitingFirst,
 } from "@/lib/deliveryStatus";
-import { StatusChip } from "@/app/components/DeliveryChips";
+import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 
 export default function DeliveriesListClient({ rows, showInvoicing, initialUnbilled, initialOver }) {
     const router = useRouter();
