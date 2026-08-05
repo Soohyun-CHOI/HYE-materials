@@ -9,7 +9,11 @@ import {
     replaceDeliveryPhoto,
     updateDelivery,
 } from "@/lib/airtable/deliveries";
+import { getDeliveryItemsByRecordIds } from "@/lib/airtable/deliveryItems";
+import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
+import { describeOveragePreview } from "@/lib/overage";
+import { createOverageDraft, getOverageContext } from "@/lib/overagePR";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { deleteDeliveryAsUser } from "@/lib/deliveryDelete";
 
@@ -143,4 +147,73 @@ export async function deleteDeliveryAction(prevState, formData) {
     if (result.error) return result;
 
     redirect("/deliveries?done=deleted");
+}
+
+/**
+ * Raise the corrective PR for one over-delivery (#167).
+ *
+ * JOB-SCOPED, not office-gated, per the issue: raising the request is site work.
+ * That is a NARROWING of #166, which withheld invoice existence from site staff on
+ * the deliveries LIST — the list column stays withheld, while this affordance and
+ * its preview deliberately reveal that the over-delivered ordered item is billed,
+ * by which invoice and at what unit price, because none of that can be hidden from
+ * someone raising a request quoted from it.
+ *
+ * RE-AUTHORIZES AND RE-DERIVES EVERYTHING. A Server Action is callable directly, so
+ * the button having rendered proves nothing: the Job check runs again and
+ * getOverageContext recomputes eligibility from a fresh read. A PO withdrawn or a
+ * correction raised in another tab while this page sat open lands here as a refusal
+ * rather than a second Draft.
+ */
+export async function createOverageDraftAction(prevState, formData) {
+    const user = await requireUser();
+    const deliveryItemId = formData.get("deliveryItemId");
+    if (!deliveryItemId) return { error: "Nothing to correct." };
+
+    const [row] = await getDeliveryItemsByRecordIds([deliveryItemId]);
+    if (!row) return { error: "That delivery line no longer exists." };
+
+    const delivery = row.delivery?.[0]
+        ? (await getDeliveriesByRecordIds([row.delivery[0]]))[0]
+        : null;
+    if (!delivery || !canAccessJobDeliveries(user, delivery.job?.[0])) {
+        return { error: "That delivery no longer exists." };
+    }
+
+    const context = (await getOverageContext([row], { deliveryId: delivery.deliveryId })).get(row.id);
+    if (!context?.eligibility?.eligible) {
+        // The pure module already words every refusal, so the action does not
+        // invent a second phrasing for the same state.
+        const [message] = describeOveragePreview(context?.eligibility ?? {}, context?.facts ?? {});
+        return { error: message?.text ?? "This over-delivery cannot be corrected." };
+    }
+
+    if (!context.originalPR) return { error: "Couldn't find the request behind that order." };
+
+    let result;
+    try {
+        result = await createOverageDraft({
+            user,
+            delivery,
+            row,
+            orderedItem: context.orderedItem,
+            bill: context.bill,
+            originalPR: context.originalPR,
+        });
+    } catch (err) {
+        console.error("createOverageDraftAction failed", err);
+        return { error: "Couldn't open the correction draft. Please try again." };
+    }
+
+    // Issue #140 — the END of this action's transaction, which is here: every write
+    // has landed, so Airtable has the quotation file and the Blob object can go.
+    // Never inside createOverageDraft, whose rollback has to leave the same url
+    // available to a retry. Scheduled rather than awaited, which also survives the
+    // redirect below throwing.
+    after(() => confirmIngestThenDelete(result.blobCleanups));
+
+    // Straight into the existing Draft resume path (#72), which loadPRDraft
+    // hydrates — including the signer chain, so a requester can add whoever the
+    // copy dropped for being inactive.
+    redirect(`/prs/new?draft=${encodeURIComponent(result.pr.prId)}`);
 }

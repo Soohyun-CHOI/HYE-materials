@@ -143,6 +143,21 @@ const EXEMPTIONS = [
     { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "deleteDeliveryAction", mustCall: "requireUser", reason: DELIVERY_AUTHOR_AXIS },
+    {
+        file: "app/deliveries/[deliveryId]/actions.js",
+        name: "createOverageDraftAction",
+        mustCall: "requireUser",
+        reason:
+            `${DELIVERY_JOB_AXIS} Issue #167 — deliberately Job-scoped rather than ` +
+            "Admin, because raising the corrective request is site work. That NARROWS " +
+            "#166, which withheld invoice existence from site staff on the deliveries " +
+            "list: the list column stays withheld, while this action and its preview " +
+            "reveal that the over-delivered ordered item is billed, by which invoice " +
+            "and at what unit price — none of which can be hidden from someone " +
+            "raising a request quoted from it. It also re-derives eligibility from a " +
+            "fresh read, so a correction raised in another tab lands as a refusal " +
+            "rather than a second Draft.",
+    },
 ];
 
 function directivesOf(body) {
