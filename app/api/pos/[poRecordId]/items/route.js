@@ -7,8 +7,8 @@ import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
 // Admin-only invoice form (its only consumer) and to close the #132 PO
 // row-gate read bypass — a Route Handler is directly callable. Issue #147:
 // the gate IS the wrapper, so the body can't run unauthorized.
-// Uses getInvoicingStatusByPO (#48) so each item carries remainingQty for
-// the dropdown's "(Remaining: N)".
+// Uses getInvoicingStatusByPO (#48) so each item carries uninvoicedQty for
+// the dropdown's "(Uninvoiced: N)".
 export const GET = withAdminApi(async (request, { params }) => {
     const { poRecordId } = await params;
     const items = await getInvoicingStatusByPO(poRecordId);

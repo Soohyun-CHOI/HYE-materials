@@ -28,7 +28,7 @@
 //      so a ninth child table cannot ship with an unregistered ID shape or still
 //      passing a shape of its own (which would now be silently ignored).
 //
-// Parts 2 and 3 are here rather than in guard-placement.mjs, which CLAUDE.md names
+// Parts 2 and 3 are here rather than in source-shape.mjs, which CLAUDE.md names
 // as the home for source-shape checks, and the reason is scope: that file is about
 // one KIND of claim (a guard runs before the side effect it protects, cleanup sits
 // outside a rollback) and shares one helper table for it. These assert things about

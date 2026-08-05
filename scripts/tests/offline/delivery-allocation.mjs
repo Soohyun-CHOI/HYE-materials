@@ -196,7 +196,7 @@ export function run({ check, assert, log }) {
     log("Over-delivery, case (a) — one order in play, so the excess names it:");
     const overOne = planDelivery({ lines: one, vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 13 });
     check("two rows: the fill and the excess", overOne.rows.length, 2);
-    check("the fill takes what was outstanding", overOne.rows[0].qty, 10);
+    check("the fill takes what was undelivered", overOne.rows[0].qty, 10);
     check("the excess is its own row", overOne.rows[1].qty, 3);
     check("flagged", overOne.rows[1].over, true);
     check("and it names the line", overOne.rows[1].line.poItemId, "a");
@@ -304,7 +304,7 @@ export function run({ check, assert, log }) {
         ["split across two orders", split],
         ["over, one order", overOne],
         ["over, two orders", overTwo],
-        ["over, nothing outstanding", noneLeft],
+        ["over, nothing left undelivered", noneLeft],
         ["over, PO-narrowed", narrowed],
         ["over, two lines on one PO", twoLinesOnePo],
         ["blocked, nothing ordered", nothingOrdered],
@@ -416,9 +416,9 @@ export function run({ check, assert, log }) {
     check("excess across two orders is attached too now (#165)", describePlan(overTwo, { unit: "EA" }).at(-1).key, "over-attached");
     check("a split AND excess reports both", describePlan(overTwo).length, 2);
     check(
-        "nothing outstanding gets its own message, not the generic one",
+        "a fully delivered item gets its own message, not the generic one",
         describePlan(noneLeft, { unit: "EA" })[0].key,
-        "over-nothing-outstanding"
+        "over-fully-delivered"
     );
     check(
         "a supplied PO explains why it did not spill",
@@ -432,8 +432,8 @@ export function run({ check, assert, log }) {
             .text.includes("HYE-PO-20260101-01")
     );
     assert(
-        "the nothing-outstanding message now names where the excess lands (#165)",
-        ALLOCATION_COPY.preview.overNothingOutstanding(noneLeft, "EA").text.includes("HYE-PO-20260101-01")
+        "the fully-delivered message now names where the excess lands (#165)",
+        ALLOCATION_COPY.preview.overFullyDelivered(noneLeft, "EA").text.includes("HYE-PO-20260101-01")
     );
 
     log("");
@@ -475,12 +475,12 @@ export function run({ check, assert, log }) {
     const options = buildItemOptions(optionPool, VENDOR);
     check("two materials offered for this vendor", options.length, 2);
     const pipe = options.find((o) => o.materialRecordId === MATERIAL);
-    check("the partly delivered item shows its remainder", pipe.outstanding, 6);
+    check("the partly delivered item shows its remainder", pipe.undelivered, 6);
     check("  summed across its two lines", pipe.lineCount, 2);
     check("  ordered totals both lines", pipe.ordered, 20);
     const valve = options.find((o) => o.materialRecordId === OTHER_MATERIAL);
     assert("a FULLY delivered item is still listed", Boolean(valve));
-    check("  showing nothing outstanding", valve.outstanding, 0);
+    check("  showing nothing left undelivered", valve.undelivered, 0);
     assert(
         "a withdrawn-only item is NOT listed (countsAsOrdered)",
         !options.some((o) => o.materialRecordId === "recMatBolt")
@@ -494,7 +494,7 @@ export function run({ check, assert, log }) {
     check("a missing line list does not throw", buildItemOptions(undefined, VENDOR).length, 0);
     // An over-delivered line must not report a negative remainder to the screen.
     const overPool = [line({ poItemId: "o", qty: 5, deliveredQty: 9 })];
-    check("an over-delivered line clamps outstanding at 0", buildItemOptions(overPool, VENDOR)[0].outstanding, 0);
+    check("an over-delivered line clamps undelivered at 0", buildItemOptions(overPool, VENDOR)[0].undelivered, 0);
 
     check("the label joins name, size and unit", itemOptionLabel({ itemName: "Pipe", size: '2"', unit: "EA" }), 'Pipe 2" (EA)');
     check("blanks are omitted", itemOptionLabel({ itemName: "Gasket", size: "", unit: "PCS" }), "Gasket (PCS)");
@@ -503,9 +503,9 @@ export function run({ check, assert, log }) {
     log("");
     log("An item on one entry row is not offered on another:");
     const threeOptions = [
-        { materialRecordId: "m1", itemName: "A", size: "", unit: "EA", outstanding: 5 },
-        { materialRecordId: "m2", itemName: "B", size: "", unit: "EA", outstanding: 5 },
-        { materialRecordId: "m3", itemName: "C", size: "", unit: "EA", outstanding: 5 },
+        { materialRecordId: "m1", itemName: "A", size: "", unit: "EA", undelivered: 5 },
+        { materialRecordId: "m2", itemName: "B", size: "", unit: "EA", undelivered: 5 },
+        { materialRecordId: "m3", itemName: "C", size: "", unit: "EA", undelivered: 5 },
     ];
     const entryRows = [
         { materialRecordId: "m1", qty: "2" },

@@ -111,7 +111,7 @@ async function deliver({ poLine, within, over, receivedDate }) {
     const delivery = await createDelivery({
         jobRecordId: line.jobId,
         vendorRecordId: vendor.id,
-        poRecordId: null,
+        packingListPORecordId: null,
         receivedDate,
         recordedByUserId: requester.id,
         notes: "167-DEMO delivery",
@@ -127,7 +127,7 @@ async function deliver({ poLine, within, over, receivedDate }) {
             size: poLine.size,
             unit: poLine.unit,
             qty,
-            overDelivery: isOver,
+            overDelivered: isOver,
         });
     }
     return (await getDeliveriesByRecordIds([delivery.id]))[0];
@@ -191,7 +191,7 @@ ids.bInvoice = bInvoice.invoiceId;
 ids.bPo = b.po.poId;
 console.log(`  B  ${ids.bDelivery}  3 EA over on ${ids.bPo}, billed by PAID ${ids.bInvoice} — button ELIGIBLE`);
 
-const aOver = (await getItemsByDelivery(aDelivery.id)).find((r) => r.overDelivery);
+const aOver = (await getItemsByDelivery(aDelivery.id)).find((r) => r.overDelivered);
 ids.aRow = aOver?.deliveryItemId;
 
 printGuide();

@@ -17,7 +17,7 @@ export default async function NewInvoicePage() {
         );
     }
 
-    // Issue #57 — defaults to open POs only (Remaining Qty > 0 on at least
+    // Issue #57 — defaults to open POs only (uninvoiced qty > 0 on at least
     // one PO Item), not the full historical list. A closed PO is never
     // truly unreachable — InvoiceForm.js's "Show all / search closed POs"
     // queries the complete set server-side, on demand, instead of this

@@ -39,7 +39,7 @@ const row = (over = {}) => ({
     unit: "EA",
     itemName: "Pipe",
     size: '2"',
-    overDelivery: true,
+    overDelivered: true,
     poItem: ["recPOI1"],
     overagePRRecordId: null,
     formerPOItemRecordId: null,
@@ -71,7 +71,7 @@ export function run({ check, log, assert }) {
     log("eligibility, in order, because the order is what stops a misleading reason:");
     check(
         "a row that was not over-delivered",
-        overageEligibility({ row: row({ overDelivery: false }), bills: [] }).blocked,
+        overageEligibility({ row: row({ overDelivered: false }), bills: [] }).blocked,
         OVERAGE_BLOCKED.notOverDelivered
     );
     check(
@@ -235,10 +235,10 @@ export function run({ check, log, assert }) {
     check("linked and still flagged — not applied", isOverageApplied(row({ overagePRRecordId: "recPR1" })), false);
     check(
         "linked and unflagged — applied",
-        isOverageApplied(row({ overagePRRecordId: "recPR1", overDelivery: false })),
+        isOverageApplied(row({ overagePRRecordId: "recPR1", overDelivered: false })),
         true
     );
-    check("unflagged with no link is not an overage at all", isOverageApplied(row({ overDelivery: false })), false);
+    check("unflagged with no link is not an overage at all", isOverageApplied(row({ overDelivered: false })), false);
     check("nullish does not throw", isOverageApplied(null), false);
 
     log("");
@@ -267,7 +267,7 @@ export function run({ check, log, assert }) {
     check(
         "the order exists and the excess moved",
         overageBannerState({
-            row: row({ overagePRRecordId: "recPR1", overDelivery: false }),
+            row: row({ overagePRRecordId: "recPR1", overDelivered: false }),
             overagePR: { status: "PO Signed" },
         }),
         "applied"

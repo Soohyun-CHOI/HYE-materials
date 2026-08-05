@@ -90,7 +90,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
 
     // With a PO in play the item list is that PO's lines; otherwise every material
     // the vendor supplied to this job. Both are wider than the allocation candidate
-    // set on purpose — a fully delivered item stays listed, with 0 outstanding, so
+    // set on purpose — a fully delivered item stays listed, with 0 undelivered, so
     // the screen can say what is true about it instead of hiding it behind "not in
     // the dropdown".
     const itemOptions = useMemo(
@@ -401,9 +401,9 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                                                 >
                                                     {itemOptionLabel(o)}
                                                     {" — "}
-                                                    {o.outstanding > 0
-                                                        ? `${o.outstanding} outstanding`
-                                                        : "none outstanding"}
+                                                    {o.undelivered > 0
+                                                        ? `${o.undelivered} undelivered`
+                                                        : "fully delivered"}
                                                 </option>
                                             ))}
                                         </select>
@@ -439,7 +439,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                                 </div>
 
                                 {/* The fourth state: ordered, but already fully delivered. */}
-                                {option && option.outstanding === 0 && (
+                                {option && option.undelivered === 0 && (
                                     <p className="mt-2 text-xs text-amber-700 dark:text-amber-500">
                                         Everything ordered from this vendor for this item on this job
                                         is already delivered. Recording it will be flagged as

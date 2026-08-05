@@ -4,7 +4,7 @@ import { getAllInvoices } from "@/lib/airtable/invoices";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getInvoiceDeliveryStatus } from "@/lib/deliveryReconciliation";
 import { STATUS_COPY, describeInvoiceColumn } from "@/lib/deliveryStatus";
-import { InferredMarker, StatusChip } from "@/app/components/DeliveryChips";
+import { InferredMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { formatUSD } from "@/lib/format";
 
 // President-or-Admin, same access rule as the invoice detail and PO pages

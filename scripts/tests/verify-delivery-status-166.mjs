@@ -227,7 +227,7 @@ try {
             const d = await createDelivery({
                 jobRecordId: line.jobId,
                 vendorRecordId: vendor.id,
-                poRecordId: null,
+                packingListPORecordId: null,
                 receivedDate,
                 recordedByUserId: requester.id,
                 notes: `${TAG} arrival`,
@@ -243,7 +243,7 @@ try {
                 size: poLine.size,
                 unit: poLine.unit,
                 qty,
-                overDelivery: over,
+                overDelivered: over,
             });
             track("deliveryItems", di.id);
             // RE-READ, because `d` was captured before its line existed and so

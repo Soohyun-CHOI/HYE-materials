@@ -13,7 +13,7 @@
 //
 // EVERY DELIVERY GOES THROUGH THE PRODUCTION planDelivery, so the rows are what the
 // app would have written — including the over-delivery split in scenario E, which
-// falls out of asking for more than the order has outstanding rather than being
+// falls out of asking for more than the order has undelivered rather than being
 // hand-flagged.
 //
 // KEPT, NOT DELETED, like the rest of scripts/demo/. Re-running is safe: it checks
@@ -130,7 +130,7 @@ async function deliver({ wants, receivedDate, notes }) {
     const delivery = await createDelivery({
         jobRecordId: job.id,
         vendorRecordId: vendor.id,
-        poRecordId: null,
+        packingListPORecordId: null,
         receivedDate,
         recordedByUserId: requester.id,
         notes: `166-DEMO — ${notes}`,
@@ -157,7 +157,7 @@ async function deliver({ wants, receivedDate, notes }) {
                 size: row.line.size,
                 unit: row.line.unit,
                 qty: row.qty,
-                overDelivery: row.over,
+                overDelivered: row.over,
             });
             written.push(`${row.qty}${row.over ? " OVER" : ""} -> ${row.line.poId}`);
         }

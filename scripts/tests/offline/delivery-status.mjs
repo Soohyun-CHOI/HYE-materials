@@ -9,7 +9,7 @@
 // ones. This file pins what the rule does with four numbers; whether
 // `invoicedQty` really came from the ordered item's rollup rather than one
 // invoice's own lines, and whether the two delivered figures were split on
-// `Over Delivery`, is a property of lib/deliveryReconciliation.js and is measured
+// `Over Delivered`, is a property of lib/deliveryReconciliation.js and is measured
 // credentialed.
 
 import {
@@ -58,7 +58,7 @@ export function run({ check, log, assert }) {
     const level = line(100, 80, 80);
     check("equal leaves both at 0", level.billedNotArrived + level.arrivedNotBilled, 0);
 
-    // Clamping is the deliberate difference from lib/poItemQty.js:remainingQty,
+    // Clamping is the deliberate difference from lib/poItemQty.js:uninvoicedQty,
     // which MUST stay signed. Each direction here is its own named fact, so a
     // caller asking one of them wants 0 when the answer is the other way round.
     assert(
@@ -69,7 +69,7 @@ export function run({ check, log, assert }) {
     log("");
     log("TOTAL delivered is what answers the bill, within-order plus beyond:");
     // 12 delivered against an order of 10 answers a bill for 12 in full. Using the
-    // within-order figure alone would report 2 as outstanding while it is in the
+    // within-order figure alone would report 2 as undelivered while it is in the
     // warehouse.
     const overShipped = line(10, 12, 10, 2);
     check("delivered counts both parts", overShipped.delivered, 12);

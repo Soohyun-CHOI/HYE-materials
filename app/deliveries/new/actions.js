@@ -123,6 +123,10 @@ export async function createDeliveryAction(prevState, formData) {
             lines: candidates.lines,
             vendorRecordId,
             materialRecordId: material,
+            // Still `poRecordId` here, and deliberately (#181): planDelivery's
+            // parameter is "narrow the candidates to this order", not a copy of
+            // `Deliveries."Packing List PO"`. The value happens to come from the
+            // packing list today because that is the only thing that narrows.
             poRecordId: po?.id ?? null,
             qty,
         });
@@ -155,7 +159,7 @@ export async function createDeliveryAction(prevState, formData) {
             vendorRecordId,
             // The PO the packing list named, recorded even when allocation could
             // attribute nothing to it: it is a fact about the document.
-            poRecordId: po?.id ?? null,
+            packingListPORecordId: po?.id ?? null,
             receivedDate,
             recordedByUserId: user.id,
             notes,
@@ -181,7 +185,7 @@ export async function createDeliveryAction(prevState, formData) {
                     size: row.line.size ?? "",
                     unit: row.line.unit ?? "",
                     qty: row.qty,
-                    overDelivery: row.over,
+                    overDelivered: row.over,
                 });
                 createdItemIds.push(created.id);
             }

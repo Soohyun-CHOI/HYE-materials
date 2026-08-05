@@ -4,7 +4,7 @@ import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
 import { describeInvoiceColumn, describeInvoiceLine, showsThisBillShare } from "@/lib/deliveryStatus";
-import { StatusChip } from "@/app/components/DeliveryChips";
+import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";

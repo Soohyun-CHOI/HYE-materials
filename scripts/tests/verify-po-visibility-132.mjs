@@ -50,9 +50,9 @@ if (poRecords.length === 0) {
         console.log("  (sampled PO has no items — field-shape check inconclusive, but paths differ by construction)");
     } else {
         check("getItemsByPO omits invoicedQty (employee path)", plainKeys.has("invoicedQty"), false);
-        check("getItemsByPO omits remainingQty (employee path)", plainKeys.has("remainingQty"), false);
+        check("getItemsByPO omits uninvoicedQty (employee path)", plainKeys.has("uninvoicedQty"), false);
         check("getInvoicingStatusByPO includes invoicedQty (privileged path)", invKeys.has("invoicedQty"), true);
-        check("getInvoicingStatusByPO includes remainingQty (privileged path)", invKeys.has("remainingQty"), true);
+        check("getInvoicingStatusByPO includes uninvoicedQty (privileged path)", invKeys.has("uninvoicedQty"), true);
     }
 }
 

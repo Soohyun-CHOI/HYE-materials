@@ -66,11 +66,11 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
     const pos = await getPOsByRecordIds(poItems.flatMap((pi) => pi.po));
     const poById = new Map(pos.map((po) => [po.id, po]));
 
-    const [job, vendor, recorder, namedPo] = await Promise.all([
+    const [job, vendor, recorder, packingListPO] = await Promise.all([
         delivery.job?.[0] ? getJobByRecordId(delivery.job[0]) : null,
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
         delivery.recordedBy?.[0] ? getUserByRecordId(delivery.recordedBy[0]) : null,
-        delivery.po?.[0] ? getPOsByRecordIds(delivery.po) : null,
+        delivery.packingListPO?.[0] ? getPOsByRecordIds(delivery.packingListPO) : null,
     ]);
 
     const rows = items.map((item) => {
@@ -84,7 +84,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
             size: item.size,
             unit: item.unit,
             qty: item.qty,
-            over: item.overDelivery,
+            over: item.overDelivered,
             poId: po?.poId ?? null,
             poItemId: poItem?.poItemId ?? null,
         };
@@ -230,12 +230,12 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                 </p>
                 <p>
                     <span className="text-zinc-500">PO on packing list:</span>{" "}
-                    {namedPo?.[0] ? (
+                    {packingListPO?.[0] ? (
                         <Link
-                            href={`/pos/${encodeURIComponent(namedPo[0].poId)}`}
+                            href={`/pos/${encodeURIComponent(packingListPO[0].poId)}`}
                             className="underline"
                         >
-                            {namedPo[0].poId}
+                            {packingListPO[0].poId}
                         </Link>
                     ) : (
                         "none"
@@ -322,9 +322,9 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                     </table>
                 </div>
                 <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
-                    The app allocated these lines — oldest outstanding order first. The item, the
-                    quantity, the vendor and the PO cannot be edited; correcting one means deleting
-                    this delivery and entering it again.
+                    The app allocated these lines — oldest order first, skipping ones already
+                    fully delivered. The item, the quantity, the vendor and the PO cannot be
+                    edited; correcting one means deleting this delivery and entering it again.
                 </p>
             </div>
 

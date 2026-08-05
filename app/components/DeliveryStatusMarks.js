@@ -1,5 +1,12 @@
 // The chips #166's two list columns render, and the marker that qualifies them.
 //
+// RENAMED FROM DeliveryChips.js BY #181. The plural claimed both exports are
+// chips, and one deliberately is not: a chip is a value from a closed set, while
+// InferredMarker composes WITH any of them and would double the set if it were
+// one. `Marks` is the word both fit under — a chip is a mark and so is the `!` —
+// so the file no longer contradicts what it holds. It stays ONE file for the
+// reason below; the two belong together, they are just not the same shape.
+//
 // ONE FILE FOR BOTH LISTS because the two columns are one idea at two ends: the
 // invoice list says whether what was billed has been delivered, the deliveries
 // list whether what was delivered has been billed. A reader crossing between them

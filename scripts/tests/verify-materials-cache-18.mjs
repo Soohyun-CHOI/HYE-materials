@@ -13,7 +13,7 @@
 //   E — Airtable's own judgement fields, which NOTHING has ever observed with
 //       real values: Committed/Signed Qty across all three PO statuses (the
 //       `& ""` lookup-to-text coercion), the three Materials rollups, and
-//       Outstanding Qty.
+//       Uninvoiced Qty.
 //   F — invoiced qty: the rollup the JS duplication was merged onto, its
 //       immediacy re-measured, and the negative remainder preserved.
 //
@@ -43,7 +43,7 @@ import { updatePO, isPoOpen } from "../../lib/airtable/purchaseOrders.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { createInvoice, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
-import { remainingQty } from "../../lib/poItemQty.js";
+import { uninvoicedQty } from "../../lib/poItemQty.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
@@ -367,7 +367,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     check(`Materials.Committed Qty sums the non-withdrawn lines (${settleNote(rolled)})`, rolled.value.committedQty, 22);
     check("Materials.Signed Qty is the signed subset", rolled.value.signedQty, 7);
     check("Materials.Invoiced Qty is 0 before any invoice", rolled.value.invoicedQty || 0, 0);
-    check("Outstanding Qty = Committed - Invoiced", rolled.value.outstandingQty, 22);
+    check("Uninvoiced Qty = Committed - Invoiced", rolled.value.uninvoicedQty, 22);
 
     // -----------------------------------------------------------------------
     console.log("\nPart F — invoiced qty: the merged rollup:");
@@ -395,10 +395,10 @@ if (!requester || !vendorA || !vendorB || !line) {
     const statuses = await getInvoicingStatusByPO(gen1.poRecordId);
     const enriched = statuses.find((i) => i.id === targetLine.id);
     check("getInvoicingStatusByPO reports the same figure", enriched.invoicedQty, 3);
-    check("remainingQty follows the shared rule", enriched.remainingQty, remainingQty({ qty: 10, invoicedQty: 3 }));
-    check("and equals 7", enriched.remainingQty, 7);
+    check("uninvoicedQty follows the shared rule", enriched.uninvoicedQty, uninvoicedQty({ qty: 10, invoicedQty: 3 }));
+    check("and equals 7", enriched.uninvoicedQty, 7);
     check("the employee path still omits invoicedQty (#132)", "invoicedQty" in (await getItemsByPO(gen1.poRecordId))[0], false);
-    check("isPoOpen sees remaining qty on this PO", await isPoOpen(gen1.poRecordId), true);
+    check("isPoOpen sees uninvoiced qty on this PO", await isPoOpen(gen1.poRecordId), true);
 
     // Over-invoicing must stay negative rather than clamp.
     const ii2 = await createInvoiceItem({
@@ -410,12 +410,12 @@ if (!requester || !vendorA || !vendorB || !line) {
     const over = await getInvoicingStatusByPO(gen1.poRecordId);
     const overLine = over.find((i) => i.id === targetLine.id);
     check("invoiced total accumulates", overLine.invoicedQty, 15);
-    check("OVER-invoiced remainder stays negative", overLine.remainingQty, -5);
+    check("OVER-invoiced remainder stays negative", overLine.uninvoicedQty, -5);
 
     // And it propagates up the two-level rollup chain to the material.
     const invRolled = await waitFor(() => getMaterialByRecordId(matX.id), (m) => m.invoicedQty === 15);
     check(`Materials.Invoiced Qty follows the chain (${settleNote(invRolled)})`, invRolled.value.invoicedQty, 15);
-    check("Outstanding Qty drops by the invoiced amount", invRolled.value.outstandingQty, 22 - 15);
+    check("Uninvoiced Qty drops by the invoiced amount", invRolled.value.uninvoicedQty, 22 - 15);
 }
 
 // ---------------------------------------------------------------------------
