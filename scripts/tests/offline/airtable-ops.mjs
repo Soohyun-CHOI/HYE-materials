@@ -34,14 +34,24 @@ import {
 } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 import {
+    DEFAULT_OPS_FILE,
+    OPS_KEY_SEP,
     PINNED_AIRTABLE_VERSION,
+    RECORD_KEYS,
     UNLABELED,
+    buildProcessRecord,
+    buildScopeRecord,
     classifyRequest,
     currentOpsLabel,
+    formatRepeatedLine,
+    formatScopeLine,
     installOpsCounter,
+    processTag,
     recordOperation,
     resetOps,
+    resolveOpsFile,
     snapshot,
+    summarizeScope,
     withOpsLabel,
 } from "../../../lib/airtableOps.js";
 
@@ -180,6 +190,169 @@ export async function run({ check, assert, log }) {
     }).catch(() => {});
     check("a scope that throws still attributes its operations", snapshot().byLabel["throwing-scope"], 1);
     resetOps();
+
+    // ── the summary-line baseline ───────────────────────────────────────────
+    // `13 ops` on its own says nothing: whether 13 is high depends on how many
+    // tables the render had to touch, and finding that out meant counting the rows
+    // of the breakdown by hand. A page that needs a table should normally fetch it
+    // once, so ops - tables is exactly the number of REPEAT reads. Pinned against
+    // the real renders #190 measured, so these numbers and CLAUDE.md's cannot
+    // drift apart.
+    const countsFor = (entries) => {
+        const m = new Map();
+        for (const [table, kind, n] of entries) m.set(`${table}${OPS_KEY_SEP}${kind}`, n);
+        return m;
+    };
+
+    const prs = summarizeScope(
+        countsFor([
+            ["Users", "find", 3],
+            ["Purchase Requests", "list", 1],
+            ["Jobs", "list", 1],
+            ["Lines", "list", 1],
+            ["Vendors", "list", 1],
+        ])
+    );
+    check("/prs — ops", prs.ops, 7);
+    check("/prs — tables", prs.tables, 5);
+    check("/prs — repeats", prs.repeats, 2);
+    check("/prs — the repeats are all on Users", prs.repeated.map((r) => r.table).join(","), "Users");
+
+    const prDetail = summarizeScope(
+        countsFor([
+            ["Purchase Requests", "list", 1],
+            ["Purchase Requests", "find", 5],
+            ["Users", "find", 2],
+            ["Vendors", "list", 1],
+            ["Lines", "list", 1],
+            ["Jobs", "list", 1],
+            ["PR Signers", "find", 1],
+            ["PR Items", "find", 1],
+        ])
+    );
+    check("/prs/[prId] — ops", prDetail.ops, 13);
+    check("/prs/[prId] — tables", prDetail.tables, 7);
+    check("/prs/[prId] — repeats", prDetail.repeats, 6);
+    check(
+        "/prs/[prId] — repeats named worst-first",
+        prDetail.repeated.map((r) => `${r.table} ${r.ops}`).join(", "),
+        "Purchase Requests 6, Users 2"
+    );
+
+    // THE IDENTITY, not a coincidence of these two fixtures: ops - tables is the
+    // sum over tables of (count - 1), so it counts repeat reads exactly.
+    for (const [name, s] of [["/prs", prs], ["/prs/[prId]", prDetail]]) {
+        check(`${name} — repeats is exactly ops minus tables`, s.repeats, s.ops - s.tables);
+    }
+
+    // A table name containing a space survives the key round trip, which is the
+    // whole reason the separator is NUL rather than a space.
+    assert(
+        "a multi-word table name is not split by the key separator",
+        prDetail.repeated.some((r) => r.table === "Purchase Requests")
+    );
+
+    const healthy = summarizeScope(countsFor([["Jobs", "list", 1], ["Users", "find", 1]]));
+    check("a render with no repeats reports none", healthy.repeats, 0);
+    check("and formats it positively", formatScopeLine("/", healthy).includes("no repeats"), true);
+    check("with no repeated line to print", formatRepeatedLine(healthy), null);
+
+    const line = formatScopeLine("/prs/[prId]", prDetail);
+    assert(`the summary line carries the baseline: ${line}`, /13 ops, 7 tables, 6 repeats/.test(line));
+    const repeatedLine = formatRepeatedLine(prDetail);
+    assert(
+        `the repeated line names where to look, with the kind mix: ${repeatedLine}`,
+        /Purchase Requests ×6 \(find 5, list 1\)/.test(repeatedLine)
+    );
+
+    // A SIGNAL, NOT A VERDICT. A table over Airtable's 100-record page pages
+    // legitimately, so repeated `list` on one table is not waste — the kind mix is
+    // there so a reader can tell that from 1 + N, and the copy must not decide for
+    // them. Same posture as #166's "facts, never verdicts".
+    for (const word of ["waste", "wasteful", "too many", "inefficient", "should", "bad", "excessive"]) {
+        assert(
+            `no verdict word "${word}" in the summary or repeated line`,
+            !line.toLowerCase().includes(word) && !repeatedLine.toLowerCase().includes(word)
+        );
+    }
+
+    // ── the file log: path resolution ───────────────────────────────────────
+    // Pure, and every branch pinned, because a path that silently resolves to
+    // nothing is the same silence the whole module exists to avoid.
+    check("unset means off", resolveOpsFile({}, "/repo"), null);
+    check("empty means off", resolveOpsFile({ AIRTABLE_OPS_FILE: "  " }, "/repo"), null);
+    check("0 means off", resolveOpsFile({ AIRTABLE_OPS_FILE: "0" }, "/repo"), null);
+    check("false means off", resolveOpsFile({ AIRTABLE_OPS_FILE: "false" }, "/repo"), null);
+    assert(
+        `1 means the conventional path (${DEFAULT_OPS_FILE})`,
+        resolveOpsFile({ AIRTABLE_OPS_FILE: "1" }, "/repo").endsWith(DEFAULT_OPS_FILE)
+    );
+    assert(
+        "true means the same",
+        resolveOpsFile({ AIRTABLE_OPS_FILE: "true" }, "/repo").endsWith(DEFAULT_OPS_FILE)
+    );
+    assert(
+        "a relative path resolves against cwd",
+        resolveOpsFile({ AIRTABLE_OPS_FILE: "logs/ops.jsonl" }, "/repo").includes("repo")
+    );
+    check(
+        "an absolute path is taken as given",
+        resolveOpsFile({ AIRTABLE_OPS_FILE: "/tmp/ops.jsonl" }, "/repo"),
+        "/tmp/ops.jsonl"
+    );
+    // The conventional path must be gitignored, or a measurement log becomes a
+    // committed file that grows on every run.
+    const ignored = readFileSync(repoPath(".gitignore"), "utf8");
+    assert(`${DEFAULT_OPS_FILE} is in .gitignore`, ignored.includes(DEFAULT_OPS_FILE));
+
+    // ── the file log: which process wrote a line ────────────────────────────
+    check("a script is named by its own file", processTag("/repo/scripts/tests/verify-overage-167.mjs", undefined), "verify-overage-167.mjs");
+    check("a Windows path too", processTag("C:\\repo\\scripts\\tests\\verify-x.mjs", undefined), "verify-x.mjs");
+    check("next is recognized by its package path", processTag("/repo/node_modules/next/dist/server/lib/start-server.js", undefined), "next");
+    check("and by NEXT_RUNTIME", processTag("/whatever", "nodejs"), "next");
+    check("an unknown entry point is node", processTag("", undefined), "node");
+
+    // ── the file log: record shape ──────────────────────────────────────────
+    // NOTHING IDENTIFYING. A record carries a label, table names, kinds and
+    // counts. "We only write counts" is exactly the claim that decays when
+    // someone adds a debugging field, so the key set is closed and checked.
+    const scopeRecord = buildScopeRecord("/prs/[prId]", prDetail, "2026-08-06T00:00:00.000Z", { pid: 1, proc: "next" });
+    const processRecord = buildProcessRecord({ total: 487, byLabel: { unlabeled: 487 } }, "2026-08-06T00:00:00.000Z", { pid: 2, proc: "verify-overage-167.mjs" });
+
+    for (const [name, record] of [["scope", scopeRecord], ["process", processRecord]]) {
+        const unexpected = Object.keys(record).filter((k) => !RECORD_KEYS.includes(k));
+        check(`the ${name} record carries no key outside RECORD_KEYS`, unexpected.join(","), "");
+        assert(`the ${name} record has a timestamp`, typeof record.t === "string" && record.t.includes("T"));
+        assert(`the ${name} record names its process`, typeof record.proc === "string" && record.proc.length > 0);
+        assert(`the ${name} record names its pid`, Number.isInteger(record.pid));
+        // A record id is rec + 14 chars; a serialized record must never contain one.
+        assert(`the ${name} record contains nothing that looks like a record id`, !/rec[A-Za-z0-9]{14}/.test(JSON.stringify(record)));
+    }
+    check("the scope record's ops match the summary", scopeRecord.ops, 13);
+    check("and it keeps the per-table breakdown", scopeRecord.by["Purchase Requests"].find, 5);
+    check("the process record carries per-label totals", processRecord.labels.unlabeled, 487);
+    // A script opens no scope, so the process record is the ONLY place its
+    // operations are recorded — hence per-label detail rather than a bare number.
+    check("one line per record — no embedded newline", JSON.stringify(scopeRecord).includes("\n"), false);
+
+    // ONE APPEND CALL, which is the whole concurrency mitigation: an O_APPEND
+    // write cannot interleave with another process's, but a line split across two
+    // write calls can be interleaved in the middle. Structural, because the
+    // property is about how the code writes rather than about what it computes.
+    const opsAst = parseFile("lib/airtableOps.js").ast;
+    check("exactly one appendFileSync call in the module", callsTo(opsAst, "appendFileSync").length, 1);
+    assert(
+        "and the module never throws from the append path",
+        (() => {
+            const append = resolveFunction(opsAst, "appendRecord");
+            if (!append) return false;
+            let throws = false;
+            walk(append, (n) => {
+                if (n.type === "ThrowStatement") throws = true;
+            });
+            return !throws;
+        })()
+    );
 
     // ── the version pin ────────────────────────────────────────────────────
     const pkg = JSON.parse(readFileSync(repoPath("package.json"), "utf8"));
