@@ -172,6 +172,9 @@ const fixtures = createFixtures({
             label: "Material",
             tagField: "Item Name",
             discoverByTag: true,
+            // A completed run always writes at least one of these, so 0 means the
+            // tag stopped reaching them rather than that none were created (#171).
+            expectAtLeast: 1,
             children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
         },
     ],
@@ -182,6 +185,7 @@ const track = fixtures.track;
 // ---------------------------------------------------------------------------
 console.log("\nPart A — fixtures: two vendors, one material, plus a withdrawn PO");
 
+let complete = false;
 const [users, vendors, lines, fixtureUser] = await Promise.all([
     getActiveUsers(),
     getAllVendors(),
@@ -417,6 +421,7 @@ if (incomplete) {
         // One find(): the material itself, by record id. Everything else batches.
         check("exactly one per-record find() — the material", hist.find, 1);
     }
+    complete = true;
   } catch (err) {
     // `pass`, not `incomplete`: an abort here is a check that did not get to run,
     // which is not the same as one that ran and passed. The cleanup below still
@@ -429,7 +434,7 @@ if (incomplete) {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const teardown = await fixtures.teardown();
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(60));
 // TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the price screens; a leak

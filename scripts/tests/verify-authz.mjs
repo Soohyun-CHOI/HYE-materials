@@ -43,6 +43,7 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 let pass = true;
 let incomplete = false;
@@ -72,8 +73,45 @@ check(
 );
 
 // ---------------------------------------------------------------------------
-let createdPrId = null;
-let createdPoId = null;
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
+// order; POs before PRs, since a PO links its PR.
+//
+// THE FIFTH H1, and commit 1's inventory counted it as one: Part C's cleanup ran
+// `Promise.allSettled(poItemIds.map(destroy))`, discarded the results, and then
+// destroyed the PO regardless — a failed child delete left an orphan with nothing
+// saying so. That is the mechanism behind the two parentless PO Items #162 found
+// by hand, and commit 5 took the other four (140, 133, 138, 132) without this one.
+//
+// No Materials bucket, measured rather than assumed: the PO comes from
+// generatePOForApprovedPR, which writes the item axis as a side effect (#18), but
+// this PR carries no Vendor, so refreshMaterialsCacheForPO returns
+// `skippedAll: "no Vendor on the PR"` before writing anything — and the PR has no
+// items either, so there would be nothing to key a material on.
+const fixtures = createFixtures({
+    tag: "V-AUTHZ",
+    buckets: [
+        // No tagField: written by generatePOForApprovedPR, and this script sets no
+        // text field on it. Tracked, so a tracked-id re-read is the residue check.
+        {
+            name: "pos",
+            table: TABLES.PURCHASE_ORDERS,
+            label: "PO",
+            children: [{ link: "PO Items", table: TABLES.PO_ITEMS, label: "PO Item" }],
+        },
+        // Tagged, under the rule's second clause (#171): this script calls
+        // createPR, so the tag is one argument away.
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [{ link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" }],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+
+let complete = false;
 try {
     console.log("\nPart C — generatePOForApprovedPR against a real throwaway PR+PO (fixture + idempotency):");
     // #147 removed this part's generatePOAuthorized copy and the three checks
@@ -86,14 +124,14 @@ try {
     const users = await getActiveUsers();
     if (users.length === 0) throw new Error("No active users to attribute the fixture PR to.");
 
-    const created = await createPR({ requesterId: users[0].id });
-    createdPrId = created.id;
+    const created = await createPR({ requesterId: users[0].id, notes: `${TAG} fixture` });
+    fixtures.track("prs", created.id);
     await updatePR(created.id, { status: "Approved" });
     let pr = await getPRByRecordId(created.id);
     check("fixture PR starts with no PO", (pr.purchaseOrders || []).length, 0);
 
     const gen1 = await generatePOForApprovedPR(pr);
-    createdPoId = gen1.poRecordId;
+    fixtures.track("pos", gen1.poRecordId);
     check("generation creates a PO", gen1.alreadyExisted, false);
     pr = await getPRByRecordId(created.id);
     check("PR now has exactly one PO", (pr.purchaseOrders || []).length, 1);
@@ -105,23 +143,13 @@ try {
     check("second call returns the same PO record", gen2.poRecordId, gen1.poRecordId);
     pr = await getPRByRecordId(created.id);
     check("still exactly one PO (no duplicate)", (pr.purchaseOrders || []).length, 1);
-} finally {
-    if (createdPoId) {
-        try {
-            const poRec = await base(TABLES.PURCHASE_ORDERS).find(createdPoId);
-            const poItemIds = poRec.get("PO Items") || [];
-            await Promise.allSettled(poItemIds.map((id) => base(TABLES.PO_ITEMS).destroy(id)));
-            await base(TABLES.PURCHASE_ORDERS).destroy(createdPoId);
-        } catch (err) {
-            console.error(`cleanup: delete PO ${createdPoId} manually:`, err.message);
-        }
-    }
-    if (createdPrId) {
-        await base(TABLES.PURCHASE_REQUESTS)
-            .destroy(createdPrId)
-            .catch((err) => console.error(`cleanup: delete PR ${createdPrId} manually:`, err.message));
-    }
-    if (createdPoId || createdPrId) console.log("  (fixture cleaned up)");
+    complete = true;
+} catch (err) {
+    // A `catch` where a bare `finally` used to be, so the verdict at the bottom is
+    // reachable — measured on verify-po-awaiting-signature-133.mjs in commit 5.
+    pass = false;
+    console.error(`\n  ABORTED — ${err.message}`);
+    console.error(err.stack);
 }
 
 // ---------------------------------------------------------------------------
@@ -207,8 +235,16 @@ if (!serverUp) {
     }
 }
 
+// ---------------------------------------------------------------------------
+console.log("\nCleaning up fixtures:");
+const teardown = await fixtures.teardown({ complete });
+
 console.log("\n" + "=".repeat(56));
-if (!pass) {
+// TWO VERDICTS, TWO SENTENCES (#171): `pass` is about authorization, a leak is
+// about this run's effect on a shared base. A leak is exit 1 rather than 2 — 2
+// means a part could not run, which needs no hand cleanup.
+console.log(fixtures.describe(teardown));
+if (!pass || teardown.leaked.length > 0) {
     console.log("SOME CHECKS FAILED");
     process.exit(1);
 } else if (incomplete) {

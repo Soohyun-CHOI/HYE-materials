@@ -177,6 +177,7 @@ const PREFIX = {
     delivery: dailyIdPrefix(ID_KINDS.DELIVERY, NOW),
 };
 
+let complete = false;
 try {
     // -----------------------------------------------------------------------
     console.log("\nPart A — the live schema still holds the fields the counters count:");
@@ -638,6 +639,7 @@ try {
         nextSequence(idsNow, prD.prId),
         2
     );
+    complete = true;
 } catch (err) {
     pass = false;
     console.error(`\n  ABORTED — ${err.message}`);
@@ -646,7 +648,7 @@ try {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const teardown = await fixtures.teardown();
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
 console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);

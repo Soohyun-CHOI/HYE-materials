@@ -155,6 +155,9 @@ const fixtures = createFixtures({
             label: "Material",
             tagField: "Item Name",
             discoverByTag: true,
+            // A completed run always writes at least one of these, so 0 means the
+            // tag stopped reaching them rather than that none were created (#171).
+            expectAtLeast: 1,
             children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
         },
     ],
@@ -223,6 +226,7 @@ console.log("\nPart 0 — collectMaterialsCacheEntries (grouping + skips, no DB)
     check("a backslash is escaped first", formulaString("a\\b"), "a\\\\b");
 }
 
+let complete = false;
 // ---------------------------------------------------------------------------
 const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
 const requester = users[0];
@@ -491,6 +495,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     const invRolled = await waitFor(() => getMaterialByRecordId(matX.id), (m) => m.invoicedQty === 15);
     check(`Materials.Invoiced Qty follows the chain (${settleNote(invRolled)})`, invRolled.value.invoicedQty, 15);
     check("Uninvoiced Qty drops by the invoiced amount", invRolled.value.uninvoicedQty, 22 - 15);
+    complete = true;
   } catch (err) {
     // `pass`, not `incomplete`: an abort here is a check that did not get to run,
     // which is not the same as one that ran and passed. The cleanup below still
@@ -503,7 +508,7 @@ if (!requester || !vendorA || !vendorB || !line) {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const teardown = await fixtures.teardown();
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(60));
 // TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the item axis; a leak is

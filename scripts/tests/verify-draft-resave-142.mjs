@@ -33,13 +33,14 @@
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-draft-resave-142.mjs
 
-import { put, del } from "@vercel/blob";
+import { put } from "@vercel/blob";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { createPR } from "../../lib/airtable/purchaseRequests.js";
 import { createQuotation, getQuotationsByPR } from "../../lib/airtable/quotations.js";
 import { loadPRDraft } from "../../lib/prDraft.js";
 import { shouldReuseQuotation } from "../../lib/quotationReuse.js";
 import { isOurBlobUrl } from "../../lib/blobIngest.js";
+import { createFixtures } from "./_fixtures.mjs";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 
@@ -87,23 +88,55 @@ function invalidate(url) {
     return u.toString();
 }
 
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. One bucket: the Quotation
+// hangs off the PR, so it is a discovered child rather than a second bucket —
+// which also covers a Quotation this script did not hold the id of, the case its
+// single `quotationRecordId` slot could not express.
+//
+// Its cleanup already survived a throw and reported each row, so it is neither the
+// H1 nor the H2 shape; what it could not do is let a failed delete reach the
+// verdict, since nothing lowered `pass`. Its Blob object was the exception and the
+// worse half: `del(blobUrl).catch(() => {})`, fully swallowed.
+//
+// No PO and no Materials: this file never approves the PR it creates.
+const fixtures = createFixtures({
+    tag: "V142",
+    buckets: [
+        // Tagged, under the rule's second clause (#171). It already passed `notes`,
+        // but the fixed "#142 verification — safe to delete" — the shape a run tag
+        // must not have.
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [
+                { link: "Quotations", table: TABLES.QUOTATIONS, label: "Quotation" },
+                { link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" },
+            ],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+
 let prRecordId = null;
 let quotationRecordId = null;
 let blobUrl = null;
+let complete = false;
 
 try {
     const users = await getActiveUsers();
     if (users.length === 0) throw new Error("No active users to attribute the fixture PR to.");
 
-    const pr = await createPR({ requesterId: users[0].id, notes: "#142 verification — safe to delete" });
-    prRecordId = pr.id;
+    const pr = await createPR({ requesterId: users[0].id, notes: `${TAG} verification — safe to delete` });
+    prRecordId = fixtures.track("prs", pr.id);
 
     const blob = await put("verify-142/quotation.pdf", await tinyPdf("#142 fixture"), {
         access: "public",
         addRandomSuffix: true,
         contentType: "application/pdf",
     });
-    blobUrl = blob.url;
+    blobUrl = fixtures.trackBlob(blob.url);
 
     const quotation = await createQuotation({
         prRecordId: pr.id,
@@ -173,26 +206,19 @@ try {
         }),
         false
     );
+    complete = true;
 } catch (err) {
     pass = false;
     console.error("\n  UNEXPECTED ERROR:", err);
-} finally {
-    if (quotationRecordId) {
-        await base(TABLES.QUOTATIONS)
-            .destroy(quotationRecordId)
-            .catch((e) => console.error(`cleanup: Quotation ${quotationRecordId} — remove manually:`, e.message));
-    }
-    if (prRecordId) {
-        await base(TABLES.PURCHASE_REQUESTS)
-            .destroy(prRecordId)
-            .catch((e) => console.error(`cleanup: PR ${prRecordId} — remove manually:`, e.message));
-    }
-    if (blobUrl) {
-        await del(blobUrl).catch(() => {});
-    }
-    console.log("\n  (fixtures cleaned up)");
 }
 
+// ---------------------------------------------------------------------------
+console.log("\nCleaning up fixtures:");
+const teardown = await fixtures.teardown({ complete });
+
 console.log("\n" + "=".repeat(56));
+// TWO VERDICTS, TWO SENTENCES (#171): `pass` is about Draft re-save, a leak is
+// about this run's effect on a shared base and a shared Blob store.
 console.log(pass ? "ALL CHECKS PASS" : "SOME CHECKS FAILED");
-process.exit(pass ? 0 : 1);
+console.log(fixtures.describe(teardown));
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : 0);

@@ -192,6 +192,9 @@ const fixtures = createFixtures({
             label: "Material",
             tagField: "Item Name",
             discoverByTag: true,
+            // A completed run always writes at least one of these, so 0 means the
+            // tag stopped reaching them rather than that none were created (#171).
+            expectAtLeast: 1,
             children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
         },
     ],
@@ -282,6 +285,7 @@ const requester = users[0];
 const [vendorA, vendorB] = vendors;
 const line = lines.find((l) => l.jobId);
 
+let complete = false;
 if (incomplete && incomplete.startsWith("the Deliveries")) {
     // Nothing below can run without the tables.
 } else if (!requester || !vendorA || !vendorB || !line) {
@@ -690,6 +694,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     });
     check("received date is editable in place", edited.receivedDate, "2026-01-15");
     check("so is the note", edited.notes, `${TAG} edited`);
+    complete = true;
   } catch (err) {
     // Not `incomplete`: an unexpected throw is a failure (exit 1), not a part
     // that could not run. The cleanup below still runs either way.
@@ -702,7 +707,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const teardown = await fixtures.teardown();
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
 console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);

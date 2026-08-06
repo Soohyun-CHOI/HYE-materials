@@ -48,17 +48,15 @@
 // therefore its own outcome (UNSEARCHED below) rather than another VACUOUS, and
 // the two are told apart everywhere they are reported.
 //
-// THE GAP THAT REMAINS, with the condition for closing it. The paragraph above is
-// about a query that FAILS. A `discoverByTag` query that SUCCEEDS and returns 0
-// is still unjudged, because there is no tracked set for it to contradict: "this
-// run created none" — legitimate, and what an aborted run produces — reads
-// exactly like "the tag no longer reaches these rows", which is commit 2's
-// dangerous variant of a field that exists and never carries the tag. Decided
-// rather than left open: the caller declares `expectAtLeast` per bucket, checked
-// only when it also tells teardown() the body ran to the end, since 0 is
-// legitimate precisely when the run did not get that far and the caller's catch
-// block is the only thing that knows. Not done here, because this commit must not
-// touch a call site.
+// THE OTHER HALF, CLOSED BY `expectAtLeast`. The paragraph above is about a query
+// that FAILS. A `discoverByTag` query that SUCCEEDS and returns 0 was unjudged for
+// the same structural reason — no tracked set to contradict — so "this run created
+// none" read exactly like "the tag no longer reaches these rows", the dangerous
+// variant of a field that exists and never carries the tag. A bucket may now
+// declare a floor, checked ONLY when the caller reports the body ran to the end,
+// because 0 is legitimate precisely when the run did not get that far and the
+// caller's catch block is the only thing that knows. Both directions were
+// exercised against a real run before this was claimed.
 //
 // The census uses `prefixMatch`/`formulaString` from lib/airtableFormula.js
 // rather than string concatenation (#159): the tag is interpolated into a
@@ -134,6 +132,18 @@ const UNVERIFIED = "could not verify — the table did not answer";
 const UNSEARCHED = "could not verify — the tag query was this bucket's only handle and it failed";
 
 /**
+ * The `reason` for a `discoverByTag` census that RAN and found too few rows.
+ *
+ * The anti-vacuity a tracked bucket gets for free and this one cannot: there
+ * "found 0 while n were tracked" is a contradiction the census can see, while a
+ * discovered bucket has no tracked set to contradict. So "production created none
+ * this run" reads exactly like "the tag no longer reaches these rows" — a field
+ * that exists and never carries the tag, which is the dangerous half of the two
+ * ways a tag query goes quiet.
+ */
+const UNDER_EXPECTED = "the tag query ran and found fewer rows than this bucket expects";
+
+/**
  * One run's fixtures.
  *
  * `buckets` is ORDERED, and the order is the deletion order — children first.
@@ -145,6 +155,14 @@ const UNSEARCHED = "could not verify — the tag query was this bucket's only ha
  *             can reach (see the list above); enables the cheap census
  *   children  [{ link, table, label }] discovered through the parent's link
  *             field at cleanup time, deleted immediately before their parent
+ *   expectAtLeast
+ *             the fewest rows the tag query must find on a COMPLETED run. Only
+ *             valid with discoverByTag (a tracked bucket's census already compares
+ *             against its tracked ids) and only consulted when the caller passes
+ *             `complete: true` to teardown(). Every current caller declares 1,
+ *             which is the weakest true claim and also the whole of what is
+ *             needed: a tag either prefixes the field or it does not, so the
+ *             failure this catches produces 0 rather than a short count.
  *   discoverByTag
  *             the ids come from the tag query rather than from track(), for rows
  *             PRODUCTION CODE created that this script never holds an id for —
@@ -164,6 +182,24 @@ export function createFixtures({ tag, buckets }) {
     const TAG = `${tag}-${Date.now().toString(36).toUpperCase()}`;
     const byName = new Map(buckets.map((b) => [b.name, b]));
     const tracked = new Map(buckets.map((b) => [b.name, []]));
+
+    // `expectAtLeast` is refused anywhere it would mean nothing rather than being
+    // ignored there, on this helper's usual posture: a declaration that silently
+    // does nothing is worse than one that fails at the call. A tracked bucket
+    // already has the stronger check (its census compares against tracked ids),
+    // and a bucket with no tagField is never queried at all.
+    for (const b of buckets) {
+        if (b.expectAtLeast === undefined) continue;
+        if (!b.discoverByTag) {
+            throw new Error(
+                `fixtures: bucket "${b.name}" declares expectAtLeast but is not discoverByTag — ` +
+                    "a tracked bucket's census already compares against its tracked ids"
+            );
+        }
+        if (!Number.isInteger(b.expectAtLeast) || b.expectAtLeast < 1) {
+            throw new Error(`fixtures: bucket "${b.name}" expectAtLeast must be a positive integer`);
+        }
+    }
 
     function bucket(name) {
         const b = byName.get(name);
@@ -302,10 +338,9 @@ export function createFixtures({ tag, buckets }) {
      * `catch` stays null when the body was never entered at all, which reads as
      * having finished.
      *
-     * NOTHING READS IT YET. It is recorded in the report and will gate
-     * `expectAtLeast`, the missing anti-vacuity for a `discoverByTag` census that
-     * succeeds and returns 0 — see the header. Landing the shape first is
-     * deliberate: the judgment can arrive without reopening sixteen files.
+     * It gates `expectAtLeast` (see the bucket doc) and is recorded in the report.
+     * A caller that passes nothing gets `null`, which is neither claim, so the
+     * floor is simply not checked.
      */
     async function teardown({ complete, log = console.log, warn = console.error } = {}) {
         const leaked = [];
@@ -329,6 +364,19 @@ export function createFixtures({ tag, buckets }) {
                     const found = await tagQuery(b);
                     censusCounts[b.name] = found.length;
                     tracked.set(b.name, found);
+                    // ONLY WHEN THE CALLER SAYS THE BODY FINISHED. An aborted run
+                    // legitimately created fewer rows than a full one, and a rule
+                    // that failed those would be a rule nobody could leave on.
+                    // `complete` is the caller's statement because the helper has no
+                    // way to see it.
+                    if (complete === true && b.expectAtLeast !== undefined && found.length < b.expectAtLeast) {
+                        leaked.push({ table: b.table, id: null, label: b.name, reason: UNDER_EXPECTED });
+                        warn(
+                            `  census SUSPECT: ${b.name} — tag query on "${b.tagField}" found ${found.length}, ` +
+                                `expected at least ${b.expectAtLeast} on a completed run; either nothing was created ` +
+                                "or the tag no longer reaches these rows"
+                        );
+                    }
                 } catch (err) {
                     // NOT THE SAME AS A TRACKED BUCKET'S FAILED CENSUS, and folding
                     // the two together is what made a run go quiet. There is no
@@ -599,11 +647,19 @@ export function createFixtures({ tag, buckets }) {
         // rather than records, because its whole point is that the number of
         // records in it is exactly what this run failed to learn.
         const blind = report.leaked.filter((l) => l.reason === UNSEARCHED);
+        const suspect = report.leaked.filter((l) => l.reason === UNDER_EXPECTED);
         const unsure = report.leaked.filter((l) => l.reason === UNVERIFIED).length;
-        const known = report.leaked.length - unsure - blind.length;
+        const known = report.leaked.length - unsure - blind.length - suspect.length;
 
         const doubts = [];
         if (unsure > 0) doubts.push(`${unsure} record(s) could not be checked`);
+        if (suspect.length > 0) {
+            doubts.push(
+                `${suspect.length} bucket(s) found fewer rows than expected ` +
+                    `(${suspect.map((l) => l.label).join(", ")}) — either nothing was ` +
+                    "created there or the tag stopped reaching it"
+            );
+        }
         if (blind.length > 0) {
             doubts.push(
                 `${blind.length} bucket(s) never searched at all (${blind.map((l) => l.label).join(", ")}) — ` +

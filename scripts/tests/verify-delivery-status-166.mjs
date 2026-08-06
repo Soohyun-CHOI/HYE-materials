@@ -239,6 +239,7 @@ const fixtures = createFixtures({
 const TAG = fixtures.TAG;
 const track = fixtures.track;
 
+let complete = false;
 try {
     const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
     const requester = users[0];
@@ -548,6 +549,7 @@ try {
             `  a non-privileged viewer of /deliveries skips all ${dOne.total} of those operations`
         );
     }
+    complete = true;
 } catch (err) {
     // Not `incomplete`: an unexpected throw is a failure (exit 1), not a part that
     // could not run. The cleanup below still runs either way — #165's lesson.
@@ -558,7 +560,7 @@ try {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const teardown = await fixtures.teardown();
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
 console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);

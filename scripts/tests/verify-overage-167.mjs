@@ -181,6 +181,7 @@ function tinyPdfBytes(label) {
     return Buffer.from(`%PDF-1.4\n% ${label}\n${body}trailer<</Root 1 0 R>>\n%%EOF\n`, "utf8");
 }
 
+let complete = false;
 try {
     // -------------------------------------------------------------------
     console.log("\nPart A — the two link fields and the single-record invariant:");
@@ -602,6 +603,7 @@ try {
     })).get(overRowB.id);
     check("a settled row is not offered again", contextBAgain.eligibility.blocked, OVERAGE_BLOCKED.notOverDelivered);
     check("  and its banner still reads applied", contextBAgain.bannerState, "applied");
+    complete = true;
 } catch (err) {
     if (err.message !== "__skip__") {
         pass = false;
@@ -612,7 +614,7 @@ try {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const teardown = await fixtures.teardown();
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
 console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
