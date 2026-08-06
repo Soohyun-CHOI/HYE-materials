@@ -36,9 +36,29 @@
 // what a query against the wrong field, the wrong table or a mis-escaped value
 // returns, which is the shape of the `require()`-in-an-`.mjs` incident that made
 // 29 offline checks pass for the wrong reason. A census that finds nothing while
-// rows were tracked is reported as VACUOUS and that bucket falls back to
+// rows were tracked is reported as UNRELIABLE and that bucket falls back to
 // re-reading its tracked ids, so a broken query degrades to the slower check
 // instead of to silence.
+//
+// THAT FALLBACK IS THE WHOLE ARGUMENT, AND A `discoverByTag` BUCKET DOES NOT HAVE
+// IT. Nothing is tracked there, so a failed census leaves no ids to re-read: the
+// delete loop finds an empty list, the residue loop writes 0 without looking at
+// anything, and a run that never searched a bucket at all used to print CLEANUP
+// CLEAN and exit 0 while production's rows sat on the base. Its census failure is
+// therefore its own outcome (UNSEARCHED below) rather than another VACUOUS, and
+// the two are told apart everywhere they are reported.
+//
+// THE GAP THAT REMAINS, with the condition for closing it. The paragraph above is
+// about a query that FAILS. A `discoverByTag` query that SUCCEEDS and returns 0
+// is still unjudged, because there is no tracked set for it to contradict: "this
+// run created none" — legitimate, and what an aborted run produces — reads
+// exactly like "the tag no longer reaches these rows", which is commit 2's
+// dangerous variant of a field that exists and never carries the tag. Decided
+// rather than left open: the caller declares `expectAtLeast` per bucket, checked
+// only when it also tells teardown() the body ran to the end, since 0 is
+// legitimate precisely when the run did not get that far and the caller's catch
+// block is the only thing that knows. Not done here, because this commit must not
+// touch a call site.
 //
 // The census uses `prefixMatch`/`formulaString` from lib/airtableFormula.js
 // rather than string concatenation (#159): the tag is interpolated into a
@@ -100,6 +120,18 @@ import { prefixMatch } from "../../lib/airtableFormula.js";
 
 /** The `reason` that marks a record whose fate this run could not establish. */
 const UNVERIFIED = "could not verify — the table did not answer";
+
+/**
+ * The `reason` that marks a WHOLE BUCKET this run never got to look at.
+ *
+ * Its own reason rather than UNVERIFIED because the unit differs: that one is a
+ * record whose id we hold and could not read, this one is a bucket we hold no id
+ * for at all. Only `discoverByTag` buckets can be in this state — a tracked
+ * bucket whose query fails still has its tracked ids to re-read, which is the
+ * fallback the census warning promises. A discovered bucket has no such second
+ * handle, so a failed query is not a degraded check but no check at all.
+ */
+const UNSEARCHED = "could not verify — the tag query was this bucket's only handle and it failed";
 
 /**
  * One run's fixtures.
@@ -186,6 +218,9 @@ export function createFixtures({ tag, buckets }) {
      * `catch { /* already gone *\/ }`. The residue equivalent costs one call —
      * `head()` throws once an object is gone, so an object that still answers
      * `head` after `del` is a leak, measured rather than assumed.
+     *
+     * And UNLIKE AIRTABLE, the failure is discriminable, so it is discriminated:
+     * only `BlobNotFoundError` reads as gone. See the three-way in teardown().
      */
     const blobs = [];
     const trackBlob = (url) => {
@@ -253,6 +288,7 @@ export function createFixtures({ tag, buckets }) {
         const leaked = [];
         const unknown = [];
         const vacuous = [];
+        const unsearched = new Set();
         const censusCounts = {};
         const residueCounts = {};
         let deleted = 0;
@@ -271,7 +307,20 @@ export function createFixtures({ tag, buckets }) {
                     censusCounts[b.name] = found.length;
                     tracked.set(b.name, found);
                 } catch (err) {
+                    // NOT THE SAME AS A TRACKED BUCKET'S FAILED CENSUS, and folding
+                    // the two together is what made a run go quiet. There is no
+                    // fallback here: nothing was tracked, so the delete loop finds an
+                    // empty list, the residue loop iterates zero times and writes 0,
+                    // and `describe()` — which reads only `leaked` — said CLEANUP
+                    // CLEAN at exit 0 while production's rows sat on the base.
+                    // Measured on verify-material-price-19.mjs before this fix:
+                    // "CLEANUP CLEAN — 14 record(s) deleted, none left on the base",
+                    // exit 0, with 2 Materials and 3 Material Prices still there.
+                    // Same shape as the `stillThere()` hole commit 2 closed one layer
+                    // down — folding what could not be checked into what is clean.
                     vacuous.push({ bucket: b.name, reason: `census query failed: ${err.message}` });
+                    unsearched.add(b.name);
+                    leaked.push({ table: b.table, id: null, label: b.name, reason: UNSEARCHED });
                 }
                 continue;
             }
@@ -303,7 +352,13 @@ export function createFixtures({ tag, buckets }) {
             }
         }
         for (const v of vacuous) {
-            warn(`  census UNRELIABLE: ${v.bucket} — ${v.reason}; falling back to tracked-id re-reads`);
+            warn(
+                `  census UNRELIABLE: ${v.bucket} — ${v.reason}; ` +
+                    (unsearched.has(v.bucket)
+                        ? "NOTHING TO FALL BACK ON — this bucket is discovered by tag only, " +
+                          "so its rows were neither counted nor deleted; remove them manually"
+                        : "falling back to tracked-id re-reads")
+            );
         }
         // PRINTED, not just returned. "Found n, then found 0" is only evidence if
         // both halves are in the log — a census that silently found nothing looks
@@ -311,6 +366,9 @@ export function createFixtures({ tag, buckets }) {
         // to rule out.
         const censusParts = buckets.map((b) => {
             const n = tracked.get(b.name).length;
+            // Ahead of the tracked-id branch: this bucket has no tracked ids, so
+            // printing "0 by tracked id" would report an empty fallback as a result.
+            if (unsearched.has(b.name)) return `${b.name} NOT SEARCHED`;
             if (!b.tagField || vacuousBuckets().has(b.name)) return `${b.name} ${n} by tracked id`;
             if (b.discoverByTag) return `${b.name} ${censusCounts[b.name]} found by tag`;
             return `${b.name} ${censusCounts[b.name]} tagged`;
@@ -378,6 +436,13 @@ export function createFixtures({ tag, buckets }) {
         // The other half of the measurement. A bucket whose census was reliable
         // is checked with one query; everything else is re-read per tracked id.
         for (const b of buckets) {
+            // A bucket that was never searched has no ids to re-read, so the loop
+            // below would run zero times and write 0 — a measurement of nothing
+            // printed in the same column as a measurement. It reads NOT CHECKED.
+            if (unsearched.has(b.name)) {
+                residueCounts[b.name] = null;
+                continue;
+            }
             const useTag = b.tagField && !unreliable.has(b.name);
             if (useTag) {
                 try {
@@ -415,8 +480,9 @@ export function createFixtures({ tag, buckets }) {
             residueCounts[b.name] = left;
         }
         log(
-            `  residue: ${buckets.map((b) => `${b.name} ${residueCounts[b.name] ?? 0}`).join(", ")}` +
-                ` — every bucket must read 0`
+            `  residue: ${buckets
+                .map((b) => `${b.name} ${residueCounts[b.name] === null ? "NOT CHECKED" : residueCounts[b.name] ?? 0}`)
+                .join(", ")}` + ` — every bucket must read 0`
         );
 
         // --- Vercel Blob ------------------------------------------------------
@@ -441,16 +507,32 @@ export function createFixtures({ tag, buckets }) {
                     // below is what decides whether anything is still there.
                     warn(`  blob del reported ${err.message} — ${url}`);
                 }
-                let present = false;
+                // THREE-WAY, LIKE residueState, AND FOR THE OPPOSITE REASON. On
+                // Airtable a gone record and a refused one are byte-identical, so
+                // one extra probe is what separates them. Here the library does the
+                // separating and the old catch-all threw it away — measured against
+                // the real store: a missing object throws BlobNotFoundError, a dead
+                // token throws BlobStoreNotFoundError, and a token for another store
+                // throws BlobAccessError, none of which is `instanceof
+                // BlobNotFoundError`. Counting those last two as "gone" is the same
+                // fold commit 2 refused one layer down, and it also incremented
+                // `deleted`, so a run with a dead token reported objects it had
+                // never confirmed were removed.
+                let state;
                 try {
                     await blobApi.head(url);
-                    present = true;
-                } catch {
-                    present = false; // head throws once the object is gone
+                    state = "present";
+                } catch (err) {
+                    state = err instanceof blobApi.BlobNotFoundError ? "gone" : "unverified";
+                    if (state === "unverified") {
+                        warn(`  residue UNRELIABLE: blob ${url} — head failed with ${err?.constructor?.name ?? "an unknown error"} (${err.message}), so "gone" cannot be claimed`);
+                    }
                 }
-                if (present) {
+                if (state === "present") {
                     leaked.push({ table: "vercel-blob", id: url, label: "blob", reason: "still present after del" });
                     warn(`  residue: blob ${url} survived del — remove manually`);
+                } else if (state === "unverified") {
+                    leaked.push({ table: "vercel-blob", id: url, label: "blob", reason: UNVERIFIED });
                 } else {
                     deleted += 1;
                     log(`  deleted blob ${url}`);
@@ -458,7 +540,7 @@ export function createFixtures({ tag, buckets }) {
             }
         }
 
-        return { leaked, unknown, vacuous, deleted, censusCounts, residueCounts };
+        return { leaked, unknown, vacuous, unsearched: [...unsearched], deleted, censusCounts, residueCounts };
     }
 
     /**
@@ -477,17 +559,28 @@ export function createFixtures({ tag, buckets }) {
         // wrong for both: CLAUDE.md's 2 means a part could not run, and a run that
         // may have left rows behind is not that. Only the sentence differs, so a
         // reader knows whether to go delete something or to go check the token.
+        //
+        // THREE UNITS NOW, NOT TWO. A never-searched bucket is counted in buckets
+        // rather than records, because its whole point is that the number of
+        // records in it is exactly what this run failed to learn.
+        const blind = report.leaked.filter((l) => l.reason === UNSEARCHED);
         const unsure = report.leaked.filter((l) => l.reason === UNVERIFIED).length;
-        const known = report.leaked.length - unsure;
-        if (known === 0) {
-            return (
-                `CLEANUP UNVERIFIED — ${unsure} record(s) could not be checked ` +
-                `(listed above; tag ${TAG})`
+        const known = report.leaked.length - unsure - blind.length;
+
+        const doubts = [];
+        if (unsure > 0) doubts.push(`${unsure} record(s) could not be checked`);
+        if (blind.length > 0) {
+            doubts.push(
+                `${blind.length} bucket(s) never searched at all (${blind.map((l) => l.label).join(", ")}) — ` +
+                    `whatever this run created there is still on the base`
             );
+        }
+        if (known === 0) {
+            return `CLEANUP UNVERIFIED — ${doubts.join(", and ")} (listed above; tag ${TAG})`;
         }
         return (
             `CLEANUP INCOMPLETE — ${known} record(s) left on the base` +
-            (unsure > 0 ? ` and ${unsure} unverified` : "") +
+            (doubts.length > 0 ? `, and ${doubts.join(", and ")}` : "") +
             ` (listed above; tag ${TAG})`
         );
     }
