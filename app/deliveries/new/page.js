@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
+import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveryForm from "./DeliveryForm";
 
 /**
@@ -25,7 +26,15 @@ import DeliveryForm from "./DeliveryForm";
  * an accurate preview with no extra endpoint to authorize. Nothing in the payload
  * is privileged: it is the order lines of jobs the viewer is already scoped to.
  */
+// Labeled for #190 — see the note in app/prs/page.js. Measured because CLAUDE.md
+// makes a specific claim about it (~5 queries for all 36 jobs, batched across
+// jobs rather than per job), and confirming or falsifying a written claim is
+// worth more than a fresh number.
 export default async function NewDeliveryPage() {
+    return withOpsLabel("/deliveries/new", () => renderNewDeliveryPage());
+}
+
+async function renderNewDeliveryPage() {
     const user = await requireUser();
 
     // Entry is open to anyone assigned to the Job, plus the office — narrowed
