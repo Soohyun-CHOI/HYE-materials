@@ -73,6 +73,7 @@ import { getAllJobs } from "../../lib/airtable/jobs.js";
 import { base, TABLES, findByRecordIds } from "../../lib/airtable/client.js";
 import { prefixMatch } from "../../lib/airtableFormula.js";
 import { CHILD_KINDS, ID_KINDS, childKind, dailyIdPrefix, nextSequence } from "../../lib/idSequence.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -120,15 +121,37 @@ console.log(
 console.log(`ran at    ${new Date().toISOString()}`);
 console.log("=".repeat(72));
 
-const TAG = `V164-${Date.now().toString(36).toUpperCase()}`;
-const created = { invoices: [], prs: [], pos: [], deliveries: [] };
-const track = (bucket, id) => {
-    created[bucket].push(id);
-    return id;
-};
-const untrack = (bucket, id) => {
-    created[bucket] = created[bucket].filter((x) => x !== id);
-};
+// Fixtures (#171) — tracking, ordered deletion, per-record reporting and the
+// residue measurement all live in scripts/tests/_fixtures.mjs now. The bucket
+// order below IS the deletion order.
+//
+// POs before PRs: a PO links its PR, so the other order leaves a dangling link
+// for as long as the loop takes. PR Items and Quotations are discovered through
+// the PR's own link fields, because production code created them and this script
+// never holds their ids.
+const fixtures = createFixtures({
+    tag: "V164",
+    buckets: [
+        { name: "deliveries", table: TABLES.DELIVERIES, label: "Delivery", tagField: "Notes" },
+        // No tagField: a PO is written by generatePOForApprovedPR and this script
+        // sets no text field on it, so its residue check is a tracked-id re-read.
+        { name: "pos", table: TABLES.PURCHASE_ORDERS, label: "PO" },
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [
+                { link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" },
+                { link: "Quotations", table: TABLES.QUOTATIONS, label: "Quotation" },
+            ],
+        },
+        { name: "invoices", table: TABLES.INVOICES, label: "Invoice", tagField: "Vendor Invoice Code" },
+    ],
+});
+const TAG = fixtures.TAG;
+const track = fixtures.track;
+const untrack = fixtures.untrack;
 
 /** The sequence number off the end of a generated ID. */
 const seqOf = (id) => Number(id.slice(id.lastIndexOf("-") + 1));
@@ -154,6 +177,7 @@ const PREFIX = {
     delivery: dailyIdPrefix(ID_KINDS.DELIVERY, NOW),
 };
 
+let complete = false;
 try {
     // -----------------------------------------------------------------------
     console.log("\nPart A — the live schema still holds the fields the counters count:");
@@ -615,6 +639,7 @@ try {
         nextSequence(idsNow, prD.prId),
         2
     );
+    complete = true;
 } catch (err) {
     pass = false;
     console.error(`\n  ABORTED — ${err.message}`);
@@ -623,40 +648,19 @@ try {
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const destroy = async (table, id, label) =>
-    base(table)
-        .destroy(id)
-        .then(() => console.log(`  deleted ${label} ${id}`))
-        .catch((e) => {
-            // A surviving fixture is not a silent outcome: it becomes a stray row
-            // on a shared base, which is what verify-blob-lifecycle-140.mjs's
-            // swallowed cleanup left behind twice.
-            pass = false;
-            console.error(`  cleanup FAILED: ${label} ${id} — remove manually:`, e.message);
-        });
-
-for (const id of created.deliveries) await destroy(TABLES.DELIVERIES, id, "Delivery");
-// POs before PRs: a PO links its PR, so the other order leaves a dangling link for
-// as long as the loop takes.
-for (const id of created.pos) await destroy(TABLES.PURCHASE_ORDERS, id, "PO");
-// CHILDREN BEFORE THEIR PARENT, and every failure reported. Deleting a PR whose
-// PR Items and Quotations are still there strands them with no parent, which is
-// precisely the defect CLAUDE.md records for verify-blob-lifecycle-140.mjs — it
-// dropped a PO's items with a Promise.allSettled whose results it discarded and
-// then deleted the PO anyway, leaving two parentless PO Items that had to be
-// removed by hand in #162. `destroy` below counts a failure as a run failure, so
-// a stranded fixture cannot pass silently.
-for (const id of created.prs) {
-    const rec = await base(TABLES.PURCHASE_REQUESTS).find(id).catch(() => null);
-    for (const childId of rec?.get("PR Items") || []) await destroy(TABLES.PR_ITEMS, childId, "PR Item");
-    for (const childId of rec?.get("Quotations") || []) await destroy(TABLES.QUOTATIONS, childId, "Quotation");
-    await destroy(TABLES.PURCHASE_REQUESTS, id, "PR");
-}
-for (const id of created.invoices) await destroy(TABLES.INVOICES, id, "Invoice");
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
 console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
+// TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the daily ID counter; a
+// leak is about this run's effect on a shared base. Until #171 a failed delete
+// lowered `pass`, so a leak printed `SOME CHECKS FAILED` — the right exit code
+// attached to a sentence that sends the reader to look at the wrong thing.
 if (!pass) console.log("SOME CHECKS FAILED");
 else if (incomplete) console.log(`INCOMPLETE — no failures, but: ${incomplete}`);
 else console.log("ALL CHECKS PASS");
-process.exit(!pass ? 1 : incomplete ? 2 : 0);
+console.log(fixtures.describe(teardown));
+// A leak is exit 1: "something failed" is the script's own contract as much as the
+// feature's, and 2 already means "a part could not run", which is a state needing
+// no hand cleanup. Two meanings for 2 would demand two different human responses.
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : incomplete ? 2 : 0);

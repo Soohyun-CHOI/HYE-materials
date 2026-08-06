@@ -35,6 +35,7 @@
 import { createPR, updatePR, getPRById } from "../../lib/airtable/purchaseRequests.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 // Verbatim mirror of withdrawAction's guard + write sequence. callerUserId
 // stands in for requireUser().id — the only input the real action derives
@@ -65,7 +66,8 @@ async function statusOf(recordId) {
 async function makePR(requesterId, targetStatus) {
     // createPR always lands as Draft; move it to the target status the same
     // way the real workflow would (updatePR is the sole Status writer).
-    const { id, prId } = await createPR({ requesterId });
+    const { id, prId } = await createPR({ requesterId, notes: `${TAG} ${targetStatus}` });
+    fixtures.track("prs", id);
     if (targetStatus !== "Draft") {
         const fields = { status: targetStatus };
         if (targetStatus === "Withdrawn") fields.withdrawnAt = new Date().toISOString();
@@ -74,6 +76,22 @@ async function makePR(requesterId, targetStatus) {
     return { id, prId };
 }
 
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. One bucket, no children:
+// these PRs are created bare. Same shape as verify-line-job-dropdown-30.mjs — the
+// cleanup already survived a throw and already reported a failed delete, but
+// `process.exitCode` is set inside run() before the finally, so that report could
+// never reach a verdict; and residue was never measured.
+const fixtures = createFixtures({
+    tag: "V122",
+    buckets: [
+        // Tagged, under the rule's second clause (#171): makePR calls createPR, so
+        // the tag is one argument away.
+        { name: "prs", table: TABLES.PURCHASE_REQUESTS, label: "PR", tagField: "Notes" },
+    ],
+});
+const TAG = fixtures.TAG;
+
+let complete = false;
 const created = [];
 
 async function run() {
@@ -172,16 +190,19 @@ async function run() {
 
 try {
     await run();
-} finally {
-    // Teardown — these PRs were created with no children, so a direct
-    // destroy is sufficient. Best-effort per record so one failure doesn't
-    // strand the rest.
-    for (const pr of created) {
-        try {
-            await base(TABLES.PURCHASE_REQUESTS).destroy(pr.id);
-            console.log(`cleaned up ${pr.prId} (${pr.id})`);
-        } catch (err) {
-            console.error(`FAILED to clean up ${pr.prId} (${pr.id}) — delete it manually:`, err.message);
-        }
-    }
+    complete = true;
+} catch (err) {
+    // A `catch` where there was none, so the verdict below is reachable.
+    // `process.exitCode` rather than `process.exit`, which is this file's own
+    // precedent for letting cleanup run.
+    console.error(`\n  ABORTED — ${err.message}`);
+    console.error(err.stack);
+    process.exitCode = 1;
 }
+
+console.log("\nCleaning up fixtures:");
+const teardown = await fixtures.teardown({ complete });
+console.log(fixtures.describe(teardown));
+// TWO VERDICTS (#171): the cases' own pass/fail is printed inside run(), a leak
+// is about this run's effect on a shared base.
+if (teardown.leaked.length > 0) process.exitCode = 1;

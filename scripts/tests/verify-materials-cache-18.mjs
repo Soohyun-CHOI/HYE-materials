@@ -24,10 +24,12 @@
 //
 // Fixtures: creates Materials, Material Prices, 3 PRs + PR Items, 3 POs + PO
 // Items, 1 Invoice + Invoice Items + its join row, and deletes all of them in
-// this same run. Creates nothing in Vercel Blob. Reuses (never modifies, never
-// deletes) two existing Vendors and one existing Line.
+// this same run through scripts/tests/_fixtures.mjs (#171). Creates nothing in
+// Vercel Blob. Reuses (never modifies, never deletes) two existing Vendors and
+// one existing Line.
 //
-// Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
+// Exit codes: 0 all clear, 1 something failed OR this run left rows on the base,
+// 2 clean but incomplete.
 
 import { upsertMaterial, getMaterialByKey, getMaterialByRecordId } from "../../lib/airtable/materials.js";
 import { upsertMaterialPrice, getMaterialPrice } from "../../lib/airtable/materialPrices.js";
@@ -49,6 +51,7 @@ import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
 import { base, TABLES, _debugLockKeys } from "../../lib/airtable/client.js";
 import { formulaString } from "../../lib/airtableFormula.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -91,9 +94,76 @@ async function waitFor(read, predicate, { ceilingMs = 15000, pollMs = 200 } = {}
 /** Label suffix that makes a settle measurement unambiguous. */
 const settleNote = (w) => `${w.reads === 1 ? "already settled on the first read" : `settled after ${w.reads} reads`}, ${w.ms}ms`;
 
-const TAG = `V18-${Date.now().toString(36).toUpperCase()}`;
-const created = { materials: [], prices: [], prs: [], pos: [], invoices: [], invoiceItems: [] };
-const track = (bucket, id) => { if (id && !created[bucket].includes(id)) created[bucket].push(id); };
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
+// order, children before parents throughout.
+const fixtures = createFixtures({
+    tag: "V18",
+    buckets: [
+        // Frozen `Item Name` copied from the tagged PO line, so the tag reaches
+        // every row. Deleted before the Invoice, which also lists them as
+        // children — by then that link is empty, and the pair is deliberate: the
+        // tracked ids get a tag-query residue check of their own, and anything
+        // untracked is still swept as a discovered child.
+        { name: "invoiceItems", table: TABLES.INVOICE_ITEMS, label: "Invoice Item", tagField: "Item Name" },
+        {
+            name: "invoices",
+            table: TABLES.INVOICES,
+            label: "Invoice",
+            tagField: "Vendor Invoice Code",
+            children: [
+                { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
+                // Untaggable: an Invoice-PO Link row's primary field is an
+                // autoNumber and it carries no text at all.
+                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
+            ],
+        },
+        // No tagField: written by generatePOForApprovedPR, and this script sets
+        // no text field on it. Tracked, so a tracked-id re-read is the residue
+        // check. This is the case where declining IS right — contrast the PRs
+        // below, which this script creates itself.
+        {
+            name: "pos",
+            table: TABLES.PURCHASE_ORDERS,
+            label: "PO",
+            children: [{ link: "PO Items", table: TABLES.PO_ITEMS, label: "PO Item" }],
+        },
+        // Tagged, under the rule's second clause (#171): this script calls
+        // createPR, so `notes` is one argument away and declining the tag would
+        // give up a check for nothing.
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [{ link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" }],
+        },
+        // FOUND BY TAG, NOT TRACKED, and that replaces the shape commit 3 removed
+        // from verify-deliveries-162.mjs for the same reason. Half of these rows
+        // are written by PO generation as a side effect (#18) and this script
+        // looked each one up right afterwards — `getMaterialByKey(...)` guarded by
+        // `if (matX)`, five times over — so a lookup that came back empty left the
+        // row created and untracked, leaked with nothing saying so. Every row here
+        // carries the tag in `Item Name` whether upsertMaterial or the cache wrote
+        // it, so one query covers both halves and depends on neither lookup.
+        // Prices hang off the Material's own link field rather than a text match
+        // on `Price Label`, a formula over two links that need not begin with the
+        // tag, and children-before-parents then gives the prices-before-materials
+        // order this script's old comment had to ask for by hand.
+        {
+            name: "materials",
+            table: TABLES.MATERIALS,
+            label: "Material",
+            tagField: "Item Name",
+            discoverByTag: true,
+            // A completed run always writes at least one of these, so 0 means the
+            // tag stopped reaching them rather than that none were created (#171).
+            expectAtLeast: 1,
+            children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+const track = fixtures.track;
 
 /** Rows matching one Materials natural key — the duplicate detector. */
 async function countMaterialRows({ itemName, size, unit }) {
@@ -156,6 +226,7 @@ console.log("\nPart 0 — collectMaterialsCacheEntries (grouping + skips, no DB)
     check("a backslash is escaped first", formulaString("a\\b"), "a\\\\b");
 }
 
+let complete = false;
 // ---------------------------------------------------------------------------
 const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
 const requester = users[0];
@@ -166,6 +237,17 @@ if (!requester || !vendorA || !vendorB || !line) {
     incomplete = "need one active User, TWO Vendors and one Line in the base";
     console.log(`\n  SKIP  ${incomplete}`);
 } else {
+  // EVERY FIXTURE THIS RUN CREATES IS DELETED BELOW, so an unexpected throw in
+  // here must not skip that — and until #171 it did. There was no `try` around
+  // this body at all: the only one in the file is the six lines in Part A that
+  // capture an expected error, and the cleanup began at line 422 of 450, which a
+  // throw walks straight past. MEASURED ON THIS FILE rather than argued — a
+  // throw planted immediately after the first upsertMaterial printed a stack
+  // trace, no cleanup section, no verdict of any kind, and left the Material on
+  // the base. A failing CHECK was always survivable, since check()/assert() only
+  // lower `pass`; a THROW was not. The cleanup sits outside this block precisely
+  // so it always runs.
+  try {
     console.log(`\nFixture context: vendors "${vendorA.vendorName}" / "${vendorB.vendorName}", line "${line.lineLabel}" (reused, not modified)`);
 
     // -----------------------------------------------------------------------
@@ -173,7 +255,6 @@ if (!requester || !vendorA || !vendorB || !line) {
     const keyA = { itemName: `${TAG} Pipe`, size: '2"', unit: "EA" };
 
     const m1 = await upsertMaterial(keyA);
-    track("materials", m1.id);
     check("created with the name as given", m1.itemName, keyA.itemName);
     check("Material Label is the formula's composite", m1.materialLabel, `${keyA.itemName}_2"_EA`);
     check('a Size containing a double quote is found again by its key', (await getMaterialByKey(keyA))?.id, m1.id);
@@ -200,7 +281,6 @@ if (!requester || !vendorA || !vendorB || !line) {
     let mNoUnit = null;
     try {
         mNoUnit = await upsertMaterial(keyNoUnit);
-        track("materials", mNoUnit.id);
     } catch (err) {
         noUnitErr = err.message;
     }
@@ -214,9 +294,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     // -----------------------------------------------------------------------
     console.log("\nPart B — Material Prices: one material, two vendors:");
     const pA = await upsertMaterialPrice({ materialRecordId: m1.id, vendorRecordId: vendorA.id, unitPrice: 30, latestDate: "2026-07-01" });
-    track("prices", pA.id);
     const pB = await upsertMaterialPrice({ materialRecordId: m1.id, vendorRecordId: vendorB.id, unitPrice: 41, latestDate: "2026-07-02" });
-    track("prices", pB.id);
 
     assert("the two vendors get two DIFFERENT price rows", pA.id !== pB.id);
     check("still exactly one Materials row", await countMaterialRows(keyA), 1);
@@ -245,7 +323,6 @@ if (!requester || !vendorA || !vendorB || !line) {
     const racing = Promise.all([1, 2, 3].map(() => upsertMaterial(keyRace)));
     check("one lock key is queued while the three identity calls fly", _debugLockKeys().length, 1);
     const raced = await racing;
-    raced.forEach((r) => track("materials", r.id));
     check("all three resolved to ONE record", new Set(raced.map((r) => r.id)).size, 1);
     check("and Airtable holds one row", await countMaterialRows(keyRace), 1);
 
@@ -255,7 +332,6 @@ if (!requester || !vendorA || !vendorB || !line) {
     );
     check("one lock key is queued while the three price calls fly", _debugLockKeys().length, 1);
     const racedPrices = await racingPrice;
-    racedPrices.forEach((r) => track("prices", r.id));
     check("all three resolved to ONE price row", new Set(racedPrices.map((r) => r.id)).size, 1);
     check("and one price row exists", await countPriceRows(raced[0].id), 1);
     check("the lock queue drains with no leaked entry", _debugLockKeys().length, 0);
@@ -265,7 +341,10 @@ if (!requester || !vendorA || !vendorB || !line) {
 
     // Vendor A. Item X twice (dedupe + both linked), one unit-less line
     // (skipped), one other material.
-    const pr1 = await createPR({ requesterId: requester.id, lineId: line.id, vendorId: vendorA.id });
+    const pr1 = await createPR({
+        requesterId: requester.id, lineId: line.id, vendorId: vendorA.id,
+        notes: `${TAG} vendor A`,
+    });
     track("prs", pr1.id);
     const nameX = `${TAG} Flange`;
     for (const it of [
@@ -284,12 +363,10 @@ if (!requester || !vendorA || !vendorB || !line) {
 
     const keyX = { itemName: nameX, size: '4"', unit: "EA" };
     const matX = await getMaterialByKey(keyX);
-    if (matX) track("materials", matX.id);
     assert("an identity row exists for the repeated material", Boolean(matX));
     check("ONE row despite two PO lines", await countMaterialRows(keyX), 1);
 
     const priceX = matX && (await getMaterialPrice({ materialRecordId: matX.id, vendorRecordId: vendorA.id }));
-    if (priceX) track("prices", priceX.id);
     assert("a price row exists for this vendor", Boolean(priceX));
     if (priceX) {
         check("the cached price is the LAST line's", priceX.unitPrice, 44);
@@ -308,13 +385,13 @@ if (!requester || !vendorA || !vendorB || !line) {
     check("Materials.PO Items shows both lines (reverse link)", matXFresh.poItems.length, 2);
 
     const gasket = await getMaterialByKey({ itemName: `${TAG} Gasket`, size: "", unit: "PCS" });
-    if (gasket) track("materials", gasket.id);
-    const gasketPrice = gasket && (await getMaterialPrice({ materialRecordId: gasket.id, vendorRecordId: vendorA.id }));
-    if (gasketPrice) track("prices", gasketPrice.id);
     assert("a blank SIZE is fine — that line got its own material", Boolean(gasket));
 
     // Vendor B buys the same material: one identity, a second price.
-    const pr2 = await createPR({ requesterId: requester.id, lineId: line.id, vendorId: vendorB.id });
+    const pr2 = await createPR({
+        requesterId: requester.id, lineId: line.id, vendorId: vendorB.id,
+        notes: `${TAG} vendor B`,
+    });
     track("prs", pr2.id);
     await createItem({ prRecordId: pr2.id, prId: pr2.prId, remark: "", itemName: nameX, size: '4"', unit: "EA", qty: 7, unitPrice: 51 });
     await updatePR(pr2.id, { status: "Approved" });
@@ -324,7 +401,6 @@ if (!requester || !vendorA || !vendorB || !line) {
     check("a second vendor adds NO Materials row", await countMaterialRows(keyX), 1);
     check("but a second price row", await countPriceRows(matX.id), 2);
     const priceXB = await getMaterialPrice({ materialRecordId: matX.id, vendorRecordId: vendorB.id });
-    if (priceXB) track("prices", priceXB.id);
     check("vendor B's price is its own", priceXB.unitPrice, 51);
     check("vendor A's price is unchanged by it", (await getMaterialPrice({ materialRecordId: matX.id, vendorRecordId: vendorA.id })).unitPrice, 44);
 
@@ -337,7 +413,10 @@ if (!requester || !vendorA || !vendorB || !line) {
     // be counted as ordered.
     await updatePO(gen2.poRecordId, { status: "Signed", presidentSigned: true, presidentSignedAt: new Date().toISOString() });
 
-    const pr3 = await createPR({ requesterId: requester.id, lineId: line.id, vendorId: vendorA.id });
+    const pr3 = await createPR({
+        requesterId: requester.id, lineId: line.id, vendorId: vendorA.id,
+        notes: `${TAG} withdrawn`,
+    });
     track("prs", pr3.id);
     await createItem({ prRecordId: pr3.id, prId: pr3.prId, remark: "", itemName: nameX, size: '4"', unit: "EA", qty: 100, unitPrice: 60 });
     await updatePR(pr3.id, { status: "Approved" });
@@ -416,35 +495,29 @@ if (!requester || !vendorA || !vendorB || !line) {
     const invRolled = await waitFor(() => getMaterialByRecordId(matX.id), (m) => m.invoicedQty === 15);
     check(`Materials.Invoiced Qty follows the chain (${settleNote(invRolled)})`, invRolled.value.invoicedQty, 15);
     check("Uninvoiced Qty drops by the invoiced amount", invRolled.value.uninvoicedQty, 22 - 15);
+    complete = true;
+  } catch (err) {
+    // `pass`, not `incomplete`: an abort here is a check that did not get to run,
+    // which is not the same as one that ran and passed. The cleanup below still
+    // runs either way, which is the whole point of the block.
+    pass = false;
+    console.error(`\n  ABORTED — ${err.message}`);
+    console.error(err.stack);
+  }
 }
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const destroy = async (table, id, label) =>
-    base(table).destroy(id).then(() => console.log(`  deleted ${label} ${id}`)).catch((e) => console.error(`  cleanup: ${label} ${id} — remove manually:`, e.message));
-
-for (const id of created.invoiceItems) await destroy(TABLES.INVOICE_ITEMS, id, "Invoice Item");
-for (const id of created.invoices) {
-    const rec = await base(TABLES.INVOICES).find(id).catch(() => null);
-    for (const l of rec?.get("Invoice-PO Link") || []) await base(TABLES.INVOICE_PO_LINK).destroy(l).catch(() => {});
-    await destroy(TABLES.INVOICES, id, "Invoice");
-}
-for (const id of created.pos) {
-    const rec = await base(TABLES.PURCHASE_ORDERS).find(id).catch(() => null);
-    for (const i of rec?.get("PO Items") || []) await base(TABLES.PO_ITEMS).destroy(i).catch(() => {});
-    await destroy(TABLES.PURCHASE_ORDERS, id, "PO + its PO Items");
-}
-for (const id of created.prs) {
-    const rec = await base(TABLES.PURCHASE_REQUESTS).find(id).catch(() => null);
-    for (const i of rec?.get("PR Items") || []) await base(TABLES.PR_ITEMS).destroy(i).catch(() => {});
-    await destroy(TABLES.PURCHASE_REQUESTS, id, "PR + its PR Items");
-}
-// Prices before materials: a price row's Material link would otherwise dangle.
-for (const id of created.prices) await destroy(TABLES.MATERIAL_PRICES, id, "Material Price");
-for (const id of created.materials) await destroy(TABLES.MATERIALS, id, "Material");
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(60));
+// TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the item axis; a leak is
+// about this run's effect on a shared base. Until now the cleanup reported per
+// record — and swallowed a failed child delete on its way to deleting the parent
+// — while reaching no verdict at all, so a run that left rows behind would still
+// have printed ALL CHECKS PASS had it got as far as its own cleanup.
 if (!pass) console.log("SOME CHECKS FAILED");
 else if (incomplete) console.log(`INCOMPLETE — no failures, but: ${incomplete}`);
 else console.log("ALL CHECKS PASS");
-process.exit(!pass ? 1 : incomplete ? 2 : 0);
+console.log(fixtures.describe(teardown));
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : incomplete ? 2 : 0);

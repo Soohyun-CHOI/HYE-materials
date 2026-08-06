@@ -25,6 +25,7 @@
 
 import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
 import { createLine } from "../../lib/airtable/lines.js";
+import { createFixtures } from "./_fixtures.mjs";
 import { base, TABLES } from "../../lib/airtable/client.js";
 
 // Verbatim mirror of the action's job-resolution guard.
@@ -39,7 +40,24 @@ async function resolveJobGuard(jobId) {
     return { job };
 }
 
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. One bucket, one row, no
+// children. Its cleanup already survived a throw and already REPORTED a failed
+// delete; what it could not do is let that failure reach a verdict, because
+// `process.exitCode` is set inside run() before the finally ever executes. Same
+// shape as verify-withdraw-revalidation-122.mjs, and neither measured residue.
+const fixtures = createFixtures({
+    tag: "V30",
+    buckets: [
+        // Tagged, under the rule's second clause (#171): this script calls
+        // createLine, so the tag goes in the name it was already choosing. It was
+        // the fixed "__verify-30-delete-me", the shape a run tag must not have.
+        { name: "lines", table: TABLES.LINES, label: "Line", tagField: "Line Name" },
+    ],
+});
+const TAG = fixtures.TAG;
+
 let createdLineId = null;
+let complete = false;
 
 async function run() {
     const jobs = await getAllJobs();
@@ -75,9 +93,9 @@ async function run() {
     console.log("Case 5: Valid pick creates a Line (end-to-end)");
     const { id, lineLabel } = await createLine({
         jobRecordId: real.id,
-        lineName: "__verify-30-delete-me",
+        lineName: `${TAG} delete me`,
     });
-    createdLineId = id;
+    createdLineId = fixtures.track("lines", id);
     const created = Boolean(id && lineLabel);
     if (!created) allPass = false;
     console.log(`   created: ${created ? `Line "${lineLabel}" [${id}]` : "FAILED"}`);
@@ -94,13 +112,19 @@ async function run() {
 
 try {
     await run();
-} finally {
-    if (createdLineId) {
-        try {
-            await base(TABLES.LINES).destroy(createdLineId);
-            console.log(`cleaned up test Line (${createdLineId})`);
-        } catch (err) {
-            console.error(`FAILED to clean up test Line (${createdLineId}) — delete it manually:`, err.message);
-        }
-    }
+    complete = true;
+} catch (err) {
+    // A `catch` where there was none: the verdict below has to be reachable, and
+    // `process.exitCode` is what this file uses so cleanup still runs (the #122
+    // precedent) rather than `process.exit`.
+    console.error(`\n  ABORTED — ${err.message}`);
+    console.error(err.stack);
+    process.exitCode = 1;
 }
+
+console.log("\nCleaning up fixtures:");
+const teardown = await fixtures.teardown({ complete });
+console.log(fixtures.describe(teardown));
+// TWO VERDICTS (#171): the cases' own pass/fail is printed inside run(), a leak
+// is about this run's effect on a shared base.
+if (teardown.leaked.length > 0) process.exitCode = 1;

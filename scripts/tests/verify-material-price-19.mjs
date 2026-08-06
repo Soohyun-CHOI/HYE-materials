@@ -21,11 +21,13 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-material-price-19.mjs
 //
 // Fixtures: 3 PRs + PR Items, 3 POs + PO Items, and the Materials / Material
-// Prices rows #18's cache writes for them — all deleted in this same run.
-// Creates nothing in Vercel Blob. Reuses (never modifies, never deletes) two
-// Vendors, one Line, and the authz-fixture user.
+// Prices rows #18's cache writes for them — all deleted in this same run through
+// scripts/tests/_fixtures.mjs (#171). Creates nothing in Vercel Blob. Reuses
+// (never modifies, never deletes) two Vendors, one Line, and the authz-fixture
+// user.
 //
-// Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
+// Exit codes: 0 all clear, 1 something failed OR this run left rows on the base,
+// 2 clean but incomplete.
 
 import { searchMaterialPrices, getMaterialPurchaseHistory } from "../../lib/materialHistory.js";
 import { countsAsOrdered, lowestPriceRowIds, qtyDiffersAcross } from "../../lib/materialPriceView.js";
@@ -38,6 +40,7 @@ import { getActiveUsers, getUserByEmail } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 const FIXTURE_EMAIL = "authz-fixture@hanyangengusa.com";
 
@@ -127,12 +130,62 @@ async function countOps(fn) {
     }
 }
 
-const TAG = `V19-${Date.now().toString(36).toUpperCase()}`;
-const created = { prs: [], pos: [], materials: [], prices: [] };
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
+// order, children before parents throughout.
+const fixtures = createFixtures({
+    tag: "V19",
+    buckets: [
+        // POs before PRs: a PO links its PR, so the other order leaves a dangling
+        // link for as long as the loop takes. No tagField — a PO is written by
+        // generatePOForApprovedPR and this script sets no text field on it, so its
+        // residue check is a tracked-id re-read.
+        {
+            name: "pos",
+            table: TABLES.PURCHASE_ORDERS,
+            label: "PO",
+            children: [{ link: "PO Items", table: TABLES.PO_ITEMS, label: "PO Item" }],
+        },
+        // Tagged, under the rule's second clause (#171): makePO below calls
+        // createPR, so the tag is one argument away and declining it would give up
+        // a check for nothing. Contrast the POs above, which really are out of
+        // reach.
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [{ link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" }],
+        },
+        // FOUND BY TAG, NOT TRACKED. Every row here is written by PO generation as
+        // a side effect (#18), and this script's only way of tracking them was to
+        // look each one up afterwards — `getMaterialByKey(...)` guarded by
+        // `if (material)`, twice, plus a loop that read each Material's price link
+        // purely as bookkeeping. A lookup that came back empty left the row created
+        // and untracked. The tag reaches both materials through `Item Name`, and
+        // the prices hang off the Material's own link field rather than a text
+        // match on `Price Label` — a formula over two links that need not begin
+        // with the tag. Children-before-parents then gives the prices-before-
+        // materials order this script's old comment had to ask for by hand.
+        {
+            name: "materials",
+            table: TABLES.MATERIALS,
+            label: "Material",
+            tagField: "Item Name",
+            discoverByTag: true,
+            // A completed run always writes at least one of these, so 0 means the
+            // tag stopped reaching them rather than that none were created (#171).
+            expectAtLeast: 1,
+            children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+const track = fixtures.track;
 
 // ---------------------------------------------------------------------------
 console.log("\nPart A — fixtures: two vendors, one material, plus a withdrawn PO");
 
+let complete = false;
 const [users, vendors, lines, fixtureUser] = await Promise.all([
     getActiveUsers(),
     getAllVendors(),
@@ -153,6 +206,17 @@ if (!admin || !vendorA || !vendorB || !line) {
 if (incomplete) {
     console.log(`  SKIP  ${incomplete}`);
 } else {
+  // EVERY FIXTURE THIS RUN CREATES IS DELETED BELOW, so an unexpected throw in
+  // here must not skip that — and until #171 it did. The only `try` in this file
+  // was the one inside countOps above, whose `finally` restores the instrument;
+  // it never covered the body, and the cleanup began at line 370 of 392, which a
+  // throw walks straight past. MEASURED on this file: a throw planted after the
+  // first makePO left 6 rows across four tables and printed no id for any of
+  // them, so recovering it meant querying by tag — and the PR and the PO were
+  // reachable only through their tagged CHILDREN, since neither carried the tag
+  // itself. A failing CHECK was always survivable, since check()/assert() only
+  // lower `pass`; a THROW was not.
+  try {
     // The gating half is only meaningful if the fixture user genuinely fails
     // canViewPR for these PRs. Assert the preconditions rather than assume them:
     // a fixture that had been given Admin, or assigned to this Job, would make
@@ -171,15 +235,18 @@ if (incomplete) {
     const KEY = { itemName: NAME, size: '2"', unit: "EA" };
 
     async function makePO({ vendorId, qty, unitPrice, extraItem }) {
-        const pr = await createPR({ requesterId: admin.id, lineId: line.id, vendorId });
-        created.prs.push(pr.id);
+        const pr = await createPR({
+            requesterId: admin.id, lineId: line.id, vendorId,
+            notes: `${TAG} fixture`,
+        });
+        track("prs", pr.id);
         await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", itemName: NAME, size: '2"', unit: "EA", qty, unitPrice });
         if (extraItem) {
             await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", ...extraItem });
         }
         await updatePR(pr.id, { status: "Approved" });
         const gen = await generatePOForApprovedPR(await getPRByRecordId(pr.id));
-        created.pos.push(gen.poRecordId);
+        track("pos", gen.poRecordId);
         return gen;
     }
 
@@ -199,17 +266,7 @@ if (incomplete) {
     await updatePO(genC.poRecordId, { status: "Withdrawn", withdrawnAt: new Date().toISOString() });
 
     const material = await getMaterialByKey(KEY);
-    if (material) created.materials.push(material.id);
     assert("the material identity row exists", Boolean(material));
-
-    const gasket = await getMaterialByKey({ itemName: `${TAG} Gasket`, size: "", unit: "PCS" });
-    if (gasket) created.materials.push(gasket.id);
-
-    // Track price rows for cleanup.
-    for (const m of [material, gasket].filter(Boolean)) {
-        const rec = await base(TABLES.MATERIALS).find(m.id);
-        for (const pid of rec.get("Material Prices") || []) created.prices.push(pid);
-    }
 
     if (material) {
         // -------------------------------------------------------------------
@@ -364,29 +421,29 @@ if (incomplete) {
         // One find(): the material itself, by record id. Everything else batches.
         check("exactly one per-record find() — the material", hist.find, 1);
     }
+    complete = true;
+  } catch (err) {
+    // `pass`, not `incomplete`: an abort here is a check that did not get to run,
+    // which is not the same as one that ran and passed. The cleanup below still
+    // runs either way, which is the whole point of the block.
+    pass = false;
+    console.error(`\n  ABORTED — ${err.message}`);
+    console.error(err.stack);
+  }
 }
 
 // ---------------------------------------------------------------------------
 console.log("\nCleaning up fixtures:");
-const destroy = (table, id, label) =>
-    base(table).destroy(id).then(() => console.log(`  deleted ${label} ${id}`)).catch((e) => console.error(`  cleanup: ${label} ${id} — remove manually:`, e.message));
-
-for (const id of created.pos) {
-    const rec = await base(TABLES.PURCHASE_ORDERS).find(id).catch(() => null);
-    for (const i of rec?.get("PO Items") || []) await base(TABLES.PO_ITEMS).destroy(i).catch(() => {});
-    await destroy(TABLES.PURCHASE_ORDERS, id, "PO + its PO Items");
-}
-for (const id of created.prs) {
-    const rec = await base(TABLES.PURCHASE_REQUESTS).find(id).catch(() => null);
-    for (const i of rec?.get("PR Items") || []) await base(TABLES.PR_ITEMS).destroy(i).catch(() => {});
-    await destroy(TABLES.PURCHASE_REQUESTS, id, "PR + its PR Items");
-}
-// Prices before materials, so no price row is left with a dangling Material.
-for (const id of new Set(created.prices)) await destroy(TABLES.MATERIAL_PRICES, id, "Material Price");
-for (const id of new Set(created.materials)) await destroy(TABLES.MATERIALS, id, "Material");
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(60));
+// TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the price screens; a leak
+// is about this run's effect on a shared base. Until now the cleanup reported per
+// record — and swallowed a failed child delete on its way to deleting the parent
+// — while reaching no verdict at all, so a run that left rows behind would still
+// have printed ALL CHECKS PASS had it got as far as its own cleanup.
 if (!pass) console.log("SOME CHECKS FAILED");
 else if (incomplete) console.log(`INCOMPLETE — no failures, but: ${incomplete}`);
 else console.log("ALL CHECKS PASS");
-process.exit(!pass ? 1 : incomplete ? 2 : 0);
+console.log(fixtures.describe(teardown));
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : incomplete ? 2 : 0);
