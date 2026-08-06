@@ -41,7 +41,7 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-po-withdraw-138.mjs
 
 import { PDFDocument, StandardFonts } from "pdf-lib";
-import { put, del } from "@vercel/blob";
+import { put } from "@vercel/blob";
 import {
     getPOWithdrawEligibility,
     isPOWithdrawn,
@@ -62,6 +62,7 @@ import { createInvoice, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 let pass = true;
 // Set when the Airtable schema prerequisites aren't in place yet: the
@@ -117,11 +118,50 @@ check(
 check("isPOWithdrawn recognizes the status", isPOWithdrawn({ status: PO_WITHDRAWN_STATUS }), true);
 check("isPOWithdrawn ignores an unknown status", isPOWithdrawn({ status: "Not A Real Status" }), false);
 
-const createdPRs = [];
-const createdPOs = [];
-const createdInvoices = [];
-const createdLinks = [];
-const createdBlobUrls = [];
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
+// order. The Invoice-PO Link row is a DISCOVERED CHILD of its Invoice rather than
+// a bucket, because it cannot be tagged at all: its primary field is an
+// autoNumber and it carries no text.
+//
+// No Materials bucket, measured rather than assumed. Every PO here comes from
+// generatePOForApprovedPR, which writes the item axis as a side effect (#18), and
+// the item carries both a Size and a Unit — but these PRs have NO Vendor, so
+// refreshMaterialsCacheForPO returns `skippedAll: "no Vendor on the PR"` before
+// writing an identity row, a price row or a PO line's `Material` link. The run
+// log says so once per PO. Measured on the base: 0 Materials named
+// "Verification fixture item".
+const fixtures = createFixtures({
+    tag: "V138",
+    buckets: [
+        {
+            name: "invoices",
+            table: TABLES.INVOICES,
+            label: "Invoice",
+            tagField: "Vendor Invoice Code",
+            children: [{ link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" }],
+        },
+        // No tagField: written by generatePOForApprovedPR, and this script sets no
+        // text field on it. Tracked, so a tracked-id re-read is the residue check.
+        {
+            name: "pos",
+            table: TABLES.PURCHASE_ORDERS,
+            label: "PO",
+            children: [{ link: "PO Items", table: TABLES.PO_ITEMS, label: "PO Item" }],
+        },
+        // Tagged, under the rule's second clause (#171): makePO calls createPR, so
+        // the tag is one argument away.
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [{ link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" }],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+const track = fixtures.track;
+const trackBlob = fixtures.trackBlob;
 
 // A real (if minimal) PDF for the attachment-preservation case. The app's own
 // generator can't be used here — lib/poPdf.js is JSX, unimportable by plain
@@ -158,8 +198,8 @@ async function waitForAttachment(poRecordId, tries = 10) {
 // item-less PO would be excluded from getOpenPOs for having no uninvoiced qty,
 // so it could never show that the *status* exclusion is doing the work.
 async function makePO(requesterId, status) {
-    const pr = await createPR({ requesterId });
-    createdPRs.push(pr.id);
+    const pr = await createPR({ requesterId, notes: `${TAG} fixture` });
+    track("prs", pr.id);
     await createItem({
         prRecordId: pr.id,
         prId: pr.prId,
@@ -172,7 +212,7 @@ async function makePO(requesterId, status) {
     });
     await updatePR(pr.id, { status: "Approved" });
     const gen = await generatePOForApprovedPR(await getPRByRecordId(pr.id));
-    createdPOs.push(gen.poRecordId);
+    track("pos", gen.poRecordId);
 
     if (status !== "Awaiting Signature") {
         const fields = { status };
@@ -193,6 +233,7 @@ async function statusOf(poRecordId) {
     return rec.get("Status");
 }
 
+let complete = false;
 try {
     const users = await getActiveUsers();
     if (users.length < 2) {
@@ -222,16 +263,15 @@ try {
     // run (and still have to pass) while the `Withdrawn` option is pending.
     const po4 = await makePO(owner.id, "Signed");
     const invoice = await createInvoice({
-        vendorInvoiceCode: "VERIFY-138",
+        vendorInvoiceCode: `${TAG}-INV`,
         issueDate: new Date().toISOString().slice(0, 10),
         dueDate: null,
         amountDue: 0,
         shippingFee: 0,
         file: [], // fixture only — the app requires a file, Airtable doesn't
     });
-    createdInvoices.push(invoice.id);
-    const link = await linkInvoiceToPO(invoice.id, po4.id);
-    createdLinks.push(link.id);
+    track("invoices", invoice.id);
+    await linkInvoiceToPO(invoice.id, po4.id);
     const po4Fresh = await getPOByRecordId(po4.id);
     check("case 4 fixture PO reads its join row with no lag", po4Fresh.invoicePoLinks.length, 1);
     const r4 = await withdrawPOAsRequester({ poId: po4.poId, actingUserId: owner.id });
@@ -274,7 +314,7 @@ try {
         addRandomSuffix: true,
         contentType: "application/pdf",
     });
-    createdBlobUrls.push(blob.url);
+    trackBlob(blob.url);
     await updatePO(po7.id, { poPdfFile: [{ url: blob.url, filename: `${po7.poId}.pdf` }] });
 
     const pdfBefore = (await waitForAttachment(po7.id)).poPdfFile?.[0];
@@ -305,6 +345,7 @@ try {
     const openPos = await getOpenPOs();
     check("getOpenPOs drops the withdrawn PO", openPos.some((po) => po.id === po7.id), false);
     check("getOpenPOs returns no withdrawn PO at all", openPos.some(isPOWithdrawn), false);
+    complete = true;
 } catch (err) {
     // A missing select option / missing field is a prerequisite problem, not
     // a verdict on the code. Anything else is a real failure.
@@ -318,48 +359,11 @@ try {
         pass = false;
         console.error("\n  UNEXPECTED ERROR — not a schema gap:", err);
     }
-} finally {
-    // Teardown, reverse creation order. Best-effort per record so one
-    // failure doesn't strand the rest.
-    for (const id of createdLinks) {
-        await base(TABLES.INVOICE_PO_LINK).destroy(id).catch((err) =>
-            console.error(`cleanup: Invoice-PO Link ${id} — remove manually:`, err.message)
-        );
-    }
-    for (const id of createdInvoices) {
-        await base(TABLES.INVOICES).destroy(id).catch((err) =>
-            console.error(`cleanup: Invoice ${id} — remove manually:`, err.message)
-        );
-    }
-    for (const id of createdPOs) {
-        try {
-            const poRec = await base(TABLES.PURCHASE_ORDERS).find(id);
-            const poItemIds = poRec.get("PO Items") || [];
-            await Promise.allSettled(poItemIds.map((itemId) => base(TABLES.PO_ITEMS).destroy(itemId)));
-            await base(TABLES.PURCHASE_ORDERS).destroy(id);
-        } catch (err) {
-            console.error(`cleanup: PO ${id} — remove manually:`, err.message);
-        }
-    }
-    for (const id of createdPRs) {
-        try {
-            const prRec = await base(TABLES.PURCHASE_REQUESTS).find(id);
-            const itemIds = prRec.get("PR Items") || [];
-            await Promise.allSettled(itemIds.map((i) => base(TABLES.PR_ITEMS).destroy(i)));
-            await base(TABLES.PURCHASE_REQUESTS).destroy(id);
-        } catch (err) {
-            console.error(`cleanup: PR ${id} — remove manually:`, err.message);
-        }
-    }
-    // The Blob original behind the attachment fixture. Airtable keeps its own
-    // copy, so deleting this doesn't disturb the assertions above — it just
-    // avoids leaving a file in the store (contrast the app's own orphaned-Blob
-    // gap, tracked separately in CLAUDE.md).
-    for (const url of createdBlobUrls) {
-        await del(url).catch((err) => console.error(`cleanup: blob ${url} — remove manually:`, err.message));
-    }
-    console.log("  (fixtures cleaned up)");
 }
+
+// ---------------------------------------------------------------------------
+console.log("\nCleanup:");
+const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(56));
 if (blocked) {
@@ -371,7 +375,10 @@ if (blocked) {
 } else {
     console.log(pass ? "ALL CHECKS PASS" : "SOME CHECKS FAILED");
 }
+// TWO VERDICTS, TWO SENTENCES (#171): `pass` and `blocked` are about withdrawal,
+// a leak is about this run's effect on a shared base and a shared Blob store.
+console.log(fixtures.describe(teardown));
 // Exit codes added by #152. `blocked` is the schema-prerequisite case this
 // script already distinguished in its output but not in its status: parts of it
 // could not run, which is exactly the state #147 gave exit 2 to.
-process.exit(!pass ? 1 : blocked ? 2 : 0);
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : blocked ? 2 : 0);

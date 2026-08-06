@@ -280,11 +280,34 @@ export function createFixtures({ tag, buckets }) {
     /**
      * Census, delete, residue — in that order, printing as it goes.
      *
-     * Returns { leaked, unknown, vacuous, deleted, censusCounts, residueCounts }.
-     * `leaked` is what a caller maps to its verdict; the rest is for the log and
-     * for a caller that wants to say something more specific.
+     * Returns { leaked, unknown, vacuous, unsearched, complete, deleted,
+     * censusCounts, residueCounts }. `leaked` is what a caller maps to its
+     * verdict; the rest is for the log and for a caller that wants to say
+     * something more specific.
+     *
+     * `complete` IS THE CALLER'S STATEMENT THAT ITS BODY RAN TO THE END, and it is
+     * a parameter because the helper cannot see it. Every adopter passes it, even
+     * one with no bucket that reads it yet, so that a bucket gaining
+     * `expectAtLeast` later needs no call-site edit — the churn this shape exists
+     * to avoid. Set it as the LAST STATEMENT INSIDE the body's `try`:
+     *
+     *   let complete = false;
+     *   try { …body… ; complete = true; } catch (err) { … }
+     *   await fixtures.teardown({ complete });
+     *
+     * There it is true only if everything above it ran, and false on BOTH the
+     * abort path and the never-entered SKIP path, which is three states told apart
+     * with no reasoning. Deriving it instead would get one of them wrong: `pass`
+     * also goes down for an ordinary failed check, and an error captured in the
+     * `catch` stays null when the body was never entered at all, which reads as
+     * having finished.
+     *
+     * NOTHING READS IT YET. It is recorded in the report and will gate
+     * `expectAtLeast`, the missing anti-vacuity for a `discoverByTag` census that
+     * succeeds and returns 0 — see the header. Landing the shape first is
+     * deliberate: the judgment can arrive without reopening sixteen files.
      */
-    async function teardown({ log = console.log, warn = console.error } = {}) {
+    async function teardown({ complete, log = console.log, warn = console.error } = {}) {
         const leaked = [];
         const unknown = [];
         const vacuous = [];
@@ -540,7 +563,19 @@ export function createFixtures({ tag, buckets }) {
             }
         }
 
-        return { leaked, unknown, vacuous, unsearched: [...unsearched], deleted, censusCounts, residueCounts };
+        return {
+            leaked,
+            unknown,
+            vacuous,
+            unsearched: [...unsearched],
+            // `null` rather than `false` when the caller said nothing: "did not
+            // claim" and "claimed it did not finish" are different, and only the
+            // second is a statement expectAtLeast may act on.
+            complete: complete ?? null,
+            deleted,
+            censusCounts,
+            residueCounts,
+        };
     }
 
     /**

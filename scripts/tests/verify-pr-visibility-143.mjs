@@ -37,6 +37,7 @@ import { getUserByEmail, getUserByRecordId, getActiveUsers } from "../../lib/air
 import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { createFixtures } from "./_fixtures.mjs";
 
 let pass = true;
 let incomplete = false;
@@ -50,10 +51,51 @@ function check(label, actual, expected) {
 const FIXTURE_EMAIL = "authz-fixture@hanyangengusa.com";
 const BASE_URL = process.env.PR_VIS_BASE_URL || "http://localhost:3000";
 
-let prRecordId = null;
-let signerRowId = null;
-let correctionRowId = null;
+// Fixtures (#171) — see scripts/tests/_fixtures.mjs. One bucket: everything this
+// run creates hangs off a single PR.
+//
+// THIS FILE IS NOT THE H1 SHAPE the other four in this commit share. It has no
+// `Promise.allSettled` anywhere, and its body was already wrapped in
+// try/catch/finally, so cleanup survived a throw AND the verdict was reachable.
+// Its defect is the third one commit 1's audit counted: every `destroy` was
+// `.catch(log)` and nothing lowered `pass`, so a failed delete printed one line
+// and the run still said `ALL CHECKS PASS` at exit 0 — a leak that could not
+// reach the verdict. There was no residue measurement either, so "found 0" was
+// never even attempted.
+//
+// PR Signers and Correction Requests are DISCOVERED CHILDREN rather than tracked
+// buckets, and that is a choice rather than a limit: both `createSigner` and
+// `createCorrectionRequest` take `notes`, so the tag could reach them. The reason
+// against is that this test DELETES those rows mid-run as part of what it measures
+// — dropping a claim to see the refusal — so tracking them would mean two
+// `untrack` calls to keep the ledger honest, while reading the parent's link at
+// teardown simply does not find them. Same answer, nothing to keep in step.
+//
+// No Materials bucket and no PO bucket: this file creates no PO at all.
+const fixtures = createFixtures({
+    tag: "V143",
+    buckets: [
+        // Tagged, under the rule's second clause (#171). It already passed `notes`,
+        // but a FIXED string — "#143 verification — safe to delete" — which is the
+        // one shape a tag must not have, since a prefix every run shares turns
+        // discovery into the base sweep the helper's header warns about.
+        {
+            name: "prs",
+            table: TABLES.PURCHASE_REQUESTS,
+            label: "PR",
+            tagField: "Notes",
+            children: [
+                { link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" },
+                { link: "PR Signers", table: TABLES.PR_SIGNERS, label: "PR Signer" },
+                { link: "Correction Requests", table: TABLES.CORRECTION_REQUESTS, label: "Correction Request" },
+            ],
+        },
+    ],
+});
+const TAG = fixtures.TAG;
+const track = fixtures.track;
 
+let complete = false;
 try {
     const fixture = await getUserByEmail(FIXTURE_EMAIL);
     if (!fixture) throw new Error(`${FIXTURE_EMAIL} not found — it is a permanent fixture, see CLAUDE.md`);
@@ -68,8 +110,11 @@ try {
     // Job, so assert that rather than assume it.
     check("fixture user is a non-Admin Employee", fixture.role === "Employee" && !fixture.isAdmin, true);
 
-    const created = await createPR({ requesterId: owner.id, lineId: line.id, notes: "#143 verification — safe to delete" });
-    prRecordId = created.id;
+    const created = await createPR({
+        requesterId: owner.id, lineId: line.id,
+        notes: `${TAG} verification — safe to delete`,
+    });
+    track("prs", created.id);
     await updatePR(created.id, { status: "In Review" });
     let pr = await getPRByRecordId(created.id);
     check("fixture PR is not on any Job the fixture user is assigned to",
@@ -87,7 +132,6 @@ try {
         sequenceOrder: 1,
         confirmationType: "Approval",
     });
-    signerRowId = signer.id;
     // Re-read both records with the production mappers — no polling, so a
     // populated reverse side here means the link is immediate.
     pr = await getPRByRecordId(pr.id);
@@ -107,7 +151,6 @@ try {
     console.log("\nPart C — clause 6: the recipient of a correction request can open it:");
     // Remove the signer claim so clause 6 is what is being measured.
     await base(TABLES.PR_SIGNERS).destroy(signer.id);
-    signerRowId = null;
     pr = await getPRByRecordId(pr.id);
     fixtureFresh = await getUserByRecordId(fixture.id);
     check("signer claim is gone, so the user is refused again", canViewPR(fixtureFresh, pr), false);
@@ -119,7 +162,6 @@ try {
         sentToId: fixture.id,
         notes: "#143 verification",
     });
-    correctionRowId = correction.id;
     pr = await getPRByRecordId(pr.id);
     fixtureFresh = await getUserByRecordId(fixture.id);
     check("PR record lists the correction row", (pr.correctionRowIds || []).includes(correction.id), true);
@@ -187,7 +229,6 @@ try {
         // Correction claim still stands from Part C, so the fixture user should
         // be admitted. Drop it first to see the refusal.
         await base(TABLES.CORRECTION_REQUESTS).destroy(correction.id);
-        correctionRowId = null;
         const refused = await pageSays(fixtureCookie);
         check("with no chain role, the page answers not-found", refused.notFound, true);
 
@@ -199,36 +240,25 @@ try {
             sequenceOrder: 1,
             confirmationType: "Approval",
         });
-        signerRowId = signer2.id;
         const admitted = await pageSays(fixtureCookie);
         check("as a signer, the page renders the PR", admitted.showsPr && !admitted.notFound, true);
     }
+    complete = true;
 } catch (err) {
     pass = false;
     console.error("\n  UNEXPECTED ERROR:", err);
-} finally {
-    for (const [table, id] of [
-        [TABLES.PR_SIGNERS, signerRowId],
-        [TABLES.CORRECTION_REQUESTS, correctionRowId],
-    ]) {
-        if (id) await base(table).destroy(id).catch((e) => console.error(`cleanup: ${id} — remove manually:`, e.message));
-    }
-    if (prRecordId) {
-        await base(TABLES.PURCHASE_REQUESTS)
-            .destroy(prRecordId)
-            .catch((e) => console.error(`cleanup: PR ${prRecordId} — remove manually:`, e.message));
-    }
-    console.log("\n  (fixtures cleaned up)");
 }
 
+// ---------------------------------------------------------------------------
+console.log("\nCleanup:");
+const teardown = await fixtures.teardown({ complete });
+
 console.log("\n" + "=".repeat(56));
-if (!pass) {
-    console.log("SOME CHECKS FAILED");
-    process.exit(1);
-} else if (incomplete) {
-    console.log("NO FAILURES, BUT THE RUN WAS INCOMPLETE — see NOT RUN above");
-    process.exit(2);
-} else {
-    console.log("ALL CHECKS PASS");
-    process.exit(0);
-}
+// TWO VERDICTS, TWO SENTENCES (#171): `pass` is about row visibility, a leak is
+// about this run's effect on a shared base. A leak is exit 1 rather than 2 —
+// 2 means a part could not run, which needs no hand cleanup.
+if (!pass) console.log("SOME CHECKS FAILED");
+else if (incomplete) console.log("NO FAILURES, BUT THE RUN WAS INCOMPLETE — see NOT RUN above");
+else console.log("ALL CHECKS PASS");
+console.log(fixtures.describe(teardown));
+process.exit(!pass || teardown.leaked.length > 0 ? 1 : incomplete ? 2 : 0);
