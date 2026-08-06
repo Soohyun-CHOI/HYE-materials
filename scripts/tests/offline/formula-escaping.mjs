@@ -35,11 +35,15 @@
 //         importers query Airtable with fields[]/pageSize/offset and no filter,
 //         and dedupe in Python. make-invoice-pdf.mjs takes a PO ID from argv but
 //         hands it to getPOById, which escapes — it builds no formula itself.
-//       * The only formulas under scripts/ are five in scripts/tests/, and every
-//         interpolated value originates INSIDE the script: a token the script
-//         itself just created (test-auth-tokens.js), a literal fixture key
-//         (test-phase0.js), or an already-escaped value
-//         (verify-materials-cache-18.mjs). No process.argv reaches any of them.
+//       * The only formulas under scripts/ are four in scripts/tests/, and every
+//         interpolated value originates INSIDE the script: the run tag the
+//         fixture helper generated (_fixtures.mjs, via prefixMatch), an
+//         already-escaped value (verify-materials-cache-18.mjs, via
+//         formulaString), a predicate its own callers build
+//         (verify-invoice-ids-164.mjs), or a deliberately hostile literal, which
+//         is the point of the file (verify-formula-escaping-159.mjs). No
+//         process.argv reaches any of them. Re-counted in #174, which deleted
+//         the two scripts this list used to cite.
 //     So there is presently nothing here to catch. It is still a real limit: an
 //     unescaped interpolation in a NEW script will not be caught, and if a script
 //     ever interpolates a value read from a file or from Airtable, that is a
