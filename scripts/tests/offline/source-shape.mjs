@@ -445,6 +445,21 @@ export function run(reporter) {
             if (name === "filterByFormula") filters++;
         });
         check("getAllPOs builds no filterByFormula — every status reaches /pos", filters, 0);
+
+        // AND IT SORTS BY `PO ID` DESCENDING, server-side, the way getAllInvoices
+        // sorts by `Invoice ID`. That ordering is why /pos shows no Created column
+        // at all: a PO ID is fixed width and zero-padded, so ID order IS date
+        // order. Drop the sort and the list silently falls back to Airtable's own
+        // order, with no date on screen to make the loss visible.
+        let sortsByPoId = false;
+        walk(allPOs, (n) => {
+            if (n.type !== "Property") return;
+            const key = n.key?.type === "Identifier" ? n.key.name : n.key?.value;
+            if (key !== "sort") return;
+            const text = poTable.source.slice(n.start, n.end);
+            if (/PO ID/.test(text) && /desc/.test(text)) sortsByPoId = true;
+        });
+        assert("getAllPOs sorts by PO ID descending — the list shows no date of its own", sortsByPoId);
     }
 }
 

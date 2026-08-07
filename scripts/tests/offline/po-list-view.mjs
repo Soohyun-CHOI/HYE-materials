@@ -1,92 +1,49 @@
-// The purchase order list's view rules (#168) — ordering, the Status column's
-// text, and which empty state a viewer gets.
+// The purchase order list's view rules (#168) — the Status column's text, and
+// which empty state a viewer gets.
 //
-// lib/poListView.js is pure and dependency-free, so every clause is pinnable
-// here. What this cannot see is the page around it: the canViewPR gate is
+// lib/poListView.js is pure and dependency-free, so every clause is pinnable here.
+// ORDERING IS NO LONGER ONE OF THEM: the list sorts by `PO ID` descending, which
+// Airtable does server-side in getAllPOs, so there is no comparator left to pin.
+// offline/source-shape.mjs asserts that sort instead.
+//
+// What this cannot see is the page around it: the canViewPR gate is
 // offline/pr-visibility.mjs's (33 checks) and is exercised against real records by
 // verify-po-visibility-132.mjs, and the query budget is a property of
 // app/pos/page.js that #190's counter measures rather than this file.
 
 import { isMain, standalone } from "./_harness.mjs";
-import {
-    EMPTY_COPY,
-    emptyStateKind,
-    sortPORows,
-    statusLabel,
-} from "../../../lib/poListView.js";
+import { EMPTY_COPY, emptyStateKind, statusLabel } from "../../../lib/poListView.js";
 
-export const title = "Purchase order list — ordering, status text, empty states (#168)";
-
-const order = (rows) => sortPORows(rows).map((r) => r.poId).join(",");
+export const title = "Purchase order list — status text and empty states (#168)";
 
 export function run({ check, assert, log }) {
-    // ── ordering ────────────────────────────────────────────────────────────
-    log("newest first, PO ID breaking a same-day tie:");
-    check(
-        "later Created Date first",
-        order([
-            { poId: "HYE-PO-20260801-01", createdDate: "2026-08-01" },
-            { poId: "HYE-PO-20260805-01", createdDate: "2026-08-05" },
-            { poId: "HYE-PO-20260803-01", createdDate: "2026-08-03" },
-        ]),
-        "HYE-PO-20260805-01,HYE-PO-20260803-01,HYE-PO-20260801-01"
-    );
-    // Created Date is calendar-only, so same-day orders tie and the ID decides.
-    check(
-        "same day falls back to PO ID, descending",
-        order([
-            { poId: "HYE-PO-20260805-01", createdDate: "2026-08-05" },
-            { poId: "HYE-PO-20260805-03", createdDate: "2026-08-05" },
-            { poId: "HYE-PO-20260805-02", createdDate: "2026-08-05" },
-        ]),
-        "HYE-PO-20260805-03,HYE-PO-20260805-02,HYE-PO-20260805-01"
-    );
-    // A DATA GAP MUST NOT TAKE THE TOP ROW — the same call sortCandidates makes.
-    check(
-        "an undated PO sorts last, not first",
-        order([
-            { poId: "HYE-PO-UNDATED-01", createdDate: null },
-            { poId: "HYE-PO-20260801-01", createdDate: "2026-08-01" },
-        ]),
-        "HYE-PO-20260801-01,HYE-PO-UNDATED-01"
-    );
-    check(
-        "and last however the input was ordered",
-        order([
-            { poId: "HYE-PO-20260801-01", createdDate: "2026-08-01" },
-            { poId: "HYE-PO-UNDATED-01", createdDate: null },
-        ]),
-        "HYE-PO-20260801-01,HYE-PO-UNDATED-01"
-    );
-
-    // The caller's array is the server's row list and a component may hold it.
-    const input = [
-        { poId: "HYE-PO-20260801-01", createdDate: "2026-08-01" },
-        { poId: "HYE-PO-20260805-01", createdDate: "2026-08-05" },
-    ];
-    sortPORows(input);
-    check("sorting does not mutate the caller's array", input[0].poId, "HYE-PO-20260801-01");
-    check("an empty list is fine", sortPORows([]).length, 0);
-
     // ── the Status column ───────────────────────────────────────────────────
-    log("status text — the field value, plus the date where there is one:");
+    log("status text — the field value, and nothing else:");
     check(
         "awaiting signature is rendered verbatim, with nothing added",
         statusLabel({ status: "Awaiting Signature" }),
         "Awaiting Signature"
     );
+    // NO STATUS CARRIES A DATE. Both timestamps are supplied here on purpose: with
+    // the fields absent these would pass whether or not the rule holds, which is
+    // the vacuous shape that hides a half-done change.
     check(
-        "signed carries its date",
+        "signed is the bare word, even when a signing instant exists",
         statusLabel({ status: "Signed", presidentSignedAt: "2026-07-27T04:15:00.000Z" }),
-        "Signed 2026-07-27"
+        "Signed"
     );
     check(
-        "withdrawn carries its date",
+        "withdrawn is the bare word, even when a withdrawal instant exists",
         statusLabel({ status: "Withdrawn", withdrawnAt: "2026-08-05T22:00:00.000Z" }),
-        "Withdrawn 2026-08-05"
+        "Withdrawn"
     );
-    check("signed with no timestamp still reads", statusLabel({ status: "Signed" }), "Signed");
-    check("withdrawn with no timestamp still reads", statusLabel({ status: "Withdrawn" }), "Withdrawn");
+    // A CLOSED SET: the column is three values a reader learns once, with no digit
+    // anywhere. Same property #166 asserts of its own chips.
+    for (const status of ["Awaiting Signature", "Signed", "Withdrawn"]) {
+        const label = statusLabel({ status, presidentSignedAt: "2026-07-27T04:15:00.000Z", withdrawnAt: "2026-08-05T22:00:00.000Z" });
+        check(`${status} renders as itself`, label, status);
+        assert(`and carries no digit`, !/\d/.test(label));
+    }
     // An option added to the Airtable field later must SHOW UP rather than vanish
     // — #19's posture for its own status tag.
     check("an unrecognized status is not swallowed", statusLabel({ status: "On Hold" }), "On Hold");

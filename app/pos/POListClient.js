@@ -128,70 +128,77 @@ export default function POListClient({
                         base's 2-digit convention), and `HYE-PO-20260805-02` renders
                         at 141px, so 38 of 40 rows wrapped to two lines. Content
                         widths at 14px/20px Arial, plus the 8px `pr-2` every column
-                        but the last carries: PO ID 149, Status 142, Vendor 124,
-                        Job 91, Created 80, Total 79 — 665px of the 832px a
-                        `max-w-4xl` page minus `p-8` has.
+                        but the last carries: Job / Line 184, PO ID 149, Vendor 124,
+                        Status 117, Total 79 — 653px of the 832px a `max-w-4xl` page
+                        minus `p-8` has.
 
-                        Five columns are bounded by construction and take only what
-                        they need: a PO ID is a fixed format, a date is ten
-                        characters, Status is a closed set whose longest rendering is
-                        `Withdrawn 2026-07-27`, Total is a currency figure, and a job
-                        code is short. So VENDOR TAKES ALL THE SLACK — 192px against
-                        the 124px this base's longest supplier needs. It is the only
-                        column whose content nobody here controls, and the one where
-                        wrapping would be least harmful if a longer name arrives. */}
+                        THREE COLUMNS ARE BOUNDED BY CONSTRUCTION and take only what
+                        they need plus a little: a PO ID is a fixed format, Status is
+                        a closed set of three whose widest is `Awaiting Signature`,
+                        and Total is a currency figure (104px still clears
+                        `$999,999.00`).
+
+                        THE REMAINING 27.5rem GOES TO THE TWO NOBODY CONTROLS.
+                        Vendor and Line are both human-entered, so the 179px of slack
+                        is split between them rather than banked on one — 192px
+                        against Vendor's 124, and 248px against Job / Line's 184,
+                        the larger share going to the cell that carries two values
+                        and a separator. */}
                     <table className="w-full min-w-[52rem] table-fixed text-sm">
                         <colgroup>
                             <col style={{ width: "10rem" }} />
                             <col style={{ width: "12rem" }} />
-                            <col style={{ width: "7rem" }} />
-                            <col style={{ width: "6rem" }} />
-                            <col style={{ width: "7rem" }} />
-                            <col style={{ width: "10rem" }} />
+                            <col style={{ width: "15.5rem" }} />
+                            <col style={{ width: "6.5rem" }} />
+                            <col style={{ width: "8rem" }} />
                         </colgroup>
                         <thead>
                             <tr className="text-left text-zinc-500">
                                 <th className="pr-2">PO ID</th>
                                 <th className="pr-2">Vendor</th>
-                                <th className="pr-2">Job</th>
-                                <th className="pr-2">Created</th>
+                                <th className="pr-2">Job / Line</th>
                                 <th className="pr-2 text-right">Total</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((row) => (
-                                <tr
-                                    key={row.id}
-                                    className="border-t border-zinc-200 dark:border-zinc-800"
-                                >
-                                    <td className="py-1 pr-2">
-                                        <Link href={`/pos/${row.poId}`} className="underline">
-                                            {row.poId}
-                                        </Link>
-                                    </td>
-                                    <td className="py-1 pr-2">{row.vendorName}</td>
-                                    <td className="py-1 pr-2">{row.jobCode || "—"}</td>
-                                    <td className="py-1 pr-2">{row.createdDate || "—"}</td>
-                                    <td className="py-1 pr-2 text-right">{formatUSD(row.total)}</td>
-                                    {/* A withdrawn order is terminal and stays on
-                                        record (#138), so it is dimmed rather than
-                                        hidden — the same treatment #122 gives a
-                                        withdrawn PR in its own list. Awaiting
-                                        Signature gets NO treatment at all: an
-                                        unsigned purchase order is an ordinary state
-                                        of one, not a problem to flag. */}
-                                    <td
+                            {filtered.map((row) => {
+                                // A withdrawn order is terminal and stays on record
+                                // (#138), so THE WHOLE ROW is dimmed rather than
+                                // hidden — the same "dimmed = ended" language #122
+                                // gives a withdrawn PR in its own list, and the same
+                                // classes, so the two lists read alike. The PO ID
+                                // link inherits the muted color and stays clickable.
+                                //
+                                // Awaiting Signature gets NO treatment at all: an
+                                // unsigned purchase order is an ordinary state of
+                                // one, not a problem to flag.
+                                const isWithdrawn = row.status === "Withdrawn";
+                                return (
+                                    <tr
+                                        key={row.id}
                                         className={
-                                            row.status === "Withdrawn"
-                                                ? "py-1 text-zinc-500"
-                                                : "py-1"
+                                            "border-t border-zinc-200 dark:border-zinc-800" +
+                                            (isWithdrawn ? " text-zinc-400 dark:text-zinc-600" : "")
                                         }
                                     >
-                                        {row.statusText}
-                                    </td>
-                                </tr>
-                            ))}
+                                        <td className="py-1 pr-2">
+                                            <Link href={`/pos/${row.poId}`} className="underline">
+                                                {row.poId}
+                                            </Link>
+                                        </td>
+                                        <td className="py-1 pr-2">{row.vendorName}</td>
+                                        {/* Job and Line in one cell, separated by a
+                                            middot — /prs's own shape for the pair. */}
+                                        <td className="py-1 pr-2">
+                                            {row.jobCode || "—"}
+                                            {row.lineName ? ` · ${row.lineName}` : ""}
+                                        </td>
+                                        <td className="py-1 pr-2 text-right">{formatUSD(row.total)}</td>
+                                        <td className="py-1">{row.statusText}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

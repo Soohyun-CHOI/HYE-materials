@@ -4,8 +4,9 @@ import { getAllPOs } from "@/lib/airtable/purchaseOrders";
 import { getPRsByRecordIds } from "@/lib/airtable/purchaseRequests";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
+import { getAllLines } from "@/lib/airtable/lines";
 import { canViewPR } from "@/lib/prVisibility";
-import { sortPORows, statusLabel } from "@/lib/poListView";
+import { statusLabel } from "@/lib/poListView";
 import POListClient from "./POListClient";
 
 // Purchase orders had no list (#168): a PO was reachable only through the PR that
@@ -27,7 +28,7 @@ export default async function POListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
 
-    // FIVE OPERATIONS, AND NONE OF THEM IS PER ROW. Each fetches a whole level
+    // SIX OPERATIONS, AND NONE OF THEM IS PER ROW. Each fetches a whole level
     // keyed on ids from the level above, which is the property #143 established
     // and #190 measured /prs failing — that page resolves one requester at a time,
     // so three of its seven operations are `Users: find`. getPRsByRecordIds is the
@@ -35,13 +36,23 @@ export default async function POListPage({ searchParams }) {
     // the rows carry the signerRowIds/correctionRowIds canViewPR needs for clauses
     // 5 and 6. getLinkedRecords is deliberately not used anywhere here: it re-finds
     // the parent on every call, which is why /prs/[prId] reads one PR five times.
-    const [pos, vendors, jobs] = await Promise.all([getAllPOs(), getAllVendors(), getAllJobs()]);
+    //
+    // Lines is the sixth and buys one thing: the Line NAME. A PR's `line` is a link
+    // and gives a record id, exactly as `job` does, so the column cannot be built
+    // without it — the same reason /prs fetches Lines for the same column.
+    const [pos, vendors, jobs, lines] = await Promise.all([
+        getAllPOs(),
+        getAllVendors(),
+        getAllJobs(),
+        getAllLines(),
+    ]);
     const parentPrIds = [...new Set(pos.map((po) => po.pr?.[0]).filter(Boolean))];
     const prs = await getPRsByRecordIds(parentPrIds);
 
     const prById = new Map(prs.map((pr) => [pr.id, pr]));
     const vendorNameById = new Map(vendors.map((v) => [v.id, v.vendorName]));
     const jobById = new Map(jobs.map((j) => [j.id, j]));
+    const lineById = new Map(lines.map((l) => [l.id, l]));
 
     // THE GATE. A PO with no parent PR is refused rather than shown: every PO in
     // this app is generated from one (strict 1:1), so a missing parent is a broken
@@ -51,28 +62,28 @@ export default async function POListPage({ searchParams }) {
         return pr ? canViewPR(user, pr) : false;
     });
 
-    const rows = sortPORows(
-        visible.map((po) => {
-            const pr = prById.get(po.pr?.[0]);
-            const jobId = pr?.job?.[0] ?? null;
-            return {
-                id: po.id,
-                poId: po.poId,
-                vendorName: vendorNameById.get(po.vendor?.[0]) || "—",
-                jobId,
-                jobCode: jobById.get(jobId)?.jobCode || null,
-                createdDate: po.createdDate || null,
-                total: po.totalAmount ?? po.itemsSubtotal ?? 0,
-                // The raw value drives the filter; the rendered text is the column.
-                status: po.status || "",
-                statusText: statusLabel(po),
-                // A PO carries no requester of its own — it is the parent PR's
-                // (#138). Resolved here so the requester's identity never reaches
-                // the client, the same way /prs resolves isMine server-side.
-                isMine: pr?.requester?.[0] === user.id,
-            };
-        })
-    );
+    // Already in PO ID descending order — Airtable sorted it in getAllPOs, the way
+    // /invoices sorts by Invoice ID. Nothing re-sorts here, so `map` preserves it.
+    const rows = visible.map((po) => {
+        const pr = prById.get(po.pr?.[0]);
+        const jobId = pr?.job?.[0] ?? null;
+        return {
+            id: po.id,
+            poId: po.poId,
+            vendorName: vendorNameById.get(po.vendor?.[0]) || "—",
+            jobId,
+            jobCode: jobById.get(jobId)?.jobCode || null,
+            lineName: lineById.get(pr?.line?.[0])?.lineName || null,
+            total: po.totalAmount ?? po.itemsSubtotal ?? 0,
+            // The raw value drives the filter; the rendered text is the column.
+            status: po.status || "",
+            statusText: statusLabel(po),
+            // A PO carries no requester of its own — it is the parent PR's
+            // (#138). Resolved here so the requester's identity never reaches
+            // the client, the same way /prs resolves isMine server-side.
+            isMine: pr?.requester?.[0] === user.id,
+        };
+    });
 
     // JOB FILTER OPTIONS COME FROM THE VISIBLE ROWS, NOT FROM THE VIEWER'S
     // ASSIGNMENTS, and that is a deliberate divergence from /prs. There, options
