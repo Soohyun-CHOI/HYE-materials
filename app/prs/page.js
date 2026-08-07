@@ -6,6 +6,7 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
+import { withOpsLabel } from "@/lib/airtableOps";
 import PRListClient from "./PRListClient";
 
 // Withdrawn (issue #122) is a real submitted-PR status, so it's a filter
@@ -17,7 +18,15 @@ const STATUSES = ["In Review", "Approved", "PO Signed", "Withdrawn"];
 // floor-level view. The SERVER decides which PRs a user may see and sends only
 // those down; the client (PRListClient) does the instant narrow-filtering
 // within that set, so it can never surface a PR the user isn't allowed to see.
-export default async function PRListPage({ searchParams }) {
+// The label is a one-line wrapper around the render rather than a block around
+// its body, so the page's own logic keeps its indentation and the diff that
+// introduced counting stays readable (#190). The label is the route TEMPLATE, so
+// repeated loads aggregate into one row.
+export default async function PRListPage(props) {
+    return withOpsLabel("/prs", () => renderPRListPage(props));
+}
+
+async function renderPRListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
     const isPrivileged = user.role === "President" || user.isAdmin === true;

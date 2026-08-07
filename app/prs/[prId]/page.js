@@ -16,6 +16,7 @@ import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFacts } from "@/lib/overagePR";
 import { formatUSD } from "@/lib/format";
+import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
@@ -31,7 +32,14 @@ const DONE_MESSAGES = {
     withdrawn: "Withdrew this PR.",
 };
 
-export default async function PRDetailPage({ params, searchParams }) {
+// Labeled for #190 — see the note in app/prs/page.js. This page reads five child
+// levels through getLinkedRecords, which is 1 + N by construction, so it is the
+// screen most likely to be paying more than it needs to.
+export default async function PRDetailPage(props) {
+    return withOpsLabel("/prs/[prId]", () => renderPRDetailPage(props));
+}
+
+async function renderPRDetailPage({ params, searchParams }) {
     const user = await requireUser();
     const { prId } = await params;
     const { done } = await searchParams;
