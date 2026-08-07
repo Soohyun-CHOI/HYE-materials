@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# HYE USA Portal
 
-## Getting Started
+Material purchasing for Hanyang ENG, a construction company: the **purchase
+request → purchase order → invoice → delivery** chain in one app, replacing a
+workflow that lived in email threads, spreadsheets and paper.
 
-First, run the development server:
+The problem was never any single step — it was that the three were never
+connected. The same order sat in a spreadsheet, an email thread and a vendor's
+invoice with nothing tying them together, so reconciling what was ordered
+against what was billed was manual and after the fact.
+
+## Stack
+
+- **Next.js** (App Router, JavaScript) with **Tailwind**, deployed on **Vercel**
+- **Airtable** as the data store only — all business logic lives in the backend
+- **Vercel Blob** for file uploads, which Airtable then ingests as attachments
+- **Resend** for magic-link sign-in and notification email
+
+## Running it
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Needs a `.env.local` with `AIRTABLE_API_KEY`, `SESSION_SECRET`, `RESEND_API_KEY`
+and `ALLOWED_EMAIL_DOMAIN`. Sign-in is magic-link only and restricted to the
+company email domain.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Checks
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm test
+```
 
-## Learn More
+Runs the offline verification tier — no credentials, no network, no dev server.
+It is a required status check on `main`. Checks that need Airtable live in
+`scripts/tests/verify-*.mjs` and are run by hand, because one shared base means
+concurrent runs would create and delete records against each other.
 
-To learn more about Next.js, take a look at the following resources:
+## Where the reasoning is
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`CLAUDE.md` is the project's working memory: the data model, the decisions
+behind it, and what each of them cost. Read it before changing anything.
+`docs/Build_Plan.md` is the original build plan.

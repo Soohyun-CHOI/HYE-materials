@@ -8,6 +8,8 @@ import { getDraftsByRequester } from "@/lib/airtable/purchaseRequests";
 import { loadPRDraft } from "@/lib/prDraft";
 import PRForm from "./PRForm";
 
+export const metadata = { title: "New Purchase Request" };
+
 export default async function NewPRPage({ searchParams }) {
     const user = await requireUser();
 

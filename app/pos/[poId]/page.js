@@ -24,6 +24,13 @@ import SignForm from "./SignForm";
 import RegeneratePDFForm from "./RegeneratePDFForm";
 import WithdrawPOForm from "./WithdrawPOForm";
 
+// The route param IS the human-readable ID, so the tab names the record for
+// ZERO Airtable operations (#201) — this reads the URL and nothing else.
+export async function generateMetadata({ params }) {
+    const { poId } = await params;
+    return { title: poId };
+}
+
 const DONE_MESSAGES = {
     signed: "Signed the PO.",
     "pdf-regenerated": "Regenerated the PDF.",

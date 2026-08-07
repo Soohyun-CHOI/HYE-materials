@@ -6,6 +6,8 @@ import { lowestPriceRowIds, qtyDiffersAcross, statusTag } from "@/lib/materialPr
 import { formatUSD } from "@/lib/format";
 import MaterialSearchForm from "./MaterialSearchForm";
 
+export const metadata = { title: "Material prices" };
+
 // Every active user, no Job scoping (#19): what a material costs is not a
 // per-Job secret, and site staff pricing a job need it as much as the office.
 // Document identifiers are the exception and are gated per row inside

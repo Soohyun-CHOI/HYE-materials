@@ -6,6 +6,8 @@ import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveryForm from "./DeliveryForm";
 
+export const metadata = { title: "Record a delivery" };
+
 /**
  * Record a delivery (#162).
  *

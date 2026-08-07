@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/lib/authz";
 import { createVendorAction } from "./actions";
 
+export const metadata = { title: "New Vendor" };
+
 export default async function NewVendorPage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {

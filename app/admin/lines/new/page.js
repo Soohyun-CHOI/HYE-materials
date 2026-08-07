@@ -2,6 +2,8 @@ import { requireAdmin } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import LineForm from "./LineForm";
 
+export const metadata = { title: "New Line" };
+
 export default async function NewLinePage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {

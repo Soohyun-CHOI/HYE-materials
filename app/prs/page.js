@@ -9,6 +9,8 @@ import { canViewPR } from "@/lib/prVisibility";
 import { withOpsLabel } from "@/lib/airtableOps";
 import PRListClient from "./PRListClient";
 
+export const metadata = { title: "Purchase Requests" };
+
 // Withdrawn (issue #122) is a real submitted-PR status, so it's a filter
 // option here too — getSubmittedPRs returns Withdrawn PRs (they aren't
 // Drafts), and this list keeps them visible/distinguishable.

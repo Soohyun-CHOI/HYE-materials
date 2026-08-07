@@ -4,6 +4,8 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
 import InvoiceForm from "./InvoiceForm";
 
+export const metadata = { title: "New Invoice" };
+
 // Admin-only (issue #14) — manual invoice entry is back-office data entry,
 // same category as the Job/Vendor/Line admin forms, not a floor-level
 // action like PR creation (requireUser()).

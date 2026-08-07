@@ -6,6 +6,8 @@ import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import EditInvoiceForm from "./EditInvoiceForm";
 
+export const metadata = { title: "Edit Invoice" };
+
 // Admin-only (issue #117) — editing is back-office data entry, same category
 // as creating an invoice and the Admin-only Paid toggle. Viewing the invoice
 // stays President-or-Admin; only Admins reach this edit page, and

@@ -10,6 +10,8 @@ import { getDeliveryInvoicing } from "@/lib/deliveryReconciliation";
 import { describeDeliveryColumn, resolveDeliveryFilters } from "@/lib/deliveryStatus";
 import DeliveriesListClient from "./DeliveriesListClient";
 
+export const metadata = { title: "Deliveries" };
+
 /**
  * Recorded deliveries, newest arrival first (#162).
  *
