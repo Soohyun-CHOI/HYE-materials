@@ -1,5 +1,7 @@
-// uninvoicedQty / hasUninvoicedQty — the uninvoiced remainder of a PO line
-// (#48, extracted in #18).
+// The per-line quantity judgements: uninvoicedQty / hasUninvoicedQty, the
+// uninvoiced remainder of a PO line (#48, extracted in #18), and countsAsOrdered,
+// which #169 moved here from lib/materialPriceView.js — the condition for moving
+// it was CLAUDE.md's, not that module's.
 //
 // Pinned because the negative case is a deliberate behaviour that reads like a
 // bug: more invoiced than ordered must stay negative, not clamp to 0. Three call
@@ -9,10 +11,10 @@
 //
 // lib/poItemQty.js imports nothing, which is what lets this be offline.
 
-import { uninvoicedQty, hasUninvoicedQty } from "../../../lib/poItemQty.js";
+import { uninvoicedQty, hasUninvoicedQty, countsAsOrdered } from "../../../lib/poItemQty.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "PO line remainder — uninvoicedQty / hasUninvoicedQty (#18)";
+export const title = "PO line quantity judgements — uninvoiced remainder, counts-as-ordered (#18, #169)";
 
 export function run({ check, log }) {
     log("uninvoicedQty:");
@@ -52,6 +54,18 @@ export function run({ check, log }) {
             uninvoicedQty({ qty, invoicedQty }) > 0
         );
     }
+
+    // MOVED HERE FROM material-price-view.mjs BY #169, with the function itself.
+    log("");
+    log("countsAsOrdered — reads #18's Committed Qty, does not re-derive it:");
+    check("a live line counts", countsAsOrdered({ committedQty: 5 }), true);
+    // Committed Qty is IF(status = Withdrawn, 0, Qty), so this IS the withdrawn
+    // case — without this file naming a status string.
+    check("a withdrawn PO's line does not", countsAsOrdered({ committedQty: 0 }), false);
+    check("a blank rollup does not", countsAsOrdered({}), false);
+    // Deliberately indistinguishable from withdrawn, which is why #19's screen
+    // takes its LABEL from PO Status and only the judgement from here.
+    check("a Qty-0 line on a live PO also does not", countsAsOrdered({ committedQty: 0 }), false);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

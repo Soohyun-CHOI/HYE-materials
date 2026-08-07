@@ -13,6 +13,8 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { formatUSD } from "@/lib/format";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFactsForPO } from "@/lib/overagePR";
+import { undeliveredQty } from "@/lib/deliveryAllocation";
+import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import {
     getPOWithdrawEligibility,
@@ -37,13 +39,25 @@ const DONE_MESSAGES = {
     withdrawn: "Withdrew this PO.",
 };
 
+// Labeled for #190, the way #200 labeled /pos and app/prs/page.js labels /prs.
+// An outer wrapper, so the page's own body keeps its indentation, and the route
+// TEMPLATE, so repeated loads aggregate into one row rather than forty. #169
+// added it because this page's cost was unmeasurable without it: the counter
+// writes a per-scope record only for a labeled render, so an unlabeled page
+// contributes to the process total and to nothing a reader can attribute.
+export default async function PODetailPage(props) {
+    return withOpsLabel("/pos/[poId]", () => renderPODetailPage(props));
+}
+
 // Viewing is row-scoped (issue #132): President/Admin see every PO; any other
 // active user sees a PO only for a PR they raised or on their assigned Job —
 // the same rule as the PR list (#119), shared via canViewPR. Invoice-derived
 // data (Invoiced/Uninvoiced + the per-item invoice-line breakdown) and the
 // sign/regenerate write controls stay President/Admin-only; the PO PDF is
 // visible to everyone who can see the PO (site staff place the order from it).
-export default async function PODetailPage({ params, searchParams }) {
+// Delivered/Undelivered are NOT in that set (#169): delivery-derived, so every
+// viewer who can see the order sees them.
+async function renderPODetailPage({ params, searchParams }) {
     const user = await requireUser();
     const isPrivileged = user.role === "President" || user.isAdmin === true;
     const { poId } = await params;
@@ -214,6 +228,14 @@ export default async function PODetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Qty</th>
                             <th className="pr-2 text-right">Unit Price</th>
                             <th className="pr-2 text-right">Amount</th>
+                            {/* Delivery-derived (#169), so EVERY viewer who can see
+                                the order sees these — the same category as the
+                                `Material` link and #167's provenance reverse-link,
+                                and the reason recordToPOItem now carries
+                                `Delivered Qty`. They sit before the invoice pair so
+                                a non-privileged viewer's columns stay contiguous. */}
+                            <th className="pr-2 text-right">Delivered</th>
+                            <th className="pr-2 text-right">Undelivered</th>
                             {/* Invoice-derived (#48) — President/Admin only (#132). */}
                             {isPrivileged && <th className="pr-2 text-right">Invoiced</th>}
                             {isPrivileged && <th className="pr-2 text-right">Uninvoiced</th>}
@@ -230,6 +252,27 @@ export default async function PODetailPage({ params, searchParams }) {
                                     <td className="py-1 pr-2 text-right">{it.qty}</td>
                                     <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
                                     <td className="py-1 pr-2 text-right">{it.amount}</td>
+                                    <td className="py-1 pr-2 text-right">{it.deliveredQty ?? 0}</td>
+                                    {/* NEGATIVE IS TREATED EXACTLY AS Uninvoiced
+                                        TREATS IT, two columns to the right: red,
+                                        with `(over)`. The two perform the same
+                                        subtraction against the same `Qty` and a
+                                        negative means the same thing in both — more
+                                        arrived, or more was billed, than was
+                                        ordered. Signalling differently for one sign
+                                        would imply a distinction neither column
+                                        makes, and `(over)` is this base's own word
+                                        for it (`Delivery Items."Over Delivered"`). */}
+                                    <td
+                                        className={
+                                            undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty }) < 0
+                                                ? "py-1 pr-2 text-right text-red-600"
+                                                : "py-1 pr-2 text-right"
+                                        }
+                                    >
+                                        {undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty })}
+                                        {undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty }) < 0 && " (over)"}
+                                    </td>
                                     {isPrivileged && (
                                         <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
                                     )}
@@ -249,7 +292,11 @@ export default async function PODetailPage({ params, searchParams }) {
                                 </tr>
                                 {it.invoiceLines.length > 0 && (
                                     <tr className="border-t border-dashed border-zinc-200 dark:border-zinc-800">
-                                        <td colSpan={9} className="py-1 pl-4 text-xs text-zinc-500">
+                                        {/* Spans the privileged column count, which
+                                            #169 took from 9 to 11. This row only ever
+                                            renders for a privileged viewer, since
+                                            invoiceLines is empty for everyone else. */}
+                                        <td colSpan={11} className="py-1 pl-4 text-xs text-zinc-500">
                                             <ul className="space-y-0.5">
                                                 {it.invoiceLines.map((line) => {
                                                     const parentInvoice = invoiceByRecordId.get(line.invoice?.[0]);
@@ -303,7 +350,7 @@ export default async function PODetailPage({ params, searchParams }) {
                         shippingFee={po.shippingFee}
                         totalAmount={po.totalAmount}
                         labelColSpan={5}
-                        trailingColSpan={isPrivileged ? 3 : 1}
+                        trailingColSpan={isPrivileged ? 5 : 3}
                     />
                 </table>
                 <p className="mt-2 text-xs text-zinc-500">

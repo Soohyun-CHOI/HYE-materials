@@ -5,8 +5,10 @@ import { getPRsByRecordIds } from "@/lib/airtable/purchaseRequests";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
+import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { canViewPR } from "@/lib/prVisibility";
 import { statusLabel } from "@/lib/poListView";
+import { describePOColumn, summarizePODeliveryStatus } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import POListClient from "./POListClient";
 
@@ -37,7 +39,7 @@ const STATUSES = ["Awaiting Signature", "Signed", "Withdrawn"];
 //
 // An outer wrapper, so the page's own logic keeps its indentation, and the route
 // TEMPLATE, so repeated loads aggregate into one row. Same shape as
-// app/prs/page.js.
+// app/prs/page.js. #169 added the seventh and eighth operations; see below.
 export default async function POListPage(props) {
     return withOpsLabel("/pos", () => renderPOListPage(props));
 }
@@ -80,6 +82,34 @@ async function renderPOListPage({ searchParams }) {
         return pr ? canViewPR(user, pr) : false;
     });
 
+    // THE DELIVERY LEVEL, IN ONE READ FOR THE WHOLE PAGE (#169). getAllPOs already
+    // returned each PO's `PO Items` reverse-link array — core link data that costs
+    // nothing extra to expose, which is why #19 put it on the mapper — so the ids
+    // are in hand and one findByRecordIds fetches every line of every VISIBLE
+    // order. Gathering from `visible` rather than from `pos` is deliberate: a
+    // viewer's refused rows must not put their lines on the wire either.
+    //
+    // This is the opposite shape from the one #193 exists to remove. That is
+    // getLinkedRecords' 1 + N — a find() for the parent and a find() per child;
+    // this is zero per row, one query per 50 ids. On this base 40 orders carry 53
+    // lines, so it is two operations and the page goes six to eight. What grows it
+    // is the number of LINES, at one query per fifty, never the number of rows
+    // rendered.
+    const poItemRecordIds = visible.flatMap((po) => po.poItems || []);
+    const poItems = await getPOItemsByRecordIds(poItemRecordIds);
+
+    const linesByPO = new Map();
+    for (const item of poItems) {
+        const poRecordId = item.po?.[0];
+        if (!poRecordId) continue;
+        if (!linesByPO.has(poRecordId)) linesByPO.set(poRecordId, []);
+        linesByPO.get(poRecordId).push({
+            orderedQty: item.qty,
+            deliveredQty: item.deliveredQty,
+            committedQty: item.committedQty,
+        });
+    }
+
     // Already in PO ID descending order — Airtable sorted it in getAllPOs, the way
     // /invoices sorts by Invoice ID. Nothing re-sorts here, so `map` preserves it.
     const rows = visible.map((po) => {
@@ -96,6 +126,12 @@ async function renderPOListPage({ searchParams }) {
             // The raw value drives the filter; the rendered text is the column.
             status: po.status || "",
             statusText: statusLabel(po),
+            // #169 — the same function the detail page calls, so the row a reader
+            // clicks and the page they land on cannot describe one order
+            // differently. Resolved to a chip here rather than in the Client
+            // Component, because the copy lives in lib/deliveryStatus.js and
+            // nothing under app/ should hold a second copy of it.
+            deliveryChip: describePOColumn(summarizePODeliveryStatus(linesByPO.get(po.id) || [])),
             // A PO carries no requester of its own — it is the parent PR's
             // (#138). Resolved here so the requester's identity never reaches
             // the client, the same way /prs resolves isMine server-side.

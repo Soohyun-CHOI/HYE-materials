@@ -512,6 +512,44 @@ export function run(reporter) {
             1
         );
     }
+
+    // ── delivered quantity reaches the employee-facing mapper (#169) ────────
+    //
+    // WHAT THIS STANDS IN FOR IS AN ACCESS QUESTION, NOT A SHAPE ONE. /pos/[poId]
+    // withholds invoice-derived fields from a non-privileged viewer (#132), and
+    // #169's whole premise is that delivered quantity is delivery-derived and must
+    // NOT be withheld with them. Proving that behaviourally needs a session for a
+    // non-Admin who is nonetheless in a PO's scope, and this base has no such
+    // account — authz-fixture has no Assigned Jobs, and CLAUDE.md forbids giving it
+    // any. So the property is asserted where it is actually decided: recordToPOItem
+    // is the mapper that page reads through, and a field absent there is withheld
+    // from everyone regardless of what the page renders.
+    const poItemsModule = parseFile("lib/airtable/poItems.js");
+    assert("lib/airtable/poItems.js parses", poItemsModule !== null);
+    if (poItemsModule) {
+        const mapper = resolveFunction(poItemsModule.ast, "recordToPOItem");
+        assert("recordToPOItem resolves", mapper !== null);
+        if (mapper) {
+            const fields = new Set();
+            walk(mapper, (n) => {
+                if (n.type !== "Property") return;
+                const key = n.key?.type === "Identifier" ? n.key.name : n.key?.value;
+                if (key) fields.add(key);
+            });
+            for (const field of ["deliveredQty", "committedQty"]) {
+                assert(`recordToPOItem carries ${field} — delivery-derived, not withheld`, fields.has(field));
+            }
+            // ANTI-VACUITY. The two assertions above also pass if `walk` collected
+            // every Property in the file, or if the resolver handed back something
+            // larger than this mapper. `invoicedQty` is the field that must NOT be
+            // here — it is invoice-derived and #132 withholds it — so its absence
+            // is what shows the set is really this function's own.
+            assert(
+                "and does NOT carry invoicedQty — the field #132 withholds",
+                !fields.has("invoicedQty")
+            );
+        }
+    }
 }
 
 if (isMain(import.meta.url)) standalone(title, run);
