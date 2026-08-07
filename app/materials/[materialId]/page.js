@@ -4,6 +4,15 @@ import { getMaterialPurchaseHistory } from "@/lib/materialHistory";
 import { countsAsOrdered, statusTag } from "@/lib/materialPriceView";
 import { formatUSD } from "@/lib/format";
 
+// Static, unlike the four record-detail pages (#201), and the record-id keying
+// described just below is why. The param names nothing a reader would recognize,
+// so a tab that named the item would have to resolve it — and that is a SECOND
+// read of the same record, not a free one: generateMetadata runs separately from
+// the page render, and the airtable SDK has no fetch deduplication for the
+// page's own query to be reused by. The other four detail routes carry the
+// human ID in the URL already, so they name their record for zero operations.
+export const metadata = { title: "Material" };
+
 // A page, not a modal (#19): this repo's modals are confirmation dialogs
 // (app/components/modalStyles.js), and every reading surface — /prs/[prId],
 // /pos/[poId] — is its own route so it can be linked and reloaded.

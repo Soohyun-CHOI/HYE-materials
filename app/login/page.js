@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { SIGN_IN_TITLE } from "@/lib/productName";
 
 const ERROR_MESSAGES = {
     missing_token: "That sign-in link is missing its token.",
@@ -56,7 +57,12 @@ function LoginForm() {
     return (
         <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
             <div>
-                <h1 className="text-2xl font-semibold">Sign in</h1>
+                {/* The same line the magic-link email's subject carries, from
+                    the same constant (#201) — this is the screen that email
+                    lands on, so reading the sentence it was sent under is what
+                    says the link arrived where it claimed, and distinguishes
+                    this app from the group's other portals. */}
+                <h1 className="text-2xl font-semibold">{SIGN_IN_TITLE}</h1>
                 <p className="mt-1 text-zinc-600 dark:text-zinc-400">
                     Use your company email address.
                 </p>

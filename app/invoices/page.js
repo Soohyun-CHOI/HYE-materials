@@ -7,6 +7,8 @@ import { STATUS_COPY, describeInvoiceColumn } from "@/lib/deliveryStatus";
 import { InferredMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { formatUSD } from "@/lib/format";
 
+export const metadata = { title: "Invoices" };
+
 // President-or-Admin, same access rule as the invoice detail and PO pages
 // (#48/#15). Invoices have no per-requester scoping — anyone allowed to view
 // invoices sees them all. The gate is an inline check (no dedicated helper),

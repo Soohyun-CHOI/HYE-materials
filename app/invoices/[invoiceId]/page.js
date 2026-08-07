@@ -12,6 +12,13 @@ import { formatUSD } from "@/lib/format";
 import PaidForm from "./PaidForm";
 import DeleteInvoiceButton from "./DeleteInvoiceButton";
 
+// The route param IS the human-readable ID, so the tab names the record for
+// ZERO Airtable operations (#201) — this reads the URL and nothing else.
+export async function generateMetadata({ params }) {
+    const { invoiceId } = await params;
+    return { title: invoiceId };
+}
+
 const DONE_MESSAGES = {
     created: "Invoice created.",
     updated: "Invoice updated.",

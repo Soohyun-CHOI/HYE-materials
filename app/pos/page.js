@@ -10,6 +10,8 @@ import { statusLabel } from "@/lib/poListView";
 import { withOpsLabel } from "@/lib/airtableOps";
 import POListClient from "./POListClient";
 
+export const metadata = { title: "Purchase Orders" };
+
 // Purchase orders had no list (#168): a PO was reachable only through the PR that
 // generated it, and /api/pos/search is Admin-only. Delivery status is out of
 // scope here — that is #169, and it needed this page first.

@@ -1,4 +1,4 @@
-# Material PO Automation — Project Build Plan
+# HYE USA Portal — Project Build Plan
 
 Where things stand: the Airtable schema (12 tables) is complete, validated, and internally consistent — this plan covers building the actual application on top of it.
 

@@ -16,6 +16,13 @@ import { STATUS_COPY } from "@/lib/deliveryStatus";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
 import OverageButton from "./OverageButton";
 
+// The route param IS the human-readable ID, so the tab names the record for
+// ZERO Airtable operations (#201) — this reads the URL and nothing else.
+export async function generateMetadata({ params }) {
+    const { deliveryId } = await params;
+    return { title: deliveryId };
+}
+
 const DONE_MESSAGES = {
     recorded: "Delivery recorded.",
     updated: "Delivery updated.",

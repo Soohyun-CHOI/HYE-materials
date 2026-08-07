@@ -6,6 +6,8 @@ import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import DeliveryEditForm from "./DeliveryEditForm";
 
+export const metadata = { title: "Edit Delivery" };
+
 /**
  * Correct a recorded delivery (#162) — its own page, laid out like
  * app/invoices/[invoiceId]/edit.

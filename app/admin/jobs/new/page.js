@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/lib/authz";
 import { createJobAction } from "./actions";
 
+export const metadata = { title: "New Job" };
+
 export default async function NewJobPage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {

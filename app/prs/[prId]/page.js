@@ -23,6 +23,13 @@ import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
 import WithdrawPRForm from "./WithdrawPRForm";
 
+// The route param IS the human-readable ID, so the tab names the record for
+// ZERO Airtable operations (#201) — this reads the URL and nothing else.
+export async function generateMetadata({ params }) {
+    const { prId } = await params;
+    return { title: prId };
+}
+
 const DONE_MESSAGES = {
     submitted: "Submitted for review.",
     approved: "Recorded your approval.",
