@@ -7,6 +7,7 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
 import { canViewPR } from "@/lib/prVisibility";
 import { statusLabel } from "@/lib/poListView";
+import { withOpsLabel } from "@/lib/airtableOps";
 import POListClient from "./POListClient";
 
 // Purchase orders had no list (#168): a PO was reachable only through the PR that
@@ -24,7 +25,22 @@ import POListClient from "./POListClient";
 // confirming that a record exists outside someone's scope.
 const STATUSES = ["Awaiting Signature", "Signed", "Withdrawn"];
 
-export default async function POListPage({ searchParams }) {
+// Labeled for #190, and NOT because every screen is — attribution there is
+// opt-in, and /invoices, /deliveries and /materials are still unlabeled by
+// design. This one is labeled because #168's cost claim is a COMPARISON WITH
+// /prs: that page spends 7 operations and three of them are one `Users: find`
+// per distinct requester, where this page resolves every level in a batch. The
+// comparison is only a measurement if both ends are labeled, and #190's counter
+// landed after this page did, so the label could not be added with the page.
+//
+// An outer wrapper, so the page's own logic keeps its indentation, and the route
+// TEMPLATE, so repeated loads aggregate into one row. Same shape as
+// app/prs/page.js.
+export default async function POListPage(props) {
+    return withOpsLabel("/pos", () => renderPOListPage(props));
+}
+
+async function renderPOListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
 
