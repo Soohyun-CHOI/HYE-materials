@@ -2,10 +2,16 @@ import { formatUSD } from "@/lib/format";
 
 // Standard invoice-style summary rows for an items table's <tfoot>, shared
 // by the PR and PO detail pages so the two stay visually identical. The
-// tables differ in column count (PR has 7-8, PO has 9), so the caller tells
-// us how many columns sit to the left of the Amount column (labelColSpan)
-// and how many to its right (trailingColSpan); the value always lands in
-// the Amount column, right-aligned, matching where per-line amounts render.
+// tables differ in column count (PR has 7-8; PO has 9 or 11 since #169 added
+// Delivered and Undelivered), so the caller tells us how many columns sit to
+// the left of the Amount column (labelColSpan) and how many to its right
+// (trailingColSpan); the value always lands in the Amount column,
+// right-aligned, matching where per-line amounts render.
+//
+// trailingColSpan IS THE ONE A NEW COLUMN BREAKS, and it breaks silently — the
+// footer simply stops lining up with the rows above it, which no offline check
+// can see. It is a count of what is to the RIGHT of Amount, so adding a column
+// anywhere after Amount has to update it at the call site.
 //
 // Shipping Fee ALWAYS renders (as $0.00 when blank) — formatUSD maps
 // null/undefined to 0 — so the footer is a consistent three rows on both

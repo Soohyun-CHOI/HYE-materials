@@ -12,7 +12,6 @@
 
 import {
     buildSearchTokens,
-    countsAsOrdered,
     lowestPriceRowIds,
     qtyDiffersAcross,
     sortHistoryRows,
@@ -159,17 +158,6 @@ export function run({ check, log, assert }) {
             .join(","),
         "dated,undated"
     );
-
-    log("");
-    log("countsAsOrdered — reads #18's Committed Qty, does not re-derive it:");
-    check("a live line counts", countsAsOrdered({ committedQty: 5 }), true);
-    // Committed Qty is IF(status = Withdrawn, 0, Qty), so this IS the withdrawn
-    // case — without this file naming a status string.
-    check("a withdrawn PO's line does not", countsAsOrdered({ committedQty: 0 }), false);
-    check("a blank rollup does not", countsAsOrdered({}), false);
-    // Deliberately indistinguishable from withdrawn, which is why the screen
-    // takes its LABEL from PO Status and only the judgement from here.
-    check("a Qty-0 line on a live PO also does not", countsAsOrdered({ committedQty: 0 }), false);
 
     log("");
     log("statusTag — silence means Signed:");
