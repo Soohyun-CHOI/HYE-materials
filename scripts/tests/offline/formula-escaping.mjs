@@ -67,9 +67,13 @@ const SEARCH_DIRS = ["lib", "app"];
  * user-supplied value can reach this", not "this looked safe to me".
  */
 const ALLOWED_RAW = {
-    PO_WITHDRAWN_STATUS:
-        'module constant in purchaseOrders.js (= "Withdrawn"), the Airtable ' +
-        "select option's own name; no caller supplies it and no user input reaches it",
+    PO_NOT_WITHDRAWN:
+        'module constant in purchaseOrders.js — the fragment `{Status} != "Withdrawn"`, ' +
+        "built from PO_WITHDRAWN_STATUS, the Airtable select option's own name; no " +
+        "caller supplies it and no user input reaches it. REPLACED the narrower " +
+        "PO_WITHDRAWN_STATUS entry in #168, which moved that interpolation into this " +
+        "one shared fragment so the two invoice-side readers cannot answer differently " +
+        "about the same PO. The list stays at one entry rather than gaining a second",
 };
 
 /** The canonical module. A local helper of the same name must not satisfy this. */

@@ -66,8 +66,10 @@ async function createInvoiceHandler(prevState, formData) {
     // Placed before the first write, not inside the try below: a refusal
     // must create nothing at all rather than lean on the rollback path.
     // Withdrawn POs are already absent from the picker and from PO detection
-    // (getAllPOs/searchPOs, /api/invoices/detect-po), but a Server Action is
-    // directly callable, and a PO can be withdrawn while this form sits open.
+    // (getPOsExceptWithdrawn/searchPOs, /api/invoices/detect-po), but a Server
+    // Action is directly callable, and a PO can be withdrawn while this form sits
+    // open. Withdrawn is now the ONLY status either side excludes (#168), so this
+    // check and those queries agree on exactly one condition.
     const distinctPoIds = [...new Set(items.map((item) => item.poRecordId))];
     let linkedPos;
     try {

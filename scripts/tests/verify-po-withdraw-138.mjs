@@ -26,7 +26,7 @@
 // exports and they silently reported false for weeks while the guards were
 // intact. They are AST-based now and run on every push via `npm test`.
 //
-// Part C exercises the real searchPOs()/getAllPOs() to prove a withdrawn PO
+// Part C exercises the real searchPOs()/getPOsExceptWithdrawn() to prove a withdrawn PO
 // drops out of the invoice-side candidate set, before and after withdrawal.
 //
 // Fixtures: 6 throwaway PRs + POs and 1 invoice, all deleted afterward
@@ -49,7 +49,7 @@ import {
     PO_WITHDRAWABLE_STATUSES,
 } from "../../lib/poWithdraw.js";
 import {
-    getAllPOs,
+    getPOsExceptWithdrawn,
     getOpenPOs,
     getPOByRecordId,
     searchPOs,
@@ -334,10 +334,10 @@ try {
 
     console.log("\nPart C — invoice-side candidate queries exclude it:");
     check("searchPOs drops the withdrawn PO", (await searchPOs(po6.poId)).length, 0);
-    const allPos = await getAllPOs();
-    check("getAllPOs drops the withdrawn PO", allPos.some((po) => po.id === po6.id), false);
-    check("getAllPOs returns no withdrawn PO at all", allPos.some(isPOWithdrawn), false);
-    // getOpenPOs needs no change of its own — it filters getAllPOs()'s result
+    const allPos = await getPOsExceptWithdrawn();
+    check("getPOsExceptWithdrawn drops the withdrawn PO", allPos.some((po) => po.id === po6.id), false);
+    check("getPOsExceptWithdrawn returns no withdrawn PO at all", allPos.some(isPOWithdrawn), false);
+    // getOpenPOs needs no change of its own — it filters getPOsExceptWithdrawn()'s result
     // by uninvoiced qty — but "inherits the exclusion" is only
     // worth stating if it's checked. po7 has an item with nothing invoiced
     // against it, so openness can't be what keeps it out; only the status

@@ -400,23 +400,67 @@ export function run(reporter) {
         firstPositionOf(poPage.ast, (n) => n.type === "Literal" && n.value === "Awaiting Signature") === -1
     );
 
-    // Both invoice-side PO queries must name the excluded status. Counted as
-    // interpolations inside a template literal rather than as bare identifier
-    // references, so the constant's own declaration doesn't inflate the count
-    // and a mention in a comment cannot contribute at all.
+    // THE STATUS CONDITION IS BUILT ONCE AND READ TWICE (#168). This used to
+    // require the opposite — PO_WITHDRAWN_STATUS interpolated TWICE, once in each
+    // invoice-side query — which pinned the duplication rather than the rule. Both
+    // readers feed the same screen (the invoice form's picker and its search
+    // escape hatch), so a condition changed on one side would have made the
+    // dropdown hide a PO the search finds. Counted as interpolations inside a
+    // template literal, so a mention in a comment cannot contribute.
     const poTable = fileOf("lib/airtable/purchaseOrders.js");
-    let interpolations = 0;
+    let statusInterpolations = 0;
+    let fragmentUses = 0;
     walk(poTable.ast, (n) => {
         if (n.type !== "TemplateLiteral") return;
         for (const expr of n.expressions) {
-            if (expr.type === "Identifier" && expr.name === "PO_WITHDRAWN_STATUS") interpolations++;
+            if (expr.type !== "Identifier") continue;
+            if (expr.name === "PO_WITHDRAWN_STATUS") statusInterpolations++;
+            if (expr.name === "PO_NOT_WITHDRAWN") fragmentUses++;
         }
     });
     check(
-        "getAllPOs and searchPOs both interpolate PO_WITHDRAWN_STATUS into their filterByFormula",
-        interpolations,
+        "the excluded status is interpolated in exactly one place — the shared fragment",
+        statusInterpolations,
+        1
+    );
+    check(
+        "and both invoice-side readers interpolate that fragment",
+        fragmentUses,
         2
     );
+
+    // HAVING NO FILTER IS getAllPOs's CONTRACT (#168), and the failure mode is why
+    // it is worth a check rather than a comment. The /pos list shows what it is
+    // given; add a status condition here and the matching rows stop appearing with
+    // nothing on screen to say a row was withheld. A list cannot show its own
+    // omissions, so nobody would notice.
+    const allPOs = resolveFunction(poTable.ast, "getAllPOs");
+    assert("getAllPOs resolves", allPOs !== null);
+    if (allPOs) {
+        let filters = 0;
+        walk(allPOs, (n) => {
+            if (n.type !== "Property") return;
+            const key = n.key;
+            const name = key?.type === "Identifier" ? key.name : key?.type === "Literal" ? key.value : null;
+            if (name === "filterByFormula") filters++;
+        });
+        check("getAllPOs builds no filterByFormula — every status reaches /pos", filters, 0);
+
+        // AND IT SORTS BY `PO ID` DESCENDING, server-side, the way getAllInvoices
+        // sorts by `Invoice ID`. That ordering is why /pos shows no Created column
+        // at all: a PO ID is fixed width and zero-padded, so ID order IS date
+        // order. Drop the sort and the list silently falls back to Airtable's own
+        // order, with no date on screen to make the loss visible.
+        let sortsByPoId = false;
+        walk(allPOs, (n) => {
+            if (n.type !== "Property") return;
+            const key = n.key?.type === "Identifier" ? n.key.name : n.key?.value;
+            if (key !== "sort") return;
+            const text = poTable.source.slice(n.start, n.end);
+            if (/PO ID/.test(text) && /desc/.test(text)) sortsByPoId = true;
+        });
+        assert("getAllPOs sorts by PO ID descending — the list shows no date of its own", sortsByPoId);
+    }
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

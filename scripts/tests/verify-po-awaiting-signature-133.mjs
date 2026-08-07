@@ -2,13 +2,23 @@
 // `Awaiting Signature`. Behavior must be unchanged. Run AFTER the Airtable
 // option rename.
 //
-// The one silent-failure risk is a leftover `!= "Draft"` filter string: it
-// wouldn't error, it would quietly let unsigned POs through as invoiceable.
-// Step 2 is the only place that catches it — a freshly generated (unsigned)
-// PO must be absent from all three PO-list functions. Step 3 is the control
-// (a signed PO still shows), Step 4 confirms the rename didn't touch PR
-// `Draft`. Fixtures are deleted in this same run through
-// scripts/tests/_fixtures.mjs (#171).
+// STEP 2 WAS INVERTED BY #168, AND THE GUARD IT USED TO BE HAS NO SUBJECT LEFT.
+// As written for #133, the silent-failure risk was a leftover `!= "Draft"` filter
+// string: it would not error, it would quietly let unsigned POs through as
+// invoiceable, and Step 2 caught that by requiring a freshly generated (unsigned)
+// PO to be ABSENT from all three PO-list functions.
+//
+// #168 removed the signature-status condition from those filters altogether, on
+// the measured ground that an Awaiting Signature PO can legitimately carry an
+// invoice (`HYE-PO-20260805-02` does). So there is no `"Awaiting Signature"`
+// string left to go stale, and nothing for the original guard to guard. Step 2
+// now asserts the new behavior instead — the unsigned PO is PRESENT in all three —
+// which is a real regression guard for #168's change rather than a leftover.
+//
+// What #133 itself established is untouched: the option rename, and that PR
+// `Draft` is a different field that the rename did not reach (Step 4). Step 3
+// remains the control (a signed PO still shows). Fixtures are deleted in this same
+// run through scripts/tests/_fixtures.mjs (#171).
 //
 // Exit codes: 0 all clear, 1 something failed OR this run left rows on the base.
 //
@@ -24,7 +34,7 @@ import {
 import { createItem } from "../../lib/airtable/prItems.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import {
-    getAllPOs,
+    getPOsExceptWithdrawn,
     getOpenPOs,
     searchPOs,
     getPOByRecordId,
@@ -49,9 +59,9 @@ function check(label, actual, expected) {
 // come from generatePOForApprovedPR, which does write the item axis as a side
 // effect (#18) — but these PRs carry NO Vendor, so refreshMaterialsCacheForPO
 // returns `skippedAll: "no Vendor on the PR"` before writing an identity row, a
-// price row or a PO line's `Material` link. The item on PR `b` also passes no
-// `unit`, which the cache's unit-less rule would skip anyway. Measured on the
-// base: 0 Materials named "__verify-133".
+// price row or a PO line's `Material` link. Both PRs' items also pass no `unit`,
+// which the cache's unit-less rule would skip anyway. Measured on the base: 0
+// Materials named "__verify-133".
 const fixtures = createFixtures({
     tag: "V133",
     buckets: [
@@ -88,6 +98,19 @@ try {
     console.log("Step 1 — a freshly generated PO carries the renamed status:");
     const a = await createPR({ requesterId: userId, notes: `${TAG} unsigned` });
     track("prs", a.id);
+    // THIS ITEM IS LOAD-BEARING — do not remove it as unused. Without it the PO
+    // generated below has no lines, so isPoOpen returns false and getOpenPOs
+    // excludes it for having nothing to invoice rather than for being unsigned.
+    // Step 2's assertion would then pass with the signature-status filter
+    // restored, which is exactly what it must fail on. Same reasoning
+    // verify-po-withdraw-138.mjs Part C states for its own po7.
+    await createItem({
+        prRecordId: a.id,
+        prId: a.prId,
+        itemName: "__verify-133",
+        qty: 1,
+        unitPrice: 1,
+    });
     await updatePR(a.id, { status: "Approved" });
     const genA = await generatePOForApprovedPR(await getPRByRecordId(a.id));
     track("pos", genA.poRecordId);
@@ -111,15 +134,19 @@ try {
     const poB = await getPOByRecordId(genB.poRecordId);
     check("control PO status", poB.status, "Signed");
 
-    console.log("\nStep 2 — the unsigned PO is absent from all three PO lists (silent-failure guard):");
-    const [allPOs, openPOs, searchA] = await Promise.all([getAllPOs(), getOpenPOs(), searchPOs(poA.poId)]);
-    check("getAllPOs excludes the unsigned PO", allPOs.some((p) => p.id === poA.id), false);
-    check("getOpenPOs excludes the unsigned PO", openPOs.some((p) => p.id === poA.id), false);
-    check("searchPOs excludes the unsigned PO", searchA.some((p) => p.id === poA.id), false);
+    console.log("\nStep 2 — the unsigned PO is PRESENT in all three PO lists (#168 inverted this):");
+    const [allPOs, openPOs, searchA] = await Promise.all([
+        getPOsExceptWithdrawn(),
+        getOpenPOs(),
+        searchPOs(poA.poId),
+    ]);
+    check("getPOsExceptWithdrawn includes the unsigned PO", allPOs.some((p) => p.id === poA.id), true);
+    check("getOpenPOs includes the unsigned PO", openPOs.some((p) => p.id === poA.id), true);
+    check("searchPOs includes the unsigned PO", searchA.some((p) => p.id === poA.id), true);
 
     console.log("\nStep 3 — control: the signed PO still appears (filters didn't block everything):");
     const searchB = await searchPOs(poB.poId);
-    check("getAllPOs includes the signed PO", allPOs.some((p) => p.id === poB.id), true);
+    check("getPOsExceptWithdrawn includes the signed PO", allPOs.some((p) => p.id === poB.id), true);
     check("getOpenPOs includes the signed PO", openPOs.some((p) => p.id === poB.id), true);
     check("searchPOs includes the signed PO", searchB.some((p) => p.id === poB.id), true);
 
