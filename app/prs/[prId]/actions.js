@@ -19,6 +19,7 @@ import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // #181 — the diffed keys and the labels they log under moved to lib/, so both
 // check tiers can read them: a `"use server"` module cannot be imported by a
@@ -92,62 +93,76 @@ async function finishTurn({ pr, turn, signers, correctionRequests }) {
     return { nextStep, prApproved };
 }
 
+// THE ONE WRITE PATH #190 MEASURES, and the label is wrapped INLINE rather than
+// around an extracted body on purpose: `requireUser()` has to stay lexically
+// inside the exported function, both because offline/authz-structure.mjs reads
+// this export's own subtree for its exemption and because an export whose gate
+// sits one level down is a weaker thing than one whose gate is right there.
+//
+// Chosen over the other write paths because on the FINAL signer's turn it
+// contains the heaviest write in the app — the signer row, the PR status, then
+// generatePOForApprovedPR, which creates the PO, one PO Item per line, and the
+// #18 materials cache (an upsertMaterial, an upsertMaterialPrice and a
+// setPOItemMaterial per line). It is also the ordinary path every PR takes,
+// unlike generatePOAction, which is the Admin retry.
 export async function approveAction(prevState, formData) {
-    const user = await requireUser();
-    const prId = formData.get("prId");
+    return withOpsLabel("approveAction", async () => {
+        const user = await requireUser();
+        const prId = formData.get("prId");
 
-    const { pr, signers, correctionRequests } = await loadPRContext(prId);
-    const turn = getCurrentTurn(pr, signers);
+        const { pr, signers, correctionRequests } = await loadPRContext(prId);
+        const turn = getCurrentTurn(pr, signers);
 
-    if (!turn || turn.type !== "signer" || turn.userId !== user.id) {
-        return { error: "It's not your turn to act on this PR." };
-    }
-    if (pr.status !== "In Review") {
-        return { error: "This PR isn't currently in review." };
-    }
-
-    const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
-    let advance;
-
-    try {
-        await updateSigner(turn.prSignerRecordId, {
-            status: "Approved",
-            signedAt: new Date().toISOString(),
-        });
-
-        advance = await finishTurn({ pr, turn, signers, correctionRequests });
-    } catch (err) {
-        await updateSigner(turn.prSignerRecordId, {
-            status: signerBefore.status,
-            signedAt: signerBefore.signedAt || null,
-        }).catch(() => {});
-
-        console.error("approveAction failed, rolled back", err);
-        return { error: "Something went wrong recording your approval. Please try again." };
-    }
-
-    // Best-effort — see lib/notifications.js. No notification when the PR
-    // just reached its final Approved state (no next signer, per scope).
-    if (!advance.prApproved) {
-        const nextTurn = getCurrentTurn({ ...pr, currentSignerStep: advance.nextStep }, signers);
-        await notifyCurrentTurn({ pr, turn: nextTurn });
-    } else {
-        // Best-effort, but unlike notifications a failure here leaves a
-        // real gap (an Approved PR with no PO) rather than just a missed
-        // email — see lib/poGeneration.js. Never rolls back the approval
-        // that just committed; app/prs/[prId]/page.js surfaces a manual
-        // "generate PO" retry (generatePOAction below) when this fails.
-        try {
-            const result = await generatePOForApprovedPR(pr);
-            if (!result.alreadyExisted) {
-                await notifyPOAwaitingSignature({ poRecordId: result.poRecordId, pr });
-            }
-        } catch (err) {
-            console.error("Auto PO generation failed after PR approval (non-fatal, retry available on PR page)", err);
+        if (!turn || turn.type !== "signer" || turn.userId !== user.id) {
+            return { error: "It's not your turn to act on this PR." };
         }
-    }
+        if (pr.status !== "In Review") {
+            return { error: "This PR isn't currently in review." };
+        }
 
-    redirect(`/prs/${pr.prId}?done=approved`);
+        const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
+        let advance;
+
+        try {
+            await updateSigner(turn.prSignerRecordId, {
+                status: "Approved",
+                signedAt: new Date().toISOString(),
+            });
+
+            advance = await finishTurn({ pr, turn, signers, correctionRequests });
+        } catch (err) {
+            await updateSigner(turn.prSignerRecordId, {
+                status: signerBefore.status,
+                signedAt: signerBefore.signedAt || null,
+            }).catch(() => {});
+
+            console.error("approveAction failed, rolled back", err);
+            return { error: "Something went wrong recording your approval. Please try again." };
+        }
+
+        // Best-effort — see lib/notifications.js. No notification when the PR
+        // just reached its final Approved state (no next signer, per scope).
+        if (!advance.prApproved) {
+            const nextTurn = getCurrentTurn({ ...pr, currentSignerStep: advance.nextStep }, signers);
+            await notifyCurrentTurn({ pr, turn: nextTurn });
+        } else {
+            // Best-effort, but unlike notifications a failure here leaves a
+            // real gap (an Approved PR with no PO) rather than just a missed
+            // email — see lib/poGeneration.js. Never rolls back the approval
+            // that just committed; app/prs/[prId]/page.js surfaces a manual
+            // "generate PO" retry (generatePOAction below) when this fails.
+            try {
+                const result = await generatePOForApprovedPR(pr);
+                if (!result.alreadyExisted) {
+                    await notifyPOAwaitingSignature({ poRecordId: result.poRecordId, pr });
+                }
+            } catch (err) {
+                console.error("Auto PO generation failed after PR approval (non-fatal, retry available on PR page)", err);
+            }
+        }
+
+        redirect(`/prs/${pr.prId}?done=approved`);
+    });
 }
 
 export async function editAndContinueAction(prevState, formData) {

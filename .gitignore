@@ -53,6 +53,11 @@ next-env.d.ts
 # local commit message file
 commit-msg.txt
 
+# Airtable operation log (#190) — AIRTABLE_OPS_FILE=1 appends here. Local
+# measurement, never shared: it accumulates across runs and is machine-specific.
+.airtable-ops.jsonl
+*.airtable-ops.jsonl
+
 # raw data
 scripts/import/data/
 scripts/import/output/

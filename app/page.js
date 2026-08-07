@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
+import { withOpsLabel } from "@/lib/airtableOps";
 
+// Labeled for #190 — see the note in app/prs/page.js for why the label is an
+// outer wrapper. This page is measured because it is the dev loop's entry point
+// and is loaded constantly, not because it is expensive.
 export default async function Home() {
+    return withOpsLabel("/", () => renderHome());
+}
+
+async function renderHome() {
     const user = await getCurrentUser();
 
     return (

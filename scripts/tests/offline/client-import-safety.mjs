@@ -28,9 +28,18 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Client bundle safety — no 'use client' file reaches lib/airtable/ (#162)";
 
-// The tainted root. Anything that imports this, at any depth, cannot be in a
-// browser bundle.
-const FORBIDDEN = "lib/airtable/client.js";
+// The tainted roots. Anything that imports one of these, at any depth, cannot be
+// in a browser bundle.
+//
+// lib/airtableOps.js is the second one (#190). It is not credentialed and does
+// not reach client.js — client.js imports IT — so a Client Component importing it
+// would not be caught by the first root at all. What makes it forbidden is its
+// own import of `node:async_hooks`, which has no browser equivalent, and the
+// hazard is identical to #162's: an import is an execution, so nothing has to
+// call AsyncLocalStorage for the bundle to break. The two pure helpers a form
+// might want from it — there are none today — would have to move rather than be
+// imported, exactly as buildItemOptions had to.
+const FORBIDDEN_ROOTS = ["lib/airtable/client.js", "lib/airtableOps.js"];
 
 const SCAN_ROOTS = ["app", "lib"];
 
@@ -111,11 +120,13 @@ export function run({ check, assert, log }) {
     }
 
     assert("found files to check", importsByFile.size > 0);
-    assert(`the forbidden root ${FORBIDDEN} is itself in the graph`, importsByFile.has(FORBIDDEN));
+    for (const root of FORBIDDEN_ROOTS) {
+        assert(`the forbidden root ${root} is itself in the graph`, importsByFile.has(root));
+    }
 
     /**
-     * Shortest import path from `start` to FORBIDDEN, or null — stopping at any
-     * "use server" module, which the browser bundle does not cross.
+     * Shortest import path from `start` to any forbidden root, or null — stopping
+     * at any "use server" module, which the browser bundle does not cross.
      */
     function pathToForbidden(start) {
         const queue = [[start]];
@@ -124,7 +135,7 @@ export function run({ check, assert, log }) {
             const chain = queue.shift();
             const current = chain[chain.length - 1];
             for (const next of importsByFile.get(current)?.imports || []) {
-                if (next === FORBIDDEN) return [...chain, next];
+                if (FORBIDDEN_ROOTS.includes(next)) return [...chain, next];
                 if (seen.has(next)) continue;
                 seen.add(next);
                 if (importsByFile.get(next)?.isServerBoundary) continue;
@@ -142,8 +153,8 @@ export function run({ check, assert, log }) {
         const chain = pathToForbidden(rel);
         assert(
             chain
-                ? `${rel} must not reach ${FORBIDDEN} — via ${chain.slice(1).join(" -> ")}`
-                : `${rel} reaches no credentialed module`,
+                ? `${rel} must not reach ${chain[chain.length - 1]} — via ${chain.slice(1).join(" -> ")}`
+                : `${rel} reaches no server-only module`,
             chain === null
         );
     }
@@ -154,10 +165,17 @@ export function run({ check, assert, log }) {
     const knownReacher = "lib/deliveryCandidates.js";
     if (importsByFile.has(knownReacher)) {
         assert(
-            `the traversal really works — ${knownReacher} is seen to reach ${FORBIDDEN}`,
+            `the traversal really works — ${knownReacher} is seen to reach a forbidden root`,
             pathToForbidden(knownReacher) !== null
         );
     }
+    // The same proof for the SECOND root, which would otherwise be a name in a
+    // list that nothing demonstrates the traversal can find (#190). client.js is
+    // what imports lib/airtableOps.js, so it must be seen to reach it.
+    assert(
+        "and the second root is reachable too — lib/airtable/client.js reaches lib/airtableOps.js",
+        pathToForbidden("lib/airtable/client.js")?.includes("lib/airtableOps.js") === true
+    );
     assert(
         "and a module that imports nothing is not falsely reported",
         pathToForbidden("lib/itemNaming.js") === null

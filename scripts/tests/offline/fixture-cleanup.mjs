@@ -15,6 +15,20 @@
 // use the helper, that is a signal the HELPER is wrong — stop and fix the helper,
 // or ask, rather than adding a line here.
 //
+// THE `Promise.allSettled` BAN IS BROADER THAN THE DEFECT, deliberately. The
+// defect is a loop that DISCARDS settled results, and deciding that would mean
+// proving a binding is never read — a check that has to prove that can be wrong
+// quietly, which this file's own first version was: it walked a wrapper instead of
+// the tree and would have passed every assertion in it for the wrong reason.
+// Banning the identifier cannot be gamed, and its cost lands at the call site
+// where it is visible.
+//
+// That cost has been paid once, by verify-token-and-lock-174.mjs (#174), which
+// needs all three outcomes of a deliberately rejecting lock call and inspects
+// every one. It captures them by hand, and reads more explicitly than the banned
+// form would. Revisit if a use appears where writing it by hand is worse than the
+// risk of narrowing — not on a count of instances.
+//
 // WHAT THIS CANNOT PROVE, which is most of what matters:
 //   - Source order is not execution order. Seeing `fixtures.teardown(` after the
 //     body's `try` does not mean it ran; a `return` above it, or an exception in

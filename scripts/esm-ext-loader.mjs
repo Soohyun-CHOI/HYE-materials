@@ -3,8 +3,11 @@
 // bundler but fails under plain `node` (native ESM resolution requires
 // explicit extensions). This loader retries unresolved relative specifiers
 // with ".js" appended so any scripts/**/*.mjs can import the real
-// lib/airtable/*.js files directly. Used by scripts/tests/test-phase0.js
-// and scripts/demo/*.mjs — do not delete.
+// lib/airtable/*.js files directly. Used by every credentialed
+// scripts/tests/verify-*.mjs and by scripts/demo/*.mjs — do not delete.
+// (It used to name scripts/tests/test-phase0.js as its consumer, which was
+// misleading long before #174 deleted that file: 19 verify-*.mjs scripts
+// carry this loader in their run command.)
 
 export async function resolve(specifier, context, nextResolve) {
     try {
