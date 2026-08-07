@@ -400,21 +400,32 @@ export function run(reporter) {
         firstPositionOf(poPage.ast, (n) => n.type === "Literal" && n.value === "Awaiting Signature") === -1
     );
 
-    // Both invoice-side PO queries must name the excluded status. Counted as
-    // interpolations inside a template literal rather than as bare identifier
-    // references, so the constant's own declaration doesn't inflate the count
-    // and a mention in a comment cannot contribute at all.
+    // THE STATUS CONDITION IS BUILT ONCE AND READ TWICE (#168). This used to
+    // require the opposite — PO_WITHDRAWN_STATUS interpolated TWICE, once in each
+    // invoice-side query — which pinned the duplication rather than the rule. Both
+    // readers feed the same screen (the invoice form's picker and its search
+    // escape hatch), so a condition changed on one side would have made the
+    // dropdown hide a PO the search finds. Counted as interpolations inside a
+    // template literal, so a mention in a comment cannot contribute.
     const poTable = fileOf("lib/airtable/purchaseOrders.js");
-    let interpolations = 0;
+    let statusInterpolations = 0;
+    let fragmentUses = 0;
     walk(poTable.ast, (n) => {
         if (n.type !== "TemplateLiteral") return;
         for (const expr of n.expressions) {
-            if (expr.type === "Identifier" && expr.name === "PO_WITHDRAWN_STATUS") interpolations++;
+            if (expr.type !== "Identifier") continue;
+            if (expr.name === "PO_WITHDRAWN_STATUS") statusInterpolations++;
+            if (expr.name === "PO_NOT_WITHDRAWN") fragmentUses++;
         }
     });
     check(
-        "getAllPOs and searchPOs both interpolate PO_WITHDRAWN_STATUS into their filterByFormula",
-        interpolations,
+        "the excluded status is interpolated in exactly one place — the shared fragment",
+        statusInterpolations,
+        1
+    );
+    check(
+        "and both invoice-side readers interpolate that fragment",
+        fragmentUses,
         2
     );
 }
