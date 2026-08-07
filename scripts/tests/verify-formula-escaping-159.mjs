@@ -2,9 +2,10 @@
 //
 // This is an AUTHORIZATION check, not a tidiness check. Before #159 every value
 // interpolated into a filterByFormula was formula code, not data. The worst case
-// is the magic-link lookup: `token` reaches it as a raw query param on the
-// PUBLIC /api/auth/verify, and a crafted value made the predicate a tautology,
-// so the lookup returned an arbitrary Auth Tokens row instead of none.
+// is the magic-link lookup: `token` reaches it raw from an UNAUTHENTICATED
+// caller — /api/auth/verify then, the /login/confirm page and that route's POST
+// since #203 — and a crafted value made the predicate a tautology, so the lookup
+// returned an arbitrary Auth Tokens row instead of none.
 //
 // What only a credentialed run can settle, and why the offline tier is not
 // enough on its own:

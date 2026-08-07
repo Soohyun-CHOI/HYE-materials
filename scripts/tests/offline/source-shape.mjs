@@ -461,6 +461,57 @@ export function run(reporter) {
         });
         assert("getAllPOs sorts by PO ID descending — the list shows no date of its own", sortsByPoId);
     }
+
+    // ── the confirmation page reads a token and never spends it (#203) ──────
+    //
+    // THIS IS THE WHOLE OF ISSUE #203, ASSERTED AS AN ABSENCE. Mail security
+    // scanners open links in delivered messages before the recipient does, so
+    // while /api/auth/verify consumed the single-use token on GET, the scanner
+    // spent it and the recipient was shown the invalid-or-expired error. The fix
+    // is that opening the page consumes nothing — which is exactly the kind of
+    // property a later reader undoes in good faith, thinking the extra press is
+    // redundant ceremony rather than the point.
+    //
+    // Asserted on the AST of the page rather than on the route, because the route
+    // is SUPPOSED to consume: what must not happen is a GET path reaching it.
+    // offline/auth-token-state.mjs pins the verdict this page renders; this pins
+    // that it reaches the verdict without writing anything.
+    const confirmPage = parseFile("app/login/confirm/page.js");
+    assert("the confirmation page parses", confirmPage !== null);
+    if (confirmPage) {
+        // Imported names, from the AST rather than from the text. A raw
+        // `source.includes` was tried first and failed on this page's own doc
+        // comment, which names both functions in the course of explaining why it
+        // must not call them — the same trap #201's product-name check sprang on
+        // a comment written in the same commit. Prose about a rule is not a
+        // violation of it, and only the AST can tell the two apart.
+        const imported = new Set();
+        walk(confirmPage.ast, (n) => {
+            if (n.type !== "ImportDeclaration") return;
+            for (const s of n.specifiers ?? []) {
+                if (s.local?.name) imported.add(s.imported?.name ?? s.local.name);
+            }
+        });
+
+        for (const consumer of ["consumeAuthToken", "verifyMagicLink"]) {
+            check(
+                `/login/confirm never calls ${consumer} — a GET must not spend the token`,
+                callsTo(confirmPage.ast, consumer).length,
+                0
+            );
+            check(`and never imports ${consumer} either`, imported.has(consumer), false);
+        }
+        // ANTI-VACUITY: the two absences above are also what an empty file, a
+        // wrong path or a failed parse would report. So the read this page DOES
+        // make is asserted present — if getAuthTokenRecord ever stops being
+        // called here, the checks above have stopped describing a page that reads
+        // a token at all, and should fail rather than keep passing.
+        check(
+            "but it does call getAuthTokenRecord — the read-only lookup",
+            callsTo(confirmPage.ast, "getAuthTokenRecord").length,
+            1
+        );
+    }
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

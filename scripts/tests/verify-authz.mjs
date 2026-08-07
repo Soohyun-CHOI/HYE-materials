@@ -170,11 +170,26 @@ const ADMIN_ROUTES = [
 // A real session for `email`, obtained the way the app issues one: mint a token
 // in Auth Tokens with the production helper, then let the production
 // /api/auth/verify route consume it and set the cookie. The email step is
-// skipped because Resend is still in sandbox mode and cannot deliver to these
-// addresses; no route is added to the app to do this.
+// skipped because nothing here can read a delivered inbox; no route is added to
+// the app to do this.
+//
+// A POST SINCE #203, not a GET. The route stopped consuming on GET because mail
+// security scanners open links before the recipient does, so the token was spent
+// before the click. This posts the form the /login/confirm page posts, which is
+// also what keeps this helper honest: it exercises the production path rather
+// than a shortcut around it. No `Origin` header is sent, which the route's
+// cross-origin guard treats as absent and allows — so this helper passes
+// whether or not that guard exists, and is NOT evidence about it. The
+// mismatched-Origin case was measured once in #203 against a throwaway script
+// and is recorded in that commit; nothing standing re-measures it.
 async function sessionCookieFor(email) {
     const { token } = await createAuthToken(email);
-    const res = await fetch(`${BASE_URL}/api/auth/verify?token=${token}`, { redirect: "manual" });
+    const res = await fetch(`${BASE_URL}/api/auth/verify`, {
+        method: "POST",
+        redirect: "manual",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ token }),
+    });
     const session = (res.headers.getSetCookie?.() || []).map((c) => c.split(";")[0]).join("; ");
     if (!session) throw new Error(`no session cookie from /api/auth/verify for ${email} (status ${res.status})`);
     return session;

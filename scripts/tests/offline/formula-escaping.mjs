@@ -363,7 +363,7 @@ export function run({ check, log, assert }) {
     const authProps = findFilterProperties(authTokens);
     check("authTokens.js has exactly one filterByFormula", authProps.length, 1);
     assert(
-        "the public /api/auth/verify token lookup escapes its token",
+        "the unauthenticated magic-link token lookup escapes its token",
         authProps.length === 1 &&
             authProps[0].value.type === "TemplateLiteral" &&
             authProps[0].value.expressions.every(isEscapeBuilderCall)

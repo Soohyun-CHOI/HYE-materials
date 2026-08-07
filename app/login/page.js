@@ -1,18 +1,17 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import { SIGN_IN_TITLE } from "@/lib/productName";
+import { TOKEN_TTL_MINUTES } from "@/lib/authTokenState";
 
-const ERROR_MESSAGES = {
-    missing_token: "That sign-in link is missing its token.",
-    invalid_token: "That sign-in link is invalid or has expired. Request a new one below.",
-};
-
+// The `?error=` messages that used to live here are gone (#203). Their only two
+// producers were the redirects in app/api/auth/verify/route.js, and both went
+// when that route stopped answering GET — a refused sign-in now returns to
+// /login/confirm, which re-reads the row and names the actual reason. With no
+// producer left, the messages could not be reached, and neither could the
+// `useSearchParams` call that read them or the Suspense boundary that call
+// required.
 function LoginForm() {
-    const searchParams = useSearchParams();
-    const linkError = ERROR_MESSAGES[searchParams.get("error")] || null;
-
     const [email, setEmail] = useState("");
     const [status, setStatus] = useState("idle"); // idle | submitting | sent | error
     const [errorMessage, setErrorMessage] = useState("");
@@ -48,7 +47,8 @@ function LoginForm() {
             <div className="w-full max-w-sm text-center">
                 <h1 className="text-2xl font-semibold">Check your email</h1>
                 <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-                    We sent a sign-in link to {email}. It expires in 15 minutes.
+                    We sent a sign-in link to {email}. Open it and press Confirm
+                    sign-in. It expires in {TOKEN_TTL_MINUTES} minutes.
                 </p>
             </div>
         );
@@ -67,12 +67,6 @@ function LoginForm() {
                     Use your company email address.
                 </p>
             </div>
-
-            {linkError && (
-                <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {linkError}
-                </p>
-            )}
 
             <input
                 type="email"
@@ -103,9 +97,7 @@ function LoginForm() {
 export default function LoginPage() {
     return (
         <div className="flex flex-1 items-center justify-center p-8">
-            <Suspense fallback={null}>
-                <LoginForm />
-            </Suspense>
+            <LoginForm />
         </div>
     );
 }
