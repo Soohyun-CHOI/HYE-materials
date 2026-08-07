@@ -428,6 +428,24 @@ export function run(reporter) {
         fragmentUses,
         2
     );
+
+    // HAVING NO FILTER IS getAllPOs's CONTRACT (#168), and the failure mode is why
+    // it is worth a check rather than a comment. The /pos list shows what it is
+    // given; add a status condition here and the matching rows stop appearing with
+    // nothing on screen to say a row was withheld. A list cannot show its own
+    // omissions, so nobody would notice.
+    const allPOs = resolveFunction(poTable.ast, "getAllPOs");
+    assert("getAllPOs resolves", allPOs !== null);
+    if (allPOs) {
+        let filters = 0;
+        walk(allPOs, (n) => {
+            if (n.type !== "Property") return;
+            const key = n.key;
+            const name = key?.type === "Identifier" ? key.name : key?.type === "Literal" ? key.value : null;
+            if (name === "filterByFormula") filters++;
+        });
+        check("getAllPOs builds no filterByFormula — every status reaches /pos", filters, 0);
+    }
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

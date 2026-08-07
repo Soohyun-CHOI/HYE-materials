@@ -35,6 +35,14 @@ export default async function Home() {
                     >
                         Deliveries
                     </Link>
+                    {/* Issue #168 — same reasoning again. Before this, a purchase
+                        order was reachable only through the PR that generated it. */}
+                    <Link
+                        href="/pos"
+                        className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                    >
+                        Purchase orders
+                    </Link>
                     <form action="/api/auth/logout" method="POST">
                         <button
                             type="submit"
