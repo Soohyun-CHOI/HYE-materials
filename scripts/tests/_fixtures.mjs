@@ -291,11 +291,13 @@ export function createFixtures({ tag, buckets }) {
     /**
      * Is this tracked record still there — "present", "gone", or "unverified"?
      *
-     * A GONE RECORD AND A REFUSED ONE ARE THE SAME RESPONSE, measured with
-     * scripts/inspect-airtable-errors.js: `find` on a valid-format id that does
-     * not exist answers 403 NOT_AUTHORIZED, "You are not authorized to perform
-     * this operation" — byte-identical to what an expired token or a revoked
-     * scope would give. So the error itself cannot say which.
+     * A GONE RECORD AND A REFUSED ONE ARE THE SAME RESPONSE, measured directly
+     * against the live base: `find` on a valid-format id that does not exist
+     * answers 403 NOT_AUTHORIZED, "You are not authorized to perform this
+     * operation" — byte-identical to what an expired token or a revoked scope
+     * would give. So the error itself cannot say which. (#174 deleted the
+     * throwaway script that took that measurement; the measurement stands, and
+     * `residueState` below is what now depends on it.)
      *
      * This used to fold every failure to "gone", which meant a run with dead
      * credentials reported a perfectly clean cleanup: a vacuity hole inside the
