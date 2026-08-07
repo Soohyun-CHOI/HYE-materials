@@ -106,8 +106,12 @@ const EXEMPTIONS = [
     },
     {
         file: "app/api/auth/verify/route.js",
-        name: "GET",
-        reason: "Public by design: consumes a single-use token and starts the session. The token is the credential.",
+        name: "POST",
+        reason:
+            "Public by design: consumes a single-use token and starts the session. The token is the credential. " +
+            "POST rather than GET since #203, because a GET that consumed the token was spent by mail security " +
+            "scanners before the recipient clicked. It additionally refuses a cross-origin submission, which the " +
+            "token cannot answer for: the token authenticates the request but not the submitter's intent.",
     },
     {
         file: "app/api/invoices/upload/route.js",

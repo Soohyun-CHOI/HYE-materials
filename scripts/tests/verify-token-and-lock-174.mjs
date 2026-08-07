@@ -15,7 +15,7 @@
 //   2. `consumeAuthToken`'s refusals — a second consume of the same token, an
 //      unknown token, and an expired token. `consumeAuthToken` is imported by no
 //      other verification script at all; `verify-authz.mjs` mints a token and
-//      lets `/api/auth/verify` consume it ONCE, and
+//      lets `/api/auth/verify` consume it ONCE (by POST since #203), and
 //      `verify-formula-escaping-159.mjs` says in its own header that it never
 //      calls it. So the happy path was covered end to end and every refusal was
 //      covered nowhere.

@@ -212,9 +212,17 @@ try {
         console.log(`  NOT RUN  no server reachable at ${BASE_URL} — start \`npm run dev\` and re-run.`);
         console.log("           Part E is the only part that exercises the page's own gate (exit 2).");
     } else {
+        // POST since #203 — the route no longer consumes on GET, because mail
+        // security scanners open the link before the recipient does. This posts
+        // the same form /login/confirm posts.
         async function cookieFor(email) {
             const { token } = await createAuthToken(email);
-            const res = await fetch(`${BASE_URL}/api/auth/verify?token=${token}`, { redirect: "manual" });
+            const res = await fetch(`${BASE_URL}/api/auth/verify`, {
+                method: "POST",
+                redirect: "manual",
+                headers: { "content-type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({ token }),
+            });
             const jar = (res.headers.getSetCookie?.() || []).map((c) => c.split(";")[0]).join("; ");
             if (!jar) throw new Error(`no session cookie for ${email} (status ${res.status})`);
             return jar;
