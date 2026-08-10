@@ -20,12 +20,15 @@ import {
     describeDeliveryColumn,
     describeInvoiceColumn,
     describeInvoiceLine,
+    describePOColumn,
     invoiceShareStatus,
     invoiceVerdictKey,
     isNotFullyInvoiced,
     lineStatus,
+    poLineDelivery,
     resolveDeliveryFilters,
     showsThisBillShare,
+    summarizePODeliveryStatus,
     sortInvoicesOldestFirst,
     sortLongestWaitingFirst,
     summarizeDeliveryInvoicing,
@@ -383,6 +386,10 @@ export function run({ check, log, assert }) {
     const everyChip = [
         ...Object.values(STATUS_COPY.column.invoice).map((f) => f({ judged: 2, arrived: 1, invoiced: 1, total: 2 })),
         ...Object.values(STATUS_COPY.column.delivery).map((f) => f({ invoiced: 1, total: 2 })),
+        // #169's axis joins the sweep below rather than restating it: the
+        // no-digit rule, the forbidden words and the verdict ban all apply to
+        // these chips because they are in this list.
+        ...Object.values(STATUS_COPY.column.po).map((f) => f({ ordered: 2, complete: 1 })),
     ];
     for (const chip of everyChip) {
         assert(`chip "${chip.text}" carries no figure`, !/\d/.test(chip.text));
@@ -518,6 +525,97 @@ export function run({ check, log, assert }) {
     check("an undated delivery sorts LAST, not first", withUndated.at(-1).id, "z");
     check("nullish does not throw", sortLongestWaitingFirst(null).length, 0);
     check("a single row is returned as-is", sortLongestWaitingFirst([rows[0]])[0].id, "b");
+
+    // ── the PO axis: delivered against ORDERED (#169) ───────────────────────
+    log("");
+    log("poLineDelivery — one ordered item against its own order:");
+    const poLine = (orderedQty, deliveredQty, committedQty = orderedQty) =>
+        ({ orderedQty, deliveredQty, committedQty });
+
+    check("nothing delivered is not complete", poLineDelivery(poLine(10, 0)).complete, false);
+    check("and reports no delivery at all", poLineDelivery(poLine(10, 0)).anyDelivered, false);
+    check("part delivered is not complete", poLineDelivery(poLine(10, 4)).complete, false);
+    check("but does report a delivery", poLineDelivery(poLine(10, 4)).anyDelivered, true);
+    check("exactly the ordered quantity IS complete", poLineDelivery(poLine(10, 10)).complete, true);
+    // Over-delivery clears the line rather than overshooting into a state of its
+    // own. The within/beyond split #166 needs is exactly what this axis does not.
+    check("more than ordered is complete too", poLineDelivery(poLine(10, 13)).complete, true);
+    check("a blank rollup reads as nothing delivered", poLineDelivery({ orderedQty: 10, committedQty: 10 }).delivered, 0);
+    check("nullish input does not throw", poLineDelivery().complete, true);
+
+    log("");
+    log("summarizePODeliveryStatus — counts ordered items, never quantities:");
+    const summary = (lines) => summarizePODeliveryStatus(lines).key;
+    check("every item complete", summary([poLine(10, 10), poLine(5, 5)]), "delivered");
+    check("no quantity at all", summary([poLine(10, 0), poLine(5, 0)]), "awaiting-delivery");
+    check("some items complete", summary([poLine(10, 10), poLine(5, 0)]), "partly-delivered");
+    // #166'S LESSON, PAID FORWARD RATHER THAN RE-LEARNED. Keying the empty state
+    // on the completed COUNT made a one-item order of 13 with 10 delivered read as
+    // nothing delivered. This is the case that caught it there.
+    check("ONE item, part delivered, is partly — not awaiting", summary([poLine(13, 10)]), "partly-delivered");
+    check("part of one item on a two-item order is partly", summary([poLine(10, 1), poLine(5, 0)]), "partly-delivered");
+    check("an order with no items at all", summary([]), "nothing-ordered");
+    check("nullish does not throw", summary(null), "nothing-ordered");
+
+    // MIXED UNITS ARE WHY IT COUNTS ITEMS. Summing 5 SHEET and 5 FT gives a
+    // number of nothing, so the shape below must not read as half-delivered:
+    // both items are complete on their own terms.
+    check(
+        "two items in different units, each complete, is delivered",
+        summary([poLine(5, 5), poLine(500, 500)]),
+        "delivered"
+    );
+
+    log("");
+    log("withdrawn orders fall out through countsAsOrdered, not a status string:");
+    // A withdrawn PO's every line has Committed Qty 0 (#18's formula), so the
+    // judged set empties and the chip is the dash.
+    const withdrawn = [poLine(10, 10, 0), poLine(5, 0, 0)];
+    check("a withdrawn order reports nothing-ordered", summary(withdrawn), "nothing-ordered");
+    // ANTI-VACUITY #1. The assertion above also passes if the summarizer ignored
+    // its input, returned the dash for everything, or received an empty array. The
+    // SAME lines with a live Committed Qty must therefore reach a different
+    // answer — that is what shows countsAsOrdered is the thing doing the work.
+    check(
+        "the same lines with a live Committed Qty do NOT",
+        summary([poLine(10, 10, 10), poLine(5, 0, 5)]),
+        "partly-delivered"
+    );
+    check("a Qty-0 line on a live order is excluded too", summary([poLine(10, 10), poLine(0, 0, 0)]), "delivered");
+    check("judged counts only the lines that count", summarizePODeliveryStatus(withdrawn).ordered, 0);
+
+    log("");
+    log("the chip — the invoice axis's own words, not a fourth vocabulary:");
+    // ANTI-VACUITY #2. The words are claimed to be REUSED, and nothing else here
+    // would notice one axis being edited without the other. Comparing the two maps
+    // is the claim itself rather than a restatement of either.
+    for (const key of ["delivered", "partly-delivered", "awaiting-delivery"]) {
+        check(
+            `"${key}" reads identically on both axes`,
+            STATUS_COPY.column.po[key]().text,
+            STATUS_COPY.column.invoice[key]().text
+        );
+        check(
+            `and carries the same tone`,
+            STATUS_COPY.column.po[key]().tone,
+            STATUS_COPY.column.invoice[key]().tone
+        );
+    }
+    // The dash is the one key that is NOT shared, because it is not the same fact.
+    assert(
+        "the dash key is named after the predicate, not after the invoice axis's case",
+        Object.keys(STATUS_COPY.column.po).includes("nothing-ordered") &&
+            !Object.keys(STATUS_COPY.column.po).includes("no-ordered-items")
+    );
+    check("and it renders as a dash", STATUS_COPY.column.po["nothing-ordered"]().text, "—");
+    check("with the absent tone, so it is not a chip", STATUS_COPY.column.po["nothing-ordered"]().tone, "absent");
+
+    // Every key the summarizer can produce has copy. A missing entry would throw
+    // at render time on a page nobody exercised, which is the failure this catches.
+    for (const lines of [[poLine(10, 10)], [poLine(10, 0)], [poLine(10, 4)], []]) {
+        const s = summarizePODeliveryStatus(lines);
+        assert(`describePOColumn resolves "${s.key}"`, Boolean(describePOColumn(s)?.text));
+    }
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

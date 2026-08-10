@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 import { EMPTY_COPY, emptyStateKind } from "@/lib/poListView";
+import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import JobFilterDropdown from "@/app/prs/JobFilterDropdown";
 
 // Instant client-side narrowing over the already-gated rows the server sent, in
@@ -138,19 +139,41 @@ export default function POListClient({
                         and Total is a currency figure (104px still clears
                         `$999,999.00`).
 
-                        THE REMAINING 27.5rem GOES TO THE TWO NOBODY CONTROLS.
-                        Vendor and Line are both human-entered, so the 179px of slack
-                        is split between them rather than banked on one — 192px
-                        against Vendor's 124, and 248px against Job / Line's 184,
-                        the larger share going to the cell that carries two values
-                        and a separator. */}
+                        THE REMAINING SLACK GOES TO THE TWO NOBODY CONTROLS.
+                        Vendor and Line are both human-entered, so it is split
+                        between them rather than banked on one, the larger share
+                        going to the cell that carries two values and a separator.
+
+                        #169 RE-CUT THE BUDGET FOR A SIXTH COLUMN rather than
+                        appending one, which is the other half of #166's rule. The
+                        Delivery chip is a closed set whose widest value is
+                        `Awaiting delivery`, measured at 102px at 12px/500 with the
+                        chip's own 6px side padding; it sits LAST so it needs no
+                        `pr-2`. The width came from Vendor (-44), Job / Line (-44),
+                        Total (-14) and PO ID (-4), leaving every column clear of
+                        its measured content: PO ID 7px spare, Vendor 24, Job /
+                        Line 20, Total 11, Status 3, Delivery 4. Delivery was cut
+                        to exactly its content first and given 4px back — a chip
+                        flush with its column would overflow on any machine whose
+                        font metrics differ by a pixel from the ones measured here.
+
+                        THOSE CONTENT WIDTHS ARE DUMMY DATA, AND THE WHOLE RE-CUT
+                        RESTS ON THEM. Vendor's 124px is `TESTQA Vendor A` and Job /
+                        Line's 184px is `26-DEMO-01 · Demo Line A`, both from the 40
+                        seeded rows on a base with no real orders on it. So the
+                        spare listed above is two or three characters of a string
+                        nobody has typed yet, not a margin measured against real
+                        supplier names — and re-measuring is impossible until there
+                        are some. If a real vendor list wraps these cells, Vendor is
+                        where to give width back first. */}
                     <table className="w-full min-w-[52rem] table-fixed text-sm">
                         <colgroup>
-                            <col style={{ width: "10rem" }} />
-                            <col style={{ width: "12rem" }} />
-                            <col style={{ width: "15.5rem" }} />
-                            <col style={{ width: "6.5rem" }} />
+                            <col style={{ width: "9.75rem" }} />
+                            <col style={{ width: "9.25rem" }} />
+                            <col style={{ width: "12.75rem" }} />
+                            <col style={{ width: "5.625rem" }} />
                             <col style={{ width: "8rem" }} />
+                            <col style={{ width: "6.625rem" }} />
                         </colgroup>
                         <thead>
                             <tr className="text-left text-zinc-500">
@@ -158,7 +181,11 @@ export default function POListClient({
                                 <th className="pr-2">Vendor</th>
                                 <th className="pr-2">Job / Line</th>
                                 <th className="pr-2 text-right">Total</th>
-                                <th>Status</th>
+                                <th className="pr-2">Status</th>
+                                {/* Same header as /invoices carries for the same
+                                    chip set — one word, two subjects, and the row
+                                    supplies which. */}
+                                <th>Delivery</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -195,7 +222,13 @@ export default function POListClient({
                                             {row.lineName ? ` · ${row.lineName}` : ""}
                                         </td>
                                         <td className="py-1 pr-2 text-right">{formatUSD(row.total)}</td>
-                                        <td className="py-1">{row.statusText}</td>
+                                        <td className="py-1 pr-2">{row.statusText}</td>
+                                        {/* The server resolved the chip (#169) —
+                                            this component never sees a quantity,
+                                            and the copy stays in one module. */}
+                                        <td className="py-1">
+                                            <StatusChip chip={row.deliveryChip} />
+                                        </td>
                                     </tr>
                                 );
                             })}

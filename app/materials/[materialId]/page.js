@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getMaterialPurchaseHistory } from "@/lib/materialHistory";
-import { countsAsOrdered, statusTag } from "@/lib/materialPriceView";
+import { statusTag } from "@/lib/materialPriceView";
+import { countsAsOrdered } from "@/lib/poItemQty";
 import { formatUSD } from "@/lib/format";
 
 // Static, unlike the four record-detail pages (#201), and the record-id keying
