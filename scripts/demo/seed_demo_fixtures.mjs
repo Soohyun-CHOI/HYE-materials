@@ -19,13 +19,18 @@ import { createAddress } from "../../lib/airtable/addresses.js";
 import { createJob, getJobByCode } from "../../lib/airtable/jobs.js";
 import { createLine } from "../../lib/airtable/lines.js";
 import { createVendor, getVendorByName } from "../../lib/airtable/vendors.js";
-import { getUserByEmail } from "../../lib/airtable/users.js";
+import { addAssignedJob, createUser, getUserByEmail } from "../../lib/airtable/users.js";
 
-// Only one account can actually log in (magic link, sandboxed Resend) —
-// see CLAUDE.md's auth section — so that same account plays every
-// Requester/Signer/President role during a live demo. This script just
-// needs it once, as the demo Job's PIC/Manager. Override via env var if a
-// different account should own the demo Job.
+// One account plays every Requester/Signer/President role during a live demo,
+// which is a convenience rather than a constraint — the clause here used to say
+// only one account could log in at all, because Resend was sandboxed, and that
+// stopped being true when the domain was verified. This script just needs it
+// once, as the demo Job's PIC/Manager. Override via env var if a different
+// account should own the demo Job.
+//
+// It must ALREADY EXIST: a real person's account is not this script's to
+// invent, so a missing one throws below rather than being created. The fixture
+// account further down is the deliberate exception, and says why.
 const DEMO_PIC_EMAIL = process.env.DEMO_PIC_EMAIL || "soohyun.c@hanyangengusa.com";
 
 const JOB_CODE = "26-DEMO-01"; // deliberately off the real "##-USA-@@" pattern, so it's never confused with a real Job
@@ -33,6 +38,21 @@ const JOB_NAME = "Demo Fabrication Project";
 const BUSINESS_UNIT = "HT";
 const LINE_NAME = "Demo Line A";
 const VENDOR_NAME = "Demo Vendor Co.";
+
+// THE SECOND PERMANENT FIXTURE ACCOUNT (#205), beside
+// authz-fixture@hanyangengusa.com rather than replacing it. That one is
+// non-Admin with an EMPTY Assigned Jobs, so it fails every role gate and every
+// row gate at once — which is its whole value, and why CLAUDE.md forbids giving
+// it Jobs. This one is the other half: non-Admin, Active, and inside one Job's
+// scope, so it can answer "does a row-scoped surface admit and render" where the
+// first can only answer "does a gate refuse".
+//
+// THE SEED CREATES IT, unlike DEMO_PIC_EMAIL above, and the difference is whose
+// address it is. The PIC is a real person's account, which this script must
+// never invent — so it throws and tells you to sign in. This one is synthetic
+// and belongs to the fixture set, so a clean seed has to produce it or the pair
+// is incomplete at the moment somebody reaches for it.
+const SCOPED_FIXTURE_EMAIL = "scoped-fixture@hanyangengusa.com";
 
 const JOB_DELIVERY_ADDRESS = {
     addressLabel: "Demo Site - Delivery",
@@ -62,8 +82,10 @@ async function main() {
     console.log(`Using ${user.userName} (${DEMO_PIC_EMAIL}) as the demo Job's PIC/Manager.\n`);
 
     // Job + Line: skipped as one unit if the Job Code already exists.
+    let jobRecordId;
     const existingJob = await getJobByCode(JOB_CODE);
     if (existingJob) {
+        jobRecordId = existingJob.id;
         console.log(`[SKIP] Job ${JOB_CODE} already exists (${existingJob.id}).`);
     } else {
         const deliveryAddress = await createAddress(JOB_DELIVERY_ADDRESS);
@@ -81,6 +103,7 @@ async function main() {
 
         const line = await createLine({ jobRecordId: job.id, lineName: LINE_NAME });
         console.log(`[CREATE] Line "${line.lineLabel}" (${line.id})`);
+        jobRecordId = job.id;
     }
 
     // Vendor: independent skip check, so a prior partial run (e.g. Job
@@ -102,9 +125,38 @@ async function main() {
         console.log(`[CREATE] Vendor "${vendor.vendorName}" (${vendor.id})`);
     }
 
+    // The scoped fixture account. Independent skip checks again, because the
+    // record and the assignment are two facts: a run that created the user and
+    // failed before assigning must be able to finish on the next run.
+    let scoped = await getUserByEmail(SCOPED_FIXTURE_EMAIL);
+    if (scoped) {
+        console.log(`[SKIP] User ${SCOPED_FIXTURE_EMAIL} already exists (${scoped.id}).`);
+    } else {
+        // createUser is the app's own path — the single function verifyMagicLink
+        // calls on a first sign-in, and the only thing that writes Role, Is Admin
+        // and Status. So this record is the one a real first-time signer gets
+        // rather than something assembled by hand in Airtable, and the userName
+        // is derived exactly as lib/auth.js derives it, for the same reason.
+        scoped = await createUser({
+            userName: SCOPED_FIXTURE_EMAIL.split("@")[0],
+            email: SCOPED_FIXTURE_EMAIL,
+        });
+        console.log(`[CREATE] User ${SCOPED_FIXTURE_EMAIL} (${scoped.id}) - Employee, non-Admin, Active`);
+    }
+
+    const assignment = await addAssignedJob(scoped.id, jobRecordId);
+    console.log(
+        assignment.changed
+            ? `[CREATE] Assigned ${JOB_CODE} to ${SCOPED_FIXTURE_EMAIL}`
+            : `[SKIP] ${SCOPED_FIXTURE_EMAIL} is already assigned to ${JOB_CODE}.`
+    );
+
     console.log("\nDemo fixtures ready:");
     console.log(`  Job "${JOB_CODE}" / Line "${LINE_NAME}"`);
     console.log(`  Vendor "${VENDOR_NAME}"`);
+    console.log("  Fixture accounts:");
+    console.log("    authz-fixture@hanyangengusa.com  - no Jobs, refused everywhere");
+    console.log(`    ${SCOPED_FIXTURE_EMAIL} - assigned ${JOB_CODE}, admitted by row scope`);
 }
 
 main().catch((err) => {
