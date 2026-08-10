@@ -7,9 +7,10 @@
 // to the credentialed script, which can only exercise a handful of shapes
 // against real records.
 //
-// Offline-safe: lib/deliveryAllocation.js imports only lib/materialPriceView.js
-// (which imports only lib/itemNaming.js), both with explicit .js extensions, so
-// plain node resolves the chain with no loader and no credentials.
+// Offline-safe: lib/deliveryAllocation.js imports only lib/poItemQty.js, which
+// imports nothing, with the extension spelled out — so plain node resolves the
+// chain with no loader and no credentials. (It was lib/materialPriceView.js
+// until #169 moved countsAsOrdered to its real home.)
 
 import {
     ALLOCATION_COPY,
@@ -18,6 +19,7 @@ import {
     buildItemOptions,
     describeDelivery,
     describePlan,
+    recomputeOverDelivery,
     hasUndeliveredQty,
     groupRowsByItem,
     itemOptionLabel,
@@ -646,6 +648,156 @@ export function run({ check, assert, log }) {
     const orderBefore = toSort.map((l) => l.poItemId).join(",");
     sortCandidates(toSort);
     check("sortCandidates copies rather than sorting in place", toSort.map((l) => l.poItemId).join(","), orderBefore);
+
+    // --- #206: THE RECOMPUTATION REPRODUCES #162'S CONTRACT ----------------
+    //
+    // NOT the allocation. planDelivery also decides WHICH ordered item an arrival
+    // attaches to, by FIFO across candidate lines, and the recomputation
+    // deliberately does not redo that — it works inside one line and moves only
+    // the within/over boundary. So what is asserted here is the contract, in
+    // quantities: the unflagged rows of a line sum to what was ordered, and the
+    // flagged rows sum to the excess. Row-for-row identity with a fresh
+    // allocation is NOT claimed and would be false, because an earlier delivery's
+    // freed room is not handed back to a later delivery's row.
+    log("");
+    log("#206 — the recomputation restores #162's contract on every line:");
+
+    function simulate(startLines, arrivals) {
+        const state = startLines.map((l) => ({ ...l }));
+        const rowsByLine = new Map(state.map((l) => [l.id, []]));
+        for (let d = 0; d < arrivals.length; d++) {
+            const plan = planDelivery({
+                lines: state,
+                vendorRecordId: VENDOR,
+                materialRecordId: MATERIAL,
+                qty: arrivals[d],
+            });
+            plan.rows.forEach((r, j) => {
+                rowsByLine.get(r.line.id).push({
+                    id: `rec-${d}-${j}`,
+                    deliveryItemId: `HYE-DL-2608${String(d + 1).padStart(2, "0")}-01-${String(j + 1).padStart(3, "0")}`,
+                    delivery: d,
+                    qty: r.qty,
+                    over: r.over,
+                });
+                const target = state.find((l) => l.id === r.line.id);
+                target.deliveredQty = (target.deliveredQty || 0) + r.qty;
+            });
+        }
+        return { state, rowsByLine };
+    }
+
+    // Apply a plan the way lib/deliveryDelete.js does: resize in place, then add
+    // the flagged pieces. Nothing is deleted and nothing is merged.
+    function applyPlan(rows, plan) {
+        const byId = new Map(rows.map((r) => [r.id, r]));
+        const out = plan.rows.map((want) => ({ ...byId.get(want.id), qty: want.qty, over: want.overDelivered }));
+        plan.splits.forEach((sp, i) => {
+            const from = byId.get(sp.fromRowId);
+            out.push({ ...from, id: `${from.id}-split${i}`, qty: sp.qty, over: true });
+        });
+        return out;
+    }
+
+    const totals = (rows) => ({
+        within: rows.filter((r) => !r.over).reduce((a, r) => a + r.qty, 0),
+        over: rows.filter((r) => r.over).reduce((a, r) => a + r.qty, 0),
+    });
+
+    // Every scenario deletes one delivery. `straddles` records whether the
+    // survivors leave a row crossing the boundary, which the anti-vacuity below
+    // requires the corpus to contain.
+    const scenarios = [
+        { name: "the survivor fits entirely", qty: 10, arrivals: [10, 4], drop: 0 },
+        { name: "nothing left over at all", qty: 10, arrivals: [4, 3], drop: 0 },
+        { name: "the survivor is exactly the order", qty: 10, arrivals: [4, 10], drop: 0 },
+        { name: "STRADDLE: 6 then 12, drop the 6", qty: 10, arrivals: [6, 12], drop: 0 },
+        { name: "STRADDLE: 4, 4, 10, drop the middle", qty: 10, arrivals: [4, 4, 10], drop: 1 },
+        { name: "STRADDLE: 5, 5, 5, 12, drop one", qty: 20, arrivals: [5, 5, 5, 12], drop: 1 },
+    ];
+
+    let straddlesSeen = 0;
+    let splitsSeen = 0;
+    for (const sc of scenarios) {
+        const built = simulate([line({ poItemId: sc.name, qty: sc.qty })], sc.arrivals);
+        const ln = built.state[0];
+        const survivors = built.rowsByLine.get(ln.id).filter((r) => r.delivery !== sc.drop);
+
+        const plan = recomputeOverDelivery({ orderedQty: sc.qty, rows: survivors });
+        const after = applyPlan(survivors, plan);
+        splitsSeen += plan.splits.length;
+
+        const delivered = survivors.reduce((a, r) => a + r.qty, 0);
+        const t = totals(after);
+        const expectedWithin = Math.min(delivered, sc.qty);
+        const expectedOver = Math.max(0, delivered - sc.qty);
+        if (plan.splits.length) straddlesSeen++;
+
+        check(`${sc.name}: unflagged rows sum to what was ordered`, t.within, expectedWithin);
+        check(`  and flagged rows sum to the excess`, t.over, expectedOver);
+        // Nothing invented, nothing lost.
+        check(`  total quantity is unchanged by the redraw`, t.within + t.over, delivered);
+
+        // The same two quantities a fresh allocation of the survivors would give.
+        // Quantities only — the ROWS differ, deliberately, and asserting otherwise
+        // would be applying a standard to boundaries that line attribution does
+        // not use.
+        const scratch = simulate(
+            [line({ poItemId: sc.name + "-scratch", qty: sc.qty })],
+            sc.arrivals.filter((_, d) => d !== sc.drop)
+        );
+        const fresh = totals(scratch.rowsByLine.get(scratch.state[0].id));
+        check(`  matches a fresh allocation on within`, t.within, fresh.within);
+        check(`  and on over`, t.over, fresh.over);
+    }
+
+    // ANTI-VACUITY, AND #171 IS WHY IT IS HERE. A new check's first version passed
+    // 89 cases for the wrong reason. Two things have to be true of this corpus or
+    // the assertions above are satisfied by a recomputation that never splits:
+    // it must CONTAIN a straddle, and the straddle must actually have produced
+    // one. Drop the three STRADDLE scenarios and both of these fail while every
+    // contract assertion above still passes — which is exactly the hole they fill.
+    log("");
+    log("anti-vacuity — the corpus is shown to contain the case that needs splitting:");
+    assert(`${straddlesSeen} scenarios left a row crossing the boundary`, straddlesSeen >= 3);
+    assert(`${splitsSeen} rows were actually split`, splitsSeen >= 3);
+
+    log("");
+    log("the split itself:");
+    // Order 10; 4 already inside, then a row of 8 that crosses. The record keeps
+    // the within piece and the excess is the new row — never the other way round,
+    // because a new row sorts LAST and putting the within piece there would leave
+    // the line reading within, over, within.
+    const crossing = recomputeOverDelivery({
+        orderedQty: 10,
+        rows: [
+            { id: "a", deliveryItemId: "HYE-DL-260801-01-001", qty: 4 },
+            { id: "b", deliveryItemId: "HYE-DL-260802-01-001", qty: 8 },
+        ],
+    });
+    check("one row is split", crossing.splits.length, 1);
+    check("  the record keeps the WITHIN piece", crossing.rows.find((r) => r.id === "b").qty, 6);
+    check("  and it stops being flagged", crossing.rows.find((r) => r.id === "b").overDelivered, false);
+    check("  the excess becomes a new row", crossing.splits[0].qty, 2);
+    check("  minted from the row that crossed", crossing.splits[0].fromRowId, "b");
+    // AT MOST ONE PER LINE, because every stored row has a positive Qty so the
+    // running total crosses the ordered quantity exactly once.
+    const many = recomputeOverDelivery({
+        orderedQty: 10,
+        rows: [1, 2, 3, 4, 5, 6].map((n) => ({ id: `r${n}`, deliveryItemId: `HYE-DL-26080${n}-01-001`, qty: 3 })),
+    });
+    check("six rows of 3 against an order of 10 still split only once", many.splits.length, 1);
+
+    log("");
+    log("shape:");
+    check("no rows, nothing to do", recomputeOverDelivery({ orderedQty: 10, rows: [] }).rows.length, 0);
+    check("nullish does not throw", recomputeOverDelivery().rows.length, 0);
+    check("  and splits nothing", recomputeOverDelivery().splits.length, 0);
+    // A zero-qty line has room for nothing, so its first row is already surplus —
+    // and is wholly surplus, so there is nothing to split.
+    const noOrder = recomputeOverDelivery({ orderedQty: 0, rows: [{ id: "z", deliveryItemId: "x", qty: 1 }] });
+    check("an order of nothing flags its first row", noOrder.rows[0].overDelivered, true);
+    check("  without splitting it", noOrder.splits.length, 0);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);
