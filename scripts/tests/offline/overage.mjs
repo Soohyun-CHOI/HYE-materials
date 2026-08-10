@@ -19,6 +19,7 @@ import {
     attachedPOItemRecordId,
     describeOverageBanner,
     describeOveragePreview,
+    isNoLongerOverDelivered,
     isOverageApplied,
     overageBannerState,
     overageEligibility,
@@ -229,17 +230,41 @@ export function run({ check, log, assert }) {
     );
     check("omitting the order only means not noticing", overagePRState({ status: "PO Signed" }), "generated");
 
-    // --- APPLIED IS THE FLAG ----------------------------------------------
+    // --- APPLIED IS PROVENANCE, NOT THE FLAG (#206) ------------------------
     log("");
-    log("whether the excess MOVED is the flag, which one atomic write guarantees:");
+    log("whether the excess MOVED is provenance, which one atomic write guarantees:");
+    const moved = { overagePRRecordId: "recPR1", overDelivered: false, formerPOItemRecordId: "recPOI1" };
     check("linked and still flagged — not applied", isOverageApplied(row({ overagePRRecordId: "recPR1" })), false);
+    check("linked with provenance — applied", isOverageApplied(row(moved)), true);
+    check("provenance with no link is not an overage at all", isOverageApplied(row({ formerPOItemRecordId: "recPOI1" })), false);
+    check("nullish does not throw", isOverageApplied(null), false);
+
+    // THE WHOLE POINT OF #206: a recomputation may clear the flag on a row whose
+    // excess never moved, and that must not read as applied. Before #206 this
+    // exact input answered `true`.
     check(
-        "linked and unflagged — applied",
+        "linked, UNFLAGGED, no provenance — still NOT applied",
         isOverageApplied(row({ overagePRRecordId: "recPR1", overDelivered: false })),
+        false
+    );
+
+    log("");
+    log("the qualifier — a live correction whose excess is no longer there:");
+    check(
+        "linked, unflagged, never moved — fires",
+        isNoLongerOverDelivered(row({ overagePRRecordId: "recPR1", overDelivered: false })),
         true
     );
-    check("unflagged with no link is not an overage at all", isOverageApplied(row({ overDelivered: false })), false);
-    check("nullish does not throw", isOverageApplied(null), false);
+    check(
+        "linked and still flagged — does not",
+        isNoLongerOverDelivered(row({ overagePRRecordId: "recPR1" })),
+        false
+    );
+    // The third clause, and what it is for: an applied row is unflagged forever,
+    // so without it the qualifier would fire on every settled correction.
+    check("applied — does not, which is what the provenance clause buys", isNoLongerOverDelivered(row(moved)), false);
+    check("no link at all — does not", isNoLongerOverDelivered(row({ overDelivered: false })), false);
+    check("nullish does not throw", isNoLongerOverDelivered(null), false);
 
     log("");
     log("the original ordered item, in every state, as one expression:");
@@ -267,10 +292,20 @@ export function run({ check, log, assert }) {
     check(
         "the order exists and the excess moved",
         overageBannerState({
-            row: row({ overagePRRecordId: "recPR1", overDelivered: false }),
+            row: row({ overagePRRecordId: "recPR1", overDelivered: false, formerPOItemRecordId: "recPOI1" }),
             overagePR: { status: "PO Signed" },
         }),
         "applied"
+    );
+    // #206 — an unflagged row that never moved is still not-applied, where before
+    // the flag alone would have called it applied.
+    check(
+        "the order exists, the flag was recomputed away, but nothing moved",
+        overageBannerState({
+            row: row({ overagePRRecordId: "recPR1", overDelivered: false }),
+            overagePR: { status: "PO Signed" },
+        }),
+        "not-applied"
     );
     // THE ONE FAILURE THIS FEATURE CAN LEAVE, and the only place it shows: the apply
     // step is outside PO generation's rollback and no email can be sent.
@@ -311,6 +346,46 @@ export function run({ check, log, assert }) {
         check(`${site}: not-applied says the excess has not moved`, notApplied[1].key, "banner-not-applied");
         assert(`  and carries no caveat either`, !notApplied.some((m) => m.key === "banner-invoice-caveat"));
     }
+
+    // --- #206'S QUALIFIER, COMPOSED WITH EACH STATE ------------------------
+    log("");
+    log("the qualifier is appended, not substituted, and only where it can act:");
+    for (const site of ["overagePR", "overagePO", "originalPO"]) {
+        for (const state of ["pending", "not-applied"]) {
+            const plain = describeOverageBanner({ site, state, facts });
+            const qualified = describeOverageBanner({ site, state, facts, noLongerOverDelivered: true });
+            check(`${site}/${state}: adds exactly one message`, qualified.length, plain.length + 1);
+            check(`  and it is last`, qualified.at(-1).key, "no-longer-over-delivered");
+            // Appended rather than substituted: the state's own message survives.
+            assert(
+                `  the state's own message is still there`,
+                plain.every((m, i) => qualified[i].key === m.key)
+            );
+            assert(`  it says the excess now fits`, /no longer\s+over-delivered/.test(qualified.at(-1).text));
+        }
+        // APPLIED HAS NO VOICE. The money is on the overage order and its invoice,
+        // so nothing can be withdrawn, and naming an action the reader cannot take
+        // would be worse than silence. isNoLongerOverDelivered cannot return true
+        // for an applied row anyway — this is the second line of defence.
+        const appliedQualified = describeOverageBanner({ site, state: "applied", facts, noLongerOverDelivered: true });
+        check(
+            `${site}/applied: nothing is appended`,
+            appliedQualified.length,
+            describeOverageBanner({ site, state: "applied", facts }).length
+        );
+    }
+    // The two voices differ in the ACTION they name, which is the whole reason
+    // there are two rather than one shared sentence.
+    const qPending = describeOverageBanner({ site: "overagePR", state: "pending", facts, noLongerOverDelivered: true }).at(-1);
+    const qNotApplied = describeOverageBanner({ site: "overagePR", state: "not-applied", facts, noLongerOverDelivered: true }).at(-1);
+    assert("pending names the request as the thing to withdraw", qPending.text.includes(facts.overagePrId));
+    assert("not-applied names the order instead", qNotApplied.text.includes(facts.overagePoId));
+    assert("the two are not the same sentence", qPending.text !== qNotApplied.text);
+    // Neither may name an action that is unavailable.
+    for (const [label, m] of [["pending", qPending], ["not-applied", qNotApplied]]) {
+        assert(`${label} does not tell the reader something cannot be done`, !/cannot/i.test(m.text));
+    }
+
     check("no state, no messages", describeOverageBanner({ site: "overagePR", state: null }).length, 0);
     check("an unknown site renders nothing", describeOverageBanner({ site: "nope", state: "applied", facts }).length, 0);
     check("nullish does not throw", describeOverageBanner().length, 0);

@@ -513,6 +513,57 @@ export function run(reporter) {
         );
     }
 
+    // ── #206's qualifier reaches the screen ─────────────────────────────────
+    //
+    // WHY THIS EXISTS AT ALL: `describeOverageBanner` takes
+    // `noLongerOverDelivered` with a DEFAULT OF FALSE, so a render site that
+    // forgets it loses the qualifier silently — no error, no empty box, just a
+    // banner that never says the correction has come adrift. Nothing else would
+    // catch it. offline/overage.mjs calls `describeOverageBanner` directly, so it
+    // passes whatever the pages do or do not; and the browser cannot show it,
+    // because this base carries no correction to attach a banner to.
+    //
+    // The producers are the other half and are checked below: three of them set
+    // the property, and each has to read the row its own site is about.
+    const bannerSites = ["app/prs/[prId]/page.js", "app/pos/[poId]/page.js"];
+    let bannerCallsSeen = 0;
+    for (const rel of bannerSites) {
+        const page = parseFile(rel);
+        assert(`${rel} parses`, page !== null);
+        if (!page) continue;
+        const calls = callsTo(page.ast, "describeOverageBanner");
+        check(`${rel} renders the banner exactly once`, calls.length, 1);
+        for (const call of calls) {
+            bannerCallsSeen++;
+            assert(
+                `  and passes noLongerOverDelivered — without it the qualifier is dead`,
+                callPassesProperty(call, "noLongerOverDelivered")
+            );
+            // ANTI-VACUITY: callPassesProperty walks the whole call, so a check
+            // that always answered true would pass the assertion above. A name
+            // that is NOT passed must therefore answer false.
+            assert(
+                `  and the property test can say no`,
+                !callPassesProperty(call, "noLongerOverDeliveredTypo")
+            );
+        }
+    }
+    check("both banner sites were seen", bannerCallsSeen, 2);
+
+    // Every producer sets it, or a site receives `undefined` and the default
+    // silently applies. Three, because getOverageBannerFactsForPO has two paths.
+    const overageReads = parseFile("lib/overagePR.js");
+    assert("lib/overagePR.js parses", overageReads !== null);
+    if (overageReads) {
+        let setters = 0;
+        walk(overageReads.ast, (n) => {
+            if (n.type !== "Property") return;
+            const key = n.key?.name ?? n.key?.value;
+            if (key === "noLongerOverDelivered") setters++;
+        });
+        check("all three banner-fact producers set the qualifier", setters, 3);
+    }
+
     // ── delivered quantity reaches the employee-facing mapper (#169) ────────
     //
     // WHAT THIS STANDS IN FOR IS AN ACCESS QUESTION, NOT A SHAPE ONE. /pos/[poId]

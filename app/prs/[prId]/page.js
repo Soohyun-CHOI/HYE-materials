@@ -221,7 +221,12 @@ async function renderPRDetailPage({ params, searchParams }) {
                 neither order's total alone, and whoever reconciles it needs telling
                 exactly once, here. */}
             {overageBanners.map((banner) =>
-                describeOverageBanner({ site: banner.site, state: banner.state, facts: banner.facts }).map(
+                describeOverageBanner({
+                    site: banner.site,
+                    state: banner.state,
+                    facts: banner.facts,
+                    noLongerOverDelivered: banner.noLongerOverDelivered,
+                }).map(
                     (m) => (
                         <p
                             key={`${banner.rowId}-${m.key}`}
