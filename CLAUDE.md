@@ -101,7 +101,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds order lines. Credentialed.
-- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgement, `STATUS_COPY`, the list filters, the worklist order, `CONTAINMENT_PREMISE`.
+- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgement, `STATUS_COPY`, the list filters, the worklist order.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
 - `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
 - `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, and the guarded write. Credentialed.
