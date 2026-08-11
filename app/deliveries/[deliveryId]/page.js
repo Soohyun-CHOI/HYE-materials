@@ -10,6 +10,7 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { describeDelivery, groupRowsByItem, summarizeDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
+import { seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { describeOveragePreview } from "@/lib/overage";
 import { getOverageContext } from "@/lib/overagePR";
 import { STATUS_COPY } from "@/lib/deliveryStatus";
@@ -123,7 +124,13 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
         });
 
     const mayDelete = canDeleteDelivery(user, delivery);
-    const deleteCopy = mayDelete ? await resolveDeleteCopy(delivery, items) : null;
+    // #211 — the third voice of the confirmation names the vendor as already paid,
+    // and payment is President-or-Admin. Deletion is author-or-Admin on a
+    // Job-scoped record, so without this flag a site recorder was reading the one
+    // invoice fact this app keeps from them, inside a modal.
+    const deleteCopy = mayDelete
+        ? await resolveDeleteCopy(delivery, items, { seesPayment: seesEveryInvoice(user) })
+        : null;
     const photo = delivery.packingListFile?.[0] ?? null;
 
     // The headline is what was delivered, in the same shape the list uses — one summary

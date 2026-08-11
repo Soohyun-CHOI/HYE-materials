@@ -7,7 +7,7 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
 import { getDeliveryInvoicing } from "@/lib/deliveryReconciliation";
-import { describeDeliveryColumn, resolveDeliveryFilters } from "@/lib/deliveryStatus";
+import { describeDeliveryColumn } from "@/lib/deliveryStatus";
 import DeliveriesListClient from "./DeliveriesListClient";
 
 export const metadata = { title: "Deliveries" };
@@ -57,28 +57,20 @@ export default async function DeliveriesListPage({ searchParams }) {
     const allItems = await getDeliveryItemsByRecordIds(
         deliveries.flatMap((d) => d.deliveryItems || [])
     );
-    // Issue #166 — THE INVOICING LEVEL IS NOT FETCHED FOR A NON-PRIVILEGED
-    // VIEWER, which is the withholding rather than a hidden column. This list is
-    // Job-scoped, so site staff reach it; whether a vendor has billed for an
-    // arrival is office information. A page that fetched it and then declined to
-    // render the column would still ship it in the payload — /pos/[poId] filters
-    // invoice-derived fields out on the SERVER for exactly this reason (#132), and
-    // this follows it. The pleasant side effect is that the two extra levels are
-    // only paid for by the audience that may see them.
-    const showInvoicing = user.role === "President" || user.isAdmin === true;
-    const invoicingByDelivery = showInvoicing
-        ? await getDeliveryInvoicing(deliveries)
-        : new Map();
+    // Issue #166 withheld this level from a non-privileged viewer by not fetching
+    // it at all; #211 RELEASED THAT, and the reason is that this list is already
+    // Job-scoped. Every row here is a delivery on a job the viewer is assigned to,
+    // which is exactly the condition under which #211 admits them to that job's
+    // invoices — so "has this been billed" is no longer information they are being
+    // kept from one screen away. A rule that hides a figure on one screen and shows
+    // it on another is not a rule. Payment is the fact that stays behind, and it is
+    // not on this page at all.
+    const invoicingByDelivery = await getDeliveryInvoicing(deliveries);
 
-    // WHICH FILTERS EXIST FOR THIS VIEWER, decided by the same rule the client
-    // re-applies to its own state — so `?unbilled=1` is treated as ABSENT rather
-    // than ignored for a viewer whose rows carry no invoicing key at all. A
-    // filter over a column that was never fetched would silently empty the list.
-    const filters = resolveDeliveryFilters({
+    const filters = {
         unbilled: sp?.unbilled === "1",
         over: sp?.over === "1",
-        showInvoicing,
-    });
+    };
 
     const itemsByDelivery = new Map();
     for (const item of allItems) {
@@ -104,9 +96,6 @@ export default async function DeliveriesListPage({ searchParams }) {
                 createdAt: d.createdAt || "",
                 jobCode: jobById.get(d.job?.[0])?.jobCode ?? "—",
                 vendorName: vendorNameById.get(d.vendor?.[0]) ?? "Unknown vendor",
-                // Only ever populated when showInvoicing — see above. The
-                // filter has nothing to act on otherwise, which is the rule
-                // rather than a coincidence.
                 hasOverDelivery: items.some((i) => i.overDelivered),
                 invoicingKey: invoicingByDelivery.get(d.id)?.key ?? null,
                 invoicingChip: invoicingByDelivery.has(d.id)
@@ -162,7 +151,6 @@ export default async function DeliveriesListPage({ searchParams }) {
             ) : (
                 <DeliveriesListClient
                     rows={rows}
-                    showInvoicing={showInvoicing}
                     initialUnbilled={filters.unbilled}
                     initialOver={filters.over}
                 />
