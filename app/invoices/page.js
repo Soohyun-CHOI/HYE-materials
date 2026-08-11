@@ -6,7 +6,7 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { getInvoiceDeliveryStatus } from "@/lib/deliveryReconciliation";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { STATUS_COPY, describeInvoiceColumn } from "@/lib/deliveryStatus";
-import { InferredMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
+import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { formatUSD } from "@/lib/format";
 
 export const metadata = { title: "Invoices" };
@@ -45,13 +45,13 @@ export default async function InvoiceListPage() {
     const visibleIds = await getVisibleInvoiceIds(user, allInvoices, invoiceItems);
     const invoices = allInvoices.filter((inv) => visibleIds.has(inv.id));
 
-    // Issue #166 — whether what each invoice billed for has been recorded as
-    // arrived. FIVE operations for a page of any size, each fetching a whole level
-    // keyed on ids from the level above: the invoices already carry their own
-    // `Invoice Items` array, and two of the five exist because the answer is
-    // attributed to ONE invoice, which means reading every other bill on the same
-    // ordered line. The per-row alternative is what #143 ruled out and #162
-    // measured at over 200 calls. The rule itself is lib/deliveryStatus.js.
+    // Issue #166 — whether what each invoice billed for has been delivered. THREE
+    // operations for a page of any size, down from five: #210 stores the pairing on
+    // `Invoices."Delivery"`, so the two levels that existed only to attribute an
+    // answer — every OTHER bill on the same ordered item, and those bills' parents
+    // for their `Issue Date` — are nobody's business any more. The per-row
+    // alternative is what #143 ruled out and #162 measured at over 200 calls. The
+    // rule itself is lib/deliveryStatus.js.
     //
     // RUN OVER THE GATED ROWS, so a refused invoice's lines never reach the wire
     // either — the same call #169 makes when it gathers PO Item ids from the rows
@@ -107,8 +107,10 @@ export default async function InvoiceListPage() {
                     seven columns need 832px against the 832px the page has. Six of
                     the seven are bounded by construction and cannot grow — an
                     Invoice ID is a fixed format (128px), a date is 10 characters
-                    (80px), the Delivery column is a closed set of three chips plus
-                    a marker (120px), Amount Due is bound by its own header (78px),
+                    (80px), the Delivery column is a closed set of TWO chips plus a
+                    marker since #210 and its widest is `Awaiting delivery` (120px,
+                    unchanged: the state that left was not the widest one), Amount
+                    Due is bound by its own header (78px),
                     and Status by `Paid 2026-07-27` beside a `⚠ Variance` badge
                     (176px, and the reason the last column drops its right padding).
                     So VENDOR IS WHERE THE SLACK ISN'T: 8rem holds the longest name
@@ -166,20 +168,30 @@ export default async function InvoiceListPage() {
                                     than delivered" and not "over-billed", because at
                                     any one moment the two are the same measurement.
 
-                                    ONE CHIP, AND NO EXCEPTION TAGS. The two
-                                    beyond-the-order tags this column used to carry
-                                    both left it, for different reasons. `beyond
-                                    order` (billed > ordered) is already on this very
-                                    page as the `⚠ Variance` badge in the items
-                                    table, which `Invoice Items.Variance Flag`
-                                    drives — one fact rendered twice on one screen.
-                                    `over-delivery` (delivered > ordered) is not a
-                                    fact about THIS invoice at all but about the
-                                    ordered item, and inside a column headed
-                                    `Delivery` it reads as "more arrived than this
-                                    bill covers", which is a different and wrong
-                                    claim. Both facts are on the invoice detail,
-                                    under the ordered item they belong to. */}
+                                    TWO CHIPS AND A MISMATCH MARKER SINCE #210. The
+                                    chip is the link's own two states — the shipment
+                                    is named or it is not — and a quantity shortfall
+                                    is the marker beside it, which is #166's
+                                    marker-vs-chip shape inherited rather than
+                                    re-argued. `Partly delivered` left this column
+                                    with the inference that produced it: the old fill
+                                    put an invoice whose own shipment had not arrived
+                                    into that state routinely.
+
+                                    STILL NO EXCEPTION TAGS. The two beyond-the-order
+                                    tags this column used to carry both left it, for
+                                    different reasons. `beyond order` (billed >
+                                    ordered) is already on this very page as the
+                                    `⚠ Variance` badge in the items table, which
+                                    `Invoice Items.Variance Flag` drives — one fact
+                                    rendered twice on one screen. `over-delivery`
+                                    (delivered > ordered) is not a fact about THIS
+                                    invoice at all but about the ordered item, and
+                                    inside a column headed `Delivery` it reads as
+                                    "more arrived than this bill covers", which is a
+                                    different and wrong claim. Both facts are on the
+                                    invoice detail, under the ordered item they
+                                    belong to. */}
                                 <td className="py-1 pr-2">
                                     {(() => {
                                         const summary = statusByInvoice.get(inv.id);
@@ -187,9 +199,9 @@ export default async function InvoiceListPage() {
                                         return (
                                             <span className="flex items-center gap-1">
                                                 <StatusChip chip={describeInvoiceColumn(summary)} />
-                                                {summary.estimated && (
-                                                    <InferredMarker
-                                                        label={STATUS_COPY.column.inferred().text}
+                                                {summary.mismatch && (
+                                                    <QualifierMarker
+                                                        label={STATUS_COPY.column.mismatch().text}
                                                     />
                                                 )}
                                             </span>

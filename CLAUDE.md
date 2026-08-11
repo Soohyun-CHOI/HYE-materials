@@ -103,6 +103,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds order lines. Credentialed.
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgement, `STATUS_COPY`, the list filters, the worklist order, `CONTAINMENT_PREMISE`.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
+- `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
+- `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
 - `lib/overage.js` — the overage correction's judgement and `OVERAGE_COPY`.
@@ -112,7 +114,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed.
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling.
-- `app/components/DeliveryStatusMarks.js` — `StatusChip` / `InferredMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
+- `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
 
 ### One rule, one implementation
@@ -147,7 +149,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in-app). At least one required per PR; can have more than one over its lifetime (dynamic list on PR form, or later via Edit and continue).
 
-**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend, unlike Items Subtotal/Calculated Total/Variance Flag; human edits allowed and recompute variance — #117), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0), Variance Flag (checkbox, backend-set), Paid(+Date), File (attachment, required).
+**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend, unlike Items Subtotal/Calculated Total/Variance Flag; human edits allowed and recompute variance — #117), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0), Variance Flag (checkbox, backend-set), Paid(+Date), File (attachment, required), Delivery (link -> Deliveries, single, optional — app-enforced, #210).
 
 **Invoice-PO Link**: join table, many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
@@ -159,7 +161,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Material Prices**: item × vendor (#18). Natural key = Material + Vendor. `Price Label` (primary, formula over the two links), `Material` / `Vendor` (links, single), `Unit Price`, `Latest Date` (calendar), `Latest PO` (link), and `Material Record ID` / `Vendor Record ID` lookups. Those two lookups are what make a row findable at all — `filterByFormula` cannot compare a link field to a record id, the same exception already recorded for parent-link filtering. Still a latest-value cache, not history.
 
-**Deliveries**: one recorded arrival (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link).
+**Deliveries**: one recorded arrival (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link), `Invoices` (reverse-link, plural).
 
 **Delivery Items**: one allocated slice of an arrival (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Unit` (frozen reference copies), `Qty`, `Over Delivered` (checkbox, backend-set).
 

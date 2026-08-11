@@ -10,6 +10,11 @@ import {
     itemOptionLabel,
     planDelivery,
 } from "@/lib/deliveryAllocation";
+import {
+    LINK_COPY,
+    availableInvoiceOptions,
+    invoiceOptionLabel,
+} from "@/lib/deliveryInvoiceLink";
 
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryAllocation.js imports only
 // lib/materialPriceView.js -> lib/itemNaming.js, none of which reach
@@ -19,6 +24,8 @@ import {
 // module load — so selecting a job blew up in the browser. Importing a module
 // EXECUTES it; "the readers are never called on this side" was not a defence.
 // scripts/tests/offline/client-import-safety.mjs now fails on any such import.
+// lib/deliveryInvoiceLink.js (#210) is pure for the same reason and has its
+// credentialed half in a separate file.
 
 const EMPTY_ROW = { materialRecordId: "", qty: "" };
 
@@ -43,8 +50,17 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * drift. It is still only a preview — the server re-reads and re-allocates,
  * because a PO can be withdrawn or another arrival recorded while this page sits
  * open.
+ *
+ * THE INVOICE IS A DROPDOWN AND NOT A TYPED NUMBER (#210), and #211 is what made
+ * that possible. A picker has to show invoice numbers, and before #211 a site
+ * recorder could not read the invoice list at all, so typing was the only shape
+ * that disclosed nothing — the reason the first design chose it. #211 opened those
+ * routes to anyone who may see the order behind a line, which is exactly what every
+ * row on this form already is, so the picker discloses nothing new and removes both
+ * failure modes typing had: a mistyped number, and one naming an invoice that does
+ * not exist. It is optional, because the bill is not always in the app yet.
  */
-export default function DeliveryForm({ jobs, lines, vendorNames }) {
+export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions = [] }) {
     const [state, formAction, pending] = useActionState(createDeliveryAction, {});
 
     // A single accessible job is preselected: making someone choose from a list of
@@ -57,6 +73,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
     const [receivedDate, setReceivedDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [notes, setNotes] = useState("");
     const [photo, setPhoto] = useState({ status: "empty" });
+    const [invoiceRecordId, setInvoiceRecordId] = useState("");
 
     const selectedJob = jobs.find((j) => j.id === jobRecordId) || null;
 
@@ -140,6 +157,15 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
 
     const vendorHasNoItems = Boolean(effectiveVendorId) && itemOptions.length === 0;
 
+    // #210 — the bills this vendor could have sent for this arrival, narrowed and
+    // ordered by the shared rule so this form and the delivery's own edit page
+    // cannot come to offer different sets. Not narrowed by JOB: an invoice can bill
+    // orders on more than one, so that would risk hiding the right one.
+    const invoiceChoices = useMemo(
+        () => availableInvoiceOptions(invoiceOptions, { vendorRecordId: effectiveVendorId }),
+        [invoiceOptions, effectiveVendorId]
+    );
+
     function pickJob(id) {
         setJobRecordId(id);
         // Everything downstream was narrowed by the old job, so none of it can
@@ -148,11 +174,15 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
         setPoId("");
         setHasPoNumber(false);
         setRows([{ ...EMPTY_ROW }]);
+        setInvoiceRecordId("");
     }
 
     function pickVendor(id) {
         setVendorId(id);
         setRows([{ ...EMPTY_ROW }]);
+        // The invoice list is vendor-narrowed, so a bill picked under the old vendor
+        // is not on offer under the new one — the same reason the item rows reset.
+        setInvoiceRecordId("");
     }
 
     function updateRow(index, field, value) {
@@ -209,6 +239,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
             <input type="hidden" name="itemsJson" value={JSON.stringify(filledRows)} />
             <input type="hidden" name="packingListUrl" value={photo.url || ""} />
             <input type="hidden" name="packingListFilename" value={photo.filename || ""} />
+            <input type="hidden" name="invoiceRecordId" value={invoiceRecordId} />
 
             {/* --- Job ---------------------------------------------------------- */}
             <div>
@@ -241,6 +272,12 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                         onChange={(e) => {
                             setHasPoNumber(e.target.checked);
                             setRows([{ ...EMPTY_ROW }]);
+                            // The PO fixes the vendor, and the invoice list is
+                            // vendor-narrowed, so a bill picked before this cannot be
+                            // assumed to still be on offer. A <select> holding a value
+                            // that matches no option renders blank and loses it
+                            // silently — the same trap the item rows guard against.
+                            setInvoiceRecordId("");
                             if (!e.target.checked) setPoId("");
                         }}
                     />
@@ -258,6 +295,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                             onChange={(e) => {
                                 setPoId(e.target.value);
                                 setRows([{ ...EMPTY_ROW }]);
+                                setInvoiceRecordId("");
                             }}
                             placeholder="HYE-PO-YYYYMMDD-##"
                             className={inputClass}
@@ -493,6 +531,46 @@ export default function DeliveryForm({ jobs, lines, vendorNames }) {
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
                     The app decides which order each item belongs to. Correcting an item or a quantity
                     later means deleting this delivery and entering it again.
+                </p>
+            </div>
+
+            {/* --- Invoice on the packing list (#210) --------------------------- */}
+            <div>
+                <label htmlFor="invoiceSelect" className="block text-sm font-medium">
+                    {LINK_COPY.field.label().text}
+                </label>
+                <select
+                    id="invoiceSelect"
+                    value={invoiceRecordId}
+                    onChange={(e) => setInvoiceRecordId(e.target.value)}
+                    disabled={!effectiveVendorId || invoiceChoices.length === 0}
+                    className={`${inputClass} disabled:opacity-50`}
+                >
+                    <option value="">
+                        {effectiveVendorId ? "Not on the packing list…" : "Pick a vendor first…"}
+                    </option>
+                    {invoiceChoices.map((o) => (
+                        <option
+                            key={o.invoiceRecordId}
+                            value={o.invoiceRecordId}
+                            // LISTED BUT UNSELECTABLE when another shipment already
+                            // holds it, with that shipment named — #162's
+                            // fully-delivered item applied one level up. Dropping it
+                            // would leave the recorder holding a packing list whose
+                            // number is simply absent, which reads as "no such
+                            // invoice" and would be false.
+                            disabled={Boolean(o.linkedDeliveryRecordId)}
+                        >
+                            {invoiceOptionLabel(o)}
+                        </option>
+                    ))}
+                </select>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                    {effectiveVendorId && invoiceChoices.length === 0
+                        ? LINK_COPY.field.emptyList({
+                              vendorName: vendorNames[effectiveVendorId],
+                          }).text
+                        : LINK_COPY.field.optional().text}
                 </p>
             </div>
 

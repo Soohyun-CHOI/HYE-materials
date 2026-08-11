@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
-import { describeInvoiceColumn, describeInvoiceLine, showsThisBillShare } from "@/lib/deliveryStatus";
+import { describeInvoiceColumn, describeInvoiceLine, sharesOrderedItem } from "@/lib/deliveryStatus";
+import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
@@ -76,12 +77,17 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
     const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
 
-    // Issue #166 — the delivery side of this invoice. Three operations on top of
-    // what the page already holds (PO Items, Delivery Items, Deliveries), keyed on
-    // ids from the level above; the invoice's own lines are already loaded, so
-    // there is no query for them. The rule is lib/deliveryStatus.js and nothing is
-    // stored — there is no `Invoices.Delivery` link, deliberately.
-    const reconciliation = await getInvoiceReconciliation(items);
+    // Issue #166 — the delivery side of this invoice, and since #210 the shipment
+    // it names rather than an estimate of which one answered it. Three operations on
+    // top of what the page already holds (PO Items, Delivery Items, Deliveries),
+    // keyed on ids from the level above; the invoice's own lines are already loaded,
+    // so there is no query for them, and the pairing is a field on the record above.
+    // Down from five — the two that went existed only to order the other bills on
+    // the same ordered item so one of them could be picked. The rule is
+    // lib/deliveryStatus.js.
+    const reconciliation = await getInvoiceReconciliation(items, {
+        linkedDeliveryRecordId: linkedDelivery(invoice),
+    });
 
     // Issue #167 — fold the rows an overage split produced back into one, so the
     // table still reads line-for-line against the vendor's PDF. The key is #18's
@@ -280,9 +286,10 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 what makes them comparable with each other and with the deliveries
                 listed below them. Usually this invoice IS the only bill, so
                 `Billed` is also this invoice's figure; when it is not, the
-                `This bill:` line says so — and it appears on exactly the
-                condition the inferred marker does, because sharing the ordered
-                item with another bill is why the answer had to be inferred.
+                `This bill:` line says so. #210 changed what puts that line there:
+                it used to fire when the answer had been inferred, which made it an
+                explanation of a guess, and it now fires on the plain fact that the
+                ordered item carries another bill too (sharesOrderedItem).
 
                 COLOR ON THE VERDICT ONLY. lib/deliveryStatus.js returns named
                 slots rather than a list precisely so a call site cannot color the
@@ -336,7 +343,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                         </p>
                                     )}
 
-                                    {showsThisBillShare(row.status) && (
+                                    {sharesOrderedItem(row) && (
                                         <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
                                             This bill: {row.billedOnThisInvoice} of{" "}
                                             {row.line.invoiced}
@@ -362,12 +369,16 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                         </p>
                                     )}
 
-                                    {lines.inferred && (
-                                        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-                                            {lines.inferred.text}
-                                        </p>
-                                    )}
-
+                                    {/* #210 — ONE OF THESE IS NOW NAMED, and that is
+                                        the claim this section could not make before.
+                                        It listed every delivery that touched the
+                                        ordered item and said nothing about which one
+                                        brought the quantity attributed to this bill,
+                                        because nothing recorded it. The rest stay
+                                        listed: they are what explains a `Delivered`
+                                        total larger than this bill's share, and a box
+                                        is scoped to one ordered item, so listing them
+                                        claims only what the data supports. */}
                                     {row.deliveries.length > 0 && (
                                         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-600 dark:text-zinc-400">
                                             <span className="text-zinc-500">Deliveries ·</span>
@@ -380,6 +391,12 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                                         {d.deliveryId}
                                                     </Link>{" "}
                                                     ({d.receivedDate || "—"})
+                                                    {d.named && (
+                                                        <span className="text-zinc-500">
+                                                            {" "}
+                                                            — this invoice
+                                                        </span>
+                                                    )}
                                                 </span>
                                             ))}
                                         </p>

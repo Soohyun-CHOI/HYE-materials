@@ -16,12 +16,12 @@ import { describeOveragePreview } from "@/lib/overage";
 import { createOverageDraft, getOverageContext } from "@/lib/overagePR";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { deleteDeliveryAsUser } from "@/lib/deliveryDelete";
+import { setDeliveryInvoiceAsUser } from "@/lib/deliveryInvoiceCandidates";
 
-// All three exports below gate on requireUser() and then compare per record, so
-// none of lib/authz.js's role wrappers fits — the axis is Job membership or
-// authorship, not a role. Same shape as withdrawPOAction (#138); all three are
-// listed as requireUser exemptions with that reason in
-// scripts/tests/offline/authz-structure.mjs.
+// Every export below gates on requireUser() and then compares per record, so none
+// of lib/authz.js's role wrappers fits — the axis is Job membership or authorship,
+// not a role. Same shape as withdrawPOAction (#138); each is listed as a requireUser
+// exemption with that reason in scripts/tests/offline/authz-structure.mjs.
 
 /**
  * Resolve a delivery the caller is allowed to touch, or a refusal.
@@ -123,6 +123,73 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
 }
 
 /**
+ * Attach the invoice this shipment is billed by, after the fact (#210).
+ *
+ * THE LATER-ATTACHMENT PATH, and it is an in-place edit rather than a second entry
+ * screen because the pairing is ORTHOGONAL TO ALLOCATION. What this page refuses to
+ * change — the item, the quantity, the vendor, the packing list PO — is refused on
+ * one ground: changing it changes what the arrival was allocated against, and there
+ * is deliberately no allocation-editing UI. An invoice link changes no `Delivery
+ * Items` row, moves no quantity between orders and re-runs nothing, so that reason
+ * does not reach it. It belongs with the received date, the note and the photo.
+ *
+ * WHY IT HAS TO EXIST AT ALL: the vendor usually emails the bill at shipment, so it
+ * is normally on hand first — but not always, and an invoice nobody has entered yet
+ * cannot be picked from a dropdown. Leaving it blank at entry is a normal answer,
+ * which makes this the path that finishes the pairing.
+ *
+ * Every decision is in lib/deliveryInvoiceCandidates.js, which re-runs the row gate
+ * from a fresh read; this contributes the session gate, the Job comparison and the
+ * redirect.
+ */
+export async function attachDeliveryInvoiceAction(prevState, formData) {
+    const user = await requireUser();
+    const deliveryId = formData.get("deliveryId");
+    const invoiceRecordId = formData.get("invoiceRecordId");
+
+    const loaded = await loadForEdit(user, deliveryId);
+    if (loaded.error) return loaded;
+
+    const result = await setDeliveryInvoiceAsUser({
+        user,
+        delivery: loaded.delivery,
+        invoiceRecordId,
+        attach: true,
+    });
+    if (result.error) return result;
+
+    redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-attached`);
+}
+
+/**
+ * Detach an invoice from this shipment (#210).
+ *
+ * DETACH RATHER THAN SWAP, and the pair of separate controls is deliberate: an
+ * invoice can only ever name one delivery, so re-pointing one is a claim about two
+ * shipments at once. Making it two steps means the screen it left says so, and the
+ * refusal `taken-by-another` stays truthful rather than being something the app
+ * silently overrides.
+ */
+export async function detachDeliveryInvoiceAction(prevState, formData) {
+    const user = await requireUser();
+    const deliveryId = formData.get("deliveryId");
+    const invoiceRecordId = formData.get("invoiceRecordId");
+
+    const loaded = await loadForEdit(user, deliveryId);
+    if (loaded.error) return loaded;
+
+    const result = await setDeliveryInvoiceAsUser({
+        user,
+        delivery: loaded.delivery,
+        invoiceRecordId,
+        attach: false,
+    });
+    if (result.error) return result;
+
+    redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-detached`);
+}
+
+/**
  * Delete a delivery and its lines.
  *
  * Deliberately a thin wrapper: everything that decides anything (authorship or
@@ -153,11 +220,13 @@ export async function deleteDeliveryAction(prevState, formData) {
  * Raise the corrective PR for one over-delivery (#167).
  *
  * JOB-SCOPED, not office-gated, per the issue: raising the request is site work.
- * That is a NARROWING of #166, which withheld invoice existence from site staff on
- * the deliveries LIST — the list column stays withheld, while this affordance and
- * its preview deliberately reveal that the over-delivered ordered item is billed,
- * by which invoice and at what unit price, because none of that can be hidden from
- * someone raising a request quoted from it.
+ * That was a NARROWING of #166, which withheld invoice existence from site staff on
+ * the deliveries LIST while this affordance and its preview deliberately revealed
+ * that the over-delivered ordered item is billed, by which invoice and at what unit
+ * price, because none of that can be hidden from someone raising a request quoted
+ * from it. #211 THEN RELEASED THE LIST COLUMN TO EVERY VIEWER, so this is no longer
+ * an exception to anything — the reasoning is kept because it is what the
+ * disclosure here rests on, not because the contrast survives.
  *
  * RE-AUTHORIZES AND RE-DERIVES EVERYTHING. A Server Action is callable directly, so
  * the button having rendered proves nothing: the Job check runs again and
