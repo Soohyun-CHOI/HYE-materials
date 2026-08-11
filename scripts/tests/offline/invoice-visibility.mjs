@@ -155,6 +155,26 @@ export async function run({ check, log, assert }) {
     });
     assert("and it does not narrow by the job's own order lines instead", !reachesCandidateLines);
 
+    // THE ANSWER IS HANDED TO THE PREDICATE, and this covers the COST of how that is
+    // enforced rather than enforcing it. `invoiceLinkRefusal` requires `visible` and
+    // THROWS when it is missing, which is what makes the gate fail closed — a check
+    // over call sites could not do that, since source shape is not execution. What the
+    // throw leaves behind is that a caller which forgot it fails at runtime as a 500
+    // instead of failing CI, so the one call site is pinned here, beside the other
+    // call-site claims, rather than in the pure module's own file.
+    let refusalCalls = 0;
+    let refusalCallsWithVisible = 0;
+    walk(candidates.ast, (node) => {
+        if (node.type !== "CallExpression" || node.callee?.name !== "invoiceLinkRefusal") return;
+        refusalCalls += 1;
+        const arg = node.arguments[0];
+        if (arg?.type !== "ObjectExpression") return;
+        if (arg.properties.some((p) => p.key?.name === "visible")) refusalCallsWithVisible += 1;
+    });
+    // ANTI-VACUITY first: "every call passes it" is also true of no calls at all.
+    assert("the module calls invoiceLinkRefusal at least once", refusalCalls > 0);
+    check("and every call passes `visible`", refusalCallsWithVisible, refusalCalls);
+
     // --- 2: the old route gate is gone from both invoice routes -----------
     log("");
     log("neither invoice route carries the President-or-Admin route gate any more:");

@@ -172,7 +172,64 @@ export function run({ check, log, assert }) {
         }),
         null
     );
-    check("no argument at all does not throw", invoiceLinkRefusal(), LINK_REFUSED.notFound);
+    // --- `visible` IS REQUIRED, AND THE DEFAULT IS NOT ADMIT ---------------
+    log("");
+    log("`visible` is required, because a gate that defaults to admitting is not one:");
+    // The first version tested `visible === false`, to keep "refused" apart from "not
+    // asked" — which made a caller who forgot the argument pass. Nothing asserted that
+    // the one caller passed it, so that shape's safety rested on a fact no check could
+    // see. It throws now, which is a property of the FUNCTION rather than of its call
+    // sites: verification.md's own reason to prefer this over a source-shape check is
+    // that "source shape is not execution".
+    const throwsWithout = (label, args) => {
+        let threw = false;
+        try {
+            invoiceLinkRefusal(args);
+        } catch {
+            threw = true;
+        }
+        assert(label, threw);
+    };
+    throwsWithout("no argument at all throws", undefined);
+    throwsWithout("an empty object throws", {});
+    throwsWithout("a caller who forgot only `visible` throws", {
+        invoice: invoice(),
+        deliveryRecordId: "recDL1",
+        vendorRecordId: "recVEN1",
+    });
+    // CHECKED BEFORE THE INVOICE EXISTS, because the argument contract is not
+    // conditional on the answer. A caller that resolved nothing still knows what it
+    // asked, and `checkInvoicePairing` passes `false` there.
+    throwsWithout("even with no invoice to judge, so `notFound` cannot mask it", {
+        invoice: null,
+        deliveryRecordId: "recDL1",
+    });
+    // Not a truthiness test: a non-boolean is a caller bug too, and admitting `"yes"`
+    // or refusing `null` silently would both be answers to a question nobody asked.
+    for (const bad of [null, "true", 1, 0, {}]) {
+        throwsWithout(`\`visible: ${JSON.stringify(bad)}\` throws rather than being coerced`, {
+            invoice: invoice(),
+            deliveryRecordId: "recDL1",
+            visible: bad,
+        });
+    }
+    // ANTI-VACUITY: the two real values must NOT throw, or the assertions above are
+    // satisfied by a function that throws unconditionally.
+    check(
+        "`visible: true` is admitted",
+        invoiceLinkRefusal({ invoice: invoice(), deliveryRecordId: "recDL1", visible: true }),
+        null
+    );
+    check(
+        "`visible: false` is refused, not thrown",
+        invoiceLinkRefusal({ invoice: invoice(), deliveryRecordId: "recDL1", visible: false }),
+        LINK_REFUSED.outOfScope
+    );
+    // WHAT THE THROW DOES NOT PROVE, said here because a reader of this section will
+    // otherwise take it for more than it is: a caller passing `visible: true`
+    // unconditionally satisfies every assertion above. That the one caller reaches
+    // getVisibleInvoiceIds at all is pinned in offline/invoice-visibility.mjs; that it
+    // reaches the RIGHT answer is the browser's and the credentialed tier's.
 
     // --- the dropdown's narrowing -----------------------------------------
     log("");
@@ -292,24 +349,53 @@ export function run({ check, log, assert }) {
     check("nullish too", describeLinkRefusal(null), null);
 
     log("");
-    log("the taken refusal names the bill, and the shipment only when it has one:");
-    assert(
-        "with a delivery in hand it says which",
-        describeLinkRefusal(LINK_REFUSED.takenByAnother, {
-            invoiceId: "HYE-INV-260801-03",
-            deliveryId: "HYE-DL-260803-01",
-        }).text.includes("HYE-DL-260803-01")
-    );
-    assert(
-        "without one it still says the bill is taken",
-        describeLinkRefusal(LINK_REFUSED.takenByAnother, { invoiceId: "HYE-INV-260801-03" }).text.includes(
-            "another delivery"
-        )
-    );
-    assert(
-        "  and it says what to do about it",
-        describeLinkRefusal(LINK_REFUSED.takenByAnother, {}).text.includes("detach")
-    );
+    log("the taken refusal has TWO VOICES, split on whether the reader can reach it:");
+    // #206's rule applied to a refusal: naming an action the reader cannot take is
+    // worse than saying nothing, which is why that issue's qualifier has two voices
+    // rather than three. A delivery is Job-scoped and an invoice can bill two jobs, so
+    // the shipment holding a bill is not always in view — and "detach it there first"
+    // then sends someone to a page that will tell them it does not exist.
+    const takenNamed = describeLinkRefusal(LINK_REFUSED.takenByAnother, {
+        invoiceId: "HYE-INV-260801-03",
+        deliveryId: "HYE-DL-260803-01",
+    }).text;
+    const takenUnnamed = describeLinkRefusal(LINK_REFUSED.takenByAnother, {
+        invoiceId: "HYE-INV-260801-03",
+    }).text;
+
+    log("  reachable — names the shipment and says what to do:");
+    assert("it says which delivery", takenNamed.includes("HYE-DL-260803-01"));
+    assert("  and which invoice", takenNamed.includes("HYE-INV-260801-03"));
+    assert("  and the rule that makes it exclusive", takenNamed.includes("One invoice belongs to one delivery"));
+    assert("  and the action", takenNamed.includes("detach it there first"));
+
+    log("  out of reach — the same facts, and NO action:");
+    assert("it still names the invoice", takenUnnamed.includes("HYE-INV-260801-03"));
+    assert("  and still says the bill is taken", takenUnnamed.includes("another delivery"));
+    assert("  and still says the rule", takenUnnamed.includes("One invoice belongs to one delivery"));
+    // THE WHOLE POINT: no action, and no second one invented in its place either.
+    for (const forbidden of ["detach", "ask", "contact", "the office", "instead"]) {
+        assert(
+            `  and never says "${forbidden}"`,
+            !takenUnnamed.toLowerCase().includes(forbidden)
+        );
+    }
+    // And it must not leak the record it declined to name. A record id would be worse
+    // than the human id, since neither belongs to a reader outside its scope.
+    assert("  and names no delivery at all", !/HYE-DL-|recDL/.test(takenUnnamed));
+
+    // ANTI-VACUITY for the whole split. Every "does not contain" above is also what a
+    // builder returning "" would satisfy, and the two voices must be genuinely
+    // different rather than one string with a field interpolated into it.
+    assert("the two voices are different sentences", takenNamed !== takenUnnamed);
+    assert("  and the action really is present in the other one", takenNamed.includes("detach"));
+    assert("  both are non-empty", takenNamed.length > 0 && takenUnnamed.length > 0);
+    // With no invoiceId either, the voice degrades to a subject rather than printing
+    // `undefined` — the same property emptyList has.
+    const takenBare = describeLinkRefusal(LINK_REFUSED.takenByAnother, {}).text;
+    assert("with nothing named at all it still reads", takenBare.startsWith("That invoice"));
+    assert("  without printing undefined", !takenBare.includes("undefined"));
+    assert("  and still names no action", !takenBare.toLowerCase().includes("detach"));
 
     log("");
     log("the field's own copy: blank is an ANSWER, not an omission:");
