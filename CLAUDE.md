@@ -101,8 +101,10 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds order lines. Credentialed.
-- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgement, `STATUS_COPY`, the list filters, the worklist order, `CONTAINMENT_PREMISE`.
+- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgement, `STATUS_COPY`, the list filters, the worklist order.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
+- `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
+- `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
 - `lib/overage.js` — the overage correction's judgement and `OVERAGE_COPY`.
@@ -112,7 +114,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed.
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling.
-- `app/components/DeliveryStatusMarks.js` — `StatusChip` / `InferredMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
+- `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
 
 ### One rule, one implementation
@@ -147,7 +149,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in-app). At least one required per PR; can have more than one over its lifetime (dynamic list on PR form, or later via Edit and continue).
 
-**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend, unlike Items Subtotal/Calculated Total/Variance Flag; human edits allowed and recompute variance — #117), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0), Variance Flag (checkbox, backend-set), Paid(+Date), File (attachment, required).
+**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend, unlike Items Subtotal/Calculated Total/Variance Flag; human edits allowed and recompute variance — #117), Shipping Fee, Tariff (optional, toggle-revealed), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff, blank = 0), Variance Flag (checkbox, backend-set), Paid(+Date), File (attachment, required), Delivery (link -> Deliveries, single, optional — app-enforced, #210).
 
 **Invoice-PO Link**: join table, many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
@@ -159,7 +161,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Material Prices**: item × vendor (#18). Natural key = Material + Vendor. `Price Label` (primary, formula over the two links), `Material` / `Vendor` (links, single), `Unit Price`, `Latest Date` (calendar), `Latest PO` (link), and `Material Record ID` / `Vendor Record ID` lookups. Those two lookups are what make a row findable at all — `filterByFormula` cannot compare a link field to a record id, the same exception already recorded for parent-link filtering. Still a latest-value cache, not history.
 
-**Deliveries**: one recorded arrival (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link).
+**Deliveries**: one recorded arrival (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link), `Invoices` (reverse-link, plural).
 
 **Delivery Items**: one allocated slice of an arrival (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Unit` (frozen reference copies), `Qty`, `Over Delivered` (checkbox, backend-set).
 
@@ -262,6 +264,7 @@ scripts/
   tests/_fixtures.mjs  the cleanup contract every credentialed script goes through
   import/              reusable one-time backfills (Python)
   demo/                seed scripts, kept in the repo and NOT deleted from Airtable
+  wrap-72.mjs          the 72-char wrap rule, executable — spans stay whole, --check verifies
 ```
 
 - `scripts/tests/offline/` — the standing tier: plain `node`, no env vars, no Airtable, no dev server, creates nothing. `npm test` runs all of it and CI runs `npm test` on every push. The runner SCANS the directory, so a new check is in CI automatically. Files beginning with `_` are shared helpers.
@@ -286,8 +289,11 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed.
 - Never commit to main. One branch per issue: {issue#}-{short-desc}.
 - Commit format: `{type}: {description} (#{issue#})` — feat / fix / chore / refactor / docs (project markdown/CLAUDE.md changes) / test (changes under scripts/tests/).
 - PR description must include `Closes #{issue#}`. Squash merge — PR description becomes the final commit body.
-- Line-wrap commit bodies + PR descriptions at 72 chars. Prompts/comments don't need wrapping.
-- Wrap literal `<tag>`-looking text in backticks in PR descriptions.
+- PR title is the representative commit's subject. Body opens on `Closes #{issue#}` — no issue summary before it — then three sections: **What this delivers** (a list of what changed), **Key design decisions** (a paragraph per decision, bold lead-in), **Testing** (a table of check and result).
+- `Testing` carries only what was actually verified; what was not is left out rather than disclaimed. Nothing is described as finished, complete, done or deployed — `implemented and merged` is a fact about the branch.
+- A doc-only PR with no issue omits the `Closes` line and says so in its first line. The body itself goes in pr-body.md at repo root, gitignored alongside commit-msg.txt.
+- Line-wrap commit bodies + PR descriptions at 72 chars, table rows and fenced blocks included, and NEVER inside a backtick span — wrap around it, and move it to a fenced block when the span plus its backticks will not fit. A rewrap tool skips table rows, so keep cells short and move long explanation to prose under the table. Prompts/comments don't need wrapping.
+- Wrap literal `<tag>`-looking text in backticks in PR descriptions; write an issue reference as bare #num so GitHub autolinks it.
 - If an issue is already covered by other work, comment explaining why, then close — never silently close via Closes #.
 - Milestones = Phases (0-6) or standalone cross-cutting milestones. Stay scoped to the current issue's Milestone unless told otherwise.
 - **A comment or doc line that is FALSE about the current code or base is corrected on sight (#181)**, in whatever commit found it, rather than filed as a follow-up. It changes no behavior, and deferring costs more than fixing: an entry someone has to read, triage and schedule. **The boundary is falsity against improvement** — correcting a lie is maintenance, making a comment better is scope. Anything that changes behavior, moves code, or needs a judgement about what the right answer is stays out of scope as before.

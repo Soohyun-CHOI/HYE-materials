@@ -2,10 +2,11 @@
 //
 // RENAMED FROM DeliveryChips.js BY #181. The plural claimed both exports are
 // chips, and one deliberately is not: a chip is a value from a closed set, while
-// InferredMarker composes WITH any of them and would double the set if it were
-// one. `Marks` is the word both fit under — a chip is a mark and so is the `!` —
-// so the file no longer contradicts what it holds. It stays ONE file for the
-// reason below; the two belong together, they are just not the same shape.
+// the marker composes WITH any of them and would double the set if it were one.
+// `Marks` is the word both fit under — a chip is a mark and so is the `!` — so the
+// file no longer contradicts what it holds. It stays ONE file for the reason below;
+// the two belong together, they are just not the same shape. #210 renamed the
+// marker itself for the same test applied one level down; see there.
 //
 // ONE FILE FOR BOTH LISTS because the two columns are one idea at two ends: the
 // invoice list says whether what was billed has been delivered, the deliveries
@@ -46,19 +47,29 @@ export function StatusChip({ chip }) {
 }
 
 /**
- * The inferred marker: the answer in that cell rests on an ordering nothing
- * records (lib/deliveryStatus.js:allocateLineToInvoices).
+ * A qualifier on the cell beside it: the `!` in a circle, whose whole meaning is
+ * the sentence handed to it.
  *
- * A MARKER RATHER THAN A SECOND CHIP, because it is not another value of the set
- * — it composes with any of them, and as a chip it would double them.
+ * A MARKER RATHER THAN A SECOND CHIP, because it is not another value of the set —
+ * it composes with any of them, and as a chip it would double them.
+ *
+ * NAMED FOR ITS SHAPE, NOT FOR ONE OF ITS MEANINGS (#210). It was `InferredMarker`
+ * while there was exactly one qualifier in the app; it now carries two — #210's
+ * discrepancy on the invoice list, and #167's inferred attribution on the overage
+ * affordance, which is still a guess because reading it off the stored pairing is
+ * that issue's work rather than this one's. A name claiming the first would have
+ * been false at the second call site the moment it was reused, so it says what the
+ * component IS and the label says what it means, exactly as `StatusChip` does.
  *
  * `title` alone would be the whole affordance on a mouse and nothing at all
  * anywhere else: a tooltip opens on neither touch nor a keyboard. So the same
  * sentence is the accessible name, which is what a screen reader announces and
- * what survives when hover does not exist. The full explanation is on the invoice
- * detail as an ordinary line of text, which is the reading nobody has to discover.
+ * what survives when hover does not exist. Whether there is a fuller explanation
+ * elsewhere is the caller's business: #167 prints the same sentence beside its
+ * button, and #210's discrepancy is stated with its figures, per ordered item, on
+ * the invoice detail.
  */
-export function InferredMarker({ label }) {
+export function QualifierMarker({ label }) {
     return (
         <span
             role="img"

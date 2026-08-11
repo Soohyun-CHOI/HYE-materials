@@ -95,6 +95,86 @@ export async function run({ check, log, assert }) {
     });
     assert("and it does not name the Draft status", !namesDraft);
 
+    // --- 1b: #210's dropdown defers to the same walk -----------------------
+    //
+    // A DROPDOWN OF INVOICE NUMBERS IS A SURFACE THAT SHOWS INVOICES, so it gates per
+    // record. The shortcut that was actually tempting here is worth naming, because
+    // it is free and it is wrong: getDeliveryCandidates already holds every purchase
+    // order on the viewer's jobs, so "an invoice billing one of those orders" costs
+    // nothing — and it is a SECOND answer to the visibility question that would
+    // disagree with the first, since canViewPR also admits a requester, a signer and
+    // the recipient of a correction request, none of whom need a Job assignment.
+    log("");
+    log("#210's invoice dropdown gates through the same walk, not a copy of it:");
+    const candidates = parseFile("lib/deliveryInvoiceCandidates.js");
+    const candidateImports = new Set();
+    let importsVisibility = false;
+    walk(candidates.ast, (node) => {
+        if (node.type !== "ImportDeclaration") return;
+        if (node.source.value !== "./invoiceVisibility") return;
+        importsVisibility = true;
+        for (const spec of node.specifiers) candidateImports.add(spec.imported?.name ?? spec.local.name);
+    });
+    assert("lib/deliveryInvoiceCandidates.js imports ./invoiceVisibility", importsVisibility);
+    assert("  and takes the walk from it", candidateImports.has("getVisibleInvoiceIds"));
+
+    const candidateCalls = new Set();
+    walk(candidates.ast, (node) => {
+        if (node.type === "CallExpression" && node.callee?.name) candidateCalls.add(node.callee.name);
+    });
+    assert("  and calls it on the READ side", candidateCalls.has("getVisibleInvoiceIds"));
+    // Twice, in fact, and the second time is the point: the dropdown having rendered
+    // proves nothing, so the guard re-runs the walk from a fresh read before any write.
+    let visibilityCallCount = 0;
+    walk(candidates.ast, (node) => {
+        if (node.type === "CallExpression" && node.callee?.name === "getVisibleInvoiceIds") {
+            visibilityCallCount += 1;
+        }
+    });
+    check("the read and the guard each run it", visibilityCallCount, 2);
+
+    // The same fields the module above may not touch. A comparison of its own here
+    // would not fail anything for as long as it happened to agree.
+    const candidateRestated = [];
+    walk(candidates.ast, (node) => {
+        if (node.type !== "MemberExpression") return;
+        if (OWN_RULE_FIELDS.includes(node.property?.name)) candidateRestated.push(node.property.name);
+    });
+    check(
+        "it reads none of canViewPR's own inputs either",
+        candidateRestated.length === 0 ? "none" : candidateRestated.join(","),
+        "none"
+    );
+    // The tempting shortcut, named so it fails rather than being caught by review.
+    // Reaching for the candidate ORDER LINES here is what a second answer looks like.
+    let reachesCandidateLines = false;
+    walk(candidates.ast, (node) => {
+        if (node.type === "ImportDeclaration" && node.source.value === "./deliveryCandidates") {
+            reachesCandidateLines = true;
+        }
+    });
+    assert("and it does not narrow by the job's own order lines instead", !reachesCandidateLines);
+
+    // THE ANSWER IS HANDED TO THE PREDICATE, and this covers the COST of how that is
+    // enforced rather than enforcing it. `invoiceLinkRefusal` requires `visible` and
+    // THROWS when it is missing, which is what makes the gate fail closed — a check
+    // over call sites could not do that, since source shape is not execution. What the
+    // throw leaves behind is that a caller which forgot it fails at runtime as a 500
+    // instead of failing CI, so the one call site is pinned here, beside the other
+    // call-site claims, rather than in the pure module's own file.
+    let refusalCalls = 0;
+    let refusalCallsWithVisible = 0;
+    walk(candidates.ast, (node) => {
+        if (node.type !== "CallExpression" || node.callee?.name !== "invoiceLinkRefusal") return;
+        refusalCalls += 1;
+        const arg = node.arguments[0];
+        if (arg?.type !== "ObjectExpression") return;
+        if (arg.properties.some((p) => p.key?.name === "visible")) refusalCallsWithVisible += 1;
+    });
+    // ANTI-VACUITY first: "every call passes it" is also true of no calls at all.
+    assert("the module calls invoiceLinkRefusal at least once", refusalCalls > 0);
+    check("and every call passes `visible`", refusalCallsWithVisible, refusalCalls);
+
     // --- 2: the old route gate is gone from both invoice routes -----------
     log("");
     log("neither invoice route carries the President-or-Admin route gate any more:");

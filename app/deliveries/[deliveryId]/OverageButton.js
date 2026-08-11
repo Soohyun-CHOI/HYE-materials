@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
-import { InferredMarker } from "@/app/components/DeliveryStatusMarks";
+import { QualifierMarker } from "@/app/components/DeliveryStatusMarks";
 import { createOverageDraftAction } from "./actions";
 
 /**
@@ -15,9 +15,16 @@ import { createOverageDraftAction } from "./actions";
  * cannot cross the boundary anyway, so this component never decides what the button
  * is about to do.
  *
- * The inferred marker is #166's own component, because it is #166's ambiguity: the
- * ordered item carries more than one bill and the oldest is taken. Reusing the
- * component keeps the two markers from becoming two shapes for one idea.
+ * The marker is #166's own component, because it was #166's ambiguity: the ordered
+ * item carries more than one bill and the oldest is taken. Reusing the component
+ * keeps the two markers from becoming two shapes for one idea — which is also why
+ * #210 renamed it `QualifierMarker`, having removed the OTHER inference the old name
+ * was taken from. This one survives: reading which bill carries an excess off the
+ * stored pairing needs #167's `spansInvoices` refusal rethought alongside it.
+ *
+ * `inferredLabel` is the sentence lib/overage.js already writes for the preview, so
+ * the tooltip and the line inside the modal cannot come to explain the same guess
+ * differently.
  */
 export default function OverageButton({ deliveryItemId, messages, inferred, inferredLabel }) {
     const [open, setOpen] = useState(false);
@@ -33,7 +40,7 @@ export default function OverageButton({ deliveryItemId, messages, inferred, infe
                 >
                     Raise a correction
                 </button>
-                {inferred && <InferredMarker label={inferredLabel} />}
+                {inferred && <QualifierMarker label={inferredLabel} />}
             </span>
 
             {state?.error && (

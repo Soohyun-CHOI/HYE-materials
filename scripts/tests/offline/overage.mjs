@@ -151,14 +151,30 @@ export function run({ check, log, assert }) {
     const covered = [bill("01", 10, "2026-07-01"), bill("02", 10, "2026-07-02")];
     check("two bills, both fully covered, still infers", selectOverageBill(covered, 2).inferred, true);
     assert(
-        "and the premise sentence is shared with #166 rather than restated",
-        OVERAGE_COPY.preview.inferred().text.includes(INFERRED_PREMISE) &&
-            STATUS_COPY.detail.inferred().text.includes(INFERRED_PREMISE)
+        "and the premise sentence is #166's, imported rather than restated",
+        OVERAGE_COPY.preview.inferred().text.includes(INFERRED_PREMISE)
     );
     assert(
-        "while the consequence differs, because the question does",
-        OVERAGE_COPY.preview.inferred().text.includes("carrying the excess") &&
-            STATUS_COPY.detail.inferred().text.includes("settled first")
+        "with this module's own consequence, because the question is its own",
+        OVERAGE_COPY.preview.inferred().text.includes("carrying the excess")
+    );
+    // #210 REMOVED THE OTHER HALF OF THIS PAIR, and what was asserted here was that
+    // the two markers explained themselves with one premise and two endings. The
+    // invoice axis's marker is gone — the pairing is stored, so nothing there is
+    // inferred — so there is one ending left and this is now a claim about a shared
+    // CONSTANT rather than about two sentences agreeing. The constant is still worth
+    // pinning: it is imported from a module that no longer reads it, which is exactly
+    // the shape a later cleanup would delete by accident.
+    assert(
+        "the invoice axis no longer has an inferred sentence to agree with",
+        !("inferred" in STATUS_COPY.detail) && !("inferred" in STATUS_COPY.column)
+    );
+    // ANTI-VACUITY for the line above: the object it looks in must be the one that
+    // holds the other detail entries, or "not in it" is what an empty object says.
+    assert(
+        "  and the object checked is the real one",
+        typeof STATUS_COPY.detail.verdict === "object" &&
+            typeof STATUS_COPY.column.mismatch === "function"
     );
 
     // --- THE ORDERING IS IMPORTED, ASSERTED ON THE AST -------------------

@@ -149,18 +149,41 @@ const EXEMPTIONS = [
     { file: "app/deliveries/[deliveryId]/actions.js", name: "deleteDeliveryAction", mustCall: "requireUser", reason: DELIVERY_AUTHOR_AXIS },
     {
         file: "app/deliveries/[deliveryId]/actions.js",
+        name: "attachDeliveryInvoiceAction",
+        mustCall: "requireUser",
+        reason:
+            `${DELIVERY_JOB_AXIS} Issue #210 — TWO per-record axes rather than one, ` +
+            "and neither is a role. The Job comparison admits it to the delivery; the " +
+            "invoice it is about is then gated per record through " +
+            "lib/invoiceVisibility.js, so a caller cannot pair a bill they may not " +
+            "read. Both re-run from a fresh read inside " +
+            "lib/deliveryInvoiceCandidates.js, because an invoice can be paired with " +
+            "another shipment while the form sits open.",
+    },
+    {
+        file: "app/deliveries/[deliveryId]/actions.js",
+        name: "detachDeliveryInvoiceAction",
+        mustCall: "requireUser",
+        reason:
+            `${DELIVERY_JOB_AXIS} Issue #210 — the same two axes as the attach action ` +
+            "above, minus the vendor test: a pairing that somehow crossed vendors has " +
+            "to stay detachable, or the refusal would lock in the state it objects to.",
+    },
+    {
+        file: "app/deliveries/[deliveryId]/actions.js",
         name: "createOverageDraftAction",
         mustCall: "requireUser",
         reason:
             `${DELIVERY_JOB_AXIS} Issue #167 — deliberately Job-scoped rather than ` +
-            "Admin, because raising the corrective request is site work. That NARROWS " +
+            "Admin, because raising the corrective request is site work. That NARROWED " +
             "#166, which withheld invoice existence from site staff on the deliveries " +
-            "list: the list column stays withheld, while this action and its preview " +
-            "reveal that the over-delivered ordered item is billed, by which invoice " +
-            "and at what unit price — none of which can be hidden from someone " +
-            "raising a request quoted from it. It also re-derives eligibility from a " +
-            "fresh read, so a correction raised in another tab lands as a refusal " +
-            "rather than a second Draft.",
+            "list, while this action and its preview reveal that the over-delivered " +
+            "ordered item is billed, by which invoice and at what unit price — none of " +
+            "which can be hidden from someone raising a request quoted from it. #211 " +
+            "then released that column to every viewer, so the contrast is gone while " +
+            "the reasoning the disclosure rests on is not. It also re-derives " +
+            "eligibility from a fresh read, so a correction raised in another tab " +
+            "lands as a refusal rather than a second Draft.",
     },
 ];
 

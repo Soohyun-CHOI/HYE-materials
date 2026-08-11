@@ -11,9 +11,9 @@ import { describeDelivery, groupRowsByItem, summarizeDelivery } from "@/lib/deli
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
 import { seesEveryInvoice } from "@/lib/invoiceVisibility";
-import { describeOveragePreview } from "@/lib/overage";
+import { OVERAGE_COPY, describeOveragePreview } from "@/lib/overage";
 import { getOverageContext } from "@/lib/overagePR";
-import { STATUS_COPY } from "@/lib/deliveryStatus";
+import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
 import OverageButton from "./OverageButton";
 
@@ -28,6 +28,8 @@ const DONE_MESSAGES = {
     recorded: "Delivery recorded.",
     updated: "Delivery updated.",
     "photo-replaced": "Packing list photo replaced.",
+    "invoice-attached": "Invoice attached.",
+    "invoice-detached": "Invoice detached.",
 };
 
 /**
@@ -74,11 +76,19 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
     const pos = await getPOsByRecordIds(poItems.flatMap((pi) => pi.po));
     const poById = new Map(pos.map((po) => [po.id, po]));
 
-    const [job, vendor, recorder, packingListPO] = await Promise.all([
+    const [job, vendor, recorder, packingListPO, invoices] = await Promise.all([
         delivery.job?.[0] ? getJobByRecordId(delivery.job[0]) : null,
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
         delivery.recordedBy?.[0] ? getUserByRecordId(delivery.recordedBy[0]) : null,
         delivery.packingListPO?.[0] ? getPOsByRecordIds(delivery.packingListPO) : null,
+        // #210 — the bills naming this shipment. One batched read, and none at all
+        // for a delivery nobody has paired yet. NOT GATED PER INVOICE, and that is
+        // #167's exception on this page rather than a new one: the recorder is the
+        // person who pairs them, from a dropdown that showed them these very
+        // numbers, so printing them back discloses nothing they have not seen. A
+        // number whose invoice is outside their scope still leads to the ordinary
+        // not-found text, which is what the link is allowed to do.
+        getInvoicesByRecordIds(delivery.invoices || []),
     ]);
 
     const rows = items.map((item) => {
@@ -223,7 +233,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                                 deliveryItemId={overage.id}
                                 messages={overage.messages}
                                 inferred={overage.inferred}
-                                inferredLabel={STATUS_COPY.column.inferred().text}
+                                inferredLabel={OVERAGE_COPY.preview.inferred().text}
                             />
                         </div>
                     )}
@@ -253,6 +263,32 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                         </Link>
                     ) : (
                         "none"
+                    )}
+                </p>
+                {/* #210 — the bill or bills this shipment is paired with, beside the
+                    PO the packing list named, because both are facts copied off the
+                    same document. Plural: one invoice names one delivery, so a
+                    shipment accumulates them as the office enters each one. Empty is
+                    a reading rather than a gap, and the sentence says which. */}
+                <p>
+                    <span className="text-zinc-500">Invoices:</span>{" "}
+                    {invoices.length === 0 ? (
+                        <span className="text-zinc-500">
+                            none attached — attach one from Edit once the office has entered it
+                        </span>
+                    ) : (
+                        invoices.map((inv, i) => (
+                            <span key={inv.id}>
+                                {i > 0 && ", "}
+                                <Link
+                                    href={`/invoices/${encodeURIComponent(inv.invoiceId)}`}
+                                    className="underline"
+                                >
+                                    {inv.invoiceId}
+                                </Link>
+                                {inv.vendorInvoiceCode ? ` (${inv.vendorInvoiceCode})` : ""}
+                            </span>
+                        ))
                     )}
                 </p>
                 <p>

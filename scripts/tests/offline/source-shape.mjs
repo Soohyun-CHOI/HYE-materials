@@ -360,6 +360,42 @@ export function run(reporter) {
     );
 
     log("");
+    log("Invoices.\"Delivery\" — ONE writer, and it is not the header editor (#210):");
+    // A WRITER COUNT, the same category as the two above, and the reason it is worth
+    // pinning is the AUTHORIZATION rather than the field. `updateInvoice` is the
+    // office's header-correction path and every caller of it is Admin-only (#117);
+    // this pairing is written from the DELIVERY side by a Job-scoped action, because
+    // the packing list is where it is known. One function with both axes on it would
+    // make the narrower one unenforceable — so the pairing gets its own narrow writer,
+    // the shape setPOItemMaterial and replaceDeliveryPhoto already have.
+    const invoicesTable = fileOf("lib/airtable/invoices.js");
+    const isDeliveryKey = (n) =>
+        n.type === "Property" && (n.key?.name === "Delivery" || n.key?.value === "Delivery");
+    const deliveryLinkWrites = [];
+    walk(invoicesTable.ast, (n) => {
+        if (isDeliveryKey(n)) deliveryLinkWrites.push(n);
+    });
+    check(
+        "lib/airtable/invoices.js writes Delivery in exactly one place",
+        deliveryLinkWrites.length,
+        1
+    );
+    const setInvoiceDeliveryFn = resolveFunction(invoicesTable.ast, "setInvoiceDelivery");
+    assert(
+        "and that place is setInvoiceDelivery",
+        deliveryLinkWrites.filter((w) => within(w, setInvoiceDeliveryFn)).length === 1
+    );
+    const updateInvoiceFn = resolveFunction(invoicesTable.ast, "updateInvoice");
+    assert(
+        "updateInvoice exists and never touches the pairing",
+        Boolean(updateInvoiceFn) && firstPositionOf(updateInvoiceFn, isDeliveryKey) === -1
+    );
+    // ANTI-VACUITY: `isDeliveryKey` must be able to find something, or the two
+    // assertions above are satisfied by a matcher that matches nothing. The write it
+    // does find is the one inside the narrow writer, which is the positive case.
+    assert("the Delivery-key matcher found a write at all", deliveryLinkWrites.length > 0);
+
+    log("");
     log("Withdrawn-PO guards (#138):");
     for (const g of WITHDRAW_GUARDS) {
         const fn = bodyOf(fileOf(g.file), g.fn, g.file, reporter);

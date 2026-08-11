@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
+import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveryForm from "./DeliveryForm";
@@ -61,6 +62,16 @@ async function renderNewDeliveryPage() {
 
     const { lines, vendorNameById } = await getDeliveryCandidates(jobs);
 
+    // #210 — the invoices this viewer may pair a delivery with, narrowed up front to
+    // the vendors that actually supplied these jobs so the batched reads stay small.
+    // GATED PER RECORD through lib/invoiceVisibility.js rather than by a rule of its
+    // own: a dropdown of invoice numbers is a surface that shows invoices. The form
+    // narrows again to the vendor chosen, client-side, off this same list — the
+    // arrangement the candidate LINES already use.
+    const invoiceOptions = await getInvoiceLinkCandidates(user, {
+        vendorRecordIds: [...new Set(lines.map((l) => l.vendorRecordId).filter(Boolean))],
+    });
+
     return (
         <div className="mx-auto w-full max-w-3xl p-8">
             <h1 className="text-2xl font-semibold">Record a delivery</h1>
@@ -73,6 +84,7 @@ async function renderNewDeliveryPage() {
                 lines={lines}
                 // A Map cannot cross the server/client boundary; a plain object can.
                 vendorNames={Object.fromEntries(vendorNameById)}
+                invoiceOptions={invoiceOptions}
             />
 
             <Link href="/deliveries" className="mt-8 inline-block text-sm underline">
