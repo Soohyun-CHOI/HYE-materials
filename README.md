@@ -39,6 +39,7 @@ concurrent runs would create and delete records against each other.
 
 ## Where the reasoning is
 
-`CLAUDE.md` is the project's working memory: the data model, the decisions
-behind it, and what each of them cost. Read it before changing anything.
-`docs/Build_Plan.md` is the original build plan.
+`CLAUDE.md` is the project's working memory: the data model and the rules that
+bind code across areas. Read it before changing anything. It carries an index
+binding each area to a file under `docs/notes/`, which is where the reasoning
+behind those rules lives — read the one for the area you are about to edit.

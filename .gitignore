@@ -61,6 +61,10 @@ pr-body.md
 .airtable-ops.jsonl
 *.airtable-ops.jsonl
 
+# local scratch dir — verify-detect-po-92.mjs reads its inputs from here and
+# generate-test-invoice-pdf.mjs writes into it; nothing in it is a tracked fixture
+scratch/
+
 # raw data
 scripts/import/data/
 scripts/import/output/
