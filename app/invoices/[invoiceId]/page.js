@@ -6,6 +6,7 @@ import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
 import { describeInvoiceColumn, describeInvoiceLine, showsThisBillShare } from "@/lib/deliveryStatus";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
+import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
@@ -25,23 +26,27 @@ const DONE_MESSAGES = {
     "paid-updated": "Payment status updated.",
 };
 
-// President-or-Admin, same reasoning as app/pos/[poId] (#48/#15) — the
-// President also needs to see payment status, not just Admins doing the
-// day-to-day reconciliation. Marking Paid itself stays Admin-only (see
-// actions.js) — this page just renders the toggle form conditionally.
+// ROW-SCOPED, NOT ROLE-SCOPED (#211), gated exactly the way app/pos/[poId] is:
+// President and Admin reach every invoice, and anyone else reaches one that bills
+// an order whose request they raised or whose request sits on a job they are
+// assigned to. The walk from invoice to request is lib/invoiceVisibility.js and the
+// judgement inside it is canViewPR, so this page adds no rule of its own. It
+// replaced a President-or-Admin route gate that had no recorded reason: #132's "the
+// invoice pages stay President-or-Admin" scoped that issue rather than deciding
+// this one.
+//
+// A REFUSAL RENDERS THE NOT-FOUND TEXT, never a refusal that confirms the record
+// exists — the same posture the PR list, the PR detail and the PO detail all take.
+//
+// MARKING PAID STAYS ADMIN-ONLY (actions.js) and READING payment status is now
+// President-or-Admin: whether the vendor has been paid is the one fact here a
+// recorder has no use for and a vendor's own staff might ask about on site. That is
+// #211's own line, not one inherited from the route gate it replaced.
 export default async function InvoiceDetailPage({ params, searchParams }) {
     const user = await requireUser();
-    const authorized = user.role === "President" || user.isAdmin === true;
+    const privileged = seesEveryInvoice(user);
     const { invoiceId } = await params;
     const { done } = await searchParams;
-
-    if (!authorized) {
-        return (
-            <div className="flex flex-1 items-center justify-center p-8">
-                <p>Not authorized. This page is President/Admin-only.</p>
-            </div>
-        );
-    }
 
     const invoice = await getInvoiceById(invoiceId);
     if (!invoice) {
@@ -52,6 +57,16 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
         getItemsByInvoice(invoice.id),
         invoice.vendor?.[0] ? getVendorByRecordId(invoice.vendor[0]) : null,
     ]);
+
+    // AFTER the lines are loaded, because the gate is answered through them — an
+    // Invoice Item carries its own `PO` link, which is how one invoice reaches the
+    // requests behind it. Two operations for a non-privileged viewer and none for
+    // the office. The lines are what this page renders anyway, so nothing is read
+    // twice to ask the question.
+    const visibleIds = await getVisibleInvoiceIds(user, [invoice], items);
+    if (!visibleIds.has(invoice.id)) {
+        return <div className="p-8">Invoice not found.</div>;
+    }
 
     // Linked PO(s): each Invoice Item carries the PO it reconciles against
     // (a multi-PO invoice is real), so the distinct POs are derived from the
@@ -376,23 +391,40 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            <div className="mt-8">
-                <h2 className="text-lg font-semibold">Payment</h2>
-                {hasVariance && (
-                    <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
-                        ⚠ This invoice has variance flags — review before confirming payment.
-                    </p>
-                )}
-                {user.isAdmin ? (
-                    <div className="mt-2">
-                        <PaidForm invoiceId={invoice.invoiceId} paid={invoice.paid} paidDate={invoice.paidDate} />
-                    </div>
-                ) : (
-                    <p className="mt-2 text-sm">
-                        {invoice.paid ? `Paid on ${invoice.paidDate || "—"}` : "Not paid yet."}
-                    </p>
-                )}
-            </div>
+            {/* HOISTED OUT OF THE PAYMENT SECTION BY #211, because it is a fact
+                about the invoice and that section is now President-or-Admin. It has
+                to outlive the gate: the amber prompt is the only thing that raises a
+                LINE-only variance to invoice level, and a line billed for thirteen
+                against ten delivered is exactly what the employee who counted the
+                material is here to catch. Its wording is untouched — naming the two
+                variance kinds apart is #179's, and copy that mentions payment does
+                not disclose whether THIS vendor was paid, which is where the line
+                actually runs. */}
+            {hasVariance && (
+                <p className="mt-8 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                    ⚠ This invoice has variance flags — review before confirming payment.
+                </p>
+            )}
+
+            {/* PRESIDENT-OR-ADMIN (#211) — the whole section, heading included. A
+                heading with nothing under it would tell an employee there is a
+                payment fact here and refuse to say it, which is worse than not
+                raising the subject. The Admin-only toggle inside is unchanged;
+                what moved is who may READ the answer. */}
+            {privileged && (
+                <div className="mt-8">
+                    <h2 className="text-lg font-semibold">Payment</h2>
+                    {user.isAdmin ? (
+                        <div className="mt-2">
+                            <PaidForm invoiceId={invoice.invoiceId} paid={invoice.paid} paidDate={invoice.paidDate} />
+                        </div>
+                    ) : (
+                        <p className="mt-2 text-sm">
+                            {invoice.paid ? `Paid on ${invoice.paidDate || "—"}` : "Not paid yet."}
+                        </p>
+                    )}
+                </div>
+            )}
 
             {user.isAdmin && (
                 <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">

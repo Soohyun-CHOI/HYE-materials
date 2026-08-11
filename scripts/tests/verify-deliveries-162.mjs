@@ -555,7 +555,14 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // -----------------------------------------------------------------------
     console.log("\nPart F — deletion returns the figures, and touches no invoice:");
     const beforeDelete = await getDeliveredQtyForPOItem(targetLine.id);
-    const copy = await resolveDeleteCopy(delivery1, await getItemsByDelivery(delivery1.id));
+    // `seesPayment` explicitly (#211), even though this delivery is uninvoiced and
+    // so never reaches the branch that consults it: the flag defaults to FALSE, so
+    // a script that omitted it could never reach the `paid` voice at all, and a
+    // later assertion about that voice would fail for a reason nobody would look
+    // for. Asking as the office asks keeps the whole ladder reachable here.
+    const copy = await resolveDeleteCopy(delivery1, await getItemsByDelivery(delivery1.id), {
+        seesPayment: true,
+    });
     check("an uninvoiced delivery gets the plain voice", copy.voice, "plain");
     assert("and its body names the delivery", copy.body.includes(delivery1.deliveryId));
 

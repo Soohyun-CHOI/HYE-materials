@@ -26,7 +26,6 @@ import {
     isNotFullyInvoiced,
     lineStatus,
     poLineDelivery,
-    resolveDeliveryFilters,
     showsThisBillShare,
     summarizePODeliveryStatus,
     sortInvoicesOldestFirst,
@@ -34,6 +33,9 @@ import {
     summarizeDeliveryInvoicing,
     summarizeInvoiceStatus,
 } from "../../../lib/deliveryStatus.js";
+// The namespace too, so the module's own export list can be asserted on — #211
+// deleted one export and "it is gone" is not a claim a named import can make.
+import * as deliveryStatus from "../../../lib/deliveryStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Delivery status — delivered vs invoiced vs ordered (#166)";
@@ -493,17 +495,18 @@ export function run({ check, log, assert }) {
     check("a null key does not throw", isNotFullyInvoiced(null), false);
 
     log("");
-    log("and it does not EXIST for a viewer who may not see invoice data:");
-    // The rows carry no invoicing key for such a viewer — getDeliveryInvoicing is
-    // never called — so `?unbilled=1` must be ABSENT rather than ignored, and one
-    // rule decides that for both the server's initial props and the client's state.
-    const office = resolveDeliveryFilters({ unbilled: true, over: true, showInvoicing: true });
-    check("the office gets it", office.unbilled, true);
-    const site = resolveDeliveryFilters({ unbilled: true, over: true, showInvoicing: false });
-    check("site staff do not, even with the parameter set", site.unbilled, false);
-    check("  and the over-delivery filter is untouched — that fact is theirs", site.over, true);
-    check("no arguments does not throw", resolveDeliveryFilters().unbilled, false);
-    check("  nor for the other filter", resolveDeliveryFilters().over, false);
+    log("and it exists for EVERY viewer since #211:");
+    // A `resolveDeliveryFilters` rule was pinned here, and five checks with it. It
+    // existed to treat `?unbilled=1` as ABSENT for a viewer whose rows carried no
+    // invoicing key, because getDeliveryInvoicing was not called for them. #211
+    // released that withholding, which left the rule with nothing to decide, so it
+    // was deleted rather than left standing. What replaces those checks is the
+    // assertion that it is really gone — a re-added gate would be a second answer to
+    // a question this repo has now settled once.
+    assert(
+        "the withheld-filter rule is gone from the module",
+        !("resolveDeliveryFilters" in deliveryStatus)
+    );
 
     // --- the worklist order -----------------------------------------------
     log("");

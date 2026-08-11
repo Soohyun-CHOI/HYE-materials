@@ -429,20 +429,20 @@ function, so the row you clicked and the page you land on cannot disagree.
   button keep them.
 
   Check the six-column layout here: the colgroup was RE-BUDGETED to
-  8.5+9.5+6+14.5+7+6.5 = 52rem rather than appending a column, so nothing
-  should wrap and there should be no horizontal scrollbar above ~832px.
-  The chip is narrower than the sentence it replaced, so Invoiced gave
-  room back to Delivered — which needed it, since that column carries an
-  item label, a +N count and an Over-delivered tag on one line.
+  8.5+8+5.5+17.5+6.75+5.75 = 52rem rather than appending a column, so
+  nothing should wrap and there should be no horizontal scrollbar above
+  ~832px. The chip is narrower than the sentence it replaced, so Invoiced
+  gave room back to Delivered — which needed it, since that column carries
+  an item label, a +N count and an Over-delivered tag on one line.
 
-  NOT DEMONSTRABLE with these accounts: the column and the "Not fully
-  invoiced" filter are withheld from a non-Admin, and the data is not
-  fetched for them at all — ?unbilled=1 is treated as absent rather than
-  ignored (lib/deliveryStatus.js:resolveDeliveryFilters, pinned offline).
-  Both real accounts are Admin, and authz-fixture is non-Admin but
-  assigned to no job, so it sees no deliveries either way — and its flags
-  are a permanent fixture that must not be changed. Reading
-  app/deliveries/page.js's showInvoicing branch is the honest check.
+  DEMONSTRABLE WITH ANY ACCOUNT SINCE #211. This used to read "not
+  demonstrable": the column and the "Not fully invoiced" filter were
+  withheld from a non-Admin and the data was not fetched for them at all,
+  so reading app/deliveries/page.js's showInvoicing branch was the only
+  honest check. #211 released that withholding — every viewer who may see
+  a delivery may see whether it has been billed — so there is one column
+  set and one filter set, and scoped-fixture@hanyangengusa.com (non-Admin,
+  assigned to 26-DEMO-01) renders them like anyone else.
 
 ------------------------------------------------------------------
 4. /deliveries/<id>  —  "PO on packing list"  (#181)

@@ -17,27 +17,19 @@ import Link from "next/link";
 // from both sides; lib/deliveryReconciliation.js reaches lib/airtable/ and must
 // never be imported here — an import executes the module and it throws
 // `Missing AIRTABLE_API_KEY` in the browser (#162).
-import {
-    isNotFullyInvoiced,
-    resolveDeliveryFilters,
-    sortLongestWaitingFirst,
-} from "@/lib/deliveryStatus";
+import { isNotFullyInvoiced, sortLongestWaitingFirst } from "@/lib/deliveryStatus";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 
-export default function DeliveriesListClient({ rows, showInvoicing, initialUnbilled, initialOver }) {
+// A `showInvoicing` prop and the `resolveDeliveryFilters` call that consumed it
+// were both here until #211. The column was withheld from a viewer who may not see
+// invoice data, so the filter had to be treated as absent for them; #211 released
+// that, because this list is Job-scoped and every row on it is on a job whose
+// invoices the viewer may now read. There is one column set again.
+export default function DeliveriesListClient({ rows, initialUnbilled, initialOver }) {
     const router = useRouter();
     const pathname = usePathname();
-    // THE SAME RULE THE SERVER USED on the initial props, called again here rather
-    // than restated: `showInvoicing` is false for a viewer who may not see invoice
-    // data, and the server did not even fetch it for them — so the filter has no
-    // state to hold rather than a state that is quietly ignored.
-    const allowed = resolveDeliveryFilters({
-        unbilled: initialUnbilled,
-        over: initialOver,
-        showInvoicing,
-    });
-    const [unbilled, setUnbilled] = useState(allowed.unbilled);
-    const [over, setOver] = useState(allowed.over);
+    const [unbilled, setUnbilled] = useState(Boolean(initialUnbilled));
+    const [over, setOver] = useState(Boolean(initialOver));
     const firstRun = useRef(true);
 
     useEffect(() => {
@@ -55,7 +47,7 @@ export default function DeliveriesListClient({ rows, showInvoicing, initialUnbil
     const visible = useMemo(() => {
         let out = rows;
         if (over) out = out.filter((r) => r.hasOverDelivery);
-        if (unbilled && showInvoicing) {
+        if (unbilled) {
             // BOTH INCOMPLETE STATES, not just the empty one — a delivery carrying
             // two materials with only one billed is exactly the case this worklist
             // is for. The rule is in lib/deliveryStatus.js so the offline tier can
@@ -67,23 +59,21 @@ export default function DeliveriesListClient({ rows, showInvoicing, initialUnbil
             out = sortLongestWaitingFirst(out);
         }
         return out;
-    }, [rows, over, unbilled, showInvoicing]);
+    }, [rows, over, unbilled]);
 
-    const cols = showInvoicing ? 6 : 5;
+    const cols = 6;
 
     return (
         <>
             <div className="mt-4 flex flex-wrap items-center gap-4 text-sm">
-                {showInvoicing && (
-                    <label className="flex items-center gap-2">
-                        <input
-                            type="checkbox"
-                            checked={unbilled}
-                            onChange={(e) => setUnbilled(e.target.checked)}
-                        />
-                        Not fully invoiced · oldest first
-                    </label>
-                )}
+                <label className="flex items-center gap-2">
+                    <input
+                        type="checkbox"
+                        checked={unbilled}
+                        onChange={(e) => setUnbilled(e.target.checked)}
+                    />
+                    Not fully invoiced · oldest first
+                </label>
                 <label className="flex items-center gap-2">
                     <input type="checkbox" checked={over} onChange={(e) => setOver(e.target.checked)} />
                     Over-delivered
@@ -112,27 +102,20 @@ export default function DeliveriesListClient({ rows, showInvoicing, initialUnbil
                     Measured against this base's widest real cells — a 16-character
                     vendor, `165-DEMO Elbow 3" 3 PCS` beside an `Over-delivered`
                     tag (270px), `Awaiting invoice` (98px) — with an 8px gutter on
-                    top of each, since this table has no cell padding of its own. */}
+                    top of each, since this table has no cell padding of its own.
+
+                    ONE BUDGET SINCE #211. There were two, because the Invoiced
+                    column was withheld from site staff; releasing that leaves the
+                    six-column row for everyone, which is the one every measurement
+                    in this comment was taken against. */}
                 <table className="w-full min-w-[52rem] table-fixed text-sm">
                     <colgroup>
-                        {showInvoicing ? (
-                            <>
-                                <col style={{ width: "8.5rem" }} />
-                                <col style={{ width: "8rem" }} />
-                                <col style={{ width: "5.5rem" }} />
-                                <col style={{ width: "17.5rem" }} />
-                                <col style={{ width: "6.75rem" }} />
-                                <col style={{ width: "5.75rem" }} />
-                            </>
-                        ) : (
-                            <>
-                                <col style={{ width: "9rem" }} />
-                                <col style={{ width: "11rem" }} />
-                                <col style={{ width: "6.5rem" }} />
-                                <col style={{ width: "19rem" }} />
-                                <col style={{ width: "6.5rem" }} />
-                            </>
-                        )}
+                        <col style={{ width: "8.5rem" }} />
+                        <col style={{ width: "8rem" }} />
+                        <col style={{ width: "5.5rem" }} />
+                        <col style={{ width: "17.5rem" }} />
+                        <col style={{ width: "6.75rem" }} />
+                        <col style={{ width: "5.75rem" }} />
                     </colgroup>
                     <thead>
                         <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
@@ -140,7 +123,7 @@ export default function DeliveriesListClient({ rows, showInvoicing, initialUnbil
                             <th className="py-2 font-medium">Vendor</th>
                             <th className="py-2 font-medium">Received</th>
                             <th className="py-2 font-medium">Delivered</th>
-                            {showInvoicing && <th className="py-2 font-medium">Invoiced</th>}
+                            <th className="py-2 font-medium">Invoiced</th>
                             <th className="py-2 font-medium">Job</th>
                         </tr>
                     </thead>
@@ -208,11 +191,9 @@ export default function DeliveriesListClient({ rows, showInvoicing, initialUnbil
                                             <span className="text-zinc-500">—</span>
                                         )}
                                     </td>
-                                    {showInvoicing && (
-                                        <td className="py-2">
-                                            <StatusChip chip={row.invoicingChip} />
-                                        </td>
-                                    )}
+                                    <td className="py-2">
+                                        <StatusChip chip={row.invoicingChip} />
+                                    </td>
                                     <td className="py-2">{row.jobCode}</td>
                                 </tr>
                             ))

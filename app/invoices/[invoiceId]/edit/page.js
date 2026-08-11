@@ -9,8 +9,9 @@ import EditInvoiceForm from "./EditInvoiceForm";
 export const metadata = { title: "Edit Invoice" };
 
 // Admin-only (issue #117) — editing is back-office data entry, same category
-// as creating an invoice and the Admin-only Paid toggle. Viewing the invoice
-// stays President-or-Admin; only Admins reach this edit page, and
+// as creating an invoice and the Admin-only Paid toggle. VIEWING the invoice is
+// row-scoped since #211 and reading its payment status is President-or-Admin;
+// neither widened this page, which is unchanged and still Admin-only, and
 // updateInvoiceAction re-checks server-side.
 export default async function EditInvoicePage({ params }) {
     const { authorized } = await requireAdmin();
