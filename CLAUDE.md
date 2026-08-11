@@ -288,8 +288,11 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed.
 - Never commit to main. One branch per issue: {issue#}-{short-desc}.
 - Commit format: `{type}: {description} (#{issue#})` — feat / fix / chore / refactor / docs (project markdown/CLAUDE.md changes) / test (changes under scripts/tests/).
 - PR description must include `Closes #{issue#}`. Squash merge — PR description becomes the final commit body.
-- Line-wrap commit bodies + PR descriptions at 72 chars. Prompts/comments don't need wrapping.
-- Wrap literal `<tag>`-looking text in backticks in PR descriptions.
+- PR title is the representative commit's subject. Body opens on `Closes #{issue#}` — no issue summary before it — then three sections: **What this delivers** (a list of what changed), **Key design decisions** (a paragraph per decision, bold lead-in), **Testing** (a table of check and result).
+- `Testing` carries only what was actually verified; what was not is left out rather than disclaimed. Nothing is described as finished, complete, done or deployed — `implemented and merged` is a fact about the branch.
+- A doc-only PR with no issue omits the `Closes` line and says so in its first line. The body itself goes in pr-body.md at repo root, gitignored alongside commit-msg.txt.
+- Line-wrap commit bodies + PR descriptions at 72 chars, table rows and fenced blocks included — a rewrap tool skips table rows, so keep cells short and move long explanation to prose under the table. Prompts/comments don't need wrapping.
+- Wrap literal `<tag>`-looking text in backticks in PR descriptions; write an issue reference as bare #num so GitHub autolinks it.
 - If an issue is already covered by other work, comment explaining why, then close — never silently close via Closes #.
 - Milestones = Phases (0-6) or standalone cross-cutting milestones. Stay scoped to the current issue's Milestone unless told otherwise.
 - **A comment or doc line that is FALSE about the current code or base is corrected on sight (#181)**, in whatever commit found it, rather than filed as a follow-up. It changes no behavior, and deferring costs more than fixing: an entry someone has to read, triage and schedule. **The boundary is falsity against improvement** — correcting a lie is maintenance, making a comment better is scope. Anything that changes behavior, moves code, or needs a judgement about what the right answer is stays out of scope as before.
