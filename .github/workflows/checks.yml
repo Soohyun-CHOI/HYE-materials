@@ -113,12 +113,15 @@ jobs:
   # eslint is not in it, and folding it into that job would make the name claim
   # otherwise.
   #
-  # WHAT THAT CHOICE COSTS, stated because it is easy to assume otherwise:
-  # `offline-checks` is a required status check on main and `lint` is not. The
-  # required list is a repository setting, not anything in this file, so until
-  # `lint` is added there a red run here is visible on the pull request and
-  # does not block the merge. Same coupling docs/notes/verification.md records
-  # for renaming a job — the job key here is the name the setting must use.
+  # WHAT THAT CHOICE COSTS, stated because it is easy to assume otherwise: a
+  # separate job blocks nothing until its name is added to the required list by
+  # hand, and that list is a repository setting rather than anything this file
+  # can carry. #187 made that addition, so `offline-checks` and `lint` are both
+  # required status checks on main now. It is also why the job key below is not
+  # free to rename: the setting refers to the job by that name, so renaming one
+  # leaves branch protection waiting for a check nothing reports. That is the
+  # coupling docs/notes/verification.md records, and it now holds on two jobs
+  # rather than one.
   lint:
     runs-on: ubuntu-latest
     steps:
