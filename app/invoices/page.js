@@ -3,11 +3,23 @@ import { requireUser } from "@/lib/authz";
 import { getAllInvoices } from "@/lib/airtable/invoices";
 import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getAllVendors } from "@/lib/airtable/vendors";
-import { getInvoiceDeliveryStatus } from "@/lib/deliveryReconciliation";
+import { getAllJobs } from "@/lib/airtable/jobs";
+import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
+import { getDeliveryInvoicing, getInvoiceDeliveryStatus } from "@/lib/deliveryReconciliation";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
-import { STATUS_COPY, describeInvoiceColumn } from "@/lib/deliveryStatus";
+import { accessibleJobs } from "@/lib/deliveryAccess";
+import { summarizeDelivery } from "@/lib/deliveryAllocation";
+import {
+    STATUS_COPY,
+    daysWaiting,
+    describeInvoiceColumn,
+    isNotFullyInvoiced,
+    sortLongestWaitingFirst,
+} from "@/lib/deliveryStatus";
+import { withOpsLabel } from "@/lib/airtableOps";
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { formatUSD } from "@/lib/format";
+import AwaitingInvoiceStrip from "./AwaitingInvoiceStrip";
 
 export const metadata = { title: "Invoices" };
 
@@ -28,7 +40,17 @@ export const metadata = { title: "Invoices" };
 // ask about on site, and the only one on this screen a recorder has no use for. It
 // is withheld by not rendering it — this is a Server Component that hands nothing
 // to a Client Component, so an unrendered field is not in the payload either.
+// Labeled for #190 by #216, and for the reason #224 exists: this page had no
+// label, so its cost had never been measured and #216 could not have shown what
+// its own strip added. The strip also removed a duplicate read inside
+// getDeliveryInvoicing that had been standing on /deliveries unseen for the same
+// reason. Labeling the screen you are changing is what makes a before and after
+// possible at all; the sweep across every other screen is #224's.
 export default async function InvoiceListPage() {
+    return withOpsLabel("/invoices", () => renderInvoiceListPage());
+}
+
+async function renderInvoiceListPage() {
     const user = await requireUser();
     const privileged = seesEveryInvoice(user);
 
@@ -58,6 +80,71 @@ export default async function InvoiceListPage() {
     // canViewPR already admitted.
     const statusByInvoice = await getInvoiceDeliveryStatus(invoices);
 
+    // #216 — THE STRIP'S ROWS ARE DELIVERIES, SO THEY ARE GATED AS DELIVERIES.
+    // That is the one thing this strip does not inherit from #176, where the
+    // strip and the table below it were both `canViewPR` and the distinction
+    // could not show. Here the table is invoices, judged by the
+    // getVisibleInvoiceIds walk, and the strip is arrivals, judged by
+    // canAccessJobDeliveries — Job assignment, or the office. The two admit
+    // different people: an employee can reach an invoice through a purchase
+    // order they raised without being assigned to that job, and a delivery on
+    // that job is not theirs to see. A strip uses its OWN rows' rule.
+    //
+    // Reading each accessible Job's `Deliveries` reverse-link is the same shape
+    // /deliveries uses, and for its reason: it degrades with how many jobs a
+    // viewer is on rather than with how large the table grows.
+    const deliveryJobs = accessibleJobs(user, await getAllJobs());
+    const jobDeliveries = await getDeliveriesByRecordIds(
+        deliveryJobs.flatMap((j) => j.deliveries || [])
+    );
+    // One call, and it now hands back the Delivery Item rows it read — before
+    // #216 it kept them and every caller read the same level again. `slices` is
+    // what builds "what arrived" below.
+    const { byDelivery: invoicingByDelivery, slices: deliverySlices } =
+        await getDeliveryInvoicing(jobDeliveries);
+
+    const slicesByDelivery = new Map();
+    for (const slice of deliverySlices) {
+        const parent = slice.delivery?.[0];
+        if (!parent) continue;
+        if (!slicesByDelivery.has(parent)) slicesByDelivery.set(parent, []);
+        slicesByDelivery.get(parent).push(slice);
+    }
+
+    // The server's day, taken once so every row is measured against the same one.
+    // See daysWaiting for what that does and does not promise.
+    const today = new Date().toISOString().slice(0, 10);
+
+    const awaitingInvoiceRows = sortLongestWaitingFirst(
+        jobDeliveries
+            .filter((d) => isNotFullyInvoiced(invoicingByDelivery.get(d.id)?.key))
+            .map((d) => ({
+                deliveryId: d.deliveryId,
+                receivedDate: d.receivedDate || "",
+                createdAt: d.createdAt || "",
+                vendorName: vendorNameById[d.vendor?.[0]] || "Unknown vendor",
+                daysWaiting: daysWaiting(d.receivedDate, today),
+                summary: summarizeDelivery(
+                    // Sorted by child ID, which is the order the recorder typed
+                    // them, so "first item" means the first one they entered —
+                    // the same reason /deliveries sorts before summarizing.
+                    (slicesByDelivery.get(d.id) || [])
+                        .slice()
+                        .sort((a, b) =>
+                            (a.deliveryItemId || "").localeCompare(b.deliveryItemId || "")
+                        )
+                        .map((i) => ({
+                            materialRecordId: i.material?.[0] ?? null,
+                            itemName: i.itemName,
+                            size: i.size,
+                            unit: i.unit,
+                            qty: i.qty,
+                            over: i.overDelivered,
+                        }))
+                ),
+            }))
+    );
+
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
             <div className="flex items-center justify-between">
@@ -75,6 +162,12 @@ export default async function InvoiceListPage() {
                     </Link>
                 )}
             </div>
+
+            {/* Above the list, because a delivery nobody has billed for cannot
+                appear in a list of invoices — there is no invoice to carry the
+                row. Renders nothing when there is nothing, which is the correct
+                and common state. */}
+            <AwaitingInvoiceStrip rows={awaitingInvoiceRows} />
 
             {/* TWO EMPTY STATES, because they are two different facts (#168's
                 rule). `yet` belongs only to the first: an employee whose jobs carry

@@ -80,7 +80,7 @@ Whether what a vendor billed for was delivered, and what was delivered with no i
   - **`Against the order:` is ONE line even when both sides exceed the order** — `3 EA more billed, 2 EA more delivered` — because it is one comparison with two terms, not two problems. The billed side comes first, being the side this screen is about.
   - **The deliveries sit INSIDE the box, labeled just `Deliveries ·`.** A box is scoped to one ordered item, so listing them there is exactly the claim the data supports; the foot-of-page section they used to live in needed the heading "recorded against the same order lines" to avoid over-claiming, and inside the box that qualification is structural. What #166 could still not claim: WHICH delivery brought the quantity attributed to this bill — the quantity was attributed, the arrival was not. **#210 CLAIMS IT.** The shipment this invoice names is marked `— this invoice` and sorted first; the others stay listed, because they are what explains a `Delivered` total larger than this bill's share.
 - **`/invoices` CARRIES THE STATUS CHIP AND NOTHING ELSE — both exception tags left that screen, for different reasons.** `beyond order` (billed > ordered) is already on the same page as the `⚠ Variance` badge in the items table, which `Invoice Items.Variance Flag` drives: one fact rendered twice on one screen. `over-delivery` (delivered > ordered) is not a fact about the invoice at all but about the ordered item, and inside a column headed `Delivery` it reads as "more arrived than this bill covers" — a different and wrong claim. Both facts are on the detail, under the ordered item they belong to. **`/deliveries` KEEPS its `Over-delivered` tag**, and the difference is whose fact it is: an over-delivery is a fact about that delivery, so it sits on the delivery's own row without changing frame.
-- **The two filters follow the PR list's pattern (#119)**: the server sends rows it has already computed, a Client Component narrows them instantly with no Apply button, and the active filters are mirrored into the URL with `router.replace` — no navigation, no history entry, no server round trip — so refresh, a shared link and the back button all restore the view. They are `Not fully invoiced · oldest first` (`?unbilled=1`) and `Over-delivered` (`?over=1`); neither name says "only", because a filter is a toggle and the word is implied.
+- **The filter follows the PR list's pattern (#119)**: the server sends rows it has already computed, a Client Component narrows them instantly with no Apply button, and the active filter is mirrored into the URL with `router.replace` — no navigation, no history entry, no server round trip — so refresh, a shared link and the back button all restore the view. It is `Over-delivered` (`?over=1`); the name does not say "only", because a filter is a toggle and the word is implied. **There were two until #216**, which moved `Not fully invoiced · oldest first` (`?unbilled=1`) to a strip above `/invoices` — see that issue's section below.
 - **`Not fully invoiced` TAKES BOTH INCOMPLETE STATES, not just the empty one** (`isNotFullyInvoiced`). A delivery carrying two materials where only one has been billed is exactly "it is here and there is no invoice for it" — the thing the month-end email to every vendor stands in for — and filtering on `awaiting-invoice` alone dropped it. Verified on the seed: widening takes the worklist from 7 rows to 8, and the row it adds is that two-material delivery.
 - **"Oldest first" is a property of that filter, not a separate sort control.** That list is the vendor-chasing worklist replacing the month-end email, so the longest-waiting delivery belongs at the top while the default list stays newest-first. `Received Date` ASCENDING, because the wait starts when the material arrived rather than when someone typed it in; it is human-entered and backdatable, which #164 learned the hard way when an ID counter read such a field, and the consequence here is milder — a mistyped date sits at the top of a worklist — but it is the same property. `Created At` DESCENDING as the tie-break, matching the default list's direction exactly, so only the primary key flips between the two orderings and the tie-break carries no meaning of its own. An undated delivery sorts LAST, the same call `sortCandidates` makes.
 - **BOTH LIST TABLES ARE `table-fixed` WITH A DECLARED `colgroup` SUMMING TO EXACTLY 52rem**, which is what a `max-w-4xl` page minus `p-8` has (832px). A column is never appended; the budget is re-cut. Measured against each base's widest real cells, with every row one line, no wrap and no horizontal scrollbar.
@@ -179,3 +179,91 @@ More arrived than was ordered, the vendor billed for it, and the record has to b
 - **`Overage PR` (link -> Purchase Requests, single) and `Former PO Item` (link -> PO Items, single) are #167's two fields**, both app-enforced as single-record: the Metadata API refuses `prefersSingleRecordLink` on field CREATE (measured 422 `INVALID_FIELD_TYPE_OPTIONS_FOR_CREATE`, another limit alongside its refusal to write a select's option list), and on field UPDATE (422 `INVALID_REQUEST_UNKNOWN`, both shapes tried), so the field is multi in Airtable and single in this app, exactly as `Invoice Items."PO Item"` already is — and the invariant is therefore checked on the stored ROWS rather than on a schema property nothing can set. Their symmetric sides are `Purchase Requests."Overage Delivery Items"` (the rows this request corrects) and `PO Items."Former Delivery Items"` (the rows that left this ordered item), and nothing writes either. **The two symmetric sides are deliberately NOT the same name**, which they were until the rename: one name for two meanings across two parents is worse than the accidental collisions #164 had to census, because it would be on purpose. The PO-side name went through `Reattached Delivery Items` first and that named THE WRONG END — the row is re-attached to the OVERAGE order's item and from this one it DEPARTED, so anyone opening the record read it backwards. `Former` says what the field it mirrors says, and beside `Delivery Items` it makes clear at a glance which of the two is the past. **`Overage PR` is the whole of "is a correction pending" — read from that PR's Status, never stored, which is what makes a withdrawal reopen the row.** **`Former PO Item` is PROVENANCE, not state:** the apply step re-points `PO Item` at the overage order, which destroys the only link back, and deriving the original through the shared Delivery breaks whenever the whole arrival was excess (#165's fully-delivered branch leaves that delivery with no other row for the material). Every reader takes `Former PO Item ?? PO Item` (`lib/overage.js:resolveOriginalPOItem`). **NAMED FOR WHAT IT STORES, WHICH IS ALWAYS A PAST VALUE** — empty on a row that never moved, the previous ordered item on one that did, and never a current one. It was briefly `Original PO Item`, chosen on the strength of that `?? PO Item` fallback, but the fallback is a property of the EXPRESSION rather than of the field: the field holds the past and the function collects an answer across both states. Named for what it holds rather than for the overage for a second reason too — a later re-attachment for some other cause belongs in the same field, and the cause is already next to it on `Overage PR`.
   - **THE FIELD AND THE FUNCTION MEAN DIFFERENT THINGS, and the premise that keeps them interchangeable is on the field's own description.** `Former PO Item` is the IMMEDIATELY PREVIOUS value; `resolveOriginalPOItem` is the FIRST. A row moved twice (A -> B -> C) would part them. Unreachable today: an overage PO Item's `Qty` equals the excess exactly, so no further excess can arise on it, and a `Delivery Items` row's `Qty` is fixed at creation, so the same row cannot become an over-delivery row a second time. If either changes, the field is the one that stays correct.
 - **`Over Delivered` is its own row rather than a swollen last row** (the field was `Over Delivery` until #181 — a noun where a checkbox takes a participle; see "A checkbox takes a participle" under the naming rules), so the flagged quantity IS the excess with no arithmetic, and every unflagged row stays a within-order fact — the property #20 filters on.
+
+### Deliveries waiting for an invoice (#216)
+
+A strip above `/invoices` listing arrivals nobody has billed for, longest wait
+first. The second of three built to the shape #176 set — #217 is the third.
+
+- **`?unbilled=1` IS GONE FROM `/deliveries`, AND THAT IS THE POINT RATHER THAN A
+  SIDE EFFECT.** It was the vendor-chasing worklist wearing a checkbox on a page
+  whose other job is a chronological log, and the two pull opposite ways: a log
+  reads newest first and its empty state means nothing arrived, a chasing list
+  reads oldest first and its empty state means there is nothing left to do.
+  Nobody visits a query parameter on a schedule. What died with it: the checkbox,
+  its URL sync, and `invoicingKey` on the row — the column renders from
+  `invoicingChip` and the key had no other reader. What did NOT die is the rule:
+  `isNotFullyInvoiced` and `sortLongestWaitingFirst` stay in
+  `lib/deliveryStatus.js` and the strip calls them, so the predicate has one
+  implementation and simply changed caller.
+- **THE RULE WAS ALREADY WRITTEN, WHICH IS THE FIRST THING #176's PATTERN DID NOT
+  TRANSFER.** That issue wrote `selectPRsAwaitingPO` fresh into the host screen's
+  view module. Doing the same here would have been a second implementation of a
+  predicate that already existed and was already pinned offline. **And the
+  predicate's SHAPE differs too**: #176's is a status set intersected with an
+  empty reverse-link, where this one is a per-ordered-item quantity comparison —
+  #210 changed it from an existence test to `billed >= arrived`, so "waiting" now
+  means *this* arrival is unbilled rather than *its order* is.
+- **ONE VOICE, NOT TWO, AND THAT IS THE SECOND THING THAT DID NOT TRANSFER.**
+  #176 needed two because it offered an action only an Admin could take. This
+  strip offers no action at all, so there is nothing for a voice to split over.
+  **The copy names no control either**, which is a live constraint rather than a
+  style choice: `/invoices` has a `New invoice` button that only an Admin sees,
+  and the strip renders for every viewer who can reach a delivery — measured,
+  `scoped-fixture@` sees the strip and zero `New invoice` links. The offline check
+  asserts the copy contains no such word, because the day it does is the day two
+  voices are needed again.
+- **NO ACTION LINK, AND NO PREFILL.** A `Record invoice` control per row would be
+  a second thing going where the button already at the top of the page goes — one
+  fact rendered twice on one screen, which is the reason #166 took the
+  `beyond order` tag off this very list. Prefilling `/invoices/new` from the
+  delivery was weighed and rejected on three measurements, all recorded in
+  `app/invoices/AwaitingInvoiceStrip.js`'s header: #92's detect-po reads vendor
+  and order off the invoice PDF and nothing says which source wins when they
+  disagree; the form's PO list is the OPEN ones (#57), so a closed order would be
+  filtered out of its own prefill; and **9 of the 13 waiting deliveries span one
+  purchase order while 4 span two**, because `planDelivery` matches per material.
+  Narrowing the item picker to what arrived would be worse still — an invoice can
+  legitimately bill for what the delivery did not bring, which is exactly what
+  #210's mismatch marker catches, so the restriction would make the real case
+  unenterable.
+- **THE STRIP'S ROWS ARE GATED BY THE DELIVERY RULE, NOT THE PAGE'S.** This is the
+  finding #176 could not surface, because there the strip and the table were both
+  `canViewPR`. Here the table is invoices under `getVisibleInvoiceIds` and the
+  strip is arrivals under `canAccessJobDeliveries`, and the two admit different
+  people: an employee can reach an invoice through an order they raised without
+  being assigned to that job. Measured on one load: `scoped-fixture@` sees 13
+  strip rows and 13 table rows where `soo@` sees the same 13 strip rows and 15
+  table rows. **A strip uses its own rows' rule.**
+- **ORDERED BY `Received Date` ASCENDING**, which `sortLongestWaitingFirst`
+  already did for the filter this replaces. The row shows the date AND a day
+  count, because the question a chasing list answers is how long, and making a
+  reader subtract defeats scanning. `daysWaiting` takes `today` as a parameter so
+  the offline tier pins every boundary without a clock, and its header records the
+  two properties that are worth knowing rather than fixing: the count is the
+  SERVER's day, and `Received Date` is calendar-only so it moves at midnight
+  rather than at the hour material arrived. The date beside it is what a doubting
+  reader checks against.
+- **`getDeliveryInvoicing` RETURNS THE DELIVERY ITEM ROWS IT READ NOW**, and that
+  removed a duplicate that had been standing on `/deliveries` unseen. That page
+  fetched the same level itself to summarize what arrived and then called this
+  function, which fetched it again — invisible because the page carried no
+  `withOpsLabel`. **Measured: `/deliveries` 8 operations with a
+  `Delivery Items ×2` repeat before, 7 with none after.** A function that reads
+  something and does not hand it back forces its caller to read it again.
+- **BOTH SCREENS ARE LABELED NOW**, which is what made the line above a
+  measurement rather than a claim. #224 is the sweep across every other unlabeled
+  screen; labeling the two this issue changes is what lets it show a before and an
+  after at all. `/invoices` measured 6 operations before and 11 after — the strip
+  costs five, none of them per row. **Four of the repeats in that 11 are two
+  reconciliation walks touching the same tables with different id sets**
+  (`getInvoiceDeliveryStatus` for the bills, `getDeliveryInvoicing` for the
+  arrivals), which is not a re-read of the same records and is not what #193
+  removes; merging the two walks would be its own change.
+- **THE EMPTY STATE RENDERS NOTHING**, #176's rule and #216's issue body
+  independently. It could not be produced by having nothing to chase — 13 of this
+  base's 15 deliveries are waiting and this repo does not delete records — so it
+  was observed with `authz-fixture@`, which is assigned to no job and therefore
+  reaches no delivery at all. That is a different route to the same render: the
+  component's guard is `rows.length === 0` either way, but "nothing waiting" is
+  covered by the offline check rather than by that browser run.

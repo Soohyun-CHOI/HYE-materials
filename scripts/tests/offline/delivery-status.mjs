@@ -20,6 +20,8 @@
 // lib/deliveryReconciliation.js and are measured credentialed.
 
 import {
+    AWAITING_INVOICE_COPY,
+    daysWaiting,
     STATUS_COPY,
     countsTowardStatus,
     describeDeliveryColumn,
@@ -456,6 +458,66 @@ export function run({ check, log, assert }) {
         "the withheld-filter rule is gone from the module",
         !("resolveDeliveryFilters" in deliveryStatus)
     );
+
+    // --- the strip above /invoices (#216) ----------------------------------
+    // The predicate and the ordering above are what the strip selects and sorts
+    // with — they did NOT move when `?unbilled=1` left /deliveries, so they keep
+    // their existing checks and gain no copies. What is new here is the waiting
+    // count and the copy.
+    log("");
+    log("how long an arrival has waited (#216):");
+    check("the day it arrived is zero", daysWaiting("2026-08-12", "2026-08-12"), 0);
+    check("the day after is one", daysWaiting("2026-08-11", "2026-08-12"), 1);
+    check("across a month boundary", daysWaiting("2026-07-31", "2026-08-12"), 12);
+    // A LEAP-YEAR FEBRUARY, because date arithmetic done by hand is where this
+    // would break and 2028 is the next one this app will see.
+    check("across a leap day", daysWaiting("2028-02-28", "2028-03-01"), 2);
+    check("a missing date is null, not zero", daysWaiting("", "2026-08-12"), null);
+    // ASSERTED WITH `===` RATHER THAN `check`, because `check` renders its actual
+    // through JSON.stringify and NaN comes out as `null` — so a genuine failure
+    // here would print "got null, expected null" and read like a pass. Measured
+    // while mutating this very clause.
+    assert(
+        "an unparseable date is null and not NaN",
+        daysWaiting("not-a-date", "2026-08-12") === null
+    );
+    check("a missing today is null", daysWaiting("2026-08-01", ""), null);
+    // NULL AND ZERO MUST NOT COLLIDE: zero means it arrived today, null means
+    // there is no date to measure from, and a row renders them differently.
+    assert("null is distinguishable from zero", daysWaiting("", "2026-08-12") !== 0);
+
+    log("");
+    log("what the strip says — ONE voice, because it offers no action:");
+    check(
+        "one delivery reads as one",
+        AWAITING_INVOICE_COPY.heading(1),
+        "1 delivery is waiting for an invoice"
+    );
+    check(
+        "and two do not",
+        AWAITING_INVOICE_COPY.heading(2),
+        "2 deliveries are waiting for an invoice"
+    );
+    assert(
+        "the singular and plural headings actually differ",
+        AWAITING_INVOICE_COPY.heading(1) !== AWAITING_INVOICE_COPY.heading(2)
+    );
+    assert("the explanation is a sentence", /^[A-Z].*\.$/.test(AWAITING_INVOICE_COPY.explain.trim()));
+    assert(
+        "it names the ordering, which is the thing a reader cannot see",
+        /longest wait first/i.test(AWAITING_INVOICE_COPY.explain)
+    );
+    // IT MUST NOT POINT AT A CONTROL. `/invoices` has a `New invoice` button that
+    // only an Admin sees, and this strip renders for every viewer who can reach a
+    // delivery — copy naming that button would describe something half its readers
+    // do not have. This is the assertion that keeps the one-voice decision honest:
+    // the moment the copy tells someone to press something, it needs two voices.
+    for (const word of ["New invoice", "record", "button", "click", "press", "add"]) {
+        assert(
+            `the explanation does not point at a control ("${word}")`,
+            !AWAITING_INVOICE_COPY.explain.toLowerCase().includes(word.toLowerCase())
+        );
+    }
 
     // --- the worklist order -----------------------------------------------
     log("");
