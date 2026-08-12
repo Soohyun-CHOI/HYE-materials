@@ -1,19 +1,15 @@
-# Standing checks (issue #152).
+# Standing checks (issue #152, extended by #187).
 #
-# Runs the offline verification tier on every push and pull request. That tier
-# is deliberately the only thing here: it needs no secrets, no Airtable, no
-# Vercel Blob and no dev server, so it can run on every commit without touching
-# the shared base or leaving fixtures behind.
+# Two jobs, and the property they share is cost: the offline verification tier
+# and eslint both run with no secrets, no Airtable, no Vercel Blob and no dev
+# server, so either can run on every commit without touching the shared base or
+# leaving fixtures behind.
 #
 # What is NOT here, and why:
 #   - scripts/tests/verify-*.mjs — they need .env.local and write fixtures to
 #     the one shared Airtable base. Running them per-commit would have several
 #     workflows creating and deleting records in the same base at once. They
 #     stay human-initiated.
-#   - npm run lint — there is a known pre-existing error (InvoiceForm.js's
-#     set-state-in-effect). Adding lint now would make this workflow red on
-#     arrival, which trains people to ignore it. Add it in the change that
-#     fixes that error.
 #   - npm run build — `next build` loads lib/airtable/client.js, which throws
 #     without AIRTABLE_API_KEY. It needs repository secrets configured first.
 
@@ -50,3 +46,44 @@ jobs:
 
       - name: Offline verification tier
         run: npm test
+
+  # Issue #187. eslint had exactly one error — InvoiceForm.js's
+  # set-state-in-effect, present since #138 — and every issue since dismissed
+  # it as "same as main". That is a baseline held in someone's memory: a second
+  # error would be absorbed by the same sentence, and a clean run would prove
+  # nothing. #187 fixed the error so this job can hold the baseline instead.
+  #
+  # A SEPARATE JOB RATHER THAN A STEP IN offline-checks. A lint failure
+  # reported under the name "offline-checks" misattributes it to the
+  # verification tier, and misattributed CI failures are what train people to
+  # ignore CI. The tier is also a directory scan of scripts/tests/offline/ —
+  # eslint is not in it, and folding it into that job would make the name claim
+  # otherwise.
+  #
+  # WHAT THAT CHOICE COSTS, stated because it is easy to assume otherwise:
+  # `offline-checks` is a required status check on main and `lint` is not. The
+  # required list is a repository setting, not anything in this file, so until
+  # `lint` is added there a red run here is visible on the pull request and
+  # does not block the merge. Same coupling docs/notes/verification.md records
+  # for renaming a job — the job key here is the name the setting must use.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # eslint is a devDependency, so the same reasoning as the tier above
+      # applies: a production install would silently leave nothing to run.
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      # `npx eslint .` rather than `npm run lint`, whose script is a bare
+      # `eslint`. The two lint the identical set — eslint defaults its patterns
+      # to "." — but the path is spelled out here so the log says what was
+      # looked at, and so this line is what someone runs by hand to reproduce.
+      - name: eslint
+        run: npx eslint .

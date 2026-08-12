@@ -268,6 +268,7 @@ scripts/
 ```
 
 - `scripts/tests/offline/` — the standing tier: plain `node`, no env vars, no Airtable, no dev server, creates nothing. `npm test` runs all of it and CI runs `npm test` on every push. The runner SCANS the directory, so a new check is in CI automatically. Files beginning with `_` are shared helpers.
+- `npx eslint .` runs in CI as its own `lint` job and stays clean; a rule this repo deliberately breaks gets a scoped disable with its reason, never a tolerated error (#187).
 - `scripts/tests/verify-*.mjs` — the credentialed tier: needs `.env.local`, writes throwaway fixtures to the shared base, human-initiated and deliberately not in CI. **Do not run these casually** — one run costs hundreds of Airtable operations.
 - `scripts/import/` — reusable one-time backfills (Python). `scripts/demo/` — seed scripts, kept in the repo and NOT deleted from Airtable.
 - **Where a new check goes is not a judgement call:** importing `lib/airtable/client.js`, or anything that imports it, puts a check in the credentialed tier, because that module throws at load without credentials.
@@ -292,7 +293,7 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed.
 - PR title is the representative commit's subject. Body opens on `Closes #{issue#}` — no issue summary before it — then three sections: **What this delivers** (a list of what changed), **Key design decisions** (a paragraph per decision, bold lead-in), **Testing** (a table of check and result).
 - `Testing` carries only what was actually verified; what was not is left out rather than disclaimed. Nothing is described as finished, complete, done or deployed — `implemented and merged` is a fact about the branch.
 - A doc-only PR with no issue omits the `Closes` line and says so in its first line. The body itself goes in pr-body.md at repo root, gitignored alongside commit-msg.txt.
-- Line-wrap commit bodies + PR descriptions at 72 chars, table rows and fenced blocks included, and NEVER inside a backtick span — wrap around it, and move it to a fenced block when the span plus its backticks will not fit. A rewrap tool skips table rows, so keep cells short and move long explanation to prose under the table. Prompts/comments don't need wrapping.
+- Line-wrap commit bodies + PR descriptions at 72 chars, table rows and fenced blocks included, and NEVER inside a backtick span — wrap around it, and move it to a fenced block when the span plus its backticks will not fit. `scripts/wrap-72.mjs` is that rule executable (`--check` reports without rewriting), and its output is read rather than trusted: it passes table rows through untouched, since wrapping one breaks the table, so keep cells short and move long explanation to prose under the table; and it reflows list items, which has altered a marker before now. Prompts/comments don't need wrapping.
 - Wrap literal `<tag>`-looking text in backticks in PR descriptions; write an issue reference as bare #num so GitHub autolinks it.
 - If an issue is already covered by other work, comment explaining why, then close — never silently close via Closes #.
 - Milestones = Phases (0-6) or standalone cross-cutting milestones. Stay scoped to the current issue's Milestone unless told otherwise.

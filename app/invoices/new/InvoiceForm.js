@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createInvoiceAction } from "./actions";
@@ -218,12 +218,15 @@ export default function InvoiceForm({ vendors, pos }) {
     // still submitted under the `amountDue` form field/Airtable column —
     // only the label and local variable name change).
     const [vendorStatedTotal, setVendorStatedTotal] = useState("");
-    const [shippingFee, setShippingFee] = useState("");
+    // Issue #187 — what the user TYPED, which is not what the field shows.
+    // The displayed `shippingFee` is derived below from this and the flag
+    // underneath it, and this half is read only once that flag is true —
+    // so a changed prefill never has to overwrite a real edit.
+    const [shippingFeeEdit, setShippingFeeEdit] = useState("");
     // Issue #91 — whether the user has directly edited Shipping Fee since
     // the last time it was (re)defaulted. Same idiom as items' own
     // poItemTouched: distinguishes "still showing an auto-prefill" from
-    // "deliberately set/cleared", so the effect below never clobbers a
-    // real edit.
+    // "deliberately set/cleared", so a prefill never clobbers a real edit.
     const [shippingFeeTouched, setShippingFeeTouched] = useState(false);
     const [tariffEnabled, setTariffEnabled] = useState(false);
     const [tariff, setTariff] = useState("");
@@ -508,19 +511,26 @@ export default function InvoiceForm({ vendors, pos }) {
     // selection has no single-PO fee to prefill from) rather than only
     // ever setting a value and never clearing one — otherwise switching
     // from a PO with a fee to one without (or to no/multiple POs) would
-    // silently leave the previous PO's stale fee sitting in the field. A
-    // single effect here rather than threading this into every place
-    // poSlots can change (handleSlotChange's first-pick branch,
-    // replacePoSlots, detection's own setPoSlots call) since selectedPos
-    // already reacts correctly to all of them.
-    useEffect(() => {
-        if (shippingFeeTouched) return;
-        setShippingFee(
-            selectedPos.length === 1 && selectedPos[0].shippingFee != null
-                ? String(selectedPos[0].shippingFee)
-                : ""
-        );
-    }, [selectedPos, shippingFeeTouched]);
+    // silently leave the previous PO's stale fee sitting in the field.
+    // Read off selectedPos rather than threaded into every place poSlots
+    // can change (handleSlotChange's first-pick branch, replacePoSlots,
+    // detection's own setPoSlots call), since selectedPos already reacts
+    // correctly to all of them.
+    //
+    // Issue #187 — this WAS a useEffect calling setShippingFee, and it was
+    // the single error `npx eslint .` reported on this repo
+    // (react-hooks/set-state-in-effect). The rule is right here rather
+    // than a style to argue with: while untouched the state was a copy of
+    // something already in state, so every PO change rendered the previous
+    // PO's fee first and only then re-rendered with the new one. Deriving
+    // it removes that second render and needs no dependency array. The two
+    // values are what make it work — the prefill and the edit are separate
+    // and the flag picks one, so nothing ever has to overwrite the other.
+    const prefilledShippingFee =
+        selectedPos.length === 1 && selectedPos[0].shippingFee != null
+            ? String(selectedPos[0].shippingFee)
+            : "";
+    const shippingFee = shippingFeeTouched ? shippingFeeEdit : prefilledShippingFee;
 
     // Fetch-if-missing, guarded against duplicate in-flight requests for
     // the same PO via the ref above (never a setState updater — see its
@@ -1343,7 +1353,7 @@ export default function InvoiceForm({ vendors, pos }) {
                             value={shippingFee}
                             onChange={(e) => {
                                 setShippingFeeTouched(true);
-                                setShippingFee(e.target.value);
+                                setShippingFeeEdit(e.target.value);
                             }}
                             className={fieldClass}
                         />
