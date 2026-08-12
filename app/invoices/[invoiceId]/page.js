@@ -31,7 +31,7 @@ const DONE_MESSAGES = {
 // President and Admin reach every invoice, and anyone else reaches one that bills
 // an order whose request they raised or whose request sits on a job they are
 // assigned to. The walk from invoice to request is lib/invoiceVisibility.js and the
-// judgement inside it is canViewPR, so this page adds no rule of its own. It
+// judgment inside it is canViewPR, so this page adds no rule of its own. It
 // replaced a President-or-Admin route gate that had no recorded reason: #132's "the
 // invoice pages stay President-or-Admin" scoped that issue rather than deciding
 // this one.

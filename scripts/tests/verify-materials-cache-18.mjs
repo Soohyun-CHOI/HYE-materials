@@ -10,7 +10,7 @@
 //   B — price: one material, two vendors, two price rows.
 //   C — withKeyLock serializes, on both of its two distinct keys.
 //   D — the production path: every PO line linked, dedupe on price only.
-//   E — Airtable's own judgement fields, which NOTHING has ever observed with
+//   E — Airtable's own judgment fields, which NOTHING has ever observed with
 //       real values: Committed/Signed Qty across all three PO statuses (the
 //       `& ""` lookup-to-text coercion), the three Materials rollups, and
 //       Uninvoiced Qty.
@@ -405,7 +405,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     check("vendor A's price is unchanged by it", (await getMaterialPrice({ materialRecordId: matX.id, vendorRecordId: vendorA.id })).unitPrice, 44);
 
     // -----------------------------------------------------------------------
-    console.log("\nPart E — Airtable's own judgement fields, on real values:");
+    console.log("\nPart E — Airtable's own judgment fields, on real values:");
     // PO1 stays Awaiting Signature. PO2 -> Signed. PO3 -> Withdrawn.
     // These three exercise the `& ""` coercion in PO Items.Committed/Signed Qty,
     // which had never been observed with a value: if coercing the PO Status

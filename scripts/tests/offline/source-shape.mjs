@@ -21,10 +21,10 @@
 // break several files independently and silently. One file, one AST layer, one
 // place to fix. Per-check issue tags below keep the provenance.
 //
-// These are the assertions that cannot be reached behaviourally from node:
+// These are the assertions that cannot be reached behaviorally from node:
 // every subject is a Server Action or Route Handler, which needs an
 // iron-session cookie and a request scope. Where that changes, prefer the
-// behavioural check — see _ast.mjs's note on source order vs execution order,
+// behavioral check — see _ast.mjs's note on source order vs execution order,
 // which is exactly what these still cannot distinguish.
 
 import {
@@ -132,7 +132,7 @@ const WITHDRAW_GUARDS = [
         fn: "regeneratePDFAction",
         gate: "isPOWithdrawn",
         work: "generateAndAttachPOPdf",
-        why: "a fresh PO PDF for a cancelled order is the confusion Withdrawn exists to prevent",
+        why: "a fresh PO PDF for a canceled order is the confusion Withdrawn exists to prevent",
     },
     {
         file: "app/invoices/new/actions.js",
@@ -605,7 +605,7 @@ export function run(reporter) {
     // WHAT THIS STANDS IN FOR IS AN ACCESS QUESTION, NOT A SHAPE ONE. /pos/[poId]
     // withholds invoice-derived fields from a non-privileged viewer (#132), and
     // #169's whole premise is that delivered quantity is delivery-derived and must
-    // NOT be withheld with them. Proving that behaviourally needs a session for a
+    // NOT be withheld with them. Proving that behaviorally needs a session for a
     // non-Admin who is nonetheless in a PO's scope, and this base has no such
     // account — authz-fixture has no Assigned Jobs, and CLAUDE.md forbids giving it
     // any. So the property is asserted where it is actually decided: recordToPOItem

@@ -283,9 +283,9 @@ if (incomplete) {
         // time, so that is the cached figure — and it is shown, with its status,
         // rather than hidden or rolled back to the earlier 12.
         check("vendor A's row carries its LATEST price, from the withdrawn PO", rowFor(vendorA)?.unitPrice, 99);
-        check("and is labelled Withdrawn rather than dropped", rowFor(vendorA)?.poStatus, "Withdrawn");
+        check("and is labeled Withdrawn rather than dropped", rowFor(vendorA)?.poStatus, "Withdrawn");
         check("vendor B's row carries its own price", rowFor(vendorB)?.unitPrice, 30);
-        check("labelled with its unsigned status", rowFor(vendorB)?.poStatus, "Awaiting Signature");
+        check("labeled with its unsigned status", rowFor(vendorB)?.poStatus, "Awaiting Signature");
 
         // All three POs were generated today and `Created Date` is calendar-only,
         // so these rows genuinely tie on date — the vendor-name tie-break is what
@@ -372,7 +372,7 @@ if (incomplete) {
         assert("the withdrawn PO's line is INCLUDED, not filtered out", Boolean(withdrawnRow));
         if (withdrawnRow) {
             check("it still shows the quantity that was ordered", withdrawnRow.qty, 999);
-            // #18's Committed Qty is the judgement; nothing here parses a status.
+            // #18's Committed Qty is the judgment; nothing here parses a status.
             check("but it does not count as ordered", countsAsOrdered(withdrawnRow), false);
         }
         const liveRow = adminHistory.rows.find((r) => r.poStatus === "Signed" || r.poStatus === "Awaiting Signature");

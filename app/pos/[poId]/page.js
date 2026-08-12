@@ -264,7 +264,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                         subtraction against the same `Qty` and a
                                         negative means the same thing in both — more
                                         arrived, or more was billed, than was
-                                        ordered. Signalling differently for one sign
+                                        ordered. Signaling differently for one sign
                                         would imply a distinction neither column
                                         makes, and `(over)` is this base's own word
                                         for it (`Delivery Items."Over Delivered"`). */}

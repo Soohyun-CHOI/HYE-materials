@@ -403,7 +403,7 @@ function, so the row you clicked and the page you land on cannot disagree.
        this seeded row is what caught the first version saying the false
        one.
 
-  The delivery links sit INSIDE the box, labelled just "Deliveries ·",
+  The delivery links sit INSIDE the box, labeled just "Deliveries ·",
   because the box is already scoped to one ordered item — which is the
   claim the data supports. The old foot-of-page section needed the heading
   "recorded against the same order lines" to avoid over-claiming; inside
@@ -466,6 +466,6 @@ function, so the row you clicked and the page you land on cannot disagree.
   Contrast the "Recorded against" table on the same page: that names a PO
   per allocated slice, reached through the Material link rather than from
   this number. Two levels of attribution, which is why the screen spells
-  the header one out instead of labelling it "PO".
+  the header one out instead of labeling it "PO".
 `);
 }

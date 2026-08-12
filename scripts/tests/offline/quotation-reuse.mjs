@@ -77,7 +77,7 @@ export function run({ check }) {
         false
     );
 
-    // Shape robustness: the form serialises recordId as "" and the callers pass
+    // Shape robustness: the form serializes recordId as "" and the callers pass
     // whatever Set.has()/isOurBlobUrl() returned, so undefined must not read as
     // permission.
     check(

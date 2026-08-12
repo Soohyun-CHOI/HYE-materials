@@ -4,7 +4,7 @@
 //   - ELIGIBILITY, clause by clause, including the out-of-scope case.
 //   - THAT THE ORDERING IS #166'S, on the AST rather than by agreement: a second
 //     sort by Issue Date would answer the same question differently and nothing
-//     behavioural would notice.
+//     behavioral would notice.
 //   - THAT THE BANNER IS DERIVED, from the linked PR's status and the row's flag,
 //     so a withdrawal reopens the row with no write anywhere.
 //
@@ -193,7 +193,7 @@ export function run({ check, log, assert }) {
     assert("  including sortInvoicesOldestFirst", imported.has("sortInvoicesOldestFirst"));
     assert("  and the shared premise", imported.has("INFERRED_PREMISE"));
     // A second sort by Issue Date would answer the same question differently and
-    // nothing behavioural would notice, which is why this is a source-shape check.
+    // nothing behavioral would notice, which is why this is a source-shape check.
     let ownIssueDateSort = false;
     walk(ast, (node) => {
         if (node.type !== "CallExpression") return;
@@ -382,7 +382,7 @@ export function run({ check, log, assert }) {
         // APPLIED HAS NO VOICE. The money is on the overage order and its invoice,
         // so nothing can be withdrawn, and naming an action the reader cannot take
         // would be worse than silence. isNoLongerOverDelivered cannot return true
-        // for an applied row anyway — this is the second line of defence.
+        // for an applied row anyway — this is the second line of defense.
         const appliedQualified = describeOverageBanner({ site, state: "applied", facts, noLongerOverDelivered: true });
         check(
             `${site}/applied: nothing is appended`,

@@ -7,9 +7,9 @@
 // `seesEveryInvoice`. What it can do is read the source, and the two things worth
 // pinning here are structural anyway:
 //
-//   1  THE RULE IS NOT REIMPLEMENTED. The judgement is canViewPR and must stay
+//   1  THE RULE IS NOT REIMPLEMENTED. The judgment is canViewPR and must stay
 //      canViewPR. A second predicate in the new module would be a second answer to
-//      one question, and nothing behavioural would notice for as long as the two
+//      one question, and nothing behavioral would notice for as long as the two
 //      happened to agree — which is exactly the shape CLAUDE.md's "one rule, one
 //      implementation" records this repo being bitten by twice.
 //   2  THE PAYMENT LINE IS ENUMERABLE. `Paid` is President-or-Admin, and a line

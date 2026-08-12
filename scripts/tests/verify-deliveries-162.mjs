@@ -253,7 +253,7 @@ console.log("\nPart A — the schema is there and wired as the code assumes:");
     }
 
     // The Unit option list. Nothing file-only can see this, and a missing option
-    // fails the write outright rather than mislabelling a row, since
+    // fails the write outright rather than mislabeling a row, since
     // createDeliveryItem does not use typecast.
     try {
         const meta = await fetch(
@@ -538,14 +538,14 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("it is no longer narrowed to", valvePlan.narrowed.length, 0);
     // #165 — with nothing narrowed there is no line to attach to, and no row may
     // be written without one, so the plan is BLOCKED rather than recorded as an
-    // unattributable over-delivery. That is a behaviour change from #162, and it
+    // unattributable over-delivery. That is a behavior change from #162, and it
     // makes the action agree with the form for the first time: the item was
     // already absent from the dropdown (asserted below), so #162's unattached row
     // was only ever reachable by calling the Server Action directly.
     check("nothing is planned", valvePlan.rows.length, 0);
     check("and the plan says why", valvePlan.blocked, BLOCKED.notOrdered);
     check("no over-delivery is claimed either, since nothing is recorded", valvePlan.over, 0);
-    // And it drops out of the item dropdown for that vendor — the same judgement,
+    // And it drops out of the item dropdown for that vendor — the same judgment,
     // reached independently, which is why the two now refuse the same set.
     const valveOptions = buildItemOptions(afterWithdraw.lines, vendorB.id).filter(
         (o) => o.itemName === `${TAG} Valve`

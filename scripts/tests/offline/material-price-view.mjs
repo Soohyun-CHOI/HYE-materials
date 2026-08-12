@@ -161,7 +161,7 @@ export function run({ check, log, assert }) {
 
     log("");
     log("statusTag — silence means Signed:");
-    // Signed is nearly every row, so labelling it is noise on every line.
+    // Signed is nearly every row, so labeling it is noise on every line.
     check("Signed gets no tag", statusTag("Signed"), null);
     check("a blank status gets no tag", statusTag(""), null);
     check("undefined gets no tag", statusTag(undefined), null);

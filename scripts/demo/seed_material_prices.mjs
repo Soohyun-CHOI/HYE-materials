@@ -42,7 +42,7 @@ import { getAllLines } from "../../lib/airtable/lines.js";
 // later be mistaken for a real one.
 const EXTRA_VENDOR = "Demo Pipe Supply";
 
-// The three items are chosen to make each of the screen's behaviours visible.
+// The three items are chosen to make each of the screen's behaviors visible.
 const PIPE = { itemName: "SCH 40 PVC Pipe", size: '4"', unit: "FT" };
 const VALVE = { itemName: "Ball Valve", size: '2"', unit: "EA" };
 const HANGER = { itemName: "Pipe Hanger", size: "", unit: "EA" };

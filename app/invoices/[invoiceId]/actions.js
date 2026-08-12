@@ -20,7 +20,7 @@ import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
 //
 // Issue #147 — this file had already grown its own local requireAdminOrThrow
 // wrapper for exactly the reason #147 generalises: the flag was too easy to
-// drop. That local one is gone in favour of the shared withAdminAction, which
+// drop. That local one is gone in favor of the shared withAdminAction, which
 // keeps its wording and its throw.
 
 /**

@@ -30,7 +30,7 @@
 // exists, and those rows keep their old option permanently. Such a choice can
 // never be written again and is still correct.
 //
-// That is decidable from the DATA rather than from judgement, which is why this
+// That is decidable from the DATA rather than from judgment, which is why this
 // reads the rows too:
 //   - an extra choice HELD by at least one row  -> reported, not failed. It is
 //     history the log is entitled to keep, and deleting it would blank an audit

@@ -12,7 +12,7 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 
 | Screen word or identifier | What it actually reads |
 |---|---|
-| `Ordered` (invoice detail box) | `PO Items."Qty"`. **NOT `Committed Qty` or `Signed Qty`** — those two are the which-POs-count *judgement* (#18), read as a predicate by `countsAsOrdered` and never rendered as a figure. What "ordered" should MEAN as a quantity is #20's decision, which is why the pair exists and why no screen names either yet. |
+| `Ordered` (invoice detail box) | `PO Items."Qty"`. **NOT `Committed Qty` or `Signed Qty`** — those two are the which-POs-count *judgment* (#18), read as a predicate by `countsAsOrdered` and never rendered as a figure. What "ordered" should MEAN as a quantity is #20's decision, which is why the pair exists and why no screen names either yet. |
 | `Billed` (invoice detail box) | `PO Items."Invoiced Qty"` — the ordered item's total across every invoice, not this invoice's line. A different word from the field on purpose: on an invoice screen "Invoiced" would read as "this invoice". |
 | `Delivered` (invoice detail box) | the SUM of that ordered item's `Delivery Items."Qty"`, computed in `lib/deliveryReconciliation.js`. **Deliberately not `PO Items."Delivered Qty"`**, even though a field of exactly that name exists: the rollup adds within-order and beyond-order quantity together and only the rows carry `Over Delivered` (#166). |
 | `Delivered` (deliveries list column) | no field — `summarizeDelivery` folds a delivery's `Delivery Items` into "first item + a count". |

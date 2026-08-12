@@ -2,7 +2,7 @@
 //
 // Moved here by #152 from scripts/tests/verify-authz-structure.mjs, and now
 // built on the shared _ast.mjs layer rather than its own copy of a parser and
-// a walker. Behaviour is unchanged; #147's history is below.
+// a walker. Behavior is unchanged; #147's history is below.
 //
 // #147 replaced a substring search for `requireAdminApi(` over four hard-coded
 // paths. A comment satisfied it, a real call whose refusal Response was then

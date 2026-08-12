@@ -49,7 +49,7 @@ export function run({ check, log }) {
     log("what it does NOT unify at all — these still make separate materials:");
     // Each of these is a real way the same physical item gets typed twice. None
     // is solved by whitespace normalization, and none should be guessed at by
-    // string rules: an item catalogue with a dropdown is what actually fixes
+    // string rules: an item catalog with a dropdown is what actually fixes
     // them. Stated as cases so the limit is visible rather than assumed.
     check(
         "abbreviations: inch vs in vs \"",
