@@ -118,7 +118,7 @@ export default function DeliveriesListClient({ rows, initialUnbilled, initialOve
                         <col style={{ width: "5.75rem" }} />
                     </colgroup>
                     <thead>
-                        <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
+                        <tr className="border-b border-zinc-200 text-left">
                             <th className="py-2 font-medium">Delivery</th>
                             <th className="py-2 font-medium">Vendor</th>
                             <th className="py-2 font-medium">Received</th>
@@ -130,7 +130,7 @@ export default function DeliveriesListClient({ rows, initialUnbilled, initialOve
                     <tbody>
                         {visible.length === 0 ? (
                             <tr>
-                                <td colSpan={cols} className="py-4 text-zinc-600 dark:text-zinc-400">
+                                <td colSpan={cols} className="py-4 text-zinc-600">
                                     No delivery matches these filters.
                                 </td>
                             </tr>
@@ -138,7 +138,7 @@ export default function DeliveriesListClient({ rows, initialUnbilled, initialOve
                             visible.map((row) => (
                                 <tr
                                     key={row.deliveryId}
-                                    className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
+                                    className="border-b border-zinc-100 last:border-0"
                                 >
                                     <td className="py-2">
                                         <Link
@@ -169,7 +169,7 @@ export default function DeliveriesListClient({ rows, initialUnbilled, initialOve
                                                 {row.summary.extraCount > 0 && (
                                                     <span
                                                         title={`${row.summary.itemCount} items on this delivery`}
-                                                        className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium tabular-nums text-zinc-700 dark:bg-zinc-700 dark:text-zinc-200"
+                                                        className="rounded bg-zinc-200 px-1.5 py-0.5 text-xs font-medium tabular-nums text-zinc-700"
                                                     >
                                                         +{row.summary.extraCount}
                                                     </span>
@@ -182,7 +182,7 @@ export default function DeliveriesListClient({ rows, initialUnbilled, initialOve
                                                     a fact about the ordered item read as one
                                                     about the bill. */}
                                                 {row.summary.hasOverDelivery && (
-                                                    <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                                    <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
                                                         Over-delivered
                                                     </span>
                                                 )}

@@ -46,7 +46,7 @@ function LoginForm() {
         return (
             <div className="w-full max-w-sm text-center">
                 <h1 className="text-2xl font-semibold">Check your email</h1>
-                <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+                <p className="mt-2 text-zinc-600">
                     We sent a sign-in link to {email}. Open it and press Confirm
                     sign-in. It expires in {TOKEN_TTL_MINUTES} minutes.
                 </p>
@@ -63,7 +63,7 @@ function LoginForm() {
                     says the link arrived where it claimed, and distinguishes
                     this app from the group's other portals. */}
                 <h1 className="text-2xl font-semibold">{SIGN_IN_TITLE}</h1>
-                <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                <p className="mt-1 text-zinc-600">
                     Use your company email address.
                 </p>
             </div>
@@ -76,7 +76,7 @@ function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
                 disabled={status === "submitting"}
-                className="w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black"
+                className="w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50"
             />
 
             {status === "error" && (

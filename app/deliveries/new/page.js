@@ -49,7 +49,7 @@ async function renderNewDeliveryPage() {
         return (
             <div className="mx-auto w-full max-w-3xl p-8">
                 <h1 className="text-2xl font-semibold">Record a delivery</h1>
-                <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-4 text-sm text-zinc-600">
                     You are not assigned to any job yet, so there is nothing to record a delivery
                     against. An Admin can add you to a job in Airtable.
                 </p>
@@ -75,7 +75,7 @@ async function renderNewDeliveryPage() {
     return (
         <div className="mx-auto w-full max-w-3xl p-8">
             <h1 className="text-2xl font-semibold">Record a delivery</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-zinc-600">
                 What was delivered, and on which job. The app works out which order it belongs to.
             </p>
 

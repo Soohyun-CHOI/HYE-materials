@@ -25,20 +25,20 @@ export default function DeleteDeliveryButton({ deliveryId, title, body }) {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-700 dark:border-red-900 dark:text-red-400"
+                className="rounded border border-red-300 px-3 py-1.5 text-sm text-red-700"
             >
                 Delete this delivery
             </button>
 
             {state?.error && (
-                <p className="mt-2 text-sm text-red-700 dark:text-red-500">{state.error}</p>
+                <p className="mt-2 text-sm text-red-700">{state.error}</p>
             )}
 
             {open && (
                 <div className={MODAL_BACKDROP}>
                     <div className={`${MODAL_CARD} max-w-md`}>
                         <h2 className="text-lg font-medium">{title}</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{body}</p>
+                        <p className="mt-2 text-sm text-zinc-600">{body}</p>
 
                         <form action={formAction} className="mt-5 flex justify-end gap-3">
                             <input type="hidden" name="deliveryId" value={deliveryId} />
@@ -46,7 +46,7 @@ export default function DeleteDeliveryButton({ deliveryId, title, body }) {
                                 type="button"
                                 onClick={() => setOpen(false)}
                                 disabled={pending}
-                                className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700"
+                                className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50"
                             >
                                 Keep it
                             </button>

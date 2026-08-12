@@ -77,7 +77,7 @@ export default function POListClient({
 
     return (
         <>
-            <div className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm dark:border-zinc-800">
+            <div className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm">
                 {jobOptions.length > 0 && (
                     <JobFilterDropdown
                         jobs={jobOptions}
@@ -95,7 +95,7 @@ export default function POListClient({
                     <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black"
+                        className="rounded border border-zinc-300 px-2 py-1"
                     >
                         <option value="">All</option>
                         {statuses.map((s) => (
@@ -113,7 +113,7 @@ export default function POListClient({
             </div>
 
             {empty ? (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">{EMPTY_COPY[empty]}</p>
+                <p className="mt-6 text-sm text-zinc-600">{EMPTY_COPY[empty]}</p>
             ) : (
                 <div className="mt-6 overflow-x-auto">
                     {/* WIDTHS ARE DECLARED, WHICH IS THE RULE #166 ESTABLISHED — an
@@ -205,8 +205,8 @@ export default function POListClient({
                                     <tr
                                         key={row.id}
                                         className={
-                                            "border-t border-zinc-200 dark:border-zinc-800" +
-                                            (isWithdrawn ? " text-zinc-400 dark:text-zinc-600" : "")
+                                            "border-t border-zinc-200" +
+                                            (isWithdrawn ? " text-zinc-400" : "")
                                         }
                                     >
                                         <td className="py-1 pr-2">

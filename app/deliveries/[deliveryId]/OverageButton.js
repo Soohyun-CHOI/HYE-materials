@@ -36,7 +36,7 @@ export default function OverageButton({ deliveryItemId, messages, inferred, infe
                 <button
                     type="button"
                     onClick={() => setOpen(true)}
-                    className="rounded border border-zinc-300 px-2 py-0.5 text-xs dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-2 py-0.5 text-xs"
                 >
                     Raise a correction
                 </button>
@@ -44,14 +44,14 @@ export default function OverageButton({ deliveryItemId, messages, inferred, infe
             </span>
 
             {state?.error && (
-                <p className="mt-1 text-xs text-red-700 dark:text-red-500">{state.error}</p>
+                <p className="mt-1 text-xs text-red-700">{state.error}</p>
             )}
 
             {open && (
                 <div className={MODAL_BACKDROP}>
                     <div className={`${MODAL_CARD} max-w-lg`}>
                         <h2 className="text-lg font-medium">Raise a correction for this over-delivery</h2>
-                        <div className="mt-3 space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <div className="mt-3 space-y-2 text-sm text-zinc-600">
                             {messages.map((m, i) => (
                                 <p key={i}>{m}</p>
                             ))}
@@ -63,7 +63,7 @@ export default function OverageButton({ deliveryItemId, messages, inferred, infe
                                 type="button"
                                 onClick={() => setOpen(false)}
                                 disabled={pending}
-                                className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700"
+                                className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50"
                             >
                                 Cancel
                             </button>

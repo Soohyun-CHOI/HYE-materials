@@ -229,7 +229,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         Boolean(receivedDate);
 
     const inputClass =
-        "mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
+        "mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm";
 
     return (
         <form action={formAction} className="mt-6 space-y-6">
@@ -263,7 +263,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
             </div>
 
             {/* --- Optional PO number ------------------------------------------- */}
-            <div className="rounded border border-zinc-200 p-4 dark:border-zinc-800">
+            <div className="rounded border border-zinc-200 p-4">
                 <label className="flex items-center gap-2 text-sm">
                     <input
                         type="checkbox"
@@ -301,14 +301,14 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                             className={inputClass}
                         />
                         {poId.trim() && matchedPoLines.length === 0 && (
-                            <p className="mt-2 text-sm text-amber-700 dark:text-amber-500">
+                            <p className="mt-2 text-sm text-amber-700">
                                 No purchase order {poId.trim()} on{" "}
                                 {selectedJob?.jobCode ?? "this job"}. Check the number on the packing
                                 list, or clear this box and pick the vendor instead.
                             </p>
                         )}
                         {matchedPoLines.length > 0 && (
-                            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <p className="mt-2 text-sm text-zinc-600">
                                 Vendor:{" "}
                                 <span className="font-medium">
                                     {vendorNames[poFixedVendorId] ?? "Unknown vendor"}
@@ -343,7 +343,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                         ))}
                     </select>
                     {jobRecordId && vendors.length === 0 && (
-                        <p className="mt-2 text-sm text-amber-700 dark:text-amber-500">
+                        <p className="mt-2 text-sm text-amber-700">
                             No purchase order on {selectedJob?.jobCode} has reached this app yet, so
                             there is nothing to record a delivery against. If site placed the order
                             directly, the purchase request and PO have to exist here first — raise the
@@ -374,7 +374,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                 </div>
 
                 {vendorHasNoItems && (
-                    <p className="mt-2 text-sm text-amber-700 dark:text-amber-500">
+                    <p className="mt-2 text-sm text-amber-700">
                         No purchase order on {selectedJob?.jobCode} names this vendor. If site placed
                         this order directly, the purchase request and PO have to exist here before the
                         delivery can be recorded against them — raise the PR now, and record the
@@ -408,7 +408,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                         return (
                             <div
                                 key={i}
-                                className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
+                                className="rounded border border-zinc-200 p-3"
                             >
                                 <div className="flex gap-3">
                                     <div className="flex-1">
@@ -478,7 +478,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
 
                                 {/* The fourth state: ordered, but already fully delivered. */}
                                 {option && option.undelivered === 0 && (
-                                    <p className="mt-2 text-xs text-amber-700 dark:text-amber-500">
+                                    <p className="mt-2 text-xs text-amber-700">
                                         Everything ordered from this vendor for this item on this job
                                         is already delivered. Recording it will be flagged as
                                         over-delivered — check the packing list against the order.
@@ -486,14 +486,14 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                                 )}
 
                                 {plan && isFirstOfMaterial && (
-                                    <div className="mt-2 border-t border-zinc-100 pt-2 text-xs dark:border-zinc-900">
+                                    <div className="mt-2 border-t border-zinc-100 pt-2 text-xs">
                                         <ul className="space-y-0.5">
                                             {plan.rows.map((r, k) => (
                                                 <li key={k} className="flex justify-between gap-4">
                                                     <span>
                                                         {r.line ? r.line.poId : "Not against any order"}
                                                         {r.over && (
-                                                            <span className="ml-2 text-amber-700 dark:text-amber-500">
+                                                            <span className="ml-2 text-amber-700">
                                                                 over-delivered
                                                             </span>
                                                         )}
@@ -508,7 +508,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                                         {messages.map((m) => (
                                             <p
                                                 key={m.key}
-                                                className="mt-1 text-amber-700 dark:text-amber-500"
+                                                className="mt-1 text-amber-700"
                                             >
                                                 {m.text}
                                             </p>
@@ -521,14 +521,14 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                 </div>
 
                 {effectiveVendorId && itemOptions.length > 0 && (
-                    <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+                    <p className="mt-2 text-xs text-zinc-500">
                         This list holds only materials from purchase orders on this job for this
                         vendor. If something was ordered from a different vendor, record it as its own
                         delivery. An order placed before this app recorded deliveries will not appear
                         here — keep the packing list and tell the office.
                     </p>
                 )}
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                <p className="mt-1 text-xs text-zinc-500">
                     The app decides which order each item belongs to. Correcting an item or a quantity
                     later means deleting this delivery and entering it again.
                 </p>
@@ -565,7 +565,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                         </option>
                     ))}
                 </select>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                <p className="mt-1 text-xs text-zinc-500">
                     {effectiveVendorId && invoiceChoices.length === 0
                         ? LINK_COPY.field.emptyList({
                               vendorName: vendorNames[effectiveVendorId],
@@ -606,12 +606,12 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                     <p className="mt-1 text-xs text-zinc-500">Uploading {photo.filename}…</p>
                 )}
                 {photo.status === "done" && (
-                    <p className="mt-1 text-xs text-green-700 dark:text-green-500">
+                    <p className="mt-1 text-xs text-green-700">
                         {photo.filename} attached
                     </p>
                 )}
                 {photo.status === "error" && (
-                    <p className="mt-1 text-xs text-red-700 dark:text-red-500">
+                    <p className="mt-1 text-xs text-red-700">
                         Upload failed: {photo.error}
                     </p>
                 )}
@@ -632,12 +632,12 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                 />
             </div>
 
-            {state?.error && <p className="text-sm text-red-700 dark:text-red-500">{state.error}</p>}
+            {state?.error && <p className="text-sm text-red-700">{state.error}</p>}
 
             <button
                 type="submit"
                 disabled={!canSubmit}
-                className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
+                className="rounded bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             >
                 {pending ? "Recording…" : "Record delivery"}
             </button>

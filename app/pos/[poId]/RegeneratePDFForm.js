@@ -21,7 +21,7 @@ export default function RegeneratePDFForm({ poId }) {
             <button
                 type="submit"
                 disabled={pending}
-                className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700 disabled:opacity-50"
+                className="rounded border border-zinc-300 px-4 py-2 disabled:opacity-50"
             >
                 {pending ? "Generating..." : "Regenerate PDF"}
             </button>

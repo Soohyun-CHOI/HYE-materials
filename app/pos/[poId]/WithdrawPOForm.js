@@ -37,7 +37,7 @@ export default function WithdrawPOForm({ poId, title, body }) {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:text-red-400"
+                className="rounded border border-red-300 px-4 py-2 text-sm text-red-700"
             >
                 Withdraw this PO
             </button>
@@ -54,7 +54,7 @@ export default function WithdrawPOForm({ poId, title, body }) {
                     >
                         <input type="hidden" name="poId" value={poId} />
                         <h2 className="text-lg font-semibold">{title}</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{body}</p>
+                        <p className="mt-2 text-sm text-zinc-600">{body}</p>
                         {state?.error && <p className="mt-2 text-sm text-red-600">{state.error}</p>}
                         <div className="mt-4 flex flex-row-reverse gap-3">
                             <button
@@ -68,7 +68,7 @@ export default function WithdrawPOForm({ poId, title, body }) {
                                 type="button"
                                 onClick={close}
                                 disabled={pending}
-                                className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                                className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
                             >
                                 Cancel
                             </button>

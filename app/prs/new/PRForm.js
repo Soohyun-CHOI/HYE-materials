@@ -17,9 +17,9 @@ const EMPTY_ITEM = { itemName: "", size: "", unit: "", qty: "", unitPrice: "", r
 // record id for one hydrated from a Draft (#142).
 const EMPTY_QUOTATION = { recordId: "", file: { status: "idle" }, vendorQuotationCode: "" };
 const inputClass =
-    "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
+    "rounded border border-zinc-300 px-2 py-1";
 const fieldClass =
-    "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
+    "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50";
 
 // Maps a loadPRDraft() result (#72 reload contract) into PRForm's client
 // state shape. Shared by the #73 "Resume" button and the #74 open-a-draft
@@ -319,11 +319,11 @@ export default function PRForm({
                 <div className={MODAL_BACKDROP}>
                     <div className={`${MODAL_CARD} max-w-md`}>
                         <h2 className="text-lg font-semibold">Resume your draft?</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="mt-2 text-sm text-zinc-600">
                             You have an unfinished draft. Resume where you left off, or start a new
                             PR — starting fresh leaves the draft saved for later.
                         </p>
-                        <div className="mt-3 rounded border border-zinc-200 p-3 text-sm dark:border-zinc-800">
+                        <div className="mt-3 rounded border border-zinc-200 p-3 text-sm">
                             <p className="font-medium">{draftLabel.prId}</p>
                             <p className="text-zinc-500">
                                 Saved{" "}
@@ -356,7 +356,7 @@ export default function PRForm({
                             <button
                                 type="button"
                                 onClick={() => setShowResumePrompt(false)}
-                                className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700"
+                                className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm"
                             >
                                 Start fresh
                             </button>
@@ -385,14 +385,14 @@ export default function PRForm({
                         </div>
                         <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto">
                             {drafts.length === 0 ? (
-                                <li className="rounded border border-zinc-200 p-3 text-sm text-zinc-500 dark:border-zinc-800">
+                                <li className="rounded border border-zinc-200 p-3 text-sm text-zinc-500">
                                     No saved drafts.
                                 </li>
                             ) : (
                                 drafts.map((d) => (
                                     <li
                                         key={d.prId}
-                                        className="rounded border border-zinc-200 dark:border-zinc-800"
+                                        className="rounded border border-zinc-200"
                                     >
                                         {confirmingPrId === d.prId ? (
                                             // Inline confirm — the row itself morphs, so no
@@ -422,7 +422,7 @@ export default function PRForm({
                                                             setDeleteError(null);
                                                         }}
                                                         disabled={deletingPrId === d.prId}
-                                                        className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-50 dark:border-zinc-700"
+                                                        className="rounded border border-zinc-300 px-3 py-1 disabled:opacity-50"
                                                     >
                                                         Cancel
                                                     </button>
@@ -432,13 +432,13 @@ export default function PRForm({
                                             <div className="flex items-stretch">
                                                 <Link
                                                     href={`/prs/new?draft=${encodeURIComponent(d.prId)}`}
-                                                    className="block flex-1 p-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                                                    className="block flex-1 p-3 text-sm hover:bg-zinc-50"
                                                 >
                                                     <div className="flex items-center justify-between">
                                                         <span className="font-medium">
                                                             {d.prId}
                                                             {d.prId === openDraftPrId && (
-                                                                <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-normal text-zinc-500 dark:bg-zinc-800">
+                                                                <span className="ml-2 rounded bg-zinc-100 px-1.5 py-0.5 text-xs font-normal text-zinc-500">
                                                                     Editing
                                                                 </span>
                                                             )}
@@ -511,7 +511,7 @@ export default function PRForm({
                 <div className={MODAL_BACKDROP}>
                     <div className={`${MODAL_CARD} max-w-md`}>
                         <h2 className="text-lg font-semibold">Draft saved</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="mt-2 text-sm text-zinc-600">
                             Your draft was saved as{" "}
                             <span className="font-medium">{draftState.savedDraft.prId}</span>. You
                             can pick it back up anytime from your saved drafts.
@@ -535,7 +535,7 @@ export default function PRForm({
                     type="button"
                     onClick={() => setShowDraftList(true)}
                     disabled={drafts.length === 0}
-                    className="rounded border border-zinc-300 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-3 py-1 text-sm disabled:cursor-not-allowed disabled:opacity-40"
                 >
                     Open a saved draft ({drafts.length})
                 </button>
@@ -546,7 +546,7 @@ export default function PRForm({
                 </p>
             )}
             {deletedOpenDraftNotice && (
-                <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     The saved draft was deleted. Your changes are still here and will be saved as a
                     new PR.
                 </p>
@@ -630,12 +630,12 @@ export default function PRForm({
 
             <div>
                 <h2 className="text-lg font-semibold">Quotations</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-zinc-600">
                     A Vendor can send more than one quotation — add one entry per quotation received.
                 </p>
                 <div className="mt-2 space-y-3">
                     {quotations.map((q, i) => (
-                        <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
+                        <div key={i} className="rounded border border-zinc-300 p-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium">{quotationLabel(i)}</span>
                                 {quotations.length > 1 && (
@@ -690,7 +690,7 @@ export default function PRForm({
                     <button
                         type="button"
                         onClick={addQuotation}
-                        className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
+                        className="rounded border border-zinc-300 px-3 py-1 text-sm"
                     >
                         + Add another quotation
                     </button>
@@ -703,7 +703,7 @@ export default function PRForm({
                     {items.map((item, i) => {
                         const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
                         return (
-                            <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
+                            <div key={i} className="rounded border border-zinc-300 p-3">
                                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     <input
                                         placeholder="Item Name"
@@ -770,7 +770,7 @@ export default function PRForm({
                                         </select>
                                     </div>
                                 )}
-                                <div className="mt-2 flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                                <div className="mt-2 flex items-center justify-between text-sm text-zinc-600">
                                     <span>Amount (preview): {amount.toFixed(2)}</span>
                                     {items.length > 1 && (
                                         <button
@@ -789,7 +789,7 @@ export default function PRForm({
                 <button
                     type="button"
                     onClick={addItem}
-                    className="mt-3 rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
+                    className="mt-3 rounded border border-zinc-300 px-3 py-1 text-sm"
                 >
                     + Add item
                 </button>
@@ -809,14 +809,14 @@ export default function PRForm({
                     onChange={(e) => setShippingFee(e.target.value)}
                     className={fieldClass}
                 />
-                <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-1 text-sm text-zinc-600">
                     Total Amount (preview): {totalAmount.toFixed(2)}
                 </p>
             </div>
 
             <div>
                 <h2 className="text-lg font-semibold">Signers</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-zinc-600">
                     Drag to reorder — this is the order they&apos;ll sign in.
                 </p>
                 <SignerList users={users} signers={signers} onChange={setSigners} />
@@ -856,7 +856,7 @@ export default function PRForm({
 
             <div className="space-y-3">
                 {showDuplicateWarning && (
-                    <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-200">
+                    <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
                         <p>
                             A matching PR already exists for this Line —{" "}
                             <strong>{submitState.duplicateWarning.priorPrId}</strong>, submitted by{" "}
@@ -868,7 +868,7 @@ export default function PRForm({
                             <button
                                 type="button"
                                 onClick={() => setWarningDismissed(true)}
-                                className="rounded border border-yellow-600 px-3 py-1 text-yellow-900 dark:text-yellow-200"
+                                className="rounded border border-yellow-600 px-3 py-1 text-yellow-900"
                             >
                                 Cancel
                             </button>
@@ -911,7 +911,7 @@ export default function PRForm({
                         formAction={draftAction}
                         formNoValidate
                         disabled={draftPending || submitPending}
-                        className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                        className="flex-1 rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
                     >
                         {draftPending ? "Saving draft..." : draftRecordId ? "Save draft" : "Save as draft"}
                     </button>

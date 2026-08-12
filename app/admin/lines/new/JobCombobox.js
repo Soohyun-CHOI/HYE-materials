@@ -22,7 +22,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 // stays in the input), Arrow/Enter/Escape handling, and outside-click close.
 
 const inputClass =
-    "mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black";
+    "mt-1 w-full rounded border border-zinc-300 px-3 py-2";
 
 export default function JobCombobox({ jobs, value, onChange }) {
     const listId = useId();
@@ -144,7 +144,7 @@ export default function JobCombobox({ jobs, value, onChange }) {
                 <ul
                     id={listId}
                     role="listbox"
-                    className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded border border-zinc-300 bg-white text-sm shadow-lg dark:border-zinc-700 dark:bg-black"
+                    className="absolute z-10 mt-1 max-h-64 w-full overflow-y-auto rounded border border-zinc-300 bg-white text-sm shadow-lg"
                 >
                     {filtered.length === 0 ? (
                         <li className="px-3 py-1.5 text-zinc-500">No matching Jobs.</li>
@@ -158,7 +158,7 @@ export default function JobCombobox({ jobs, value, onChange }) {
                                 onMouseEnter={() => setActiveIndex(i)}
                                 onClick={() => selectJob(j)}
                                 className={`cursor-pointer px-3 py-1.5 ${
-                                    i === highlighted ? "bg-zinc-100 dark:bg-zinc-900" : ""
+                                    i === highlighted ? "bg-zinc-100" : ""
                                 }`}
                             >
                                 {labelOf(j)}

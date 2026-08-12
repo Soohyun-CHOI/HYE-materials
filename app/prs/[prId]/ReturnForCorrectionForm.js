@@ -13,7 +13,7 @@ export default function ReturnForCorrectionForm({ prId, targets, usersById, onCa
     return (
         <form
             action={formAction}
-            className="space-y-3 rounded border border-zinc-300 p-4 dark:border-zinc-700"
+            className="space-y-3 rounded border border-zinc-300 p-4"
         >
             {state?.error && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -31,7 +31,7 @@ export default function ReturnForCorrectionForm({ prId, targets, usersById, onCa
                     name="target"
                     defaultValue="requester"
                     required
-                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2"
                 >
                     {targets.map((t) => (
                         <option key={t.value} value={t.value}>
@@ -52,7 +52,7 @@ export default function ReturnForCorrectionForm({ prId, targets, usersById, onCa
                     name="notes"
                     rows={3}
                     required
-                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2"
                 />
             </div>
 
@@ -67,7 +67,7 @@ export default function ReturnForCorrectionForm({ prId, targets, usersById, onCa
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-4 py-2"
                 >
                     Cancel
                 </button>

@@ -170,7 +170,7 @@ async function renderPODetailPage({ params, searchParams }) {
                     (m) => (
                         <p
                             key={`${banner.rowId}-${m.key}`}
-                            className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                            className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
                         >
                             {m.text}
                         </p>
@@ -191,7 +191,7 @@ async function renderPODetailPage({ params, searchParams }) {
                 items, since "this order was called off" changes how every
                 figure below it should be read. */}
             {withdrawn && (
-                <div className="mt-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <div className="mt-4 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                     <p>{withdrawCopy.banner}</p>
                     {po.withdrawnAt && (
                         <p className="mt-1 text-xs">
@@ -201,7 +201,7 @@ async function renderPODetailPage({ params, searchParams }) {
                 </div>
             )}
 
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Total Amount</p>
                 <p className="text-3xl font-semibold">
                     {formatUSD(po.totalAmount ?? po.itemsSubtotal)}
@@ -250,7 +250,7 @@ async function renderPODetailPage({ params, searchParams }) {
                     <tbody>
                         {itemsWithInvoiceLines.map((it) => (
                             <Fragment key={it.id}>
-                                <tr className="border-t border-zinc-200 dark:border-zinc-800">
+                                <tr className="border-t border-zinc-200">
                                     <td className="py-1 pr-2">{it.itemName}</td>
                                     <td className="py-1 pr-2">{it.size}</td>
                                     <td className="py-1 pr-2">{it.unit}</td>
@@ -296,7 +296,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                     <td className="py-1 pr-2">{it.remark}</td>
                                 </tr>
                                 {it.invoiceLines.length > 0 && (
-                                    <tr className="border-t border-dashed border-zinc-200 dark:border-zinc-800">
+                                    <tr className="border-t border-dashed border-zinc-200">
                                         {/* Spans the privileged column count, which
                                             #169 took from 9 to 11. This row only ever
                                             renders for a privileged viewer, since
@@ -319,21 +319,21 @@ async function renderPODetailPage({ params, searchParams }) {
                                                             )}
                                                             : Qty {line.qty} @ {line.unitPrice}
                                                             {line.varianceFlag && (
-                                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700 dark:bg-red-950 dark:text-red-400">
+                                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
                                                                     ⚠ Line Variance
                                                                 </span>
                                                             )}
                                                             {parentInvoice?.varianceFlag && (
-                                                                <span className="ml-1 rounded bg-amber-100 px-1 text-amber-700 dark:bg-amber-950 dark:text-amber-400">
+                                                                <span className="ml-1 rounded bg-amber-100 px-1 text-amber-700">
                                                                     ⚠ Header Variance
                                                                 </span>
                                                             )}
                                                             {parentInvoice?.paid ? (
-                                                                <span className="ml-1 rounded bg-green-100 px-1 text-green-700 dark:bg-green-950 dark:text-green-400">
+                                                                <span className="ml-1 rounded bg-green-100 px-1 text-green-700">
                                                                     ✓ Paid {parentInvoice.paidDate || ""}
                                                                 </span>
                                                             ) : (
-                                                                <span className="ml-1 rounded bg-zinc-100 px-1 text-zinc-500 dark:bg-zinc-900">
+                                                                <span className="ml-1 rounded bg-zinc-100 px-1 text-zinc-500">
                                                                     Not paid
                                                                 </span>
                                                             )}
@@ -387,19 +387,19 @@ async function renderPODetailPage({ params, searchParams }) {
                                 {pdfFile.filename || "PO PDF"}
                             </a>
                         ) : withdrawn ? (
-                            <p className="text-zinc-600 dark:text-zinc-400">
+                            <p className="text-zinc-600">
                                 No PO document is on file, and none will be generated now that this PO is
                                 withdrawn.
                             </p>
                         ) : isPrivileged ? (
                             <div className="space-y-2">
-                                <p className="text-zinc-600 dark:text-zinc-400">
+                                <p className="text-zinc-600">
                                     PDF generation hasn&apos;t completed yet for this PO.
                                 </p>
                                 <RegeneratePDFForm poId={po.poId} />
                             </div>
                         ) : (
-                            <p className="text-zinc-600 dark:text-zinc-400">
+                            <p className="text-zinc-600">
                                 The PO document isn&apos;t available yet.
                             </p>
                         )}
@@ -409,13 +409,13 @@ async function renderPODetailPage({ params, searchParams }) {
                        would write Status back to "Signed" and resurrect it.
                        signPOAction refuses it too, this just doesn't offer a
                        button that can only fail. */
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="text-sm text-zinc-600">
                         This PO was never signed.
                     </p>
                 ) : isPrivileged ? (
                     <SignForm poId={po.poId} />
                 ) : (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="text-sm text-zinc-600">
                         This PO hasn&apos;t been signed yet.
                     </p>
                 )}
@@ -433,7 +433,7 @@ async function renderPODetailPage({ params, searchParams }) {
                 first rather than showing a dead control. Re-validated in
                 withdrawPOAction regardless of this gate. */}
             {isRequester && withdrawEligibility.reason !== "wrong-status" && (
-                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                <div className="mt-8 border-t border-zinc-200 pt-6">
                     {withdrawEligibility.eligible ? (
                         <WithdrawPOForm
                             poId={po.poId}
@@ -441,7 +441,7 @@ async function renderPODetailPage({ params, searchParams }) {
                             body={withdrawCopy.modal.body(po.poId)}
                         />
                     ) : (
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm text-zinc-600">
                             {WITHDRAW_REFUSAL["invoice-linked"]}
                         </p>
                     )}

@@ -87,7 +87,7 @@ export default function DeliveryEditForm({
                             name="receivedDate"
                             type="date"
                             defaultValue={receivedDate}
-                            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
                         />
                     </div>
                 </div>
@@ -101,16 +101,16 @@ export default function DeliveryEditForm({
                         rows={2}
                         defaultValue={notes}
                         placeholder="Damage, a partial pallet, who signed for it…"
-                        className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                        className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
                     />
                 </div>
                 {detailsState?.error && (
-                    <p className="text-sm text-red-700 dark:text-red-500">{detailsState.error}</p>
+                    <p className="text-sm text-red-700">{detailsState.error}</p>
                 )}
                 <button
                     type="submit"
                     disabled={savingDetails}
-                    className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
                     {savingDetails ? "Saving…" : "Save"}
                 </button>
@@ -135,32 +135,32 @@ export default function DeliveryEditForm({
                         <p className="mt-1 text-xs text-zinc-500">Uploading {photo.filename}…</p>
                     )}
                     {photo.status === "error" && (
-                        <p className="mt-1 text-xs text-red-700 dark:text-red-500">
+                        <p className="mt-1 text-xs text-red-700">
                             Upload failed: {photo.error}
                         </p>
                     )}
                 </div>
                 {photoState?.error && (
-                    <p className="text-sm text-red-700 dark:text-red-500">{photoState.error}</p>
+                    <p className="text-sm text-red-700">{photoState.error}</p>
                 )}
                 <button
                     type="submit"
                     disabled={savingPhoto || photo.status !== "done"}
-                    className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
                     {savingPhoto ? "Replacing…" : "Replace photo"}
                 </button>
             </form>
 
             {/* --- #210: the invoice this shipment is billed by ------------------ */}
-            <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+            <div className="mt-8 border-t border-zinc-200 pt-6">
                 <h2 className="text-sm font-medium">Invoices</h2>
-                <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-500">
+                <p className="mt-1 text-xs text-zinc-500">
                     {LINK_COPY.field.oneEach().text}
                 </p>
 
                 {attachedInvoices.length === 0 ? (
-                    <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="mt-3 text-sm text-zinc-600">
                         None attached yet.
                     </p>
                 ) : (
@@ -194,13 +194,13 @@ export default function DeliveryEditForm({
                     </ul>
                 )}
                 {detachState?.error && (
-                    <p className="mt-2 text-sm text-red-700 dark:text-red-500">
+                    <p className="mt-2 text-sm text-red-700">
                         {detachState.error}
                     </p>
                 )}
 
                 {options.length === 0 ? (
-                    <p className="mt-4 text-sm text-amber-700 dark:text-amber-500">
+                    <p className="mt-4 text-sm text-amber-700">
                         {LINK_COPY.field.emptyList({ vendorName }).text}
                     </p>
                 ) : (
@@ -215,7 +215,7 @@ export default function DeliveryEditForm({
                                 name="invoiceRecordId"
                                 value={pickedInvoice}
                                 onChange={(e) => setPickedInvoice(e.target.value)}
-                                className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                                className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm"
                             >
                                 <option value="">Select an invoice…</option>
                                 {options.map((o) => (
@@ -237,14 +237,14 @@ export default function DeliveryEditForm({
                             </select>
                         </div>
                         {attachState?.error && (
-                            <p className="text-sm text-red-700 dark:text-red-500">
+                            <p className="text-sm text-red-700">
                                 {attachState.error}
                             </p>
                         )}
                         <button
                             type="submit"
                             disabled={attaching || !pickedInvoice}
-                            className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700"
+                            className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50"
                         >
                             {attaching ? "Attaching…" : "Attach invoice"}
                         </button>

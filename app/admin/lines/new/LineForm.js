@@ -39,7 +39,7 @@ export default function LineForm({ jobs }) {
                     id="lineName"
                     name="lineName"
                     required
-                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2"
                 />
             </div>
 

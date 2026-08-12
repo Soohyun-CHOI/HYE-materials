@@ -121,9 +121,9 @@ function usedElsewhereIds(itemsList, exceptIndex) {
 }
 
 const inputClass =
-    "rounded border border-zinc-300 px-2 py-1 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
+    "rounded border border-zinc-300 px-2 py-1 disabled:opacity-50";
 const fieldClass =
-    "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
+    "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50";
 
 // "PDF Upload" vs "Manual Entry" (added after the initial build) is a
 // single form/single state tree with two tabs, not two separate forms —
@@ -909,7 +909,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                 <p className="mt-1 text-xs text-red-600">Search failed — try again.</p>
                             )}
                             {slot.status === "done" && (
-                                <ul className="mt-1 divide-y divide-zinc-200 rounded border border-zinc-300 text-sm dark:divide-zinc-800 dark:border-zinc-700">
+                                <ul className="mt-1 divide-y divide-zinc-200 rounded border border-zinc-300 text-sm">
                                     {visibleResults.length === 0 ? (
                                         <li className="px-3 py-1.5 text-zinc-500">No matching POs.</li>
                                     ) : (
@@ -918,7 +918,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                                 <button
                                                     type="button"
                                                     onClick={() => handleSlotChange(slotIndex, po.id)}
-                                                    className="block w-full px-3 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                                                    className="block w-full px-3 py-1.5 text-left hover:bg-zinc-100"
                                                 >
                                                     {po.poId}
                                                 </button>
@@ -1047,7 +1047,7 @@ export default function InvoiceForm({ vendors, pos }) {
         return (
             <div>
                 <h2 className="text-lg font-semibold">Invoice File</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-zinc-600">
                     The vendor&apos;s original invoice document — required, every received invoice is kept on file.
                 </p>
                 <div className="mt-2 space-y-2">
@@ -1153,7 +1153,7 @@ export default function InvoiceForm({ vendors, pos }) {
                         const unitPriceLocked = !!item.poItemRecordId && !item.unitPriceEditing;
                         const showRemark = item.unitPriceEditing || qtyExceedsUninvoiced;
                         return (
-                            <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
+                            <div key={i} className="rounded border border-zinc-300 p-3">
                                 <div
                                     className={
                                         showPoPicker
@@ -1300,7 +1300,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                         className={inputClass + " mt-2 w-full"}
                                     />
                                 )}
-                                <div className="mt-2 flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                                <div className="mt-2 flex items-center justify-between text-sm text-zinc-600">
                                     <span>Amount (preview): {amount.toFixed(2)}</span>
                                     {items.length > 1 && (
                                         <button
@@ -1321,7 +1321,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     type="button"
                     onClick={addItem}
                     disabled={locked}
-                    className="mt-3 rounded border border-zinc-300 px-3 py-1 text-sm disabled:opacity-50 dark:border-zinc-700"
+                    className="mt-3 rounded border border-zinc-300 px-3 py-1 text-sm disabled:opacity-50"
                 >
                     + Add item
                 </button>
@@ -1462,7 +1462,7 @@ export default function InvoiceForm({ vendors, pos }) {
                 </p>
             )}
 
-            <div className="flex gap-2 border-b border-zinc-300 dark:border-zinc-700">
+            <div className="flex gap-2 border-b border-zinc-300">
                 {TABS.map((tab) => (
                     <button
                         key={tab.id}

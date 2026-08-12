@@ -123,7 +123,7 @@ export default async function DeliveriesListPage({ searchParams }) {
             <div className="flex items-baseline justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-semibold">Deliveries</h1>
-                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="mt-1 text-sm text-zinc-600">
                         Material delivered to site, newest first.
                     </p>
                 </div>
@@ -133,18 +133,18 @@ export default async function DeliveriesListPage({ searchParams }) {
             </div>
 
             {sp?.done === "deleted" && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
                     Delivery deleted.
                 </p>
             )}
 
             {jobs.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-6 text-sm text-zinc-600">
                     You are not assigned to any job yet, so there are no deliveries to show. An Admin
                     can add you to a job in Airtable.
                 </p>
             ) : rows.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-6 text-sm text-zinc-600">
                     No deliveries recorded yet. Record one as material arrives — the packing list
                     photo is what makes it a record.
                 </p>

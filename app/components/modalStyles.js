@@ -18,4 +18,4 @@ export const MODAL_BACKDROP =
     "fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4";
 
 export const MODAL_CARD =
-    "w-full rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-black";
+    "w-full rounded-lg border border-zinc-300 bg-white p-5 shadow-lg";

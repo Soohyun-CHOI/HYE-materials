@@ -31,12 +31,12 @@ const ARC_BASE = 14;
 // reached," distinguished only by the dashed border marking "already
 // touched once."
 const CATEGORY_STYLES = {
-    done: "bg-green-600 border-green-600 text-white dark:bg-green-600 dark:border-green-600",
-    current: "bg-amber-500 border-amber-500 text-white dark:bg-amber-500 dark:border-amber-500",
+    done: "bg-green-600 border-green-600 text-white",
+    current: "bg-amber-500 border-amber-500 text-white",
     paused:
-        "bg-zinc-100 border-zinc-400 border-dashed text-zinc-600 dark:bg-zinc-800 dark:border-zinc-500 dark:text-zinc-300",
+        "bg-zinc-100 border-zinc-400 border-dashed text-zinc-600",
     "not-reached":
-        "bg-zinc-100 border-zinc-300 text-zinc-600 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300",
+        "bg-zinc-100 border-zinc-300 text-zinc-600",
 };
 
 function centerX(index) {
@@ -69,8 +69,8 @@ function Connector({ solid }) {
             className={
                 "shrink-0 " +
                 (solid
-                    ? "h-0.5 bg-zinc-400 dark:bg-zinc-500"
-                    : "h-0 border-t-2 border-dashed border-zinc-300 dark:border-zinc-700")
+                    ? "h-0.5 bg-zinc-400"
+                    : "h-0 border-t-2 border-dashed border-zinc-300")
             }
             style={{ width: GAP, marginTop: CIRCLE / 2 - 1 }}
         />
@@ -103,7 +103,7 @@ export default function SignerProgressBar({ pr, signers, correctionRequests, po,
                 requester" legible; the frozen circles still honestly show how
                 far the chain got before it was withdrawn. */}
             {withdrawn && (
-                <div className="mb-2 inline-flex items-center gap-1.5 rounded border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+                <div className="mb-2 inline-flex items-center gap-1.5 rounded border border-red-300 bg-red-50 px-2 py-1 text-xs font-medium text-red-700">
                     <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
                     Withdrawn — the requester ended this request; no further signing.
                 </div>
@@ -185,7 +185,7 @@ export default function SignerProgressBar({ pr, signers, correctionRequests, po,
                                         <StepCircle label={label} title={title} category={step.category} />
                                         <span
                                             title={name}
-                                            className="mt-1 max-w-full truncate text-center text-[10px] text-zinc-600 dark:text-zinc-400"
+                                            className="mt-1 max-w-full truncate text-center text-[10px] text-zinc-600"
                                         >
                                             {name}
                                         </span>

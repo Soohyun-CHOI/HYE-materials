@@ -230,7 +230,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                     (m) => (
                         <p
                             key={`${banner.rowId}-${m.key}`}
-                            className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                            className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
                         >
                             {m.text}
                         </p>
@@ -244,7 +244,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                 </p>
             )}
 
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">Total Amount</p>
                 <p className="text-3xl font-semibold">
                     {formatUSD(pr.totalAmount ?? pr.itemsSubtotal)}
@@ -282,7 +282,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                     </thead>
                     <tbody>
                         {items.map((it) => (
-                            <tr key={it.id} className="border-t border-zinc-200 dark:border-zinc-800">
+                            <tr key={it.id} className="border-t border-zinc-200">
                                 <td className="py-1 pr-2">{it.itemName}</td>
                                 <td className="py-1 pr-2">{it.size}</td>
                                 <td className="py-1 pr-2">{it.unit}</td>
@@ -353,10 +353,10 @@ async function renderPRDetailPage({ params, searchParams }) {
 
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">History</h2>
-                <ol className="mt-2 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+                <ol className="mt-2 space-y-1 text-sm text-zinc-600">
                     {historyEntries.map((entry, i) => (
                         <li key={i}>
-                            <span className="text-zinc-400 dark:text-zinc-500">
+                            <span className="text-zinc-400">
                                 {new Date(entry.at).toLocaleString(undefined, {
                                     year: "numeric",
                                     month: "numeric",
@@ -383,7 +383,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                         </p>
                     ) : (
                         <div className="mt-2 space-y-2">
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                            <p className="text-sm text-zinc-600">
                                 PO generation hasn&apos;t completed yet for this PR.
                             </p>
                             {isAdmin && <GeneratePOForm prId={pr.prId} />}
@@ -412,7 +412,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                             }
                         />
                     ) : (
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="text-sm text-zinc-600">
                             Waiting on {turn ? usersById[turn.userId]?.userName || "someone" : "someone"} to
                             act.
                         </p>
@@ -426,7 +426,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                 only from In Review this pass; requester-only, re-checked
                 server-side in withdrawAction regardless of this gate. */}
             {pr.status === "In Review" && pr.requester?.[0] === user.id && (
-                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                <div className="mt-8 border-t border-zinc-200 pt-6">
                     <WithdrawPRForm prId={pr.prId} />
                 </div>
             )}

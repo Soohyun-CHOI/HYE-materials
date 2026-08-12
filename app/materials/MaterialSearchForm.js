@@ -44,7 +44,7 @@ export default function MaterialSearchForm({ initialQuery = "" }) {
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder={`e.g. pipe 2"`}
-                className="min-w-0 flex-1 rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+                className="min-w-0 flex-1 rounded border border-zinc-300 px-3 py-2 text-sm"
             />
             <button
                 type="submit"
@@ -60,7 +60,7 @@ export default function MaterialSearchForm({ initialQuery = "" }) {
                         setValue("");
                         router.push("/materials");
                     }}
-                    className="rounded border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-3 py-2 text-sm"
                 >
                     Clear
                 </button>
