@@ -1,27 +1,76 @@
-# Standing checks (issue #152).
+# Standing checks (issue #152, extended by #187).
 #
-# Runs the offline verification tier on every push and pull request. That tier
-# is deliberately the only thing here: it needs no secrets, no Airtable, no
-# Vercel Blob and no dev server, so it can run on every commit without touching
-# the shared base or leaving fixtures behind.
+# Two jobs, and the property they share is cost: the offline verification tier
+# and eslint both run with no secrets, no Airtable, no Vercel Blob and no dev
+# server, so either can run on every commit without touching the shared base or
+# leaving fixtures behind.
 #
 # What is NOT here, and why:
 #   - scripts/tests/verify-*.mjs — they need .env.local and write fixtures to
 #     the one shared Airtable base. Running them per-commit would have several
 #     workflows creating and deleting records in the same base at once. They
 #     stay human-initiated.
-#   - npm run lint — there is a known pre-existing error (InvoiceForm.js's
-#     set-state-in-effect). Adding lint now would make this workflow red on
-#     arrival, which trains people to ignore it. Add it in the change that
-#     fixes that error.
 #   - npm run build — `next build` loads lib/airtable/client.js, which throws
 #     without AIRTABLE_API_KEY. It needs repository secrets configured first.
 
 name: checks
 
 on:
+  # Narrowed to main (#187), so a pull request branch runs this file once
+  # rather than twice. The concurrency block below cancels a superseded run
+  # but cannot remove that duplicate: github.ref is refs/heads/<branch> for
+  # the push run and refs/pull/<n>/merge for the pull_request one, so the two
+  # runs of a single commit sit in different groups by construction and
+  # cancellation never reaches across them. Narrowing the trigger is the only
+  # thing that does, and with two jobs the duplicate cost four job runs per
+  # commit where two answer the question.
+  #
+  # SAFE BECAUSE IT WAS OBSERVED, NOT BECAUSE IT IS OBVIOUS. Both
+  # `offline-checks` and `lint` are required status checks on main, and a
+  # required context that stops being produced for a pull request leaves it
+  # waiting forever on a check nothing runs. On this issue's own pull request
+  # both contexts reported under `pull_request` as well as under `push`, and
+  # all four carried the Required badge — so the ruleset accepts a
+  # pull_request-event result, and dropping the push half takes nothing away
+  # from what branch protection sees.
+  #
+  # THAT IS A MEASUREMENT, NOT AN INVARIANT. It describes the required list as
+  # it stood when this landed. Add a context to that list, or rename one of
+  # these jobs, and the same reading has to be done again before trusting this
+  # line. The failure it guards against is silent: a pull request blocked on a
+  # check nothing produces looks exactly like one still waiting for it.
   push:
+    branches: [main]
+  # Unconditioned on purpose — this is now the only event that checks a pull
+  # request branch, so every job here has to report under it.
   pull_request:
+
+# Issue #187. A commit on a pull request branch used to start TWO runs of
+# this file — one for `push`, one for `pull_request` — and a newer push did
+# not stop the older one. During the GitHub Actions outage on 6 August that
+# stacked up runs which could not be canceled, and with the `lint` job below
+# it was four job runs per commit where two answer the question.
+#
+# KEYED ON THE REF, WHICH KEEPS THE TWO LANES APART ON PURPOSE. `github.ref`
+# is `refs/heads/<branch>` for the push run and `refs/pull/<n>/merge` for the
+# pull_request one, so they land in different groups and never cancel each
+# other. Collapsing them into one group would have a single commit's two runs
+# cancel each other while both report under the same context name — and with
+# `offline-checks` required on main, which status the ruleset ends up seeing
+# would be a race. A required context reported as canceled blocks the merge.
+#
+# WHAT THIS DOES NOT DO: remove the duplicate — nothing keyed on the ref can,
+# since the two lanes are in different groups by construction. That is what
+# the narrowed `push` trigger above is for, and the two settle it only
+# together. What is left to this block is the stale run: a second push to a
+# pull request branch supersedes the `pull_request` run already going, which
+# since that narrowing is the only lane such a branch has.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # main is never canceled: a run there is the record for a commit that is
+  # already merged, and the next push must not erase it. Everywhere else a
+  # superseded run is answering a question nobody is asking any more.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   offline-checks:
@@ -50,3 +99,47 @@ jobs:
 
       - name: Offline verification tier
         run: npm test
+
+  # Issue #187. eslint had exactly one error — InvoiceForm.js's
+  # set-state-in-effect, present since #138 — and every issue since dismissed
+  # it as "same as main". That is a baseline held in someone's memory: a second
+  # error would be absorbed by the same sentence, and a clean run would prove
+  # nothing. #187 fixed the error so this job can hold the baseline instead.
+  #
+  # A SEPARATE JOB RATHER THAN A STEP IN offline-checks. A lint failure
+  # reported under the name "offline-checks" misattributes it to the
+  # verification tier, and misattributed CI failures are what train people to
+  # ignore CI. The tier is also a directory scan of scripts/tests/offline/ —
+  # eslint is not in it, and folding it into that job would make the name claim
+  # otherwise.
+  #
+  # WHAT THAT CHOICE COSTS, stated because it is easy to assume otherwise: a
+  # separate job blocks nothing until its name is added to the required list by
+  # hand, and that list is a repository setting rather than anything this file
+  # can carry. #187 made that addition, so `offline-checks` and `lint` are both
+  # required status checks on main now. It is also why the job key below is not
+  # free to rename: the setting refers to the job by that name, so renaming one
+  # leaves branch protection waiting for a check nothing reports. That is the
+  # coupling docs/notes/verification.md records, and it now holds on two jobs
+  # rather than one.
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      # eslint is a devDependency, so the same reasoning as the tier above
+      # applies: a production install would silently leave nothing to run.
+      - name: Install dependencies
+        run: npm ci --include=dev
+
+      # `npx eslint .` rather than `npm run lint`, whose script is a bare
+      # `eslint`. The two lint the identical set — eslint defaults its patterns
+      # to "." — but the path is spelled out here so the log says what was
+      # looked at, and so this line is what someone runs by hand to reproduce.
+      - name: eslint
+        run: npx eslint .
