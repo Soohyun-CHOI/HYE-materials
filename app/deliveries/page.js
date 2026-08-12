@@ -2,12 +2,12 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
-import { getDeliveryItemsByRecordIds } from "@/lib/airtable/deliveryItems";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
 import { getDeliveryInvoicing } from "@/lib/deliveryReconciliation";
 import { describeDeliveryColumn } from "@/lib/deliveryStatus";
+import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveriesListClient from "./DeliveriesListClient";
 
 export const metadata = { title: "Deliveries" };
@@ -34,7 +34,16 @@ export const metadata = { title: "Deliveries" };
  * of entry, which is the second reader that keeps Created At from being a
  * single-purpose field.
  */
-export default async function DeliveriesListPage({ searchParams }) {
+// Labeled for #190 by #216, which is also the change that removed a duplicate
+// read from this page — getDeliveryInvoicing was reading the same Delivery Items
+// this function fetches, and neither cost anything visible because nothing here
+// was measured. The label is what turns that fix into a number. #224 is the
+// sweep across every other unlabeled screen.
+export default async function DeliveriesListPage(props) {
+    return withOpsLabel("/deliveries", () => renderDeliveriesListPage(props));
+}
+
+async function renderDeliveriesListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
 
@@ -51,12 +60,6 @@ export default async function DeliveriesListPage({ searchParams }) {
     ]);
     const vendorNameById = new Map(vendors.map((v) => [v.id, v.vendorName]));
 
-    // Every listed delivery's lines in ONE batched read, keyed on the ids the
-    // delivery records already carry — the list summarizes what arrived, and a
-    // read per delivery would be the per-row round trip #143 ruled out.
-    const allItems = await getDeliveryItemsByRecordIds(
-        deliveries.flatMap((d) => d.deliveryItems || [])
-    );
     // Issue #166 withheld this level from a non-privileged viewer by not fetching
     // it at all; #211 RELEASED THAT, and the reason is that this list is already
     // Job-scoped. Every row here is a delivery on a job the viewer is assigned to,
@@ -65,12 +68,24 @@ export default async function DeliveriesListPage({ searchParams }) {
     // kept from one screen away. A rule that hides a figure on one screen and shows
     // it on another is not a rule. Payment is the fact that stays behind, and it is
     // not on this page at all.
-    const invoicingByDelivery = await getDeliveryInvoicing(deliveries);
+    //
+    // ONE READ OF Delivery Items FOR THE PAGE, NOT TWO (#216). This function
+    // fetched its own copy of every listed delivery's lines and then called
+    // getDeliveryInvoicing, which fetched the same level again — a duplicate that
+    // stood because nothing here was labeled and so nothing measured it. The lines
+    // come back from that call now, and the list summarizes what arrived from
+    // them. A read per delivery would still be the per-row round trip #143 ruled
+    // out; this is one batched read for the whole page, down from two.
+    const { byDelivery: invoicingByDelivery, slices: allItems } =
+        await getDeliveryInvoicing(deliveries);
 
-    const filters = {
-        unbilled: sp?.unbilled === "1",
-        over: sp?.over === "1",
-    };
+    // `?unbilled=1` IS GONE (#216). Chasing a vendor moved to a strip above
+    // /invoices, where the outcome is recorded, and this page is left with the
+    // single job of being a log. The two pulled opposite ways — a log reads newest
+    // first and an empty one means nothing arrived; a chasing list reads oldest
+    // first and an empty one means there is nothing left to do — and nobody visits
+    // a query parameter on a schedule.
+    const filters = { over: sp?.over === "1" };
 
     const itemsByDelivery = new Map();
     for (const item of allItems) {
@@ -97,7 +112,6 @@ export default async function DeliveriesListPage({ searchParams }) {
                 jobCode: jobById.get(d.job?.[0])?.jobCode ?? "—",
                 vendorName: vendorNameById.get(d.vendor?.[0]) ?? "Unknown vendor",
                 hasOverDelivery: items.some((i) => i.overDelivered),
-                invoicingKey: invoicingByDelivery.get(d.id)?.key ?? null,
                 invoicingChip: invoicingByDelivery.has(d.id)
                     ? describeDeliveryColumn(invoicingByDelivery.get(d.id))
                     : null,
@@ -151,7 +165,6 @@ export default async function DeliveriesListPage({ searchParams }) {
             ) : (
                 <DeliveriesListClient
                     rows={rows}
-                    initialUnbilled={filters.unbilled}
                     initialOver={filters.over}
                 />
             )}

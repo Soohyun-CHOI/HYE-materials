@@ -508,13 +508,13 @@ try {
             qty: 4,
             receivedDate: "2026-07-01",
         });
-        const invoicingMap = await getDeliveryInvoicing([unbilledDelivery]);
+        const { byDelivery: invoicingMap } = await getDeliveryInvoicing([unbilledDelivery]);
         const di = invoicingMap.get(unbilledDelivery.id);
         check("no invoice names it", di.key, "awaiting-invoice");
         check("the worklist chip", describeDeliveryColumn(di).text, "Awaiting invoice");
 
         const billedDelivery = (await getDeliveriesByRecordIds([arrivedDelivery.id]))[0];
-        const billedDeliveryStatus = (await getDeliveryInvoicing([billedDelivery])).get(billedDelivery.id);
+        const billedDeliveryStatus = (await getDeliveryInvoicing([billedDelivery])).byDelivery.get(billedDelivery.id);
         check("the delivery its own bill names reads invoiced", billedDeliveryStatus.key, "invoiced");
         check("its chip", describeDeliveryColumn(billedDeliveryStatus).text, "Invoiced");
 
@@ -537,7 +537,7 @@ try {
         await setInvoiceDelivery(partBill.id, partDelivery.id);
         const partStatus = (
             await getDeliveryInvoicing([(await getDeliveriesByRecordIds([partDelivery.id]))[0]])
-        ).get(partDelivery.id);
+        ).byDelivery.get(partDelivery.id);
         check("20 delivered against a bill for 8 is PARTLY invoiced", partStatus.key, "partly-invoiced");
         check("  and the chip says so", describeDeliveryColumn(partStatus).text, "Partly invoiced");
         assert("  so it stays on the vendor-chasing worklist", isNotFullyInvoiced(partStatus.key));
@@ -545,7 +545,7 @@ try {
         // discrepancy is the invoice axis's, which Part B measured as its marker.
         const shortDeliveryStatus = (
             await getDeliveryInvoicing([(await getDeliveriesByRecordIds([shortDelivery.id]))[0]])
-        ).get(shortDelivery.id);
+        ).byDelivery.get(shortDelivery.id);
         check("10 delivered against a bill for 13 reads invoiced here", shortDeliveryStatus.key, "invoiced");
 
         // -------------------------------------------------------------------

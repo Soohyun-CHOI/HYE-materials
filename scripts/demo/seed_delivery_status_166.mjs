@@ -410,23 +410,24 @@ function, so the row you clicked and the page you land on cannot disagree.
   the box that qualification is structural.
 
 ------------------------------------------------------------------
-3. /deliveries  —  the "Invoiced" column and two filters
+3. /deliveries — the "Invoiced" column, and /invoices — the strip
 ------------------------------------------------------------------
   ${ids.g ?? "G"}   [Awaiting invoice]   (received 2026-06-30, the oldest)
   ${ids.i ?? "I"}   [Partly invoiced]    (one delivery, two materials, one billed)
   others           [Invoiced]
 
-  Tick "Not fully invoiced · oldest first": BOTH ${ids.g ?? "G"} and ${ids.i ?? "I"} remain, and
-  that pair is the whole point of widening the filter. ${ids.i ?? "I"} is one
-  delivery carrying two materials with only one billed — material that is
-  here with no invoice for it, which is exactly what this worklist
-  replaces the month-end email with, and which filtering on the empty
-  state alone would have dropped. ${ids.g ?? "G"} goes to the top on
-  received-date ascending.
+  The "Not fully invoiced · oldest first" filter this guide used to send
+  you to is GONE (#216) — chasing a vendor is a strip above /invoices
+  now, where recording the invoice happens. BOTH ${ids.g ?? "G"} and ${ids.i ?? "I"} are on
+  it, and that pair is the whole point of the rule being both incomplete
+  states rather than the empty one: ${ids.i ?? "I"} is one delivery carrying two
+  materials with only one billed, material that is here with no invoice
+  for it, which filtering on the empty state alone would have dropped.
+  ${ids.g ?? "G"} is at the top, on received-date ascending.
 
-  Tick "Over-delivered" and only the scenario-E arrival remains. Both
-  filters land in the URL (?unbilled=1&over=1), so refresh and the back
-  button keep them.
+  Tick "Over-delivered" on /deliveries and only the scenario-E arrival
+  remains. It lands in the URL (?over=1), so refresh and the back button
+  keep it.
 
   Check the six-column layout here: the colgroup was RE-BUDGETED to
   8.5+8+5.5+17.5+6.75+5.75 = 52rem rather than appending a column, so
