@@ -14,6 +14,7 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import { describeOverageBanner } from "@/lib/overage";
+import { awaitingPOCopy } from "@/lib/poListView";
 import { getOverageBannerFacts } from "@/lib/overagePR";
 import { formatUSD } from "@/lib/format";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -383,8 +384,18 @@ async function renderPRDetailPage({ params, searchParams }) {
                         </p>
                     ) : (
                         <div className="mt-2 space-y-2">
+                            {/* #176 — this said "PO generation hasn't completed
+                                yet", which reads as work in progress. Generation
+                                runs synchronously inside the approving action and
+                                is never retried on its own, so a PR showing this
+                                has already failed and `yet` was telling the reader
+                                to wait for something that will not arrive. The
+                                sentence is lib/poListView.js's, shared with the
+                                /pos strip so the two screens cannot describe one
+                                state differently. `count` is 1 because this page
+                                is one request; only the second half is read. */}
                             <p className="text-sm text-zinc-600">
-                                PO generation hasn&apos;t completed yet for this PR.
+                                {awaitingPOCopy({ count: 1, isAdmin }).explain}
                             </p>
                             {isAdmin && <GeneratePOForm prId={pr.prId} />}
                         </div>

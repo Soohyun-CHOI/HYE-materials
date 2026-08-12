@@ -95,7 +95,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
 - `lib/poItemQty.js` — the per-line quantity judgments: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`.
-- `lib/poListView.js` — the PO list's ordering, Status text and three empty states.
+- `lib/poListView.js` — the PO list's ordering, Status text, three empty states, and which approved PRs have no PO with both voices of that copy (#176).
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
