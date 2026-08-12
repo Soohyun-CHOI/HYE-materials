@@ -8,7 +8,7 @@
 // fails rather than passing by not being looked for.
 //
 // The two halves it proves:
-//   1. Behaviour of the escape itself — formulaString is pure and imports
+//   1. Behavior of the escape itself — formulaString is pure and imports
 //      nothing, so its actual output is pinned here, including the replace order
 //      and the hostile inputs measured against the live parser in #159.
 //   2. Shape of every call site — parsed, not text-matched.
@@ -96,7 +96,7 @@ function sourceOf(source, node) {
  * inside", which is the weak shape #147 warned about.
  *
  * Adding a name here widens what passes, so each must be a function whose entire
- * job is escaping, living in that module, with its own behavioural cases below.
+ * job is escaping, living in that module, with its own behavioral cases below.
  */
 const ESCAPE_BUILDERS = new Set(["formulaString", "orByRecordId", "orByField", "andSearchAll", "prefixMatch"]);
 
@@ -145,7 +145,7 @@ function importsCanonicalFormulaString({ ast, source }) {
 }
 
 export function run({ check, log, assert }) {
-    // --- Part 1: the escape's own behaviour ------------------------------
+    // --- Part 1: the escape's own behavior ------------------------------
     log("the escape itself (pure, so pinnable here):");
     check("a double quote is escaped", formulaString('2"'), '2\\"');
     check("a backslash is escaped", formulaString("a\\b"), "a\\\\b");
@@ -223,7 +223,7 @@ export function run({ check, log, assert }) {
 
     // prefixMatch (#164) is here for the same reason the OR builders are: the ID
     // counter needs a whole predicate, and the alternative was a per-call-site
-    // exemption saying "trust the code inside". Its behaviour against the live
+    // exemption saying "trust the code inside". Its behavior against the live
     // parser is in verify-invoice-ids-164.mjs; scripts/tests/offline/id-sequence.mjs
     // pins what it means for the counter. These are its escaping cases.
     check(

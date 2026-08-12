@@ -22,7 +22,7 @@ import {
 // import itemOptionLabel from lib/deliveryCandidates.js, which pulls in
 // lib/airtable/client.js, and client.js throws `Missing AIRTABLE_API_KEY` at
 // module load — so selecting a job blew up in the browser. Importing a module
-// EXECUTES it; "the readers are never called on this side" was not a defence.
+// EXECUTES it; "the readers are never called on this side" was not a defense.
 // scripts/tests/offline/client-import-safety.mjs now fails on any such import.
 // lib/deliveryInvoiceLink.js (#210) is pure for the same reason and has its
 // credentialed half in a separate file.

@@ -6,7 +6,7 @@
 // Airtable's properties and live in scripts/tests/verify-delivery-status-166.mjs.
 //
 // #210 REMOVED AN INFERENCE, AND "IT IS GONE" IS A CLAIM ABOUT SOURCE RATHER THAN
-// ABOUT BEHAVIOUR. A deleted allocator cannot be exercised, so the last section
+// ABOUT BEHAVIOR. A deleted allocator cannot be exercised, so the last section
 // asserts it on the AST: four identifiers must appear nowhere in the module, and
 // two that LOOK like they belong on the same list must still be exported, because
 // #167 imports them. Both halves carry anti-vacuity, since "the walk found nothing"

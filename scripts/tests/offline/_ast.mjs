@@ -24,7 +24,7 @@
 // What this still does NOT do, and must not be read as doing: SOURCE order is
 // not EXECUTION order. `callsBefore()` proves the gate call appears earlier in
 // the file than the work call. A gate inside `if (false)`, or after an early
-// return, satisfies it. Where a property can be reached behaviourally instead,
+// return, satisfies it. Where a property can be reached behaviorally instead,
 // that is strictly better — see CLAUDE.md's note on converting the two
 // signPOAction/regeneratePDFAction placement checks to direct Server Action
 // invocation.

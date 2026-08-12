@@ -292,7 +292,7 @@ export default function InvoiceForm({ vendors, pos }) {
             // wording has to be distinguishable from a failed detection,
             // because the two mean opposite things — this PO number was
             // printed on an invoice that actually arrived, so either the
-            // vendor shipped against a cancelled order or the withdrawal was
+            // vendor shipped against a canceled order or the withdrawal was
             // a mistake. Either way a person has to sort it out, so it reads
             // as a warning whatever else detection turned up.
             const withdrawnNote =

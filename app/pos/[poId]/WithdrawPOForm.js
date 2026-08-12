@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { withdrawPOAction } from "./actions";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 
-// Issue #138 — the requester's own "withdraw this PO" control, modelled on
+// Issue #138 — the requester's own "withdraw this PO" control, modeled on
 // WithdrawPRForm.js (#122): a centered confirm modal rather than an inline
 // reveal, since this is a terminal action on a top-level entity from its own
 // detail page. Backdrop/card chrome comes from the shared modal-style
@@ -14,7 +14,7 @@ import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // The copy is NOT written here: both the modal wording and the page banner
 // branch on whether the president signature is recorded, and they're kept as
 // one pair in lib/poWithdraw.js so a later edit can't leave one voice
-// describing the old behaviour. The page resolves the branch and passes
+// describing the old behavior. The page resolves the branch and passes
 // plain strings down (functions can't cross the server/client boundary, and
 // lib/poWithdraw.js reaches Airtable — it must never enter the client
 // bundle).

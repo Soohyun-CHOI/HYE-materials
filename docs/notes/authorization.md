@@ -75,7 +75,7 @@ The whole surface is enumerated in `scripts/tests/offline/invoice-visibility.mjs
 | `lib/deliveryDelete.js` third voice | **was leaking.** Deletion is author-or-Admin on a Job-scoped record, so a site recorder was told in a modal that the vendor had already been paid. `seesPayment` now gates it and the answer stops at `invoiced`, which is still true and one read cheaper |
 | `lib/overagePR.js` bill facts | **a dead `paid` field, removed.** Nothing read it — no copy branch, no eligibility clause, no render — so it was a payment fact assembled on the one invoice-reading path site staff reach, for no reader at all |
 
-**Nothing became uncomputable, which is why the line held where it was first drawn.** The only judgement that took `Paid` as an input is the delete confirmation's voice, and it degrades one step to `invoiced` rather than losing an answer. Both writes are unchanged: `updatePaidAction` is still `withAdminAction` and recording or editing an invoice is still Admin-only.
+**Nothing became uncomputable, which is why the line held where it was first drawn.** The only judgment that took `Paid` as an input is the delete confirmation's voice, and it degrades one step to `invoiced` rather than losing an answer. Both writes are unchanged: `updatePaidAction` is still `withAdminAction` and recording or editing an invoice is still Admin-only.
 
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 

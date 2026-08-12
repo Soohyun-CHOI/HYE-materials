@@ -20,7 +20,7 @@
 // A SPAN CAN BE TOO LONG TO BE INLINE AT ALL. `Mismatch: this invoice bills more
 // than the delivery it names delivered.` is 73 characters with its backticks and 71
 // without, so no wrapping saves it — it has to move to a fenced block. This cannot
-// do that rewrite (where the fence goes is a judgement about the prose), so it
+// do that rewrite (where the fence goes is a judgment about the prose), so it
 // REPORTS the span and leaves the line long, which is the honest failure.
 //
 // WHAT IT NEVER TOUCHES, because wrapping them would break them: fenced content,

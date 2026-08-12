@@ -1,9 +1,9 @@
-// The per-line quantity judgements: uninvoicedQty / hasUninvoicedQty, the
+// The per-line quantity judgments: uninvoicedQty / hasUninvoicedQty, the
 // uninvoiced remainder of a PO line (#48, extracted in #18), and countsAsOrdered,
 // which #169 moved here from lib/materialPriceView.js — the condition for moving
 // it was CLAUDE.md's, not that module's.
 //
-// Pinned because the negative case is a deliberate behaviour that reads like a
+// Pinned because the negative case is a deliberate behavior that reads like a
 // bug: more invoiced than ordered must stay negative, not clamp to 0. Three call
 // sites used to compute this inline (getInvoicingStatusByPO, isPoOpen, and the
 // invoice actions' over-invoicing warning); the rule is one function now, and a
@@ -14,7 +14,7 @@
 import { uninvoicedQty, hasUninvoicedQty, countsAsOrdered } from "../../../lib/poItemQty.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "PO line quantity judgements — uninvoiced remainder, counts-as-ordered (#18, #169)";
+export const title = "PO line quantity judgments — uninvoiced remainder, counts-as-ordered (#18, #169)";
 
 export function run({ check, log }) {
     log("uninvoicedQty:");
@@ -64,7 +64,7 @@ export function run({ check, log }) {
     check("a withdrawn PO's line does not", countsAsOrdered({ committedQty: 0 }), false);
     check("a blank rollup does not", countsAsOrdered({}), false);
     // Deliberately indistinguishable from withdrawn, which is why #19's screen
-    // takes its LABEL from PO Status and only the judgement from here.
+    // takes its LABEL from PO Status and only the judgment from here.
     check("a Qty-0 line on a live PO also does not", countsAsOrdered({ committedQty: 0 }), false);
 }
 

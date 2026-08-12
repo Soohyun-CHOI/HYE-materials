@@ -10,7 +10,7 @@
 //
 // WHAT A PASS DOES NOT PROVE. That a refusal actually refuses. Whether a Server
 // Action re-runs the guard, and whether a bill already on another shipment is really
-// rejected, is behaviour — measured in a browser with the two fixture accounts, and
+// rejected, is behavior — measured in a browser with the two fixture accounts, and
 // recorded in the PR.
 
 import {

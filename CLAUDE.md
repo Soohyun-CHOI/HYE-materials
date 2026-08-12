@@ -51,7 +51,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 Site staff talk to a vendor first and get a quotation — that happens outside the app, and it is why a PR arrives with the vendor and the prices already settled. The requester raises the PR with that quotation attached and names an ordered chain of signers. Each signer approves, edits and continues, or returns it for correction to anyone earlier. Full approval generates the PO as a frozen snapshot of the items, the President signs it, and office staff send that PDF to the vendor — also outside the app, which is why the PO is the one document this system emits. The vendor's invoice comes back to office staff, who enter it and reconcile it line by line against the PO.
 
-Three kinds of people, and the distinction is organisational rather than a privilege ladder. **Site staff** are non-Admin Employees: they raise PRs, sign, and withdraw their own. **Office staff** all run with `Is Admin: true`, so gating something to Admin scopes it to the office — invoicing is Admin because invoicing is office work, not because Admin is more trusted. The **President** signs POs; nothing else is role-specific to them. Vendors have no account and never touch the app.
+Three kinds of people, and the distinction is organizational rather than a privilege ladder. **Site staff** are non-Admin Employees: they raise PRs, sign, and withdraw their own. **Office staff** all run with `Is Admin: true`, so gating something to Admin scopes it to the office — invoicing is Admin because invoicing is office work, not because Admin is more trusted. The **President** signs POs; nothing else is role-specific to them. Vendors have no account and never touch the app.
 
 What that boundary implies keeps coming up: a decision made before a PR exists cannot be helped by a form inside one (#19), and a status describing something that happens outside the app has nobody to set it (#144).
 
@@ -94,20 +94,20 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
-- `lib/poItemQty.js` — the per-line quantity judgements: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`.
+- `lib/poItemQty.js` — the per-line quantity judgments: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`.
 - `lib/poListView.js` — the PO list's ordering, Status text and three empty states.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds order lines. Credentialed.
-- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgement, `STATUS_COPY`, the list filters, the worklist order.
+- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
 - `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
 - `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
-- `lib/overage.js` — the overage correction's judgement and `OVERAGE_COPY`.
+- `lib/overage.js` — the overage correction's judgment and `OVERAGE_COPY`.
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the Draft it creates, and the apply step. Credentialed.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice line reads as one row again.
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
@@ -119,7 +119,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 
 ### One rule, one implementation
 
-Two implementations of one judgement diverge, and catching the divergence then needs a third thing. A duplication is not closed by "leave it as two for now": if there is a real reason to keep two, that reason has to be a **measurable condition**, and the path to merging when it lifts has to be written down.
+Two implementations of one judgment diverge, and catching the divergence then needs a third thing. A duplication is not closed by "leave it as two for now": if there is a real reason to keep two, that reason has to be a **measurable condition**, and the path to merging when it lifts has to be written down.
 
 ## Data model (21 tables)
 
@@ -271,10 +271,10 @@ scripts/
 - `npx eslint .` runs in CI as its own `lint` job and stays clean; a rule this repo deliberately breaks gets a scoped disable with its reason, never a tolerated error (#187).
 - `scripts/tests/verify-*.mjs` — the credentialed tier: needs `.env.local`, writes throwaway fixtures to the shared base, human-initiated and deliberately not in CI. **Do not run these casually** — one run costs hundreds of Airtable operations.
 - `scripts/import/` — reusable one-time backfills (Python). `scripts/demo/` — seed scripts, kept in the repo and NOT deleted from Airtable.
-- **Where a new check goes is not a judgement call:** importing `lib/airtable/client.js`, or anything that imports it, puts a check in the credentialed tier, because that module throws at load without credentials.
+- **Where a new check goes is not a judgment call:** importing `lib/airtable/client.js`, or anything that imports it, puts a check in the credentialed tier, because that module throws at load without credentials.
 - **Exit codes are mandatory for anything that computes a verdict:** 0 all clear, 1 something failed, 2 no failures but a part could not run. **A leak is 1, not 2** — a run that left rows on the shared base needs a hand.
 - **A credentialed script's fixtures are deleted within the run that created them**, through `scripts/tests/_fixtures.mjs`. Its run tag must be unique per run (`V###-msosjxto`); a fixed prefix silently becomes a base sweep. Pinned by `offline/fixture-cleanup.mjs`.
-- **Airtable formulas, rollups and lookups are outside CI entirely.** They are not in the repo and no file-only check can see them, so when a judgement rule lives on the Airtable side, a credentialed check must read the live schema or the live values and compare. The Metadata API does not expose a rollup's aggregation function at all.
+- **Airtable formulas, rollups and lookups are outside CI entirely.** They are not in the repo and no file-only check can see them, so when a judgment rule lives on the Airtable side, a credentialed check must read the live schema or the live values and compare. The Metadata API does not expose a rollup's aggregation function at all.
 - **What a green CI run does NOT mean:** that authorization is enforced. Source shape is not execution — a gate inside `if (false)` satisfies a structural check. Green means nothing cheap regressed.
 - **Dummy records already in the base are deliberate, not leftovers.** Nothing in this base is to be removed as tidying-up.
 - **Two permanent fixture accounts, a pair — do not delete either or change their flags.** `authz-fixture@hanyangengusa.com` (Employee, non-Admin, Active, **no Assigned Jobs**) proves a refusal and nothing else. `scoped-fixture@hanyangengusa.com` (same, but **Assigned Jobs: 26-DEMO-01**) proves that a row-scoped surface admits, and what it renders. Adding jobs to the first is not the fix — its value is failing every gate. `soo@hanyangengusa.com` is Admin and assigned, for checks needing both.
@@ -297,10 +297,10 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed.
 - Wrap literal `<tag>`-looking text in backticks in PR descriptions; write an issue reference as bare #num so GitHub autolinks it.
 - If an issue is already covered by other work, comment explaining why, then close — never silently close via Closes #.
 - Milestones = Phases (0-6) or standalone cross-cutting milestones. Stay scoped to the current issue's Milestone unless told otherwise.
-- **A comment or doc line that is FALSE about the current code or base is corrected on sight (#181)**, in whatever commit found it, rather than filed as a follow-up. It changes no behavior, and deferring costs more than fixing: an entry someone has to read, triage and schedule. **The boundary is falsity against improvement** — correcting a lie is maintenance, making a comment better is scope. Anything that changes behavior, moves code, or needs a judgement about what the right answer is stays out of scope as before.
+- **A comment or doc line that is FALSE about the current code or base is corrected on sight (#181)**, in whatever commit found it, rather than filed as a follow-up. It changes no behavior, and deferring costs more than fixing: an entry someone has to read, triage and schedule. **The boundary is falsity against improvement** — correcting a lie is maintenance, making a comment better is scope. Anything that changes behavior, moves code, or needs a judgment about what the right answer is stays out of scope as before.
 - Don't open a PR unless asked. Never commit yourself — write commit-msg.txt at repo root (gitignored), user commits manually.
 - All GitHub content, project markdown, and web-app-facing text is English regardless of conversation language.
-- **That English is US English** — prose as well as identifiers, and in code comments as much as in user-facing copy. `behavior`, `judgment`, `canceled`, `labeled`, `catalog`, `gray`, `normalize`, `license`, `while` (not `whilst`). The rule exists because this repo's comments carry its reasoning, so the same word spelled two ways across two files reads as two authors rather than one, and because a mixed convention gives every later edit a coin to flip. It is not a claim that US spelling is better. The one thing it does NOT reach is a value that belongs to something outside this repo — an Airtable select option, a dependency's package name (`@img/colour` in `package-lock.json`), a third-party field or CSS keyword — where the external spelling is the correct one and changing it breaks a lookup rather than fixing a style.
+- **That English is US English** — prose as well as identifiers, and in code comments as much as in user-facing copy. `behavior`, `judgment`, `canceled`, `labeled`, `catalog`, `gray`, `normalize`, `license`, `while` (not `whilst`). The rule exists because this repo's comments carry its reasoning, so the same word spelled two ways across two files reads as two authors rather than one, and because a mixed convention gives every later edit a coin to flip. It is not a claim that US spelling is better. The one thing it does NOT reach is a value that belongs to something outside this repo — an Airtable select option, a dependency's package name (`@img/colour` in `package-lock.json`), a third-party field or CSS keyword — where the external spelling is the correct one and changing it breaks a lookup rather than fixing a style. Enforced under `app/` and `lib/` by `offline/us-english.mjs` (#215), which is scoped there so that documentation — this line included — can cite a form without being excused for it.
 
 ---
 
