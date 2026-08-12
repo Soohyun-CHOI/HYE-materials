@@ -21,8 +21,6 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 - **SEVEN OPERATIONS, NONE PER ROW — but stepped, not constant.** `requireUser` (1 find) + `getAllPOs` + `getAllVendors` + `getAllJobs` + `getAllLines` + `getPRsByRecordIds` + `getApprovedPRs` (#176's, the seventh). Four of those are selects, which Airtable pages at 100 rows, and the batched PR read chunks at 50 ids — so the count rises one query per 50 or 100 records and never with the number of rows rendered. `getLinkedRecords` is used nowhere here: it re-finds the parent on every call, which is why `/prs/[prId]` reads one PR five times. `#190`'s counter measures selects per PAGE for exactly this reason.
 - **Table widths are declared (#166's rule) but measured for these six columns.** The invoice table's 52rem came from its own seven and does not transfer. Measured at 14px/20px Arial plus the 8px `pr-2`: Job / Line 184, PO ID 149, Vendor 124, Status 117, Total 79 — 653px of the 832px available. Three columns are bounded by construction and take what they need; **the remaining 27.5rem is split between the two nobody controls**, Vendor and Job / Line, both human-entered — 192px and 248px, the larger share going to the cell that carries two values and a separator. **PO ID was first sized by counting characters against the invoice list's ID and 38 of 40 rows wrapped**, because a PO ID carries a four-digit year (the one exception to the 2-digit convention) and renders at 141px. Five columns are bounded by construction and take what they need; **Vendor takes all the slack**, being the only column whose content nobody here controls.
 
-**Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
-
 ### Delivery status on purchase orders (#169)
 
 How much of an ORDER has arrived, on `/pos` and `/pos/[poId]`. A third axis in `lib/deliveryStatus.js` rather than a caller of #166's: `summarizeInvoiceStatus` judges on `billedNotArrived === 0`, so its denominator is the bill, and `lineStatus` is built around invoiced quantity and the within/beyond split. Same question, different denominator, so `poLineDelivery` / `summarizePODeliveryStatus` are siblings.
@@ -60,15 +58,17 @@ Admin retry on each row. The first of three built to the same shape — #216 put
 deliveries with no invoice above `/invoices`, #217 puts over-deliveries with no
 correction above `/prs`.
 
-- **IT IS ON `/pos` AND #176'S ISSUE BODY SAYS `/prs`.** The body's reason —
-  "a missing PO cannot appear in a list of POs" — is the argument for a strip
-  rather than an argument against this page: a strip is exactly what shows a list
-  what the list structurally cannot. What settled it is who can act.
-  `generatePOAction` is `withAdminAction`, Admin is office staff, and office staff
-  work on `/pos`; on `/prs` the control would be shown mostly to people who cannot
-  press it. The requester's path to knowing is unchanged and is that PR's own
+- **IT IS ON `/pos`, AND WHO CAN ACT IS WHY.** `generatePOAction` is
+  `withAdminAction`, Admin is office staff, and the office works from that
+  screen; a strip on the request list would offer an action most of its readers
+  cannot take. The requester's path to knowing is unchanged and is that PR's own
   detail page, whose copy #176 also corrects. #217 putting a site-facing strip on
   `/prs` is the other half of the symmetry.
+- **THAT A MISSING ORDER CANNOT APPEAR IN A LIST OF ORDERS IS WHY THIS IS A STRIP
+  RATHER THAN A COLUMN.** A strip is what shows a list what the list structurally
+  cannot: there is no row here to carry the fact, because the row is the thing
+  that does not exist. The same sentence is why `/pos` needed something new at all
+  rather than a seventh column, which the declared 52rem budget has no room for.
 - **THE EMPTY STATE RENDERS NOTHING, AND THAT IS HOW THE SCREEN SAYS IT IS
   NORMAL.** A standing "all clear" line above every list is a thing people learn
   to skip, and then it is not a signal on the day it changes. #19's `statusTag` is
