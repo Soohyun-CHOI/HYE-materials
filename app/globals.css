@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
 :root {
+  /* This app has one appearance, and says so (#218). Left unset the used
+     value is `normal`, which hands the decision to the browser for the
+     chrome it paints itself — a select popup, a scrollbar, a date picker
+     — so those would keep following the OS preference while everything
+     the app paints is light. Removing the dark variants without this
+     line would leave exactly the half-removed state #218 was raised
+     about: the styles no longer answer the preference, and the browser
+     goes on honoring it. */
+  color-scheme: light;
   --background: #ffffff;
   --foreground: #171717;
 }
