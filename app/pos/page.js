@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllPOs } from "@/lib/airtable/purchaseOrders";
-import { getPRsByRecordIds } from "@/lib/airtable/purchaseRequests";
+import { getApprovedPRs, getPRsByRecordIds } from "@/lib/airtable/purchaseRequests";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { canViewPR } from "@/lib/prVisibility";
-import { statusLabel } from "@/lib/poListView";
+import { selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
 import { describePOColumn, summarizePODeliveryStatus } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import POListClient from "./POListClient";
+import AwaitingPOStrip from "./AwaitingPOStrip";
 
 export const metadata = { title: "Purchase Orders" };
 
@@ -48,7 +49,7 @@ async function renderPOListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
 
-    // SIX OPERATIONS, AND NONE OF THEM IS PER ROW. Each fetches a whole level
+    // SEVEN OPERATIONS, AND NONE OF THEM IS PER ROW. Each fetches a whole level
     // keyed on ids from the level above, which is the property #143 established
     // and #190 measured /prs failing — that page resolves one requester at a time,
     // so three of its seven operations are `Users: find`. getPRsByRecordIds is the
@@ -57,14 +58,21 @@ async function renderPOListPage({ searchParams }) {
     // 5 and 6. getLinkedRecords is deliberately not used anywhere here: it re-finds
     // the parent on every call, which is why /prs/[prId] reads one PR five times.
     //
-    // Lines is the sixth and buys one thing: the Line NAME. A PR's `line` is a link
-    // and gives a record id, exactly as `job` does, so the column cannot be built
-    // without it — the same reason /prs fetches Lines for the same column.
-    const [pos, vendors, jobs, lines] = await Promise.all([
+    // Lines buys one thing: the Line NAME. A PR's `line` is a link and gives a
+    // record id, exactly as `job` does, so the column cannot be built without it —
+    // the same reason /prs fetches Lines for the same column.
+    //
+    // getApprovedPRs is #176's and is the seventh. It cannot be derived from the
+    // six above: the strip's subject is approved requests that produced NO order,
+    // so every one of them is absent from `pos` by definition. It is one select
+    // filtered on `Status`, so it grows one query per 100 approved requests and
+    // never with the number of rows the strip draws.
+    const [pos, vendors, jobs, lines, approvedPRs] = await Promise.all([
         getAllPOs(),
         getAllVendors(),
         getAllJobs(),
         getAllLines(),
+        getApprovedPRs(),
     ]);
     const parentPrIds = [...new Set(pos.map((po) => po.pr?.[0]).filter(Boolean))];
     const prs = await getPRsByRecordIds(parentPrIds);
@@ -154,6 +162,23 @@ async function renderPOListPage({ searchParams }) {
             .map((r) => [r.jobId, { id: r.jobId, jobCode: r.jobCode, jobName: jobById.get(r.jobId)?.jobName }])
     ).values()].sort((a, b) => a.jobCode.localeCompare(b.jobCode));
 
+    // #176 — THE STRIP IS GATED BY THE SAME RULE AS THE TABLE, canViewPR, and the
+    // gate is applied to the requests rather than to the orders because there are
+    // no orders here to gate. A viewer who can see none of them gets no strip,
+    // which is the same answer they get for the table's rows and for the same
+    // reason: a refused row is absent rather than announced.
+    //
+    // Job, Line and Vendor come out of the three maps the table already built, so
+    // the strip adds no read of its own beyond the one select above.
+    const awaitingPO = selectPRsAwaitingPO(approvedPRs.filter((pr) => canViewPR(user, pr)));
+    const awaitingPORows = awaitingPO.map((pr) => ({
+        id: pr.id,
+        prId: pr.prId,
+        jobCode: jobById.get(pr.job?.[0])?.jobCode || null,
+        lineName: lineById.get(pr.line?.[0])?.lineName || null,
+        vendorName: vendorNameById.get(pr.vendor?.[0]) || null,
+    }));
+
     // Initial filter state parsed from the URL, so refresh, a shared link and the
     // back button all restore the view. Intersected with the options above, so a
     // forged ?job in a pasted URL is dropped before it reaches the client.
@@ -166,6 +191,11 @@ async function renderPOListPage({ searchParams }) {
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
             <h1 className="text-2xl font-semibold">Purchase Orders</h1>
+
+            {/* Above the list, because the thing it reports cannot be IN the
+                list: an approved request with no order has no row here. Renders
+                nothing at all when there is nothing, which is the normal case. */}
+            <AwaitingPOStrip rows={awaitingPORows} isAdmin={user.isAdmin === true} />
 
             <POListClient
                 rows={rows}

@@ -18,10 +18,8 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 - **Newest first** by `Created Date`, tie-broken by `PO ID` descending, undated last — the same chain and reasons as `sortHistoryRows` (#19) and `sortCandidates` (#162). A signature-first default was rejected on #166's precedent: the default list stays newest-first and a *filter* provides the worklist ordering.
 - **Three empty states, because they are three different facts.** Nothing on the base ("No purchase orders yet…"), nothing visible to this viewer ("No purchase orders to show. You see a purchase order when you can see the request behind it."), and nothing matching the filters. **The word `yet` is what would make the first false for the second case**, so only one message carries it; the check asserts that. Order is load-bearing — `filtered` is tested last, or a viewer who can see nothing would be told to adjust filters that cannot help them.
 - **THE JOB FILTER'S OPTIONS COME FROM THE VISIBLE ROWS, NOT THE VIEWER'S ASSIGNMENTS, which is a deliberate divergence from `/prs`.** There the options are assigned Jobs, so a PR visible only through `canViewPR` clause 5 or 6 — a signer, or a correction recipient, neither of which implies assignment — appears in the list and cannot be filtered to. CLAUDE.md already recorded that as a known inconsistency whose fix is a UI decision; this is that fix, made where the page is new rather than by changing `/prs`. It leaks nothing: every job named is already on a row the viewer can read.
-- **SIX OPERATIONS, NONE PER ROW — but stepped, not constant.** `requireUser` (1 find) + `getAllPOs` + `getAllVendors` + `getAllJobs` + `getAllLines` + `getPRsByRecordIds`. Four of those are selects, which Airtable pages at 100 rows, and the batched PR read chunks at 50 ids — so the count rises one query per 50 or 100 records and never with the number of rows rendered. `getLinkedRecords` is used nowhere here: it re-finds the parent on every call, which is why `/prs/[prId]` reads one PR five times. `#190`'s counter measures selects per PAGE for exactly this reason.
+- **SEVEN OPERATIONS, NONE PER ROW — but stepped, not constant.** `requireUser` (1 find) + `getAllPOs` + `getAllVendors` + `getAllJobs` + `getAllLines` + `getPRsByRecordIds` + `getApprovedPRs` (#176's, the seventh). Four of those are selects, which Airtable pages at 100 rows, and the batched PR read chunks at 50 ids — so the count rises one query per 50 or 100 records and never with the number of rows rendered. `getLinkedRecords` is used nowhere here: it re-finds the parent on every call, which is why `/prs/[prId]` reads one PR five times. `#190`'s counter measures selects per PAGE for exactly this reason.
 - **Table widths are declared (#166's rule) but measured for these six columns.** The invoice table's 52rem came from its own seven and does not transfer. Measured at 14px/20px Arial plus the 8px `pr-2`: Job / Line 184, PO ID 149, Vendor 124, Status 117, Total 79 — 653px of the 832px available. Three columns are bounded by construction and take what they need; **the remaining 27.5rem is split between the two nobody controls**, Vendor and Job / Line, both human-entered — 192px and 248px, the larger share going to the cell that carries two values and a separator. **PO ID was first sized by counting characters against the invoice list's ID and 38 of 40 rows wrapped**, because a PO ID carries a four-digit year (the one exception to the 2-digit convention) and renders at 141px. Five columns are bounded by construction and take what they need; **Vendor takes all the slack**, being the only column whose content nobody here controls.
-
-**Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
 ### Delivery status on purchase orders (#169)
 
@@ -52,3 +50,86 @@ How much of an ORDER has arrived, on `/pos` and `/pos/[poId]`. A third axis in `
 - **Rollup chain:** `Invoice Items.Qty` -> `PO Items.Invoiced Qty` -> `Materials.Invoiced Qty`; and `PO Items.Committed/Signed Qty` -> `Materials.Committed/Signed Qty`. Two levels, both measured as already settled on the first read after the write that feeds them.
 - **`Delivered Qty` (#162)** — rollup, SUM of `Delivery Items.Qty` through the **`PO Item`** link (not through PO). Rolled up to the ordered line rather than to any invoice line because material often arrives before an invoice exists. Read under the same condition as `Invoiced Qty` and measured the same way: allocation subtracts it from `Qty` to decide what a line can still absorb, so a lagging value would over-allocate the NEXT arrival to a line already full — measured already correct on the first read after `create()` returned (`reads === 1`), and re-measured on every run of `verify-deliveries-162.mjs`. That script is also the only place the rollup's AGGREGATION FUNCTION is proved, since Airtable's Metadata API does not expose it: 4 + 5 = 9 distinguishes SUM from a COUNT of 2, and nothing in a schema dump can. No status condition, matching `Invoiced Qty`: allocation only selects lines whose `Committed Qty` is above zero, so a withdrawn PO's lines are never targets. **Deliberately NOT chained onto `Materials`** — #20 is Job-scoped and Materials' quantity rollups ignore Job. **#20 still reads `Delivery Items` directly, but for a different reason since #165.** The old one is gone: every row now names a line, so nothing is missing from the rollup. The new one is that this field now SUMS TWO DIFFERENT FACTS. An attached over-delivery row pushes it above the line's `Qty` — deliberately (see "Over-delivery is flagged") — so `Delivered Qty` alone cannot say how much arrived *against* the order versus *beyond* it. Only `Delivery Items` carries `Over Delivered` per row, and separating those two is exactly what a discrepancy screen is for. **#166 is the first reader to act on that**, and it reads the rows for exactly this reason: it reports "arrived against the order" and "arrived beyond it" as separate facts, which the rollup cannot decompose. It still reads `Invoiced Qty` from the rollup, because there the LINE's total across every invoice is precisely what is wanted (see "Delivery status").
 - **This table has NO `PO Record ID` lookup, and the reason it is worth saying is that it used to (#19, deleted since).** The field was misconfigured: despite the name it was a lookup, through the `PO` link, of `Purchase Orders."Invoice Items"`, so it returned the PO's *invoice-item link array* rather than its record id — measured, a filter on it matched 0 of 4 expected rows and the raw value on a real line was two Invoice Item ids. It was the only one of the base's `* Record ID` lookups that was wrong; the rest resolve to a `_Record ID` RECORD_ID() formula and work. Nothing ever read it, so deleting it broke nothing, and **the standing instruction is unchanged: batch PO Items by `RECORD_ID()` via `findByRecordIds`.** The episode is kept because it is the cleanest example of the hazard the "Airtable side is outside CI" convention describes — a field that looked right from its name, was wrong in a way no file-only check could see, and sat there because nothing read it. That is also the argument against adding a lookup nobody reads: #162's two new tables need none, since every read reaches them through a reverse-link or the primary field.
+
+### Approved requests with no purchase order (#176)
+
+A strip above the table listing approved PRs whose generation failed, with the
+Admin retry on each row. The first of three built to the same shape — #216 puts
+deliveries with no invoice above `/invoices`, #217 puts over-deliveries with no
+correction above `/prs`.
+
+- **IT IS ON `/pos`, AND WHO CAN ACT IS WHY.** `generatePOAction` is
+  `withAdminAction`, Admin is office staff, and the office works from that
+  screen; a strip on the request list would offer an action most of its readers
+  cannot take. The requester's path to knowing is unchanged and is that PR's own
+  detail page, whose copy #176 also corrects. #217 putting a site-facing strip on
+  `/prs` is the other half of the symmetry.
+- **THAT A MISSING ORDER CANNOT APPEAR IN A LIST OF ORDERS IS WHY THIS IS A STRIP
+  RATHER THAN A COLUMN.** A strip is what shows a list what the list structurally
+  cannot: there is no row here to carry the fact, because the row is the thing
+  that does not exist. The same sentence is why `/pos` needed something new at all
+  rather than a seventh column, which the declared 52rem budget has no room for.
+- **THE EMPTY STATE RENDERS NOTHING, AND THAT IS HOW THE SCREEN SAYS IT IS
+  NORMAL.** A standing "all clear" line above every list is a thing people learn
+  to skip, and then it is not a signal on the day it changes. #19's `statusTag` is
+  the precedent already here — it reports exceptions and stays silent otherwise,
+  which is the reason this file gives for not reusing it in a Status column. The
+  counter-argument is real and was weighed: an invisible feature cannot be learned
+  and "nothing to fix" looks like "the strip is broken". What answers it is the
+  offline check plus having looked at both states in a browser, not a permanent
+  banner. **This is meant to be the rule for all three strips.**
+- **ROWS CARRY PR ID, Job / Line, Vendor — and nothing the table below repeats,**
+  because the table below holds no row for any of them. Job / Line uses the same
+  pair and separator as the list's own first column, so a reader locating work
+  reads one shape in both places.
+- **ASCENDING BY `PR ID`, WHICH IS AN APPROXIMATION AND SAYS SO.**
+  `Purchase Requests` records no approval instant — `Created At` and `Withdrawn At`
+  and nothing between — so "longest stuck first" is not answerable and the raise
+  date stands in for it. A PR raised long ago and approved today therefore floats
+  too high rather than sinking too low, which is the direction to be wrong in: a
+  non-urgent row near the top costs one glance, an urgent row at the bottom of a
+  growing list costs the whole point of the strip. Descending was the first choice
+  and is exactly that inversion.
+- **`PO Signed` IS IN THE STATUS SET AND SHOULD NEVER MATCH.** That status fires
+  when the President signs the generated order, so such a PR necessarily has one.
+  It is included because `generatePOHandler` accepts both statuses and the PR
+  detail page renders its PO section for both — a narrower set here would disagree
+  with the two places that already decided this — and because an anomaly is better
+  surfaced than filtered away.
+- **TWO VOICES, one heading.** The fact is the same for everyone; the next step is
+  not, since only an Admin can run the retry. Same split `lib/poWithdraw.js` makes
+  between `modal` and `banner`. A strip that offers an action to someone who cannot
+  take it reads as their fault.
+- **NEITHER VOICE SAYS "yet", which is the half of #176 that is copy.** The PR
+  detail page said "PO generation hasn't completed yet". Generation is synchronous
+  inside the approving action and never retries itself, so a request showing that
+  line had already failed and `yet` told the reader to wait for something that
+  would not arrive. Both screens now read the same sentence out of
+  `lib/poListView.js`.
+- **OUTSIDE THE TABLE'S WIDTH BUDGET, INSIDE THE PAGE'S.** The table is
+  `table-fixed` with a `colgroup` summing to exactly 52rem and no slack; a strip is
+  not a column, so it re-cuts nothing. It does share the 832px, and it is a list of
+  one-line rows rather than a second table — two stacked tables read as one dataset
+  split in half, and #216 and #217 show different facts on the same shape, which a
+  line of text carries and a `colgroup` does not. **Measured, not counted:** 832px
+  strip, rows at 26px (Admin, with the button) and 20px (without), `scrollWidth`
+  equal to `clientWidth` on every row, no horizontal scrollbar.
+- **ONE SELECT, NEVER PER ROW.** `getApprovedPRs` filters on `Status`, which is a
+  plain select and so legal in a formula; whether `Purchase Orders` is empty is
+  asked of the mapped record instead, since a formula sees a link field as its
+  primary-field text. Job, Line and Vendor come from maps the table already built.
+  Measured on this base: `/pos` went 8 to 9 operations, and the ninth is that
+  select. **`scoped-fixture@` measured 8 rather than 9 on the same code**, which is
+  not a second cost model: the only read that depends on the visible set is
+  `getPOItemsByRecordIds`, chunked at 50 ids, and 34 visible orders carry few
+  enough lines for one chunk where 40 need two.
+- **THE STRIP IS GATED BY `canViewPR`, APPLIED TO THE REQUESTS.** There are no
+  orders here to gate. A viewer who can see none of them gets no strip, which is
+  the same answer the table gives and for the same reason: a refused row is absent
+  rather than announced.
+- **THE RETRY IS `generatePOAction` UNCHANGED**, not a second action for this
+  screen — it is already `withAdminAction`-wrapped and is a no-op once an order
+  exists. It redirects to the PR, so pressing it here leaves this page. That was
+  left alone deliberately: the redirect is right for the caller that already
+  existed, and changing a shared action's behavior on the evidence of one new
+  screen is a decision worth having all three strips in hand for.
