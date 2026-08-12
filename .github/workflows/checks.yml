@@ -19,6 +19,31 @@ on:
   push:
   pull_request:
 
+# Issue #187. Every commit on a pull request branch starts TWO runs of this
+# file — one for `push`, one for `pull_request` — and before this block a
+# newer push did not stop the older one. During the GitHub Actions outage on
+# 6 August that stacked up runs which could not be canceled. The `lint` job
+# below doubled the bill for the same commit: four job runs where two would do.
+#
+# KEYED ON THE REF, WHICH KEEPS THE TWO LANES APART ON PURPOSE. `github.ref`
+# is `refs/heads/<branch>` for the push run and `refs/pull/<n>/merge` for the
+# pull_request one, so they land in different groups and never cancel each
+# other. Collapsing them into one group would have a single commit's two runs
+# cancel each other while both report under the same context name — and with
+# `offline-checks` required on main, which status the ruleset ends up seeing
+# would be a race. A required context reported as canceled blocks the merge.
+#
+# WHAT THIS DOES NOT DO: remove the duplicate. It cancels superseded runs
+# within a lane; the push run and the pull_request run of one commit both
+# still happen. Narrowing the `push` trigger is what would remove that, and
+# it is deliberately not done here — see this commit's message.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # main is never canceled: a run there is the record for a commit that is
+  # already merged, and the next push must not erase it. Everywhere else a
+  # superseded run is answering a question nobody is asking any more.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   offline-checks:
     runs-on: ubuntu-latest
