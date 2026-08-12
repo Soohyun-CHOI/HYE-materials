@@ -42,7 +42,7 @@ export default async function MaterialPricesPage({ searchParams }) {
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
             <h1 className="text-2xl font-semibold">Material prices</h1>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-zinc-600">
                 What we last paid for an item, by vendor.
             </p>
 
@@ -52,13 +52,13 @@ export default async function MaterialPricesPage({ searchParams }) {
                 no prompt here. That leaves two empties, and they must not read
                 alike: nothing matched what was typed, and nothing indexed at all. */}
             {searched && materials.length === 0 && (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-6 text-sm text-zinc-600">
                     No items match “{q}”.
                 </p>
             )}
 
             {!searched && materials.length > 0 && (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-6 text-sm text-zinc-600">
                     {truncated
                         ? `Showing ${materials.length} items. Search to find a specific one.`
                         : `All ${materials.length} item${materials.length === 1 ? "" : "s"} bought so far.`}
@@ -70,8 +70,8 @@ export default async function MaterialPricesPage({ searchParams }) {
                 because an empty result here does NOT mean the item was never
                 bought — it means no purchase order has put it on this list yet. */}
             {indexedCount === 0 && (
-                <div className="mt-4 rounded border border-zinc-200 p-4 text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-                    <p className="font-medium text-zinc-800 dark:text-zinc-200">
+                <div className="mt-4 rounded border border-zinc-200 p-4 text-sm text-zinc-600">
+                    <p className="font-medium text-zinc-800">
                         No items are indexed yet.
                     </p>
                     <p className="mt-1">
@@ -83,7 +83,7 @@ export default async function MaterialPricesPage({ searchParams }) {
             )}
 
             {truncated && searched && (
-                <p className="mt-4 text-sm text-amber-700 dark:text-amber-500">
+                <p className="mt-4 text-sm text-amber-700">
                     Showing the first {materials.length} matches. Add another word to narrow the
                     search.
                 </p>
@@ -109,14 +109,14 @@ export default async function MaterialPricesPage({ searchParams }) {
                             </div>
                             <Link
                                 href={`/materials/${material.id}`}
-                                className="text-sm text-zinc-600 underline dark:text-zinc-400"
+                                className="text-sm text-zinc-600 underline"
                             >
                                 Purchase history →
                             </Link>
                         </div>
 
                         {rows.length === 0 ? (
-                            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                            <p className="mt-2 text-sm text-zinc-600">
                                 No vendor prices recorded for this item yet.
                             </p>
                         ) : (
@@ -165,7 +165,7 @@ export default async function MaterialPricesPage({ searchParams }) {
                                             return (
                                                 <tr
                                                     key={row.id}
-                                                    className="border-t border-zinc-200 dark:border-zinc-800"
+                                                    className="border-t border-zinc-200"
                                                 >
                                                     {/* The status tag rides with the
                                                         vendor, not with the PO ID it
@@ -182,7 +182,7 @@ export default async function MaterialPricesPage({ searchParams }) {
                                                     <td className="py-1 pr-2">
                                                         {row.vendorName}
                                                         {statusTag(row.poStatus) && (
-                                                            <span className="ml-2 rounded bg-zinc-100 px-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                                                            <span className="ml-2 rounded bg-zinc-100 px-1 text-xs text-zinc-600">
                                                                 {statusTag(row.poStatus)}
                                                             </span>
                                                         )}
@@ -196,7 +196,7 @@ export default async function MaterialPricesPage({ searchParams }) {
                                                         the number out of line. */}
                                                     <td className="py-1 pr-2 text-right whitespace-nowrap">
                                                         {lowest.has(row.id) && (
-                                                            <span className="mr-2 rounded bg-zinc-100 px-1 text-xs font-normal text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                                            <span className="mr-2 rounded bg-zinc-100 px-1 text-xs font-normal text-zinc-700">
                                                                 Lowest
                                                             </span>
                                                         )}

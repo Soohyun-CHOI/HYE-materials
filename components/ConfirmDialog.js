@@ -24,15 +24,15 @@ export default function ConfirmDialog({
                 role="dialog"
                 aria-modal="true"
                 onClick={(e) => e.stopPropagation()}
-                className="w-full max-w-sm rounded-lg border border-zinc-300 bg-white p-5 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+                className="w-full max-w-sm rounded-lg border border-zinc-300 bg-white p-5 shadow-lg"
             >
                 {title && <h2 className="text-base font-semibold">{title}</h2>}
-                <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>
+                <p className="mt-2 text-sm text-zinc-600">{message}</p>
                 <div className="mt-4 flex justify-end gap-2">
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="rounded border border-zinc-300 px-3 py-1.5 text-sm dark:border-zinc-700"
+                        className="rounded border border-zinc-300 px-3 py-1.5 text-sm"
                     >
                         {cancelLabel}
                     </button>

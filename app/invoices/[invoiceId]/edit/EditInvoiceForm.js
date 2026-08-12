@@ -5,9 +5,9 @@ import Link from "next/link";
 import { updateInvoiceAction } from "../actions";
 
 const inputClass =
-    "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
+    "rounded border border-zinc-300 px-2 py-1";
 const fieldClass =
-    "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50 dark:border-zinc-700 dark:bg-black";
+    "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50";
 
 // Issue #117 Tier 1 — edit an invoice's header fields and the VALUES of its
 // existing line items. Size/Unit are frozen copies from the linked PO Item
@@ -162,7 +162,7 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
 
             <div>
                 <h2 className="text-lg font-semibold">Items</h2>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-zinc-600">
                     Edit line values. Size/Unit and the linked PO are fixed here — to change a
                     line&apos;s PO or add/remove lines, delete and recreate the invoice.
                 </p>
@@ -170,7 +170,7 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                     {items.map((it, i) => {
                         const amount = (parseFloat(it.qty) || 0) * (parseFloat(it.unitPrice) || 0);
                         return (
-                            <div key={it.id} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
+                            <div key={it.id} className="rounded border border-zinc-300 p-3">
                                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     <input
                                         placeholder="Item Name"
@@ -215,11 +215,11 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                                         className={inputClass}
                                     />
                                 </div>
-                                <div className="mt-2 flex items-center justify-between text-sm text-zinc-600 dark:text-zinc-400">
+                                <div className="mt-2 flex items-center justify-between text-sm text-zinc-600">
                                     <span>
                                         PO: {it.poId}
                                         {it.varianceFlag && (
-                                            <span className="ml-2 rounded bg-red-100 px-1 text-xs text-red-700 dark:bg-red-950 dark:text-red-400">
+                                            <span className="ml-2 rounded bg-red-100 px-1 text-xs text-red-700">
                                                 ⚠ Variance
                                             </span>
                                         )}

@@ -27,7 +27,7 @@ const CONFIRMATION_TYPES = ["Approval", "Agreement"];
 // already-added row, so the role stays editable either way.
 function ConfirmationTypeToggle({ value, onChange }) {
     return (
-        <div className="inline-flex overflow-hidden rounded-full border border-zinc-300 text-sm dark:border-zinc-700">
+        <div className="inline-flex overflow-hidden rounded-full border border-zinc-300 text-sm">
             {CONFIRMATION_TYPES.map((option) => (
                 <button
                     key={option}
@@ -38,7 +38,7 @@ function ConfirmationTypeToggle({ value, onChange }) {
                         "px-3 py-1 " +
                         (value === option
                             ? "bg-foreground text-background"
-                            : "bg-transparent text-zinc-600 dark:text-zinc-400")
+                            : "bg-transparent text-zinc-600")
                     }
                 >
                     {option}
@@ -61,7 +61,7 @@ function SortableSignerRow({ id, user, index, confirmationType, onConfirmationTy
         <li
             ref={setNodeRef}
             style={style}
-            className="flex items-center gap-2 rounded border border-zinc-300 bg-white px-3 py-2 dark:border-zinc-700 dark:bg-black"
+            className="flex items-center gap-2 rounded border border-zinc-300 bg-white px-3 py-2"
         >
             <button
                 type="button"
@@ -164,7 +164,7 @@ export default function SignerList({ users, signers, onChange }) {
                 <select
                     value={pickerValue}
                     onChange={(e) => setPickerValue(e.target.value)}
-                    className="flex-1 rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                    className="flex-1 rounded border border-zinc-300 px-3 py-2"
                 >
                     <option value="">Select a person to add...</option>
                     {availableUsers.map((u) => (
@@ -181,7 +181,7 @@ export default function SignerList({ users, signers, onChange }) {
                     type="button"
                     onClick={handleAdd}
                     disabled={!pickerValue}
-                    className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
                 >
                     Add
                 </button>

@@ -57,10 +57,10 @@ async function renderConfirmSignInPage({ searchParams }) {
 
                 {state === TOKEN_STATES.VALID ? (
                     <>
-                        <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+                        <p className="mt-2 text-zinc-600">
                             Signing in as <strong className="font-medium">{email}</strong>.
                         </p>
-                        <p className="mt-1 text-zinc-600 dark:text-zinc-400">{copy.body}</p>
+                        <p className="mt-1 text-zinc-600">{copy.body}</p>
 
                         {/* A plain HTML form, deliberately: no client component, no
                             action id, no script of any kind, so it still works where
@@ -78,7 +78,7 @@ async function renderConfirmSignInPage({ searchParams }) {
                     </>
                 ) : (
                     <>
-                        <p className="mt-2 text-zinc-600 dark:text-zinc-400">{copy.body}</p>
+                        <p className="mt-2 text-zinc-600">{copy.body}</p>
                         <Link href="/login" className="mt-6 inline-block text-sm underline">
                             {REQUEST_NEW_LINK}
                         </Link>

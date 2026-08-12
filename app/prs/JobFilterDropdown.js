@@ -42,14 +42,14 @@ export default function JobFilterDropdown({ jobs, selected, onToggle, onClearJob
                 type="button"
                 onClick={() => setOpen((o) => !o)}
                 aria-expanded={open}
-                className="rounded border border-zinc-300 px-3 py-1 dark:border-zinc-700"
+                className="rounded border border-zinc-300 px-3 py-1"
             >
                 Jobs: {summary} ▾
             </button>
             <div
                 className={`${
                     open ? "block" : "hidden"
-                } absolute z-10 mt-1 w-96 rounded border border-zinc-300 bg-white p-2 shadow-lg dark:border-zinc-700 dark:bg-black`}
+                } absolute z-10 mt-1 w-96 rounded border border-zinc-300 bg-white p-2 shadow-lg`}
             >
                 <div className="flex items-center gap-2">
                     <input
@@ -57,7 +57,7 @@ export default function JobFilterDropdown({ jobs, selected, onToggle, onClearJob
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="Search jobs…"
-                        className="w-full rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black"
+                        className="w-full rounded border border-zinc-300 px-2 py-1"
                     />
                     {selected.size > 0 && (
                         <button

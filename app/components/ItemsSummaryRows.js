@@ -39,7 +39,7 @@ export default function ItemsSummaryRows({
                     key={row.label}
                     className={
                         i === 0
-                            ? "border-t-2 border-zinc-300 dark:border-zinc-700"
+                            ? "border-t-2 border-zinc-300"
                             : undefined
                     }
                 >

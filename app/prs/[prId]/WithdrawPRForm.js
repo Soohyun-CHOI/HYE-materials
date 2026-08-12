@@ -38,7 +38,7 @@ export default function WithdrawPRForm({ prId }) {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:text-red-400"
+                className="rounded border border-red-300 px-4 py-2 text-sm text-red-700"
             >
                 Withdraw this PR
             </button>
@@ -54,7 +54,7 @@ export default function WithdrawPRForm({ prId }) {
                     >
                         <input type="hidden" name="prId" value={prId} />
                         <h2 className="text-lg font-semibold">Withdraw this PR?</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="mt-2 text-sm text-zinc-600">
                             This ends the request and can&apos;t be undone. {prId} stays on record as{" "}
                             <strong>Withdrawn</strong> with its history intact — it just can no longer
                             be signed.
@@ -72,7 +72,7 @@ export default function WithdrawPRForm({ prId }) {
                                 type="button"
                                 onClick={close}
                                 disabled={pending}
-                                className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                                className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
                             >
                                 Cancel
                             </button>

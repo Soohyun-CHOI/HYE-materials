@@ -80,7 +80,7 @@ export default async function EditDeliveryPage({ params }) {
                 </Link>
             </div>
 
-            <div className="mt-4 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <div className="mt-4 space-y-1 text-sm text-zinc-600">
                 <p>
                     <span className="text-zinc-500">Job:</span>{" "}
                     {job ? `${job.jobCode} — ${job.jobName}` : "—"}
@@ -100,7 +100,7 @@ export default async function EditDeliveryPage({ params }) {
                 </p>
             </div>
 
-            <p className="mt-4 rounded border border-zinc-200 px-3 py-2 text-xs text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
+            <p className="mt-4 rounded border border-zinc-200 px-3 py-2 text-xs text-zinc-600">
                 Only the received date, the note, the packing list photo and the invoice this
                 delivery is billed by can be changed. The item, the quantity, the vendor and the PO
                 are fixed — correcting one of those means deleting this delivery and entering it

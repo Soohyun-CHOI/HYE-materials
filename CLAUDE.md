@@ -198,7 +198,7 @@ Naming: auto-generated → `X ID`. Human-typed → `X Label` / plain name. Calen
 
 **Formula injection — every interpolation escapes.** The one escape is `lib/airtableFormula.js:formulaString`, and every interpolation in `lib/` and `app/` goes through it or through a whole-formula builder from that module. A field name is a `{...}` reference and is never escaped; a builder refuses one containing a brace. An empty id list yields `FALSE()`, never an empty `OR()`. Enforced by `offline/formula-escaping.mjs`, which fails closed.
 
-**Every Airtable operation is counted** (`lib/airtableOps.js`), attributed to a route template, a Server Action name or a script filename, and printed when `AIRTABLE_OPS_LOG` is set. Counting is always on; printing is gated. The count is a FLOOR — retries and raw `fetch()` to the Metadata API are invisible to it.
+**Every Airtable operation is counted** (`lib/airtableOps.js`); only one inside a `withOpsLabel` scope is attributed to a route template, a Server Action name or a script filename, and most entry points open none — no Route Handler does, and one Server Action of ten. An unlabeled screen has no before and after. Printed when `AIRTABLE_OPS_LOG` is set: counting is always on, printing is gated. The count is a FLOOR — retries and raw `fetch()` to the Metadata API are invisible to it.
 
 Read `docs/notes/airtable-access.md` before changing any of the three.
 

@@ -21,9 +21,9 @@
 // state" is not.
 
 const TONE_CLASS = {
-    complete: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300",
-    partial: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-    none: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
+    complete: "bg-green-100 text-green-800",
+    partial: "bg-amber-100 text-amber-800",
+    none: "bg-zinc-100 text-zinc-600",
 };
 
 /**
@@ -75,7 +75,7 @@ export function QualifierMarker({ label }) {
             role="img"
             aria-label={label}
             title={label}
-            className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-zinc-400 text-[10px] font-bold leading-none text-zinc-500 dark:border-zinc-500 dark:text-zinc-400"
+            className="inline-flex h-3.5 w-3.5 shrink-0 cursor-help items-center justify-center rounded-full border border-zinc-400 text-[10px] font-bold leading-none text-zinc-500"
         >
             !
         </span>

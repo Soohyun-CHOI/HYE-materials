@@ -151,7 +151,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 </p>
             )}
 
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Amount Due (vendor&apos;s stated total)
                 </p>
@@ -215,11 +215,11 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                     </thead>
                     <tbody>
                         {foldedItems.map((it) => (
-                            <tr key={it.key} className="border-t border-zinc-200 dark:border-zinc-800">
+                            <tr key={it.key} className="border-t border-zinc-200">
                                 <td className="py-1 pr-2">
                                     {it.itemName}
                                     {it.varianceFlag && (
-                                        <span className="ml-1 rounded bg-red-100 px-1 text-xs text-red-700 dark:bg-red-950 dark:text-red-400">
+                                        <span className="ml-1 rounded bg-red-100 px-1 text-xs text-red-700">
                                             ⚠ Variance
                                         </span>
                                     )}
@@ -238,7 +238,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                             <tr
                                 key={row.label}
                                 className={
-                                    i === 0 ? "border-t-2 border-zinc-300 dark:border-zinc-700" : undefined
+                                    i === 0 ? "border-t-2 border-zinc-300" : undefined
                                 }
                             >
                                 <td
@@ -266,7 +266,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                     </tfoot>
                 </table>
                 {invoice.varianceFlag && (
-                    <p className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-400">
+                    <p className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                         ⚠ Header Variance — the vendor&apos;s Amount Due ({formatUSD(invoice.amountDue)})
                         doesn&apos;t match our Calculated Total ({formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)}).
                     </p>
@@ -302,7 +302,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 </div>
 
                 {reconciliation.rows.length === 0 ? (
-                    <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+                    <p className="mt-1 text-sm text-zinc-600">
                         This invoice has no lines.
                     </p>
                 ) : (
@@ -312,7 +312,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                             return (
                                 <li
                                     key={row.invoiceItemId}
-                                    className="rounded border border-zinc-200 p-3 dark:border-zinc-800"
+                                    className="rounded border border-zinc-200 p-3"
                                 >
                                     <div className="flex flex-wrap items-baseline gap-x-2">
                                         <span className="font-medium">
@@ -354,17 +354,17 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                     <p
                                         className={
                                             lines.verdict.key === "all-delivered"
-                                                ? "mt-1 text-green-700 dark:text-green-400"
+                                                ? "mt-1 text-green-700"
                                                 : lines.verdict.key === "not-compared"
                                                   ? "mt-1 text-zinc-500"
-                                                  : "mt-1 text-amber-700 dark:text-amber-500"
+                                                  : "mt-1 text-amber-700"
                                         }
                                     >
                                         {lines.verdict.text}
                                     </p>
 
                                     {lines.againstOrder && (
-                                        <p className="mt-1 text-zinc-600 dark:text-zinc-400">
+                                        <p className="mt-1 text-zinc-600">
                                             {lines.againstOrder.text}
                                         </p>
                                     )}
@@ -380,7 +380,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                         is scoped to one ordered item, so listing them
                                         claims only what the data supports. */}
                                     {row.deliveries.length > 0 && (
-                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-600 dark:text-zinc-400">
+                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-600">
                                             <span className="text-zinc-500">Deliveries ·</span>
                                             {row.deliveries.map((d) => (
                                                 <span key={d.id}>
@@ -418,7 +418,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 not disclose whether THIS vendor was paid, which is where the line
                 actually runs. */}
             {hasVariance && (
-                <p className="mt-8 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">
+                <p className="mt-8 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                     ⚠ This invoice has variance flags — review before confirming payment.
                 </p>
             )}
@@ -444,7 +444,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
             )}
 
             {user.isAdmin && (
-                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                <div className="mt-8 border-t border-zinc-200 pt-6">
                     <DeleteInvoiceButton invoiceId={invoice.invoiceId} />
                 </div>
             )}

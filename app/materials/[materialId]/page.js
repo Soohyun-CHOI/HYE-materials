@@ -54,12 +54,12 @@ export default async function MaterialHistoryPage({ params }) {
             {subtitle && <p className="mt-1 text-sm text-zinc-500">{subtitle}</p>}
 
             <h2 className="mt-6 text-lg font-medium">Purchase history</h2>
-            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            <p className="mt-1 text-sm text-zinc-600">
                 Every purchase order line recorded for this item, newest first.
             </p>
 
             {rows.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-6 text-sm text-zinc-600">
                     No purchase orders recorded for this item yet.
                 </p>
             ) : (
@@ -109,7 +109,7 @@ export default async function MaterialHistoryPage({ params }) {
                                     <tr
                                         key={row.id}
                                         className={
-                                            "border-t border-zinc-200 dark:border-zinc-800" +
+                                            "border-t border-zinc-200" +
                                             (counted ? "" : " opacity-60")
                                         }
                                     >
@@ -124,7 +124,7 @@ export default async function MaterialHistoryPage({ params }) {
                                         <td className="py-1 pr-2">
                                             {row.vendorName}
                                             {statusTag(row.poStatus) && (
-                                                <span className="ml-2 rounded bg-zinc-100 px-1 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                                                <span className="ml-2 rounded bg-zinc-100 px-1 text-xs text-zinc-600">
                                                     {statusTag(row.poStatus)}
                                                 </span>
                                             )}

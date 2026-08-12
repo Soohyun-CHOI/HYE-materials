@@ -77,7 +77,7 @@ export default function PRListClient({
 
     return (
         <>
-            <div className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm dark:border-zinc-800">
+            <div className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm">
                 {jobOptions.length > 0 && (
                     <JobFilterDropdown
                         jobs={jobOptions}
@@ -99,7 +99,7 @@ export default function PRListClient({
                     <select
                         value={status}
                         onChange={(e) => setStatus(e.target.value)}
-                        className="rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black"
+                        className="rounded border border-zinc-300 px-2 py-1"
                     >
                         <option value="">All</option>
                         {statuses.map((s) => (
@@ -117,7 +117,7 @@ export default function PRListClient({
             </div>
 
             {filtered.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-6 text-sm text-zinc-600">
                     {filtersActive ? "No PRs match these filters." : "No purchase requests to show."}
                 </p>
             ) : (
@@ -147,8 +147,8 @@ export default function PRListClient({
                                 <tr
                                     key={r.id}
                                     className={
-                                        "border-t border-zinc-200 dark:border-zinc-800" +
-                                        (isWithdrawn ? " text-zinc-400 dark:text-zinc-600" : "")
+                                        "border-t border-zinc-200" +
+                                        (isWithdrawn ? " text-zinc-400" : "")
                                     }
                                 >
                                     <td className="py-1 pr-2">

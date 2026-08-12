@@ -40,7 +40,7 @@ export default function DeleteInvoiceButton({ invoiceId }) {
             <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="rounded border border-red-300 px-3 py-1 text-sm text-red-700 dark:border-red-900 dark:text-red-400"
+                className="rounded border border-red-300 px-3 py-1 text-sm text-red-700"
             >
                 Delete invoice
             </button>
@@ -52,7 +52,7 @@ export default function DeleteInvoiceButton({ invoiceId }) {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <h2 className="text-lg font-semibold">Delete this invoice?</h2>
-                        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        <p className="mt-2 text-sm text-zinc-600">
                             {invoiceId} and its line items will be permanently deleted. The linked
                             purchase order(s) are not affected. This can&apos;t be undone.
                         </p>
@@ -70,7 +70,7 @@ export default function DeleteInvoiceButton({ invoiceId }) {
                                 type="button"
                                 onClick={close}
                                 disabled={deleting}
-                                className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50 dark:border-zinc-700"
+                                className="rounded border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
                             >
                                 Cancel
                             </button>

@@ -64,7 +64,7 @@ export default function SigningPanel({
             <button
                 type="button"
                 onClick={() => setMode("edit")}
-                className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                className="rounded border border-zinc-300 px-4 py-2"
             >
                 Edit and continue
             </button>
@@ -72,7 +72,7 @@ export default function SigningPanel({
                 <button
                     type="button"
                     onClick={() => setMode("return")}
-                    className="rounded border border-red-300 px-4 py-2 text-red-700 dark:border-red-800"
+                    className="rounded border border-red-300 px-4 py-2 text-red-700"
                 >
                     Return for correction
                 </button>

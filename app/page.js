@@ -13,7 +13,7 @@ async function renderHome() {
     const user = await getCurrentUser();
 
     return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-zinc-50 p-8 dark:bg-black">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-zinc-50 p-8">
             {user ? (
                 <>
                     <p className="text-lg">
@@ -32,14 +32,14 @@ async function renderHome() {
                         a separate decision. */}
                     <Link
                         href="/materials"
-                        className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                        className="rounded border border-zinc-300 px-4 py-2"
                     >
                         Material prices
                     </Link>
                     {/* Issue #162 — same reasoning as the link above. */}
                     <Link
                         href="/deliveries"
-                        className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                        className="rounded border border-zinc-300 px-4 py-2"
                     >
                         Deliveries
                     </Link>
@@ -47,14 +47,14 @@ async function renderHome() {
                         order was reachable only through the PR that generated it. */}
                     <Link
                         href="/pos"
-                        className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                        className="rounded border border-zinc-300 px-4 py-2"
                     >
                         Purchase orders
                     </Link>
                     <form action="/api/auth/logout" method="POST">
                         <button
                             type="submit"
-                            className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                            className="rounded border border-zinc-300 px-4 py-2"
                         >
                             Sign out
                         </button>

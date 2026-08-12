@@ -5,7 +5,7 @@ import { upload } from "@vercel/blob/client";
 import { editAndContinueAction } from "./actions";
 import { CANONICAL_UNITS } from "@/lib/units";
 
-const inputClass = "rounded border border-zinc-300 px-2 py-1 dark:border-zinc-700 dark:bg-black";
+const inputClass = "rounded border border-zinc-300 px-2 py-1";
 const EMPTY_NEW_QUOTATION = { file: { status: "idle" }, vendorQuotationCode: "" };
 
 export default function EditAndContinueForm({ prId, items, quotations, shippingFee, onCancel }) {
@@ -116,7 +116,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
     return (
         <form
             action={formAction}
-            className="space-y-3 rounded border border-zinc-300 p-4 dark:border-zinc-700"
+            className="space-y-3 rounded border border-zinc-300 p-4"
         >
             {state?.error && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -137,7 +137,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                             ? [row.unit, ...CANONICAL_UNITS]
                             : CANONICAL_UNITS;
                     return (
-                    <div key={row.id} className="space-y-2 border-b border-zinc-200 pb-2 dark:border-zinc-800">
+                    <div key={row.id} className="space-y-2 border-b border-zinc-200 pb-2">
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                             <input
                                 value={row.itemName}
@@ -209,12 +209,12 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
 
             <div>
                 <h3 className="text-sm font-semibold">Quotations</h3>
-                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="text-sm text-zinc-600">
                     Add a Quotation this PR didn&apos;t have yet — existing ones aren&apos;t editable here.
                 </p>
                 <div className="mt-2 space-y-3">
                     {newQuotations.map((q, i) => (
-                        <div key={i} className="rounded border border-zinc-300 p-3 dark:border-zinc-700">
+                        <div key={i} className="rounded border border-zinc-300 p-3">
                             <div className="flex items-center justify-between">
                                 <span className="text-sm font-medium">
                                     {q.vendorQuotationCode || `Quotation ${quotations.length + i + 1}`}
@@ -267,7 +267,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                     <button
                         type="button"
                         onClick={addQuotation}
-                        className="rounded border border-zinc-300 px-3 py-1 text-sm dark:border-zinc-700"
+                        className="rounded border border-zinc-300 px-3 py-1 text-sm"
                     >
                         + Add another quotation
                     </button>
@@ -285,7 +285,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                     name="shippingFee"
                     value={shippingFeeValue}
                     onChange={(e) => setShippingFeeValue(e.target.value)}
-                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2"
                 />
             </div>
 
@@ -300,7 +300,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                     id="editNotes"
                     name="notes"
                     rows={2}
-                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-black"
+                    className="mt-1 w-full rounded border border-zinc-300 px-3 py-2"
                 />
             </div>
 
@@ -332,7 +332,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                 <button
                     type="button"
                     onClick={onCancel}
-                    className="rounded border border-zinc-300 px-4 py-2 dark:border-zinc-700"
+                    className="rounded border border-zinc-300 px-4 py-2"
                 >
                     Cancel
                 </button>

@@ -173,12 +173,12 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
             </div>
 
             {sp?.done && DONE_MESSAGES[sp.done] && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
                     {DONE_MESSAGES[sp.done]}
                 </p>
             )}
 
-            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
                     Received{summary ? ` — ${summary.itemCount} item${summary.itemCount === 1 ? "" : "s"}` : ""}
                 </p>
@@ -187,11 +187,11 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                         <li key={item.key} className="flex items-baseline gap-2 text-lg font-semibold">
                             <span className="tabular-nums">{item.qty}</span>
                             <span>{item.unit}</span>
-                            <span className="text-base font-normal text-zinc-600 dark:text-zinc-400">
+                            <span className="text-base font-normal text-zinc-600">
                                 {[item.itemName, item.size].filter(Boolean).join(" ")}
                             </span>
                             {item.over && (
-                                <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
                                     Over-delivered
                                 </span>
                             )}
@@ -205,7 +205,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
             {banners.map((b, i) => (
                 <p
                     key={`${b.key}-${i}`}
-                    className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300"
+                    className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
                 >
                     {b.text}
                 </p>
@@ -219,11 +219,11 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
             {overages.map((overage) => (
                 <div
                     key={overage.id}
-                    className="mt-2 rounded border border-zinc-200 px-3 py-2 text-sm dark:border-zinc-800"
+                    className="mt-2 rounded border border-zinc-200 px-3 py-2 text-sm"
                 >
                     <p className="font-medium">Correction — {overage.label}</p>
                     {overage.messages.map((text, i) => (
-                        <p key={i} className="mt-1 text-zinc-600 dark:text-zinc-400">
+                        <p key={i} className="mt-1 text-zinc-600">
                             {text}
                         </p>
                     ))}
@@ -306,7 +306,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                             {photo.filename || "Open"}
                         </a>
                     ) : (
-                        <span className="text-amber-700 dark:text-amber-500">
+                        <span className="text-amber-700">
                             not attached — if it was just uploaded, reload in a moment
                         </span>
                     )}
@@ -328,7 +328,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                             <col style={{ width: "8rem" }} />
                         </colgroup>
                         <thead>
-                            <tr className="border-b border-zinc-200 text-left dark:border-zinc-800">
+                            <tr className="border-b border-zinc-200 text-left">
                                 <th className="py-2 font-medium">Item</th>
                                 <th className="py-2 font-medium">Order</th>
                                 <th className="py-2 text-right font-medium">Qty</th>
@@ -338,7 +338,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                             {rows.map((row) => (
                                 <tr
                                     key={row.id}
-                                    className="border-b border-zinc-100 last:border-0 dark:border-zinc-900"
+                                    className="border-b border-zinc-100 last:border-0"
                                 >
                                     <td className="py-2">
                                         {[row.itemName, row.size].filter(Boolean).join(" ")}
@@ -357,7 +357,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                                             </span>
                                         )}
                                         {row.over && (
-                                            <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                                            <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
                                                 Over-delivered
                                             </span>
                                         )}
@@ -371,7 +371,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                         </tbody>
                     </table>
                 </div>
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-500">
+                <p className="mt-2 text-xs text-zinc-500">
                     The app allocated these lines — oldest order first, skipping ones already
                     fully delivered. The item, the quantity, the vendor and the PO cannot be
                     edited; correcting one means deleting this delivery and entering it again.
@@ -379,7 +379,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
             </div>
 
             {mayDelete && (
-                <div className="mt-8 border-t border-zinc-200 pt-6 dark:border-zinc-800">
+                <div className="mt-8 border-t border-zinc-200 pt-6">
                     <DeleteDeliveryButton
                         deliveryId={delivery.deliveryId}
                         title={deleteCopy.title}

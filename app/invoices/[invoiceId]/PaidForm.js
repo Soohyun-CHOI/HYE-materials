@@ -41,7 +41,7 @@ export default function PaidForm({ invoiceId, paid, paidDate }) {
                         required
                         value={date}
                         onChange={(e) => setDate(e.target.value)}
-                        className="rounded border border-zinc-300 px-2 py-1 text-sm dark:border-zinc-700 dark:bg-black"
+                        className="rounded border border-zinc-300 px-2 py-1 text-sm"
                     />
                 </div>
             )}

@@ -83,9 +83,9 @@ export default async function InvoiceListPage() {
                 tested first, or a viewer on a base with invoices they cannot see
                 would be told none exist. */}
             {allInvoices.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">No invoices yet.</p>
+                <p className="mt-6 text-sm text-zinc-600">No invoices yet.</p>
             ) : invoices.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600 dark:text-zinc-400">
+                <p className="mt-6 text-sm text-zinc-600">
                     No invoices to show. You see an invoice when it bills a purchase order you
                     raised or one on a job you are assigned to.
                 </p>
@@ -154,7 +154,7 @@ export default async function InvoiceListPage() {
                     </thead>
                     <tbody>
                         {invoices.map((inv) => (
-                            <tr key={inv.id} className="border-t border-zinc-200 dark:border-zinc-800">
+                            <tr key={inv.id} className="border-t border-zinc-200">
                                 <td className="py-1 pr-2">
                                     <Link href={`/invoices/${inv.invoiceId}`} className="underline">
                                         {inv.invoiceId}
@@ -226,7 +226,7 @@ export default async function InvoiceListPage() {
                                         <span
                                             className={
                                                 inv.paid
-                                                    ? "text-green-700 dark:text-green-400"
+                                                    ? "text-green-700"
                                                     : "text-zinc-500"
                                             }
                                         >
@@ -235,7 +235,7 @@ export default async function InvoiceListPage() {
                                     )}
                                     {inv.varianceFlag && (
                                         <span
-                                            className={`${privileged ? "ml-1 " : ""}rounded bg-red-100 px-1 text-xs text-red-700 dark:bg-red-950 dark:text-red-400`}
+                                            className={`${privileged ? "ml-1 " : ""}rounded bg-red-100 px-1 text-xs text-red-700`}
                                         >
                                             ⚠ Variance
                                         </span>
