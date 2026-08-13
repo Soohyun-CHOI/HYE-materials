@@ -19,14 +19,17 @@ import { createOverageDraftAction } from "./actions";
  * item carries more than one bill and the oldest is taken. Reusing the component
  * keeps the two markers from becoming two shapes for one idea — which is also why
  * #210 renamed it `QualifierMarker`, having removed the OTHER inference the old name
- * was taken from. This one survives: reading which bill carries an excess off the
- * stored pairing needs #167's `spansInvoices` refusal rethought alongside it.
+ * was taken from. This one survives #219's narrowing too, but on a narrower fact: the
+ * candidates are now the bills naming THIS shipment, so the marker means either that
+ * this shipment carries two of them or that nothing names it at all.
  *
  * `inferredLabel` is the sentence lib/overage.js already writes for the preview, so
  * the tooltip and the line inside the modal cannot come to explain the same guess
- * differently.
+ * differently. IT IS ALSO THE WHOLE CONDITION, since #219: it arrives null when
+ * nothing was inferred, so a separate flag would be a second copy of one fact that
+ * could disagree with it.
  */
-export default function OverageButton({ deliveryItemId, messages, inferred, inferredLabel }) {
+export default function OverageButton({ deliveryItemId, messages, inferredLabel }) {
     const [open, setOpen] = useState(false);
     const [state, formAction, pending] = useActionState(createOverageDraftAction, {});
 
@@ -40,7 +43,7 @@ export default function OverageButton({ deliveryItemId, messages, inferred, infe
                 >
                     Raise a correction
                 </button>
-                {inferred && <QualifierMarker label={inferredLabel} />}
+                {inferredLabel && <QualifierMarker label={inferredLabel} />}
             </span>
 
             {state?.error && (

@@ -35,7 +35,6 @@ import {
     poLineDelivery,
     sharesOrderedItem,
     summarizePODeliveryStatus,
-    sortInvoicesOldestFirst,
     sortLongestWaitingFirst,
     summarizeDeliveryInvoicing,
     summarizeInvoiceStatus,
@@ -269,23 +268,10 @@ export function run({ check, log, assert }) {
     check("no ordered item, no line", sharesOrderedItem({ billedOnThisInvoice: 5, line: null }), false);
     check("no argument does not throw", sharesOrderedItem(), false);
 
-    log("");
-    log("oldest bill first — kept for #167, unchanged: Issue Date asc, then Invoice ID:");
-    const ordered = sortInvoicesOldestFirst([
-        { invoiceId: "HYE-INV-260710-02", issueDate: "2026-07-10" },
-        { invoiceId: "HYE-INV-260701-01", issueDate: "2026-07-01" },
-        { invoiceId: "HYE-INV-260710-01", issueDate: "2026-07-10" },
-    ]);
-    check("ascending by issue date", ordered[0].invoiceId, "HYE-INV-260701-01");
-    check("ties broken by Invoice ID ascending", ordered[1].invoiceId, "HYE-INV-260710-01");
-    // A data gap must not take priority in an ordering whose whole point is age —
-    // the same call sortCandidates and sortLongestWaitingFirst both make.
-    const withUndatedBill = sortInvoicesOldestFirst([
-        { invoiceId: "b", issueDate: "" },
-        { invoiceId: "a", issueDate: "2026-07-01" },
-    ]);
-    check("an undated bill sorts LAST", withUndatedBill.at(-1).invoiceId, "b");
-    check("nullish does not throw", sortInvoicesOldestFirst(null).length, 0);
+    // The bill ordering was asserted here while this module held it; #219 moved it
+    // into lib/overage.js, private to its one reader, and offline/overage.mjs pins
+    // every clause of it through selectOverageBill. Its absence from this module is
+    // asserted below, with the export list.
 
     log("");
     log("an invoice's SHARE is the same measurement at a smaller scope:");
@@ -684,21 +670,38 @@ export function run({ check, log, assert }) {
     assert("  and is no longer exported", !("allocateLineToInvoices" in deliveryStatus));
     assert("`CONTAINMENT_PREMISE` is gone with it", !("CONTAINMENT_PREMISE" in deliveryStatus));
 
-    // THE TWO THAT MUST SURVIVE, and they look exactly like the list above. #167's
-    // `selectOverageBill` asks a different question — which bill's invoice item
-    // carries an over-delivered excess — and still infers, because reading that off
-    // the stored pairing needs its `spansInvoices` refusal rethought and is #210's
-    // stated non-goal. Deleting either breaks the overage flow, and nothing in this
-    // module reads either, so a tidy-up would.
-    assert("`sortInvoicesOldestFirst` is still exported, for #167", typeof deliveryStatus.sortInvoicesOldestFirst === "function");
-    assert("`INFERRED_PREMISE` is still exported, for #167", typeof deliveryStatus.INFERRED_PREMISE === "string");
-    assert("  and it is not empty", deliveryStatus.INFERRED_PREMISE.length > 0);
-    // NARROWED IN THE SAME PASS: it used to say "and the deliveries cannot be told
-    // apart", which the stored pairing made false.
-    assert(
-        "  and no longer claims the deliveries cannot be told apart",
-        !deliveryStatus.INFERRED_PREMISE.includes("cannot be told apart")
-    );
+    // THE TWO THAT HAD TO SURVIVE, AND #219 TOOK THEM. This block asserted the
+    // opposite until then: `sortInvoicesOldestFirst` and `INFERRED_PREMISE` were kept
+    // here for #167's `selectOverageBill`, read nowhere in this module, and pinned so
+    // that a tidy-up hunting dead exports could not delete them — the exception #182
+    // was carrying. #219 narrowed that question's candidates to the bills naming the
+    // shipment an excess arrived on, which is the `spansInvoices` rethink #210 left
+    // as its non-goal, and moved both into lib/overage.js. The ordering is PRIVATE
+    // there, so the exception is retired rather than relocated, and what this file
+    // pins is the absence.
+    for (const moved of ["sortInvoicesOldestFirst", "INFERRED_PREMISE"]) {
+        assert(`\`${moved}\` is no longer exported here (#219)`, !(moved in deliveryStatus));
+        assert(`  nor named anywhere in the module`, !identifiers.has(moved));
+    }
+    // AND THE ORDERING ITSELF IS GONE, not merely its name: a second sort by the same
+    // field would be the duplicate implementation offline/overage.mjs asserts against
+    // on the other side.
+    const sortedFields = new Set();
+    walk(ast, (node) => {
+        if (node.type !== "CallExpression") return;
+        const callee = node.callee;
+        if (callee?.type !== "MemberExpression" || callee.property?.name !== "sort") return;
+        const text = JSON.stringify(node.arguments);
+        for (const field of ["issueDate", "receivedDate", "createdAt"]) {
+            if (text.includes(field)) sortedFields.add(field);
+        }
+    });
+    // ANTI-VACUITY FOR THAT MATCHER, and it needs its own: "no sort mentions
+    // issueDate" is also what a matcher that reads no sort callback at all reports.
+    // sortLongestWaitingFirst is still here, so its two fields must come back seen.
+    assert("  the sort matcher reads callback bodies at all", sortedFields.has("receivedDate"));
+    assert("    including the tie-break beside it", sortedFields.has("createdAt"));
+    assert("and nothing here sorts bills by Issue Date any more", !sortedFields.has("issueDate"));
 
     // ANTI-VACUITY FOR THE WHOLE SECTION. Every assertion above is of the form "this
     // identifier is absent", which is also what a walk that visited nothing reports —

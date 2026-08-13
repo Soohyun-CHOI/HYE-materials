@@ -121,11 +121,17 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
         .filter((item) => overageByRow.has(item.id))
         .map((item) => {
             const context = overageByRow.get(item.id);
+            // #219 — `inferred` is a key now, because the marker's sentence depends on
+            // which tier of candidates produced the answer: a second bill naming this
+            // shipment, or no bill naming it at all. Resolved to its sentence here so
+            // the client component carries one fact rather than a flag and a label
+            // that could disagree.
+            const inferredKey = context.eligibility.inferred;
             return {
                 id: item.id,
                 label: [item.itemName, item.size].filter(Boolean).join(" "),
                 eligible: context.eligibility.eligible,
-                inferred: Boolean(context.eligibility.inferred),
+                inferredLabel: OVERAGE_COPY.preview.inferred[inferredKey]?.().text ?? null,
                 messages: describeOveragePreview(context.eligibility, {
                     ...context.facts,
                     signersDropped: 0,
@@ -232,8 +238,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                             <OverageButton
                                 deliveryItemId={overage.id}
                                 messages={overage.messages}
-                                inferred={overage.inferred}
-                                inferredLabel={OVERAGE_COPY.preview.inferred().text}
+                                inferredLabel={overage.inferredLabel}
                             />
                         </div>
                     )}
@@ -371,8 +376,11 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                         </tbody>
                     </table>
                 </div>
+                {/* `these lines` stood here until #219 and was the rule #227 swept
+                    for, surviving because that check reads *_COPY constants and this
+                    is rendered text. A `Line` on this base is a child of a Job. */}
                 <p className="mt-2 text-xs text-zinc-500">
-                    The app allocated these lines — oldest order first, skipping ones already
+                    The app allocated these rows — oldest order first, skipping ones already
                     fully delivered. The item, the quantity, the vendor and the PO cannot be
                     edited; correcting one means deleting this delivery and entering it again.
                 </p>

@@ -95,9 +95,9 @@ More arrived than was ordered, the vendor billed for it, and the record has to b
 - **THE EXCESS NEEDS NO ARITHMETIC, and that is #162's decision paying off.** An over-delivery is its own `Delivery Items` row whose `Qty` IS the excess, so nothing here subtracts ordered from delivered. Every figure the correction carries comes from a record rather than a calculation: quantity from the row, unit price and vendor code from the invoice item, Job/Line/Vendor from the order the excess was attached to, the chain from that order's PR.
 - **A REAL DRAFT RECORD, not a prefilled `/prs/new`.** The quotation is the vendor's invoice, which means fetching Airtable's copy of the file server-side and writing a FRESH Blob object for Airtable to ingest — handing the form an Airtable attachment url to re-submit is exactly the silent data loss #142 measured. Creating the record also gives `Delivery Items."Overage PR"` something to point at immediately, which is what makes the row read as pending from the moment the button is used. The redirect goes to `/prs/new?draft=<prId>`, the existing #72 resume path, and `loadPRDraft` hydrates the signer chain — which is what makes the inactive-signer decision below possible at all.
 - **JOB-SCOPED, NOT OFFICE-GATED, AND THAT NARROWS #166 ON PURPOSE.** Raising the request is site work, per the issue. But the affordance reveals that the over-delivered ordered item is billed, by which invoice, and at what unit price — and #166, one issue earlier, withheld exactly "whether a vendor has billed" from site staff on the deliveries LIST. That column stayed withheld and unfetched for anyone else; this was a deliberate exception on the DETAIL, because none of those three facts can be hidden from someone raising a request quoted from the invoice (the vendor's invoice code lands on the Quotation they then edit). Recorded as a reversal rather than left as a contradiction between two comments. **#211 THEN RELEASED THE COLUMN TO EVERY VIEWER, so this is an exception to nothing now** — the reasoning stands as what the disclosure here rests on, but the contrast it was drawn against is gone, and `getPOItemsForReconciliation`'s own doc comment records the same retirement.
-- **WHICH BILL CARRIES THE EXCESS IS #166'S AMBIGUITY, SO IT IS #166'S ORDERING** — `sortInvoicesOldestFirst`, imported rather than restated, and `offline/overage.mjs` asserts on the AST that `lib/overage.js` imports it and sorts nothing by `Issue Date` itself. The premise sentence is shared too (`INFERRED_PREMISE`, exported from `lib/deliveryStatus.js` for this), so the two `!` markers cannot come to explain themselves differently. **#210 LEFT ONE MARKER STANDING, WHICH IS THIS ONE.** The invoice axis's inference is gone with the stored pairing, so `sortInvoicesOldestFirst` and `INFERRED_PREMISE` are now exported for this module alone and read nowhere in the one that holds them — pinned offline, because a tidy-up looking for dead exports would find exactly them. The premise was NARROWED in the same pass: it said "and the deliveries cannot be told apart", which the link made false, and it now states only the condition `selectOverageBill` actually tests. Reading which bill carries an excess off the pairing is #210's stated non-goal, because `spansInvoices` needs rethinking alongside it.
-  - **What is NOT reused is `allocateLineToInvoices`'s `determinate` flag**, and the reason is that it answers a different question. There, determinacy means the outcome does not depend on the order the bills are taken in — so a delivery covering EVERY bill is determinate. Here the question is which bill's INVOICE ITEM the excess quantity sits in, and full coverage leaves that wide open. **Two bills on the ordered item is the whole condition.** The visible consequence: two bills whose material all arrived show no marker on the invoice screens and still mark the overage attribution as inferred. Those are different claims, not an inconsistency.
-- **AN EXCESS SPANNING TWO INVOICES IS OUT OF SCOPE, and the reason is the quotation rather than the arithmetic:** two invoices means two files and a PR takes one. Under oldest-first that condition is exactly "the oldest bill's invoice item is smaller than the excess", so it falls out of the ordering rather than needing a rule of its own — and a LATER bill large enough to absorb it does not rescue the case, because picking it would be a second answer to #166's ambiguity. The button is hidden and says why.
+- **WHICH BILL CARRIES THE EXCESS IS #166'S AMBIGUITY, SO IT IS #166'S ORDERING** — `sortInvoicesOldestFirst`, imported rather than restated, and `offline/overage.mjs` asserts on the AST that `lib/overage.js` imports it and sorts nothing by `Issue Date` itself. The premise sentence is shared too (`INFERRED_PREMISE`, exported from `lib/deliveryStatus.js` for this), so the two `!` markers cannot come to explain themselves differently. **#210 LEFT ONE MARKER STANDING, WHICH IS THIS ONE.** The invoice axis's inference is gone with the stored pairing, so `sortInvoicesOldestFirst` and `INFERRED_PREMISE` are now exported for this module alone and read nowhere in the one that holds them — pinned offline, because a tidy-up looking for dead exports would find exactly them. The premise was NARROWED in the same pass: it said "and the deliveries cannot be told apart", which the link made false, and it now states only the condition `selectOverageBill` actually tests. Reading which bill carries an excess off the pairing is #210's stated non-goal, because `spansInvoices` needs rethinking alongside it. **#219 DID THAT RETHINK AND EVERY SENTENCE ABOVE IS NOW HISTORY** — the candidates come from the pairing, both exports moved into `lib/overage.js` (the ordering PRIVATE there, so #182 carries no exception), one premise became two, and the AST assertions are inverted. See "Reading which bill carries an excess" at the foot.
+  - **What is NOT reused is `allocateLineToInvoices`'s `determinate` flag**, and the reason is that it answers a different question. There, determinacy means the outcome does not depend on the order the bills are taken in — so a delivery covering EVERY bill is determinate. Here the question is which bill's INVOICE ITEM the excess quantity sits in, and full coverage leaves that wide open. **Two bills on the ordered item is the whole condition** — **two bills on this DELIVERY since #219**. The visible consequence: two bills whose material all arrived show no marker on the invoice screens and still mark the overage attribution as inferred. Those are different claims, not an inconsistency.
+- **AN EXCESS SPANNING TWO INVOICES IS OUT OF SCOPE, and the reason is the quotation rather than the arithmetic:** two invoices means two files and a PR takes one. Under oldest-first that condition is exactly "the oldest bill's invoice item is smaller than the excess", so it falls out of the ordering rather than needing a rule of its own — and a LATER bill large enough to absorb it does not rescue the case, because picking it would be a second answer to #166's ambiguity. The button is hidden and says why. **#219 SPLIT THE CONDITION IN TWO, because the one message was false for half the cases it covered:** with a single candidate bill nothing spans anything, so that case says the excess is larger than what this delivery's invoice bills instead. The refusal itself stands — one request still takes one quotation.
 - **GENERATING THE PO SETTLES IT, and the apply step sits OUTSIDE PO generation's rollback**, in `lib/materialsCache.js`'s position and after it (it matches the overage row to an ordered item of the new PO on #18's `Material` link, which the cache is what writes). Outside for #165's reason: a derived artifact must not undo the approval that produced it, and this one touches an invoice that may already be paid.
   - **So a failure leaves an ASYMMETRY, and it has to be visible with no email available.** Two signals, covering different halves. Re-attach failed → nothing moved, and the ONLY signal is the banner reading `not-applied`, because the row still points at an ordered item that IS invoiced so #166's worklist cannot see it. Split failed → the row moved, so the overage ordered item has a delivery and no invoice, which puts the delivery in `Not fully invoiced` as well. **Re-attach therefore runs FIRST**: the reachable middle state is the one two things notice rather than one.
   - **Idempotent, because there is no retry UI.** A row whose flag is already clear is skipped. `applied` is judged from `Former PO Item` since #206, and was judged from the flag before it. Either reads the same `update()` — `reattachDeliveryItemToPOItem` writes attachment, provenance and flag together and Airtable applies one record write atomically — but only provenance is beyond a recomputation's reach, which is what #206 needed.
@@ -159,7 +159,7 @@ More arrived than was ordered, the vendor billed for it, and the record has to b
 - **THE INVOICE AXIS IS TWO STATES AND A DISCREPANCY.** The chip is the link's own two values; a quantity shortfall is a marker beside it. **No marker without a link** — every invoice item of an unpaired invoice is trivially short, so marking them would put a discrepancy on nearly every bill on the base. The dash left the axis too, and as UNREACHABLE rather than unwanted: it meant "there was nothing to compare", which was true while the chip came from the invoice items, and the chip comes from a header field now.
 - **THE DELIVERY AXIS KEEPS THREE KEYS, AND THAT IS NOT A BARE LOOKUP.** The issue's own wording was "turns `summarizeDeliveryInvoicing` from a line-level existence test into a lookup", and a literal lookup would be wrong: a shipment can carry material nobody has billed yet, so "does this delivery have an invoice" would read `Invoiced` while half of it is still owed. So it compares, per ordered item, what the bills NAMING this delivery charge against what this delivery brought — and the middle key is the state the worklist exists for. `>=` rather than `===`, because a vendor billing more than it shipped is the invoice axis's discrepancy and leaves nothing to chase from this side.
 - **THE SEED WAS NOT CHANGED, AND THE PAIRINGS ON THIS BASE WERE MADE THROUGH THE APP.** Every seed here is skip-if-exists, so teaching one to write this field would produce nothing on an already-seeded base — a claim about future coverage rather than a verification of the present one, which `verification.md` records measuring on #181. Two demo shipments were paired through the real attach path instead, which is both the data and the verification.
-- **Not in this issue:** `selectOverageBill` (#167) still guesses which bill carries an excess and becomes a lookup once this pairing exists, but its `spansInvoices` refusal needs rethinking alongside it; `/pos` and `/pos/[poId]` are untouched, since the PO axis compares delivered against ORDERED and no bill enters it; and #20 is still where "what should ordered mean" is decided.
+- **Not in this issue:** `selectOverageBill` (#167) still guesses which bill carries an excess and becomes a lookup once this pairing exists, but its `spansInvoices` refusal needs rethinking alongside it — **#219 is that issue, and the answer was not a lookup but a tiered narrowing**, because an invoice naming no delivery is this feature's own ordinary state rather than a gap; `/pos` and `/pos/[poId]` are untouched, since the PO axis compares delivered against ORDERED and no bill enters it; and #20 is still where "what should ordered mean" is decided.
 
 ### Deliveries
 
@@ -267,3 +267,105 @@ first. The second of three built to the shape #176 set — #217 is the third.
   reaches no delivery at all. That is a different route to the same render: the
   component's guard is `rows.length === 0` either way, but "nothing waiting" is
   covered by the offline check rather than by that browser run.
+
+### Reading which bill carries an excess (#219)
+
+`selectOverageBill` sorted every `Invoice Items` row on the over-delivered
+ordered item and took the oldest, so an order filled by two deliveries could
+attach the wrong vendor invoice to a correction — and since the quotation, its
+code and its unit price all come off that bill, the document that goes out
+would be wrong rather than merely uncertain. #210 stored the pairing, so the
+candidates narrow to the bills describing the shipment the excess arrived on.
+
+- **THE HYPOTHESIS THAT OPENED THIS WAS HALF RIGHT, AND MEASURING IT IS WHAT
+  CHOSE THE RULE.** The observation was that every over-delivery on the base
+  reads `Awaiting invoice` while only some can raise a correction, and the
+  proposed cause was that the eligibility was being granted by ANOTHER
+  delivery's invoice — the two judgments looking at different levels, one
+  delivery-scoped and one PO-Item-scoped. **The level claim is right and the
+  mechanism is not.** Measured over all 6 of the base's over-delivery rows by
+  calling `getDeliveryInvoicing` and `getOverageContext` as the screens call
+  them: 2 were eligible, both quoting an invoice that names **no delivery at
+  all**, and **0 quoting another shipment's bill**. The wrong-shipment pick is
+  reachable in code and unreachable on this base — no ordered item under an
+  over-delivery row carries two bills (all carry 0 or 1), and the 2 of 15
+  invoices that do name a delivery touch none of those ordered items. So
+  `spansInvoices` and the `inferred` marker had never fired here either.
+- **WHICH IS WHY THE NARROWING IS TIERED RATHER THAN ABSOLUTE.** Taking the
+  issue body literally — candidates are the bills naming this delivery, full
+  stop — was measured first: **eligibility goes from 2 rows to 0**, because
+  pairing is optional and only 2 of this base's 15 invoices carry one. That is
+  not a data artifact to wait out. #210's own reasoning is that an invoice
+  naming no delivery is the ORDINARY state, since the vendor emails the bill at
+  shipment, so a strict rule makes a site-work affordance wait on office work
+  that has not happened. **An empty pairing is the absence of evidence, not
+  evidence of a wrong shipment.** So: a bill naming another shipment is never a
+  candidate, a bill naming this one always is, bills naming none are the
+  fallback, and the tiers are never mixed — a recorded pairing must not lose to
+  an unrecorded one under an ordering. Measured after: the same 2 rows stay
+  eligible, 0 pick another shipment's bill, and both now carry the marker they
+  did not before.
+  - **What that leaves open, stated rather than hidden:** inside the fallback
+    tier the pick can still be a bill that turns out to describe another
+    shipment nobody paired. It is narrowed — same ordered item, so same order,
+    material and vendor — and it is ANNOUNCED, which is the difference from
+    before: this is the marker's own job, and #166's rule that a fact is stated
+    and a verdict is left to a person.
+- **THE MARKER COMES OFF WHEN THE PAIRING ANSWERS, WHICH IS THE QUESTION THE
+  ISSUE ASKED.** One bill naming this delivery is a lookup, not a guess, so
+  there is nothing to qualify. The fallback tier stays inferred **even at one
+  candidate**, because one unpaired bill is only the bill nobody happened to
+  pair. So one premise became two (`OVERAGE_INFERRED`), and they are keys rather
+  than a boolean for the reason `OVERAGE_BLOCKED` already gives — a reworded
+  message fails nothing. Both sentences share one message key, since they are
+  two readings of one qualifier rather than two qualifiers, the arrangement
+  `noLongerOverDelivered` already uses.
+- **THE `spans-invoices` REFUSAL SPLIT IN TWO BECAUSE IT WAS FALSE FOR HALF ITS
+  CASES.** It said "so it spans more than one invoice" whenever the excess
+  exceeded the oldest bill — including when the ordered item carried exactly one
+  bill, where nothing spans anything. That was reachable before this issue and
+  is a lie about the data, not a wording preference. Now: more than one
+  candidate on this delivery keeps `spans-invoices` and its quotation argument
+  (one request takes one quotation); a single candidate says the excess is
+  larger than what this delivery's invoice bills. A third refusal joins them,
+  `other-delivery-only`, for the case where bills exist and every one names a
+  different shipment — merged into `no-invoice` it would have printed "No
+  invoice bills this ordered item yet", which is false, and it names an action
+  the reader can actually take, since attaching the pairing is this delivery's
+  own Edit page.
+- **THE ORDERING MOVED AND DID NOT STAY EXPORTED, WHICH RETIRES #182'S
+  EXCEPTION RATHER THAN RELOCATING IT.** `sortInvoicesOldestFirst` and
+  `INFERRED_PREMISE` were #166's, kept in `lib/deliveryStatus.js` after #210
+  deleted the only reader there, and pinned offline so a dead-export sweep could
+  not take them. The ordering is needed still — one delivery can carry two bills
+  for one ordered item — so it lives in `lib/overage.js` beside its one caller
+  and is **private**, and its whole reasoning (the backdatable `Issue Date`, the
+  `Invoice ID` tie-break, the undated bill sorting last) moved with it. The
+  premise constant is simply gone: a constant exists to keep two things in step
+  and #210 removed the second thing. `offline/delivery-status.mjs` now asserts
+  the absence, with an anti-vacuity that its sort matcher still sees
+  `sortLongestWaitingFirst`.
+- **THE CALLER OBLIGATION IS THE HAZARD HERE, AND THE FIRST CHECK FOR IT HAD A
+  HOLE.** A `selectOverageBill` call that forgets the shipment does not throw —
+  it falls to the fallback tier, which is the honest answer for a row naming no
+  delivery and the WRONG one for a forgetful caller. It cannot refuse on a null
+  instead, because null is a legitimate value. So the pin is an AST assertion
+  that every call site passes `deliveryRecordId` — and the first version asserted
+  it only of `selectOverageBill` calls, which a mutation then passed: the apply
+  path hands the shipment to `splitInvoiceLineForOverage` first, whose own
+  shorthand property survives the outer call dropping it. Both names are
+  asserted now, and the mutation fails as it should. **The apply step matters
+  most of the three call sites** — it splits the invoice item, so picking a
+  different bill from the one the preview quoted would move a quantity the
+  request never mentioned.
+- **THE NARROWING COSTS NO QUERY.** `billsByOrderedItem` already reads the
+  invoices for their `Issue Date` and their file, so which shipment each names
+  comes off records it holds; the row's own shipment is on the `Delivery Items`
+  row every caller already has. Flattened through
+  `lib/deliveryInvoiceLink.js:linkedDelivery` rather than indexed a second time,
+  so #210's single-record rule keeps one home — asserted offline.
+- **Not in this issue:** the pairing itself is still set by hand from the
+  delivery side, and nothing here writes it; a correction whose draft quantity is
+  edited after the fact is still #206's unreachable second shape; and what a
+  fully unpaired base should do about the fallback tier's residual is a question
+  for whoever measures pairing coverage once the app is in use.
