@@ -249,7 +249,11 @@ export async function createOverageDraftAction(prevState, formData) {
         return { error: "That delivery no longer exists." };
     }
 
-    const context = (await getOverageContext([row], { deliveryId: delivery.deliveryId })).get(row.id);
+    const context = (
+        await getOverageContext([row], {
+            deliveryIds: new Map([[delivery.id, delivery.deliveryId]]),
+        })
+    ).get(row.id);
     if (!context?.eligibility?.eligible) {
         // The pure module already words every refusal, so the action does not
         // invent a second phrasing for the same state.

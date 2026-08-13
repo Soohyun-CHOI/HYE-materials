@@ -22,16 +22,21 @@ import {
     OVERAGE_BLOCKED,
     OVERAGE_COPY,
     OVERAGE_INFERRED,
+    OVERAGE_STAGE,
     attachedDeliveryRecordId,
     attachedPOItemRecordId,
+    awaitsCorrection,
     describeOverageBanner,
     describeOveragePreview,
+    inferredLabel,
     isNoLongerOverDelivered,
     isOverageApplied,
     overageBannerState,
     overageEligibility,
     overagePRState,
+    overageStageKey,
     resolveOriginalPOItem,
+    selectCopyableSigners,
     selectOverageBill,
 } from "../../../lib/overage.js";
 // The namespace too, so "the ordering is private" is a claim about the export list
@@ -699,6 +704,182 @@ export function run({ check, log, assert }) {
     check("an unknown site renders nothing", describeOverageBanner({ site: "nope", state: "applied", facts }).length, 0);
     check("nullish does not throw", describeOverageBanner().length, 0);
 
+    // --- #217: THE STRIP'S SELECTION ---------------------------------------
+    log("");
+    log("which rows the strip above /prs lists — flagged, and no live correction:");
+    check("flagged with nothing covering it", awaitsCorrection({ row: row() }), true);
+    check("a draft covers it", awaitsCorrection({ row: row(), overagePR: { status: "Draft" } }), false);
+    check("  as does one in review", awaitsCorrection({ row: row(), overagePR: { status: "In Review" } }), false);
+    check("  and one whose order exists", awaitsCorrection({ row: row(), overagePR: { status: "PO Signed" } }), false);
+    // The two clauses this composition inherits, and the reason it is a composition:
+    // a withdrawal reopens the row with no write anywhere, and so does withdrawing
+    // the overage ORDER one hop further.
+    check(
+        "a WITHDRAWN correction puts the row back on the list",
+        awaitsCorrection({ row: row(), overagePR: { status: "Withdrawn" } }),
+        true
+    );
+    check(
+        "  and so does a withdrawn overage order",
+        awaitsCorrection({ row: row(), overagePR: { status: "PO Signed" }, overagePO: { status: "Withdrawn" } }),
+        true
+    );
+    check("an unflagged row is not on the list", awaitsCorrection({ row: row({ overDelivered: false }) }), false);
+    // #206's row: linked, unflagged, never moved. It is not an over-delivery any
+    // more, so it is not something to correct.
+    check(
+        "nor is #206's no-longer-over-delivered row",
+        awaitsCorrection({ row: row({ overDelivered: false, overagePRRecordId: "recPR1" }) }),
+        false
+    );
+    check("nullish does not throw", awaitsCorrection(), false);
+    // ANTI-VACUITY: the predicate must both admit and refuse within one corpus, or
+    // it is either a constant or unreachable.
+    const corpus = [
+        { row: row() },
+        { row: row(), overagePR: { status: "In Review" } },
+        { row: row({ overDelivered: false }) },
+    ];
+    const admitted = corpus.filter((c) => awaitsCorrection(c)).length;
+    assert(`admits ${admitted} of ${corpus.length} — neither all nor none`, admitted === 1);
+
+    // --- #217: WHICH STAGE, AND THE COPY THAT NAMES IT --------------------
+    log("");
+    log("the stage a live correction has reached — a copy-only refinement:");
+    check("no correction has no stage", overageStageKey(null), null);
+    check("a draft", overageStageKey({ status: "Draft" }), OVERAGE_STAGE.draft);
+    check("in review", overageStageKey({ status: "In Review" }), OVERAGE_STAGE.inReview);
+    check("approved — the order exists", overageStageKey({ status: "Approved" }), OVERAGE_STAGE.generated);
+    check("PO signed", overageStageKey({ status: "PO Signed" }), OVERAGE_STAGE.generated);
+    check(
+        "a withdrawn overage order is no correction, so no stage",
+        overageStageKey({ status: "PO Signed" }, { status: "Withdrawn" }),
+        null
+    );
+    // overagePRState answers `pending` for a status it does not know; of the two
+    // pending voices this takes the one that tells the reader to wait.
+    check("an unrecognized status reads as in review", overageStageKey({ status: "Something New" }), OVERAGE_STAGE.inReview);
+    check("nullish does not throw", overageStageKey(), null);
+
+    log("");
+    log("the already-covered refusal names the stage, and arrives in linkable parts:");
+    const raisedFacts = { overagePrId: "HYE-PR-260806-01" };
+    const stageTexts = new Map();
+    for (const stage of [...Object.values(OVERAGE_STAGE), undefined]) {
+        const message = OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.alreadyRaised]({
+            ...raisedFacts,
+            overageStage: stage,
+        });
+        const label = stage ?? "(no stage)";
+        check(`${label}: the id is handed back for the link`, message.prId, raisedFacts.overagePrId);
+        // The flattened sentence and the parts cannot drift, which is what lets the
+        // Server Action keep returning a plain string while the page renders a link.
+        check(`  text is prefix + prId + suffix`, message.text, message.prefix + message.prId + message.suffix);
+        assert(`  and it names the excess it covers`, message.text.includes("covers this excess"));
+        stageTexts.set(label, message.text);
+    }
+    assert(
+        "the four sentences are four sentences",
+        new Set(stageTexts.values()).size === 4
+    );
+    assert("draft says nobody has been asked yet", /draft/.test(stageTexts.get(OVERAGE_STAGE.draft)));
+    assert("in review says it is with its signers", /signers/.test(stageTexts.get(OVERAGE_STAGE.inReview)));
+    assert("generated says the order exists", /order has been generated/.test(stageTexts.get(OVERAGE_STAGE.generated)));
+    // The stageless voice is #167's own sentence, kept for a caller that supplies
+    // none: naming a stage we were not told would be worse than naming none.
+    check("no stage falls back to the original sentence", stageTexts.get("(no stage)"), "HYE-PR-260806-01 already covers this excess.");
+    // With no id there is nothing to link, and the page must not try.
+    const anonymous = OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.alreadyRaised]({});
+    check("no id at all: nothing to link", anonymous.prId, null);
+    assert("  and the sentence still reads", anonymous.text.startsWith("A request already covers"));
+    // ONLY THAT ONE MESSAGE CARRIES AN ID, which is what makes the page's branch
+    // exhaustive: a new message carrying `prId` would be linked without anyone
+    // deciding it should be.
+    const everyBlocked = Object.entries(OVERAGE_COPY.preview.blocked).map(([key, build]) => [
+        key,
+        build({ ...facts, overageStage: OVERAGE_STAGE.draft }),
+    ]);
+    for (const [key, message] of everyBlocked) {
+        const shouldLink = key === OVERAGE_BLOCKED.alreadyRaised;
+        check(`${key} ${shouldLink ? "carries" : "carries no"} prId`, Boolean(message.prId), shouldLink);
+    }
+
+    // --- #217: THE STRIP'S OWN COPY ---------------------------------------
+    log("");
+    log("the strip's heading, its one voice, and a chip per refusal:");
+    check("one row", OVERAGE_COPY.strip.heading(1), "1 over-delivery has no correction");
+    assert("more than one", OVERAGE_COPY.strip.heading(4).startsWith("4 over-deliveries"));
+    // ONE VOICE, and the condition is narrower than #216 left it: the action is on
+    // the row, and everyone who can see a row can take it, so there is nothing to
+    // split over. Naming the control is therefore allowed here, where #216's copy
+    // was barred from it.
+    assert("the explanation names the ordering", /Longest wait first/.test(OVERAGE_COPY.strip.explain));
+    assert("  and says a row can raise it here", /raises the correction here/.test(OVERAGE_COPY.strip.explain));
+    assert("  while not promising every row can", /the rest say what has to come first/.test(OVERAGE_COPY.strip.explain));
+    // #166 bars the word outright, and this sentence is inside that sweep — see the
+    // copy for why it says what it says.
+    assert("  and does not say `missing`", !/missing/i.test(OVERAGE_COPY.strip.explain));
+
+    // EVERY REFUSAL THE STRIP CAN SHOW HAS A CHIP, AND THE TWO IT CANNOT DO NOT.
+    // Asserted over the whole key set rather than a list written twice, so a refusal
+    // added later fails here instead of rendering an empty cell.
+    const EXCLUDED_BY_SELECTION = [OVERAGE_BLOCKED.notOverDelivered, OVERAGE_BLOCKED.alreadyRaised];
+    for (const key of Object.values(OVERAGE_BLOCKED)) {
+        const excluded = EXCLUDED_BY_SELECTION.includes(key);
+        check(
+            `${key} ${excluded ? "needs no chip" : "has a chip"}`,
+            Object.prototype.hasOwnProperty.call(OVERAGE_COPY.strip.reason, key),
+            !excluded
+        );
+    }
+    const chips = Object.values(OVERAGE_COPY.strip.reason);
+    assert(`${chips.length} chips, all distinct`, new Set(chips).size === chips.length);
+    // A CHIP IS NOT A SENTENCE — #166's density rule, applied a second time. No
+    // digit, because a figure changes per row and would break the closed set; and
+    // short enough to sit at the end of a one-line row.
+    for (const chip of chips) {
+        assert(`"${chip}" carries no digit`, !/\d/.test(chip));
+        assert(`  and is short enough for a row`, chip.length <= 32);
+        assert(`  and ends without a full stop`, !chip.endsWith("."));
+    }
+    // ANTI-VACUITY for the loop above: the corpus it walks must be the real one.
+    assert("the chips walked are the module's own", chips.length >= 5 && chips.includes("no invoice yet"));
+
+    // --- #217: THE MARKER'S SENTENCE HAS ONE HOME -------------------------
+    log("");
+    log("the inferred marker's label, resolved in one place for two screens:");
+    for (const key of Object.values(OVERAGE_INFERRED)) {
+        check(`${key} resolves to its sentence`, inferredLabel({ inferred: key }), OVERAGE_COPY.preview.inferred[key]().text);
+    }
+    check("nothing inferred, no label", inferredLabel({ inferred: null }), null);
+    check("an unknown key gets none either", inferredLabel({ inferred: "nope" }), null);
+    check("nullish does not throw", inferredLabel(), null);
+
+    // --- #217: THE CHAIN RULE, NOW PURE -----------------------------------
+    log("");
+    log("which signers a correction copies — one rule, two fetch shapes:");
+    const signer = (seq, userId) => ({ id: `recS${seq}`, sequenceOrder: seq, signer: userId ? [userId] : [] });
+    const active = new Set(["recU1", "recU2"]);
+    // Fed in the order a batched read by record id returns — which is the ids' order,
+    // not the chain's — so the rule has to sort.
+    const scrambled = [signer(3, "recU2"), signer(1, "recU1"), signer(2, "recU9")];
+    const picked = selectCopyableSigners(scrambled, active);
+    check("ordered by Sequence Order", picked.keep.map((s) => s.sequenceOrder).join(","), "1,3");
+    check("  the inactive signer is dropped", picked.droppedCount, 1);
+    check("  and the original count is kept", picked.originalCount, 3);
+    // A signer row with no user link is the same dead end as an inactive one.
+    const unlinked = selectCopyableSigners([signer(1, null), signer(2, "recU1")], active);
+    check("a signer with no user is dropped too", unlinked.keep.length, 1);
+    check("  and counted as dropped", unlinked.droppedCount, 1);
+    check("an array of ids works as well as a Set", selectCopyableSigners([signer(1, "recU1")], ["recU1"]).keep.length, 1);
+    check("nobody active, nobody kept", selectCopyableSigners(scrambled, []).keep.length, 0);
+    check("  which is the empty-chain state the preview warns about", selectCopyableSigners(scrambled, []).droppedCount, 3);
+    check("nullish does not throw", selectCopyableSigners().originalCount, 0);
+    // It must not mutate its input, since one caller passes rows it read for others.
+    const asRead = [signer(2, "recU1"), signer(1, "recU1")];
+    selectCopyableSigners(asRead, active);
+    check("does not reorder its argument", asRead[0].sequenceOrder, 2);
+
     log("");
     log("THE ACCOUNTING CAVEAT is why the banner outlives signature:");
     const caveat = OVERAGE_COPY.banner.invoiceCaveat(facts).text;
@@ -782,6 +963,19 @@ export function run({ check, log, assert }) {
         OVERAGE_COPY.banner.pending(facts).text,
         OVERAGE_COPY.banner.invoiceCaveat(facts).text,
         OVERAGE_COPY.banner.notApplied(facts).text,
+        // #217's strip — the heading, the one voice, and every chip, so a shorter
+        // density cannot become a shortcut past the vocabulary.
+        OVERAGE_COPY.strip.heading(1),
+        OVERAGE_COPY.strip.heading(3),
+        OVERAGE_COPY.strip.explain,
+        ...Object.values(OVERAGE_COPY.strip.reason),
+        // And every stage of the already-covered refusal, which the blocked sweep
+        // above only reaches with whatever stage `facts` happens to carry.
+        ...Object.values(OVERAGE_STAGE).map(
+            (stage) =>
+                OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.alreadyRaised]({ ...facts, overageStage: stage })
+                    .text
+        ),
     ];
     for (const forbidden of ["arriv", "recorded as", "over-billed", "short-shipped", "missing"]) {
         assert(

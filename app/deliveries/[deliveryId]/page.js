@@ -11,7 +11,7 @@ import { describeDelivery, groupRowsByItem, summarizeDelivery } from "@/lib/deli
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
 import { seesEveryInvoice } from "@/lib/invoiceVisibility";
-import { OVERAGE_COPY, describeOveragePreview } from "@/lib/overage";
+import { describeOveragePreview, inferredLabel } from "@/lib/overage";
 import { getOverageContext } from "@/lib/overagePR";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
@@ -116,26 +116,30 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
     // rather than office-gated, per the issue — raising the request is site work,
     // which narrows what #166 withheld on the deliveries LIST. See
     // createOverageDraftAction on what that reveals and what it does not.
-    const overageByRow = await getOverageContext(items, { deliveryId: delivery.deliveryId });
+    const overageByRow = await getOverageContext(items, {
+        // #217 — a map, because getOverageContext now takes rows spanning deliveries
+        // so the strip above /prs can walk them all at once. One entry here.
+        deliveryIds: new Map([[delivery.id, delivery.deliveryId]]),
+    });
     const overages = items
         .filter((item) => overageByRow.has(item.id))
         .map((item) => {
             const context = overageByRow.get(item.id);
-            // #219 — `inferred` is a key now, because the marker's sentence depends on
-            // which tier of candidates produced the answer: a second bill naming this
-            // shipment, or no bill naming it at all. Resolved to its sentence here so
-            // the client component carries one fact rather than a flag and a label
-            // that could disagree.
-            const inferredKey = context.eligibility.inferred;
             return {
                 id: item.id,
                 label: [item.itemName, item.size].filter(Boolean).join(" "),
                 eligible: context.eligibility.eligible,
-                inferredLabel: OVERAGE_COPY.preview.inferred[inferredKey]?.().text ?? null,
-                messages: describeOveragePreview(context.eligibility, {
-                    ...context.facts,
-                    signersDropped: 0,
-                }).map((m) => m.text),
+                // #219 — `inferred` is a key, because the marker's sentence depends on
+                // which tier of candidates produced the answer. #217 moved the lookup
+                // into lib/overage.js, since the strip renders the same marker.
+                inferredLabel: inferredLabel(context.eligibility),
+                // `signersDropped: 0` WAS FORCED HERE AND IS NOT ANY MORE (#217). It
+                // made the one message that reports a dropped signer unreachable on
+                // the only screen that shows the preview, while getOverageContext paid
+                // to compute the count — measured at 14 of the 19 operations that walk
+                // cost, for a fact no render could reach. Nothing else about the box
+                // changes: the count is 0 on every row of this base today.
+                messages: describeOveragePreview(context.eligibility, context.facts),
             };
         });
 
@@ -228,16 +232,34 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
                     className="mt-2 rounded border border-zinc-200 px-3 py-2 text-sm"
                 >
                     <p className="font-medium">Correction — {overage.label}</p>
-                    {overage.messages.map((text, i) => (
+                    {/* #217 — a message that names a request arrives in parts so the
+                        id can be a link: copy stays a pure module with no JSX in it,
+                        and this is the one site that can render one. Everything else
+                        is the flattened sentence, which is also what the Server
+                        Action returns as its refusal. */}
+                    {overage.messages.map((message, i) => (
                         <p key={i} className="mt-1 text-zinc-600">
-                            {text}
+                            {message.prId ? (
+                                <>
+                                    {message.prefix}
+                                    <Link
+                                        href={`/prs/${encodeURIComponent(message.prId)}`}
+                                        className="underline"
+                                    >
+                                        {message.prId}
+                                    </Link>
+                                    {message.suffix}
+                                </>
+                            ) : (
+                                message.text
+                            )}
                         </p>
                     ))}
                     {overage.eligible && (
                         <div className="mt-2">
                             <OverageButton
                                 deliveryItemId={overage.id}
-                                messages={overage.messages}
+                                messages={overage.messages.map((m) => m.text)}
                                 inferredLabel={overage.inferredLabel}
                             />
                         </div>
