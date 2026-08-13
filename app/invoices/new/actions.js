@@ -51,7 +51,7 @@ async function createInvoiceHandler(prevState, formData) {
             return { error: "Every item needs a name, quantity, and unit price." };
         }
         if (!item.poRecordId) {
-            return { error: "Every item needs a PO — pick one at the top or per-line." };
+            return { error: "Every item needs a PO — pick one at the top or per item." };
         }
     }
 
@@ -134,7 +134,7 @@ async function createInvoiceHandler(prevState, formData) {
         }
 
         // One Invoice-PO Link row per distinct PO actually used across the
-        // items, not one per item — a PO referenced by three lines still
+        // items, not one per item — a PO referenced by three invoice items still
         // only needs a single join row (see CLAUDE.md's Invoice-PO Link
         // entry: it's a plain relationship table, no per-line semantics).
         // Same distinctPoIds the withdrawn-PO guard above checked, so every
@@ -146,9 +146,9 @@ async function createInvoiceHandler(prevState, formData) {
 
         // Variance checking (#15), per the tolerance rules decided in #17.
         // Line-level checks only apply to items linked to a real PO Item —
-        // free-text "Other" lines have nothing to compare against. Qty is a
+        // free-text "Other" invoice items have nothing to compare against. Qty is a
         // creation-time snapshot: it reads the cumulative invoiced Qty
-        // (already including this line, since it's linked by now) and is
+        // (already including this invoice item, since it's linked by now) and is
         // never retroactively recomputed for sibling Invoice Items created
         // earlier against the same PO Item.
         for (const created of createdItems) {

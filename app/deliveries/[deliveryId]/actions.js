@@ -190,7 +190,7 @@ export async function detachDeliveryInvoiceAction(prevState, formData) {
 }
 
 /**
- * Delete a delivery and its lines.
+ * Delete a delivery and its delivery items.
  *
  * Deliberately a thin wrapper: everything that decides anything (authorship or
  * Admin) and the write itself live in lib/deliveryDelete.js, so the guard this
@@ -240,7 +240,7 @@ export async function createOverageDraftAction(prevState, formData) {
     if (!deliveryItemId) return { error: "Nothing to correct." };
 
     const [row] = await getDeliveryItemsByRecordIds([deliveryItemId]);
-    if (!row) return { error: "That delivery line no longer exists." };
+    if (!row) return { error: "That delivery item no longer exists." };
 
     const delivery = row.delivery?.[0]
         ? (await getDeliveriesByRecordIds([row.delivery[0]]))[0]

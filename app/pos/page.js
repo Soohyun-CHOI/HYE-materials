@@ -93,16 +93,16 @@ async function renderPOListPage({ searchParams }) {
     // THE DELIVERY LEVEL, IN ONE READ FOR THE WHOLE PAGE (#169). getAllPOs already
     // returned each PO's `PO Items` reverse-link array — core link data that costs
     // nothing extra to expose, which is why #19 put it on the mapper — so the ids
-    // are in hand and one findByRecordIds fetches every line of every VISIBLE
+    // are in hand and one findByRecordIds fetches every ordered item of every VISIBLE
     // order. Gathering from `visible` rather than from `pos` is deliberate: a
-    // viewer's refused rows must not put their lines on the wire either.
+    // viewer's refused rows must not put their ordered items on the wire either.
     //
     // This is the opposite shape from the one #193 exists to remove. That is
     // getLinkedRecords' 1 + N — a find() for the parent and a find() per child;
     // this is zero per row, one query per 50 ids. On this base 40 orders carry 53
-    // lines, so it is two operations and the page goes six to eight. What grows it
-    // is the number of LINES, at one query per fifty, never the number of rows
-    // rendered.
+    // ordered items, so it is two operations and the page goes six to eight. What
+    // grows it is the number of ORDERED ITEMS, at one query per fifty, never the
+    // number of rows rendered.
     const poItemRecordIds = visible.flatMap((po) => po.poItems || []);
     const poItems = await getPOItemsByRecordIds(poItemRecordIds);
 

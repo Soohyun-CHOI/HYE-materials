@@ -97,7 +97,7 @@ check("empty", isOurBlobUrl(""), false);
 // generatePOForApprovedPR, which writes the item axis as a side effect (#18), and
 // the item here even carries a Unit — but this PR has NO Vendor, so
 // refreshMaterialsCacheForPO returns `skippedAll: "no Vendor on the PR"` before
-// writing an identity row, a price row or a PO line's `Material` link. The run
+// writing an identity row, a price row or an ordered item's `Material` link. The run
 // log says so on every pass. Measured on the base: 0 Materials named
 // "#140 fixture item".
 const fixtures = createFixtures({

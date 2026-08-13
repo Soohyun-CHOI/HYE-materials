@@ -1,6 +1,6 @@
 // The delivery allocation rule (#162) — candidate set, order, split, over-delivery.
 //
-// Site staff never pick a PO line, so this rule is the whole of what a delivery
+// Site staff never pick an ordered item, so this rule is the whole of what a delivery
 // is recorded against, and there is no allocation-editing UI to fix a wrong
 // answer afterwards: a mistake is corrected by deleting the delivery and
 // entering it again. That is why every clause is pinned here rather than trusted
@@ -38,7 +38,7 @@ const OTHER_VENDOR = "recVendorB";
 const MATERIAL = "recMatPipe";
 const OTHER_MATERIAL = "recMatValve";
 
-/** A PO line in the shape lib/deliveryCandidates.js hands over. */
+/** An ordered item in the shape lib/deliveryCandidates.js hands over. */
 function line(over) {
     return {
         id: "recPOI-" + (over.poItemId || "x"),
@@ -184,7 +184,7 @@ export function run({ check, assert, log }) {
     check("three orders, three rows", three.rows.length, 3);
     check("filled oldest to newest", three.rows.map((r) => r.qty).join(","), "5,5,2");
 
-    // A partly delivered line contributes only its remainder.
+    // A partly delivered ordered item contributes only its remainder.
     const partlyDelivered = planDelivery({
         lines: [line({ poItemId: "a", qty: 10, deliveredQty: 7 })],
         vendorRecordId: VENDOR,
@@ -209,8 +209,8 @@ export function run({ check, assert, log }) {
     log("Over-delivery, case (b) — two orders in play: the excess names the LAST FILLED (#165):");
     // #162 left this row unattached, on the grounds that no single order had been
     // over-delivered. The cost was worse than the imprecision: an unlinked row is
-    // in no line's Delivered Qty, so a delivery that arrived in full read as less
-    // arrived than was billed.
+    // in no ordered item's Delivered Qty, so a delivery that arrived in full read
+    // as less arrived than was billed.
     const overTwo = planDelivery({ lines: two, vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 25 });
     check("three rows", overTwo.rows.length, 3);
     check("both orders filled", overTwo.rows.slice(0, 2).map((r) => r.qty).join(","), "10,10");
@@ -246,7 +246,8 @@ export function run({ check, assert, log }) {
     check("no candidates could absorb it", noneLeft.candidates.length, 0);
     assert("but the line was still narrowed to", noneLeft.narrowed.length === 1);
 
-    // Nothing of this material ordered from this vendor at all: no line to name.
+    // Nothing of this material ordered from this vendor at all: no ordered item
+    // to name.
     const nothingOrdered = planDelivery({
         lines: [line({ poItemId: "a", vendorRecordId: OTHER_VENDOR })],
         vendorRecordId: VENDOR,
@@ -276,11 +277,11 @@ export function run({ check, assert, log }) {
     );
     check("the excess names the narrowed order", narrowed.rows[1].line.poItemId, "old");
 
-    // One PO carrying two lines of the same material. #162 left this unattached —
-    // the PO was unambiguous but the line was not — and recorded only the PO-level
-    // fact on Deliveries.PO. #165 resolves it by fill order, which is why this
-    // feature no longer depends on a PO holding at most one line per material
-    // (and so does not wait on #170).
+    // One PO carrying two ordered items of the same material. #162 left this
+    // unattached — the PO was unambiguous but the ordered item was not — and
+    // recorded only the PO-level fact on Deliveries.PO. #165 resolves it by fill
+    // order, which is why this feature no longer depends on a PO holding at most
+    // one ordered item per material (and so does not wait on #170).
     const twoLinesOnePo = planDelivery({
         lines: [
             line({ poItemId: "HYE-PO-20260101-01-001", poRecordId: "recPO1", qty: 5 }),
@@ -299,7 +300,7 @@ export function run({ check, assert, log }) {
     log("");
     log("THE #165 INVARIANT — a plan is blocked, or every row it makes names a line:");
     // Stated over a spread of plans rather than asserted once per case, because
-    // this is the property the whole issue is: an unlinked row is in no line's
+    // this is the property the whole issue is: an unlinked row is in no ordered item's
     // Delivered Qty, so the delivery vanishes from the invoice axis.
     const everyPlan = [
         ["exact fill", exact],
@@ -325,7 +326,7 @@ export function run({ check, assert, log }) {
     log("");
     log("Blocked: a supplied PO that does not carry the item (#165):");
     // NOT reachable from the entry form — it builds its item options from the typed
-    // PO's own lines and resets the rows whenever the PO changes. Reachable at
+    // PO's own ordered items and resets the rows whenever the PO changes. Reachable at
     // SUBMIT, where createDeliveryAction re-runs this from a fresh read and a PO
     // may have been withdrawn in the meantime, and by a direct call on the action.
     // #162 wrote an unlinked row with blank frozen fields for this.
@@ -371,9 +372,10 @@ export function run({ check, assert, log }) {
         allFull.rows[0].line.poItemId,
         sortCandidates(allFull.narrowed).at(-1).poItemId
     );
-    // An undated line sorts last so a data gap cannot take FIFO priority, so the
-    // tail picks it. Coherent under the same reading — last to be filled, last to
-    // be blamed — and unreachable on this base, where every PO carries a date.
+    // An undated ordered item sorts last so a data gap cannot take FIFO priority,
+    // so the tail picks it. Coherent under the same reading — last to be filled,
+    // last to be blamed — and unreachable on this base, where every PO carries a
+    // date.
     const withUndated = planDelivery({
         lines: [...threeOrders, line({ poItemId: "z", poRecordId: "recPO9", poCreatedDate: null, qty: 5, deliveredQty: 5 })],
         vendorRecordId: VENDOR,
@@ -494,7 +496,8 @@ export function run({ check, assert, log }) {
     check("an unknown vendor offers nothing", buildItemOptions(optionPool, "recNobody").length, 0);
     check("an empty line list offers nothing", buildItemOptions([], VENDOR).length, 0);
     check("a missing line list does not throw", buildItemOptions(undefined, VENDOR).length, 0);
-    // An over-delivered line must not report a negative remainder to the screen.
+    // An over-delivered ordered item must not report a negative remainder to the
+    // screen.
     const overPool = [line({ poItemId: "o", qty: 5, deliveredQty: 9 })];
     check("an over-delivered line clamps undelivered at 0", buildItemOptions(overPool, VENDOR)[0].undelivered, 0);
 
@@ -652,13 +655,13 @@ export function run({ check, assert, log }) {
     // --- #206: THE RECOMPUTATION REPRODUCES #162'S CONTRACT ----------------
     //
     // NOT the allocation. planDelivery also decides WHICH ordered item an arrival
-    // attaches to, by FIFO across candidate lines, and the recomputation
-    // deliberately does not redo that — it works inside one line and moves only
-    // the within/over boundary. So what is asserted here is the contract, in
-    // quantities: the unflagged rows of a line sum to what was ordered, and the
-    // flagged rows sum to the excess. Row-for-row identity with a fresh
-    // allocation is NOT claimed and would be false, because an earlier delivery's
-    // freed room is not handed back to a later delivery's row.
+    // attaches to, by FIFO across candidate ordered items, and the recomputation
+    // deliberately does not redo that — it works inside one ordered item and
+    // moves only the within/over boundary. So what is asserted here is the
+    // contract, in quantities: the unflagged rows of an ordered item sum to what
+    // was ordered, and the flagged rows sum to the excess. Row-for-row identity
+    // with a fresh allocation is NOT claimed and would be false, because an
+    // earlier delivery's freed room is not handed back to a later delivery's row.
     log("");
     log("#206 — the recomputation restores #162's contract on every line:");
 
@@ -740,7 +743,7 @@ export function run({ check, assert, log }) {
 
         // The same two quantities a fresh allocation of the survivors would give.
         // Quantities only — the ROWS differ, deliberately, and asserting otherwise
-        // would be applying a standard to boundaries that line attribution does
+        // would be applying a standard to boundaries that ordered item attribution does
         // not use.
         const scratch = simulate(
             [line({ poItemId: sc.name + "-scratch", qty: sc.qty })],
@@ -767,7 +770,7 @@ export function run({ check, assert, log }) {
     // Order 10; 4 already inside, then a row of 8 that crosses. The record keeps
     // the within piece and the excess is the new row — never the other way round,
     // because a new row sorts LAST and putting the within piece there would leave
-    // the line reading within, over, within.
+    // the ordered item reading within, over, within.
     const crossing = recomputeOverDelivery({
         orderedQty: 10,
         rows: [
@@ -780,7 +783,7 @@ export function run({ check, assert, log }) {
     check("  and it stops being flagged", crossing.rows.find((r) => r.id === "b").overDelivered, false);
     check("  the excess becomes a new row", crossing.splits[0].qty, 2);
     check("  minted from the row that crossed", crossing.splits[0].fromRowId, "b");
-    // AT MOST ONE PER LINE, because every stored row has a positive Qty so the
+    // AT MOST ONE PER ORDERED ITEM, because every stored row has a positive Qty so the
     // running total crosses the ordered quantity exactly once.
     const many = recomputeOverDelivery({
         orderedQty: 10,
@@ -793,8 +796,8 @@ export function run({ check, assert, log }) {
     check("no rows, nothing to do", recomputeOverDelivery({ orderedQty: 10, rows: [] }).rows.length, 0);
     check("nullish does not throw", recomputeOverDelivery().rows.length, 0);
     check("  and splits nothing", recomputeOverDelivery().splits.length, 0);
-    // A zero-qty line has room for nothing, so its first row is already surplus —
-    // and is wholly surplus, so there is nothing to split.
+    // A zero-qty ordered item has room for nothing, so its first row is already
+    // surplus — and is wholly surplus, so there is nothing to split.
     const noOrder = recomputeOverDelivery({ orderedQty: 0, rows: [{ id: "z", deliveryItemId: "x", qty: 1 }] });
     check("an order of nothing flags its first row", noOrder.rows[0].overDelivered, true);
     check("  without splitting it", noOrder.splits.length, 0);

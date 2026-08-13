@@ -18,8 +18,8 @@ import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 
 /**
  * The item's printed name, for a refusal that has to say which item it means.
- * Any line for the material will do — they all carry the same frozen copies —
- * and a material with no line at all is named only by its record id, which is
+ * Any ordered item for the material will do — they all carry the same frozen copies —
+ * and a material with no ordered item at all is named only by its record id, which is
  * no use in a message, so it falls back to the generic wording (#165).
  */
 function itemLabelFor(lines, materialRecordId) {
@@ -29,11 +29,11 @@ function itemLabelFor(lines, materialRecordId) {
 
 /**
  * Record one arrival: a Delivery header plus one Delivery Item per allocated PO
- * line, and one more for any quantity no order could absorb.
+ * ordered item, and one more for any quantity no order could absorb.
  *
  * THE ALLOCATION IS RE-RUN HERE FROM A FRESH READ. The form draws a preview with
  * the same planDelivery, but a Server Action is directly callable and a PO can be
- * withdrawn, or another delivery recorded against the same line, while the form
+ * withdrawn, or another delivery recorded against the same ordered item, while the form
  * sits open. The client's plan is display only and is never trusted — the same
  * posture as the invoice form's PO detection, which advises while
  * createInvoiceAction re-checks.
@@ -78,7 +78,7 @@ export async function createDeliveryAction(prevState, formData) {
     }
 
     // TWO ROWS OF ONE MATERIAL ARE SUMMED, not planned twice. Allocation runs
-    // against a single snapshot of the candidate lines, so planning the same
+    // against a single snapshot of the candidate ordered items, so planning the same
     // material twice would let both plans claim the same undelivered quantity and
     // double-allocate. Summing first is also what the recorder meant: two pallets
     // of the same item on one packing list is one arrival of their total.
@@ -129,16 +129,16 @@ export async function createDeliveryAction(prevState, formData) {
         invoiceToPair = checked.invoice;
     }
 
-    // Re-read this ONE job's lines. The form was handed every accessible job's
-    // lines at once; the action needs only the submitted one, and reading it fresh
-    // is the point — a PO can be withdrawn, or another arrival recorded against
-    // the same line, while the form sits open.
+    // Re-read this ONE job's ordered items. The form was handed every accessible
+    // job's ordered items at once; the action needs only the submitted one, and
+    // reading it fresh is the point — a PO can be withdrawn, or another arrival
+    // recorded against the same ordered item, while the form sits open.
     const job = await getJobByRecordId(jobRecordId).catch(() => null);
     if (!job) return { error: "That job no longer exists." };
     const candidates = await getDeliveryCandidates([job]);
 
     // ONE PLAN PER MATERIAL, each against the same snapshot. Different materials
-    // never compete for the same PO line, so planning them independently is
+    // never compete for the same ordered item, so planning them independently is
     // correct; the same material appearing twice was already summed above, which
     // is what makes that true.
     const plans = [];
@@ -154,11 +154,12 @@ export async function createDeliveryAction(prevState, formData) {
             poRecordId: po?.id ?? null,
             qty,
         });
-        // Issue #165 — a blocked plan has no line to attach anything to, and every
-        // row must name one, so nothing is recorded and the reason is shown. The
-        // reachable case is a packing list naming a PO that does not carry the
-        // item picked: the dropdown is narrowed by vendor, not by the typed PO.
-        // Overriding the document would be worse than asking for a correction.
+        // Issue #165 — a blocked plan has no ordered item to attach anything to,
+        // and every row must name one, so nothing is recorded and the reason is
+        // shown. The reachable case is a packing list naming a PO that does not
+        // carry the item picked: the dropdown is narrowed by vendor, not by the
+        // typed PO. Overriding the document would be worse than asking for a
+        // correction.
         if (plan.blocked) {
             const label = itemLabelFor(candidates.lines, material);
             return {
@@ -168,7 +169,7 @@ export async function createDeliveryAction(prevState, formData) {
         if (plan.rows.length === 0) {
             // planDelivery only returns no rows for a non-positive quantity, which
             // is already refused above. Guarding anyway rather than creating a
-            // header with no lines, which nothing downstream expects.
+            // header with no delivery items, which nothing downstream expects.
             return { error: "Nothing to record — check the quantities." };
         }
         plans.push({ materialRecordId: material, plan });
@@ -195,11 +196,12 @@ export async function createDeliveryAction(prevState, formData) {
         // expects — which is what lets groupRowsByItem present them by entry.
         for (const { materialRecordId, plan } of plans) {
             for (const row of plan.rows) {
-                // Issue #165 — every row names a line, including the over-delivery
-                // one, so the frozen reference copies always come from the PO line
-                // itself. The old fallback-to-any-narrowed-line is gone with the
-                // unattached row it existed for; a plan that could not attach is
-                // blocked above rather than written with a null link.
+                // Issue #165 — every row names an ordered item, including the
+                // over-delivery one, so the frozen reference copies always come
+                // from the ordered item itself. The old
+                // fallback-to-any-narrowed-item is gone with the unattached row it
+                // existed for; a plan that could not attach is blocked above
+                // rather than written with a null link.
                 const created = await createDeliveryItem({
                     deliveryRecordId: delivery.id,
                     deliveryId: delivery.deliveryId,

@@ -114,7 +114,7 @@ export function run({ check, log, assert }) {
     log("an excess larger than the oldest bill spans two invoices — out of scope:");
     // The reason is the QUOTATION, not the arithmetic: two invoices means two files
     // and a PR takes one. Under oldest-first that condition is exactly "the oldest
-    // bill's line is smaller than the excess", so it needs no rule of its own.
+    // bill's invoice item is smaller than the excess", so it needs no rule of its own.
     const spans = overageEligibility({
         row: row({ qty: 5 }),
         bills: [bill("01", 3, "2026-07-01"), bill("02", 12, "2026-07-05")],
@@ -147,7 +147,7 @@ export function run({ check, log, assert }) {
     log("TWO BILLS IS THE WHOLE CONDITION — #166's determinacy does not transfer:");
     // allocateLineToInvoices calls a delivery covering EVERY bill determinate,
     // because there the question is whether a bill was covered. Here the question is
-    // which bill's line the excess sits in, and full coverage leaves that open.
+    // which bill's invoice item the excess sits in, and full coverage leaves that open.
     const covered = [bill("01", 10, "2026-07-01"), bill("02", 10, "2026-07-02")];
     check("two bills, both fully covered, still infers", selectOverageBill(covered, 2).inferred, true);
     assert(

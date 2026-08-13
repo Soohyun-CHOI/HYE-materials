@@ -11,13 +11,13 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 // unset" from "deliberately Other (free text)", both of which otherwise
 // collapse to poItemRecordId: "". unitPriceEditing: whether the Unit
 // Price lock (#57) is currently open for a linked PO Item; irrelevant
-// (and ignored) once poItemRecordId is empty, since free-text lines were
+// (and ignored) once poItemRecordId is empty, since free-text invoice items were
 // never locked to begin with.
 const EMPTY_ITEM = {
     itemName: "",
     // Issue #84 — frozen copies from the linked PO Item, same as itemName/
     // unitPrice: never manually entered, never editable. Blank for a
-    // free-text "Other" line, since there's no PO Item to copy from.
+    // free-text "Other" invoice item, since there's no PO Item to copy from.
     size: "",
     unit: "",
     qty: "",
@@ -47,21 +47,21 @@ function sortByUninvoiced(poItems) {
     });
 }
 
-// Issue #57 — the one place that decides whether a line gets defaulted to
+// Issue #57 — the one place that decides whether an invoice item gets defaulted to
 // its PO's first (Uninvoiced-sorted) item. Pure function of (item, cache)
 // rather than a setItems side effect, so it's usable both the moment a
-// line's poRecordId is first assigned/changed (addItem, updateItem,
+// invoice item's poRecordId is first assigned/changed (addItem, updateItem,
 // replacePoSlots — cases where that PO's items may *already* be cached
 // from earlier in the session) and again later when a fetch that was
 // still in flight at that moment finishes (applyDefaultPoItemSelection).
-// Never touches a line once poItemTouched is true, or one with no PO / //
+// Never touches an invoice item once poItemTouched is true, or one with no PO / //
 // whose PO's items aren't loaded yet.
 // Issue #91 — usedElsewhere (a Set of PO Item record IDs already claimed
-// by sibling lines) is now honored here too, not just in the rendered
-// dropdown: without this, auto-defaulting a second untouched line pointed
+// by sibling invoice items) is now honored here too, not just in the rendered
+// dropdown: without this, auto-defaulting a second untouched invoice item pointed
 // at the same PO would silently pick the exact same "first" item the
-// first line already got, resurfacing the bug the dropdown filter alone
-// doesn't cover. Falls back to the line as-is if every item for this PO
+// first invoice item already got, resurfacing the bug the dropdown filter alone
+// doesn't cover. Falls back to the invoice item as-is if every item for this PO
 // is already claimed elsewhere.
 function defaultedItem(item, cache, usedElsewhere = new Set()) {
     if (item.poItemTouched || !item.poRecordId) return item;
@@ -79,18 +79,18 @@ function defaultedItem(item, cache, usedElsewhere = new Set()) {
     };
 }
 
-// Issue #91 — applies defaultedItem across a whole list of lines in
-// order, so a line's auto-default takes into account whatever the ones
+// Issue #91 — applies defaultedItem across a whole list of invoice items in
+// order, so an invoice item's auto-default takes into account whatever the ones
 // before it in the same pass just claimed (rather than each computing its
 // default in isolation and possibly colliding on the same PO Item). Must
-// stay idempotent — safe to run more than once over lines that are
+// stay idempotent — safe to run more than once over invoice items that are
 // already (auto-)defaulted, not just ones still blank — since
 // poItemTouched never becomes true from an auto-default alone, so a
-// second pass over the same lines is always possible (e.g. a duplicate
-// fetch resolving twice). Each line's own current poItemRecordId is
+// second pass over the same invoice items is always possible (e.g. a duplicate
+// fetch resolving twice). Each invoice item's own current poItemRecordId is
 // excluded from what counts as "used by a sibling" while computing its
 // own default — otherwise re-running this over an already-correctly-
-// defaulted line would see that line's own pick reflected in `used` and
+// defaulted invoice item would see that invoice item's own pick reflected in `used` and
 // bump it to the next item instead of leaving it alone.
 function applyDefaultsAcrossItems(itemsList, cache) {
     const used = new Set();
@@ -107,9 +107,9 @@ function applyDefaultsAcrossItems(itemsList, cache) {
     });
 }
 
-// Issue #91 — PO Item IDs already claimed by every line except the one at
-// exceptIndex (pass -1 for "none", e.g. a brand-new line not in the list
-// yet) — what a single line's own default/selection must avoid colliding
+// Issue #91 — PO Item IDs already claimed by every invoice item except the one at
+// exceptIndex (pass -1 for "none", e.g. a brand-new invoice item not in the list
+// yet) — what a single invoice item's own default/selection must avoid colliding
 // with.
 function usedElsewhereIds(itemsList, exceptIndex) {
     return new Set(
@@ -558,12 +558,12 @@ export default function InvoiceForm({ vendors, pos }) {
         }
     }
 
-    // Issue #57 — once a PO's items finish loading, any line still pointing
+    // Issue #57 — once a PO's items finish loading, any invoice item still pointing
     // at that PO with poItemTouched still false gets defaulted to the
     // first item in Uninvoiced-sorted order — a UI affordance making clear
     // the dropdown is the primary path, not a guess at the correct item.
     // Thin wrapper around defaultedItem: builds a one-PO cache override so
-    // it only ever touches lines pointing at this poRecordId, using data
+    // it only ever touches invoice items pointing at this poRecordId, using data
     // that (per the caller, fetchPoItems) isn't in poItemsCache state yet.
     function applyDefaultPoItemSelection(poRecordId, sortedItems) {
         if (sortedItems.length === 0) return;
@@ -745,8 +745,8 @@ export default function InvoiceForm({ vendors, pos }) {
         // earlier in the session, in which case there's no fetch here to
         // trigger applyDefaultPoItemSelection later — this is the only
         // chance to default it.
-        // Issue #91 — excludes whatever every existing line already has
-        // selected, so a fresh "+ Add item" line never auto-defaults to a
+        // Issue #91 — excludes whatever every existing invoice item already has
+        // selected, so a fresh "+ Add item" invoice item never auto-defaults to a
         // PO Item that's already on the invoice.
         setItems((prev) => {
             const fresh = { ...EMPTY_ITEM, poRecordId: selectedPoIds[0] || "" };
@@ -764,7 +764,7 @@ export default function InvoiceForm({ vendors, pos }) {
             return prev.map((item, i) => {
                 if (i !== index) return item;
                 if (field === "poRecordId") {
-                    // Issue #51 — a PO Item picked under the line's previous
+                    // Issue #51 — a PO Item picked under the invoice item's previous
                     // PO almost certainly doesn't belong to the new one
                     // (same reasoning as handleVendorChange clearing PO
                     // selection above). Item Name is left as-is rather than
@@ -775,7 +775,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     // might already be cached (e.g. switching back to a PO
                     // used earlier on this same invoice), in which case
                     // there's no fetch here to trigger the default later.
-                    // Issue #91 — used excludes sibling lines' PO Items, so
+                    // Issue #91 — used excludes sibling invoice items' PO Items, so
                     // this never re-defaults onto one already claimed.
                     return defaultedItem(
                         {
@@ -794,7 +794,7 @@ export default function InvoiceForm({ vendors, pos }) {
         });
     }
 
-    // Issue #51 — the single sync point for a line's PO Item choice.
+    // Issue #51 — the single sync point for an invoice item's PO Item choice.
     // Selecting a real PO Item copies its name (and, per #57, its
     // Unit Price, freshly re-locked, plus per #84, its Size/Unit) in;
     // selecting empty means "Other (free text)", which also clears
@@ -1123,15 +1123,15 @@ export default function InvoiceForm({ vendors, pos }) {
                         // to it, so there's no real choice left to show.
                         const showPoPicker = selectedPoIds.length >= 2;
                         // Issue #51 — the PO Item dropdown can't be scoped
-                        // until the line actually has a PO (either forced
+                        // until the invoice item actually has a PO (either forced
                         // by the header's single-PO case, or picked via
                         // showPoPicker above); until then this falls back
                         // to the old plain free-text input.
                         const poItemsEntry = item.poRecordId ? poItemsCache[item.poRecordId] : null;
                         const poItemOptions = poItemsEntry?.items || [];
-                        // Issue #91 — once a PO Item is picked on one line,
-                        // it shouldn't still be pickable on another line of
-                        // the same invoice. Always keeps this line's own
+                        // Issue #91 — once a PO Item is picked on one invoice item,
+                        // it shouldn't still be pickable on another invoice item of
+                        // the same invoice. Always keeps this invoice item's own
                         // current selection available regardless — same
                         // "selected value needs a matching <option>"
                         // concern as posList's own comment above.
@@ -1140,7 +1140,7 @@ export default function InvoiceForm({ vendors, pos }) {
                             (poItem) => poItem.id === item.poItemRecordId || !usedElsewhere.has(poItem.id)
                         );
                         // Issue #57 — only meaningful once a real PO Item is
-                        // linked; "Other" lines have nothing to compare
+                        // linked; "Other" invoice items have nothing to compare
                         // against, so neither the Unit Price lock nor the
                         // Qty warning ever applies to them.
                         const linkedPoItem = item.poItemRecordId

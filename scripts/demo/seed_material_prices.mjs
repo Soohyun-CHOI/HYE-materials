@@ -1,13 +1,13 @@
 // Dummy purchase history for the #19 material price screens, from PR all the
 // way through to Materials / Material Prices.
 //
-// WHY THIS EXISTS. `PO Items.Material` — the link that puts a line on the item
-// axis — is written by lib/materialsCache.js at PO-GENERATION time, and that
-// code arrived in #18. Every PO Item created before then therefore has no link,
-// which is not a failure and not something to repair: those lines simply predate
-// the writer. So /materials starts out empty on this base even though PO Items
-// is not, and the only way to see the screens with data is to put a PR through
-// the real flow. That is what this does.
+// WHY THIS EXISTS. `PO Items.Material` — the link that puts an ordered item on
+// the item axis — is written by lib/materialsCache.js at PO-GENERATION time, and
+// that code arrived in #18. Every PO Item created before then therefore has no
+// link, which is not a failure and not something to repair: those ordered items
+// simply predate the writer. So /materials starts out empty on this base even
+// though PO Items is not, and the only way to see the screens with data is to
+// put a PR through the real flow. That is what this does.
 //
 // Import-not-sync, same convention as seed_demo_fixtures.mjs: keyed on the item
 // names below, so re-running skips what already exists rather than piling up
@@ -16,7 +16,7 @@
 //
 // Everything goes through production functions (createPR -> createItem ->
 // updatePR -> generatePOForApprovedPR), so Materials, Material Prices and the
-// per-line Material links are written by the real cache, not by this script.
+// per-item Material links are written by the real cache, not by this script.
 // Two exceptions, both deliberate and both marked below: the PO statuses, and
 // the backdating.
 //

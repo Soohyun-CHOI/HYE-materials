@@ -9,7 +9,7 @@ import { deleteDeliveryAction } from "./actions";
  *
  * `title` and `body` are resolved on the SERVER by
  * lib/deliveryDelete.js:resolveDeleteCopy and passed in as plain strings — the
- * three voices branch on whether the affected PO lines are invoiced and whether
+ * three voices branch on whether the affected ordered items are invoiced and whether
  * their invoice is paid, which needs Airtable reads, and functions cannot cross
  * the server/client boundary anyway. Keeping the branch there means this
  * component never decides what the deletion means.

@@ -13,7 +13,7 @@
 //
 // The orders go through the REAL approve-and-generate flow, not hand-created PO
 // Items, for the same reason seed_over_delivery_165.mjs does: PO generation is what
-// writes each line's `Material` link (#18), and both allocation and the overage
+// writes each ordered item's `Material` link (#18), and both allocation and the overage
 // apply step match on that link and never on `Item Name` text. A hand-made PO Item
 // would be invisible to the whole feature.
 //

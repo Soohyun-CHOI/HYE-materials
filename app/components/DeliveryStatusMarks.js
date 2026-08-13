@@ -30,8 +30,8 @@ const TONE_CLASS = {
  * One status chip — a closed set of values, the way an Airtable single select is.
  *
  * `absent` is deliberately NOT a chip. It means the comparison was never made
- * (every line was free text), and dressing "we did not measure" as a value would
- * put it in the same set as the three that are measurements.
+ * (every invoice item was free text), and dressing "we did not measure" as a
+ * value would put it in the same set as the three that are measurements.
  */
 export function StatusChip({ chip }) {
     if (!chip) return <span className="text-zinc-500">—</span>;

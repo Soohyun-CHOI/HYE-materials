@@ -14,10 +14,10 @@
 //
 // WHAT A PASS DOES NOT PROVE. That the figures handed to lineStatus were the right
 // ones. This file pins what the rule does with four numbers; whether `invoicedQty`
-// really came from the ordered item's rollup rather than one invoice's own lines,
-// whether the two delivered figures were split on `Over Delivered`, and whether
-// `arrived` really came from the shipment the invoice NAMES, are properties of
-// lib/deliveryReconciliation.js and are measured credentialed.
+// really came from the ordered item's rollup rather than one invoice's own invoice
+// items, whether the two delivered figures were split on `Over Delivered`, and
+// whether `arrived` really came from the shipment the invoice NAMES, are
+// properties of lib/deliveryReconciliation.js and are measured credentialed.
 
 import {
     AWAITING_INVOICE_COPY,
@@ -204,8 +204,8 @@ export function run({ check, log, assert }) {
         "  and no dash either — the chip no longer depends on there being a line to judge",
         !("no-ordered-items" in STATUS_COPY.column.invoice)
     );
-    // An invoice with no judgeable line still has an answer, which is why the dash
-    // became unreachable rather than merely unwanted.
+    // An invoice with no judgeable invoice item still has an answer, which is why
+    // the dash became unreachable rather than merely unwanted.
     check(
         "every line free text, shipment named, still reads Delivered",
         summarizeInvoiceStatus({ lines: [], hasDelivery: true, excludedCount: 3 }).key,
@@ -221,7 +221,7 @@ export function run({ check, log, assert }) {
     check("  and the chip is unchanged by that", summarizeInvoiceStatus({ lines: [partShare], hasDelivery: true }).key, "delivered");
     check("one short line among covered ones is enough", summarizeInvoiceStatus({ lines: [covered, partShare], hasDelivery: true }).mismatch, true);
     check("  and it reports how many were covered", summarizeInvoiceStatus({ lines: [covered, partShare], hasDelivery: true }).covered, 1);
-    // NO MARKER WITHOUT A LINK. Every line of an unpaired invoice is trivially
+    // NO MARKER WITHOUT A LINK. Every invoice item of an unpaired invoice is trivially
     // short, so marking them would put a discrepancy on every invoice the vendor has
     // emailed ahead of the material — which is most of them.
     check("nothing linked shows no marker, though every line is short", unpaired.mismatch, false);
@@ -352,7 +352,7 @@ export function run({ check, log, assert }) {
     check("both empty states too", STATUS_COPY.column.invoice["awaiting-delivery"]().tone, STATUS_COPY.column.delivery["awaiting-invoice"]().tone);
     // `absent` is not a value of the set — it is the absence of one. Only the
     // delivery axis still has one, since the invoice chip no longer depends on
-    // having a line to judge.
+    // having an invoice item to judge.
     check("and the dash is not dressed as a value", STATUS_COPY.column.delivery["no-ordered-items"]().tone, "absent");
     assert("every chip's key names its own text", everyChip.every((c) => c.key && c.text));
 
@@ -423,10 +423,10 @@ export function run({ check, log, assert }) {
             !everySentence.some((t) => t.toLowerCase().includes(forbidden))
         );
     }
-    assert(
-        'no message calls an ordered item a "line"',
-        !everySentence.some((t) => /\bline(s)?\b/i.test(t))
-    );
+    // The `line` half of this moved to offline/line-vocabulary.mjs (#227),
+    // which bars the word across EVERY `*_COPY` constant rather than only
+    // #166's. Two implementations of one rule is what this repo removes; what
+    // stays here is #166's own vocabulary, which that check does not own.
     assert(
         "the shortfall message says 'more billed than delivered'",
         STATUS_COPY.detail.verdict["billed-more"](short, "EA").text.includes("more billed than delivered")
@@ -551,8 +551,9 @@ export function run({ check, log, assert }) {
     check("part delivered is not complete", poLineDelivery(poLine(10, 4)).complete, false);
     check("but does report a delivery", poLineDelivery(poLine(10, 4)).anyDelivered, true);
     check("exactly the ordered quantity IS complete", poLineDelivery(poLine(10, 10)).complete, true);
-    // Over-delivery clears the line rather than overshooting into a state of its
-    // own. The within/beyond split #166 needs is exactly what this axis does not.
+    // Over-delivery clears the ordered item rather than overshooting into a state
+    // of its own. The within/beyond split #166 needs is exactly what this axis
+    // does not.
     check("more than ordered is complete too", poLineDelivery(poLine(10, 13)).complete, true);
     check("a blank rollup reads as nothing delivered", poLineDelivery({ orderedQty: 10, committedQty: 10 }).delivered, 0);
     check("nullish input does not throw", poLineDelivery().complete, true);
@@ -582,13 +583,13 @@ export function run({ check, log, assert }) {
 
     log("");
     log("withdrawn orders fall out through countsAsOrdered, not a status string:");
-    // A withdrawn PO's every line has Committed Qty 0 (#18's formula), so the
+    // A withdrawn PO's every ordered item has Committed Qty 0 (#18's formula), so the
     // judged set empties and the chip is the dash.
     const withdrawn = [poLine(10, 10, 0), poLine(5, 0, 0)];
     check("a withdrawn order reports nothing-ordered", summary(withdrawn), "nothing-ordered");
     // ANTI-VACUITY #1. The assertion above also passes if the summarizer ignored
     // its input, returned the dash for everything, or received an empty array. The
-    // SAME lines with a live Committed Qty must therefore reach a different
+    // SAME ordered items with a live Committed Qty must therefore reach a different
     // answer — that is what shows countsAsOrdered is the thing doing the work.
     check(
         "the same lines with a live Committed Qty do NOT",
@@ -684,11 +685,11 @@ export function run({ check, log, assert }) {
     assert("`CONTAINMENT_PREMISE` is gone with it", !("CONTAINMENT_PREMISE" in deliveryStatus));
 
     // THE TWO THAT MUST SURVIVE, and they look exactly like the list above. #167's
-    // `selectOverageBill` asks a different question — which bill's line carries an
-    // over-delivered excess — and still infers, because reading that off the stored
-    // pairing needs its `spansInvoices` refusal rethought and is #210's stated
-    // non-goal. Deleting either breaks the overage flow, and nothing in this module
-    // reads either, so a tidy-up would.
+    // `selectOverageBill` asks a different question — which bill's invoice item
+    // carries an over-delivered excess — and still infers, because reading that off
+    // the stored pairing needs its `spansInvoices` refusal rethought and is #210's
+    // stated non-goal. Deleting either breaks the overage flow, and nothing in this
+    // module reads either, so a tidy-up would.
     assert("`sortInvoicesOldestFirst` is still exported, for #167", typeof deliveryStatus.sortInvoicesOldestFirst === "function");
     assert("`INFERRED_PREMISE` is still exported, for #167", typeof deliveryStatus.INFERRED_PREMISE === "string");
     assert("  and it is not empty", deliveryStatus.INFERRED_PREMISE.length > 0);

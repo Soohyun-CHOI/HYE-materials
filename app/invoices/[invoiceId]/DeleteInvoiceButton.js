@@ -53,7 +53,7 @@ export default function DeleteInvoiceButton({ invoiceId }) {
                     >
                         <h2 className="text-lg font-semibold">Delete this invoice?</h2>
                         <p className="mt-2 text-sm text-zinc-600">
-                            {invoiceId} and its line items will be permanently deleted. The linked
+                            {invoiceId} and its invoice items will be permanently deleted. The linked
                             purchase order(s) are not affected. This can&apos;t be undone.
                         </p>
                         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

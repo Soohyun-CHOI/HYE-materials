@@ -7,9 +7,9 @@
 //   A — the schema exists and is wired as the code assumes, including the fifth
 //       Unit option list, which no file-only check can see.
 //   B — `PO Items."Delivered Qty"` on the FIRST READ after a Delivery Item is
-//       created. Allocation subtracts this from Qty to decide what a line can
+//       created. Allocation subtracts this from Qty to decide what an ordered item can
 //       still absorb, so a lagging value would over-allocate the NEXT arrival to
-//       a line that is already full. Measured the way
+//       an ordered item that is already full. Measured the way
 //       verify-materials-cache-18.mjs measures `Invoiced Qty`, and for the same
 //       reason: the caller reads it immediately after the write that feeds it.
 //       This is also the only place the rollup's AGGREGATION FUNCTION is proved —
@@ -17,17 +17,17 @@
 //       indistinguishable from the schema alone and only distinguishable from a
 //       value (12 + 8 = 20, not 2).
 //   C — one entered quantity spanning two POs becomes two rows that roll up
-//       correctly to two different lines, which is the whole reason the split is
-//       structural rather than cosmetic.
+//       correctly to two different ordered items, which is the whole reason the
+//       split is structural rather than cosmetic.
 //   D — over-delivery: flagged, its own row, and ATTACHED (#165) — to the last
-//       line the arrival filled, even with two orders in play, where #162 left it
-//       unlinked and therefore invisible on the invoice axis. Also that the
-//       attached line's `Delivered Qty` then EXCEEDS its ordered `Qty`, which is
-//       the intended shape rather than a defect.
-//   E — a withdrawn PO's line is not a candidate, read through Committed Qty; and
-//       with nothing left to attach to, the plan is BLOCKED rather than writing an
-//       unlinked row (#165), which is the action finally refusing the same set the
-//       item dropdown already refused.
+//       ordered item the arrival filled, even with two orders in play, where
+//       #162 left it unlinked and therefore invisible on the invoice axis. Also
+//       that the attached ordered item's `Delivered Qty` then EXCEEDS its
+//       ordered `Qty`, which is the intended shape rather than a defect.
+//   E — a withdrawn PO's ordered item is not a candidate, read through Committed
+//       Qty; and with nothing left to attach to, the plan is BLOCKED rather
+//       than writing an unlinked row (#165), which is the action finally
+//       refusing the same set the item dropdown already refused.
 //   F — deletion returns Delivered Qty to where it was, and touches no invoice.
 //   G — one delivery holding several items: planned per material, read back and
 //       collapsed to items again, with the over-delivered one flagged.
@@ -146,7 +146,7 @@ console.log("=".repeat(72));
 const fixtures = createFixtures({
     tag: "V162",
     buckets: [
-        // Frozen `Item Name` copied from the tagged PO line, so the tag reaches
+        // Frozen `Item Name` copied from the tagged ordered item, so the tag reaches
         // every row.
         { name: "deliveryItems", table: TABLES.DELIVERY_ITEMS, label: "Delivery Item", tagField: "Item Name" },
         {
@@ -428,8 +428,8 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         });
         track("deliveryItems", di.id);
     }
-    // The correctness point: two rows roll up to two DIFFERENT lines. A single row
-    // linking both would have contributed its full Qty to each.
+    // The correctness point: two rows roll up to two DIFFERENT ordered items. A
+    // single row linking both would have contributed its full Qty to each.
     check("the first order is now fully delivered", await getDeliveredQtyForPOItem(plan.rows[0].line.id), 10);
     check("the second holds only its own share", await getDeliveredQtyForPOItem(plan.rows[1].line.id), 5);
 
@@ -445,10 +445,11 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("5 undelivered absorbed, 7 over", overPlan.over, 7);
     check("the excess is its own row", overPlan.rows.length, 2);
     check("and the flagged row's qty IS the excess", overPlan.rows[1].qty, overPlan.over);
-    // THE #165 SCENARIO, on real records: two candidate lines, an over-delivery,
-    // and the flagged row attaches to the LAST ONE FILLED rather than to nothing.
-    // #162 left it unattached here, which put the quantity in no line's rollup and
-    // made a delivery that arrived in full read as less arrived than was billed.
+    // THE #165 SCENARIO, on real records: two candidate ordered items, an
+    // over-delivery, and the flagged row attaches to the LAST ONE FILLED rather
+    // than to nothing. #162 left it unattached here, which put the quantity in no
+    // ordered item's rollup and made a delivery that arrived in full read as less
+    // arrived than was billed.
     check("two lines were narrowed to", overPlan.narrowed.length, 2);
     assert("and the flagged row names one of them", overPlan.rows[1].line !== null);
     check(
@@ -483,13 +484,14 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         d3Items.every((i) => i.poItem.length === 1)
     );
 
-    // THE POINT OF ATTACHING: the quantity now reaches a line's rollup, so the
+    // THE POINT OF ATTACHING: the quantity now reaches an ordered item's rollup, so the
     // arrival is visible on the invoice axis. Delivered Qty deliberately EXCEEDS
     // the ordered Qty — that is the shape #162 already asserts and #165 keeps.
     const attachedLine = overPlan.rows[1].line;
-    // Measured as a DELTA, not an absolute: this line already carried 5 from the
-    // split in Part C, so the property is that both of this delivery's slices
-    // reached it — the fill and the excess — not that the rollup equals 12.
+    // Measured as a DELTA, not an absolute: this ordered item already carried 5
+    // from the split in Part C, so the property is that both of this delivery's
+    // slices reached it — the fill and the excess — not that the rollup equals
+    // 12.
     const rolledBefore = attachedLine.deliveredQty || 0;
     const expected = rolledBefore + 12;
     const rolled = await waitFor(
@@ -506,8 +508,8 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         `Delivered Qty (${rolled.value}) EXCEEDS the ordered Qty (${attachedAfter.qty}) — intended, not a defect`,
         rolled.value > attachedAfter.qty
     );
-    // And the whole entered quantity is now reachable by summing the lines, which
-    // is what an unlinked row broke.
+    // And the whole entered quantity is now reachable by summing the ordered
+    // items, which is what an unlinked row broke.
     const d3Total = d3Items.reduce((sum, i) => sum + (i.qty || 0), 0);
     check("every unit entered reached a line", d3Total, 12);
 
@@ -536,12 +538,12 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         qty: 3,
     });
     check("it is no longer narrowed to", valvePlan.narrowed.length, 0);
-    // #165 — with nothing narrowed there is no line to attach to, and no row may
-    // be written without one, so the plan is BLOCKED rather than recorded as an
-    // unattributable over-delivery. That is a behavior change from #162, and it
-    // makes the action agree with the form for the first time: the item was
-    // already absent from the dropdown (asserted below), so #162's unattached row
-    // was only ever reachable by calling the Server Action directly.
+    // #165 — with nothing narrowed there is no ordered item to attach to, and no
+    // row may be written without one, so the plan is BLOCKED rather than recorded
+    // as an unattributable over-delivery. That is a behavior change from #162,
+    // and it makes the action agree with the form for the first time: the item
+    // was already absent from the dropdown (asserted below), so #162's unattached
+    // row was only ever reachable by calling the Server Action directly.
     check("nothing is planned", valvePlan.rows.length, 0);
     check("and the plan says why", valvePlan.blocked, BLOCKED.notOrdered);
     check("no over-delivery is claimed either, since nothing is recorded", valvePlan.over, 0);
@@ -588,7 +590,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     console.log("\nPart G — one delivery, several items:");
     // The production shape since the form grew repeating item rows: two materials
     // on one packing list, planned independently because they never compete for
-    // the same PO line, then read back and collapsed to items again.
+    // the same ordered item, then read back and collapsed to items again.
     const multiItemName = `${TAG} Bolt`;
     const po4 = await makeOrder({
         requester, vendor: vendorA, line,
@@ -645,12 +647,12 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     const boltGroup = grouped.find((g) => g.itemName === multiItemName);
     check("the bolt's quantity is the full 60 across its slices", boltGroup.qty, 60);
     check("  and it is flagged", boltGroup.over, true);
-    // 60 arrived against 50 ordered and the narrowed set held exactly ONE line, so
-    // the over-delivery row attaches to it — which means the line's rollup reads
-    // 60, EXCEEDING its Qty of 50. That is the intended shape, not a leak: an
-    // attached over-delivery is how the PO axis shows more arrived than was
-    // ordered, and it is what makes the line stop being a candidate (undelivered
-    // goes negative, so hasUndeliveredQty is false).
+    // 60 arrived against 50 ordered and the narrowed set held exactly ONE ordered
+    // item, so the over-delivery row attaches to it — which means the ordered
+    // item's rollup reads 60, EXCEEDING its Qty of 50. That is the intended shape,
+    // not a leak: an attached over-delivery is how the PO axis shows more arrived
+    // than was ordered, and it is what makes the ordered item stop being a
+    // candidate (undelivered goes negative, so hasUndeliveredQty is false).
     const boltDelivered = await getDeliveredQtyForPOItem(boltLines[0].id);
     check("the attached over-delivery pushes the line's rollup past its Qty", boltDelivered, 60);
     assert("delivered now exceeds ordered on that line", boltDelivered > boltLines[0].qty);

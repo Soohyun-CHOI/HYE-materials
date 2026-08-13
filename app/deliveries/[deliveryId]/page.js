@@ -36,17 +36,17 @@ const DONE_MESSAGES = {
  * One recorded arrival (#162).
  *
  * Laid out like app/invoices/[invoiceId] — id and actions in the header, the
- * headline figure in its own box, then the detail rows, the lines, and the
+ * headline figure in its own box, then the detail rows, the delivery items, and the
  * destructive control alone at the foot behind a rule. Editing is its own page
  * rather than a form on this one, so this page reads as the record and the edit
  * page is where you go to change it.
  *
  * NO PER-ROW IDENTIFIER GATE, unlike #19's price screens, and the reason is that
- * the page gate already subsumes it. Allocation only ever picks lines from POs on
- * THIS delivery's Job, and canViewPR clause 4 admits anyone assigned to a PR's
- * Job — so a viewer who passes canAccessJobDeliveries here would pass canViewPR
- * for every PR behind every row. A second gate would re-derive the same answer
- * and could drift from it.
+ * the page gate already subsumes it. Allocation only ever picks ordered items
+ * from POs on THIS delivery's Job, and canViewPR clause 4 admits anyone assigned
+ * to a PR's Job — so a viewer who passes canAccessJobDeliveries here would pass
+ * canViewPR for every PR behind every row. A second gate would re-derive the same
+ * answer and could drift from it.
  */
 export default async function DeliveryDetailPage({ params, searchParams }) {
     const user = await requireUser();
@@ -70,7 +70,7 @@ export default async function DeliveryDetailPage({ params, searchParams }) {
 
     const items = await getItemsByDelivery(delivery.id);
 
-    // Resolve each line's PO through its PO Item, one level at a time.
+    // Resolve each delivery item's PO through its PO Item, one level at a time.
     const poItems = await getPOItemsByRecordIds(items.map((i) => i.poItem?.[0]).filter(Boolean));
     const poItemById = new Map(poItems.map((pi) => [pi.id, pi]));
     const pos = await getPOsByRecordIds(poItems.flatMap((pi) => pi.po));

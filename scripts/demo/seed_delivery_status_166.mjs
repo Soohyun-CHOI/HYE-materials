@@ -2,13 +2,13 @@
 //
 // #166 compares delivered against invoiced against ordered on three surfaces, and
 // NONE of its interesting states exists on this base: measured before seeding, 0 PO
-// lines carried both an invoice line and a delivery slice, so every invoice read
-// "nothing arrived" and every arrival read "no invoice yet". This seeds one
+// ordered items carried both an invoice item and a delivery slice, so every invoice
+// read "nothing arrived" and every arrival read "no invoice yet". This seeds one
 // scenario per state.
 //
 // EACH SCENARIO GETS ITS OWN MATERIAL, and that is load-bearing rather than tidy:
 // allocation matches candidates on the `Material` link (#18), so two scenarios
-// sharing a material would make each other's PO lines candidates and scramble the
+// sharing a material would make each other's ordered items candidates and scramble the
 // allocation the scenario is trying to show.
 //
 // EVERY DELIVERY GOES THROUGH THE PRODUCTION planDelivery, so the rows are what the
@@ -32,7 +32,7 @@
 // "Demo Vendor Co." vendor from seed_demo_fixtures.mjs — a different vendor from
 // #165's seed, so the two demos do not appear in each other's dropdowns. Creates
 // PRs + PR Items and POs + PO Items through the real approve-and-generate flow
-// (which is what gives each line the `Material` link allocation needs), plus
+// (which is what gives each ordered item the `Material` link allocation needs), plus
 // Deliveries, Delivery Items, Invoices and Invoice Items. Nothing is uploaded to
 // Vercel Blob, so the seeded deliveries have no packing-list photo — every delivery
 // you enter yourself will.
@@ -101,7 +101,7 @@ if (already) {
     process.exit(0);
 }
 
-/** One PR + item -> approve -> PO. Returns the PO and its single line. */
+/** One PR + item -> approve -> PO. Returns the PO and its single ordered item. */
 async function makeOrder({ itemName, qty, unitPrice = 10 }) {
     const pr = await createPR({
         requesterId: requester.id,
@@ -128,14 +128,14 @@ async function makeOrder({ itemName, qty, unitPrice = 10 }) {
 
 /**
  * One delivery covering one or more materials, allocated by the PRODUCTION
- * planner. `wants` is [{ itemName, qty }]; the planner decides which line each
+ * planner. `wants` is [{ itemName, qty }]; the planner decides which ordered item each
  * quantity lands on and whether any of it is beyond the order.
  *
  * `packingListPO` is optional and is the PO record the packing list itself
  * names, i.e. `Deliveries."Packing List PO"`. IT GOES TO BOTH the header and the
  * planner, because that is what createDeliveryAction does with a typed PO
  * number: the header records what the document said, and the same id
- * hard-narrows allocation to that order's lines. Passing it to only one of the
+ * hard-narrows allocation to that order's ordered items. Passing it to only one of the
  * two would seed a record the app cannot produce.
  *
  * #181 ADDED IT, and the reason is a verification gap rather than realism. No
@@ -144,7 +144,7 @@ async function makeOrder({ itemName, qty, unitPrice = 10 }) {
  * record created and deleted by hand, which covered it once and never again. A
  * seeded delivery covers it on every run. Scenario A carries it because its
  * material has exactly one order, so narrowing to that PO selects the same
- * single candidate line and the seeded rows are unchanged by it.
+ * single candidate ordered item and the seeded rows are unchanged by it.
  */
 async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
     const candidates = await getDeliveryCandidates([await getJobByRecordId(job.id)]);
@@ -190,7 +190,7 @@ async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
     return { delivery, written };
 }
 
-/** One invoice with one or more item lines, optionally plus a free-text line. */
+/** One invoice with one or more invoice items, optionally plus a free-text one. */
 async function bill({ lines: billLines, issueDate, freeText = false, note }) {
     const total = billLines.reduce((s, l) => s + l.qty * 10, 0);
     const inv = await createInvoice({
@@ -217,7 +217,7 @@ async function bill({ lines: billLines, issueDate, freeText = false, note }) {
         });
     }
     if (freeText) {
-        // A line with no PO Item. The app does not create these
+        // An invoice item with no PO Item. The app does not create these
         // (SHOW_OTHER_ITEM_OPTION = false, #96) but the backend path is intact, and
         // it is what makes the "not compared" count visible on the detail page.
         await createInvoiceItem({
@@ -251,7 +251,7 @@ ids.aPO = a.po.poId;
 ids.a = (await bill({ lines: [{ ...a, qty: 20 }], issueDate: "2026-07-19", note: "A arrived" })).invoiceId;
 console.log(`  A  ${ids.a}  Delivered   (${ids.aDelivery} quotes ${ids.aPO} on its packing list)`);
 
-// --- B: billed, nothing arrived, plus a line with no ordered line ------------
+// --- B: billed, nothing arrived, plus an invoice item with no ordered item ---
 const b = await makeOrder({ itemName: "166-DEMO Gasket", qty: 15 });
 ids.b = (await bill({
     lines: [{ ...b, qty: 15 }],
@@ -261,7 +261,7 @@ ids.b = (await bill({
 })).invoiceId;
 console.log(`  B  ${ids.b}  Awaiting delivery (+ 1 line not compared)`);
 
-// --- C: one invoice over two ordered lines, one arrived ----------------------
+// --- C: one invoice over two ordered items, one arrived ----------------------
 const c1 = await makeOrder({ itemName: "166-DEMO Elbow", qty: 5 });
 const c2 = await makeOrder({ itemName: "166-DEMO Tee", qty: 7 });
 await deliver({ wants: [{ itemName: "166-DEMO Elbow", qty: 5 }], receivedDate: "2026-07-21", notes: "C, one of two" });
@@ -272,7 +272,7 @@ ids.c = (await bill({
 })).invoiceId;
 console.log(`  C  ${ids.c}  Partly delivered (1 of 2 ordered items)`);
 
-// --- D: TWO bills on one line, arrival covers one -> ESTIMATED ---------------
+// --- D: TWO bills on one ordered item, arrival covers one -> ESTIMATED -------
 const d = await makeOrder({ itemName: "166-DEMO Coupling", qty: 30 });
 await deliver({ wants: [{ itemName: "166-DEMO Coupling", qty: 15 }], receivedDate: "2026-07-23", notes: "D, half" });
 ids.dOld = (await bill({ lines: [{ ...d, qty: 15 }], issueDate: "2026-07-05", note: "D older bill" })).invoiceId;
@@ -307,7 +307,7 @@ const g = await deliver({
 ids.g = g.delivery.deliveryId;
 console.log(`  G  ${ids.g}  Awaiting invoice (oldest received date)`);
 
-// --- I: one delivery over two lines, only one of them billed ---------------
+// --- I: one delivery over two ordered items, only one of them billed -------
 const i1 = await makeOrder({ itemName: "166-DEMO Cap", qty: 4 });
 await makeOrder({ itemName: "166-DEMO Plug", qty: 6 });
 const iDel = await deliver({

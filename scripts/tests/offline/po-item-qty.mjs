@@ -1,5 +1,5 @@
-// The per-line quantity judgments: uninvoicedQty / hasUninvoicedQty, the
-// uninvoiced remainder of a PO line (#48, extracted in #18), and countsAsOrdered,
+// The per-item quantity judgments: uninvoicedQty / hasUninvoicedQty, the
+// uninvoiced remainder of an ordered item (#48, extracted in #18), and countsAsOrdered,
 // which #169 moved here from lib/materialPriceView.js — the condition for moving
 // it was CLAUDE.md's, not that module's.
 //
@@ -22,10 +22,10 @@ export function run({ check, log }) {
     check("partial invoicing leaves the rest", uninvoicedQty({ qty: 10, invoicedQty: 4 }), 6);
     check("fully invoiced leaves zero", uninvoicedQty({ qty: 10, invoicedQty: 10 }), 0);
 
-    // The one that matters. A vendor over-billing, or an invoice line pointed at
+    // The one that matters. A vendor over-billing, or an invoice item pointed at
     // the wrong PO Item, is a real state the PO detail page and the invoice form
     // both surface distinctly. Clamping at 0 would make it indistinguishable
-    // from an exactly-fulfilled line.
+    // from an exactly-fulfilled ordered item.
     check("OVER-invoiced stays negative, never clamped", uninvoicedQty({ qty: 10, invoicedQty: 13 }), -3);
 
     // Airtable returns undefined for an empty rollup, not 0, so these are the
@@ -39,7 +39,7 @@ export function run({ check, log }) {
     check("something left is open", hasUninvoicedQty({ qty: 10, invoicedQty: 4 }), true);
     check("exactly fulfilled is NOT open", hasUninvoicedQty({ qty: 10, invoicedQty: 10 }), false);
     // Falls out of the strict comparison rather than needing a case of its own,
-    // and is the answer the invoice picker wants: an over-billed line does not
+    // and is the answer the invoice picker wants: an over-billed ordered item does not
     // need another invoice against it.
     check("over-invoiced is NOT open", hasUninvoicedQty({ qty: 10, invoicedQty: 13 }), false);
     check("a zero-qty line is not open", hasUninvoicedQty({ qty: 0, invoicedQty: 0 }), false);

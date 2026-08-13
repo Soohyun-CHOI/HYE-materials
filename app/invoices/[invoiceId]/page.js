@@ -59,11 +59,11 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
         invoice.vendor?.[0] ? getVendorByRecordId(invoice.vendor[0]) : null,
     ]);
 
-    // AFTER the lines are loaded, because the gate is answered through them — an
-    // Invoice Item carries its own `PO` link, which is how one invoice reaches the
-    // requests behind it. Two operations for a non-privileged viewer and none for
-    // the office. The lines are what this page renders anyway, so nothing is read
-    // twice to ask the question.
+    // AFTER the invoice items are loaded, because the gate is answered through
+    // them — an Invoice Item carries its own `PO` link, which is how one invoice
+    // reaches the requests behind it. Two operations for a non-privileged viewer
+    // and none for the office. The invoice items are what this page renders
+    // anyway, so nothing is read twice to ask the question.
     const visibleIds = await getVisibleInvoiceIds(user, [invoice], items);
     if (!visibleIds.has(invoice.id)) {
         return <div className="p-8">Invoice not found.</div>;
@@ -77,14 +77,14 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
     const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
 
-    // Issue #166 — the delivery side of this invoice, and since #210 the shipment
-    // it names rather than an estimate of which one answered it. Three operations on
+    // Issue #166 — the delivery side of this invoice, and since #210 the shipment it
+    // names rather than an estimate of which one answered it. Three operations on
     // top of what the page already holds (PO Items, Delivery Items, Deliveries),
-    // keyed on ids from the level above; the invoice's own lines are already loaded,
-    // so there is no query for them, and the pairing is a field on the record above.
-    // Down from five — the two that went existed only to order the other bills on
-    // the same ordered item so one of them could be picked. The rule is
-    // lib/deliveryStatus.js.
+    // keyed on ids from the level above; the invoice's own invoice items are already
+    // loaded, so there is no query for them, and the pairing is a field on the
+    // record above. Down from five — the two that went existed only to order the
+    // other bills on the same ordered item so one of them could be picked. The rule
+    // is lib/deliveryStatus.js.
     const reconciliation = await getInvoiceReconciliation(items, {
         linkedDeliveryRecordId: linkedDelivery(invoice),
     });
@@ -92,8 +92,9 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     // Issue #167 — fold the rows an overage split produced back into one, so the
     // table still reads line-for-line against the vendor's PDF. The key is #18's
     // Material link plus the unit price (lib/invoiceItemFold.js); the material comes
-    // from the reconciliation, which already holds every line's ordered item, so
-    // folding costs no query. Nothing folds on an invoice no correction touched.
+    // from the reconciliation, which already holds every invoice item's ordered
+    // item, so folding costs no query. Nothing folds on an invoice no correction
+    // touched.
     const materialByLine = new Map(
         reconciliation.rows.map((r) => [r.invoiceItemId, r.materialRecordId])
     );
@@ -274,7 +275,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
             </div>
 
             {/* Issue #166 — was the material this invoice billed for delivered.
-                One box per invoice line, in the items table's own order.
+                One box per invoice item, in the items table's own order.
 
                 THE HEADING CHIP IS THE ONE THE LIST SHOWS, from the same function,
                 so the row a reader clicked and the page they land on cannot
@@ -411,9 +412,10 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
             {/* HOISTED OUT OF THE PAYMENT SECTION BY #211, because it is a fact
                 about the invoice and that section is now President-or-Admin. It has
                 to outlive the gate: the amber prompt is the only thing that raises a
-                LINE-only variance to invoice level, and a line billed for thirteen
-                against ten delivered is exactly what the employee who counted the
-                material is here to catch. Its wording is untouched — naming the two
+                INVOICE-ITEM-only variance to invoice level, and an invoice item
+                billed for thirteen against ten delivered is exactly what the
+                employee who counted the material is here to catch. Its wording
+                is untouched — naming the two
                 variance kinds apart is #179's, and copy that mentions payment does
                 not disclose whether THIS vendor was paid, which is where the line
                 actually runs. */}
