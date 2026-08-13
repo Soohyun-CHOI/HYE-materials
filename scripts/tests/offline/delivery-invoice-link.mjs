@@ -398,15 +398,22 @@ export function run({ check, log, assert }) {
     assert("  and still names no action", !takenBare.toLowerCase().includes("detach"));
 
     log("");
-    log("the field's own copy: blank is an ANSWER, not an omission:");
-    assert("the optional sentence says leaving it blank is fine", LINK_COPY.field.optional().text.includes("blank"));
+    log("the field's own copy: a TRANSCRIPTION, behind a checkbox (#231):");
+    // `optional` is gone with the always-open control it explained. Blank is no
+    // longer an answer at all — it is the unticked box — and what the note has to
+    // say instead is that a number read off the document beats the computation.
+    assert("the `optional` note is gone", LINK_COPY.field.optional === undefined);
     assert(
-        "  and says where it can be attached instead",
-        LINK_COPY.field.optional().text.includes("later")
+        "the label asks about the DOCUMENT, matching the PO number's phrasing",
+        LINK_COPY.field.label().text.startsWith("The packing list shows")
     );
     assert(
-        "  and what the invoice reads as until then",
-        LINK_COPY.field.optional().text.includes("awaiting delivery")
+        "the note says to read the number off the packing list",
+        LINK_COPY.field.transcribed().text.includes("printed on the packing list")
+    );
+    assert(
+        "  and that it wins over what the app worked out",
+        LINK_COPY.field.transcribed().text.includes("ahead of anything the app worked out")
     );
     assert(
         "the empty list names the vendor and does not read as an error",

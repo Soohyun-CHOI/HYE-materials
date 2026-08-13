@@ -645,8 +645,43 @@ gated read.
   and it is the form's shape rather than a disagreement: the delivery form has one
   invoice field, so two candidate bills attach nothing, while an invoice contained
   in one shipment attaches to it whether or not that shipment carries another bill
-  for different ordered items. Unreachable on this base — no delivery has more
-  than one candidate bill.
+  for different ordered items.
+  - **THAT ASYMMETRY DOES NOT CONVERGE, AND THE COST IS RECORDED RATHER THAN
+    SMOOTHED OVER.** Two bills charging DIFFERENT ordered items that one shipment
+    brought are each individually unambiguous and are not rivals — nothing is wrong
+    with either pairing — but direction 1 sees two candidates and attaches nothing,
+    and since the vendor emails its bills before the material arrives, both are
+    already on hand when the delivery is recorded and no later invoice ever fires
+    direction 2. **So the pair stays for a person, permanently.** It is not an
+    exotic shape: one load against two orders, billed separately, is ordinary.
+  - **THE ONE FIELD IS STILL RIGHT, AND THE REASON IS THE DOCUMENT RATHER THAN THE
+    LINK.** The control is `Invoice number on the packing list`, and a packing list
+    carries at most one number — a control taking several would ask a recorder to
+    transcribe something the document in their hand does not have. The arity
+    belongs to the DOCUMENT, not to `Invoices."Delivery"`, which is n:1 and says
+    so. #210's edit page is the surface that is about the delivery RECORD instead,
+    and it is **already plural**: it lists every attached bill and offers the rest
+    one at a time, so a person attaches A and then B with nothing in the way. The
+    manual path is not blocked; only the automatic one is, and only here.
+  - **WHERE IT SURFACES MEANWHILE.** #216's strip above `/invoices` keeps the
+    delivery listed, since no bill names it, and both invoices read
+    `Awaiting delivery` on `/invoices`. Nothing is lost or wrong — it is simply the
+    hand work this issue set out to remove, in the one shape that never resolves on
+    its own.
+  - **WHAT CHANGING IT WOULD TAKE**, so nobody re-derives it: attaching several
+    means the SCREEN showing several, because a preview that states what is about
+    to be submitted cannot then submit more. That is a control, its copy, an
+    `invoiceRecordIds` parameter on `createDeliveryAction`, the guard run per bill,
+    and the offline pins on the single write — and it contradicts #231's own body,
+    which specifies that several candidates attach nothing. A scope decision rather
+    than a correction.
+  - **Unreachable on this base, and the measurement covers THIS shape rather than
+    only the same-ordered-item one:** no delivery holds two unpaired contained
+    bills, sharing an ordered item or not — 0 pairs either way. The precondition is
+    here though, so it is one record away rather than hypothetical: 4 of 15
+    deliveries brought more than one ordered item, and `HYE-DL-260804-10` has one
+    of its two billed by `HYE-INV-260804-08` and the other billed by nobody. One
+    invoice for `HYE-PO-20260804-14-001` produces it.
 - **THE RIVAL POOL NEEDS NO UNSCOPED READ, and the derivation is load-bearing.** A
   rival shares an ordered item with a candidate, a candidate's ordered items all
   lie inside the arrival, an arrival sits on one Job, and `canViewPR` clause 4

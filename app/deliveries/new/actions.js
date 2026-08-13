@@ -7,7 +7,8 @@ import { base, TABLES } from "@/lib/airtable/client";
 import { createDelivery } from "@/lib/airtable/deliveries";
 import { createDeliveryItem } from "@/lib/airtable/deliveryItems";
 import { setInvoiceDelivery } from "@/lib/airtable/invoices";
-import { checkInvoicePairing } from "@/lib/deliveryInvoiceCandidates";
+import { checkInvoicePairing, getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
+import { billFromInvoiceOption, planPairings } from "@/lib/deliveryInvoiceMatch";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
@@ -137,6 +138,14 @@ export async function createDeliveryAction(prevState, formData) {
     if (!job) return { error: "That job no longer exists." };
     const candidates = await getDeliveryCandidates([job]);
 
+    // #231 — the bills this vendor could have sent, gated per record through the
+    // same walk the page used to render the picker. Read here rather than trusted
+    // from the form for the reason the allocation is re-run: an invoice can be
+    // paired with another shipment while this page sits open.
+    const invoiceOptions = await getInvoiceLinkCandidates(user, {
+        vendorRecordIds: [vendorRecordId],
+    });
+
     // ONE PLAN PER MATERIAL, each against the same snapshot. Different materials
     // never compete for the same ordered item, so planning them independently is
     // correct; the same material appearing twice was already summed above, which
@@ -223,7 +232,33 @@ export async function createDeliveryAction(prevState, formData) {
         // record material against an order and silently drop which bill covers it.
         // Destroying the delivery below removes this link with it, so the rollback
         // needs no undo of its own.
+        //
+        // #231 — AND NOW THERE MAY BE SEVERAL, WHICH ADDS NO FAILURE MODE. The
+        // transcribed number goes first, because a recorder read it off the document
+        // and that beats a computation; then every bill this arrival's ordered items
+        // place on it, which `planPairings` decides against a pool where each
+        // decision so far already counts as attached. A throw part-way through leaves
+        // some invoices pointing at a delivery the catch below then destroys, and
+        // Airtable drops a link to a deleted record — so the partial state is
+        // undone by the same rollback that was already here, and the only thing
+        // added is that it may now undo more than one link.
         if (invoiceToPair) await setInvoiceDelivery(invoiceToPair.id, delivery.id);
+
+        const computed = planPairings({
+            arrival: {
+                deliveryRecordId: delivery.id,
+                deliveryId: delivery.deliveryId,
+                orderedItems: plans.flatMap(({ plan }) =>
+                    plan.rows.map((row) => ({ poItemRecordId: row.line.id, qty: row.qty }))
+                ),
+            },
+            bills: invoiceOptions.map(billFromInvoiceOption),
+            agreedPrices: new Map(candidates.lines.map((l) => [l.id, l.unitPrice])),
+            transcribed: invoiceToPair?.id ?? null,
+        });
+        for (const bill of computed.attach) {
+            await setInvoiceDelivery(bill.invoiceRecordId, delivery.id);
+        }
     } catch (err) {
         // Same create-then-delete rollback as the invoice path: Airtable has no
         // cross-table transactions, so a failure partway would otherwise leave a

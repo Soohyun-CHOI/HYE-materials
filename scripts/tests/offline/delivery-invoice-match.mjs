@@ -48,7 +48,8 @@ import {
     describePairing,
     fitRefusal,
     matchArrivalToBill,
-    matchBillToArrival,
+    describeArrivalPairings,
+    planPairings,
     orderedItemsBilled,
     roomOnOrderedItem,
     orderedItemsDelivered,
@@ -96,6 +97,20 @@ const arrival = ({ id = "recDL1", deliveryId = "HYE-DL-260804-08", brought = ["r
     ),
 });
 
+/**
+ * Direction 1 as one call, since #231 made it a PLAN rather than a single answer.
+ * Every check that used to ask for its outcome key is asking the same question of
+ * the same rule; what changed is that the rule may now name several bills.
+ */
+const outcome1 = (args) => {
+    const plan = planPairings(args);
+    return {
+        ...describeArrivalPairings(plan, args.bills),
+        invoiceRecordId: plan.attach.length === 1 ? plan.attach[0].invoiceRecordId : null,
+        attached: plan.attach.map((b) => b.invoiceRecordId),
+    };
+};
+
 export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
     log("containment — a bill sits inside a shipment, or it is not its bill:");
@@ -138,7 +153,7 @@ export function run({ check, assert, log }) {
     );
     assert(
         "  so it never reaches `matched` from either direction",
-        matchBillToArrival({ arrival: arrival(), bills: [bill({ charges: [] })], agreedPrices: PRICES }).key !==
+        outcome1({ arrival: arrival(), bills: [bill({ charges: [] })], agreedPrices: PRICES }).key !==
             PAIRING.matched &&
             matchArrivalToBill({
                 bill: bill({ charges: [] }),
@@ -208,7 +223,7 @@ export function run({ check, assert, log }) {
     log("quantity is NOT part of the test — the bill that over-charges still pairs:");
     assert(
         "13 billed against a shipment of 10 pairs (HYE-INV-260804-07's real shape)",
-        matchBillToArrival({
+        outcome1({
             arrival: arrival({ brought: ["recPOI_A"] }),
             bills: [bill({ charges: [["recPOI_A", 10]] })],
             agreedPrices: PRICES,
@@ -264,7 +279,7 @@ export function run({ check, assert, log }) {
     );
     check(
         "recording the arrival attaches nothing and says why",
-        matchBillToArrival({ arrival: shipment, bills: [older, newer], agreedPrices: PRICES }).key,
+        outcome1({ arrival: shipment, bills: [older, newer], agreedPrices: PRICES }).key,
         PAIRING.sharedOrder
     );
 
@@ -423,7 +438,7 @@ export function run({ check, assert, log }) {
             bills: pool,
             agreedPrices: PRICES,
         });
-        const viaDirection1 = matchBillToArrival({ arrival: arrivals[0], bills: pool, agreedPrices: PRICES });
+        const viaDirection1 = outcome1({ arrival: arrivals[0], bills: pool, agreedPrices: PRICES });
         const viaDirection2 = matchArrivalToBill({
             bill: subject,
             arrivals,
@@ -452,17 +467,24 @@ export function run({ check, assert, log }) {
     // The one thing that IS asymmetric, and it is the form's arity rather than the
     // rule's judgment. Two bills for DIFFERENT ordered items both belong to one
     // shipment (n:1) — direction 2 attaches each, direction 1 has one field and
-    // refuses to choose. Not reachable on this base: measured 2026-08-13, no
-    // delivery has more than one candidate bill.
+    // refuses to choose.
+    //
+    // PINNED BECAUSE IT DOES NOT CONVERGE, not because it is tidy. The bills arrive
+    // before the material, so both are on hand when the delivery is recorded and no
+    // later invoice fires direction 2; the pair stays for a person. These checks are
+    // what stop that being rediscovered as a bug — the state is deliberate, its cost
+    // is in lib/deliveryInvoiceMatch.js's header, and a change of mind has to change
+    // them on purpose. Not reachable on this base: measured 2026-08-13, no delivery
+    // holds two unpaired contained bills, sharing an ordered item or not.
     log("");
     log("the arity asymmetry, which is the form's and not the rule's:");
     const twoItems = arrival({ id: "recDL_T", brought: ["recPOI_A", "recPOI_B"] });
     const billA = bill({ id: "recINV_A", invoiceId: "HYE-INV-A", charges: [["recPOI_A", 10]] });
     const billB = bill({ id: "recINV_B", invoiceId: "HYE-INV-B", charges: [["recPOI_B", 25]] });
     check(
-        "recording the arrival: two candidates, so nothing is attached",
-        matchBillToArrival({ arrival: twoItems, bills: [billA, billB], agreedPrices: PRICES }).key,
-        PAIRING.several
+        "recording the arrival attaches BOTH — the form's one field is gone",
+        outcome1({ arrival: twoItems, bills: [billA, billB], agreedPrices: PRICES }).key,
+        PAIRING.severalAttached
     );
     check(
         "recording either bill: one candidate shipment, so it attaches",
@@ -473,6 +495,28 @@ export function run({ check, assert, log }) {
         "  and the predicate admits both, so the two directions have not disagreed about a PAIR",
         pairingRefusal({ bill: billA, arrival: twoItems, bills: [billA, billB], agreedPrices: PRICES }) === null &&
             pairingRefusal({ bill: billB, arrival: twoItems, bills: [billA, billB], agreedPrices: PRICES }) === null
+    );
+    // NEITHER IS THE OTHER'S RIVAL, which is what makes this `several` rather than
+    // `shared-order` and is the whole reason it does not converge: nothing is
+    // ambiguous, so nothing will ever become less so.
+    assert(
+        "  neither blocks the other — they charge different ordered items",
+        !chargesSameOrderedItem(billA, billB)
+    );
+    assert(
+        "  and it names both, so nothing is silently written or silently dropped",
+        // The SET, not the sequence. The action writes one link per bill and the
+        // order they go out in is not a fact about anything, so pinning it here
+        // would make the order-reversal property below fail on this check alone.
+        outcome1({ arrival: twoItems, bills: [billA, billB], agreedPrices: PRICES })
+            .attached.slice().sort().join() === "recINV_A,recINV_B"
+    );
+    assert(
+        "  and direction 2 attaches BOTH, one at a time, which is the state a person is left to reproduce",
+        matchArrivalToBill({ bill: billA, arrivals: [twoItems], bills: [billA, billB], agreedPrices: PRICES })
+            .deliveryRecordId === "recDL_T" &&
+            matchArrivalToBill({ bill: billB, arrivals: [twoItems], bills: [billA, billB], agreedPrices: PRICES })
+                .deliveryRecordId === "recDL_T"
     );
 
     // -----------------------------------------------------------------------
@@ -562,11 +606,24 @@ export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
     log("");
     log("copy — one voice per outcome, and silence for `none`:");
+    // ONE VOICE PER DIRECTION THAT CAN REACH THE OUTCOME, which is why this is not
+    // "every key has both". `several` is the invoice side's alone — an arrival can
+    // no longer have too many candidates, it attaches them — and `several-attached`
+    // is the delivery side's, since one invoice is never attached to two shipments.
     assert(
-        "every spoken outcome has a preview voice and a banner voice",
-        [PAIRING.matched, PAIRING.several, PAIRING.sharedOrder].every(
+        "the outcomes both directions reach are worded in both voices",
+        [PAIRING.matched, PAIRING.sharedOrder].every(
             (key) => PAIRING_COPY.preview[key] && PAIRING_COPY.banner[key]
         )
+    );
+    assert(
+        "  `several-attached` is the delivery side's alone",
+        Boolean(PAIRING_COPY.preview[PAIRING.severalAttached]) &&
+            !PAIRING_COPY.banner[PAIRING.severalAttached]
+    );
+    assert(
+        "  and `several` is the invoice side's alone",
+        Boolean(PAIRING_COPY.banner[PAIRING.several]) && !PAIRING_COPY.preview[PAIRING.several]
     );
     check(
         "`none` has no preview voice",
@@ -582,10 +639,13 @@ export function run({ check, assert, log }) {
     check("a missing outcome words nothing", describePairing(undefined, "banner"), null);
     check("an unknown voice words nothing", describePairing({ key: PAIRING.matched }, "nowhere"), null);
 
-    const spoken = [PAIRING.matched, PAIRING.several, PAIRING.sharedOrder].flatMap((key) => [
-        describePairing({ key, invoiceId: "HYE-INV-1", count: 2 }, "preview").text,
-        describePairing({ key, invoiceId: "HYE-INV-1", count: 2 }, "banner").text,
-    ]);
+    const spoken = [PAIRING.matched, PAIRING.severalAttached, PAIRING.several, PAIRING.sharedOrder]
+        .flatMap((key) => [
+            describePairing({ key, invoiceIds: ["HYE-INV-1", "HYE-INV-2"], count: 2 }, "preview"),
+            describePairing({ key, invoiceIds: ["HYE-INV-1", "HYE-INV-2"], count: 2 }, "banner"),
+        ])
+        .filter(Boolean)
+        .map((m) => m.text);
     // #166's vocabulary, enforced here as well as in offline/delivery-status.mjs —
     // this module's copy is new and outside that file's reach.
     for (const [word, why] of [
@@ -613,6 +673,94 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
+    // -----------------------------------------------------------------------
+    // FOLDING AND DEDUCTING ARE ONE STEP. A decided bill joins the pool AS
+    // ATTACHED to this arrival, which stops it being an unplaced rival AND starts
+    // its quantity counting against the room. Doing only the first is the defect:
+    // the rival clause goes quiet and nothing replaces it.
+    log("");
+    log("several attached in one run, and the room each one takes:");
+    const twoBrought = arrival({ id: "recDL_F", brought: [["recPOI_A", 15], ["recPOI_B", 10]] });
+    const onA = bill({ id: "recINV_A2", invoiceId: "HYE-INV-A2", charges: [["recPOI_A", 10, 15]] });
+    const onB = bill({ id: "recINV_B2", invoiceId: "HYE-INV-B2", charges: [["recPOI_B", 25, 10]] });
+    check(
+        "two bills on different ordered items: both attached",
+        planPairings({ arrival: twoBrought, bills: [onA, onB], agreedPrices: PRICES }).attach.length,
+        2
+    );
+
+    // THE DEFECT, IF FOLDING EVER RAN WITHOUT DEDUCTING. Two bills charging the
+    // SAME ordered item are each other's rival, so both are refused and 15 arrived
+    // can never take 30 billed — the rival clause is what stops it, not the room.
+    // Mutation: drop the fold (leave the pool untouched after a decision) and this
+    // stays passing, which is why the transcribed case below is the one that bites.
+    const sameItemA = bill({ id: "recINV_S1", invoiceId: "HYE-INV-S1", charges: [["recPOI_A", 10, 15]] });
+    const sameItemB = bill({ id: "recINV_S2", invoiceId: "HYE-INV-S2", charges: [["recPOI_A", 10, 15]] });
+    const brought15b = arrival({ id: "recDL_G", brought: [["recPOI_A", 15]] });
+    check(
+        "two bills on the SAME ordered item: neither attached, so 15 never takes 30",
+        planPairings({ arrival: brought15b, bills: [sameItemA, sameItemB], agreedPrices: PRICES })
+            .attach.length,
+        0
+    );
+
+    // WITH A TRANSCRIBED BILL THE ROOM CLAUSE IS THE ONLY DEFENCE, because the
+    // transcribed one is folded in as attached and stops being a rival. Mutation:
+    // fold without deducting — give the decided bill an empty `orderedItems` in the
+    // pool — and the second bill attaches, putting 30 of billing on 15 of arrival.
+    check(
+        "transcribed bill claims all 15: a second bill charging it finds no room",
+        planPairings({
+            arrival: brought15b,
+            bills: [sameItemA, sameItemB],
+            agreedPrices: PRICES,
+            transcribed: "recINV_S1",
+        }).refusals.get("recINV_S2"),
+        PAIRING_REFUSED.noRoom
+    );
+    // ...and the partial case, which is the semantic change the override brings:
+    // 10 of 15 claimed leaves 5, and a bill charging 5 takes it.
+    const partial = bill({ id: "recINV_S3", invoiceId: "HYE-INV-S3", charges: [["recPOI_A", 10, 10]] });
+    const wantsFive = bill({ id: "recINV_S4", invoiceId: "HYE-INV-S4", charges: [["recPOI_A", 10, 5]] });
+    check(
+        "transcribed bill claims 10 of 15: a bill charging the rest attaches",
+        planPairings({
+            arrival: brought15b,
+            bills: [partial, wantsFive],
+            agreedPrices: PRICES,
+            transcribed: "recINV_S3",
+        }).attach.map((b) => b.invoiceRecordId).join(),
+        "recINV_S4"
+    );
+
+    // THE ORDER IS PROVABLY IRRELEVANT, so reversing the pool must change nothing.
+    // A bill attaches only when no OTHER unplaced bill charges any ordered item it
+    // charges, so any two that attach are disjoint and never draw on the same room;
+    // two that would compete are each other's rival and both refuse before room is
+    // consulted. A mutation that reverses the iteration order must break NOTHING —
+    // that is what makes this a property rather than a habit.
+    log("");
+    log("the fold order cannot change the answer:");
+    for (const [name, pool, transcribed] of [
+        ["two disjoint bills", [onA, onB], null],
+        ["two bills on one ordered item", [sameItemA, sameItemB], null],
+        ["a transcribed bill and a rival", [sameItemA, sameItemB], "recINV_S1"],
+        ["a transcribed bill and the rest", [partial, wantsFive], "recINV_S3"],
+    ]) {
+        const arr = pool === onA || pool[0] === onA ? twoBrought : brought15b;
+        const forward = planPairings({ arrival: arr, bills: pool, agreedPrices: PRICES, transcribed });
+        const backward = planPairings({
+            arrival: arr,
+            bills: [...pool].reverse(),
+            agreedPrices: PRICES,
+            transcribed,
+        });
+        assert(
+            `  ${name}: same set attached either way`,
+            forward.attach.map((b) => b.invoiceRecordId).sort().join() ===
+                backward.attach.map((b) => b.invoiceRecordId).sort().join()
+        );
+    }
     log("anti-vacuity — the rule is seen to say more than one thing:");
     assert(
         "the four fit refusals are all reachable from some input",
@@ -633,16 +781,16 @@ export function run({ check, assert, log }) {
             !PAIRING_COPY.preview[PAIRING_REFUSED.noRoom]
     );
     assert(
-        "the four outcome keys are four different values",
-        new Set(Object.values(PAIRING)).size === 4
+        "the five outcome keys are five different values",
+        new Set(Object.values(PAIRING)).size === 5
     );
     assert(
-        "all four outcomes are reachable, so `decide` is not a constant",
+        "all four of direction 1's outcomes are reachable, so the plan is not a constant",
         new Set([
-            matchBillToArrival({ arrival: arrival(), bills: [bill()], agreedPrices: PRICES }).key,
-            matchBillToArrival({ arrival: twoItems, bills: [billA, billB], agreedPrices: PRICES }).key,
-            matchBillToArrival({ arrival: shipment, bills: [older, newer], agreedPrices: PRICES }).key,
-            matchBillToArrival({ arrival: arrival(), bills: [], agreedPrices: PRICES }).key,
+            outcome1({ arrival: arrival(), bills: [bill()], agreedPrices: PRICES }).key,
+            outcome1({ arrival: twoItems, bills: [billA, billB], agreedPrices: PRICES }).key,
+            outcome1({ arrival: shipment, bills: [older, newer], agreedPrices: PRICES }).key,
+            outcome1({ arrival: arrival(), bills: [], agreedPrices: PRICES }).key,
         ]).size === 4
     );
     assert(
@@ -651,14 +799,14 @@ export function run({ check, assert, log }) {
     );
     assert(
         "a matched outcome carries the record id it matched, so the caller has something to write",
-        matchBillToArrival({ arrival: arrival(), bills: [bill()], agreedPrices: PRICES }).invoiceRecordId ===
+        outcome1({ arrival: arrival(), bills: [bill()], agreedPrices: PRICES }).invoiceRecordId ===
             "recINV1" &&
             matchArrivalToBill({ bill: bill(), arrivals: [arrival()], bills: [bill()], agreedPrices: PRICES })
                 .deliveryRecordId === "recDL1"
     );
     assert(
         "and a refused one carries null, so a caller cannot write one by accident",
-        matchBillToArrival({ arrival: shipment, bills: [older, newer], agreedPrices: PRICES }).invoiceRecordId ===
+        outcome1({ arrival: shipment, bills: [older, newer], agreedPrices: PRICES }).invoiceRecordId ===
             null &&
             matchArrivalToBill({
                 bill: bill(),
