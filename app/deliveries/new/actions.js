@@ -7,7 +7,7 @@ import { base, TABLES } from "@/lib/airtable/client";
 import { createDelivery } from "@/lib/airtable/deliveries";
 import { createDeliveryItem } from "@/lib/airtable/deliveryItems";
 import { setInvoiceDelivery } from "@/lib/airtable/invoices";
-import { checkInvoicePairing, getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
+import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
 import { billFromInvoiceOption, planPairings } from "@/lib/deliveryInvoiceMatch";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
@@ -58,9 +58,6 @@ export async function createDeliveryAction(prevState, formData) {
     const poIdTyped = (formData.get("poId") || "").trim();
     const fileUrl = formData.get("packingListUrl");
     const fileName = formData.get("packingListFilename");
-    // #210 — optional. Blank means the bill has not been entered yet, which is a
-    // normal answer rather than a gap, and the delivery's edit page finishes it.
-    const invoiceRecordId = formData.get("invoiceRecordId") || "";
 
     if (!jobRecordId) return { error: "Select a job." };
     // Before anything else that could reveal what exists on a job the caller has
@@ -109,25 +106,6 @@ export async function createDeliveryAction(prevState, formData) {
                 error: `No purchase order ${poIdTyped} on this job for this vendor. Check the number on the packing list.`,
             };
         }
-    }
-
-    // #210 — BEFORE ANYTHING IS CREATED, because refusing afterwards would mean
-    // rolling an arrival back over a pairing. The guard re-runs the row gate from a
-    // fresh read: a Server Action is callable directly, and an invoice can be paired
-    // with another shipment while this form sits open, which is exactly the refusal
-    // `taken-by-another` exists for. `deliveryRecordId` is null here and that is the
-    // correct reading of it — this delivery does not exist yet, so no invoice can
-    // already name it, so ANY existing pairing is a refusal.
-    let invoiceToPair = null;
-    if (invoiceRecordId) {
-        const checked = await checkInvoicePairing({
-            user,
-            invoiceRecordId,
-            deliveryRecordId: null,
-            vendorRecordId,
-        });
-        if (checked.error) return { error: checked.error };
-        invoiceToPair = checked.invoice;
     }
 
     // Re-read this ONE job's ordered items. The form was handed every accessible
@@ -242,8 +220,6 @@ export async function createDeliveryAction(prevState, formData) {
         // Airtable drops a link to a deleted record — so the partial state is
         // undone by the same rollback that was already here, and the only thing
         // added is that it may now undo more than one link.
-        if (invoiceToPair) await setInvoiceDelivery(invoiceToPair.id, delivery.id);
-
         const computed = planPairings({
             arrival: {
                 deliveryRecordId: delivery.id,
@@ -254,7 +230,6 @@ export async function createDeliveryAction(prevState, formData) {
             },
             bills: invoiceOptions.map(billFromInvoiceOption),
             agreedPrices: new Map(candidates.lines.map((l) => [l.id, l.unitPrice])),
-            transcribed: invoiceToPair?.id ?? null,
         });
         for (const bill of computed.attach) {
             await setInvoiceDelivery(bill.invoiceRecordId, delivery.id);

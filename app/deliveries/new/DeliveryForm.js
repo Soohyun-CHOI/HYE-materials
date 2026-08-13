@@ -10,11 +10,7 @@ import {
     itemOptionLabel,
     planDelivery,
 } from "@/lib/deliveryAllocation";
-import {
-    LINK_COPY,
-    availableInvoiceOptions,
-    invoiceOptionLabel,
-} from "@/lib/deliveryInvoiceLink";
+import { availableInvoiceOptions } from "@/lib/deliveryInvoiceLink";
 import {
     PAIRING,
     billFromInvoiceOption,
@@ -102,8 +98,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     // pairing is computed, an empty control sitting beside a sentence saying a bill
     // WAS attached reads as a contradiction. A plain string is enough state:
     // nothing preselects it any more, so "" means only what it says.
-    const [hasInvoiceNumber, setHasInvoiceNumber] = useState(false);
-    const [invoiceRecordId, setInvoiceRecordId] = useState("");
 
     const selectedJob = jobs.find((j) => j.id === jobRecordId) || null;
 
@@ -241,11 +235,10 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                     arrival,
                     bills,
                     agreedPrices,
-                    transcribed: hasInvoiceNumber ? invoiceRecordId || null : null,
                 }),
                 bills
             ),
-        [arrival, bills, agreedPrices, hasInvoiceNumber, invoiceRecordId]
+        [arrival, bills, agreedPrices]
     );
     const pairingMessage = describePairing(pairing, "preview");
 
@@ -257,8 +250,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         setPoId("");
         setHasPoNumber(false);
         setRows([{ ...EMPTY_ROW }]);
-        setHasInvoiceNumber(false);
-        setInvoiceRecordId("");
     }
 
     function pickVendor(id) {
@@ -268,8 +259,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         // is not on offer under the new one — the same reason the item rows reset.
         // Back to computed, not to blank: the new vendor's own bills are about to be
         // matched against these rows.
-        setHasInvoiceNumber(false);
-        setInvoiceRecordId("");
     }
 
     function updateRow(index, field, value) {
@@ -327,7 +316,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
             <input type="hidden" name="itemsJson" value={JSON.stringify(filledRows)} />
             <input type="hidden" name="packingListUrl" value={photo.url || ""} />
             <input type="hidden" name="packingListFilename" value={photo.filename || ""} />
-            <input type="hidden" name="invoiceRecordId" value={invoiceRecordId} />
 
             {/* --- Job ---------------------------------------------------------- */}
             <div>
@@ -365,7 +353,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                             // assumed to still be on offer. A <select> holding a value
                             // that matches no option renders blank and loses it
                             // silently — the same trap the item rows guard against.
-                            setInvoiceRecordId("");
                             if (!e.target.checked) setPoId("");
                         }}
                     />
@@ -383,8 +370,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                             onChange={(e) => {
                                 setPoId(e.target.value);
                                 setRows([{ ...EMPTY_ROW }]);
-                                setInvoiceRecordId("");
-                            }}
+                                }}
                             placeholder="HYE-PO-YYYYMMDD-##"
                             className={inputClass}
                         />
@@ -639,59 +625,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                     {pairingMessage.text}
                 </p>
             )}
-
-            <div className="rounded border border-zinc-200 p-4">
-                <label className="flex items-center gap-2 text-sm">
-                    <input
-                        type="checkbox"
-                        checked={hasInvoiceNumber}
-                        disabled={!effectiveVendorId}
-                        onChange={(e) => {
-                            setHasInvoiceNumber(e.target.checked);
-                            if (!e.target.checked) setInvoiceRecordId("");
-                        }}
-                    />
-                    {LINK_COPY.field.label().text}
-                </label>
-
-                {hasInvoiceNumber && (
-                    <div className="mt-3">
-                        <select
-                            id="invoiceSelect"
-                            aria-label={LINK_COPY.field.label().text}
-                            value={invoiceRecordId}
-                            onChange={(e) => setInvoiceRecordId(e.target.value)}
-                            disabled={invoiceChoices.length === 0}
-                            className={`${inputClass} disabled:opacity-50`}
-                        >
-                            <option value="">Select the number printed on it…</option>
-                            {invoiceChoices.map((o) => (
-                                <option
-                                    key={o.invoiceRecordId}
-                                    value={o.invoiceRecordId}
-                                    // LISTED BUT UNSELECTABLE when another shipment
-                                    // already holds it, with that shipment named —
-                                    // #162's fully-delivered item applied one level
-                                    // up. Dropping it would leave the recorder
-                                    // holding a packing list whose number is simply
-                                    // absent, which reads as "no such invoice" and
-                                    // would be false.
-                                    disabled={Boolean(o.linkedDeliveryRecordId)}
-                                >
-                                    {invoiceOptionLabel(o)}
-                                </option>
-                            ))}
-                        </select>
-                        <p className="mt-1 text-xs text-zinc-500">
-                            {invoiceChoices.length === 0
-                                ? LINK_COPY.field.emptyList({
-                                      vendorName: vendorNames[effectiveVendorId],
-                                  }).text
-                                : LINK_COPY.field.transcribed().text}
-                        </p>
-                    </div>
-                )}
-            </div>
 
             {/* --- Date, photo, notes ------------------------------------------- */}
             <div className="grid grid-cols-2 gap-4">

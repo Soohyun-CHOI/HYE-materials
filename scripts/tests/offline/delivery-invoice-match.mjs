@@ -704,34 +704,33 @@ export function run({ check, assert, log }) {
         0
     );
 
-    // WITH A TRANSCRIBED BILL THE ROOM CLAUSE IS THE ONLY DEFENCE, because the
-    // transcribed one is folded in as attached and stops being a rival. Mutation:
-    // fold without deducting — give the decided bill an empty `orderedItems` in the
-    // pool — and the second bill attaches, putting 30 of billing on 15 of arrival.
-    check(
-        "transcribed bill claims all 15: a second bill charging it finds no room",
-        planPairings({
-            arrival: brought15b,
-            bills: [sameItemA, sameItemB],
-            agreedPrices: PRICES,
-            transcribed: "recINV_S1",
-        }).refusals.get("recINV_S2"),
-        PAIRING_REFUSED.noRoom
-    );
-    // ...and the partial case, which is the semantic change the override brings:
-    // 10 of 15 claimed leaves 5, and a bill charging 5 takes it.
+    // Two bills that each charge PART of one ordered item are still rivals: nothing
+    // records which of them this shipment answers, and "they would both fit" is not
+    // an answer to that question.
     const partial = bill({ id: "recINV_S3", invoiceId: "HYE-INV-S3", charges: [["recPOI_A", 10, 10]] });
     const wantsFive = bill({ id: "recINV_S4", invoiceId: "HYE-INV-S4", charges: [["recPOI_A", 10, 5]] });
     check(
-        "transcribed bill claims 10 of 15: a bill charging the rest attaches",
-        planPairings({
-            arrival: brought15b,
-            bills: [partial, wantsFive],
-            agreedPrices: PRICES,
-            transcribed: "recINV_S3",
-        }).attach.map((b) => b.invoiceRecordId).join(),
-        "recINV_S4"
+        "10 and 5 against an arrival of 15: neither attached, because neither is recorded",
+        planPairings({ arrival: brought15b, bills: [partial, wantsFive], agreedPrices: PRICES })
+            .attach.length,
+        0
     );
+
+    // THE DISJOINTNESS THE ONE-PASS SIMPLIFICATION RESTS ON. planPairings folds no
+    // decision back into the pool, which is only safe because two bills that attach
+    // never charge a common ordered item — so neither can be the other's rival and
+    // neither eats the other's room. Asserted rather than assumed: if an override
+    // ever returns, this is what stops the fold being forgotten with it.
+    for (const [name, pool, arr] of [
+        ["two disjoint bills", [onA, onB], twoBrought],
+        ["two on one ordered item", [sameItemA, sameItemB], brought15b],
+    ]) {
+        const attached = planPairings({ arrival: arr, bills: pool, agreedPrices: PRICES }).attach;
+        const overlap = attached.some((x, i) =>
+            attached.some((y, j) => i < j && chargesSameOrderedItem(x, y))
+        );
+        assert(`  ${name}: no two attached bills share an ordered item`, !overlap);
+    }
 
     // THE ORDER IS PROVABLY IRRELEVANT, so reversing the pool must change nothing.
     // A bill attaches only when no OTHER unplaced bill charges any ordered item it
@@ -744,8 +743,7 @@ export function run({ check, assert, log }) {
     for (const [name, pool, transcribed] of [
         ["two disjoint bills", [onA, onB], null],
         ["two bills on one ordered item", [sameItemA, sameItemB], null],
-        ["a transcribed bill and a rival", [sameItemA, sameItemB], "recINV_S1"],
-        ["a transcribed bill and the rest", [partial, wantsFive], "recINV_S3"],
+        ["two partial bills on one ordered item", [partial, wantsFive], null],
     ]) {
         const arr = pool === onA || pool[0] === onA ? twoBrought : brought15b;
         const forward = planPairings({ arrival: arr, bills: pool, agreedPrices: PRICES, transcribed });
