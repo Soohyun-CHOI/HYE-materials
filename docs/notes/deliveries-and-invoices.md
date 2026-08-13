@@ -394,3 +394,142 @@ candidates narrow to the bills describing the shipment the excess arrived on.
   edited after the fact is still #206's unreachable second shape; and what a
   fully unpaired base should do about the fallback tier's residual is a question
   for whoever measures pairing coverage once the app is in use.
+
+### Over-deliveries with no correction (#217)
+
+A strip above `/prs` listing every over-delivered `Delivery Items` row that no
+live correction covers, longest wait first, each row raising the correction
+itself. The third of three strips built to the shape #176 set, and the one that
+settles what those three actually share.
+
+- **IT IS ON `/prs`, AND WHO CAN ACT IS WHY — the mirror of #176's argument.**
+  That issue put its strip on `/pos` because `generatePOAction` is
+  `withAdminAction` and the office works from that screen. This action is
+  `requireUser` plus the delivery's own job scope, and a correction IS a purchase
+  request raised by the site staff who record deliveries, so it belongs where they
+  work. The two strips together are the symmetry #176's commit message predicted.
+- **THE ACTION IS ON THE ROW BECAUSE THAT IS WHAT THE ACTION TAKES.**
+  `createOverageDraftAction` takes one `Delivery Items` record id, and one purchase
+  order can carry several ordered items each with its own excess, so neither the
+  order nor the delivery is a unit that can raise anything. Same test as #176 (its
+  retry takes one PR, so its row is a PR) and as #216 (nothing there takes a
+  delivery, so it has no action at all). **Where the action attaches is decided by
+  the action's own argument, not by the strip's layout.**
+- **AND IT IS `OverageButton`, THE DELIVERY DETAIL'S OWN COMPONENT, UNCHANGED.**
+  One action, one preview: the modal names the invoice, the unit price and the file
+  the quotation is taken from, and a bare button on a list would create a request
+  without the reader ever seeing them. A second implementation would also be a
+  second place for the inferred marker to explain itself differently, which is what
+  #166 needed an assertion to prevent — so `inferredLabel` moved into
+  `lib/overage.js` and both screens call it.
+- **ONE VOICE, AND THE CONDITION IS NARROWER THAN #216 LEFT IT.** That issue's rule
+  was "two voices when the strip carries an action". This strip carries one and
+  still needs a single voice, because everyone who can see a row can press its
+  button: the rows are gated by `canAccessJobDeliveries` and the action
+  re-authorizes on exactly that. So the real condition is **"can some readers not
+  take it"** — #176's action was Admin-only, which is what forced its second voice.
+  The copy may therefore name the control, which #216's was barred from doing.
+- **THE SELECTION RULE WAS HALF-WRITTEN ALREADY, WHICH IS #216's LESSON APPLIED.**
+  `awaitsCorrection` is `overDelivered` and `overagePRState === "none"` — the
+  complement of two refusals `overageEligibility` already returns
+  (`notOverDelivered`, `alreadyRaised`). So it is a composition in
+  `lib/overage.js` beside them rather than a fresh predicate in the screen's view
+  module, which is what #176 did and what #216 said not to repeat. It inherits both
+  reopening clauses for free: a withdrawn correction and a withdrawn overage order
+  both put the row back on the list with no write anywhere.
+- **A BLOCKED ROW IS LISTED WITH A CHIP, NOT ITS SENTENCE, AND NOT IN A SECOND
+  LIST.** The issue asks for ineligible excesses to appear with their reason, and
+  the shortest refusal runs to 130 characters — not a row at 832px. So
+  `OVERAGE_COPY.strip.reason` is a chip per refusal, which is
+  `STATUS_COPY.column`'s density argument applied a second time; the sentences stay
+  on the delivery detail, where there is room. One list rather than two, because
+  the reader's question is "what still needs correcting" and splitting would make
+  them scan twice for one answer. The offline check asserts a chip for every
+  refusal the strip can show **and none for the two the selection excludes**, over
+  the whole key set rather than a list written twice.
+- **ORDERED BY `Received Date` ASCENDING, AND UNLIKE #176 A REAL DATE EXISTS.**
+  That issue had no approval instant and approximated with `PR ID`; this row's
+  parent delivery carries both `Received Date` and `Created At`, measured present on
+  all six of this base's rows. `sortLongestWaitingFirst` is reused unchanged, so the
+  same arrival sits in the same position on `/deliveries`, on #216's strip and on
+  this one. `Created At` — when the excess was RECORDED rather than when it landed —
+  was the alternative and the two orderings differ on this base; the arrival date
+  wins because the excess is a fact about the arrival.
+  - **Two rows of one delivery would tie on both dates**, since a `Delivery Items`
+    row carries no date of its own and one arrival can exceed two ordered items. The
+    rows are therefore fed in `Delivery Item ID` order and `Array#sort` is stable,
+    which makes the ordering total without inventing a third key on a function
+    #216 also calls. Not reachable on this base — six rows, six deliveries.
+- **THE REDIRECT DID NOT NEED CHANGING, WHICH RETIRES #176's DEFERRAL.** That issue
+  left `generatePOAction`'s redirect alone and said the decision was worth having
+  all three strips in hand for. Now it is, and the rule that falls out is: **an
+  action that CREATES redirects to what it created; an action that REPAIRS
+  redirects to the record it repaired.** `createOverageDraftAction` goes to
+  `/prs/new?draft=…`, the draft it just made, which is the next step for a reader
+  who pressed it on the delivery detail and for one who pressed it here — and it
+  stays on `/prs`'s own screen family. Neither action needs per-caller behavior, so
+  neither gets any.
+- **THE STRIP'S ROWS ARE GATED BY THE DELIVERY RULE, NOT THE PAGE'S — measured
+  with the numbers #216 could only claim.** The table is purchase requests under
+  `canViewPR`; these rows are arrivals under `canAccessJobDeliveries`. On one load
+  each: `soo@` sees 6 strip rows and **53** table rows, `scoped-fixture@` sees the
+  same 6 strip rows and **40**. The rules can diverge on the strip side too —
+  `canViewPR` admits a requester, a signer and a correction recipient with no job
+  assignment — but on this base they agree on all six rows, because every excess
+  here is on the one job the non-Admin fixture is assigned to. The decisive reason
+  to use the delivery rule is not the divergence: it is that the ACTION
+  re-authorizes on it, so any other gate would render a button the action refuses.
+- **THE WALK IS ONE READ FOR THE WHOLE PAGE, AND FINDING THAT COST 14 OPERATIONS
+  MEASURED.** `getOverageContext` took one delivery's rows, so a strip calling it
+  per delivery measured **38 operations** for this base's six rows against **19**
+  called once — the per-row shape #193 exists to remove. Rows may span deliveries
+  now (`deliveryIds` is a Map the caller supplies, since every caller already holds
+  the deliveries and the human id is needed only for copy). Of the 19, **14 were the
+  signer chain and none of the 14 was the data**: `getSignersByPR` re-`find()`s a
+  request the function already holds to reach a reverse-link `recordToPR` already
+  carries, and `getActiveUsers()` read the whole Users table once per request — six
+  reads of one table in one render. Both collapse to one batched read each.
+  - **So the rule that picks the signers is pure now** (`selectCopyableSigners` in
+    `lib/overage.js`), shared by the batched read and the write path, which fetch
+    differently and judge identically. It sorts by `Sequence Order` because the
+    batched reader cannot: a read by record id returns the ids' order. A comment
+    claimed `getSignersByPR` promises no order, which was false — it sorts and says
+    so.
+  - **`/prs` measured 8 operations before and 17 after**, with the label it already
+    carried; the strip is 9 of those and none of the 9 scales with rows. A viewer
+    with no assigned jobs pays **nothing at all** — the walk returns before its
+    first query — measured as a 5-operation render for `authz-fixture@`. Two of the
+    five repeats are `Purchase Requests` and `Users` read twice with different id
+    sets, which is the same honest kind #216 recorded for `/invoices` rather than a
+    re-read of the same records.
+- **THE DELIVERY DETAIL'S ALREADY-COVERED MESSAGE NAMES A STAGE AND LINKS THE
+  REQUEST.** It said "X already covers this excess." and stopped, which answers the
+  wrong question: a reader who finds an excess covered is deciding whether to WAIT,
+  and a draft nobody submitted, a request with its signers, and an order already
+  generated are three different answers. `overageStageKey` picks the voice as a
+  **copy-only refinement** of `overagePRState` — that function collapses `Draft` and
+  `In Review` deliberately and keeps its deny-by-default posture, so an unrecognized
+  status still reads as pending and takes the in-review voice, which tells the
+  reader to wait rather than to go nudge a draft nobody submitted. A fourth
+  stageless voice keeps #167's sentence for a caller that supplies none.
+  - **The message arrives in parts (`prefix`, `prId`, `suffix`) so the id can be a
+    link** without copy learning JSX: the delivery detail composes them, the Server
+    Action keeps returning the flattened `text` as its refusal string, and the
+    offline check asserts the two cannot drift. Only that one message carries a
+    `prId`, asserted over every refusal, so a later message cannot become a link
+    without someone deciding it should.
+  - **Not observable on this base**, which carries no live correction at all: the
+    stage voices and the link are covered offline only. Producing one would mean
+    pressing the button and leaving a permanent request behind, which was weighed
+    and declined.
+- **`signersDropped: 0` WAS FORCED ON THE DELIVERY DETAIL AND IS NOT ANY MORE.**
+  The override made the one message that reports a dropped signer unreachable on the
+  only screen that shows the preview, while the walk paid to compute the count.
+  Nothing visible changed on this base — the count is 0 on all six rows and
+  `signersEmpty` is true only on rows whose refusal is the single message they show
+  — so this is asserted offline rather than observed.
+- **Not in this issue:** no shared strip component, deliberately; what the three
+  strips share and what differed every time is in this issue's commit message, as
+  the input to that decision. The pre-existing per-requester `getUserByRecordId`
+  loop on `/prs` (4 of the page's 8 original operations, and 3 of its repeats) is
+  untouched — it is #193's shape and predates this strip.

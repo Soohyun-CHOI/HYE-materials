@@ -6,8 +6,11 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
+import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
+import { getUncorrectedOverages } from "@/lib/overagePR";
 import { withOpsLabel } from "@/lib/airtableOps";
 import PRListClient from "./PRListClient";
+import UncorrectedOverageStrip from "./UncorrectedOverageStrip";
 
 export const metadata = { title: "Purchase Requests" };
 
@@ -60,7 +63,19 @@ async function renderPRListPage({ searchParams }) {
     // Resolve requester names for the whole visible set (the client filters
     // after, so names are needed for every visible row, not a subset).
     const requesterIds = [...new Set(visible.map((pr) => pr.requester?.[0]).filter(Boolean))];
-    const requesterRecords = await Promise.all(requesterIds.map((id) => getUserByRecordId(id)));
+    // Issue #217 — the strip's rows, read alongside the requester names rather than
+    // after them, so the strip costs the page no extra round trip. ITS ROWS ARE
+    // GATED BY THE DELIVERY RULE, NOT THIS PAGE'S: the table is purchase requests
+    // under canViewPR and these are arrivals under canAccessJobDeliveries, which
+    // admit different people — see getUncorrectedOverages for why the delivery rule
+    // is the right one here (createOverageDraftAction re-authorizes on it, so any
+    // other gate would render a button the action refuses). The accessible jobs are
+    // narrowed before the read, so a delivery on a job this viewer cannot reach is
+    // never fetched.
+    const [requesterRecords, overages] = await Promise.all([
+        Promise.all(requesterIds.map((id) => getUserByRecordId(id))),
+        getUncorrectedOverages(jobsFor(user, jobs)),
+    ]);
     const userNameById = Object.fromEntries(
         requesterRecords.filter(Boolean).map((u) => [u.id, u.userName])
     );
@@ -110,6 +125,11 @@ async function renderPRListPage({ searchParams }) {
                     New PR
                 </Link>
             </div>
+
+            {/* Issue #217 — above the list, because it is about requests that do not
+                exist yet: the same reason #176's strip is a strip rather than a
+                column, since the row that would carry the fact is the thing missing. */}
+            <UncorrectedOverageStrip rows={overages} />
 
             <PRListClient
                 rows={rows}
