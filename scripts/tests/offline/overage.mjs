@@ -1,21 +1,28 @@
-// Raising an overage PR from an over-delivery (#167) — the pure judgment.
+// Raising an overage PR from an over-delivery (#167, #219) — the pure judgment.
 //
-// Three things this pins that nothing else can:
-//   - ELIGIBILITY, clause by clause, including the out-of-scope case.
-//   - THAT THE ORDERING IS #166'S, on the AST rather than by agreement: a second
-//     sort by Issue Date would answer the same question differently and nothing
-//     behavioral would notice.
+// Four things this pins that nothing else can:
+//   - ELIGIBILITY, clause by clause, including both out-of-scope cases.
+//   - THE CANDIDATE TIERS (#219): a bill naming another shipment is never picked, a
+//     bill naming this one wins over one naming none, and only the fallback tier
+//     infers on a single bill. This is the defect #219 closes, so every tier is
+//     asserted to give a DIFFERENT answer on the same input.
+//   - THAT THE ORDERING IS THIS MODULE'S AND PRIVATE, on the AST: it moved out of
+//     lib/deliveryStatus.js with #219, and a second sort by Issue Date anywhere
+//     would answer the same question differently with nothing behavioral noticing.
 //   - THAT THE BANNER IS DERIVED, from the linked PR's status and the row's flag,
 //     so a withdrawal reopens the row with no write anywhere.
 //
 // What a pass does NOT prove: that the bills handed in were really every bill on the
-// ordered item, or that the flag and the attachment moved in one write. Those are
+// ordered item, that the `deliveryRecordId` on each one is the pairing Airtable
+// holds, or that the flag and the attachment moved in one write. Those are
 // lib/overagePR.js's and Airtable's properties and live in
 // scripts/tests/verify-overage-167.mjs.
 
 import {
     OVERAGE_BLOCKED,
     OVERAGE_COPY,
+    OVERAGE_INFERRED,
+    attachedDeliveryRecordId,
     attachedPOItemRecordId,
     describeOverageBanner,
     describeOveragePreview,
@@ -27,11 +34,18 @@ import {
     resolveOriginalPOItem,
     selectOverageBill,
 } from "../../../lib/overage.js";
-import { INFERRED_PREMISE, STATUS_COPY } from "../../../lib/deliveryStatus.js";
-import { parseFile, walk } from "./_ast.mjs";
+// The namespace too, so "the ordering is private" is a claim about the export list
+// rather than about a name this file chose not to import (#219).
+import * as overage from "../../../lib/overage.js";
+import { STATUS_COPY } from "../../../lib/deliveryStatus.js";
+import { callPassesProperty, callsTo, parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Overage correction — eligibility, ordering, banner (#167)";
+export const title = "Overage correction — eligibility, candidate bills, banner (#167, #219)";
+
+/** The shipment the excess arrived on, and one it did not. */
+const DELIVERY = "recDL1";
+const OTHER_DELIVERY = "recDL2";
 
 /** One over-delivery row as the readers see it. */
 const row = (over = {}) => ({
@@ -42,11 +56,17 @@ const row = (over = {}) => ({
     size: '2"',
     overDelivered: true,
     poItem: ["recPOI1"],
+    // #219 — the row's own shipment, which is what narrows the candidates.
+    delivery: [DELIVERY],
     overagePRRecordId: null,
     formerPOItemRecordId: null,
     ...over,
 });
 
+/**
+ * A bill NAMING THIS SHIPMENT — the tier #219 prefers, so every clause that is not
+ * about the narrowing reads without a pairing spelled out in it.
+ */
 const bill = (id, qty, issueDate, over = {}) => ({
     invoiceItemRecordId: `recII${id}`,
     invoiceRecordId: `recINV${id}`,
@@ -55,8 +75,21 @@ const bill = (id, qty, issueDate, over = {}) => ({
     qty,
     unitPrice: 12,
     hasFile: true,
+    deliveryRecordId: DELIVERY,
     ...over,
 });
+
+/** The same bill naming NO shipment — #210's ordinary state, and the fallback tier. */
+const unpairedBill = (id, qty, issueDate, over = {}) =>
+    bill(id, qty, issueDate, { deliveryRecordId: null, ...over });
+
+/** And one naming a DIFFERENT shipment, which is never a candidate. */
+const otherShipmentBill = (id, qty, issueDate, over = {}) =>
+    bill(id, qty, issueDate, { deliveryRecordId: OTHER_DELIVERY, ...over });
+
+/** selectOverageBill for this row's shipment unless told otherwise. */
+const pick = (bills, excess, deliveryRecordId = DELIVERY) =>
+    selectOverageBill({ bills, excess, deliveryRecordId });
 
 export function run({ check, log, assert }) {
     // --- the excess needs no arithmetic ----------------------------------
@@ -109,62 +142,202 @@ export function run({ check, log, assert }) {
         OVERAGE_BLOCKED.alreadyRaised
     );
 
-    // --- OUT OF SCOPE: an excess spanning two invoices --------------------
+    // --- THE CANDIDATE TIERS (#219) ---------------------------------------
+    // THE DEFECT THIS CLOSES. The candidates used to be every bill on the ordered
+    // item, so an order filled by two deliveries could attach the wrong vendor
+    // invoice: the quotation, its code and its unit price all come off the picked
+    // bill, so the document that went out was wrong rather than merely uncertain.
     log("");
-    log("an excess larger than the oldest bill spans two invoices — out of scope:");
-    // The reason is the QUOTATION, not the arithmetic: two invoices means two files
-    // and a PR takes one. Under oldest-first that condition is exactly "the oldest
-    // bill's invoice item is smaller than the excess", so it needs no rule of its own.
-    const spans = overageEligibility({
-        row: row({ qty: 5 }),
-        bills: [bill("01", 3, "2026-07-01"), bill("02", 12, "2026-07-05")],
-    });
-    check("blocked", spans.blocked, OVERAGE_BLOCKED.spansInvoices);
-    assert(
-        "and the copy says the quotation is why, not the sum",
-        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.spansInvoices]().text.includes("no single quotation")
+    log("the candidates are the bills naming THIS shipment — tiers, never mixed:");
+    const mine = bill("01", 10, "2026-07-01");
+    const theirs = otherShipmentBill("02", 10, "2026-06-01");
+    const nobodys = unpairedBill("03", 10, "2026-06-15");
+
+    check("a bill naming this shipment is picked", pick([mine], 2).bill.invoiceId, mine.invoiceId);
+    check("  and nothing is inferred — the pairing says which", pick([mine], 2).inferred, null);
+    // THE HEART OF IT: the other shipment's bill is OLDER, so oldest-first alone
+    // would have taken it. This is the exact input that used to pick wrong.
+    check("an older bill naming another shipment loses", pick([theirs, mine], 2).bill.invoiceId, mine.invoiceId);
+    check("  and it is still not inferred", pick([theirs, mine], 2).inferred, null);
+    // A recorded pairing must not lose to an unrecorded one under an ordering, which
+    // is what mixing the tiers would do — the unpaired bill here is older too.
+    check("an unpaired bill does not dilute the pairing", pick([nobodys, mine], 2).bill.invoiceId, mine.invoiceId);
+    check("  so one paired bill stays uninferred beside it", pick([nobodys, mine], 2).inferred, null);
+
+    log("");
+    log("nothing names this shipment — the fallback tier, ONE candidate only:");
+    // `?.` so a refusal here reports a FAIL rather than throwing on a null bill: the
+    // mutation that widens the refusal to one candidate lands exactly here, and a
+    // stack trace is a worse signal than the comparison.
+    check("an unpaired bill is still a candidate", pick([nobodys], 2).bill?.invoiceId, nobodys.invoiceId);
+    // #210's ORDINARY STATE, not an anomaly: the vendor emails the bill at shipment,
+    // so excluding these would make the correction wait on an optional field.
+    check("  but the answer is inferred at one bill", pick([nobodys], 2).inferred, OVERAGE_INFERRED.noPairing);
+    check(
+        "another shipment's bill is not rescued by the fallback either",
+        pick([theirs, nobodys], 2).bill.invoiceId,
+        nobodys.invoiceId
     );
-    // A newer bill that COULD absorb it does not rescue it: oldest-first is the rule,
-    // and picking the other one would be a second answer to #166's ambiguity.
-    assert("even though a later bill is large enough", spans.eligible === false);
 
-    // --- WHICH BILL: #166'S ORDERING ---------------------------------------
+    // TWO UNPAIRED CANDIDATES ARE REFUSED, NOT ORDERED. Nothing records that either
+    // bill describes this arrival, so an ordering would be a choice with nothing
+    // behind it — and `Issue Date` is human-entered, so a vendor's typo could decide
+    // which file, unit price and vendor code go onto a purchase order.
     log("");
-    log("which bill carries the excess — oldest first, then Invoice ID:");
+    log("TWO unpaired candidates are refused rather than chosen between:");
+    const twoUnpaired = [unpairedBill("03", 10, "2026-06-15"), unpairedBill("04", 10, "2026-06-20")];
+    check("blocked", pick(twoUnpaired, 2).blocked, OVERAGE_BLOCKED.severalUnpairedBills);
+    check("  and no bill is handed back", pick(twoUnpaired, 2).bill, null);
+    // A refusal has no answer to qualify, so it carries no marker either.
+    check("  nor an inference to qualify", pick(twoUnpaired, 2).inferred, null);
+    // The oldest is NOT quietly picked: this is the assertion that would have caught
+    // the version this replaced, which sorted and took the head.
+    assert(
+        "  the oldest is not picked in passing",
+        pick(twoUnpaired, 2).bill?.invoiceId !== "HYE-INV-260703"
+    );
+    // ANTI-VACUITY FOR THE COUNT BOUNDARY: one candidate and two candidates must give
+    // DIFFERENT answers, or the refusal is either unreachable or swallowing the case
+    // that should proceed.
+    const one = pick([twoUnpaired[0]], 2);
+    const two_ = pick(twoUnpaired, 2);
+    assert(
+        `one unpaired candidate proceeds and two refuse (${one.bill?.invoiceId ?? one.blocked} vs ${two_.bill?.invoiceId ?? two_.blocked})`,
+        Boolean(one.bill) && !two_.bill
+    );
+    check("  and the one that proceeds still says nothing named it", one.inferred, OVERAGE_INFERRED.noPairing);
+    // A paired bill beside two unpaired ones takes the higher tier, so the refusal is
+    // the fallback tier's own and never reached when the pairing answers.
+    check(
+        "a pairing beside them answers instead of refusing",
+        pick([...twoUnpaired, mine], 2).bill.invoiceId,
+        mine.invoiceId
+    );
+    assert(
+        "the copy says what is missing is a record",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text.includes(
+            "nothing records which one"
+        )
+    );
+    assert(
+        "  and names the action that supplies it",
+        /Attach this delivery's own invoice from Edit/.test(
+            OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text
+        )
+    );
+    // It must not promise eligibility: the newly named bill still needs a file and
+    // still has to cover the excess.
+    assert(
+        "  without promising the correction becomes available",
+        !/becomes available|will be available/i.test(
+            OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text
+        )
+    );
+    assert(
+        "and it is not the other-delivery sentence",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text !==
+            OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.otherDeliveryOnly]().text
+    );
+
+    log("");
+    log("every bill names another shipment — a refusal of its own, not `no-invoice`:");
+    check("blocked", pick([theirs], 2).blocked, OVERAGE_BLOCKED.otherDeliveryOnly);
+    check("  and nothing is claimed to be inferred", pick([theirs], 2).inferred, null);
+    // Merging this into `noInvoice` would print "No invoice bills this ordered item
+    // yet", which is false: one does, and it describes another arrival.
+    assert(
+        "  the copy does not claim nothing bills the ordered item",
+        !OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.otherDeliveryOnly]().text.includes("No invoice bills")
+    );
+    assert(
+        "  it says the bills name a different delivery",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.otherDeliveryOnly]().text.includes("different delivery")
+    );
+    check("nothing bills it at all is still `no-invoice`", pick([], 2).blocked, OVERAGE_BLOCKED.noInvoice);
+    check("nullish does not throw", selectOverageBill().blocked, OVERAGE_BLOCKED.noInvoice);
+    check("  nor does a nullish bill list", pick(null, 2).blocked, OVERAGE_BLOCKED.noInvoice);
+
+    // A MISSING SHIPMENT MUST NOT READ AS THE PAIRING TIER. Without the truthiness
+    // guard in candidateBills, a null delivery id would compare equal to an unpaired
+    // bill's null and the fallback would announce itself as a lookup.
+    log("");
+    log("a row with no shipment falls to the fallback and SAYS so:");
+    check("the unpaired bill is still found", pick([nobodys], 2, null).bill.invoiceId, nobodys.invoiceId);
+    check("  and the answer is inferred, not certain", pick([nobodys], 2, null).inferred, OVERAGE_INFERRED.noPairing);
+    check("a paired bill is then out of reach", pick([mine], 2, null).blocked, OVERAGE_BLOCKED.otherDeliveryOnly);
+
+    // ANTI-VACUITY FOR THE WHOLE SECTION: one bill list, three shipment arguments,
+    // three different answers. If the narrowing were not happening at all, these
+    // would agree — which is what the pre-#219 code did.
+    log("");
+    log("  anti-vacuity — the same bills answer differently per shipment:");
+    const all = [theirs, nobodys, mine];
+    const answers = [
+        pick(all, 2, DELIVERY),
+        pick(all, 2, OTHER_DELIVERY),
+        pick(all, 2, null),
+    ].map((r) => `${r.bill?.invoiceId ?? r.blocked}/${r.inferred}`);
+    assert(`three distinct answers (${answers.join(", ")})`, new Set(answers).size === 3);
+    // Distinct is not enough on its own: each answer must be the bill of the shipment
+    // asked about, which is the property rather than three different strings.
+    check("  this shipment gets its own bill", pick(all, 2, DELIVERY).bill.invoiceId, mine.invoiceId);
+    check("  the other shipment gets its own", pick(all, 2, OTHER_DELIVERY).bill.invoiceId, theirs.invoiceId);
+    check("  and a row naming none gets the unpaired one", pick(all, 2, null).bill.invoiceId, nobodys.invoiceId);
+
+    // --- ORDER WITHIN A TIER, AND THE TWO REFUSALS ------------------------
+    log("");
+    log("within a tier: oldest first, then Invoice ID — the ordering moved here (#219):");
     const two = [bill("10", 10, "2026-07-10"), bill("01", 10, "2026-07-01")];
-    check("the oldest is chosen", selectOverageBill(two, 2).bill.invoiceId, "HYE-INV-260701");
-    check("and it is marked inferred", selectOverageBill(two, 2).inferred, true);
-    check("one bill needs no inference", selectOverageBill([bill("01", 10, "2026-07-01")], 2).inferred, false);
-    check("  and is not blocked", selectOverageBill([bill("01", 10, "2026-07-01")], 2).blocked, null);
+    check("the oldest is chosen", pick(two, 2).bill.invoiceId, "HYE-INV-260701");
+    check("and it is marked inferred", pick(two, 2).inferred, OVERAGE_INFERRED.severalBills);
     const sameDay = [bill("02", 10, "2026-07-01"), bill("01", 10, "2026-07-01")];
-    check("ties break on Invoice ID ascending", selectOverageBill(sameDay, 2).bill.invoiceId, "HYE-INV-260701");
+    check("ties break on Invoice ID ascending", pick(sameDay, 2).bill.invoiceId, "HYE-INV-260701");
     const undated = [bill("02", 10, ""), bill("01", 10, "2026-07-05")];
-    check("an undated bill does not claim to be oldest", selectOverageBill(undated, 2).bill.invoiceId, "HYE-INV-260701");
-    check("no bills at all", selectOverageBill([], 2).blocked, OVERAGE_BLOCKED.noInvoice);
-    check("nullish does not throw", selectOverageBill(null, 2).blocked, OVERAGE_BLOCKED.noInvoice);
+    check("an undated bill does not claim to be oldest", pick(undated, 2).bill.invoiceId, "HYE-INV-260701");
+    // The ordering is only ever asked within one tier, so an undated bill of ANOTHER
+    // shipment cannot take the head of the queue.
+    check(
+        "and an undated bill of another shipment is not in the queue at all",
+        pick([otherShipmentBill("02", 10, ""), bill("01", 10, "2026-07-05")], 2).bill.invoiceId,
+        "HYE-INV-260701"
+    );
 
     log("");
-    log("TWO BILLS IS THE WHOLE CONDITION — #166's determinacy does not transfer:");
-    // allocateLineToInvoices calls a delivery covering EVERY bill determinate,
+    log("TWO BILLS ON THIS SHIPMENT IS THE CONDITION — #166's determinacy does not transfer:");
+    // allocateLineToInvoices called a delivery covering EVERY bill determinate,
     // because there the question is whether a bill was covered. Here the question is
     // which bill's invoice item the excess sits in, and full coverage leaves that open.
     const covered = [bill("01", 10, "2026-07-01"), bill("02", 10, "2026-07-02")];
-    check("two bills, both fully covered, still infers", selectOverageBill(covered, 2).inferred, true);
+    check("two bills, both fully covered, still infers", pick(covered, 2).inferred, OVERAGE_INFERRED.severalBills);
+    // ONE SENTENCE PER TIER, and each names the fact that produced it. The premise was
+    // a constant shared with lib/deliveryStatus.js until #219; the invoice axis's
+    // marker went with #210's stored pairing, so there is nothing left to share with.
     assert(
-        "and the premise sentence is #166's, imported rather than restated",
-        OVERAGE_COPY.preview.inferred().text.includes(INFERRED_PREMISE)
+        "the several-bills sentence names this delivery's own bills",
+        OVERAGE_COPY.preview.inferred[OVERAGE_INFERRED.severalBills]().text.includes(
+            "this delivery carries more than one bill"
+        )
     );
     assert(
-        "with this module's own consequence, because the question is its own",
-        OVERAGE_COPY.preview.inferred().text.includes("carrying the excess")
+        "the no-pairing sentence says nothing names this delivery",
+        OVERAGE_COPY.preview.inferred[OVERAGE_INFERRED.noPairing]().text.includes(
+            "no invoice names this delivery"
+        )
     );
-    // #210 REMOVED THE OTHER HALF OF THIS PAIR, and what was asserted here was that
-    // the two markers explained themselves with one premise and two endings. The
-    // invoice axis's marker is gone — the pairing is stored, so nothing there is
-    // inferred — so there is one ending left and this is now a claim about a shared
-    // CONSTANT rather than about two sentences agreeing. The constant is still worth
-    // pinning: it is imported from a module that no longer reads it, which is exactly
-    // the shape a later cleanup would delete by accident.
+    for (const key of Object.values(OVERAGE_INFERRED)) {
+        const sentence = OVERAGE_COPY.preview.inferred[key]();
+        assert(`${key}: says what it concludes, not only its premise`, sentence.text.includes("carrying the excess"));
+        // Two readings of ONE qualifier, so one key — the arrangement
+        // noLongerOverDelivered already uses for its two voices.
+        check(`  and shares the qualifier's message key`, sentence.key, "preview-inferred");
+    }
+    assert(
+        "the two sentences are not the same sentence",
+        OVERAGE_COPY.preview.inferred[OVERAGE_INFERRED.severalBills]().text !==
+            OVERAGE_COPY.preview.inferred[OVERAGE_INFERRED.noPairing]().text
+    );
+    // The invoice axis has no inferred copy left to agree with, which is what #210
+    // removed and what #219 relies on when it stops sharing a constant.
     assert(
         "the invoice axis no longer has an inferred sentence to agree with",
         !("inferred" in STATUS_COPY.detail) && !("inferred" in STATUS_COPY.column)
@@ -177,36 +350,156 @@ export function run({ check, log, assert }) {
             typeof STATUS_COPY.column.mismatch === "function"
     );
 
-    // --- THE ORDERING IS IMPORTED, ASSERTED ON THE AST -------------------
+    // --- OUT OF SCOPE: AN EXCESS ONE BILL CANNOT CARRY --------------------
     log("");
-    log("the ordering is #166's function, not a copy of it (AST):");
+    log("the excess must fit the chosen bill — TWO refusals, because one lied (#219):");
+    // Two candidate bills on this shipment and the oldest is too small: the excess
+    // genuinely spans two invoices, and the reason is the QUOTATION rather than the
+    // arithmetic — two invoices means two files and a PR takes one.
+    const spans = overageEligibility({
+        row: row({ qty: 5 }),
+        bills: [bill("01", 3, "2026-07-01"), bill("02", 12, "2026-07-05")],
+    });
+    check("two bills, oldest too small — spans", spans.blocked, OVERAGE_BLOCKED.spansInvoices);
+    assert(
+        "and the copy says the quotation is why, not the sum",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.spansInvoices]().text.includes("no single quotation")
+    );
+    // A newer bill that COULD absorb it does not rescue it: oldest-first is the rule
+    // within the tier, and picking the other one would be a second answer to the
+    // same ambiguity.
+    assert("even though a later bill is large enough", spans.eligible === false);
+    // ONE bill and it is too small: nothing is spanned. Under the single old reason
+    // this printed "so it spans more than one invoice", with one invoice in play.
+    const tooSmall = overageEligibility({
+        row: row({ qty: 5 }),
+        bills: [bill("01", 3, "2026-07-01")],
+    });
+    check("one bill, too small — a fact about the quantity", tooSmall.blocked, OVERAGE_BLOCKED.excessExceedsBill);
+    assert(
+        "and its copy does not claim anything spans two invoices",
+        !OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.excessExceedsBill]().text.includes("spans")
+    );
+    assert(
+        "  it says the excess is larger than what is billed",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.excessExceedsBill]().text.includes("larger than")
+    );
+    // The two refusals are distinct keys AND distinct sentences, or splitting them
+    // bought nothing.
+    assert(
+        "the two refusals do not share a sentence",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.spansInvoices]().text !==
+            OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.excessExceedsBill]().text
+    );
+    // Every blocked key the module defines has a message, or a row renders a blank box.
+    for (const key of Object.values(OVERAGE_BLOCKED)) {
+        assert(`\`${key}\` has copy`, typeof OVERAGE_COPY.preview.blocked[key] === "function");
+    }
+
+    log("");
+    log("the row's own shipment is where the narrowing comes from:");
+    check("read off the link array", attachedDeliveryRecordId(row()), DELIVERY);
+    check("  absent is null, not undefined", attachedDeliveryRecordId(row({ delivery: [] })), null);
+    check("  nullish does not throw", attachedDeliveryRecordId(null), null);
+    // Eligibility takes it from the row, so no caller has to pass it separately —
+    // which is what makes a forgotten argument impossible on that path.
+    check(
+        "eligibility narrows without being told which delivery",
+        overageEligibility({ row: row(), bills: [otherShipmentBill("02", 10, "2026-06-01")] }).blocked,
+        OVERAGE_BLOCKED.otherDeliveryOnly
+    );
+
+    // --- THE ORDERING IS THIS MODULE'S, AND PRIVATE (AST) ----------------
+    log("");
+    log("the ordering moved here with #219 and is not exported (AST):");
     const { ast } = parseFile("lib/overage.js");
-    const imported = new Set();
     let importsFromDeliveryStatus = false;
     walk(ast, (node) => {
         if (node.type !== "ImportDeclaration") return;
-        if (node.source.value !== "./deliveryStatus.js") return;
-        importsFromDeliveryStatus = true;
-        for (const spec of node.specifiers) imported.add(spec.imported?.name ?? spec.local.name);
+        if (node.source.value?.includes("deliveryStatus")) importsFromDeliveryStatus = true;
     });
-    assert("lib/overage.js imports from ./deliveryStatus.js", importsFromDeliveryStatus);
-    assert("  including sortInvoicesOldestFirst", imported.has("sortInvoicesOldestFirst"));
-    assert("  and the shared premise", imported.has("INFERRED_PREMISE"));
-    // A second sort by Issue Date would answer the same question differently and
-    // nothing behavioral would notice, which is why this is a source-shape check.
-    let ownIssueDateSort = false;
+    assert("lib/overage.js imports nothing from lib/deliveryStatus.js", !importsFromDeliveryStatus);
+    assert(
+        "  and `sortInvoicesOldestFirst` is not on its export list either",
+        !("sortInvoicesOldestFirst" in overage)
+    );
+    assert("  nor is a premise constant", !("INFERRED_PREMISE" in overage));
+    // EXACTLY ONE sort by Issue Date in the repo's judgment layer: this one. Two would
+    // answer the same question differently and nothing behavioral would notice, which
+    // is why this is a source-shape check — and the count is asserted rather than mere
+    // presence, so a copy added beside it fails.
+    const billSorts = [];
     walk(ast, (node) => {
         if (node.type !== "CallExpression") return;
         const callee = node.callee;
         if (callee?.type !== "MemberExpression" || callee.property?.name !== "sort") return;
-        const text = JSON.stringify(node.arguments);
-        if (text.includes("issueDate") || text.includes("invoiceId")) ownIssueDateSort = true;
+        if (JSON.stringify(node.arguments).includes("issueDate")) billSorts.push(node);
     });
-    assert("and sorts nothing by Issue Date itself", !ownIssueDateSort);
-    // The extension is spelled out because the offline tier runs under plain node.
+    check("one Issue Date sort, and it lives here now", billSorts.length, 1);
+    assert("  and it tie-breaks on Invoice ID", JSON.stringify(billSorts[0].arguments).includes("invoiceId"));
+    // ONE TIER ORDERS, THE OTHER REFUSES — asserted as a call count, because the
+    // behavioral difference is invisible at one candidate and this is the shape a
+    // later edit would undo by "tidying" the fallback tier into symmetry with the
+    // paired one.
+    check("the ordering is called from exactly one tier", callsTo(ast, "sortInvoicesOldestFirst").length, 1);
+
+    // THE CALLER OBLIGATION, PINNED. selectOverageBill falls to the fallback tier
+    // when it is not told which shipment — the honest answer for a row that names
+    // none, and the wrong one for a caller that forgot. Every call site in the
+    // credentialed module passes it, including the APPLY step, which has to split the
+    // same bill the preview quoted.
+    log("");
+    log("every selectOverageBill call site names a shipment (AST):");
+    const { ast: prAst } = parseFile("lib/overagePR.js");
+    // BOTH NAMES, BECAUSE THE APPLY PATH HAS A HOP. `applyOverageToPO` hands the
+    // shipment to `splitInvoiceLineForOverage`, which passes it on as a shorthand
+    // property — so asserting only the inner call would have been satisfied by a
+    // shorthand whose value the outer call had stopped supplying. Measured: dropping
+    // it from the outer call passed a check that only looked at the inner one.
+    const callSites = ["selectOverageBill", "splitInvoiceLineForOverage"].flatMap((name) =>
+        callsTo(prAst, name).map((call) => ({ name, call }))
+    );
+    assert(`found ${callSites.length} call sites, preview and apply alike`, callSites.length >= 5);
+    for (const [i, { name, call }] of callSites.entries()) {
+        assert(`  ${name} call ${i + 1} passes deliveryRecordId`, callPassesProperty(call, "deliveryRecordId"));
+    }
+    // ANTI-VACUITY for that matcher: it must report false for a property that is not
+    // there, or every call "passes" everything.
     assert(
-        "the import spells its extension out, or this file could not be loaded here",
-        importsFromDeliveryStatus
+        "  and the matcher is not answering true for anything",
+        !callPassesProperty(callSites[0].call, "shipmentRecordId")
+    );
+    assert(
+        "  both names really were found, so neither loop ran empty",
+        callSites.some((c) => c.name === "selectOverageBill") &&
+            callSites.some((c) => c.name === "splitInvoiceLineForOverage")
+    );
+    // The pairing is flattened in ONE place (#210), so the credentialed side takes
+    // linkedDelivery rather than indexing `.delivery[0]` a second time.
+    const prImports = new Map();
+    walk(prAst, (node) => {
+        if (node.type !== "ImportDeclaration") return;
+        for (const spec of node.specifiers) {
+            prImports.set(spec.imported?.name ?? spec.local.name, node.source.value);
+        }
+    });
+    check("the flattening comes from #210's own module", prImports.get("linkedDelivery"), "./deliveryInvoiceLink");
+    check("and the judgment from this one", prImports.get("selectOverageBill"), "./overage");
+    check("  including the row accessor", prImports.get("attachedDeliveryRecordId"), "./overage");
+
+    // AND THE FIELD THE ACCESSOR READS IS ON THE ROWS. Every over-delivery row reaches
+    // the narrowing through lib/airtable/deliveryItems.js's one mapper, so a
+    // projection without `delivery` would degrade every answer to the fallback tier
+    // in silence — no error, just an inference where a lookup was available.
+    const { ast: rowAst } = parseFile("lib/airtable/deliveryItems.js");
+    const rowFields = new Set();
+    walk(rowAst, (node) => {
+        if (node.type === "Property" && node.key?.name) rowFields.add(node.key.name);
+    });
+    assert("the Delivery Items mapper projects `delivery`", rowFields.has("delivery"));
+    assert(
+        "  and the walk sees its siblings, so that is not an empty set",
+        rowFields.has("poItem") && rowFields.has("overDelivered")
     );
 
     // --- STATE IS READ, NEVER STORED --------------------------------------
@@ -431,8 +724,24 @@ export function run({ check, log, assert }) {
     );
     const full = describeOveragePreview({ eligible: true, excess: 2, inferred: false }, facts);
     check("eligible: summary then the draft note", full.map((m) => m.key).join(","), "preview-summary,preview-draft");
-    const inferredPreview = describeOveragePreview({ eligible: true, excess: 2, inferred: true }, facts);
-    check("inferred adds one, right after the summary", inferredPreview[1].key, "preview-inferred");
+    // #219 — the key decides WHICH sentence, and either way exactly one is added
+    // right after the summary.
+    for (const key of Object.values(OVERAGE_INFERRED)) {
+        const inferredPreview = describeOveragePreview({ eligible: true, excess: 2, inferred: key }, facts);
+        check(`${key} adds one, right after the summary`, inferredPreview[1].key, "preview-inferred");
+        check(`  and only one`, inferredPreview.length, full.length + 1);
+        assert(
+            `  the sentence is the one for ${key}`,
+            inferredPreview[1].text === OVERAGE_COPY.preview.inferred[key]().text
+        );
+    }
+    // The same guarded lookup the blocked branch uses: a key nothing wrote renders
+    // nothing rather than crashing a screen.
+    check(
+        "an unrecognized inference renders nothing",
+        describeOveragePreview({ eligible: true, excess: 2, inferred: "nope" }, facts).length,
+        full.length
+    );
     const dropped = describeOveragePreview(
         { eligible: true, excess: 2, inferred: false },
         { ...facts, signersDropped: 2 }
@@ -464,7 +773,8 @@ export function run({ check, log, assert }) {
     const everySentence = [
         ...Object.values(OVERAGE_COPY.preview.blocked).map((f) => f(facts).text),
         OVERAGE_COPY.preview.summary({ ...facts, unitPriceLabel: "$12.00" }).text,
-        OVERAGE_COPY.preview.inferred().text,
+        // Both tiers' sentences (#219), so neither can drift out of the vocabulary.
+        ...Object.values(OVERAGE_COPY.preview.inferred).map((f) => f().text),
         OVERAGE_COPY.preview.signersDropped(2).text,
         OVERAGE_COPY.preview.signersEmpty().text,
         OVERAGE_COPY.preview.draft().text,

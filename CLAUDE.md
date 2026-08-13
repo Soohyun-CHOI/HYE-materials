@@ -107,7 +107,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
-- `lib/overage.js` — the overage correction's judgment and `OVERAGE_COPY`.
+- `lib/overage.js` — the overage correction's judgment, `OVERAGE_COPY`, and which bill carries an excess: the candidate tiers and their private ordering (#219).
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the Draft it creates, and the apply step. Credentialed.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
