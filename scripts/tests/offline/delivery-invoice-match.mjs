@@ -1,14 +1,20 @@
 // The COMPUTED pairing (#231) — the containment rule, the price gate, the rival
 // clause, and the two directions agreeing.
 //
-// WHY THIS TIER CARRIES MORE THAN ITS SHARE HERE. Three of the four states this
-// rule can reach are not on the live base and one of them cannot be, so a browser
-// run can show the rule working and cannot show it refusing:
+// WHY THIS TIER CARRIES MORE THAN ITS SHARE HERE. Only one of the states this rule
+// can reach is on the live base, so a browser run can show it working and cannot
+// show it declining:
 //
-//   matched      — 6 of 13 unpaired invoices, reachable and verified in a browser.
-//   shared-order — reachable: `HYE-INV-260804-04` against `HYE-DL-260804-06`,
-//                  where `HYE-INV-260804-05` already holds that shipment and
-//                  charges the same `166-DEMO Coupling`.
+//   matched      — 6 of 13 unpaired invoices, reachable and verified in a browser
+//                  and through the real Server Action.
+//   no-room      — reachable: `HYE-INV-260804-04` against `HYE-DL-260804-06`,
+//                  which brought 15 of `166-DEMO Coupling` and whose attached
+//                  `HYE-INV-260804-05` charges all 15. Silent, so what a browser
+//                  shows there is nothing.
+//   shared-order — NOT reachable. Every ordered item on this base carrying two
+//                  bills has one of them already attached, so the capacity clause
+//                  answers first. Reachable only with the hand-made pairings
+//                  removed, which is a simulation rather than a state.
 //   several      — NOT reachable. Measured 2026-08-13: no delivery on this base
 //                  has more than one candidate bill, so the whole branch exists
 //                  only here.
@@ -17,9 +23,16 @@
 //                  containment already excludes it, so the gate removes 0 of 15
 //                  pairs on live data and changes no verdict there.
 //
-// So the price gate and `several` are asserted here or nowhere, and each is shown
-// to be capable of failing rather than merely present — see the mutation notes on
-// the individual sections.
+// So the price gate, `several` and `shared-order` are asserted here or nowhere,
+// and each is shown to be capable of failing rather than merely present — see the
+// mutation notes on the individual sections.
+//
+// THE ONE THING MOST WORTH BREAKING IS THE LINE BETWEEN CAPACITY AND A QUANTITY
+// MATCH. `roomOnOrderedItem` reads quantities, and the rule this feature must not
+// break is that quantities never decide whether a bill is a shipment's. The
+// section "capacity is not the quantity match this rule refuses to make" is what
+// separates them, and its first check is the whole feature: 13 billed against 10
+// delivered pairs, so #210's mismatch marker still has something to mark.
 //
 // WHAT A PASS DOES NOT PROVE. That either caller passes the right inputs. The form
 // builds its arrival from `planDelivery`'s rows and the action builds its bill from
@@ -37,6 +50,7 @@ import {
     matchArrivalToBill,
     matchBillToArrival,
     orderedItemsBilled,
+    roomOnOrderedItem,
     orderedItemsDelivered,
     pairingRefusal,
 } from "../../../lib/deliveryInvoiceMatch.js";
@@ -51,19 +65,35 @@ const PRICES = new Map([
     ["recPOI_C", 4.5],
 ]);
 
-/** A bill, as lib/deliveryInvoiceMatch.js reads one. */
+/**
+ * A bill, as lib/deliveryInvoiceMatch.js reads one. `charges` entries are
+ * `[orderedItem, unitPrice]` or `[orderedItem, unitPrice, qty]`; the quantity only
+ * matters where the bill is one ALREADY on an arrival, since that is the only
+ * thing it is ever read for.
+ */
 const bill = ({ id = "recINV1", invoiceId = "HYE-INV-260804-07", charges = [["recPOI_A", 10]], paired = null } = {}) => ({
     invoiceRecordId: id,
     invoiceId,
-    orderedItems: charges.map(([poItemRecordId, unitPrice]) => ({ poItemRecordId, unitPrice })),
+    orderedItems: charges.map(([poItemRecordId, unitPrice, qty = 1]) => ({
+        poItemRecordId,
+        unitPrice,
+        qty,
+    })),
     pairedDeliveryRecordId: paired,
 });
 
-/** An arrival, likewise. */
+/**
+ * An arrival, likewise. `brought` takes bare ids for the cases where only the SET
+ * matters, or `[id, qty]` pairs where the capacity clause is what is under test.
+ * The default quantity is deliberately larger than any bill below, so a check that
+ * did not mean to exercise capacity does not exercise it by accident.
+ */
 const arrival = ({ id = "recDL1", deliveryId = "HYE-DL-260804-08", brought = ["recPOI_A"] } = {}) => ({
     deliveryRecordId: id,
     deliveryId,
-    orderedItemRecordIds: brought,
+    orderedItems: brought.map((b) =>
+        Array.isArray(b) ? { poItemRecordId: b[0], qty: b[1] } : { poItemRecordId: b, qty: 1000 }
+    ),
 });
 
 export function run({ check, assert, log }) {
@@ -238,23 +268,9 @@ export function run({ check, assert, log }) {
         PAIRING.sharedOrder
     );
 
-    // A RIVAL THAT ALREADY NAMES THIS SHIPMENT COUNTS, which is the half a first
-    // pass got wrong: filtering rivals to unpaired bills let the older bill be
-    // computed onto a shipment the newer one was already recorded on. Mutation:
-    // restrict the rival clause to unpaired bills and this check fails.
-    const heldNewer = bill({
-        id: "recINV_NEW",
-        invoiceId: "HYE-INV-260804-05",
-        charges: [["recPOI_A", 10]],
-        paired: "recDL_C",
-    });
-    check(
-        "a rival ALREADY RECORDED on this shipment blocks, though it is not a candidate itself",
-        pairingRefusal({ bill: older, arrival: shipment, bills: [older, heldNewer], agreedPrices: PRICES }),
-        PAIRING_REFUSED.sharedOrder
-    );
-    // ...and one recorded on a DIFFERENT shipment does not: it has been placed, so
-    // it is competing for nothing.
+    // A bill ALREADY ON the shipment is answered by capacity instead, which is the
+    // clause that replaced half of this one — see the next section. Here it is only
+    // asserted that it is no longer read as an ambiguity.
     const heldElsewhere = bill({ id: "recINV_X", charges: [["recPOI_A", 10]], paired: "recDL_OTHER" });
     check(
         "a rival recorded on ANOTHER shipment does not block — it has been placed",
@@ -273,6 +289,115 @@ export function run({ check, assert, log }) {
     );
 
     // -----------------------------------------------------------------------
+    // CAPACITY, WHICH TOOK HALF OF `shared-order`. A bill already on the shipment
+    // charging everything it brought of an ordered item does not make a second bill
+    // ambiguous — it leaves nowhere for it to go. Mutation: delete the noRoom clause
+    // in pairingRefusal and the first two fail (the second reverts to shared-order,
+    // which would be a false sentence: something DOES record which bill this
+    // shipment answers).
+    log("");
+    log("capacity — what a bill already on the shipment has claimed:");
+    const brought15 = arrival({ id: "recDL_R", brought: [["recPOI_A", 15]] });
+    const claimsAll = bill({ id: "recINV_FULL", charges: [["recPOI_A", 10, 15]], paired: "recDL_R" });
+    const claimsSome = bill({ id: "recINV_PART", charges: [["recPOI_A", 10, 10]], paired: "recDL_R" });
+    const wants = bill({ id: "recINV_WANT", charges: [["recPOI_A", 10, 15]] });
+
+    check(
+        "15 arrived and a bill on it claims 15: no room",
+        pairingRefusal({ bill: wants, arrival: brought15, bills: [wants, claimsAll], agreedPrices: PRICES }),
+        PAIRING_REFUSED.noRoom
+    );
+    check(
+        "15 arrived and a bill on it claims 10: 5 left, so it is still a candidate",
+        pairingRefusal({ bill: wants, arrival: brought15, bills: [wants, claimsSome], agreedPrices: PRICES }),
+        null
+    );
+    check(
+        "  even though it charges 15 against 5 of room — capacity is `> 0`, never `>= billed`",
+        roomOnOrderedItem({
+            arrival: brought15,
+            poItemRecordId: "recPOI_A",
+            bills: [wants, claimsSome],
+            excluding: "recINV_WANT",
+        }),
+        5
+    );
+    check(
+        "a bill on ANOTHER shipment claims nothing here",
+        roomOnOrderedItem({
+            arrival: brought15,
+            poItemRecordId: "recPOI_A",
+            bills: [bill({ id: "recINV_Y", charges: [["recPOI_A", 10, 15]], paired: "recDL_OTHER" })],
+        }),
+        15
+    );
+    // Two slices of one ordered item is #162's own shape — the within-order row and
+    // the over-delivery row — and both are quantity that arrived.
+    check(
+        "an over-delivered arrival counts BOTH its rows as capacity",
+        roomOnOrderedItem({
+            arrival: arrival({ id: "recDL_S", brought: [["recPOI_A", 10], ["recPOI_A", 3]] }),
+            poItemRecordId: "recPOI_A",
+            bills: [],
+        }),
+        13
+    );
+    // Mutation: drop the `if (!held) return brought;` guard and this fails, because
+    // an unplaced bill's null would equal the arrival's null and read as claimed.
+    check(
+        "on the entry path nothing is claimed, since no bill can be on a delivery that does not exist",
+        roomOnOrderedItem({
+            arrival: { deliveryRecordId: null, orderedItems: [{ poItemRecordId: "recPOI_A", qty: 15 }] },
+            poItemRecordId: "recPOI_A",
+            bills: [bill({ id: "recINV_U", charges: [["recPOI_A", 10, 15]] })],
+        }),
+        15
+    );
+
+    // THE LINE BETWEEN CAPACITY AND THE FORBIDDEN QUANTITY MATCH, asserted rather
+    // than argued. Mutation: change `<= 0` to `< billed` in pairingRefusal and the
+    // first of these fails — which is the whole feature breaking, since that bill
+    // is exactly what #210's mismatch marker exists to surface.
+    log("");
+    log("capacity is not the quantity match this rule refuses to make:");
+    const brought10 = arrival({ id: "recDL_M", brought: [["recPOI_A", 10]] });
+    const bills13 = bill({ id: "recINV_13", charges: [["recPOI_A", 10, 13]] });
+    check(
+        "13 billed against 10 delivered, nothing else attached: PAIRS",
+        pairingRefusal({ bill: bills13, arrival: brought10, bills: [bills13], agreedPrices: PRICES }),
+        null
+    );
+    check(
+        "13 billed against 10 delivered, with 4 already claimed: STILL pairs — 6 of room",
+        pairingRefusal({
+            bill: bills13,
+            arrival: brought10,
+            bills: [bills13, bill({ id: "recINV_4", charges: [["recPOI_A", 10, 4]], paired: "recDL_M" })],
+            agreedPrices: PRICES,
+        }),
+        null
+    );
+    check(
+        "13 billed against 10 delivered, all 10 already claimed: no room",
+        pairingRefusal({
+            bill: bills13,
+            arrival: brought10,
+            bills: [bills13, bill({ id: "recINV_10", charges: [["recPOI_A", 10, 10]], paired: "recDL_M" })],
+            agreedPrices: PRICES,
+        }),
+        PAIRING_REFUSED.noRoom
+    );
+    assert(
+        "  and `no-room` is never spoken — it is arithmetic, so the outcome is silence",
+        matchArrivalToBill({
+            bill: bills13,
+            arrivals: [brought10],
+            bills: [bills13, bill({ id: "recINV_10", charges: [["recPOI_A", 10, 10]], paired: "recDL_M" })],
+            agreedPrices: PRICES,
+        }).key === PAIRING.none && !PAIRING_COPY.preview[PAIRING_REFUSED.noRoom]
+    );
+
+    // -----------------------------------------------------------------------
     // THE PROPERTY THE TWO DIRECTIONS EXIST TO SHARE. If these disagreed, whether a
     // pairing got made would depend on which document somebody typed in first.
     log("");
@@ -280,7 +405,6 @@ export function run({ check, assert, log }) {
     const cases = [
         ["a plain fit", [bill()], [arrival()]],
         ["the rival pair", [older, newer], [shipment]],
-        ["a rival already recorded here", [older, heldNewer], [shipment]],
         ["a rival recorded elsewhere", [older, heldElsewhere], [shipment]],
         ["a price departure", [bill({ charges: [["recPOI_A", 99]] })], [arrival()]],
         ["nothing billed", [bill({ charges: [] })], [arrival()]],
@@ -385,7 +509,10 @@ export function run({ check, assert, log }) {
     // null — #210's own reading of the same null. The rule needs no clause for it,
     // and these three are what say so: the same three answers come out with a null
     // record id as with a real one.
-    const beingRecorded = { deliveryRecordId: null, orderedItemRecordIds: ["recPOI_A"] };
+    const beingRecorded = {
+        deliveryRecordId: null,
+        orderedItems: [{ poItemRecordId: "recPOI_A", qty: 15 }],
+    };
     log("");
     log("the entry path, where the shipment has no record id yet:");
     check(
@@ -497,8 +624,13 @@ export function run({ check, assert, log }) {
         ]).size === 4
     );
     assert(
-        "the five refusal keys are five different values",
-        new Set(Object.values(PAIRING_REFUSED)).size === 5
+        "the six refusal keys are six different values",
+        new Set(Object.values(PAIRING_REFUSED)).size === 6
+    );
+    assert(
+        "and only one of them is ever worded, `no-room` deliberately not among them",
+        Object.values(PAIRING_REFUSED).filter((key) => PAIRING_COPY.preview[key]).length === 1 &&
+            !PAIRING_COPY.preview[PAIRING_REFUSED.noRoom]
     );
     assert(
         "the four outcome keys are four different values",

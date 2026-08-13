@@ -195,16 +195,16 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     //
     // `deliveryRecordId` is null: this delivery does not exist yet, which is the
     // reading `checkInvoicePairing` already makes of the same null.
+    // Every planned row, quantity and all — not a deduplicated set of ordered
+    // items. A plan produces two rows for one ordered item when part of the
+    // arrival is over-delivered, and both are quantity that arrived, which is what
+    // the matcher's capacity clause counts.
     const arrival = useMemo(
         () => ({
             deliveryRecordId: null,
-            orderedItemRecordIds: [
-                ...new Set(
-                    [...plansByMaterial.values()]
-                        .flatMap((p) => (p.rows || []).map((r) => r.line?.id))
-                        .filter(Boolean)
-                ),
-            ],
+            orderedItems: [...plansByMaterial.values()]
+                .flatMap((p) => (p.rows || []).map((r) => ({ poItemRecordId: r.line?.id, qty: r.qty })))
+                .filter((o) => o.poItemRecordId),
         }),
         [plansByMaterial]
     );

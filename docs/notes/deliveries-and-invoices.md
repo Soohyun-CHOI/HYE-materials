@@ -588,22 +588,57 @@ gated read.
   — the ambiguity is on the other side of the relation. That is #166's scenario D,
   the case #210 exists to get right (one ordered item of 30, two bills of 15, one
   arrival of 15), so the rule as stated would have quietly undone it. A bill is
-  therefore refused when another bill charging the same ordered item is unplaced
-  or placed on this same arrival (`shared-order`). With it: 6 attach, 2 refuse, 7
-  have no candidate.
+  therefore not a candidate when another bill charging the same ordered item
+  stands in its way. With it: 6 attach, 2 blocked, 7 have no candidate.
   - **A rival is not itself tested for containment**, and the wider rule is
     deliberate: testing it needs the rival's ordered items priced, and a price the
     module cannot answer for would then fail closed the wrong way — an unknown
     rival would stop blocking and the pairing would be made. Measured, both widths
     attach the same 6 and block the same pair, so the width costs nothing
     observable here.
-  - **A rival already RECORDED on the arrival counts**, which is #219's tier rule
-    one level up. A first pass filtered rivals to unpaired bills and let
-    `HYE-INV-260804-04` land on the shipment `HYE-INV-260804-05` already held.
   - **A `held &&` null guard was removed rather than kept.** It was left over from
-    the narrower rival rule and could not change an answer under this one; the
-    offline check that claimed to pin it was vacuous, and a mutation is what
+    an earlier, narrower rival rule and could not change an answer under this one;
+    the offline check that claimed to pin it was vacuous, and a mutation is what
     showed both.
+- **THEN THE CLAUSE SPLIT IN TWO, BECAUSE A BILL ALREADY ON THE SHIPMENT IS NOT AN
+  AMBIGUITY — IT IS AN OCCUPANT.** The first version treated "another bill charges
+  this ordered item" as one fact whether or not that bill was already attached
+  here, and the two are different. If 15 arrived and an attached bill charges all
+  15, a second bill charging that ordered item is not the one we cannot tell apart:
+  it cannot fit. So capacity is computed — what the arrival brought of an ordered
+  item, less what the bills already on it charge for that ordered item — and a
+  candidate needing an ordered item with nothing left is refused as `no-room`.
+  `shared-order` narrows to what it always meant: two bills NOBODY has placed.
+  - **IT IS NOT THE QUANTITY MATCH THIS RULE REFUSES TO MAKE, and the test is which
+    two figures meet.** Matching on quantity asks whether THIS bill's quantity
+    equals what the shipment brought, which would drop the bills #210's mismatch
+    marker exists for. Capacity asks whether the shipment's room for that ordered
+    item has been spoken for by SOMEBODY ELSE. So the comparison is `> 0` and never
+    `>= billed`: 13 billed against 10 delivered with nothing attached leaves 10 of
+    room and pairs, and 13 billed with 4 already claimed leaves 6 and still pairs.
+    Pinned offline, and a mutation to `>= billed` fails three checks.
+  - **IT IS ARITHMETIC, SO IT IS SILENT.** `no-room` is a refusal key that never
+    becomes an outcome — there is nothing for a reader to resolve, and the state it
+    produces is the ordinary unpaired one. Only `shared-order` speaks.
+  - **THE MESSAGE COULD NOT HAVE STAYED TRUE OTHERWISE.** `shared-order` says
+    nothing records which bill this shipment answers; with one of the two already
+    attached, something does. The split is what let that sentence keep meaning what
+    it says, and the wording now names the condition — `nobody has attached`.
+  - **MEASURED, AND IT MOVES NO PAIRING ON THIS BASE.** 6 attach under either
+    rule. What changes is one message: `HYE-INV-260804-04` was being told the app
+    could not choose and is now silent, because `HYE-DL-260804-06` brought 15 and
+    `HYE-INV-260804-05` claims all 15 — room 0. The case #210 exists for is
+    untouched: with both bills unplaced the room is 15 and `shared-order` fires for
+    both, exactly as before. **A pairing WOULD be added where an attached bill
+    claims only part of what arrived**, which is unreachable here — both pairings
+    on this base claim 100% (15 of 15, and 5 of 5).
+  - **THE DATA WAS ALREADY IN HAND, in both directions.** `getArrivalsForBill`
+    already reads the arrival's `Delivery Items` for their ordered items, so their
+    `Qty` is free; the bill pool's `Invoice Items` were already read for the same
+    reason, so their `Qty` is free too. The entry form takes the arrival's
+    quantities from `planDelivery`'s own rows. **Zero additional operations**, and
+    on the entry path capacity is always full — nothing can be attached to a
+    delivery that does not exist yet.
 - **ONE PREDICATE, TWO DIRECTIONS.** `pairingRefusal` decides one (bill, arrival)
   pair and both entry points call it, so whether a pairing gets made cannot depend
   on which document was typed in first. **What is NOT shared is the arity rule**,
@@ -695,7 +730,9 @@ gated read.
   - **One `Auth Tokens` row is spent and left**, rather than deleted as tidying-up.
     It is single-use and reads `Used: true`, so it is inert.
 - **Not in this issue:** an invoice edited after creation does not recompute its
-  pairing; `several` is unreachable on this base and is asserted offline only; and
-  the invoice side's three failure points are stated in
-  `lib/deliveryInvoiceMatch.js`'s header rather than exercised — all three leave the
-  same state, an invoice naming no shipment, which is the ordinary one.
+  pairing; `several` and `shared-order` are both unreachable on this base and are
+  asserted offline only — every ordered item here carrying two bills has one of
+  them attached, so capacity answers before ambiguity can; and the invoice side's
+  three failure points are stated in `lib/deliveryInvoiceMatch.js`'s header rather
+  than exercised — all three leave the same state, an invoice naming no shipment,
+  which is the ordinary one.
