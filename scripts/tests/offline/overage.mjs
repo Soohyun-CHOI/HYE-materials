@@ -165,15 +165,78 @@ export function run({ check, log, assert }) {
     check("  so one paired bill stays uninferred beside it", pick([nobodys, mine], 2).inferred, null);
 
     log("");
-    log("nothing names this shipment — the fallback tier, always inferred:");
-    check("an unpaired bill is still a candidate", pick([nobodys], 2).bill.invoiceId, nobodys.invoiceId);
+    log("nothing names this shipment — the fallback tier, ONE candidate only:");
+    // `?.` so a refusal here reports a FAIL rather than throwing on a null bill: the
+    // mutation that widens the refusal to one candidate lands exactly here, and a
+    // stack trace is a worse signal than the comparison.
+    check("an unpaired bill is still a candidate", pick([nobodys], 2).bill?.invoiceId, nobodys.invoiceId);
     // #210's ORDINARY STATE, not an anomaly: the vendor emails the bill at shipment,
     // so excluding these would make the correction wait on an optional field.
-    check("  but the answer is inferred even at one bill", pick([nobodys], 2).inferred, OVERAGE_INFERRED.noPairing);
+    check("  but the answer is inferred at one bill", pick([nobodys], 2).inferred, OVERAGE_INFERRED.noPairing);
     check(
         "another shipment's bill is not rescued by the fallback either",
         pick([theirs, nobodys], 2).bill.invoiceId,
         nobodys.invoiceId
+    );
+
+    // TWO UNPAIRED CANDIDATES ARE REFUSED, NOT ORDERED. Nothing records that either
+    // bill describes this arrival, so an ordering would be a choice with nothing
+    // behind it — and `Issue Date` is human-entered, so a vendor's typo could decide
+    // which file, unit price and vendor code go onto a purchase order.
+    log("");
+    log("TWO unpaired candidates are refused rather than chosen between:");
+    const twoUnpaired = [unpairedBill("03", 10, "2026-06-15"), unpairedBill("04", 10, "2026-06-20")];
+    check("blocked", pick(twoUnpaired, 2).blocked, OVERAGE_BLOCKED.severalUnpairedBills);
+    check("  and no bill is handed back", pick(twoUnpaired, 2).bill, null);
+    // A refusal has no answer to qualify, so it carries no marker either.
+    check("  nor an inference to qualify", pick(twoUnpaired, 2).inferred, null);
+    // The oldest is NOT quietly picked: this is the assertion that would have caught
+    // the version this replaced, which sorted and took the head.
+    assert(
+        "  the oldest is not picked in passing",
+        pick(twoUnpaired, 2).bill?.invoiceId !== "HYE-INV-260703"
+    );
+    // ANTI-VACUITY FOR THE COUNT BOUNDARY: one candidate and two candidates must give
+    // DIFFERENT answers, or the refusal is either unreachable or swallowing the case
+    // that should proceed.
+    const one = pick([twoUnpaired[0]], 2);
+    const two_ = pick(twoUnpaired, 2);
+    assert(
+        `one unpaired candidate proceeds and two refuse (${one.bill?.invoiceId ?? one.blocked} vs ${two_.bill?.invoiceId ?? two_.blocked})`,
+        Boolean(one.bill) && !two_.bill
+    );
+    check("  and the one that proceeds still says nothing named it", one.inferred, OVERAGE_INFERRED.noPairing);
+    // A paired bill beside two unpaired ones takes the higher tier, so the refusal is
+    // the fallback tier's own and never reached when the pairing answers.
+    check(
+        "a pairing beside them answers instead of refusing",
+        pick([...twoUnpaired, mine], 2).bill.invoiceId,
+        mine.invoiceId
+    );
+    assert(
+        "the copy says what is missing is a record",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text.includes(
+            "nothing records which one"
+        )
+    );
+    assert(
+        "  and names the action that supplies it",
+        /Attach this delivery's own invoice from Edit/.test(
+            OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text
+        )
+    );
+    // It must not promise eligibility: the newly named bill still needs a file and
+    // still has to cover the excess.
+    assert(
+        "  without promising the correction becomes available",
+        !/becomes available|will be available/i.test(
+            OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text
+        )
+    );
+    assert(
+        "and it is not the other-delivery sentence",
+        OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.severalUnpairedBills]().text !==
+            OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.otherDeliveryOnly]().text
     );
 
     log("");
@@ -374,6 +437,11 @@ export function run({ check, log, assert }) {
     });
     check("one Issue Date sort, and it lives here now", billSorts.length, 1);
     assert("  and it tie-breaks on Invoice ID", JSON.stringify(billSorts[0].arguments).includes("invoiceId"));
+    // ONE TIER ORDERS, THE OTHER REFUSES — asserted as a call count, because the
+    // behavioral difference is invisible at one candidate and this is the shape a
+    // later edit would undo by "tidying" the fallback tier into symmetry with the
+    // paired one.
+    check("the ordering is called from exactly one tier", callsTo(ast, "sortInvoicesOldestFirst").length, 1);
 
     // THE CALLER OBLIGATION, PINNED. selectOverageBill falls to the fallback tier
     // when it is not told which shipment — the honest answer for a row that names

@@ -305,17 +305,39 @@ candidates narrow to the bills describing the shipment the excess arrived on.
   an unrecorded one under an ordering. Measured after: the same 2 rows stay
   eligible, 0 pick another shipment's bill, and both now carry the marker they
   did not before.
-  - **What that leaves open, stated rather than hidden:** inside the fallback
-    tier the pick can still be a bill that turns out to describe another
-    shipment nobody paired. It is narrowed — same ordered item, so same order,
-    material and vendor — and it is ANNOUNCED, which is the difference from
-    before: this is the marker's own job, and #166's rule that a fact is stated
-    and a verdict is left to a person.
+- **THE FALLBACK TIER CHOOSES BETWEEN NOTHING, WHICH IS WHERE THE TWO TIERS PART
+  COMPANY.** The first version of this reused the oldest-first ordering in both,
+  and that was wrong in a way worth writing down. In the PAIRED tier the ordering
+  is a **tie-break over narrow ignorance**: both candidates are recorded as
+  describing this arrival, so the only open question is which of the two the
+  excess sits in, the marker says so, and the worst case is a coin landing the
+  other way between two documents that both belong here. In the FALLBACK tier
+  nothing records that either bill describes this arrival, so an ordering is not
+  a tie-break but a **choice with nothing behind it** — decided in practice by a
+  human-entered, backdatable `Issue Date` (#164's property) — and what comes out
+  of the choice is the file, the vendor code and the unit price on a purchase
+  order that goes to a vendor. So **two or more unpaired candidates are refused**
+  (`several-unpaired-bills`). That is `spans-invoices`'s own posture: one refuses
+  because a request takes one quotation, this one because nothing records which
+  quotation it would be.
+  - **Exactly one unpaired candidate still proceeds**, since there is nothing to
+    choose between and no arbitrariness to hide, and the marker says nobody has
+    placed that bill on this arrival. **No ordering is applied in that tier at
+    all** — the count decides — and `offline/overage.mjs` asserts the ordering is
+    called from exactly one tier, because the difference is invisible at one
+    candidate and symmetry between the two is what a later tidy-up would restore.
+  - Measured: **not reachable on this base.** Both eligible rows have exactly one
+    unpaired candidate, so the refusal changes no verdict here and #217's strip
+    keeps its shape. What stays open in that tier is the single unpaired bill
+    turning out to belong to another shipment — narrowed to the same order,
+    material and vendor, and ANNOUNCED, which is the marker's own job and #166's
+    rule that a fact is stated and the verdict left to a person.
 - **THE MARKER COMES OFF WHEN THE PAIRING ANSWERS, WHICH IS THE QUESTION THE
   ISSUE ASKED.** One bill naming this delivery is a lookup, not a guess, so
-  there is nothing to qualify. The fallback tier stays inferred **even at one
-  candidate**, because one unpaired bill is only the bill nobody happened to
-  pair. So one premise became two (`OVERAGE_INFERRED`), and they are keys rather
+  there is nothing to qualify. The fallback tier stays inferred **at its one
+  candidate**, because that bill is only the one nobody happened to pair — and
+  at two it does not infer, it refuses, per the bullet above. So one premise
+  became two (`OVERAGE_INFERRED`), and they are keys rather
   than a boolean for the reason `OVERAGE_BLOCKED` already gives — a reworded
   message fails nothing. Both sentences share one message key, since they are
   two readings of one qualifier rather than two qualifiers, the arrangement
@@ -327,12 +349,15 @@ candidates narrow to the bills describing the shipment the excess arrived on.
   is a lie about the data, not a wording preference. Now: more than one
   candidate on this delivery keeps `spans-invoices` and its quotation argument
   (one request takes one quotation); a single candidate says the excess is
-  larger than what this delivery's invoice bills. A third refusal joins them,
-  `other-delivery-only`, for the case where bills exist and every one names a
-  different shipment — merged into `no-invoice` it would have printed "No
-  invoice bills this ordered item yet", which is false, and it names an action
-  the reader can actually take, since attaching the pairing is this delivery's
-  own Edit page.
+  larger than what this delivery's invoice bills. **Two more refusals join them**,
+  and every one of the three new ones exists because a message that already
+  existed would have been false in its place: `other-delivery-only`, where bills
+  exist and every one names a different shipment, since `no-invoice` would have
+  said nothing bills the ordered item; and `several-unpaired-bills` per the tier
+  bullet above. Both name an action the reader can actually take, because
+  attaching the pairing is this delivery's own Edit page (#210 opened that path to
+  the same Job scope). Neither promises the correction then becomes available —
+  the newly named bill still has to carry a file and cover the excess.
 - **THE ORDERING MOVED AND DID NOT STAY EXPORTED, WHICH RETIRES #182'S
   EXCEPTION RATHER THAN RELOCATING IT.** `sortInvoicesOldestFirst` and
   `INFERRED_PREMISE` were #166's, kept in `lib/deliveryStatus.js` after #210
