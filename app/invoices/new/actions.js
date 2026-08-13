@@ -51,7 +51,7 @@ async function createInvoiceHandler(prevState, formData) {
             return { error: "Every item needs a name, quantity, and unit price." };
         }
         if (!item.poRecordId) {
-            return { error: "Every item needs a PO — pick one at the top or per-line." };
+            return { error: "Every item needs a PO — pick one at the top or per item." };
         }
     }
 

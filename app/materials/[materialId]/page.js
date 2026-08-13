@@ -55,7 +55,7 @@ export default async function MaterialHistoryPage({ params }) {
 
             <h2 className="mt-6 text-lg font-medium">Purchase history</h2>
             <p className="mt-1 text-sm text-zinc-600">
-                Every purchase order line recorded for this item, newest first.
+                Every ordered item recorded for this material, newest first.
             </p>
 
             {rows.length === 0 ? (

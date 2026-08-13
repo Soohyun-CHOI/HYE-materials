@@ -240,7 +240,7 @@ export async function createOverageDraftAction(prevState, formData) {
     if (!deliveryItemId) return { error: "Nothing to correct." };
 
     const [row] = await getDeliveryItemsByRecordIds([deliveryItemId]);
-    if (!row) return { error: "That delivery line no longer exists." };
+    if (!row) return { error: "That delivery item no longer exists." };
 
     const delivery = row.delivery?.[0]
         ? (await getDeliveriesByRecordIds([row.delivery[0]]))[0]
