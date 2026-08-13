@@ -146,7 +146,7 @@ export async function run({ check, log, assert }) {
         "none"
     );
     // The tempting shortcut, named so it fails rather than being caught by review.
-    // Reaching for the candidate ORDER LINES here is what a second answer looks like.
+    // Reaching for the candidate ORDERED ITEMS here is what a second answer looks like.
     let reachesCandidateLines = false;
     walk(candidates.ast, (node) => {
         if (node.type === "ImportDeclaration" && node.source.value === "./deliveryCandidates") {

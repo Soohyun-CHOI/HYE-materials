@@ -1,7 +1,7 @@
 // Demo orders for looking at #165 in a browser.
 //
 // #165 changed what happens to the quantity that arrives BEYOND what was ordered:
-// it now attaches to a PO line instead of hanging off nothing. Three states are
+// it now attaches to an ordered item instead of hanging off nothing. Three states are
 // worth seeing, and none of them can be produced without orders already in place —
 // which is what this seeds.
 //
@@ -29,7 +29,7 @@
 // Reuses (never modifies) the 26-DEMO-01 job, its Demo Line A, and the
 // "Demo Pipe Supply" vendor from seed_demo_fixtures.mjs. Creates PRs + PR Items,
 // POs + PO Items through the REAL approve-and-generate flow — which is what gives
-// each PO line its `Material` link (#18), the thing allocation matches on — plus
+// each ordered item its `Material` link (#18), the thing allocation matches on — plus
 // one Delivery for scenario B. Nothing is uploaded to Vercel Blob, so the seeded
 // delivery has no packing-list photo; every delivery you enter yourself will.
 

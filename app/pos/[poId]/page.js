@@ -52,7 +52,7 @@ export default async function PODetailPage(props) {
 // Viewing is row-scoped (issue #132): President/Admin see every PO; any other
 // active user sees a PO only for a PR they raised or on their assigned Job —
 // the same rule as the PR list (#119), shared via canViewPR. Invoice-derived
-// data (Invoiced/Uninvoiced + the per-item invoice-line breakdown) and the
+// data (Invoiced/Uninvoiced + the per-item invoice-item breakdown) and the
 // sign/regenerate write controls stay President/Admin-only; the PO PDF is
 // visible to everyone who can see the PO (site staff place the order from it).
 // Delivered/Undelivered are NOT in that set (#169): delivery-derived, so every
@@ -101,7 +101,7 @@ async function renderPODetailPage({ params, searchParams }) {
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
     ]);
 
-    // Invoiced/Uninvoiced (#48) and the per-item invoice-line breakdown (#15)
+    // Invoiced/Uninvoiced (#48) and the per-item invoice-item breakdown (#15)
     // are invoice-derived. The invoice pages are President/Admin-only (route
     // protection), so a plain employee viewing their own PO must not obtain
     // that data through this page. Non-privileged viewers fetch plain PO Items

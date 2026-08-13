@@ -59,7 +59,7 @@ function check(label, actual, expected) {
 // come from generatePOForApprovedPR, which does write the item axis as a side
 // effect (#18) — but these PRs carry NO Vendor, so refreshMaterialsCacheForPO
 // returns `skippedAll: "no Vendor on the PR"` before writing an identity row, a
-// price row or a PO line's `Material` link. Both PRs' items also pass no `unit`,
+// price row or an ordered item's `Material` link. Both PRs' items also pass no `unit`,
 // which the cache's unit-less rule would skip anyway. Measured on the base: 0
 // Materials named "__verify-133".
 const fixtures = createFixtures({
@@ -99,7 +99,7 @@ try {
     const a = await createPR({ requesterId: userId, notes: `${TAG} unsigned` });
     track("prs", a.id);
     // THIS ITEM IS LOAD-BEARING — do not remove it as unused. Without it the PO
-    // generated below has no lines, so isPoOpen returns false and getOpenPOs
+    // generated below has no ordered items, so isPoOpen returns false and getOpenPOs
     // excludes it for having nothing to invoice rather than for being unsigned.
     // Step 2's assertion would then pass with the signature-status filter
     // restored, which is exactly what it must fail on. Same reasoning

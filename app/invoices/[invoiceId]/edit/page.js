@@ -31,7 +31,7 @@ export default async function EditInvoicePage({ params }) {
 
     const [items, vendors] = await Promise.all([getItemsByInvoice(invoice.id), getAllVendors()]);
 
-    // Resolve each line's PO to its PO ID for the read-only per-line label
+    // Resolve each invoice item's PO to its PO ID for the read-only per-line label
     // (the PO link itself isn't editable in Tier 1).
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));

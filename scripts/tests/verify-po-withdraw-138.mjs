@@ -127,7 +127,7 @@ check("isPOWithdrawn ignores an unknown status", isPOWithdrawn({ status: "Not A 
 // generatePOForApprovedPR, which writes the item axis as a side effect (#18), and
 // the item carries both a Size and a Unit — but these PRs have NO Vendor, so
 // refreshMaterialsCacheForPO returns `skippedAll: "no Vendor on the PR"` before
-// writing an identity row, a price row or a PO line's `Material` link. The run
+// writing an identity row, a price row or an ordered item's `Material` link. The run
 // log says so once per PO. Measured on the base: 0 Materials named
 // "Verification fixture item".
 const fixtures = createFixtures({

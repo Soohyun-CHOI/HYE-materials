@@ -38,9 +38,9 @@ import { AWAITING_INVOICE_COPY } from "@/lib/deliveryStatus";
 //      than a parameter.
 //   3. IT IS NOT ONE ORDER. Measured on this base: of the 13 deliveries waiting,
 //      9 span one purchase order and 4 span two, because planDelivery matches
-//      candidates per MATERIAL and one arrival can fill lines on two orders. So a
-//      prefill is not "set the field", it is "seed N slots", which is the
-//      detection path's whole complexity.
+//      candidates per MATERIAL and one arrival can fill ordered items on two
+//      orders. So a prefill is not "set the field", it is "seed N slots", which
+//      is the detection path's whole complexity.
 //
 // AND NARROWING THE ITEM PICKER TO THIS DELIVERY WOULD BE WORSE THAN NOT
 // PREFILLING. An invoice can legitimately bill for something the delivery did not

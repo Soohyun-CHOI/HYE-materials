@@ -61,8 +61,8 @@ async function updatePaidHandler(prevState, formData) {
     redirect(`/invoices/${invoiceId}?done=paid-updated`);
 }
 
-// Issue #117 — edit an invoice's own header fields and its existing line-item
-// values (Tier 1: no adding/removing lines and no PO/PO Item relink, so the
+// Issue #117 — edit an invoice's own header fields and its existing invoice-item
+// values (Tier 1: no adding/removing invoice items and no PO/PO Item relink, so the
 // Invoice-PO Link join set never changes). Admin-only, re-checked here since
 // Server Actions are directly callable. Amount Due is an editable human entry
 // (a mistyped vendor total is correctable) — "never overwritten" means the
@@ -126,7 +126,7 @@ async function updateInvoiceHandler(prevState, formData) {
         // creation which only sets): a correction can remove a variance, so a
         // stale flag must be cleared. Per-line uses the fresh Unit Price and
         // the cumulative invoiced Qty (this invoice's new Qty already
-        // included); free-text lines have no PO Item to compare, so clear.
+        // included); free-text invoice items have no PO Item to compare, so clear.
         const itemsAfter = await getItemsByInvoice(invoice.id);
         for (const line of itemsAfter) {
             const poItemRecordId = line.poItem?.[0];

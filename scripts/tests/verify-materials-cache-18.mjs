@@ -9,7 +9,7 @@
 //   A — identity: one natural key keeps one row; the first spelling is kept.
 //   B — price: one material, two vendors, two price rows.
 //   C — withKeyLock serializes, on both of its two distinct keys.
-//   D — the production path: every PO line linked, dedupe on price only.
+//   D — the production path: every ordered item linked, dedupe on price only.
 //   E — Airtable's own judgment fields, which NOTHING has ever observed with
 //       real values: Committed/Signed Qty across all three PO statuses (the
 //       `& ""` lookup-to-text coercion), the three Materials rollups, and
@@ -99,7 +99,7 @@ const settleNote = (w) => `${w.reads === 1 ? "already settled on the first read"
 const fixtures = createFixtures({
     tag: "V18",
     buckets: [
-        // Frozen `Item Name` copied from the tagged PO line, so the tag reaches
+        // Frozen `Item Name` copied from the tagged ordered item, so the tag reaches
         // every row. Deleted before the Invoice, which also lists them as
         // children — by then that link is empty, and the pair is deliberate: the
         // tracked ids get a tag-query residue check of their own, and anything
@@ -197,8 +197,8 @@ console.log("\nPart 0 — collectMaterialsCacheEntries (grouping + skips, no DB)
     check("two lines of one material make ONE price entry", grouped.entries.length, 1);
     check("the LAST line's price is the one cached", grouped.entries[0].item.unitPrice, 25);
     // The correctness point the dedupe must not break: Materials' rollups sum
-    // over Materials."PO Items", so a line left unlinked is invisible on the
-    // item axis. Both lines must be linked even though only one price wins.
+    // over Materials."PO Items", so an ordered item left unlinked is invisible on the
+    // item axis. Both ordered items must be linked even though only one price wins.
     check("but BOTH lines are kept for linking", grouped.entries[0].poItemIds.join(","), "recA,recB");
 
     check(
@@ -339,7 +339,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     // -----------------------------------------------------------------------
     console.log("\nPart D — the production path: generatePOForApprovedPR:");
 
-    // Vendor A. Item X twice (dedupe + both linked), one unit-less line
+    // Vendor A. Item X twice (dedupe + both linked), one unit-less ordered item
     // (skipped), one other material.
     const pr1 = await createPR({
         requesterId: requester.id, lineId: line.id, vendorId: vendorA.id,

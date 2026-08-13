@@ -190,7 +190,7 @@ export async function detachDeliveryInvoiceAction(prevState, formData) {
 }
 
 /**
- * Delete a delivery and its lines.
+ * Delete a delivery and its delivery items.
  *
  * Deliberately a thin wrapper: everything that decides anything (authorship or
  * Admin) and the write itself live in lib/deliveryDelete.js, so the guard this

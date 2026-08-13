@@ -1,4 +1,4 @@
-// Folding an invoice's split lines back into one (#167) — the pure rule.
+// Folding an invoice's split invoice items back into one (#167) — the pure rule.
 //
 // What a pass does NOT prove: that the `materialRecordId` handed to the fold really
 // came from the row's ordered item rather than from somewhere else. That is
@@ -50,7 +50,7 @@ export function run({ check, log, assert }) {
     );
 
     // A vendor billing one material at two prices is two facts, and a split cannot
-    // change the price — so a price difference means these were never one line.
+    // change the price — so a price difference means these were never one invoice item.
     check(
         "same material, DIFFERENT price — two rows",
         foldInvoiceItems([row({ id: "a" }), row({ id: "b", unitPrice: 13 })]).length,
@@ -67,7 +67,7 @@ export function run({ check, log, assert }) {
     // A split can only produce rows carrying the link, since the overage PO Item
     // gets its Material from #18's cache during the same generation. So a row
     // without one cannot be half of a split, and folding it on name/size/unit could
-    // merge two lines that were never one.
+    // merge two invoice items that were never one.
     const noMaterial = [
         row({ id: "a", materialRecordId: null }),
         row({ id: "b", materialRecordId: null }),

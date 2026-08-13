@@ -35,13 +35,13 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * A packing list usually names SEVERAL items from one vendor on one day, so the
  * item rows repeat the way the invoice form's do. What does not repeat is the
  * header — job, vendor, optional PO number, date, photo — because those are
- * properties of the arrival, not of a line.
+ * properties of the arrival, not of a delivery item.
  *
  * Job -> vendor -> items, each narrowing the next. WITHOUT a PO number the
  * recorder picks the vendor and then the items, in that order, because the item
  * list is vendor-narrowed. WITH one, the PO fixes the vendor — the packing list
  * already says who shipped — so the vendor picker disappears and the item list
- * narrows to that PO's lines. Fewer decisions, and the ones left cannot
+ * narrows to that PO's ordered items. Fewer decisions, and the ones left cannot
  * contradict the document.
  *
  * THE PREVIEW RUNS THE PRODUCTION ALLOCATION, per row. planDelivery is pure, so
@@ -55,10 +55,11 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * that possible. A picker has to show invoice numbers, and before #211 a site
  * recorder could not read the invoice list at all, so typing was the only shape
  * that disclosed nothing — the reason the first design chose it. #211 opened those
- * routes to anyone who may see the order behind a line, which is exactly what every
- * row on this form already is, so the picker discloses nothing new and removes both
- * failure modes typing had: a mistyped number, and one naming an invoice that does
- * not exist. It is optional, because the bill is not always in the app yet.
+ * routes to anyone who may see the order behind an invoice item, which is exactly
+ * what every row on this form already is, so the picker discloses nothing new and
+ * removes both failure modes typing had: a mistyped number, and one naming an
+ * invoice that does not exist. It is optional, because the bill is not always in
+ * the app yet.
  */
 export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions = [] }) {
     const [state, formAction, pending] = useActionState(createDeliveryAction, {});
@@ -77,8 +78,8 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
 
     const selectedJob = jobs.find((j) => j.id === jobRecordId) || null;
 
-    // Everything below narrows within the selected job's lines, so no downstream
-    // control can offer something from another job.
+    // Everything below narrows within the selected job's ordered items, so no
+    // downstream control can offer something from another job.
     const jobLines = useMemo(
         () => (jobRecordId ? lines.filter((l) => l.jobRecordId === jobRecordId) : []),
         [lines, jobRecordId]
@@ -91,9 +92,10 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
             .sort((a, b) => a.vendorName.localeCompare(b.vendorName));
     }, [jobLines, vendorNames]);
 
-    // A typed PO number fixes the vendor, resolved from the lines the page already
-    // sent — no round trip. An unrecognized number leaves the vendor unset, which
-    // the server refuses with a specific message rather than this form guessing.
+    // A typed PO number fixes the vendor, resolved from the ordered items the page
+    // already sent — no round trip. An unrecognized number leaves the vendor
+    // unset, which the server refuses with a specific message rather than this
+    // form guessing.
     const matchedPoLines = useMemo(() => {
         const wanted = poId.trim().toUpperCase();
         if (!wanted) return [];
@@ -105,11 +107,11 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     const effectiveVendorId = usingPo ? poFixedVendorId : vendorId;
     const poRecordId = usingPo ? matchedPoLines[0]?.poRecordId ?? null : null;
 
-    // With a PO in play the item list is that PO's lines; otherwise every material
-    // the vendor supplied to this job. Both are wider than the allocation candidate
-    // set on purpose — a fully delivered item stays listed, with 0 undelivered, so
-    // the screen can say what is true about it instead of hiding it behind "not in
-    // the dropdown".
+    // With a PO in play the item list is that PO's ordered items; otherwise every
+    // material the vendor supplied to this job. Both are wider than the allocation
+    // candidate set on purpose — a fully delivered item stays listed, with 0
+    // undelivered, so the screen can say what is true about it instead of hiding it
+    // behind "not in the dropdown".
     const itemOptions = useMemo(
         () => buildItemOptions(usingPo ? matchedPoLines : jobLines, effectiveVendorId),
         [usingPo, matchedPoLines, jobLines, effectiveVendorId]
@@ -213,12 +215,13 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     const filledRows = rows.filter((r) => r.materialRecordId && Number(r.qty) > 0);
     // NO BLOCKED-PLAN BRANCH HERE, and that is measured rather than assumed (#165).
     // This form cannot produce one: with a PO in use the item options are built
-    // from that PO's OWN lines (see itemOptions above), and both the checkbox and
-    // the PO input reset the rows, so a selection made before the PO was typed
-    // cannot survive into a mismatch either. Every material a row can hold
-    // therefore has a candidate line, so planDelivery never returns `blocked`.
-    // The refusal lives in createDeliveryAction, which is where it is reachable —
-    // a PO can be withdrawn while this form sits open, and the action re-reads.
+    // from that PO's OWN ordered items (see itemOptions above), and both the
+    // checkbox and the PO input reset the rows, so a selection made before the PO
+    // was typed cannot survive into a mismatch either. Every material a row can
+    // hold therefore has a candidate ordered item, so planDelivery never returns
+    // `blocked`. The refusal lives in createDeliveryAction, which is where it is
+    // reachable — a PO can be withdrawn while this form sits open, and the action
+    // re-reads.
     const canSubmit =
         !pending &&
         photo.status === "done" &&

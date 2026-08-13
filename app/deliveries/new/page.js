@@ -20,14 +20,14 @@ export const metadata = { title: "Record a delivery" };
  *
  * That works because getDeliveryCandidates batches ACROSS jobs — the walk down to
  * PO Items costs ~5 queries whether the viewer is on one job or all 36 — so the
- * page can hand the form every candidate line at once and let it filter
+ * page can hand the form every candidate ordered item at once and let it filter
  * client-side. Fetching per job would have been ~6 queries each, over 200 for an
  * Admin, which is what forced the first version to navigate.
  *
- * The candidate lines go to the client on purpose. lib/deliveryAllocation.js is
+ * The candidate ordered items go to the client on purpose. lib/deliveryAllocation.js is
  * pure, so the form imports the very function the Server Action re-runs and draws
  * an accurate preview with no extra endpoint to authorize. Nothing in the payload
- * is privileged: it is the order lines of jobs the viewer is already scoped to.
+ * is privileged: it is the ordered items of jobs the viewer is already scoped to.
  */
 // Labeled for #190 — see the note in app/prs/page.js. Measured because CLAUDE.md
 // makes a specific claim about it (~5 queries for all 36 jobs, batched across
@@ -67,7 +67,7 @@ async function renderNewDeliveryPage() {
     // GATED PER RECORD through lib/invoiceVisibility.js rather than by a rule of its
     // own: a dropdown of invoice numbers is a surface that shows invoices. The form
     // narrows again to the vendor chosen, client-side, off this same list — the
-    // arrangement the candidate LINES already use.
+    // arrangement the candidate ORDERED ITEMS already use.
     const invoiceOptions = await getInvoiceLinkCandidates(user, {
         vendorRecordIds: [...new Set(lines.map((l) => l.vendorRecordId).filter(Boolean))],
     });

@@ -15,7 +15,7 @@
 //       show, rather than on a schema property nothing can set.
 //   B — THE WHOLE FLOW on real records: order 10, deliver 12, bill 12, raise the
 //       correction, approve it, generate its PO, and then assert that the excess
-//       MOVED — the delivery row re-attached and unflagged, the invoice line split,
+//       MOVED — the delivery row re-attached and unflagged, the invoice item split,
 //       and the original ordered item no longer over-delivered.
 //   C — THE SAME WITH A PAID INVOICE, which is the common case rather than an edge
 //       one: the bill usually arrives and is settled before anyone corrects the
@@ -29,12 +29,12 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-overage-167.mjs
 //
 // Fixtures: PRs + PR Items, POs + PO Items through the real approve-and-generate
-// flow (which is what gives each line its `Material` link), Deliveries + Delivery
-// Items, Invoices + Invoice Items + Invoice-PO Link rows, and the Quotations the
-// correction creates. DELETES ALL OF THEM in this same run, children before
-// parents, with the whole body in a try/catch so a mid-run throw cannot skip that.
-// UNLIKE the other verify scripts this one DOES write to Vercel Blob — the
-// quotation path is the feature — and deletes those objects too.
+// flow (which is what gives each ordered item its `Material` link), Deliveries +
+// Delivery Items, Invoices + Invoice Items + Invoice-PO Link rows, and the
+// Quotations the correction creates. DELETES ALL OF THEM in this same run,
+// children before parents, with the whole body in a try/catch so a mid-run throw
+// cannot skip that. UNLIKE the other verify scripts this one DOES write to Vercel
+// Blob — the quotation path is the feature — and deletes those objects too.
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
@@ -268,7 +268,7 @@ try {
         `\nFixture context: vendor "${vendor.vendorName}", line "${line.lineLabel}" (both reused, not modified)`
     );
 
-    /** One PR + one item -> approve -> PO. Returns the PO and its single line. */
+    /** One PR + one item -> approve -> PO. Returns the PO and its one ordered item. */
     async function makeOrder({ itemName, qty, unitPrice = 12 }) {
         const pr = await createPR({
             requesterId: requester.id,
@@ -333,7 +333,7 @@ try {
         return (await getDeliveriesByRecordIds([delivery.id]))[0];
     }
 
-    /** One invoice with a real attached file, plus one line per entry. */
+    /** One invoice with a real attached file, plus one invoice item per entry. */
     async function bill({ po, lines: billLines, issueDate, paid = false }) {
         const blob = await put(`${TAG}-invoice.pdf`, tinyPdfBytes(`${TAG} invoice`), {
             access: "public",
@@ -453,7 +453,7 @@ try {
         check(`${label}: nor billed beyond it`, status.billedBeyondOrder, 0);
         check(`${label}: and the ordered item reads as fully billed`, originalAfter.invoicedQty, order.poLine.qty);
 
-        // The items table folds the two lines back into one.
+        // The items table folds the two invoice items back into one.
         const folded = foldInvoiceItems(
             invoiceLines.map((l) => ({
                 ...l,

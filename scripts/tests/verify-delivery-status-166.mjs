@@ -9,13 +9,13 @@
 //   A — the THREE links the two walks travel — `PO Items."Delivery Items"`,
 //       `PO Items."Invoice Items"` and, since #210, `Invoices."Delivery"` with its
 //       symmetric `Deliveries."Invoices"` — are readable and populated, and the
-//       `Invoiced Qty` rollup reflects an invoice line on the FIRST read after it
+//       `Invoiced Qty` rollup reflects an invoice item on the FIRST read after it
 //       is created. None is visible to a file-only check, and a link field renamed
 //       in the UI makes `record.get()` return undefined, which every screen would
 //       render as nothing at all.
 //   B — the invoice axis on real records: an invoice paired with the shipment that
-//       answered it, one with nothing paired, and a free-text line that is excluded
-//       rather than counted as short.
+//       answered it, one with nothing paired, and a free-text invoice item that
+//       is excluded rather than counted as short.
 //   C — the delivery axis: an arrival with no invoice naming it, which is the
 //       worklist this feature exists to replace the month-end email with, and one
 //       whose bill covers only part of what it brought.
@@ -39,7 +39,7 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-delivery-status-166.mjs
 //
 // Fixtures: creates PRs + PR Items and POs + PO Items through the real
-// approve-and-generate flow (which is what gives each line its `Material` link,
+// approve-and-generate flow (which is what gives each ordered item its `Material` link,
 // the thing allocation matches on), plus Deliveries + Delivery Items and Invoices
 // + Invoice Items. DELETES ALL OF THEM in this same run, children before parents,
 // and the whole body sits in a try/catch so a mid-run throw cannot skip that —
@@ -267,7 +267,7 @@ try {
             `\nFixture context: vendor "${vendor.vendorName}", line "${line.lineLabel}" (both reused, not modified)`
         );
 
-        /** One PR + item -> approve -> PO. Returns the PO's single line. */
+        /** One PR + item -> approve -> PO. Returns the PO's single ordered item. */
         async function makeOrder({ itemName, qty, unitPrice = 10 }) {
             const pr = await createPR({
                 requesterId: requester.id,
@@ -349,7 +349,7 @@ try {
             });
             track("invoiceItems", item.id);
             if (freight) {
-                // A free-text line: no PO Item, so no ordered quantity and no
+                // A free-text invoice item: no PO Item, so no ordered quantity and no
                 // delivery could ever correspond to it.
                 const fr = await createInvoiceItem({
                     invoiceRecordId: inv.id,
@@ -378,7 +378,7 @@ try {
         // #210 — the pairing, written the way both production paths write it.
         await setInvoiceDelivery(arrivedInvoice.id, arrivedDelivery.id);
 
-        // The rollup on the FIRST read after the invoice line was created. The
+        // The rollup on the FIRST read after the invoice item was created. The
         // reader subtracts it from delivered to decide what a screen claims, so a
         // lagging value would report material as unbilled the moment it was billed.
         const rolled = await waitFor(
@@ -421,8 +421,8 @@ try {
         check("a shipment is named, so the chip is Delivered", s.key, "delivered");
         check("and the quantities match, so no marker", s.mismatch, false);
         check("one ordered item judged", s.judged, 1);
-        // The freight line is excluded rather than counted as short — without this
-        // every invoice carrying one would read as not arrived.
+        // The freight invoice item is excluded rather than counted as short —
+        // without this every invoice carrying one would read as not arrived.
         check("and the free-text line was excluded, not judged", s.excludedCount, 1);
         check("the chip says so", describeInvoiceColumn(s).text, "Delivered");
 
@@ -439,9 +439,9 @@ try {
             describeInvoiceColumn(pendingStatus).text,
             "Awaiting delivery"
         );
-        // NO MARKER WITHOUT A LINK, on real records. Every line of this invoice is
-        // trivially short — nothing has arrived — and marking it would put a
-        // discrepancy on every bill the vendor emails ahead of the material.
+        // NO MARKER WITHOUT A LINK, on real records. Every invoice item of this
+        // invoice is trivially short — nothing has arrived — and marking it would
+        // put a discrepancy on every bill the vendor emails ahead of the material.
         check("and no mismatch marker, because there is nothing to compare", pendingStatus.mismatch, false);
 
         // A PAIRED SHIPMENT THAT BROUGHT LESS THAN THE BILL: the chip stays Delivered
@@ -467,9 +467,9 @@ try {
         const recon = await getInvoiceReconciliation(await getItemsByInvoice(arrivedFull.id), {
             linkedDeliveryRecordId: linkedDelivery(arrivedFull),
         });
-        // ONE ROW PER INVOICE LINE, judged or not: the free-text line gets a box of
-        // its own saying why it was not compared, rather than a footnote about a
-        // line the reader cannot see.
+        // ONE ROW PER INVOICE ITEM, judged or not: the free-text invoice item gets
+        // a box of its own saying why it was not compared, rather than a footnote
+        // about a invoice item the reader cannot see.
         check("a row for every invoice line", recon.rows.length, 2);
         const judgedRow = recon.rows.find((r) => r.status);
         const notComparedRow = recon.rows.find((r) => !r.status);
@@ -481,7 +481,7 @@ try {
             "not-compared"
         );
         // Two scopes, deliberately distinct: `status` is THIS invoice's share,
-        // `line` is the ordered item's own totals — which is what the box's
+        // `ordered item` is the ordered item's own totals — which is what the box's
         // Ordered / Billed / Delivered figures show.
         check("this invoice's billed share", judgedRow.status.invoiced, 10);
         check("and what the shipment it NAMES brought on that ordered item", judgedRow.status.delivered, 10);
@@ -524,7 +524,7 @@ try {
         // nothing left to chase; but a shipment whose bill covers only PART of what
         // arrived is still owed an invoice, and "does this delivery have one" would
         // read `Invoiced`. Before #210 the answer was worse still: the test asked
-        // whether the ORDERED ITEM carried any invoice line at all, so an arrival with
+        // whether the ORDERED ITEM carried any invoice item at all, so an arrival with
         // nothing billed dropped out of the worklist as soon as some earlier bill had
         // touched the same order.
         const partOrder = await makeOrder({ itemName: `${TAG} PartBilled`, qty: 20 });
@@ -643,9 +643,9 @@ try {
 
         // THE DETAIL, which reads a different three (PO Items, Delivery Items,
         // Deliveries) because it does show the ordered item's own totals. Also down
-        // from five.
-        // The lines are fetched OUTSIDE the probe: the detail page holds them anyway
-        // for the items table, which is why this walk adds no query for them.
+        // from five. The invoice items are fetched OUTSIDE the probe: the detail
+        // page holds them anyway for the items table, which is why this walk adds no
+        // query for them.
         const detailLines = await getItemsByInvoice(arrivedFull.id);
         const detailOps = await countOps(() =>
             getInvoiceReconciliation(detailLines, {

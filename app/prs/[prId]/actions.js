@@ -101,9 +101,9 @@ async function finishTurn({ pr, turn, signers, correctionRequests }) {
 //
 // Chosen over the other write paths because on the FINAL signer's turn it
 // contains the heaviest write in the app — the signer row, the PR status, then
-// generatePOForApprovedPR, which creates the PO, one PO Item per line, and the
+// generatePOForApprovedPR, which creates the PO, one PO Item per PR item, and the
 // #18 materials cache (an upsertMaterial, an upsertMaterialPrice and a
-// setPOItemMaterial per line). It is also the ordinary path every PR takes,
+// setPOItemMaterial per PR item). It is also the ordinary path every PR takes,
 // unlike generatePOAction, which is the Admin retry.
 export async function approveAction(prevState, formData) {
     return withOpsLabel("approveAction", async () => {

@@ -10,9 +10,9 @@ const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50";
 
 // Issue #117 Tier 1 — edit an invoice's header fields and the VALUES of its
-// existing line items. Size/Unit are frozen copies from the linked PO Item
+// existing invoice items. Size/Unit are frozen copies from the linked PO Item
 // (reference-only, shown disabled), and the PO/PO Item links, plus
-// adding/removing lines, are out of scope here (delete + recreate for those).
+// adding/removing invoice items, are out of scope here (delete + recreate for those).
 export default function EditInvoiceForm({ invoice, items: initialItems, vendors }) {
     const [state, formAction, pending] = useActionState(updateInvoiceAction, null);
 

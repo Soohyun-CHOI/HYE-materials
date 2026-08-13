@@ -11,7 +11,7 @@
 //   A — fixtures: two vendors buy one material, plus a withdrawn PO.
 //   B — search as an Admin: grouping, per-vendor rows, identifiers present.
 //   C — search as the permanent non-Admin fixture: SAME prices, NO identifiers.
-//   D — history: newest first, withdrawn line present and marked, same gating.
+//   D — history: newest first, withdrawn ordered item present and marked, same gating.
 //   E — the query budget is constant in the number of rows, measured by counting
 //       Airtable HTTP requests rather than asserted.
 //
@@ -260,7 +260,7 @@ if (incomplete) {
         unitPrice: 30,
         extraItem: { itemName: `${TAG} Gasket`, size: "", unit: "PCS", qty: 5, unitPrice: 2 },
     });
-    // A third PO for the same material, then withdrawn: its line must appear in
+    // A third PO for the same material, then withdrawn: its ordered item must appear in
     // the history, marked, and must not count as ordered.
     const genC = await makePO({ vendorId: vendorA.id, qty: 999, unitPrice: 99 });
     await updatePO(genC.poRecordId, { status: "Withdrawn", withdrawnAt: new Date().toISOString() });
