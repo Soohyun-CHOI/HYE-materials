@@ -15,6 +15,12 @@ import {
     availableInvoiceOptions,
     invoiceOptionLabel,
 } from "@/lib/deliveryInvoiceLink";
+import {
+    PAIRING,
+    billFromInvoiceOption,
+    describePairing,
+    matchBillToArrival,
+} from "@/lib/deliveryInvoiceMatch";
 
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryAllocation.js imports only
 // lib/materialPriceView.js -> lib/itemNaming.js, none of which reach
@@ -60,6 +66,14 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * removes both failure modes typing had: a mistyped number, and one naming an
  * invoice that does not exist. It is optional, because the bill is not always in
  * the app yet.
+ *
+ * AND SINCE #231 IT IS USUALLY ALREADY FILLED IN. The bills this vendor sent name
+ * ordered items and so do the rows above, so a bill charging only ordered items
+ * this arrival brought is a candidate for it — computed here with the same pure
+ * rule the invoice side runs, from data this page was already handed. It is a
+ * PRESELECTION rather than a decision taken away: the control still holds every
+ * option, the sentence under it says what was worked out, and touching it hands
+ * the answer back to the recorder for good.
  */
 export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions = [] }) {
     const [state, formAction, pending] = useActionState(createDeliveryAction, {});
@@ -74,7 +88,12 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     const [receivedDate, setReceivedDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [notes, setNotes] = useState("");
     const [photo, setPhoto] = useState({ status: "empty" });
-    const [invoiceRecordId, setInvoiceRecordId] = useState("");
+    // #231 — `touched` is what separates the recorder's answer from the computed
+    // one. The control is preselected from the ordered items being recorded, so the
+    // state cannot be a bare string: "" would be indistinguishable from "the
+    // recorder cleared it", and the next keystroke anywhere would put the computed
+    // value straight back.
+    const [invoice, setInvoice] = useState({ touched: false, value: "" });
 
     const selectedJob = jobs.find((j) => j.id === jobRecordId) || null;
 
@@ -168,6 +187,59 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         [invoiceOptions, effectiveVendorId]
     );
 
+    // #231 — THE ARRIVAL AS THE MATCHER SEES IT: the ordered items the plan above
+    // is about to attach rows to. Taken from the plan rather than from the item
+    // dropdown, because a material maps to an ordered item only through allocation
+    // — the same reason the preview runs the production `planDelivery` instead of
+    // describing what the rows say.
+    //
+    // `deliveryRecordId` is null: this delivery does not exist yet, which is the
+    // reading `checkInvoicePairing` already makes of the same null.
+    const arrival = useMemo(
+        () => ({
+            deliveryRecordId: null,
+            orderedItemRecordIds: [
+                ...new Set(
+                    [...plansByMaterial.values()]
+                        .flatMap((p) => (p.rows || []).map((r) => r.line?.id))
+                        .filter(Boolean)
+                ),
+            ],
+        }),
+        [plansByMaterial]
+    );
+
+    // The price each order agreed, which is what a candidate bill's own price is
+    // tested against. Off the ordered items this page was already handed, so the
+    // test costs no round trip.
+    const agreedPrices = useMemo(
+        () => new Map(jobLines.map((l) => [l.id, l.unitPrice])),
+        [jobLines]
+    );
+
+    // THE SAME PURE RULE THE INVOICE SIDE RUNS, on the same bill pool the dropdown
+    // offers — already-paired bills included, because a bill somebody has placed on
+    // this shipment is exactly the rival that matters.
+    const pairing = useMemo(
+        () =>
+            matchBillToArrival({
+                arrival,
+                bills: invoiceChoices.map(billFromInvoiceOption),
+                agreedPrices,
+            }),
+        [arrival, invoiceChoices, agreedPrices]
+    );
+
+    // Computed until the recorder says otherwise. Once they touch the control it is
+    // theirs, and the sentence below comes off with it rather than going on
+    // claiming an attachment that was overridden.
+    const invoiceRecordId = invoice.touched
+        ? invoice.value
+        : pairing.key === PAIRING.matched
+          ? pairing.invoiceRecordId
+          : "";
+    const pairingMessage = invoice.touched ? null : describePairing(pairing, "preview");
+
     function pickJob(id) {
         setJobRecordId(id);
         // Everything downstream was narrowed by the old job, so none of it can
@@ -176,7 +248,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         setPoId("");
         setHasPoNumber(false);
         setRows([{ ...EMPTY_ROW }]);
-        setInvoiceRecordId("");
+        setInvoice({ touched: false, value: "" });
     }
 
     function pickVendor(id) {
@@ -184,7 +256,9 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         setRows([{ ...EMPTY_ROW }]);
         // The invoice list is vendor-narrowed, so a bill picked under the old vendor
         // is not on offer under the new one — the same reason the item rows reset.
-        setInvoiceRecordId("");
+        // Back to computed, not to blank: the new vendor's own bills are about to be
+        // matched against these rows.
+        setInvoice({ touched: false, value: "" });
     }
 
     function updateRow(index, field, value) {
@@ -545,7 +619,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                 <select
                     id="invoiceSelect"
                     value={invoiceRecordId}
-                    onChange={(e) => setInvoiceRecordId(e.target.value)}
+                    onChange={(e) => setInvoice({ touched: true, value: e.target.value })}
                     disabled={!effectiveVendorId || invoiceChoices.length === 0}
                     className={`${inputClass} disabled:opacity-50`}
                 >
@@ -568,6 +642,23 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                         </option>
                     ))}
                 </select>
+                {/* #231 — what the app worked out and why, in describePlan's
+                    posture: it states what is about to be submitted rather than
+                    asking. Above the standing note, because it is about these rows
+                    while the note is about the field. Nothing at all when the
+                    ordered items place no bill — an unpaired invoice is the
+                    ordinary state, not an event to report. */}
+                {pairingMessage && (
+                    <p
+                        className={`mt-1 text-xs ${
+                            pairingMessage.key === PAIRING.matched
+                                ? "text-zinc-600"
+                                : "text-amber-700"
+                        }`}
+                    >
+                        {pairingMessage.text}
+                    </p>
+                )}
                 <p className="mt-1 text-xs text-zinc-500">
                     {effectiveVendorId && invoiceChoices.length === 0
                         ? LINK_COPY.field.emptyList({

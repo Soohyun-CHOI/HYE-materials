@@ -5,6 +5,7 @@ import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
 import { describeInvoiceColumn, describeInvoiceLine, sharesOrderedItem } from "@/lib/deliveryStatus";
 import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
+import { PAIRING, describePairing } from "@/lib/deliveryInvoiceMatch";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
@@ -47,7 +48,11 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const user = await requireUser();
     const privileged = seesEveryInvoice(user);
     const { invoiceId } = await params;
-    const { done } = await searchParams;
+    const { done, paired } = await searchParams;
+    // #231 — a key, never a sentence. An unknown or absent value words nothing,
+    // which is also what makes `none` need no entry: describePairing returns null
+    // for anything it has no voice for.
+    const pairingMessage = describePairing({ key: paired }, "banner");
 
     const invoice = await getInvoiceById(invoiceId);
     if (!invoice) {
@@ -149,6 +154,24 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
             {done && DONE_MESSAGES[done] && (
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
                     {DONE_MESSAGES[done]}
+                </p>
+            )}
+
+            {/* #231 — what the app worked out about this bill's shipment, said once
+                and only on the way in from creation. It is not part of the record,
+                so it lives on the query string rather than being re-derived on
+                every load: a reader returning to this page sees the delivery
+                section below, which is the standing answer. `none` sends no
+                parameter, so there is no voice here for it. */}
+            {pairingMessage && (
+                <p
+                    className={`mt-4 rounded border px-3 py-2 text-sm ${
+                        pairingMessage.key === PAIRING.matched
+                            ? "border-zinc-300 bg-zinc-50 text-zinc-700"
+                            : "border-amber-300 bg-amber-50 text-amber-800"
+                    }`}
+                >
+                    {pairingMessage.text}
                 </p>
             )}
 
