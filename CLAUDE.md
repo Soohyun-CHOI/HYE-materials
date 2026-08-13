@@ -94,13 +94,13 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
-- `lib/poItemQty.js` — the per-line quantity judgments: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`.
+- `lib/poItemQty.js` — the per-item quantity judgments: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`.
 - `lib/poListView.js` — the PO list's ordering, Status text, three empty states, and which approved PRs have no PO with both voices of that copy (#176).
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
-- `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds order lines. Credentialed.
+- `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds ordered items. Credentialed.
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
 - `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
@@ -109,7 +109,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
 - `lib/overage.js` — the overage correction's judgment and `OVERAGE_COPY`.
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the Draft it creates, and the apply step. Credentialed.
-- `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice line reads as one row again.
+- `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed.
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
@@ -153,7 +153,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Invoice-PO Link**: join table, many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
-**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared, Unit Price/Qty discrepancies). Size/Unit are frozen copies from the linked PO Item, reference-only, no edit path (mismatch = wrong PO Item picked). Blank on a free-text line (no PO Item to copy from). Free-text "Other" option is currently hidden from the form UI (`SHOW_OTHER_ITEM_OPTION = false` in `app/invoices/new/InvoiceForm.js`, #96 — the backend path for a PO-Item-less line is untouched, so flipping the flag is the whole of re-exposing it).
+**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared, Unit Price/Qty discrepancies). Size/Unit are frozen copies from the linked PO Item, reference-only, no edit path (mismatch = wrong PO Item picked). Blank on a free-text invoice item (no PO Item to copy from). Free-text "Other" option is currently hidden from the form UI (`SHOW_OTHER_ITEM_OPTION = false` in `app/invoices/new/InvoiceForm.js`, #96 — the backend path for a PO-Item-less invoice item is untouched, so flipping the flag is the whole of re-exposing it).
 
 **Addresses**: Address Label (primary), Line 1/2, City, State, Zip Code, Country, Formatted Address (formula).
 
@@ -179,6 +179,8 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 ### Screen words and the fields behind them
 
 **A screen word is not a field name**, and a code identifier may diverge from the field it reads on purpose. Before naming a field, a screen word or an identifier, read `docs/notes/naming.md` — it holds the word-to-field table, the conventions (`X ID` / `X Label` / `X Date` / `X At`, a checkbox takes a participle, a subtraction is named for what it subtracts, plain `Qty` for a row's own quantity) and the divergences that are deliberate.
+
+- **`line` names a `Lines` row under a Job and nothing else** — the `Line` link on Purchase Requests. In prose, documentation and screen copy a `PO Items` row is an **ordered item**. The identifiers that say `line` for one, `lineStatus` and its family, are listed in `naming.md` and are #184's to rename, not a word to pick up from the code beside them.
 
 ## ID generation (lib/ids.js)
 
@@ -206,7 +208,7 @@ Read `docs/notes/airtable-access.md` before changing any of the three.
 
 `generateChildId`, `upsertMaterial` and `upsertMaterialPrice` wrap read-then-write in `withKeyLock()`. It serializes only within one process or invocation, so double-submit still needs frontend disable-on-click guards.
 
-**The two material locks use different keys on purpose:** identity locks on the normalized `Item Name + Size + Unit` triple, price on `material + vendor`. Two vendors' prices for one material are two rows and must not serialize against each other; two PO lines of one material from one vendor must. `lib/materialsCache.js` takes them in sequence, never nested.
+**The two material locks use different keys on purpose:** identity locks on the normalized `Item Name + Size + Unit` triple, price on `material + vendor`. Two vendors' prices for one material are two rows and must not serialize against each other; two ordered items of one material from one vendor must. `lib/materialsCache.js` takes them in sequence, never nested.
 
 A service-layer function with no caller is verified by nothing — `upsertMaterial` sat unused from Phase 0 to #18 carrying three defects.
 
@@ -293,6 +295,8 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed.
 - PR title is the representative commit's subject. Body opens on `Closes #{issue#}` — no issue summary before it — then three sections: **What this delivers** (a list of what changed), **Key design decisions** (a paragraph per decision, bold lead-in), **Testing** (a table of check and result).
 - `Testing` carries only what was actually verified; what was not is left out rather than disclaimed. Nothing is described as finished, complete, done or deployed — `implemented and merged` is a fact about the branch.
 - A doc-only PR with no issue omits the `Closes` line and says so in its first line. The body itself goes in pr-body.md at repo root, gitignored alongside commit-msg.txt.
+- Issue title is a plain noun or verb phrase — no closing period, no commit-type prefix. Issue body is one or two paragraphs of prose: no subheadings, no bullets, no line breaks inside a paragraph, and it says WHAT changes rather than how.
+- **The body is what the issue IS, stated without a tense, so it has to be true now** — a changed scope or decision, or an implementation that diverges from it, is fixed IN the body. A comment is what the issue is NOT: a finding from another issue's work, a measurement, a record of what was observed at the time. The test is whether the sentence still reads as true and useful with no date attached to it. When a comment makes the body stale, the body is edited and the comment stays.
 - Line-wrap commit bodies + PR descriptions at 72 chars, table rows and fenced blocks included, and NEVER inside a backtick span — wrap around it, and move it to a fenced block when the span plus its backticks will not fit. `scripts/wrap-72.mjs` is that rule executable (`--check` reports without rewriting), and its output is read rather than trusted: it passes table rows through untouched, since wrapping one breaks the table, so keep cells short and move long explanation to prose under the table; and it reflows list items, which has altered a marker before now. Prompts/comments don't need wrapping.
 - Wrap literal `<tag>`-looking text in backticks in PR descriptions; write an issue reference as bare #num so GitHub autolinks it.
 - If an issue is already covered by other work, comment explaining why, then close — never silently close via Closes #.
