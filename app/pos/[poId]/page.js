@@ -71,8 +71,10 @@ export default async function PODetailPage(props) {
 // the payment badge along with it — the two share one flag here today only
 // because the flag has never moved. Not observed: the gate has not changed, so
 // nothing has leaked; it is written here because the failure would be silent.
-// Delivered/Undelivered are NOT in that set (#169): delivery-derived, so every
-// viewer who can see the order sees them.
+// `Delivered` IS NOT IN THAT SET (#169): delivery-derived, so every viewer who
+// can see the order sees it — and since #233 so are the deliveries that filled
+// the order and the chip above them, on the same line. This said
+// `Delivered/Undelivered` until that issue removed the second column.
 async function renderPODetailPage({ params, searchParams }) {
     const user = await requireUser();
     const isPrivileged = user.role === "President" || user.isAdmin === true;
