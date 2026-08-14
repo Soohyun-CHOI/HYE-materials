@@ -20,8 +20,10 @@ import { formatUSD } from "@/lib/format";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFactsForPO } from "@/lib/overagePR";
 import { undeliveredQty } from "@/lib/deliveryAllocation";
+import { describePOColumn, summarizePODeliveryStatus } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
+import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import {
     getPOWithdrawEligibility,
     getWithdrawCopy,
@@ -58,9 +60,17 @@ export default async function PODetailPage(props) {
 // Viewing is row-scoped (issue #132): President/Admin see every PO; any other
 // active user sees a PO only for a PR they raised or on their assigned Job —
 // the same rule as the PR list (#119), shared via canViewPR. Invoice-derived
-// data (Invoiced/Uninvoiced + the per-item invoice-item breakdown) and the
+// data (the `Invoiced` column and the invoices charging this order) and the
 // sign/regenerate write controls stay President/Admin-only; the PO PDF is
 // visible to everyone who can see the PO (site staff place the order from it).
+//
+// `Paid` RIDES ON `isPrivileged` WITH EVERYTHING ELSE INVOICE-DERIVED, AND THAT
+// IS THE ONE THING TO SPLIT BEFORE THIS GATE IS EVER WIDENED (#233). #211 left
+// payment as the narrow line after opening the invoice routes per record, so a
+// future decision to show a site employee what a vendor billed must not carry
+// the payment badge along with it — the two share one flag here today only
+// because the flag has never moved. Not observed: the gate has not changed, so
+// nothing has leaked; it is written here because the failure would be silent.
 // Delivered/Undelivered are NOT in that set (#169): delivery-derived, so every
 // viewer who can see the order sees them.
 async function renderPODetailPage({ params, searchParams }) {
@@ -137,6 +147,27 @@ async function renderPODetailPage({ params, searchParams }) {
         ...new Set(deliveryItems.map((d) => d.delivery?.[0]).filter(Boolean)),
     ]);
     const deliveriesOnOrder = foldDeliveriesOnOrder({ orderedItems, deliveryItems, deliveries });
+
+    // #169's OWN CHIP, FINALLY CALLED FROM HERE. That issue wrote
+    // `summarizePODeliveryStatus` "shared by /pos and /pos/[poId] so the row a
+    // reader clicks and the page they land on cannot describe one order
+    // differently", and `/pos` says the same about the detail page beside its own
+    // call — but this page never imported the module, so both sentences were false
+    // for four issues. #233 makes them true rather than deleting them.
+    //
+    // NO NEW READ ON EITHER PATH. `poLineDelivery` wants `orderedQty`,
+    // `deliveredQty` and `committedQty`, and `recordToPOItem` carries all three, so
+    // the privileged and employee projections both already hold what this needs.
+    // The shape below is the one `/pos` builds for the same call.
+    const deliveryChip = describePOColumn(
+        summarizePODeliveryStatus(
+            orderedItems.map((it) => ({
+                orderedQty: it.qty,
+                deliveredQty: it.deliveredQty,
+                committedQty: it.committedQty,
+            }))
+        )
+    );
 
     // #233 — and the invoices charging it, two more batched reads and only for the
     // office. This replaces one `getItemsByPOItem` per ordered item plus one
@@ -381,7 +412,24 @@ async function renderPODetailPage({ params, searchParams }) {
                 rather than empty, because "nothing has billed this order" is itself
                 invoice information. Same server-side omission as the columns. */}
             <div className="mt-6">
-                <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.deliveries.heading}</h2>
+                {/* THE CHIP FOLDS THE TABLE ABOVE, NOT THE LIST BELOW IT, which is
+                    the one thing about this placement that could be misread.
+                    `summarizePODeliveryStatus` counts ORDERED ITEMS whose delivered
+                    quantity has reached what was ordered — the `Delivered` column —
+                    and knows nothing about how many documents brought them.
+
+                    IT SITS HERE BECAUSE THE INVOICE DETAIL PUTS ITS CHIP BESIDE THE
+                    `Delivery` heading, so the two screens read with one grammar, and
+                    because "is it all here" is the question a reader arrives at just
+                    before the arrivals themselves. Delivery-derived, so no gate —
+                    #169's line, and the same reason the `Delivered` column has none.
+
+                    The tone comes from `describePOColumn` through `StatusChip`, which
+                    is presentational only; this page picks no color. */}
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.deliveries.heading}</h2>
+                    <StatusChip chip={deliveryChip} />
+                </div>
                 {deliveriesOnOrder.length === 0 ? (
                     <p className="mt-1 text-sm text-zinc-600">
                         {PO_DOCUMENTS_COPY.deliveries.empty().text}
@@ -455,7 +503,8 @@ async function renderPODetailPage({ params, searchParams }) {
                                         {/* Payment is President-or-Admin (#211), which
                                             this whole section already is. If the gate
                                             above ever widens, this badge does NOT go
-                                            with it — see the header of this file. */}
+                                            with it — see this file's own header, which
+                                            is where that hazard is recorded. */}
                                         {inv.paid ? (
                                             <span className="rounded bg-green-100 px-1 text-xs text-green-700">
                                                 {PO_DOCUMENTS_COPY.badge.paid(inv)}
