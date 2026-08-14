@@ -659,6 +659,22 @@ export function run({ check, log, assert }) {
         const notApplied = describeOverageBanner({ site, state: "not-applied", facts });
         check(`${site}: not-applied says the excess has not moved`, notApplied[1].key, "banner-not-applied");
         assert(`  and carries no caveat either`, !notApplied.some((m) => m.key === "banner-invoice-caveat"));
+        // #233 — NO SENTENCE PRINTS A MISSING FACT AS `null`. The order's page
+        // supplies these facts without an invoice whenever the reader is not the
+        // office, since the bill a correction spans is invoice-derived while the
+        // banner itself is not; `invoiceCaveat` interpolated `f.invoiceId` with no
+        // fallback, so it opened with the literal word.
+        for (const state of ["applied", "pending", "not-applied"]) {
+            const withoutBill = describeOverageBanner({
+                site,
+                state,
+                facts: { ...facts, invoiceId: null },
+            });
+            assert(
+                `${site}/${state}: says no "null" when no invoice is known`,
+                !withoutBill.some((m) => /\bnull\b/.test(m.text))
+            );
+        }
     }
 
     // --- #206'S QUALIFIER, COMPOSED WITH EACH STATE ------------------------

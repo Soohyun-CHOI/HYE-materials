@@ -44,7 +44,9 @@ const PAID_READERS = {
     "app/invoices/[invoiceId]/actions.js":
         "updatePaidAction, the WRITE — withAdminAction, so it is the line's own gate",
     "app/pos/[poId]/page.js":
-        "the per-line invoice breakdown, inside #132's isPrivileged branch",
+        "the badge on the order's invoice list, inside #132's isPrivileged branch",
+    "lib/poDocuments.js":
+        "the fold that builds that list — pure, and reached only from the branch above (#233)",
     "lib/airtable/invoices.js": "the mapper — where the field is read off the record",
     "lib/deliveryDelete.js":
         "the third voice of the delete confirmation, behind #211's seesPayment flag",

@@ -139,6 +139,11 @@ async function renderPOListPage({ searchParams }) {
             // differently. Resolved to a chip here rather than in the Client
             // Component, because the copy lives in lib/deliveryStatus.js and
             // nothing under app/ should hold a second copy of it.
+            //
+            // TRUE SINCE #233 AND NOT BEFORE: #169 wrote this sentence while the
+            // detail page had the `Delivered` column and no chip, so the function
+            // had one caller. That page calls it now, beside its `Deliveries`
+            // heading.
             deliveryChip: describePOColumn(summarizePODeliveryStatus(linesByPO.get(po.id) || [])),
             // A PO carries no requester of its own — it is the parent PR's
             // (#138). Resolved here so the requester's identity never reaches

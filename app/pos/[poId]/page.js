@@ -1,11 +1,17 @@
-import { Fragment } from "react";
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { canViewPR } from "@/lib/prVisibility";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getInvoicingStatusByPO, getItemsByPO } from "@/lib/airtable/poItems";
-import { getItemsByPOItem } from "@/lib/airtable/invoiceItems";
-import { getInvoiceByRecordId } from "@/lib/airtable/invoices";
+import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
+import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
+import { getDeliveryItemsByRecordIds } from "@/lib/airtable/deliveryItems";
+import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
+import {
+    PO_DOCUMENTS_COPY,
+    foldDeliveriesOnOrder,
+    foldInvoicesOnOrder,
+} from "@/lib/poDocuments";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
@@ -14,8 +20,10 @@ import { formatUSD } from "@/lib/format";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFactsForPO } from "@/lib/overagePR";
 import { undeliveredQty } from "@/lib/deliveryAllocation";
+import { describePOColumn, summarizePODeliveryStatus } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
+import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import {
     getPOWithdrawEligibility,
     getWithdrawCopy,
@@ -52,11 +60,21 @@ export default async function PODetailPage(props) {
 // Viewing is row-scoped (issue #132): President/Admin see every PO; any other
 // active user sees a PO only for a PR they raised or on their assigned Job —
 // the same rule as the PR list (#119), shared via canViewPR. Invoice-derived
-// data (Invoiced/Uninvoiced + the per-item invoice-item breakdown) and the
+// data (the `Invoiced` column and the invoices charging this order) and the
 // sign/regenerate write controls stay President/Admin-only; the PO PDF is
 // visible to everyone who can see the PO (site staff place the order from it).
-// Delivered/Undelivered are NOT in that set (#169): delivery-derived, so every
-// viewer who can see the order sees them.
+//
+// `Paid` RIDES ON `isPrivileged` WITH EVERYTHING ELSE INVOICE-DERIVED, AND THAT
+// IS THE ONE THING TO SPLIT BEFORE THIS GATE IS EVER WIDENED (#233). #211 left
+// payment as the narrow line after opening the invoice routes per record, so a
+// future decision to show a site employee what a vendor billed must not carry
+// the payment badge along with it — the two share one flag here today only
+// because the flag has never moved. Not observed: the gate has not changed, so
+// nothing has leaked; it is written here because the failure would be silent.
+// `Delivered` IS NOT IN THAT SET (#169): delivery-derived, so every viewer who
+// can see the order sees it — and since #233 so are the deliveries that filled
+// the order and the chip above them, on the same line. This said
+// `Delivered/Undelivered` until that issue removed the second column.
 async function renderPODetailPage({ params, searchParams }) {
     const user = await requireUser();
     const isPrivileged = user.role === "President" || user.isAdmin === true;
@@ -101,34 +119,73 @@ async function renderPODetailPage({ params, searchParams }) {
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
     ]);
 
-    // Invoiced/Uninvoiced (#48) and the per-item invoice-item breakdown (#15)
-    // are invoice-derived. The invoice pages are President/Admin-only (route
-    // protection), so a plain employee viewing their own PO must not obtain
+    // Invoiced/Uninvoiced (#48) and the invoices charging this order (#15, #233)
+    // are invoice-derived. The invoice pages were President/Admin-only when that
+    // line was drawn, so a plain employee viewing their own PO must not obtain
     // that data through this page. Non-privileged viewers fetch plain PO Items
     // only; the invoice fetches below never run, so the data never leaves
     // Airtable — a server-side omission, not a client-side hide.
-    let itemsWithInvoiceLines;
-    let invoiceByRecordId = new Map();
-    if (isPrivileged) {
-        const items = await getInvoicingStatusByPO(po.id);
-        itemsWithInvoiceLines = await Promise.all(
-            items.map(async (it) => ({
-                ...it,
-                invoiceLines: await getItemsByPOItem(it.id),
+    //
+    // #211 MOVED THE LINE THIS RESTS ON AND THIS PAGE HAS NOT FOLLOWED, which is
+    // recorded rather than quietly kept: lib/airtable/poItems.js says that issue
+    // retired the President-or-Admin gate on the reconciliation projection because
+    // what a vendor billed is readable by anyone who may read the order behind it,
+    // and left `Paid` as the narrower replacement. So this gate now withholds MORE
+    // than the rule requires. Over-withholding is the safe direction, and widening
+    // it is a decision about who sees an order's billing rather than a consequence
+    // of a layout change — docs/notes/backlog.md carries it.
+    const orderedItems = isPrivileged
+        ? await getInvoicingStatusByPO(po.id)
+        : await getItemsByPO(po.id);
+
+    // #233 — the deliveries that filled this order. TWO BATCHED READS for the whole
+    // page: the ordered items already carry their `Delivery Items` ids, so this is
+    // one query per 50 rows and none per row. Delivery-derived, so every viewer who
+    // can see the order sees them — #169's line, unchanged.
+    const deliveryItems = await getDeliveryItemsByRecordIds([
+        ...new Set(orderedItems.flatMap((it) => it.deliveryItems || [])),
+    ]);
+    const deliveries = await getDeliveriesByRecordIds([
+        ...new Set(deliveryItems.map((d) => d.delivery?.[0]).filter(Boolean)),
+    ]);
+    const deliveriesOnOrder = foldDeliveriesOnOrder({ orderedItems, deliveryItems, deliveries });
+
+    // #169's OWN CHIP, FINALLY CALLED FROM HERE. That issue wrote
+    // `summarizePODeliveryStatus` "shared by /pos and /pos/[poId] so the row a
+    // reader clicks and the page they land on cannot describe one order
+    // differently", and `/pos` says the same about the detail page beside its own
+    // call — but this page never imported the module, so both sentences were false
+    // for four issues. #233 makes them true rather than deleting them.
+    //
+    // NO NEW READ ON EITHER PATH. `poLineDelivery` wants `orderedQty`,
+    // `deliveredQty` and `committedQty`, and `recordToPOItem` carries all three, so
+    // the privileged and employee projections both already hold what this needs.
+    // The shape below is the one `/pos` builds for the same call.
+    const deliveryChip = describePOColumn(
+        summarizePODeliveryStatus(
+            orderedItems.map((it) => ({
+                orderedQty: it.qty,
+                deliveredQty: it.deliveredQty,
+                committedQty: it.committedQty,
             }))
-        );
-        const invoiceRecordIds = [
-            ...new Set(
-                itemsWithInvoiceLines.flatMap((it) =>
-                    it.invoiceLines.map((line) => line.invoice?.[0]).filter(Boolean)
-                )
-            ),
-        ];
-        const invoiceRecords = await Promise.all(invoiceRecordIds.map((id) => getInvoiceByRecordId(id)));
-        invoiceByRecordId = new Map(invoiceRecords.map((inv) => [inv.id, inv]));
-    } else {
-        const items = await getItemsByPO(po.id);
-        itemsWithInvoiceLines = items.map((it) => ({ ...it, invoiceLines: [] }));
+        )
+    );
+
+    // #233 — and the invoices charging it, two more batched reads and only for the
+    // office. This replaces one `getItemsByPOItem` per ordered item plus one
+    // `getInvoiceByRecordId` per invoice: both were `getLinkedRecords`' 1 + N, the
+    // shape docs/notes/airtable-access.md measured on this page and left for #191.
+    // An empty id list costs nothing — findByRecordIds returns early — so an order
+    // nothing has billed pays for neither level.
+    let invoicesOnOrder = [];
+    if (isPrivileged) {
+        const invoiceItems = await getInvoiceItemsByRecordIds([
+            ...new Set(orderedItems.flatMap((it) => it.invoiceItems || [])),
+        ]);
+        const invoices = await getInvoicesByRecordIds([
+            ...new Set(invoiceItems.map((i) => i.invoice?.[0]).filter(Boolean)),
+        ]);
+        invoicesOnOrder = foldInvoicesOnOrder({ orderedItems, invoiceItems, invoices });
     }
 
     // Issue #167 — the overage banner, from whichever side this order is on: its own
@@ -139,7 +196,7 @@ async function renderPODetailPage({ params, searchParams }) {
     // not withheld from a non-privileged viewer — but the invoice it names IS invoice
     // data, and that is the same narrowing the delivery page makes deliberately
     // (see createOverageDraftAction).
-    const overageBanners = await getOverageBannerFactsForPO(po, itemsWithInvoiceLines);
+    const overageBanners = await getOverageBannerFactsForPO(po, orderedItems);
 
     const pdfFile = po.poPdfFile?.[0];
 
@@ -234,40 +291,61 @@ async function renderPODetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Unit Price</th>
                             <th className="pr-2 text-right">Amount</th>
                             {/* Delivery-derived (#169), so EVERY viewer who can see
-                                the order sees these — the same category as the
+                                the order sees this — the same category as the
                                 `Material` link and #167's provenance reverse-link,
                                 and the reason recordToPOItem now carries
-                                `Delivered Qty`. They sit before the invoice pair so
-                                a non-privileged viewer's columns stay contiguous. */}
+                                `Delivered Qty`. It sits before the invoice one so
+                                a non-privileged viewer's columns stay contiguous.
+
+                                #233 TOOK `Undelivered` AND `Uninvoiced` OUT. Each
+                                was its row's own `Qty` minus the column beside it,
+                                so the reader can do the subtraction and the table
+                                carries the two figures rather than four. What that
+                                could have cost is the over signal, which used to
+                                ride on those two cells going negative; it moved to
+                                these two rather than going with them. */}
                             <th className="pr-2 text-right">Delivered</th>
-                            <th className="pr-2 text-right">Undelivered</th>
                             {/* Invoice-derived (#48) — President/Admin only (#132). */}
                             {isPrivileged && <th className="pr-2 text-right">Invoiced</th>}
-                            {isPrivileged && <th className="pr-2 text-right">Uninvoiced</th>}
                             <th className="pr-2">Remark</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {itemsWithInvoiceLines.map((it) => (
-                            <Fragment key={it.id}>
-                                <tr className="border-t border-zinc-200">
+                        {orderedItems.map((it) => (
+                                <tr key={it.id} className="border-t border-zinc-200">
                                     <td className="py-1 pr-2">{it.itemName}</td>
                                     <td className="py-1 pr-2">{it.size}</td>
                                     <td className="py-1 pr-2">{it.unit}</td>
                                     <td className="py-1 pr-2 text-right">{it.qty}</td>
-                                    <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
-                                    <td className="py-1 pr-2 text-right">{it.amount}</td>
-                                    <td className="py-1 pr-2 text-right">{it.deliveredQty ?? 0}</td>
-                                    {/* NEGATIVE IS TREATED EXACTLY AS Uninvoiced
-                                        TREATS IT, two columns to the right: red,
-                                        with `(over)`. The two perform the same
-                                        subtraction against the same `Qty` and a
-                                        negative means the same thing in both — more
-                                        arrived, or more was billed, than was
-                                        ordered. Signaling differently for one sign
-                                        would imply a distinction neither column
-                                        makes, and `(over)` is this base's own word
-                                        for it (`Delivery Items."Over Delivered"`). */}
+                                    {/* #233 — through formatUSD, like the Total
+                                        Amount above and the invoice detail's own
+                                        items table. This page was the exception. */}
+                                    <td className="py-1 pr-2 text-right">{formatUSD(it.unitPrice)}</td>
+                                    <td className="py-1 pr-2 text-right">{formatUSD(it.amount)}</td>
+                                    {/* THE OVER SIGNAL RODE ON `Undelivered` AND
+                                        `Uninvoiced` GOING NEGATIVE, and it moved here
+                                        with those columns' removal rather than going
+                                        with them (#233) — otherwise an over-delivery
+                                        and an over-billing would have left the table
+                                        entirely, and this is the only place in the
+                                        change where information could have been lost.
+
+                                        THE PAIR IS STILL TREATED IDENTICALLY, which
+                                        is the rule #169 wrote here: the two perform
+                                        the same subtraction against the same `Qty`
+                                        and a negative means the same thing in both —
+                                        more arrived, or more was billed, than was
+                                        ordered. Signaling differently for one would
+                                        imply a distinction neither makes, and
+                                        `(over)` is this base's own word for it
+                                        (`Delivery Items."Over Delivered"`).
+
+                                        THE PREDICATE IS THE SAME ONE, read off the
+                                        named subtraction rather than re-derived as
+                                        `delivered > qty` here: `undeliveredQty` and
+                                        `uninvoicedQty` own those two figures, and
+                                        the column moving is no reason for the page
+                                        to acquire a second answer to either. */}
                                     <td
                                         className={
                                             undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty }) < 0
@@ -275,12 +353,9 @@ async function renderPODetailPage({ params, searchParams }) {
                                                 : "py-1 pr-2 text-right"
                                         }
                                     >
-                                        {undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty })}
+                                        {it.deliveredQty ?? 0}
                                         {undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty }) < 0 && " (over)"}
                                     </td>
-                                    {isPrivileged && (
-                                        <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
-                                    )}
                                     {isPrivileged && (
                                         <td
                                             className={
@@ -289,73 +364,34 @@ async function renderPODetailPage({ params, searchParams }) {
                                                     : "py-1 pr-2 text-right"
                                             }
                                         >
-                                            {it.uninvoicedQty}
+                                            {it.invoicedQty}
                                             {it.uninvoicedQty < 0 && " (over)"}
                                         </td>
                                     )}
                                     <td className="py-1 pr-2">{it.remark}</td>
                                 </tr>
-                                {it.invoiceLines.length > 0 && (
-                                    <tr className="border-t border-dashed border-zinc-200">
-                                        {/* Spans the privileged column count, which
-                                            #169 took from 9 to 11. This row only ever
-                                            renders for a privileged viewer, since
-                                            invoiceLines is empty for everyone else. */}
-                                        <td colSpan={11} className="py-1 pl-4 text-xs text-zinc-500">
-                                            <ul className="space-y-0.5">
-                                                {it.invoiceLines.map((line) => {
-                                                    const parentInvoice = invoiceByRecordId.get(line.invoice?.[0]);
-                                                    return (
-                                                        <li key={line.id}>
-                                                            {parentInvoice?.invoiceId ? (
-                                                                <Link
-                                                                    href={`/invoices/${parentInvoice.invoiceId}`}
-                                                                    className="underline"
-                                                                >
-                                                                    {parentInvoice.invoiceId}
-                                                                </Link>
-                                                            ) : (
-                                                                "—"
-                                                            )}
-                                                            : Qty {line.qty} @ {line.unitPrice}
-                                                            {line.varianceFlag && (
-                                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
-                                                                    ⚠ Line Variance
-                                                                </span>
-                                                            )}
-                                                            {parentInvoice?.varianceFlag && (
-                                                                <span className="ml-1 rounded bg-amber-100 px-1 text-amber-700">
-                                                                    ⚠ Header Variance
-                                                                </span>
-                                                            )}
-                                                            {parentInvoice?.paid ? (
-                                                                <span className="ml-1 rounded bg-green-100 px-1 text-green-700">
-                                                                    ✓ Paid {parentInvoice.paidDate || ""}
-                                                                </span>
-                                                            ) : (
-                                                                <span className="ml-1 rounded bg-zinc-100 px-1 text-zinc-500">
-                                                                    Not paid
-                                                                </span>
-                                                            )}
-                                                        </li>
-                                                    );
-                                                })}
-                                            </ul>
-                                        </td>
-                                    </tr>
-                                )}
-                            </Fragment>
                         ))}
                     </tbody>
-                    {/* Trailing columns after Amount: privileged has
-                        Invoiced + Uninvoiced + Remark (3); non-privileged has
-                        only Remark (1). */}
+                    {/* Trailing columns after Amount: privileged has Delivered +
+                        Invoiced + Remark (3); non-privileged has Delivered +
+                        Remark (2). The enumeration said 3 and 1 while the values
+                        were 5 and 3 — #169 put its two columns to the left of
+                        Invoiced and moved the VALUES without moving the list that
+                        explains them, which is how a hand-counted constant rots.
+
+                        #233 TOUCHED ALL THREE OF #169's HAND-COUNTED CONSTANTS.
+                        The invoice breakdown row that carried `colSpan={11}` is
+                        gone with the per-row placement, the header cells lost
+                        `Undelivered` and `Uninvoiced`, and this pair went 5/3 to
+                        3/2. A wrong value here misaligns the footer silently and
+                        no offline check can see it, so both privilege levels are
+                        counted in a browser — 9 and 8 columns now. */}
                     <ItemsSummaryRows
                         itemsSubtotal={po.itemsSubtotal}
                         shippingFee={po.shippingFee}
                         totalAmount={po.totalAmount}
                         labelColSpan={5}
-                        trailingColSpan={isPrivileged ? 5 : 3}
+                        trailingColSpan={isPrivileged ? 3 : 2}
                     />
                 </table>
                 <p className="mt-2 text-xs text-zinc-500">
@@ -363,6 +399,142 @@ async function renderPODetailPage({ params, searchParams }) {
                     own Shipping Fee at reconciliation time.
                 </p>
             </div>
+
+            {/* #233 — THE DOCUMENTS THIS ORDER'S TABLE WAS ALREADY COUNTING, each
+                named once. Deliveries first, matching the column order above, where
+                #169 put the delivery pair before the invoice pair.
+
+                BOTH SECTIONS ALWAYS RENDER FOR A VIEWER ENTITLED TO THEM, empty or
+                not: this is the page a reader comes to in order to reconcile, so an
+                absent section cannot be told apart from a section that found
+                nothing. #210 made the same call on the delivery detail — empty is a
+                reading, and the sentence says which.
+
+                THE INVOICE SECTION IS ABSENT ENTIRELY for a non-privileged viewer
+                rather than empty, because "nothing has billed this order" is itself
+                invoice information. Same server-side omission as the columns. */}
+            <div className="mt-6">
+                {/* THE CHIP FOLDS THE TABLE ABOVE, NOT THE LIST BELOW IT, which is
+                    the one thing about this placement that could be misread.
+                    `summarizePODeliveryStatus` counts ORDERED ITEMS whose delivered
+                    quantity has reached what was ordered — the `Delivered` column —
+                    and knows nothing about how many documents brought them.
+
+                    IT SITS HERE BECAUSE THE INVOICE DETAIL PUTS ITS CHIP BESIDE THE
+                    `Delivery` heading, so the two screens read with one grammar, and
+                    because "is it all here" is the question a reader arrives at just
+                    before the arrivals themselves. Delivery-derived, so no gate —
+                    #169's line, and the same reason the `Delivered` column has none.
+
+                    The tone comes from `describePOColumn` through `StatusChip`, which
+                    is presentational only; this page picks no color. */}
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.deliveries.heading}</h2>
+                    <StatusChip chip={deliveryChip} />
+                </div>
+                {deliveriesOnOrder.length === 0 ? (
+                    <p className="mt-1 text-sm text-zinc-600">
+                        {PO_DOCUMENTS_COPY.deliveries.empty().text}
+                    </p>
+                ) : (
+                    <ul className="mt-2 space-y-2 text-sm">
+                        {deliveriesOnOrder.map((d) => (
+                            <li key={d.deliveryRecordId}>
+                                <p className="flex flex-wrap items-center gap-x-2">
+                                    {d.deliveryId ? (
+                                        <Link
+                                            href={`/deliveries/${encodeURIComponent(d.deliveryId)}`}
+                                            className="underline"
+                                        >
+                                            {d.deliveryId}
+                                        </Link>
+                                    ) : (
+                                        "—"
+                                    )}
+                                    <span className="text-zinc-500">{d.receivedDate || "—"}</span>
+                                    {d.overDelivered && (
+                                        <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
+                                            {PO_DOCUMENTS_COPY.badge.overDelivered}
+                                        </span>
+                                    )}
+                                </p>
+                                <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
+                                    {d.brought.map((b) => (
+                                        <li key={b.orderedItemRecordId}>
+                                            {PO_DOCUMENTS_COPY.deliveries.brought(b).text}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
+            {isPrivileged && (
+                <div className="mt-6">
+                    <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.invoices.heading}</h2>
+                    {invoicesOnOrder.length === 0 ? (
+                        <p className="mt-1 text-sm text-zinc-600">
+                            {PO_DOCUMENTS_COPY.invoices.empty().text}
+                        </p>
+                    ) : (
+                        <ul className="mt-2 space-y-2 text-sm">
+                            {invoicesOnOrder.map((inv) => (
+                                <li key={inv.invoiceRecordId}>
+                                    <p className="flex flex-wrap items-center gap-x-2">
+                                        {inv.invoiceId ? (
+                                            <Link
+                                                href={`/invoices/${encodeURIComponent(inv.invoiceId)}`}
+                                                className="underline"
+                                            >
+                                                {inv.invoiceId}
+                                            </Link>
+                                        ) : (
+                                            "—"
+                                        )}
+                                        {inv.vendorInvoiceCode && (
+                                            <span className="text-zinc-500">{inv.vendorInvoiceCode}</span>
+                                        )}
+                                        <span className="text-zinc-500">{inv.issueDate || "—"}</span>
+                                        {inv.varianceFlag && (
+                                            <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
+                                                {PO_DOCUMENTS_COPY.badge.headerVariance}
+                                            </span>
+                                        )}
+                                        {/* Payment is President-or-Admin (#211), which
+                                            this whole section already is. If the gate
+                                            above ever widens, this badge does NOT go
+                                            with it — see this file's own header, which
+                                            is where that hazard is recorded. */}
+                                        {inv.paid ? (
+                                            <span className="rounded bg-green-100 px-1 text-xs text-green-700">
+                                                {PO_DOCUMENTS_COPY.badge.paid(inv)}
+                                            </span>
+                                        ) : (
+                                            <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-500">
+                                                {PO_DOCUMENTS_COPY.badge.notPaid}
+                                            </span>
+                                        )}
+                                    </p>
+                                    <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
+                                        {inv.charges.map((c) => (
+                                            <li key={c.orderedItemRecordId}>
+                                                {PO_DOCUMENTS_COPY.invoices.charge(c).text}
+                                                {c.varianceFlag && (
+                                                    <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
+                                                        {PO_DOCUMENTS_COPY.badge.itemVariance}
+                                                    </span>
+                                                )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
 
             {/* Signing/regeneration are President-only write actions, so those
                 controls render only for privileged viewers. The PO PDF itself
