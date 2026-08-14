@@ -299,7 +299,15 @@ async function createInvoiceHandler(prevState, formData) {
         // second place to reword one. `none` is omitted rather than sent, because the
         // banner has no `none` voice and a parameter meaning "say nothing" would invite
         // one.
+        //
+        // The tie-break rides as a SECOND parameter rather than as a value of the
+        // first, because it is not an outcome: it composes with `matched`, and
+        // folding it in would mean a key that has to report both what happened and
+        // how it was decided. A bare flag, not a count — the objection to sending a
+        // count was that the reader cannot act on two differently from three, and
+        // this is a fact they act on by opening the delivery.
         const paired = pairing.key === PAIRING.none ? "" : `&paired=${pairing.key}`;
-        redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}?done=created${paired}`);
+        const tied = pairing.tieBreak ? "&tied=1" : "";
+        redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}?done=created${paired}${tied}`);
     });
 }

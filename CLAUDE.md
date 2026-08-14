@@ -104,7 +104,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
 - `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
-- `lib/deliveryInvoiceMatch.js` — the COMPUTED pairing (#231): containment, the price gate, an arrival's remaining capacity, the rival clause, `PAIRING_COPY`. One predicate serves both directions.
+- `lib/deliveryInvoiceMatch.js` — the COMPUTED pairing (#231): containment, the price gate, an arrival's remaining capacity, the rival clause and its tie-break, `PAIRING_COPY`. One predicate serves both directions.
 - `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, which arrivals a bill may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.

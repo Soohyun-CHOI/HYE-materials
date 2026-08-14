@@ -5,7 +5,7 @@ import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
 import { describeInvoiceColumn, describeInvoiceLine, sharesOrderedItem } from "@/lib/deliveryStatus";
 import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
-import { PAIRING, describePairing } from "@/lib/deliveryInvoiceMatch";
+import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoiceMatch";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
@@ -48,11 +48,13 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const user = await requireUser();
     const privileged = seesEveryInvoice(user);
     const { invoiceId } = await params;
-    const { done, paired } = await searchParams;
+    const { done, paired, tied } = await searchParams;
     // #231 — a key, never a sentence. An unknown or absent value words nothing,
     // which is also what makes `none` need no entry: describePairing returns null
-    // for anything it has no voice for.
+    // for anything it has no voice for. `tied` is the qualifier and is read the
+    // same way: anything but the flag the action sends words nothing.
     const pairingMessage = describePairing({ key: paired }, "banner");
+    const tieBreakMessage = describeTieBreak({ tieBreak: tied === "1" }, "banner");
 
     const invoice = await getInvoiceById(invoiceId);
     if (!invoice) {
@@ -164,15 +166,18 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 section below, which is the standing answer. `none` sends no
                 parameter, so there is no voice here for it. */}
             {pairingMessage && (
-                <p
+                <div
                     className={`mt-4 rounded border px-3 py-2 text-sm ${
-                        pairingMessage.key === PAIRING.matched
+                        pairingMessage.key === PAIRING.matched && !tieBreakMessage
                             ? "border-zinc-300 bg-zinc-50 text-zinc-700"
                             : "border-amber-300 bg-amber-50 text-amber-800"
                     }`}
                 >
-                    {pairingMessage.text}
-                </p>
+                    <p>{pairingMessage.text}</p>
+                    {/* One box, two sentences — the tie-break is how the match above
+                        was decided, not a second thing that happened. */}
+                    {tieBreakMessage && <p className="mt-1">{tieBreakMessage.text}</p>}
+                </div>
             )}
 
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">

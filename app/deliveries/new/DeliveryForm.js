@@ -16,6 +16,7 @@ import {
     billFromInvoiceOption,
     describeArrivalPairings,
     describePairing,
+    describeTieBreak,
     planPairings,
 } from "@/lib/deliveryInvoiceMatch";
 
@@ -225,8 +226,8 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     // decides an allocation and this form draws the result; it does not fill in a
     // picker for the recorder to accept. The invoice pairing is the same — the
     // computation belongs to createDeliveryAction, and what this shows is what the
-    // action is about to do. The transcribed number below is a separate answer that
-    // the action folds in FIRST, which is why it is passed here as `transcribed`.
+    // action is about to do. There is no control here to prefill either way: the
+    // form stopped asking for an invoice number when the pairing became computed.
     const bills = useMemo(() => invoiceChoices.map(billFromInvoiceOption), [invoiceChoices]);
     const pairing = useMemo(
         () =>
@@ -241,6 +242,10 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         [arrival, bills, agreedPrices]
     );
     const pairingMessage = describePairing(pairing, "preview");
+    // #231 — the qualifier, in the same box. Two sentences rather than two boxes:
+    // it is one piece of news about one decision, and a second bordered block would
+    // read as a second decision.
+    const tieBreakMessage = describeTieBreak(pairing, "preview");
 
     function pickJob(id) {
         setJobRecordId(id);
@@ -615,15 +620,19 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                 ordered items place no bill — an unpaired invoice is the ordinary
                 state, not an event to report. */}
             {pairingMessage && (
-                <p
+                <div
                     className={`rounded border px-3 py-2 text-sm ${
-                        pairingMessage.key === PAIRING.sharedOrder
+                        pairingMessage.key === PAIRING.sharedOrder || tieBreakMessage
                             ? "border-amber-300 bg-amber-50 text-amber-800"
                             : "border-zinc-200 bg-zinc-50 text-zinc-700"
                     }`}
                 >
-                    {pairingMessage.text}
-                </p>
+                    <p>{pairingMessage.text}</p>
+                    {/* Amber with it, because a tie-break is the one attachment
+                        here that asks the recorder to check something rather than
+                        just telling them what was done. */}
+                    {tieBreakMessage && <p className="mt-1">{tieBreakMessage.text}</p>}
+                </div>
             )}
 
             {/* --- Date, photo, notes ------------------------------------------- */}
