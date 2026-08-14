@@ -78,7 +78,7 @@ Whether what a vendor billed for was delivered, and what was delivered with no i
   - **`This bill: 5 of 13` appeared on EXACTLY the condition the inferred marker did**, and that identity was the point rather than a coincidence: the share line explained why the answer had to be inferred, so one without the other would either raise a question it does not answer or answer one nobody asked. It was NARROWER than "the ordered item carries more than one bill" — two bills whose material all arrived needed no inference, so neither line appeared. Asserted as an equality in `offline/delivery-status.mjs` over every input shape. **#210 KEPT THE LINE AND CHANGED WHAT PUTS IT THERE** (`sharesOrderedItem`): with no guess to explain, what is left is the plain fact that the ordered item carries another bill, which is exactly the condition once thought too WIDE. It is needed for a different reason — `Billed` on the figures line is the ordered item's total, so without this a reader takes it for this invoice's own — and it is now arithmetic on two figures the box already holds rather than a flag threaded down from the allocator.
   - **COLOR ON THE VERDICT LINE ONLY.** `Against the order:` is a fact about the ORDER rather than about this bill, and the inferred sentence was a qualifier; with all three amber, as the first version had them, the color distinguished nothing. `describeInvoiceLine` returns **named slots** rather than a list, so which one is colored is beyond a call site's reach. **Two slots since #210** (`verdict` / `againstOrder`) — the property the shape exists for is unchanged by losing the third.
   - **`Against the order:` is ONE line even when both sides exceed the order** — `3 EA more billed, 2 EA more delivered` — because it is one comparison with two terms, not two problems. The billed side comes first, being the side this screen is about.
-  - **The deliveries sit INSIDE the box, labeled just `Deliveries ·`.** A box is scoped to one ordered item, so listing them there is exactly the claim the data supports; the foot-of-page section they used to live in needed the heading "recorded against the same order lines" to avoid over-claiming, and inside the box that qualification is structural. What #166 could still not claim: WHICH delivery brought the quantity attributed to this bill — the quantity was attributed, the arrival was not. **#210 CLAIMS IT.** The shipment this invoice names is marked `— this invoice` and sorted first; the others stay listed, because they are what explains a `Delivered` total larger than this bill's share.
+  - **The deliveries sit INSIDE the box, labeled just `Deliveries ·`.** A box is scoped to one ordered item, so listing them there is exactly the claim the data supports; the foot-of-page section they used to live in needed the heading "recorded against the same order lines" to avoid over-claiming, and inside the box that qualification is structural. What #166 could still not claim: WHICH delivery brought the quantity attributed to this bill — the quantity was attributed, the arrival was not. **#210 CLAIMS IT.** The shipment this invoice names is marked and sorted first; the others stay listed, because they are what explains a `Delivered` total larger than this bill's share. **THE WHOLE FRAME OF THIS BOX PREDATES #210 AND IS NOW AN OPEN QUESTION, raised as its own issue by #231**, which changed two words here and nothing else. What it found while editing this screen for the pairing banner: the three figures are ALL the ordered item's, `Billed` included, and the deliveries listed are every arrival that touched the ordered item — so on an invoice that names no shipment, the box still shows another bill's shipment under figures that are not this document's. `HYE-INV-260804-04` is that case on this base: `Billed 30 EA` while it bills 15, `HYE-DL-260804-06` listed although that is `HYE-INV-260804-05`'s shipment, and `Nothing delivered yet` as the verdict. That frame was the honest one when #166 built it, because nothing recorded which delivery answered which bill and the ordered item's context was all that could be claimed; #210 stored the pairing and hung the marker on the frame without revisiting it. Two consequences worth carrying into that issue: `This bill:` exists only because `Billed` is the ordered item's, and this box's delivery line is **the only place in the app that names which arrivals filled an ordered item** — the PO detail carries `Delivered`/`Undelivered` quantities but no delivery identity (#169), the delivery detail goes the other way, and the materials screens never mention deliveries. **The mark reads `— attached to this invoice` since #231**, which found `— this invoice` sitting directly after a delivery id and reading as a name for it; that is true whatever the box becomes, and the two words go with the marker if the marker goes. Measured 2026-08-14: all 9 boxes on this base that list any delivery list exactly one, the two ordered items filled by two arrivals being billed by nobody, so the marker has never distinguished anything — which is part of why its wording read as a label. No offline check pinned the phrase and no copy constant held it: it is written straight into JSX, which is the reach #227's sweep does not have.
 - **`/invoices` CARRIES THE STATUS CHIP AND NOTHING ELSE — both exception tags left that screen, for different reasons.** `beyond order` (billed > ordered) is already on the same page as the `⚠ Variance` badge in the items table, which `Invoice Items.Variance Flag` drives: one fact rendered twice on one screen. `over-delivery` (delivered > ordered) is not a fact about the invoice at all but about the ordered item, and inside a column headed `Delivery` it reads as "more arrived than this bill covers" — a different and wrong claim. Both facts are on the detail, under the ordered item they belong to. **`/deliveries` KEEPS its `Over-delivered` tag**, and the difference is whose fact it is: an over-delivery is a fact about that delivery, so it sits on the delivery's own row without changing frame.
 - **The filter follows the PR list's pattern (#119)**: the server sends rows it has already computed, a Client Component narrows them instantly with no Apply button, and the active filter is mirrored into the URL with `router.replace` — no navigation, no history entry, no server round trip — so refresh, a shared link and the back button all restore the view. It is `Over-delivered` (`?over=1`); the name does not say "only", because a filter is a toggle and the word is implied. **There were two until #216**, which moved `Not fully invoiced · oldest first` (`?unbilled=1`) to a strip above `/invoices` — see that issue's section below.
 - **`Not fully invoiced` TAKES BOTH INCOMPLETE STATES, not just the empty one** (`isNotFullyInvoiced`). A delivery carrying two materials where only one has been billed is exactly "it is here and there is no invoice for it" — the thing the month-end email to every vendor stands in for — and filtering on `awaiting-invoice` alone dropped it. Verified on the seed: widening takes the worklist from 7 rows to 8, and the row it adds is that two-material delivery.
@@ -533,3 +533,327 @@ settles what those three actually share.
   the input to that decision. The pre-existing per-requester `getUserByRecordId`
   loop on `/prs` (4 of the page's 8 original operations, and 3 of its repeats) is
   untouched — it is #193's shape and predates this strip.
+
+### Computing the pairing (#231)
+
+`Invoices."Delivery"` was only ever filled by hand. Both documents already name
+ordered items, and one invoice sits inside one delivery, so a bill charging only
+ordered items a shipment brought is a candidate for it — computed at both entry
+points, because either document can arrive first. `lib/deliveryInvoiceMatch.js`
+is the rule and its copy; `lib/deliveryInvoiceCandidates.js` grew the second
+gated read.
+
+- **THE SEARCH FOR A PRIOR DECISION CAME BACK EMPTY, AND THAT IS RECORDED
+  BECAUSE THE NEAREST THING LOOKS LIKE ONE.** Nothing in this repository has
+  weighed or rejected set containment as a way of FINDING the pairing —
+  CLAUDE.md, every file under `docs/notes/`, every commit body, every issue body
+  and comment, and the comments under `lib/` and `app/` were searched. #166's
+  `CONTAINMENT_PREMISE` is the near miss: it says one invoice lies inside one
+  delivery, and it was used to justify an oldest-first QUANTITY fill. It is a
+  premise about scope, never a proposal to match on the sets. #219's "the pairing
+  itself is still set by hand" is an acknowledgment rather than a rejection, and
+  #216's three measurements rejected PREFILLING `/invoices/new` from a delivery,
+  which is a different question again.
+- **MEASURED BEFORE IT WAS BUILT, ON ONE READ OF THE BASE.** For each unpaired
+  invoice, how many deliveries contain its ordered items: **0 for 6, exactly 1 for
+  7, and 2 or more for none** (13 unpaired invoices, 2026-08-13). From the other
+  end, over all 15 deliveries: 8, 7, 0. So the rule answers, and on this base it
+  never has to refuse for ambiguity. The 6 zeroes are data rather than strictness
+  — 2 are the hand-entered invoices whose rows name no ordered item at all, and 4
+  bill orders nothing has delivered yet.
+  - **The pool is unpaired invoices against ALL deliveries**, not against unpaired
+    deliveries. The link is n:1, so a shipment already carrying one bill can carry
+    another; the issue body's "unpaired deliveries" would have dropped exactly the
+    legitimate second bill.
+  - **The shape that would produce a 2 exists here** — `HYE-PO-20260804-04-001`
+    and `HYE-PO-20260730-02-002` were each filled by two deliveries — so the zero
+    is a fact about today's bills rather than a property of the rule.
+- **THE UNIT PRICE GATE CHANGES NOTHING ON THIS BASE, AND IS IN ANYWAY.** One
+  invoice departs from an agreed price (`HYE-INV-260716-02`, 32.00 billed against
+  33.89 ordered on `HYE-PO-20260716-02-001`) and containment already excludes it,
+  so the gate removes **0 of 15** candidate pairs. It is `checkUnitPriceVariance`
+  from `lib/variance.js` — the repo's existing comparison, absolute 0.01 — rather
+  than a second tolerance. `Invoice Items.Variance Flag` was NOT reused as the
+  test: it is set for a unit-price variance OR an over-invoiced quantity, and
+  quantity must not reach this rule. Being unreachable on live data, the gate is
+  asserted offline or nowhere.
+- **QUANTITY IS NOT PART OF THE TEST.** A vendor billing 13 and shipping 10 is the
+  discrepancy #210's mismatch marker exists to show, and matching on quantity
+  would drop such a bill from consideration so that no marker ever appeared.
+  Measured: `HYE-INV-260804-07` bills 13 against a shipment of 10 and still pairs.
+- **THE RIVAL CLAUSE, WHICH THE MEASUREMENT FOUND AND THE ISSUE BODY DID NOT
+  HAVE.** Running the rule with this base's two hand-made pairings removed puts
+  BOTH `HYE-INV-260804-05` and `HYE-INV-260804-04` on `HYE-DL-260804-06`: each
+  sees exactly one candidate, so "several candidates, attach nothing" never fires
+  — the ambiguity is on the other side of the relation. That is #166's scenario D,
+  the case #210 exists to get right (one ordered item of 30, two bills of 15, one
+  arrival of 15), so the rule as stated would have quietly undone it. A bill is
+  therefore not a candidate when another bill charging the same ordered item
+  stands in its way. With it: 6 attach, 2 blocked, 7 have no candidate.
+  - **A rival is not itself tested for containment**, and the wider rule is
+    deliberate: testing it needs the rival's ordered items priced, and a price the
+    module cannot answer for would then fail closed the wrong way — an unknown
+    rival would stop blocking and the pairing would be made. Measured, both widths
+    attach the same 6 and block the same pair, so the width costs nothing
+    observable here.
+  - **A `held &&` null guard was removed rather than kept.** It was left over from
+    an earlier, narrower rival rule and could not change an answer under this one;
+    the offline check that claimed to pin it was vacuous, and a mutation is what
+    showed both.
+- **THEN THE CLAUSE SPLIT IN TWO, BECAUSE A BILL ALREADY ON THE SHIPMENT IS NOT AN
+  AMBIGUITY — IT IS AN OCCUPANT.** The first version treated "another bill charges
+  this ordered item" as one fact whether or not that bill was already attached
+  here, and the two are different. If 15 arrived and an attached bill charges all
+  15, a second bill charging that ordered item is not the one we cannot tell apart:
+  it cannot fit. So capacity is computed — what the arrival brought of an ordered
+  item, less what the bills already on it charge for that ordered item — and a
+  candidate needing an ordered item with nothing left is refused as `no-room`.
+  `shared-order` narrows to what it always meant: two bills NOBODY has placed.
+  - **IT IS NOT THE QUANTITY MATCH THIS RULE REFUSES TO MAKE, and the test is which
+    two figures meet.** Matching on quantity asks whether THIS bill's quantity
+    equals what the shipment brought, which would drop the bills #210's mismatch
+    marker exists for. Capacity asks whether the shipment's room for that ordered
+    item has been spoken for by SOMEBODY ELSE. So the comparison is `> 0` and never
+    `>= billed`: 13 billed against 10 delivered with nothing attached leaves 10 of
+    room and pairs, and 13 billed with 4 already claimed leaves 6 and still pairs.
+    Pinned offline, and a mutation to `>= billed` fails three checks.
+  - **IT IS ARITHMETIC, SO IT IS SILENT.** `no-room` is a refusal key that never
+    becomes an outcome — there is nothing for a reader to resolve, and the state it
+    produces is the ordinary unpaired one. Only `shared-order` speaks.
+  - **THE MESSAGE COULD NOT HAVE STAYED TRUE OTHERWISE.** `shared-order` says
+    nothing records which bill this shipment answers; with one of the two already
+    attached, something does. The split is what let that sentence keep meaning what
+    it says, and the wording now names the condition — `nobody has attached`.
+  - **MEASURED, AND IT MOVES NO PAIRING ON THIS BASE.** 6 attach under either
+    rule. What changes is one message: `HYE-INV-260804-04` was being told the app
+    could not choose and is now silent, because `HYE-DL-260804-06` brought 15 and
+    `HYE-INV-260804-05` claims all 15 — room 0. The case #210 exists for is
+    untouched: with both bills unplaced the room is 15 and `shared-order` fires for
+    both, exactly as before. **A pairing WOULD be added where an attached bill
+    claims only part of what arrived**, which is unreachable here — both pairings
+    on this base claim 100% (15 of 15, and 5 of 5).
+  - **THE DATA WAS ALREADY IN HAND, in both directions.** `getArrivalsForBill`
+    already reads the arrival's `Delivery Items` for their ordered items, so their
+    `Qty` is free; the bill pool's `Invoice Items` were already read for the same
+    reason, so their `Qty` is free too. The entry form takes the arrival's
+    quantities from `planDelivery`'s own rows. **Zero additional operations**, and
+    on the entry path capacity is always full — nothing can be attached to a
+    delivery that does not exist yet.
+- **AND THEN A THIRD TIME, FOR THE PAIR NOTHING TELLS APART.** What was left of
+  `shared-order` still covered two bills charging the same ordered item in the SAME
+  quantity at the SAME price, and there the refusal has nothing to hand a reader:
+  attaching either one leaves the arrival with the same room and gives either bill
+  the same #210 mismatch marker, so no figure this app computes comes out
+  differently for the two choices. One is attached. **This is #166's own scenario D
+  — an ordered item of 30, two bills of 15, one arrival of 15 — which #210 and the
+  first two versions of this rule all refused**, so it is a decision reversed rather
+  than a case nobody had considered.
+  - **WHICH ONE IS ARBITRARY, AND THE ORDER SAYS SO.** `Invoice ID`, because it is
+    on the option already and any total order would do. Deliberately NOT #166's
+    oldest-bill-first: that ordering asserts the earlier bill has the better title,
+    which is the assertion this case exists to say cannot be made.
+  - **#219 IS NOT THE PRECEDENT IT LOOKS LIKE, and the citation was corrected on
+    the way in.** Its tie-break sits in the tier where both candidates ALREADY name
+    this delivery, so the pairing records what it is choosing between; in its own
+    fallback tier — where neither is recorded, which is exactly this case — #219
+    refuses too. What licenses attaching here is that the consequences are
+    identical, not that somebody else broke a tie.
+  - **A DIFFERENT QUANTITY IS OBSERVED, SO IT STILL REFUSES.** Bills of 10 and 5
+    against an arrival of 15 leave 5 or 10 of room depending on which is attached,
+    and the marker moves with them. Narrowing THAT with a quantity test would be
+    the forbidden comparison wearing a tie-break's clothes: `room >= billed` is the
+    same comparison that would drop 13 billed against 10 delivered, and it would
+    have the app perform the very inference the marker exists to make visible. The
+    two cases differ in what they are about — a tie is two documents for ONE
+    shipment, `several` is two physically different shipments — and a wrong
+    attachment of the second kind is not corrected by any later measurement.
+  - **IT IS SAID OUT LOUD, BECAUSE THE TWO DOCUMENTS ARE NOT THE SAME DOCUMENT.**
+    The rows match; the file and the vendor's own invoice code do not, and those
+    are what a person reconciles against. So a tie-broken attachment carries a
+    sentence naming what it was chosen over — a QUALIFIER (`PAIRING_COPY.tieBreak`)
+    rather than an outcome, in the shape #166 gave its own marker: it composes with
+    `matched` and `several-attached` instead of doubling them. The preview names
+    both bills, because the recorder is holding the packing list; the banner names
+    neither, because it arrives as a flag on a query string.
+  - **THE FOLD CAME BACK WITH IT, WHICH IS THE COST.** Two tied bills are not
+    disjoint, so a decision has to count against the room before the next bill is
+    judged, or an arrival of 15 takes both bills of 15. `planPairings` folds each
+    attachment into the pool as attached to this arrival again, and takes the pool
+    in `Invoice ID` order rather than the caller's — among tied bills the pass
+    really does choose, so the choice must not be the caller's array order. The
+    disjointness assertion left behind when the fold was removed is what would have
+    caught its absence, and a mutation confirms it does.
+  - **ROOM DECIDES HOW MANY, EXACTLY AS FOR ANY OTHER BILL.** Two tied bills of 15
+    against an arrival of 30 both attach and nothing is said, because nothing was
+    passed over; against an arrival of 15 one attaches and the other is refused as
+    `no-room`. So the tie-break is reported from what the pass LEFT unattached
+    rather than from what it saw, which is the difference between a choice and a
+    coincidence.
+  - **Unreachable on this base**, for the same reason `shared-order` is: both pairs
+    that share an ordered item have one bill attached already, so capacity answers
+    before a tie can be found. Asserted offline, with mutations covering the rival
+    clause, the fold, the fold-without-deducting, the pool order, and each figure in
+    the signature.
+- **`price-departs` SPLIT OFF `price-unknown` IN THE SAME PASS, AND THE REASON IS A
+  SENTENCE THAT IS NOT YET WRITTEN.** One key covered both "the billed price is not
+  the agreed one" and "no price could be compared at all", and the second is not a
+  departure — it is a caller handing over an incomplete map, which is a defect in
+  this repo rather than something a vendor did. Both fail closed and both are
+  silent, so nothing on a screen moves today; what the split protects is the
+  sentence `price-departs` will need when there is somewhere to say one. **The new
+  key is unreachable and that is not evidence of anything**: both callers build
+  `agreedPrices` from the very ordered items they then test against, containment is
+  decided first, and `PO Items."Unit Price"` is a frozen snapshot that is never
+  blank.
+- **ONE PREDICATE, TWO DIRECTIONS.** `pairingRefusal` decides one (bill, arrival)
+  pair and both entry points call it, so whether a pairing gets made cannot depend
+  on which document was typed in first. **The ARITY differs and the judgment does
+  not**: an arrival attaches every bill its ordered items place on it, while a
+  bill attaches to at most one shipment, because the link is n:1 and says so.
+  Every pair either direction makes passes the same predicate.
+  - **THE ENTRY FORM'S INVOICE CONTROL IS GONE, AND THAT IS WHAT MADE THE ARITY A
+    PROPERTY OF THE RULE RATHER THAN OF A WIDGET.** #210 put an invoice picker
+    there on the premise that a packing list carries an invoice number; this app's
+    plan never said so — only the PO number was ever described as printed on that
+    document. While the computed answer preselected that one-value control, two
+    candidate bills meant two values in one field and NOTHING was attached, which
+    left a shape that never converged: two bills charging different ordered items
+    from one shipment are each individually unambiguous, so no later invoice would
+    ever fire direction 2 and the pair stayed for a person permanently. Removing
+    the control removed the shape.
+  - **The override went with it**, and its removal simplified the rule rather than
+    narrowing it: `planPairings` lost `transcribed`, `createDeliveryAction` lost
+    its `invoiceRecordId` field and its `checkInvoicePairing` guard, and every
+    link the entry path writes is now computed. `LINK_COPY.field` lost `label` and
+    `transcribed`, which that control was the only reader of.
+  - **The manual path is untouched.** #210's edit page is the surface that is
+    about the delivery RECORD rather than about the packing list, and it is
+    already plural: it lists every attached bill and offers the rest one at a
+    time, which is where a computed pairing that is wrong gets corrected.
+  - **Unreachable on this base:** no delivery holds two unpaired contained bills,
+    sharing an ordered item or not — 0 pairs either way, measured 2026-08-13. The
+    precondition is here though, so it is one record away rather than
+    hypothetical: 4 of 15 deliveries brought more than one ordered item, and
+    `HYE-DL-260804-10` has one of its two billed by `HYE-INV-260804-08` and the
+    other billed by nobody. One invoice for `HYE-PO-20260804-14-001` produces it.
+- **THE RIVAL POOL NEEDS NO UNSCOPED READ, and the derivation is load-bearing.** A
+  rival shares an ordered item with a candidate, a candidate's ordered items all
+  lie inside the arrival, an arrival sits on one Job, and `canViewPR` clause 4
+  admits anyone assigned to it — so the scoped list `getInvoiceLinkCandidates`
+  already returns IS the rival pool, and a refusal may name what it blocks on. The
+  PR behind it cannot be a `Draft` either, since ordered items exist only after PO
+  generation.
+- **THE DELIVERY SIDE PREVIEWS; THE INVOICE SIDE REPORTS AFTERWARDS.** Both
+  attach — only the moment of telling differs, and it differs because the delivery
+  form already holds both halves of the comparison while the invoice form holds
+  neither. Buying a preview there would mean reading the whole delivery axis on a
+  screen where the answer is usually nothing: an invoice normally arrives before
+  its material, and 6 of 13 unpaired invoices here have no candidate at all. So
+  the delivery form states what the action is about to do, in `describePlan`'s
+  posture, and the invoice's own page says it once on the way in from creation,
+  from a KEY on the query string rather than a sentence.
+  - **THE MESSAGE NAMES A CONTROL THE READER CAN REACH, and all three preview
+    sentences stopped doing so when the invoice control was removed and they were
+    not.** They sent a recorder to a checkbox that is no longer on the screen —
+    #206's rule broken by a deletion rather than by a decision. They name the
+    delivery's own page now, which is where the plural picker lives and the only
+    place a computed pairing can be changed.
+  - **The tie-break's second parameter is not the count this voice refuses to
+    carry.** `paired` stays a key; `tied=1` is a bare flag beside it. The objection
+    to sending a count was that a reader cannot act on two differently from three;
+    this is a fact they act on by opening the delivery, and folding it into the
+    outcome key would make one key report both what happened and how it was
+    decided.
+- **`none` SAYS NOTHING, ON EITHER SCREEN.** An unpaired invoice is this feature's
+  ordinary state — what #216's strip lists and what `Awaiting delivery` says — so
+  announcing it would report the normal case as an event. Unlike an allocation,
+  where an unattached row belongs to no ordered item at all, nothing is lost by
+  staying quiet. It is also why no parameter is sent for it.
+- **THE INVOICE SIDE'S WRITE IS OUTSIDE THE ROLLBACK**, unlike #210's. There a
+  recorder typed a number off the packing list and dropping it would discard what
+  they said; nothing was said here, so a failure to work the answer out must not
+  undo an invoice the office entered — `lib/materialsCache.js`'s posture, and
+  #167's about not undoing the approval that produced it. What a failure leaves is
+  an unpaired invoice.
+- **THE RULE NEVER JUDGES A PAIRING THAT EXISTS**, and the one on this base it
+  disagrees with is already marked. `HYE-INV-260804-03` is hand-paired to
+  `HYE-DL-260804-05` and the rule computes no candidate for it, because it bills 7
+  of `166-DEMO Tee` that the shipment did not bring. Measured: that invoice
+  carries #210's mismatch marker, which fires on the same fact. A second signal
+  would be one fact rendered twice — #166's reason for taking `beyond order` off
+  `/invoices` — and it would invert #210's thesis that the pairing is a fact
+  somebody knows rather than one the app guesses.
+- **WHAT THE RULE CANNOT REACH, stated because it is the boundary rather than a
+  bug:** a bill charging for an item that did not arrive at all is never paired,
+  so its mismatch never surfaces. The quantity axis survives (13 billed against 10
+  delivered still pairs); the item axis does not.
+- **COST, MEASURED.** `/deliveries/new` is **11 operations** for an Admin and 11
+  for `scoped-fixture@`, the Invoice Items read this issue makes unconditional
+  being one of them — it was fetched only for a non-privileged viewer before,
+  because it existed to answer the row gate. The invoice side's pairing read is
+  **1 operation when nothing has arrived on the billed orders**, which is the
+  ordinary case, and **7** when something has. Neither grows with row count.
+  `/invoices/new` and `createInvoiceAction` are labeled here, which #193's own
+  comment asked for by name; #224 remains the sweep.
+  - **`createDeliveryAction` IS LABELED TOO, BECAUSE THIS ISSUE MADE IT READ
+    SOMETHING IT DID NOT READ BEFORE.** It was a write path that read only what it
+    was about to record; the computed pairing added `getInvoiceLinkCandidates` to
+    it, and an unlabeled action has no before and after — which is the lesson #217
+    took from labeling the signing chain and finding that 14 of its operations were
+    not data. **The read it gained measures 3 operations for an Admin and 5 for a
+    Job-scoped viewer**, all batched `list` calls that do not grow with row count;
+    the two extra are `canViewPR`'s walk through `Purchase Orders` and `Purchase
+    Requests`, which the office short-circuits. The ACTION'S TOTAL is not measured:
+    the form requires a packing list photo and the browser tooling cannot fill a
+    file input, so reaching it means posting to the Server Action the way
+    `verify-invoice-pairing-231.mjs` does, which is a second credentialed script
+    and this issue did not write one.
+- **THE INVOICE SIDE IS EXERCISED END TO END, THROUGH THE REAL ACTION.** The
+  browser tooling cannot fill a file input, so the half of this feature that
+  WRITES had no execution at all — and it is the half with a partial-failure mode,
+  which is the worse one to leave to a pure check.
+  `scripts/tests/verify-invoice-pairing-231.mjs` posts to `createInvoiceAction`
+  the way a browser with no JavaScript does: React's `useActionState` renders
+  `$ACTION_REF_n`, `$ACTION_n:0`, `$ACTION_n:1` and `$ACTION_KEY` into the form,
+  and a multipart POST carrying those four plus the ordinary fields reaches
+  `createInvoiceAction(null, formData)` through the whole pipeline — the guard, the
+  creates, the variance pass, the pairing, the redirect. **Rebuilding the handler's
+  steps in a script was rejected**: the ordering and the write's position outside
+  the rollback are what needed executing, so a script that re-implemented them
+  would have tested itself.
+  - **The action id is read from the live page, not from a manifest.** Measured:
+    `.next/server/server-reference-manifest.json` and the running dev server give
+    different ids for the same export (`7f66b7ec…` against `7fe526d5…`), so the
+    built one would have addressed nothing.
+  - **Measured, on the target chosen to make the outcome unambiguous.**
+    `HYE-DL-260804-09` brought one ordered item, nothing billed it and no other
+    bill charges it, so `matched` is the only outcome the rule can reach there. The
+    run: the redirect carried `paired=matched`, `Invoices."Delivery"` named the
+    shipment, and the shipment's own `Invoices` named the bill.
+  - **The residue check is about the DELIVERY, not about the fixture.** A stored
+    link is the one thing this feature writes to a record it does not own, so
+    "the invoice is deleted" and "the shipment is unchanged" are different claims.
+    The run detaches through the production write first, then deletes, then re-reads
+    the delivery: 0 bills before, 0 after, 4 records deleted, no residue in any
+    bucket, and the Blob object removed. 14 operations in the script itself.
+  - **One `Auth Tokens` row is spent and left**, rather than deleted as tidying-up.
+    It is single-use and reads `Used: true`, so it is inert.
+- **Not in this issue:** an invoice edited after creation does not recompute its
+  pairing; `several`, `shared-order` and the tie-break are all unreachable on this
+  base and are asserted offline only — every ordered item here carrying two bills
+  has one of them attached, so capacity answers before ambiguity can; and the
+  invoice side's three failure points are stated in
+  `lib/deliveryInvoiceMatch.js`'s header rather than exercised — all three leave
+  the same state, an invoice naming no shipment, which is the ordinary one.
+  - **A REFUSAL IS NEVER SAID ON A SCREEN THAT DID NOT COMPUTE IT, and that leaves
+    two facts unsaid.** A bill whose price departs from the agreed one, and a bill
+    charging an ordered item no shipment brought, are both simply unpaired
+    wherever a reader meets them afterwards. Saying either on the invoice detail
+    means that page running `planPairings`, which it does not: it is a new read on
+    a screen #210 got down to 3 operations, plus new copy and a decision about
+    where it renders — and `not-contained` mixes "not yet" with "never", which the
+    key alone cannot separate. **The tie-break is the same shape**: it is spoken at
+    the moment of telling and nowhere afterwards, because whether a pairing was
+    tie-broken is not stored and recomputing it on a later render means reading the
+    vendor's other bills and their `Invoice Items`. All three are one piece of
+    work, and it is bigger than this issue.

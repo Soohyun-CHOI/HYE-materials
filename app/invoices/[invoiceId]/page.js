@@ -5,6 +5,7 @@ import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
 import { describeInvoiceColumn, describeInvoiceLine, sharesOrderedItem } from "@/lib/deliveryStatus";
 import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
+import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoiceMatch";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
@@ -47,7 +48,13 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const user = await requireUser();
     const privileged = seesEveryInvoice(user);
     const { invoiceId } = await params;
-    const { done } = await searchParams;
+    const { done, paired, tied } = await searchParams;
+    // #231 — a key, never a sentence. An unknown or absent value words nothing,
+    // which is also what makes `none` need no entry: describePairing returns null
+    // for anything it has no voice for. `tied` is the qualifier and is read the
+    // same way: anything but the flag the action sends words nothing.
+    const pairingMessage = describePairing({ key: paired }, "banner");
+    const tieBreakMessage = describeTieBreak({ tieBreak: tied === "1" }, "banner");
 
     const invoice = await getInvoiceById(invoiceId);
     if (!invoice) {
@@ -150,6 +157,27 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
                     {DONE_MESSAGES[done]}
                 </p>
+            )}
+
+            {/* #231 — what the app worked out about this bill's shipment, said once
+                and only on the way in from creation. It is not part of the record,
+                so it lives on the query string rather than being re-derived on
+                every load: a reader returning to this page sees the delivery
+                section below, which is the standing answer. `none` sends no
+                parameter, so there is no voice here for it. */}
+            {pairingMessage && (
+                <div
+                    className={`mt-4 rounded border px-3 py-2 text-sm ${
+                        pairingMessage.key === PAIRING.matched && !tieBreakMessage
+                            ? "border-zinc-300 bg-zinc-50 text-zinc-700"
+                            : "border-amber-300 bg-amber-50 text-amber-800"
+                    }`}
+                >
+                    <p>{pairingMessage.text}</p>
+                    {/* One box, two sentences — the tie-break is how the match above
+                        was decided, not a second thing that happened. */}
+                    {tieBreakMessage && <p className="mt-1">{tieBreakMessage.text}</p>}
+                </div>
             )}
 
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
@@ -379,7 +407,37 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                         listed: they are what explains a `Delivered`
                                         total larger than this bill's share, and a box
                                         is scoped to one ordered item, so listing them
-                                        claims only what the data supports. */}
+                                        claims only what the data supports.
+
+                                        THE WHOLE FRAME ABOVE PREDATES #210 AND IS AN
+                                        OPEN QUESTION, raised as its own issue. #231
+                                        changed two words here and deliberately
+                                        nothing else. What it found while editing this
+                                        screen: the three figures are ALL the ordered
+                                        item's — `Billed` is the `Invoiced Qty` rollup
+                                        across every invoice, not this one's — and the
+                                        deliveries listed are every arrival that
+                                        touched the ordered item, so neither answers
+                                        anything about the document the reader opened.
+                                        `HYE-INV-260804-04` shows it: `Billed 30` while
+                                        that invoice bills 15, one delivery listed that
+                                        is `HYE-INV-260804-05`'s shipment, and a
+                                        verdict of `Nothing delivered yet` under it.
+                                        That was the honest frame when #166 built it,
+                                        because no pairing was stored and the ordered
+                                        item's context was all that could be claimed;
+                                        #210 stored the pairing and added the marker on
+                                        top without revisiting it. `This bill:` exists
+                                        only because `Billed` is the ordered item's.
+
+                                        MEASURED 2026-08-14: all 9 boxes on this base
+                                        that list any delivery list exactly one, so the
+                                        marker has never distinguished anything, which
+                                        is also why its wording read as a label on a
+                                        sole item. It is `— attached to this invoice`
+                                        now, which is true whatever the box becomes; if
+                                        the marker goes when the box is redrawn, those
+                                        two words go with it. */}
                                     {row.deliveries.length > 0 && (
                                         <p className="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-600">
                                             <span className="text-zinc-500">Deliveries ·</span>
@@ -395,7 +453,7 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                                     {d.named && (
                                                         <span className="text-zinc-500">
                                                             {" "}
-                                                            — this invoice
+                                                            — attached to this invoice
                                                         </span>
                                                     )}
                                                 </span>

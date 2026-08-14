@@ -10,11 +10,15 @@ import {
     itemOptionLabel,
     planDelivery,
 } from "@/lib/deliveryAllocation";
+import { availableInvoiceOptions } from "@/lib/deliveryInvoiceLink";
 import {
-    LINK_COPY,
-    availableInvoiceOptions,
-    invoiceOptionLabel,
-} from "@/lib/deliveryInvoiceLink";
+    PAIRING,
+    billFromInvoiceOption,
+    describeArrivalPairings,
+    describePairing,
+    describeTieBreak,
+    planPairings,
+} from "@/lib/deliveryInvoiceMatch";
 
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryAllocation.js imports only
 // lib/materialPriceView.js -> lib/itemNaming.js, none of which reach
@@ -58,8 +62,22 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * routes to anyone who may see the order behind an invoice item, which is exactly
  * what every row on this form already is, so the picker discloses nothing new and
  * removes both failure modes typing had: a mistyped number, and one naming an
- * invoice that does not exist. It is optional, because the bill is not always in
- * the app yet.
+ * invoice that does not exist.
+ *
+ * SINCE #231 THE APP DECIDES THE PAIRING AND THIS FORM ONLY SAYS SO. The bills
+ * this vendor sent name ordered items and so do the rows above, so the app works
+ * out which of them this arrival answers — in `createDeliveryAction`, the way
+ * `planDelivery` decides an allocation rather than filling in a picker for the
+ * recorder to accept. Nothing here is preselected; the preview states what the
+ * action is about to do, and it can name SEVERAL bills, because one shipment can
+ * cover more than one document and the link is n:1.
+ *
+ * WHAT IS LEFT IN THE CONTROL IS A TRANSCRIPTION, AND IT IS BEHIND A CHECKBOX. The
+ * question it asks is "what number is printed on the packing list", not "which of
+ * our invoices is this" — a packing list rarely carries one at all, which is why it
+ * follows the same checkbox idiom as the PO number above it. When it does carry
+ * one, the recorder read it off the document and that beats anything computed, so
+ * the action folds it in first.
  */
 export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions = [] }) {
     const [state, formAction, pending] = useActionState(createDeliveryAction, {});
@@ -74,7 +92,13 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     const [receivedDate, setReceivedDate] = useState(() => new Date().toISOString().slice(0, 10));
     const [notes, setNotes] = useState("");
     const [photo, setPhoto] = useState({ status: "empty" });
-    const [invoiceRecordId, setInvoiceRecordId] = useState("");
+    // #231 — BEHIND A CHECKBOX, the idiom this same form already uses for the
+    // packing list's PO number and the invoice form uses for Tariff. A packing list
+    // rarely carries an invoice number at all, so a control standing open asks a
+    // question whose answer is almost always "there isn't one" — and now that the
+    // pairing is computed, an empty control sitting beside a sentence saying a bill
+    // WAS attached reads as a contradiction. A plain string is enough state:
+    // nothing preselects it any more, so "" means only what it says.
 
     const selectedJob = jobs.find((j) => j.id === jobRecordId) || null;
 
@@ -168,6 +192,61 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         [invoiceOptions, effectiveVendorId]
     );
 
+    // #231 — THE ARRIVAL AS THE MATCHER SEES IT: the ordered items the plan above
+    // is about to attach rows to. Taken from the plan rather than from the item
+    // dropdown, because a material maps to an ordered item only through allocation
+    // — the same reason the preview runs the production `planDelivery` instead of
+    // describing what the rows say.
+    //
+    // `deliveryRecordId` is null: this delivery does not exist yet, which is the
+    // reading `checkInvoicePairing` already makes of the same null.
+    // Every planned row, quantity and all — not a deduplicated set of ordered
+    // items. A plan produces two rows for one ordered item when part of the
+    // arrival is over-delivered, and both are quantity that arrived, which is what
+    // the matcher's capacity clause counts.
+    const arrival = useMemo(
+        () => ({
+            deliveryRecordId: null,
+            orderedItems: [...plansByMaterial.values()]
+                .flatMap((p) => (p.rows || []).map((r) => ({ poItemRecordId: r.line?.id, qty: r.qty })))
+                .filter((o) => o.poItemRecordId),
+        }),
+        [plansByMaterial]
+    );
+
+    // The price each order agreed, which is what a candidate bill's own price is
+    // tested against. Off the ordered items this page was already handed, so the
+    // test costs no round trip.
+    const agreedPrices = useMemo(
+        () => new Map(jobLines.map((l) => [l.id, l.unitPrice])),
+        [jobLines]
+    );
+
+    // THE SAME PURE RULE THE ACTION RUNS, PREVIEWED AND NEVER PREFILLED. planDelivery
+    // decides an allocation and this form draws the result; it does not fill in a
+    // picker for the recorder to accept. The invoice pairing is the same — the
+    // computation belongs to createDeliveryAction, and what this shows is what the
+    // action is about to do. There is no control here to prefill either way: the
+    // form stopped asking for an invoice number when the pairing became computed.
+    const bills = useMemo(() => invoiceChoices.map(billFromInvoiceOption), [invoiceChoices]);
+    const pairing = useMemo(
+        () =>
+            describeArrivalPairings(
+                planPairings({
+                    arrival,
+                    bills,
+                    agreedPrices,
+                }),
+                bills
+            ),
+        [arrival, bills, agreedPrices]
+    );
+    const pairingMessage = describePairing(pairing, "preview");
+    // #231 — the qualifier, in the same box. Two sentences rather than two boxes:
+    // it is one piece of news about one decision, and a second bordered block would
+    // read as a second decision.
+    const tieBreakMessage = describeTieBreak(pairing, "preview");
+
     function pickJob(id) {
         setJobRecordId(id);
         // Everything downstream was narrowed by the old job, so none of it can
@@ -176,7 +255,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         setPoId("");
         setHasPoNumber(false);
         setRows([{ ...EMPTY_ROW }]);
-        setInvoiceRecordId("");
     }
 
     function pickVendor(id) {
@@ -184,7 +262,8 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         setRows([{ ...EMPTY_ROW }]);
         // The invoice list is vendor-narrowed, so a bill picked under the old vendor
         // is not on offer under the new one — the same reason the item rows reset.
-        setInvoiceRecordId("");
+        // Back to computed, not to blank: the new vendor's own bills are about to be
+        // matched against these rows.
     }
 
     function updateRow(index, field, value) {
@@ -242,7 +321,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
             <input type="hidden" name="itemsJson" value={JSON.stringify(filledRows)} />
             <input type="hidden" name="packingListUrl" value={photo.url || ""} />
             <input type="hidden" name="packingListFilename" value={photo.filename || ""} />
-            <input type="hidden" name="invoiceRecordId" value={invoiceRecordId} />
 
             {/* --- Job ---------------------------------------------------------- */}
             <div>
@@ -280,7 +358,6 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                             // assumed to still be on offer. A <select> holding a value
                             // that matches no option renders blank and loses it
                             // silently — the same trap the item rows guard against.
-                            setInvoiceRecordId("");
                             if (!e.target.checked) setPoId("");
                         }}
                     />
@@ -298,8 +375,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                             onChange={(e) => {
                                 setPoId(e.target.value);
                                 setRows([{ ...EMPTY_ROW }]);
-                                setInvoiceRecordId("");
-                            }}
+                                }}
                             placeholder="HYE-PO-YYYYMMDD-##"
                             className={inputClass}
                         />
@@ -537,45 +613,27 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                 </p>
             </div>
 
-            {/* --- Invoice on the packing list (#210) --------------------------- */}
-            <div>
-                <label htmlFor="invoiceSelect" className="block text-sm font-medium">
-                    {LINK_COPY.field.label().text}
-                </label>
-                <select
-                    id="invoiceSelect"
-                    value={invoiceRecordId}
-                    onChange={(e) => setInvoiceRecordId(e.target.value)}
-                    disabled={!effectiveVendorId || invoiceChoices.length === 0}
-                    className={`${inputClass} disabled:opacity-50`}
+            {/* --- The pairing, and the packing list's own number (#231) -------- */}
+            {/* THE PREVIEW COMES FIRST AND THE CONTROL SECOND, because that is the
+                order of the facts: the app has decided, and the checkbox is for the
+                rarer case where the document says otherwise. Nothing at all when the
+                ordered items place no bill — an unpaired invoice is the ordinary
+                state, not an event to report. */}
+            {pairingMessage && (
+                <div
+                    className={`rounded border px-3 py-2 text-sm ${
+                        pairingMessage.key === PAIRING.sharedOrder || tieBreakMessage
+                            ? "border-amber-300 bg-amber-50 text-amber-800"
+                            : "border-zinc-200 bg-zinc-50 text-zinc-700"
+                    }`}
                 >
-                    <option value="">
-                        {effectiveVendorId ? "Not on the packing list…" : "Pick a vendor first…"}
-                    </option>
-                    {invoiceChoices.map((o) => (
-                        <option
-                            key={o.invoiceRecordId}
-                            value={o.invoiceRecordId}
-                            // LISTED BUT UNSELECTABLE when another shipment already
-                            // holds it, with that shipment named — #162's
-                            // fully-delivered item applied one level up. Dropping it
-                            // would leave the recorder holding a packing list whose
-                            // number is simply absent, which reads as "no such
-                            // invoice" and would be false.
-                            disabled={Boolean(o.linkedDeliveryRecordId)}
-                        >
-                            {invoiceOptionLabel(o)}
-                        </option>
-                    ))}
-                </select>
-                <p className="mt-1 text-xs text-zinc-500">
-                    {effectiveVendorId && invoiceChoices.length === 0
-                        ? LINK_COPY.field.emptyList({
-                              vendorName: vendorNames[effectiveVendorId],
-                          }).text
-                        : LINK_COPY.field.optional().text}
-                </p>
-            </div>
+                    <p>{pairingMessage.text}</p>
+                    {/* Amber with it, because a tie-break is the one attachment
+                        here that asks the recorder to check something rather than
+                        just telling them what was done. */}
+                    {tieBreakMessage && <p className="mt-1">{tieBreakMessage.text}</p>}
+                </div>
+            )}
 
             {/* --- Date, photo, notes ------------------------------------------- */}
             <div className="grid grid-cols-2 gap-4">

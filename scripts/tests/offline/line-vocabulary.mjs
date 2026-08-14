@@ -50,7 +50,8 @@ import { fileURLToPath } from "node:url";
 import * as acorn from "acorn";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "`line` is a Job's Lines row — copy and prose under app/ + lib/ (#227)";
+export const title =
+    "`line` is a Job's Lines row, `shipment` is a delivery — copy and prose under app/ + lib/ (#227, #231)";
 
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const SCANNED_DIRS = ["app", "lib"];
@@ -72,6 +73,11 @@ const PHRASE_RE = new RegExp(`\\b(${BANNED.join("|")})\\b`, "gi");
 
 // The bare word, for copy only.
 const WORD_RE = /\blines?\b/i;
+
+// #231 — likewise for the third name of one fact. Copy only, and with no phrase
+// list, because unlike `line` this word collides with nothing: every use of it
+// on a screen is a `Deliveries` row under another name.
+const SHIPMENT_RE = /\bshipments?\b/i;
 
 function walk(dir, out = []) {
     for (const entry of readdirSync(dir)) {
@@ -166,6 +172,12 @@ export function run({ check, assert, log }) {
         "assertion 1 fires on planted copy",
         plantedCopy.some((c) => WORD_RE.test(c.text))
     );
+    const plantedShipment = copyStrings('const X_COPY = { body: () => `the shipment it names` };');
+    assert(
+        "assertion 1b fires on planted copy, and 1 does not — the two matchers are separate",
+        plantedShipment.some((c) => SHIPMENT_RE.test(c.text)) &&
+            !plantedShipment.some((c) => WORD_RE.test(c.text))
+    );
     const plantedProse = "// the PO line and the invoice lines and one line item";
     const plantedHits = plantedProse.match(PHRASE_RE) || [];
     assert(`assertion 2 fires on a planted comment (${plantedHits.length} phrases)`, plantedHits.length === 3);
@@ -183,6 +195,47 @@ export function run({ check, assert, log }) {
     check(
         `copy strings naming a row a "line"${copyOffenders.length ? ` (first: ${copyOffenders[0]})` : ""}`,
         copyOffenders.length,
+        0
+    );
+
+    // ── 1b: and no *_COPY sentence says `shipment` (#231) ───────────────────
+    // THE SAME RULE AS #166's `arrived`, ONE WORD LATER. The table is
+    // `Deliveries`, the rollup is `Delivered Qty`, and the screens say
+    // `delivered` — so a sentence calling the same record a `shipment` makes a
+    // reader ask what the difference is, and there is none.
+    //
+    // COPY ONLY, WHICH IS NOT WHERE MOST OF THE WORD IS. #231 counted 322 uses
+    // across the repository and exactly two were sentences a person reads; the
+    // rest is comment and documentation prose, where the word is a synonym
+    // rather than a collision and where at least one use is legitimate —
+    // `lib/airtable/invoices.js` says `partial shipments` about a vendor
+    // shipping in parts, which is the commercial act and not a `Deliveries`
+    // row. Sweeping prose needs sentences rewritten one at a time and is its
+    // own issue; the two screen strings were #166's rule broken outright, so
+    // they are fixed and pinned here.
+    //
+    // IT SHARES ASSERTION 1's WALKER RATHER THAN GETTING A FILE, because this
+    // file is the one that already answers "which words may a copy constant
+    // not use", and two files walking the same strings to bar one word each
+    // would be two implementations of one sweep. The FILENAME stays #227's:
+    // that issue is open, and renaming its check from another issue would put
+    // its remaining work in a file named for neither.
+    log("");
+    log("no *_COPY sentence says `shipment`:");
+    const shipmentOffenders = [];
+    for (const [path, src] of sources) {
+        for (const { copyName, text } of copyStrings(src)) {
+            if (SHIPMENT_RE.test(text)) {
+                shipmentOffenders.push(`${path} ${copyName}: ${JSON.stringify(text)}`);
+            }
+        }
+    }
+    shipmentOffenders.slice(0, 10).forEach((o) => log(`    ${o}`));
+    check(
+        `copy strings calling a delivery a "shipment"${
+            shipmentOffenders.length ? ` (first: ${shipmentOffenders[0]})` : ""
+        }`,
+        shipmentOffenders.length,
         0
     );
 

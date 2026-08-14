@@ -2,14 +2,25 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/authz";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
+import { withOpsLabel } from "@/lib/airtableOps";
 import InvoiceForm from "./InvoiceForm";
 
 export const metadata = { title: "New Invoice" };
 
+// Labeled for #190 in #231, which is the screen this issue adds a read path
+// beside — #216's rule that an issue labels the screens it changes so it can show
+// a before and an after, rather than claiming one. #193's own comment asked for
+// this one by name: `getOpenPOs` is likely the most expensive read path in the app
+// and it is on this form, and until now nothing could say what it cost. #224
+// remains the sweep across every other unlabeled entry point.
+export default async function NewInvoicePage() {
+    return withOpsLabel("/invoices/new", () => renderNewInvoicePage());
+}
+
 // Admin-only (issue #14) — manual invoice entry is back-office data entry,
 // same category as the Job/Vendor/Line admin forms, not a floor-level
 // action like PR creation (requireUser()).
-export default async function NewInvoicePage() {
+async function renderNewInvoicePage() {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (

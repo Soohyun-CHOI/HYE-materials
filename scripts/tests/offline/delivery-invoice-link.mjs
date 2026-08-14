@@ -398,15 +398,19 @@ export function run({ check, log, assert }) {
     assert("  and still names no action", !takenBare.toLowerCase().includes("detach"));
 
     log("");
-    log("the field's own copy: blank is an ANSWER, not an omission:");
-    assert("the optional sentence says leaving it blank is fine", LINK_COPY.field.optional().text.includes("blank"));
+    log("the field's own copy: a TRANSCRIPTION, behind a checkbox (#231):");
+    // `optional` is gone with the always-open control it explained. Blank is no
+    // longer an answer at all — it is the unticked box — and what the note has to
+    // say instead is that a number read off the document beats the computation.
+    assert("the `optional` note is gone", LINK_COPY.field.optional === undefined);
+    // #231 removed the entry form's invoice control, so all three of its copy
+    // entries lost their only caller and were deleted with it. What remains is the
+    // delivery EDIT page's, which is where a computed pairing is corrected by hand.
+    assert("`label` is gone with the control", LINK_COPY.field.label === undefined);
+    assert("`transcribed` is gone with it", LINK_COPY.field.transcribed === undefined);
     assert(
-        "  and says where it can be attached instead",
-        LINK_COPY.field.optional().text.includes("later")
-    );
-    assert(
-        "  and what the invoice reads as until then",
-        LINK_COPY.field.optional().text.includes("awaiting delivery")
+        "what is left is exactly what the edit page reads",
+        Object.keys(LINK_COPY.field).sort().join() === "emptyList,oneEach"
     );
     assert(
         "the empty list names the vendor and does not read as an error",
@@ -416,7 +420,6 @@ export function run({ check, log, assert }) {
         "  and a missing vendor name degrades rather than printing undefined",
         !LINK_COPY.field.emptyList({}).text.includes("undefined")
     );
-    assert("the label says which number to look for", LINK_COPY.field.label().text.includes("packing list"));
     // The n:1 asymmetry stated where the control is, because it is the reason one
     // option can be unselectable and several can be attached.
     assert("the containment rule is on the screen", LINK_COPY.field.oneEach().text.includes("One invoice belongs to one delivery"));
