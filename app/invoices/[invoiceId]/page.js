@@ -3,7 +3,7 @@ import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
-import { describeInvoiceColumn, describeInvoiceLine, sharesOrderedItem } from "@/lib/deliveryStatus";
+import { describeInvoiceColumn, describeInvoiceLine } from "@/lib/deliveryStatus";
 import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
 import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoiceMatch";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
@@ -12,6 +12,7 @@ import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility"
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
+import { withOpsLabel } from "@/lib/airtableOps";
 import PaidForm from "./PaidForm";
 import DeleteInvoiceButton from "./DeleteInvoiceButton";
 
@@ -44,7 +45,19 @@ const DONE_MESSAGES = {
 // President-or-Admin: whether the vendor has been paid is the one fact here a
 // recorder has no use for and a vendor's own staff might ask about on site. That is
 // #211's own line, not one inherited from the route gate it replaced.
-export default async function InvoiceDetailPage({ params, searchParams }) {
+//
+// LABELED IN #232, THE WAY `/pos/[poId]` AND `/prs/[prId]` ARE. An outer wrapper, so
+// the page body keeps its indentation, and the route TEMPLATE, so repeated loads
+// aggregate into one row. It was added by the issue that narrowed this page's
+// delivery reads, because an unlabeled screen has no before and after: the counter
+// writes a per-scope record only for a labeled render, and #216 is the precedent —
+// a duplicate read on `/deliveries` stood invisible for as long as that page carried
+// no label.
+export default async function InvoiceDetailPage(props) {
+    return withOpsLabel("/invoices/[invoiceId]", () => renderInvoiceDetailPage(props));
+}
+
+async function renderInvoiceDetailPage({ params, searchParams }) {
     const user = await requireUser();
     const privileged = seesEveryInvoice(user);
     const { invoiceId } = await params;
@@ -84,14 +97,16 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
     const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
 
-    // Issue #166 — the delivery side of this invoice, and since #210 the shipment it
-    // names rather than an estimate of which one answered it. Three operations on
-    // top of what the page already holds (PO Items, Delivery Items, Deliveries),
-    // keyed on ids from the level above; the invoice's own invoice items are already
-    // loaded, so there is no query for them, and the pairing is a field on the
-    // record above. Down from five — the two that went existed only to order the
-    // other bills on the same ordered item so one of them could be picked. The rule
-    // is lib/deliveryStatus.js.
+    // Issue #166 — the delivery side of this invoice, and since #210 the delivery it
+    // matches rather than an estimate of which one answered it. Up to three
+    // operations on top of what the page already holds (PO Items, Delivery Items,
+    // Deliveries), keyed on ids from the level above; the invoice's own invoice items
+    // are already loaded, so there is no query for them, and the pairing is a field
+    // on the record above. Down from five — the two that went existed only to order
+    // the other bills on the same ordered item so one of them could be picked. #232
+    // took the third off an invoice that matches no delivery, which reads TWO: that
+    // level is the matched delivery now rather than every arrival on the ordered
+    // items. The rule is lib/deliveryStatus.js.
     const reconciliation = await getInvoiceReconciliation(items, {
         linkedDeliveryRecordId: linkedDelivery(invoice),
     });
@@ -310,25 +325,69 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 describe the invoice differently — #162's summarizeDelivery is
                 shared between its list and its detail for the same reason.
 
-                THE THREE FIGURES ARE ALL THE ORDERED ITEM'S TOTALS, including
-                `Billed`, which is every bill on it rather than this one. That is
-                what makes them comparable with each other and with the deliveries
-                listed below them. Usually this invoice IS the only bill, so
-                `Billed` is also this invoice's figure; when it is not, the
-                `This bill:` line says so. #210 changed what puts that line there:
-                it used to fire when the answer had been inferred, which made it an
-                explanation of a guess, and it now fires on the plain fact that the
-                ordered item carries another bill too (sharesOrderedItem).
+                SCOPED TO THIS INVOICE SINCE #232, WHICH IS WHY THE DOCUMENT SITS
+                HERE AND THE QUANTITIES SIT IN THE BOXES. `Invoices."Delivery"` is a
+                single link, so the delivery a reader wants named is the SAME one for
+                every box; naming it per box printed one document as many times as
+                the invoice has items, which is the repetition #233 took off the
+                order's page. What differs box to box is how much of that delivery
+                answered THAT ordered item, and that is what a box still carries.
+
+                THE FIGURES IN A BOX ARE THIS INVOICE'S. `Billed` is what this bill
+                charges, not the `Invoiced Qty` rollup across every invoice, and
+                `Delivered` is what the matched delivery brought of that ordered item.
+                Before #232 both were the ordered item's, which is how
+                `HYE-INV-260804-04` came to read `Billed 30` while billing 15 under a
+                delivery belonging to another bill. `This bill:` existed only to
+                caption the first of those and went with it.
+
+                THE ORDER IS NOT GONE FROM THE BOX — IT IS ON ONE LINE THAT SAYS SO.
+                `Against the order:` is the only order-scoped statement left, and its
+                label is what keeps the two scopes apart, so it renders on every
+                judged box rather than only on an exception. See
+                STATUS_COPY.detail.againstOrder before making it conditional again.
 
                 COLOR ON THE VERDICT ONLY. lib/deliveryStatus.js returns named
                 slots rather than a list precisely so a call site cannot color the
                 asides too, which is how the first version came out all amber with
-                the color distinguishing nothing. */}
+                the color distinguishing nothing. Both slots can be null now and the
+                module decides which — a call site cannot withhold one either. */}
             <div className="mt-8">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Delivery</h2>
                     <StatusChip chip={describeInvoiceColumn(reconciliation.summary)} />
                 </div>
+
+                {/* #232 — THE MATCHED DELIVERY, ONCE, AND NOTHING OF ITS OWN BESIDE
+                    IT. No ordered items: a delivery can carry bills this invoice has
+                    nothing to do with, so listing what it brought would show orders
+                    this invoice never charged. No marker either — a document named
+                    directly under this invoice's own heading is this invoice's
+                    structurally, which is the argument #166 used when it moved these
+                    inside the boxes and is why `— attached to this invoice` retires
+                    here rather than moving.
+
+                    `matched` is #231's word, from PAIRING_COPY, and it says the fact
+                    the state actually is: nothing has been matched to this bill, as
+                    against the material not having arrived. Those became different
+                    facts when #210 stored the pairing, and the verdict inside each
+                    box used to conflate them by saying `Nothing delivered yet` under
+                    an empty list. */}
+                {reconciliation.delivery ? (
+                    <p className="mt-1 text-sm text-zinc-600">
+                        <Link
+                            href={`/deliveries/${encodeURIComponent(reconciliation.delivery.deliveryId)}`}
+                            className="underline"
+                        >
+                            {reconciliation.delivery.deliveryId}
+                        </Link>{" "}
+                        ({reconciliation.delivery.receivedDate || "—"})
+                    </p>
+                ) : (
+                    <p className="mt-1 text-sm text-zinc-600">
+                        No delivery has been matched to this invoice yet.
+                    </p>
+                )}
 
                 {reconciliation.rows.length === 0 ? (
                     <p className="mt-1 text-sm text-zinc-600">
@@ -337,7 +396,9 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                 ) : (
                     <ul className="mt-3 space-y-2 text-sm">
                         {reconciliation.rows.map((row) => {
-                            const lines = describeInvoiceLine(row.status, row.unit);
+                            const lines = describeInvoiceLine(row.status, row.unit, {
+                                hasDelivery: reconciliation.summary.hasDelivery,
+                            });
                             return (
                                 <li
                                     key={row.invoiceItemId}
@@ -361,103 +422,43 @@ export default async function InvoiceDetailPage({ params, searchParams }) {
                                         )}
                                     </div>
 
-                                    {row.line && (
+                                    {/* THIS INVOICE'S TWO FIGURES (#232). `Delivered`
+                                        renders only where there is a delivery to have
+                                        delivered it — the same one condition that
+                                        decides the verdict below, so the box never
+                                        shows a quantity whose subject the section
+                                        heading says does not exist. */}
+                                    {row.status && (
                                         <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
-                                            Ordered {row.line.ordered}
-                                            {row.unit ? ` ${row.unit}` : ""} · Billed{" "}
-                                            {row.line.invoiced}
-                                            {row.unit ? ` ${row.unit}` : ""} · Delivered{" "}
-                                            {row.line.delivered}
+                                            Billed {row.billedOnThisInvoice}
                                             {row.unit ? ` ${row.unit}` : ""}
+                                            {reconciliation.summary.hasDelivery && (
+                                                <>
+                                                    {" · Delivered "}
+                                                    {row.status.delivered}
+                                                    {row.unit ? ` ${row.unit}` : ""}
+                                                </>
+                                            )}
                                         </p>
                                     )}
 
-                                    {sharesOrderedItem(row) && (
-                                        <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
-                                            This bill: {row.billedOnThisInvoice} of{" "}
-                                            {row.line.invoiced}
-                                            {row.unit ? ` ${row.unit}` : ""}
+                                    {lines.verdict && (
+                                        <p
+                                            className={
+                                                lines.verdict.key === "all-delivered"
+                                                    ? "mt-1 text-green-700"
+                                                    : lines.verdict.key === "not-compared"
+                                                      ? "mt-1 text-zinc-500"
+                                                      : "mt-1 text-amber-700"
+                                            }
+                                        >
+                                            {lines.verdict.text}
                                         </p>
                                     )}
-
-                                    <p
-                                        className={
-                                            lines.verdict.key === "all-delivered"
-                                                ? "mt-1 text-green-700"
-                                                : lines.verdict.key === "not-compared"
-                                                  ? "mt-1 text-zinc-500"
-                                                  : "mt-1 text-amber-700"
-                                        }
-                                    >
-                                        {lines.verdict.text}
-                                    </p>
 
                                     {lines.againstOrder && (
                                         <p className="mt-1 text-zinc-600">
                                             {lines.againstOrder.text}
-                                        </p>
-                                    )}
-
-                                    {/* #210 — ONE OF THESE IS NOW NAMED, and that is
-                                        the claim this section could not make before.
-                                        It listed every delivery that touched the
-                                        ordered item and said nothing about which one
-                                        brought the quantity attributed to this bill,
-                                        because nothing recorded it. The rest stay
-                                        listed: they are what explains a `Delivered`
-                                        total larger than this bill's share, and a box
-                                        is scoped to one ordered item, so listing them
-                                        claims only what the data supports.
-
-                                        THE WHOLE FRAME ABOVE PREDATES #210 AND IS AN
-                                        OPEN QUESTION, raised as its own issue. #231
-                                        changed two words here and deliberately
-                                        nothing else. What it found while editing this
-                                        screen: the three figures are ALL the ordered
-                                        item's — `Billed` is the `Invoiced Qty` rollup
-                                        across every invoice, not this one's — and the
-                                        deliveries listed are every arrival that
-                                        touched the ordered item, so neither answers
-                                        anything about the document the reader opened.
-                                        `HYE-INV-260804-04` shows it: `Billed 30` while
-                                        that invoice bills 15, one delivery listed that
-                                        is `HYE-INV-260804-05`'s shipment, and a
-                                        verdict of `Nothing delivered yet` under it.
-                                        That was the honest frame when #166 built it,
-                                        because no pairing was stored and the ordered
-                                        item's context was all that could be claimed;
-                                        #210 stored the pairing and added the marker on
-                                        top without revisiting it. `This bill:` exists
-                                        only because `Billed` is the ordered item's.
-
-                                        MEASURED 2026-08-14: all 9 boxes on this base
-                                        that list any delivery list exactly one, so the
-                                        marker has never distinguished anything, which
-                                        is also why its wording read as a label on a
-                                        sole item. It is `— attached to this invoice`
-                                        now, which is true whatever the box becomes; if
-                                        the marker goes when the box is redrawn, those
-                                        two words go with it. */}
-                                    {row.deliveries.length > 0 && (
-                                        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-zinc-600">
-                                            <span className="text-zinc-500">Deliveries ·</span>
-                                            {row.deliveries.map((d) => (
-                                                <span key={d.id}>
-                                                    <Link
-                                                        href={`/deliveries/${encodeURIComponent(d.deliveryId)}`}
-                                                        className="underline"
-                                                    >
-                                                        {d.deliveryId}
-                                                    </Link>{" "}
-                                                    ({d.receivedDate || "—"})
-                                                    {d.named && (
-                                                        <span className="text-zinc-500">
-                                                            {" "}
-                                                            — attached to this invoice
-                                                        </span>
-                                                    )}
-                                                </span>
-                                            ))}
                                         </p>
                                     )}
                                 </li>

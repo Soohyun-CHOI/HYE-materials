@@ -328,6 +328,17 @@ function printGuide() {
     console.log(`
 Start the dev server and sign in as an Admin (both real accounts are Admin).
 
+READ SECTIONS 1 AND 3 AS #166's RECORD, NOT AS THESE SCREENS TODAY. They
+describe the invoice list and the deliveries list as this seed was written
+against them, and two later issues moved both without sweeping this guide:
+#210 took the invoice axis from three chip values to two — the chip reads
+whether Invoices."Delivery" is set, so every invoice this seed creates
+now shows [Awaiting delivery] and none carries a marker, since nothing here
+is paired — and #216 moved the ?unbilled=1 filter off /deliveries to a
+strip above /invoices. Noted rather than rewritten by #232, which redrew
+section 2 and verified only that screen; correcting the other two means
+re-deriving them against those issues, which is that work's own job.
+
 ------------------------------------------------------------------
 1. /invoices  —  the new "Delivery" column
 ------------------------------------------------------------------
@@ -364,50 +375,63 @@ Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
   computed outright, not inferred.
 
 ------------------------------------------------------------------
-2. /invoices/<id>  —  the "Delivery" section, one box per line
+2. /invoices/<id>  —  the "Delivery" section  (rewritten for #232)
 ------------------------------------------------------------------
 The section heading carries the SAME CHIP the list showed, from the same
 function, so the row you clicked and the page you land on cannot disagree.
+Directly under it, ONE line naming the delivery this invoice matches —
+Invoices."Delivery" is single, so per-box would print one document once
+per item. THIS SEED WRITES NO SUCH LINK — bill() predates the field and
+sets nothing — so every invoice it creates reads there:
+
+         "No delivery has been matched to this invoice yet."
+
+  That sentence is the state itself, not a stand-in for one. #210 made
+  "no delivery matched" and "nothing arrived" different facts; every box
+  below used to say "Nothing delivered yet" under an empty list, which
+  asserted the second when only the first was known.
+
+  A BOX HOLDS THIS INVOICE'S OWN FIGURES. "Billed" is what THIS bill
+  charges; "Delivered" is what the matched delivery brought of that
+  ordered item, and it is absent when nothing is matched — so is the
+  verdict, for the same one reason. What the ORDER contributes is a single
+  line that names that frame out loud.
 
   ${ids.b ?? "B"}   two boxes. The judged one reads
-         "Ordered 15 EA · Billed 15 EA · Delivered 0 EA"
-         "Nothing delivered yet"
+         "Billed 15 EA"
+         "Against the order: 15 EA ordered"
        and the free-text one is a box of its own reading
          "Not compared — no ordered item"
-       rather than a footnote about a line you cannot see. The app cannot
-       create such a line; this seed used the backend path directly, which
-       is still intact behind #96's flag.
+       rather than a footnote about a line you cannot see. That verdict
+       stays even with nothing matched: it is a fact about the invoice
+       item and not about any delivery. The app cannot create such a line;
+       this seed used the backend path directly, which is still intact
+       behind #96's flag.
 
-  ${ids.dNew ?? "D-new"}   the one shape where a share line appears:
-         "Ordered 30 EA · Billed 30 EA · Delivered 15 EA"
-         "This bill: 15 of 30 EA"
-         "15 EA more billed than delivered"
-         "Inferred — this ordered item carries more than one bill..."
-       The share line and the (!) marker fire on EXACTLY one condition, so
-       the reason the answer was inferred is explained where it is made.
-       All three figures are the ordered item's totals, which is what makes
-       them add up against the deliveries listed under them.
+  ${ids.dNew ?? "D-new"}   two bills of 15 on one ordered item of 30:
+         "Billed 15 EA"
+         "Against the order: 30 EA ordered"
+       No share line. "This bill: 15 of 30 EA" stood here to caption a
+       "Billed" that was the ordered item's total across every invoice;
+       #232 scoped that figure to this bill, and #233 put "which invoices
+       charge this order" on the order's own page.
 
-  ${ids.e ?? "E"}   "All billed material delivered" in green, then
-         "Against the order: 2 EA more delivered"
-       uncolored underneath. Two comparisons; the verdict is the invoice's
-       and the aside is the order's, and only the verdict is colored — with
-       all three lines amber, as the first version had them, the color
-       distinguished nothing.
+  ${ids.e ?? "E"}   "Against the order: 10 EA ordered, 2 EA more delivered"
+       uncolored, and no verdict above it while nothing is matched. Match
+       a delivery to this invoice and the verdict appears in green — two
+       comparisons, the verdict the invoice's and the aside the order's,
+       and only the verdict colored. With both lines amber, as the first
+       version had them, the color distinguished nothing.
 
-  ${ids.f ?? "F"}   "3 EA more billed than delivered", then
-         "Against the order: 3 EA more billed"
-       Note the chip says [Partly delivered], NOT [Awaiting delivery]:
-       10 of 13 did arrive, so the ordered item is merely incomplete. The
-       two claims are different and the copy keeps them apart — reading
-       this seeded row is what caught the first version saying the false
-       one.
+  ${ids.f ?? "F"}   "Against the order: 10 EA ordered, 3 EA more billed"
+       The billed side comes first because that is the side this screen is
+       about, and both terms sit on ONE line: it is one comparison with
+       two terms, not two problems.
 
-  The delivery links sit INSIDE the box, labeled just "Deliveries ·",
-  because the box is already scoped to one ordered item — which is the
-  claim the data supports. The old foot-of-page section needed the heading
-  "recorded against the same order lines" to avoid over-claiming; inside
-  the box that qualification is structural.
+  THE ORDER-SCOPED LINE RENDERS ON EVERY JUDGED BOX, including the boxes
+  where nothing exceeds anything. It is the only thing a box says about
+  the order now, so its label is what keeps the two scopes apart — make it
+  conditional and the order leaves the box entirely on ordinary rows.
 
 ------------------------------------------------------------------
 3. /deliveries — the "Invoiced" column, and /invoices — the strip

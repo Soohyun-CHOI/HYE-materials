@@ -33,7 +33,6 @@ import {
     isNotFullyInvoiced,
     lineStatus,
     poLineDelivery,
-    sharesOrderedItem,
     summarizePODeliveryStatus,
     sortLongestWaitingFirst,
     summarizeDeliveryInvoicing,
@@ -155,9 +154,14 @@ export function run({ check, log, assert }) {
     assert(
         "and delivered-beyond-billed is stated against the ORDER instead",
         describeInvoiceLine(
-            { ...invoiceShareStatus({ billed: 10, arrived: 10 }), arrivedBeyondOrder: 3 },
-            "EA"
-        ).againstOrder.text === "Against the order: 3 EA more delivered"
+            {
+                ...invoiceShareStatus({ billed: 10, arrived: 10 }),
+                ordered: 10,
+                arrivedBeyondOrder: 3,
+            },
+            "EA",
+            { hasDelivery: true }
+        ).againstOrder?.text === "Against the order: 10 EA ordered, 3 EA more delivered"
     );
 
     // --- the freight rule -------------------------------------------------
@@ -176,7 +180,7 @@ export function run({ check, log, assert }) {
     // Excluded is not invisible: it gets its own box saying why.
     check(
         "and it still gets a verdict of its own",
-        describeInvoiceLine(null, "EA").verdict.text,
+        describeInvoiceLine(null, "EA").verdict?.text,
         "Not compared — no ordered item"
     );
 
@@ -243,30 +247,98 @@ export function run({ check, log, assert }) {
     assert("and there is no detail-density twin to drift from it", !("mismatch" in STATUS_COPY.detail));
 
     log("");
-    log("`This bill:` now fires on a FACT rather than on a guess (#210):");
-    // It used to appear exactly when the answer had been inferred, which made it an
-    // explanation of the guess. What is left is the plain fact that the ordered item
-    // carries another bill, which the box's own `Billed` figure would otherwise be
-    // mistaken for this invoice's.
+    log("`sharesOrderedItem` and its `This bill:` line are GONE (#232):");
+    // It captioned a `Billed` figure that was the ordered item's total across every
+    // invoice. #232 scoped that figure to the invoice being read, so the caption has
+    // nothing left to correct. Asserted as an ABSENCE rather than dropped silently:
+    // this module has deleted things before (`arrived-more`, `resolveDeliveryFilters`)
+    // and each deletion is pinned so a re-add fails here rather than in review.
+    assert("the export is gone", !("sharesOrderedItem" in deliveryStatus));
+    // ANTI-VACUITY for the line above: a typo in the name would pass it either way.
+    assert("  and the namespace is the real module", typeof deliveryStatus.lineStatus === "function");
+
+    // --- #232: THE BOX SPEAKS FOR ONE INVOICE ------------------------------
+    log("");
+    log("the verdict is WITHHELD where no delivery is matched to the invoice:");
+    // The distinction #210 created and #232 acts on. A share with `delivered: 0`
+    // cannot tell "nothing is matched to this bill" from "the matched delivery
+    // brought none of this ordered item", so the caller supplies which it is. The
+    // first has one answer for the whole invoice and the section states it once;
+    // saying it per box would print one document's status once per invoice item.
+    const judgedShare = { ...invoiceShareStatus({ billed: 15, arrived: 0 }), ordered: 30 };
     check(
-        "this bill is the only one on the ordered item",
-        sharesOrderedItem({ billedOnThisInvoice: 13, line: line(20, 13, 13) }),
-        false
+        "nothing matched, so the box says nothing about delivery",
+        describeInvoiceLine(judgedShare, "EA", { hasDelivery: false }).verdict,
+        null
     );
     check(
-        "another bill shares it",
-        sharesOrderedItem({ billedOnThisInvoice: 5, line: line(20, 13, 13) }),
-        true
+        "  and hasDelivery defaults to that, so a caller cannot forget it open",
+        describeInvoiceLine(judgedShare, "EA").verdict,
+        null
     );
-    // `<` rather than `!==`: a rollup that read SMALLER than this bill would print
-    // `This bill: 13 of 5`, so silence is the safer direction.
     check(
-        "a rollup reading smaller than this bill stays silent",
-        sharesOrderedItem({ billedOnThisInvoice: 13, line: line(20, 5, 5) }),
-        false
+        "a delivery matched, and the verdict is back",
+        describeInvoiceLine(judgedShare, "EA", { hasDelivery: true }).verdict?.key,
+        "nothing-delivered"
     );
-    check("no ordered item, no line", sharesOrderedItem({ billedOnThisInvoice: 5, line: null }), false);
-    check("no argument does not throw", sharesOrderedItem(), false);
+    // `nothing-delivered` now means only this, which is why it was kept rather than
+    // deleted with the states this module has removed for having no reader: the app's
+    // own pairing cannot produce it — `fitRefusal` requires containment and
+    // `roomOnOrderedItem` refuses a pair with no room — but a hand-set link can, and
+    // so can a bill of 0.
+    check(
+        "  a bill of 0 reaches it by the clamp",
+        describeInvoiceLine({ ...invoiceShareStatus({ billed: 0, arrived: 9 }), ordered: 5 }, "EA", {
+            hasDelivery: true,
+        }).verdict?.key,
+        "nothing-delivered"
+    );
+    // NOT A DELIVERY FACT, so it survives either way — it is about the invoice item.
+    for (const hasDelivery of [true, false]) {
+        check(
+            `not-compared keeps its verdict with hasDelivery ${hasDelivery}`,
+            describeInvoiceLine(null, "EA", { hasDelivery }).verdict?.text,
+            "Not compared — no ordered item"
+        );
+    }
+
+    log("");
+    log("`Against the order:` is the box's ONLY order-scoped line, so it is not conditional:");
+    // Before #232 the box carried `Ordered · Billed · Delivered`, all three the
+    // ordered item's, and this line appeared only when a side exceeded. The other two
+    // figures are the invoice's own now, so making this conditional again would take
+    // the order out of the box entirely on every ordinary row — and leave `Billed`
+    // and `Delivered` with no denominator.
+    const ordinary = { ...invoiceShareStatus({ billed: 15, arrived: 15 }), ordered: 30 };
+    check(
+        "nothing exceeds anything, and it still states the order",
+        describeInvoiceLine(ordinary, "EA", { hasDelivery: true }).againstOrder?.text,
+        "Against the order: 30 EA ordered"
+    );
+    check(
+        "  both terms join it on ONE line, billed side first",
+        describeInvoiceLine(
+            { ...ordinary, billedBeyondOrder: 3, arrivedBeyondOrder: 2 },
+            "EA",
+            { hasDelivery: true }
+        ).againstOrder?.text,
+        "Against the order: 30 EA ordered, 3 EA more billed, 2 EA more delivered"
+    );
+    check("  and a blank unit reads without one", describeInvoiceLine(ordinary, "", { hasDelivery: true }).againstOrder?.text, "Against the order: 30 ordered");
+    // `ordered` IS THE GATE, which is what keeps a bare share silent about an order
+    // it holds no figure from — the list axis builds exactly such shares.
+    check(
+        "a bare share states nothing about the order",
+        describeInvoiceLine(invoiceShareStatus({ billed: 15, arrived: 15 }), "EA", {
+            hasDelivery: true,
+        }).againstOrder,
+        null
+    );
+    check(
+        "  nor does a not-compared box, which has no order at all",
+        describeInvoiceLine(null, "EA", { hasDelivery: true }).againstOrder,
+        null
+    );
 
     // The bill ordering was asserted here while this module held it; #219 moved it
     // into lib/overage.js, private to its one reader, and offline/overage.mjs pins
@@ -345,39 +417,45 @@ export function run({ check, log, assert }) {
     // --- copy --------------------------------------------------------------
     log("");
     log("the detail's verdicts — the right BRANCH, pinned by key not wording:");
-    const detail = (status, unit = "EA") => describeInvoiceLine(status, unit);
-    check("covered", detail(covered).verdict.text, "All billed material delivered");
-    check("short", detail(partShare).verdict.text, "3 EA more billed than delivered");
-    check("nothing", detail(shortShare).verdict.text, "Nothing delivered yet");
-    check("not compared", detail(null).verdict.text, "Not compared — no ordered item");
+    // `hasDelivery: true` throughout this section, because these assertions are
+    // about which WORDS a verdict uses and #232 made the verdict's existence a
+    // separate question — pinned in its own section above, on its own inputs.
+    const detail = (status, unit = "EA") => describeInvoiceLine(status, unit, { hasDelivery: true });
+    check("covered", detail(covered).verdict?.text, "All billed material delivered");
+    check("short", detail(partShare).verdict?.text, "3 EA more billed than delivered");
+    check("nothing", detail(shortShare).verdict?.text, "Nothing delivered yet");
+    check("not compared", detail(null).verdict?.text, "Not compared — no ordered item");
     // No figures where the box's own numbers line already carries them.
-    assert("the covered verdict states no quantity", !/\d/.test(detail(covered).verdict.text));
-    assert("nor does the empty one", !/\d/.test(detail(shortShare).verdict.text));
+    assert("the covered verdict states no quantity", !/\d/.test(detail(covered).verdict?.text));
+    assert("nor does the empty one", !/\d/.test(detail(shortShare).verdict?.text));
     assert(
         "the shortfall verdict states the difference, which IS the fact",
-        detail(partShare).verdict.text.startsWith("3 EA")
+        detail(partShare).verdict?.text.startsWith("3 EA")
     );
     assert(
         "a blank unit omits it rather than printing 'undefined'",
-        !detail(partShare, "").verdict.text.includes("undefined")
+        !detail(partShare, "").verdict?.text.includes("undefined")
     );
 
     log("");
     log("`Against the order:` is ONE line even when both sides exceed the order:");
-    const withBoth = { ...partShare, arrivedBeyondOrder: 2, billedBeyondOrder: 3 };
-    check("both terms, billed first", detail(withBoth).againstOrder.text, "Against the order: 3 EA more billed, 2 EA more delivered");
-    check("delivery side alone", detail({ ...covered, arrivedBeyondOrder: 2 }).againstOrder.text, "Against the order: 2 EA more delivered");
-    check("billing side alone", detail({ ...covered, billedBeyondOrder: 3 }).againstOrder.text, "Against the order: 3 EA more billed");
-    check("neither, so the line is absent entirely", detail(covered).againstOrder, null);
-    check("and it is absent for a not-compared line too", detail(null).againstOrder, null);
+    // `ordered` leads it since #232 and the two exception terms follow — see the
+    // section above for why the line no longer comes and goes.
+    const onOrder = { ...covered, ordered: 40 };
+    const withBoth = { ...partShare, ordered: 20, arrivedBeyondOrder: 2, billedBeyondOrder: 3 };
+    check("both terms, billed first", detail(withBoth).againstOrder?.text, "Against the order: 20 EA ordered, 3 EA more billed, 2 EA more delivered");
+    check("delivery side alone", detail({ ...onOrder, arrivedBeyondOrder: 2 }).againstOrder?.text, "Against the order: 40 EA ordered, 2 EA more delivered");
+    check("billing side alone", detail({ ...onOrder, billedBeyondOrder: 3 }).againstOrder?.text, "Against the order: 40 EA ordered, 3 EA more billed");
+    check("neither, and the line still states the order", detail(onOrder).againstOrder?.text, "Against the order: 40 EA ordered");
+    check("but it is absent for a not-compared line", detail(null).againstOrder, null);
 
     log("");
     log("NAMED SLOTS, not a list — so a call site cannot color the asides:");
     // The first version returned a list and the page colored everything that was
     // not `matched`, which made all three amber and the color distinguish nothing.
     const slots = detail(withBoth);
-    check("the verdict is its own slot", slots.verdict.key, "billed-more");
-    check("and the aside is another", slots.againstOrder.key, "against-order");
+    check("the verdict is its own slot", slots.verdict?.key, "billed-more");
+    check("and the aside is another", slots.againstOrder?.key, "against-order");
     // TWO SLOTS SINCE #210: the third explained a guess that no longer happens.
     assert(
         "the two slots are exactly what a box renders",
@@ -711,7 +789,11 @@ export function run({ check, log, assert }) {
     log("  anti-vacuity — the walk is seen to find what it is looking for:");
     assert("the AST walk visited nodes at all", sawAnyNode);
     assert("it sees identifiers", identifiers.has("summarizeInvoiceStatus"));
-    assert("  including one #210 ADDED, so it is reading the new file", identifiers.has("sharesOrderedItem"));
+    // Was `sharesOrderedItem` until #232 deleted it. The control has to be a name
+    // the CURRENT module holds, so it moved to the one that issue added — which
+    // keeps the property this line is for: proof the walk is reading the new file
+    // and not a stale parse.
+    assert("  including one #232 ADDED, so it is reading the new file", identifiers.has("speaksOfDelivery"));
     assert("it sees object keys", propertyKeys.has("billedNotArrived"));
     assert("  including one #210 added", propertyKeys.has("mismatch"));
     // A control on the negative direction too: a name that is genuinely absent and
