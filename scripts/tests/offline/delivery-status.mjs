@@ -147,21 +147,43 @@ export function run({ check, log, assert }) {
     check("a shipment carrying more than this bill does not overflow it", surplusShipment.delivered, 10);
     check("  so the reverse direction stays 0", surplusShipment.arrivedNotBilled, 0);
     check("  and the verdict is simply covered", invoiceVerdictKey(surplusShipment), "all-delivered");
-    assert(
-        "so the invoice verdict has four branches, not six",
-        Object.keys(STATUS_COPY.detail.verdict).length === 4
+    // FOUR JUDGMENTS, THREE SENTENCES (#232). Two of the original six were deleted in
+    // #210 for being unreachable; `all-delivered` is reachable and has no copy, which
+    // is a different thing — a box that agrees says nothing, and the chip beside the
+    // section heading is what states it. The KEY survives, because it is what
+    // describeInvoiceLine reads to decide there is nothing to say.
+    const everyJudgment = new Set([
+        invoiceVerdictKey(surplusShipment),
+        invoiceVerdictKey(line(100, 80, 50)),
+        invoiceVerdictKey(line(100, 80, 0)),
+        invoiceVerdictKey(null),
+    ]);
+    check("the judgment still has four branches", everyJudgment.size, 4);
+    check("and only three of them are sentences", Object.keys(STATUS_COPY.detail.verdict).length, 3);
+    assert("`all-delivered` is the one with no sentence", !("all-delivered" in STATUS_COPY.detail.verdict));
+    // AND THE FUNCTION AGREES WITH THE TABLE, asserted HERE rather than only in the
+    // #232 section below, because every call after this line hands a covered status to
+    // describeInvoiceLine: a `speaks` reopened for `all-delivered` without its copy
+    // branch throws, and this is the last point at which that reports as a failure
+    // rather than as a stack trace. Caught for the same reason.
+    check(
+        "  and describeInvoiceLine reaches for no sentence it has not got",
+        (() => {
+            try {
+                return describeInvoiceLine(surplusShipment, "EA", { hasDelivery: true }).verdict;
+            } catch (err) {
+                return `THREW: ${err.message}`;
+            }
+        })(),
+        null
     );
     assert(
-        "and delivered-beyond-billed is stated against the ORDER instead",
+        "and delivered-beyond-billed is stated against the ORDERED ITEM instead",
         describeInvoiceLine(
-            {
-                ...invoiceShareStatus({ billed: 10, arrived: 10 }),
-                ordered: 10,
-                arrivedBeyondOrder: 3,
-            },
+            { ...invoiceShareStatus({ billed: 10, arrived: 10 }), arrivedBeyondOrder: 3 },
             "EA",
             { hasDelivery: true }
-        ).againstOrder?.text === "Against the order: 10 EA ordered, 3 EA more delivered"
+        ).againstOrder?.text === "Against the ordered item: 3 EA more delivered"
     );
 
     // --- the freight rule -------------------------------------------------
@@ -238,8 +260,8 @@ export function run({ check, log, assert }) {
     check("one key, so a check pins the branch not the wording", STATUS_COPY.column.mismatch().key, "mismatch");
     assert("it says what is mismatched", STATUS_COPY.column.mismatch().text.includes("bills more than"));
     assert(
-        "it names the shipment as the thing compared against",
-        STATUS_COPY.column.mismatch().text.includes("the delivery it names")
+        "it names the matched delivery as the thing compared against",
+        STATUS_COPY.column.mismatch().text.includes("the delivery matched to it")
     );
     // ONE DENSITY, unlike the qualifier it replaces: the detail states the shortfall
     // with its figures through the verdict, so there is no second sentence to keep in
@@ -257,15 +279,44 @@ export function run({ check, log, assert }) {
     // ANTI-VACUITY for the line above: a typo in the name would pass it either way.
     assert("  and the namespace is the real module", typeof deliveryStatus.lineStatus === "function");
 
-    // --- #232: THE BOX SPEAKS FOR ONE INVOICE ------------------------------
+    // --- #232: A BOX SPEAKS ONLY WHEN SOMETHING DISAGREES ------------------
+    //
+    // THE ONE-DELIVERY PREMISE IS WHAT THESE ASSERT, one level down from where it
+    // was already settled. What an invoice bills arrives on the delivery it matches
+    // or not at all, so "everything billed was delivered" is a fact about the
+    // INVOICE, which the chip states; a box repeating it states one fact once per
+    // invoice item. See the module header, and docs/notes for the premise itself.
+    log("");
+    log("a box that agrees says NOTHING — `all-delivered` renders no verdict:");
+    const covered15 = invoiceShareStatus({ billed: 15, arrived: 15 });
+    check("the judgment is still made", invoiceVerdictKey(covered15), "all-delivered");
+    // CAUGHT ON PURPOSE, so this reports rather than aborting the file. Re-opening
+    // `speaks` for `all-delivered` without re-adding its copy branch throws — the
+    // right failure for the code and an unreadable one for a check.
+    const coveredBox = (() => {
+        try {
+            return describeInvoiceLine(covered15, "EA", { hasDelivery: true });
+        } catch (err) {
+            return { verdict: `THREW: ${err.message}`, againstOrder: null };
+        }
+    })();
+    check("  and the box says nothing about it", coveredBox.verdict, null);
+    // ANTI-VACUITY: the same call with a status that DOES disagree must speak, or
+    // "returns null" is just what this function always does.
+    assert(
+        "  while a box that disagrees does speak",
+        describeInvoiceLine(invoiceShareStatus({ billed: 15, arrived: 10 }), "EA", {
+            hasDelivery: true,
+        }).verdict !== null
+    );
+
     log("");
     log("the verdict is WITHHELD where no delivery is matched to the invoice:");
     // The distinction #210 created and #232 acts on. A share with `delivered: 0`
     // cannot tell "nothing is matched to this bill" from "the matched delivery
-    // brought none of this ordered item", so the caller supplies which it is. The
-    // first has one answer for the whole invoice and the section states it once;
-    // saying it per box would print one document's status once per invoice item.
-    const judgedShare = { ...invoiceShareStatus({ billed: 15, arrived: 0 }), ordered: 30 };
+    // delivered none of this ordered item", so the caller supplies which it is. The
+    // first has one answer for the whole invoice and the section states it once.
+    const judgedShare = invoiceShareStatus({ billed: 15, arrived: 0 });
     check(
         "nothing matched, so the box says nothing about delivery",
         describeInvoiceLine(judgedShare, "EA", { hasDelivery: false }).verdict,
@@ -284,11 +335,11 @@ export function run({ check, log, assert }) {
     // `nothing-delivered` now means only this, which is why it was kept rather than
     // deleted with the states this module has removed for having no reader: the app's
     // own pairing cannot produce it — `fitRefusal` requires containment and
-    // `roomOnOrderedItem` refuses a pair with no room — but a hand-set link can, and
-    // so can a bill of 0.
+    // `roomOnOrderedItem` refuses a pair with no room — but a hand-set link can
+    // (`HYE-INV-260804-03` is one), and so can a bill of 0.
     check(
         "  a bill of 0 reaches it by the clamp",
-        describeInvoiceLine({ ...invoiceShareStatus({ billed: 0, arrived: 9 }), ordered: 5 }, "EA", {
+        describeInvoiceLine(invoiceShareStatus({ billed: 0, arrived: 9 }), "EA", {
             hasDelivery: true,
         }).verdict?.key,
         "nothing-delivered"
@@ -303,39 +354,83 @@ export function run({ check, log, assert }) {
     }
 
     log("");
-    log("`Against the order:` is the box's ONLY order-scoped line, so it is not conditional:");
-    // Before #232 the box carried `Ordered · Billed · Delivered`, all three the
-    // ordered item's, and this line appeared only when a side exceeded. The other two
-    // figures are the invoice's own now, so making this conditional again would take
-    // the order out of the box entirely on every ordinary row — and leave `Billed`
-    // and `Delivered` with no denominator.
-    const ordinary = { ...invoiceShareStatus({ billed: 15, arrived: 15 }), ordered: 30 };
-    check(
-        "nothing exceeds anything, and it still states the order",
-        describeInvoiceLine(ordinary, "EA", { hasDelivery: true }).againstOrder?.text,
-        "Against the order: 30 EA ordered"
+    log("the two surviving verdicts are DISCREPANCIES, not stages:");
+    // Under the premise nothing further is coming: what this invoice bills either
+    // arrived on the delivery it matches or was never shipped. So a shortfall is an
+    // event to take up with the vendor, and `yet` has exactly one honest home on this
+    // screen — the section's empty state, where the material may still arrive or the
+    // arrival may still be recorded.
+    const shortfall = describeInvoiceLine(invoiceShareStatus({ billed: 13, arrived: 10 }), "EA", {
+        hasDelivery: true,
+    }).verdict;
+    const nothingOfIt = describeInvoiceLine(invoiceShareStatus({ billed: 40, arrived: 0 }), "EA", {
+        hasDelivery: true,
+    }).verdict;
+    check("the shortfall states its figure", shortfall.text, "3 EA more billed than the matched delivery delivered");
+    check("  so does the empty one", nothingOfIt.text, "40 EA billed, none of it delivered by the matched delivery");
+    for (const v of [shortfall, nothingOfIt]) {
+        assert(`\`${v.key}\` does not say 'yet'`, !/\byet\b/.test(v.text));
+        assert(`  and names the matched delivery as what it compares against`, v.text.includes("matched delivery"));
+    }
+    // THE ONE PLACE `yet` BELONGS is not in this module at all — it is the section's
+    // empty state on the page, where nothing has been matched. Asserted here as an
+    // absence across every sentence this module can produce.
+    const everyDetailSentence = [
+        ...Object.values(STATUS_COPY.detail.verdict).map((f) => f(shortShare, "EA").text),
+        STATUS_COPY.detail.againstOrder(bothBeyond, "EA").text,
+    ];
+    assert(
+        "and no detail sentence anywhere says it",
+        everyDetailSentence.every((t) => !/\byet\b/.test(t))
     );
+
+    log("");
+    log("`Against the ordered item:` is CONDITIONAL again, and leads with no `ordered`:");
+    // #232's first pass made it unconditional and led it with `N ordered`, to anchor
+    // the figures line above it. That line is gone — a normal box is silent — so there
+    // is nothing to anchor, and the ordered quantity is `/pos/[poId]`'s `Qty` column.
+    // The label says `ordered item` because the figure it compares against is one
+    // `PO Items` row's `Qty`, never the order's total (#227).
+    const ordinary = invoiceShareStatus({ billed: 15, arrived: 15 });
     check(
-        "  both terms join it on ONE line, billed side first",
-        describeInvoiceLine(
-            { ...ordinary, billedBeyondOrder: 3, arrivedBeyondOrder: 2 },
-            "EA",
-            { hasDelivery: true }
-        ).againstOrder?.text,
-        "Against the order: 30 EA ordered, 3 EA more billed, 2 EA more delivered"
-    );
-    check("  and a blank unit reads without one", describeInvoiceLine(ordinary, "", { hasDelivery: true }).againstOrder?.text, "Against the order: 30 ordered");
-    // `ordered` IS THE GATE, which is what keeps a bare share silent about an order
-    // it holds no figure from — the list axis builds exactly such shares.
-    check(
-        "a bare share states nothing about the order",
-        describeInvoiceLine(invoiceShareStatus({ billed: 15, arrived: 15 }), "EA", {
-            hasDelivery: true,
-        }).againstOrder,
+        "nothing exceeds, and the line is absent entirely",
+        describeInvoiceLine(ordinary, "EA", { hasDelivery: true }).againstOrder,
         null
     );
     check(
-        "  nor does a not-compared box, which has no order at all",
+        "  both terms on ONE line, billed side first",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 3, arrivedBeyondOrder: 2 }, "EA", {
+            hasDelivery: true,
+        }).againstOrder?.text,
+        "Against the ordered item: 3 EA more billed, 2 EA more delivered"
+    );
+    check(
+        "  and a blank unit reads without one",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 3 }, "", { hasDelivery: true })
+            .againstOrder?.text,
+        "Against the ordered item: 3 more billed"
+    );
+    assert(
+        "no order-scoped sentence claims the ORDER any more",
+        !STATUS_COPY.detail.againstOrder(bothBeyond, "EA").text.includes("Against the order:")
+    );
+    // IT DOES NOT DEPEND ON `hasDelivery`: an ordered item billed beyond its `Qty` is
+    // a fact whether or not anything has been matched, and that is the figure this
+    // screen alone shows.
+    check(
+        "an unmatched invoice still states a billing excess",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 3 }, "EA", { hasDelivery: false })
+            .againstOrder?.text,
+        "Against the ordered item: 3 EA more billed"
+    );
+    check(
+        "  even though its verdict is withheld",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 3 }, "EA", { hasDelivery: false })
+            .verdict,
+        null
+    );
+    check(
+        "a not-compared box states nothing about an ordered item it has not got",
         describeInvoiceLine(null, "EA", { hasDelivery: true }).againstOrder,
         null
     );
@@ -421,33 +516,34 @@ export function run({ check, log, assert }) {
     // about which WORDS a verdict uses and #232 made the verdict's existence a
     // separate question — pinned in its own section above, on its own inputs.
     const detail = (status, unit = "EA") => describeInvoiceLine(status, unit, { hasDelivery: true });
-    check("covered", detail(covered).verdict?.text, "All billed material delivered");
-    check("short", detail(partShare).verdict?.text, "3 EA more billed than delivered");
-    check("nothing", detail(shortShare).verdict?.text, "Nothing delivered yet");
+    check("covered says nothing at all (#232)", detail(covered).verdict, null);
+    check("short", detail(partShare).verdict?.text, "3 EA more billed than the matched delivery delivered");
+    check("nothing", detail(shortShare).verdict?.text, "40 EA billed, none of it delivered by the matched delivery");
     check("not compared", detail(null).verdict?.text, "Not compared — no ordered item");
-    // No figures where the box's own numbers line already carries them.
-    assert("the covered verdict states no quantity", !/\d/.test(detail(covered).verdict?.text));
-    assert("nor does the empty one", !/\d/.test(detail(shortShare).verdict?.text));
+    // BOTH SURVIVING VERDICTS CARRY FIGURES, and #232 inverted the reason they did
+    // not. The rule was "no figures where the box's own numbers line already has
+    // them"; the box has no numbers line now, so the difference — which IS the fact
+    // in both — is stated where it is found.
     assert(
         "the shortfall verdict states the difference, which IS the fact",
         detail(partShare).verdict?.text.startsWith("3 EA")
     );
+    assert("and the empty one states the whole bill", detail(shortShare).verdict?.text.startsWith("40 EA"));
     assert(
         "a blank unit omits it rather than printing 'undefined'",
         !detail(partShare, "").verdict?.text.includes("undefined")
     );
 
     log("");
-    log("`Against the order:` is ONE line even when both sides exceed the order:");
-    // `ordered` leads it since #232 and the two exception terms follow — see the
-    // section above for why the line no longer comes and goes.
-    const onOrder = { ...covered, ordered: 40 };
-    const withBoth = { ...partShare, ordered: 20, arrivedBeyondOrder: 2, billedBeyondOrder: 3 };
-    check("both terms, billed first", detail(withBoth).againstOrder?.text, "Against the order: 20 EA ordered, 3 EA more billed, 2 EA more delivered");
-    check("delivery side alone", detail({ ...onOrder, arrivedBeyondOrder: 2 }).againstOrder?.text, "Against the order: 40 EA ordered, 2 EA more delivered");
-    check("billing side alone", detail({ ...onOrder, billedBeyondOrder: 3 }).againstOrder?.text, "Against the order: 40 EA ordered, 3 EA more billed");
-    check("neither, and the line still states the order", detail(onOrder).againstOrder?.text, "Against the order: 40 EA ordered");
-    check("but it is absent for a not-compared line", detail(null).againstOrder, null);
+    log("`Against the ordered item:` is ONE line even when both sides exceed it:");
+    // Conditional again since #232's second pass, and with no leading `ordered` term
+    // — see the section above for both reversals.
+    const withBoth = { ...partShare, arrivedBeyondOrder: 2, billedBeyondOrder: 3 };
+    check("both terms, billed first", detail(withBoth).againstOrder?.text, "Against the ordered item: 3 EA more billed, 2 EA more delivered");
+    check("delivery side alone", detail({ ...covered, arrivedBeyondOrder: 2 }).againstOrder?.text, "Against the ordered item: 2 EA more delivered");
+    check("billing side alone", detail({ ...covered, billedBeyondOrder: 3 }).againstOrder?.text, "Against the ordered item: 3 EA more billed");
+    check("neither, so the line is absent entirely", detail(covered).againstOrder, null);
+    check("and it is absent for a not-compared line too", detail(null).againstOrder, null);
 
     log("");
     log("NAMED SLOTS, not a list — so a call site cannot color the asides:");
@@ -492,8 +588,8 @@ export function run({ check, log, assert }) {
     // #166's. Two implementations of one rule is what this repo removes; what
     // stays here is #166's own vocabulary, which that check does not own.
     assert(
-        "the shortfall message says 'more billed than delivered'",
-        STATUS_COPY.detail.verdict["billed-more"](short, "EA").text.includes("more billed than delivered")
+        "the shortfall message says 'more billed than' what it compares against",
+        STATUS_COPY.detail.verdict["billed-more"](short, "EA").text.includes("more billed than the matched delivery")
     );
     assert("every sentence is non-empty", everySentence.every((t) => t && t.length > 0));
 
@@ -793,7 +889,7 @@ export function run({ check, log, assert }) {
     // the CURRENT module holds, so it moved to the one that issue added — which
     // keeps the property this line is for: proof the walk is reading the new file
     // and not a stale parse.
-    assert("  including one #232 ADDED, so it is reading the new file", identifiers.has("speaksOfDelivery"));
+    assert("  including one #232 ADDED, so it is reading the new file", identifiers.has("speaks"));
     assert("it sees object keys", propertyKeys.has("billedNotArrived"));
     assert("  including one #210 added", propertyKeys.has("mismatch"));
     // A control on the negative direction too: a name that is genuinely absent and

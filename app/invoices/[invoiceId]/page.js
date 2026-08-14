@@ -3,10 +3,10 @@ import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
-import { describeInvoiceColumn, describeInvoiceLine } from "@/lib/deliveryStatus";
+import { STATUS_COPY, describeInvoiceColumn, describeInvoiceLine } from "@/lib/deliveryStatus";
 import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
 import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoiceMatch";
-import { StatusChip } from "@/app/components/DeliveryStatusMarks";
+import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
@@ -96,6 +96,10 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
     const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
+    // #232 — whether a delivery box has to name its own order. Counted off the same
+    // ids the `Purchase Order(s)` section above pluralizes on, so the two cannot
+    // disagree about how many this invoice spans.
+    const spansSeveralPOs = poRecordIds.length > 1;
 
     // Issue #166 — the delivery side of this invoice, and since #210 the delivery it
     // matches rather than an estimate of which one answered it. Up to three
@@ -333,29 +337,39 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 order's page. What differs box to box is how much of that delivery
                 answered THAT ordered item, and that is what a box still carries.
 
-                THE FIGURES IN A BOX ARE THIS INVOICE'S. `Billed` is what this bill
-                charges, not the `Invoiced Qty` rollup across every invoice, and
-                `Delivered` is what the matched delivery brought of that ordered item.
-                Before #232 both were the ordered item's, which is how
-                `HYE-INV-260804-04` came to read `Billed 30` while billing 15 under a
-                delivery belonging to another bill. `This bill:` existed only to
-                caption the first of those and went with it.
+                THE INVOICE LEVEL SAYS WHAT THE STATE IS AND A BOX POINTS AT AN
+                EXCEPTION — that is the whole layout, and it follows from the
+                one-delivery premise (docs/notes, "The one-delivery premise"). What
+                this invoice bills arrives on the delivery it matches or not at all,
+                so "everything billed was delivered" is one fact about one document:
+                the chip states it, and a box repeating it would state it once per
+                invoice item. So a box that agrees is silent — its item name and,
+                where the invoice spans more than one order, its PO link.
 
-                THE ORDER IS NOT GONE FROM THE BOX — IT IS ON ONE LINE THAT SAYS SO.
-                `Against the order:` is the only order-scoped statement left, and its
-                label is what keeps the two scopes apart, so it renders on every
-                judged box rather than only on an exception. See
-                STATUS_COPY.detail.againstOrder before making it conditional again.
+                A BOX THAT DISAGREES CARRIES ITS FIGURES, which is where the numbers
+                went. `Billed 15 · Delivered 15` stood on every box in #232's first
+                pass; both figures were correct and both were the same on every box of
+                a normal invoice. The exception sentences hold the quantities now, so
+                the shortfall is stated once, where it is.
+
+                THE MARKER BESIDE THE CHIP IS THE LIST'S, from `summary.mismatch` and
+                `STATUS_COPY.column.mismatch` — the same two the invoice list reads.
+                It was missing here, so `HYE-INV-260804-03` read `Delivered` with no
+                qualification on this page while the list marked it, which is exactly
+                the disagreement the shared chip exists to prevent.
 
                 COLOR ON THE VERDICT ONLY. lib/deliveryStatus.js returns named
                 slots rather than a list precisely so a call site cannot color the
                 asides too, which is how the first version came out all amber with
-                the color distinguishing nothing. Both slots can be null now and the
+                the color distinguishing nothing. Both slots can be null and the
                 module decides which — a call site cannot withhold one either. */}
             <div className="mt-8">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Delivery</h2>
                     <StatusChip chip={describeInvoiceColumn(reconciliation.summary)} />
+                    {reconciliation.summary.mismatch && (
+                        <QualifierMarker label={STATUS_COPY.column.mismatch().text} />
+                    )}
                 </div>
 
                 {/* #232 — THE MATCHED DELIVERY, ONCE, AND NOTHING OF ITS OWN BESIDE
@@ -410,9 +424,18 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         </span>
                                         {/* Issue #167 — the order this box is scoped
                                             to. It moved here from the items table's
-                                            PO column, which a folded row cannot
-                                            fill; a box always has exactly one. */}
-                                        {row.poRecordId && poById[row.poRecordId] && (
+                                            PO column, which a folded row cannot fill;
+                                            a box always has exactly one.
+
+                                            ONLY WHERE THE INVOICE SPANS MORE THAN ONE
+                                            (#232). That argument holds where an item
+                                            could belong to either of two orders; with
+                                            one PO on the invoice the `Purchase Order`
+                                            section above already answers it, and a
+                                            link repeating it once per box is the same
+                                            repetition this section was redrawn to
+                                            remove. */}
+                                        {spansSeveralPOs && row.poRecordId && poById[row.poRecordId] && (
                                             <Link
                                                 href={`/pos/${encodeURIComponent(poById[row.poRecordId].poId)}`}
                                                 className="text-xs text-zinc-500 underline"
@@ -422,42 +445,34 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         )}
                                     </div>
 
-                                    {/* THIS INVOICE'S TWO FIGURES (#232). `Delivered`
-                                        renders only where there is a delivery to have
-                                        delivered it — the same one condition that
-                                        decides the verdict below, so the box never
-                                        shows a quantity whose subject the section
-                                        heading says does not exist. */}
-                                    {row.status && (
-                                        <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
-                                            Billed {row.billedOnThisInvoice}
-                                            {row.unit ? ` ${row.unit}` : ""}
-                                            {reconciliation.summary.hasDelivery && (
-                                                <>
-                                                    {" · Delivered "}
-                                                    {row.status.delivered}
-                                                    {row.unit ? ` ${row.unit}` : ""}
-                                                </>
-                                            )}
-                                        </p>
-                                    )}
-
+                                    {/* NO FIGURES LINE. `Billed 15 · Delivered 15`
+                                        stood here and was the same on every box of a
+                                        normal invoice; the two sentences below carry
+                                        the quantities on the boxes that have something
+                                        to say. `Billed` is also in the items table
+                                        directly above this section. */}
                                     {lines.verdict && (
                                         <p
                                             className={
-                                                lines.verdict.key === "all-delivered"
-                                                    ? "mt-1 text-green-700"
-                                                    : lines.verdict.key === "not-compared"
-                                                      ? "mt-1 text-zinc-500"
-                                                      : "mt-1 text-amber-700"
+                                                lines.verdict.key === "not-compared"
+                                                    ? "text-zinc-500"
+                                                    : "text-amber-700"
                                             }
                                         >
                                             {lines.verdict.text}
                                         </p>
                                     )}
 
+                                    {/* CONDITIONAL AGAIN (#232, second pass). It was
+                                        made unconditional to anchor the figures line
+                                        above it; that line is gone, so a normal box
+                                        has nothing to anchor and stays silent. Its
+                                        `N ordered` term went with it — that question
+                                        is `/pos/[poId]`'s `Qty` column, one click
+                                        away and on a page that names this invoice
+                                        since #233. */}
                                     {lines.againstOrder && (
-                                        <p className="mt-1 text-zinc-600">
+                                        <p className="text-zinc-600">
                                             {lines.againstOrder.text}
                                         </p>
                                     )}

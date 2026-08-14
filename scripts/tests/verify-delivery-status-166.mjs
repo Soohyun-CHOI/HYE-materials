@@ -487,15 +487,16 @@ try {
         check("and what the delivery it MATCHES brought on that ordered item", judgedRow.status.delivered, 10);
         check("so nothing billed-not-delivered", judgedRow.status.billedNotArrived, 0);
         assert("the ordered item's own totals no longer ride along", !("line" in judgedRow));
-        // THE ORDER'S THREE FACTS TRAVEL ON `status`, where the copy reads them, and
-        // `ordered` is the one that renders on every judged box.
-        check("the ordered figure comes from the ordered item", judgedRow.status.ordered, 10);
-        check(
-            "and it is stated on a line that names that frame",
-            describeInvoiceLine(judgedRow.status, judgedRow.unit, { hasDelivery: true }).againstOrder
-                .text,
-            "Against the order: 10 EA ordered"
-        );
+        assert("nor does the ordered quantity", !("ordered" in judgedRow.status));
+        // AND THIS BOX SAYS NOTHING, because everything it billed was delivered. The
+        // whole invoice's answer is the chip; a box repeating it would state one fact
+        // once per invoice item. Both slots null on a fixture where every figure
+        // agrees is the shape #232's second pass is for.
+        const settledBox = describeInvoiceLine(judgedRow.status, judgedRow.unit, {
+            hasDelivery: true,
+        });
+        check("a box with nothing to report has no verdict", settledBox.verdict, null);
+        check("  nor an order-scoped line", settledBox.againstOrder, null);
         // #232 — THE DELIVERY IS RETURNED ONCE, NOT PER ROW. `Invoices."Delivery"` is
         // single, so a per-row list printed one document once per invoice item; the
         // marker went with the move, a list of one under this invoice's own heading
@@ -602,16 +603,23 @@ try {
         // THE ORDERED ITEM'S TOTALS ARE THE FIXTURE THIS PART EXISTS FOR — 16 billed
         // across two invoices, 16 delivered across two arrivals — and #232 took them
         // off the row precisely because a reader took them for this invoice's. What
-        // reaches the screen from that level now is `ordered` and nothing else.
+        // reaches the screen from that level now is the two exception figures alone.
         assert("neither rollup reaches the row any more", !("line" in secondRecon.rows[0]));
-        check("only the ordered quantity does", secondRecon.rows[0].status.ordered, 10);
-        // 16 billed against an order of 10, so the order-scoped line carries its
-        // exception term too — and that term is the ORDER's, which no per-invoice
-        // arithmetic could produce: neither bill exceeds 10 on its own.
-        assert(
-            "and the order-scoped line leads with it",
-            describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true })
-                .againstOrder.text.startsWith("Against the order: 10 EA ordered, 6 EA more billed")
+        assert("nor the ordered quantity", !("ordered" in secondRecon.rows[0].status));
+        // 16 billed against an ordered item of 10, so the order-scoped line fires —
+        // and its figure is the ORDERED ITEM's, which no per-invoice arithmetic could
+        // produce: neither bill exceeds 10 on its own. THIS IS THE CASE THAT KEEPS
+        // THE LINE, and the reason it does not depend on anything being matched.
+        check(
+            "the ordered item's billing excess is stated, and only that",
+            describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }).againstOrder
+                ?.text,
+            "Against the ordered item: 6 EA more billed"
+        );
+        check(
+            "  while the verdict stays silent, this bill having been delivered in full",
+            describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }).verdict,
+            null
         );
         assert(
             "and the box has no inferred slot left to fill",

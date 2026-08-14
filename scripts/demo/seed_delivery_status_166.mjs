@@ -378,11 +378,12 @@ Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
 2. /invoices/<id>  —  the "Delivery" section  (rewritten for #232)
 ------------------------------------------------------------------
 The section heading carries the SAME CHIP the list showed, from the same
-function, so the row you clicked and the page you land on cannot disagree.
-Directly under it, ONE line naming the delivery this invoice matches —
-Invoices."Delivery" is single, so per-box would print one document once
-per item. THIS SEED WRITES NO SUCH LINK — bill() predates the field and
-sets nothing — so every invoice it creates reads there:
+function, so the row you clicked and the page you land on cannot disagree
+— and since #232 the same MARKER beside it, which was the half that had
+been missing. Directly under them, ONE line naming the delivery this
+invoice matches: Invoices."Delivery" is single, so per-box would print
+one document once per item. THIS SEED WRITES NO SUCH LINK — bill()
+predates the field and sets nothing — so every invoice it creates reads:
 
          "No delivery has been matched to this invoice yet."
 
@@ -391,47 +392,51 @@ sets nothing — so every invoice it creates reads there:
   below used to say "Nothing delivered yet" under an empty list, which
   asserted the second when only the first was known.
 
-  A BOX HOLDS THIS INVOICE'S OWN FIGURES. "Billed" is what THIS bill
-  charges; "Delivered" is what the matched delivery brought of that
-  ordered item, and it is absent when nothing is matched — so is the
-  verdict, for the same one reason. What the ORDER contributes is a single
-  line that names that frame out loud.
+  THE INVOICE LEVEL SAYS WHAT THE STATE IS; A BOX POINTS AT AN EXCEPTION.
+  What an invoice bills arrives on the one delivery it matches or not at
+  all, so "everything billed was delivered" is one fact about one
+  document and the chip states it. A box that agrees is therefore SILENT
+  — its item name, and its PO link only where the invoice spans more than
+  one order. Every box in this seed is silent, because nothing here is
+  matched to anything and only a matched delivery can fall short.
 
-  ${ids.b ?? "B"}   two boxes. The judged one reads
-         "Billed 15 EA"
-         "Against the order: 15 EA ordered"
+  ${ids.b ?? "B"}   two boxes. The judged one is its name alone:
+         "166-DEMO Gasket 3\""
        and the free-text one is a box of its own reading
          "Not compared — no ordered item"
-       rather than a footnote about a line you cannot see. That verdict
+       rather than a footnote about a line you cannot see. THAT verdict
        stays even with nothing matched: it is a fact about the invoice
-       item and not about any delivery. The app cannot create such a line;
-       this seed used the backend path directly, which is still intact
-       behind #96's flag.
+       item and not about any delivery. The app cannot create such a
+       line; this seed used the backend path directly, which is still
+       intact behind #96's flag.
 
-  ${ids.dNew ?? "D-new"}   two bills of 15 on one ordered item of 30:
-         "Billed 15 EA"
-         "Against the order: 30 EA ordered"
-       No share line. "This bill: 15 of 30 EA" stood here to caption a
-       "Billed" that was the ordered item's total across every invoice;
-       #232 scoped that figure to this bill, and #233 put "which invoices
-       charge this order" on the order's own page.
+  ${ids.dNew ?? "D-new"}   two bills of 15 on one ordered item of 30, and
+       the box says nothing at all. "This bill: 15 of 30 EA" stood here
+       to caption a "Billed" figure that was the ordered item's total
+       across every invoice; #232 scoped that figure to this bill and
+       then dropped the figures line entirely, and #233 put "which
+       invoices charge this order" on the order's own page.
 
-  ${ids.e ?? "E"}   "Against the order: 10 EA ordered, 2 EA more delivered"
-       uncolored, and no verdict above it while nothing is matched. Match
-       a delivery to this invoice and the verdict appears in green — two
-       comparisons, the verdict the invoice's and the aside the order's,
-       and only the verdict colored. With both lines amber, as the first
-       version had them, the color distinguished nothing.
+  ${ids.f ?? "F"}   the one box in this seed that speaks:
+         "Against the ordered item: 3 EA more billed"
+       uncolored. 13 billed against an ordered item of 10. It does NOT
+       depend on anything being matched — a vendor billing beyond what
+       was ordered is a fact either way, it is visible on no other
+       screen, and it bears on whether to pay. "ordered item" rather than
+       "order" because the figure is one PO Items row's Qty (#227).
 
-  ${ids.f ?? "F"}   "Against the order: 10 EA ordered, 3 EA more billed"
-       The billed side comes first because that is the side this screen is
-       about, and both terms sit on ONE line: it is one comparison with
-       two terms, not two problems.
+  ${ids.e ?? "E"}   silent here, because its excess is on the DELIVERY
+       side: 12 arrived against an ordered item of 10. Match a delivery
+       to this invoice and the box reads
+         "Against the ordered item: 2 EA more delivered"
+       with, on a short one, an amber verdict above it. Only the verdict
+       is colored — with both lines amber, as the first version had them,
+       the color distinguished nothing.
 
-  THE ORDER-SCOPED LINE RENDERS ON EVERY JUDGED BOX, including the boxes
-  where nothing exceeds anything. It is the only thing a box says about
-  the order now, so its label is what keeps the two scopes apart — make it
-  conditional and the order leaves the box entirely on ordinary rows.
+  TO SEE A BOX SPEAK ABOUT DELIVERY you need a MATCHED invoice that falls
+  short, which this seed cannot make: it writes no link. HYE-INV-260804-03
+  on the shared base is that case, by a hand-set link the app's own
+  pairing would refuse.
 
 ------------------------------------------------------------------
 3. /deliveries — the "Invoiced" column, and /invoices — the strip
