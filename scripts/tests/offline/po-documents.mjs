@@ -306,7 +306,7 @@ export function run({ check, assert, log }) {
         ...sentences,
         PO_DOCUMENTS_COPY.invoices.heading,
         PO_DOCUMENTS_COPY.deliveries.heading,
-        PO_DOCUMENTS_COPY.badge.totalVariance,
+        PO_DOCUMENTS_COPY.badge.headerVariance,
         PO_DOCUMENTS_COPY.badge.itemVariance,
         PO_DOCUMENTS_COPY.badge.paid({ paidDate: "2026-07-27" }),
         PO_DOCUMENTS_COPY.badge.notPaid,
@@ -334,7 +334,23 @@ export function run({ check, assert, log }) {
     // charge against the order.
     assert(
         "  the two variance badges are two different words",
-        PO_DOCUMENTS_COPY.badge.totalVariance !== PO_DOCUMENTS_COPY.badge.itemVariance
+        PO_DOCUMENTS_COPY.badge.headerVariance !== PO_DOCUMENTS_COPY.badge.itemVariance
+    );
+    // EACH IS THE WORD THE INVOICE DETAIL ALREADY USES FOR THAT FLAG, pinned as a
+    // literal because the point is agreement across two screens rather than any
+    // property of the strings. `⚠ Header Variance` is not a word this issue would
+    // have chosen — #179 has already picked `Total mismatch` for it — but coining
+    // a better one here would give one flag two screen words, which is the drift
+    // that issue exists to remove. It changes on both pages or neither.
+    check(
+        "  the header badge is the invoice detail's word, unchanged",
+        PO_DOCUMENTS_COPY.badge.headerVariance,
+        "⚠ Header Variance"
+    );
+    check(
+        "  and the charge badge is its items table's",
+        PO_DOCUMENTS_COPY.badge.itemVariance,
+        "⚠ Variance"
     );
     check(
         "a paid badge with no date still reads",
@@ -352,7 +368,26 @@ export function run({ check, assert, log }) {
         qty: 230,
         unitPrice: 13.49,
     }).text;
-    assert(`  ${charge}`, charge.includes("Item A") && charge.includes("230") && charge.includes("13.49"));
+    assert(`  ${charge}`, charge.includes("Item A") && charge.includes("230"));
+    // MONEY IS FORMATTED, WHICH IS THE ONE THING THAT MAKES THIS PAGE AGREE WITH
+    // ITSELF. The table above it and the invoice detail's items table both go
+    // through `formatUSD`; this charge printed the raw number until #233. Pinned on
+    // the `$` and the separator rather than on the whole string, so a locale
+    // formatter's spacing is not what a check fails on.
+    assert(`  the price is formatted, not raw`, charge.includes("$13.49") && !/@ 13\.49/.test(charge));
+    check(
+        "  and a thousands separator survives the round trip",
+        PO_DOCUMENTS_COPY.invoices
+            .charge({ itemName: "Item A", qty: 1, unitPrice: 1234.5 })
+            .text.includes("$1,234.50"),
+        true
+    );
+    // A charge with no price says nothing about price rather than `$0.00`, which
+    // would be a figure the invoice item does not carry.
+    assert(
+        "  a charge with no unit price prints no money at all",
+        !PO_DOCUMENTS_COPY.invoices.charge({ itemName: "Item A", qty: 5 }).text.includes("$")
+    );
     const brought = PO_DOCUMENTS_COPY.deliveries.brought({
         itemName: "Item B",
         size: '3"',

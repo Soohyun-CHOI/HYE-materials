@@ -258,16 +258,22 @@ async function renderPODetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Unit Price</th>
                             <th className="pr-2 text-right">Amount</th>
                             {/* Delivery-derived (#169), so EVERY viewer who can see
-                                the order sees these — the same category as the
+                                the order sees this — the same category as the
                                 `Material` link and #167's provenance reverse-link,
                                 and the reason recordToPOItem now carries
-                                `Delivered Qty`. They sit before the invoice pair so
-                                a non-privileged viewer's columns stay contiguous. */}
+                                `Delivered Qty`. It sits before the invoice one so
+                                a non-privileged viewer's columns stay contiguous.
+
+                                #233 TOOK `Undelivered` AND `Uninvoiced` OUT. Each
+                                was its row's own `Qty` minus the column beside it,
+                                so the reader can do the subtraction and the table
+                                carries the two figures rather than four. What that
+                                could have cost is the over signal, which used to
+                                ride on those two cells going negative; it moved to
+                                these two rather than going with them. */}
                             <th className="pr-2 text-right">Delivered</th>
-                            <th className="pr-2 text-right">Undelivered</th>
                             {/* Invoice-derived (#48) — President/Admin only (#132). */}
                             {isPrivileged && <th className="pr-2 text-right">Invoiced</th>}
-                            {isPrivileged && <th className="pr-2 text-right">Uninvoiced</th>}
                             <th className="pr-2">Remark</th>
                         </tr>
                     </thead>
@@ -278,19 +284,35 @@ async function renderPODetailPage({ params, searchParams }) {
                                     <td className="py-1 pr-2">{it.size}</td>
                                     <td className="py-1 pr-2">{it.unit}</td>
                                     <td className="py-1 pr-2 text-right">{it.qty}</td>
-                                    <td className="py-1 pr-2 text-right">{it.unitPrice}</td>
-                                    <td className="py-1 pr-2 text-right">{it.amount}</td>
-                                    <td className="py-1 pr-2 text-right">{it.deliveredQty ?? 0}</td>
-                                    {/* NEGATIVE IS TREATED EXACTLY AS Uninvoiced
-                                        TREATS IT, two columns to the right: red,
-                                        with `(over)`. The two perform the same
-                                        subtraction against the same `Qty` and a
-                                        negative means the same thing in both — more
-                                        arrived, or more was billed, than was
-                                        ordered. Signaling differently for one sign
-                                        would imply a distinction neither column
-                                        makes, and `(over)` is this base's own word
-                                        for it (`Delivery Items."Over Delivered"`). */}
+                                    {/* #233 — through formatUSD, like the Total
+                                        Amount above and the invoice detail's own
+                                        items table. This page was the exception. */}
+                                    <td className="py-1 pr-2 text-right">{formatUSD(it.unitPrice)}</td>
+                                    <td className="py-1 pr-2 text-right">{formatUSD(it.amount)}</td>
+                                    {/* THE OVER SIGNAL RODE ON `Undelivered` AND
+                                        `Uninvoiced` GOING NEGATIVE, and it moved here
+                                        with those columns' removal rather than going
+                                        with them (#233) — otherwise an over-delivery
+                                        and an over-billing would have left the table
+                                        entirely, and this is the only place in the
+                                        change where information could have been lost.
+
+                                        THE PAIR IS STILL TREATED IDENTICALLY, which
+                                        is the rule #169 wrote here: the two perform
+                                        the same subtraction against the same `Qty`
+                                        and a negative means the same thing in both —
+                                        more arrived, or more was billed, than was
+                                        ordered. Signaling differently for one would
+                                        imply a distinction neither makes, and
+                                        `(over)` is this base's own word for it
+                                        (`Delivery Items."Over Delivered"`).
+
+                                        THE PREDICATE IS THE SAME ONE, read off the
+                                        named subtraction rather than re-derived as
+                                        `delivered > qty` here: `undeliveredQty` and
+                                        `uninvoicedQty` own those two figures, and
+                                        the column moving is no reason for the page
+                                        to acquire a second answer to either. */}
                                     <td
                                         className={
                                             undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty }) < 0
@@ -298,12 +320,9 @@ async function renderPODetailPage({ params, searchParams }) {
                                                 : "py-1 pr-2 text-right"
                                         }
                                     >
-                                        {undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty })}
+                                        {it.deliveredQty ?? 0}
                                         {undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty }) < 0 && " (over)"}
                                     </td>
-                                    {isPrivileged && (
-                                        <td className="py-1 pr-2 text-right">{it.invoicedQty}</td>
-                                    )}
                                     {isPrivileged && (
                                         <td
                                             className={
@@ -312,7 +331,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                                     : "py-1 pr-2 text-right"
                                             }
                                         >
-                                            {it.uninvoicedQty}
+                                            {it.invoicedQty}
                                             {it.uninvoicedQty < 0 && " (over)"}
                                         </td>
                                     )}
@@ -321,22 +340,25 @@ async function renderPODetailPage({ params, searchParams }) {
                         ))}
                     </tbody>
                     {/* Trailing columns after Amount: privileged has Delivered +
-                        Undelivered + Invoiced + Uninvoiced + Remark (5);
-                        non-privileged has Delivered + Undelivered + Remark (3).
-                        The enumeration said 3 and 1 until #233 — #169 put its two
-                        columns to the left of Invoiced and moved the VALUES from 3
-                        and 1 without moving the list that explains them.
+                        Invoiced + Remark (3); non-privileged has Delivered +
+                        Remark (2). The enumeration said 3 and 1 while the values
+                        were 5 and 3 — #169 put its two columns to the left of
+                        Invoiced and moved the VALUES without moving the list that
+                        explains them, which is how a hand-counted constant rots.
 
-                        #233 RETIRED THE THIRD OF #169's HAND-COUNTED CONSTANTS.
+                        #233 TOUCHED ALL THREE OF #169's HAND-COUNTED CONSTANTS.
                         The invoice breakdown row that carried `colSpan={11}` is
-                        gone with the per-row placement; the header cells and this
-                        pair keep their values, since no column changed. */}
+                        gone with the per-row placement, the header cells lost
+                        `Undelivered` and `Uninvoiced`, and this pair went 5/3 to
+                        3/2. A wrong value here misaligns the footer silently and
+                        no offline check can see it, so both privilege levels are
+                        counted in a browser — 9 and 8 columns now. */}
                     <ItemsSummaryRows
                         itemsSubtotal={po.itemsSubtotal}
                         shippingFee={po.shippingFee}
                         totalAmount={po.totalAmount}
                         labelColSpan={5}
-                        trailingColSpan={isPrivileged ? 5 : 3}
+                        trailingColSpan={isPrivileged ? 3 : 2}
                     />
                 </table>
                 <p className="mt-2 text-xs text-zinc-500">
@@ -427,7 +449,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                         <span className="text-zinc-500">{inv.issueDate || "—"}</span>
                                         {inv.varianceFlag && (
                                             <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
-                                                {PO_DOCUMENTS_COPY.badge.totalVariance}
+                                                {PO_DOCUMENTS_COPY.badge.headerVariance}
                                             </span>
                                         )}
                                         {/* Payment is President-or-Admin (#211), which
