@@ -41,11 +41,11 @@ import {
     getInvoicingStatusByPO,
     getInvoicedQtyForPOItem,
 } from "../../lib/airtable/poItems.js";
-import { updatePO, isPoOpen } from "../../lib/airtable/purchaseOrders.js";
+import { updatePO, getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { createInvoice, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
-import { uninvoicedQty } from "../../lib/poItemQty.js";
+import { uninvoicedQty, hasUninvoicedItems } from "../../lib/poItemQty.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllLines } from "../../lib/airtable/lines.js";
@@ -477,7 +477,16 @@ if (!requester || !vendorA || !vendorB || !line) {
     check("uninvoicedQty follows the shared rule", enriched.uninvoicedQty, uninvoicedQty({ qty: 10, invoicedQty: 3 }));
     check("and equals 7", enriched.uninvoicedQty, 7);
     check("the employee path still omits invoicedQty (#132)", "invoicedQty" in (await getItemsByPO(gen1.poRecordId))[0], false);
-    check("isPoOpen sees uninvoiced qty on this PO", await isPoOpen(gen1.poRecordId), true);
+    // #244 — was `await isPoOpen(gen1.poRecordId)`, a re-read of this PO plus a
+    // walk of its ordered items. Same assertion, read off the order's own record:
+    // `Uninvoiced Items` counts the items passing hasUninvoicedQty, and one of
+    // this order's does. That the rollup agrees with the JS at all is
+    // verify-open-orders-244.mjs's to prove, not this file's.
+    check(
+        "the order still has something to invoice",
+        hasUninvoicedItems(await getPOByRecordId(gen1.poRecordId)),
+        true
+    );
 
     // Over-invoicing must stay negative rather than clamp.
     const ii2 = await createInvoiceItem({

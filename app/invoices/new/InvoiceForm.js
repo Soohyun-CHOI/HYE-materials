@@ -9,6 +9,10 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 // itself already ran on the server and every PO here carries its answer as `unsigned`.
 import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
 import { PO_ORIGIN, claimDetected, poOptionsForSlot } from "@/lib/poPickerOptions";
+// Issue #244 — same category as the two above: pure and import-free. This one is
+// the per-item half of what leaves an order open, and the sort below was an
+// inline copy of it.
+import { hasUninvoicedQty } from "@/lib/poItemQty";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes
 // an explicit choice in the PO Item dropdown — distinguishes "still
@@ -43,10 +47,18 @@ const EMPTY_SLOT = { poRecordId: "", searchMode: false, query: "", results: [], 
 // Issue #57 — items with uninvoiced qty left first (stable, so
 // relative order within each group is untouched), fully-invoiced/over-
 // invoiced pushed to the bottom rather than hidden.
+//
+// Issue #244 — the test was `uninvoicedQty > 0` written out here, which was the
+// last hand-typed copy of hasUninvoicedQty anywhere. It is the same rule the base
+// now answers with for whole orders, and #244 removed the predicate's other
+// caller, so leaving a copy of it on this very screen was the duplication worth
+// closing while the question was open. It reads the same figures the sort always
+// had: `qty` and `invoicedQty` both ride on each cached PO Item, from
+// getInvoicingStatusByPO, so this costs nothing.
 function sortByUninvoiced(poItems) {
     return [...poItems].sort((a, b) => {
-        const aOpen = a.uninvoicedQty > 0 ? 0 : 1;
-        const bOpen = b.uninvoicedQty > 0 ? 0 : 1;
+        const aOpen = hasUninvoicedQty({ qty: a.qty, invoicedQty: a.invoicedQty }) ? 0 : 1;
+        const bOpen = hasUninvoicedQty({ qty: b.qty, invoicedQty: b.invoicedQty }) ? 0 : 1;
         return aOpen - bOpen;
     });
 }
@@ -374,8 +386,10 @@ export default function InvoiceForm({ vendors, pos }) {
             // Issue #92, case 1 — a matched PO that's already fully
             // invoiced (every PO Item's cumulative invoiced Qty already
             // meets its ordered Qty), independent of PO.Status. Computed
-            // server-side (detect-po/route.js) via #15's isPoOpen(), so
-            // this is just reading a flag already on each confirmed entry.
+            // server-side (detect-po/route.js), since #244 by reading the
+            // order's own `Uninvoiced Items` off the record the route already
+            // fetched, so this is just reading a flag already on each
+            // confirmed entry.
             // Non-blocking — an unusual but legitimate scenario (e.g. a
             // correction or late add-on charge) — so it only ever changes
             // the message's tone (level: "warning"), never what auto-fills.

@@ -337,11 +337,12 @@ try {
     const allPos = await getPOsExceptWithdrawn();
     check("getPOsExceptWithdrawn drops the withdrawn PO", allPos.some((po) => po.id === po6.id), false);
     check("getPOsExceptWithdrawn returns no withdrawn PO at all", allPos.some(isPOWithdrawn), false);
-    // getOpenPOs needs no change of its own — it filters getPOsExceptWithdrawn()'s result
-    // by uninvoiced qty — but "inherits the exclusion" is only
-    // worth stating if it's checked. po7 has an item with nothing invoiced
-    // against it, so openness can't be what keeps it out; only the status
-    // exclusion can.
+    // getOpenPOs needed no change of its own for #138 — it carries the same
+    // status condition, by calling getPOsExceptWithdrawn then, and by
+    // interpolating the shared PO_NOT_WITHDRAWN fragment itself since #244 — but
+    // "carries the exclusion" is only worth stating if it's checked. po7 has an
+    // item with nothing invoiced against it, so openness can't be what keeps it
+    // out; only the status exclusion can.
     const openPos = await getOpenPOs();
     check("getOpenPOs drops the withdrawn PO", openPos.some((po) => po.id === po7.id), false);
     check("getOpenPOs returns no withdrawn PO at all", openPos.some(isPOWithdrawn), false);

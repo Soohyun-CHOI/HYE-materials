@@ -283,3 +283,73 @@ vendor's open orders. The rule is `lib/poPickerOptions.js`.
 - **NO NEW READ, AND NONE LATER EITHER.** Deriving removes nothing, so an order picked
   after a search needs no second request, and `poItemsCache` is never evicted anyway.
   Measured on the labeled route: 85 ops on `/invoices/new` before and after.
+
+### Asking the base which orders are still open (#244)
+
+`getOpenPOs` is one query — not withdrawn, and at least one ordered item with
+something left to invoice — where it used to fetch every non-withdrawn order and
+then ask each one in turn. The picker's set is unchanged; who computes it is not.
+
+- **THE COST HAD NO CEILING, AND THAT IS WHY THIS IS A DEPLOYABILITY ISSUE RATHER
+  THAN A PERFORMANCE ONE.** `isPoOpen` re-read the order and walked its ordered
+  items, so the screen cost 1 + 2N with N the orders the company has ever placed
+  and not withdrawn. Measured on this base: **83 operations, of the 85
+  `/invoices/new` cost**, the other two being the session and the vendor list.
+  Every other screen is bounded by one document's items or by the office's
+  headcount; this one was bounded by history. Airtable's five requests a second
+  is a whole-base limit that no plan raises, so one person opening this form asked
+  for a multiple of the entire base's budget — which makes it a limit on
+  concurrent users rather than on latency.
+- **THE OLD COMMENT'S DEFENSE WAS TRUE OF ONE ORDER AND FALSE OF A LIST OF THEM.**
+  It argued that an order with an unfulfilled item early in its list is cheap to
+  confirm, which is correct — and irrelevant to a caller that pays that
+  confirmation once per order. The early return bounds the walk WITHIN one order
+  and does nothing about the number of orders, and the comment did not draw the
+  distinction. Its true half is now on `getOpenPOs`, where the reader is.
+- **TWO FIELDS, BECAUSE A ROLLUP AGGREGATES ONE CHILD FIELD.** `Qty - Invoiced
+  Qty` cannot be computed inside a rollup, and a rollup CONDITION cannot compare
+  one field against another either. Even if it could, this base already decided
+  against conditions: `Committed Qty`'s own description records that a condition
+  is invisible in a schema dump, unreadable from code, and would have to be
+  repeated per rollup. So the judgment sits in a named child field, `PO Items."Has
+  Uninvoiced Qty"`, and `Purchase Orders."Uninvoiced Items"` sums it — the shape
+  `Committed Qty` -> `Materials."Committed Qty"` already uses.
+- **IT COUNTS ITEMS AND NOT QUANTITY, AND SUMMING THE QUANTITY WOULD BE WRONG
+  RATHER THAN MERELY DIFFERENT.** An order with one item over-invoiced by 5 and
+  another under-invoiced by 5 has zero uninvoiced quantity and is open. Openness
+  is the OR of a per-item predicate, so the only faithful aggregate is a count of
+  the items that pass it.
+- **`Qty`, NOT `Committed Qty`, in the child formula.** Withdrawal is already the
+  picker query's other half, through the shared `PO_NOT_WITHDRAWN` fragment.
+  Reading it in the formula as well would put one rule in two places, and the two
+  would answer differently the day the status list changes. `getOpenPOs` is the
+  fragment's third reader for the same reason — its two halves belong in one
+  formula rather than in a call to `getPOsExceptWithdrawn` plus a filter.
+- **`isPoOpen` IS GONE, AND ITS OTHER CALLER GOT CHEAPER, NOT MORE EXPENSIVE.**
+  `/api/invoices/detect-po` asks about one order rather than all of them, which is
+  the case the walk suited — but it had already fetched that order through
+  `getPOById`, so the walk was a second read of a record in hand. It reads
+  `Uninvoiced Items` off that record now, in the same pass that sets `unsigned`,
+  and pays nothing. Reading the same field the picker filters on is also what
+  stops the banner naming an order the dropdown withholds, which is exactly the
+  asymmetry #168 was diagnosing.
+- **WHAT IS INHERITED IS A LAG, AND IT IS NAMED RATHER THAN ASSUMED AWAY.** The
+  walk read the rollup off a `.find()`; the query reads it through Airtable's
+  query index, which `client.js` records can briefly miss a just-written record.
+  Measured in `verify-open-orders-244.mjs` Part E in both directions, with the
+  figure written onto `PO Items."Invoiced Qty"` in the base beside #18's
+  first-read measurement, which was about the other surface. Both directions were
+  survivable before the measurement: a newly generated order is appended to the
+  picker by detection (`InvoiceForm.js`'s `posList`), and one that has just closed
+  still raises the over-invoicing warning.
+- **THE SET WAS COMPARED, NOT ASSUMED.** Both answers were computed over the whole
+  base before and after: 24 open orders of 45, identical, no order on one side
+  only. `verify-open-orders-244.mjs` Part D re-runs that comparison every time.
+- **The picker's own copy is untouched.** #198's unsigned mark and #242's search
+  retention read what the picker is given, not how it was found, so neither has a
+  seat in this change — both were re-checked in a browser rather than reasoned
+  about.
+- **Not in this issue:** #193's one-at-a-time reads elsewhere on this page, which
+  is a different shape — batching a walk that runs once per order still grows with
+  the orders. Nor the denylist-versus-allowlist question `PO_NOT_WITHDRAWN` still
+  carries, recorded above and unchanged.

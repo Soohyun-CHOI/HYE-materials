@@ -99,8 +99,9 @@ try {
     const a = await createPR({ requesterId: userId, notes: `${TAG} unsigned` });
     track("prs", a.id);
     // THIS ITEM IS LOAD-BEARING — do not remove it as unused. Without it the PO
-    // generated below has no ordered items, so isPoOpen returns false and getOpenPOs
-    // excludes it for having nothing to invoice rather than for being unsigned.
+    // generated below has no ordered items, so its `Uninvoiced Items` rollup is
+    // empty (#244) and getOpenPOs excludes it for having nothing to invoice
+    // rather than for being unsigned.
     // Step 2's assertion would then pass with the signature-status filter
     // restored, which is exactly what it must fail on. Same reasoning
     // verify-po-withdraw-138.mjs Part C states for its own po7.

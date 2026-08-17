@@ -436,13 +436,19 @@ export function run(reporter) {
         firstPositionOf(poPage.ast, (n) => n.type === "Literal" && n.value === "Awaiting Signature") === -1
     );
 
-    // THE STATUS CONDITION IS BUILT ONCE AND READ TWICE (#168). This used to
-    // require the opposite — PO_WITHDRAWN_STATUS interpolated TWICE, once in each
-    // invoice-side query — which pinned the duplication rather than the rule. Both
-    // readers feed the same screen (the invoice form's picker and its search
-    // escape hatch), so a condition changed on one side would have made the
-    // dropdown hide a PO the search finds. Counted as interpolations inside a
-    // template literal, so a mention in a comment cannot contribute.
+    // THE STATUS CONDITION IS BUILT ONCE AND READ BY EVERY INVOICE-SIDE QUERY
+    // (#168). This used to require the opposite — PO_WITHDRAWN_STATUS interpolated
+    // TWICE, once in each invoice-side query — which pinned the duplication rather
+    // than the rule. The readers feed the same screen (the invoice form's picker
+    // and its search escape hatch), so a condition changed on one side would have
+    // made the dropdown hide a PO the search finds. Counted as interpolations
+    // inside a template literal, so a mention in a comment cannot contribute.
+    //
+    // THREE SINCE #244, not two. getOpenPOs used to inherit the condition by
+    // calling getPOsExceptWithdrawn and filtering its result per record; now that
+    // openness is a filter too, it carries both halves in one formula of its own.
+    // The number is what has to move when a reader is added — that is the check
+    // working, and a reader that hardcoded the status instead would leave it at 2.
     const poTable = fileOf("lib/airtable/purchaseOrders.js");
     let statusInterpolations = 0;
     let fragmentUses = 0;
@@ -460,9 +466,9 @@ export function run(reporter) {
         1
     );
     check(
-        "and both invoice-side readers interpolate that fragment",
+        "and all three invoice-side readers interpolate that fragment",
         fragmentUses,
-        2
+        3
     );
 
     // HAVING NO FILTER IS getAllPOs's CONTRACT (#168), and the failure mode is why
