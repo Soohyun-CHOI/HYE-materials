@@ -5,6 +5,9 @@ import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { createInvoiceAction } from "./actions";
 import ConfirmDialog from "@/components/ConfirmDialog";
+// Issue #198 — pure and import-free, so a client component may hold it; the judgment
+// itself already ran on the server and every PO here carries its answer as `unsigned`.
+import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes
 // an explicit choice in the PO Item dropdown — distinguishes "still
@@ -313,6 +316,15 @@ export default function InvoiceForm({ vendors, pos }) {
                 unconfirmed.length > 0
                     ? ` (${unconfirmed.length} unrecognized reference${unconfirmed.length > 1 ? "s" : ""} ignored)`
                     : "";
+            // Issue #198 — a detected PO the President has not signed. The inverse of
+            // the withdrawn note above in the one clause that matters: this PO WAS
+            // selected. The wording is UNSIGNED_COPY's rather than this file's, so the
+            // vocabulary check can read it, and the tone is deliberately not raised —
+            // see that module for why an unsigned order is not a warning here.
+            const unsignedNote =
+                confirmed.some((c) => c.unsigned)
+                    ? UNSIGNED_COPY.detected(confirmed.filter((c) => c.unsigned).map((c) => c.poId)).text
+                    : "";
 
             if (vendorConflict) {
                 setPoDetection({
@@ -385,7 +397,15 @@ export default function InvoiceForm({ vendors, pos }) {
                 if (missing.length === 0) return prev;
                 return [
                     ...prev,
-                    ...missing.map((c) => ({ id: c.recordId, poId: c.poId, vendorId: c.vendorId })),
+                    // Issue #198 — `unsigned` comes along, or a PO that reached the
+                    // list only through detection would read as unsigned in the
+                    // banner and as nothing in the select directly below it.
+                    ...missing.map((c) => ({
+                        id: c.recordId,
+                        poId: c.poId,
+                        vendorId: c.vendorId,
+                        unsigned: c.unsigned,
+                    })),
                 ];
             });
 
@@ -434,7 +454,7 @@ export default function InvoiceForm({ vendors, pos }) {
                 });
                 setPoDetection({
                     level: detectionLevel,
-                    message: `Detected PO: ${confirmed[0].poId} (auto-filled below)${fullyInvoicedNote}${unconfirmedNote}.${withdrawnNote}`,
+                    message: `Detected PO: ${confirmed[0].poId} (auto-filled below)${fullyInvoicedNote}${unconfirmedNote}.${withdrawnNote}${unsignedNote}`,
                 });
             } else {
                 // Multi-PO case: scaffold one item row per detected PO,
@@ -449,7 +469,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     level: detectionLevel,
                     message: `Detected ${confirmed.length} POs: ${confirmed
                         .map((c) => c.poId)
-                        .join(", ")} — auto-filled below, verify each item's assignment.${fullyInvoicedNote}${unconfirmedNote}${withdrawnNote}`,
+                        .join(", ")} — auto-filled below, verify each item's assignment.${fullyInvoicedNote}${unconfirmedNote}${withdrawnNote}${unsignedNote}`,
                 });
             }
         } catch (err) {
@@ -920,7 +940,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                                     onClick={() => handleSlotChange(slotIndex, po.id)}
                                                     className="block w-full px-3 py-1.5 text-left hover:bg-zinc-100"
                                                 >
-                                                    {po.poId}
+                                                    {poOptionLabel(po)}
                                                 </button>
                                             </li>
                                         ))
@@ -938,7 +958,7 @@ export default function InvoiceForm({ vendors, pos }) {
                             <option value="">{vendorId ? "Select a PO..." : "Select a Vendor first"}</option>
                             {optionsForSlot.map((po) => (
                                 <option key={po.id} value={po.id}>
-                                    {po.poId}
+                                    {poOptionLabel(po)}
                                 </option>
                             ))}
                         </select>
@@ -1279,7 +1299,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                             </option>
                                             {selectedPos.map((po) => (
                                                 <option key={po.id} value={po.id}>
-                                                    {po.poId}
+                                                    {poOptionLabel(po)}
                                                 </option>
                                             ))}
                                         </select>

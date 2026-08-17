@@ -4,6 +4,7 @@ import { withAdminApi } from "@/lib/authz";
 import { getPOById, isPoOpen } from "@/lib/airtable/purchaseOrders";
 import { isOurBlobUrl } from "@/lib/blobIngest";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
+import { isPOUnsigned } from "@/lib/poUnsigned";
 
 // Issue #46. The company's real, historically-issued PO numbers use the
 // same HYE-PO-YYYYMMDD-## shape this system now generates (4-digit year —
@@ -80,7 +81,18 @@ export const POST = withAdminApi(async (request) => {
             if (po && isPOWithdrawn(po)) {
                 withdrawn.push({ recordId: po.id, poId: po.poId });
             } else if (po) {
-                confirmed.push({ recordId: po.id, poId: po.poId, vendorId: po.vendor?.[0] || null });
+                // Issue #198 — `unsigned` rides ON the candidate, beside `isOpen`
+                // below, rather than in a bucket like `withdrawn` above: a withdrawn
+                // PO must not become selectable and an unsigned one must stay
+                // selectable, which is the whole distinction. Set here rather than in
+                // a second pass because the judgment is pure — `isOpen` needs a
+                // per-PO read, this needs only the record already in hand.
+                confirmed.push({
+                    recordId: po.id,
+                    poId: po.poId,
+                    vendorId: po.vendor?.[0] || null,
+                    unsigned: isPOUnsigned(po),
+                });
             } else {
                 unconfirmed.push(poId);
             }
