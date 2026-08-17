@@ -67,6 +67,19 @@ writing code cannot produce one.
   unreachable through the app's own writes and reachable through hand-entered data —
   `HYE-INV-260804-03` is that row on this base and is kept deliberately, being the
   only way to see the branch on a screen.
+- **IF THE PREMISE BREAKS IN REALITY, THE INVOICE AXIS HAS NO EXIT.** A vendor billing
+  one invoice and shipping the material in two arrivals is not a shape this app can
+  record its way out of: both deliveries can be entered normally, and each will contain
+  part of what the bill charges, but `Invoices."Delivery"` is a SINGLE link, so the
+  invoice can name only one of them and its chip reads `Mismatch` forever. Nothing is
+  wrong with the data and no correction path exists — the shortfall is real against the
+  delivery named and imaginary against the shipment. **Deliberately not fixed**, there
+  being no such case on this base and no report of one from the office; the note is here
+  because the cost of fixing it is easy to underestimate. Making the link plural reopens
+  what #210 settled (the shape that HOLDS the premise), what #231 built on it
+  (`fitRefusal`'s `notContained`, which is containment against one arrival), and what
+  #232 drew from it (one delivery named once per invoice, a per-item comparison with one
+  second term). It is a premise change, not a field change.
 
 ### Recording deliveries (#162)
 
@@ -1143,3 +1156,135 @@ that stays the order's says so by name.
   surfaces without one, which is why the figures above are the WALK's rather than the
   page's: an unlabeled screen has no before and after, and #216's duplicate read on
   `/deliveries` stood invisible for exactly as long as that page carried no label.
+
+### Naming the order behind an item (#237)
+
+The invoice detail listed the orders it bills and never said which of them any one item
+was billed against. The items table cannot hold the answer (#167) and the delivery
+section is no longer a place for it (#232), so it hangs under `Purchase Orders`, and
+only where the folded items disagree about which orders they touch. The rule, the
+per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
+
+- **THE QUESTION LOST ITS HOME TWICE, AND THE SECOND TIME WAS THIS ISSUE'S CAUSE.**
+  #167 dropped the `PO` column because a row an overage split produced spans two orders
+  once folded — unrepresentable in one cell rather than merely awkward — and put the
+  order on the delivery section's per-item boxes, which had exactly one each. #232 then
+  emptied those boxes: which order an item was billed against is not a delivery fact,
+  and it is not one a reader deciding whether to pay acts on. **The column is still
+  impossible for #167's own reason**, which is the first instinct to head off here: the
+  answer is a LIST under an order, not a cell beside an item.
+- **THE UNIT OF JUDGMENT IS THE FOLDED ITEM, because that is the unit the reader sees.**
+  The items table renders folded rows, so a rule stated over raw rows would turn the
+  list on for an invoice whose table shows one item per order. `foldInvoiceItems` needed
+  no change to supply it: its `rowIds` already state which raw rows are one item, and
+  the new module joins them back to the invoice items the page holds. What the fold
+  cannot supply is the order — its key is `Material` + unit price and excludes the
+  order on purpose, which is the same fact that makes the column impossible.
+- **THE SAME-SET TEST NEEDS NO CASE FOR A CORRECTIVE ORDER, WHICH IS THE POINT OF
+  STATING IT AS A SET.** One order gives every item `{A}`; a correction that split every
+  item gives every item `{A, B}`; both agree, so both are silent. An invoice carrying two
+  orders because of a correction is the ordinary reason to carry two, and a list there
+  would repeat one answer once per item — the repetition #233 took off the order's page
+  and #232 took off this one. The list appears for `{A}` beside `{B}`, and for `{A, B}`
+  beside `{A}`, which are the shapes where the reader genuinely cannot tell.
+- **THE EXCLUSION KEYS ON `PO Item` AND NOT ON `PO`, AND KEYING IT ON THE ORDER LINK
+  WOULD EXCLUDE NOTHING.** A free-text invoice item is not a row without an order —
+  `createInvoiceAction` refuses an item with no `PO` (`app/invoices/new/actions.js`) and
+  only `PO Item` is optional — so what it lacks is the ordered item. It names no order,
+  is in no order's list, and **is out of the decision too**: one such row would otherwise
+  make the sets differ and turn the list on for every invoice that has one. Untestable in
+  a browser today, since `SHOW_OTHER_ITEM_OPTION` is false (#96) and only hand-entered
+  rows have no ordered item.
+- **AN ORDER REACHED ONLY THROUGH SUCH A ROW KEEPS ITS LINE WITH NOTHING UNDER IT.** The
+  section's own list is every item's `PO`, free-text ones included, and is untouched by
+  this issue — so the order is listed, correctly, and the empty space under it is the
+  answer rather than a gap. A `No order` bucket was the alternative and was rejected: it
+  asserts a heading for something that is not an order.
+- **A LINE CARRIES THE QUANTITY AND NO MONEY, WHICH IS #232's JUDGMENT ABOUT
+  `Amount Due` ONE LEVEL DOWN.** Unit price is part of the fold key, so both products of
+  a split share it by construction — a price per order would print one number twice in
+  exactly the shape this list exists for — and the items table above already carries it
+  once per folded row. A per-order amount would be a partial sum of this invoice's total
+  sitting beside a purchase order, inviting the addition `poDocuments.js` refuses from
+  the other side and #167's `invoiceCaveat` exists because of. **The quantity is the one
+  fact the table above cannot hold**: its `Qty` is the folded total, and the split is
+  what the reader came for.
+- **ONE GRAMMAR WITH `/pos/[poId]`, AND THE PRICE'S ABSENCE IS PART OF IT RATHER THAN AN
+  EXCEPTION TO IT.** #233 nests a charge under the invoice that made it; this nests an
+  item under the order it was billed against — parent line for the document's identity
+  and its own facts, child list at `pl-4` in smaller gray text for the pair facts. The
+  line's syntax is `PO_DOCUMENTS_COPY.deliveries.brought`'s (`Item Size — qty UNIT`)
+  rather than `invoices.charge`'s, so the price travels with whether the frame can see it
+  elsewhere: on the order's page the billed price is the pair fact the order cares about
+  and no items table is present, and here it is directly above.
+- **THE ITEM NAME COMES FROM THE INVOICE ITEM, NOT FROM THE ORDERED ITEM, WHICH IS THE
+  OPPOSITE SOURCE FROM `lib/poDocuments.js`.** Deliberate, and stated in the new module's
+  header so nobody unifies them: the frame here is one invoice and the items table is
+  directly above, so a name disagreeing with the row above it would be the defect; on the
+  order's page the subject IS the `PO Items` row. It also costs nothing — the frozen
+  copies are on records the page already holds.
+- **THE SECTION STAYS ABOVE THE ITEMS TABLE.** These names therefore precede the table
+  they mirror, which is the one thing to say for moving it; not moved, because the list
+  appears only in the ambiguous case, its subject is the order rather than the items, and
+  redrawing the page's section order is not what was asked for. Written down so the
+  position reads as a decision rather than an accident.
+- **NO NEW READ, and the reason is structural rather than measured.** Every fact the list
+  needs is already on the page: an Invoice Item carries its own `PO`, `PO Item`, `Qty`,
+  `Unit` and frozen names, the fold is already computed for the table, and the order
+  records are the ones this section already renders. No credentialed function gained a
+  call site, so the count cannot move.
+- **`poById` WENT WITH THE SECTION IT SERVED.** #232 removed the per-entry PO link from
+  the delivery section and left the lookup it fed standing, unread — eslint does not flag
+  it under this config, and it sat in the middle of the block this issue rewrites. Deleted
+  here rather than filed.
+- **THE SILENT SIDE IS ON THE BASE NOW, MADE BY A SEED RATHER THAN BY HAND**
+  (`scripts/demo/seed_order_breakdown_237.mjs`). Before it, the only two-order invoice
+  here was `HYE-INV-260804-03`, where each item touches one order — so the LISTED half
+  had been seen on a screen and the silent half had not, which is backwards: a
+  correction is the overwhelmingly common reason a real invoice carries two orders.
+  `HYE-INV-260817-01` is that case: `HYE-PO-20260817-01` and `-02` both named, no item
+  list under either. `HYE-INV-260817-02` is its pair on the listed side,
+  `HYE-PO-20260817-03` and `-04` with a line each.
+- **AN ORDER WITH NO CHILD LINE IS NOT SEEDED, AND THAT IS A DECISION RATHER THAN A
+  GAP.** It needs an invoice item with no `PO Item`, which the form cannot make
+  (`SHOW_OTHER_ITEM_OPTION` is false, #96) and which the plan no longer calls for at
+  all — free-text charges were built and then dropped, so the code path stands while
+  the state does not occur. A seed exists to put a reachable state in front of a
+  person; seeding one the app cannot produce would assert the opposite. **The exclusion
+  is still required defensively** and `offline/invoice-order-breakdown.mjs` is the only
+  thing holding it, on both halves separately — such a row stays OUT OF THE JUDGMENT
+  (read off an invoice that must stay silent) and lands UNDER NO ORDER (read off one
+  that must stay listed) — each shown to fail under a mutant that keys the exclusion on
+  `PO` rather than `PO Item`, which is the plausible mistake because a free-text row
+  does carry an order link. One such row was seeded on `HYE-INV-260817-02` and then
+  retired, its `Amount Due` corrected from 184 to 144 in the same pass; the order it
+  charged, `HYE-PO-20260817-05`, is left standing, an order having existed either way.
+- **THE CORRECTION SEED GOES THROUGH THE REAL FLOW BECAUSE THE FOLD KEY IS WHAT MAKES
+  THE CASE.** Two halves at different prices do not fold, and then each touches one
+  order and the list turns ON — the exact inverse of the shape being seeded. Writing
+  the end state by hand would be asserting the key; `splitInvoiceLineForOverage`
+  carries `bill.unitPrice` onto the half it creates and takes its name, size and unit
+  from the corrective order's ordered item, whose `Material` #18's cache wrote in the
+  same PO generation. Verified at the record level: both ordered items behind
+  `HYE-INV-260817-01` link Material `237-DEMO Elbow_2"_EA`, and both invoice items are
+  at 12 — which is why one row of 13 appears in the items table.
+- **ONE CORRECTION IS ONE ORDERED ITEM, so the browsable case has ONE folded item
+  touching both orders rather than several.** `createOverageDraft` takes a single
+  delivery row and raises a single-item request, so two split items would mean two
+  corrections and two corrective orders — `{A1,A2}` beside `{A1,A3}`, which DIFFER and
+  would turn the list on. The all-items-split-across-the-same-two variant is a shape
+  the app cannot reach and is asserted only in `offline/invoice-order-breakdown.mjs`.
+- **AN INVOICE ITEM COSTS ONE READ AND SO DOES A DISTINCT ORDER, AND NEITHER IS
+  #237's.** What this issue adds is nothing: measured on the labeled route with the
+  pre-#237 page restored from git and then re-applied, same session and same invoice,
+  `HYE-INV-260817-02` read 11 ops both times with the same per-table breakdown both
+  times, and `HYE-INV-260817-01` read 10 both times. **The per-item cost was stated the
+  wrong way round when those numbers were first written down**, on the reasoning that
+  the items arrive in one list read: they do not. `getLinkedRecords` is 1 + N — one
+  `.find()` per child, said out loud in its own header — so `getItemsByInvoice` pays a
+  find per invoice item, and the section pays one `getPOByRecordId` per distinct order.
+  Retiring one charge that was also the only one naming its order took
+  `HYE-INV-260817-02` from 11 to 9, with `Invoice Items` finds 3 -> 2 and
+  `Purchase Orders` finds 3 -> 2: one each, exactly. What misled the first reading was
+  `HYE-INV-260804-03` also totalling 11 on 2 items and 2 orders — two fewer finds there
+  are spent on the delivery it matches, so two different sums landed on one number.
