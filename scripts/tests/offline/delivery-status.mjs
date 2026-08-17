@@ -206,33 +206,82 @@ export function run({ check, log, assert }) {
         "Not compared — no ordered item"
     );
 
-    // --- THE INVOICE AXIS: TWO STATES AND A DISCREPANCY (#210) -------------
+    // --- THE INVOICE AXIS: THREE OUTCOMES SINCE #232 -----------------------
     log("");
-    log("the chip comes from the LINK, not from the quantities:");
+    log("the FIRST question is the link, not the quantities:");
     const covered = invoiceShareStatus({ billed: 40, arrived: 40 });
     const shortShare = invoiceShareStatus({ billed: 40, arrived: 0 });
     const partShare = invoiceShareStatus({ billed: 13, arrived: 10 });
 
     const paired = summarizeInvoiceStatus({ lines: [covered], hasDelivery: true });
     const unpaired = summarizeInvoiceStatus({ lines: [shortShare], hasDelivery: false });
-    check("a shipment named", paired.key, "delivered");
-    check("none named", unpaired.key, "awaiting-delivery");
+    check("a delivery matched and it covered the bill", paired.key, "delivered");
+    check("none matched", unpaired.key, "awaiting-delivery");
     check("  which is the correct reading, not a gap", describeInvoiceColumn(unpaired).text, "Awaiting delivery");
-    // THE STATE THE OLD INFERENCE MANUFACTURED. A bill whose own shipment has not
-    // arrived used to land in `Partly delivered` whenever some earlier delivery had
-    // touched the same ordered item. There is no such state to land in now.
+
+    log("");
+    log("the SECOND is whether it covered the bill — a chip value since #232:");
+    // It was a MARKER for two issues, composing with `Delivered`. It composed with
+    // exactly one value and its sentence sat in a tooltip, so it is a chip value now.
+    const shortSummary = summarizeInvoiceStatus({ lines: [partShare], hasDelivery: true });
+    check("the matched delivery brought less than the bill", shortSummary.key, "mismatch");
+    check("  and the chip says so in a word", describeInvoiceColumn(shortSummary).text, "Mismatch");
+    check(
+        "one short line among covered ones is enough",
+        summarizeInvoiceStatus({ lines: [covered, partShare], hasDelivery: true }).key,
+        "mismatch"
+    );
+    check(
+        "  and it still reports how many were covered",
+        summarizeInvoiceStatus({ lines: [covered, partShare], hasDelivery: true }).covered,
+        1
+    );
+    // NO MISMATCH WITHOUT A MATCH. Every invoice item of an unmatched invoice is
+    // trivially short, so reporting them would put a discrepancy on every invoice the
+    // vendor emailed ahead of the material — which is most of them. The clause order
+    // in summarizeInvoiceStatus is what guarantees it.
+    check("nothing matched reads as awaiting, though every line is short", unpaired.key, "awaiting-delivery");
+    check(
+        "  and two short lines with nothing matched still do",
+        summarizeInvoiceStatus({ lines: [shortShare, partShare], hasDelivery: false }).key,
+        "awaiting-delivery"
+    );
+
+    log("");
+    log("THREE values and the middle stage is still barred:");
     assert(
-        "there is no middle stage on this axis at all",
-        Object.keys(STATUS_COPY.column.invoice).join(",") === "delivered,awaiting-delivery"
+        "the set is the link's two states plus the discrepancy",
+        Object.keys(STATUS_COPY.column.invoice).join(",") === "delivered,mismatch,awaiting-delivery"
+    );
+    // #210 REMOVED A STAGE WORD AND #232 ADDED AN ERROR WORD, which is why the two do
+    // not collide: under the one-delivery premise nothing further is coming, so a
+    // shortSummary cannot be a middle. `Partly delivered` stays barred here and stays on
+    // the PO axis, where an order really is filled item by item.
+    assert(
+        "no stage word came back with it",
+        !("partly-delivered" in STATUS_COPY.column.invoice) &&
+            "partly-delivered" in STATUS_COPY.column.po
     );
     assert(
-        "  and no dash either — the chip no longer depends on there being a line to judge",
+        "  and no chip on this axis says the word at all",
+        !Object.values(STATUS_COPY.column.invoice)
+            .map((f) => f().text)
+            .some((t) => /partly/i.test(t))
+    );
+    assert(
+        "and no dash either — the chip no longer depends on there being a line to judge",
         !("no-ordered-items" in STATUS_COPY.column.invoice)
+    );
+    // ITS OWN TONE, so the palette cannot say a stage and an error with one color.
+    check("the discrepancy has a tone of its own", describeInvoiceColumn(shortSummary).tone, "mismatch");
+    assert(
+        "  which is not the tone a stage wears on the other axis",
+        describeInvoiceColumn(shortSummary).tone !== STATUS_COPY.column.delivery["partly-invoiced"]().tone
     );
     // An invoice with no judgeable invoice item still has an answer, which is why
     // the dash became unreachable rather than merely unwanted.
     check(
-        "every line free text, shipment named, still reads Delivered",
+        "every line free text, a delivery matched, still reads Delivered",
         summarizeInvoiceStatus({ lines: [], hasDelivery: true, excludedCount: 3 }).key,
         "delivered"
     );
@@ -240,33 +289,41 @@ export function run({ check, log, assert }) {
     check("no argument does not throw", summarizeInvoiceStatus().key, "awaiting-delivery");
 
     log("");
-    log("a quantity shortfall is a MARKER beside the chip, never a third value:");
-    check("the shipment brought everything billed", paired.mismatch, false);
-    check("it brought less", summarizeInvoiceStatus({ lines: [partShare], hasDelivery: true }).mismatch, true);
-    check("  and the chip is unchanged by that", summarizeInvoiceStatus({ lines: [partShare], hasDelivery: true }).key, "delivered");
-    check("one short line among covered ones is enough", summarizeInvoiceStatus({ lines: [covered, partShare], hasDelivery: true }).mismatch, true);
-    check("  and it reports how many were covered", summarizeInvoiceStatus({ lines: [covered, partShare], hasDelivery: true }).covered, 1);
-    // NO MARKER WITHOUT A LINK. Every invoice item of an unpaired invoice is trivially
-    // short, so marking them would put a discrepancy on every invoice the vendor has
-    // emailed ahead of the material — which is most of them.
-    check("nothing linked shows no marker, though every line is short", unpaired.mismatch, false);
-    assert(
-        "which is the whole point: the marker is about a comparison, and there is none",
-        summarizeInvoiceStatus({ lines: [shortShare, partShare], hasDelivery: false }).mismatch === false
-    );
+    log("the `mismatch` BOOLEAN is gone — the key carries it (#232):");
+    // Two representations of one fact is one more thing for #182 to find, the same
+    // call this function made on `anyArrived`. Every screen asks `key === "mismatch"`.
+    for (const s of [paired, unpaired, shortSummary]) {
+        assert(`\`${s.key}\` carries no separate mismatch flag`, !("mismatch" in s));
+    }
+    // ANTI-VACUITY: the objects checked must be the real summaries.
+    assert("  and those are real summaries", [paired, unpaired, shortSummary].every((s) => "judged" in s));
 
     log("");
-    log("the mismatch marker's own sentence:");
-    check("one key, so a check pins the branch not the wording", STATUS_COPY.column.mismatch().key, "mismatch");
-    assert("it says what is mismatched", STATUS_COPY.column.mismatch().text.includes("bills more than"));
+    log("the discrepancy's SENTENCE is detail-density now, and the chip label is gone:");
+    // The marker's tooltip was chip-density and is retired with the marker. What is
+    // left is one sentence with an action in it, shaped like the variance prompt on
+    // the same page — so the twin this file used to assert against is now the point.
+    assert("no chip-density label survives", !("mismatch" in STATUS_COPY.column));
+    check("one key, so a check pins the branch not the wording", STATUS_COPY.detail.mismatch().key, "mismatch");
+    const mismatchSentence = STATUS_COPY.detail.mismatch().text;
+    assert("it says what is mismatched", mismatchSentence.includes("bills more than"));
     assert(
         "it names the matched delivery as the thing compared against",
-        STATUS_COPY.column.mismatch().text.includes("the delivery matched to it")
+        mismatchSentence.includes("the delivery matched to it")
     );
-    // ONE DENSITY, unlike the qualifier it replaces: the detail states the shortfall
-    // with its figures through the verdict, so there is no second sentence to keep in
-    // step with this one.
-    assert("and there is no detail-density twin to drift from it", !("mismatch" in STATUS_COPY.detail));
+    // AND IT SAYS WHAT TO DO, which is the half a chip word cannot carry and the
+    // reason this is a box rather than a tooltip.
+    assert("it names someone to take it up with", /vendor/.test(mismatchSentence));
+    assert("  and what to hold until then", /before confirming payment/.test(mismatchSentence));
+    // NO FIGURE: one invoice can be short on two ordered items carrying different
+    // Units, so a figure here would be a sum of nothing or one of several. The boxes
+    // below carry one each.
+    assert("and no quantity, that being the boxes' job", !/\d/.test(mismatchSentence));
+    // A FACT, NOT A VERDICT — the rule the verdicts follow, applied to the one
+    // sentence on this screen that asks for something.
+    for (const forbidden of ["over-billed", "short-shipped", "missing"]) {
+        assert(`it does not say '${forbidden}'`, !mismatchSentence.toLowerCase().includes(forbidden));
+    }
 
     log("");
     log("`sharesOrderedItem` and its `This bill:` line are GONE (#232):");
@@ -564,7 +621,7 @@ export function run({ check, log, assert }) {
         ...everyChip.map((c) => c.text),
         ...Object.values(STATUS_COPY.detail.verdict).map((f) => f(short, "EA").text),
         STATUS_COPY.detail.againstOrder(bothBeyond, "EA").text,
-        STATUS_COPY.column.mismatch().text,
+        STATUS_COPY.detail.mismatch().text,
     ];
     // At any one moment "the vendor over-billed" and "the rest has not been
     // delivered yet" are the same measurement, so the copy may not pick one.

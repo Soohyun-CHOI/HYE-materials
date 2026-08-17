@@ -10,14 +10,13 @@ import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility"
 import { accessibleJobs } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
 import {
-    STATUS_COPY,
     daysWaiting,
     describeInvoiceColumn,
     isNotFullyInvoiced,
     sortLongestWaitingFirst,
 } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
+import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { formatUSD } from "@/lib/format";
 import AwaitingInvoiceStrip from "./AwaitingInvoiceStrip";
 
@@ -285,20 +284,19 @@ async function renderInvoiceListPage() {
                                     different and wrong claim. Both facts are on the
                                     invoice detail, under the ordered item they
                                     belong to. */}
+                                {/* THE CHIP ALONE SINCE #232 — a `!` marker stood
+                                    beside it and is retired. The discrepancy is a
+                                    third chip value now, so the cell says `Mismatch`
+                                    in words; the marker would have qualified a word
+                                    the reader had already read, with a sentence only
+                                    a hover could reach. Still one function, shared
+                                    with the detail, so this cell and that page cannot
+                                    describe one invoice differently. */}
                                 <td className="py-1 pr-2">
                                     {(() => {
                                         const summary = statusByInvoice.get(inv.id);
                                         if (!summary) return <span className="text-zinc-500">—</span>;
-                                        return (
-                                            <span className="flex items-center gap-1">
-                                                <StatusChip chip={describeInvoiceColumn(summary)} />
-                                                {summary.mismatch && (
-                                                    <QualifierMarker
-                                                        label={STATUS_COPY.column.mismatch().text}
-                                                    />
-                                                )}
-                                            </span>
-                                        );
+                                        return <StatusChip chip={describeInvoiceColumn(summary)} />;
                                     })()}
                                 </td>
                                 {/* NO RIGHT PADDING ON THE LAST COLUMN — there is

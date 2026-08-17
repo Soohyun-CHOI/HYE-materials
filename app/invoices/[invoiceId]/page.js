@@ -96,10 +96,6 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
     const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
-    // #232 — whether a delivery box has to name its own order. Counted off the same
-    // ids the `Purchase Order(s)` section above pluralizes on, so the two cannot
-    // disagree about how many this invoice spans.
-    const spansSeveralPOs = poRecordIds.length > 1;
 
     // Issue #166 — the delivery side of this invoice, and since #210 the delivery it
     // matches rather than an estimate of which one answered it. Up to three
@@ -329,13 +325,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 describe the invoice differently — #162's summarizeDelivery is
                 shared between its list and its detail for the same reason.
 
-                SCOPED TO THIS INVOICE SINCE #232, WHICH IS WHY THE DOCUMENT SITS
-                HERE AND THE QUANTITIES SIT IN THE BOXES. `Invoices."Delivery"` is a
-                single link, so the delivery a reader wants named is the SAME one for
-                every box; naming it per box printed one document as many times as
-                the invoice has items, which is the repetition #233 took off the
-                order's page. What differs box to box is how much of that delivery
-                answered THAT ordered item, and that is what a box still carries.
+                SCOPED TO THIS INVOICE SINCE #232, AND ITS DENSITY NOW FOLLOWS THE
+                STATE. `Invoices."Delivery"` is a single link, so the delivery a
+                reader wants named is the SAME one for every box; naming it per box
+                printed one document as many times as the invoice has items, which is
+                the repetition #233 took off the order's page.
 
                 THE INVOICE LEVEL SAYS WHAT THE STATE IS AND A BOX POINTS AT AN
                 EXCEPTION — that is the whole layout, and it follows from the
@@ -343,33 +337,33 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 this invoice bills arrives on the delivery it matches or not at all,
                 so "everything billed was delivered" is one fact about one document:
                 the chip states it, and a box repeating it would state it once per
-                invoice item. So a box that agrees is silent — its item name and,
-                where the invoice spans more than one order, its PO link.
+                invoice item.
 
-                A BOX THAT DISAGREES CARRIES ITS FIGURES, which is where the numbers
-                went. `Billed 15 · Delivered 15` stood on every box in #232's first
-                pass; both figures were correct and both were the same on every box of
-                a normal invoice. The exception sentences hold the quantities now, so
-                the shortfall is stated once, where it is.
+                SO THREE STATES AT THREE DENSITIES. Matched to nothing: one sentence
+                and no item list at all — this section is about a delivery, and with
+                none matched there is nothing per item to say. Matched and covered:
+                the delivery, then the item names, each box silent. Matched and short:
+                the amber box, then the item names with the short ones carrying their
+                figures.
 
-                THE MARKER BESIDE THE CHIP IS THE LIST'S, from `summary.mismatch` and
-                `STATUS_COPY.column.mismatch` — the same two the invoice list reads.
-                It was missing here, so `HYE-INV-260804-03` read `Delivered` with no
-                qualification on this page while the list marked it, which is exactly
-                the disagreement the shared chip exists to prevent.
+                THE CHIP AND THE BOX BELOW IT ARE THE FACT AND THE ASK. `Mismatch` is
+                a chip value since #232's third pass, so the discrepancy is a word a
+                reader meets without hovering; a `!` marker stood beside `Delivered`
+                and qualified a word that had already been read, with its sentence in
+                a tooltip that reaches neither touch nor a keyboard. The sentence is
+                the amber box, shaped like the variance prompt further down this same
+                page because it is the same grade of fact — a person must look before
+                money moves.
 
-                COLOR ON THE VERDICT ONLY. lib/deliveryStatus.js returns named
-                slots rather than a list precisely so a call site cannot color the
-                asides too, which is how the first version came out all amber with
+                COLOR ON THE VERDICT ONLY, within a box. lib/deliveryStatus.js returns
+                named slots rather than a list precisely so a call site cannot color
+                the asides too, which is how the first version came out all amber with
                 the color distinguishing nothing. Both slots can be null and the
                 module decides which — a call site cannot withhold one either. */}
             <div className="mt-8">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Delivery</h2>
                     <StatusChip chip={describeInvoiceColumn(reconciliation.summary)} />
-                    {reconciliation.summary.mismatch && (
-                        <QualifierMarker label={STATUS_COPY.column.mismatch().text} />
-                    )}
                 </div>
 
                 {/* #232 — THE MATCHED DELIVERY, ONCE, AND NOTHING OF ITS OWN BESIDE
@@ -403,7 +397,33 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     </p>
                 )}
 
-                {reconciliation.rows.length === 0 ? (
+                {/* AFTER THE DELIVERY IS NAMED, NOT BEFORE IT, and the order is the
+                    sentence's own grammar. It says the invoice bills more than the
+                    delivery matched to it delivered, so a reader meets the delivery
+                    it is about first and the claim about it second — putting the
+                    accusation above the document it accuses would have the reader
+                    scroll back for the subject. It also keeps the section's first
+                    line the same line in all three states, which is what makes the
+                    box read as an addition rather than as a different layout.
+
+                    Its own sentence rather than the chip's, at detail density: the
+                    chip is one word and this is what does not match plus who has to
+                    act. See STATUS_COPY.detail.mismatch for why it carries no figure
+                    and why it wears the variance prompt's shape. */}
+                {reconciliation.summary.key === "mismatch" && (
+                    <p className="mt-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        {STATUS_COPY.detail.mismatch().text}
+                    </p>
+                )}
+
+                {/* NO ITEM LIST WITHOUT A MATCHED DELIVERY (#232, third pass). This
+                    section compares what an invoice bills against what one delivery
+                    brought; with nothing matched there is no second term, so a box
+                    per invoice item was a list of names with no fact in any of them.
+                    The sentence above is the whole answer. `Not compared — no ordered
+                    item` goes with them here: it says why an invoice item was left
+                    out of a comparison that is not happening. */}
+                {!reconciliation.summary.hasDelivery ? null : reconciliation.rows.length === 0 ? (
                     <p className="mt-1 text-sm text-zinc-600">
                         This invoice has no lines.
                     </p>
@@ -414,43 +434,39 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                 hasDelivery: reconciliation.summary.hasDelivery,
                             });
                             return (
-                                <li
-                                    key={row.invoiceItemId}
-                                    className="rounded border border-zinc-200 p-3"
-                                >
-                                    <div className="flex flex-wrap items-baseline gap-x-2">
-                                        <span className="font-medium">
-                                            {[row.itemName, row.size].filter(Boolean).join(" ") || "—"}
-                                        </span>
-                                        {/* Issue #167 — the order this box is scoped
-                                            to. It moved here from the items table's
-                                            PO column, which a folded row cannot fill;
-                                            a box always has exactly one.
-
-                                            ONLY WHERE THE INVOICE SPANS MORE THAN ONE
-                                            (#232). That argument holds where an item
-                                            could belong to either of two orders; with
-                                            one PO on the invoice the `Purchase Order`
-                                            section above already answers it, and a
-                                            link repeating it once per box is the same
-                                            repetition this section was redrawn to
-                                            remove. */}
-                                        {spansSeveralPOs && row.poRecordId && poById[row.poRecordId] && (
-                                            <Link
-                                                href={`/pos/${encodeURIComponent(poById[row.poRecordId].poId)}`}
-                                                className="text-xs text-zinc-500 underline"
-                                            >
-                                                {poById[row.poRecordId].poId}
-                                            </Link>
-                                        )}
-                                    </div>
+                                /* NO BORDER SINCE #232's THIRD PASS. It was a box
+                                   drawn around `Ordered · Billed · Delivered`, a share
+                                   line, a verdict, an aside and a delivery list; with
+                                   the inside emptied it framed a name. A list is
+                                   enough, and the border was making a silent entry
+                                   look like a card that had failed to load. */
+                                <li key={row.invoiceItemId}>
+                                    {/* NO PO LINK (#232's third pass), on a silent
+                                        entry or a speaking one. #167 put it here
+                                        because the items table dropped its PO column —
+                                        a row an overage split produced spans two
+                                        orders once folded, so that cell had no single
+                                        value — and this section was the nearest place
+                                        with one order per entry. It is the wrong place
+                                        on two counts: which order an item was billed
+                                        against is not a delivery fact, and it is not
+                                        a fact a reader of THIS screen acts on, since
+                                        nothing about whether to pay turns on it. #237
+                                        took the question, under `Purchase Orders`
+                                        above, answered only where the folded items do
+                                        not all touch the same set of orders — which is
+                                        where the ambiguity #167 was solving actually
+                                        lives. */}
+                                    <span className="font-medium">
+                                        {[row.itemName, row.size].filter(Boolean).join(" ") || "—"}
+                                    </span>
 
                                     {/* NO FIGURES LINE. `Billed 15 · Delivered 15`
                                         stood here and was the same on every box of a
                                         normal invoice; the two sentences below carry
-                                        the quantities on the boxes that have something
-                                        to say. `Billed` is also in the items table
-                                        directly above this section. */}
+                                        the quantities on the entries that have
+                                        something to say. `Billed` is also in the items
+                                        table directly above this section. */}
                                     {lines.verdict && (
                                         <p
                                             className={

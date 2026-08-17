@@ -378,65 +378,79 @@ Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
 2. /invoices/<id>  —  the "Delivery" section  (rewritten for #232)
 ------------------------------------------------------------------
 The section heading carries the SAME CHIP the list showed, from the same
-function, so the row you clicked and the page you land on cannot disagree
-— and since #232 the same MARKER beside it, which was the half that had
-been missing. Directly under them, ONE line naming the delivery this
-invoice matches: Invoices."Delivery" is single, so per-box would print
-one document once per item. THIS SEED WRITES NO SUCH LINK — bill()
-predates the field and sets nothing — so every invoice it creates reads:
+function, so the row you clicked and the page you land on cannot
+disagree. Since #232 that set has THREE values: Delivered, Mismatch and
+Awaiting delivery. A (!) marker stood beside the chip and is retired —
+the discrepancy is a word now, so a reader meets it without hovering.
+
+Under the chip, ONE line naming the delivery this invoice matches:
+Invoices."Delivery" is single, so per-entry would print one document
+once per item. THIS SEED WRITES NO SUCH LINK — bill() predates the field
+and sets nothing — so every invoice it creates reads:
 
          "No delivery has been matched to this invoice yet."
 
-  That sentence is the state itself, not a stand-in for one. #210 made
-  "no delivery matched" and "nothing arrived" different facts; every box
-  below used to say "Nothing delivered yet" under an empty list, which
-  asserted the second when only the first was known.
+  ...and nothing else. That is the whole section for an unmatched
+  invoice: no item list at all, because this section compares a bill
+  against ONE delivery and with none matched there is no second term.
+  Every invoice in this seed looks like that.
 
-  THE INVOICE LEVEL SAYS WHAT THE STATE IS; A BOX POINTS AT AN EXCEPTION.
-  What an invoice bills arrives on the one delivery it matches or not at
-  all, so "everything billed was delivered" is one fact about one
-  document and the chip states it. A box that agrees is therefore SILENT
-  — its item name, and its PO link only where the invoice spans more than
-  one order. Every box in this seed is silent, because nothing here is
-  matched to anything and only a matched delivery can fall short.
+  The sentence is the state itself, not a stand-in for one. #210 made
+  "no delivery matched" and "nothing arrived" different facts; every
+  entry below used to say "Nothing delivered yet" under an empty list,
+  which asserted the second when only the first was known.
 
-  ${ids.b ?? "B"}   two boxes. The judged one is its name alone:
-         "166-DEMO Gasket 3\""
-       and the free-text one is a box of its own reading
-         "Not compared — no ordered item"
-       rather than a footnote about a line you cannot see. THAT verdict
-       stays even with nothing matched: it is a fact about the invoice
-       item and not about any delivery. The app cannot create such a
-       line; this seed used the backend path directly, which is still
-       intact behind #96's flag.
+  THE INVOICE LEVEL SAYS WHAT THE STATE IS; AN ENTRY POINTS AT AN
+  EXCEPTION. What an invoice bills arrives on the one delivery it
+  matches or not at all, so "everything billed was delivered" is one
+  fact about one document and the chip states it. So the density
+  follows the state:
 
-  ${ids.dNew ?? "D-new"}   two bills of 15 on one ordered item of 30, and
-       the box says nothing at all. "This bill: 15 of 30 EA" stood here
-       to caption a "Billed" figure that was the ordered item's total
-       across every invoice; #232 scoped that figure to this bill and
-       then dropped the figures line entirely, and #233 put "which
-       invoices charge this order" on the order's own page.
+    no delivery matched   one sentence, no items
+    matched and covered   the delivery, then item names, each silent
+    matched and short     Mismatch in red, the delivery, an amber box
+                          saying what to do, then item names with the
+                          short ones carrying their figures
 
-  ${ids.f ?? "F"}   the one box in this seed that speaks:
-         "Against the ordered item: 3 EA more billed"
-       uncolored. 13 billed against an ordered item of 10. It does NOT
-       depend on anything being matched — a vendor billing beyond what
-       was ordered is a fact either way, it is visible on no other
-       screen, and it bears on whether to pay. "ordered item" rather than
-       "order" because the figure is one PO Items row's Qty (#227).
+  An entry carries no border and no PO link. The border framed five
+  lines before #232 emptied it; the link was #167's answer to the items
+  table dropping its PO column, and #237 took that question, under
+  Purchase Orders above.
 
-  ${ids.e ?? "E"}   silent here, because its excess is on the DELIVERY
-       side: 12 arrived against an ordered item of 10. Match a delivery
-       to this invoice and the box reads
-         "Against the ordered item: 2 EA more delivered"
-       with, on a short one, an amber verdict above it. Only the verdict
-       is colored — with both lines amber, as the first version had them,
-       the color distinguished nothing.
+  ${ids.b ?? "B"}   nothing under the sentence, though it has two items
+       — one judged, one free text. "Not compared — no ordered item"
+       used to appear for the second; it says why an item was left out
+       of a comparison, and with nothing matched there is no comparison
+       to be left out of. Its backend path is still intact behind #96's
+       flag, which is how this seed made such an item at all.
 
-  TO SEE A BOX SPEAK ABOUT DELIVERY you need a MATCHED invoice that falls
-  short, which this seed cannot make: it writes no link. HYE-INV-260804-03
-  on the shared base is that case, by a hand-set link the app's own
-  pairing would refuse.
+  ${ids.dNew ?? "D-new"}   likewise nothing, and it is the case worth
+       knowing about: two bills of 15 on one ordered item of 30.
+       "This bill: 15 of 30 EA" stood here to caption a "Billed" figure
+       that was the ordered item's total across every invoice; #232
+       scoped that figure to this bill and then dropped the figures line
+       entirely, and #233 put "which invoices charge this order" on the
+       order's own page.
+
+  ${ids.f ?? "F"}   nothing here either, and this one changed twice.
+       13 billed against an ordered item of 10, so it briefly showed
+       "Against the ordered item: 3 EA more billed" even while unmatched,
+       kept on the belief that the figure was visible nowhere else.
+       #233 had already made that false: /pos/[poId] carries an Invoiced
+       column with a red (over) mark, so HYE-PO-20260804-11 reads
+       Qty 10 and Invoiced 13 (over). Look for a billing excess there.
+
+  ${ids.e ?? "E"}   the delivery-side excess, 12 arrived against an
+       ordered item of 10. Match a delivery to this invoice and its
+       entry reads "Against the ordered item: 2 EA more delivered",
+       uncolored, with an amber verdict above it if the bill also fell
+       short. Only the verdict is colored — with both lines amber, as
+       the first version had them, the color distinguished nothing.
+
+  TO SEE THIS SECTION SPEAK you need a MATCHED invoice, which this seed
+  cannot make: it writes no link. HYE-INV-260804-03 on the shared base
+  is the short case, by a hand-set link the app's own pairing would
+  refuse, and HYE-INV-260804-05 is the covered one.
 
 ------------------------------------------------------------------
 3. /deliveries — the "Invoiced" column, and /invoices — the strip

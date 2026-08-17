@@ -36,13 +36,23 @@ writing code cannot produce one.
 
 **What follows from it, and every one of these is somewhere below:**
 
-- **The invoice axis has no middle stage.** A bill is `Delivered` or
-  `Awaiting delivery`; there is no `Partly delivered`, because partial can only mean
-  the vendor shipped less than it billed, and that is a discrepancy rather than
-  progress. #210 removed the stage; the PO axis keeps it, an order really being
-  filled item by item over time.
-- **A shortfall is a MARKER, not a third chip value.** It composes with `Delivered`
-  instead of enlarging a closed set.
+- **The invoice axis has no middle STAGE, and #232's third value is not one.** There
+  is no `Partly delivered`, because partial can only mean the vendor shipped less than
+  it billed, and nothing further is coming — so it is a discrepancy rather than
+  progress. #210 removed the stage; the PO axis keeps it, an order really being filled
+  item by item over time. What that argument bars is a stage WORD. `Mismatch` is an
+  error word and is barred by nothing, so the set is `Delivered` / `Mismatch` /
+  `Awaiting delivery` — the link's two states and the one way the link can be set and
+  still be wrong. **The distinction to hold on to is stage against error**, not two
+  values against three.
+- **A shortfall was a MARKER for two issues and is a chip value now (#232).** #166's
+  shape put it beside the chip, on the ground that a discrepancy composes with any
+  value and would double a closed set. Neither half held: it composed with exactly one
+  value, since a mismatch needs a delivery matched, and its sentence lived in a
+  tooltip that reaches neither touch nor a keyboard — so the word a reader most needed
+  was behind a hover while `Delivered` was in plain sight. The marker is retired on
+  both invoice screens; #167's overage affordance still uses `QualifierMarker`, for a
+  guess, which is what a qualifier is for.
 - **A shortfall does not resolve itself, so its copy says no `yet`.** Nothing further
   is coming: what the invoice bills either arrived on the delivery it matches or was
   never shipped. The one place `yet` is honest on these screens is an invoice matched
@@ -210,7 +220,7 @@ More arrived than was ordered, the vendor billed for it, and the record has to b
 - **DETACH RATHER THAN SWAP.** Re-pointing a bill is a claim about two shipments at once, so it is two steps: the screen it left says so, and the refusal stays truthful instead of being something the app silently overrides. Detaching passes no vendor to the predicate, because a pairing that somehow crossed vendors has to stay detachable — otherwise the refusal locks in the state it objects to.
 - **THE ENTRY PATH GUARDS BEFORE IT CREATES AND WRITES LAST, INSIDE THE ROLLBACK.** Refusing after a create would mean rolling an arrival back over a pairing; writing the link last means nothing follows it, so a failure cannot leave a pairing whose delivery was then destroyed. Destroying the delivery removes the link with it, so the rollback needs no undo of its own. `deliveryRecordId` is null at guard time and that is the correct reading rather than a special case: the delivery does not exist yet, so ANY existing pairing is a refusal.
 - **EDITABLE IN PLACE, AND IT PASSES THE TEST THE OTHER FOUR FIELDS FAIL.** Item, quantity, vendor and packing-list PO are fixed on one ground: changing them changes what the arrival was allocated against, and there is deliberately no allocation-editing UI. A pairing changes no `Delivery Items` row, moves no quantity between orders and re-runs nothing — it is orthogonal to that reason, which is why it joins the received date, the note and the photo rather than the delete-and-re-enter list.
-- **THE INVOICE AXIS IS TWO STATES AND A DISCREPANCY.** The chip is the link's own two values; a quantity shortfall is a marker beside it. **No marker without a link** — every invoice item of an unpaired invoice is trivially short, so marking them would put a discrepancy on nearly every bill on the base. The dash left the axis too, and as UNREACHABLE rather than unwanted: it meant "there was nothing to compare", which was true while the chip came from the invoice items, and the chip comes from a header field now.
+- **THE INVOICE AXIS IS TWO STATES AND A DISCREPANCY.** The chip is the link's own two values; a quantity shortfall is a marker beside it. **No marker without a link** — every invoice item of an unpaired invoice is trivially short, so marking them would put a discrepancy on nearly every bill on the base. The dash left the axis too, and as UNREACHABLE rather than unwanted: it meant "there was nothing to compare", which was true while the chip came from the invoice items, and the chip comes from a header field now. **#232 MADE THE DISCREPANCY THE THIRD VALUE** and retired the marker on both invoice screens; the "no marker without a link" clause survives as the clause order inside `summarizeInvoiceStatus`, which asks about the link before it asks about quantities. See the premise section at the top for why a third value does not reopen what this issue closed.
 - **THE DELIVERY AXIS KEEPS THREE KEYS, AND THAT IS NOT A BARE LOOKUP.** The issue's own wording was "turns `summarizeDeliveryInvoicing` from a line-level existence test into a lookup", and a literal lookup would be wrong: a shipment can carry material nobody has billed yet, so "does this delivery have an invoice" would read `Invoiced` while half of it is still owed. So it compares, per ordered item, what the bills NAMING this delivery charge against what this delivery brought — and the middle key is the state the worklist exists for. `>=` rather than `===`, because a vendor billing more than it shipped is the invoice axis's discrepancy and leaves nothing to chase from this side.
 - **THE SEED WAS NOT CHANGED, AND THE PAIRINGS ON THIS BASE WERE MADE THROUGH THE APP.** Every seed here is skip-if-exists, so teaching one to write this field would produce nothing on an already-seeded base — a claim about future coverage rather than a verification of the present one, which `verification.md` records measuring on #181. Two demo shipments were paired through the real attach path instead, which is both the data and the verification.
 - **Not in this issue:** `selectOverageBill` (#167) still guesses which bill carries an excess and becomes a lookup once this pairing exists, but its `spansInvoices` refusal needs rethinking alongside it — **#219 is that issue, and the answer was not a lookup but a tiered narrowing**, because an invoice naming no delivery is this feature's own ordinary state rather than a gap; `/pos` and `/pos/[poId]` are untouched, since the PO axis compares delivered against ORDERED and no bill enters it; and #20 is still where "what should ordered mean" is decided.
@@ -1010,22 +1020,94 @@ that stays the order's says so by name.
   a verdict states no quantity, since the figures line that rule pointed at is gone.
   The one honest `yet` on this screen is the section's own empty state, where the
   material may still arrive or the arrival may still be recorded.
-- **THE MARKER IS ON THE DETAIL'S CHIP NOW, and it was #166's own goal that was
-  broken.** The chip is shared between list and detail so the row a reader clicked and
-  the page they land on cannot describe one invoice differently — and the marker beside
-  it was not, so `HYE-INV-260804-03` was marked on `/invoices` and unqualified here.
-  It reads `summary.mismatch` and `STATUS_COPY.column.mismatch`, the same two the list
-  reads. The comment that justified its absence said the box already stated the
-  shortfall per ordered item, which was true while every box spoke; silencing the
-  normal box is what made the chip the only thing describing the invoice, and it
-  described it as complete. The two levels answer different questions now: the marker
-  says SOMETHING disagrees, the box says which ordered item and by how much.
-- **THE BOX'S PO LINK IS CONDITIONAL ON THE INVOICE SPANNING MORE THAN ONE.** #167 put
-  it there because the items table dropped its PO column, and that argument holds only
-  where an item could belong to either of two orders. With one PO the `Purchase Order`
-  section above already answers it, and a link repeating that once per box is the same
-  repetition. Counted off `poRecordIds`, the ids that section pluralizes on, so the two
-  cannot disagree about how many the invoice spans.
+- **THE DISCREPANCY IS THE CHIP'S THIRD VALUE, AND THE MARKER IS RETIRED ON BOTH
+  INVOICE SCREENS.** The second pass put #166's marker beside the detail's chip, to
+  close a real gap — the chip is shared so a row and the page it leads to cannot
+  describe one invoice differently, and the marker beside it was not, so
+  `HYE-INV-260804-03` was marked on `/invoices` and unqualified on its own page.
+  Opening it showed the fix was too quiet: the cell read `Delivered` with a small `!`
+  after it, so the normal word came first and the one that mattered was behind a
+  hover. **This is money — a reader has to stop paying and call somebody — and the
+  tone has to say so before the word `Delivered` does.** `Mismatch` is a chip value
+  now, `summarizeInvoiceStatus` returns it as the key, and the `mismatch` BOOLEAN is
+  gone with it: the key carries the distinction, so keeping both would be two
+  representations of one fact — the same call that function already made on
+  `anyArrived`. Every screen asks `summary.key === "mismatch"`.
+- **IT DOES NOT REOPEN WHAT #210 CLOSED, and the test is stage against error.** That
+  issue removed `partly-delivered` because it read as progress toward a whole while
+  the fact it named was a vendor shipping less than it billed, which under the premise
+  cannot be a middle. The argument bars a STAGE word. `Mismatch` is not on the way to
+  anything, so the rule stands and goes on barring exactly what it was written to bar
+  — asserted both ways in `offline/delivery-status.mjs`, which now requires the stage
+  word to be absent from this axis and present on the PO axis.
+- **AND THE MARKER'S OWN ARGUMENT TURNED OUT NOT TO HOLD HERE.** #166 made a
+  discrepancy a marker because it composes with any chip value and would double a
+  closed set. It composed with exactly ONE value: a mismatch needs a delivery matched,
+  so it could only ever qualify `Delivered`. Two values became three, not four. The
+  other half — that the marker's sentence is its tooltip and its accessible name at
+  once — is what made the shape wrong rather than merely unnecessary, since a tooltip
+  reaches neither touch nor a keyboard. `QualifierMarker` keeps one caller, #167's
+  inferred attribution, which is a guess; that is what a qualifier is for, and the
+  component is named for its shape rather than either meaning, so it needs no rename.
+- **ITS OWN TONE, NOT `partial`'s.** They would be the same amber, and on the delivery
+  axis `partial` is `Partly invoiced` — a stage — so one color would mean a stage on
+  one list and an error on the other, which is the property `DeliveryStatusMarks`
+  exists to hold still. Red is what this page already gives a discrepancy between two
+  figures (`⚠ Header Variance`), while amber there is the PROMPT that asks a person to
+  look. So the chip states the discrepancy in red and the box below asks in amber —
+  the split those two already had.
+- **THE DETAIL SAYS IT IN A SENTENCE WITH SOMETHING TO DO, IN AN AMBER BOX SHAPED LIKE
+  THE VARIANCE PROMPT.** `⚠ This invoice has variance flags — review before confirming
+  payment.` sits further down the same page and is the same grade of fact: a person
+  must look before money moves. So `STATUS_COPY.detail.mismatch` gets the same shape
+  rather than a new kind of alarm, and a reader who has learned one has learned both.
+  **It carries no figure**, which is the division of labor this issue settled: one
+  invoice can be short on two ordered items carrying different Units, so a figure at
+  invoice scope would be a sum of nothing or one of several. The entries below carry
+  one each. **BELOW THE DELIVERY, NOT ABOVE IT** — the sentence says the invoice bills
+  more than the delivery matched to it delivered, so the reader meets the subject
+  first; and the section's first line stays the same line in all three states, which
+  makes the box read as an addition rather than as a different layout. The check that
+  used to assert there was NO detail-density twin now asserts the twin's contents,
+  since the reason for its absence was that every box stated the shortfall itself.
+- **NO BORDER ON AN ENTRY.** The border was drawn around `Ordered · Billed ·
+  Delivered`, a share line, a verdict, an aside and a delivery list. With the inside
+  emptied it framed a name, and a bordered box holding one word reads as a card that
+  failed to load. A list is enough.
+- **NO ITEM LIST AT ALL WITHOUT A MATCHED DELIVERY.** This section compares what an
+  invoice bills against what one delivery brought; with nothing matched there is no
+  second term, so an entry per invoice item was a list of names with no fact in any of
+  them. The sentence above is the whole answer. `Not compared — no ordered item` goes
+  with them, since it says why an invoice item was left out of a comparison that is not
+  happening. **What this costs is one line, and it is a line the app still has.**
+  `Against the ordered item: 3 EA more billed` used to render on an unmatched invoice
+  — `HYE-INV-260804-07` is the case — and the second pass justified keeping it on the
+  ground that the figure was visible on no other screen. **That was wrong**: #233 gave
+  `/pos/[poId]` an `Invoiced` column with a red `(over)` mark, so
+  `HYE-PO-20260804-11` reads `Qty 10` and `Invoiced 13 (over)` today. Verified on that
+  page rather than assumed. The billing excess is one click away, beside the quantity
+  it exceeds, which is a better place for it than a delivery section on a bill nothing
+  has been matched to.
+- **SO THE SECTION'S DENSITY FOLLOWS ITS STATE.** Matched to nothing: one sentence.
+  Matched and covered: the delivery, then item names. Matched and short: the chip in
+  red, the delivery, the amber box, then item names with the short ones carrying their
+  figures. Three shapes for three states, and no state renders a row whose every cell
+  would be the same as its neighbor's.
+- **THE ENTRY'S PO LINK IS GONE ENTIRELY, WHICH MOVES #167's ARGUMENT TO #237.** The
+  second pass kept it where the invoice spans more than one order; that is reversed.
+  #167 put the link here because the items table dropped its `PO` column — a row an
+  overage split produced spans two orders once folded, so the cell had no single value
+  — and this section was the nearest place with one order per entry. It is the wrong
+  place on two counts: which order an item was billed against is not a delivery fact,
+  and it is not one a reader of THIS screen acts on, since nothing about whether to pay
+  turns on it. **#237 TOOK THE QUESTION**, under `Purchase Orders` on the same page,
+  answered only where the folded items do not all touch the same set of orders — which
+  is where the ambiguity #167 was solving actually lives, and where the order's own
+  page answers it from the other side since #233. **Recorded because the next reader's
+  first instinct will be to restore the items table's `PO` column**: that column is
+  still impossible for the reason #167 gave, and the answer is #237's list, not a cell.
+  `poRecordId` left the reconciliation row with the link — #237 inherits nothing from
+  that walk, reading `Invoice Items."PO"` off the items the page already holds.
 - **`matched` IS #231's WORD AND IS NOT A NEW ONE.** `PAIRING_COPY`'s banner already
   says the delivery below was matched from the ordered items the invoice bills, so the
   empty state uses it rather than coining a second word for one fact — the drift #179

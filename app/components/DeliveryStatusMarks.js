@@ -23,6 +23,15 @@
 const TONE_CLASS = {
     complete: "bg-green-100 text-green-800",
     partial: "bg-amber-100 text-amber-800",
+    // #232 — ITS OWN TONE RATHER THAN `partial`'s AMBER, and the reason is the
+    // property this file exists to hold: a tone means the same thing on both lists.
+    // `partial` is `Partly invoiced`, a stage; `mismatch` is an error, and an error
+    // wearing the stage color would make the palette say two things. Red is the color
+    // this page already gives a discrepancy between two figures — `⚠ Header Variance`
+    // on the invoice detail — while amber there is the PROMPT that asks a person to
+    // look. So the chip states the discrepancy in red and the box below asks in amber,
+    // which is the split those two already had before this chip existed.
+    mismatch: "bg-red-100 text-red-800",
     none: "bg-zinc-100 text-zinc-600",
 };
 
@@ -54,12 +63,18 @@ export function StatusChip({ chip }) {
  * it composes with any of them, and as a chip it would double them.
  *
  * NAMED FOR ITS SHAPE, NOT FOR ONE OF ITS MEANINGS (#210). It was `InferredMarker`
- * while there was exactly one qualifier in the app; it now carries two — #210's
- * discrepancy on the invoice list, and #167's inferred attribution on the overage
- * affordance, which is still a guess because reading it off the stored pairing is
- * that issue's work rather than this one's. A name claiming the first would have
- * been false at the second call site the moment it was reused, so it says what the
- * component IS and the label says what it means, exactly as `StatusChip` does.
+ * while there was exactly one qualifier in the app; #210 gave it a second meaning,
+ * a discrepancy on the invoice list, and a name claiming either would have been
+ * false at the other call site. So it says what the component IS and the label says
+ * what it means, exactly as `StatusChip` does.
+ *
+ * BACK TO ONE CALLER SINCE #232, AND THE NAME IS STILL RIGHT. That issue made the
+ * discrepancy a chip value: the chip said `Delivered` and the marker qualified it, so
+ * a reader met the normal word first and had to hover for the one that mattered. What
+ * is left is #167's inferred attribution on the overage affordance — a guess, which
+ * is what a qualifier is for, and reading it off the stored pairing is that issue's
+ * work. The name outlived the reuse that prompted it, which is the point of naming a
+ * component for its shape: it does not have to be renamed back.
  *
  * `title` alone would be the whole affordance on a mouse and nothing at all
  * anywhere else: a tooltip opens on neither touch nor a keyboard. So the same
