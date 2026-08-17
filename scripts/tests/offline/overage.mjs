@@ -349,10 +349,13 @@ export function run({ check, log, assert }) {
     );
     // ANTI-VACUITY for the line above: the object it looks in must be the one that
     // holds the other detail entries, or "not in it" is what an empty object says.
+    // The `column` half was `column.mismatch` until #232 made the discrepancy a chip
+    // value and retired that label; `column.invoice` is the member that holds the
+    // chips, so it is the one whose presence proves the object is real.
     assert(
         "  and the object checked is the real one",
         typeof STATUS_COPY.detail.verdict === "object" &&
-            typeof STATUS_COPY.column.mismatch === "function"
+            typeof STATUS_COPY.column.invoice === "object"
     );
 
     // --- OUT OF SCOPE: AN EXCESS ONE BILL CANNOT CARRY --------------------

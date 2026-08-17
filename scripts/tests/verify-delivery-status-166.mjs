@@ -77,7 +77,6 @@ import {
     describeInvoiceColumn,
     describeInvoiceLine,
     isNotFullyInvoiced,
-    sharesOrderedItem,
 } from "../../lib/deliveryStatus.js";
 import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
 import { createFixtures } from "./_fixtures.mjs";
@@ -477,28 +476,34 @@ try {
         check("the freight line is counted as excluded", recon.excludedCount, 1);
         check(
             "and its own row says so where it is",
-            describeInvoiceLine(notComparedRow.status, notComparedRow.unit).verdict.key,
+            describeInvoiceLine(notComparedRow.status, notComparedRow.unit, { hasDelivery: true })
+                .verdict.key,
             "not-compared"
         );
-        // Two scopes, deliberately distinct: `status` is THIS invoice's share,
-        // `ordered item` is the ordered item's own totals — which is what the box's
-        // Ordered / Billed / Delivered figures show.
+        // ONE SCOPE PER ROW SINCE #232, and the row's `line` field is gone with the
+        // second one. Every figure here is this invoice's: what it billed, and what
+        // the delivery it MATCHES brought of that ordered item.
         check("this invoice's billed share", judgedRow.status.invoiced, 10);
-        check("and what the shipment it NAMES brought on that ordered item", judgedRow.status.delivered, 10);
+        check("and what the delivery it MATCHES brought on that ordered item", judgedRow.status.delivered, 10);
         check("so nothing billed-not-delivered", judgedRow.status.billedNotArrived, 0);
-        check("the ordered figure lives on the ordered item", judgedRow.line.ordered, 10);
-        // THE DELIVERIES ARE ON THE ROW, not in a section of their own: a row is
-        // scoped to one ordered item, so listing them there is exactly the claim
-        // the data supports and needs no heading to qualify it.
-        assert("the delivery is listed under the ordered item it touched", judgedRow.deliveries.length === 1);
-        check("with the received date", judgedRow.deliveries[0].receivedDate, "2026-07-15");
-        // #210 — AND IT IS NAMED. This is the claim the section could not make while
-        // the pairing was inferred: the quantity was attributed and the arrival was
-        // not.
-        check("and it is marked as the one this invoice names", judgedRow.deliveries[0].named, true);
-        check("and a not-compared row claims none", notComparedRow.deliveries.length, 0);
-        // This bill IS the only one on the ordered item, so the share line stays away.
-        check("no share line is needed here", sharesOrderedItem(judgedRow), false);
+        assert("the ordered item's own totals no longer ride along", !("line" in judgedRow));
+        assert("nor does the ordered quantity", !("ordered" in judgedRow.status));
+        // AND THIS BOX SAYS NOTHING, because everything it billed was delivered. The
+        // whole invoice's answer is the chip; a box repeating it would state one fact
+        // once per invoice item. Both slots null on a fixture where every figure
+        // agrees is the shape #232's second pass is for.
+        const settledBox = describeInvoiceLine(judgedRow.status, judgedRow.unit, {
+            hasDelivery: true,
+        });
+        check("a box with nothing to report has no verdict", settledBox.verdict, null);
+        check("  nor an order-scoped line", settledBox.againstOrder, null);
+        // #232 — THE DELIVERY IS RETURNED ONCE, NOT PER ROW. `Invoices."Delivery"` is
+        // single, so a per-row list printed one document once per invoice item; the
+        // marker went with the move, a list of one under this invoice's own heading
+        // having nothing to distinguish.
+        check("the matched delivery is named at the top level", recon.delivery?.id, arrivedDelivery.id);
+        check("with the received date", recon.delivery.receivedDate, "2026-07-15");
+        assert("and no row carries a delivery list of its own", recon.rows.every((r) => !("deliveries" in r)));
 
         // -------------------------------------------------------------------
         console.log("\nPart C — the delivery axis: an arrival with no invoice naming it:");
@@ -593,27 +598,42 @@ try {
             linkedDeliveryRecordId: linkedDelivery(secondFull),
         });
         check("billed on THIS invoice", secondRecon.rows[0].status.invoiced, 6);
-        check("delivered by the shipment THIS invoice names", secondRecon.rows[0].status.delivered, 6);
+        check("delivered by the delivery THIS invoice matches", secondRecon.rows[0].status.delivered, 6);
         check("so nothing is billed-not-delivered", secondRecon.rows[0].status.billedNotArrived, 0);
-        check("the ordered item's own billed total is still there for context", secondRecon.rows[0].line.invoiced, 16);
-        check("and its delivered total, across both shipments", secondRecon.rows[0].line.delivered, 16);
-        // THE SHARE LINE NOW FIRES ON A FACT rather than on a guess: the ordered item
-        // carries another bill too, so the box's `Billed 16` is not this invoice's
-        // figure and has to be said.
-        check("the share line fires, because the ordered item carries another bill", sharesOrderedItem(secondRecon.rows[0]), true);
+        // THE ORDERED ITEM'S TOTALS ARE THE FIXTURE THIS PART EXISTS FOR — 16 billed
+        // across two invoices, 16 delivered across two arrivals — and #232 took them
+        // off the row precisely because a reader took them for this invoice's. What
+        // reaches the screen from that level now is the two exception figures alone.
+        assert("neither rollup reaches the row any more", !("line" in secondRecon.rows[0]));
+        assert("nor the ordered quantity", !("ordered" in secondRecon.rows[0].status));
+        // 16 billed against an ordered item of 10, so the order-scoped line fires —
+        // and its figure is the ORDERED ITEM's, which no per-invoice arithmetic could
+        // produce: neither bill exceeds 10 on its own. THIS IS THE CASE THAT KEEPS
+        // THE LINE, and the reason it does not depend on anything being matched.
+        check(
+            "the ordered item's billing excess is stated, and only that",
+            describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }).againstOrder
+                ?.text,
+            "Against the ordered item: 6 EA more billed"
+        );
+        check(
+            "  while the verdict stays silent, this bill having been delivered in full",
+            describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }).verdict,
+            null
+        );
         assert(
             "and the box has no inferred slot left to fill",
-            !("inferred" in describeInvoiceLine(secondRecon.rows[0].status, "EA"))
+            !("inferred" in describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }))
         );
-        // BOTH shipments are listed under the ordered item, and exactly one is named.
-        check("both shipments are listed under the ordered item", secondRecon.rows[0].deliveries.length, 2);
-        check(
-            "exactly one of them is named by this invoice",
-            secondRecon.rows[0].deliveries.filter((d) => d.named).length,
-            1
+        // TWO ARRIVALS TOUCHED THIS ORDERED ITEM AND THE BOX NAMES NEITHER. The one
+        // this invoice matches is named once, at the top; the other is another bill's
+        // business and #233 put "which deliveries filled this ordered item" on the
+        // order's own page, which is the frame that owns the question.
+        check("the matched delivery is named once", secondRecon.delivery?.id, secondDelivery.id);
+        assert(
+            "and no row lists the arrivals of the ordered item",
+            secondRecon.rows.every((r) => !("deliveries" in r))
         );
-        check("and it is the right one", secondRecon.rows[0].deliveries.find((d) => d.named).id, secondDelivery.id);
-        assert("the named one sorts first", secondRecon.rows[0].deliveries[0].named === true);
 
         // -------------------------------------------------------------------
         console.log("\nPart E — the query budget does not grow with the rows:");
@@ -642,8 +662,7 @@ try {
         check("and the ceiling is the three levels the module documents", one.total, 3);
 
         // THE DETAIL, which reads a different three (PO Items, Delivery Items,
-        // Deliveries) because it does show the ordered item's own totals. Also down
-        // from five. The invoice items are fetched OUTSIDE the probe: the detail
+        // Deliveries). The invoice items are fetched OUTSIDE the probe: the detail
         // page holds them anyway for the items table, which is why this walk adds no
         // query for them.
         const detailLines = await getItemsByInvoice(arrivedFull.id);
@@ -654,6 +673,26 @@ try {
         );
         console.log(`  invoice detail: 1 invoice -> ${detailOps.total} ops`);
         check("the detail is three levels too", detailOps.total, 3);
+
+        // #232 NARROWED LEVEL 3 AND NOT LEVEL 2, AND THIS MEASURES BOTH HALVES OF
+        // THAT. Level 3 used to read every delivery that had touched the ordered
+        // items, to list them all; it reads the one the invoice matches, so a bill
+        // matching none drops it and measures 2. Level 2 still reads every slice on
+        // the ordered items, because `arrivedBeyondOrder` stays order-scoped and only
+        // the rows carry `Over Delivered` — so a bill matching none does NOT fall to
+        // 1, and the assertion says which figure it is rather than only that it fell.
+        // THE SAME INVOICE ITEMS WITH THE PAIRING SUPPRESSED, which is the production
+        // call shape for an unmatched bill — `linkedDelivery` returns null and the
+        // page passes it. Same ordered items and same slices as the measurement above,
+        // so the ONE variable is the link, and the ordered items here do carry
+        // arrivals: that is `HYE-INV-260804-04`'s shape on the real base, a bill
+        // matching nothing whose ordered item other bills' deliveries have touched.
+        const unpairedDetail = await countOps(() =>
+            getInvoiceReconciliation(detailLines, { linkedDeliveryRecordId: null })
+        );
+        console.log(`  invoice detail: a bill matching no delivery -> ${unpairedDetail.total} ops`);
+        assert("matching no delivery costs less than matching one", unpairedDetail.total < detailOps.total);
+        check("  and what remains is PO Items plus the slice level", unpairedDetail.total, 2);
 
         const deliveryMany = await getDeliveriesByRecordIds(fixtures.ids("deliveries"));
         // COMPARE LIKE WITH LIKE: the delivery its own bill names, so all three levels
