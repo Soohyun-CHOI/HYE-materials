@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
 import { withAdminApi } from "@/lib/authz";
-import { getPOById, isPoOpen } from "@/lib/airtable/purchaseOrders";
+import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { isOurBlobUrl } from "@/lib/blobIngest";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { isPOUnsigned } from "@/lib/poUnsigned";
+import { hasUninvoicedItems } from "@/lib/poItemQty";
 
 // Issue #46. The company's real, historically-issued PO numbers use the
 // same HYE-PO-YYYYMMDD-## shape this system now generates (4-digit year —
@@ -81,31 +82,36 @@ export const POST = withAdminApi(async (request) => {
             if (po && isPOWithdrawn(po)) {
                 withdrawn.push({ recordId: po.id, poId: po.poId });
             } else if (po) {
-                // Issue #198 — `unsigned` rides ON the candidate, beside `isOpen`
-                // below, rather than in a bucket like `withdrawn` above: a withdrawn
-                // PO must not become selectable and an unsigned one must stay
-                // selectable, which is the whole distinction. Set here rather than in
-                // a second pass because the judgment is pure — `isOpen` needs a
-                // per-PO read, this needs only the record already in hand.
+                // Issue #198 — `unsigned` rides ON the candidate, beside `isOpen`,
+                // rather than in a bucket like `withdrawn` above: a withdrawn PO must
+                // not become selectable and an unsigned one must stay selectable,
+                // which is the whole distinction.
+                //
+                // Issue #92 — `isOpen` is whether every ordered item's cumulative
+                // invoiced Qty already meets its ordered Qty, independent of
+                // PO.Status; computed here so the client gets it in the same
+                // response, no extra round-trip. Sent whatever it says, because a
+                // fully-invoiced order is a warning on this screen and not a refusal.
+                //
+                // BOTH JUDGMENTS ARE PURE AND BOTH READ THE RECORD ALREADY IN HAND,
+                // which is why they are one pass. Until #244 `isOpen` came from a
+                // second pass over a per-PO read — isPoOpen re-fetched the order and
+                // walked its ordered items — and this comment said openness needed
+                // one. The base carries it now (Purchase Orders."Uninvoiced Items"),
+                // so getPOById above brought it back with everything else and this
+                // route pays nothing for it. Reading the same field the picker's
+                // query filters on is also what keeps the two from disagreeing about
+                // an order the banner names.
                 confirmed.push({
                     recordId: po.id,
                     poId: po.poId,
                     vendorId: po.vendor?.[0] || null,
                     unsigned: isPOUnsigned(po),
+                    isOpen: hasUninvoicedItems(po),
                 });
             } else {
                 unconfirmed.push(poId);
             }
-        });
-
-        // Issue #92 — whether each matched PO is already fully invoiced
-        // (every PO Item's cumulative invoiced Qty already meets its
-        // ordered Qty), independent of PO.Status. Reuses #15's isPoOpen()
-        // rather than reimplementing it; computed here so the client gets
-        // it in the same response, no extra round-trip.
-        const openFlags = await Promise.all(confirmed.map((c) => isPoOpen(c.recordId)));
-        confirmed.forEach((c, i) => {
-            c.isOpen = openFlags[i];
         });
 
         // An invoice's Vendor is a single header field, so confirmed POs

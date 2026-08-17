@@ -11,9 +11,10 @@ export const metadata = { title: "New Invoice" };
 // Labeled for #190 in #231, which is the screen this issue adds a read path
 // beside — #216's rule that an issue labels the screens it changes so it can show
 // a before and an after, rather than claiming one. #193's own comment asked for
-// this one by name: `getOpenPOs` is likely the most expensive read path in the app
-// and it is on this form, and until now nothing could say what it cost. #224
-// remains the sweep across every other unlabeled entry point.
+// this one by name, on the suspicion that `getOpenPOs` was the most expensive read
+// path in the app; the label proved it, at 83 of this screen's 85 operations, and
+// #244 then took it to 1. #224 remains the sweep across every other unlabeled
+// entry point.
 export default async function NewInvoicePage() {
     return withOpsLabel("/invoices/new", () => renderNewInvoicePage());
 }

@@ -94,7 +94,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
-- `lib/poItemQty.js` — the per-item quantity judgments: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`.
+- `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
 - `lib/poListView.js` — the PO list's ordering, Status text, three empty states, and which approved PRs have no PO with both voices of that copy (#176).
 - `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, folded to one entry per document, their ordering, their empty states and `PO_DOCUMENTS_COPY`.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
@@ -148,9 +148,9 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Edit Log**: Edit Log ID, PR, Changed By, `Field` (select — exactly the seven labels the code can write: the six `ITEM_FIELD_LABELS` values plus `Shipping Fee`), Old Value, New Value, Changed At, Notes (optional). Append-only: no update function, and `editLog.js` deliberately has none.
 
-**Purchase Orders**: strict 1:1 with PR. PO ID (HYE-PO-YYYYMMDD-## — 4-digit year, the one exception to the 2-digit convention), PR (link), Vendor (Lookup via PR), Quotation File (Lookup), Our PIC/Manager (links), Created Date, President Signed(+At), Status (Awaiting Signature/Signed/Withdrawn), Withdrawn At (datetime, UTC, *At convention — stamped in the same write as Status -> Withdrawn, #138), PO PDF File, Items Subtotal (rollup, PO Items only), Shipping Fee (plain currency, frozen copy from PR at PO-generation time), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0 — PO PDF's TOTAL line), Delivery Address Used (Primary/Alternate — internal only).
+**Purchase Orders**: strict 1:1 with PR. PO ID (HYE-PO-YYYYMMDD-## — 4-digit year, the one exception to the 2-digit convention), PR (link), Vendor (Lookup via PR), Quotation File (Lookup), Our PIC/Manager (links), Created Date, President Signed(+At), Status (Awaiting Signature/Signed/Withdrawn), Withdrawn At (datetime, UTC, *At convention — stamped in the same write as Status -> Withdrawn, #138), PO PDF File, Items Subtotal (rollup, PO Items only), Shipping Fee (plain currency, frozen copy from PR at PO-generation time), Total Amount (formula = Items Subtotal + Shipping Fee, blank = 0 — PO PDF's TOTAL line), Delivery Address Used (Primary/Alternate — internal only), Uninvoiced Items (rollup, SUM of PO Items."Has Uninvoiced Qty").
 
-**PO Items**: frozen snapshot from PR Items at PO-generation — NOT live. PO Item ID, PO (link), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = static value, Remark, Invoice Items (reverse-link, multiple — partial invoicing is real). No free-text/user-facing Unit entry point; the snapshot fields are written only by lib/poGeneration.js.
+**PO Items**: frozen snapshot from PR Items at PO-generation — NOT live. PO Item ID, PO (link), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = static value, Remark, Invoice Items (reverse-link, multiple — partial invoicing is real), Has Uninvoiced Qty (formula = `IF({Qty} - {Invoiced Qty} > 0, 1, 0)`). No free-text/user-facing Unit entry point; the snapshot fields are written only by lib/poGeneration.js.
 
 **Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in-app). At least one required per PR; can have more than one over its lifetime (dynamic list on PR form, or later via Edit and continue).
 

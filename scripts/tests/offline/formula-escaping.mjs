@@ -72,8 +72,9 @@ const ALLOWED_RAW = {
         "built from PO_WITHDRAWN_STATUS, the Airtable select option's own name; no " +
         "caller supplies it and no user input reaches it. REPLACED the narrower " +
         "PO_WITHDRAWN_STATUS entry in #168, which moved that interpolation into this " +
-        "one shared fragment so the two invoice-side readers cannot answer differently " +
-        "about the same PO. The list stays at one entry rather than gaining a second",
+        "one shared fragment so the invoice-side readers cannot answer differently " +
+        "about the same PO — two of them then, three since #244. The list stays at " +
+        "one entry rather than gaining a second",
 };
 
 /** The canonical module. A local helper of the same name must not satisfy this. */

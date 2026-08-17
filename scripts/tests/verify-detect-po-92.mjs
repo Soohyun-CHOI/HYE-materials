@@ -6,7 +6,8 @@
 //
 // Ad hoc verification for issue #92 — mirrors app/api/invoices/detect-po/
 // route.js's core logic exactly (PDF text -> regex -> getPOById ->
-// isPoOpen), against real test PDFs, without going through the browser's
+// hasUninvoicedItems, which was isPoOpen until #244 moved the question into
+// the base), against real test PDFs, without going through the browser's
 // file input (not scriptable in this environment). Also mirrors
 // InvoiceForm.js's single-PO message-building logic exactly, to directly
 // verify the actual user-facing text, not just the raw confirmed/
@@ -17,7 +18,8 @@
 
 import { readFileSync } from "fs";
 import { PDFParse } from "pdf-parse";
-import { getPOById, isPoOpen } from "../../lib/airtable/purchaseOrders.js";
+import { getPOById } from "../../lib/airtable/purchaseOrders.js";
+import { hasUninvoicedItems } from "../../lib/poItemQty.js";
 
 const PO_ID_PATTERN = /HYE-PO-\d{8}-\d{2}/g;
 
@@ -35,15 +37,20 @@ async function detectFromFile(path) {
     matches.forEach((poId, i) => {
         const po = lookups[i];
         if (po) {
-            confirmed.push({ recordId: po.id, poId: po.poId, vendorId: po.vendor?.[0] || null });
+            // #244 — `isOpen` is read off the record getPOById already returned,
+            // exactly as the route now does it. It was a second pass here too, one
+            // isPoOpen per confirmed PO, each re-fetching that PO and walking its
+            // ordered items; the base carries the answer since #244 and the walk is
+            // gone. This mirror is unchanged in what it computes.
+            confirmed.push({
+                recordId: po.id,
+                poId: po.poId,
+                vendorId: po.vendor?.[0] || null,
+                isOpen: hasUninvoicedItems(po),
+            });
         } else {
             unconfirmed.push(poId);
         }
-    });
-
-    const openFlags = await Promise.all(confirmed.map((c) => isPoOpen(c.recordId)));
-    confirmed.forEach((c, i) => {
-        c.isOpen = openFlags[i];
     });
 
     return { confirmed, unconfirmed };

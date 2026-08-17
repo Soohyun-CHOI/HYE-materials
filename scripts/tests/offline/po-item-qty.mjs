@@ -1,7 +1,8 @@
-// The per-item quantity judgments: uninvoicedQty / hasUninvoicedQty, the
-// uninvoiced remainder of an ordered item (#48, extracted in #18), and countsAsOrdered,
-// which #169 moved here from lib/materialPriceView.js — the condition for moving
-// it was CLAUDE.md's, not that module's.
+// What leaves an order open, at both levels: uninvoicedQty / hasUninvoicedQty,
+// the uninvoiced remainder of an ordered item (#48, extracted in #18);
+// hasUninvoicedItems, the same question asked of a whole order (#244); and
+// countsAsOrdered, which #169 moved here from lib/materialPriceView.js — the
+// condition for moving it was CLAUDE.md's, not that module's.
 //
 // Pinned because the negative case is a deliberate behavior that reads like a
 // bug: more invoiced than ordered must stay negative, not clamp to 0. Three call
@@ -9,12 +10,24 @@
 // invoice actions' over-invoicing warning); the rule is one function now, and a
 // future "let's not show negatives" simplification is what these cases catch.
 //
+// WHAT THIS FILE CANNOT SEE, since #244 put half of one judgment in Airtable:
+// whether `PO Items."Has Uninvoiced Qty"` still agrees with hasUninvoicedQty, and
+// whether `Purchase Orders."Uninvoiced Items"` still sums it. Both are live-value
+// facts and both are scripts/tests/verify-open-orders-244.mjs's. What is here is
+// only the JS side of the pair.
+//
 // lib/poItemQty.js imports nothing, which is what lets this be offline.
 
-import { uninvoicedQty, hasUninvoicedQty, countsAsOrdered } from "../../../lib/poItemQty.js";
+import {
+    uninvoicedQty,
+    hasUninvoicedQty,
+    hasUninvoicedItems,
+    countsAsOrdered,
+} from "../../../lib/poItemQty.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "PO line quantity judgments — uninvoiced remainder, counts-as-ordered (#18, #169)";
+export const title =
+    "PO line quantity judgments — uninvoiced remainder, open order, counts-as-ordered (#18, #169, #244)";
 
 export function run({ check, log }) {
     log("uninvoicedQty:");
@@ -54,6 +67,33 @@ export function run({ check, log }) {
             uninvoicedQty({ qty, invoicedQty }) > 0
         );
     }
+
+    log("");
+    log("hasUninvoicedItems — the same question about a whole order (#244):");
+    check("an order with one such item is open", hasUninvoicedItems({ uninvoicedItems: 1 }), true);
+    check("several are still just open", hasUninvoicedItems({ uninvoicedItems: 4 }), true);
+    check("none left is NOT open", hasUninvoicedItems({ uninvoicedItems: 0 }), false);
+    // Airtable leaves a rollup empty when the link array is, so an order with no
+    // ordered items arrives as undefined — the same "not open" the item walk this
+    // replaced reached by never entering its loop.
+    check("an order with no ordered items is not open", hasUninvoicedItems({}), false);
+    check("an absent rollup is not open", hasUninvoicedItems({ uninvoicedItems: undefined }), false);
+
+    // IT READS THE COUNT AND DOES NOT RE-DERIVE THE PER-ITEM RULE. The two take
+    // disjoint argument shapes, so a caller cannot feed one the other's figures
+    // and get an answer by accident: the order-level function ignores qty and
+    // invoicedQty entirely, which is what these two cases say out loud. If it
+    // ever started subtracting for itself, the first of them would go true.
+    check(
+        "an order-level call ignores per-item quantities",
+        hasUninvoicedItems({ qty: 10, invoicedQty: 0 }),
+        false
+    );
+    check(
+        "and a per-item call ignores the order-level count",
+        hasUninvoicedQty({ uninvoicedItems: 3 }),
+        false
+    );
 
     // MOVED HERE FROM material-price-view.mjs BY #169, with the function itself.
     log("");
