@@ -229,3 +229,57 @@ query — `lib/poUnsigned.js`.
 - **`createInvoiceAction` IS UNTOUCHED.** It still refuses only `Withdrawn`. A signal is
   not a gate, and an unsigned order's invoice is the one this whole line of issues
   exists to keep.
+
+### Leaving the PO list where the search found it (#242)
+
+A slot's dropdown drew from the same list #57's search hatch merges its results into,
+and the toggle cleared the slot's query, results and status while leaving the list
+itself widened. So a form on which somebody searched once offered every order the
+search returned, closed ones among them, in a control whose default set is that
+vendor's open orders. The rule is `lib/poPickerOptions.js`.
+
+- **#198 MADE IT VISIBLE RATHER THAN CAUSING IT.** The unsigned marker on the results
+  told the closed orders apart from the ones that belong there. Before it, the widened
+  dropdown looked like a longer list of the same kind of thing.
+- **A SEARCHED ORDER IS OFFERED WHILE A SLOT HOLDS IT, AND THE CLAIM IS THAT NARROW
+  BECAUSE `handleSlotChange` MAKES IT SO.** Picking a result resets the slot to
+  `EMPTY_SLOT` with the id set, which closes that slot's search and drops its results in
+  the same write — so from the moment a searched order matters, a slot holds it. An
+  earlier draft of the rule also kept whatever an OPEN search still listed; that would
+  have re-created this defect one slot over, since a second slot's dropdown would widen
+  because somebody searched in the first.
+- **DERIVED AT RENDER, NOT PRUNED FROM THE STATE.** Pruning on the toggle would have to
+  spare whatever another slot's open results still list, and would need the same hook
+  again on slot removal and on a vendor change; each miss strands orders in the list for
+  the rest of the session. Deriving is idempotent, so no sequence of toggles can leave
+  the state disagreeing with the rule, and **nothing is ever removed** — which is what
+  keeps a picked result renderable. The alternative fails exactly there: prune the
+  record and a result picked a moment later selects a value with no matching option,
+  the misleading screen `posList` exists to prevent.
+- **`posList` MEANS "RECORDS THE BROWSER HOLDS" AND THE DROPDOWN DECIDES WHAT IT MAY
+  SHOW.** That split is why four other consumers need no change: the per-item PO select
+  and the three Shipping Fee facts (prefill, mismatch warning, reference line) all read
+  `selectedPos`, which is what the slots hold, and a held order is never dropped. **The
+  issue body gives one reason for that and there are four** — it names the `<option>`
+  the slot renders; the other three would have gone silent while the slot still showed
+  the order.
+- **ORIGIN IS EXPLICIT BECAUSE THE TWO MERGES MUST BE TOLD APART.** #46's detection
+  merges an order and, in its non-pristine branch, leaves it unselected while telling
+  the reader to pick it manually — so a rule that kept only what a slot holds deletes
+  the affordance #46 built and #198 marked. Distinguishing by shape was the alternative
+  (only search results carry `shippingFee`) and that is an accident of two projections
+  rather than a statement about provenance.
+- **DETECTION ALSO CLAIMS AN ORDER THE SEARCH ALREADY PUT THERE, and the hole this
+  closes was opened by the narrowing itself.** Search for a closed order, do not pick
+  it, then upload a file quoting it: the entry is already in the list, so the merge
+  skipped it, so it stayed tagged as merely searched — and the banner would have named
+  an order the dropdown no longer offers. `claimDetected` re-tags it and hands back the
+  same array when it changed nothing, so the merge keeps its state identity.
+- **THE QUIET MUTANT IS THE ONE THE CHECK NAMES FIRST.** Remove the narrowing and the
+  form returns to the behavior this issue is about, the screen looks ordinary, and no
+  other check reads this list — the same standing as #237's `always agree`. Two more are
+  pinned: dropping the self-allowance clause hides the order a slot is displaying, and
+  narrowing by any origin drops what detection merged.
+- **NO NEW READ, AND NONE LATER EITHER.** Deriving removes nothing, so an order picked
+  after a search needs no second request, and `poItemsCache` is never evicted anyway.
+  Measured on the labeled route: 85 ops on `/invoices/new` before and after.
