@@ -19,9 +19,14 @@
 // whether the child list actually hangs under the order, and whether an order reached
 // only through a free-text row draws its line with nothing under it, are browser
 // findings and are in the pull request. `scripts/demo/seed_order_breakdown_237.mjs`
-// puts both silent-side shapes on the base so they can be read on a screen; the one
-// shape it CANNOT make is the two-items-split-across-the-same-two-orders variant
-// below, one correction being one ordered item.
+// puts the corrective-order shape on the base so the silent side can be read on a
+// screen. Two shapes it CANNOT make, and both are pinned here instead:
+//
+//   - two items split across the SAME two orders, since one correction is one
+//     ordered item and a second correction means a third order;
+//   - an invoice item with no `PO Item`, since `SHOW_OTHER_ITEM_OPTION` is false
+//     (#96) and free-text charges are out of the plan — so the exclusion below is
+//     defensive, and this file is the only thing holding it.
 
 import { foldInvoiceItems } from "../../../lib/invoiceItemFold.js";
 import {
@@ -191,6 +196,59 @@ export function run({ check, assert, log }) {
     const listedPlusFreeText = billedItemsByOrder(LISTED_PLUS_FREE_TEXT);
     check("a listed invoice stays listed with a free-text row added", listedPlusFreeText.shown, true);
     check("  and the free-text row's order carries nothing", listedPlusFreeText.byOrder.has(C), false);
+
+    // -----------------------------------------------------------------------
+    // THE EXCLUSION IS THE WHOLE OF WHAT THIS TIER CARRIES ALONE. It is not a state
+    // the app can produce — `SHOW_OTHER_ITEM_OPTION` is false (#96) and free-text
+    // charges are out of the plan — so no seed and no screen can show it, and the two
+    // halves have to be pinned here separately: OUT OF THE JUDGMENT and UNDER NO
+    // ORDER. Each is asserted above and each is shown below to fail under the one
+    // mutation that would break it, which is keying the exclusion on the wrong link.
+    log("the exclusion's mutant — keyed on `PO` instead of `PO Item`:");
+    const keyedOnPO = ({ folded, items } = {}) => {
+        // The real rule with ONE change: a row is admitted on its `PO` alone. That is
+        // the plausible mistake, because a free-text row does carry one.
+        const rowById = new Map((items || []).map((row) => [row.id, row]));
+        const byOrder = new Map();
+        const signatures = new Set();
+        for (const group of folded || []) {
+            const orderRecordIds = [];
+            for (const rowId of group.rowIds || []) {
+                const orderRecordId = rowById.get(rowId)?.po?.[0];
+                if (orderRecordId && !orderRecordIds.includes(orderRecordId)) {
+                    orderRecordIds.push(orderRecordId);
+                }
+            }
+            if (orderRecordIds.length === 0) continue;
+            signatures.add([...orderRecordIds].sort().join(" "));
+            for (const id of orderRecordIds) {
+                if (!byOrder.has(id)) byOrder.set(id, []);
+                byOrder.get(id).push({ key: group.key });
+            }
+        }
+        return { shown: signatures.size > 1, byOrder };
+    };
+    const realOnePlus = billedItemsByOrder(ONE_ORDER_PLUS_FREE_TEXT);
+    const mutantOnePlus = keyedOnPO(ONE_ORDER_PLUS_FREE_TEXT);
+    check("the mutant lets the free-text row into the judgment, so the list turns ON", mutantOnePlus.shown, true);
+    assert(
+        "  and the real rule disagrees with it there — this is the assertion that catches it",
+        realOnePlus.shown === false && mutantOnePlus.shown !== realOnePlus.shown
+    );
+    const realListed = billedItemsByOrder(LISTED_PLUS_FREE_TEXT);
+    const mutantListed = keyedOnPO(LISTED_PLUS_FREE_TEXT);
+    check("the mutant also puts that row under an order", mutantListed.byOrder.has(C), true);
+    assert(
+        "  where the real rule leaves that order empty — the second half, caught separately",
+        realListed.byOrder.has(C) === false && mutantListed.byOrder.has(C) !== realListed.byOrder.has(C)
+    );
+    // Both halves fail together under this mutation and separately under others, so
+    // neither assertion is riding on the other: the judgment shows up on an invoice
+    // that must stay SILENT, the placement on one that must stay LISTED.
+    assert(
+        "the two halves are read off different invoices, so one cannot mask the other",
+        realOnePlus.shown === false && realListed.shown === true
+    );
 
     // -----------------------------------------------------------------------
     log("what each order carries — the quantity billed against IT, in the table's order:");

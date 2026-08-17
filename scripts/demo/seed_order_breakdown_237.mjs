@@ -1,7 +1,7 @@
 // Browsable states for the per-order item list on an invoice (#237).
 //
-// TWO SHAPES THAT NOTHING ON THIS BASE HELD, and both are cases where the list's
-// rule is only observable in the data rather than in the copy:
+// TWO INVOICES, ONE EACH SIDE OF THE RULE, and the silent one is the shape nothing on
+// this base held — a case observable only in the data rather than in the copy:
 //
 //   A  a CORRECTIVE order. One item billed 13, corrected to 10 on the original
 //      order and 3 on the correction's, so the invoice names two orders and its one
@@ -10,9 +10,10 @@
 //      reason a real invoice carries two orders. Before this seed the only
 //      two-order invoice on the base was `HYE-INV-260804-03`, where each item
 //      touches one order, so only the LISTED half had ever been seen on a screen.
-//   B  an order reached ONLY through an item with no ordered item behind it. The
-//      list is on (two items, two orders), a third order is charged by a free-text
-//      item alone, and that order keeps its line with nothing under it.
+//   B  one item per order. Two items, two orders, the sets differ, so the list is
+//      ON and each order carries the quantity billed against it. The base did hold
+//      this half already (`HYE-INV-260804-03`), and it is here as the pair to A:
+//      one invoice each side of the same rule, on the same job and vendor.
 //
 // A GOES THROUGH THE REAL CORRECTION FLOW, NOT A HAND-WRITTEN END STATE, and the
 // reason is the fold key. `lib/invoiceItemFold.js` keys on `Material` PLUS unit
@@ -29,14 +30,18 @@
 // write, exactly as `seed_overage_167.mjs:makeOrder` does, and for the same reason:
 // what is being seeded is the settled state, not the approval path.
 //
-// B'S FREE-TEXT ITEM IS WRITTEN DIRECTLY, WHICH IS THE ONE THING HERE THE FORM
-// CANNOT DO TODAY. `SHOW_OTHER_ITEM_OPTION` is false (#96), so no invoice item
-// without a `PO Item` can be created through the UI — but the backend path is
-// untouched and this is the shape it produced when the flag was on, so
-// `createInvoiceItem` is called with the argument the form used to pass:
-// `poItemRecordId: null` and a `PO` that is still required. That combination is why
-// the exclusion in `lib/invoiceOrderBreakdown.js` keys on `PO Item` and never on
-// `PO`.
+// WHAT THIS FILE DELIBERATELY DOES NOT SEED, AND WHY THAT IS NOT A GAP: an order
+// reached only through an item with no ordered item behind it, which would keep its
+// line with nothing under it. It needs a free-text invoice item, and the form cannot
+// make one — `SHOW_OTHER_ITEM_OPTION` is false (#96) and the plan no longer calls for
+// free-text charges at all, so the exclusion in `lib/invoiceOrderBreakdown.js` is
+// defensive rather than a live path. A seed exists to put a state a person can reach
+// in front of them; writing one the app cannot produce would say the opposite. The
+// rule is held in the offline tier instead, on both halves — such a row stays out of
+// the judgment AND lands under no order — each shown to fail under a mutation.
+// An earlier revision of this file created that row on the B invoice and it was
+// retired in the same commit that added this paragraph; the order it charged
+// (`237-DEMO Cap`) is left standing, an order having existed either way.
 //
 // THE TWO CASES CANNOT SHARE ONE INVOICE: A must render silent and B must render
 // listed, and an invoice is one or the other. Two invoices, therefore, and the ids
@@ -148,7 +153,7 @@ async function resolveSeededIds() {
     ids.aInvoice = a?.invoiceId;
     ids.bInvoice = b?.invoiceId;
     [ids.aPo, ids.aCorrectionPo] = await ordersOf(a);
-    [ids.bPo1, ids.bPo2, ids.bPo3] = await ordersOf(b);
+    [ids.bPo1, ids.bPo2] = await ordersOf(b);
 }
 
 /** A one-page PDF standing in for the vendor's invoice scan. */
@@ -256,25 +261,24 @@ async function makeInvoice({ code, issueDate, amountDue }) {
     return await getInvoiceByRecordId(invoice.id);
 }
 
-/** One charge. `orderedItem` null is the free-text shape: a `PO`, no `PO Item`. */
-async function charge({ invoice, po, orderedItem, itemName, qty, unitPrice = PRICE }) {
+/**
+ * One charge against one ordered item. There is no free-text branch on purpose —
+ * see the header for why that shape is not seeded.
+ */
+async function charge({ invoice, po, orderedItem, qty, unitPrice = PRICE }) {
     const item = await createInvoiceItem({
         invoiceRecordId: invoice.id,
         invoiceId: invoice.invoiceId,
         poRecordId: po.id,
-        poItemRecordId: orderedItem?.id ?? null,
-        itemName: orderedItem?.itemName ?? itemName,
-        size: orderedItem?.size ?? "",
-        unit: orderedItem?.unit ?? "",
+        poItemRecordId: orderedItem.id,
+        itemName: orderedItem.itemName,
+        size: orderedItem.size,
+        unit: orderedItem.unit,
         qty,
         unitPrice,
         remark: "",
     });
-    made(
-        "Invoice Item",
-        item.invoiceItemId,
-        orderedItem ? `${qty} on ${po.poId}` : `free text, ${po.poId}, no PO Item`
-    );
+    made("Invoice Item", item.invoiceItemId, `${qty} on ${po.poId}`);
     return item;
 }
 
@@ -349,34 +353,24 @@ ids.aCorrectionPo = correctionPO.poId;
 ids.aDelivery = aDelivery.deliveryId;
 
 // ---------------------------------------------------------------------------
-// B — a third order charged only by a free-text item: LISTED, one bare line
+// B — one item per order: LISTED
 // ---------------------------------------------------------------------------
-console.log("\nB — two items on two orders, plus a free-text charge on a third:");
+console.log("\nB — two items, one on each of two orders:");
 
 const b1 = await makeOrder({ itemName: "237-DEMO Tee", qty: 5 });
 const b2 = await makeOrder({ itemName: "237-DEMO Union", qty: 7 });
-const b3 = await makeOrder({ itemName: "237-DEMO Cap", qty: 4 });
 const bInvoice = await makeInvoice({
     code: "237-DEMO-B",
     issueDate: "2026-08-12",
-    amountDue: 5 * PRICE + 7 * PRICE + 40,
+    amountDue: 5 * PRICE + 7 * PRICE,
 });
 await charge({ invoice: bInvoice, po: b1.po, orderedItem: b1.orderedItem, qty: 5 });
 await charge({ invoice: bInvoice, po: b2.po, orderedItem: b2.orderedItem, qty: 7 });
-await charge({
-    invoice: bInvoice,
-    po: b3.po,
-    orderedItem: null,
-    itemName: "237-DEMO Miscellaneous charge",
-    qty: 1,
-    unitPrice: 40,
-});
 
 ids.bInvoice = bInvoice.invoiceId;
 ids.bPo1 = b1.po.poId;
 ids.bPo2 = b2.po.poId;
-ids.bPo3 = b3.po.poId;
-console.log(`  ${bInvoice.invoiceId}: 5 on ${ids.bPo1}, 7 on ${ids.bPo2}, free text on ${ids.bPo3}`);
+console.log(`  ${bInvoice.invoiceId}: 5 on ${ids.bPo1}, 7 on ${ids.bPo2}`);
 
 printGuide();
 
@@ -400,19 +394,28 @@ it are 10 on the first order and 3 on the second, at one price, which is
 what makes them fold.
 
 ------------------------------------------------------------------
-2. /invoices/${ids.bInvoice ?? "<B>"}  —  listed, and one bare order line
+2. /invoices/${ids.bInvoice ?? "<B>"}  —  listed, one item per order
 ------------------------------------------------------------------
   Purchase Orders
   ${ids.bPo1 ?? "<B1>"} — Awaiting Signature
       237-DEMO Tee 2" — 5 EA
   ${ids.bPo2 ?? "<B2>"} — Awaiting Signature
       237-DEMO Union 2" — 7 EA
-  ${ids.bPo3 ?? "<B3>"} — Awaiting Signature
 
-The third order is charged by "237-DEMO Miscellaneous charge", which has a
-PO and no PO Item — so it names no order in this list, it did not decide
-whether the list appears, and its order keeps its line with nothing under
-it. Compare the items table, where all three charges are rows.
+The sets differ — one item names one order, the other names the other — so
+the list appears and each order carries the quantity billed against IT.
+
+WHAT IS DELIBERATELY NOT HERE: an order reached only through an item with
+no ordered item behind it, which would keep its line with nothing under
+it. That needs a free-text invoice item, which the form cannot make
+(\`SHOW_OTHER_ITEM_OPTION\` is false, #96) and which the plan no longer
+calls for, so it is not a state this app produces. The exclusion still has
+to hold defensively, and \`offline/invoice-order-breakdown.mjs\` is what
+holds it — asserting both that such a row stays out of the judgment and
+that it lands under no order, each shown to fail under a mutation. An
+earlier revision of this file seeded that row on ${ids.bInvoice ?? "<B>"};
+it was retired, and the order it charged (237-DEMO Cap) is left where it
+is, an order having existed either way.
 
 ------------------------------------------------------------------
 3. The three that must stay silent
@@ -431,7 +434,9 @@ this seed created touches them.
     console.log(`
 Also created as side effects, by the app rather than by this file: one
 Quotation on the correction request (the invoice's own file, re-uploaded),
-the corrective order's PO PDF, four Materials rows and their Material
-Prices (#18's cache, on PO generation), and Invoice-PO Link rows.
+the corrective order's PO PDF, three Materials rows and their Material
+Prices (#18's cache, on PO generation), and the Invoice-PO Link row the
+overage split writes for the corrective order. This file writes no join
+row itself, so the B invoice has none.
 `);
 }

@@ -1237,13 +1237,28 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   the delivery section and left the lookup it fed standing, unread — eslint does not flag
   it under this config, and it sat in the middle of the block this issue rewrites. Deleted
   here rather than filed.
-- **BOTH SILENT-SIDE CASES ARE ON THE BASE NOW, MADE BY A SEED RATHER THAN BY HAND**
+- **THE SILENT SIDE IS ON THE BASE NOW, MADE BY A SEED RATHER THAN BY HAND**
   (`scripts/demo/seed_order_breakdown_237.mjs`). Before it, the only two-order invoice
   here was `HYE-INV-260804-03`, where each item touches one order — so the LISTED half
   had been seen on a screen and the silent half had not, which is backwards: a
   correction is the overwhelmingly common reason a real invoice carries two orders.
-  `HYE-INV-260817-01` is that case (`HYE-PO-20260817-01` and `-02`, no item list), and
-  `HYE-INV-260817-02` is the other (`-03` and `-04` with a line each, `-05` bare).
+  `HYE-INV-260817-01` is that case: `HYE-PO-20260817-01` and `-02` both named, no item
+  list under either. `HYE-INV-260817-02` is its pair on the listed side,
+  `HYE-PO-20260817-03` and `-04` with a line each.
+- **AN ORDER WITH NO CHILD LINE IS NOT SEEDED, AND THAT IS A DECISION RATHER THAN A
+  GAP.** It needs an invoice item with no `PO Item`, which the form cannot make
+  (`SHOW_OTHER_ITEM_OPTION` is false, #96) and which the plan no longer calls for at
+  all — free-text charges were built and then dropped, so the code path stands while
+  the state does not occur. A seed exists to put a reachable state in front of a
+  person; seeding one the app cannot produce would assert the opposite. **The exclusion
+  is still required defensively** and `offline/invoice-order-breakdown.mjs` is the only
+  thing holding it, on both halves separately — such a row stays OUT OF THE JUDGMENT
+  (read off an invoice that must stay silent) and lands UNDER NO ORDER (read off one
+  that must stay listed) — each shown to fail under a mutant that keys the exclusion on
+  `PO` rather than `PO Item`, which is the plausible mistake because a free-text row
+  does carry an order link. One such row was seeded on `HYE-INV-260817-02` and then
+  retired, its `Amount Due` corrected from 184 to 144 in the same pass; the order it
+  charged, `HYE-PO-20260817-05`, is left standing, an order having existed either way.
 - **THE CORRECTION SEED GOES THROUGH THE REAL FLOW BECAUSE THE FOLD KEY IS WHAT MAKES
   THE CASE.** Two halves at different prices do not fold, and then each touches one
   order and the list turns ON — the exact inverse of the shape being seeded. Writing
@@ -1259,11 +1274,17 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   corrections and two corrective orders — `{A1,A2}` beside `{A1,A3}`, which DIFFER and
   would turn the list on. The all-items-split-across-the-same-two variant is a shape
   the app cannot reach and is asserted only in `offline/invoice-order-breakdown.mjs`.
-- **ITEM COUNT DOES NOT COST A READ; DISTINCT ORDER COUNT COSTS ONE FIND EACH, AND
-  THAT PREDATES THIS ISSUE.** The invoice items arrive in one list read, so a third
-  charge is free; a third ORDER is a third `getPOByRecordId`. Measured on the labeled
-  route with the pre-#237 page restored from git and then re-applied, same session and
-  same invoice: `HYE-INV-260817-02` (3 items, 3 orders) 11 ops both times, with the
-  same `Purchase Orders ×3` breakdown both times, and `HYE-INV-260817-01` 10 both
-  times. `HYE-INV-260804-03` reads 11 for 2 items and 2 orders, the difference being
-  the delivery it matches rather than anything about the items.
+- **AN INVOICE ITEM COSTS ONE READ AND SO DOES A DISTINCT ORDER, AND NEITHER IS
+  #237's.** What this issue adds is nothing: measured on the labeled route with the
+  pre-#237 page restored from git and then re-applied, same session and same invoice,
+  `HYE-INV-260817-02` read 11 ops both times with the same per-table breakdown both
+  times, and `HYE-INV-260817-01` read 10 both times. **The per-item cost was stated the
+  wrong way round when those numbers were first written down**, on the reasoning that
+  the items arrive in one list read: they do not. `getLinkedRecords` is 1 + N — one
+  `.find()` per child, said out loud in its own header — so `getItemsByInvoice` pays a
+  find per invoice item, and the section pays one `getPOByRecordId` per distinct order.
+  Retiring one charge that was also the only one naming its order took
+  `HYE-INV-260817-02` from 11 to 9, with `Invoice Items` finds 3 -> 2 and
+  `Purchase Orders` finds 3 -> 2: one each, exactly. What misled the first reading was
+  `HYE-INV-260804-03` also totalling 11 on 2 items and 2 orders — two fewer finds there
+  are spent on the delivery it matches, so two different sums landed on one number.
