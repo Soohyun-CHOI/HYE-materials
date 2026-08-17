@@ -8,6 +8,7 @@ import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
 import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoiceMatch";
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
+import { ORDER_BREAKDOWN_COPY, billedItemsByOrder } from "@/lib/invoiceOrderBreakdown";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
@@ -95,7 +96,6 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // the two are equivalent by construction (see invoices/new/actions.js).
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
     const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
-    const poById = Object.fromEntries(poRecords.map((po) => [po.id, po]));
 
     // Issue #166 — the delivery side of this invoice, and since #210 the delivery it
     // matches rather than an estimate of which one answered it. Up to three
@@ -123,6 +123,13 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     const foldedItems = foldInvoiceItems(
         items.map((it) => ({ ...it, materialRecordId: materialByLine.get(it.invoiceItemId) ?? null }))
     );
+
+    // Issue #237 — which order each item was billed against, for the `Purchase Orders`
+    // section below, and only where the folded items disagree about that. Reads the
+    // fold's `rowIds` against the invoice items already loaded, so it costs no query:
+    // an Invoice Item carries its own `PO` and `PO Item`, and the order records are the
+    // ones that section already renders. The rule is lib/invoiceOrderBreakdown.js.
+    const orderBreakdown = billedItemsByOrder({ folded: foldedItems, items });
 
     // Issue #16 — surfaced but never blocking: variance is a review prompt,
     // not a gate on marking something paid.
@@ -216,20 +223,64 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 )}
             </div>
 
+            {/* Issue #237 — THE ITEMS HANG UNDER THE ORDERS HERE, AND ONLY WHERE THE
+                FOLDED ITEMS DISAGREE ABOUT WHICH ORDERS THEY TOUCH. #167 took the `PO`
+                column off the items table because a folded row spans two orders and
+                left the question with the delivery section; #232 scoped that section to
+                one delivery, where an order is not a fact. This is the section whose
+                subject IS an order, so it is the answer's third and last home.
+
+                THE NESTING IS #233's, DELIBERATELY UNCHANGED: the parent line is the
+                document's identity and its own facts, the child list is the pair facts
+                in smaller gray text at `pl-4`. `/pos/[poId]` puts an invoice's charges
+                under the invoice the same way, so a reader crossing between the two
+                screens meets one grammar rather than two. What differs is the price —
+                see lib/invoiceOrderBreakdown.js for why a line here carries only the
+                quantity.
+
+                AN ORDER WITH NO CHILD LINE IS NOT A BUG. It is reached only through an
+                item with no ordered item behind it, which names no order; the order is
+                still charged, so it keeps its line, and the empty space under it is the
+                honest answer. The section's OWN list is unchanged — it comes from every
+                item's `PO`, free-text ones included.
+
+                THE SECTION STAYS ABOVE THE ITEMS TABLE, so these names precede the
+                table they mirror. Moving it below would be a change to a layout this
+                issue was not asked to redraw, and the list appears only in the
+                ambiguous case; its subject is the order, which is what this position
+                already says. */}
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">Purchase Order{poRecords.length === 1 ? "" : "s"}</h2>
                 {poRecords.length === 0 ? (
                     <p className="mt-2 text-sm text-zinc-500">None linked.</p>
                 ) : (
-                    <ul className="mt-2 space-y-1 text-sm">
-                        {poRecords.map((po) => (
-                            <li key={po.id}>
-                                <Link href={`/pos/${po.poId}`} className="underline">
-                                    {po.poId}
-                                </Link>{" "}
-                                — <strong>{po.status}</strong>
-                            </li>
-                        ))}
+                    <ul className={`mt-2 text-sm ${orderBreakdown.shown ? "space-y-2" : "space-y-1"}`}>
+                        {poRecords.map((po) => {
+                            const billed = orderBreakdown.shown
+                                ? orderBreakdown.byOrder.get(po.id) ?? []
+                                : [];
+                            return (
+                                <li key={po.id}>
+                                    <p className="flex flex-wrap items-center gap-x-2">
+                                        <Link href={`/pos/${po.poId}`} className="underline">
+                                            {po.poId}
+                                        </Link>
+                                        <span>
+                                            — <strong>{po.status}</strong>
+                                        </span>
+                                    </p>
+                                    {billed.length > 0 && (
+                                        <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
+                                            {billed.map((b) => (
+                                                <li key={b.key}>
+                                                    {ORDER_BREAKDOWN_COPY.billed(b).text}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </li>
+                            );
+                        })}
                     </ul>
                 )}
             </div>
