@@ -1237,3 +1237,33 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   the delivery section and left the lookup it fed standing, unread — eslint does not flag
   it under this config, and it sat in the middle of the block this issue rewrites. Deleted
   here rather than filed.
+- **BOTH SILENT-SIDE CASES ARE ON THE BASE NOW, MADE BY A SEED RATHER THAN BY HAND**
+  (`scripts/demo/seed_order_breakdown_237.mjs`). Before it, the only two-order invoice
+  here was `HYE-INV-260804-03`, where each item touches one order — so the LISTED half
+  had been seen on a screen and the silent half had not, which is backwards: a
+  correction is the overwhelmingly common reason a real invoice carries two orders.
+  `HYE-INV-260817-01` is that case (`HYE-PO-20260817-01` and `-02`, no item list), and
+  `HYE-INV-260817-02` is the other (`-03` and `-04` with a line each, `-05` bare).
+- **THE CORRECTION SEED GOES THROUGH THE REAL FLOW BECAUSE THE FOLD KEY IS WHAT MAKES
+  THE CASE.** Two halves at different prices do not fold, and then each touches one
+  order and the list turns ON — the exact inverse of the shape being seeded. Writing
+  the end state by hand would be asserting the key; `splitInvoiceLineForOverage`
+  carries `bill.unitPrice` onto the half it creates and takes its name, size and unit
+  from the corrective order's ordered item, whose `Material` #18's cache wrote in the
+  same PO generation. Verified at the record level: both ordered items behind
+  `HYE-INV-260817-01` link Material `237-DEMO Elbow_2"_EA`, and both invoice items are
+  at 12 — which is why one row of 13 appears in the items table.
+- **ONE CORRECTION IS ONE ORDERED ITEM, so the browsable case has ONE folded item
+  touching both orders rather than several.** `createOverageDraft` takes a single
+  delivery row and raises a single-item request, so two split items would mean two
+  corrections and two corrective orders — `{A1,A2}` beside `{A1,A3}`, which DIFFER and
+  would turn the list on. The all-items-split-across-the-same-two variant is a shape
+  the app cannot reach and is asserted only in `offline/invoice-order-breakdown.mjs`.
+- **ITEM COUNT DOES NOT COST A READ; DISTINCT ORDER COUNT COSTS ONE FIND EACH, AND
+  THAT PREDATES THIS ISSUE.** The invoice items arrive in one list read, so a third
+  charge is free; a third ORDER is a third `getPOByRecordId`. Measured on the labeled
+  route with the pre-#237 page restored from git and then re-applied, same session and
+  same invoice: `HYE-INV-260817-02` (3 items, 3 orders) 11 ops both times, with the
+  same `Purchase Orders ×3` breakdown both times, and `HYE-INV-260817-01` 10 both
+  times. `HYE-INV-260804-03` reads 11 for 2 items and 2 orders, the difference being
+  the delivery it matches rather than anything about the items.

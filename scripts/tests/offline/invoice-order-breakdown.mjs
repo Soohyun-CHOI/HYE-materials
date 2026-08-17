@@ -18,7 +18,10 @@
 // WHAT THIS TIER CANNOT SEE. It reads pure functions, so the rendering is not here:
 // whether the child list actually hangs under the order, and whether an order reached
 // only through a free-text row draws its line with nothing under it, are browser
-// findings and are in the pull request.
+// findings and are in the pull request. `scripts/demo/seed_order_breakdown_237.mjs`
+// puts both silent-side shapes on the base so they can be read on a screen; the one
+// shape it CANNOT make is the two-items-split-across-the-same-two-orders variant
+// below, one correction being one ordered item.
 
 import { foldInvoiceItems } from "../../../lib/invoiceItemFold.js";
 import {
