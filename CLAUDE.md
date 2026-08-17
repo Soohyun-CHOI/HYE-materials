@@ -99,6 +99,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, folded to one entry per document, their ordering, their empty states and `PO_DOCUMENTS_COPY`.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/poUnsigned.js` — `isPOUnsigned` and the signal wherever an order is offered for an invoice (#198): the picker's option label and `UNSIGNED_COPY`. The judgment runs server-side; a client reads only the `unsigned` boolean.
+- `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242): `PO_ORIGIN`, the searched-order claim rule, the one-slot-one-order exclusion, and detection's claim over an entry the search put there.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.

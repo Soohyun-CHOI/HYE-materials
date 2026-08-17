@@ -8,6 +8,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 // Issue #198 — pure and import-free, so a client component may hold it; the judgment
 // itself already ran on the server and every PO here carries its answer as `unsigned`.
 import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
+import { PO_ORIGIN, claimDetected, poOptionsForSlot } from "@/lib/poPickerOptions";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes
 // an explicit choice in the PO Item dropdown — distinguishes "still
@@ -394,17 +395,28 @@ export default function InvoiceForm({ vendors, pos }) {
             // the posList comment above for why this can happen.
             setPosList((prev) => {
                 const missing = confirmed.filter((c) => !prev.some((po) => po.id === c.recordId));
-                if (missing.length === 0) return prev;
+                // Issue #242 — detection also CLAIMS an order the list already holds,
+                // or the banner would name a PO the dropdown stopped offering. The
+                // rule is lib/poPickerOptions.js:claimDetected, which hands back the
+                // same array when it changed nothing.
+                const claimed = claimDetected(prev, confirmed.map((c) => c.recordId));
+                if (missing.length === 0 && claimed === prev) return prev;
                 return [
-                    ...prev,
+                    ...claimed,
                     // Issue #198 — `unsigned` comes along, or a PO that reached the
                     // list only through detection would read as unsigned in the
                     // banner and as nothing in the select directly below it.
+                    //
+                    // Issue #242 — and `origin` comes along, because the narrowing
+                    // rule has to tell this merge from the search's. A detected order
+                    // stays offered while unselected: the non-pristine branch below
+                    // names it and says to pick it manually.
                     ...missing.map((c) => ({
                         id: c.recordId,
                         poId: c.poId,
                         vendorId: c.vendorId,
                         unsigned: c.unsigned,
+                        origin: PO_ORIGIN.detected,
                     })),
                 ];
             });
@@ -746,7 +758,10 @@ export default function InvoiceForm({ vendors, pos }) {
             setPosList((prev) => {
                 const missing = results.filter((r) => !prev.some((po) => po.id === r.id));
                 if (missing.length === 0) return prev;
-                return [...prev, ...missing];
+                // Issue #242 — tagged, so the dropdown can stop offering these once
+                // no slot holds them. They stay in the list either way: removing a
+                // record is what would break a result picked a moment later.
+                return [...prev, ...missing.map((r) => ({ ...r, origin: PO_ORIGIN.search }))];
             });
             setPoSlots((prev) =>
                 prev.map((s, i) => (i === slotIndex ? { ...s, status: "done", results } : s))
@@ -897,9 +912,13 @@ export default function InvoiceForm({ vendors, pos }) {
     // any additional slots below; no behavior changed from before, just
     // where it's invoked from.
     function renderPoSlot(slot, slotIndex) {
-        const optionsForSlot = posForVendor.filter(
-            (po) => po.id === slot.poRecordId || !selectedPoIds.includes(po.id)
-        );
+        // Issue #242 — the two rules this list obeys are one function now
+        // (lib/poPickerOptions.js): a slot may not offer an order another slot holds,
+        // and a searched order is offered only while a slot holds it. Derived here
+        // rather than pruned out of `posList` on the search toggle, so no gesture can
+        // leave the state disagreeing with it and nothing a picked result needs is
+        // ever removed.
+        const optionsForSlot = poOptionsForSlot({ posForVendor, slot, selectedPoIds });
         // Same exclusion as optionsForSlot above — a search result for a PO
         // another slot already holds isn't a valid pick here, so it's
         // filtered out rather than letting two slots end up pointing at the
