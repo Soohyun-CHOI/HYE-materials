@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAdminApi } from "@/lib/authz";
 import { searchPOs } from "@/lib/airtable/purchaseOrders";
+import { isPOUnsigned } from "@/lib/poUnsigned";
 
 // Issue #57. Backs "Show all / search closed POs" in InvoiceForm.js.
 // Admin-only (#134): re-checked here to match the Admin-only invoice form
@@ -14,6 +15,14 @@ export const GET = withAdminApi(async (request) => {
         return NextResponse.json({ pos: [] });
     }
 
+    // Issue #198 — `unsigned` is a BOOLEAN here, not the `Status` string, and that is
+    // the reason this projection changed rather than widening. The results render in
+    // the same picker as the page's own PO list, so they need the same signal; passing
+    // the status instead would put the judgment in the browser and give
+    // lib/poUnsigned.js a second implementation to drift from. The projection had
+    // dropped `Status` entirely, which is why the escape hatch was the one offered
+    // surface with no way to show this — #168 shared the two readers' filter and left
+    // their two shapes alone.
     const pos = await searchPOs(q.trim());
     return NextResponse.json({
         pos: pos.map((po) => ({
@@ -21,6 +30,7 @@ export const GET = withAdminApi(async (request) => {
             poId: po.poId,
             vendorId: po.vendor?.[0] || null,
             shippingFee: po.shippingFee ?? null,
+            unsigned: isPOUnsigned(po),
         })),
     });
 });

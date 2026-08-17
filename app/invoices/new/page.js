@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/authz";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
+import { isPOUnsigned } from "@/lib/poUnsigned";
 import { withOpsLabel } from "@/lib/airtableOps";
 import InvoiceForm from "./InvoiceForm";
 
@@ -45,6 +46,13 @@ async function renderNewInvoicePage() {
     const posWithVendorId = pos.map((po) => ({
         ...po,
         vendorId: po.vendor?.[0] || null,
+        // Issue #198 — the unsigned judgment runs HERE, on the record, so the form
+        // reads a boolean instead of comparing `Status` in the browser. The same
+        // normalization the search route and the detect route each do on their own
+        // way out, which is what lets one label helper serve all three sources
+        // (lib/poUnsigned.js). Costs no read: `status` is already on every record
+        // getOpenPOs returned.
+        unsigned: isPOUnsigned(po),
         // Issue #78 — po.shippingFee is now a plain frozen copy (see
         // purchaseOrders.js:createPO), not a Lookup — used by the form as
         // a reference figure next to Invoice.Shipping Fee, no computed

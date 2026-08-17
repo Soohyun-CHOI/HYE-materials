@@ -68,7 +68,7 @@ The detail page counted what arrived and what was billed without naming either. 
 
 - **No `Sent to Vendor` status (#144)** — the one place that name still appears, kept as the record of the decision. The option existed on the Status field, but no code path ever wrote it and no PO record ever held it: the PO reaches the vendor by email, outside the app, so the value could only be set by hand in Airtable. It was removed rather than implemented. This does **not** mean canceling an order that has already gone to the vendor is unreal — it just has no in-app path: the expected handling is a conversation with the vendor plus a manual Airtable correction, and what comes back is a credit memo or a corrected invoice, which makes it invoice-side work. Silence beats promising a process that doesn't exist. **Reopening condition:** if sending the PO to the vendor ever moves into the app, the status returns as a *byproduct* of that action rather than a step someone sets by hand — and withdrawal then has to be excluded from it again, deliberately. Note the asymmetry that would greet it, because the two sides guard in opposite directions. Withdrawal is an **allowlist**: `PO_WITHDRAWABLE_STATUSES = ["Awaiting Signature", "Signed"]`, so an unlisted status is refused. The invoice-side queries are a **denylist**: `{Status} != "${PO_WITHDRAWN_STATUS}"` — one shared fragment, `PO_NOT_WITHDRAWN`, read by `getPOsExceptWithdrawn` and `searchPOs` and inherited by `getOpenPOs` — so anything not named is admitted. A status option added to the field later is therefore refused by withdrawal *and* reaches the invoice picker with no code change and no notice. Recorded here, not fixed — whether that denylist should become an allowlist is its own decision.
   - **#168 narrowed that denylist from two statuses to one, and the reason was a false comment rather than a preference.** `getPOsExceptWithdrawn` — which carried a broader name before #168 renamed it — also excluded `Awaiting Signature`, justified in its own doc by "a PO that hasn't even been signed/sent to the vendor yet can't have a real vendor invoice against it". **The old name is deliberately not spelled here, because #168's second commit rebinds it to a different reader (every PO, no status filter) and a back-reference using it would read as a claim about that one.** **The base disproves it: `HYE-PO-20260805-02` is Awaiting Signature and carries an invoice**, and two ordinary paths produce that. Site staff order outside the app and the PR/PO follow as a record — the same fact #162 cites for not filtering delivery candidates on signature status, and why `Committed Qty` and `Signed Qty` are separate fields. And a corrective PO (#167) exists *because* material already arrived, so the excess invoice can precede it by construction. The exclusion was also never enforced anywhere but the picker query: `/api/invoices/detect-po` resolves by `getPOById` with no status filter, `InvoiceForm` deliberately appends a detected PO the picker's fetch missed, and `createInvoiceAction` checks only `Withdrawn`. So the same PO was unfindable by browsing and findable by uploading a PDF quoting its number. #133's Step 2, which asserted the exclusion, was a **rename guard** — it existed to catch a leftover `!= "Draft"` string — and #168 leaves no signature-status string for it to guard, so that step now asserts the new behavior instead.
-  - **The gap #168 opened, deliberately and not fixed there:** an unsigned PO now appears in the invoice picker with **nothing marking it as unsigned**, so office staff can pick an order the President has not approved. Filed as its own Phase 3 issue.
+  - **The gap #168 opened, deliberately and not fixed there:** an unsigned PO reached the invoice picker with **nothing marking it as unsigned**, so office staff could pick an order the President had not approved. #198 closed it with a signal rather than a filter — see its own section below.
 - **Withdrawn (#138)** is the PO-side counterpart to PR Withdrawn: the requester decided not to order after all. Set by the **parent PR's Requester** (a PO carries no requester of its own, and needs none — nor an actor field on the withdrawal), confirmation modal, no reason capture, terminal (no revive). Eligibility is ONE shared predicate, `lib/poWithdraw.js:getPOWithdrawEligibility` — Status in {Awaiting Signature, Signed} AND no linked invoice (Invoice-PO Link join rows; the Invoice Items reverse-link is a safety net for a row stranded by a best-effort rollback). Status is tested first on purpose: a PO that fails the status test *and* has invoices must not be told to ask an Admin to unlink, since unlinking wouldn't make it withdrawable either. The two statuses are an allowlist, not an exclusion list — anything outside them is refused by default, including an option added to the field later without a matching code change. A linked invoice is evidence the order did go out, so the UI *explains* that an Admin has to unlink first rather than disabling the control. Modal copy (second person, to the actor) and page-banner copy (third person, to any viewer) sit as one pair in that same module and branch on the single condition `President Signed`. Terminal is enforced, not just labeled: `signPOAction` refuses a Withdrawn PO (without it, signing would write Status back to Signed and `syncPRStatusToPOSigned` would advance the PR), `regeneratePDFAction` refuses it — the PO PDF is the document sent to the vendor, so the line is "no new documents, existing document preserved": an already-generated PDF stays downloadable as audit trail — and `createInvoiceAction` refuses to link an invoice to one. A Withdrawn PO drops out of `getPOsExceptWithdrawn`/`searchPOs` (the invoice picker and /api/pos/search) and out of `/api/invoices/detect-po`'s candidates, where it is reported in its own `withdrawn` bucket instead: a vendor invoice quoting a withdrawn PO number means the vendor shipped anyway or the withdrawal was a mistake, which is the only place that contradiction surfaces, so it must never read as a failed detection. Partial closure of a partly invoiced PO is out of scope (there the order went out and was partly fulfilled — a different thing).
 
 ### PO Items
@@ -161,3 +161,71 @@ correction above `/prs`.
   left alone deliberately: the redirect is right for the caller that already
   existed, and changing a shared action's behavior on the evidence of one new
   screen is a decision worth having all three strips in hand for.
+
+### Showing an unsigned order where an invoice can be attached (#198)
+
+`#168` stopped hiding unsigned POs from the invoice-side queries and said so: an
+invoice against one is exactly the thing that must not be lost. What it left is that
+such a PO reaches the picker carrying nothing, so the office selects an order the
+President never approved without learning that. This adds the signal and changes no
+query — `lib/poUnsigned.js`.
+
+- **A FLAG BESIDE `isOpen`, NOT A BUCKET LIKE `withdrawn`, AND THE DIFFERENCE IS
+  SELECTABILITY.** `/api/invoices/detect-po` keeps a withdrawn PO out of `confirmed`
+  entirely because nothing may be invoiced against it; an unsigned one must stay
+  selectable, which is the whole point of #168's narrowing. So it rides on the
+  candidate, in the same category as `isOpen`: a fact that changes what a reader knows
+  and nothing about what the form does. Its tone is not raised either — `withdrawn`
+  forces `level: "warning"` because that PO is unusable, while here invoicing is the
+  normal path and a warning would make the office read ordinary work as a problem.
+- **THE SEARCH ESCAPE HATCH WAS THE THIRD OFFERED SURFACE AND THE ISSUE'S TEXT DID NOT
+  NAME IT AT FIRST.** `/api/pos/search` projected `{id, poId, vendorId, shippingFee}`
+  and dropped `Status`, so the one surface that could not have shown this was the
+  results list inside the same picker. #168 made both readers share one filter
+  fragment and left their two response shapes alone, which is the same asymmetry it
+  was diagnosing, one level out: a PO the dropdown marks and the search does not. The
+  issue body was amended to name the hatch before this was implemented.
+- **THE PROJECTION CARRIES `unsigned`, A BOOLEAN, RATHER THAN `Status`.** Widening it
+  to the status string would have been shorter and would have put the judgment in the
+  browser, giving `isPOUnsigned` a second implementation to drift from. The judgment
+  runs on the server at each of the three surfaces — the form's page mapper, the search
+  route, the detect route — and every PO shape the client holds carries the answer
+  under one name, which is what lets one label helper serve all three.
+  `offline/po-unsigned.mjs` asserts the form spells no status string and reads no PO's
+  `status`; that assertion started as a blanket ban on `.status ===` and failed on the
+  form's own upload and fetch state machines, so it is narrowed and says why.
+- **IT READS `Status` AND NEVER `President Signed`, WHICH NO SCREEN COULD SHOW.** A PO
+  withdrawn before it was ever signed has `presidentSigned: false` and is not awaiting
+  a signature — that order ended. The checkbox is the plausible wrong field: it sits on
+  the same record, reads as the same question, and agrees with the right answer on every
+  PO an offered surface can hold, because a withdrawn PO reaches none of them. Pinned
+  in the offline tier with that exact case and with a mutant keyed on the checkbox.
+- **THE COPY SAYS WHAT IS OBSERVED AND STOPS.** The record cannot say which cause it is
+  — the site ordering directly, or a corrective order that exists because material
+  arrived — so the clause names the missing signature and the fact that the PO was
+  still selected. It is the `withdrawn` note inverted in exactly one clause: that one
+  says it was NOT selected. An earlier draft ended "an invoice against an unsigned
+  order has to be recorded", which reads as an instruction about work the office is
+  already doing right; it reads "an invoice can be recorded against an unsigned order"
+  instead, and the offline check bars the modal verbs and the cause words from it.
+- **THE BANNER SAYS IT ONLY WHERE THE APP SELECTED THE PO.** The two auto-fill branches
+  carry the clause; the vendor-conflict branch and the "not auto-applied, a PO or items
+  are already entered" branch do not, because "it was still selected" would be false
+  there. Nothing is lost by the silence: both of those branches tell the reader to
+  select manually, and the option they then open reads `— unsigned`. The alternative was
+  a second voice for the unselected case, which is more copy for the rarer branch and
+  two sentences to keep in step.
+- **`statusTag` IS NOT REUSED, and `/pos` already refused it once for its own reason.**
+  That rule (#19) is a three-status tag for the material screens, silent for `Signed`
+  and worded `PO unsigned` because it renders beside a VENDOR name and has to name its
+  subject. A picker option is the PO's own id, so naming the subject again repeats it.
+  **The condition for merging is measurable:** the day this signal needs the withdrawn
+  or unknown-status branches, one function covers both and this one goes.
+- **NO NEW READ ANYWHERE.** `recordToPO` already returns `status`, so all three surfaces
+  had the fact in hand; the flag is a pure computation on a record each of them already
+  fetched. `/invoices/new` has carried a `withOpsLabel` since #231, so the before and
+  after are measurable there; the two routes are unlabeled, as every Route Handler in
+  this repo is, and #224 owns that sweep.
+- **`createInvoiceAction` IS UNTOUCHED.** It still refuses only `Withdrawn`. A signal is
+  not a gate, and an unsigned order's invoice is the one this whole line of issues
+  exists to keep.
