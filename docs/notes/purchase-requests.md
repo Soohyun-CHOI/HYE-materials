@@ -43,3 +43,89 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 ### The out-of-list Unit value on the PR form
 
 - **Out-of-list existing values are preserved as an extra option only in `EditAndContinueForm.js`** (`app/prs/[prId]/EditAndContinueForm.js`, the `!CANONICAL_UNITS.includes(row.unit)` branch). `PRForm.js` maps the canonical list flat, so a hydrated Draft item holding an out-of-list Unit renders with nothing selected — the value survives a save untouched (it is still in React state, and `updateItem` only fires on change) but *displays* as blank, and is overwritten if the Requester touches that dropdown. Currently unreachable: no out-of-list value exists on any of the four fields. Not fixed here — it is PR-form scope, tracked separately.
+
+### Merging identical item rows (#170)
+
+Two rows agreeing on name, size, unit, unit price, remark and quotation are one
+`PR Item` with a combined quantity. The rule is `lib/prItemMerge.js`, the guarantee is
+`parseFormState`, and the form previews the same function rather than applying it.
+
+- **MERGING IS NOT FOLDING, AND THE THREE FOLDS ARE NOT REUSABLE HERE.** #241
+  (`lib/invoiceItemFold.js`, `lib/invoiceDeliveryEntries.js`) and #238
+  (`groupRowsByItemAndOrder`) leave the records alone and regroup them per screen,
+  because the split they read is real: a corrective split and an over-delivery
+  boundary are per-row judgments the data has to keep. Here there is no judgment on
+  the row and nothing to preserve — two identical rows are one item typed twice — so
+  the fix is at the write and no screen folds afterwards. The direction is the
+  opposite one and the modules are cited rather than shared.
+- **THE MERGE IS IN `parseFormState`, WHICH IS EARLIER THAN IT LOOKS LIKE IT NEEDS TO
+  BE.** `persistPRFromForm` is the write and would have been the obvious home, but
+  `findDuplicatePR` (#61) runs before it and keys a row on name + qty + unit price: two
+  rows of 5 against a stored 10 are different keys, so an unmerged submission would
+  miss the duplicate warning for a PR that was itself merged on save. Parsing is the
+  one point both actions pass through, so everything downstream — per-item validation,
+  the duplicate check, the write — sees one set of items.
+- **THE FORM PREVIEWS AND DOES NOT MERGE, and it could not merge even if that were
+  wanted.** The guarantee has to be the action's: a Server Action is directly callable
+  and a client bundle is not something this app controls. And the hidden `itemsJson` is
+  serialized at render, so merging in a submit handler would not reach the FormData the
+  submission already carries. So `describeMerge` reads the same function the action
+  writes with and the notice states what WILL happen — which is also the only side of
+  the save it can state, since a Draft save returns a confirmation without
+  re-hydrating the rows, so an after-the-fact notice would describe rows still on
+  screen unmerged.
+- **THE KEY'S NORMALIZATION IS #18's, AND THE ASYMMETRY IS THE WHOLE POINT.** Name and
+  Size compare through `normalizeItemText` AND lower case, because `getMaterialByKey`
+  looks a material up with `LOWER(TRIM(...))` and `upsertMaterial` locks on the
+  lower-cased triple: `Pipe` and `pipe` are ONE material, so leaving them as two rows
+  would produce the two-ordered-items-one-material state this issue exists to remove.
+  The comparison follows the LOOKUP, not the storage, and the stored text stays as
+  typed (#18: it is printed on the PO PDF). A remark is trimmed and its whitespace
+  collapsed but keeps its case — nothing forces otherwise and it is prose the vendor
+  reads, so merging `URGENT` into `urgent` would drop one human's words. Both
+  directions are asserted, since tidying one into the other is the plausible later
+  edit.
+- **THE UNIT PRICE COMPARES AS A NUMBER AND A MISSING ONE IS A VALUE.** `10` and
+  `10.00` are one price. A blank or unparseable price normalizes to one token rather
+  than `NaN`, which never equals itself — a Draft save runs no per-item validation, so
+  two price-less rows are reachable and would otherwise never merge.
+- **THE QUOTATION IS IN THE KEY, WHICH THE ISSUE'S FIVE FIELDS DID NOT COVER.** Which
+  of the PR's quotations a row cites is part of what makes two rows the same row, since
+  a merge across two quotations would drop one of the links #67 put there. Same grade
+  of fact as the unit price: one material quoted twice is two quotes, and which quote a
+  row came from is what a person needs when checking the PR against the vendor's paper.
+- **EVERY SAVE MERGES, INCLUDING A DRAFT'S, and that follows the generation model
+  rather than fighting it.** `persistPRFromForm` already destroys and recreates
+  `PR Items` on every re-save (#142 reconciles only Quotations), so merging each time
+  costs nothing new — and it keeps a re-opened Draft and the final PR identical.
+  Merging only at submit would make those two disagree.
+- **`isEmptyItemRow` MOVED INTO THE RULE'S MODULE RATHER THAN BEING RESTATED.** The
+  merge needs the same answer the write path needs, and the first draft of this module
+  had a second copy that forgot `unit` — a row with only a Unit picked would have been
+  treated as untouched. One implementation, imported by both, and the offline check
+  pins the `unit` clause directly.
+- **WHAT NO CHECK MAY CLAIM, and the issue says so: existing PRs are not backfilled.**
+  So "no PR on this base carries the same item twice" is not a property of the base.
+  What is checkable is the rule over rows plus one source-shape assertion — that
+  `parseFormState` calls the merge and neither action merges anywhere else — and that
+  assertion is the only place the GUARANTEE rather than the arithmetic can be pinned
+  without a dev server.
+- **THE WRITE SIDE IS MEASURED, and this is `saveDraftAction`'s first recorded
+  figure.** A browser reaches a Server Action through the form it is bound to, and the
+  label #224 opened prints, so a before and after on one saved Draft is a real
+  measurement — what a browser cannot do is call the action with fabricated input,
+  which is a separate issue. Three rows of one material (two identical, one at another
+  price) saved as a Draft: **13 ops before, 10 after**, with `PR Items` going 5 to 3
+  (create 3 to 2, list 2 to 1 — the second create's child-ID query goes with it).
+  Verified on `TESTQA-01`, the manual QA job, and the Draft was deleted through the
+  app's own `deleteDraftAction`; 0 rows carrying `170-TEST` remain.
+- **Not in this issue:** existing PRs, `editAndContinueAction` (which diffs items in
+  place by record id and never re-creates a generation, so it has no equivalent save
+  point), and the workaround the issue body cites — see below.
+- **THE ISSUE BODY'S SECOND PARAGRAPH IS STALE AND THIS BRANCH DOES NOT ACT ON IT.**
+  It says two `PO Items` of one material in one PO leave which one undecided, "the
+  sub-case #162 records and works around". #165 removed that: `sortCandidates` is a
+  total order, #162's `narrowed.length === 1` test is gone rather than widened, and the
+  deliveries note records in its own words that this "does not wait on #170". There is
+  no workaround left to preserve — what remains is a total order that resolves the
+  ordered item by fill order, which merging neither helps nor harms.

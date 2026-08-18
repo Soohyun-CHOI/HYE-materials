@@ -4,6 +4,7 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import { createPRAction, saveDraftAction, deleteDraftAction } from "./actions";
+import { PR_ITEM_MERGE_COPY, describeMerge } from "@/lib/prItemMerge";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
 import { formatUSD } from "@/lib/format";
@@ -312,6 +313,12 @@ export default function PRForm({
     const quotationsIncomplete = quotations.length === 0 || quotations.some((q) => q.file.status !== "done");
 
     const showDuplicateWarning = Boolean(submitState?.duplicateWarning) && !warningDismissed;
+
+    // #170 — what the save will merge, read off the same rule the action writes with.
+    // Recomputed per render on the rows in hand: it is a pure pass over a handful of
+    // objects, and memoizing it would key on `items`, which changes on every
+    // keystroke anyway.
+    const mergePreview = describeMerge(items);
 
     return (
         <>
@@ -855,6 +862,27 @@ export default function PRForm({
             <input type="hidden" name="existingDraftRecordId" value={draftRecordId} />
 
             <div className="space-y-3">
+                {/* #170 — SAID BEFORE THE SAVE, because the save is what merges. The
+                    rule is one implementation in lib/prItemMerge.js: the Server Action
+                    calls it to write and this calls it to describe, so the notice
+                    cannot promise something the write does not do. It is NOT applied
+                    to the rows here — the action owns the guarantee, since it is
+                    directly callable and a client is not — and it could not be
+                    applied here anyway: the hidden `itemsJson` is serialized at
+                    render, so a merge in the submit handler would not reach the
+                    FormData this submission already carries.
+
+                    Nothing says it AFTER the save either, and that is forced rather
+                    than chosen: a Draft save returns a confirmation without
+                    re-hydrating the item rows (only re-opening a Draft does), so an
+                    after-the-fact notice would describe rows still on screen
+                    unmerged. */}
+                {mergePreview.merging > 0 && (
+                    <p className="rounded border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                        {PR_ITEM_MERGE_COPY.willMerge(mergePreview.merging).text}
+                    </p>
+                )}
+
                 {showDuplicateWarning && (
                     <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
                         <p>

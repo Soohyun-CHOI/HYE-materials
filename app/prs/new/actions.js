@@ -18,6 +18,10 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { notifyCurrentTurn } from "@/lib/notifications";
 import { shouldReuseQuotation } from "@/lib/quotationReuse";
+// #170 — the merge rule and the empty-row test, both pure and both shared with the
+// form. `isEmptyItemRow` moved there rather than being restated: the merge needs the
+// same answer this write path needs.
+import { isEmptyItemRow, mergeIdenticalItems } from "@/lib/prItemMerge";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Canonical key for an item's duplicate-match identity — Item Name
@@ -63,6 +67,16 @@ async function findDuplicatePR(lineId, items, excludeRecordId = null) {
 
 // Both the Draft-save and the submit actions read the same set of hidden
 // form fields — parse them in one place.
+//
+// #170 MERGES THE ITEMS HERE, WHICH IS WHY THE GUARANTEE IS THE ACTION'S AND NOT THE
+// FORM'S. The form previews the same rule (lib/prItemMerge.js, one implementation
+// read by both) but cannot enforce it: a Server Action is directly callable and a
+// stale bundle is a client nobody controls. This exact point rather than
+// persistPRFromForm, because `findDuplicatePR` (#61) runs before the write and keys a
+// row on name + qty + unit price — two rows of 5 compared against a stored 10 are
+// different keys, so an unmerged submission would miss a duplicate warning against a
+// PR that was itself merged on save. Everything downstream of this line — the
+// per-item validation, the duplicate check and the write — sees one set of items.
 function parseFormState(formData) {
     const shippingFeeRaw = formData.get("shippingFee");
     return {
@@ -72,7 +86,7 @@ function parseFormState(formData) {
         shippingFeeRaw,
         // Issue #69 — optional; null (not 0) when left blank.
         shippingFee: shippingFeeRaw ? parseFloat(shippingFeeRaw) : null,
-        items: JSON.parse(formData.get("itemsJson") || "[]"),
+        items: mergeIdenticalItems(JSON.parse(formData.get("itemsJson") || "[]")),
         // Each entry: { userId, confirmationType } — issue #66's per-signer
         // Approval/Agreement tag, picked in SignerList.js.
         signers: JSON.parse(formData.get("signersJson") || "[]"),
@@ -91,18 +105,6 @@ function toNumberOrUndefined(value) {
     if (value === "" || value == null) return undefined;
     const n = parseFloat(value);
     return Number.isNaN(n) ? undefined : n;
-}
-
-// A row the Requester never touched shouldn't be persisted as a Draft item.
-function isEmptyItemRow(item) {
-    return !(
-        (item.itemName && String(item.itemName).trim()) ||
-        (item.size && String(item.size).trim()) ||
-        item.unit ||
-        (item.qty !== "" && item.qty != null) ||
-        (item.unitPrice !== "" && item.unitPrice != null) ||
-        (item.remark && String(item.remark).trim())
-    );
 }
 
 async function collectChildIds(prRecordId) {

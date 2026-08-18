@@ -91,6 +91,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/editLogFields.js` — the labels an `Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
 - `lib/variance.js` — invoice/PO variance checks.
 - `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched.
+- `lib/prItemMerge.js` — identical PR item rows are one item on save (#170): the six-field key, `isEmptyItemRow`, and `PR_ITEM_MERGE_COPY`. Applied in `parseFormState`, previewed by the form.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
