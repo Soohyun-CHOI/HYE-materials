@@ -17,6 +17,7 @@ import { createOverageDraft, getOverageContext } from "@/lib/overagePR";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { deleteDeliveryAsUser } from "@/lib/deliveryDelete";
 import { setDeliveryInvoiceAsUser } from "@/lib/deliveryInvoiceCandidates";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Every export below gates on requireUser() and then compares per record, so none
 // of lib/authz.js's role wrappers fits — the axis is Job membership or authorship,
@@ -49,24 +50,26 @@ async function loadForEdit(user, deliveryId) {
  * allocation-editing UI, so the correction for those is delete and re-enter.
  */
 export async function updateDeliveryAction(prevState, formData) {
-    const user = await requireUser();
-    const deliveryId = formData.get("deliveryId");
-    const receivedDate = formData.get("receivedDate");
-    const notes = formData.get("notes") || "";
+    return withOpsLabel("updateDeliveryAction", async () => {
+        const user = await requireUser();
+        const deliveryId = formData.get("deliveryId");
+        const receivedDate = formData.get("receivedDate");
+        const notes = formData.get("notes") || "";
 
-    if (!receivedDate) return { error: "Received Date is required." };
+        if (!receivedDate) return { error: "Received Date is required." };
 
-    const loaded = await loadForEdit(user, deliveryId);
-    if (loaded.error) return loaded;
+        const loaded = await loadForEdit(user, deliveryId);
+        if (loaded.error) return loaded;
 
-    try {
-        await updateDelivery(loaded.delivery.id, { receivedDate, notes });
-    } catch (err) {
-        console.error("updateDeliveryAction failed", err);
-        return { error: "Something went wrong saving this delivery. Please try again." };
-    }
+        try {
+            await updateDelivery(loaded.delivery.id, { receivedDate, notes });
+        } catch (err) {
+            console.error("updateDeliveryAction failed", err);
+            return { error: "Something went wrong saving this delivery. Please try again." };
+        }
 
-    redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=updated`);
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=updated`);
+    });
 }
 
 /**
@@ -82,44 +85,46 @@ export async function updateDeliveryAction(prevState, formData) {
  * avoided.
  */
 export async function replaceDeliveryPhotoAction(prevState, formData) {
-    const user = await requireUser();
-    const deliveryId = formData.get("deliveryId");
-    const url = formData.get("packingListUrl");
-    const filename = formData.get("packingListFilename");
+    return withOpsLabel("replaceDeliveryPhotoAction", async () => {
+        const user = await requireUser();
+        const deliveryId = formData.get("deliveryId");
+        const url = formData.get("packingListUrl");
+        const filename = formData.get("packingListFilename");
 
-    if (!url) return { error: "Upload a photo first." };
+        if (!url) return { error: "Upload a photo first." };
 
-    const loaded = await loadForEdit(user, deliveryId);
-    if (loaded.error) return loaded;
+        const loaded = await loadForEdit(user, deliveryId);
+        if (loaded.error) return loaded;
 
-    let updated;
-    try {
-        updated = await replaceDeliveryPhoto(loaded.delivery.id, { url, filename });
-    } catch (err) {
-        console.error("replaceDeliveryPhotoAction failed", err);
-        return { error: "Something went wrong replacing the photo. Please try again." };
-    }
+        let updated;
+        try {
+            updated = await replaceDeliveryPhoto(loaded.delivery.id, { url, filename });
+        } catch (err) {
+            console.error("replaceDeliveryPhotoAction failed", err);
+            return { error: "Something went wrong replacing the photo. Please try again." };
+        }
 
-    // Issue #140 — the write succeeded, so Airtable now holds the new photo and
-    // the uploaded object has served its purpose. Outside any rollback and
-    // scheduled rather than awaited, for the same reasons as every other upload
-    // path. The photo Airtable previously held is simply overwritten, which is
-    // what the recorder asked for; its Blob object was already deleted after its
-    // own ingest, so nothing is orphaned by the swap.
-    after(() =>
-        confirmIngestThenDelete([
-            {
-                table: TABLES.DELIVERIES,
-                recordId: updated.id,
-                field: "Packing List File",
-                blobUrl: url,
-                attachmentId: updated.packingListFile?.[0]?.id,
-                label: `packing list ${updated.deliveryId}`,
-            },
-        ])
-    );
+        // Issue #140 — the write succeeded, so Airtable now holds the new photo and
+        // the uploaded object has served its purpose. Outside any rollback and
+        // scheduled rather than awaited, for the same reasons as every other upload
+        // path. The photo Airtable previously held is simply overwritten, which is
+        // what the recorder asked for; its Blob object was already deleted after its
+        // own ingest, so nothing is orphaned by the swap.
+        after(() =>
+            confirmIngestThenDelete([
+                {
+                    table: TABLES.DELIVERIES,
+                    recordId: updated.id,
+                    field: "Packing List File",
+                    blobUrl: url,
+                    attachmentId: updated.packingListFile?.[0]?.id,
+                    label: `packing list ${updated.deliveryId}`,
+                },
+            ])
+        );
 
-    redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=photo-replaced`);
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=photo-replaced`);
+    });
 }
 
 /**
@@ -143,22 +148,24 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
  * redirect.
  */
 export async function attachDeliveryInvoiceAction(prevState, formData) {
-    const user = await requireUser();
-    const deliveryId = formData.get("deliveryId");
-    const invoiceRecordId = formData.get("invoiceRecordId");
+    return withOpsLabel("attachDeliveryInvoiceAction", async () => {
+        const user = await requireUser();
+        const deliveryId = formData.get("deliveryId");
+        const invoiceRecordId = formData.get("invoiceRecordId");
 
-    const loaded = await loadForEdit(user, deliveryId);
-    if (loaded.error) return loaded;
+        const loaded = await loadForEdit(user, deliveryId);
+        if (loaded.error) return loaded;
 
-    const result = await setDeliveryInvoiceAsUser({
-        user,
-        delivery: loaded.delivery,
-        invoiceRecordId,
-        attach: true,
+        const result = await setDeliveryInvoiceAsUser({
+            user,
+            delivery: loaded.delivery,
+            invoiceRecordId,
+            attach: true,
+        });
+        if (result.error) return result;
+
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-attached`);
     });
-    if (result.error) return result;
-
-    redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-attached`);
 }
 
 /**
@@ -171,22 +178,24 @@ export async function attachDeliveryInvoiceAction(prevState, formData) {
  * silently overrides.
  */
 export async function detachDeliveryInvoiceAction(prevState, formData) {
-    const user = await requireUser();
-    const deliveryId = formData.get("deliveryId");
-    const invoiceRecordId = formData.get("invoiceRecordId");
+    return withOpsLabel("detachDeliveryInvoiceAction", async () => {
+        const user = await requireUser();
+        const deliveryId = formData.get("deliveryId");
+        const invoiceRecordId = formData.get("invoiceRecordId");
 
-    const loaded = await loadForEdit(user, deliveryId);
-    if (loaded.error) return loaded;
+        const loaded = await loadForEdit(user, deliveryId);
+        if (loaded.error) return loaded;
 
-    const result = await setDeliveryInvoiceAsUser({
-        user,
-        delivery: loaded.delivery,
-        invoiceRecordId,
-        attach: false,
+        const result = await setDeliveryInvoiceAsUser({
+            user,
+            delivery: loaded.delivery,
+            invoiceRecordId,
+            attach: false,
+        });
+        if (result.error) return result;
+
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-detached`);
     });
-    if (result.error) return result;
-
-    redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-detached`);
 }
 
 /**
@@ -199,21 +208,23 @@ export async function detachDeliveryInvoiceAction(prevState, formData) {
  * gate and the redirect. Same arrangement as withdrawPOAction.
  */
 export async function deleteDeliveryAction(prevState, formData) {
-    const user = await requireUser();
-    const deliveryId = formData.get("deliveryId");
+    return withOpsLabel("deleteDeliveryAction", async () => {
+        const user = await requireUser();
+        const deliveryId = formData.get("deliveryId");
 
-    const delivery = await getDeliveryById(deliveryId);
-    if (!delivery) return { error: "That delivery no longer exists." };
-    // Job scope first, so someone outside it learns nothing about who recorded
-    // what — the authorship comparison happens inside the shared write path.
-    if (!canAccessJobDeliveries(user, delivery.job?.[0])) {
-        return { error: "That delivery no longer exists." };
-    }
+        const delivery = await getDeliveryById(deliveryId);
+        if (!delivery) return { error: "That delivery no longer exists." };
+        // Job scope first, so someone outside it learns nothing about who recorded
+        // what — the authorship comparison happens inside the shared write path.
+        if (!canAccessJobDeliveries(user, delivery.job?.[0])) {
+            return { error: "That delivery no longer exists." };
+        }
 
-    const result = await deleteDeliveryAsUser({ deliveryRecordId: delivery.id, actingUser: user });
-    if (result.error) return result;
+        const result = await deleteDeliveryAsUser({ deliveryRecordId: delivery.id, actingUser: user });
+        if (result.error) return result;
 
-    redirect("/deliveries?done=deleted");
+        redirect("/deliveries?done=deleted");
+    });
 }
 
 /**
@@ -235,58 +246,60 @@ export async function deleteDeliveryAction(prevState, formData) {
  * rather than a second Draft.
  */
 export async function createOverageDraftAction(prevState, formData) {
-    const user = await requireUser();
-    const deliveryItemId = formData.get("deliveryItemId");
-    if (!deliveryItemId) return { error: "Nothing to correct." };
+    return withOpsLabel("createOverageDraftAction", async () => {
+        const user = await requireUser();
+        const deliveryItemId = formData.get("deliveryItemId");
+        if (!deliveryItemId) return { error: "Nothing to correct." };
 
-    const [row] = await getDeliveryItemsByRecordIds([deliveryItemId]);
-    if (!row) return { error: "That delivery item no longer exists." };
+        const [row] = await getDeliveryItemsByRecordIds([deliveryItemId]);
+        if (!row) return { error: "That delivery item no longer exists." };
 
-    const delivery = row.delivery?.[0]
-        ? (await getDeliveriesByRecordIds([row.delivery[0]]))[0]
-        : null;
-    if (!delivery || !canAccessJobDeliveries(user, delivery.job?.[0])) {
-        return { error: "That delivery no longer exists." };
-    }
+        const delivery = row.delivery?.[0]
+            ? (await getDeliveriesByRecordIds([row.delivery[0]]))[0]
+            : null;
+        if (!delivery || !canAccessJobDeliveries(user, delivery.job?.[0])) {
+            return { error: "That delivery no longer exists." };
+        }
 
-    const context = (
-        await getOverageContext([row], {
-            deliveryIds: new Map([[delivery.id, delivery.deliveryId]]),
-        })
-    ).get(row.id);
-    if (!context?.eligibility?.eligible) {
-        // The pure module already words every refusal, so the action does not
-        // invent a second phrasing for the same state.
-        const [message] = describeOveragePreview(context?.eligibility ?? {}, context?.facts ?? {});
-        return { error: message?.text ?? "This over-delivery cannot be corrected." };
-    }
+        const context = (
+            await getOverageContext([row], {
+                deliveryIds: new Map([[delivery.id, delivery.deliveryId]]),
+            })
+        ).get(row.id);
+        if (!context?.eligibility?.eligible) {
+            // The pure module already words every refusal, so the action does not
+            // invent a second phrasing for the same state.
+            const [message] = describeOveragePreview(context?.eligibility ?? {}, context?.facts ?? {});
+            return { error: message?.text ?? "This over-delivery cannot be corrected." };
+        }
 
-    if (!context.originalPR) return { error: "Couldn't find the request behind that order." };
+        if (!context.originalPR) return { error: "Couldn't find the request behind that order." };
 
-    let result;
-    try {
-        result = await createOverageDraft({
-            user,
-            delivery,
-            row,
-            orderedItem: context.orderedItem,
-            bill: context.bill,
-            originalPR: context.originalPR,
-        });
-    } catch (err) {
-        console.error("createOverageDraftAction failed", err);
-        return { error: "Couldn't open the correction draft. Please try again." };
-    }
+        let result;
+        try {
+            result = await createOverageDraft({
+                user,
+                delivery,
+                row,
+                orderedItem: context.orderedItem,
+                bill: context.bill,
+                originalPR: context.originalPR,
+            });
+        } catch (err) {
+            console.error("createOverageDraftAction failed", err);
+            return { error: "Couldn't open the correction draft. Please try again." };
+        }
 
-    // Issue #140 — the END of this action's transaction, which is here: every write
-    // has landed, so Airtable has the quotation file and the Blob object can go.
-    // Never inside createOverageDraft, whose rollback has to leave the same url
-    // available to a retry. Scheduled rather than awaited, which also survives the
-    // redirect below throwing.
-    after(() => confirmIngestThenDelete(result.blobCleanups));
+        // Issue #140 — the END of this action's transaction, which is here: every write
+        // has landed, so Airtable has the quotation file and the Blob object can go.
+        // Never inside createOverageDraft, whose rollback has to leave the same url
+        // available to a retry. Scheduled rather than awaited, which also survives the
+        // redirect below throwing.
+        after(() => confirmIngestThenDelete(result.blobCleanups));
 
-    // Straight into the existing Draft resume path (#72), which loadPRDraft
-    // hydrates — including the signer chain, so a requester can add whoever the
-    // copy dropped for being inactive.
-    redirect(`/prs/new?draft=${encodeURIComponent(result.pr.prId)}`);
+        // Straight into the existing Draft resume path (#72), which loadPRDraft
+        // hydrates — including the signer chain, so a requester can add whoever the
+        // copy dropped for being inactive.
+        redirect(`/prs/new?draft=${encodeURIComponent(result.pr.prId)}`);
+    });
 }

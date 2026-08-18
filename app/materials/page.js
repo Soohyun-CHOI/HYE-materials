@@ -5,6 +5,7 @@ import { searchMaterialPrices } from "@/lib/materialHistory";
 import { lowestPriceRowIds, qtyDiffersAcross, statusTag } from "@/lib/materialPriceView";
 import { formatUSD } from "@/lib/format";
 import MaterialSearchForm from "./MaterialSearchForm";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 export const metadata = { title: "Material prices" };
 
@@ -28,7 +29,14 @@ function hasUnsettledPrice(rows) {
     return rows.some((r) => r.poStatus && r.poStatus !== SETTLED_STATUS);
 }
 
-export default async function MaterialPricesPage({ searchParams }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function MaterialPricesPage(props) {
+    return withOpsLabel("/materials", () => renderMaterialPricesPage(props));
+}
+
+async function renderMaterialPricesPage({ searchParams }) {
     const user = await requireUser();
     const { q = "" } = await searchParams;
 

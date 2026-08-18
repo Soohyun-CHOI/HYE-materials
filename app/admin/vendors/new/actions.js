@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { withAdminAction } from "@/lib/authz";
 import { createVendor } from "@/lib/airtable/vendors";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Server Actions are directly callable regardless of what the page renders
 // (e.g. via devtools), so the admin check must happen here too, not just in
@@ -14,13 +15,15 @@ export const createVendorAction = withAdminAction(
         throw new Error("Not authorized");
     },
     async (formData) => {
-        const { vendorName } = await createVendor({
-            vendorName: formData.get("vendorName"),
-            picName: formData.get("picName"),
-            picPhone: formData.get("picPhone"),
-            picEmail: formData.get("picEmail"),
-        });
+        return withOpsLabel("createVendorAction", async () => {
+            const { vendorName } = await createVendor({
+                vendorName: formData.get("vendorName"),
+                picName: formData.get("picName"),
+                picPhone: formData.get("picPhone"),
+                picEmail: formData.get("picEmail"),
+            });
 
-        redirect(`/admin/vendors/new?created=${encodeURIComponent(vendorName)}`);
+            redirect(`/admin/vendors/new?created=${encodeURIComponent(vendorName)}`);
+        });
     }
 );

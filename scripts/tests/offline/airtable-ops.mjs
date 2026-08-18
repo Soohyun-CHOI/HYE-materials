@@ -24,6 +24,7 @@ import { readFileSync } from "fs";
 import { join, relative } from "path";
 import {
     callsTo,
+    isFunctionNode,
     listJsFiles,
     parseFile,
     REPO_ROOT,
@@ -32,6 +33,7 @@ import {
     toPosix,
     walk,
 } from "./_ast.mjs";
+import { countEntryPointFiles, listEntryPoints, routeTemplate } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 import {
     DEFAULT_OPS_FILE,
@@ -431,6 +433,8 @@ export async function run({ check, assert, log }) {
     // all, which is also what a renamed export would look like.
     assert(`the scan found real label call sites (${labelSites})`, labelSites > 0);
 
+    runEntryPointScopes({ check, assert, log });
+
     // The private names #19 hooks must not reach production code. They are fine in
     // that script — it is a harness — and are what this module deliberately does
     // not depend on.
@@ -462,6 +466,190 @@ export async function run({ check, assert, log }) {
     }
     check("no production module hooks airtable's private table methods", privateNames, 0);
     log(`${scanned.length} files scanned under app/ and lib/`);
+}
+
+// ───────────────────────────────────────────────────────────────────────────────
+// EVERY ENTRY POINT OPENS A SCOPE (#224)
+//
+// Counting is unconditional; attribution is not, and until #224 only 14 of 55
+// entry points opened a scope. An unlabeled screen has no before and after,
+// which is the whole point of attribution — and on the dev server those
+// operations are not merely unattributed but usually lost, because the exit
+// report that is the only place `unlabeled` gets written down loses its race
+// with a SIGKILL (see this module's file-log note). So the gap has to fail
+// rather than be swept again: a new page, action or handler that opens no scope
+// is a failing check.
+//
+// WHY SOURCE SHAPE IS THE RIGHT LAYER HERE, given that this repo records source
+// shape as the weak kind of check: the rule IS lexical. "This export opens a
+// scope" is a fact about the file, and the execution-level alternative is to
+// drive all 55 entry points — every screen navigated and every action posted to
+// with fixtures — which is the job #224 explicitly defers. What source shape
+// cannot prove is that a scope ATTRIBUTES, and that is proven above by the
+// runtime assertions in this same file: the label survives an await boundary,
+// the outermost scope wins, and a scope that throws still reports.
+//
+// THE LABEL IS DERIVED AND COMPARED, NOT JUST REQUIRED TO EXIST. A hand-typed
+// string is a silent new bucket when it is mistyped, and nothing else would ever
+// notice; the expected label follows from the file's path and the export's name,
+// so this can compute it and fail on a mismatch.
+const EXPECTED_LABEL = {
+    page: (e) => routeTemplate(e.file),
+    route: (e) => `${e.name} ${routeTemplate(e.file)}`,
+    action: (e) => e.name,
+    "inline action": (e) => e.name,
+};
+
+// The one entry point that cannot open a scope, rather than one that was missed.
+const SCOPE_EXEMPTIONS = [
+    {
+        file: "app/login/page.js",
+        name: "default",
+        reason:
+            "The only Client Component page. lib/airtableOps.js is a FORBIDDEN ROOT for the " +
+            "browser bundle (offline/client-import-safety.mjs, #190) because of its " +
+            "node:async_hooks import, so labeling this page would make the two checks " +
+            "contradict each other — and an import is an execution, so the crash would be " +
+            "real rather than theoretical. It also reads nothing: the sign-in form posts to " +
+            "/api/auth/request, which carries its own label.",
+    },
+];
+
+/** Does this function's subtree open a scope, and with what literal? */
+function scopeLabelIn(fn) {
+    const calls = callsTo(fn, "withOpsLabel");
+    if (calls.length === 0) return { opened: false, label: null };
+    const first = calls[0].arguments[0];
+    return { opened: true, label: first?.type === "Literal" ? first.value : null };
+}
+
+/** The default export's own function node, for a page. */
+function defaultExportFn(entry) {
+    for (const node of entry.ast.body) {
+        if (node.type !== "ExportDefaultDeclaration") continue;
+        if (isFunctionNode(node.declaration)) return node.declaration;
+    }
+    return null;
+}
+
+export function runEntryPointScopes({ check, assert, log }) {
+    const { entries, files } = listEntryPoints({
+        onParseError: (msg) => assert(`entry-point enumeration: ${msg}`, false),
+    });
+
+    // ANTI-VACUITY, THE ONE THE PER-ENTRY ASSERTIONS CANNOT COVER. Every check
+    // below asks whether what was FOUND carries a label, so an enumeration that
+    // silently found fifteen of twenty-one pages would pass all of them — and a
+    // "the count is above zero" assertion would pass too. This walks the
+    // filesystem by pattern instead, a second path to the same number, so a page
+    // or route the enumeration stops reaching is a failure rather than a smaller
+    // green run.
+    const onDisk = countEntryPointFiles();
+    check("every page.js on disk was enumerated", files.page.size, onDisk.page);
+    check("every api route.js on disk was enumerated", files.route.size, onDisk.route);
+
+    const byKind = {};
+    for (const e of entries) byKind[e.kind] = (byKind[e.kind] || 0) + 1;
+    // This log IS #224's census. A number in a document goes stale unread; this
+    // one is recomputed on every push.
+    log(
+        `entry points: ${entries.length} — ` +
+            Object.entries(byKind)
+                .sort()
+                .map(([k, n]) => `${n} ${k}`)
+                .join(", ") +
+            ` (in ${files.page.size} page, ${files.route.size} route, ${files.action.size} action files)`
+    );
+    assert("the enumeration found pages", (byKind.page || 0) > 0);
+    assert("the enumeration found route handlers", (byKind.route || 0) > 0);
+    assert("the enumeration found server actions", (byKind.action || 0) > 0);
+
+    const exemptKey = (f, n) => `${f}::${n}`;
+    const exemptByKey = new Map(SCOPE_EXEMPTIONS.map((e) => [exemptKey(e.file, e.name), e]));
+    const usedExemptions = new Set();
+    let scoped = 0;
+
+    for (const entry of entries) {
+        const key = exemptKey(entry.file, entry.name);
+        const exemption = exemptByKey.get(key);
+        if (exemption) {
+            usedExemptions.add(key);
+            assert(
+                `${entry.file} — ${entry.name} exempt from opening a scope, with a reason`,
+                typeof exemption.reason === "string" && exemption.reason.length > 40
+            );
+            continue;
+        }
+
+        // Resolved rather than read off the export, because a wrapped export's
+        // body is the wrapper's last argument and may be a named function
+        // declared beside it — resolveFunction follows both, the same way
+        // authz-structure.mjs reaches a wrapped handler's own subtree.
+        const fn =
+            entry.name === "default"
+                ? defaultExportFn(entry)
+                : resolveFunction(entry.ast, entry.name);
+        if (!fn) {
+            assert(`${entry.file} — ${entry.name}: could not resolve a function to check`, false);
+            continue;
+        }
+        const { opened, label } = scopeLabelIn(fn);
+        const want = EXPECTED_LABEL[entry.kind](entry);
+        if (!opened) {
+            assert(
+                `${entry.file} — ${entry.name} opens no ops scope; it must call ` +
+                    `withOpsLabel(${JSON.stringify(want)}, ...) or be exempt with a reason`,
+                false
+            );
+            continue;
+        }
+        scoped += 1;
+        check(`${entry.file} — ${entry.name} is labeled`, label, want);
+    }
+
+    check("every entry point is scoped or exempt", scoped + usedExemptions.size, entries.length);
+
+    for (const e of SCOPE_EXEMPTIONS) {
+        assert(
+            `exemption for ${e.file} — ${e.name} still refers to a real entry point`,
+            usedExemptions.has(exemptKey(e.file, e.name))
+        );
+    }
+
+    // ANTI-VACUITY FOR THE COMPARISON ITSELF. Every assertion above rests on
+    // EXPECTED_LABEL producing the right string; rewritten to return whatever it
+    // was handed, the loop would pass on any label at all. These pin the shape of
+    // what it produces, including the two mistakes a person actually makes — a
+    // trailing slash, and a handler label with the method left off.
+    check("a page's label is its route template", EXPECTED_LABEL.page({ file: "app/pos/[poId]/page.js" }), "/pos/[poId]");
+    check("the root page is /", EXPECTED_LABEL.page({ file: "app/page.js" }), "/");
+    check(
+        "a handler's label is METHOD then the template",
+        EXPECTED_LABEL.route({ file: "app/api/pos/search/route.js", name: "GET" }),
+        "GET /api/pos/search"
+    );
+    check("an action's label is its export name", EXPECTED_LABEL.action({ name: "approveAction" }), "approveAction");
+    assert(
+        "a trailing slash is NOT what a page label should be",
+        EXPECTED_LABEL.page({ file: "app/pos/page.js" }) !== "/pos/"
+    );
+    assert(
+        "and a handler label without its method is not either",
+        EXPECTED_LABEL.route({ file: "app/api/pos/search/route.js", name: "GET" }) !== "/api/pos/search"
+    );
+
+    // OPENING A SCOPE MUST NOT COST AN OPERATION, worth measuring rather than
+    // assuming in a change whose whole subject is cost: #224 opened 41 of them.
+    // withOpsLabel is an AsyncLocalStorage run plus a Map, and reportScope writes
+    // to the console only when AIRTABLE_OPS_LOG is set and to a file only when
+    // AIRTABLE_OPS_FILE is, so the default configuration does no I/O either.
+    resetOps();
+    void withOpsLabel("cost-probe", async () => {});
+    void withOpsLabel("cost-probe-2", async () => {});
+    check("opening a scope records no operation", snapshot().total, 0);
+    assert("and creates no label row", Object.keys(snapshot().byLabel).length === 0);
+    check("with AIRTABLE_OPS_FILE unset, no file is written", resolveOpsFile({}, process.cwd()), null);
+    resetOps();
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { withAdminAction } from "@/lib/authz";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { createLine } from "@/lib/airtable/lines";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Server Actions are directly callable regardless of what the page renders
 // (e.g. via devtools), so the admin check must happen here too, not just in
@@ -24,30 +25,32 @@ export const createLineAction = withAdminAction(
         throw new Error("Not authorized");
     },
     async (prevState, formData) => {
-        // Issue #30 — the form now submits a Job record id chosen from a
-        // dropdown of existing Jobs, not a free-text Job Code. The UI can only
-        // offer real Jobs, but a forged/stale direct call could still submit one
-        // that doesn't exist, so re-verify existence server-side — the UI
-        // constraint doesn't replace this guarantee (issue #29's non-existent-Job
-        // rejection, now keyed on the record id). getJobByRecordId throws on an
-        // unknown/malformed id (Airtable 404/422), so a forged id is caught and
-        // surfaced as the same graceful { error } the form renders, not a 500.
-        const jobId = formData.get("jobId");
-        let job = null;
-        try {
-            job = jobId ? await getJobByRecordId(jobId) : null;
-        } catch {
-            job = null;
-        }
-        if (!job) {
-            return { error: "That Job doesn't exist. Pick one from the list." };
-        }
+        return withOpsLabel("createLineAction", async () => {
+            // Issue #30 — the form now submits a Job record id chosen from a
+            // dropdown of existing Jobs, not a free-text Job Code. The UI can only
+            // offer real Jobs, but a forged/stale direct call could still submit one
+            // that doesn't exist, so re-verify existence server-side — the UI
+            // constraint doesn't replace this guarantee (issue #29's non-existent-Job
+            // rejection, now keyed on the record id). getJobByRecordId throws on an
+            // unknown/malformed id (Airtable 404/422), so a forged id is caught and
+            // surfaced as the same graceful { error } the form renders, not a 500.
+            const jobId = formData.get("jobId");
+            let job = null;
+            try {
+                job = jobId ? await getJobByRecordId(jobId) : null;
+            } catch {
+                job = null;
+            }
+            if (!job) {
+                return { error: "That Job doesn't exist. Pick one from the list." };
+            }
 
-        const { lineLabel } = await createLine({
-            jobRecordId: job.id,
-            lineName: formData.get("lineName"),
+            const { lineLabel } = await createLine({
+                jobRecordId: job.id,
+                lineName: formData.get("lineName"),
+            });
+
+            redirect(`/admin/lines/new?created=${encodeURIComponent(lineLabel)}`);
         });
-
-        redirect(`/admin/lines/new?created=${encodeURIComponent(lineLabel)}`);
     }
 );

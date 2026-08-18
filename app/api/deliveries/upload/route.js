@@ -1,6 +1,7 @@
 import { handleUpload } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { getActiveUser } from "@/lib/authz";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Client-upload token endpoint for packing list photos (issue #162) — same
 // pattern as app/api/quotations/upload/route.js and
@@ -21,42 +22,44 @@ import { getActiveUser } from "@/lib/authz";
 // export is not wrapped and is listed as an exemption with that reason in
 // scripts/tests/offline/authz-structure.mjs.
 export async function POST(request) {
-    const body = await request.json();
+    return withOpsLabel("POST /api/deliveries/upload", async () => {
+        const body = await request.json();
 
-    try {
-        const jsonResponse = await handleUpload({
-            body,
-            request,
-            onBeforeGenerateToken: async () => {
-                const user = await getActiveUser();
-                if (!user) {
-                    throw new Error("Not authenticated");
-                }
+        try {
+            const jsonResponse = await handleUpload({
+                body,
+                request,
+                onBeforeGenerateToken: async () => {
+                    const user = await getActiveUser();
+                    if (!user) {
+                        throw new Error("Not authenticated");
+                    }
 
-                return {
-                    // A packing list is photographed on a phone or scanned, so
-                    // images matter more here than anywhere else in the app.
-                    // HEIC is deliberately absent: Airtable cannot preview it, so
-                    // accepting it would trade a clear failure at upload time for
-                    // an attachment nobody can read. iOS converts camera captures
-                    // to JPEG for a file input, which is the path site staff use.
-                    allowedContentTypes: ["application/pdf", "image/jpeg", "image/png"],
-                    addRandomSuffix: true,
-                    access: "public",
-                    // A ceiling from the start, unlike /api/quotations/upload,
-                    // which has none (#146). Generous for a phone photo — a
-                    // sanity bound, not a real expected size.
-                    maximumSizeInBytes: 20 * 1024 * 1024,
-                };
-            },
-            // Not relied on — see CLAUDE.md's File uploads section for why.
-            onUploadCompleted: async ({ blob }) => {
-                console.log("Delivery blob upload completed:", blob.url);
-            },
-        });
+                    return {
+                        // A packing list is photographed on a phone or scanned, so
+                        // images matter more here than anywhere else in the app.
+                        // HEIC is deliberately absent: Airtable cannot preview it, so
+                        // accepting it would trade a clear failure at upload time for
+                        // an attachment nobody can read. iOS converts camera captures
+                        // to JPEG for a file input, which is the path site staff use.
+                        allowedContentTypes: ["application/pdf", "image/jpeg", "image/png"],
+                        addRandomSuffix: true,
+                        access: "public",
+                        // A ceiling from the start, unlike /api/quotations/upload,
+                        // which has none (#146). Generous for a phone photo — a
+                        // sanity bound, not a real expected size.
+                        maximumSizeInBytes: 20 * 1024 * 1024,
+                    };
+                },
+                // Not relied on — see CLAUDE.md's File uploads section for why.
+                onUploadCompleted: async ({ blob }) => {
+                    console.log("Delivery blob upload completed:", blob.url);
+                },
+            });
 
-        return NextResponse.json(jsonResponse);
-    } catch (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
-    }
+            return NextResponse.json(jsonResponse);
+        } catch (error) {
+            return NextResponse.json({ error: error.message }, { status: 400 });
+        }
+    });
 }

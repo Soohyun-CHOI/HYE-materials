@@ -1,10 +1,18 @@
 import { requireAdmin } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import LineForm from "./LineForm";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 export const metadata = { title: "New Line" };
 
-export default async function NewLinePage({ searchParams }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function NewLinePage(props) {
+    return withOpsLabel("/admin/lines/new", () => renderNewLinePage(props));
+}
+
+async function renderNewLinePage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (

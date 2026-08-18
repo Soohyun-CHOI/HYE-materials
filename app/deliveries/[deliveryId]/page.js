@@ -16,6 +16,7 @@ import { getOverageContext } from "@/lib/overagePR";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
 import OverageButton from "./OverageButton";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // The route param IS the human-readable ID, so the tab names the record for
 // ZERO Airtable operations (#201) — this reads the URL and nothing else.
@@ -48,7 +49,14 @@ const DONE_MESSAGES = {
  * canViewPR for every PR behind every row. A second gate would re-derive the same
  * answer and could drift from it.
  */
-export default async function DeliveryDetailPage({ params, searchParams }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function DeliveryDetailPage(props) {
+    return withOpsLabel("/deliveries/[deliveryId]", () => renderDeliveryDetailPage(props));
+}
+
+async function renderDeliveryDetailPage({ params, searchParams }) {
     const user = await requireUser();
     const { deliveryId } = await params;
     const sp = await searchParams;

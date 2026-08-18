@@ -1,9 +1,15 @@
 // The guard wrappers' control flow — a refused gate must not run the handler.
 //
 // Extracted by #152 from verify-authz.mjs Part D. Same story as pr-visibility:
-// it was already offline (lib/authzWrap.js imports nothing at all — that is why
+// it was already offline (lib/authzWrap.js imported nothing at all — that is why
 // #147 put the factories there) but it lived in a file that imports Airtable,
 // so it could only be reached with credentials.
+//
+// #224 gave that module ONE import, lib/airtableOps.js, so its gate calls can be
+// attributed. The offline property is unchanged and now rests on something
+// narrower than "imports nothing": airtableOps reaches only node:async_hooks, and
+// the import spells its extension out, without which this file fails as "NOT
+// offline" under the loader-less tier.
 //
 // This is the one property the structural check cannot see. authz-structure.mjs
 // proves each endpoint export IS wrapped; only calling a wrapper with a
@@ -12,11 +18,18 @@
 // exactly this and which the bound wrappers in lib/authz.js do not expose.
 
 import { createResponseGuard, createFlagGuard, createThrowingGuard } from "../../../lib/authzWrap.js";
+import {
+    UNLABELED,
+    recordOperation,
+    resetOps,
+    snapshot,
+    withOpsLabel,
+} from "../../../lib/airtableOps.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Guard wrappers — a refused gate must not run the handler (#147)";
 
-export async function run({ check }) {
+export async function run({ check, assert }) {
     let bodyRan = false;
     const handler = async () => {
         bodyRan = true;
@@ -88,6 +101,39 @@ export async function run({ check }) {
     await passthrough("recInvoice123");
     check("wrapper forwards a single non-formData argument", seen?.length, 1);
     check("wrapper forwards that argument's value", seen?.[0], "recInvoice123");
+
+    // ── the gate's own operations are attributed (#224) ──────────────────────
+    // A gate reads the session, and it runs BEFORE the handler, so its operation
+    // is outside whatever scope the handler opens. #224 refused to let that land
+    // in `unlabeled`, because that bucket has to keep meaning "nobody labeled
+    // this" — it is what says the sweep is complete. So each factory scopes its
+    // own gate call, and this is the runtime half of that claim: the offline
+    // entry-point check can see that every export opens a scope, and nothing in
+    // it can see WHERE an operation lands.
+    //
+    // Exercised through the production factories with an injected gate, the same
+    // seam every check above uses.
+    resetOps();
+    const counted = createFlagGuard(async () => {
+        recordOperation("get", "/Users/recABCDEFGHIJKLMN");
+        return { authorized: true };
+    })(() => ({ error: "no" }), async () => {
+        // The handler's own scope, as every wrapped export now opens one.
+        return withOpsLabel("someAction", async () => {
+            recordOperation("get", "/Purchase%20Orders");
+            return { ok: true };
+        });
+    });
+    await counted(null, new FormData());
+    const snap = snapshot();
+    check("the gate's read is attributed to `authz gate`", snap.byLabel["authz gate"], 1);
+    check("the handler's read is attributed to the handler", snap.byLabel.someAction, 1);
+    assert("and nothing landed in the unlabeled bucket", snap.byLabel[UNLABELED] === undefined);
+    // THE GATE SCOPE MUST CLOSE BEFORE THE HANDLER OPENS ITS OWN, or "outermost
+    // wins" would take the handler's operations too and every wrapped endpoint
+    // would report as `authz gate`. That is the failure this pair rules out.
+    assert("the gate scope did not swallow the handler's label", snap.byLabel["authz gate"] !== 2);
+    resetOps();
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

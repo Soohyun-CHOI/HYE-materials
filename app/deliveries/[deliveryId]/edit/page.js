@@ -7,6 +7,7 @@ import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeliveryEditForm from "./DeliveryEditForm";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 export const metadata = { title: "Edit Delivery" };
 
@@ -36,7 +37,14 @@ export const metadata = { title: "Edit Delivery" };
  * shipment, but an invoice nobody has entered yet cannot be picked, so leaving it
  * blank at entry is a normal answer and this is where the pairing is finished.
  */
-export default async function EditDeliveryPage({ params }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function EditDeliveryPage(props) {
+    return withOpsLabel("/deliveries/[deliveryId]/edit", () => renderEditDeliveryPage(props));
+}
+
+async function renderEditDeliveryPage({ params }) {
     const user = await requireUser();
     const { deliveryId } = await params;
 

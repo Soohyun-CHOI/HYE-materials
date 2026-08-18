@@ -33,15 +33,8 @@
 // precedent the next author can copy.
 // ---------------------------------------------------------------------------
 
-import { join } from "path";
-import {
-    callsFunction,
-    listJsFiles,
-    parseFile,
-    REPO_ROOT,
-    toPosix,
-    walk,
-} from "./_ast.mjs";
+import { callsFunction } from "./_ast.mjs";
+import { collectExports, listEntryPoints } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Endpoint inventory — every export wrapped, or exempt with a reason (#134/#147)";
@@ -55,12 +48,9 @@ const WRAPPERS = {
     withPresidentAction: 1,
 };
 
-const HTTP_METHODS = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]);
-
-// Scanned in full. Deliberately not narrowed to the directories that happen to
-// pass: app/ holds every route and action, and lib/ is included so a
-// "use server" file appearing there is not invisible.
-const SCAN_ROOTS = ["app", "lib"];
+// The method set and the scan roots moved to _entrypoints.mjs with the
+// enumeration in #224 — including the reason lib/ is scanned at all, which is
+// that a "use server" file appearing there must not be invisible.
 
 const REQUIRE_USER_AXIS =
     "Session + per-record/per-turn ownership, not a role. requireUser() already cannot be dropped (it redirects), " +
@@ -187,64 +177,6 @@ const EXEMPTIONS = [
     },
 ];
 
-function directivesOf(body) {
-    const out = [];
-    for (const node of Array.isArray(body) ? body : []) {
-        if (node.type !== "ExpressionStatement") break;
-        const v = node.directive ?? (node.expression?.type === "Literal" ? node.expression.value : null);
-        if (typeof v !== "string") break;
-        out.push(v);
-    }
-    return out;
-}
-
-const hasUseServerDirective = (ast) => directivesOf(ast.body).includes("use server");
-
-// Function-level "use server" — an inline Server Action declared inside a
-// component rather than in an actions.js module. None exist today, and this
-// finds any that appear: they are directly callable like every other action,
-// so one showing up unwrapped should fail rather than pass by not being looked
-// for. The fix for a hit is to move it into an actions.js file and wrap it, or
-// to add an exemption with a reason.
-function findInlineServerActions(ast) {
-    const found = [];
-    walk(ast, (n) => {
-        const isFn =
-            n.type === "FunctionDeclaration" ||
-            n.type === "FunctionExpression" ||
-            n.type === "ArrowFunctionExpression";
-        if (isFn && n.body?.type === "BlockStatement" && directivesOf(n.body.body).includes("use server")) {
-            found.push(n.id?.name || "<anonymous inline action>");
-        }
-    });
-    return found;
-}
-
-// Every export, with whatever it was initialized to. A re-export specifier
-// carries no initializer, so it lands as unwrapped and has to be justified —
-// the safe default.
-function collectExports(ast) {
-    const found = [];
-    for (const node of ast.body) {
-        if (node.type === "ExportDefaultDeclaration") {
-            found.push({ name: "default", init: node.declaration, node });
-        } else if (node.type === "ExportNamedDeclaration") {
-            if (node.declaration?.type === "FunctionDeclaration") {
-                found.push({ name: node.declaration.id.name, init: null, node });
-            } else if (node.declaration?.type === "VariableDeclaration") {
-                for (const d of node.declaration.declarations) {
-                    found.push({ name: d.id.name, init: d.init, node });
-                }
-            } else if (node.specifiers?.length) {
-                for (const s of node.specifiers) {
-                    found.push({ name: s.exported.name, init: null, node });
-                }
-            }
-        }
-    }
-    return found;
-}
-
 function wrapperOf(init) {
     if (!init || init.type !== "CallExpression" || init.callee?.type !== "Identifier") return null;
     const name = init.callee.name;
@@ -259,34 +191,15 @@ export function run({ check, assert, log }) {
         assert(msg, false);
     };
 
-    const inventory = [];
-    for (const root of SCAN_ROOTS) {
-        for (const abs of listJsFiles(join(REPO_ROOT, root))) {
-            const rel = toPosix(abs.slice(REPO_ROOT.length + 1));
-            let parsed;
-            try {
-                parsed = parseFile(rel);
-            } catch (err) {
-                // Loud, not skipped: an unparsed file is an unchecked file.
-                fail(err.message);
-                continue;
-            }
-            const { ast } = parsed;
-
-            for (const name of findInlineServerActions(ast)) {
-                inventory.push({ file: rel, name, init: null, ast, surface: "inline action" });
-            }
-
-            const isRoute = /^app\/api\/.*\/route\.js$/.test(rel);
-            const isAction = hasUseServerDirective(ast);
-            if (!isRoute && !isAction) continue;
-
-            for (const exp of collectExports(ast)) {
-                if (isRoute && !HTTP_METHODS.has(exp.name)) continue;
-                inventory.push({ file: rel, name: exp.name, init: exp.init, ast, surface: isRoute ? "route" : "action" });
-            }
-        }
-    }
+    // #224 moved the enumeration to _entrypoints.mjs, where the ops-label check
+    // reads the same list. Nothing about THIS check's judgment moved: pages are
+    // dropped here because a page carries its authorization in its own body
+    // rather than in a wrapper, which is why this inventory never had them.
+    // Verified pure by diffing this check's whole output across the extraction.
+    const { entries } = listEntryPoints({ onParseError: fail });
+    const inventory = entries
+        .filter((e) => e.kind !== "page")
+        .map((e) => ({ file: e.file, name: e.name, init: e.init, ast: e.ast, surface: e.kind }));
 
     log(`inventory: ${inventory.length} endpoint exports across ${new Set(inventory.map((e) => e.file)).size} files`);
 

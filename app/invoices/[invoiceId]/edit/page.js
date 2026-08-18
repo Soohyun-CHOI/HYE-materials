@@ -5,6 +5,7 @@ import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import EditInvoiceForm from "./EditInvoiceForm";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 export const metadata = { title: "Edit Invoice" };
 
@@ -13,7 +14,14 @@ export const metadata = { title: "Edit Invoice" };
 // row-scoped since #211 and reading its payment status is President-or-Admin;
 // neither widened this page, which is unchanged and still Admin-only, and
 // updateInvoiceAction re-checks server-side.
-export default async function EditInvoicePage({ params }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function EditInvoicePage(props) {
+    return withOpsLabel("/invoices/[invoiceId]/edit", () => renderEditInvoicePage(props));
+}
+
+async function renderEditInvoicePage({ params }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
