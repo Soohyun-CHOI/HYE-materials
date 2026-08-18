@@ -335,7 +335,14 @@ async function renderPODetailPage({ params, searchParams }) {
                             <th className="pr-2 text-right">Delivered</th>
                             {/* Invoice-derived (#48), and shown to every viewer who
                                 can see the order since #235 — the line #211 drew and
-                                this page had not followed. */}
+                                this page had not followed.
+
+                                THIS HEAD AND THE CHIP BELOW NOW READ THE SAME WORD,
+                                and that is not a collision to fix. `Invoiced` here is
+                                a quantity's name; the chip beside `Invoices` is one of
+                                a closed set of three. The delivery axis has had the
+                                identical pair since #233 — a `Delivered` column under
+                                a `Delivered` chip — and the shapes keep them apart. */}
                             <th className="pr-2 text-right">Invoiced</th>
                             <th className="pr-2">Remark</th>
                         </tr>

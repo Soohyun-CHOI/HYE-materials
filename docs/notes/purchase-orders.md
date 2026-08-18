@@ -358,8 +358,8 @@ then ask each one in turn. The picker's set is unchanged; who computes it is not
 
 A purchase order said how much of what it ordered had been delivered and never
 whether it had been billed. `summarizePOInvoicingStatus` is the delivery summary's
-pair — `Billed` / `Partly billed` / `Awaiting invoice` / a dash — shown beside the
-delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
+pair — `Invoiced` / `Partly invoiced` / `Awaiting invoice` / a dash — shown beside
+the delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
 
 - **THE PAIR IS LINE FOR LINE, AND THAT IS THE POINT RATHER THAN A CONVENIENCE.**
   Same fold (ordered items, never quantities, since a PO's items carry different
@@ -418,8 +418,32 @@ delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
   `Invoice Items` and then `Invoices` were the office's alone and are everyone's now.
   An order nothing has billed still pays for neither level, since `findByRecordIds`
   returns early on an empty id list.
-- **ALL FOUR CHIP VALUES ARE ON THE BASE, so none had to be seeded**: 16 `Billed`, 17
-  `Awaiting invoice`, 1 `Partly billed` and 5 dashes across 45 orders. The employee
+- **ONE STEM ACROSS THE SET, WHICH IS #166's OWN TEST APPLIED AGAIN.** The words
+  shipped as `Billed` / `Partly billed` / `Awaiting invoice`, which split the stem
+  inside one closed set while the delivery axis reads `Delivered` / `Partly
+  delivered` / `Awaiting delivery` on one. #166 dropped `arrival` for `delivery`
+  because the table is `Deliveries`; the table here is `Invoices` and the rollup is
+  `Invoiced Qty`, so the set is `Invoiced` / `Partly invoiced` / `Awaiting invoice`
+  and the keys follow the words. The first draft's argument for `Billed` — that a
+  chip states what the VENDOR did while `Invoiced` is the figure this app computes —
+  is a real distinction and not worth two stems in four words; `Uninvoiced Items` and
+  `Invoiced Qty` already put this repository on the other side of it. **`partly`,
+  never `partially`**, for the same reason: the delivery axis says `Partly
+  delivered`. The three words are now the deliveries list's exact ones, which is one
+  question — has this been billed — asked at two scopes.
+- **TWO WORD COLLISIONS, BOTH OF THEM THE DELIVERY AXIS'S ALREADY.** `/pos/[poId]`
+  now carries an `Invoiced` chip beside an `Invoiced` column head, exactly as it has
+  carried a `Delivered` chip beside a `Delivered` column head since #233: a chip is
+  one of a closed set of three and a column head sits over a quantity, so the shapes
+  keep them apart and neither needs renaming. And the LIST's head is `Invoice` while
+  the detail's is `Invoiced` — the first names the axis whose chip fills the cells,
+  the second names a quantity, which is the same pair as `Delivery` on the list
+  against `Delivered` on the detail. Recorded because both read as inconsistencies
+  to anyone who meets them without the pairing.
+- **ALL FOUR CHIP VALUES ARE ON THE BASE, so none had to be seeded**: across the 45
+  orders an Admin sees, 16 read `Invoiced`, 23 `Awaiting invoice`, 1 `Partly invoiced`
+  (`HYE-PO-20260720-01`) and 5 the dash. An employee's 39 visible rows carry the same
+  four. The employee
   path was read as `scoped-fixture@`, whose `Invoices` section renders the chip and the
   charges and contains neither `Paid` nor `Not paid` — checked against the section's
   own DOM rather than the page's, since that is the only evidence `seesPayment` is

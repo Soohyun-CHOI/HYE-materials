@@ -940,8 +940,8 @@ export function run({ check, log, assert }) {
     });
     const billing = (lines) => summarizePOInvoicingStatus(lines).key;
     const everyState = [
-        ["billed", [poBill(10, 10), poBill(5, 5)]],
-        ["partly-billed", [poBill(10, 10), poBill(5, 0)]],
+        ["invoiced", [poBill(10, 10), poBill(5, 5)]],
+        ["partly-invoiced", [poBill(10, 10), poBill(5, 0)]],
         ["awaiting-invoice", [poBill(10, 0), poBill(5, 0)]],
         ["nothing-ordered", [poBill(10, 10, 0)]],
     ];
@@ -965,7 +965,7 @@ export function run({ check, log, assert }) {
         shapeOf(summarizePOInvoicingStatus([poBill(10, 4)])),
         shapeOf(summarizePODeliveryStatus([poLine(10, 4)])).replace("anyDelivered", "anyInvoiced")
     );
-    check("a half-billed ordered item is the middle state", billing([poBill(10, 4)]), "partly-billed");
+    check("a half-billed ordered item is the middle state", billing([poBill(10, 4)]), "partly-invoiced");
     check(
         "  which the delivery axis reads the same way",
         summarizePODeliveryStatus([poLine(10, 4)]).key,
@@ -977,14 +977,14 @@ export function run({ check, log, assert }) {
     // to carry that removal across is exactly what this pins.
     assert(
         "the middle state exists on both order-scope axes and on neither bill-scope one",
-        "partly-billed" in STATUS_COPY.column.poInvoicing &&
+        "partly-invoiced" in STATUS_COPY.column.poInvoicing &&
             "partly-delivered" in STATUS_COPY.column.po &&
             !("partly-delivered" in STATUS_COPY.column.invoice)
     );
 
     log("");
     log("billed beyond the order counts as billed, the way delivered beyond it does:");
-    check("one ordered item billed past its Qty", billing([poBill(10, 13)]), "billed");
+    check("one ordered item billed past its Qty", billing([poBill(10, 13)]), "invoiced");
     check("  and its own line says so", poLineInvoicing(poBill(10, 13)).complete, true);
     check(
         "  which is what the delivery axis does with an over-delivery",
@@ -993,8 +993,8 @@ export function run({ check, log, assert }) {
     );
     // The excess is not lost by that: it is a per-ordered-item fact, marked `(over)`
     // beside `Invoiced` and flagged as #179's `Order variance` on the charge.
-    check("a partly-billed order with one over-billed item is still partly billed",
-        billing([poBill(10, 13), poBill(5, 0)]), "partly-billed");
+    check("a partly-invoiced order with one over-billed item stays partly invoiced",
+        billing([poBill(10, 13), poBill(5, 0)]), "partly-invoiced");
 
     log("");
     log("a withdrawn order drops out through the same field as on the delivery axis:");
@@ -1002,23 +1002,42 @@ export function run({ check, log, assert }) {
     check(
         "  and the same ordered items with a live Committed Qty do not",
         billing([poBill(10, 10, 10), poBill(5, 0, 5)]),
-        "partly-billed"
+        "partly-invoiced"
     );
     check("judged counts only what counts", summarizePOInvoicingStatus([poBill(10, 10, 0)]).ordered, 0);
 
     log("");
     log("the chip — its own words, sharing the delivery axis's tones:");
-    check("billed", STATUS_COPY.column.poInvoicing.billed().text, "Billed");
-    check("partly billed", STATUS_COPY.column.poInvoicing["partly-billed"]().text, "Partly billed");
-    check(
-        "awaiting invoice — the deliveries list's exact word, reused",
-        STATUS_COPY.column.poInvoicing["awaiting-invoice"]().text,
-        STATUS_COPY.column.delivery["awaiting-invoice"]().text
+    // ONE STEM, and the assertion is the whole set rather than three literals: every
+    // word here has to come off `invoice`, which is what `Billed` / `Partly billed`
+    // broke while `Awaiting invoice` sat beside them. #166 made the same call for
+    // `arrival` against `delivery`.
+    check("invoiced", STATUS_COPY.column.poInvoicing.invoiced().text, "Invoiced");
+    check("partly invoiced", STATUS_COPY.column.poInvoicing["partly-invoiced"]().text, "Partly invoiced");
+    assert(
+        "every word in the set is built on `invoice`",
+        Object.values(STATUS_COPY.column.poInvoicing)
+            .map((f) => f().text)
+            .filter((t) => t !== "—")
+            .every((t) => /invoice/i.test(t))
     );
+    assert(
+        "  and none of them says `bill`",
+        !Object.values(STATUS_COPY.column.poInvoicing).some((f) => /bill/i.test(f().text))
+    );
+    // The three words are the deliveries list's own, which is one question at two
+    // scopes rather than two vocabularies for one.
+    for (const key of ["invoiced", "partly-invoiced", "awaiting-invoice"]) {
+        check(
+            `"${key}" reads as it does on the deliveries list`,
+            STATUS_COPY.column.poInvoicing[key]().text,
+            STATUS_COPY.column.delivery[key]().text
+        );
+    }
     check("and the dash", STATUS_COPY.column.poInvoicing["nothing-ordered"]().text, "—");
     for (const [ours, theirs] of [
-        ["billed", "delivered"],
-        ["partly-billed", "partly-delivered"],
+        ["invoiced", "delivered"],
+        ["partly-invoiced", "partly-delivered"],
         ["awaiting-invoice", "awaiting-delivery"],
         ["nothing-ordered", "nothing-ordered"],
     ]) {

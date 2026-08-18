@@ -201,12 +201,20 @@ export default function POListClient({
                                     chip set — one word, two subjects, and the row
                                     supplies which. */}
                                 <th className="pr-2">Delivery</th>
-                                {/* #235 — the order's other axis. `Invoicing` rather
-                                    than `Invoiced`, because the column holds what the
-                                    vendor has done and not the figure this app
-                                    computes; `Invoiced` is the detail page's own
-                                    column head, over a quantity. */}
-                                <th>Invoicing</th>
+                                {/* #235 — the order's other axis, and a NOUN because
+                                    `Delivery` beside it is one. The column shows a
+                                    state rather than a document on both sides, so
+                                    matching the part of speech is what makes the pair
+                                    read as one row; `Invoicing` was a gerund next to a
+                                    noun and said nothing extra for it.
+
+                                    NOT `Invoiced`, WHICH IS THE DETAIL PAGE'S HEAD FOR
+                                    A DIFFERENT THING. There it sits over a quantity,
+                                    the ordered item's `Invoiced Qty`; here the column
+                                    names the axis whose chip is in the cells. Two
+                                    heads, two subjects — the pair `Delivery` here and
+                                    `Delivered` there already draws. */}
+                                <th>Invoice</th>
                             </tr>
                         </thead>
                         <tbody>
