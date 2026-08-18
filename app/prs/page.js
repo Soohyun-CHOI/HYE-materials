@@ -4,7 +4,7 @@ import { getSubmittedPRs } from "@/lib/airtable/purchaseRequests";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getAllVendors } from "@/lib/airtable/vendors";
-import { getUserByRecordId } from "@/lib/airtable/users";
+import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { getUncorrectedOverages } from "@/lib/overagePR";
@@ -62,6 +62,10 @@ async function renderPRListPage({ searchParams }) {
 
     // Resolve requester names for the whole visible set (the client filters
     // after, so names are needed for every visible row, not a subset).
+    //
+    // Issue #193 — read in ONE query below rather than one find per requester,
+    // which is the shape that grew with the rows on the page. This list is already
+    // distinct, so batching changes nothing else about it.
     const requesterIds = [...new Set(visible.map((pr) => pr.requester?.[0]).filter(Boolean))];
     // Issue #217 — the strip's rows, read alongside the requester names rather than
     // after them, so the strip costs the page no extra round trip. ITS ROWS ARE
@@ -73,7 +77,7 @@ async function renderPRListPage({ searchParams }) {
     // narrowed before the read, so a delivery on a job this viewer cannot reach is
     // never fetched.
     const [requesterRecords, overages] = await Promise.all([
-        Promise.all(requesterIds.map((id) => getUserByRecordId(id))),
+        getUsersByRecordIds(requesterIds),
         getUncorrectedOverages(jobsFor(user, jobs)),
     ]);
     const userNameById = Object.fromEntries(

@@ -7,7 +7,7 @@ import { getItemsByPR } from "@/lib/airtable/prItems";
 import { getCorrectionRequestsByPR } from "@/lib/airtable/correctionRequests";
 import { getEditLogByPR } from "@/lib/airtable/editLog";
 import { getQuotationsByPR } from "@/lib/airtable/quotations";
-import { getUserByRecordId } from "@/lib/airtable/users";
+import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getAllJobs } from "@/lib/airtable/jobs";
@@ -41,8 +41,9 @@ const DONE_MESSAGES = {
 };
 
 // Labeled for #190 — see the note in app/prs/page.js. This page reads five child
-// levels through getLinkedRecords, which is 1 + N by construction, so it is the
-// screen most likely to be paying more than it needs to.
+// levels, and the label is what showed it was paying five parent re-finds and one
+// find per child row and per person to do it (#193). It reads the ids off the
+// request record now and each level is one query.
 export default async function PRDetailPage(props) {
     return withOpsLabel("/prs/[prId]", () => renderPRDetailPage(props));
 }
@@ -71,13 +72,19 @@ async function renderPRDetailPage({ params, searchParams }) {
         return <div className="p-8">PR not found.</div>;
     }
 
+    // Issue #193 — every child level is read from the ids `pr` already carries,
+    // so none of these five re-finds the request. They did, once each, which is
+    // why this render used to fetch the same Purchase Requests row six times.
+    // recordToPR exposes all five arrays for exactly this (#143 put two of them
+    // there for canViewPR; #193 added the rest), and each level is then one
+    // query rather than one find per row.
     const [signers, items, quotations, correctionRequests, editLog, vendors, lines, jobs] =
         await Promise.all([
-            getSignersByPR(pr.id),
-            getItemsByPR(pr.id),
-            getQuotationsByPR(pr.id),
-            getCorrectionRequestsByPR(pr.id),
-            getEditLogByPR(pr.id),
+            getSignersByPR(pr.id, { rowIds: pr.signerRowIds }),
+            getItemsByPR(pr.id, { rowIds: pr.itemRowIds }),
+            getQuotationsByPR(pr.id, { rowIds: pr.quotationRowIds }),
+            getCorrectionRequestsByPR(pr.id, { rowIds: pr.correctionRowIds }),
+            getEditLogByPR(pr.id, { rowIds: pr.editLogRowIds }),
             getAllVendors(),
             getAllLines(),
             getAllJobs(),
@@ -103,8 +110,12 @@ async function renderPRDetailPage({ params, searchParams }) {
             ...editLog.map((e) => e.changedBy?.[0]),
         ].filter(Boolean)
     );
-    const userList = await Promise.all([...userIds].map((id) => getUserByRecordId(id)));
-    const usersById = Object.fromEntries(userList.filter(Boolean).map((u) => [u.id, u]));
+    // Issue #193 — one query for the whole set rather than one find per person.
+    // The Set above is already the deduplicated id list, so this is the batched
+    // reader's exact shape. The body of #193 names this fan-out only for the PR
+    // LIST; it is on this page too, over four sources instead of one.
+    const userList = await getUsersByRecordIds([...userIds]);
+    const usersById = Object.fromEntries(userList.map((u) => [u.id, u]));
 
     const vendorsById = Object.fromEntries(vendors.map((v) => [v.id, v]));
     const linesById = Object.fromEntries(lines.map((l) => [l.id, l]));
