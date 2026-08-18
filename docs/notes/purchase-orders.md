@@ -49,7 +49,7 @@ The detail page counted what arrived and what was billed without naming either. 
 - **SORTED THE WAY EACH DOCUMENT'S OWN LIST SORTS IT** — invoices by `Invoice ID` descending (`getAllInvoices`' server-side order, and that ID is a date plus a zero-padded daily sequence so a string sort is chronological), deliveries by `Received Date` descending with `Delivery ID` as tie-break and an undated one LAST, which is `sortCandidates`' call. A reader crossing from `/invoices` or `/deliveries` should not meet the same documents in a new order.
   - **`lib/overage.js:sortInvoicesOldestFirst` COEXISTS WITH THIS AND IS NOT A DUPLICATION TO MERGE.** That one is `Issue Date` ascending and answers which bill CARRIES an excess — the order the bills were raised in, because the oldest has the first claim on a quantity. This one answers what a reader sees first. One is an attribution rule with a consequence in the data, the other a display order with none; merging them would give one of the two the wrong key.
 - **BOTH SECTIONS RENDER EMPTY RATHER THAN VANISHING**, for a viewer entitled to them. This is the page someone comes to in order to reconcile, so an absent section cannot be told apart from one that looked and found nothing — #210's call on the delivery detail, where empty is a reading and the sentence says which. **The invoice section is the exception and is absent entirely for a non-privileged viewer**, because "nothing has billed this order" is itself invoice information.
-- **THE GATE DID NOT MOVE, AND THAT IS NOW A RECORDED INCONSISTENCY RATHER THAN A SILENT ONE.** Invoice-derived data on this page stays `isPrivileged`. But `lib/airtable/poItems.js` records that #211 retired the President-or-Admin line on `getPOItemsForReconciliation` — what a vendor billed is readable by anyone who may read the order behind it — and left `Paid` as the narrower replacement. So this page now withholds MORE than the rule requires. Over-withholding is the safe direction and widening it is a decision about who sees an order's billing rather than a consequence of a layout change. **The decision belongs to #235**, which cannot ship without making it: `/pos` has no privileged branch at all, so an invoice-derived chip on the list forces the question first. It was on `docs/notes/backlog.md` until that issue existed, and the line went when it did — the tracker is the record. **`Paid` stays President-or-Admin either way** — verified in a browser that `scoped-fixture@` sees no payment word anywhere on the page — and the hazard that it currently rides on the same flag as the rest of the invoice section is in `app/pos/[poId]/page.js`'s own header, where the gate is.
+- **THE GATE MOVED IN #235, AND THIS IS WHERE IT WAS RECORDED AS NOT HAVING.** Invoice-derived data on this page was `isPrivileged` while `lib/airtable/poItems.js` recorded that #211 had retired the President-or-Admin line on `getPOItemsForReconciliation` — what a vendor billed is readable by anyone who may read the order behind it — leaving `Paid` as the narrower replacement. The page withheld more than the rule required for four issues. #235 opened it: the `Invoiced` column, the invoices charging the order and the new invoicing chip are read by everyone who can see the order, one projection serves both audiences, and `Paid` is on its own flag. **The hazard #233 wrote into that page's header is what made the split cheap** — it named `Paid` as the one thing to separate before the gate ever widened, so widening it was a rename rather than an audit.
 - **THE DELIVERY CHIP IS #169's OWN, AND CALLING IT MADE TWO COMMENTS TRUE.** `summarizePODeliveryStatus` said it was "shared by /pos and /pos/[poId] so the row a reader clicks and the page they land on cannot describe one order differently", and `/pos` said the same about the detail page beside its own call — but that page never imported the module, so both sentences were false from #169 to #233. Corrected by adding the call rather than narrowing the comments, since the property they state is the one worth having. Verified: `HYE-PO-20260730-02` reads `Partly delivered` on the list row and `Partly delivered` on the page.
   - **IT FOLDS THE TABLE ABOVE IT, NOT THE LIST BELOW IT**, which is the one thing the placement could be misread as. The summary counts ORDERED ITEMS whose delivered quantity reached what was ordered — the `Delivered` column — and knows nothing about how many documents brought them. It sits beside the `Deliveries` heading because the invoice detail puts its chip beside `Delivery`, so the two screens read with one grammar, and because "is it all here" is the question a reader arrives at just before the arrivals themselves.
   - **NO NEW READ, ON EITHER PATH.** `poLineDelivery` wants `orderedQty`, `deliveredQty` and `committedQty`, and `recordToPOItem` carries all three, so both the privileged and the employee projection already held everything the chip needs. The cost was not re-measured for it, and that is the reason.
@@ -353,3 +353,74 @@ then ask each one in turn. The picker's set is unchanged; who computes it is not
   is a different shape — batching a walk that runs once per order still grows with
   the orders. Nor the denylist-versus-allowlist question `PO_NOT_WITHDRAWN` still
   carries, recorded above and unchanged.
+
+### An order's invoicing status (#235)
+
+A purchase order said how much of what it ordered had been delivered and never
+whether it had been billed. `summarizePOInvoicingStatus` is the delivery summary's
+pair — `Billed` / `Partly billed` / `Awaiting invoice` / a dash — shown beside the
+delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
+
+- **THE PAIR IS LINE FOR LINE, AND THAT IS THE POINT RATHER THAN A CONVENIENCE.**
+  Same fold (ordered items, never quantities, since a PO's items carry different
+  Units), same reserved middle (`anyInvoiced` separate from the completed count, so
+  10 billed against 13 is partly billed rather than nothing), same dash from the same
+  `countsAsOrdered`, same tones. It reads `Invoiced Qty` where its twin reads
+  `Delivered Qty`, for the twin's own reason: the question at this scope is whether
+  the ordered quantity was reached, and the rollup is the whole answer. The offline
+  check compares the two result SHAPES rather than restating either.
+- **#210's REMOVAL OF THE MIDDLE STATE DOES NOT REACH THIS SCOPE.** `partly-delivered`
+  left `summarizeInvoiceStatus` because one bill is answered by one delivery, so a
+  shortfall is an error rather than a stage. An order is billed by as many invoices as
+  the vendor sends, so a half-billed order is an ordinary middle — which is why the
+  delivery axis already keeps `partly-delivered` here. Asserted rather than assumed,
+  since carrying that removal across is the plausible mistake.
+- **BILLED BEYOND THE ORDER COUNTS AS BILLED**, mirroring an over-delivery counting as
+  delivered. It is also `hasUninvoicedQty`'s own reading — #57 defines an open ordered
+  item as one with a POSITIVE remainder — so reusing it keeps one answer to "is there
+  anything left to bill". The excess is not lost: it is the `(over)` mark beside
+  `Invoiced` and #179's `Order variance` on the charge, which is #241's division
+  between a chip that states the state and an item that points at the exception.
+- **A WITHDRAWN ORDER IS A DASH AND HIDES NOTHING.** `countsAsOrdered` empties the
+  judged set, exactly as on the delivery axis. `getPOWithdrawEligibility` refuses to
+  withdraw an order carrying `invoicePoLinks` or `invoiceItems`, so "withdrawn and
+  billed" is unreachable through the app; where hand-entered data reaches it the two
+  axes at least say the same thing rather than disagreeing.
+- **THE GATE OPENED AND `Paid` DID NOT, WHICH IS THE FIX #233 ASKED FOR IN ADVANCE.**
+  `isPrivileged` gated four unrelated things on `/pos/[poId]`: the projection choice,
+  the `Invoiced` column, the invoices section, the internal `Delivery Address Used`
+  field, and the sign/regenerate controls. The first three are invoice-derived and
+  open — #211 settled that what a vendor billed is readable by anyone who may read the
+  order behind it. The rest stay, under `isOffice`; the payment badge stays under
+  `seesPayment`. **Two flags with the same value today and separate names**, which is
+  what stops the next widening from carrying payment along silently. The projection
+  branch went with it: one `getInvoicingStatusByPO` for both audiences, so the page
+  cannot judge its chip from two field sets.
+- **`Invoiced Qty` JOINED TWO MAPPERS, and that is a policy change rather than a cost
+  one.** `recordToPOItem` and `getPOItemsByRecordIds` both excluded it under #132's
+  line; both pass no `fields`, so the record was already in hand and the field is
+  free. `offline/source-shape.mjs` asserted its ABSENCE as its anti-vacuity probe and
+  now asserts its presence, with the probe moved to `invoiceItems` — a field that
+  belongs to the reconciliation mapper and must not spread, since a chip needs the
+  total rather than the rows.
+- **A SEVENTH COLUMN ON `/pos`, AND THE BUDGET IS DELIBERATELY NOT RE-CUT.** The six
+  existing columns declare exactly 52rem, the width the page has, so the new one takes
+  the row past it and a narrow window wraps or scrolls. That is left standing: those
+  hand-declared rem widths are what the design pass will remove, so re-cutting them
+  now — or stacking two chips in one cell, which is what #179 chose on `/invoices` —
+  would be a pixel judgment made twice, once here and again after the design. What
+  belongs on the screen is this issue's decision; how wide it sits is that work's
+  input. Nothing is truncated.
+- **MEASURED ON BOTH PATHS, BEFORE AND AFTER.** `/pos` 9 → 9 for the office and 8 → 8
+  for an employee: the chip's field rides on a record the list already fetched.
+  `/pos/[poId]` 14 → 14 for the office and **12 → 14 for an employee**, which is the
+  price of opening the gate rather than a regression — the two batched reads that walk
+  `Invoice Items` and then `Invoices` were the office's alone and are everyone's now.
+  An order nothing has billed still pays for neither level, since `findByRecordIds`
+  returns early on an empty id list.
+- **ALL FOUR CHIP VALUES ARE ON THE BASE, so none had to be seeded**: 16 `Billed`, 17
+  `Awaiting invoice`, 1 `Partly billed` and 5 dashes across 45 orders. The employee
+  path was read as `scoped-fixture@`, whose `Invoices` section renders the chip and the
+  charges and contains neither `Paid` nor `Not paid` — checked against the section's
+  own DOM rather than the page's, since that is the only evidence `seesPayment` is
+  doing anything.

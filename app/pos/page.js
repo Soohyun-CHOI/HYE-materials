@@ -8,7 +8,12 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { canViewPR } from "@/lib/prVisibility";
 import { selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
-import { describePOColumn, summarizePODeliveryStatus } from "@/lib/deliveryStatus";
+import {
+    describePOColumn,
+    describePOInvoicingColumn,
+    summarizePODeliveryStatus,
+    summarizePOInvoicingStatus,
+} from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import POListClient from "./POListClient";
 import AwaitingPOStrip from "./AwaitingPOStrip";
@@ -114,6 +119,10 @@ async function renderPOListPage({ searchParams }) {
         linesByPO.get(poRecordId).push({
             orderedQty: item.qty,
             deliveredQty: item.deliveredQty,
+            // #235 — the invoicing chip's own quantity. Free: this reader already
+            // returns the whole record, so the field costs no query and the two
+            // chips are folded from one list of ordered items.
+            invoicedQty: item.invoicedQty,
             committedQty: item.committedQty,
         });
     }
@@ -145,6 +154,15 @@ async function renderPOListPage({ searchParams }) {
             // had one caller. That page calls it now, beside its `Deliveries`
             // heading.
             deliveryChip: describePOColumn(summarizePODeliveryStatus(linesByPO.get(po.id) || [])),
+            // #235 — the invoicing axis's own chip, resolved here for the reason the
+            // delivery one is: the copy lives in lib/deliveryStatus.js and the client
+            // component never sees a quantity. Every viewer of a row reads it, which
+            // needs no branch because this list has none — an order is visible or it
+            // is not, and what a vendor billed is readable by whoever may read the
+            // order behind it (#211).
+            invoicingChip: describePOInvoicingColumn(
+                summarizePOInvoicingStatus(linesByPO.get(po.id) || [])
+            ),
             // A PO carries no requester of its own — it is the parent PR's
             // (#138). Resolved here so the requester's identity never reaches
             // the client, the same way /prs resolves isMine server-side.

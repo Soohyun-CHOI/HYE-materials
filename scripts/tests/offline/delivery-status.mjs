@@ -34,6 +34,9 @@ import {
     lineStatus,
     poLineDelivery,
     summarizePODeliveryStatus,
+    summarizePOInvoicingStatus,
+    describePOInvoicingColumn,
+    poLineInvoicing,
     sortLongestWaitingFirst,
     summarizeDeliveryInvoicing,
     summarizeInvoiceStatus,
@@ -919,6 +922,125 @@ export function run({ check, log, assert }) {
     for (const lines of [[poLine(10, 10)], [poLine(10, 0)], [poLine(10, 4)], []]) {
         const s = summarizePODeliveryStatus(lines);
         assert(`describePOColumn resolves "${s.key}"`, Boolean(describePOColumn(s)?.text));
+    }
+
+    // ── #235: THE INVOICING AXIS AT THE SAME SCOPE ─────────────────────────
+    log("");
+    log("THE QUIET MUTANT — a verdict that never changes is a chip that always reads:");
+    // This rule's failure mode is a constant. One word in every row looks like a
+    // list where nothing has been billed, or one where everything has, and no other
+    // check in this repository reads these keys — the station #237's `always agree`,
+    // #242's removed narrowing, #241's always-silent list, #238's unfolded table and
+    // #179's one word for two kinds stand at. So the first assertion is that the
+    // four inputs below do not collapse to one answer.
+    const poBill = (qty, invoiced, committed = qty) => ({
+        orderedQty: qty,
+        invoicedQty: invoiced,
+        committedQty: committed,
+    });
+    const billing = (lines) => summarizePOInvoicingStatus(lines).key;
+    const everyState = [
+        ["billed", [poBill(10, 10), poBill(5, 5)]],
+        ["partly-billed", [poBill(10, 10), poBill(5, 0)]],
+        ["awaiting-invoice", [poBill(10, 0), poBill(5, 0)]],
+        ["nothing-ordered", [poBill(10, 10, 0)]],
+    ];
+    const alwaysAwaiting = () => "awaiting-invoice";
+    for (const [expected, lines] of everyState) {
+        check(`  ${expected}`, billing(lines), expected);
+    }
+    assert(
+        "  so a constant verdict disagrees on three of the four",
+        everyState.filter(([expected, lines]) => alwaysAwaiting(lines) !== billing(lines)).length === 3
+    );
+
+    log("");
+    log("it is the delivery summary's pair, line for line:");
+    // The two are claimed to be the same fold at the same scope. Comparing their
+    // SHAPES is that claim rather than a restatement of either, and a field added to
+    // one and not the other is what this would catch.
+    const shapeOf = (o) => Object.keys(o).sort().join(",");
+    check(
+        "same result shape",
+        shapeOf(summarizePOInvoicingStatus([poBill(10, 4)])),
+        shapeOf(summarizePODeliveryStatus([poLine(10, 4)])).replace("anyDelivered", "anyInvoiced")
+    );
+    check("a half-billed ordered item is the middle state", billing([poBill(10, 4)]), "partly-billed");
+    check(
+        "  which the delivery axis reads the same way",
+        summarizePODeliveryStatus([poLine(10, 4)]).key,
+        "partly-delivered"
+    );
+    // #210 removed the middle from the INVOICE axis, where one bill is answered by
+    // one delivery. An order is billed by as many invoices as the vendor sends, so
+    // the middle is real here — asserted rather than assumed, since the temptation
+    // to carry that removal across is exactly what this pins.
+    assert(
+        "the middle state exists on both order-scope axes and on neither bill-scope one",
+        "partly-billed" in STATUS_COPY.column.poInvoicing &&
+            "partly-delivered" in STATUS_COPY.column.po &&
+            !("partly-delivered" in STATUS_COPY.column.invoice)
+    );
+
+    log("");
+    log("billed beyond the order counts as billed, the way delivered beyond it does:");
+    check("one ordered item billed past its Qty", billing([poBill(10, 13)]), "billed");
+    check("  and its own line says so", poLineInvoicing(poBill(10, 13)).complete, true);
+    check(
+        "  which is what the delivery axis does with an over-delivery",
+        summarizePODeliveryStatus([poLine(10, 13)]).key,
+        "delivered"
+    );
+    // The excess is not lost by that: it is a per-ordered-item fact, marked `(over)`
+    // beside `Invoiced` and flagged as #179's `Order variance` on the charge.
+    check("a partly-billed order with one over-billed item is still partly billed",
+        billing([poBill(10, 13), poBill(5, 0)]), "partly-billed");
+
+    log("");
+    log("a withdrawn order drops out through the same field as on the delivery axis:");
+    check("nothing-ordered", billing([poBill(10, 10, 0), poBill(5, 0, 0)]), "nothing-ordered");
+    check(
+        "  and the same ordered items with a live Committed Qty do not",
+        billing([poBill(10, 10, 10), poBill(5, 0, 5)]),
+        "partly-billed"
+    );
+    check("judged counts only what counts", summarizePOInvoicingStatus([poBill(10, 10, 0)]).ordered, 0);
+
+    log("");
+    log("the chip — its own words, sharing the delivery axis's tones:");
+    check("billed", STATUS_COPY.column.poInvoicing.billed().text, "Billed");
+    check("partly billed", STATUS_COPY.column.poInvoicing["partly-billed"]().text, "Partly billed");
+    check(
+        "awaiting invoice — the deliveries list's exact word, reused",
+        STATUS_COPY.column.poInvoicing["awaiting-invoice"]().text,
+        STATUS_COPY.column.delivery["awaiting-invoice"]().text
+    );
+    check("and the dash", STATUS_COPY.column.poInvoicing["nothing-ordered"]().text, "—");
+    for (const [ours, theirs] of [
+        ["billed", "delivered"],
+        ["partly-billed", "partly-delivered"],
+        ["awaiting-invoice", "awaiting-delivery"],
+        ["nothing-ordered", "nothing-ordered"],
+    ]) {
+        check(
+            `"${ours}" wears the tone "${theirs}" wears`,
+            STATUS_COPY.column.poInvoicing[ours]().tone,
+            STATUS_COPY.column.po[theirs]().tone
+        );
+    }
+    assert(
+        "and no word is shared with the delivery axis at this scope",
+        !Object.keys(STATUS_COPY.column.poInvoicing).some(
+            (k) =>
+                k !== "nothing-ordered" &&
+                Object.values(STATUS_COPY.column.po).some(
+                    (f) => f().text === STATUS_COPY.column.poInvoicing[k]().text
+                )
+        )
+    );
+    for (const lines of [[poBill(10, 10)], [poBill(10, 0)], [poBill(10, 4)], []]) {
+        const sum = summarizePOInvoicingStatus(lines);
+        assert(`describePOInvoicingColumn resolves "${sum.key}"`, Boolean(describePOInvoicingColumn(sum)?.text));
     }
 
     // ── #210: THE INFERENCE IS GONE, ON THE AST ─────────────────────────────

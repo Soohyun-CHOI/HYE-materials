@@ -606,17 +606,18 @@ export function run(reporter) {
         check("all three banner-fact producers set the qualifier", setters, 3);
     }
 
-    // ── delivered quantity reaches the employee-facing mapper (#169) ────────
+    // ── the quantities reach the employee-facing mapper (#169, #235) ───────
     //
-    // WHAT THIS STANDS IN FOR IS AN ACCESS QUESTION, NOT A SHAPE ONE. /pos/[poId]
-    // withholds invoice-derived fields from a non-privileged viewer (#132), and
-    // #169's whole premise is that delivered quantity is delivery-derived and must
-    // NOT be withheld with them. Proving that behaviorally needs a session for a
-    // non-Admin who is nonetheless in a PO's scope, and this base has no such
-    // account — authz-fixture has no Assigned Jobs, and CLAUDE.md forbids giving it
-    // any. So the property is asserted where it is actually decided: recordToPOItem
-    // is the mapper that page reads through, and a field absent there is withheld
-    // from everyone regardless of what the page renders.
+    // WHAT THIS STANDS IN FOR IS AN ACCESS QUESTION, NOT A SHAPE ONE. #169's premise
+    // was that delivered quantity is delivery-derived and must not be withheld with
+    // the invoice-derived fields #132 kept from a non-privileged viewer of
+    // /pos/[poId]. #235 RETIRED THE OTHER HALF: what a vendor billed is readable by
+    // anyone who may read the order behind it (#211), so `invoicedQty` belongs here
+    // too and this file no longer asserts its absence. The property is still checked
+    // where it is decided — a field absent from this mapper is withheld from
+    // everyone regardless of what a page renders — and the page's own gate is now
+    // proved in a browser with `scoped-fixture@`, which the base does have a session
+    // for since #211's fixture pair.
     const poItemsModule = parseFile("lib/airtable/poItems.js");
     assert("lib/airtable/poItems.js parses", poItemsModule !== null);
     if (poItemsModule) {
@@ -629,17 +630,19 @@ export function run(reporter) {
                 const key = n.key?.type === "Identifier" ? n.key.name : n.key?.value;
                 if (key) fields.add(key);
             });
-            for (const field of ["deliveredQty", "committedQty"]) {
-                assert(`recordToPOItem carries ${field} — delivery-derived, not withheld`, fields.has(field));
+            for (const field of ["deliveredQty", "committedQty", "invoicedQty"]) {
+                assert(`recordToPOItem carries ${field}, which no viewer is withheld`, fields.has(field));
             }
-            // ANTI-VACUITY. The two assertions above also pass if `walk` collected
-            // every Property in the file, or if the resolver handed back something
-            // larger than this mapper. `invoicedQty` is the field that must NOT be
-            // here — it is invoice-derived and #132 withholds it — so its absence
-            // is what shows the set is really this function's own.
+            // ANTI-VACUITY. The assertions above also pass if `walk` collected every
+            // Property in the file, or if the resolver handed back something larger
+            // than this mapper. `invoicedQty` used to be the field that proved the
+            // set was this function's own, by being absent; it is present now, so the
+            // proof moves to a field that belongs to a DIFFERENT mapper in the same
+            // file — `getPOItemsForReconciliation` carries `invoiceItems` and this
+            // one must not, since a chip needs the total rather than the rows.
             assert(
-                "and does NOT carry invoicedQty — the field #132 withholds",
-                !fields.has("invoicedQty")
+                "and does NOT carry invoiceItems, which is another mapper's field",
+                !fields.has("invoiceItems")
             );
         }
     }
