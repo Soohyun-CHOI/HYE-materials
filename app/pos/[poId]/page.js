@@ -417,10 +417,20 @@ async function renderPODetailPage({ params, searchParams }) {
                         #233 TOUCHED ALL THREE OF #169's HAND-COUNTED CONSTANTS.
                         The invoice breakdown row that carried `colSpan={11}` is
                         gone with the per-row placement, the header cells lost
-                        `Undelivered` and `Uninvoiced`, and this pair went 5/3 to
-                        3/2. A wrong value here misaligns the footer silently and
-                        no offline check can see it, so both privilege levels are
-                        counted in a browser — 9 and 8 columns now. */}
+                        `Undelivered` and `Uninvoiced`, and the trailing count
+                        went 5 to 3 for a privileged viewer and 3 to 2 for
+                        everyone else.
+
+                        #235 THEN REMOVED THE SECOND OF EACH PAIR. There is no
+                        privilege branch left in this table — every `th` and
+                        every `td` above renders unconditionally — so one count
+                        serves both viewers and the table is 9 columns wide for
+                        all of them. A wrong value here still misaligns the
+                        footer silently and no offline check can see it, so it is
+                        counted in a browser; what changed is that there is one
+                        number to count rather than two to keep in step.
+                        Corrected here per #181 by #260, which found this saying
+                        9 and 8. */}
                     <ItemsSummaryRows
                         itemsSubtotal={po.itemsSubtotal}
                         shippingFee={po.shippingFee}
@@ -439,15 +449,26 @@ async function renderPODetailPage({ params, searchParams }) {
                 named once. Deliveries first, matching the column order above, where
                 #169 put the delivery pair before the invoice pair.
 
-                BOTH SECTIONS ALWAYS RENDER FOR A VIEWER ENTITLED TO THEM, empty or
-                not: this is the page a reader comes to in order to reconcile, so an
-                absent section cannot be told apart from a section that found
-                nothing. #210 made the same call on the delivery detail — empty is a
-                reading, and the sentence says which.
+                BOTH SECTIONS ALWAYS RENDER, empty or not: this is the page a reader
+                comes to in order to reconcile, so an absent section cannot be told
+                apart from a section that found nothing. #210 made the same call on
+                the delivery detail — empty is a reading, and the sentence says
+                which.
 
-                THE INVOICE SECTION IS ABSENT ENTIRELY for a non-privileged viewer
-                rather than empty, because "nothing has billed this order" is itself
-                invoice information. Same server-side omission as the columns. */}
+                THE INVOICE SECTION WAS ABSENT ENTIRELY FOR A NON-PRIVILEGED VIEWER
+                UNTIL #235, on the ground that "nothing has billed this order" is
+                itself invoice information — the same server-side omission the
+                columns above were making. That premise is what #235 overturned:
+                what a vendor billed is readable by anyone who may read the order
+                behind it (#211), so this section now renders for every viewer who
+                reaches this page, exactly as those columns now do.
+
+                WHAT SURVIVES OF IT SITS ONE LEVEL DOWN, on the payment badge inside
+                this section: a viewer without `seesPayment` reads neither `Paid` nor
+                `Not paid`, because there the absence of a badge really is the answer
+                to a question they are not being shown. The principle was sound and
+                only its subject was wrong, which is why it moved rather than went.
+                Corrected here per #181 by #260, in the branch that found it. */}
             <div className="mt-6">
                 {/* THE CHIP FOLDS THE TABLE ABOVE, NOT THE LIST BELOW IT, which is
                     the one thing about this placement that could be misread.
@@ -511,80 +532,78 @@ async function renderPODetailPage({ params, searchParams }) {
                 that kept its own line, on `seesPayment`. The chip beside the heading
                 is this order's invoicing state, in the placement #233 gave the
                 delivery one. */}
-            {(
-                <div className="mt-6">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.invoices.heading}</h2>
-                        <StatusChip chip={invoicingChip} />
-                    </div>
-                    {invoicesOnOrder.length === 0 ? (
-                        <p className="mt-1 text-sm text-zinc-600">
-                            {PO_DOCUMENTS_COPY.invoices.empty().text}
-                        </p>
-                    ) : (
-                        <ul className="mt-2 space-y-2 text-sm">
-                            {invoicesOnOrder.map((inv) => (
-                                <li key={inv.invoiceRecordId}>
-                                    <p className="flex flex-wrap items-center gap-x-2">
-                                        {inv.invoiceId ? (
-                                            <Link
-                                                href={`/invoices/${encodeURIComponent(inv.invoiceId)}`}
-                                                className="underline"
-                                            >
-                                                {inv.invoiceId}
-                                            </Link>
-                                        ) : (
-                                            "—"
-                                        )}
-                                        {inv.vendorInvoiceCode && (
-                                            <span className="text-zinc-500">{inv.vendorInvoiceCode}</span>
-                                        )}
-                                        <span className="text-zinc-500">{inv.issueDate || "—"}</span>
-                                        {inv.varianceFlag && (
-                                            <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
-                                                {VARIANCE_COPY.header}
-                                            </span>
-                                        )}
-                                        {/* Payment is President-or-Admin (#211), and it
-                                            is the ONLY thing in this section that is.
-                                            The gate above widened in #235 and this
-                                            badge did not go with it — which is exactly
-                                            what this file's header warned would have
-                                            to be prevented, so `seesPayment` is its
-                                            own flag now. A viewer without it reads
-                                            neither word: not `Paid`, not `Not paid`,
-                                            since the absence of a payment badge is
-                                            itself the answer to a question they are
-                                            not being shown. */}
-                                        {seesPayment &&
-                                            (inv.paid ? (
-                                                <span className="rounded bg-green-100 px-1 text-xs text-green-700">
-                                                    {PO_DOCUMENTS_COPY.badge.paid(inv)}
-                                                </span>
-                                            ) : (
-                                                <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-500">
-                                                    {PO_DOCUMENTS_COPY.badge.notPaid}
-                                                </span>
-                                            ))}
-                                    </p>
-                                    <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
-                                        {inv.charges.map((c) => (
-                                            <li key={c.orderedItemRecordId}>
-                                                {PO_DOCUMENTS_COPY.invoices.charge(c).text}
-                                                {c.varianceFlag && (
-                                                    <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
-                                                        {VARIANCE_COPY.item}
-                                                    </span>
-                                                )}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+            <div className="mt-6">
+                <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.invoices.heading}</h2>
+                    <StatusChip chip={invoicingChip} />
                 </div>
-            )}
+                {invoicesOnOrder.length === 0 ? (
+                    <p className="mt-1 text-sm text-zinc-600">
+                        {PO_DOCUMENTS_COPY.invoices.empty().text}
+                    </p>
+                ) : (
+                    <ul className="mt-2 space-y-2 text-sm">
+                        {invoicesOnOrder.map((inv) => (
+                            <li key={inv.invoiceRecordId}>
+                                <p className="flex flex-wrap items-center gap-x-2">
+                                    {inv.invoiceId ? (
+                                        <Link
+                                            href={`/invoices/${encodeURIComponent(inv.invoiceId)}`}
+                                            className="underline"
+                                        >
+                                            {inv.invoiceId}
+                                        </Link>
+                                    ) : (
+                                        "—"
+                                    )}
+                                    {inv.vendorInvoiceCode && (
+                                        <span className="text-zinc-500">{inv.vendorInvoiceCode}</span>
+                                    )}
+                                    <span className="text-zinc-500">{inv.issueDate || "—"}</span>
+                                    {inv.varianceFlag && (
+                                        <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
+                                            {VARIANCE_COPY.header}
+                                        </span>
+                                    )}
+                                    {/* Payment is President-or-Admin (#211), and it
+                                        is the ONLY thing in this section that is.
+                                        The gate above widened in #235 and this
+                                        badge did not go with it — which is exactly
+                                        what this file's header warned would have
+                                        to be prevented, so `seesPayment` is its
+                                        own flag now. A viewer without it reads
+                                        neither word: not `Paid`, not `Not paid`,
+                                        since the absence of a payment badge is
+                                        itself the answer to a question they are
+                                        not being shown. */}
+                                    {seesPayment &&
+                                        (inv.paid ? (
+                                            <span className="rounded bg-green-100 px-1 text-xs text-green-700">
+                                                {PO_DOCUMENTS_COPY.badge.paid(inv)}
+                                            </span>
+                                        ) : (
+                                            <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-500">
+                                                {PO_DOCUMENTS_COPY.badge.notPaid}
+                                            </span>
+                                        ))}
+                                </p>
+                                <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
+                                    {inv.charges.map((c) => (
+                                        <li key={c.orderedItemRecordId}>
+                                            {PO_DOCUMENTS_COPY.invoices.charge(c).text}
+                                            {c.varianceFlag && (
+                                                <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
+                                                    {VARIANCE_COPY.item}
+                                                </span>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
 
             {/* Signing/regeneration are President-only write actions, so those
                 controls render only for privileged viewers. The PO PDF itself
