@@ -1,0 +1,346 @@
+// The screen briefs describe the screens that exist (#260).
+//
+// docs/briefs/ is the design work's only input — it runs in a tool that does not
+// read this repository, so a brief that has gone stale is not corrected by anyone
+// noticing the code. That is the failure this check exists for, and it is a
+// different failure from the ones the rest of this tier watches: nothing breaks, no
+// screen misrenders, and the wrong document is simply believed.
+//
+// WHAT IT CANNOT SEE, said here rather than in a footnote, because it is most of
+// what a brief asserts:
+//
+//   1. Whether a screen renders what its brief says it renders. The offline tier
+//      reads source and pure functions and never renders a page, so a fact this
+//      check confirms is present in a CONSTANT may still not reach a browser. That
+//      gap is stated in CLAUDE.md and is not narrowed here.
+//   2. Whether a conditional is really conditional. "What it carries only
+//      sometimes" is the most load-bearing section of every brief — #232 and #241
+//      silenced things that a designer will otherwise draw as always present — and
+//      it is prose about rendering, which this tier cannot reach at all.
+//   3. Whether the readership claims hold. Source shape is not execution: a gate
+//      inside `if (false)` satisfies a structural check, so "who reaches it" is
+//      verified by authz-structure.mjs at the shape level and by a browser with the
+//      two fixture accounts, never here.
+//   4. Two copy constants cannot be loaded at all. lib/poWithdraw.js and
+//      lib/deliveryDelete.js both import lib/airtable/*, which throws at module
+//      load without credentials, so DELETE_COPY and WITHDRAW_COPY are outside this
+//      tier by the same boundary that keeps every credentialed module out. The
+//      briefs mark their words as tier 2 for that reason and this check falls back
+//      to the weaker question — does the literal still appear under app/ — which
+//      proves the string is somewhere rather than that it is still the constant's
+//      value.
+//
+// A word written straight into JSX gets that same weaker treatment, and #227's
+// sweep does not reach it either — recorded in docs/notes against the phrase
+// `— attached to this invoice`.
+//
+// THE FILENAME IS DERIVED, NOT TYPED, which is the property that lets the first
+// assertion be an exact equality in both directions. A brief's name comes from the
+// route template the same way `withOpsLabel`'s label does, so a name cannot
+// disagree with the screen it is about, and there is no exemption list to go stale.
+
+import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { listJsFiles, repoPath, toPosix, REPO_ROOT } from "./_ast.mjs";
+import { listEntryPoints, countEntryPointFiles, routeTemplate } from "./_entrypoints.mjs";
+import { STATUS_COPY, AWAITING_INVOICE_COPY } from "../../../lib/deliveryStatus.js";
+import { VARIANCE_COPY } from "../../../lib/variance.js";
+import { EMPTY_COPY, AWAITING_PO_COPY } from "../../../lib/poListView.js";
+import { CONFIRM_COPY } from "../../../lib/authTokenState.js";
+import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
+import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
+import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
+import { OVERAGE_COPY } from "../../../lib/overage.js";
+import { isMain, standalone } from "./_harness.mjs";
+
+export const title = "The screen briefs describe the screens that exist (#260)";
+
+const BRIEFS_DIR = "docs/briefs";
+
+/** The shared brief, and the README. Neither is a screen. */
+const NON_SCREEN = new Set(["_shared.md", "README.md"]);
+
+/**
+ * A route template's brief filename. The one hand-held case is "/", which has no
+ * segment to name it after; every other route is mechanical.
+ */
+export function briefFileName(route) {
+    if (route === "/") return "root.md";
+    return route.replace(/^\//, "").replace(/\//g, "-").replace(/[[\]]/g, "") + ".md";
+}
+
+/** The four sections every screen brief carries, in this order. */
+const REQUIRED_HEADINGS = [
+    "## What it answers",
+    "## What it always carries",
+    "## What it carries only sometimes",
+    "## What must agree elsewhere",
+];
+
+/** Every `tone` a STATUS_COPY builder can return, walked rather than grepped. */
+function tonesInStatusCopy() {
+    const tones = new Set();
+    const sample = { invoiced: 30, billedNotArrived: 15, arrived: 15, billedBeyondOrder: 5, arrivedBeyondOrder: 3 };
+    const visit = (value) => {
+        if (typeof value === "function") {
+            try {
+                const result = value(sample, "EA");
+                if (result?.tone) tones.add(result.tone);
+            } catch {
+                /* a builder with another shape carries no tone */
+            }
+        } else if (value && typeof value === "object") {
+            Object.values(value).forEach(visit);
+        }
+    };
+    visit(STATUS_COPY);
+    return tones;
+}
+
+/**
+ * Every string a copy constant can produce — its literals AND its builders' output.
+ *
+ * The builders matter more than the literals: most of the sentences a brief quotes
+ * are returned by a function, so a version of this that walked only literals would
+ * have almost nothing to compare against and would pass by looking at very little.
+ */
+function stringsFrom(value, out = []) {
+    const sample = { invoiced: 30, billedNotArrived: 15, arrived: 15, billedBeyondOrder: 5, arrivedBeyondOrder: 3 };
+    if (typeof value === "string") {
+        out.push(value);
+    } else if (typeof value === "function") {
+        for (const args of [[sample, "EA"], [1], []]) {
+            try {
+                const r = value(...args);
+                if (r === undefined) continue;
+                stringsFrom(r, out);
+                break;
+            } catch {
+                /* try the next shape */
+            }
+        }
+    } else if (value && typeof value === "object") {
+        Object.values(value).forEach((v) => stringsFrom(v, out));
+    }
+    return out;
+}
+
+/**
+ * The sentences the briefs quote FROM a loadable constant, named explicitly.
+ *
+ * WHY A LIST RATHER THAN A SWEEP, and this was measured: the first version asked of
+ * every backticked phrase in every brief whether some constant still held it, and
+ * flagged 140 of them. Almost all were screen text written straight into JSX, a
+ * field name, or a placeholder — tier 3 in the briefs' own terms — and no filter
+ * separates "a phrase that should be in a constant" from "a phrase that never was"
+ * without naming one of the two sets. So the set is named.
+ *
+ * The failure this catches is the one that matters: a constant reworded while a
+ * brief goes on quoting the old sentence to a designer. A quotation ADDED to a brief
+ * and not added here is uncovered rather than wrongly passed, and the count logged
+ * below is what makes that coverage visible instead of assumed.
+ */
+const PINNED = [
+    "⚠ Order variance",
+    "⚠ Check the total",
+    "Not compared — no ordered item",
+    "Longest wait first. No invoice yet covers what these arrivals brought.",
+    "No invoice charges this order yet.",
+    "Nothing has been delivered against this order yet.",
+    "No purchase orders yet. One is generated automatically when a purchase request is fully approved.",
+    "No purchase orders to show. You see a purchase order when you can see the request behind it.",
+    "No purchase orders match these filters.",
+    "Generation failed when the request was approved. Generate the order here.",
+    "This sign-in link has already been used.",
+    "This sign-in link has expired. Sign-in links last 15 minutes.",
+    "Press the button to finish signing in on this device.",
+    "Confirm sign-in",
+    "That invoice no longer exists.",
+    "No invoice from this vendor has been entered yet, so there is nothing to attach.",
+    "One invoice belongs to one delivery, so a bill already attached elsewhere is",
+    "Nothing on this job orders this item from this vendor, so there is no order to",
+    "✓ Paid",
+    "Not paid",
+    "Over-delivered",
+];
+
+export function run({ check, assert, log }) {
+    const dir = repoPath(BRIEFS_DIR);
+    assert(`${BRIEFS_DIR}/ exists`, existsSync(dir));
+    const onDisk = readdirSync(dir).filter((f) => f.endsWith(".md"));
+    assert("the briefs directory is not empty", onDisk.length > 0);
+
+    const screenFiles = onDisk.filter((f) => !NON_SCREEN.has(f));
+    const briefText = new Map(
+        onDisk.map((f) => [f, readFileSync(repoPath(`${BRIEFS_DIR}/${f}`), "utf8")])
+    );
+
+    // --- one brief per page, both directions -----------------------------
+    log("every page has a brief and every brief has a page:");
+    const parseErrors = [];
+    const { entries } = listEntryPoints({ onParseError: (m) => parseErrors.push(m) });
+    check("every file under the scan roots parsed", parseErrors.length === 0 ? "none" : parseErrors.join("; "), "none");
+
+    const routes = entries.filter((e) => e.kind === "page").map((e) => routeTemplate(e.file));
+    assert("the enumeration found pages at all", routes.length > 0);
+
+    // ANTI-VACUITY, and the reason is _entrypoints.mjs's own: an assertion that
+    // asks "did it find any pages" cannot see an enumeration that finds SOME.
+    // countEntryPointFiles() counts page.js BY NAME and shares no predicate with
+    // the enumeration, so it has to disagree if the enumeration ever narrows.
+    const byName = countEntryPointFiles();
+    check("the enumeration found as many pages as there are page.js files", routes.length, byName.page);
+
+    const expected = new Set(routes.map(briefFileName));
+    const missing = [...expected].filter((f) => !screenFiles.includes(f)).sort();
+    check("no page without a brief", missing.length === 0 ? "none" : missing.join(", "), "none");
+
+    const extra = screenFiles.filter((f) => !expected.has(f)).sort();
+    check("no brief without a page", extra.length === 0 ? "none" : extra.join(", "), "none");
+
+    // --- each brief declares the route its filename claims ---------------
+    log("");
+    log("each brief's own Route line agrees with its filename:");
+    const routeMismatches = [];
+    for (const [file, text] of briefText) {
+        if (NON_SCREEN.has(file)) continue;
+        const declared = text.match(/^Route:\s*`([^`]+)`/m)?.[1];
+        if (!declared) routeMismatches.push(`${file}: no Route line`);
+        else if (briefFileName(declared) !== file) routeMismatches.push(`${file}: declares ${declared}`);
+    }
+    check(
+        "no brief whose Route line and filename disagree",
+        routeMismatches.length === 0 ? "none" : routeMismatches.join("; "),
+        "none"
+    );
+
+    const noReader = [...briefText]
+        .filter(([f]) => !NON_SCREEN.has(f))
+        .filter(([, t]) => !/^Who reaches it:/m.test(t))
+        .map(([f]) => f);
+    check("no brief without a `Who reaches it` line", noReader.length === 0 ? "none" : noReader.join(", "), "none");
+
+    // --- the four sections ------------------------------------------------
+    log("");
+    log("each brief carries the four sections, in order:");
+    const structureFailures = [];
+    for (const [file, text] of briefText) {
+        if (NON_SCREEN.has(file)) continue;
+        let cursor = -1;
+        for (const heading of REQUIRED_HEADINGS) {
+            const at = text.indexOf(`\n${heading}\n`);
+            if (at === -1) {
+                structureFailures.push(`${file}: missing "${heading}"`);
+                break;
+            }
+            if (at < cursor) {
+                structureFailures.push(`${file}: "${heading}" out of order`);
+                break;
+            }
+            cursor = at;
+        }
+    }
+    check(
+        "no brief missing a section or carrying them out of order",
+        structureFailures.length === 0 ? "none" : structureFailures.join("; "),
+        "none"
+    );
+
+    // --- the tone vocabulary ---------------------------------------------
+    log("");
+    log("the shared brief lists exactly the tones the code can produce:");
+    const shared = briefText.get("_shared.md");
+    assert("_shared.md is present", Boolean(shared));
+
+    const tones = tonesInStatusCopy();
+    // The two verdict tones come from the same module and the same walk; asserting
+    // the count here is what makes a tone SILENTLY DROPPED from STATUS_COPY visible,
+    // since a shrunken set would otherwise agree with a shrunken brief.
+    check("STATUS_COPY still reaches seven tones", tones.size, 7);
+
+    const unlisted = [...tones].filter((t) => !shared.includes(`\`${t}\``)).sort();
+    check("no tone the shared brief does not name", unlisted.length === 0 ? "none" : unlisted.join(", "), "none");
+
+    // The other direction: a tone the brief invents, or one left behind by a
+    // rename in the code. Backticked single words in the two tone tables only.
+    const claimed = [...shared.matchAll(/^\| `([a-z-]+)` \|/gm)].map((m) => m[1]);
+    assert("the tone tables were parsed", claimed.length > 0);
+    const notReal = claimed.filter((t) => !tones.has(t)).sort();
+    check("no tone named in the brief that the code cannot produce", notReal.length === 0 ? "none" : notReal.join(", "), "none");
+
+    // --- quoted words are still the constants' words ----------------------
+    log("");
+    log("every word the shared brief quotes is still what the constant holds:");
+    const loadable = [
+        ...stringsFrom(VARIANCE_COPY),
+        ...stringsFrom(EMPTY_COPY),
+        ...stringsFrom(CONFIRM_COPY),
+        ...stringsFrom(PO_DOCUMENTS_COPY),
+        ...stringsFrom(LINK_COPY),
+        ...stringsFrom(STATUS_COPY),
+        ...stringsFrom(AWAITING_INVOICE_COPY),
+        ...stringsFrom(AWAITING_PO_COPY),
+        ...stringsFrom(ALLOCATION_COPY),
+        ...stringsFrom(OVERAGE_COPY),
+    ];
+    assert("the copy constants yielded strings", loadable.length > 20);
+
+    // Each pinned sentence has to be BOTH still in a constant and still in a brief.
+    // Either half alone would miss the drift: a constant reworded leaves the brief
+    // lying to a designer, and a brief rewritten leaves the constant unquoted.
+    const goneFromCode = PINNED.filter((s) => !loadable.some((v) => v.includes(s)));
+    check(
+        "no pinned sentence the constants no longer hold",
+        goneFromCode.length === 0 ? "none" : goneFromCode.join(" | "),
+        "none"
+    );
+
+    const goneFromBriefs = PINNED.filter((s) => ![...briefText.values()].some((t) => t.includes(s)));
+    check(
+        "no pinned sentence missing from every brief",
+        goneFromBriefs.length === 0 ? "none" : goneFromBriefs.join(" | "),
+        "none"
+    );
+
+    // Coverage, stated rather than implied: how much of what the loadable constants
+    // can say is pinned at all. A reader deciding whether to trust this section
+    // should see the fraction, not infer it from a row of PASSes.
+    const sentences = [...new Set(loadable.filter((s) => s.length >= 12 && /\s/.test(s)))];
+    log(`  ${PINNED.length} sentences pinned, of ${sentences.length} the loadable constants can produce`);
+    log("  the rest are uncovered — a brief may quote one and this check will not notice");
+
+    // --- tier 2: the two credentialed constants --------------------------
+    log("");
+    log("the two words no offline check can load still appear under app/:");
+    // WITHDRAW_COPY and DELETE_COPY cannot be imported here — see the module note.
+    // So the question narrows to whether the literal survives in the tree at all.
+    const appSources = listJsFiles(repoPath("app"))
+        .concat(listJsFiles(repoPath("lib")))
+        .map((abs) => readFileSync(abs, "utf8"));
+    assert("app/ and lib/ sources were read", appSources.length > 20);
+    const TIER_TWO = ["This cannot be undone.", "no further signing", "Withdraw this PO?"];
+    const absent = TIER_TWO.filter((s) => !appSources.some((src) => src.includes(s)));
+    check("no tier-2 phrase missing from the tree", absent.length === 0 ? "none" : absent.join(" | "), "none");
+
+    // --- anti-vacuity -----------------------------------------------------
+    log("");
+    log("anti-vacuity — this check is seen to be able to fail:");
+    // Every assertion above is of the form "no X". Each mechanism is proved on a
+    // case whose answer is known, because a broken deriver, an unreadable directory
+    // and a failed walk all report exactly "no X" too.
+    assert("the deriver names a static route", briefFileName("/prs") === "prs.md");
+    assert("  a dynamic segment", briefFileName("/pos/[poId]") === "pos-poId.md");
+    assert("  a nested dynamic route", briefFileName("/invoices/[invoiceId]/edit") === "invoices-invoiceId-edit.md");
+    assert("  and the one hand-held case", briefFileName("/") === "root.md");
+    assert("the deriver does NOT collapse two routes to one name", briefFileName("/prs/new") !== briefFileName("/prs"));
+    assert("the tone walk found a chip tone", tonesInStatusCopy().has("complete"));
+    assert("  and a verdict tone", tonesInStatusCopy().has("exception"));
+    assert("  and rejects one nobody defines", !tonesInStatusCopy().has("catastrophe"));
+    assert("a fabricated sentence is in no constant", !loadable.some((s) => s.includes("Everything is fine here")));
+    assert("  and a pinned one is", loadable.some((s) => s.includes("⚠ Check the total")));
+    assert("the brief set is the size the app is", screenFiles.length === byName.page);
+    assert("both non-screen files are present", NON_SCREEN.size === onDisk.length - screenFiles.length);
+    // The repo walk is real: this file is under scripts/ and so must NOT be in it.
+    assert("the app/lib walk excludes this tier", !toPosix(REPO_ROOT + "/scripts").includes("/app/"));
+}
+
+if (isMain(import.meta.url)) await standalone(title, run);
