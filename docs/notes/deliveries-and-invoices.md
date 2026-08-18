@@ -1406,3 +1406,84 @@ and an entry that agrees no longer rendered at all. The rule is
   no ordered item. `offline/invoice-delivery-entries.mjs` pins it — an entry whose
   verdict is `not-compared` is `unjudged`, an entry that is short is `exception`, and the
   two differ, which is the assertion that would fail if one tone were hard-wired.
+
+### Reading one material as one row (#238)
+
+A delivery that brought more of one material than an order asked for is two
+`Delivery Items` rows, and its own page showed them as two — the same name, the same
+order, differing only in a tag and a quantity. Folded on the material and the order
+together, with the excess stated as a figure rather than a tag. The rule is
+`lib/deliveryAllocation.js:groupRowsByItemAndOrder`.
+
+- **THE KEY IS THE MATERIAL AND THE ORDER, AND THE `Order` COLUMN IS WHY.** One
+  delivery can fill two orders of one material, so a group folded on the material
+  alone has no single value for that cell — the situation #167 met on the invoice's
+  items table, where the `PO` column had to go instead. Here the column is what the
+  table is for, so the order joins the key. Both halves are visible on one screen:
+  `HYE-DL-260804-02` brought `165-DEMO Pipe 2"` 10 against `HYE-PO-20260804-01` and
+  10 + 5 against `-02`, so the last two fold and the first does not.
+- **A DIFFERENT KEY FROM #241's, AND THE REASONS ARE OPPOSITE.** That issue folds an
+  invoice's items on `Material` + UNIT PRICE and excludes the order deliberately,
+  because a charge split across two orders is one vendor charge and the order is what
+  the folded row cannot name. This folds on `Material` + ORDER, because a folded row
+  here must still name the order the correction acts on. Same question — when does a
+  screen read one material as one line — and the frame decides the answer. Do not
+  unify the keys.
+- **IT IS A THIRD GROUPING BESIDE `groupRowsByItem`, NOT A REPLACEMENT.** That
+  function answers "what arrived", for the headline and a list row that name no
+  order, so an item spanning three orders is one line there and stays one. The two
+  live side by side under the same header for the reason that header gives — the
+  collapse is one place rather than one per screen — and the difference between them
+  is the column the caller has to fill.
+- **THE `Over-delivered` TAG WENT AND A FIGURE TOOK ITS PLACE.** Before the fold the
+  flagged row WAS the excess, so a tag on it was exact; a folded row holds the within
+  piece and the excess together, so the same tag would say the whole quantity was
+  beyond the order. `15 EA (5 over)` says which part. `(over)` is this base's own word
+  — `/pos/[poId]`'s `Delivered` column prints `13 (over)` for the same fact one frame
+  up — and the quantity is what the fold adds to it. **The word does not leave the
+  page**: the headline item keeps its tag and the banner still reads `Over-delivered —
+  5 EA delivered beyond what HYE-PO-20260804-02 ordered.`
+- **THE COLOR IS ON THE EXCESS ALONE, WHICH IS #241's RULE AT ITS OTHER HALF.** There
+  an entry was wholly an exception, so its name took the tone; here the row is partly
+  one, and coloring the total would say the 10 that arrived inside the order is a
+  problem too. **AMBER HERE, RED ON `/pos/[poId]`, AND THAT IS NOT A DRIFT TO TIDY
+  UP.** On the order's page the figure says an ordered item is over-delivered — the
+  order asked for 10 and holds 13 — which is the discrepancy that page prints in red
+  beside `⚠ Header Variance`. Here it is one arrival's contribution, on a page whose
+  every over-delivery word is already amber: the headline tag, the banner, and the
+  correction box under it. Unifying the two would make one color mean both "this
+  order is over" and "this delivery brought some excess", which is the property
+  `DeliveryStatusMarks` exists to hold still.
+- **THE JUDGMENT IS UNTOUCHED, AND `summarizeDelivery` IS THIS SCREEN'S CHIP.** #241
+  kept the fold off the invoice chip because a list row and the page it leads to
+  cannot describe one invoice differently; the same shape is here and is wider —
+  `summarizeDelivery` and `groupRowsByItem` are read by `/deliveries`, by the awaiting
+  strip on `/invoices` and by this page's own headline. The fold reaches none of them,
+  and it reaches neither `Over Delivered` nor `describeDelivery`. It regroups rows for
+  one table.
+- **THE SILENT ROW KEEPS ITS PLACE, WHICH IS WHERE #241 DOES NOT TRANSFER.** That
+  issue dropped an entry with nothing to say because its section compares an invoice
+  against one delivery, and an item that agrees has nothing to contribute to a
+  comparison. This table is not a comparison: it is the record of what this arrival
+  brought and what it was allocated against, so a row with no excess is the subject
+  rather than an absence of news. Dropping the quiet rows would empty the table on
+  every ordinary delivery.
+- **`overRowIds` HAS NO READER YET AND IS STILL A LIST.** The correction affordance
+  #167 offers is not in this table — it is built from the raw rows and rendered per
+  flagged row under the banner — so the fold owes it nothing today. The field exists
+  for the move that puts the button on the row it corrects, and it is plural because a
+  singular would be wrong: `recomputeOverDelivery` flags every row past the ordered
+  quantity, so 6, 6, 6 against an order of 10 leaves a split remainder and a wholly
+  flagged row, two flagged rows against one ordered item in one delivery. The offline
+  check produces that state with the real function rather than asserting it. Today's
+  base has at most one per pair; the code does not, and #182 should read this before
+  treating an unread field as dead.
+- **`HYE-DL-260817-01` IS THE REGRESSION CASE, NOT THE FIXTURE.** Its `-002` row looks
+  like an excess and is not one any more: #237's seed ran the correction to the end,
+  and `reattachDeliveryItemToPOItem` moves the row to the corrective order's ordered
+  item and clears the flag in the same write. So the delivery holds two rows of one
+  material against two orders, and they must NOT fold. Read after this change: two
+  rows, `10 EA` and `3 EA`, no excess figure anywhere.
+- **NO NEW READ.** The fold is a pure regrouping of rows the page already built, and
+  no credentialed function gained a call site. Measured on the labeled route,
+  `HYE-DL-260804-02` read **14 ops before and 14 after**.

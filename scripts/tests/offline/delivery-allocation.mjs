@@ -22,6 +22,7 @@ import {
     recomputeOverDelivery,
     hasUndeliveredQty,
     groupRowsByItem,
+    groupRowsByItemAndOrder,
     itemOptionLabel,
     planDelivery,
     selectCandidates,
@@ -590,6 +591,115 @@ export function run({ check, assert, log }) {
 
     check("no rows groups to nothing", groupRowsByItem([]).length, 0);
     check("undefined rows does not throw", groupRowsByItem(undefined).length, 0);
+
+    log("");
+    log("THE QUIET MUTANT — a table that does not fold is the screen #238 replaced:");
+    // Its failure mode is silence, the same station as #237's `always agree`, #242's
+    // removed narrowing and #241's always-silent list: returning the rows untouched
+    // renders exactly what shipped before this issue, and every delivery whose rows
+    // are already one-per-order passes anyway. So the first assertion here is that
+    // something folds at all. `HYE-DL-260804-02`'s shape: one material, 10 against one
+    // order, then 10 within and 5 beyond against a second.
+    const pipeRows = [
+        { id: "recRow1", materialRecordId: "recPipe", poRecordId: "recPO_A", poId: "HYE-PO-20260804-01", itemName: "Pipe", size: '2"', unit: "EA", qty: 10, over: false },
+        { id: "recRow2", materialRecordId: "recPipe", poRecordId: "recPO_B", poId: "HYE-PO-20260804-02", itemName: "Pipe", size: '2"', unit: "EA", qty: 10, over: false },
+        { id: "recRow3", materialRecordId: "recPipe", poRecordId: "recPO_B", poId: "HYE-PO-20260804-02", itemName: "Pipe", size: '2"', unit: "EA", qty: 5, over: true },
+    ];
+    const noFold = (rows) => (rows || []).map((r) => ({ ...r, key: r.id, overQty: r.over ? r.qty : 0 }));
+    const folded = groupRowsByItemAndOrder(pipeRows);
+    check("three stored rows read as two", folded.length, 2);
+    assert(
+        "  so the no-fold mutant disagrees with the rule on this delivery",
+        noFold(pipeRows).length !== folded.length
+    );
+    // The loud mutant is a real function rather than an invented one: folding on the
+    // material alone is `groupRowsByItem`, whose group spans two orders and therefore
+    // has nothing to put in this table's `Order` cell — #167's problem, one screen over.
+    check("folding on the material alone gives one group", groupRowsByItem(pipeRows).length, 1);
+    assert(
+        "  which names no single order, and the rule refuses it",
+        groupRowsByItem(pipeRows)[0].poIds.size === 2 && folded.every((g) => g.poId)
+    );
+
+    log("");
+    log("What a folded row carries:");
+    check("the two slices against one order are one row", folded[1].rowIds.length, 2);
+    check("  summing what arrived against it", folded[1].qty, 15);
+    check("  of which the flagged part is named separately", folded[1].overQty, 5);
+    check("  and the row states which slice carried it", folded[1].overRowIds.join(","), "recRow3");
+    check("the other order's row is untouched", folded[0].qty, 10);
+    check("  and has no excess", folded[0].overQty, 0);
+    check("  so it states none", folded[0].overRowIds.length, 0);
+    check("entry order is kept", folded.map((g) => g.poId).join(","), "HYE-PO-20260804-01,HYE-PO-20260804-02");
+    check("a row folds under its own order's id", folded[1].poRecordId, "recPO_B");
+
+    // `overRowIds` IS A LIST BECAUSE THE CODE CAN PRODUCE TWO, and this is measured
+    // with `recomputeOverDelivery` rather than asserted: 6, 6, 6 against an order of
+    // 10 leaves the second row split at the boundary and the third wholly flagged, so
+    // one delivery holds two flagged rows against one ordered item.
+    const replay = recomputeOverDelivery({
+        orderedQty: 10,
+        rows: [
+            { id: "recA", deliveryItemId: "HYE-DL-260101-01-001", qty: 6 },
+            { id: "recB", deliveryItemId: "HYE-DL-260101-01-002", qty: 6 },
+            { id: "recC", deliveryItemId: "HYE-DL-260101-01-003", qty: 6 },
+        ],
+    });
+    check("the replay flags the third row whole", replay.rows.filter((r) => r.overDelivered).length, 1);
+    check("  and splits the second", replay.splits.length, 1);
+    const afterReplay = [
+        ...replay.rows.map((r) => ({
+            id: r.id,
+            materialRecordId: "recPipe",
+            poRecordId: "recPO_A",
+            poId: "HYE-PO-20260101-01",
+            itemName: "Pipe",
+            size: '2"',
+            unit: "EA",
+            qty: r.qty,
+            over: r.overDelivered,
+        })),
+        { id: "recD", materialRecordId: "recPipe", poRecordId: "recPO_A", poId: "HYE-PO-20260101-01", itemName: "Pipe", size: '2"', unit: "EA", qty: replay.splits[0].qty, over: true },
+    ];
+    const replayFolded = groupRowsByItemAndOrder(afterReplay);
+    check("which folds to one row", replayFolded.length, 1);
+    check("  holding both flagged slices", replayFolded[0].overRowIds.length, 2);
+    assert(
+        "  so a singular field would have dropped one — the reason it is a list",
+        replayFolded[0].overRowIds.includes("recC") && replayFolded[0].overRowIds.includes("recD")
+    );
+    check("  and the excess sums across them", replayFolded[0].overQty, 8);
+
+    log("");
+    log("A row missing either link is its own group:");
+    const looseFold = groupRowsByItemAndOrder([
+        { id: "recX", materialRecordId: "recPipe", poRecordId: "recPO_A", poId: "P1", itemName: "Pipe", size: "", unit: "EA", qty: 10, over: false },
+        { id: "recY", materialRecordId: "recPipe", poRecordId: null, poId: null, itemName: "Pipe", size: "", unit: "EA", qty: 4, over: true },
+        { id: "recZ", materialRecordId: null, poRecordId: "recPO_A", poId: "P1", itemName: "Pipe", size: "", unit: "EA", qty: 2, over: false },
+    ]);
+    check("an over row naming no order stands alone", looseFold.length, 3);
+    assert(
+        "  and is not merged under a name — the two that could have been are separate",
+        looseFold[1].rowIds.join(",") === "recY" && looseFold[2].rowIds.join(",") === "recZ"
+    );
+    check("no rows folds to nothing", groupRowsByItemAndOrder([]).length, 0);
+    check("undefined does not throw", groupRowsByItemAndOrder(undefined).length, 0);
+
+    log("");
+    log("The excess figure, in the word `/pos/[poId]` already uses:");
+    check("it names the quantity", ALLOCATION_COPY.table.overPortion(5).text, "(5 over)");
+    check("  and its key is stable for a call site", ALLOCATION_COPY.table.overPortion(5).key, "over-portion");
+    assert(
+        "  and carries no unit, the total beside it having one",
+        !/\b(EA|FT|PCS)\b/.test(ALLOCATION_COPY.table.overPortion(5).text)
+    );
+    // THE JUDGMENT IS UNTOUCHED, which is #241's rule transferred: the shared summary
+    // is what a list row and this page both read, so folding the table must not move
+    // it. Asserted on the same rows the fold was asserted on.
+    check("the shared summary still reads one item", summarizeDelivery(pipeRows).itemCount, 1);
+    check("  with the whole quantity", summarizeDelivery(pipeRows).first.qty, 25);
+    check("  and the delivery still flagged", summarizeDelivery(pipeRows).hasOverDelivery, true);
+    check("the banner still names the excess once", describeDelivery(pipeRows).filter((m) => m.key === "over-attached").length, 1);
 
     log("");
     log("The list summary — first item in full, the rest as a count:");

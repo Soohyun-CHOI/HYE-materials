@@ -7,7 +7,13 @@ import { getPOsByRecordIds } from "@/lib/airtable/purchaseOrders";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
-import { describeDelivery, groupRowsByItem, summarizeDelivery } from "@/lib/deliveryAllocation";
+import {
+    ALLOCATION_COPY,
+    describeDelivery,
+    groupRowsByItem,
+    groupRowsByItemAndOrder,
+    summarizeDelivery,
+} from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
 import { seesEveryInvoice } from "@/lib/invoiceVisibility";
@@ -115,6 +121,10 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
             unit: item.unit,
             qty: item.qty,
             over: item.overDelivered,
+            // #238 — the order half of the table's fold key. The printed `poId` is
+            // what the cell shows and the record id is what the key is made of, so
+            // two orders cannot merge on a label they happen to share.
+            poRecordId: po?.id ?? null,
             poId: po?.poId ?? null,
             poItemId: poItem?.poItemId ?? null,
         };
@@ -172,6 +182,13 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
     // Amount Due has no counterpart here.
     const summary = summarizeDelivery(rows);
     const grouped = groupRowsByItem(rows);
+
+    // Issue #238 — the table below reads one row per material AND order, so an
+    // arrival split into a within piece and an excess against one order is one row
+    // rather than two differing only by a tag. A pure regrouping of the rows above:
+    // no query, and nothing here reaches the flag, the banners or `summarizeDelivery`
+    // — those judge, and this only reads. The rule is lib/deliveryAllocation.js.
+    const tableRows = groupRowsByItemAndOrder(rows);
 
     return (
         <div className="mx-auto w-full max-w-3xl p-8">
@@ -374,9 +391,31 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {rows.map((row) => (
+                            {/* ONE ROW PER MATERIAL AND ORDER (#238). A stored row is
+                                one allocated slice, so an arrival that filled an order
+                                and then exceeded it is two of them — the same name, the
+                                same order, differing only in a tag and a quantity. What
+                                is real there is the split, not two arrivals, and this
+                                table is where a reader meets the arrival first.
+
+                                THE `Over-delivered` TAG WENT WITH THE FOLD rather than
+                                moving onto the folded row: that row holds the within
+                                piece and the excess together, so a tag on it would say
+                                the whole quantity was excess. The figure beside the
+                                total says which part, which the tag could not, and the
+                                word itself is still on this page twice — the headline
+                                item above and the banner that reports the excess in a
+                                sentence naming the order.
+
+                                Nothing below this fold judges. `Over Delivered` is
+                                stored per row, the banners read the raw rows, and
+                                `summarizeDelivery` — shared with `/deliveries` and the
+                                strip on `/invoices` — reads them too, so no screen can
+                                describe this arrival differently because its table
+                                regrouped. */}
+                            {tableRows.map((row) => (
                                 <tr
-                                    key={row.id}
+                                    key={row.key}
                                     className="border-b border-zinc-100 last:border-0"
                                 >
                                     <td className="py-2">
@@ -395,15 +434,23 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                                                 not against any order
                                             </span>
                                         )}
-                                        {row.over && (
-                                            <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
-                                                Over-delivered
-                                            </span>
-                                        )}
                                     </td>
+                                    {/* COLOR ON THE EXCESS ALONE, which is #241's rule
+                                        at its other half. There an entry was wholly an
+                                        exception, so its name took the tone; here the
+                                        row is partly one, and coloring the total would
+                                        say the 10 that arrived inside the order is a
+                                        problem too. Amber rather than the red
+                                        `/pos/[poId]` gives the same word — see the
+                                        notes for why the two differ. */}
                                     <td className="py-2 text-right tabular-nums">
                                         {row.qty}
                                         {row.unit ? ` ${row.unit}` : ""}
+                                        {row.overQty > 0 && (
+                                            <span className="ml-1 whitespace-nowrap text-amber-700">
+                                                {ALLOCATION_COPY.table.overPortion(row.overQty).text}
+                                            </span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
