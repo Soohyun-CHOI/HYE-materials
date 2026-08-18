@@ -79,7 +79,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 One module per rule, and **one rule, one implementation** — see below. Each entry is the path and what it owns; why it owns it is in the `docs/notes/` file for its area.
 
-- `lib/airtable/client.js` — shared connection, `TABLES`, `getLinkedRecords()`, `withKeyLock()`, and the batched readers `findByRecordIds` / `findByFieldValues`. Throws at module load without `AIRTABLE_API_KEY`.
+- `lib/airtable/client.js` — shared connection, `TABLES`, `getLinkedRecords()`, `withKeyLock()`, and the batched readers `findChildRecords` / `findByRecordIds` / `findByFieldValues`. Throws at module load without `AIRTABLE_API_KEY`.
 - `lib/airtable/{table}.js` — one file per table, plain async functions.
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, plus the whole-formula builders `orByRecordId` / `orByField` / `andSearchAll` / `prefixMatch`.
@@ -199,7 +199,7 @@ Naming: auto-generated → `X ID`. Human-typed → `X Label` / plain name. Calen
 
 ## Querying parent/child data
 
-`filterByFormula` cannot match a link field against a record ID. Read the parent's reverse-link field via `.find(parentRecordId)` (`getLinkedRecords()`), never filter the child table directly. Exception: `materialPrices.js:getMaterialPrice` uses the `Material Record ID` / `Vendor Record ID` lookups, because a price row is keyed by two links and has no parent whose reverse-link would do.
+`filterByFormula` cannot match a link field against a record ID. Read the parent's reverse-link field via `.find(parentRecordId)` (`getLinkedRecords()`), never filter the child table directly. **The children themselves are read in one query per 50 ids, never one `find()` per child (#193)** — `findChildRecords`, which keeps the link array's order and throws on an id that does not resolve. A caller already holding the parent record passes its link array and skips the parent find; a reader that takes only an id cannot. Exception: `materialPrices.js:getMaterialPrice` uses the `Material Record ID` / `Vendor Record ID` lookups, because a price row is keyed by two links and has no parent whose reverse-link would do.
 
 **Client bundle safety — an import is an execution.** No `"use client"` file may import anything that reaches `lib/airtable/` or `lib/airtableOps.js`, at any depth. Nothing tree-shakes away a dependency whose evaluation has side effects, so a pure helper in a credentialed module has to MOVE rather than be imported selectively. `next build` does not catch this. A `"use server"` file is a boundary, not a dependency. Enforced by `offline/client-import-safety.mjs`.
 

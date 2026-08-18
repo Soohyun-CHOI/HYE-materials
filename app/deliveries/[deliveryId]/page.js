@@ -76,7 +76,11 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
         );
     }
 
-    const items = await getItemsByDelivery(delivery.id);
+    // Issue #193 — the arrival's rows come from the ids `delivery` already carries,
+    // so this neither re-finds the delivery nor fetches its rows one at a time.
+    // Every level below it was already batched (#166, #210); this was the one level
+    // still paying per row, which is why it read three finds on a three-row arrival.
+    const items = await getItemsByDelivery(delivery.id, { rowIds: delivery.deliveryItems });
 
     // Resolve each delivery item's PO through its PO Item, one level at a time.
     const poItems = await getPOItemsByRecordIds(items.map((i) => i.poItem?.[0]).filter(Boolean));
