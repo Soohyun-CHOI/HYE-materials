@@ -491,6 +491,67 @@ export function run({ check, log, assert }) {
         describeInvoiceLine(null, "EA", { hasDelivery: true }).againstOrder,
         null
     );
+    // #241 — a verdict carries the tone its line is rendered in, and the entry's name
+    // wears the same one. Two values, and they must differ or the color distinguishes
+    // nothing, which is the state #232's first pass was in.
+    log("");
+    log("a verdict says what tone it is (#241):");
+    const partlyShort = invoiceShareStatus({ billed: 15, arrived: 12 });
+    check(
+        "a shortfall is an exception",
+        describeInvoiceLine(partlyShort, "EA", { hasDelivery: true }).verdict?.tone,
+        "exception"
+    );
+    check(
+        "nothing delivered is one too",
+        describeInvoiceLine(invoiceShareStatus({ billed: 40, arrived: 0 }), "EA", {
+            hasDelivery: true,
+        }).verdict?.tone,
+        "exception"
+    );
+    check(
+        "an invoice item with no ordered item is UNJUDGED, not a problem",
+        describeInvoiceLine(null, "EA", { hasDelivery: true }).verdict?.tone,
+        "unjudged"
+    );
+    assert(
+        "  so the two really differ — a single tone would color nothing apart",
+        STATUS_COPY.detail.verdict["billed-more"](partlyShort, "EA").tone !==
+            STATUS_COPY.detail.verdict["not-compared"]().tone
+    );
+    assert(
+        "the tone vocabulary is its own, never a chip's closed set of states",
+        ["exception", "unjudged"].every(
+            (tone) => !["complete", "partial", "mismatch", "none", "absent"].includes(tone)
+        )
+    );
+
+    // #241 — a folded entry's two figures are sums over the ordered items it covers,
+    // so the subject agrees in number. The count is the caller's and defaults to one,
+    // which is why every assertion above reads unchanged.
+    check(
+        "one ordered item is the default, so the singular needs no argument",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 3 }, "EA", { hasDelivery: true })
+            .againstOrder?.text,
+        "Against the ordered item: 3 EA more billed"
+    );
+    check(
+        "  an entry folded across two says so",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 5 }, "EA", {
+            hasDelivery: true,
+            orderedItemCount: 2,
+        }).againstOrder?.text,
+        "Against the ordered items: 5 EA more billed"
+    );
+    assert(
+        "  and the two really differ, so the count is read rather than ignored",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 5 }, "EA", {
+            hasDelivery: true,
+            orderedItemCount: 2,
+        }).againstOrder?.text !==
+            describeInvoiceLine({ ...ordinary, billedBeyondOrder: 5 }, "EA", { hasDelivery: true })
+                .againstOrder?.text
+    );
 
     // The bill ordering was asserted here while this module held it; #219 moved it
     // into lib/overage.js, private to its one reader, and offline/overage.mjs pins
