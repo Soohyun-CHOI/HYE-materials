@@ -31,6 +31,18 @@ const DONE_MESSAGES = {
     "paid-updated": "Payment status updated.",
 };
 
+// The two tones a delivery entry can wear (#241), as colors. The DECISION is
+// lib/deliveryStatus.js's — an entry is a discrepancy or it is an invoice item
+// nothing was measured against — and only which amber is settled here, the same split
+// app/components/DeliveryStatusMarks.js states for the chips. Not in that file
+// although it holds the other tone map: these are text colors on a detail list, not
+// the closed set of chip states, and one map serving both would tie a discrepancy in
+// a sentence to the background of a chip that means something else.
+const ENTRY_TONE_CLASS = {
+    exception: "text-amber-700",
+    unjudged: "text-zinc-500",
+};
+
 // ROW-SCOPED, NOT ROLE-SCOPED (#211), gated exactly the way app/pos/[poId] is:
 // President and Admin reach every invoice, and anyone else reaches one that bills
 // an order whose request they raised or whose request sits on a job they are
@@ -406,9 +418,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 SO THREE STATES AT THREE DENSITIES. Matched to nothing: one sentence
                 and no item list at all — this section is about a delivery, and with
                 none matched there is nothing per item to say. Matched and covered:
-                the delivery, then the item names, each box silent. Matched and short:
-                the amber box, then the item names with the short ones carrying their
-                figures.
+                the delivery, and nothing under it, since #241 dropped the entry that
+                agrees. Matched and short: the amber box, then one entry per material
+                that disagrees, carrying its figures.
 
                 THE CHIP AND THE BOX BELOW IT ARE THE FACT AND THE ASK. `Mismatch` is
                 a chip value since #232's third pass, so the discrepancy is a word a
@@ -419,11 +431,33 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 page because it is the same grade of fact — a person must look before
                 money moves.
 
-                COLOR ON THE VERDICT ONLY, within a box. lib/deliveryStatus.js returns
-                named slots rather than a list precisely so a call site cannot color
-                the asides too, which is how the first version came out all amber with
-                the color distinguishing nothing. Both slots can be null and the
-                module decides which — a call site cannot withhold one either. */}
+                COLOR ON THE ENTRY, NAME INCLUDED, AND #232's RULE HERE WAS THE
+                OPPOSITE. That issue colored the verdict alone and left the name black,
+                because its first version colored everything and the color then
+                distinguished nothing — which was true of a list holding EVERY invoice
+                item, where the silent ones would have been colored too. #241 emptied
+                that premise: the list holds only what disagrees, so coloring the name
+                cannot reach a normal item and the color says exactly `this one is the
+                problem`. A black name over an amber sentence had the color attached to
+                nothing a reader could name, and with several short items black and
+                amber alternate down the page.
+
+                THE TONE IS THE VERDICT'S, so `Not compared — no ordered item` is gray
+                in both halves — an invoice item nothing was measured against is not a
+                problem, and an amber name over that sentence would contradict it. An
+                entry the order-scoped aside alone put in the list has no verdict and
+                is amber: something exceeding an ordered item is why it is here. The
+                aside itself stays uncolored, which is #232's distinction and holds —
+                it is the ordered item's fact rather than this bill's.
+
+                THE NAMED SLOTS STILL DO THEIR WORK, and that half of #232's argument
+                is untouched: lib/deliveryStatus.js returns `verdict` and `againstOrder`
+                as separate slots rather than a list, so the aside cannot be colored by
+                a caller iterating one collection. Both slots can be null and the module
+                decides which — a call site cannot withhold one either. What moved is
+                only WHICH tone, and that is a semantic decision, so it comes from the
+                module too; ENTRY_TONE_CLASS at the top of this file holds the colors,
+                because which amber is a rendering decision. */}
             <div className="mt-8">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">Delivery</h2>
@@ -537,7 +571,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         not all touch the same set of orders — which is
                                         where the ambiguity #167 was solving actually
                                         lives. */}
-                                    <span className="font-medium">
+                                    <span className={`font-medium ${ENTRY_TONE_CLASS[entry.tone]}`}>
                                         {[entry.itemName, entry.size].filter(Boolean).join(" ") || "—"}
                                     </span>
 
@@ -551,13 +585,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         so a figure here is against the same quantity a
                                         reader just read there. */}
                                     {lines.verdict && (
-                                        <p
-                                            className={
-                                                lines.verdict.key === "not-compared"
-                                                    ? "text-zinc-500"
-                                                    : "text-amber-700"
-                                            }
-                                        >
+                                        <p className={ENTRY_TONE_CLASS[entry.tone]}>
                                             {lines.verdict.text}
                                         </p>
                                     )}

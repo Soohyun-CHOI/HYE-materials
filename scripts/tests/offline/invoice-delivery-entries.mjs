@@ -369,6 +369,34 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
+    log("one tone per entry, which its name wears too (#241):");
+    check("a short entry is an exception", entriesOf(SPLIT_SHORT)[0].tone, "exception");
+    check(
+        "  and it is the verdict's own tone, not a second judgment",
+        entriesOf(SPLIT_SHORT)[0].tone,
+        entriesOf(SPLIT_SHORT)[0].lines.verdict.tone
+    );
+    check(
+        "an entry with no ordered item behind it is unjudged, not a problem",
+        entriesOf(COVERED_PLUS_FREE_TEXT)[0].tone,
+        "unjudged"
+    );
+    assert(
+        "  so the two entry kinds do not wear one color",
+        entriesOf(SPLIT_SHORT)[0].tone !== entriesOf(COVERED_PLUS_FREE_TEXT)[0].tone
+    );
+    // The order-scoped aside alone can put an entry in the list: no verdict to read a
+    // tone off, and something exceeding an ordered item is why it is there.
+    const asideOnly = entriesOf(TWO_CHARGES_ONE_ORDERED_ITEM)[0];
+    check("an entry the aside alone admitted has no verdict", asideOnly.lines.verdict, null);
+    check("  and is an exception all the same", asideOnly.tone, "exception");
+    assert(
+        "  which is a default rather than an accident: it speaks only through the aside",
+        Boolean(asideOnly.lines.againstOrder) && asideOnly.lines.verdict === null
+    );
+
+    // -----------------------------------------------------------------------
+    log("");
     log("nothing at all without a matched delivery (#232, unchanged):");
     for (const [name, fixture] of ALL_FIXTURES) {
         check(`  ${name}`, invoiceDeliveryEntries({ ...fixture, hasDelivery: false }).length, 0);

@@ -1375,3 +1375,34 @@ and an entry that agrees no longer rendered at all. The rule is
   labeled route, `HYE-INV-260817-01` read **10 ops before and 10 after**. #237's 10/11/13
   are not the comparison — they predate #249, which made `getLinkedRecords` batched — so
   the before figure was taken on this branch rather than read out of that note.
+- **THE ENTRY WEARS ONE COLOR, NAME INCLUDED, AND #232's RULE HERE WAS THE OPPOSITE.**
+  That issue colored the verdict alone and left the name black, on the ground that its
+  first version colored everything and the color then distinguished nothing. **That
+  ground was the list holding every invoice item**: coloring names there would have
+  colored the silent ones too, so the color would have marked nothing. Dropping the
+  silent entry emptied the premise in the same issue that noticed the symptom — with
+  only exceptions listed, a colored name cannot reach a normal item and the color says
+  exactly which one is the problem. Read on `HYE-INV-260804-03`, where a black name over
+  an amber sentence left the color attached to nothing a reader could name; with several
+  short items the two would alternate down the page. **The tone is the verdict's**, so
+  `not-compared` is gray in both halves — an invoice item nothing was measured against is
+  the absence of a problem, and an amber name over that sentence would contradict it.
+  **An entry admitted by the order-scoped aside alone is `exception`**: it has no verdict
+  to read a tone off, and something exceeding an ordered item is the whole reason it is
+  in a list that holds nothing else. The aside stays uncolored, which is #232's
+  distinction between a verdict and a fact about the ordered item and is untouched.
+- **THE TONE COMES FROM `lib/deliveryStatus.js`, THE COLOR FROM THE PAGE**, which is the
+  split `DeliveryStatusMarks` already states for the chips: "this is a discrepancy" is
+  semantic and is decided where the sentence is authored, "which amber" is rendering.
+  `ENTRY_TONE_CLASS` is in the page rather than in that component because these are text
+  colors on a detail list and the chip map is a closed set of STATES with a background
+  each — one map for both would tie a discrepancy in a sentence to the background of a
+  chip meaning something else. **Half of #232's argument survives intact and is kept**:
+  `describeInvoiceLine` returns named slots rather than a list precisely so a caller
+  iterating one collection cannot color the aside, and that is still true — what moved
+  is which tone, not whether the page can reach the aside with it.
+- **THE GRAY ENTRY WAS NOT SEEN ON A SCREEN**, for the same reason the state it belongs
+  to was not: no invoice on this base both matches a delivery and carries a charge with
+  no ordered item. `offline/invoice-delivery-entries.mjs` pins it — an entry whose
+  verdict is `not-compared` is `unjudged`, an entry that is short is `exception`, and the
+  two differ, which is the assertion that would fail if one tone were hard-wired.
