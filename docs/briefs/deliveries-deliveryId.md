@@ -9,10 +9,9 @@ or the office's.
 
 ## What it answers
 
-What arrived, and which orders did it fill? The reader is usually the person who
-recorded it, checking that the app allocated the arrival the way they expected,
-or someone reconciling later who needs to know what a packing list actually
-brought.
+What arrived, and which orders did it fill? Two readers, both real: the person who
+recorded it, checking that the app allocated the arrival the way they expected, and
+someone reconciling later who needs to know what a packing list actually brought.
 
 The screen has one structural peculiarity worth stating first: **the reader
 cannot correct most of what is on it.** The item, the quantity, the vendor and
@@ -101,8 +100,7 @@ sentence. The copy arrives in parts so the link can be rendered, and the same
 sentence flattened is what the server returns as a refusal — so the two cannot
 diverge.
 
-**When the delivery has notes:** one more line in the facts block. Most
-deliveries have none.
+**When the delivery has notes:** one more line in the facts block.
 
 **When the packing list photo is not attached:** an amber sentence in its place
 saying to reload in a moment if it was just uploaded. This is the one place the

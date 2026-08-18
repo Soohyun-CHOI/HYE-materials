@@ -26,8 +26,8 @@ every list and detail screen.
 ## What it carries only sometimes
 
 **When a job has just been created:** a green line above the form,
-`Created job {code}.` The form stays on screen and ready for the next one, because
-these are typically entered in a batch.
+`Created job {code}.` The form stays on screen and ready for another rather than
+navigating away.
 
 ## What must agree elsewhere
 

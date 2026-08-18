@@ -11,6 +11,32 @@ Everything here was read out of the code, not remembered. Where a statement
 rests on a decision that took an issue to reach, the issue number is given so
 the argument can be found.
 
+## The current appearance has no authority
+
+These screens exist and are in use, and nothing about how they look was
+designed. Color, spacing, size, weight and placement were each chosen while the
+logic around them was being written, one class at a time, by a coding assistant
+with no brief and no rule to follow. There is no version of it to preserve and
+no intent behind it to recover. What is written down here — what a screen
+carries, which distinctions it must make visible, and which words are fixed — is
+the whole of what carries over. Everything else is open, and a design that
+resembles what is there now has taken a resemblance for a requirement.
+
+**Two visual decisions are real, and they are the only two.** The app is
+light-only, and modal chrome has a single source. Both were decided on their own
+terms with the reasoning recorded — #218 and #126 — and both are in
+"Constraints that already exist" at the foot of this document with what they
+rest on. Everything in the paragraph above is about the choices nobody made; it
+is not a claim that no decision was ever taken.
+
+**The repository is deliberately not connected to the design tool.** Connecting
+it would align the work to the existing styles, which is what that feature is
+for and exactly the wrong outcome here: it would make a coding assistant's
+unconsidered defaults into the thing a design has to justify departing from. So
+the brief travels and the code does not, and this document has to say so itself
+— otherwise a reader either wonders why they are drawing from nothing or
+imagines an app that was never designed.
+
 ## What the design is free to change
 
 All of it, except the four things in the next section. Every color, every
@@ -18,13 +44,10 @@ spacing value, every type size and weight, every border, radius and shadow,
 every column width, the shape of a chip, the shape of a card, where a thing
 sits on the page, and whether a page is one column or two.
 
-This is not a courtesy. Nothing about the current appearance was designed: it
-was written one class at a time alongside the logic it wraps, so there is no
-rule to preserve and no version of it worth keeping. What is amber today may be
-green; what has no shadow today may have one; what is a colored pill today may
-be a rule, an underline or a dot. Issue #258 is where the values get named once
-and the repeated shapes become primitives, and it draws that set from the design
-rather than from what the screens do today.
+What is amber today may be green; what has no shadow today may have one; what is
+a colored pill today may be a rule, an underline or a dot. Issue #258 is where
+the values get named once and the repeated shapes become primitives, and it
+draws that set from the design rather than from what the screens do today.
 
 Two consequences worth stating plainly, because they are the ones a reader of
 this document is most likely to doubt. The colors named in this file — the
@@ -45,6 +68,14 @@ takes them away. They are not a layout to preserve.
    "What it carries only sometimes" is a list of things that are absent in the
    normal case. Reserving space for one, or drawing it as always present, is the
    most likely way to get a screen wrong.
+
+   **No brief says how often a state occurs, because nobody can yet know.** The
+   app is not deployed and every record in the base is dummy data, so a
+   frequency taken from it would be a false statement about real work. A
+   conditional list says what is *possible*, never what is *frequent*, and its
+   order is the order a reader meets things on the screen rather than a ranking.
+   Where a design needs to know which state is the common one, that is a
+   question to ask rather than to infer from this document.
 4. **Color never carries a meaning by itself** — see "Constraints that already
    exist".
 

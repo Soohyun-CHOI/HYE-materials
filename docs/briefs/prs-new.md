@@ -13,8 +13,10 @@ quotation proving it is in the requester's hand. **The form is transcription, no
 decision-making.** A design that shapes it as a wizard for choosing a vendor is
 solving a problem that happened before the reader arrived.
 
-It is also the longest form in the app and the one most likely to be filled in on
-a phone, on site.
+It is also the longest form in the app, and the one create form that is not
+office-only — so it is filled in wherever the requester is rather than at a desk in
+the office. Which devices that means in practice is not something this repository
+records.
 
 ## What it always carries
 

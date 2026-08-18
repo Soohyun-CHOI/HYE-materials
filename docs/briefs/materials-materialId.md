@@ -39,8 +39,8 @@ placeholder.
 
 **When a row's order is not in the ordinary signed state:** a short tag beside it —
 `PO unsigned` for one awaiting signature, `PO withdrawn` for a withdrawn one, and
-`PO: {status}` for anything else. A signed order gets **no tag at all**, so the tag
-column is empty on almost every row and its presence is the signal.
+`PO: {status}` for anything else. A signed order gets **no tag at all**, so the
+tag's presence is the signal and its absence is the ordinary case.
 
 **Per row, when the reader may see it:** the order identifier, and the job — this
 screen's `Order` column is a composite cell carrying both, which is why it is the

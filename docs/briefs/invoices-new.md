@@ -103,8 +103,8 @@ there is no single order shipping fee to compare against.
 
 **When the reader adds a tariff:** a `+ Add Tariff` control reveals a `Tariff`
 field between shipping fee and amount due, with a control to remove it again. The
-money row goes from two columns to three. Absent by default, because most invoices
-have none.
+money row goes from two columns to three. Absent by default, and revealed only by
+that control.
 
 **When a charge differs from what its order agreed:** the remark field is where the
 reader says why, and its placeholder says so — `Remark — why this differs from the

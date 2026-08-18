@@ -7,8 +7,13 @@ sees.
 
 ## What it answers
 
-Which requests are mine, or waiting on me, or still moving? It is the screen a
-site staffer opens most, and the first thing most readers see after signing in.
+Which requests are mine, or waiting on me, or still moving?
+
+Worth knowing about how it is reached: **the home screen does not link here.** Its
+four links go to the new-request form, the price list, the deliveries list and the
+purchase order list, so this screen is currently arrived at by typing its URL or by
+backing out of a request. That is a gap in the navigation rather than a decision
+about this list.
 
 ## What it always carries
 

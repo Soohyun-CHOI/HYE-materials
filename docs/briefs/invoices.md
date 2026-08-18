@@ -15,9 +15,9 @@ vendor has charged against their jobs.
 
 **identity.** The heading `Invoices`.
 
-**evidence — the table, six columns for most readers.** Invoice ID, Vendor, Issue
-Date, Due Date, Amount Due, Delivery. Amount Due is right-aligned currency and is
-the vendor's stated total, never a computed one.
+**evidence — the table, six columns, and a seventh for a President or an Admin.**
+Invoice ID, Vendor, Issue Date, Due Date, Amount Due, Delivery. Amount Due is
+right-aligned currency and is the vendor's stated total, never a computed one.
 
 **verdict — the Delivery chip.** One of `Delivered` / `Mismatch` /
 `Awaiting delivery`. This is the same chip the invoice detail shows beside its own
@@ -47,13 +47,13 @@ green, or `Unpaid` in gray.
 beside it. The stacking is measured rather than chosen: the column is 176px, the
 payment word runs to 104px and the badge to 102px, so the pair needs 210px on one
 line, and every other column in the table is declared from its own widest content
-with 8px or less to give. Stacking costs a second line on the rare invoice that is
-both paid and flagged, and nothing else.
+with 8px or less to give. Stacking costs a second line on an invoice that is both
+paid and flagged, and nothing else.
 
 This badge is **not** the kind of variance an employee is on this screen to
 catch. It is the header flag — the vendor's stated total against what its items
-add up to — which in practice means the entry missed something, and it is the
-office's to check and the office's to fix since only an Admin can edit an invoice.
+add up to — which means the entry missed something, and it is the office's to
+check and the office's to fix since only an Admin can edit an invoice.
 The kind an employee cares about, a charge differing from what its order agreed,
 has **no mark in this list at all**: it is on the invoice's own page, per charge,
 where the order it disagrees with is one click away.

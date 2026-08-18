@@ -33,8 +33,7 @@ Narrow centered column, like its two siblings.
 **When nothing matches the search:** `No matching Jobs.` inside the dropdown.
 
 **When a line has just been created:** a green `Created line {label}.` above the
-form, which stays ready for the next one — lines are usually entered several at a
-time for one job.
+form, which stays ready for another rather than navigating away.
 
 ## What must agree elsewhere
 
@@ -45,7 +44,7 @@ and this form shows only the half being typed.
 
 **The job-then-line dependency is the same shape as the request form's**, where
 choosing a job filters the lines and changing it clears the choice. That form is
-where most readers meet the relationship; this is where it is authored.
+where the relationship is used; this is where it is authored.
 
 **`line` is reserved, and the app has identifiers that break the rule.** Several
 code identifiers say `line` for an ordered item, which is recorded as a known

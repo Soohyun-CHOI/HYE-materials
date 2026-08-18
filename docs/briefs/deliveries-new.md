@@ -2,7 +2,7 @@
 
 Route: `/deliveries/new`
 Who reaches it: anyone signed in and assigned to at least one job. This is site
-work — the person recording an arrival is usually standing next to it.
+work: recording an arrival is the job of whoever received it.
 
 ## What it answers
 
@@ -11,11 +11,13 @@ make a **judgment while the reader watches**: the app decides which order each i
 belongs to, and shows that decision before it is saved. Half the screen is that
 preview.
 
-Two facts shape everything about it. The reader is **on site, probably on a
-phone**, holding a paper packing list. And **they cannot correct most of what they
-enter afterwards** — the item, the quantity, the vendor and the order are fixed by
-the allocation at recording time, and fixing one means deleting the delivery and
-entering it again. The form says so twice.
+Two facts shape everything about it. The reader is transcribing a **paper packing
+list at the point the material arrives**, which is site work and not desk work —
+though which devices that means in practice is not something this repository
+records. And **they cannot correct most of what they enter afterwards** — the item,
+the quantity, the vendor and the order are fixed by the allocation at recording
+time, and fixing one means deleting the delivery and entering it again. The form
+says so twice.
 
 ## What it always carries
 
@@ -98,8 +100,9 @@ A tie-break adds a second sentence in the same box, and turns it amber, because 
 tie is the one attachment here that asks rather than tells.
 
 **Nothing appears at all when the ordered items place no bill.** An unpaired
-invoice is the ordinary state, not an event to report — so the box is absent on
-most deliveries, and that silence is the norm this preview must not break.
+invoice is the ordinary state, not an event to report — so the box is absent
+whenever the app has nothing to claim, and that silence is what this preview
+must not break.
 
 **The preview comes before the control, not after.** That order is the order of the
 facts: the app has decided, and the checkbox for saying otherwise is for the rarer

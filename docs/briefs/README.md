@@ -26,9 +26,27 @@ different audience, different lifetime.
 
 ## Handing one over
 
-Paste `_shared.md` once at the start of a design engagement. After that, one screen
-is one file — copy it whole. Each file names its own route and states who reaches
-it, so it stands alone on top of the shared brief.
+The design work runs in Claude Design. Paste `_shared.md` once, at the start of the
+engagement, then hand over one screen at a time by copying that screen's file
+whole. Each file names its own route and states who reaches it, so it stands alone
+on top of the shared brief and nothing has to be assembled from two places.
+
+**The repository is deliberately not connected to that tool.** Connecting it would
+align the work to the existing styles, which is what the feature is for and the
+opposite of what this milestone needs: nothing about the current appearance was
+designed, so aligning to it would turn a coding assistant's unconsidered defaults
+into the baseline a design has to justify departing from. `_shared.md` opens by
+saying this in its own voice, because a designer handed a brief and no code will
+otherwise either wonder what they are drawing from or imagine an app that was never
+designed.
+
+**Write the reasoning down in the design conversation as decisions are made.** Why
+a scale was chosen, what was tried and rejected, which constraint forced a
+compromise — recorded in the chat, that becomes the context the implementation
+work reads back. It is the habit this repository already keeps in `docs/notes/`,
+where a decision's derivation outlives the commit that made it, and the briefs are
+what carries the habit across a tool boundary: they take the reasoning out to the
+design work, and the design conversation is what brings the new reasoning back.
 
 ## The files
 
