@@ -7,6 +7,7 @@ import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
 import { generateAndAttachPOPdf } from "@/lib/poPdf";
 import { notifyPOSigned } from "@/lib/notifications";
 import { isPOWithdrawn, withdrawPOAsRequester } from "@/lib/poWithdraw";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Issue #63 — the linked PR's Status only ever reaches "Approved" (see
 // app/prs/[prId]/actions.js's finishTurn): PO creation happens
@@ -51,54 +52,56 @@ async function syncPRStatusToPOSigned(po) {
 export const signPOAction = withPresidentAction(signPOHandler);
 
 async function signPOHandler(prevState, formData) {
-    const poId = formData.get("poId");
+    return withOpsLabel("signPOAction", async () => {
+        const poId = formData.get("poId");
 
-    const po = await getPOById(poId);
-    if (!po) throw new Error("PO not found");
-    // Issue #138 — without this, "Withdrawn" wouldn't be terminal at all:
-    // signing writes Status -> "Signed" below and syncPRStatusToPOSigned
-    // then advances the PR, so a signature after a withdrawal would
-    // resurrect the whole thing. The page hides SignForm for a withdrawn
-    // PO, but Server Actions are directly callable, so the real gate is
-    // here.
-    if (isPOWithdrawn(po)) {
-        return { error: "This PO was withdrawn and can no longer be signed." };
-    }
-    if (po.presidentSigned) {
-        return { error: "This PO has already been signed." };
-    }
+        const po = await getPOById(poId);
+        if (!po) throw new Error("PO not found");
+        // Issue #138 — without this, "Withdrawn" wouldn't be terminal at all:
+        // signing writes Status -> "Signed" below and syncPRStatusToPOSigned
+        // then advances the PR, so a signature after a withdrawal would
+        // resurrect the whole thing. The page hides SignForm for a withdrawn
+        // PO, but Server Actions are directly callable, so the real gate is
+        // here.
+        if (isPOWithdrawn(po)) {
+            return { error: "This PO was withdrawn and can no longer be signed." };
+        }
+        if (po.presidentSigned) {
+            return { error: "This PO has already been signed." };
+        }
 
-    const signedAt = new Date().toISOString();
+        const signedAt = new Date().toISOString();
 
-    try {
-        await updatePO(po.id, {
-            presidentSigned: true,
-            presidentSignedAt: signedAt,
-            status: "Signed",
-        });
-    } catch (err) {
-        console.error("signPOAction failed to record signature", err);
-        return { error: "Something went wrong recording your signature. Please try again." };
-    }
+        try {
+            await updatePO(po.id, {
+                presidentSigned: true,
+                presidentSignedAt: signedAt,
+                status: "Signed",
+            });
+        } catch (err) {
+            console.error("signPOAction failed to record signature", err);
+            return { error: "Something went wrong recording your signature. Please try again." };
+        }
 
-    // Best-effort — see lib/notifications.js. Independent of PDF generation
-    // below: the signature is the real evidence, same principle as the
-    // rest of this action.
-    await notifyPOSigned({ poRecordId: po.id });
+        // Best-effort — see lib/notifications.js. Independent of PDF generation
+        // below: the signature is the real evidence, same principle as the
+        // rest of this action.
+        await notifyPOSigned({ poRecordId: po.id });
 
-    try {
-        await generateAndAttachPOPdf(po.id);
-    } catch (err) {
-        // Non-fatal by design (see comment above) — rolling back the
-        // signature here would contradict the "an approval, once made,
-        // stands" model. It stays committed; the retry lives on the PO
-        // page (regeneratePDFAction).
-        console.error("PDF generation failed after PO signing (non-fatal, retry available on PO page)", err);
-    }
+        try {
+            await generateAndAttachPOPdf(po.id);
+        } catch (err) {
+            // Non-fatal by design (see comment above) — rolling back the
+            // signature here would contradict the "an approval, once made,
+            // stands" model. It stays committed; the retry lives on the PO
+            // page (regeneratePDFAction).
+            console.error("PDF generation failed after PO signing (non-fatal, retry available on PO page)", err);
+        }
 
-    await syncPRStatusToPOSigned(po);
+        await syncPRStatusToPOSigned(po);
 
-    redirect(`/pos/${po.poId}?done=signed`);
+        redirect(`/pos/${po.poId}?done=signed`);
+    });
 }
 
 /**
@@ -111,36 +114,38 @@ async function signPOHandler(prevState, formData) {
 export const regeneratePDFAction = withPresidentAction(regeneratePDFHandler);
 
 async function regeneratePDFHandler(prevState, formData) {
-    const poId = formData.get("poId");
+    return withOpsLabel("regeneratePDFAction", async () => {
+        const poId = formData.get("poId");
 
-    const po = await getPOById(poId);
-    if (!po) throw new Error("PO not found");
-    // Issue #138 — the PO PDF *is* the document sent to the vendor.
-    // Regenerating it after a withdrawal would print a fresh formal order
-    // for an order that was canceled, which is exactly the confusion
-    // Withdrawn exists to prevent. The line is "no new documents, existing
-    // document preserved": an already-generated PDF stays downloadable on
-    // the PO page (the PO did exist and was signed — that's audit trail),
-    // only the regeneration control goes away.
-    if (isPOWithdrawn(po)) {
-        return { error: "This PO was withdrawn — its PDF can't be regenerated." };
-    }
-    if (!po.presidentSigned) {
-        return { error: "This PO hasn't been signed yet." };
-    }
+        const po = await getPOById(poId);
+        if (!po) throw new Error("PO not found");
+        // Issue #138 — the PO PDF *is* the document sent to the vendor.
+        // Regenerating it after a withdrawal would print a fresh formal order
+        // for an order that was canceled, which is exactly the confusion
+        // Withdrawn exists to prevent. The line is "no new documents, existing
+        // document preserved": an already-generated PDF stays downloadable on
+        // the PO page (the PO did exist and was signed — that's audit trail),
+        // only the regeneration control goes away.
+        if (isPOWithdrawn(po)) {
+            return { error: "This PO was withdrawn — its PDF can't be regenerated." };
+        }
+        if (!po.presidentSigned) {
+            return { error: "This PO hasn't been signed yet." };
+        }
 
-    // Independent of the PDF retry below — also catches up a PR whose
-    // Status sync failed back in signPOAction (see syncPRStatusToPOSigned).
-    await syncPRStatusToPOSigned(po);
+        // Independent of the PDF retry below — also catches up a PR whose
+        // Status sync failed back in signPOAction (see syncPRStatusToPOSigned).
+        await syncPRStatusToPOSigned(po);
 
-    try {
-        await generateAndAttachPOPdf(po.id);
-    } catch (err) {
-        console.error("Manual PDF regeneration failed", err);
-        return { error: "Something went wrong generating the PDF. Please try again." };
-    }
+        try {
+            await generateAndAttachPOPdf(po.id);
+        } catch (err) {
+            console.error("Manual PDF regeneration failed", err);
+            return { error: "Something went wrong generating the PDF. Please try again." };
+        }
 
-    redirect(`/pos/${po.poId}?done=pdf-regenerated`);
+        redirect(`/pos/${po.poId}?done=pdf-regenerated`);
+    });
 }
 
 /**
@@ -159,12 +164,14 @@ async function regeneratePDFHandler(prevState, formData) {
  * inside withdrawPOAsRequester.
  */
 export async function withdrawPOAction(prevState, formData) {
-    const user = await requireUser();
-    const poId = formData.get("poId");
+    return withOpsLabel("withdrawPOAction", async () => {
+        const user = await requireUser();
+        const poId = formData.get("poId");
 
-    const result = await withdrawPOAsRequester({ poId, actingUserId: user.id });
-    // Errors come back to the open modal; only success falls through.
-    if (result.error) return result;
+        const result = await withdrawPOAsRequester({ poId, actingUserId: user.id });
+        // Errors come back to the open modal; only success falls through.
+        if (result.error) return result;
 
-    redirect(`/pos/${result.poId}?done=withdrawn`);
+        redirect(`/pos/${result.poId}?done=withdrawn`);
+    });
 }

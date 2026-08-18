@@ -1,9 +1,17 @@
 import { requireAdmin } from "@/lib/authz";
 import { createVendorAction } from "./actions";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 export const metadata = { title: "New Vendor" };
 
-export default async function NewVendorPage({ searchParams }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function NewVendorPage(props) {
+    return withOpsLabel("/admin/vendors/new", () => renderNewVendorPage(props));
+}
+
+async function renderNewVendorPage({ searchParams }) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (

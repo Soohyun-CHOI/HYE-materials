@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { withAdminApi } from "@/lib/authz";
 import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Issue #51, extended by #57. Backs the per-invoice-line PO Item dropdown
 // in InvoiceForm.js. Admin-only (#134): re-checked here to match the
@@ -10,7 +11,9 @@ import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
 // Uses getInvoicingStatusByPO (#48) so each item carries uninvoicedQty for
 // the dropdown's "(Uninvoiced: N)".
 export const GET = withAdminApi(async (request, { params }) => {
-    const { poRecordId } = await params;
-    const items = await getInvoicingStatusByPO(poRecordId);
-    return NextResponse.json({ items });
+    return withOpsLabel("GET /api/pos/[poRecordId]/items", async () => {
+        const { poRecordId } = await params;
+        const items = await getInvoicingStatusByPO(poRecordId);
+        return NextResponse.json({ items });
+    });
 });

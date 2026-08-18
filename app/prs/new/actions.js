@@ -18,6 +18,7 @@ import { getUserByRecordId } from "@/lib/airtable/users";
 import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { notifyCurrentTurn } from "@/lib/notifications";
 import { shouldReuseQuotation } from "@/lib/quotationReuse";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Canonical key for an item's duplicate-match identity — Item Name
 // (case/whitespace-insensitive) + Qty + Unit Price, per issue #61. Size/Unit/
@@ -332,31 +333,33 @@ async function persistPRFromForm({ userId, state }) {
 // in PRForm.js; returns { savedDraft } or { error } rather than redirecting,
 // so the Requester stays on the form and can keep editing.
 export async function saveDraftAction(prevState, formData) {
-    const user = await requireUser();
-    const state = parseFormState(formData);
+    return withOpsLabel("saveDraftAction", async () => {
+        const user = await requireUser();
+        const state = parseFormState(formData);
 
-    if (state.shippingFeeRaw && Number.isNaN(state.shippingFee)) {
-        return { error: "Shipping Fee must be a number." };
-    }
+        if (state.shippingFeeRaw && Number.isNaN(state.shippingFee)) {
+            return { error: "Shipping Fee must be a number." };
+        }
 
-    try {
-        const { pr, blobCleanups } = await persistPRFromForm({ userId: user.id, state });
-        // Issue #140 — the Draft save IS this action's whole transaction, so
-        // this is its end: Airtable has the quotation files, the Blob objects
-        // can go. Never inside persistPRFromForm, whose rollback has to be
-        // able to hand the same URLs back to a retry.
-        //
-        // Scheduled with after() rather than awaited: the Requester has no
-        // stake in cleanup and shouldn't wait ~1s per file for it. Ordering is
-        // unaffected — after() only runs once the writes above have succeeded
-        // and the response is on its way — and if it doesn't run at all the
-        // result is one orphan, the same outcome a failed del() already has.
-        after(() => confirmIngestThenDelete(blobCleanups));
-        return { savedDraft: { prId: pr.prId, recordId: pr.id } };
-    } catch (err) {
-        console.error("saveDraftAction failed", err);
-        return { error: "Couldn't save the draft. Please try again." };
-    }
+        try {
+            const { pr, blobCleanups } = await persistPRFromForm({ userId: user.id, state });
+            // Issue #140 — the Draft save IS this action's whole transaction, so
+            // this is its end: Airtable has the quotation files, the Blob objects
+            // can go. Never inside persistPRFromForm, whose rollback has to be
+            // able to hand the same URLs back to a retry.
+            //
+            // Scheduled with after() rather than awaited: the Requester has no
+            // stake in cleanup and shouldn't wait ~1s per file for it. Ordering is
+            // unaffected — after() only runs once the writes above have succeeded
+            // and the response is on its way — and if it doesn't run at all the
+            // result is one orphan, the same outcome a failed del() already has.
+            after(() => confirmIngestThenDelete(blobCleanups));
+            return { savedDraft: { prId: pr.prId, recordId: pr.id } };
+        } catch (err) {
+            console.error("saveDraftAction failed", err);
+            return { error: "Couldn't save the draft. Please try again." };
+        }
+    });
 }
 
 // Issue #109 — delete one of the Requester's own Draft PRs from the drafts
@@ -367,114 +370,118 @@ export async function saveDraftAction(prevState, formData) {
 // attachment), then the PR itself. The Vercel Blob originals of quotation
 // files are intentionally not touched here (tracked separately).
 export async function deleteDraftAction(prId) {
-    const user = await requireUser();
+    return withOpsLabel("deleteDraftAction", async () => {
+        const user = await requireUser();
 
-    const pr = await getPRById(prId);
-    if (!pr) return { error: "That draft no longer exists." };
-    if (pr.status !== "Draft") return { error: "Only drafts can be deleted here." };
-    if (pr.requester?.[0] !== user.id) return { error: "You can only delete your own drafts." };
+        const pr = await getPRById(prId);
+        if (!pr) return { error: "That draft no longer exists." };
+        if (pr.status !== "Draft") return { error: "Only drafts can be deleted here." };
+        if (pr.requester?.[0] !== user.id) return { error: "You can only delete your own drafts." };
 
-    try {
-        // Children (best-effort, allSettled) before the PR, so a mid-failure
-        // can only leave harmless orphan child rows — never a half-deleted PR
-        // still visible in the list. The list row is removed by the client
-        // only on { ok: true }, so a failed PR destroy keeps the row.
-        const childIds = await collectChildIds(pr.id);
-        await destroyChildren(childIds);
-        await base(TABLES.PURCHASE_REQUESTS).destroy(pr.id);
-    } catch (err) {
-        console.error("deleteDraftAction failed", err);
-        return { error: "Couldn't delete the draft. Please try again." };
-    }
+        try {
+            // Children (best-effort, allSettled) before the PR, so a mid-failure
+            // can only leave harmless orphan child rows — never a half-deleted PR
+            // still visible in the list. The list row is removed by the client
+            // only on { ok: true }, so a failed PR destroy keeps the row.
+            const childIds = await collectChildIds(pr.id);
+            await destroyChildren(childIds);
+            await base(TABLES.PURCHASE_REQUESTS).destroy(pr.id);
+        } catch (err) {
+            console.error("deleteDraftAction failed", err);
+            return { error: "Couldn't delete the draft. Please try again." };
+        }
 
-    return { ok: true, deletedPrId: prId };
+        return { ok: true, deletedPrId: prId };
+    });
 }
 
 // Bound to useActionState (see PRForm.js): takes (prevState, formData),
 // returns { error }/{ duplicateWarning } on a validation/write failure
 // instead of throwing — same reasoning as app/admin/lines/new/actions.js.
 export async function createPRAction(prevState, formData) {
-    const user = await requireUser();
-    const state = parseFormState(formData);
-    const { lineId, vendorId, items, signers, quotations, shippingFee, shippingFeeRaw, confirmed } =
-        state;
+    return withOpsLabel("createPRAction", async () => {
+        const user = await requireUser();
+        const state = parseFormState(formData);
+        const { lineId, vendorId, items, signers, quotations, shippingFee, shippingFeeRaw, confirmed } =
+            state;
 
-    if (!lineId) return { error: "Select a Line." };
-    if (!vendorId) return { error: "Select a Vendor." };
-    if (items.length === 0) {
-        return { error: "Add at least one item." };
-    }
-    for (const item of items) {
-        if (!item.itemName || !item.qty || !item.unitPrice) {
-            return { error: "Every item needs a name, quantity, and unit price." };
+        if (!lineId) return { error: "Select a Line." };
+        if (!vendorId) return { error: "Select a Vendor." };
+        if (items.length === 0) {
+            return { error: "Add at least one item." };
         }
-    }
-    if (signers.length === 0) {
-        return { error: "Assign at least one signer." };
-    }
-    if (shippingFeeRaw && Number.isNaN(shippingFee)) {
-        return { error: "Shipping Fee must be a number." };
-    }
-    // At least one Quotation is required (not optional) — a PR always
-    // needs the vendor's actual quote on file.
-    if (quotations.length === 0) {
-        return { error: "Add at least one quotation." };
-    }
-    // A Quotation entry with no file attached can't become a real
-    // Quotations record — the Requester must either attach one or remove
-    // the entry (PRForm.js disables Submit for this same reason; this is
-    // the authoritative check).
-    for (const quotation of quotations) {
-        if (!quotation.url) {
-            return { error: "Every quotation needs a file attached." };
+        for (const item of items) {
+            if (!item.itemName || !item.qty || !item.unitPrice) {
+                return { error: "Every item needs a name, quantity, and unit price." };
+            }
         }
-    }
-
-    // Submit-time check, skipped once the Requester has confirmed past a
-    // previously-shown warning.
-    if (!confirmed) {
-        const duplicate = await findDuplicatePR(lineId, items, state.existingDraftRecordId);
-        if (duplicate) {
-            return { duplicateWarning: duplicate };
+        if (signers.length === 0) {
+            return { error: "Assign at least one signer." };
         }
-    }
+        if (shippingFeeRaw && Number.isNaN(shippingFee)) {
+            return { error: "Shipping Fee must be a number." };
+        }
+        // At least one Quotation is required (not optional) — a PR always
+        // needs the vendor's actual quote on file.
+        if (quotations.length === 0) {
+            return { error: "Add at least one quotation." };
+        }
+        // A Quotation entry with no file attached can't become a real
+        // Quotations record — the Requester must either attach one or remove
+        // the entry (PRForm.js disables Submit for this same reason; this is
+        // the authoritative check).
+        for (const quotation of quotations) {
+            if (!quotation.url) {
+                return { error: "Every quotation needs a file attached." };
+            }
+        }
 
-    let pr;
-    let blobCleanups = [];
-    try {
-        const result = await persistPRFromForm({ userId: user.id, state });
-        pr = result.pr;
-        blobCleanups = result.blobCleanups;
-        // Submission starts the review chain — whether this PR began as a
-        // fresh form or a resumed Draft (issue #72), reaching here is the
-        // actual submission. Current Signer Step 1 = the first signer's turn.
-        // The same record transitions Draft -> In Review, keeping its PR ID,
-        // Created At, and history continuous.
-        await updatePR(pr.id, { status: "In Review", currentSignerStep: 1 });
-    } catch (err) {
-        // persistPRFromForm already rolled back its own partial writes (and,
-        // for a fresh submit, the PR record itself). A failure in the status
-        // flip after a successful persist leaves a resumable Draft rather
-        // than a corrupt half-PR, which is acceptable.
-        console.error("createPRAction failed", err);
-        return { error: "Something went wrong creating the PR. Please try again." };
-    }
+        // Submit-time check, skipped once the Requester has confirmed past a
+        // previously-shown warning.
+        if (!confirmed) {
+            const duplicate = await findDuplicatePR(lineId, items, state.existingDraftRecordId);
+            if (duplicate) {
+                return { duplicateWarning: duplicate };
+            }
+        }
 
-    // Issue #140 — after the last write of the submit transaction (the
-    // Draft -> In Review flip above), not after the quotation write inside
-    // persistPRFromForm: a failure between the two rolls the children back,
-    // and the Requester's retry re-submits these same URLs. Deferred via
-    // after() (see saveDraftAction), which also removes a placement trap
-    // here: this action ends in redirect(), which throws, so an awaited
-    // cleanup only works while it sits above that line.
-    after(() => confirmIngestThenDelete(blobCleanups));
+        let pr;
+        let blobCleanups = [];
+        try {
+            const result = await persistPRFromForm({ userId: user.id, state });
+            pr = result.pr;
+            blobCleanups = result.blobCleanups;
+            // Submission starts the review chain — whether this PR began as a
+            // fresh form or a resumed Draft (issue #72), reaching here is the
+            // actual submission. Current Signer Step 1 = the first signer's turn.
+            // The same record transitions Draft -> In Review, keeping its PR ID,
+            // Created At, and history continuous.
+            await updatePR(pr.id, { status: "In Review", currentSignerStep: 1 });
+        } catch (err) {
+            // persistPRFromForm already rolled back its own partial writes (and,
+            // for a fresh submit, the PR record itself). A failure in the status
+            // flip after a successful persist leaves a resumable Draft rather
+            // than a corrupt half-PR, which is acceptable.
+            console.error("createPRAction failed", err);
+            return { error: "Something went wrong creating the PR. Please try again." };
+        }
 
-    // Best-effort — see lib/notifications.js. Signer #1 is signers[0]
-    // (Sequence Order 1, the PR's starting Current Signer Step).
-    await notifyCurrentTurn({ pr, turn: { type: "signer", userId: signers[0].userId } });
+        // Issue #140 — after the last write of the submit transaction (the
+        // Draft -> In Review flip above), not after the quotation write inside
+        // persistPRFromForm: a failure between the two rolls the children back,
+        // and the Requester's retry re-submits these same URLs. Deferred via
+        // after() (see saveDraftAction), which also removes a placement trap
+        // here: this action ends in redirect(), which throws, so an awaited
+        // cleanup only works while it sits above that line.
+        after(() => confirmIngestThenDelete(blobCleanups));
 
-    // Issue #121 — land on the submitted PR's detail page (matching the
-    // invoice flow, #115), whether this was a fresh submit or a promoted
-    // Draft: both end as the same In Review PR, so both go to its detail.
-    redirect(`/prs/${encodeURIComponent(pr.prId)}?done=submitted`);
+        // Best-effort — see lib/notifications.js. Signer #1 is signers[0]
+        // (Sequence Order 1, the PR's starting Current Signer Step).
+        await notifyCurrentTurn({ pr, turn: { type: "signer", userId: signers[0].userId } });
+
+        // Issue #121 — land on the submitted PR's detail page (matching the
+        // invoice flow, #115), whether this was a fresh submit or a promoted
+        // Draft: both end as the same In Review PR, so both go to its detail.
+        redirect(`/prs/${encodeURIComponent(pr.prId)}?done=submitted`);
+    });
 }

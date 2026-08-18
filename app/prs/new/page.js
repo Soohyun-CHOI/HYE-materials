@@ -7,10 +7,18 @@ import { getActiveUsers } from "@/lib/airtable/users";
 import { getDraftsByRequester } from "@/lib/airtable/purchaseRequests";
 import { loadPRDraft } from "@/lib/prDraft";
 import PRForm from "./PRForm";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 export const metadata = { title: "New Purchase Request" };
 
-export default async function NewPRPage({ searchParams }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function NewPRPage(props) {
+    return withOpsLabel("/prs/new", () => renderNewPRPage(props));
+}
+
+async function renderNewPRPage({ searchParams }) {
     const user = await requireUser();
 
     const [jobs, lines, vendors, users] = await Promise.all([

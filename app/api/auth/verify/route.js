@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyMagicLink } from "@/lib/auth";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
  * Consumes a magic-link token and starts the session (#203).
@@ -52,32 +53,34 @@ function isCrossOrigin(request) {
 }
 
 export async function POST(request) {
-    if (isCrossOrigin(request)) {
-        return NextResponse.json({ error: "Cross-origin sign-in is not allowed" }, { status: 403 });
-    }
+    return withOpsLabel("POST /api/auth/verify", async () => {
+        if (isCrossOrigin(request)) {
+            return NextResponse.json({ error: "Cross-origin sign-in is not allowed" }, { status: 403 });
+        }
 
-    const form = await request.formData();
-    const token = form.get("token");
+        const form = await request.formData();
+        const token = form.get("token");
 
-    // 303, not the 307 NextResponse.redirect defaults to: 307 preserves the
-    // method, which would re-POST to the destination. 303 is what turns a POST
-    // into the GET a browser should land on.
-    const seeOther = (path) => NextResponse.redirect(new URL(path, request.url), 303);
+        // 303, not the 307 NextResponse.redirect defaults to: 307 preserves the
+        // method, which would re-POST to the destination. 303 is what turns a POST
+        // into the GET a browser should land on.
+        const seeOther = (path) => NextResponse.redirect(new URL(path, request.url), 303);
 
-    // Every refusal goes back to the confirmation page carrying the same token,
-    // so the page re-reads the row and names the actual reason — already used,
-    // expired, or never valid. A second POST of a consumed token therefore lands
-    // on "already used" rather than on a generic error, and so does the back
-    // button after a successful sign-in.
-    if (typeof token !== "string" || !token) {
-        return seeOther(CONFIRM_PATH);
-    }
+        // Every refusal goes back to the confirmation page carrying the same token,
+        // so the page re-reads the row and names the actual reason — already used,
+        // expired, or never valid. A second POST of a consumed token therefore lands
+        // on "already used" rather than on a generic error, and so does the back
+        // button after a successful sign-in.
+        if (typeof token !== "string" || !token) {
+            return seeOther(CONFIRM_PATH);
+        }
 
-    try {
-        await verifyMagicLink(token);
-    } catch {
-        return seeOther(`${CONFIRM_PATH}?token=${encodeURIComponent(token)}`);
-    }
+        try {
+            await verifyMagicLink(token);
+        } catch {
+            return seeOther(`${CONFIRM_PATH}?token=${encodeURIComponent(token)}`);
+        }
 
-    return seeOther("/");
+        return seeOther("/");
+    });
 }

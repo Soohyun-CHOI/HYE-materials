@@ -4,6 +4,7 @@ import { getMaterialPurchaseHistory } from "@/lib/materialHistory";
 import { statusTag } from "@/lib/materialPriceView";
 import { countsAsOrdered } from "@/lib/poItemQty";
 import { formatUSD } from "@/lib/format";
+import { withOpsLabel } from "@/lib/airtableOps";
 
 // Static, unlike the four record-detail pages (#201), and the record-id keying
 // described just below is why. The param names nothing a reader would recognize,
@@ -26,7 +27,14 @@ export const metadata = { title: "Material" };
 // surface at all.
 export const dynamic = "force-dynamic";
 
-export default async function MaterialHistoryPage({ params }) {
+// Labeled for #190 by #224, the sweep across every entry point that opened no
+// scope. An outer wrapper, so the page's own logic keeps its indentation, and
+// the route TEMPLATE, so repeated loads aggregate into one row.
+export default async function MaterialHistoryPage(props) {
+    return withOpsLabel("/materials/[materialId]", () => renderMaterialHistoryPage(props));
+}
+
+async function renderMaterialHistoryPage({ params }) {
     const user = await requireUser();
     const { materialId } = await params;
 
