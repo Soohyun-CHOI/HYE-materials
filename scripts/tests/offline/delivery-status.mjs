@@ -491,6 +491,32 @@ export function run({ check, log, assert }) {
         describeInvoiceLine(null, "EA", { hasDelivery: true }).againstOrder,
         null
     );
+    // #241 — a folded entry's two figures are sums over the ordered items it covers,
+    // so the subject agrees in number. The count is the caller's and defaults to one,
+    // which is why every assertion above reads unchanged.
+    check(
+        "one ordered item is the default, so the singular needs no argument",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 3 }, "EA", { hasDelivery: true })
+            .againstOrder?.text,
+        "Against the ordered item: 3 EA more billed"
+    );
+    check(
+        "  an entry folded across two says so",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 5 }, "EA", {
+            hasDelivery: true,
+            orderedItemCount: 2,
+        }).againstOrder?.text,
+        "Against the ordered items: 5 EA more billed"
+    );
+    assert(
+        "  and the two really differ, so the count is read rather than ignored",
+        describeInvoiceLine({ ...ordinary, billedBeyondOrder: 5 }, "EA", {
+            hasDelivery: true,
+            orderedItemCount: 2,
+        }).againstOrder?.text !==
+            describeInvoiceLine({ ...ordinary, billedBeyondOrder: 5 }, "EA", { hasDelivery: true })
+                .againstOrder?.text
+    );
 
     // The bill ordering was asserted here while this module held it; #219 moved it
     // into lib/overage.js, private to its one reader, and offline/overage.mjs pins

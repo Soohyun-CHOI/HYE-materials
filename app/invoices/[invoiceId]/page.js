@@ -3,11 +3,12 @@ import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
-import { STATUS_COPY, describeInvoiceColumn, describeInvoiceLine } from "@/lib/deliveryStatus";
+import { STATUS_COPY, describeInvoiceColumn } from "@/lib/deliveryStatus";
 import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
 import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoiceMatch";
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
+import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
 import { ORDER_BREAKDOWN_COPY, billedItemsByOrder } from "@/lib/invoiceOrderBreakdown";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
@@ -130,6 +131,18 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // an Invoice Item carries its own `PO` and `PO Item`, and the order records are the
     // ones that section already renders. The rule is lib/invoiceOrderBreakdown.js.
     const orderBreakdown = billedItemsByOrder({ folded: foldedItems, items });
+
+    // Issue #241 — the delivery section's entries, one per FOLDED item rather than
+    // one per invoice item, so what counts as one material is decided once for this
+    // page. The same fold, joined to the reconciliation rows on the invoice item's
+    // record id; shares are added rather than re-derived, and an entry with nothing
+    // to say does not come back at all. Costs no query — both inputs are computed
+    // above. The rule is lib/invoiceDeliveryEntries.js.
+    const deliveryEntries = invoiceDeliveryEntries({
+        folded: foldedItems,
+        rows: reconciliation.rows,
+        hasDelivery: reconciliation.summary.hasDelivery,
+    });
 
     // Issue #16 — surfaced but never blocking: variance is a review prompt,
     // not a gate on marking something paid.
@@ -467,33 +480,49 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     </p>
                 )}
 
-                {/* NO ITEM LIST WITHOUT A MATCHED DELIVERY (#232, third pass). This
-                    section compares what an invoice bills against what one delivery
-                    brought; with nothing matched there is no second term, so a box
-                    per invoice item was a list of names with no fact in any of them.
-                    The sentence above is the whole answer. `Not compared — no ordered
-                    item` goes with them here: it says why an invoice item was left
-                    out of a comparison that is not happening. */}
-                {!reconciliation.summary.hasDelivery ? null : reconciliation.rows.length === 0 ? (
-                    <p className="mt-1 text-sm text-zinc-600">
-                        This invoice has no lines.
-                    </p>
-                ) : (
+                {/* ONLY WHAT DISAGREES, AND ONE ENTRY PER MATERIAL (#241). Two rules
+                    decide what is here, and both live in lib/invoiceDeliveryEntries.js
+                    rather than in this condition — the offline tier cannot read JSX,
+                    and "the list vanished" is a failure that looks exactly like a
+                    normal invoice.
+
+                    NO LIST WITHOUT A MATCHED DELIVERY is #232's and is unchanged: with
+                    nothing matched there is no second term, so an entry per invoice
+                    item was a list of names with no fact in any of them, and the
+                    sentence above is the whole answer. `Not compared — no ordered item`
+                    goes with them, since it says why an invoice item was left out of a
+                    comparison that is not happening.
+
+                    NO ENTRY THAT AGREES is #241's, and the fold is what forced it. #232
+                    kept a silent entry when the list was one per invoice item; folded,
+                    the list is the name column of the items table directly above —
+                    same count, same names, same order. The invoice level says what the
+                    state is and the item level points at an exception, which is the
+                    division #232 settled and this is the last cell of it. So a covered
+                    invoice renders no list at all: the delivery, named once, is the
+                    section. `This invoice has no lines.` went with the same edit — an
+                    invoice with no items has no exceptions either, and the items table
+                    above already says it is empty. */}
+                {deliveryEntries.length > 0 && (
                     <ul className="mt-3 space-y-2 text-sm">
-                        {reconciliation.rows.map((row) => {
-                            const lines = describeInvoiceLine(row.status, row.unit, {
-                                hasDelivery: reconciliation.summary.hasDelivery,
-                            });
+                        {deliveryEntries.map((entry) => {
+                            const lines = entry.lines;
                             return (
                                 /* NO BORDER SINCE #232's THIRD PASS. It was a box
                                    drawn around `Ordered · Billed · Delivered`, a share
                                    line, a verdict, an aside and a delivery list; with
                                    the inside emptied it framed a name. A list is
                                    enough, and the border was making a silent entry
-                                   look like a card that had failed to load. */
-                                <li key={row.invoiceItemId}>
-                                    {/* NO PO LINK (#232's third pass), on a silent
-                                        entry or a speaking one. #167 put it here
+                                   look like a card that had failed to load.
+
+                                   KEYED ON THE FOLD'S OWN KEY (#241), which is what an
+                                   entry now is. An `Invoice Item ID` would have to pick
+                                   one of the rows a folded entry stands for. */
+                                <li key={entry.key}>
+                                    {/* NO PO LINK (#232's third pass), and since #241
+                                        no entry it could hang on: a folded entry can
+                                        span two orders, which is #167's own reason the
+                                        items table has no such column. #167 put it here
                                         because the items table dropped its PO column —
                                         a row an overage split produced spans two
                                         orders once folded, so that cell had no single
@@ -509,7 +538,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         where the ambiguity #167 was solving actually
                                         lives. */}
                                     <span className="font-medium">
-                                        {[row.itemName, row.size].filter(Boolean).join(" ") || "—"}
+                                        {[entry.itemName, entry.size].filter(Boolean).join(" ") || "—"}
                                     </span>
 
                                     {/* NO FIGURES LINE. `Billed 15 · Delivered 15`
@@ -517,7 +546,10 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         normal invoice; the two sentences below carry
                                         the quantities on the entries that have
                                         something to say. `Billed` is also in the items
-                                        table directly above this section. */}
+                                        table directly above this section — and since
+                                        #241 the entry and that row are the same unit,
+                                        so a figure here is against the same quantity a
+                                        reader just read there. */}
                                     {lines.verdict && (
                                         <p
                                             className={

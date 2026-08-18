@@ -115,6 +115,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the uncorrected-excess list (#217), the Draft it creates, and the apply step. Credentialed.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders it bills (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.
+- `lib/invoiceDeliveryEntries.js` — the invoice detail's delivery entries (#241): one per folded item, its members' shares added rather than re-clamped, and no entry where nothing disagrees.
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed.
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.

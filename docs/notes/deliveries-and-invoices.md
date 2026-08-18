@@ -1288,3 +1288,90 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   `Purchase Orders` finds 3 -> 2: one each, exactly. What misled the first reading was
   `HYE-INV-260804-03` also totalling 11 on 2 items and 2 orders — two fewer finds there
   are spent on the delivery it matches, so two different sums landed on one number.
+
+### Reading one material as one entry (#241)
+
+The delivery section listed one entry per `Invoice Items` row while the items table
+above it folded, so an invoice whose charge an overage split divided showed one
+material twice under the delivery and once in the table. Folded on the key
+`lib/invoiceItemFold.js` already uses, with the shares added rather than re-derived,
+and an entry that agrees no longer rendered at all. The rule is
+`lib/invoiceDeliveryEntries.js`.
+
+- **#237 REVEALED IT AND DID NOT MAKE IT.** When #232 redrew this section there was no
+  split invoice on this base, so every screen it verified had unfolded items and this
+  shape never appeared; #237's seed ran the correction flow for real and put
+  `HYE-INV-260817-01` in front of a person, where the items table reads one row of
+  `237-DEMO Elbow 2"` at 13 EA and the section below listed that name twice. Recorded
+  because the defect was two issues old by the time anything could see it, which is an
+  argument for seeding the shape a rule is about rather than the shape that is handy.
+- **THE FOLD IS FOR THE READER AND NEVER FOR THE JUDGMENT, WHICH IS WHY IT IS NOT IN
+  THE WALK.** `getInvoiceReconciliation`'s per-row shares are also
+  `summarizeInvoiceStatus`'s input, and that summary is the CHIP — shared with
+  `/invoices`, where `getInvoiceDeliveryStatus` reads neither `Material` nor a unit
+  price and so cannot fold without new queries. Folding inside the walk would either
+  move the chip on one screen and not the other, or pay for the fold on a list that
+  does not render one. So the walk is untouched but for the join key, the fold stays
+  where the page already computes it, and the entries are a view rule with their own
+  module — the shape #237 established, joining on the same `rowIds`.
+- **A FOLDED ENTRY ADDS ITS MEMBERS' SHARES; IT DOES NOT RE-CLAMP.** `invoiceShareStatus`
+  clamps what a bill can be credited with at what that bill billed, per ordered item,
+  because a delivery may legitimately bring more of an ordered item than this invoice
+  charges. Clamping once at the folded scope instead — sum the billed, sum what
+  arrived, `min` — is the tidier-looking rule and is wrong twice: **a surplus on one
+  ordered item would cancel a shortfall on another**, which is what the per-pair clamp
+  exists to prevent; and **it would disagree with the chip**, which is computed off the
+  unfolded shares, leaving the amber sentence standing above a list with nothing in it
+  that points anywhere. `SPLIT_CROSSED` in `offline/invoice-delivery-entries.mjs` is
+  that case — 10 billed against 8 delivered on one ordered item, 3 against 5 on the
+  other — and the mutant is built and run there rather than described. It also needs a
+  field the row does not carry: the clamp destroys its own input, so re-deriving would
+  mean handing the raw arrival down, which is itself part of the answer.
+- **THE TWO BEYOND-ORDER TERMS ARE THE EXCEPTION AND ADD OVER DISTINCT ORDERED ITEMS.**
+  `billedBeyondOrder` and `arrivedBeyondOrder` belong to a `PO Items` row rather than to
+  a bill, so two charges reaching one ordered item carry the same figure and adding both
+  would print one excess twice. The invoice form cannot make that shape — #91 excludes
+  an ordered item a sibling invoice item already claimed — so the dedupe is defensive
+  against hand-entered data and is pinned offline, the way #237's exclusion is.
+- **THE SUBJECT AGREES IN NUMBER, WHICH IS #227's RULE AND NOT GRAMMAR TIDYING.** An
+  entry folded across a correction covers two ordered items and its figures are sums
+  over them, so `Against the ordered item:` would name one thing the sentence is not
+  about — the same falsity #232 corrected when it retired `Against the order:`. The
+  count is the caller's and defaults to one, so every unfolded entry, which is every
+  entry on an invoice no correction touched, reads exactly as it did.
+- **A SILENT ENTRY LOST ITS PLACE, AND THE FOLD IS WHAT DECIDED IT.** #232 kept a silent
+  entry when the list was one per invoice item; folded, the list is the name column of
+  the items table directly above — same count, same names, same order — which is the
+  repetition #233 took off the order's page and #232 took off this one. This is the last
+  cell of that division: **the invoice level says what the state is, the item level
+  points at an exception**, and an entry with no exception has nothing to point at. What
+  it costs is the per-material delivered quantity on a normal invoice, and that is
+  recoverable rather than lost: under the one-delivery premise a `Delivered` chip means
+  everything billed arrived, so the per-material delivered quantity IS the per-material
+  billed quantity, which the items table carries. `This invoice has no lines.` went with
+  it — an invoice with no items has no exceptions either, and the table above already
+  says it is empty.
+- **THE NAME NOW COMES FROM THE INVOICE ITEM, WHICH REVERSES WHAT THE WALK DOES.** A row
+  was labeled from the `PO Items` row it compares against; a folded entry can span two of
+  those, so there is no single one to name — the fact that makes the items table's `PO`
+  column impossible (#167). It takes the fold group's frozen copy instead, #237's source,
+  so an entry and the row above it cannot disagree. On this base the two agree: both
+  ordered items behind `HYE-INV-260817-01` and both invoice items read `237-DEMO Elbow`.
+- **A CHARGE WITH NO ORDERED ITEM IS UNAFFECTED, BY CONSTRUCTION RATHER THAN BY A CASE.**
+  `foldKey` gives a row with no `Material` its own record id as a key, so it is a group
+  of one; it carries no share, `describeInvoiceLine` speaks for it, and it renders as it
+  did. **One state is pinned only in the offline tier**: a COVERED invoice carrying such
+  a row, where the chip reads `Delivered` and a single gray `Not compared — no ordered
+  item` stands under it. No invoice on this base both matches a delivery and holds a
+  free-text row — the three that match a delivery have an ordered item behind every
+  charge — so it was not seen on a screen and nothing was created to see it.
+- **A DIFFERENT KEY FROM #238's, ON PURPOSE.** That issue folds a delivery's own rows on
+  `Material` + ORDER, because a folded row there must still name the order the correction
+  acts on; this folds on `Material` + UNIT PRICE, because a bill split across two orders
+  is one vendor charge and the order is what the entry cannot name. Same question, two
+  frames — do not unify the keys.
+- **NO NEW READ, AND IT IS MEASURED RATHER THAN ASSERTED.** Both inputs are already
+  computed for the items table, and no credentialed function gained a call site. On the
+  labeled route, `HYE-INV-260817-01` read **10 ops before and 10 after**. #237's 10/11/13
+  are not the comparison — they predate #249, which made `getLinkedRecords` batched — so
+  the before figure was taken on this branch rather than read out of that note.
