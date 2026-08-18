@@ -174,6 +174,21 @@ export default function POListClient({
                             <col style={{ width: "5.625rem" }} />
                             <col style={{ width: "8rem" }} />
                             <col style={{ width: "6.625rem" }} />
+                            {/* #235 — A SEVENTH COLUMN, AND THE BUDGET IS NOT RE-CUT
+                                TO MAKE ROOM. The six above sum to exactly 52rem, the
+                                width this page has, so declaring the invoicing chip
+                                its own column takes the row past that and a narrow
+                                window wraps or scrolls. That is left standing on
+                                purpose: this table's hand-declared rem widths are
+                                what the design pass will take out, and re-cutting
+                                them now — or stacking two chips in one cell to avoid
+                                it, which is what #179 did on `/invoices` — would be
+                                a pixel judgment made twice, once here and again
+                                after the design. What belongs on the screen is this
+                                issue's decision; how wide it sits is that work's
+                                input. Nothing is truncated: a cell that does not fit
+                                wraps. */}
+                            <col style={{ width: "6.625rem" }} />
                         </colgroup>
                         <thead>
                             <tr className="text-left text-zinc-500">
@@ -185,7 +200,21 @@ export default function POListClient({
                                 {/* Same header as /invoices carries for the same
                                     chip set — one word, two subjects, and the row
                                     supplies which. */}
-                                <th>Delivery</th>
+                                <th className="pr-2">Delivery</th>
+                                {/* #235 — the order's other axis, and a NOUN because
+                                    `Delivery` beside it is one. The column shows a
+                                    state rather than a document on both sides, so
+                                    matching the part of speech is what makes the pair
+                                    read as one row; `Invoicing` was a gerund next to a
+                                    noun and said nothing extra for it.
+
+                                    NOT `Invoiced`, WHICH IS THE DETAIL PAGE'S HEAD FOR
+                                    A DIFFERENT THING. There it sits over a quantity,
+                                    the ordered item's `Invoiced Qty`; here the column
+                                    names the axis whose chip is in the cells. Two
+                                    heads, two subjects — the pair `Delivery` here and
+                                    `Delivered` there already draws. */}
+                                <th>Invoice</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -226,8 +255,11 @@ export default function POListClient({
                                         {/* The server resolved the chip (#169) —
                                             this component never sees a quantity,
                                             and the copy stays in one module. */}
-                                        <td className="py-1">
+                                        <td className="py-1 pr-2">
                                             <StatusChip chip={row.deliveryChip} />
+                                        </td>
+                                        <td className="py-1">
+                                            <StatusChip chip={row.invoicingChip} />
                                         </td>
                                     </tr>
                                 );

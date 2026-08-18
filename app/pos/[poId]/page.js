@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { canViewPR } from "@/lib/prVisibility";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
-import { getInvoicingStatusByPO, getItemsByPO } from "@/lib/airtable/poItems";
+import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
 import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import { getDeliveryItemsByRecordIds } from "@/lib/airtable/deliveryItems";
@@ -22,7 +22,12 @@ import { VARIANCE_COPY } from "@/lib/variance";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFactsForPO } from "@/lib/overagePR";
 import { undeliveredQty } from "@/lib/deliveryAllocation";
-import { describePOColumn, summarizePODeliveryStatus } from "@/lib/deliveryStatus";
+import {
+    describePOColumn,
+    describePOInvoicingColumn,
+    summarizePODeliveryStatus,
+    summarizePOInvoicingStatus,
+} from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
@@ -61,25 +66,35 @@ export default async function PODetailPage(props) {
 
 // Viewing is row-scoped (issue #132): President/Admin see every PO; any other
 // active user sees a PO only for a PR they raised or on their assigned Job —
-// the same rule as the PR list (#119), shared via canViewPR. Invoice-derived
-// data (the `Invoiced` column and the invoices charging this order) and the
-// sign/regenerate write controls stay President/Admin-only; the PO PDF is
+// the same rule as the PR list (#119), shared via canViewPR. The PO PDF is
 // visible to everyone who can see the PO (site staff place the order from it).
 //
-// `Paid` RIDES ON `isPrivileged` WITH EVERYTHING ELSE INVOICE-DERIVED, AND THAT
-// IS THE ONE THING TO SPLIT BEFORE THIS GATE IS EVER WIDENED (#233). #211 left
-// payment as the narrow line after opening the invoice routes per record, so a
-// future decision to show a site employee what a vendor billed must not carry
-// the payment badge along with it — the two share one flag here today only
-// because the flag has never moved. Not observed: the gate has not changed, so
-// nothing has leaked; it is written here because the failure would be silent.
-// `Delivered` IS NOT IN THAT SET (#169): delivery-derived, so every viewer who
+// THE HAZARD #233 WROTE HERE IS THE ONE #235 WALKED INTO, so this paragraph is
+// the record of it happening rather than a warning about it. That issue said
+// `Paid` rode on `isPrivileged` with everything else invoice-derived and was the
+// one thing to split before the gate was ever widened — the two sharing one flag
+// only because the flag had never moved. The gate moved: what a vendor billed is
+// readable by anyone who may read the order behind it (#211, on
+// `getPOItemsForReconciliation`), so the `Invoiced` column, the invoices charging
+// this order and the invoicing chip above them are open to every viewer who can
+// see the order. `Paid` did not move, and it is on its own flag now.
+//
+// SO THERE ARE TWO FLAGS AND THEY ARE EQUAL TODAY. `seesPayment` is
+// President-or-Admin and gates the payment badge alone. `isOffice` is the same
+// people and gates what has nothing to do with billing: the internal
+// `Delivery Address Used` field (#132) and the sign/regenerate write controls.
+// Naming them apart is the whole of the fix #233 asked for — the next issue that
+// widens one of them cannot take the other along without saying so.
+//
+// `Delivered` WAS NEVER IN THAT SET (#169): delivery-derived, so every viewer who
 // can see the order sees it — and since #233 so are the deliveries that filled
 // the order and the chip above them, on the same line. This said
 // `Delivered/Undelivered` until that issue removed the second column.
 async function renderPODetailPage({ params, searchParams }) {
     const user = await requireUser();
-    const isPrivileged = user.role === "President" || user.isAdmin === true;
+    // Two names, one predicate — see this file's header on why they are separate.
+    const isOffice = user.role === "President" || user.isAdmin === true;
+    const seesPayment = user.role === "President" || user.isAdmin === true;
     const { poId } = await params;
     const { done } = await searchParams;
 
@@ -128,17 +143,14 @@ async function renderPODetailPage({ params, searchParams }) {
     // only; the invoice fetches below never run, so the data never leaves
     // Airtable — a server-side omission, not a client-side hide.
     //
-    // #211 MOVED THE LINE THIS RESTS ON AND THIS PAGE HAS NOT FOLLOWED, which is
-    // recorded rather than quietly kept: lib/airtable/poItems.js says that issue
-    // retired the President-or-Admin gate on the reconciliation projection because
-    // what a vendor billed is readable by anyone who may read the order behind it,
-    // and left `Paid` as the narrower replacement. So this gate now withholds MORE
-    // than the rule requires. Over-withholding is the safe direction, and widening
-    // it is a decision about who sees an order's billing rather than a consequence
-    // of a layout change — docs/notes/backlog.md carries it.
-    const orderedItems = isPrivileged
-        ? await getInvoicingStatusByPO(po.id)
-        : await getItemsByPO(po.id);
+    // #235 FOLLOWED THE LINE #211 MOVED, so there is one projection rather than a
+    // branch. This page withheld the invoicing figures from a non-privileged viewer
+    // while `getPOItemsForReconciliation` had already stopped being
+    // President-or-Admin, on the ground that what a vendor billed is readable by
+    // anyone who may read the order behind it; the branch was the last of that
+    // over-withholding. One call for everyone also means the page cannot come to
+    // judge its own chip from two different field sets.
+    const orderedItems = await getInvoicingStatusByPO(po.id);
 
     // #233 — the deliveries that filled this order. TWO BATCHED READS for the whole
     // page: the ordered items already carry their `Delivery Items` ids, so this is
@@ -173,22 +185,36 @@ async function renderPODetailPage({ params, searchParams }) {
         )
     );
 
-    // #233 — and the invoices charging it, two more batched reads and only for the
-    // office. This replaces one `getItemsByPOItem` per ordered item plus one
+    // #233 — and the invoices charging it, two more batched reads. This replaces one
+    // `getItemsByPOItem` per ordered item plus one
     // `getInvoiceByRecordId` per invoice: both were `getLinkedRecords`' 1 + N, the
     // shape docs/notes/airtable-access.md measured on this page and left for #191.
     // An empty id list costs nothing — findByRecordIds returns early — so an order
     // nothing has billed pays for neither level.
-    let invoicesOnOrder = [];
-    if (isPrivileged) {
-        const invoiceItems = await getInvoiceItemsByRecordIds([
-            ...new Set(orderedItems.flatMap((it) => it.invoiceItems || [])),
-        ]);
-        const invoices = await getInvoicesByRecordIds([
-            ...new Set(invoiceItems.map((i) => i.invoice?.[0]).filter(Boolean)),
-        ]);
-        invoicesOnOrder = foldInvoicesOnOrder({ orderedItems, invoiceItems, invoices });
-    }
+    // #235 — FOR EVERY VIEWER NOW. Two batched reads that the employee path did not
+    // pay before, which is the measured cost of opening the gate rather than a side
+    // effect: an order with nothing billed still pays for neither level, since
+    // findByRecordIds returns early on an empty id list.
+    const invoiceItems = await getInvoiceItemsByRecordIds([
+        ...new Set(orderedItems.flatMap((it) => it.invoiceItems || [])),
+    ]);
+    const invoices = await getInvoicesByRecordIds([
+        ...new Set(invoiceItems.map((i) => i.invoice?.[0]).filter(Boolean)),
+    ]);
+    const invoicesOnOrder = foldInvoicesOnOrder({ orderedItems, invoiceItems, invoices });
+
+    // #235 — the invoicing chip, beside the `Invoices` heading the way #233 put the
+    // delivery one beside `Deliveries`. Same shape as `/pos` builds, from the same
+    // three fields the ordered items already carry, so it costs no read of its own.
+    const invoicingChip = describePOInvoicingColumn(
+        summarizePOInvoicingStatus(
+            orderedItems.map((it) => ({
+                orderedQty: it.qty,
+                invoicedQty: it.invoicedQty,
+                committedQty: it.committedQty,
+            }))
+        )
+    );
 
     // Issue #167 — the overage banner, from whichever side this order is on: its own
     // PR is the correction, or one of its ordered items is where an excess came from.
@@ -278,7 +304,7 @@ async function renderPODetailPage({ params, searchParams }) {
                 <p>Our Manager: {ourManager?.userName || "—"}</p>
                 {/* Internal-only field (CLAUDE.md) — Primary/Alternate tracking,
                     not shown to non-privileged viewers (#132). */}
-                {isPrivileged && <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>}
+                {isOffice && <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>}
             </div>
 
             <div className="mt-6">
@@ -307,8 +333,17 @@ async function renderPODetailPage({ params, searchParams }) {
                                 ride on those two cells going negative; it moved to
                                 these two rather than going with them. */}
                             <th className="pr-2 text-right">Delivered</th>
-                            {/* Invoice-derived (#48) — President/Admin only (#132). */}
-                            {isPrivileged && <th className="pr-2 text-right">Invoiced</th>}
+                            {/* Invoice-derived (#48), and shown to every viewer who
+                                can see the order since #235 — the line #211 drew and
+                                this page had not followed.
+
+                                THIS HEAD AND THE CHIP BELOW NOW READ THE SAME WORD,
+                                and that is not a collision to fix. `Invoiced` here is
+                                a quantity's name; the chip beside `Invoices` is one of
+                                a closed set of three. The delivery axis has had the
+                                identical pair since #233 — a `Delivered` column under
+                                a `Delivered` chip — and the shapes keep them apart. */}
+                            <th className="pr-2 text-right">Invoiced</th>
                             <th className="pr-2">Remark</th>
                         </tr>
                     </thead>
@@ -358,26 +393,24 @@ async function renderPODetailPage({ params, searchParams }) {
                                         {it.deliveredQty ?? 0}
                                         {undeliveredQty({ qty: it.qty, deliveredQty: it.deliveredQty }) < 0 && " (over)"}
                                     </td>
-                                    {isPrivileged && (
-                                        <td
-                                            className={
-                                                it.uninvoicedQty < 0
-                                                    ? "py-1 pr-2 text-right text-red-600"
-                                                    : "py-1 pr-2 text-right"
-                                            }
-                                        >
-                                            {it.invoicedQty}
-                                            {it.uninvoicedQty < 0 && " (over)"}
-                                        </td>
-                                    )}
+                                    <td
+                                        className={
+                                            it.uninvoicedQty < 0
+                                                ? "py-1 pr-2 text-right text-red-600"
+                                                : "py-1 pr-2 text-right"
+                                        }
+                                    >
+                                        {it.invoicedQty}
+                                        {it.uninvoicedQty < 0 && " (over)"}
+                                    </td>
                                     <td className="py-1 pr-2">{it.remark}</td>
                                 </tr>
                         ))}
                     </tbody>
-                    {/* Trailing columns after Amount: privileged has Delivered +
-                        Invoiced + Remark (3); non-privileged has Delivered +
-                        Remark (2). The enumeration said 3 and 1 while the values
-                        were 5 and 3 — #169 put its two columns to the left of
+                    {/* Trailing columns after Amount: Delivered + Invoiced +
+                        Remark, three for everybody since #235 took the privilege
+                        branch off this table. The enumeration said 3 and 1 while the
+                        values were 5 and 3 — #169 put its two columns to the left of
                         Invoiced and moved the VALUES without moving the list that
                         explains them, which is how a hand-counted constant rots.
 
@@ -393,7 +426,7 @@ async function renderPODetailPage({ params, searchParams }) {
                         shippingFee={po.shippingFee}
                         totalAmount={po.totalAmount}
                         labelColSpan={5}
-                        trailingColSpan={isPrivileged ? 3 : 2}
+                        trailingColSpan={3}
                     />
                 </table>
                 <p className="mt-2 text-xs text-zinc-500">
@@ -473,9 +506,17 @@ async function renderPODetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {isPrivileged && (
+            {/* #235 — NO LONGER GATED. What a vendor billed is readable by anyone who
+                may read the order behind it (#211); `Paid` inside is the one thing
+                that kept its own line, on `seesPayment`. The chip beside the heading
+                is this order's invoicing state, in the placement #233 gave the
+                delivery one. */}
+            {(
                 <div className="mt-6">
-                    <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.invoices.heading}</h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.invoices.heading}</h2>
+                        <StatusChip chip={invoicingChip} />
+                    </div>
                     {invoicesOnOrder.length === 0 ? (
                         <p className="mt-1 text-sm text-zinc-600">
                             {PO_DOCUMENTS_COPY.invoices.empty().text}
@@ -504,20 +545,27 @@ async function renderPODetailPage({ params, searchParams }) {
                                                 {VARIANCE_COPY.header}
                                             </span>
                                         )}
-                                        {/* Payment is President-or-Admin (#211), which
-                                            this whole section already is. If the gate
-                                            above ever widens, this badge does NOT go
-                                            with it — see this file's own header, which
-                                            is where that hazard is recorded. */}
-                                        {inv.paid ? (
-                                            <span className="rounded bg-green-100 px-1 text-xs text-green-700">
-                                                {PO_DOCUMENTS_COPY.badge.paid(inv)}
-                                            </span>
-                                        ) : (
-                                            <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-500">
-                                                {PO_DOCUMENTS_COPY.badge.notPaid}
-                                            </span>
-                                        )}
+                                        {/* Payment is President-or-Admin (#211), and it
+                                            is the ONLY thing in this section that is.
+                                            The gate above widened in #235 and this
+                                            badge did not go with it — which is exactly
+                                            what this file's header warned would have
+                                            to be prevented, so `seesPayment` is its
+                                            own flag now. A viewer without it reads
+                                            neither word: not `Paid`, not `Not paid`,
+                                            since the absence of a payment badge is
+                                            itself the answer to a question they are
+                                            not being shown. */}
+                                        {seesPayment &&
+                                            (inv.paid ? (
+                                                <span className="rounded bg-green-100 px-1 text-xs text-green-700">
+                                                    {PO_DOCUMENTS_COPY.badge.paid(inv)}
+                                                </span>
+                                            ) : (
+                                                <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-500">
+                                                    {PO_DOCUMENTS_COPY.badge.notPaid}
+                                                </span>
+                                            ))}
                                     </p>
                                     <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
                                         {inv.charges.map((c) => (
@@ -565,7 +613,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                 No PO document is on file, and none will be generated now that this PO is
                                 withdrawn.
                             </p>
-                        ) : isPrivileged ? (
+                        ) : isOffice ? (
                             <div className="space-y-2">
                                 <p className="text-zinc-600">
                                     PDF generation hasn&apos;t completed yet for this PO.
@@ -586,7 +634,7 @@ async function renderPODetailPage({ params, searchParams }) {
                     <p className="text-sm text-zinc-600">
                         This PO was never signed.
                     </p>
-                ) : isPrivileged ? (
+                ) : isOffice ? (
                     <SignForm poId={po.poId} />
                 ) : (
                     <p className="text-sm text-zinc-600">
@@ -596,7 +644,7 @@ async function renderPODetailPage({ params, searchParams }) {
             </div>
 
             {/* Issue #138 — the requester's own control, so it sits OUTSIDE
-                the isPrivileged gate above (site staff place the vendor order
+                the isOffice gate above (site staff place the vendor order
                 and are the ones who decide not to; they're typically neither
                 President nor Admin). Both refusals come from the one shared
                 predicate: a wrong status renders nothing at all (there is
