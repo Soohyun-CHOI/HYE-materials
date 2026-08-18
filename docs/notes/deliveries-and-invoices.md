@@ -1487,3 +1487,94 @@ together, with the excess stated as a figure rather than a tag. The rule is
 - **NO NEW READ.** The fold is a pure regrouping of rows the page already built, and
   no credentialed function gained a call site. Measured on the labeled route,
   `HYE-DL-260804-02` read **14 ops before and 14 after**.
+
+### Naming the two variance kinds (#179)
+
+An invoice carries two flags that both read `Variance` on screen and are not the
+same kind of fact. `Invoices."Variance Flag"` compares the total the vendor wrote
+against the sum of the items somebody typed in from the same page;
+`Invoice Items."Variance Flag"` compares a charge against what the order agreed. The
+list said `⚠ Variance` for the first and the detail's items table said it for the
+second. The words are `lib/variance.js:VARIANCE_COPY` now, beside the predicates that
+set them.
+
+- **`⚠ Order variance` AND `⚠ Check the total`, AND THE TWO GRAMMARS ARE THE
+  DISTINCTION.** The charge one is a STATE — the vendor billed something other than
+  what was settled, an external fact that stays true until somebody takes it up with
+  them. The document one is an INSTRUCTION, because it is an internal arithmetic check
+  and what it asks for is a second look; no other mark on these screens has that shape,
+  which is what stops a reader taking it for a third state. **Neither names a
+  direction, and that is measured rather than stylistic**: `checkHeaderVariance` and
+  `checkUnitPriceVariance` both compare an absolute difference, so each fires when the
+  figure is under as readily as over. `Over-billed` was the issue's first choice for
+  the charge one and would have been false half the time it appeared.
+- **`Mismatch` WAS THE ISSUE'S FIRST CHOICE FOR THE OTHER ONE AND IS NOT AVAILABLE.**
+  #232 made it a chip value on the delivery axis of these same two screens, so taking
+  it here would put one word on two axes of one page — this issue's own defect, pointed
+  the other way.
+- **THE FORM'S SENTENCE IS UNTOUCHED, AND THE TENSE IS WHY.** `/invoices/new` already
+  says `Vendor's Stated Total (…) doesn't match the calculated total (…) — double-check
+  before submitting` (#57). Same verb family on purpose, different moment: the form
+  addresses the person still typing the number, and `before submitting` has nothing to
+  point at once the record is stored — where the reader may not be the person who
+  entered it.
+- **NO SENTENCE BESIDE THE CHARGE BADGE, and the stored data is the reason.**
+  `createInvoiceAction` sets that flag on `unitPriceVariance || invoicedQty >
+  poItem.qty` — a price that differs from the order's, or a quantity billed beyond what
+  it asked — and the checkbox does not record which fired. Any explanation naming one
+  cause would be false whenever the other did. The name carries what can be carried
+  (what it was compared against), and the comparison itself is on the order's own page,
+  which #233 gave an `Invoiced` column beside the ordered quantity and price.
+- **THE AMBER PROMPT IS THE CHARGE KIND'S VOICE ALONE NOW, WHICH CLOSES A BACKLOG
+  ITEM.** It fired on either flag and said `variance flags`, so a header variance
+  printed the same fact twice on one page — the red box under the totals states it with
+  both figures and sits outside the Payment gate, so nothing is lost by narrowing.
+  Whether the amber should name the kind or drop what the red box already said was
+  recorded as an open copy decision in `backlog.md`; that line is deleted and this is
+  where it was settled. **The action changed for the same reason #211 created**: it
+  said `review before confirming payment` to readers who cannot pay, and now asks for
+  something anyone can do — check the charge against the order, or take it up with the
+  vendor — with payment as the deadline rather than the act, which is #232's grammar in
+  the amber box further up the same page.
+- **THE LIST'S BADGE AND ITS COLUMN ARE THE OFFICE'S NOW, AND #211's REASON FOR
+  KEEPING THEM WAS A MISIDENTIFICATION.** That issue left the badge for every viewer on
+  the ground that it was "billed-against-ordered … the reason an employee is on this
+  page at all". It is not: the list badge reads `Invoices."Variance Flag"`, the header
+  kind, which is an arithmetic check only an Admin can act on since only an Admin can
+  edit an invoice. The kind an employee is here to catch has no mark in this list for
+  anyone — it is on the invoice's own page, per charge, next to the order it disagrees
+  with. So the column goes with the payment state it shares a cell with, and an
+  employee reads six columns.
+- **THE BADGE STACKS UNDER THE PAYMENT WORD, WHICH IS WHAT A RE-CUT WOULD HAVE COST.**
+  Measured at 832px before the change: the column is 176px, `Paid 2026-07-27` is 104px
+  and `⚠ Variance` was 68px — the pair fitting exactly, which is what the dropped right
+  padding bought. `⚠ Check the total` is 102px, so the pair needs 210px. Every other
+  column is declared from its own widest content and has 8px or less to give, and
+  `Invoice ID` has none, so finding 34px means re-cutting against today's data rather
+  than the worst case #166 sized for — the first 17-character vendor name would wrap.
+  Stacking costs a second line on an invoice that is both paid and flagged (47px
+  against 30px) and nothing else. **The employee row's freed 11rem goes to Vendor**,
+  which is #211's own move for the 6rem it freed; both rows still sum to exactly 52rem.
+  Re-measured after: 832px, no horizontal scrollbar, every unflagged row one line.
+- **THE COPY LIVES WITH THE PREDICATES, AND `PO_DOCUMENTS_COPY` GAVE UP ITS TWO.**
+  `lib/variance.js` owns the judgment, so it owns the words — the shape
+  `deliveryStatus.js` and `deliveryAllocation.js` already have — and that gets them out
+  of JSX, where `offline/line-vocabulary.mjs` cannot see them. The order page's two
+  badge strings were a second home for words that are invoice facts, and a word with
+  two homes is what this issue removes; `/pos/[poId]` reads the constant directly.
+  **No client-bundle hazard**: `lib/variance.js` imports nothing at all, so the one
+  Client Component that needs it (`EditInvoiceForm`) reaches no credentialed root —
+  the #198 case, where `lib/airtableOps.js` could not be imported from
+  `app/login/page.js`, does not arise. Asserted by `offline/client-import-safety.mjs`
+  on every run.
+- **THE CHECK PINS THE WORDS AND THE ABSENCE OF THE OLD ONES.** Two constants that
+  differ, neither a prefix of the other, neither carrying `Mismatch` or a direction,
+  the detail sentence leading with the badge's own label — and a scan of every file
+  under `app/` for the retired strings, comments excluded, since a call site going back
+  to a literal is how the two would drift apart again. `offline/po-documents.mjs` now
+  asserts the two keys are GONE from that module rather than asserting their values.
+- **NOT MEASURED, DELIBERATELY.** Nothing about this changes what is read: the copy is
+  static, the one condition that narrowed (`hasItemVariance`) reads invoice items the
+  page already holds, and no credentialed function gained or lost a call site.
+- **Not in this issue:** the tolerance the form applies against the one the backend
+  applies, which #254 owns — `lib/variance.js`'s three numbers are untouched here.

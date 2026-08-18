@@ -17,6 +17,8 @@ import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { formatUSD } from "@/lib/format";
+// #179 — the two variance kinds, named where the predicates that set them live.
+import { VARIANCE_COPY } from "@/lib/variance";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFactsForPO } from "@/lib/overagePR";
 import { undeliveredQty } from "@/lib/deliveryAllocation";
@@ -499,7 +501,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                         <span className="text-zinc-500">{inv.issueDate || "—"}</span>
                                         {inv.varianceFlag && (
                                             <span className="rounded bg-amber-100 px-1 text-xs text-amber-700">
-                                                {PO_DOCUMENTS_COPY.badge.headerVariance}
+                                                {VARIANCE_COPY.header}
                                             </span>
                                         )}
                                         {/* Payment is President-or-Admin (#211), which
@@ -523,7 +525,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                                 {PO_DOCUMENTS_COPY.invoices.charge(c).text}
                                                 {c.varianceFlag && (
                                                     <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
-                                                        {PO_DOCUMENTS_COPY.badge.itemVariance}
+                                                        {VARIANCE_COPY.item}
                                                     </span>
                                                 )}
                                             </li>
