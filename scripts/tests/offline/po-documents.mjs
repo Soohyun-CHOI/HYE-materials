@@ -306,8 +306,6 @@ export function run({ check, assert, log }) {
         ...sentences,
         PO_DOCUMENTS_COPY.invoices.heading,
         PO_DOCUMENTS_COPY.deliveries.heading,
-        PO_DOCUMENTS_COPY.badge.headerVariance,
-        PO_DOCUMENTS_COPY.badge.itemVariance,
         PO_DOCUMENTS_COPY.badge.paid({ paidDate: "2026-07-27" }),
         PO_DOCUMENTS_COPY.badge.notPaid,
         PO_DOCUMENTS_COPY.badge.overDelivered,
@@ -329,28 +327,16 @@ export function run({ check, assert, log }) {
         !words.some((w) => /\bline\b/i.test(w))
     );
     assert("  the two empty states end in a full stop", sentences.slice(0, 2).every((t) => t.endsWith(".")));
-    // The two variance words are on one screen and must not be one word: the
-    // header flag compares the invoice's totals, the charge flag compares this
-    // charge against the order.
+    // THE TWO VARIANCE BADGES LEFT THIS MODULE IN #179 and are asserted in
+    // `offline/variance-copy.mjs` now. They were here as literals pinned to the
+    // invoice detail's own words, with a comment saying the agreement mattered more
+    // than the strings; that agreement is structural now — one constant, read by
+    // this page and by both invoice screens — so a copy of the words here would be
+    // the second home the move removed.
     assert(
-        "  the two variance badges are two different words",
-        PO_DOCUMENTS_COPY.badge.headerVariance !== PO_DOCUMENTS_COPY.badge.itemVariance
-    );
-    // EACH IS THE WORD THE INVOICE DETAIL ALREADY USES FOR THAT FLAG, pinned as a
-    // literal because the point is agreement across two screens rather than any
-    // property of the strings. `⚠ Header Variance` is not a word this issue would
-    // have chosen — #179 has already picked `Total mismatch` for it — but coining
-    // a better one here would give one flag two screen words, which is the drift
-    // that issue exists to remove. It changes on both pages or neither.
-    check(
-        "  the header badge is the invoice detail's word, unchanged",
-        PO_DOCUMENTS_COPY.badge.headerVariance,
-        "⚠ Header Variance"
-    );
-    check(
-        "  and the charge badge is its items table's",
-        PO_DOCUMENTS_COPY.badge.itemVariance,
-        "⚠ Variance"
+        "  and this module no longer names either variance kind",
+        PO_DOCUMENTS_COPY.badge.headerVariance === undefined &&
+            PO_DOCUMENTS_COPY.badge.itemVariance === undefined
     );
     check(
         "a paid badge with no date still reads",

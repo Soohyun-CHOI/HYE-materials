@@ -89,7 +89,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/authTokenState.js` — whether a magic-link token can still be used: the five states, their copy, `TOKEN_TTL_MINUTES`.
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels an `Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
-- `lib/variance.js` — invoice/PO variance checks.
+- `lib/variance.js` — invoice/PO variance checks, and `VARIANCE_COPY`: the two kinds named apart (#179), `Order variance` for a charge against its order and `Check the total` for one document's own arithmetic.
 - `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.

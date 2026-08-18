@@ -14,6 +14,9 @@ import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility"
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
+// #179 — the two variance kinds are named in one place, beside the predicates
+// that set them.
+import { VARIANCE_COPY } from "@/lib/variance";
 import { withOpsLabel } from "@/lib/airtableOps";
 import PaidForm from "./PaidForm";
 import DeleteInvoiceButton from "./DeleteInvoiceButton";
@@ -156,9 +159,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
         hasDelivery: reconciliation.summary.hasDelivery,
     });
 
-    // Issue #16 — surfaced but never blocking: variance is a review prompt,
-    // not a gate on marking something paid.
-    const hasVariance = invoice.varianceFlag || items.some((it) => it.varianceFlag);
+    // Issue #16 — surfaced but never blocking: a variance is a review prompt, not a
+    // gate on marking something paid. #179 — the ITEM kind only. The header kind is
+    // stated once, in the red box under the totals, and the two used to be one
+    // condition here, which printed the header fact twice on one page.
+    const hasItemVariance = items.some((it) => it.varianceFlag);
     const file = invoice.file?.[0];
 
     // Summary rows in the same invoice-style shape as PR/PO (#102), with
@@ -338,9 +343,18 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                             <tr key={it.key} className="border-t border-zinc-200">
                                 <td className="py-1 pr-2">
                                     {it.itemName}
+                                    {/* #179 — `Order variance`, which says which of
+                                        the two kinds this is: a charge against what
+                                        the order agreed. NO SENTENCE BESIDE IT: the
+                                        stored flag is one checkbox set by a price
+                                        difference OR a quantity billed beyond the
+                                        order, so any explanation naming a cause would
+                                        be false whenever the other one fired. What it
+                                        was compared against is on the order's own
+                                        page, beside the quantity and the price (#233). */}
                                     {it.varianceFlag && (
                                         <span className="ml-1 rounded bg-red-100 px-1 text-xs text-red-700">
-                                            ⚠ Variance
+                                            {VARIANCE_COPY.item}
                                         </span>
                                     )}
                                 </td>
@@ -385,10 +399,15 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                         ))}
                     </tfoot>
                 </table>
+                {/* #179 — THE SAME LABEL THE LIST'S BADGE CARRIES, leading the
+                    sentence that states the two figures. One kind, one word, on the
+                    row a reader clicks and the page they land on. */}
                 {invoice.varianceFlag && (
                     <p className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        ⚠ Header Variance — the vendor&apos;s Amount Due ({formatUSD(invoice.amountDue)})
-                        doesn&apos;t match our Calculated Total ({formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)}).
+                        {VARIANCE_COPY.headerDetail(
+                            formatUSD(invoice.amountDue),
+                            formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)
+                        )}
                     </p>
                 )}
             </div>
@@ -612,17 +631,25 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
 
             {/* HOISTED OUT OF THE PAYMENT SECTION BY #211, because it is a fact
                 about the invoice and that section is now President-or-Admin. It has
-                to outlive the gate: the amber prompt is the only thing that raises a
-                INVOICE-ITEM-only variance to invoice level, and an invoice item
-                billed for thirteen against ten delivered is exactly what the
-                employee who counted the material is here to catch. Its wording
-                is untouched — naming the two
-                variance kinds apart is #179's, and copy that mentions payment does
-                not disclose whether THIS vendor was paid, which is where the line
-                actually runs. */}
-            {hasVariance && (
+                to outlive the gate: this prompt is the only thing that raises an
+                invoice-item variance to invoice level, and a charge billed at other
+                than what the order agreed is exactly what the employee reading this
+                page is here to catch. Copy that mentions payment does not disclose
+                whether THIS vendor was paid, which is where the line actually runs.
+
+                #179 NARROWED IT TO THE ITEM KIND AND REWORDED IT. It said
+                `variance flags`, one word for two kinds, and fired on either — but
+                the header kind already has a sentence on this page, in the red box
+                under the totals, which states both figures and sits outside the
+                Payment gate. Firing on both printed one fact twice on one screen.
+                And `review before confirming payment` named an action most of this
+                prompt's readers cannot take, which is what #211 created and this
+                issue's comment records; the action is now one anybody can take and
+                payment is the deadline rather than the act — #232's grammar, in the
+                amber box further up this same page. */}
+            {hasItemVariance && (
                 <p className="mt-8 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                    ⚠ This invoice has variance flags — review before confirming payment.
+                    {VARIANCE_COPY.itemPrompt().text}
                 </p>
             )}
 

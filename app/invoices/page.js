@@ -18,6 +18,7 @@ import {
 import { withOpsLabel } from "@/lib/airtableOps";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { formatUSD } from "@/lib/format";
+import { VARIANCE_COPY } from "@/lib/variance";
 import AwaitingInvoiceStrip from "./AwaitingInvoiceStrip";
 
 export const metadata = { title: "Invoices" };
@@ -203,31 +204,35 @@ async function renderInvoiceListPage() {
                     marker since #210 and its widest is `Awaiting delivery` (120px,
                     unchanged: the state that left was not the widest one), Amount
                     Due is bound by its own header (78px),
-                    and Status by `Paid 2026-07-27` beside a `⚠ Variance` badge
-                    (176px, and the reason the last column drops its right padding).
+                    and Status by the payment word above its badge (176px, and the
+                    reason the last column drops its right padding).
                     So VENDOR IS WHERE THE SLACK ISN'T: 8rem holds the longest name
                     on this base at 16 characters with nothing to spare, and it is
                     also the one column where wrapping would be least harmful if a
                     longer supplier is ever added.
 
-                    TWO BUDGETS SINCE #211, the way /pos/[poId] carries two column
-                    counts. The last column holds two unrelated things — payment,
-                    which is President-or-Admin, and the variance badge, which is
-                    not — so for an employee it keeps the badge alone and needs
-                    5rem rather than 11rem. THE 6rem THAT FREES GOES TO VENDOR,
+                    SIX COLUMNS FOR AN EMPLOYEE SINCE #179, seven for the office.
+                    #211 gave this table two budgets because the last column held two
+                    unrelated things — payment, which is President-or-Admin, and a
+                    variance badge, which it took for the billed-against-ordered kind
+                    and kept for every viewer. It is the HEADER kind: an arithmetic
+                    check on one document that only an Admin can act on, since only an
+                    Admin can edit an invoice. So the column goes with payment and an
+                    employee reads six columns. THE 11rem THAT FREES GOES TO VENDOR,
                     which is the column this very comment records as having none:
-                    14rem clears the longest name on this base by 6rem instead of
-                    by nothing. Both rows still sum to exactly 52rem; a column is
-                    never appended and the budget is re-cut (#166). */}
+                    19rem clears the longest name on this base many times over, and
+                    handing it to the one column that can grow is #211's own move.
+                    Both rows still sum to exactly 52rem; a column is never appended
+                    and the budget is re-cut (#166). */}
                 <table className="w-full min-w-[52rem] table-fixed text-sm">
                     <colgroup>
                         <col style={{ width: "8.5rem" }} />
-                        <col style={{ width: privileged ? "8rem" : "14rem" }} />
+                        <col style={{ width: privileged ? "8rem" : "19rem" }} />
                         <col style={{ width: "5.5rem" }} />
                         <col style={{ width: "5.5rem" }} />
                         <col style={{ width: "5.5rem" }} />
                         <col style={{ width: "8rem" }} />
-                        <col style={{ width: privileged ? "11rem" : "5rem" }} />
+                        {privileged && <col style={{ width: "11rem" }} />}
                     </colgroup>
                     <thead>
                         <tr className="text-left text-zinc-500">
@@ -237,11 +242,17 @@ async function renderInvoiceListPage() {
                             <th className="pr-2">Due Date</th>
                             <th className="pr-2 text-right">Amount Due</th>
                             <th className="pr-2">Delivery</th>
-                            {/* NAMED FOR WHAT IT HOLDS. `Status` over a cell that
-                                carries only a variance badge would head a column
-                                whose subject is missing, and an employee would read
-                                the empty cells as a status nobody set. */}
-                            <th className="pr-2">{privileged ? "Status" : "Variance"}</th>
+                            {/* PRIVILEGED ONLY SINCE #179. `Status` over a cell that
+                                carried only a variance badge would head a column whose
+                                subject is missing — which is what this comment said
+                                when the badge was the employee's to read. It is not:
+                                the badge is the HEADER flag, an arithmetic check on
+                                one document that the office performs and the office
+                                fixes, and #211 kept it for every viewer on the stated
+                                ground that it was billed-against-ordered, which it
+                                never was. So the column goes with the payment state
+                                it shares a cell with. */}
+                            {privileged && <th className="pr-2">Status</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -273,10 +284,11 @@ async function renderInvoiceListPage() {
                                     STILL NO EXCEPTION TAGS. The two beyond-the-order
                                     tags this column used to carry both left it, for
                                     different reasons. `beyond order` (billed >
-                                    ordered) is already on this very page as the
-                                    `⚠ Variance` badge in the items table, which
-                                    `Invoice Items.Variance Flag` drives — one fact
-                                    rendered twice on one screen. `over-delivery`
+                                    ordered) is one of the two things
+                                    `Invoice Items.Variance Flag` is set for, and the
+                                    invoice detail marks it per charge —
+                                    `⚠ Order variance` since #179 — so a tag here
+                                    would be one fact on two screens. `over-delivery`
                                     (delivered > ordered) is not a fact about THIS
                                     invoice at all but about the ordered item, and
                                     inside a column headed `Delivery` it reads as
@@ -300,20 +312,42 @@ async function renderInvoiceListPage() {
                                     })()}
                                 </td>
                                 {/* NO RIGHT PADDING ON THE LAST COLUMN — there is
-                                    nothing to its right to separate it from, and
-                                    this table's budget is tight enough that those
-                                    8px are the difference between `Paid 2026-07-27`
-                                    beside a `⚠ Variance` badge fitting on one line
-                                    and wrapping. */}
-                                <td className="py-1">
-                                    {/* PAYMENT IS PRESIDENT-OR-ADMIN (#211). The
-                                        line is drawn around whether this vendor has
-                                        been paid, not around the word payment: the
-                                        variance badge beside it is billed-against-
-                                        ordered and stays for every viewer, since
-                                        catching that is the reason an employee is
-                                        on this page at all. */}
-                                    {privileged && (
+                                    nothing to its right to separate it from, and this
+                                    table's budget is tight enough that those 8px used
+                                    to be the difference between the payment word and
+                                    its badge fitting on one line and wrapping. They
+                                    stack since #179 (see the cell), so the 8px buys
+                                    room the column no longer needs — kept because the
+                                    reason it was dropped is unchanged: there is still
+                                    nothing to its right. */}
+                                {/* PAYMENT IS PRESIDENT-OR-ADMIN (#211), AND SINCE
+                                    #179 SO IS THE WHOLE CELL. The badge here is the
+                                    HEADER flag — the vendor's stated total against
+                                    what its items add up to — which in practice means
+                                    the entry missed something. That is the office's
+                                    check to make and the office's to fix, since only
+                                    an Admin can edit an invoice. #211 kept it for
+                                    every viewer on the ground that it was
+                                    billed-against-ordered; it never was, and the kind
+                                    an employee is on this page to catch has no mark in
+                                    this list at all — it is on the invoice's own page,
+                                    per charge, where the order it disagrees with is
+                                    one click away.
+
+                                    THE BADGE STACKS UNDER THE PAYMENT WORD rather than
+                                    sitting beside it, and that is measured: this
+                                    column is 176px, `Paid 2026-07-27` is 104px, and
+                                    `⚠ Check the total` is 102px, so the pair needs 210
+                                    on one line. Every other column in this table is
+                                    declared from its own widest content and has 8px or
+                                    less to give (Invoice ID has none), so borrowing
+                                    34px would be re-cutting the budget against today's
+                                    data rather than the worst case #166 sized it for —
+                                    the first 17-character vendor name would then wrap.
+                                    Stacking costs a second line on the rare invoice
+                                    that is both paid and flagged, and nothing else. */}
+                                {privileged && (
+                                    <td className="py-1">
                                         <span
                                             className={
                                                 inv.paid
@@ -323,15 +357,13 @@ async function renderInvoiceListPage() {
                                         >
                                             {inv.paid ? `Paid${inv.paidDate ? ` ${inv.paidDate}` : ""}` : "Unpaid"}
                                         </span>
-                                    )}
-                                    {inv.varianceFlag && (
-                                        <span
-                                            className={`${privileged ? "ml-1 " : ""}rounded bg-red-100 px-1 text-xs text-red-700`}
-                                        >
-                                            ⚠ Variance
-                                        </span>
-                                    )}
-                                </td>
+                                        {inv.varianceFlag && (
+                                            <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
+                                                {VARIANCE_COPY.header}
+                                            </span>
+                                        )}
+                                    </td>
+                                )}
                             </tr>
                         ))}
                     </tbody>

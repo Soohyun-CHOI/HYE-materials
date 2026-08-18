@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { updateInvoiceAction } from "../actions";
+import { VARIANCE_COPY } from "@/lib/variance";
 
 const inputClass =
     "rounded border border-zinc-300 px-2 py-1";
@@ -124,8 +125,8 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                         className={fieldClass}
                     />
                     <p className="mt-1 text-xs text-zinc-500">
-                        The figure printed on the vendor&apos;s invoice. Editing it re-checks the
-                        variance against our calculated total.
+                        The figure printed on the vendor&apos;s invoice. Editing it re-checks
+                        it against our calculated total.
                     </p>
                 </div>
 
@@ -220,7 +221,7 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                                         PO: {it.poId}
                                         {it.varianceFlag && (
                                             <span className="ml-2 rounded bg-red-100 px-1 text-xs text-red-700">
-                                                ⚠ Variance
+                                                {VARIANCE_COPY.item}
                                             </span>
                                         )}
                                     </span>
