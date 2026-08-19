@@ -42,7 +42,11 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { listJsFiles, repoPath, toPosix, REPO_ROOT } from "./_ast.mjs";
 import { listEntryPoints, countEntryPointFiles, routeTemplate } from "./_entrypoints.mjs";
-import { STATUS_COPY, AWAITING_INVOICE_COPY } from "../../../lib/deliveryStatus.js";
+import {
+    STATUS_COPY,
+    AWAITING_INVOICE_COPY,
+    AWAITING_DELIVERY_COPY,
+} from "../../../lib/deliveryStatus.js";
 import { VARIANCE_COPY } from "../../../lib/variance.js";
 import { EMPTY_COPY, AWAITING_PO_COPY } from "../../../lib/poListView.js";
 import { CONFIRM_COPY } from "../../../lib/authTokenState.js";
@@ -144,6 +148,9 @@ const PINNED = [
     "⚠ Check the total",
     "Not compared — no ordered item",
     "Longest wait first. No invoice yet covers what these arrivals brought.",
+    "Longest wait first. Nothing has confirmed the material these bills charge for.",
+    "nothing delivered yet",
+    "delivered, not matched",
     "No invoice charges this order yet.",
     "Nothing has been delivered against this order yet.",
     "No purchase orders yet. One is generated automatically when a purchase request is fully approved.",
@@ -170,8 +177,18 @@ export function run({ check, assert, log }) {
     assert("the briefs directory is not empty", onDisk.length > 0);
 
     const screenFiles = onDisk.filter((f) => !NON_SCREEN.has(f));
+    // LINE ENDINGS NORMALIZED, AND THIS WAS A LIVE DEFECT (#256). The structural scan
+    // below looks for "\n## …\n"; this working tree is CRLF, so it matched nothing and
+    // reported every brief as missing every section. It passed in the branch that added
+    // it because the files had just been written with LF and only became CRLF on the
+    // checkout after the merge — a check that is green for its author and red for
+    // everyone after. Normalizing once here is what notes-index.mjs already does to
+    // CLAUDE.md, and it makes every matcher below indifferent to the ending.
     const briefText = new Map(
-        onDisk.map((f) => [f, readFileSync(repoPath(`${BRIEFS_DIR}/${f}`), "utf8")])
+        onDisk.map((f) => [
+            f,
+            readFileSync(repoPath(`${BRIEFS_DIR}/${f}`), "utf8").replace(/\r\n/g, "\n"),
+        ])
     );
 
     // --- one brief per page, both directions -----------------------------
@@ -278,6 +295,7 @@ export function run({ check, assert, log }) {
         ...stringsFrom(LINK_COPY),
         ...stringsFrom(STATUS_COPY),
         ...stringsFrom(AWAITING_INVOICE_COPY),
+        ...stringsFrom(AWAITING_DELIVERY_COPY),
         ...stringsFrom(AWAITING_PO_COPY),
         ...stringsFrom(ALLOCATION_COPY),
         ...stringsFrom(OVERAGE_COPY),
@@ -327,6 +345,15 @@ export function run({ check, assert, log }) {
     // Every assertion above is of the form "no X". Each mechanism is proved on a
     // case whose answer is known, because a broken deriver, an unreadable directory
     // and a failed walk all report exactly "no X" too.
+    // THE SECTION MATCHER SURVIVES BOTH LINE ENDINGS, which is the assertion whose
+    // absence let #260's version be green for one branch and red thereafter. Run on
+    // built strings rather than on a file, so it holds however git checks the tree out.
+    const sample = (nl) => `# T${nl}${nl}${REQUIRED_HEADINGS.join(`${nl}x${nl}`)}${nl}`;
+    const findsAll = (text) => REQUIRED_HEADINGS.every((h) => text.includes(`\n${h}\n`));
+    assert("the section matcher finds headings in LF text", findsAll(sample("\n")));
+    assert("  and in CRLF text once normalized", findsAll(sample("\r\n").replace(/\r\n/g, "\n")));
+    assert("  and would MISS them unnormalized", !findsAll(sample("\r\n")));
+
     assert("the deriver names a static route", briefFileName("/prs") === "prs.md");
     assert("  a dynamic segment", briefFileName("/pos/[poId]") === "pos-poId.md");
     assert("  a nested dynamic route", briefFileName("/invoices/[invoiceId]/edit") === "invoices-invoiceId-edit.md");

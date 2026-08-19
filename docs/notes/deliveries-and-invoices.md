@@ -1578,3 +1578,100 @@ set them.
   page already holds, and no credentialed function gained or lost a call site.
 - **Not in this issue:** the tolerance the form applies against the one the backend
   applies, which #254 owns — `lib/variance.js`'s three numbers are untouched here.
+
+### Bills waiting on a delivery (#256)
+
+The other end of #216: a second strip above `/invoices`, listing bills nobody has
+matched to a delivery, longest wait first. The fourth built to the shape #176 set.
+
+- **THE REFUSAL REASON CANNOT BE SHOWN, AND THAT IS A MEASURED CONSTRAINT RATHER
+  THAN A CHOICE.** The issue body asks for the distinction between a bill whose
+  orders have seen no arrival and one whose arrival exists but was refused a
+  pairing. The second half is unavailable as asked: `fitRefusal` produces seven
+  reasons, is pure, and **is never stored** — it runs at write time only, from
+  `createInvoiceAction` and from `createDeliveryAction`. Re-deriving one per row
+  means `getArrivalsForBill` per invoice, five reads each, which is the per-row
+  shape #143 ruled out and #162 measured at over 200 calls.
+- **SO THE SPLIT IS BY ARRIVAL, NOT BY REASON**, and it costs one batched read.
+  `PO Items."Delivery Items"` answers "has anything been delivered against what
+  this bill charges" for every ordered item on the page at once, and
+  `getPOItemsForReconciliation` already carried the field. No `Delivery Items`
+  level is read: a non-empty link array is the whole claim. Quantities would let
+  the strip say more than it should — whether what arrived covers what is billed
+  is the *matched* delivery's question, and these bills have no match.
+- **THE TWO WORDS NAME THE OBSERVATION AND NEVER THE CAUSE**, which the base
+  forces. `docs/notes/backlog.md` records, measured, that every seed writes
+  invoices directly and none calls the matcher, so an empty `Invoices."Delivery"`
+  here is usually a bill the app was never asked about. `nothing delivered yet`
+  and `delivered, not matched` are true under a refusal, under nothing having
+  arrived, and under the matcher never having run. A word claiming a refusal
+  would be false about most of the rows it labeled.
+- **`Issue Date`, NOT `Created At`**, and the delivery side set the precedent: it
+  counts from `Received Date`, the date on the packing list, although
+  `Deliveries` carries `Created At` too. Both strips therefore count from the
+  document's own date and their `Nd` figures mean the same kind of thing.
+  `Created At` reads better in one respect — nobody could act before the office
+  entered the bill — and loses to comparability, with the row showing the date
+  beside the count so a reader can check either.
+- **A BILL CHARGING NO ORDERED ITEM IS EXCLUDED**, the one place the strip is
+  narrower than the chip it selects on. It can never be paired (`noOrderedItem`)
+  and the arrival question cannot be asked of it, so both row words would be
+  false. `countsTowardStatus`'s own reasoning one level up. **The consequence is
+  that the row count and the number of `Awaiting delivery` chips in the table can
+  differ, and it is written down in three places** — the selector's docstring,
+  `offline/awaiting-delivery.mjs`, and `docs/briefs/invoices.md` — because anyone
+  comparing the two figures will find them apart and read it as a bug.
+- **BELOW #216's STRIP, ON THE DOCUMENTS' OWN ORDER.** A delivery waiting for a
+  bill precedes a bill waiting for a delivery in the flow the two describe, so
+  reading down the page puts the two ends of one situation in the order they
+  occur. The adjacency argument was weighed first and is weaker: this strip's rows
+  also appear in the table below, which argues for putting it there and equally
+  well against it, since a row rendered twice is a duplication rather than a
+  relationship. It is the first strip whose rows are a subset of its own list —
+  #176's and #217's report rows that have no place in their tables at all — and
+  the duplication is the point: the table carries no wait and no ordering.
+- **NEITHER STRIP'S CONTENTS DEPEND ON THE OTHER'S.** One situation seen from both
+  ends produces a row in each. Suppressing either would make one strip's rule a
+  function of the other's, and they admit different readers anyway — #216's rows
+  are Job-scoped arrivals, these are invoices under #211's walk.
+- **`waitingSince` REPLACED `receivedDate` ON THE SHARED SORT.** Three callers
+  order by `sortLongestWaitingFirst` and the third passes an invoice's date, so a
+  property named after the delivery field was false at one of them. An accessor
+  parameter was the alternative and is worse for a reason outside the function:
+  `offline/delivery-status.mjs` pins that no `.sort()` in `lib/deliveryStatus.js`
+  mentions `issueDate`, because #219 moved the one ordering of bills by that field
+  into `lib/overage.js` and made it private. Passing `(r) => r.issueDate` from a
+  page passes only because the call site sits elsewhere; move row-building into
+  that module later and it trips #219's guard. A neutral property never can.
+- **THE TIE-BREAK WAS INERT HERE AND IS NOW THE `Invoice ID` (second pass).**
+  `sortLongestWaitingFirst` broke a tie on `createdAt` descending and `Invoices` has
+  no creation timestamp — no field on the table, none on the mapper — so this axis
+  passed `undefined` and every same-day pair silently held whatever order the
+  invoice read returned. Visible on the base: `HYE-INV-260716-03` and `-02` are both
+  `2026-07-16`. The property is `createdKey` now, generalized the way `waitingSince`
+  was and for the same reason — the two callers pass different KINDS of value, so a
+  name borrowed from one of them was a claim the other could not honor.
+- **THE SUBSTITUTION IS EXACT, AND #164 IS WHY.** A generated id's date half comes
+  from `new Date()` at mint time (`lib/ids.js`), never from a date field — that
+  issue found Invoice ID counting `{Issue Date}`, the vendor's own human-entered
+  date, and measured the filter matching 0 of 5 invoices. So descending by
+  `Invoice ID` says what descending by `createdAt` says on the delivery side: most
+  recently entered first, with the within-day sequence settling a same-day tie. It
+  is not an approximation of a timestamp; it is the same fact in another encoding.
+- **THE PROOF MOVED WITH IT, BOTH TIMES.** `offline/delivery-status.mjs` names the
+  sort's fields in an anti-vacuity assertion, so each rename would otherwise have
+  left it reporting "the matcher works" by finding a field no sort here reads —
+  the same silent death `waitingSince` risked. Both renames updated that line in
+  their own commit, and a check now also fails on any sort in this module still
+  reading a pre-#256 name, so a half-converted call site cannot hide behind the
+  assertion passing on the other one.
+- **THE COPY NAMES NO CONTROL, AND THE REASON IS SHARPER THAN #216's.** There the
+  barred control was `New invoice`, Admin-only on a strip that is not. What a
+  reader would act on here is recording a delivery, which is Job-scoped site work,
+  so the office staff most likely to be reading this page cannot take it at all.
+  It also gives no instruction about paying, which is President-or-Admin (#211)
+  while the strip is not — the fact is stated and the fact is the argument.
+- **Not in this issue:** re-running the pairing for bills already on the base,
+  which is what would make an unmatched bill mean "refused" rather than "never
+  asked". That is the seed defect `backlog.md` records, and it changes another
+  issue's data.
