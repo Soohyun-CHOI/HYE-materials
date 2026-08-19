@@ -60,8 +60,8 @@ where the order it disagrees with is one click away.
 
 **When there are no rows:** one of two sentences. `No invoices yet.` when the base
 has none, and `No invoices to show. You see an invoice when it bills a purchase
-order you can see.` when the reader's scope is empty. Same distinction the
-purchase order list draws.
+order you raised or one on a job you are assigned to.` when the reader's scope is
+empty. Same distinction the purchase order list draws.
 
 **When some delivery is still waiting for a bill:** a strip above the table, with
 a counted heading — `N deliveries are waiting for an invoice` — the line
@@ -109,8 +109,8 @@ carry different prefixes.
 **Its row count and the number of `Awaiting delivery` chips in the table can
 differ, and that is not a defect.** An invoice that charges no ordered item at all
 wears the chip below and has no row above, because it can never be paired and the
-delivery question cannot be asked of it. Two of the base's invoices are in exactly
-that state.
+delivery question cannot be asked of it. Some of the base's invoices are in
+exactly that state.
 
 ## What must agree elsewhere
 
