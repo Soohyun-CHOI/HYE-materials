@@ -1643,13 +1643,28 @@ matched to a delivery, longest wait first. The fourth built to the shape #176 se
   into `lib/overage.js` and made it private. Passing `(r) => r.issueDate` from a
   page passes only because the call site sits elsewhere; move row-building into
   that module later and it trips #219's guard. A neutral property never can.
-- **THE SHARED TIE-BREAK IS INERT HERE.** `sortLongestWaitingFirst` breaks a tie on
-  `createdAt` descending and `Invoices` has no creation timestamp — no field, and
-  the mapper exposes none — so bills issued on one day hold their input order.
-  `Invoice ID` would serve, its date half being the day the record was created, but
-  using it needs the tie-break property generalized across the same two other call
-  sites, which is a second rename this issue was not asked for. It decides only the
-  order of same-day rows.
+- **THE TIE-BREAK WAS INERT HERE AND IS NOW THE `Invoice ID` (second pass).**
+  `sortLongestWaitingFirst` broke a tie on `createdAt` descending and `Invoices` has
+  no creation timestamp — no field on the table, none on the mapper — so this axis
+  passed `undefined` and every same-day pair silently held whatever order the
+  invoice read returned. Visible on the base: `HYE-INV-260716-03` and `-02` are both
+  `2026-07-16`. The property is `createdKey` now, generalized the way `waitingSince`
+  was and for the same reason — the two callers pass different KINDS of value, so a
+  name borrowed from one of them was a claim the other could not honor.
+- **THE SUBSTITUTION IS EXACT, AND #164 IS WHY.** A generated id's date half comes
+  from `new Date()` at mint time (`lib/ids.js`), never from a date field — that
+  issue found Invoice ID counting `{Issue Date}`, the vendor's own human-entered
+  date, and measured the filter matching 0 of 5 invoices. So descending by
+  `Invoice ID` says what descending by `createdAt` says on the delivery side: most
+  recently entered first, with the within-day sequence settling a same-day tie. It
+  is not an approximation of a timestamp; it is the same fact in another encoding.
+- **THE PROOF MOVED WITH IT, BOTH TIMES.** `offline/delivery-status.mjs` names the
+  sort's fields in an anti-vacuity assertion, so each rename would otherwise have
+  left it reporting "the matcher works" by finding a field no sort here reads —
+  the same silent death `waitingSince` risked. Both renames updated that line in
+  their own commit, and a check now also fails on any sort in this module still
+  reading a pre-#256 name, so a half-converted call site cannot hide behind the
+  assertion passing on the other one.
 - **THE COPY NAMES NO CONTROL, AND THE REASON IS SHARPER THAN #216's.** There the
   barred control was `New invoice`, Admin-only on a strip that is not. What a
   reader would act on here is recording a delivery, which is Job-scoped site work,

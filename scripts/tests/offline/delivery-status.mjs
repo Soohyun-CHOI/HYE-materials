@@ -803,20 +803,29 @@ export function run({ check, log, assert }) {
     // --- the worklist order -----------------------------------------------
     log("");
     log("the vendor-chasing worklist: longest-waiting first (#166):");
-    // `waitingSince` SINCE #256, which renamed the field off `receivedDate` when a
-    // third caller began ordering by an invoice's `Issue Date`. These fixtures carry
-    // the neutral name because that is what the function reads; which date a caller
-    // puts in it is the call site's claim, and each one now states it.
+    // BOTH FIELDS ARE NEUTRAL NAMES SINCE #256 — `waitingSince` when a third caller
+    // began ordering by an invoice's `Issue Date`, and `createdKey` when that same
+    // caller turned out to have no creation timestamp to tie-break on. These fixtures
+    // carry the neutral names because that is what the function reads; which value a
+    // caller puts in either is the call site's claim, and each one now states it.
     const rows = [
-        { id: "b", waitingSince: "2026-07-20", createdAt: "2026-07-20T10:00:00.000Z" },
-        { id: "a", waitingSince: "2026-07-10", createdAt: "2026-07-11T10:00:00.000Z" },
-        { id: "c", waitingSince: "2026-07-20", createdAt: "2026-07-21T10:00:00.000Z" },
+        { id: "b", waitingSince: "2026-07-20", createdKey: "2026-07-20T10:00:00.000Z" },
+        { id: "a", waitingSince: "2026-07-10", createdKey: "2026-07-11T10:00:00.000Z" },
+        { id: "c", waitingSince: "2026-07-20", createdKey: "2026-07-21T10:00:00.000Z" },
     ];
     const sorted = sortLongestWaitingFirst(rows);
     check("waiting-since ascending", sorted.map((r) => r.id).join(""), "acb");
-    // Created At DESC as the tie-break, matching the default list's direction so
+    // The creation key DESC as the tie-break, matching the default list's direction so
     // only the primary key flips between the two orderings.
-    check("ties broken by Created At descending", sorted[1].id, "c");
+    check("ties broken by creation key descending", sorted[1].id, "c");
+    // IT SORTS AN ID AS WELL AS A STAMP, which is the whole point of the second
+    // rename: an `Invoice ID` rises with creation because its date half is the mint
+    // moment (#164), so the same descending compare serves both kinds of value.
+    const byId = sortLongestWaitingFirst([
+        { id: "older", waitingSince: "2026-07-16", createdKey: "HYE-INV-260716-02" },
+        { id: "newer", waitingSince: "2026-07-16", createdKey: "HYE-INV-260716-03" },
+    ]);
+    check("an id tie-breaks the same way a stamp does", byId[0].id, "newer");
     assert("does not mutate its input", rows[0].id === "b");
     // A data gap must not take the top of a worklist — the same call
     // sortCandidates makes for the head of its FIFO queue.
@@ -830,6 +839,13 @@ export function run({ check, log, assert }) {
         { id: "new", waitingSince: "2026-07-01" },
     ]);
     check("a row with only the old field is treated as undated", legacy.at(-1).id, "old");
+    // The same for the tie-break's old name, so an unconverted call site loses its
+    // tie-break loudly — by holding input order — rather than appearing to keep one.
+    const legacyTie = sortLongestWaitingFirst([
+        { id: "first", waitingSince: "2026-07-16", createdAt: "2026-07-01T00:00:00.000Z" },
+        { id: "second", waitingSince: "2026-07-16", createdAt: "2026-07-20T00:00:00.000Z" },
+    ]);
+    check("only the old tie-break field breaks no tie", legacyTie[0].id, "first");
     check("nullish does not throw", sortLongestWaitingFirst(null).length, 0);
     check("a single row is returned as-is", sortLongestWaitingFirst([rows[0]])[0].id, "b");
 
@@ -1137,7 +1153,7 @@ export function run({ check, log, assert }) {
         const callee = node.callee;
         if (callee?.type !== "MemberExpression" || callee.property?.name !== "sort") return;
         const text = JSON.stringify(node.arguments);
-        for (const field of ["issueDate", "waitingSince", "createdAt"]) {
+        for (const field of ["issueDate", "waitingSince", "createdKey"]) {
             if (text.includes(field)) sortedFields.add(field);
         }
     });
@@ -1145,13 +1161,33 @@ export function run({ check, log, assert }) {
     // issueDate" is also what a matcher that reads no sort callback at all reports.
     // sortLongestWaitingFirst is still here, so its two fields must come back seen.
     //
-    // THE FIRST FIELD IS `waitingSince` SINCE #256, and updating it here is load-
-    // bearing rather than cosmetic: that rename made the sort read a different property,
-    // so an assertion still naming `receivedDate` would have gone quiet — reporting
-    // "the matcher works" only by finding a field no sort in this module reads. The
-    // proof and the thing proved have to move together.
+    // BOTH FIELD NAMES MOVED WITH #256, and updating them here is load-bearing rather
+    // than cosmetic: each rename made the sort read a different property, so an
+    // assertion still naming the old one would have gone quiet — reporting "the matcher
+    // works" only by finding a field no sort in this module reads. The proof and the
+    // thing proved have to move together, which is why the second rename updated this
+    // line in the same commit as the first one did.
     assert("  the sort matcher reads callback bodies at all", sortedFields.has("waitingSince"));
-    assert("    including the tie-break beside it", sortedFields.has("createdAt"));
+    assert("    including the tie-break beside it", sortedFields.has("createdKey"));
+    // AND THE OLD NAMES ARE GONE FROM EVERY SORT HERE, which is what makes the two
+    // assertions above proof rather than coincidence: a leftover `createdAt` in some
+    // other sort in this module would satisfy a matcher looking for the new name while
+    // one call site still fed the old one.
+    const staleSortFields = new Set();
+    walk(ast, (node) => {
+        if (node.type !== "CallExpression") return;
+        const callee = node.callee;
+        if (callee?.type !== "MemberExpression" || callee.property?.name !== "sort") return;
+        const text = JSON.stringify(node.arguments);
+        for (const field of ["receivedDate", "createdAt"]) {
+            if (text.includes(field)) staleSortFields.add(field);
+        }
+    });
+    check(
+        "no sort here still reads a pre-#256 field name",
+        staleSortFields.size === 0 ? "none" : [...staleSortFields].join(", "),
+        "none"
+    );
     assert("and nothing here sorts bills by Issue Date any more", !sortedFields.has("issueDate"));
 
     // ANTI-VACUITY FOR THE WHOLE SECTION. Every assertion above is of the form "this

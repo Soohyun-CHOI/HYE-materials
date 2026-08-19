@@ -136,7 +136,10 @@ async function renderInvoiceListPage() {
                 // received date and says so.
                 waitingSince: d.receivedDate || "",
                 receivedDate: d.receivedDate || "",
-                createdAt: d.createdAt || "",
+                // The tie-break, generalized off `createdAt` in #256's second pass so
+                // the invoice axis could pass an id instead. Sort-only: nothing renders
+                // it, which is why this one is renamed rather than doubled.
+                createdKey: d.createdAt || "",
                 vendorName: vendorNameById[d.vendor?.[0]] || "Unknown vendor",
                 daysWaiting: daysWaiting(d.receivedDate, today),
                 summary: summarizeDelivery(

@@ -170,6 +170,46 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
+    log("two bills issued on one day break the tie on Invoice ID:");
+    // THE TIE-BREAK WAS INERT ON THIS AXIS UNTIL THE SECOND PASS, and inertly so:
+    // `sortLongestWaitingFirst` read `createdAt`, `Invoices` has no such field, so
+    // every same-day pair silently held whatever order the invoice read returned. The
+    // id serves because its date half is the mint moment rather than the vendor's
+    // `Issue Date` (#164), so descending by it is the delivery side's `createdAt`
+    // descending — most recently entered first.
+    const sameDay = select({
+        invoices: [inv("HYE-INV-260716-02", "2026-07-16"), inv("HYE-INV-260716-03", "2026-07-16")],
+        status: {},
+        ordered: {},
+    });
+    check(
+        "the later id reads first",
+        sameDay.map((r) => r.invoiceId).join(" "),
+        "HYE-INV-260716-03 HYE-INV-260716-02"
+    );
+    // Fed in the other order, to prove it is the sort deciding and not the input.
+    const sameDayReversed = select({
+        invoices: [inv("HYE-INV-260716-03", "2026-07-16"), inv("HYE-INV-260716-02", "2026-07-16")],
+        status: {},
+        ordered: {},
+    });
+    check(
+        "  and the input order does not decide it",
+        sameDayReversed.map((r) => r.invoiceId).join(" "),
+        "HYE-INV-260716-03 HYE-INV-260716-02"
+    );
+    // Across days the wait still wins: a tie-break that outranked the primary key
+    // would put a newer bill above an older one, which is the whole worklist inverted.
+    const acrossDays = select({
+        invoices: [inv("HYE-INV-260801-09", "2026-08-01"), inv("HYE-INV-260716-01", "2026-07-16")],
+        status: {},
+        ordered: {},
+    });
+    check("the wait outranks the id", acrossDays[0].invoiceId, "HYE-INV-260716-01");
+    assert("the row carries the id as its creation key", sameDay[0].createdKey === sameDay[0].invoiceId);
+
+    // -----------------------------------------------------------------------
+    log("");
     log("the row carries the date beside the count, and the count is days:");
     check("days from Issue Date to today", baseline[0].daysWaiting, 48);
     check("  and the date itself travels for checking", baseline[0].waitingSince, "2026-07-01");
