@@ -104,8 +104,7 @@ async function renderPOListPage({ searchParams }) {
     //
     // This is the opposite shape from the one #193 exists to remove. That is
     // getLinkedRecords' 1 + N — a find() for the parent and a find() per child;
-    // this is zero per row, one query per 50 ids. On this base 40 orders carry 53
-    // ordered items, so it is two operations and the page goes six to eight. What
+    // this is zero per row, one query per 50 ids, so the page goes six to eight. What
     // grows it is the number of ORDERED ITEMS, at one query per fifty, never the
     // number of rows rendered.
     const poItemRecordIds = visible.flatMap((po) => po.poItems || []);

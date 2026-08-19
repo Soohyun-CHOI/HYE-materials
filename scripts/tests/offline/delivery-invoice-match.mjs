@@ -5,7 +5,7 @@
 // can reach is on the live base, so a browser run can show it working and cannot
 // show it declining:
 //
-//   matched      — 6 of 13 unpaired invoices, reachable and verified in a browser
+//   matched      — reachable on live data and verified in a browser
 //                  and through the real Server Action.
 //   no-room      — reachable: `HYE-INV-260804-04` against `HYE-DL-260804-06`,
 //                  which brought 15 of `166-DEMO Coupling` and whose attached
@@ -20,8 +20,8 @@
 //                  only here.
 //   price-departs — NOT reachable. One invoice departs from an agreed price
 //                  (`HYE-INV-260716-02`, 32.00 billed against 33.89 ordered) and
-//                  containment already excludes it, so the gate removes 0 of 15
-//                  pairs on live data and changes no verdict there.
+//                  containment already excludes it, so the gate removes no pair
+//                  on live data and changes no verdict there.
 //   price-unknown — NOT reachable, and not by accident: both callers build
 //                  `agreedPrices` from the very ordered items they then test
 //                  against, and containment is decided first. It is a fail-closed
