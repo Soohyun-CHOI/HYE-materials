@@ -10,6 +10,15 @@ anything is typed — the exact values.
 node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/seed_full_demo.mjs --only=NONE
 ```
 
+**Between rehearsals**, put the base back with one command — 4m 13s, and it checks
+itself when it is done:
+
+```bash
+node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/reset_demo.mjs --confirm
+```
+
+Then **sign in again** — the reset clears every session — and re-print the ids.
+
 ## Before the room arrives
 
 **The three accounts.**
@@ -142,63 +151,50 @@ the one document the system emits, and the office sends it to the vendor by hand
 
 ## Act II — Billing, delivery, and the app doing the matching
 
-**Live.** The centre of the demo. Both directions of the pairing.
+**Live.** The centre of the demo. Both directions of the pairing, both ending
+clean — the disagreements are Act IV's, on purpose.
 
-### 1. `/invoices/new` — detection finds nothing
+### 1. Invoice finds delivery — the reverse direction
 
-Attach `scripts/demo/output/demo26-none.pdf`.
+Generate the vendor's document for an order that has already been delivered. The
+script pulls that order's real vendor and ordered items, so the PDF matches what
+was ordered:
 
-> *Auto-detection didn't find a PO number in this file — select the PO manually
-> below.*
+```bash
+node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/make-invoice-pdf.mjs HYE-PO-20260819-05
+```
 
-Pick `HYE-PO-20260819-05` from the dropdown. One item:
+At `/invoices/new`, attach `scripts/demo/output/demo-invoice.pdf`. Detection
+reads the order number off the file and fills the slot.
 
 | Field | Value |
 |---|---|
 | Ordered item | `Pipe Support` `4"` |
 | Qty | `30` |
 | Unit Price | `22.00` |
-| Amount Due | `660.00` |
+| *(add a second item)* | |
+| Ordered item | `Support Shim` `3mm` |
+| Qty | `90` |
+| Unit Price | `1.40` |
+| Shipping Fee | `0` |
+| Amount Due | `786.00` |
 
 Save. **The pairing box appears**: the app matched this bill to
 `HYE-DL-260819-01` off the ordered items, and says nobody attached it by hand.
+The delivery chip reads `Delivered` — billed and delivered agree.
 
 > **Why it pairs.** The rule tests **set containment only** — does every ordered
-> item this bill charges appear on that arrival — plus the agreed unit price, plus
-> whether the arrival has room left. Quantity is deliberately not part of it. Get
-> the price wrong and it will not pair, which is the next step.
+> item this bill charges appear on that arrival — plus the agreed unit price,
+> plus whether the arrival has room left. Quantity is deliberately not part of
+> it, which is what makes Act IV possible.
+>
+> Billing only the Pipe Support would pair too (a subset is still contained), and
+> would leave the order `Partly invoiced`. Both items is the tidier story and the
+> PDF prints both.
 
-### 2. `/invoices/new` — detection applies an order, and both variance kinds
+### 2. Delivery finds invoice — the forward direction
 
-Attach `scripts/demo/output/demo26-open.pdf`. Detection reads the number off the
-file and fills the slot with `HYE-PO-20260819-33`.
-
-| Field | Value | Why |
-|---|---|---|
-| Ordered item | `Structural Angle` `75x75x6` | |
-| Qty | `30` | the order agreed 30 |
-| Unit Price | `46.00` | the order agreed **42.00** → `⚠ Order variance` |
-| Remark | `Vendor billed list price` | the field exists to say why |
-| Amount Due | `1450.00` | items add to **1380.00** → `⚠ Check the total` |
-
-> **The thresholds.** Unit price flags at more than **one cent** of difference.
-> The header flags at more than the greater of **$5 or 1%** of the computed
-> total — here that is $13.80, and the gap is $70.
-
-Save. On the invoice: the badge inside the item's name cell, the amber prompt
-near the foot, and the red box under the table. **Two different facts with two
-different remedies**, which is why they keep two words.
-
-### 3. `/invoices/new` — the two warnings, without saving
-
-Attach `demo26-withdrawn.pdf`: detection finds the order and warns it was
-withdrawn. Then `demo26-unsigned.pdf`: it warns the President has not signed and
-**selects it anyway**, because a bill can be recorded against an unsigned order.
-Note the word `unsigned` appended to the option label itself.
-
-Navigate away without saving.
-
-### 4. `/deliveries/new` — the other direction
+`/deliveries/new`:
 
 | Field | Value |
 |---|---|
@@ -207,21 +203,69 @@ Navigate away without saving.
 | Vendor | `Lone Star Pipe & Supply` |
 | Material | `Flange Gasket 8"` |
 | Qty | `50` |
+| Received Date | today |
+| Packing list photo | any image |
 
 Each option in the material dropdown carries its own remaining quantity, so the
-choice is made with the order's state visible. Under the row, the **allocation
-preview** appears: which order the quantity will be split across, before you
-commit.
+choice is made with the order's state visible — this one says `50 undelivered`.
+Under the row, the **allocation preview** shows which order the quantity will be
+split across, before you commit.
 
 Above the date, the **pairing box**: `HYE-INV-260819-03` is attached as you
-watch. That bill has been waiting 12 days with nothing delivered against it.
+watch. That bill has been waiting with nothing delivered against it.
 
-Attach any photo, set Received Date, and record it.
+> **Why 50 and not less.** Fifty is exactly what that bill charges and exactly
+> what the order asked for, so the invoice reads `Delivered` and no over-delivery
+> is raised. Any smaller number still pairs — quantity is not part of the test —
+> but the invoice would read `Mismatch`, which is Act IV's moment, not this one.
+
+### 3. The order that was just live — and both variance kinds
+
+Now bill the order Act I created. Generate its document, substituting the PO ID
+from Act I:
+
+```bash
+node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/make-invoice-pdf.mjs HYE-PO-XXXXXXXX-XX
+```
+
+At `/invoices/new`, attach it. Detection fills the slot with the live order.
+
+| Field | Value | Why |
+|---|---|---|
+| Ordered item | `Gate Valve` `4"` | the only item on that order |
+| Qty | `10` | what the merge produced in Act I |
+| Unit Price | `48.00` | the order agreed **45.00** → `⚠ Order variance` |
+| Remark | `Vendor billed list price` | the field exists to say why |
+| Shipping Fee | `0` | |
+| Amount Due | `520.00` | items add to **480.00** → `⚠ Check the total` |
+
+> **The thresholds.** Unit price flags at more than **one cent** of difference:
+> 48.00 against 45.00 is three dollars. The header flags at more than the greater
+> of **$5 or 1%** of the computed total — here that is $5.00 against a gap of
+> $40.00.
+>
+> Nothing pairs with this one, and nothing needs to: no delivery exists against
+> an order raised minutes ago. Do not draw attention to the absent pairing box —
+> an unpaired bill is this feature's ordinary state.
+
+Save. On the invoice: the badge inside the item's name cell, the amber prompt
+near the foot, and the red box under the table. **Two different facts with two
+different remedies**, which is why they keep two words.
+
+### 4. The two warnings, without saving
+
+Attach `scripts/demo/output/demo26-withdrawn.pdf`: detection finds the order and
+warns it was withdrawn. Then `demo26-unsigned.pdf`: it warns the President has
+not signed and **selects it anyway**, because a bill can be recorded against an
+unsigned order. Note the word `unsigned` appended to the option label itself.
+
+Navigate away without saving.
 
 ### 5. `/pos/HYE-PO-20260819-05`
 
-Land on the order. Ordered, Delivered and Invoiced on one row, with the two
-document lists under it. This is the reconciliation the whole app exists for.
+Land on the order from step 1. Ordered, Delivered and Invoiced on one row, with
+the two document lists under it. This is the reconciliation the whole app exists
+for.
 
 ---
 
@@ -277,6 +321,10 @@ silent.
 
 **Mixed.** Two live, the rest pre-made.
 
+Act II showed two pairings that both came out clean. This is the same machinery
+on data that does not agree, and the order is the argument: a reader who has seen
+`Delivered` twice knows what `Mismatch` is a departure from.
+
 ### 1. `/deliveries/new` — live, and the invoice turns `Mismatch`
 
 | Field | Value |
@@ -298,6 +346,9 @@ so a single figure there would be a sum of unlike things.
 > Any quantity from 1 to 9 produces this. Quantity is not part of the pairing
 > test, which is exactly what lets the marker exist: matching on quantity would
 > drop such a bill out of consideration and no marker would ever appear.
+>
+> This is the same rule that produced `Delivered` twice in Act II. Nothing about
+> the pairing changed — only the figures did.
 
 ### 2. `/deliveries/HYE-DL-260819-03/edit` — live, by hand
 

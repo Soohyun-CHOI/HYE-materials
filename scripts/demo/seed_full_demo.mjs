@@ -84,7 +84,7 @@
 import { put } from "@vercel/blob";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { base, TABLES } from "../../lib/airtable/client.js";
-import { orByRecordId } from "../../lib/airtableFormula.js";
+import { resolveDemoRecords, pick } from "./_demo_ids.mjs";
 import { createPR, updatePR, getPRByRecordId, getPRsByLine } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { createSigner } from "../../lib/airtable/prSigners.js";
@@ -1195,11 +1195,16 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
         receivedDate: "2026-08-08",
         notes: "Twenty over — two part-shipments arrived together.",
     });
-    for (const [n, qty] of [[1, 15], [2, 15]]) {
+    // DATES SPELLED OUT, NOT BUILT BY ARITHMETIC. `` `2026-08-0${8 + n}` `` produced
+    // `2026-08-010` on the second pass. Airtable coerced the field to 2026-08-10, so
+    // nothing was wrong with the stored date — but the invoice code is derived from the
+    // string, so the vendor's own number read `LSP-OVERBLOCKED2-08010`, a five-digit
+    // tail on a screen a customer sees.
+    for (const [n, qty, issueDate] of [[1, 15, "2026-08-09"], [2, 15, "2026-08-10"]]) {
         const inv = await bill({
             scenarioName: `OVER_BLOCKED_${n}`,
             rows: [{ po: b.po, poItem: b.poItems[0], qty, unitPrice: 12 }],
-            issueDate: `2026-08-0${8 + n}`,
+            issueDate,
         });
         // BOTH, not just the first: one bill naming the arrival is a single candidate
         // and refuses under `excessExceedsBill` instead, which is a different sentence.
@@ -1520,56 +1525,13 @@ await printGuide();
  * field a vendor would fill, so it costs the demo nothing to read.
  */
 async function printGuide() {
-    const [prRecords, deliveryRecords, invoiceRecords] = await Promise.all([
-        base(TABLES.PURCHASE_REQUESTS).select({ fields: ["PR ID", "Notes", "Purchase Orders"] }).all(),
-        base(TABLES.DELIVERIES).select({ fields: ["Delivery ID", "Notes"] }).all(),
-        base(TABLES.INVOICES).select({ fields: ["Invoice ID", "Vendor Invoice Code"] }).all(),
-    ]);
+    // RESOLVED BY scripts/demo/_demo_ids.mjs, which reset_demo.mjs reads too. This
+    // function used to walk the tags itself; a second walk would be a second thing to
+    // keep in step with the seed, and its failure mode is silent — a resolver that
+    // finds nothing prints the same placeholder as a scenario that failed to seed.
+    const { byScenario } = await resolveDemoRecords();
 
-    // KEYS ARE NORMALIZED WITHOUT UNDERSCORES, because the two places a scenario name
-    // is stored cannot both keep them. The tag in `Notes` is free text and carries
-    // `OVER_BLOCKED` as written; a `Vendor Invoice Code` has to read like a supplier's
-    // own number, so it carries `LSP-OVERBLOCKED-0808`. Normalizing both sides is what
-    // lets one lookup serve both — and it is checked, since a guide that silently
-    // found nothing would print the same placeholder as a scenario that failed to seed.
-    const byScenario = new Map();
-    const norm = (name) => String(name).replace(/_/g, "");
-    const put_ = (name, kind, value) => {
-        const key = norm(name);
-        if (!byScenario.has(key)) byScenario.set(key, { pr: [], po: [], delivery: [], invoice: [] });
-        byScenario.get(key)[kind].push(value);
-    };
-    const tagIn = (text) => [...String(text || "").matchAll(/\[DEMO26:([A-Z_]+)\]/g)].map((m) => m[1]);
-
-    const poRecordIds = [];
-    for (const r of prRecords) {
-        for (const name of tagIn(r.get("Notes"))) {
-            put_(name, "pr", r.get("PR ID"));
-            for (const id of r.get("Purchase Orders") || []) poRecordIds.push([name, id]);
-        }
-    }
-    for (const r of deliveryRecords) {
-        for (const name of tagIn(r.get("Notes"))) put_(name, "delivery", r.get("Delivery ID"));
-    }
-    for (const r of invoiceRecords) {
-        const m = String(r.get("Vendor Invoice Code") || "").match(/^LSP-([A-Z0-9]+)-\d{4}$/);
-        if (m) put_(m[1], "invoice", r.get("Invoice ID"));
-    }
-    // One batched read for the orders, keyed back to the scenario that raised them.
-    const poById = new Map();
-    const uniquePoIds = [...new Set(poRecordIds.map(([, id]) => id))];
-    for (let i = 0; i < uniquePoIds.length; i += 50) {
-        for (const po of await base(TABLES.PURCHASE_ORDERS)
-            .select({ fields: ["PO ID"], filterByFormula: orByRecordId(uniquePoIds.slice(i, i + 50)) })
-            .all()) {
-            poById.set(po.id, po.get("PO ID"));
-        }
-    }
-    for (const [name, recordId] of poRecordIds) {
-        if (poById.has(recordId)) put_(name, "po", poById.get(recordId));
-    }
-
-    const get = (name, kind, n = 0) => byScenario.get(norm(name))?.[kind]?.sort()[n];
+    const get = (name, kind, n = 0) => pick(byScenario, name, kind, n);
     const MISSING = "NOT ON THE BASE — re-run this seed";
     const row = (label, ...parts) =>
         console.log(
@@ -1582,52 +1544,52 @@ async function printGuide() {
     console.log("=".repeat(72));
 
     console.log("\nACT I — the request                                          (live)");
-    row("duplicate fires against", get("DUP", "pr"));
+    row("duplicate fires against", get("DUP", "prs"));
     row("  type two rows of", 'Gate Valve 4" — 5 EA @ 45, twice');
-    row("four signing step states", get("CHAIN", "pr"));
-    row("withdrawn request", get("WITHDRAWN_PR", "pr"));
+    row("four signing step states", get("CHAIN", "prs"));
+    row("withdrawn request", get("WITHDRAWN_PR", "prs"));
 
     console.log("\nACT II — billing, delivery, matching                         (live)");
     row("detection PDFs", "scripts/demo/output/demo26-*.pdf");
-    row("  demo26-open.pdf applies", get("DETECT_OPEN", "po"));
-    row("  demo26-withdrawn.pdf warns", get("DETECT_WITHDRAWN", "po"));
-    row("  demo26-unsigned.pdf warns", get("DETECT_UNSIGNED", "po"));
-    row("  demo26-closed.pdf: nothing left", get("DETECT_CLOSED", "po"));
+    row("  demo26-open.pdf applies", get("DETECT_OPEN", "pos"));
+    row("  demo26-withdrawn.pdf warns", get("DETECT_WITHDRAWN", "pos"));
+    row("  demo26-unsigned.pdf warns", get("DETECT_UNSIGNED", "pos"));
+    row("  demo26-closed.pdf: nothing left", get("DETECT_CLOSED", "pos"));
     row("  demo26-none.pdf: no PO found", "(no order number printed on it)");
-    row("bill this → pairs on screen", get("DL_WAIT", "po"), "  attaches ", get("DL_WAIT", "delivery"));
-    row("deliver this → pairs on screen", get("INV_WAIT_A", "invoice"), " is waiting for its material");
-    row("tariff in the totals footer", get("TARIFF", "invoice"));
+    row("bill this → pairs on screen", get("DL_WAIT", "pos"), "  attaches ", get("DL_WAIT", "deliveries"));
+    row("deliver this → pairs on screen", get("INV_WAIT_A", "invoices"), " is waiting for its material");
+    row("tariff in the totals footer", get("TARIFF", "invoices"));
 
     console.log("\nACT III — the three waiting lists                       (pre-made)");
-    row("/invoices strip 1", get("DL_WAIT", "delivery"), " — arrival nobody has billed");
-    row("/invoices strip 2, word 1", get("INV_WAIT_A", "invoice"), " — nothing delivered yet");
-    row("/invoices strip 2, word 2", get("INV_WAIT_B", "invoice"), " — delivered, not matched");
-    row("/pos strip", get("PO_WAIT", "pr", 0), " and ", get("PO_WAIT", "pr", 1));
-    row("/prs strip, with a button", get("OVER", "delivery"));
+    row("/invoices strip 1", get("DL_WAIT", "deliveries"), " — arrival nobody has billed");
+    row("/invoices strip 2, word 1", get("INV_WAIT_A", "invoices"), " — nothing delivered yet");
+    row("/invoices strip 2, word 2", get("INV_WAIT_B", "invoices"), " — delivered, not matched");
+    row("/pos strip", get("PO_WAIT", "prs", 0), " and ", get("PO_WAIT", "prs", 1));
+    row("/prs strip, with a button", get("OVER", "deliveries"));
     row("/prs strip, blocked rows", "6 — see Act IV for which reason is which");
 
     console.log("\nACT IV — when they disagree                              (mixed)");
-    row("live: record 3 against", get("MISMATCH_START", "po"), " → ", get("MISMATCH_START", "invoice"), " goes Mismatch");
-    row("live: hand-attach on Edit", get("HAND_ATTACH", "delivery"), " ← ", get("HAND_ATTACH", "invoice"));
-    row("Order variance", get("VAR_PRICE", "invoice"), " on ", get("VAR_PRICE", "po"));
-    row("Check the total, and paid", get("VAR_TOTAL", "invoice"));
-    row("unjudged beside exception", get("FREETEXT", "invoice"));
-    row("None linked.", get("FREETEXT_ONLY", "invoice"));
-    row("per-order breakdown", get("MULTI_ORDER", "invoice"));
-    row("correction: raise it here", get("OVER", "delivery"), " (bill ", get("OVER", "invoice"), ")");
-    row("correction: Inferred:", get("OVER_INFER", "delivery"));
-    row("blocked: no invoice yet", get("OVER_BLOCKED", "delivery", 0));
-    row("blocked: spans two invoices", get("OVER_BLOCKED", "delivery", 1));
-    row("blocked: invoice has no file", get("OVER_BLOCKED", "delivery", 2));
-    row("blocked: two unpaired bills", get("OVER_UNPAIRED", "delivery"));
-    row("blocked: bill under the excess", get("OVER_EXCEEDS", "delivery"));
-    row("excess against no order", get("UNATTRIB", "delivery"));
+    row("live: record 3 against", get("MISMATCH_START", "pos"), " → ", get("MISMATCH_START", "invoices"), " goes Mismatch");
+    row("live: hand-attach on Edit", get("HAND_ATTACH", "deliveries"), " ← ", get("HAND_ATTACH", "invoices"));
+    row("Order variance", get("VAR_PRICE", "invoices"), " on ", get("VAR_PRICE", "pos"));
+    row("Check the total, and paid", get("VAR_TOTAL", "invoices"));
+    row("unjudged beside exception", get("FREETEXT", "invoices"));
+    row("None linked.", get("FREETEXT_ONLY", "invoices"));
+    row("per-order breakdown", get("MULTI_ORDER", "invoices"));
+    row("correction: raise it here", get("OVER", "deliveries"), " (bill ", get("OVER", "invoices"), ")");
+    row("correction: Inferred:", get("OVER_INFER", "deliveries"));
+    row("blocked: no invoice yet", get("OVER_BLOCKED", "deliveries", 0));
+    row("blocked: spans two invoices", get("OVER_BLOCKED", "deliveries", 1));
+    row("blocked: invoice has no file", get("OVER_BLOCKED", "deliveries", 2));
+    row("blocked: two unpaired bills", get("OVER_UNPAIRED", "deliveries"));
+    row("blocked: bill under the excess", get("OVER_EXCEEDS", "deliveries"));
+    row("excess against no order", get("UNATTRIB", "deliveries"));
 
     console.log("\nACT V — at a glance                                    (pre-made)");
-    row("Invoiced", get("CHIP_INVOICED", "po"));
-    row("Partly invoiced", get("CHIP_PARTLY", "po"));
-    row("Awaiting invoice", get("CHIP_AWAITING", "po"));
-    row("the dash, and the dimmed row", get("CHIP_DASH", "po"));
+    row("Invoiced", get("CHIP_INVOICED", "pos"));
+    row("Partly invoiced", get("CHIP_PARTLY", "pos"));
+    row("Awaiting invoice", get("CHIP_AWAITING", "pos"));
+    row("the dash, and the dimmed row", get("CHIP_DASH", "pos"));
     row("Lowest + both caveats", "/materials → Copper Tube");
     row("no size (unit only)", "/materials → Site Consumables");
     row("PO unsigned / PO withdrawn", "/materials/… → Copper Tube");
