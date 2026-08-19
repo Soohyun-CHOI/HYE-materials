@@ -46,7 +46,7 @@ import { createItem } from "../../lib/airtable/prItems.js";
 import { selectPRsAwaitingPO } from "../../lib/poListView.js";
 
 const JOB_CODE = "26-DEMO-01";
-const VENDOR_NAME = "Demo Vendor Co.";
+const VENDOR_NAME = "Lone Star Pipe & Supply";
 const SIZE = '2"';
 const UNIT = "EA";
 

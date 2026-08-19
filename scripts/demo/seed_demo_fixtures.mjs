@@ -1,5 +1,12 @@
 // Creates a reusable Job -> Line, and Vendor -> Address fixture set for
 // live product demos (PR -> sign -> PO -> President sign -> Invoice).
+//
+// IMPORTABLE AS WELL AS RUNNABLE, and the import is what makes the big seed
+// self-sufficient. `seed_full_demo.mjs` needs exactly this Job, Line and Vendor and
+// used to state that as a prerequisite in its header -- which held only as long as
+// somebody read it. Restating the bootstrap over there would be two implementations
+// of one thing; calling `ensureDemoFixtures()` is one. Running this file directly
+// behaves exactly as before.
 // Import-not-sync, same convention as scripts/import/import_jobs.py: skips
 // whatever already exists (checked by Job Code / Vendor Name) rather than
 // recreating or updating it, so this is safe to re-run before every demo
@@ -15,6 +22,7 @@
 // (fine under Next.js's bundler, not resolvable by plain Node ESM) — see
 // scripts/esm-ext-loader.mjs.
 
+import { pathToFileURL } from "node:url";
 import { createAddress } from "../../lib/airtable/addresses.js";
 import { createJob, getJobByCode } from "../../lib/airtable/jobs.js";
 import { createLine } from "../../lib/airtable/lines.js";
@@ -34,10 +42,10 @@ import { addAssignedJob, createUser, getUserByEmail } from "../../lib/airtable/u
 const DEMO_PIC_EMAIL = process.env.DEMO_PIC_EMAIL || "soohyun.c@hanyangengusa.com";
 
 const JOB_CODE = "26-DEMO-01"; // deliberately off the real "##-USA-@@" pattern, so it's never confused with a real Job
-const JOB_NAME = "Demo Fabrication Project";
+const JOB_NAME = "Round Rock Compressor Station";
 const BUSINESS_UNIT = "HT";
-const LINE_NAME = "Demo Line A";
-const VENDOR_NAME = "Demo Vendor Co.";
+const LINE_NAME = "Unit 2 Piping";
+const VENDOR_NAME = "Lone Star Pipe & Supply";
 
 // THE SECOND PERMANENT FIXTURE ACCOUNT (#205), beside
 // authz-fixture@hanyangengusa.com rather than replacing it. That one is
@@ -55,7 +63,7 @@ const VENDOR_NAME = "Demo Vendor Co.";
 const SCOPED_FIXTURE_EMAIL = "scoped-fixture@hanyangengusa.com";
 
 const JOB_DELIVERY_ADDRESS = {
-    addressLabel: "Demo Site - Delivery",
+    addressLabel: "Round Rock Compressor Station - Site",
     line1: "4820 Freight Yard Rd",
     city: "Round Rock",
     state: "TX",
@@ -64,7 +72,7 @@ const JOB_DELIVERY_ADDRESS = {
 };
 
 const VENDOR_ADDRESS = {
-    addressLabel: "Demo Vendor Co. - Main",
+    addressLabel: "Lone Star Pipe & Supply - Main",
     line1: "910 Industrial Pkwy, Ste 200",
     city: "Round Rock",
     state: "TX",
@@ -72,7 +80,7 @@ const VENDOR_ADDRESS = {
     country: "USA",
 };
 
-async function main() {
+export async function ensureDemoFixtures() {
     const user = await getUserByEmail(DEMO_PIC_EMAIL);
     if (!user) {
         throw new Error(
@@ -157,9 +165,16 @@ async function main() {
     console.log("  Fixture accounts:");
     console.log("    authz-fixture@hanyangengusa.com  - no Jobs, refused everywhere");
     console.log(`    ${SCOPED_FIXTURE_EMAIL} - assigned ${JOB_CODE}, admitted by row scope`);
+
+    return { jobRecordId, jobCode: JOB_CODE, lineName: LINE_NAME, vendorName: VENDOR_NAME };
 }
 
-main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+// Run only when this file IS the entry point, so an importer pays nothing. Compared
+// as a file URL rather than a path because `process.argv[1]` is a Windows path here
+// and `import.meta.url` is not.
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+    ensureDemoFixtures().catch((err) => {
+        console.error(err);
+        process.exit(1);
+    });
+}

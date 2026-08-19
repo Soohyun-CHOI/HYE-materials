@@ -28,8 +28,8 @@
 // Run from the repo root:
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/seed_delivery_status_166.mjs
 //
-// Reuses (never modifies) the 26-DEMO-01 job, its Demo Line A, and the
-// "Demo Vendor Co." vendor from seed_demo_fixtures.mjs — a different vendor from
+// Reuses (never modifies) the 26-DEMO-01 job, its Unit 2 Piping, and the
+// "Lone Star Pipe & Supply" vendor from seed_demo_fixtures.mjs — a different vendor from
 // #165's seed, so the two demos do not appear in each other's dropdowns. Creates
 // PRs + PR Items and POs + PO Items through the real approve-and-generate flow
 // (which is what gives each ordered item the `Material` link allocation needs), plus
@@ -55,7 +55,7 @@ import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 
 const JOB_CODE = "26-DEMO-01";
-const VENDOR_NAME = "Demo Vendor Co.";
+const VENDOR_NAME = "Lone Star Pipe & Supply";
 const SIZE = '3"';
 const UNIT = "EA";
 const FIRST_ITEM = "166-DEMO Flange";
