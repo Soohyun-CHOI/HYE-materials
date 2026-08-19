@@ -14,6 +14,32 @@
 // nothing. So every folding assertion is stated twice, once where folding does
 // something and once where folding must NOT — two invoices on one ordered item
 // have to stay two — and the counts are checked rather than the shape.
+//
+// THE SILENT MUTANT IS NOT FOLDING THE CHILD LIST AT ALL (#266): one line per stored
+// row, which is what this page did for three issues. It throws nothing, computes no
+// wrong figure and fails no check — the only symptom is a duplicate React key in a
+// console, and this tier never renders a page. Same shape as #237's always-agree,
+// #242's narrowing removed, #241's always-silent and #238's not-folding, and it is
+// asserted FIRST below, on the input every over-delivery writes: two slices against
+// ONE ordered item in ONE delivery.
+//
+// EVERY FIXTURE HERE PUT TWO SLICES ON TWO DIFFERENT ORDERED ITEMS, which is why the
+// mutant survived #233 and #235. That shape folds by DOCUMENT and says nothing about
+// what happens inside a document, so the file could pass while the list it describes
+// printed one material twice.
+//
+// RUN RATHER THAN ASSERTED. Restoring the pre-#266 grouping — one child per stored
+// row, keyed on the ordered item — fails 7 of these checks on the delivery axis, the
+// first of them being the first assertion below, and dropping the unit price from the
+// charge key fails 3 on the invoice axis. Both were measured on this branch.
+//
+// AND OVER-DELIVERY IS NOT THE ONLY PRODUCER. `recomputeOverDelivery` splits a
+// straddling row on the delete path and `lib/deliveryDelete.js` creates the new piece
+// on the same delivery and the same ordered item, so one delivery can hold two
+// FLAGGED rows against one ordered item, and — once a deletion frees room — two
+// UNFLAGGED ones. Both are inputs below, because an excess figure that read one
+// flagged row instead of summing them passes the first and fails the second, and a
+// fold that assumed a second row means an excess fails the third.
 
 import {
     PO_DOCUMENTS_COPY,
@@ -72,8 +98,147 @@ const deliveryItem = ({ id = "recDI1", dl = "recDL1", ordered = "recPOI_A", qty 
     overDelivered: over,
 });
 
+/** Are these child rows keyed apart? The defect #266 removed, stated directly. */
+function keysAreUnique(rows) {
+    const list = rows || [];
+    return new Set(list.map((r) => r.key)).size === list.length;
+}
+
 export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
+    // FIRST, because the mutant this catches is the one nothing else can see. Every
+    // input below puts two rows on ONE ordered item, which is the shape the file's
+    // other fixtures never had.
+    log("a child list folds WITHIN a document (#266) — the silent mutant first:");
+    const overDelivery = foldDeliveriesOnOrder({
+        orderedItems: ORDERED,
+        deliveryItems: [
+            deliveryItem({ id: "recDI1", ordered: "recPOI_A", qty: 10, over: false }),
+            deliveryItem({ id: "recDI2", ordered: "recPOI_A", qty: 5, over: true }),
+        ],
+        deliveries: [delivery()],
+    });
+    check(
+        "one delivery, two slices against ONE ordered item — ONE line",
+        overDelivery[0]?.brought.length,
+        1
+    );
+    check("  the quantity is every slice added", overDelivery[0]?.brought[0]?.qty, 15);
+    check("  the excess is stated apart from it", overDelivery[0]?.brought[0]?.overQty, 5);
+    // The pair. Same delivery, same count of slices, DIFFERENT ordered items — a fold
+    // that collapsed everything under a document would pass the case above and fail
+    // this one.
+    const twoItemsOneArrival = foldDeliveriesOnOrder({
+        orderedItems: ORDERED,
+        deliveryItems: [
+            deliveryItem({ id: "recDI1", ordered: "recPOI_A", qty: 10 }),
+            deliveryItem({ id: "recDI2", ordered: "recPOI_B", qty: 5, over: true }),
+        ],
+        deliveries: [delivery()],
+    });
+    check(
+        "  and two slices against TWO ordered items stay TWO lines",
+        twoItemsOneArrival[0]?.brought.length,
+        2
+    );
+    check(
+        "  each carrying only its own excess, never the other's",
+        twoItemsOneArrival[0]?.brought.map((b) => b.overQty).join(),
+        "0,5"
+    );
+
+    // THE DEFECT ITSELF, and it is worth asserting as a key rather than only as a
+    // count: React keyed these lines on the ordered item's record id, so the unfolded
+    // list printed the same key twice and warned in a console no check can read.
+    assert(
+        "  the lines are keyed apart, which the unfolded list was not",
+        keysAreUnique(overDelivery[0]?.brought)
+    );
+
+    // TWO FLAGGED ROWS AGAINST ONE ORDERED ITEM — `lib/deliveryDelete.js`'s `6, 6, 6`.
+    // An excess figure that read a flagged row instead of summing them says 6.
+    check(
+        "two FLAGGED slices against one ordered item — the excess sums them",
+        foldDeliveriesOnOrder({
+            orderedItems: ORDERED,
+            deliveryItems: [
+                deliveryItem({ id: "recDI1", ordered: "recPOI_A", qty: 6, over: false }),
+                deliveryItem({ id: "recDI2", ordered: "recPOI_A", qty: 4, over: true }),
+                deliveryItem({ id: "recDI3", ordered: "recPOI_A", qty: 6, over: true }),
+            ],
+            deliveries: [delivery()],
+        })[0]?.brought[0]?.overQty,
+        10
+    );
+
+    // TWO UNFLAGGED ROWS AGAINST ONE ORDERED ITEM — what a deletion leaves once it
+    // frees room and `recomputeOverDelivery` clears a flag beside a row that was
+    // already within the order. The fold has to happen and say nothing about excess.
+    const noExcess = foldDeliveriesOnOrder({
+        orderedItems: ORDERED,
+        deliveryItems: [
+            deliveryItem({ id: "recDI1", ordered: "recPOI_A", qty: 10, over: false }),
+            deliveryItem({ id: "recDI2", ordered: "recPOI_A", qty: 5, over: false }),
+        ],
+        deliveries: [delivery()],
+    });
+    check("two UNFLAGGED slices against one ordered item still fold", noExcess[0]?.brought.length, 1);
+    check("  the quantity is added", noExcess[0]?.brought[0]?.qty, 15);
+    check("  and NOTHING is said about excess", noExcess[0]?.brought[0]?.overQty, 0);
+    check("  so the document carries no mark either", noExcess[0]?.overDelivered, false);
+
+    // THE INVOICE AXIS, and the unit price is what makes the pair a pair. The same
+    // ordered item at the same price is one charge; at two prices it is two facts, and
+    // that is what settles what a folded charge says about a price that differs — it
+    // never has to, because the price is part of the key.
+    const oneCharge = foldInvoicesOnOrder({
+        orderedItems: ORDERED,
+        invoiceItems: [
+            invoiceItem({ id: "recII1", ordered: "recPOI_A", qty: 8, unitPrice: 13.49 }),
+            invoiceItem({ id: "recII2", ordered: "recPOI_A", qty: 5, unitPrice: 13.49, variance: true }),
+        ],
+        invoices: [invoice()],
+    });
+    check("two charges on one ordered item at ONE price — ONE charge", oneCharge[0]?.charges.length, 1);
+    check("  the quantity is added", oneCharge[0]?.charges[0]?.qty, 13);
+    check("  the price survives the fold, since it is the key", oneCharge[0]?.charges[0]?.unitPrice, 13.49);
+    check(
+        "  and one flagged member flags the folded charge",
+        oneCharge[0]?.charges[0]?.varianceFlag,
+        true
+    );
+    const twoPrices = foldInvoicesOnOrder({
+        orderedItems: ORDERED,
+        invoiceItems: [
+            invoiceItem({ id: "recII1", ordered: "recPOI_A", qty: 8, unitPrice: 13.49 }),
+            invoiceItem({ id: "recII2", ordered: "recPOI_A", qty: 5, unitPrice: 14.0 }),
+        ],
+        invoices: [invoice()],
+    });
+    check("  two charges at TWO prices stay two", twoPrices[0]?.charges.length, 2);
+    assert("  keyed apart by the price alone", keysAreUnique(twoPrices[0]?.charges));
+    check(
+        "  each keeping its own price rather than one winning",
+        twoPrices[0]?.charges.map((c) => c.unitPrice).join(),
+        "13.49,14"
+    );
+    // A missing price is not a price of 0, the normalization lib/invoiceItemFold.js
+    // states — so these are two charges and neither is `$0.00`.
+    check(
+        "  and a missing price is not a price of zero",
+        foldInvoicesOnOrder({
+            orderedItems: ORDERED,
+            invoiceItems: [
+                invoiceItem({ id: "recII1", ordered: "recPOI_A", unitPrice: 0 }),
+                invoiceItem({ id: "recII2", ordered: "recPOI_A", unitPrice: null }),
+            ],
+            invoices: [invoice()],
+        })[0]?.charges.length,
+        2
+    );
+
+    // -----------------------------------------------------------------------
+    log("");
     log("anti-vacuity — the fold reads its inputs and is not a constant:");
     check(
         "no invoice items, no entries",

@@ -1446,14 +1446,20 @@ together, with the excess stated as a figure rather than a tag. The rule is
 - **THE COLOR IS ON THE EXCESS ALONE, WHICH IS #241's RULE AT ITS OTHER HALF.** There
   an entry was wholly an exception, so its name took the tone; here the row is partly
   one, and coloring the total would say the 10 that arrived inside the order is a
-  problem too. **AMBER HERE, RED ON `/pos/[poId]`, AND THAT IS NOT A DRIFT TO TIDY
-  UP.** On the order's page the figure says an ordered item is over-delivered — the
-  order asked for 10 and holds 13 — which is the discrepancy that page prints in red
-  beside `⚠ Header Variance`. Here it is one arrival's contribution, on a page whose
-  every over-delivery word is already amber: the headline tag, the banner, and the
-  correction box under it. Unifying the two would make one color mean both "this
-  order is over" and "this delivery brought some excess", which is the property
-  `DeliveryStatusMarks` exists to hold still.
+  problem too. **AMBER FOR ONE ARRIVAL'S CONTRIBUTION, RED FOR AN ORDERED ITEM BEING
+  OVER, AND THAT IS NOT A DRIFT TO TIDY UP.** On the order's page the red figure says
+  an ordered item is over-delivered — the order asked for 10 and holds 13 — which is
+  the discrepancy that page prints beside `⚠ Header Variance`. Amber is one arrival's
+  contribution, which on this page is every over-delivery word: the headline tag, the
+  banner, and the correction box under it. Unifying them would make one color mean
+  both "this order is over" and "this delivery brought some excess", which is the
+  property `DeliveryStatusMarks` exists to hold still.
+  - **THIS SAID "AMBER HERE, RED ON `/pos/[poId]`" UNTIL #266, AND THAT PHRASING WAS
+    THE WEAKER READING OF ITS OWN ARGUMENT.** It located the distinction on the PAGE
+    when the argument it makes is about SCOPE, and #266 put the amber mark on
+    `/pos/[poId]` too — that page now carries both colors, on the two facts named
+    above. Corrected rather than left, since the sentence would otherwise read as a
+    claim about which color that page gives this mark.
 - **THE JUDGMENT IS UNTOUCHED, AND `summarizeDelivery` IS THIS SCREEN'S CHIP.** #241
   kept the fold off the invoice chip because a list row and the page it leads to
   cannot describe one invoice differently; the same shape is here and is wider —
@@ -1675,3 +1681,104 @@ matched to a delivery, longest wait first. The fourth built to the shape #176 se
   which is what would make an unmatched bill mean "refused" rather than "never
   asked". That is the seed defect `backlog.md` records, and it changes another
   issue's data.
+
+### Reading one ordered item as one line on an order (#266)
+
+An order's page listed one line per stored child row, so an over-delivery — two
+`Delivery Items` rows against one ordered item — read as one material twice under
+one delivery, and React warned on the ordered item's record id appearing twice as a
+key. Folded on the ordered item, with the excess stated as a figure. The invoice
+side folded with it, on the ordered item AND the unit price. The rule is
+`lib/poDocuments.js`.
+
+- **#238 CONFIRMED THE DELIVERY DETAIL AND DID NOT LOOK ONE HOP OUT.** That issue
+  folded the same data on the screen it was reading and left the order's page drawing
+  it the other way, which is how a rule about "when does a screen read one material
+  as one line" came to have two answers in the same repository for four issues. So
+  the first move here was a sweep of every surface that renders several
+  `Delivery Items` or `Invoice Items` under one ordered item, written out below,
+  rather than a fix to the screen the report named.
+- **THE KEY IS THE ORDERED ITEM, AND THAT IS #238's KEY WITH BOTH COMPONENTS FUSED.**
+  That issue folds on `Material` + ORDER; a `PO Items` row links exactly one purchase
+  order and exactly one material, so in this frame one record carries both. Not a
+  third answer to the question — the same one, where the frame hands it a shorter
+  spelling. **It also lands strictly finer than folding on the material would, which
+  this list needs**: one order can carry two ordered items of one material, an ordered
+  item is what these lines are named and sorted by, and folding them together would
+  put a sum under a single name that the table above shows as two rows.
+- **NEITHER `groupRowsByItem` NOR `groupRowsByItemAndOrder` COULD BE CALLED.** Both
+  take the delivery detail's own row objects, and both group across a WHOLE delivery,
+  while this fold happens inside one (delivery, order) entry that
+  `foldDeliveriesOnOrder` has already built. What is shared is the rule, stated in one
+  paragraph in each module and pointing at the other; sharing the code would need a
+  parameterized identity and would make three call sites harder to read than two
+  functions that each name their own key.
+- **OVER-DELIVERY IS NOT THE ONLY PRODUCER, AND THIS IS WHAT THE FOLD IS REALLY
+  ABOUT.** `recomputeOverDelivery` splits a straddling row on the delete path and
+  `lib/deliveryDelete.js` creates the new piece with `deliveryRecordId` taken from the
+  row it split — the SAME delivery, the SAME ordered item. So one delivery can hold
+  two FLAGGED rows against one ordered item, which is the `6, 6, 6` case #238 records
+  for `overRowIds`, and — once a deletion frees room and a flag clears beside a row
+  already inside the order — two UNFLAGGED rows against one. `overQty` therefore SUMS
+  the flagged members rather than reading one, and a folded line with nothing flagged
+  says nothing about excess at all. Both are inputs to `offline/po-documents.mjs`: an
+  implementation that read a single flagged row passes the first and fails the second,
+  and one that treated a second row as evidence of an excess fails the third.
+- **THE FIGURE EXISTS BECAUSE THE FOLD CREATED THE NEED FOR IT.** Before it, this line
+  carried no over signal and needed none — the excess was a line of its own, and the
+  document-level `Over-delivered` badge said which delivery. Folded, the quantity
+  became the within piece plus the excess, so with no figure the fold would have
+  absorbed an excess into a total and left only a badge that names neither the item
+  nor the amount. That is the loss #233 names when it says the over signal is the one
+  place information could have gone.
+- **THE WORD IS `ALLOCATION_COPY.table.overPortion`, CALLED RATHER THAN COPIED.**
+  `(N over)` already existed there for the identical fact one frame down, and a second
+  copy in `PO_DOCUMENTS_COPY` would be the second home #179 exists to remove. The page
+  appends it in its own element because only the excess is colored, which is the
+  arrangement the delivery detail already uses; `lib/poDocuments.js` gained no import.
+- **THE COLOR IS THE BADGE'S, NOT THE TABLE'S, AND IT PUTS BOTH ON ONE PAGE.** The red
+  `(over)` in the `Delivered` column says an ordered item is over across every
+  delivery; this says one delivery brought some excess against one ordered item, which
+  is what the amber badge two lines above it already says. So the distinction #238
+  drew is by SCOPE rather than by page, and #266 is what proves it — that issue's own
+  phrasing has been corrected above, and both briefs now state the pair, because a
+  designer who did not know would unify them. **Measured in the browser** on
+  `HYE-PO-20260819-17`: the folded line's mark computes to the badge's color and not
+  to the two table cells', which is the assertion no file-only check can make.
+- **THE INVOICE SIDE FOLDS ON THE ORDERED ITEM AND THE UNIT PRICE**, which is
+  `lib/invoiceItemFold.js`'s key at this scope with the ordered item where that module
+  has `Material` — for the reason above, and because a charge here is listed under an
+  ordered item. The price stays in the key, so two charges billed at two prices are
+  two facts and a folded charge's `@ price` is exact by construction. **That is the
+  whole of what a folded charge says about a price that differs: nothing, because a
+  differing price is never folded.** A missing price is not a price of zero, the
+  normalization that module already states.
+- **THE ISSUE NAMED #167's SPLIT AS THE PRODUCER AND IT IS NOT ONE.**
+  `splitInvoiceLineForOverage` creates the new invoice item with
+  `poItemRecordId: target.id` — the OVERAGE order's ordered item — and
+  `foldInvoicesOnOrder` admits only rows whose `PO Item` is one of THIS order's, so
+  each order's page sees exactly one half and never both. The form cannot make the
+  shape either: #91 excludes an ordered item a sibling invoice item already claimed.
+  **Measured on this base: 25 invoice items, no (invoice, ordered item) pair twice.**
+  So the invoice fold is defensive against a record edited by hand, the same ground
+  #241 gives for the same shape one screen away, and the duplicate key was reachable
+  on the delivery axis only. Done in this issue rather than deferred, because leaving
+  a known shape unhandled gives the next reader no reason to look at that line again.
+- **THE FOUR SURFACES THAT WERE ALREADY RIGHT, AND WHY TWO OF THEM MUST STAY
+  UNFOLDED.** The sweep found no third screen to fix, but it found two that a later
+  issue could break by tidying. **The invoice EDIT form renders raw `Invoice Items`
+  and has to**: folding would leave a split's two halves un-editable, and editing is
+  the one thing that needs the stored row rather than the reading of it. **The
+  over-delivery banners, the correction blocks and #217's strip are per flagged ROW on
+  purpose** — a correction acts on one row, so a folded group is not the unit they
+  address, which is the same reason #238 gives for keeping them out of its own fold.
+  The other two, the delivery detail and the invoice detail, fold already (#238, #167,
+  #237, #241).
+- **NO NEW READ, MEASURED RATHER THAN ASSERTED.** The fold is a pure regrouping of
+  rows the page already holds and no credentialed function gained a call site. On the
+  labeled route, `HYE-PO-20260819-17` read **14 operations before and 14 after**, with
+  the same ten tables and the same four repeats.
+- **Not in this issue:** the red `(over)` in the items table and its predicates, which
+  are #169's and #233's and unchanged; the delivery detail's own fold; and the demo
+  runbook, which turned out to carry no claim this change makes false — its Act IV
+  sentence about coloring only the excess is now true of two screens instead of one.

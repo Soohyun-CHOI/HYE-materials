@@ -75,9 +75,10 @@ exceed.
 **On the same row of the table, when part of a slice was the excess:** a small
 amber `(N over)` after the quantity. **Only the excess is colored, never the
 total** — coloring the whole figure would say the part that arrived inside the
-order is a problem too. This amber is deliberately not the red the purchase
-order detail gives its own `(over)` mark on the same predicate; the two screens
-differ on purpose and the reasoning is in the notes.
+order is a problem too. The purchase order detail prints this same mark, in this
+same color, on its own folded line; the red `(over)` on that screen is a different
+scope and says *the ordered item is over*, counting every delivery. The
+distinction is by scope, not by screen.
 
 **When an over-delivery can be corrected by raising a request for it:** a
 bordered block per case, directly under the banner that reported the excess,
@@ -141,6 +142,9 @@ reason.
 list**, which lists uncorrected excesses in short form. The long sentence here
 and the short reason there describe one situation and are authored together.
 
-**The `(over)` mark differs in color from the purchase order detail's on
-purpose.** If a redesign unifies them it should do so knowingly: here the mark
-sits on part of a quantity, there it qualifies a whole cell.
+**The `(N over)` mark is shared with the purchase order detail**, which prints it
+on the same fact — part of a quantity was excess — in the same color, from the
+same constant. That screen also has a `(over)` in a different color, qualifying a
+whole cell, and that one says something else: the ordered item is over across
+every delivery. A redesign may unify the two shapes only knowingly, because the
+color is what tells a reader which of the two they are looking at.

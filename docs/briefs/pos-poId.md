@@ -64,6 +64,15 @@ matching the column order above, then `Invoices`. Each entry is a document ID as
 a link, its date, and an indented child list in smaller gray text naming what
 that document brought or charged, per ordered item.
 
+**Each ordered item appears once in a child list, however many rows are behind
+it.** One recorded delivery is one row per allocated slice, and an over-delivery
+writes two against the same ordered item — the part inside the order and the
+excess — so what a reader would otherwise meet is one material listed twice under
+one delivery. It is one line, with the quantities added. The invoice side folds on
+the same principle, with the unit price joined to it: two charges billed at two
+different prices are two facts and stay two lines, so a folded line's price is
+always exactly what was billed.
+
 **Empty is a reading here, and the sentence says which.** Both sections render
 even with nothing in them, because this is the page a reader comes to in order to
 reconcile and an absent section cannot be told apart from a section that found
@@ -99,7 +108,20 @@ billed, than was ordered. Signaling one differently would imply a distinction
 neither makes. This is the only red in the table.
 
 **When a delivery brought more than the order asked for:** an `Over-delivered`
-badge on that delivery's line in the list.
+badge on that delivery's line in the list, and on the child line for the ordered
+item that received the excess, a small `(N over)` after the quantity, in the
+badge's color. **Only the excess is colored, never the total** — the folded line
+holds the part that arrived inside the order and the part beyond it together, so
+coloring the whole figure would say the part that was ordered is a problem too.
+
+**So this screen carries `(over)` at two scopes, in two colors, and unifying them
+would destroy the distinction.** The red one in the table qualifies a whole cell
+and says *this ordered item is over* — every delivery counted, which is the
+discrepancy this page exists to surface. The other says *this one delivery
+brought some excess*, which is a contribution rather than a verdict; it wears the
+same color as the badge two lines above it, and as the same mark on the delivery's
+own screen. Two facts, both true at once, and a reader needs to be able to tell
+which one they are looking at.
 
 **When an invoice's own total does not match its computed total:** a
 `⚠ Check the total` badge on that invoice's line.
@@ -176,6 +198,11 @@ ordered item stays legible on it.
 
 **`Over-delivered` is this base's own word**, a checkbox on the delivery's rows,
 and the delivery detail uses the same tag.
+
+**The `(N over)` on a folded child line is the delivery detail's own mark**, from
+the same constant, for the same fact one frame down: part of a quantity was
+excess. That screen's table and this list read alike on purpose, and a redesign
+that changes the shape of one changes both.
 
 **The two withdrawal voices are paired with the modal's.** The banner is third
 person and past tense; the confirmation dialog is second person. They are
