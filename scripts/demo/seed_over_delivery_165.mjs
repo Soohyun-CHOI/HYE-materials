@@ -26,8 +26,8 @@
 // Run from the repo root:
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/seed_over_delivery_165.mjs
 //
-// Reuses (never modifies) the 26-DEMO-01 job, its Demo Line A, and the
-// "Demo Pipe Supply" vendor from seed_demo_fixtures.mjs. Creates PRs + PR Items,
+// Reuses (never modifies) the 26-DEMO-01 job, its Unit 2 Piping, and the
+// "Gulf Coast Valve & Fitting" vendor from seed_demo_fixtures.mjs. Creates PRs + PR Items,
 // POs + PO Items through the REAL approve-and-generate flow — which is what gives
 // each ordered item its `Material` link (#18), the thing allocation matches on — plus
 // one Delivery for scenario B. Nothing is uploaded to Vercel Blob, so the seeded
@@ -49,7 +49,7 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 
 const JOB_CODE = "26-DEMO-01";
-const VENDOR_NAME = "Demo Pipe Supply";
+const VENDOR_NAME = "Gulf Coast Valve & Fitting";
 
 const PIPE = { itemName: "165-DEMO Pipe", size: '2"', unit: "EA" };
 const ELBOW = { itemName: "165-DEMO Elbow", size: '3"', unit: "PCS" };

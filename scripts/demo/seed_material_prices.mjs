@@ -40,7 +40,7 @@ import { getAllLines } from "../../lib/airtable/lines.js";
 // A third vendor, so the comparison screen has something to compare. Named
 // "Demo ..." on purpose: a realistic supplier name sitting in Vendors could
 // later be mistaken for a real one.
-const EXTRA_VENDOR = "Demo Pipe Supply";
+const EXTRA_VENDOR = "Gulf Coast Valve & Fitting";
 
 // The three items are chosen to make each of the screen's behaviors visible.
 const PIPE = { itemName: "SCH 40 PVC Pipe", size: '4"', unit: "FT" };
@@ -60,7 +60,7 @@ const HANGER = { itemName: "Pipe Hanger", size: "", unit: "EA" };
 const ORDERS = [
     {
         label: "pipe, oldest, cheapest — the Lowest mark should land here",
-        vendor: "Demo Vendor Co.",
+        vendor: "Lone Star Pipe & Supply",
         daysAgo: 240,
         status: "Signed",
         items: [{ ...PIPE, qty: 2000, unitPrice: 2.85 }],
@@ -84,7 +84,7 @@ const ORDERS = [
     },
     {
         label: "valve, older, signed",
-        vendor: "Demo Vendor Co.",
+        vendor: "Lone Star Pipe & Supply",
         daysAgo: 150,
         status: "Signed",
         items: [{ ...VALVE, qty: 40, unitPrice: 18.5 }],
