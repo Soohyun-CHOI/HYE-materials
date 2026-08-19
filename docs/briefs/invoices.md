@@ -78,6 +78,40 @@ table is invoices, gated by the walk that reaches `canViewPR`; the strip is
 arrivals, gated by job assignment. Two different rules on one page, because the
 two report on two different kinds of record.
 
+**When some invoice is still waiting on a delivery:** a **second** strip, below the
+first and above the table, with a counted heading —
+`N invoices are waiting on a delivery` — then this line:
+
+`Longest wait first. Nothing has confirmed the material these bills charge for.`
+
+and one row per invoice: its ID as a link, its issue date with the days it has
+waited, the vendor, and one of two words saying which state it is in.
+
+The two words are `nothing delivered yet`, when nothing has been delivered against
+any order the bill charges, and `delivered, not matched`, when something has and no
+delivery is paired with it. **Neither claims a reason.** The refusal reasons the
+pairing rule produces are never stored and it only runs when a document is written,
+so an unmatched bill is equally consistent with a refusal, with nothing having
+arrived at the time, and with the pairing never having been attempted — the last
+being the common case on today's seeded base. The words say what is observable and
+send the reader to look.
+
+**This strip is silent when empty too**, and it counts the days from `Issue Date` —
+the vendor's own date on the document, the same choice the delivery strip makes in
+using the packing list's `Received Date` rather than when either was entered here.
+
+**Both strips can appear at once, and often on one situation seen from both ends.**
+A delivery nobody has billed and a bill nobody has matched each get a row, in
+different strips. Neither strip's contents depend on the other's. They are told
+apart without color: each heading names and counts its own subject, and the row IDs
+carry different prefixes.
+
+**Its row count and the number of `Awaiting delivery` chips in the table can
+differ, and that is not a defect.** An invoice that charges no ordered item at all
+wears the chip below and has no row above, because it can never be paired and the
+delivery question cannot be asked of it. Two of the base's invoices are in exactly
+that state.
+
 ## What must agree elsewhere
 
 **The Delivery chip is the invoice detail's chip.** If the two vocabularies drift,

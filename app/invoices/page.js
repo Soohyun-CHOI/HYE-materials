@@ -5,7 +5,11 @@ import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
-import { getDeliveryInvoicing, getInvoiceDeliveryStatus } from "@/lib/deliveryReconciliation";
+import {
+    getDeliveryInvoicing,
+    getInvoiceDeliveryStatus,
+    getOrderedItemsWithDelivery,
+} from "@/lib/deliveryReconciliation";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { accessibleJobs } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
@@ -13,6 +17,7 @@ import {
     daysWaiting,
     describeInvoiceColumn,
     isNotFullyInvoiced,
+    selectInvoicesAwaitingDelivery,
     sortLongestWaitingFirst,
 } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -20,6 +25,7 @@ import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { formatUSD } from "@/lib/format";
 import { VARIANCE_COPY } from "@/lib/variance";
 import AwaitingInvoiceStrip from "./AwaitingInvoiceStrip";
+import AwaitingDeliveryStrip from "./AwaitingDeliveryStrip";
 
 export const metadata = { title: "Invoices" };
 
@@ -78,7 +84,10 @@ async function renderInvoiceListPage() {
     // RUN OVER THE GATED ROWS, so a refused invoice's lines never reach the wire
     // either — the same call #169 makes when it gathers PO Item ids from the rows
     // canViewPR already admitted.
-    const statusByInvoice = await getInvoiceDeliveryStatus(invoices);
+    // #256 — `orderedItemsByInvoice` is the level this call already read and used to
+    // discard, so the second strip's selection costs no query for it.
+    const { byInvoice: statusByInvoice, orderedItemsByInvoice } =
+        await getInvoiceDeliveryStatus(invoices);
 
     // #216 — THE STRIP'S ROWS ARE DELIVERIES, SO THEY ARE GATED AS DELIVERIES.
     // That is the one thing this strip does not inherit from #176, where the
@@ -120,6 +129,12 @@ async function renderInvoiceListPage() {
             .filter((d) => isNotFullyInvoiced(invoicingByDelivery.get(d.id)?.key))
             .map((d) => ({
                 deliveryId: d.deliveryId,
+                // BOTH NAMES, AND NEITHER IS REDUNDANT (#256). `waitingSince` is what
+                // the shared sort orders by, neutral because a third caller now passes
+                // an invoice's date; `receivedDate` is what the row RENDERS, where the
+                // specific name is the honest one — the strip prints a delivery's
+                // received date and says so.
+                waitingSince: d.receivedDate || "",
                 receivedDate: d.receivedDate || "",
                 createdAt: d.createdAt || "",
                 vendorName: vendorNameById[d.vendor?.[0]] || "Unknown vendor",
@@ -145,6 +160,21 @@ async function renderInvoiceListPage() {
             }))
     );
 
+    // #256 — the other direction. Selection is the chip's own key, so no invoice can
+    // sit here and read differently in the table; the split into two row kinds needs
+    // only whether anything was delivered against the ordered items each bill charges,
+    // which is one batched read over ids the call above already returned.
+    const awaitingDeliveryRows = selectInvoicesAwaitingDelivery({
+        invoices,
+        statusByInvoice,
+        orderedItemsByInvoice,
+        deliveredOrderedItems: await getOrderedItemsWithDelivery(
+            [...orderedItemsByInvoice.values()].flat()
+        ),
+        vendorNameById,
+        today,
+    });
+
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
             <div className="flex items-center justify-between">
@@ -168,6 +198,14 @@ async function renderInvoiceListPage() {
                 row. Renders nothing when there is nothing, which is the correct
                 and common state. */}
             <AwaitingInvoiceStrip rows={awaitingInvoiceRows} />
+
+            {/* #256 — SECOND, AND THE ORDER IS THE DOCUMENTS' OWN. A delivery waiting
+                for a bill comes before a bill waiting for a delivery in the flow the
+                two describe, so reading down the page puts the two ends of one
+                situation in the order they occur and neither heading has to say which
+                end it is. See the strip's own header for why that beat the adjacency
+                argument. Renders nothing when there is nothing, like the one above. */}
+            <AwaitingDeliveryStrip rows={awaitingDeliveryRows} />
 
             {/* TWO EMPTY STATES, because they are two different facts (#168's
                 rule). `yet` belongs only to the first: an employee whose jobs carry

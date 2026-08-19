@@ -803,21 +803,33 @@ export function run({ check, log, assert }) {
     // --- the worklist order -----------------------------------------------
     log("");
     log("the vendor-chasing worklist: longest-waiting first (#166):");
+    // `waitingSince` SINCE #256, which renamed the field off `receivedDate` when a
+    // third caller began ordering by an invoice's `Issue Date`. These fixtures carry
+    // the neutral name because that is what the function reads; which date a caller
+    // puts in it is the call site's claim, and each one now states it.
     const rows = [
-        { id: "b", receivedDate: "2026-07-20", createdAt: "2026-07-20T10:00:00.000Z" },
-        { id: "a", receivedDate: "2026-07-10", createdAt: "2026-07-11T10:00:00.000Z" },
-        { id: "c", receivedDate: "2026-07-20", createdAt: "2026-07-21T10:00:00.000Z" },
+        { id: "b", waitingSince: "2026-07-20", createdAt: "2026-07-20T10:00:00.000Z" },
+        { id: "a", waitingSince: "2026-07-10", createdAt: "2026-07-11T10:00:00.000Z" },
+        { id: "c", waitingSince: "2026-07-20", createdAt: "2026-07-21T10:00:00.000Z" },
     ];
     const sorted = sortLongestWaitingFirst(rows);
-    check("Received Date ascending", sorted.map((r) => r.id).join(""), "acb");
+    check("waiting-since ascending", sorted.map((r) => r.id).join(""), "acb");
     // Created At DESC as the tie-break, matching the default list's direction so
     // only the primary key flips between the two orderings.
     check("ties broken by Created At descending", sorted[1].id, "c");
     assert("does not mutate its input", rows[0].id === "b");
     // A data gap must not take the top of a worklist — the same call
     // sortCandidates makes for the head of its FIFO queue.
-    const withUndated = sortLongestWaitingFirst([...rows, { id: "z", receivedDate: "", createdAt: "2026-01-01T00:00:00.000Z" }]);
-    check("an undated delivery sorts LAST, not first", withUndated.at(-1).id, "z");
+    const withUndated = sortLongestWaitingFirst([...rows, { id: "z", waitingSince: "", createdAt: "2026-01-01T00:00:00.000Z" }]);
+    check("an undated row sorts LAST, not first", withUndated.at(-1).id, "z");
+    // AND THE OLD NAME IS INERT, which is what makes the rename a rename rather than
+    // an addition: a row carrying only `receivedDate` is undated to this function now,
+    // so a call site left unconverted sorts last instead of silently sorting right.
+    const legacy = sortLongestWaitingFirst([
+        { id: "old", receivedDate: "2026-01-01" },
+        { id: "new", waitingSince: "2026-07-01" },
+    ]);
+    check("a row with only the old field is treated as undated", legacy.at(-1).id, "old");
     check("nullish does not throw", sortLongestWaitingFirst(null).length, 0);
     check("a single row is returned as-is", sortLongestWaitingFirst([rows[0]])[0].id, "b");
 
@@ -1125,14 +1137,20 @@ export function run({ check, log, assert }) {
         const callee = node.callee;
         if (callee?.type !== "MemberExpression" || callee.property?.name !== "sort") return;
         const text = JSON.stringify(node.arguments);
-        for (const field of ["issueDate", "receivedDate", "createdAt"]) {
+        for (const field of ["issueDate", "waitingSince", "createdAt"]) {
             if (text.includes(field)) sortedFields.add(field);
         }
     });
     // ANTI-VACUITY FOR THAT MATCHER, and it needs its own: "no sort mentions
     // issueDate" is also what a matcher that reads no sort callback at all reports.
     // sortLongestWaitingFirst is still here, so its two fields must come back seen.
-    assert("  the sort matcher reads callback bodies at all", sortedFields.has("receivedDate"));
+    //
+    // THE FIRST FIELD IS `waitingSince` SINCE #256, and updating it here is load-
+    // bearing rather than cosmetic: that rename made the sort read a different property,
+    // so an assertion still naming `receivedDate` would have gone quiet — reporting
+    // "the matcher works" only by finding a field no sort in this module reads. The
+    // proof and the thing proved have to move together.
+    assert("  the sort matcher reads callback bodies at all", sortedFields.has("waitingSince"));
     assert("    including the tie-break beside it", sortedFields.has("createdAt"));
     assert("and nothing here sorts bills by Issue Date any more", !sortedFields.has("issueDate"));
 
