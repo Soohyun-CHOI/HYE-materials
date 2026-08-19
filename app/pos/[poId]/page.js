@@ -21,7 +21,10 @@ import { formatUSD } from "@/lib/format";
 import { VARIANCE_COPY } from "@/lib/variance";
 import { describeOverageBanner } from "@/lib/overage";
 import { getOverageBannerFactsForPO } from "@/lib/overagePR";
-import { undeliveredQty } from "@/lib/deliveryAllocation";
+// #266 — `overPortion` is the `(N over)` the delivery detail's folded row already
+// prints; this page appends that same word to its own folded row rather than
+// coining a second one.
+import { ALLOCATION_COPY, undeliveredQty } from "@/lib/deliveryAllocation";
 import {
     describePOColumn,
     describePOInvoicingColumn,
@@ -514,10 +517,41 @@ async function renderPODetailPage({ params, searchParams }) {
                                         </span>
                                     )}
                                 </p>
+                                {/* ONE LINE PER ORDERED ITEM (#266), which this list
+                                    claimed to be while rendering one per stored row.
+                                    An over-delivery writes the within piece and the
+                                    excess against the SAME ordered item, so one
+                                    material that arrived once read as two lines and
+                                    the ordered item's record id — the key — appeared
+                                    twice.
+
+                                    THE FIGURE SAYS WHICH PART, WHICH IS WHY THE FOLD
+                                    NEEDS IT. Before the fold this line carried no
+                                    over signal at all and needed none: the excess was
+                                    a line of its own. Folded, the quantity is the
+                                    within piece plus the excess, so without the
+                                    figure the fold would quietly absorb the excess
+                                    into a total and leave only the document-level
+                                    badge, which says neither which item nor how much.
+
+                                    AMBER, NOT THE RED `(over)` IN THE TABLE ABOVE,
+                                    and the distinction is by SCOPE rather than by
+                                    page. Red there says an ordered item is over —
+                                    every delivery counted. This is one delivery's
+                                    contribution to one ordered item, the same fact
+                                    the badge two lines up carries in amber, and the
+                                    same fact #238 prints in amber one frame down.
+                                    Coloring the total instead would say the part that
+                                    arrived inside the order is a problem too. */}
                                 <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
                                     {d.brought.map((b) => (
-                                        <li key={b.orderedItemRecordId}>
+                                        <li key={b.key}>
                                             {PO_DOCUMENTS_COPY.deliveries.brought(b).text}
+                                            {b.overQty > 0 && (
+                                                <span className="ml-1 whitespace-nowrap text-amber-700">
+                                                    {ALLOCATION_COPY.table.overPortion(b.overQty).text}
+                                                </span>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
@@ -587,9 +621,24 @@ async function renderPODetailPage({ params, searchParams }) {
                                             </span>
                                         ))}
                                 </p>
+                                {/* ONE LINE PER ORDERED ITEM AND PRICE (#266), the
+                                    delivery list's fold with the unit price joined to
+                                    the key — so two charges billed at different prices
+                                    stay two facts and a folded one's `@ price` is
+                                    exact rather than a choice between two.
+
+                                    NOTHING IN THE APP PRODUCES TWO CHARGES ON ONE
+                                    ORDERED ITEM, which is worth saying because the
+                                    issue reached for #167's split and that is not the
+                                    producer: the split re-points the excess onto the
+                                    OVERAGE order's ordered item, and this list admits
+                                    only this order's, so each page sees one half. #91
+                                    stops the form. A record edited by hand is what
+                                    reaches it, the same ground #241 gives for treating
+                                    the same shape defensively. */}
                                 <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
                                     {inv.charges.map((c) => (
-                                        <li key={c.orderedItemRecordId}>
+                                        <li key={c.key}>
                                             {PO_DOCUMENTS_COPY.invoices.charge(c).text}
                                             {c.varianceFlag && (
                                                 <span className="ml-1 rounded bg-red-100 px-1 text-red-700">
