@@ -374,8 +374,8 @@ if (!requester || !vendorA || !vendorB || !line) {
         check("Latest Date is the PO's Created Date", priceX.latestDate, (await base(TABLES.PURCHASE_ORDERS).find(gen1.poRecordId)).get("Created Date"));
     }
 
-    const xLines = po1Items.filter((i) => i.itemName === nameX);
-    check("both PO lines of that material carry the Material link", xLines.filter((i) => i.material.includes(matX?.id)).length, 2);
+    const xItems = po1Items.filter((i) => i.itemName === nameX);
+    check("both PO lines of that material carry the Material link", xItems.filter((i) => i.material.includes(matX?.id)).length, 2);
     const unitless = po1Items.find((i) => i.itemName.endsWith("Unitless"));
     check("the unit-less line is NOT linked (skipped)", unitless.material.length, 0);
     check("and no identity row was created for it", await countMaterialRows({ itemName: `${TAG} Unitless`, size: "", unit: "" }), 0);
@@ -385,7 +385,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     check("Materials.PO Items shows both lines (reverse link)", matXFresh.poItems.length, 2);
 
     const gasket = await getMaterialByKey({ itemName: `${TAG} Gasket`, size: "", unit: "PCS" });
-    assert("a blank SIZE is fine — that line got its own material", Boolean(gasket));
+    assert("a blank SIZE is fine — that item got its own material", Boolean(gasket));
 
     // Vendor B buys the same material: one identity, a second price.
     const pr2 = await createPR({
@@ -435,7 +435,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     check("Signed: Committed Qty = Qty too", signed.value.get("Committed Qty"), 7);
 
     const withdrawn = await waitFor(() => poItemOf(gen3.poRecordId), (r) => (r.get("Committed Qty") || 0) === 0);
-    check(`Withdrawn: Committed Qty = 0, NOT the line's 100 (${settleNote(withdrawn)})`, withdrawn.value.get("Committed Qty") || 0, 0);
+    check(`Withdrawn: Committed Qty = 0, NOT the ordered item's 100 (${settleNote(withdrawn)})`, withdrawn.value.get("Committed Qty") || 0, 0);
     check("Withdrawn: Signed Qty = 0", withdrawn.value.get("Signed Qty") || 0, 0);
     check("the lookup really coerced to text (else this would be the qty)", withdrawn.value.get("Committed Qty") || 0, 0);
     check("PO Status lookup reads as the status", (withdrawn.value.get("PO Status") || []).join(","), "Withdrawn");
@@ -457,10 +457,10 @@ if (!requester || !vendorA || !vendorB || !line) {
     track("invoices", invoice.id);
     await linkInvoiceToPO(invoice.id, gen1.poRecordId);
 
-    const targetLine = xLines[0]; // qty 10
+    const targetOrderedItem = xItems[0]; // qty 10
     const ii = await createInvoiceItem({
         invoiceRecordId: invoice.id, invoiceId: invoice.invoiceId,
-        poRecordId: gen1.poRecordId, poItemRecordId: targetLine.id,
+        poRecordId: gen1.poRecordId, poItemRecordId: targetOrderedItem.id,
         itemName: nameX, size: '4"', unit: "EA", qty: 3, unitPrice: 30, remark: "",
     });
     track("invoiceItems", ii.id);
@@ -468,11 +468,11 @@ if (!requester || !vendorA || !vendorB || !line) {
     // The merge's premise, re-measured every run rather than trusted: the
     // rollup must be correct on the FIRST read after the link is created,
     // because that is exactly when the invoice actions read it.
-    const firstRead = await getInvoicedQtyForPOItem(targetLine.id);
+    const firstRead = await getInvoicedQtyForPOItem(targetOrderedItem.id);
     check("the rollup is correct on the first read after linking", firstRead, 3);
 
     const statuses = await getInvoicingStatusByPO(gen1.poRecordId);
-    const enriched = statuses.find((i) => i.id === targetLine.id);
+    const enriched = statuses.find((i) => i.id === targetOrderedItem.id);
     check("getInvoicingStatusByPO reports the same figure", enriched.invoicedQty, 3);
     check("uninvoicedQty follows the shared rule", enriched.uninvoicedQty, uninvoicedQty({ qty: 10, invoicedQty: 3 }));
     check("and equals 7", enriched.uninvoicedQty, 7);
@@ -491,14 +491,14 @@ if (!requester || !vendorA || !vendorB || !line) {
     // Over-invoicing must stay negative rather than clamp.
     const ii2 = await createInvoiceItem({
         invoiceRecordId: invoice.id, invoiceId: invoice.invoiceId,
-        poRecordId: gen1.poRecordId, poItemRecordId: targetLine.id,
+        poRecordId: gen1.poRecordId, poItemRecordId: targetOrderedItem.id,
         itemName: nameX, size: '4"', unit: "EA", qty: 12, unitPrice: 30, remark: "",
     });
     track("invoiceItems", ii2.id);
     const over = await getInvoicingStatusByPO(gen1.poRecordId);
-    const overLine = over.find((i) => i.id === targetLine.id);
-    check("invoiced total accumulates", overLine.invoicedQty, 15);
-    check("OVER-invoiced remainder stays negative", overLine.uninvoicedQty, -5);
+    const overOrderedItem = over.find((i) => i.id === targetOrderedItem.id);
+    check("invoiced total accumulates", overOrderedItem.invoicedQty, 15);
+    check("OVER-invoiced remainder stays negative", overOrderedItem.uninvoicedQty, -5);
 
     // And it propagates up the two-level rollup chain to the material.
     const invRolled = await waitFor(() => getMaterialByRecordId(matX.id), (m) => m.invoicedQty === 15);

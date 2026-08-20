@@ -16,7 +16,7 @@
 // shape `us-english.mjs` and `product-name.mjs` use, and for the same reason.
 //
 // `Mismatch` IS THE DELIVERY AXIS'S AND IS BARRED HERE. #232 made it a chip value
-// for a bill against the delivery matched to it, on these same two screens; taking
+// for an invoice against the delivery matched to it, on these same two screens; taking
 // it for a variance would put one word on two axes of one page, which is this
 // issue's own defect pointed the other way.
 
@@ -132,7 +132,7 @@ export function run({ check, assert, log }) {
         // A COMMENT MAY CITE A RETIRED WORD — that is how this repository records
         // what a change replaced, and #232's own layout comments quote the old badge
         // by name. So the scan reads what is left after comments are removed, block
-        // and line alike. A per-line test was tried first and could not see the
+        // and line alike. A per-item test was tried first and could not see the
         // inside of a `{/* … */}` block, which is the shape those citations take.
         const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
         for (const word of RETIRED) {

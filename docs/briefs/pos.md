@@ -8,7 +8,7 @@ generated when a request is fully approved, never by hand.
 ## What it answers
 
 Which orders are outstanding, and on which of them is something still missing —
-material not yet arrived, or a bill not yet received? This is the office's
+material not yet delivered, or an invoice not yet received? This is the office's
 worklist and the closest thing the app has to a dashboard.
 
 ## What it always carries

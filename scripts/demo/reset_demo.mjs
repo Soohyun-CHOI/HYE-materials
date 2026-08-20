@@ -5,7 +5,7 @@
 // put the base back. The overage correction in Act IV is the clearest case:
 // `applyOverageToPO` re-points the over-delivered `Delivery Items` row onto the
 // corrective order's ordered item, clears `Over Delivered`, and splits the invoice item
-// that billed it. The arrival that started the act is now a different row pointing at a
+// that billed it. The delivery that started the act is now a different row pointing at a
 // different order, and no amount of deleting the correction restores it — the original
 // order keeps only `Former Delivery Items`, and the delivery drops off its `Delivered`
 // column. Act I's signing chain is the same shape: approving advances
@@ -208,7 +208,7 @@ const check = (label, ok, detail = "") => {
 // Act IV's correction: the excess is back, and nothing corrects it.
 const overDeliveryId = pickRecordId(after.byScenario, "OVER", "deliveries");
 if (!overDeliveryId) {
-    check("the OVER arrival exists", false, "no delivery carries the OVER tag");
+    check("the OVER delivery exists", false, "no delivery carries the OVER tag");
 } else {
     const rows = await getItemsByDelivery(overDeliveryId);
     const over = rows.filter((r) => r.overDelivered);
@@ -225,10 +225,10 @@ if (!overDeliveryId) {
     );
 }
 
-// Act II's forward pairing: the bill is waiting again.
+// Act II's forward pairing: the invoice is waiting again.
 const invWaitAId = pickRecordId(after.byScenario, "INV_WAIT_A", "invoices");
 if (!invWaitAId) {
-    check("the INV_WAIT_A bill exists", false, "no invoice carries that code");
+    check("the INV_WAIT_A invoice exists", false, "no invoice carries that code");
 } else {
     const inv = await base(TABLES.INVOICES).find(invWaitAId);
     check(
@@ -237,10 +237,10 @@ if (!invWaitAId) {
     );
 }
 
-// Act II's reverse pairing: the arrival is waiting again, and its order is unbilled.
+// Act II's reverse pairing: the delivery is waiting again, and its order is unbilled.
 const dlWaitId = pickRecordId(after.byScenario, "DL_WAIT", "deliveries");
 if (!dlWaitId) {
-    check("the DL_WAIT arrival exists", false, "no delivery carries that tag");
+    check("the DL_WAIT delivery exists", false, "no delivery carries that tag");
 } else {
     const dl = await base(TABLES.DELIVERIES).find(dlWaitId);
     check(

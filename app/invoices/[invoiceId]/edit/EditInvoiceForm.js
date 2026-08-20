@@ -164,8 +164,8 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
             <div>
                 <h2 className="text-lg font-semibold">Items</h2>
                 <p className="text-sm text-zinc-600">
-                    Edit line values. Size/Unit and the linked PO are fixed here — to change a
-                    line&apos;s PO or add/remove lines, delete and recreate the invoice.
+                    Edit item values. Size/Unit and the linked PO are fixed here — to change an
+                    item&apos;s PO or add/remove items, delete and recreate the invoice.
                 </p>
                 <div className="mt-2 space-y-3">
                     {items.map((it, i) => {

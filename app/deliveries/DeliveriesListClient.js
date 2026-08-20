@@ -27,7 +27,7 @@ import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 // `Not fully invoiced · oldest first` WAS THE SECOND FILTER AND IS GONE (#216).
 // It was the vendor-chasing worklist wearing a checkbox on a page whose other job
 // is a chronological log, and the two pull opposite ways: a log is newest-first
-// and its empty state means nothing arrived, a chasing list is oldest-first and
+// and its empty state means nothing delivered, a chasing list is oldest-first and
 // its empty state means there is nothing left to do. It is a strip above
 // /invoices now, where the outcome — an invoice being recorded — actually
 // happens. `isNotFullyInvoiced` and `sortLongestWaitingFirst` did not move with
@@ -168,7 +168,7 @@ export default function DeliveriesListClient({ rows, initialOver }) {
                                                     so it sits on the delivery's own row without
                                                     changing frame. On an invoice row it would be
                                                     a fact about the ordered item read as one
-                                                    about the bill. */}
+                                                    about the invoice. */}
                                                 {row.summary.hasOverDelivery && (
                                                     <span className="whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
                                                         Over-delivered

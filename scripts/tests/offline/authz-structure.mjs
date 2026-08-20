@@ -145,10 +145,10 @@ const EXEMPTIONS = [
             `${DELIVERY_JOB_AXIS} Issue #210 — TWO per-record axes rather than one, ` +
             "and neither is a role. The Job comparison admits it to the delivery; the " +
             "invoice it is about is then gated per record through " +
-            "lib/invoiceVisibility.js, so a caller cannot pair a bill they may not " +
+            "lib/invoiceVisibility.js, so a caller cannot pair an invoice they may not " +
             "read. Both re-run from a fresh read inside " +
             "lib/deliveryInvoiceCandidates.js, because an invoice can be paired with " +
-            "another shipment while the form sits open.",
+            "another delivery while the form sits open.",
     },
     {
         file: "app/deliveries/[deliveryId]/actions.js",

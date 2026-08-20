@@ -149,13 +149,13 @@ export async function run({ check, log, assert }) {
     );
     // The tempting shortcut, named so it fails rather than being caught by review.
     // Reaching for the candidate ORDERED ITEMS here is what a second answer looks like.
-    let reachesCandidateLines = false;
+    let reachesCandidateOrderedItems = false;
     walk(candidates.ast, (node) => {
         if (node.type === "ImportDeclaration" && node.source.value === "./deliveryCandidates") {
-            reachesCandidateLines = true;
+            reachesCandidateOrderedItems = true;
         }
     });
-    assert("and it does not narrow by the job's own order lines instead", !reachesCandidateLines);
+    assert("and it does not narrow by the job's own order lines instead", !reachesCandidateOrderedItems);
 
     // THE ANSWER IS HANDED TO THE PREDICATE, and this covers the COST of how that is
     // enforced rather than enforcing it. `invoiceLinkRefusal` requires `visible` and

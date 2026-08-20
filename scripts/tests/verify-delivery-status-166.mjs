@@ -13,15 +13,15 @@
 //       is created. None is visible to a file-only check, and a link field renamed
 //       in the UI makes `record.get()` return undefined, which every screen would
 //       render as nothing at all.
-//   B — the invoice axis on real records: an invoice paired with the shipment that
+//   B — the invoice axis on real records: an invoice paired with the delivery that
 //       answered it, one with nothing paired, and a free-text invoice item that
 //       is excluded rather than counted as short.
-//   C — the delivery axis: an arrival with no invoice naming it, which is the
+//   C — the delivery axis: a delivery with no invoice naming it, which is the
 //       worklist this feature exists to replace the month-end email with, and one
-//       whose bill covers only part of what it brought.
-//   D — THE PAIRING, WHICH IS WHAT #210 REPLACED AN ESTIMATE WITH. Two bills on one
-//       ordered item, each paired with its own shipment: each reads its own
-//       shipment's quantity, and neither answer depends on the order they are taken
+//       whose invoice covers only part of what it brought.
+//   D — THE PAIRING, WHICH IS WHAT #210 REPLACED AN ESTIMATE WITH. Two invoices on one
+//       ordered item, each paired with its own delivery: each reads its own
+//       delivery's quantity, and neither answer depends on the order they are taken
 //       in. This part used to assert the opposite — that the oldest was treated as
 //       settled and both were MARKED as estimates — and it is the same records
 //       producing a different, looked-up answer that shows the estimate is gone
@@ -30,7 +30,7 @@
 //       several, measured with the same _selectRecords/_findRecordById instrument
 //       verify-material-price-19.mjs Part E uses: if anything were per-row the
 //       larger set would cost more operations. The ceilings FELL in #210, because
-//       the two levels that existed only to order the other bills on an ordered
+//       the two levels that existed only to order the other invoices on an ordered
 //       item are nobody's business once the pairing is stored.
 //
 // Everything calls production functions; nothing reimplements a rule.
@@ -75,7 +75,7 @@ import {
 import {
     describeDeliveryColumn,
     describeInvoiceColumn,
-    describeInvoiceLine,
+    describeInvoiceItem,
     isNotFullyInvoiced,
 } from "../../lib/deliveryStatus.js";
 import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
@@ -289,29 +289,29 @@ try {
             const gen = await generatePOForApprovedPR(await getPRByRecordId(pr.id));
             track("pos", gen.poRecordId);
             const po = await getPOByRecordId(gen.poRecordId);
-            const poLine = (await getItemsByPO(gen.poRecordId))[0];
-            return { po, poLine };
+            const orderedItem = (await getItemsByPO(gen.poRecordId))[0];
+            return { po, orderedItem };
         }
 
-        async function deliver({ poLine, qty, over = false, receivedDate }) {
+        async function deliver({ orderedItem, qty, over = false, receivedDate }) {
             const d = await createDelivery({
                 jobRecordId: line.jobId,
                 vendorRecordId: vendor.id,
                 packingListPORecordId: null,
                 receivedDate,
                 recordedByUserId: requester.id,
-                notes: `${TAG} arrival`,
+                notes: `${TAG} delivery`,
                 file: [],
             });
             track("deliveries", d.id);
             const di = await createDeliveryItem({
                 deliveryRecordId: d.id,
                 deliveryId: d.deliveryId,
-                poItemRecordId: poLine.id,
-                materialRecordId: poLine.material?.[0] ?? null,
-                itemName: poLine.itemName,
-                size: poLine.size,
-                unit: poLine.unit,
+                poItemRecordId: orderedItem.id,
+                materialRecordId: orderedItem.material?.[0] ?? null,
+                itemName: orderedItem.itemName,
+                size: orderedItem.size,
+                unit: orderedItem.unit,
                 qty,
                 overDelivered: over,
             });
@@ -323,7 +323,7 @@ try {
             return (await getDeliveriesByRecordIds([d.id]))[0];
         }
 
-        async function bill({ po, poLine, qty, freight = false }) {
+        async function invoice({ po, orderedItem, qty, freight = false }) {
             const inv = await createInvoice({
                 vendorId: vendor.id,
                 vendorInvoiceCode: `${TAG}-${Math.random().toString(36).slice(2, 7)}`,
@@ -338,10 +338,10 @@ try {
                 invoiceRecordId: inv.id,
                 invoiceId: inv.invoiceId,
                 poRecordId: po.id,
-                poItemRecordId: poLine.id,
-                itemName: poLine.itemName,
-                size: poLine.size,
-                unit: poLine.unit,
+                poItemRecordId: orderedItem.id,
+                itemName: orderedItem.itemName,
+                size: orderedItem.size,
+                unit: orderedItem.unit,
                 qty,
                 unitPrice: 10,
                 remark: "",
@@ -367,66 +367,66 @@ try {
 
         // -------------------------------------------------------------------
         console.log("\nPart A — the things the two walks rest on, and none is in the repo:");
-        const arrived = await makeOrder({ itemName: `${TAG} Arrived`, qty: 10 });
-        const arrivedDelivery = await deliver({
-            poLine: arrived.poLine,
+        const delivered = await makeOrder({ itemName: `${TAG} Arrived`, qty: 10 });
+        const fullyDeliveredDelivery = await deliver({
+            orderedItem: delivered.orderedItem,
             qty: 10,
             receivedDate: "2026-07-15",
         });
-        const arrivedInvoice = await bill({ po: arrived.po, poLine: arrived.poLine, qty: 10, freight: true });
+        const deliveredInvoice = await invoice({ po: delivered.po, orderedItem: delivered.orderedItem, qty: 10, freight: true });
         // #210 — the pairing, written the way both production paths write it.
-        await setInvoiceDelivery(arrivedInvoice.id, arrivedDelivery.id);
+        await setInvoiceDelivery(deliveredInvoice.id, fullyDeliveredDelivery.id);
 
         // The rollup on the FIRST read after the invoice item was created. The
         // reader subtracts it from delivered to decide what a screen claims, so a
         // lagging value would report material as unbilled the moment it was billed.
         const rolled = await waitFor(
-            async () => (await getPOItemsForReconciliation([arrived.poLine.id]))[0]?.invoicedQty,
+            async () => (await getPOItemsForReconciliation([delivered.orderedItem.id]))[0]?.invoicedQty,
             (v) => v === 10
         );
-        check(`Invoiced Qty reflects the new invoice line (${settleNote(rolled)})`, rolled.value, 10);
+        check(`Invoiced Qty reflects the new invoice item (${settleNote(rolled)})`, rolled.value, 10);
 
-        const [reconLine] = await getPOItemsForReconciliation([arrived.poLine.id]);
-        assert("the PO line carries its Delivery Items reverse-link", reconLine.deliveryItems.length === 1);
-        assert("and its Invoice Items reverse-link", reconLine.invoiceItems.length === 1);
-        check("ordered qty is there for the third comparison", reconLine.qty, 10);
+        const [reconciledItem] = await getPOItemsForReconciliation([delivered.orderedItem.id]);
+        assert("the ordered item carries its Delivery Items reverse-link", reconciledItem.deliveryItems.length === 1);
+        assert("and its Invoice Items reverse-link", reconciledItem.invoiceItems.length === 1);
+        check("ordered qty is there for the third comparison", reconciledItem.qty, 10);
 
         // #210 — THE STORED PAIRING, BOTH HALVES. A renamed link field returns
         // undefined from record.get(), which the chip would render as `Awaiting
         // delivery` on an invoice whose material is in the warehouse — a wrong answer
         // that looks like an ordinary one, which is why this is measured rather than
         // assumed. The mapper is what is being tested, not Airtable.
-        const pairedInvoice = await getInvoiceByRecordId(arrivedInvoice.id);
+        const pairedInvoice = await getInvoiceByRecordId(deliveredInvoice.id);
         check(
-            "Invoices.\"Delivery\" reads back as the shipment it was pointed at",
+            "Invoices.\"Delivery\" reads back as the delivery it was pointed at",
             linkedDelivery(pairedInvoice),
-            arrivedDelivery.id
+            fullyDeliveredDelivery.id
         );
-        const [pairedDelivery] = await getDeliveriesByRecordIds([arrivedDelivery.id]);
+        const [pairedDelivery] = await getDeliveriesByRecordIds([fullyDeliveredDelivery.id]);
         assert(
-            "and the symmetric Deliveries.\"Invoices\" carries the bill, unwritten by anything",
-            (pairedDelivery.invoices || []).includes(arrivedInvoice.id)
+            "and the symmetric Deliveries.\"Invoices\" carries the invoice, unwritten by anything",
+            (pairedDelivery.invoices || []).includes(deliveredInvoice.id)
         );
         // The anti-vacuity for both — an unpaired invoice reading as unpaired — is in
-        // Part B, which already creates one. Doing it here would need a second bill on
+        // Part B, which already creates one. Doing it here would need a second invoice on
         // this ordered item, and that would move the `Invoiced Qty` total Part D
         // measures.
 
         // -------------------------------------------------------------------
         console.log("\nPart B — the invoice axis on real records:");
-        const arrivedFull = pairedInvoice;
-        const statusMap = await getInvoiceDeliveryStatus([arrivedFull]);
-        const s = statusMap.get(arrivedFull.id);
-        check("a shipment is named, so the chip is Delivered", s.key, "delivered");
+        const deliveredFull = pairedInvoice;
+        const statusMap = await getInvoiceDeliveryStatus([deliveredFull]);
+        const s = statusMap.get(deliveredFull.id);
+        check("a delivery is named, so the chip is Delivered", s.key, "delivered");
         check("and the quantities match, so no marker", s.mismatch, false);
         check("one ordered item judged", s.judged, 1);
         // The freight invoice item is excluded rather than counted as short —
-        // without this every invoice carrying one would read as not arrived.
+        // without this every invoice carrying one would read as not delivered.
         check("and the free-text line was excluded, not judged", s.excludedCount, 1);
         check("the chip says so", describeInvoiceColumn(s).text, "Delivered");
 
-        const notArrived = await makeOrder({ itemName: `${TAG} Pending`, qty: 6 });
-        const pendingInvoice = await bill({ po: notArrived.po, poLine: notArrived.poLine, qty: 6 });
+        const notDelivered = await makeOrder({ itemName: `${TAG} Pending`, qty: 6 });
+        const pendingInvoice = await invoice({ po: notDelivered.po, orderedItem: notDelivered.orderedItem, qty: 6 });
         const pendingFull = await getInvoiceByRecordId(pendingInvoice.id);
         // ANTI-VACUITY for Part A's two link assertions: an invoice nobody paired must
         // read as unpaired, or those would pass against a mapper returning a constant.
@@ -439,44 +439,44 @@ try {
             "Awaiting delivery"
         );
         // NO MARKER WITHOUT A LINK, on real records. Every invoice item of this
-        // invoice is trivially short — nothing has arrived — and marking it would
-        // put a discrepancy on every bill the vendor emails ahead of the material.
+        // invoice is trivially short — nothing has been delivered — and marking it would
+        // put a discrepancy on every invoice the vendor emails ahead of the material.
         check("and no mismatch marker, because there is nothing to compare", pendingStatus.mismatch, false);
 
-        // A PAIRED SHIPMENT THAT BROUGHT LESS THAN THE BILL: the chip stays Delivered
+        // A PAIRED DELIVERY THAT BROUGHT LESS THAN THE INVOICE: the chip stays Delivered
         // and the discrepancy is the marker. This is the state `Partly delivered` used
         // to occupy, and the difference is that this one is a real shortfall rather
         // than an artifact of filling bills oldest-first.
         const shortOrder = await makeOrder({ itemName: `${TAG} Short`, qty: 13 });
         const shortDelivery = await deliver({
-            poLine: shortOrder.poLine,
+            orderedItem: shortOrder.orderedItem,
             qty: 10,
             receivedDate: "2026-07-20",
         });
-        const shortBill = await bill({ po: shortOrder.po, poLine: shortOrder.poLine, qty: 13 });
-        await setInvoiceDelivery(shortBill.id, shortDelivery.id);
-        const shortStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(shortBill.id)])).get(
-            shortBill.id
+        const shortInvoice = await invoice({ po: shortOrder.po, orderedItem: shortOrder.orderedItem, qty: 13 });
+        await setInvoiceDelivery(shortInvoice.id, shortDelivery.id);
+        const shortStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(shortInvoice.id)])).get(
+            shortInvoice.id
         );
-        check("the shipment is named, so the chip is still Delivered", shortStatus.key, "delivered");
+        check("the delivery is named, so the chip is still Delivered", shortStatus.key, "delivered");
         check("and the shortfall is the MARKER", shortStatus.mismatch, true);
         check("with no line counted as covered", shortStatus.covered, 0);
 
         // The detail section's per-item figures and the deliveries themselves.
-        const recon = await getInvoiceReconciliation(await getItemsByInvoice(arrivedFull.id), {
-            linkedDeliveryRecordId: linkedDelivery(arrivedFull),
+        const recon = await getInvoiceReconciliation(await getItemsByInvoice(deliveredFull.id), {
+            linkedDeliveryRecordId: linkedDelivery(deliveredFull),
         });
         // ONE ROW PER INVOICE ITEM, judged or not: the free-text invoice item gets
         // a box of its own saying why it was not compared, rather than a footnote
-        // about a invoice item the reader cannot see.
-        check("a row for every invoice line", recon.rows.length, 2);
+        // about an invoice item the reader cannot see.
+        check("a row for every invoice item", recon.rows.length, 2);
         const judgedRow = recon.rows.find((r) => r.status);
         const notComparedRow = recon.rows.find((r) => !r.status);
         check("one of them is judged", Boolean(judgedRow), true);
-        check("the freight line is counted as excluded", recon.excludedCount, 1);
+        check("the freight item is counted as excluded", recon.excludedCount, 1);
         check(
             "and its own row says so where it is",
-            describeInvoiceLine(notComparedRow.status, notComparedRow.unit, { hasDelivery: true })
+            describeInvoiceItem(notComparedRow.status, notComparedRow.unit, { hasDelivery: true })
                 .verdict.key,
             "not-compared"
         );
@@ -485,14 +485,14 @@ try {
         // the delivery it MATCHES brought of that ordered item.
         check("this invoice's billed share", judgedRow.status.invoiced, 10);
         check("and what the delivery it MATCHES brought on that ordered item", judgedRow.status.delivered, 10);
-        check("so nothing billed-not-delivered", judgedRow.status.billedNotArrived, 0);
+        check("so nothing billed-not-delivered", judgedRow.status.billedNotDelivered, 0);
         assert("the ordered item's own totals no longer ride along", !("line" in judgedRow));
         assert("nor does the ordered quantity", !("ordered" in judgedRow.status));
         // AND THIS BOX SAYS NOTHING, because everything it billed was delivered. The
         // whole invoice's answer is the chip; a box repeating it would state one fact
         // once per invoice item. Both slots null on a fixture where every figure
         // agrees is the shape #232's second pass is for.
-        const settledBox = describeInvoiceLine(judgedRow.status, judgedRow.unit, {
+        const settledBox = describeInvoiceItem(judgedRow.status, judgedRow.unit, {
             hasDelivery: true,
         });
         check("a box with nothing to report has no verdict", settledBox.verdict, null);
@@ -501,15 +501,15 @@ try {
         // single, so a per-row list printed one document once per invoice item; the
         // marker went with the move, a list of one under this invoice's own heading
         // having nothing to distinguish.
-        check("the matched delivery is named at the top level", recon.delivery?.id, arrivedDelivery.id);
+        check("the matched delivery is named at the top level", recon.delivery?.id, fullyDeliveredDelivery.id);
         check("with the received date", recon.delivery.receivedDate, "2026-07-15");
         assert("and no row carries a delivery list of its own", recon.rows.every((r) => !("deliveries" in r)));
 
         // -------------------------------------------------------------------
-        console.log("\nPart C — the delivery axis: an arrival with no invoice naming it:");
+        console.log("\nPart C — the delivery axis: a delivery with no invoice naming it:");
         const unbilled = await makeOrder({ itemName: `${TAG} Unbilled`, qty: 4 });
         const unbilledDelivery = await deliver({
-            poLine: unbilled.poLine,
+            orderedItem: unbilled.orderedItem,
             qty: 4,
             receivedDate: "2026-07-01",
         });
@@ -518,78 +518,78 @@ try {
         check("no invoice names it", di.key, "awaiting-invoice");
         check("the worklist chip", describeDeliveryColumn(di).text, "Awaiting invoice");
 
-        const billedDelivery = (await getDeliveriesByRecordIds([arrivedDelivery.id]))[0];
+        const billedDelivery = (await getDeliveriesByRecordIds([fullyDeliveredDelivery.id]))[0];
         const billedDeliveryStatus = (await getDeliveryInvoicing([billedDelivery])).byDelivery.get(billedDelivery.id);
-        check("the delivery its own bill names reads invoiced", billedDeliveryStatus.key, "invoiced");
+        check("the delivery its own invoice names reads invoiced", billedDeliveryStatus.key, "invoiced");
         check("its chip", describeDeliveryColumn(billedDeliveryStatus).text, "Invoiced");
 
         // #210 — THE CASE THE OLD EXISTENCE TEST GOT WRONG, AND THE REASON THIS AXIS
-        // COMPARES QUANTITIES RATHER THAN BEING A BARE LOOKUP. The shipment above
-        // brought 10 and its bill charges 13, so from the delivery's side there is
-        // nothing left to chase; but a shipment whose bill covers only PART of what
+        // COMPARES QUANTITIES RATHER THAN BEING A BARE LOOKUP. The delivery above
+        // brought 10 and its invoice charges 13, so from the delivery's side there is
+        // nothing left to chase; but a delivery whose invoice covers only PART of what
         // arrived is still owed an invoice, and "does this delivery have one" would
         // read `Invoiced`. Before #210 the answer was worse still: the test asked
-        // whether the ORDERED ITEM carried any invoice item at all, so an arrival with
-        // nothing billed dropped out of the worklist as soon as some earlier bill had
+        // whether the ORDERED ITEM carried any invoice item at all, so a delivery with
+        // nothing billed dropped out of the worklist as soon as some earlier invoice had
         // touched the same order.
         const partOrder = await makeOrder({ itemName: `${TAG} PartBilled`, qty: 20 });
         const partDelivery = await deliver({
-            poLine: partOrder.poLine,
+            orderedItem: partOrder.orderedItem,
             qty: 20,
             receivedDate: "2026-07-05",
         });
-        const partBill = await bill({ po: partOrder.po, poLine: partOrder.poLine, qty: 8 });
-        await setInvoiceDelivery(partBill.id, partDelivery.id);
+        const partInvoice = await invoice({ po: partOrder.po, orderedItem: partOrder.orderedItem, qty: 8 });
+        await setInvoiceDelivery(partInvoice.id, partDelivery.id);
         const partStatus = (
             await getDeliveryInvoicing([(await getDeliveriesByRecordIds([partDelivery.id]))[0]])
         ).byDelivery.get(partDelivery.id);
-        check("20 delivered against a bill for 8 is PARTLY invoiced", partStatus.key, "partly-invoiced");
+        check("20 delivered against an invoice for 8 is PARTLY invoiced", partStatus.key, "partly-invoiced");
         check("  and the chip says so", describeDeliveryColumn(partStatus).text, "Partly invoiced");
         assert("  so it stays on the vendor-chasing worklist", isNotFullyInvoiced(partStatus.key));
-        // A bill for MORE than arrived leaves nothing to chase from this side — the
+        // An invoice for MORE than delivered leaves nothing to chase from this side — the
         // discrepancy is the invoice axis's, which Part B measured as its marker.
         const shortDeliveryStatus = (
             await getDeliveryInvoicing([(await getDeliveriesByRecordIds([shortDelivery.id]))[0]])
         ).byDelivery.get(shortDelivery.id);
-        check("10 delivered against a bill for 13 reads invoiced here", shortDeliveryStatus.key, "invoiced");
+        check("10 delivered against an invoice for 13 reads invoiced here", shortDeliveryStatus.key, "invoiced");
 
         // -------------------------------------------------------------------
-        console.log("\nPart D — TWO BILLS ON ONE ORDERED ITEM: the pairing decides, not an ordering:");
-        // A second invoice on the SAME ordered item, paired with a SECOND shipment.
+        console.log("\nPart D — TWO INVOICES ON ONE ORDERED ITEM: the pairing decides, not an ordering:");
+        // A second invoice on the SAME ordered item, paired with a SECOND delivery.
         // This is the shape #166's estimate existed for and got wrong: with 16 billed
-        // across two bills and 10 arrived, it filled oldest-first, handed the older
-        // bill all 10, left the newer at 0, and marked BOTH as estimates. Each bill
-        // now reads its own shipment, and nothing depends on which is taken first.
+        // across two invoices and 10 arrived, it filled oldest-first, handed the older
+        // invoice all 10, left the newer at 0, and marked BOTH as estimates. Each invoice
+        // now reads its own delivery, and nothing depends on which is taken first.
         const secondDelivery = await deliver({
-            poLine: arrived.poLine,
+            orderedItem: delivered.orderedItem,
             qty: 6,
             receivedDate: "2026-07-25",
         });
-        const second = await bill({ po: arrived.po, poLine: arrived.poLine, qty: 6 });
+        const second = await invoice({ po: delivered.po, orderedItem: delivered.orderedItem, qty: 6 });
         await setInvoiceDelivery(second.id, secondDelivery.id);
-        const lineTotal = await waitFor(
-            async () => (await getPOItemsForReconciliation([arrived.poLine.id]))[0]?.invoicedQty,
+        const itemTotal = await waitFor(
+            async () => (await getPOItemsForReconciliation([delivered.orderedItem.id]))[0]?.invoicedQty,
             (v) => v === 16
         );
         // Still the fact this part was named for: `Invoiced Qty` is the ORDERED ITEM's
         // total. Summing the invoice in hand would report 6 billed against 16 arrived
         // and hide that the order is billed twice over.
-        check(`the ordered item's Invoiced Qty is both bills (${settleNote(lineTotal)})`, lineTotal.value, 16);
+        check(`the ordered item's Invoiced Qty is both invoices (${settleNote(itemTotal)})`, itemTotal.value, 16);
 
         const bothStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(second.id)])).get(second.id);
-        check("the newer bill reads Delivered, from its OWN shipment", bothStatus.key, "delivered");
+        check("the newer invoice reads Delivered, from its OWN delivery", bothStatus.key, "delivered");
         check("  and its quantities match, so no marker", bothStatus.mismatch, false);
 
-        const olderStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(arrivedFull.id)])).get(
-            arrivedFull.id
+        const olderStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(deliveredFull.id)])).get(
+            deliveredFull.id
         );
-        check("and the older bill is unaffected by it", olderStatus.key, "delivered");
+        check("and the older invoice is unaffected by it", olderStatus.key, "delivered");
         check("  likewise unmarked", olderStatus.mismatch, false);
         // THE POINT OF THE WHOLE PART: under the old fill these two answers were
         // 'awaiting-delivery' and 'delivered', and both carried the inferred marker.
-        // The same records now give each bill its own shipment's quantity.
+        // The same records now give each invoice its own delivery's quantity.
         assert(
-            "neither answer depends on which bill is taken first",
+            "neither answer depends on which invoice is taken first",
             bothStatus.key === olderStatus.key && !bothStatus.mismatch && !olderStatus.mismatch
         );
 
@@ -599,9 +599,9 @@ try {
         });
         check("billed on THIS invoice", secondRecon.rows[0].status.invoiced, 6);
         check("delivered by the delivery THIS invoice matches", secondRecon.rows[0].status.delivered, 6);
-        check("so nothing is billed-not-delivered", secondRecon.rows[0].status.billedNotArrived, 0);
+        check("so nothing is billed-not-delivered", secondRecon.rows[0].status.billedNotDelivered, 0);
         // THE ORDERED ITEM'S TOTALS ARE THE FIXTURE THIS PART EXISTS FOR — 16 billed
-        // across two invoices, 16 delivered across two arrivals — and #232 took them
+        // across two invoices, 16 delivered across two deliveries — and #232 took them
         // off the row precisely because a reader took them for this invoice's. What
         // reaches the screen from that level now is the two exception figures alone.
         assert("neither rollup reaches the row any more", !("line" in secondRecon.rows[0]));
@@ -612,32 +612,32 @@ try {
         // THE LINE, and the reason it does not depend on anything being matched.
         check(
             "the ordered item's billing excess is stated, and only that",
-            describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }).againstOrder
+            describeInvoiceItem(secondRecon.rows[0].status, "EA", { hasDelivery: true }).againstOrder
                 ?.text,
             "Against the ordered item: 6 EA more billed"
         );
         check(
-            "  while the verdict stays silent, this bill having been delivered in full",
-            describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }).verdict,
+            "  while the verdict stays silent, this invoice having been delivered in full",
+            describeInvoiceItem(secondRecon.rows[0].status, "EA", { hasDelivery: true }).verdict,
             null
         );
         assert(
             "and the box has no inferred slot left to fill",
-            !("inferred" in describeInvoiceLine(secondRecon.rows[0].status, "EA", { hasDelivery: true }))
+            !("inferred" in describeInvoiceItem(secondRecon.rows[0].status, "EA", { hasDelivery: true }))
         );
-        // TWO ARRIVALS TOUCHED THIS ORDERED ITEM AND THE BOX NAMES NEITHER. The one
-        // this invoice matches is named once, at the top; the other is another bill's
+        // TWO DELIVERIES TOUCHED THIS ORDERED ITEM AND THE BOX NAMES NEITHER. The one
+        // this invoice matches is named once, at the top; the other is another invoice's
         // business and #233 put "which deliveries filled this ordered item" on the
         // order's own page, which is the frame that owns the question.
         check("the matched delivery is named once", secondRecon.delivery?.id, secondDelivery.id);
         assert(
-            "and no row lists the arrivals of the ordered item",
+            "and no row lists the deliveries of the ordered item",
             secondRecon.rows.every((r) => !("deliveries" in r))
         );
 
         // -------------------------------------------------------------------
         console.log("\nPart E — the query budget does not grow with the rows:");
-        const invoiceOne = [await getInvoiceByRecordId(arrivedFull.id)];
+        const invoiceOne = [await getInvoiceByRecordId(deliveredFull.id)];
         const invoiceMany = await Promise.all(
             fixtures.ids("invoices").map((id) => getInvoiceByRecordId(id))
         );
@@ -655,8 +655,8 @@ try {
             many.total <= one.total
         );
         // THE CEILING FELL FROM FIVE TO THREE IN #210, and the two that went are the
-        // two the estimate needed: every OTHER bill on the ordered item, and those
-        // bills' parents for their `Issue Date`. Neither is anybody's business once the
+        // two the estimate needed: every OTHER invoice on the ordered item, and those
+        // invoices' parents for their `Issue Date`. Neither is anybody's business once the
         // pairing is stored, and the list no longer reads `PO Items` at all — what was
         // ORDERED is a third document's figure and only the detail shows it.
         check("and the ceiling is the three levels the module documents", one.total, 3);
@@ -665,10 +665,10 @@ try {
         // Deliveries). The invoice items are fetched OUTSIDE the probe: the detail
         // page holds them anyway for the items table, which is why this walk adds no
         // query for them.
-        const detailLines = await getItemsByInvoice(arrivedFull.id);
+        const detailItems = await getItemsByInvoice(deliveredFull.id);
         const detailOps = await countOps(() =>
-            getInvoiceReconciliation(detailLines, {
-                linkedDeliveryRecordId: linkedDelivery(arrivedFull),
+            getInvoiceReconciliation(detailItems, {
+                linkedDeliveryRecordId: linkedDelivery(deliveredFull),
             })
         );
         console.log(`  invoice detail: 1 invoice -> ${detailOps.total} ops`);
@@ -676,26 +676,26 @@ try {
 
         // #232 NARROWED LEVEL 3 AND NOT LEVEL 2, AND THIS MEASURES BOTH HALVES OF
         // THAT. Level 3 used to read every delivery that had touched the ordered
-        // items, to list them all; it reads the one the invoice matches, so a bill
+        // items, to list them all; it reads the one the invoice matches, so an invoice
         // matching none drops it and measures 2. Level 2 still reads every slice on
-        // the ordered items, because `arrivedBeyondOrder` stays order-scoped and only
-        // the rows carry `Over Delivered` — so a bill matching none does NOT fall to
+        // the ordered items, because `deliveredBeyondOrder` stays order-scoped and only
+        // the rows carry `Over Delivered` — so an invoice matching none does NOT fall to
         // 1, and the assertion says which figure it is rather than only that it fell.
         // THE SAME INVOICE ITEMS WITH THE PAIRING SUPPRESSED, which is the production
-        // call shape for an unmatched bill — `linkedDelivery` returns null and the
+        // call shape for an unmatched invoice — `linkedDelivery` returns null and the
         // page passes it. Same ordered items and same slices as the measurement above,
         // so the ONE variable is the link, and the ordered items here do carry
-        // arrivals: that is `HYE-INV-260804-04`'s shape on the real base, a bill
-        // matching nothing whose ordered item other bills' deliveries have touched.
+        // deliveries: that is `HYE-INV-260804-04`'s shape on the real base, an invoice
+        // matching nothing whose ordered item other invoices' deliveries have touched.
         const unpairedDetail = await countOps(() =>
-            getInvoiceReconciliation(detailLines, { linkedDeliveryRecordId: null })
+            getInvoiceReconciliation(detailItems, { linkedDeliveryRecordId: null })
         );
-        console.log(`  invoice detail: a bill matching no delivery -> ${unpairedDetail.total} ops`);
+        console.log(`  invoice detail: an invoice matching no delivery -> ${unpairedDetail.total} ops`);
         assert("matching no delivery costs less than matching one", unpairedDetail.total < detailOps.total);
         check("  and what remains is PO Items plus the slice level", unpairedDetail.total, 2);
 
         const deliveryMany = await getDeliveriesByRecordIds(fixtures.ids("deliveries"));
-        // COMPARE LIKE WITH LIKE: the delivery its own bill names, so all three levels
+        // COMPARE LIKE WITH LIKE: the delivery its own invoice names, so all three levels
         // are non-empty in both measurements. Starting from the UNBILLED one would
         // compare 1 op against 3 and read as per-row growth when it is the empty-level
         // saving below.
@@ -708,7 +708,7 @@ try {
         );
         check("and it is the three levels the module documents", dOne.total, 3);
         // The two axes now cost the SAME, which they did not before: the invoice axis
-        // was 5 against 3 because attribution needed the sibling bills. That difference
+        // was 5 against 3 because attribution needed the sibling invoices. That difference
         // is what #210 removed, so an assertion that one exceeds the other would now be
         // asserting the defect.
         check("both axes cost the same three levels now", one.total, dOne.total);
@@ -716,16 +716,16 @@ try {
         // An EMPTY level costs no query at all. Asserted rather than left as noise in
         // the numbers, because it is why the two measurements above had to be
         // shape-matched — and it got CHEAPER in #210: the walk no longer visits
-        // `PO Items` to ask whether any bill exists, so an arrival nobody has billed
+        // `PO Items` to ask whether any invoice exists, so a delivery nobody has billed
         // costs one read and stops.
         const dUnbilled = await countOps(() => getDeliveryInvoicing([unbilledDelivery]));
-        console.log(`  delivery axis: an arrival no invoice names -> ${dUnbilled.total} ops`);
-        check("an arrival nobody has billed costs one read", dUnbilled.total, 1);
+        console.log(`  delivery axis: a delivery no invoice names -> ${dUnbilled.total} ops`);
+        check("a delivery nobody has billed costs one read", dUnbilled.total, 1);
         assert("so the budget is a CEILING of three, not a fixed three", dUnbilled.total < dOne.total);
         // And the same on the other axis, for the same reason.
         const iUnpaired = await countOps(() => getInvoiceDeliveryStatus([pendingFull]));
-        console.log(`  invoice axis: a bill naming no shipment -> ${iUnpaired.total} ops`);
-        assert("a bill naming no shipment costs less than one that does", iUnpaired.total < one.total);
+        console.log(`  invoice axis: an invoice naming no delivery -> ${iUnpaired.total} ops`);
+        assert("an invoice naming no delivery costs less than one that does", iUnpaired.total < one.total);
     }
     complete = true;
 } catch (err) {

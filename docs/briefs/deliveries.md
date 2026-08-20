@@ -6,7 +6,7 @@ reader is assigned to, or everything for the office.
 
 ## What it answers
 
-What has arrived on my jobs, and has it been billed yet? A site staffer opens it
+What has been delivered on my jobs, and has it been billed yet? A site staffer opens it
 to confirm a delivery they recorded; the office opens it to see what is waiting on
 a vendor.
 
@@ -26,7 +26,7 @@ and cannot be changed.
 Invoiced, Job.
 
 **`Delivered` is a folded summary, not a quantity.** The cell carries the first
-item's label with its quantity and unit, and — when the arrival had more than one
+item's label with its quantity and unit, and — when the delivery had more than one
 item — a small gray `+N` count in a chip of its own. The count is a chip rather
 than text because `+2` read as plain text after an item label looks like a size or
 a grade on the item itself.
@@ -37,7 +37,7 @@ the invoices naming it charge against what it brought.
 
 ## What it carries only sometimes
 
-**When an arrival brought more than its order asked for:** an amber
+**When a delivery brought more than its order asked for:** an amber
 `Over-delivered` tag in the `Delivered` cell, beside the item label and the count.
 It is kept here, unlike on the invoice list, because an over-delivery is a fact
 about *this* delivery, so it sits on the delivery's own row without changing
@@ -54,11 +54,11 @@ different questions. `You are not assigned to any job yet, so there are no
 deliveries to show. An Admin can add you to a job in Airtable.` — which is the
 app's only screen that tells a reader how to get access, and it names Airtable
 because there is no user-administration screen. Or `No deliveries recorded yet.
-Record one as material arrives — the packing list photo is what makes it a
+Record one as material is delivered — the packing list photo is what makes it a
 record.` when the reader has jobs but nothing has been recorded.
 
 The second sentence is doing teaching rather than reporting: it states the one
-rule of the feature — that the photo is what makes an arrival a record — at the
+rule of the feature — that the photo is what makes a delivery a record — at the
 moment a reader has nothing else to look at. An empty state that only said "no
 deliveries" would lose that.
 
@@ -69,10 +69,10 @@ absent, not empty.
 
 **The folded `Delivered` cell is the delivery detail's headline block, folded.**
 Both read the same summary function, and the awaiting-invoice strip on the invoice
-list reads it too — so no screen can describe one arrival differently.
+list reads it too — so no screen can describe one delivery differently.
 
 **The `Invoiced` chip's vocabulary is the purchase order detail's invoicing
-chip.** One question at two scopes — has this arrival been billed, has this order
+chip.** One question at two scopes — has this delivery been billed, has this order
 been billed — so a reader meets one vocabulary.
 
 **`Over-delivered` is the same word on the delivery detail (twice) and on the

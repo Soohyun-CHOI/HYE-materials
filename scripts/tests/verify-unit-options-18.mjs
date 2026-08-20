@@ -40,7 +40,7 @@ import { TABLES } from "../../lib/airtable/client.js";
 // The tables carrying the shared Unit select, by their production constants
 // rather than another hand-typed copy of the names. Delivery Items joined in
 // #162, where a missing option fails the write outright: createDeliveryItem does
-// not use typecast, so an unlisted unit would break recording an arrival rather
+// not use typecast, so an unlisted unit would break recording a delivery rather
 // than mislabel one.
 const UNIT_TABLES = [
     TABLES.PR_ITEMS,

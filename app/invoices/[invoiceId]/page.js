@@ -119,9 +119,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // Deliveries), keyed on ids from the level above; the invoice's own invoice items
     // are already loaded, so there is no query for them, and the pairing is a field
     // on the record above. Down from five — the two that went existed only to order
-    // the other bills on the same ordered item so one of them could be picked. #232
+    // the other invoices on the same ordered item so one of them could be picked. #232
     // took the third off an invoice that matches no delivery, which reads TWO: that
-    // level is the matched delivery now rather than every arrival on the ordered
+    // level is the matched delivery now rather than every delivery on the ordered
     // items. The rule is lib/deliveryStatus.js.
     const reconciliation = await getInvoiceReconciliation(items, {
         linkedDeliveryRecordId: linkedDelivery(invoice),
@@ -133,11 +133,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // from the reconciliation, which already holds every invoice item's ordered
     // item, so folding costs no query. Nothing folds on an invoice no correction
     // touched.
-    const materialByLine = new Map(
+    const materialByOrderedItem = new Map(
         reconciliation.rows.map((r) => [r.invoiceItemId, r.materialRecordId])
     );
     const foldedItems = foldInvoiceItems(
-        items.map((it) => ({ ...it, materialRecordId: materialByLine.get(it.invoiceItemId) ?? null }))
+        items.map((it) => ({ ...it, materialRecordId: materialByOrderedItem.get(it.invoiceItemId) ?? null }))
     );
 
     // Issue #237 — which order each item was billed against, for the `Purchase Orders`
@@ -211,7 +211,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 </p>
             )}
 
-            {/* #231 — what the app worked out about this bill's shipment, said once
+            {/* #231 — what the app worked out about this invoice's delivery, said once
                 and only on the way in from creation. It is not part of the record,
                 so it lives on the query string rather than being re-derived on
                 every load: a reader returning to this page sees the delivery
@@ -260,7 +260,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 one delivery, where an order is not a fact. This is the section whose
                 subject IS an order, so it is the answer's third and last home.
 
-                THE NESTING IS #233's, DELIBERATELY UNCHANGED: the parent line is the
+                THE NESTING IS #233's, DELIBERATELY UNCHANGED: the parent row is the
                 document's identity and its own facts, the child list is the pair facts
                 in smaller gray text at `pl-4`. `/pos/[poId]` puts an invoice's charges
                 under the invoice the same way, so a reader crossing between the two
@@ -268,9 +268,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 see lib/invoiceOrderBreakdown.js for why a line here carries only the
                 quantity.
 
-                AN ORDER WITH NO CHILD LINE IS NOT A BUG. It is reached only through an
+                AN ORDER WITH NO CHILD ROW IS NOT A BUG. It is reached only through an
                 item with no ordered item behind it, which names no order; the order is
-                still charged, so it keeps its line, and the empty space under it is the
+                still charged, so it keeps its row, and the empty space under it is the
                 honest answer. The section's OWN list is unchanged — it comes from every
                 item's `PO`, free-text ones included.
 
@@ -429,7 +429,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 THE INVOICE LEVEL SAYS WHAT THE STATE IS AND A BOX POINTS AT AN
                 EXCEPTION — that is the whole layout, and it follows from the
                 one-delivery premise (docs/notes, "The one-delivery premise"). What
-                this invoice bills arrives on the delivery it matches or not at all,
+                this invoice bills is delivered by the delivery it matches or not at all,
                 so "everything billed was delivered" is one fact about one document:
                 the chip states it, and a box repeating it would state it once per
                 invoice item.
@@ -467,7 +467,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 entry the order-scoped aside alone put in the list has no verdict and
                 is amber: something exceeding an ordered item is why it is here. The
                 aside itself stays uncolored, which is #232's distinction and holds —
-                it is the ordered item's fact rather than this bill's.
+                it is the ordered item's fact rather than this invoice's.
 
                 THE NAMED SLOTS STILL DO THEIR WORK, and that half of #232's argument
                 is untouched: lib/deliveryStatus.js returns `verdict` and `againstOrder`
@@ -493,8 +493,8 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     here rather than moving.
 
                     `matched` is #231's word, from PAIRING_COPY, and it says the fact
-                    the state actually is: nothing has been matched to this bill, as
-                    against the material not having arrived. Those became different
+                    the state actually is: nothing has been matched to this invoice, as
+                    against the material not having been delivered. Those became different
                     facts when #210 stored the pairing, and the verdict inside each
                     box used to conflate them by saying `Nothing delivered yet` under
                     an empty list. */}
@@ -559,7 +559,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 {deliveryEntries.length > 0 && (
                     <ul className="mt-3 space-y-2 text-sm">
                         {deliveryEntries.map((entry) => {
-                            const lines = entry.lines;
+                            const copy = entry.copy;
                             return (
                                 /* NO BORDER SINCE #232's THIRD PASS. It was a box
                                    drawn around `Ordered · Billed · Delivered`, a share
@@ -603,9 +603,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         #241 the entry and that row are the same unit,
                                         so a figure here is against the same quantity a
                                         reader just read there. */}
-                                    {lines.verdict && (
+                                    {copy.verdict && (
                                         <p className={ENTRY_TONE_CLASS[entry.tone]}>
-                                            {lines.verdict.text}
+                                            {copy.verdict.text}
                                         </p>
                                     )}
 
@@ -617,9 +617,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         is `/pos/[poId]`'s `Qty` column, one click
                                         away and on a page that names this invoice
                                         since #233. */}
-                                    {lines.againstOrder && (
+                                    {copy.againstOrder && (
                                         <p className="text-zinc-600">
-                                            {lines.againstOrder.text}
+                                            {copy.againstOrder.text}
                                         </p>
                                     )}
                                 </li>

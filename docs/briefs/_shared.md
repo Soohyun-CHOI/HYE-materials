@@ -224,9 +224,13 @@ has. **Tier 1** words live in an exported constant in `lib/` and are pinned by
 2** words live in a constant that no offline check can load, because its module
 reaches `lib/airtable/` — they are checked only as "this literal still appears
 somewhere under `app/`". **Tier 3** words are written straight into JSX; the
-same weak check is all they get. #227's sweep does not reach tier 3, which is
-recorded against the phrase `— attached to this invoice` in
-`docs/notes/deliveries-and-invoices.md`.
+same weak check is all they get. #227's vocabulary sweep DID reach tier 3 — the
+invoice edit form's standing sentence said `Edit line values … add/remove lines`
+about invoice items and now says `item` — but it reached it by reading the files,
+not by a check: `offline/line-vocabulary.mjs` bars a barred word inside a
+`*_COPY` constant and cannot see a sentence written into JSX. So a tier-3 word is
+protected against DELETION and not against REWORDING, which is the gap that
+paragraph exists to name.
 
 ### The status vocabulary (tier 1, `lib/deliveryStatus.js`)
 
@@ -253,7 +257,7 @@ The sentences that go with them, all tier 1:
 - `N EA billed, none of it delivered by the matched delivery`
 - `Not compared — no ordered item`
 - `Against the ordered item: N EA more billed, N EA more delivered`
-- `Longest wait first. No invoice yet covers what these arrivals brought.`
+- `Longest wait first. No invoice yet covers what these deliveries brought.`
 
 `Against the ordered item`, not `Against the order`: the comparison is against
 one `PO Items` row's quantity, not the order's total.
@@ -289,8 +293,8 @@ N EA delivered beyond what {order} ordered.`), its unattributable twin, the
 `(N over)` table mark, and the refusal `Nothing on this job orders this item
 from this vendor, so there is no order to record it against.`
 
-`lib/deliveryInvoiceLink.js` carries `One invoice belongs to one delivery, so a
-bill already attached elsewhere is listed but cannot be picked. A delivery can
+`lib/deliveryInvoiceLink.js` carries `One invoice belongs to one delivery, so
+one already attached elsewhere is listed but cannot be picked. A delivery can
 carry more than one invoice.` and four refusals, two of which are deliberately
 the same sentence — `That invoice no longer exists.` answers both "not found"
 and "outside your scope", because telling the two apart would confirm that a
@@ -298,7 +302,7 @@ record exists outside someone's scope.
 
 `lib/deliveryInvoiceMatch.js` carries the seven pairing sentences, including the
 tie-break. `lib/overage.js` carries the correction's preview, its nine refusals,
-its six short strip reasons (`no invoice yet`, `bills name another delivery`,
+its six short strip reasons (`no invoice yet`, `invoices name another delivery`,
 `no invoice names this delivery`, `spans two invoices`, `more than the invoice
 bills`, `invoice has no file`) and seven banners.
 

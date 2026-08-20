@@ -60,7 +60,7 @@ async function renderNewDeliveryPage() {
         );
     }
 
-    const { lines, vendorNameById } = await getDeliveryCandidates(jobs);
+    const { orderedItems, vendorNameById } = await getDeliveryCandidates(jobs);
 
     // #210 — the invoices this viewer may pair a delivery with, narrowed up front to
     // the vendors that actually supplied these jobs so the batched reads stay small.
@@ -69,7 +69,9 @@ async function renderNewDeliveryPage() {
     // narrows again to the vendor chosen, client-side, off this same list — the
     // arrangement the candidate ORDERED ITEMS already use.
     const invoiceOptions = await getInvoiceLinkCandidates(user, {
-        vendorRecordIds: [...new Set(lines.map((l) => l.vendorRecordId).filter(Boolean))],
+        vendorRecordIds: [
+            ...new Set(orderedItems.map((item) => item.vendorRecordId).filter(Boolean)),
+        ],
     });
 
     return (
@@ -81,7 +83,7 @@ async function renderNewDeliveryPage() {
 
             <DeliveryForm
                 jobs={jobs.map((j) => ({ id: j.id, jobCode: j.jobCode, jobName: j.jobName }))}
-                lines={lines}
+                orderedItems={orderedItems}
                 // A Map cannot cross the server/client boundary; a plain object can.
                 vendorNames={Object.fromEntries(vendorNameById)}
                 invoiceOptions={invoiceOptions}

@@ -8,7 +8,7 @@ Signing is the President's; withdrawing is the requester's.
 
 ## What it answers
 
-Has everything on this order arrived, and has everything on it been billed? This
+Has everything on this order been delivered, and has everything on it been billed? This
 is the reconciliation screen — the one place where what was ordered, what came
 in and what was charged sit on one page — and it is the answer to the problem
 the whole app exists for. A secondary question, asked by a different reader: has
@@ -70,7 +70,7 @@ writes two against the same ordered item — the part inside the order and the
 excess — so what a reader would otherwise meet is one material listed twice under
 one delivery. It is one line, with the quantities added. The invoice side folds on
 the same principle, with the unit price joined to it: two charges billed at two
-different prices are two facts and stay two lines, so a folded line's price is
+different prices are two facts and stay two lines, so a folded row's price is
 always exactly what was billed.
 
 **Empty is a reading here, and the sentence says which.** Both sections render
@@ -108,10 +108,10 @@ billed, than was ordered. Signaling one differently would imply a distinction
 neither makes. This is the only red in the table.
 
 **When a delivery brought more than the order asked for:** an `Over-delivered`
-badge on that delivery's line in the list, and on the child line for the ordered
+badge on that delivery's row in the list, and on the child row for the ordered
 item that received the excess, a small `(N over)` after the quantity, in the
-badge's color. **Only the excess is colored, never the total** — the folded line
-holds the part that arrived inside the order and the part beyond it together, so
+badge's color. **Only the excess is colored, never the total** — the folded row
+holds the part delivered inside the order and the part beyond it together, so
 coloring the whole figure would say the part that was ordered is a problem too.
 
 **So this screen carries `(over)` at two scopes, in two colors, and unifying them
@@ -124,10 +124,10 @@ own screen. Two facts, both true at once, and a reader needs to be able to tell
 which one they are looking at.
 
 **When an invoice's own total does not match its computed total:** a
-`⚠ Check the total` badge on that invoice's line.
+`⚠ Check the total` badge on that invoice's row.
 
 **When one charge on an invoice differs from what this order agreed:** an
-`⚠ Order variance` badge on that child line, inside the indented list. This is
+`⚠ Order variance` badge on that child row, inside the indented list. This is
 the one screen in the app that can show both variance kinds at once, which is
 why they must keep two different words.
 
@@ -181,7 +181,7 @@ functions. The list and this page cannot describe one order two ways.
 chip beside the `Delivery` heading; this one does the same beside each document
 heading, so the two read alike.
 
-**The nesting grammar is shared with the invoice detail.** Parent line is a
+**The nesting grammar is shared with the invoice detail.** Parent row is a
 document's identity and its own facts; indented child list in smaller gray text
 is the facts about the pairing. Both screens do this, in both directions.
 
@@ -199,7 +199,7 @@ ordered item stays legible on it.
 **`Over-delivered` is this base's own word**, a checkbox on the delivery's rows,
 and the delivery detail uses the same tag.
 
-**The `(N over)` on a folded child line is the delivery detail's own mark**, from
+**The `(N over)` on a folded child row is the delivery detail's own mark**, from
 the same constant, for the same fact one frame down: part of a quantity was
 excess. That screen's table and this list read alike on purpose, and a redesign
 that changes the shape of one changes both.

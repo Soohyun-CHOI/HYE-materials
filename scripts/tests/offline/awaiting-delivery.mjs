@@ -1,4 +1,4 @@
-// The bills waiting on a delivery are selected, split and ordered (#256).
+// The invoices waiting on a delivery are selected, split and ordered (#256).
 //
 // THE QUIET MUTANT IS A SELECTION RULE THAT ALWAYS RETURNS NOTHING, and it is
 // asserted first. Make `selectInvoicesAwaitingDelivery` return `[]` and the strip
@@ -29,7 +29,7 @@ import {
 } from "../../../lib/deliveryStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The bills waiting on a delivery: selection, split, order (#256)";
+export const title = "The invoices waiting on a delivery: selection, split, order (#256)";
 
 const AWAITING = { key: "awaiting-delivery" };
 const MATCHED = { key: "delivered" };
@@ -68,7 +68,7 @@ export function run({ check, assert, log }) {
     const baseline = select({ invoices: [a, b], status: {}, ordered: {} });
     // Asserted before anything else, because every check below this one is of the form
     // "the rows are shaped so" and an empty list satisfies all of them vacuously.
-    assert("an awaiting bill is SELECTED at all", baseline.length > 0);
+    assert("an awaiting invoice is SELECTED at all", baseline.length > 0);
     check("both awaiting bills are selected", baseline.length, 2);
     log("  a selector returning [] passes every ordering and shape check below");
 
@@ -76,12 +76,12 @@ export function run({ check, assert, log }) {
     log("");
     log("selection is the chip's own key, not a second reading of the link:");
     check(
-        "a matched bill is not selected",
+        "a matched invoice is not selected",
         select({ invoices: [a, b], status: { [a.invoiceId]: MATCHED }, ordered: {} }).length,
         1
     );
     check(
-        "a mismatched bill is not selected either — it HAS a delivery",
+        "a mismatched invoice is not selected either — it HAS a delivery",
         select({ invoices: [a, b], status: { [a.invoiceId]: MISMATCH }, ordered: {} }).length,
         1
     );
@@ -102,14 +102,14 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
-    log("a bill charging no ordered item is excluded, and the count may differ:");
+    log("an invoice charging no ordered item is excluded, and the count may differ:");
     check(
         "no ordered item means no row",
         select({ invoices: [a], status: {}, ordered: { [a.invoiceId]: [] } }).length,
         0
     );
     // THE DIVERGENCE THIS CREATES, PINNED. The table below the strip shows an
-    // `Awaiting delivery` chip for such a bill and the strip has no row for it, so the
+    // `Awaiting delivery` chip for such an invoice and the strip has no row for it, so the
     // two figures disagree by design — see the selector's docstring and
     // docs/briefs/invoices.md, both of which say so in as many words.
     const withUnlinked = select({
@@ -142,7 +142,7 @@ export function run({ check, assert, log }) {
     );
     // ANY, NOT ALL: one slice against one of the ordered items is enough for a person
     // to have something to look at, and requiring all of them would put a partly
-    // delivered bill in the "nothing arrived" kind, which is the misreading the two
+    // delivered bill in the "nothing delivered" kind, which is the misreading the two
     // words exist to prevent.
     assert(
         "  ANY ordered item with a delivery is enough",
@@ -166,11 +166,11 @@ export function run({ check, assert, log }) {
     // sorted, so a passthrough fails this and only this.
     assert("  the input was not already in that order", [b, c, a][0].invoiceId !== a.invoiceId);
     const undated = select({ invoices: [inv("HYE-INV-260101-01", ""), a], status: {}, ordered: {} });
-    check("an undated bill sorts LAST, not first", undated.at(-1).waitingSince, "");
+    check("an undated invoice sorts LAST, not first", undated.at(-1).waitingSince, "");
 
     // -----------------------------------------------------------------------
     log("");
-    log("two bills issued on one day break the tie on Invoice ID:");
+    log("two invoices issued on one day break the tie on Invoice ID:");
     // THE TIE-BREAK WAS INERT ON THIS AXIS UNTIL THE SECOND PASS, and inertly so:
     // `sortLongestWaitingFirst` read `createdAt`, `Invoices` has no such field, so
     // every same-day pair silently held whatever order the invoice read returned. The
@@ -199,7 +199,7 @@ export function run({ check, assert, log }) {
         "HYE-INV-260716-03 HYE-INV-260716-02"
     );
     // Across days the wait still wins: a tie-break that outranked the primary key
-    // would put a newer bill above an older one, which is the whole worklist inverted.
+    // would put a newer invoice above an older one, which is the whole worklist inverted.
     const acrossDays = select({
         invoices: [inv("HYE-INV-260801-09", "2026-08-01"), inv("HYE-INV-260716-01", "2026-07-16")],
         status: {},
@@ -238,7 +238,7 @@ export function run({ check, assert, log }) {
         assert(`  says nothing about \`${control}\``, !words.includes(control));
     }
     // AND CLAIMS NO CAUSE. `fitRefusal` is never stored and runs only at write time,
-    // so any of these words would be false about a bill the matcher was never asked
+    // so any of these words would be false about an invoice the matcher was never asked
     // about — which, per docs/notes/backlog.md, is most of this base's rows.
     for (const cause of ["refused", "rejected", "could not", "failed", "mismatch"]) {
         assert(`  claims no cause: \`${cause}\``, !words.toLowerCase().includes(cause));

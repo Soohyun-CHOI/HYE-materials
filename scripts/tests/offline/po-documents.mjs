@@ -5,7 +5,7 @@
 // a browser on this base: it needs one invoice charging TWO ordered items of one
 // order, and `HYE-PO-20260716-03` and `HYE-PO-20260716-02` are the only two that
 // have it. So the fold is asserted over shapes the base does not hold — three
-// ordered items billed by two invoices, an arrival filling two of them, a slice
+// ordered items billed by two invoices, a delivery filling two of them, a slice
 // belonging to another order — and the browser run confirms the two real ones.
 //
 // THE ANTI-VACUITY PAIR IS THE POINT OF THIS FILE, not a formality. "One invoice
@@ -128,7 +128,7 @@ export function run({ check, assert, log }) {
     // The pair. Same delivery, same count of slices, DIFFERENT ordered items — a fold
     // that collapsed everything under a document would pass the case above and fail
     // this one.
-    const twoItemsOneArrival = foldDeliveriesOnOrder({
+    const twoItemsOneDelivery = foldDeliveriesOnOrder({
         orderedItems: ORDERED,
         deliveryItems: [
             deliveryItem({ id: "recDI1", ordered: "recPOI_A", qty: 10 }),
@@ -138,12 +138,12 @@ export function run({ check, assert, log }) {
     });
     check(
         "  and two slices against TWO ordered items stay TWO lines",
-        twoItemsOneArrival[0]?.brought.length,
+        twoItemsOneDelivery[0]?.brought.length,
         2
     );
     check(
         "  each carrying only its own excess, never the other's",
-        twoItemsOneArrival[0]?.brought.map((b) => b.overQty).join(),
+        twoItemsOneDelivery[0]?.brought.map((b) => b.overQty).join(),
         "0,5"
     );
 
@@ -251,7 +251,7 @@ export function run({ check, assert, log }) {
         0
     );
     // The pair that separates "folded correctly" from "always returns one".
-    const oneBillTwoItems = foldInvoicesOnOrder({
+    const oneInvoiceTwoItems = foldInvoicesOnOrder({
         orderedItems: ORDERED,
         invoiceItems: [
             invoiceItem({ id: "recII1", ordered: "recPOI_A" }),
@@ -259,7 +259,7 @@ export function run({ check, assert, log }) {
         ],
         invoices: [invoice()],
     });
-    const twoBillsOneItem = foldInvoicesOnOrder({
+    const twoInvoicesOneItem = foldInvoicesOnOrder({
         orderedItems: ORDERED,
         invoiceItems: [
             invoiceItem({ id: "recII1", inv: "recINV1", ordered: "recPOI_A" }),
@@ -267,17 +267,17 @@ export function run({ check, assert, log }) {
         ],
         invoices: [invoice(), invoice({ id: "recINV2", invoiceId: "HYE-INV-260804-05" })],
     });
-    check("ONE invoice charging two ordered items folds to one entry", oneBillTwoItems.length, 1);
+    check("ONE invoice charging two ordered items folds to one entry", oneInvoiceTwoItems.length, 1);
     check(
         "  and folding is not a constant: TWO invoices on one ordered item stay two",
-        twoBillsOneItem.length,
+        twoInvoicesOneItem.length,
         2
     );
-    check("  the folded entry kept both charges rather than one", oneBillTwoItems[0]?.charges.length, 2);
-    check("  and each unfolded entry carries exactly its own", twoBillsOneItem[0]?.charges.length, 1);
+    check("  the folded entry kept both charges rather than one", oneInvoiceTwoItems[0]?.charges.length, 2);
+    check("  and each unfolded entry carries exactly its own", twoInvoicesOneItem[0]?.charges.length, 1);
 
     // The same pair on the delivery axis.
-    const oneArrivalTwoItems = foldDeliveriesOnOrder({
+    const oneDeliveryTwoItems = foldDeliveriesOnOrder({
         orderedItems: ORDERED,
         deliveryItems: [
             deliveryItem({ id: "recDI1", ordered: "recPOI_A" }),
@@ -285,7 +285,7 @@ export function run({ check, assert, log }) {
         ],
         deliveries: [delivery()],
     });
-    const twoArrivalsOneItem = foldDeliveriesOnOrder({
+    const twoDeliveriesOneItem = foldDeliveriesOnOrder({
         orderedItems: ORDERED,
         deliveryItems: [
             deliveryItem({ id: "recDI1", dl: "recDL1", ordered: "recPOI_A" }),
@@ -293,13 +293,13 @@ export function run({ check, assert, log }) {
         ],
         deliveries: [delivery(), delivery({ id: "recDL2", deliveryId: "HYE-DL-260804-07", receivedDate: "2026-07-24" })],
     });
-    check("ONE delivery filling two ordered items folds to one entry", oneArrivalTwoItems.length, 1);
+    check("ONE delivery filling two ordered items folds to one entry", oneDeliveryTwoItems.length, 1);
     check(
         "  and TWO deliveries on one ordered item stay two",
-        twoArrivalsOneItem.length,
+        twoDeliveriesOneItem.length,
         2
     );
-    check("  the folded entry kept both slices", oneArrivalTwoItems[0]?.brought.length, 2);
+    check("  the folded entry kept both slices", oneDeliveryTwoItems[0]?.brought.length, 2);
 
     // -----------------------------------------------------------------------
     // THE HEADER FACTS ARE WHAT THE FOLD EXISTS TO SAY ONCE. Before #233 they were
@@ -424,7 +424,7 @@ export function run({ check, assert, log }) {
         unsorted.map((i) => i.invoiceId).join(),
         "HYE-INV-260804-09,HYE-INV-260716-01"
     );
-    const arrivals = foldDeliveriesOnOrder({
+    const deliveries = foldDeliveriesOnOrder({
         orderedItems: ORDERED,
         deliveryItems: [
             deliveryItem({ id: "recDI1", dl: "recDL_OLD" }),
@@ -439,7 +439,7 @@ export function run({ check, assert, log }) {
     });
     check(
         "deliveries newest first, undated LAST — sortCandidates' call",
-        arrivals.map((d) => d.deliveryId).join(),
+        deliveries.map((d) => d.deliveryId).join(),
         "HYE-DL-260804-06,HYE-DL-260801-01,HYE-DL-260804-99"
     );
     // A charge list follows the ORDER's item order, not the order the rows arrived
@@ -478,7 +478,7 @@ export function run({ check, assert, log }) {
     assert("every builder returns something to render", words.every((w) => w && w.length > 0));
     for (const [word, why] of [
         ["arriv", "`delivered`, never `arrived`"],
-        ["shipment", "`delivery` — the table is Deliveries"],
+        ["delivery", "`delivery` — the table is Deliveries"],
         ["over-billed", "facts, never verdicts"],
         ["missing", "facts, never verdicts"],
     ]) {

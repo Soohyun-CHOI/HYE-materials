@@ -18,23 +18,23 @@ export const metadata = { title: "Edit Delivery" };
  * Open to the same set that may VIEW the delivery: Job membership, or the office
  * (lib/deliveryAccess.js). Deliberately not Admin-only, unlike the invoice edit
  * page — invoicing is back-office data entry, whereas the three things editable
- * here are the recorder's own account of an arrival they were present for. Both
+ * here are the recorder's own account of a delivery they were present for. Both
  * Server Actions re-check the same predicate, since a Server Action is callable
  * regardless of what this page rendered.
  *
  * WHAT IS NOT HERE is the point of the page. The item, the quantity, the vendor
- * and the PO are absent because changing any of them changes what the arrival was
+ * and the PO are absent because changing any of them changes what the delivery was
  * allocated against — that would mean re-running allocation and mutating or
  * destroying existing Delivery Items, and there is deliberately no
  * allocation-editing UI. The correction for those is to delete the delivery and
  * enter it again, which the detail page offers.
  *
  * #210 ADDED A FOURTH EDITABLE THING, AND IT PASSES THAT TEST RATHER THAN BENDING
- * IT. The invoice this shipment is billed by changes no `Delivery Items` row, moves
+ * IT. The invoice this delivery is billed by changes no `Delivery Items` row, moves
  * no quantity between orders and re-runs no allocation — it is orthogonal to the
- * one reason the four above are fixed. It has to be editable because the bill is
+ * one reason the four above are fixed. It has to be editable because the invoice is
  * not always in the app when the material lands: the vendor usually emails it at
- * shipment, but an invoice nobody has entered yet cannot be picked, so leaving it
+ * delivery, but an invoice nobody has entered yet cannot be picked, so leaving it
  * blank at entry is a normal answer and this is where the pairing is finished.
  */
 // Labeled for #190 by #224, the sweep across every entry point that opened no

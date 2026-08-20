@@ -76,12 +76,12 @@ async function renderInvoiceListPage() {
     // Issue #166 — whether what each invoice billed for has been delivered. THREE
     // operations for a page of any size, down from five: #210 stores the pairing on
     // `Invoices."Delivery"`, so the two levels that existed only to attribute an
-    // answer — every OTHER bill on the same ordered item, and those bills' parents
+    // answer — every OTHER invoice on the same ordered item, and those invoices' parents
     // for their `Issue Date` — are nobody's business any more. The per-row
     // alternative is what #143 ruled out and #162 measured at over 200 calls. The
     // rule itself is lib/deliveryStatus.js.
     //
-    // RUN OVER THE GATED ROWS, so a refused invoice's lines never reach the wire
+    // RUN OVER THE GATED ROWS, so a refused invoice's items never reach the wire
     // either — the same call #169 makes when it gathers PO Item ids from the rows
     // canViewPR already admitted.
     // #256 — `orderedItemsByInvoice` is the level this call already read and used to
@@ -93,7 +93,7 @@ async function renderInvoiceListPage() {
     // That is the one thing this strip does not inherit from #176, where the
     // strip and the table below it were both `canViewPR` and the distinction
     // could not show. Here the table is invoices, judged by the
-    // getVisibleInvoiceIds walk, and the strip is arrivals, judged by
+    // getVisibleInvoiceIds walk, and the strip is deliveries, judged by
     // canAccessJobDeliveries — Job assignment, or the office. The two admit
     // different people: an employee can reach an invoice through a purchase
     // order they raised without being assigned to that job, and a delivery on
@@ -108,7 +108,7 @@ async function renderInvoiceListPage() {
     );
     // One call, and it now hands back the Delivery Item rows it read — before
     // #216 it kept them and every caller read the same level again. `slices` is
-    // what builds "what arrived" below.
+    // what builds "what was delivered" below.
     const { byDelivery: invoicingByDelivery, slices: deliverySlices } =
         await getDeliveryInvoicing(jobDeliveries);
 
@@ -165,7 +165,7 @@ async function renderInvoiceListPage() {
 
     // #256 — the other direction. Selection is the chip's own key, so no invoice can
     // sit here and read differently in the table; the split into two row kinds needs
-    // only whether anything was delivered against the ordered items each bill charges,
+    // only whether anything was delivered against the ordered items each invoice charges,
     // which is one batched read over ids the call above already returned.
     const awaitingDeliveryRows = selectInvoicesAwaitingDelivery({
         invoices,
@@ -203,7 +203,7 @@ async function renderInvoiceListPage() {
             <AwaitingInvoiceStrip rows={awaitingInvoiceRows} />
 
             {/* #256 — SECOND, AND THE ORDER IS THE DOCUMENTS' OWN. A delivery waiting
-                for a bill comes before a bill waiting for a delivery in the flow the
+                for an invoice comes before an invoice waiting for a delivery in the flow the
                 two describe, so reading down the page puts the two ends of one
                 situation in the order they occur and neither heading has to say which
                 end it is. See the strip's own header for why that beat the adjacency
@@ -313,13 +313,13 @@ async function renderInvoiceListPage() {
                                     any one moment the two are the same measurement.
 
                                     TWO CHIPS AND A MISMATCH MARKER SINCE #210. The
-                                    chip is the link's own two states — the shipment
+                                    chip is the link's own two states — the delivery
                                     is named or it is not — and a quantity shortfall
                                     is the marker beside it, which is #166's
                                     marker-vs-chip shape inherited rather than
                                     re-argued. `Partly delivered` left this column
                                     with the inference that produced it: the old fill
-                                    put an invoice whose own shipment had not arrived
+                                    put an invoice whose own delivery had not delivered
                                     into that state routinely.
 
                                     STILL NO EXCEPTION TAGS. The two beyond-the-order
@@ -333,7 +333,7 @@ async function renderInvoiceListPage() {
                                     (delivered > ordered) is not a fact about THIS
                                     invoice at all but about the ordered item, and
                                     inside a column headed `Delivery` it reads as
-                                    "more arrived than this bill covers", which is a
+                                    "more delivered than this invoice covers", which is a
                                     different and wrong claim. Both facts are on the
                                     invoice detail, under the ordered item they
                                     belong to. */}

@@ -23,8 +23,8 @@
 //       the action refuses without one.
 //   C — the POST. The redirect must carry `paired=matched`, which is the outcome
 //       key lib/deliveryInvoiceMatch.js computed inside the action.
-//   D — the link on BOTH sides: `Invoices."Delivery"` names the shipment, and the
-//       shipment's own `Invoices` reverse-link names the bill.
+//   D — the link on BOTH sides: `Invoices."Delivery"` names the delivery, and the
+//       delivery's own `Invoices` reverse-link names the invoice.
 //   E — cleanup, then the residue check the pairing makes necessary: after the
 //       invoice is deleted, the delivery's `Invoices` must be back to what it was.
 //       A stored link is the one thing this feature adds to a record it does not
@@ -62,7 +62,7 @@ const ADMIN_EMAIL = "soo@hanyangengusa.com";
 
 // The target, chosen because it makes the outcome unambiguous rather than because
 // it is convenient: HYE-DL-260804-09 brought exactly one ordered item, nothing has
-// billed that ordered item, and no other bill charges it — so `matched` is the only
+// billed that ordered item, and no other invoice charges it — so `matched` is the only
 // outcome the rule can reach, and a `shared-order` or `several` here would be a
 // real failure rather than a differently-shaped pass.
 const DELIVERY_RECORD_ID = "rec52KJ2RM8Rn5yD2"; // HYE-DL-260804-09
@@ -160,7 +160,7 @@ try {
         const poItem = await getPOItemByRecordId(PO_ITEM_RECORD_ID);
         deliveryBefore = await getDeliveryByRecordId(DELIVERY_RECORD_ID);
         ok(
-            "the target shipment starts with no bill naming it",
+            "the target delivery starts with no invoice naming it",
             (deliveryBefore.invoices || []).length === 0,
             `${(deliveryBefore.invoices || []).length} linked`
         );
@@ -226,13 +226,13 @@ try {
         if (invoice) {
             invoiceRecordId = fixtures.track("invoices", invoice.id);
             ok(
-                "the invoice names the shipment its ordered items place it on",
+                "the invoice names the delivery its ordered items place it on",
                 linkedDelivery(invoice) === DELIVERY_RECORD_ID,
                 linkedDelivery(invoice) || "nothing linked"
             );
             const deliveryAfter = await getDeliveryByRecordId(DELIVERY_RECORD_ID);
             ok(
-                "and the shipment's own reverse-link names the bill",
+                "and the delivery's own reverse-link names the invoice",
                 (deliveryAfter.invoices || []).includes(invoice.id),
                 `${(deliveryAfter.invoices || []).length} linked`
             );
@@ -256,7 +256,7 @@ try {
             await setInvoiceDelivery(invoiceRecordId, null);
             const detached = await getDeliveryByRecordId(DELIVERY_RECORD_ID);
             ok(
-                "detaching through the production write clears the shipment's side",
+                "detaching through the production write clears the delivery's side",
                 !(detached.invoices || []).includes(invoiceRecordId)
             );
         } catch (err) {
@@ -281,7 +281,7 @@ try {
     if (deliveryBefore) {
         const deliveryFinal = await getDeliveryByRecordId(DELIVERY_RECORD_ID);
         ok(
-            "the shipment is back to the number of bills it started with",
+            "the delivery is back to the number of invoices it started with",
             (deliveryFinal.invoices || []).length === (deliveryBefore.invoices || []).length,
             `before ${(deliveryBefore.invoices || []).length}, after ${(deliveryFinal.invoices || []).length}`
         );

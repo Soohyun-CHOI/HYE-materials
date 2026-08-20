@@ -8,7 +8,7 @@
 //       Unit option list, which no file-only check can see.
 //   B — `PO Items."Delivered Qty"` on the FIRST READ after a Delivery Item is
 //       created. Allocation subtracts this from Qty to decide what an ordered item can
-//       still absorb, so a lagging value would over-allocate the NEXT arrival to
+//       still absorb, so a lagging value would over-allocate the NEXT delivery to
 //       an ordered item that is already full. Measured the way
 //       verify-materials-cache-18.mjs measures `Invoiced Qty`, and for the same
 //       reason: the caller reads it immediately after the write that feeds it.
@@ -20,7 +20,7 @@
 //       correctly to two different ordered items, which is the whole reason the
 //       split is structural rather than cosmetic.
 //   D — over-delivery: flagged, its own row, and ATTACHED (#165) — to the last
-//       ordered item the arrival filled, even with two orders in play, where
+//       ordered item the delivery filled, even with two orders in play, where
 //       #162 left it unlinked and therefore invisible on the invoice axis. Also
 //       that the attached ordered item's `Delivered Qty` then EXCEEDS its
 //       ordered `Qty`, which is the intended shape rather than a defect.
@@ -315,9 +315,9 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     });
 
     const candidates = await getDeliveryCandidates([job]);
-    const ourLines = candidates.lines.filter((l) => l.itemName === itemName);
-    assert("every candidate line is attributed to a Job", candidates.lines.every((l) => l.jobRecordId));
-    assert("and to this one", candidates.lines.every((l) => l.jobRecordId === job.id));
+    const ourItems = candidates.orderedItems.filter((l) => l.itemName === itemName);
+    assert("every candidate ordered item is attributed to a Job", candidates.orderedItems.every((l) => l.jobRecordId));
+    assert("and to this one", candidates.orderedItems.every((l) => l.jobRecordId === job.id));
 
     // The production shape is the MULTI-job read — the entry form is one page with
     // a job dropdown, so it asks for every accessible job at once. Batched across
@@ -325,35 +325,35 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     const allJobs = await getAllJobs();
     const many = await getDeliveryCandidates(allJobs);
     assert(
-        `reading all ${allJobs.length} jobs at once still attributes every line`,
-        many.lines.every((l) => l.jobRecordId)
+        `reading all ${allJobs.length} jobs at once still attributes every ordered item`,
+        many.orderedItems.every((l) => l.jobRecordId)
     );
     assert(
-        "and includes this job's lines",
-        many.lines.filter((l) => l.itemName === itemName).length === ourLines.length
+        "and includes this job's ordered items",
+        many.orderedItems.filter((l) => l.itemName === itemName).length === ourItems.length
     );
     check(
-        "a job list with no lines yields nothing rather than throwing",
-        (await getDeliveryCandidates([])).lines.length,
+        "an empty job list yields nothing rather than throwing",
+        (await getDeliveryCandidates([])).orderedItems.length,
         0
     );
-    check("both new PO lines are candidates on this job", ourLines.length, 2);
-    assert("each carries a Material link (#18 wrote it at PO generation)", ourLines.every((l) => l.materialRecordId));
-    const materialRecordId = ourLines[0].materialRecordId;
-    assert("both lines share one material identity", ourLines.every((l) => l.materialRecordId === materialRecordId));
-    assert("each carries its PO's vendor", ourLines.every((l) => l.vendorRecordId === vendorA.id));
-    check("nothing is delivered yet", ourLines.reduce((s, l) => s + (l.deliveredQty || 0), 0), 0);
+    check("both new ordered items are candidates on this job", ourItems.length, 2);
+    assert("each carries a Material link (#18 wrote it at PO generation)", ourItems.every((l) => l.materialRecordId));
+    const materialRecordId = ourItems[0].materialRecordId;
+    assert("both ordered items share one material identity", ourItems.every((l) => l.materialRecordId === materialRecordId));
+    assert("each carries its PO's vendor", ourItems.every((l) => l.vendorRecordId === vendorA.id));
+    check("nothing is delivered yet", ourItems.reduce((s, l) => s + (l.deliveredQty || 0), 0), 0);
 
     // -----------------------------------------------------------------------
     console.log("\nPart B — Delivered Qty on the FIRST read after a Delivery Item is created:");
-    const targetLine = ourLines.find((l) => l.poRecordId === po1);
+    const targetOrderedItem = ourItems.find((l) => l.poRecordId === po1);
     const delivery1 = await createDelivery({
         jobRecordId: job.id,
         vendorRecordId: vendorA.id,
         packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
         recordedByUserId: requester.id,
-        notes: `${TAG} first arrival`,
+        notes: `${TAG} first delivery`,
         // No file: this script creates nothing in Blob, and the attachment is not
         // what any check here is about.
         file: [],
@@ -368,11 +368,11 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     const di1 = await createDeliveryItem({
         deliveryRecordId: delivery1.id,
         deliveryId: delivery1.deliveryId,
-        poItemRecordId: targetLine.id,
+        poItemRecordId: targetOrderedItem.id,
         materialRecordId,
-        itemName: targetLine.itemName,
-        size: targetLine.size,
-        unit: targetLine.unit,
+        itemName: targetOrderedItem.itemName,
+        size: targetOrderedItem.size,
+        unit: targetOrderedItem.unit,
         qty: 4,
         overDelivered: false,
     });
@@ -380,29 +380,29 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     assert(`Delivery Item ID is {Delivery ID}-{seq} (${di1.deliveryItemId})`, di1.deliveryItemId === `${delivery1.deliveryId}-001`);
 
     // THE measurement. Read immediately, exactly as allocation does.
-    const firstRead = await getDeliveredQtyForPOItem(targetLine.id);
+    const firstRead = await getDeliveredQtyForPOItem(targetOrderedItem.id);
     check("the rollup is correct on the FIRST read after create() returned", firstRead, 4);
-    const settled = await waitFor(() => getDeliveredQtyForPOItem(targetLine.id), (v) => v === 4);
+    const settled = await waitFor(() => getDeliveredQtyForPOItem(targetOrderedItem.id), (v) => v === 4);
     console.log(`        (${settleNote(settled)})`);
     assert("reads === 1, i.e. no lag below one API round trip", settled.reads === 1);
 
     // And it is a SUM, not a COUNT — the one thing the schema cannot tell us.
     const di1b = await createDeliveryItem({
         deliveryRecordId: delivery1.id, deliveryId: delivery1.deliveryId,
-        poItemRecordId: targetLine.id, materialRecordId,
-        itemName: targetLine.itemName, size: targetLine.size, unit: targetLine.unit,
+        poItemRecordId: targetOrderedItem.id, materialRecordId,
+        itemName: targetOrderedItem.itemName, size: targetOrderedItem.size, unit: targetOrderedItem.unit,
         qty: 5, overDelivered: false,
     });
     track("deliveryItems", di1b.id);
-    const summed = await getDeliveredQtyForPOItem(targetLine.id);
+    const summed = await getDeliveredQtyForPOItem(targetOrderedItem.id);
     check("two rows of 4 and 5 sum to 9 (SUM, not COUNT of 2)", summed, 9);
 
     // -----------------------------------------------------------------------
     console.log("\nPart C — one quantity spanning two POs becomes two rows:");
     const fresh = await getDeliveryCandidates([job]);
-    const freshLines = fresh.lines.filter((l) => l.itemName === itemName);
+    const freshItems = fresh.orderedItems.filter((l) => l.itemName === itemName);
     const plan = planDelivery({
-        lines: freshLines,
+        orderedItems: freshItems,
         vendorRecordId: vendorA.id,
         materialRecordId,
         qty: 6,
@@ -410,34 +410,34 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("the plan splits across two orders", plan.rows.length, 2);
     check("the older order takes its remainder first", plan.rows[0].qty, 1);
     check("the newer order takes the balance", plan.rows[1].qty, 5);
-    assert("two different PO lines", plan.rows[0].line.id !== plan.rows[1].line.id);
+    assert("two different ordered items", plan.rows[0].orderedItem.id !== plan.rows[1].orderedItem.id);
     check("nothing flagged", plan.rows.some((r) => r.over), false);
 
     const delivery2 = await createDelivery({
         jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
-        recordedByUserId: requester.id, notes: `${TAG} split arrival`, file: [],
+        recordedByUserId: requester.id, notes: `${TAG} split delivery`, file: [],
     });
     track("deliveries", delivery2.id);
     for (const row of plan.rows) {
         const di = await createDeliveryItem({
             deliveryRecordId: delivery2.id, deliveryId: delivery2.deliveryId,
-            poItemRecordId: row.line.id, materialRecordId,
-            itemName: row.line.itemName, size: row.line.size, unit: row.line.unit,
+            poItemRecordId: row.orderedItem.id, materialRecordId,
+            itemName: row.orderedItem.itemName, size: row.orderedItem.size, unit: row.orderedItem.unit,
             qty: row.qty, overDelivered: row.over,
         });
         track("deliveryItems", di.id);
     }
     // The correctness point: two rows roll up to two DIFFERENT ordered items. A
     // single row linking both would have contributed its full Qty to each.
-    check("the first order is now fully delivered", await getDeliveredQtyForPOItem(plan.rows[0].line.id), 10);
-    check("the second holds only its own share", await getDeliveredQtyForPOItem(plan.rows[1].line.id), 5);
+    check("the first order is now fully delivered", await getDeliveredQtyForPOItem(plan.rows[0].orderedItem.id), 10);
+    check("the second holds only its own share", await getDeliveredQtyForPOItem(plan.rows[1].orderedItem.id), 5);
 
     // -----------------------------------------------------------------------
     console.log("\nPart D — over-delivery: flagged, its own row, and ATTACHED (#165):");
     const afterSplit = await getDeliveryCandidates([job]);
     const overPlan = planDelivery({
-        lines: afterSplit.lines.filter((l) => l.itemName === itemName),
+        orderedItems: afterSplit.orderedItems.filter((l) => l.itemName === itemName),
         vendorRecordId: vendorA.id,
         materialRecordId,
         qty: 12,
@@ -450,24 +450,24 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // than to nothing. #162 left it unattached here, which put the quantity in no
     // ordered item's rollup and made a delivery that arrived in full read as less
     // arrived than was billed.
-    check("two lines were narrowed to", overPlan.narrowed.length, 2);
-    assert("and the flagged row names one of them", overPlan.rows[1].line !== null);
+    check("two ordered items were narrowed to", overPlan.narrowed.length, 2);
+    assert("and the flagged row names one of them", overPlan.rows[1].orderedItem !== null);
     check(
-        "the LAST line filled, which is the newer order (fill order is oldest-first)",
-        overPlan.rows[1].line.id,
-        overPlan.rows[0].line.id
+        "the LAST ordered item filled, which is the newer order (fill order is oldest-first)",
+        overPlan.rows[1].orderedItem.id,
+        overPlan.rows[0].orderedItem.id
     );
 
     const delivery3 = await createDelivery({
         jobRecordId: job.id, vendorRecordId: vendorA.id, packingListPORecordId: null,
         receivedDate: new Date().toISOString().slice(0, 10),
-        recordedByUserId: requester.id, notes: `${TAG} over arrival`, file: [],
+        recordedByUserId: requester.id, notes: `${TAG} over delivery`, file: [],
     });
     track("deliveries", delivery3.id);
     for (const row of overPlan.rows) {
         const di = await createDeliveryItem({
             deliveryRecordId: delivery3.id, deliveryId: delivery3.deliveryId,
-            poItemRecordId: row.line.id, materialRecordId,
+            poItemRecordId: row.orderedItem.id, materialRecordId,
             itemName, size: '2"', unit: "EA",
             qty: row.qty, overDelivered: row.over,
         });
@@ -476,7 +476,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     const d3Items = await getItemsByDelivery(delivery3.id);
     const overRow = d3Items.find((i) => i.overDelivered);
     assert("the flagged row was stored WITH a PO Item (#165)", overRow && overRow.poItem.length === 1);
-    check("the one the plan named", overRow.poItem[0], overPlan.rows[1].line.id);
+    check("the one the plan named", overRow.poItem[0], overPlan.rows[1].orderedItem.id);
     assert("and still carries its Material, so it stays on the item axis", overRow.material.length === 1);
     check("Over Delivered persisted as true", overRow.overDelivered, true);
     assert(
@@ -485,25 +485,25 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     );
 
     // THE POINT OF ATTACHING: the quantity now reaches an ordered item's rollup, so the
-    // arrival is visible on the invoice axis. Delivered Qty deliberately EXCEEDS
+    // delivery is visible on the invoice axis. Delivered Qty deliberately EXCEEDS
     // the ordered Qty — that is the shape #162 already asserts and #165 keeps.
-    const attachedLine = overPlan.rows[1].line;
+    const attachedOrderedItem = overPlan.rows[1].orderedItem;
     // Measured as a DELTA, not an absolute: this ordered item already carried 5
     // from the split in Part C, so the property is that both of this delivery's
     // slices reached it — the fill and the excess — not that the rollup equals
     // 12.
-    const rolledBefore = attachedLine.deliveredQty || 0;
+    const rolledBefore = attachedOrderedItem.deliveredQty || 0;
     const expected = rolledBefore + 12;
     const rolled = await waitFor(
-        async () => await getDeliveredQtyForPOItem(attachedLine.id),
+        async () => await getDeliveredQtyForPOItem(attachedOrderedItem.id),
         (v) => v === expected
     );
     check(
-        `the attached line's Delivered Qty grew by both slices, ${rolledBefore} -> ${expected} (${settleNote(rolled)})`,
+        `the attached ordered item's Delivered Qty grew by both slices, ${rolledBefore} -> ${expected} (${settleNote(rolled)})`,
         rolled.value,
         expected
     );
-    const attachedAfter = (await getPOItemsByRecordIds([attachedLine.id]))[0];
+    const attachedAfter = (await getPOItemsByRecordIds([attachedOrderedItem.id]))[0];
     assert(
         `Delivered Qty (${rolled.value}) EXCEEDS the ordered Qty (${attachedAfter.qty}) — intended, not a defect`,
         rolled.value > attachedAfter.qty
@@ -511,17 +511,17 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // And the whole entered quantity is now reachable by summing the ordered
     // items, which is what an unlinked row broke.
     const d3Total = d3Items.reduce((sum, i) => sum + (i.qty || 0), 0);
-    check("every unit entered reached a line", d3Total, 12);
+    check("every unit entered reached an ordered item", d3Total, 12);
 
     // -----------------------------------------------------------------------
-    console.log("\nPart E — a withdrawn PO's line stops being a candidate:");
+    console.log("\nPart E — a withdrawn PO's ordered item stops being a candidate:");
     const po3 = await makeOrder({
         requester, vendor: vendorB, line,
         itemName: `${TAG} Valve`, size: "", unit: "PCS", qty: 8, unitPrice: 12,
     });
     const beforeWithdraw = await getDeliveryCandidates([job]);
-    const valveBefore = beforeWithdraw.lines.filter((l) => l.itemName === `${TAG} Valve`);
-    check("the new order's line is a candidate while live", valveBefore.length, 1);
+    const valveBefore = beforeWithdraw.orderedItems.filter((l) => l.itemName === `${TAG} Valve`);
+    check("the new order's ordered item is a candidate while live", valveBefore.length, 1);
 
     await updatePO(po3, { status: PO_WITHDRAWN_STATUS, withdrawnAt: new Date().toISOString() });
     const committed = await waitFor(
@@ -532,7 +532,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
 
     const afterWithdraw = await getDeliveryCandidates([job]);
     const valvePlan = planDelivery({
-        lines: afterWithdraw.lines.filter((l) => l.itemName === `${TAG} Valve`),
+        orderedItems: afterWithdraw.orderedItems.filter((l) => l.itemName === `${TAG} Valve`),
         vendorRecordId: vendorB.id,
         materialRecordId: valveBefore[0].materialRecordId,
         qty: 3,
@@ -549,14 +549,14 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     check("no over-delivery is claimed either, since nothing is recorded", valvePlan.over, 0);
     // And it drops out of the item dropdown for that vendor — the same judgment,
     // reached independently, which is why the two now refuse the same set.
-    const valveOptions = buildItemOptions(afterWithdraw.lines, vendorB.id).filter(
+    const valveOptions = buildItemOptions(afterWithdraw.orderedItems, vendorB.id).filter(
         (o) => o.itemName === `${TAG} Valve`
     );
     check("and out of the item dropdown", valveOptions.length, 0);
 
     // -----------------------------------------------------------------------
     console.log("\nPart F — deletion returns the figures, and touches no invoice:");
-    const beforeDelete = await getDeliveredQtyForPOItem(targetLine.id);
+    const beforeDelete = await getDeliveredQtyForPOItem(targetOrderedItem.id);
     // `seesPayment` explicitly (#211), even though this delivery is uninvoiced and
     // so never reaches the branch that consults it: the flag defaults to FALSE, so
     // a script that omitted it could never reach the `paid` voice at all, and a
@@ -571,7 +571,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     const del = await deleteDeliveryAsUser({ deliveryRecordId: delivery1.id, actingUser: requester });
     check("the author may delete", del.ok, true);
     const afterDelete = await waitFor(
-        () => getDeliveredQtyForPOItem(targetLine.id),
+        () => getDeliveredQtyForPOItem(targetOrderedItem.id),
         (v) => v === beforeDelete - 9
     );
     check(`Delivered Qty drops by exactly what was deleted (${settleNote(afterDelete)})`, afterDelete.value, beforeDelete - 9);
@@ -597,12 +597,12 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         itemName: multiItemName, size: "M12", unit: "EA", qty: 50, unitPrice: 1.2,
     });
     const forMulti = await getDeliveryCandidates([job]);
-    const pipeLines = forMulti.lines.filter((l) => l.itemName === itemName);
-    const boltLines = forMulti.lines.filter((l) => l.itemName === multiItemName);
-    check("the second material has its own candidate line", boltLines.length, 1);
+    const pipeItems = forMulti.orderedItems.filter((l) => l.itemName === itemName);
+    const boltItems = forMulti.orderedItems.filter((l) => l.itemName === multiItemName);
+    check("the second material has its own candidate ordered item", boltItems.length, 1);
 
-    const pipeMaterialId = pipeLines[0].materialRecordId;
-    const boltMaterialId = boltLines[0].materialRecordId;
+    const pipeMaterialId = pipeItems[0].materialRecordId;
+    const boltMaterialId = boltItems[0].materialRecordId;
     assert("the two materials are distinct identities", pipeMaterialId !== boltMaterialId);
 
     const multiDelivery = await createDelivery({
@@ -614,14 +614,14 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
 
     for (const [materialId, qty] of [[pipeMaterialId, 2], [boltMaterialId, 60]]) {
         const p = planDelivery({
-            lines: forMulti.lines, vendorRecordId: vendorA.id,
+            orderedItems: forMulti.orderedItems, vendorRecordId: vendorA.id,
             materialRecordId: materialId, qty,
         });
         for (const row of p.rows) {
-            const src = row.line || p.narrowed[0];
+            const src = row.orderedItem || p.narrowed[0];
             const di = await createDeliveryItem({
                 deliveryRecordId: multiDelivery.id, deliveryId: multiDelivery.deliveryId,
-                poItemRecordId: row.line.id, materialRecordId: materialId,
+                poItemRecordId: row.orderedItem.id, materialRecordId: materialId,
                 itemName: src?.itemName ?? "", size: src?.size ?? "", unit: src?.unit ?? "",
                 qty: row.qty, overDelivered: row.over,
             });
@@ -653,18 +653,18 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // not a leak: an attached over-delivery is how the PO axis shows more arrived
     // than was ordered, and it is what makes the ordered item stop being a
     // candidate (undelivered goes negative, so hasUndeliveredQty is false).
-    const boltDelivered = await getDeliveredQtyForPOItem(boltLines[0].id);
-    check("the attached over-delivery pushes the line's rollup past its Qty", boltDelivered, 60);
-    assert("delivered now exceeds ordered on that line", boltDelivered > boltLines[0].qty);
+    const boltDelivered = await getDeliveredQtyForPOItem(boltItems[0].id);
+    check("the attached over-delivery pushes the ordered item's rollup past its Qty", boltDelivered, 60);
+    assert("delivered now exceeds ordered on that ordered item", boltDelivered > boltItems[0].qty);
     const boltAfter = await getDeliveryCandidates([job]);
     assert(
-        "so the line is no longer a candidate for the next arrival",
+        "so the ordered item is no longer a candidate for the next delivery",
         !planDelivery({
-            lines: boltAfter.lines,
+            orderedItems: boltAfter.orderedItems,
             vendorRecordId: vendorA.id,
             materialRecordId: boltMaterialId,
             qty: 1,
-        }).candidates.some((l) => l.id === boltLines[0].id)
+        }).candidates.some((l) => l.id === boltItems[0].id)
     );
     assert(
         "the banner names the item now that there are several",

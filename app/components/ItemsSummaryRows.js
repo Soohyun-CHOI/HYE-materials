@@ -6,7 +6,7 @@ import { formatUSD } from "@/lib/format";
 // Delivered and Undelivered), so the caller tells us how many columns sit to
 // the left of the Amount column (labelColSpan) and how many to its right
 // (trailingColSpan); the value always lands in the Amount column,
-// right-aligned, matching where per-line amounts render.
+// right-aligned, matching where per-item amounts render.
 //
 // trailingColSpan IS THE ONE A NEW COLUMN BREAKS, and it breaks silently — the
 // footer simply stops lining up with the rows above it, which no offline check

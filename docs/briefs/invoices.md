@@ -7,7 +7,7 @@ column is President-or-Admin.
 
 ## What it answers
 
-Which bills have come in, and is anything wrong with one before it gets paid? For
+Which invoices have come in, and is anything wrong with one before it gets paid? For
 the office this is a payment queue; for a site staffer it is the record of what a
 vendor has charged against their jobs.
 
@@ -63,9 +63,9 @@ has none, and `No invoices to show. You see an invoice when it bills a purchase
 order you raised or one on a job you are assigned to.` when the reader's scope is
 empty. Same distinction the purchase order list draws.
 
-**When some delivery is still waiting for a bill:** a strip above the table, with
+**When some delivery is still waiting for an invoice:** a strip above the table, with
 a counted heading — `N deliveries are waiting for an invoice` — the line
-`Longest wait first. No invoice yet covers what these arrivals brought.`, and one
+`Longest wait first. No invoice yet covers what these deliveries brought.`, and one
 row per delivery: its ID as a link, its details, and how many days it has been
 waiting. This is the vendor-chasing worklist, and it is the reason the whole
 delivery feature exists — the month-end email asking every vendor for missing
@@ -75,23 +75,23 @@ invoices is what currently stands in for it.
 
 **The strip and the table admit different readers, and that is deliberate.** The
 table is invoices, gated by the walk that reaches `canViewPR`; the strip is
-arrivals, gated by job assignment. Two different rules on one page, because the
-two report on two different kinds of record.
+deliveries, gated by job assignment. Two different rules on one page, because
+the two report on two different kinds of record.
 
 **When some invoice is still waiting on a delivery:** a **second** strip, below the
 first and above the table, with a counted heading —
 `N invoices are waiting on a delivery` — then this line:
 
-`Longest wait first. Nothing has confirmed the material these bills charge for.`
+`Longest wait first. Nothing has confirmed the material these invoices charge for.`
 
 and one row per invoice: its ID as a link, its issue date with the days it has
 waited, the vendor, and one of two words saying which state it is in.
 
 The two words are `nothing delivered yet`, when nothing has been delivered against
-any order the bill charges, and `delivered, not matched`, when something has and no
+any order the invoice charges, and `delivered, not matched`, when something has and no
 delivery is paired with it. **Neither claims a reason.** The refusal reasons the
 pairing rule produces are never stored and it only runs when a document is written,
-so an unmatched bill is equally consistent with a refusal, with nothing having
+so an unmatched invoice is equally consistent with a refusal, with nothing having
 arrived at the time, and with the pairing never having been attempted — the last
 being the common case on today's seeded base. The words say what is observable and
 send the reader to look.
@@ -101,7 +101,7 @@ the vendor's own date on the document, the same choice the delivery strip makes 
 using the packing list's `Received Date` rather than when either was entered here.
 
 **Both strips can appear at once, and often on one situation seen from both ends.**
-A delivery nobody has billed and a bill nobody has matched each get a row, in
+A delivery nobody has billed and an invoice nobody has matched each get a row, in
 different strips. Neither strip's contents depend on the other's. They are told
 apart without color: each heading names and counts its own subject, and the row IDs
 carry different prefixes.
@@ -128,7 +128,7 @@ detail is the one screen showing both at once. They change together or not at al
 **An over-delivery tag is deliberately absent from this list**, though the
 deliveries list carries one. The difference is whose fact it is: an over-delivery
 is a fact about a delivery, and on an invoice row it would read as a fact about
-the bill.
+the invoice.
 
 **The two empty states are a set** with the purchase order list's three — the
 distinction between "none exists" and "none for you" is the one that has to

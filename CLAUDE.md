@@ -110,11 +110,11 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. Both order-scope summaries live here (#235), so the delivery and invoicing chips stay one shape.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
 - `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
-- `lib/deliveryInvoiceMatch.js` — the COMPUTED pairing (#231): containment, the price gate, an arrival's remaining capacity, the rival clause and its tie-break, `PAIRING_COPY`. One predicate serves both directions.
-- `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, which arrivals a bill may name, and the guarded write. Credentialed.
+- `lib/deliveryInvoiceMatch.js` — the COMPUTED pairing (#231): containment, the price gate, a delivery's remaining capacity, the rival clause and its tie-break, `PAIRING_COPY`. One predicate serves both directions.
+- `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, which deliveries an invoice may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
-- `lib/overage.js` — the overage correction's judgment, `OVERAGE_COPY`, and which bill carries an excess: the candidate tiers and their private ordering (#219). Also `awaitsCorrection` and the signer-copy rule (#217).
+- `lib/overage.js` — the overage correction's judgment, `OVERAGE_COPY`, and which invoice carries an excess: the candidate tiers and their private ordering (#219). Also `awaitsCorrection` and the signer-copy rule (#217).
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the uncorrected-excess list (#217), the Draft it creates, and the apply step. Credentialed.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders it bills (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.
@@ -170,9 +170,9 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Material Prices**: item × vendor (#18). Natural key = Material + Vendor. `Price Label` (primary, formula over the two links), `Material` / `Vendor` (links, single), `Unit Price`, `Latest Date` (calendar), `Latest PO` (link), and `Material Record ID` / `Vendor Record ID` lookups. Those two lookups are what make a row findable at all — `filterByFormula` cannot compare a link field to a record id, the same exception already recorded for parent-link filtering. Still a latest-value cache, not history.
 
-**Deliveries**: one recorded arrival (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link), `Invoices` (reverse-link, plural).
+**Deliveries**: one recorded delivery (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link), `Invoices` (reverse-link, plural).
 
-**Delivery Items**: one allocated slice of an arrival (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Unit` (frozen reference copies), `Qty`, `Over Delivered` (checkbox, backend-set).
+**Delivery Items**: one allocated slice of a delivery (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Unit` (frozen reference copies), `Qty`, `Over Delivered` (checkbox, backend-set).
 
 **Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
@@ -189,7 +189,7 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 
 **A screen word is not a field name**, and a code identifier may diverge from the field it reads on purpose. Before naming a field, a screen word or an identifier, read `docs/notes/naming.md` — it holds the word-to-field table, the conventions (`X ID` / `X Label` / `X Date` / `X At`, a checkbox takes a participle, a subtraction is named for what it subtracts, plain `Qty` for a row's own quantity) and the divergences that are deliberate.
 
-- **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Lines` → a Job's line, so a `PO Items` row is an **ordered item**. Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. **The record is not the act**: `billed` is what an invoice does, and no table gives a verb. Identifiers are bound too, but a rename belongs to the issue that owns it (#184, #227), so what this governs is the NEXT name. Nothing can check it — `lineStatus` is one token, `bills` is a verb — which is why it is here rather than in a test.
+- **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Lines` → a Job's line, so a `PO Items` row is an **ordered item**. Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. **The record is not the act**: `billed` is what an invoice does, and no table gives a verb — but a verb survives only where no other verb is already settled for the same act, which is why `arrived` went and `billed` stayed (#227). **Identifiers are bound and were swept in #227**, and `offline/line-vocabulary.mjs` inventories the ones that legitimately keep a barred stem, with a reason each. What no check can hold is prose, which is why the rule is here.
 
 ## ID generation (lib/ids.js)
 

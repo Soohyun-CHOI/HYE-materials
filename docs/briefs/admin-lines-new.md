@@ -46,11 +46,12 @@ and this form shows only the half being typed.
 choosing a job filters the lines and changing it clears the choice. That form is
 where the relationship is used; this is where it is authored.
 
-**`line` is reserved, and the app has identifiers that break the rule.** Several
-code identifiers say `line` for an ordered item, which is recorded as a known
-divergence with its own issue rather than a pattern to copy. Nothing a designer
-writes should pick the word up from them — on screen, a `line` is what this form
-creates.
+**`line` is reserved, and since #227 the code agrees.** Identifiers used to say
+`line` for an ordered item — `lineStatus`, `poLineDelivery`, an allocation row's
+`line` — and a designer reading the screens beside them could pick the word up
+from a convention nobody had written down. They are renamed. What still says
+`line` names a `Lines` row or a line of rendered text, so on screen and in the
+code alike a `line` is what this form creates.
 
 **The three admin creates are one pattern**, and this one's combobox is the only
 place they differ.

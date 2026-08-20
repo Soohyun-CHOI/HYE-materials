@@ -13,7 +13,7 @@ import DeliveriesListClient from "./DeliveriesListClient";
 export const metadata = { title: "Deliveries" };
 
 /**
- * Recorded deliveries, newest arrival first (#162).
+ * Recorded deliveries, newest delivery first (#162).
  *
  * A PLAIN RECORD LIST, not the discrepancy view. #20 is what compares ordered
  * against delivered against invoiced per material; this exists so a recorded
@@ -24,13 +24,13 @@ export const metadata = { title: "Deliveries" };
  * resolving the union in one batched pass, rather than scanning the whole table
  * and filtering. That costs 1 + ceil(n/50) queries and degrades with how many Jobs
  * a viewer is on rather than with how large the table grows — deliveries
- * accumulate one per arrival, faster than PRs do, so the PR list's fetch-all shape
+ * accumulate one per delivery, faster than PRs do, so the PR list's fetch-all shape
  * was the wrong precedent to copy here. It also needs no `Job Record ID` lookup,
  * since a link field cannot be filtered on but a reverse-link can be read.
  *
  * ORDERED BY `Received Date` DESC, tie-broken by `Created At` DESC. Received Date
  * is what a reader is looking for ("what came in this week"), and it is
- * calendar-only, so several arrivals on one day tie — the tie-break is the moment
+ * calendar-only, so several deliveries on one day tie — the tie-break is the moment
  * of entry, which is the second reader that keeps Created At from being a
  * single-purpose field.
  */
@@ -73,7 +73,7 @@ async function renderDeliveriesListPage({ searchParams }) {
     // fetched its own copy of every listed delivery's lines and then called
     // getDeliveryInvoicing, which fetched the same level again — a duplicate that
     // stood because nothing here was labeled and so nothing measured it. The lines
-    // come back from that call now, and the list summarizes what arrived from
+    // come back from that call now, and the list summarizes what was delivered from
     // them. A read per delivery would still be the per-row round trip #143 ruled
     // out; this is one batched read for the whole page, down from two.
     const { byDelivery: invoicingByDelivery, slices: allItems } =
@@ -82,7 +82,7 @@ async function renderDeliveriesListPage({ searchParams }) {
     // `?unbilled=1` IS GONE (#216). Chasing a vendor moved to a strip above
     // /invoices, where the outcome is recorded, and this page is left with the
     // single job of being a log. The two pulled opposite ways — a log reads newest
-    // first and an empty one means nothing arrived; a chasing list reads oldest
+    // first and an empty one means nothing delivered; a chasing list reads oldest
     // first and an empty one means there is nothing left to do — and nobody visits
     // a query parameter on a schedule.
     const filters = { over: sp?.over === "1" };
@@ -159,7 +159,7 @@ async function renderDeliveriesListPage({ searchParams }) {
                 </p>
             ) : rows.length === 0 ? (
                 <p className="mt-6 text-sm text-zinc-600">
-                    No deliveries recorded yet. Record one as material arrives — the packing list
+                    No deliveries recorded yet. Record one as material is delivered — the packing list
                     photo is what makes it a record.
                 </p>
             ) : (

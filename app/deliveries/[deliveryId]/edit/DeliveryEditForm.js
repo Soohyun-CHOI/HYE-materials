@@ -22,7 +22,7 @@ import {
 
 /**
  * The four editable things on a recorded delivery: the received date and the note
- * (#162), the photo (#162), and the invoice this shipment is billed by (#210).
+ * (#162), the photo (#162), and the invoice this delivery is billed by (#210).
  *
  * FOUR SEPARATE FORMS, not one save. For the photo that is #142's rule made
  * structural rather than remembered: a combined save would carry the current
@@ -32,7 +32,7 @@ import {
  * received a fresh upload, and replaceDeliveryPhoto refuses anything that is not one
  * of our own Blob urls. For the invoice the reason is different and simpler: attach
  * and detach are two claims about two records, so one control that quietly did both
- * would move a bill between shipments in a single submit nobody reviewed.
+ * would move an invoice between deliveries in a single submit nobody reviewed.
  */
 export default function DeliveryEditForm({
     deliveryId,
@@ -152,7 +152,7 @@ export default function DeliveryEditForm({
                 </button>
             </form>
 
-            {/* --- #210: the invoice this shipment is billed by ------------------ */}
+            {/* --- #210: the invoice this delivery is billed by ------------------ */}
             <div className="mt-8 border-t border-zinc-200 pt-6">
                 <h2 className="text-sm font-medium">Invoices</h2>
                 <p className="mt-1 text-xs text-zinc-500">

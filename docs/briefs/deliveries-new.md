@@ -2,7 +2,7 @@
 
 Route: `/deliveries/new`
 Who reaches it: anyone signed in and assigned to at least one job. This is site
-work: recording an arrival is the job of whoever received it.
+work: recording a delivery is the job of whoever received it.
 
 ## What it answers
 
@@ -12,7 +12,7 @@ belongs to, and shows that decision before it is saved. Half the screen is that
 preview.
 
 Two facts shape everything about it. The reader is transcribing a **paper packing
-list at the point the material arrives**, which is site work and not desk work —
+list at the point the material is delivered**, which is site work and not desk work —
 though which devices that means in practice is not something this repository
 records. And **they cannot correct most of what they enter afterwards** — the item,
 the quantity, the vendor and the order are fixed by the allocation at recording
@@ -60,7 +60,7 @@ because both describe how the list itself was built:
 
 **action — `Packing list photo`,** a file input accepting PDF, JPEG or PNG.
 Required — the deliveries list's own empty state tells readers that the photo is
-what makes an arrival a record.
+what makes a delivery a record.
 
 **action — `Notes (optional)`,** with `(optional)` inside the label in lighter
 weight, and the placeholder `Damage, a partial pallet, who signed for it…` — three
@@ -99,7 +99,7 @@ reader to check something** — a shared ordered item, or a tie nothing could br
 A tie-break adds a second sentence in the same box, and turns it amber, because a
 tie is the one attachment here that asks rather than tells.
 
-**Nothing appears at all when the ordered items place no bill.** An unpaired
+**Nothing appears at all when the ordered items place no invoice.** An unpaired
 invoice is the ordinary state, not an event to report — so the box is absent
 whenever the app has nothing to claim, and that silence is what this preview
 must not break.

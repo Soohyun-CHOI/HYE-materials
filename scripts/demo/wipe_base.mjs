@@ -31,7 +31,7 @@
 // linked record simply drops it out of the other side's array — but the order is what
 // makes it safe to delete without going through the app's own delete actions. Those
 // exist to keep the REST of the base consistent (`deleteDeliveryAction` recomputes
-// over-delivery on the orders an arrival touched); here there is no rest to keep
+// over-delivery on the orders a delivery touched); here there is no rest to keep
 // consistent, and every parent is already childless by the time it is reached, so
 // there is nothing left to recompute. Going through the actions would also cost
 // roughly four times the operations and could not touch orders, ordered items,

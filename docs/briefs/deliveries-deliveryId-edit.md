@@ -3,7 +3,7 @@
 Route: `/deliveries/[deliveryId]/edit`
 Who reaches it: anyone signed in who is assigned to the delivery's job, or the
 office — the same set that may view it, because what this screen changes is the
-record of the arrival rather than what the arrival was allocated against.
+record of the delivery rather than what the delivery was allocated against.
 
 ## What it answers
 
@@ -26,13 +26,13 @@ and its own `Save` button.
 its own `Replace photo` button, disabled until an upload has completed.
 
 **action — the `Invoices` section,** with the standing sentence
-`One invoice belongs to one delivery, so a bill already attached elsewhere is
+`One invoice belongs to one delivery, so one already attached elsewhere is
 listed but cannot be picked. A delivery can carry more than one invoice.` — the
 pairing rule, stated where the pairing is made rather than on failure.
 
 **Three separate forms, three separate submits.** This is deliberate and is the
 one structural fact a redesign must not tidy away: a single Save across all of them
-would move a bill between shipments in one submit nobody reviewed, and re-submitting
+would move an invoice between deliveries in one submit nobody reviewed, and re-submitting
 an unchanged photo URL would silently empty the attachment. So each concern commits
 on its own, and the buttons are secondary-weight rather than one primary.
 
@@ -56,7 +56,7 @@ names the sequence rather than just reporting emptiness.
 **When an attachment is refused:** one of four sentences, and two of them are
 deliberately identical. `That invoice no longer exists.` answers both "not found"
 and "outside your scope", because telling those apart would confirm that a record
-exists outside someone's scope. The other two name a vendor mismatch and a bill
+exists outside someone's scope. The other two name a vendor mismatch and an invoice
 already attached elsewhere.
 
 ## What must agree elsewhere

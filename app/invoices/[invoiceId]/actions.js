@@ -128,21 +128,21 @@ async function updateInvoiceHandler(prevState, formData) {
 
             // Recompute variance AFTER the edits land (set AND clear, unlike
             // creation which only sets): a correction can remove a variance, so a
-            // stale flag must be cleared. Per-line uses the fresh Unit Price and
+            // stale flag must be cleared. Per-item uses the fresh Unit Price and
             // the cumulative invoiced Qty (this invoice's new Qty already
             // included); free-text invoice items have no PO Item to compare, so clear.
             const itemsAfter = await getItemsByInvoice(invoice.id);
-            for (const line of itemsAfter) {
-                const poItemRecordId = line.poItem?.[0];
+            for (const item of itemsAfter) {
+                const poItemRecordId = item.poItem?.[0];
                 let flag = false;
                 if (poItemRecordId) {
                     const poItem = await getPOItemByRecordId(poItemRecordId);
-                    const unitPriceVariance = checkUnitPriceVariance(line.unitPrice, poItem.unitPrice);
+                    const unitPriceVariance = checkUnitPriceVariance(item.unitPrice, poItem.unitPrice);
                     const invoicedQty = await getInvoicedQtyForPOItem(poItemRecordId);
                     flag = unitPriceVariance || invoicedQty > poItem.qty;
                 }
-                if (line.varianceFlag !== flag) {
-                    await updateInvoiceItem(line.id, { varianceFlag: flag });
+                if (item.varianceFlag !== flag) {
+                    await updateInvoiceItem(item.id, { varianceFlag: flag });
                 }
             }
 

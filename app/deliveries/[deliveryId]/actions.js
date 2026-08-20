@@ -45,7 +45,7 @@ async function loadForEdit(user, deliveryId) {
  *
  * These two and the photo are the only editable things on a delivery. The item,
  * the quantity, the vendor and the PO are not: changing any of them changes what
- * the arrival was allocated against, which would mean re-running allocation and
+ * the delivery was allocated against, which would mean re-running allocation and
  * mutating or destroying existing Delivery Items. There is deliberately no
  * allocation-editing UI, so the correction for those is delete and re-enter.
  */
@@ -128,17 +128,17 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
 }
 
 /**
- * Attach the invoice this shipment is billed by, after the fact (#210).
+ * Attach the invoice this delivery is billed by, after the fact (#210).
  *
  * THE LATER-ATTACHMENT PATH, and it is an in-place edit rather than a second entry
  * screen because the pairing is ORTHOGONAL TO ALLOCATION. What this page refuses to
  * change — the item, the quantity, the vendor, the packing list PO — is refused on
- * one ground: changing it changes what the arrival was allocated against, and there
+ * one ground: changing it changes what the delivery was allocated against, and there
  * is deliberately no allocation-editing UI. An invoice link changes no `Delivery
  * Items` row, moves no quantity between orders and re-runs nothing, so that reason
  * does not reach it. It belongs with the received date, the note and the photo.
  *
- * WHY IT HAS TO EXIST AT ALL: the vendor usually emails the bill at shipment, so it
+ * WHY IT HAS TO EXIST AT ALL: the vendor usually emails the invoice at shipment, so it
  * is normally on hand first — but not always, and an invoice nobody has entered yet
  * cannot be picked from a dropdown. Leaving it blank at entry is a normal answer,
  * which makes this the path that finishes the pairing.
@@ -169,11 +169,11 @@ export async function attachDeliveryInvoiceAction(prevState, formData) {
 }
 
 /**
- * Detach an invoice from this shipment (#210).
+ * Detach an invoice from this delivery (#210).
  *
  * DETACH RATHER THAN SWAP, and the pair of separate controls is deliberate: an
  * invoice can only ever name one delivery, so re-pointing one is a claim about two
- * shipments at once. Making it two steps means the screen it left says so, and the
+ * deliveries at once. Making it two steps means the screen it left says so, and the
  * refusal `taken-by-another` stays truthful rather than being something the app
  * silently overrides.
  */
@@ -282,7 +282,7 @@ export async function createOverageDraftAction(prevState, formData) {
                 delivery,
                 row,
                 orderedItem: context.orderedItem,
-                bill: context.bill,
+                invoice: context.invoice,
                 originalPR: context.originalPR,
             });
         } catch (err) {
