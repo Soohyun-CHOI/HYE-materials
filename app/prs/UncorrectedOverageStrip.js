@@ -82,7 +82,7 @@ export default function UncorrectedOverageStrip({ rows }) {
                                 <OverageButton
                                     deliveryItemId={row.id}
                                     messages={row.messages}
-                                    inferredLabel={row.inferredLabel}
+                                    tieBreakLabel={row.tieBreakLabel}
                                 />
                             </span>
                         ) : (

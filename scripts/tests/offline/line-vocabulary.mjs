@@ -309,6 +309,8 @@ const SURVIVING_IDENTIFIERS = {
     billedNotDelivered: "the verb, against the delivery",
     deliveredNotBilled: "its mirror",
     billedByPair: "billed quantity per delivery-and-ordered-item pair",
+    billedShort: "the verb: the vendor billed less than it delivered (#265)",
+    billedOver: "the verb: it billed more than it delivered (#265)",
     billedItemsByOrder: "an invoice's items grouped by the order they bill",
     orderedItemsBilled: "the ordered items one invoice bills",
     anyBilled: "whether anything on the order is billed",

@@ -15,21 +15,26 @@ import { createOverageDraftAction } from "./actions";
  * cannot cross the boundary anyway, so this component never decides what the button
  * is about to do.
  *
- * The marker is #166's own component, because it was #166's ambiguity: the ordered
- * item carries more than one invoice and the oldest is taken. Reusing the component
- * keeps the two markers from becoming two shapes for one idea — which is also why
- * #210 renamed it `QualifierMarker`, having removed the OTHER inference the old name
- * was taken from. This one survives #219's narrowing too, but on a narrower fact: the
- * candidates are now the invoices naming THIS delivery, so the marker means either that
- * this delivery carries two of them or that nothing names it at all.
+ * The marker is #166's own component, because it began as #166's ambiguity: the
+ * ordered item carries more than one invoice and the oldest is taken. Reusing the
+ * component keeps the markers in this app from becoming several shapes for one idea —
+ * which is also why #210 renamed it `QualifierMarker`, having removed the OTHER
+ * inference the old name was taken from.
  *
- * `inferredLabel` is the sentence lib/overage.js already writes for the preview, so
- * the tooltip and the line inside the modal cannot come to explain the same guess
- * differently. IT IS ALSO THE WHOLE CONDITION, since #219: it arrives null when
- * nothing was inferred, so a separate flag would be a second copy of one fact that
- * could disagree with it.
+ * #265 CHANGED WHAT IT MEANS AND KEPT THE SHAPE. It stood for an INFERENCE until
+ * then: the app had picked a document without being able to say the excess was billed
+ * at all. The agreement rule made that guess unnecessary — a correction is offered
+ * only where the two documents meet above the order — so what is left is a TIE-BREAK,
+ * and the sentence says several invoices could have supplied the quotation at the same
+ * price. The `!` is the same `!`; it no longer says the app guessed.
+ *
+ * `tieBreakLabel` is the sentence lib/overage.js already writes for the preview, so
+ * the tooltip and the line inside the modal cannot come to explain the same choice
+ * differently. IT IS ALSO THE WHOLE CONDITION: it arrives null when nothing was passed
+ * over, so a separate flag would be a second copy of one fact that could disagree
+ * with it.
  */
-export default function OverageButton({ deliveryItemId, messages, inferredLabel }) {
+export default function OverageButton({ deliveryItemId, messages, tieBreakLabel }) {
     const [open, setOpen] = useState(false);
     const [state, formAction, pending] = useActionState(createOverageDraftAction, {});
 
@@ -43,7 +48,7 @@ export default function OverageButton({ deliveryItemId, messages, inferredLabel 
                 >
                     Raise a correction
                 </button>
-                {inferredLabel && <QualifierMarker label={inferredLabel} />}
+                {tieBreakLabel && <QualifierMarker label={tieBreakLabel} />}
             </span>
 
             {state?.error && (
