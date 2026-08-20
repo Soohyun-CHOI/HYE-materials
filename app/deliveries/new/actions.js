@@ -9,7 +9,7 @@ import { createDelivery } from "@/lib/airtable/deliveries";
 import { createDeliveryItem } from "@/lib/airtable/deliveryItems";
 import { setInvoiceDelivery } from "@/lib/airtable/invoices";
 import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
-import { billFromInvoiceOption, planPairings } from "@/lib/deliveryInvoiceMatch";
+import { invoiceFromOption, planPairings } from "@/lib/deliveryInvoiceMatch";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
@@ -24,13 +24,13 @@ import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
  * and a material with no ordered item at all is named only by its record id, which is
  * no use in a message, so it falls back to the generic wording (#165).
  */
-function itemLabelFor(lines, materialRecordId) {
-    const line = (lines || []).find((l) => l.materialRecordId === materialRecordId);
-    return line ? itemOptionLabel(line) : "";
+function itemLabelFor(orderedItems, materialRecordId) {
+    const match = (orderedItems || []).find((item) => item.materialRecordId === materialRecordId);
+    return match ? itemOptionLabel(match) : "";
 }
 
 /**
- * Record one arrival: a Delivery header plus one Delivery Item per allocated PO
+ * Record one delivery: a Delivery header plus one Delivery Item per allocated PO
  * ordered item, and one more for any quantity no order could absorb.
  *
  * THE ALLOCATION IS RE-RUN HERE FROM A FRESH READ. The form draws a preview with
@@ -88,7 +88,7 @@ export async function createDeliveryAction(prevState, formData) {
         // against a single snapshot of the candidate ordered items, so planning the same
         // material twice would let both plans claim the same undelivered quantity and
         // double-allocate. Summing first is also what the recorder meant: two pallets
-        // of the same item on one packing list is one arrival of their total.
+        // of the same item on one packing list is one delivery of their total.
         const wantedByMaterial = new Map();
         for (const row of submittedItems) {
             const prev = wantedByMaterial.get(row.materialRecordId) || 0;
@@ -96,7 +96,7 @@ export async function createDeliveryAction(prevState, formData) {
         }
 
         // Required, like the invoice file and unlike a Quotation: a delivery is a
-        // claim that material arrived and this is the evidence. The submit button is
+        // claim that material was delivered and this is the evidence. The submit button is
         // disabled client-side until the upload finishes, but a Server Action is
         // callable directly regardless of what the page rendered.
         if (!fileUrl) return { error: "Attach a photo of the packing list." };
@@ -119,16 +119,16 @@ export async function createDeliveryAction(prevState, formData) {
 
         // Re-read this ONE job's ordered items. The form was handed every accessible
         // job's ordered items at once; the action needs only the submitted one, and
-        // reading it fresh is the point — a PO can be withdrawn, or another arrival
+        // reading it fresh is the point — a PO can be withdrawn, or another delivery
         // recorded against the same ordered item, while the form sits open.
         const job = await getJobByRecordId(jobRecordId).catch(() => null);
         if (!job) return { error: "That job no longer exists." };
         const candidates = await getDeliveryCandidates([job]);
 
-        // #231 — the bills this vendor could have sent, gated per record through the
+        // #231 — the invoices this vendor could have sent, gated per record through the
         // same walk the page used to render the picker. Read here rather than trusted
         // from the form for the reason the allocation is re-run: an invoice can be
-        // paired with another shipment while this page sits open.
+        // paired with another delivery while this page sits open.
         const invoiceOptions = await getInvoiceLinkCandidates(user, {
             vendorRecordIds: [vendorRecordId],
         });
@@ -140,7 +140,7 @@ export async function createDeliveryAction(prevState, formData) {
         const plans = [];
         for (const [material, qty] of wantedByMaterial) {
             const plan = planDelivery({
-                lines: candidates.lines,
+                orderedItems: candidates.orderedItems,
                 vendorRecordId,
                 materialRecordId: material,
                 // Still `poRecordId` here, and deliberately (#181): planDelivery's
@@ -157,7 +157,7 @@ export async function createDeliveryAction(prevState, formData) {
             // typed PO. Overriding the document would be worse than asking for a
             // correction.
             if (plan.blocked) {
-                const label = itemLabelFor(candidates.lines, material);
+                const label = itemLabelFor(candidates.orderedItems, material);
                 return {
                     error: describePlan(plan, { poId: poIdTyped || null, label })[0].text,
                 };
@@ -201,11 +201,11 @@ export async function createDeliveryAction(prevState, formData) {
                     const created = await createDeliveryItem({
                         deliveryRecordId: delivery.id,
                         deliveryId: delivery.deliveryId,
-                        poItemRecordId: row.line.id,
+                        poItemRecordId: row.orderedItem.id,
                         materialRecordId,
-                        itemName: row.line.itemName ?? "",
-                        size: row.line.size ?? "",
-                        unit: row.line.unit ?? "",
+                        itemName: row.orderedItem.itemName ?? "",
+                        size: row.orderedItem.size ?? "",
+                        unit: row.orderedItem.unit ?? "",
                         qty: row.qty,
                         overDelivered: row.over,
                     });
@@ -215,13 +215,13 @@ export async function createDeliveryAction(prevState, formData) {
 
             // #210 — LAST, AND INSIDE THE ROLLBACK. Last because nothing follows it, so
             // a failure here cannot leave a pairing whose delivery was then rolled back;
-            // inside, because a failure has to take the arrival with it rather than
-            // record material against an order and silently drop which bill covers it.
+            // inside, because a failure has to take the delivery with it rather than
+            // record material against an order and silently drop which invoice covers it.
             // Destroying the delivery below removes this link with it, so the rollback
             // needs no undo of its own.
             //
             // #231 — AND NOW THERE MAY BE SEVERAL, WHICH ADDS NO FAILURE MODE. Every
-            // bill this arrival's ordered items place on it is written, and
+            // invoice this delivery's ordered items place on it is written, and
             // `planPairings` decides them against a pool where each decision so far
             // already counts as attached. A throw part-way through leaves
             // some invoices pointing at a delivery the catch below then destroys, and
@@ -229,23 +229,25 @@ export async function createDeliveryAction(prevState, formData) {
             // undone by the same rollback that was already here, and the only thing
             // added is that it may now undo more than one link.
             const computed = planPairings({
-                arrival: {
+                delivery: {
                     deliveryRecordId: delivery.id,
                     deliveryId: delivery.deliveryId,
                     orderedItems: plans.flatMap(({ plan }) =>
-                        plan.rows.map((row) => ({ poItemRecordId: row.line.id, qty: row.qty }))
+                        plan.rows.map((row) => ({ poItemRecordId: row.orderedItem.id, qty: row.qty }))
                     ),
                 },
-                bills: invoiceOptions.map(billFromInvoiceOption),
-                agreedPrices: new Map(candidates.lines.map((l) => [l.id, l.unitPrice])),
+                invoices: invoiceOptions.map(invoiceFromOption),
+                agreedPrices: new Map(
+                    candidates.orderedItems.map((item) => [item.id, item.unitPrice])
+                ),
             });
-            for (const bill of computed.attach) {
-                await setInvoiceDelivery(bill.invoiceRecordId, delivery.id);
+            for (const invoice of computed.attach) {
+                await setInvoiceDelivery(invoice.invoiceRecordId, delivery.id);
             }
         } catch (err) {
             // Same create-then-delete rollback as the invoice path: Airtable has no
             // cross-table transactions, so a failure partway would otherwise leave a
-            // half-recorded arrival. Reverse creation order.
+            // half-recorded delivery. Reverse creation order.
             if (delivery) {
                 await Promise.allSettled(
                     createdItemIds.map((id) => base(TABLES.DELIVERY_ITEMS).destroy(id))

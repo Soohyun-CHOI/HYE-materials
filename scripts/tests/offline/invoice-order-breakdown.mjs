@@ -17,7 +17,7 @@
 //
 // WHAT THIS TIER CANNOT SEE. It reads pure functions, so the rendering is not here:
 // whether the child list actually hangs under the order, and whether an order reached
-// only through a free-text row draws its line with nothing under it, are browser
+// only through a free-text row draws its row with nothing under it, are browser
 // findings and are in the pull request. `scripts/demo/seed_order_breakdown_237.mjs`
 // puts the corrective-order shape on the base so the silent side can be read on a
 // screen. Two shapes it CANNOT make, and both are pinned here instead:
@@ -119,7 +119,7 @@ const ONE_ORDER_PLUS_FREE_TEXT = invoice([
 ]);
 
 // A listed invoice that also carries a free-text row on a THIRD order — the order that
-// keeps its line in the section with nothing under it.
+// keeps its row in the section with nothing under it.
 const LISTED_PLUS_FREE_TEXT = invoice([
     ...EACH_ITS_OWN.items,
     row({ id: "rec9", po: C, poItem: null, material: null, itemName: "Freight" }),

@@ -17,8 +17,8 @@ import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { getArrivalsForBill } from "@/lib/deliveryInvoiceCandidates";
-import { PAIRING, matchArrivalToBill } from "@/lib/deliveryInvoiceMatch";
+import { getDeliveriesForInvoice } from "@/lib/deliveryInvoiceCandidates";
+import { PAIRING, matchDeliveryToInvoice } from "@/lib/deliveryInvoiceMatch";
 import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
 
 // Server Actions are directly callable regardless of what the page
@@ -159,7 +159,7 @@ async function createInvoiceHandler(prevState, formData) {
             // One Invoice-PO Link row per distinct PO actually used across the
             // items, not one per item — a PO referenced by three invoice items still
             // only needs a single join row (see CLAUDE.md's Invoice-PO Link
-            // entry: it's a plain relationship table, no per-line semantics).
+            // entry: it's a plain relationship table, no per-item semantics).
             // Same distinctPoIds the withdrawn-PO guard above checked, so every
             // PO about to be joined here was verified invoiceable.
             for (const poId of distinctPoIds) {
@@ -168,7 +168,7 @@ async function createInvoiceHandler(prevState, formData) {
             }
 
             // Variance checking (#15), per the tolerance rules decided in #17.
-            // Line-level checks only apply to items linked to a real PO Item —
+            // Item-level checks only apply to items linked to a real PO Item —
             // free-text "Other" invoice items have nothing to compare against. Qty is a
             // creation-time snapshot: it reads the cumulative invoiced Qty
             // (already including this invoice item, since it's linked by now) and is
@@ -230,18 +230,18 @@ async function createInvoiceHandler(prevState, formData) {
         let pairing = { key: PAIRING.none };
         try {
             const user = await requireUser();
-            const { arrivals, bills, agreedPrices } = await getArrivalsForBill(user, {
+            const { deliveries, invoices, agreedPrices } = await getDeliveriesForInvoice(user, {
                 vendorRecordId: vendorId,
                 orderedItems: items.map((item) => ({
                     poItemRecordId: item.poItemRecordId || null,
                     unitPrice: parseFloat(item.unitPrice),
                 })),
             });
-            pairing = matchArrivalToBill({
-                // The bill as it now stands on the base: unpaired, and charging exactly
+            pairing = matchDeliveryToInvoice({
+                // The invoice as it now stands on the base: unpaired, and charging exactly
                 // what was just created. Read from the submitted rows rather than from
                 // the created records, which say the same thing and would cost a read.
-                bill: {
+                invoice: {
                     invoiceRecordId: invoice.id,
                     invoiceId: invoice.invoiceId,
                     orderedItems: items
@@ -252,8 +252,8 @@ async function createInvoiceHandler(prevState, formData) {
                         })),
                     pairedDeliveryRecordId: null,
                 },
-                arrivals,
-                bills,
+                deliveries,
+                invoices,
                 agreedPrices,
             });
             if (pairing.key === PAIRING.matched) {

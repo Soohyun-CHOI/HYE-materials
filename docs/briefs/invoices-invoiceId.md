@@ -8,10 +8,10 @@ Admin.
 
 ## What it answers
 
-Should this bill be paid? That decomposes into three questions the screen
+Should this invoice be paid? That decomposes into three questions the screen
 answers in order — does the vendor's stated total match what the items add up
 to, does any single charge differ from what its order agreed, and did the
-material it bills for actually arrive. A reader who can answer all three
+material it bills for was actually delivered. A reader who can answer all three
 without scrolling twice has what they came for.
 
 This is the densest screen in the app and the one where a redesign can do the
@@ -87,7 +87,7 @@ under the heading. It comes off the query string, so it appears once and is gone
 on reload.
 
 **When the reader has just arrived from creating this invoice:** a box stating
-what the app worked out about which delivery this bill belongs to. It is gray
+what the app worked out about which delivery this invoice belongs to. It is gray
 when a single delivery matched cleanly and amber in every other case — several
 candidates, a rival invoice charging the same ordered item, or a tie nothing
 could break. When a tie-break decided it, a second sentence in the same box says
@@ -124,12 +124,12 @@ invoice can be short on two ordered items with different units, so a single
 figure here would be either wrong or a sum of unlike things.
 
 **When the folded items do not all touch the same set of orders:** a short
-indented list under each order line, naming what that order was billed for and
-in what quantity. Only quantities, never prices. When every item touches the
-same orders the question is not ambiguous and nothing appears. An order with no
-child line under it in this state is correct rather than broken — it is charged
-through an item with no ordered item behind it, so it keeps its line and the
-space under it stays empty.
+indented list under each order's row, naming what that order was billed for
+and in what quantity. Only quantities, never prices. When every item touches
+the same orders the question is not ambiguous and nothing appears. An order
+with no child row under it in this state is correct rather than broken — it is
+charged through an item with no ordered item behind it, so it keeps its row
+and the space under it stays empty.
 
 **When no order is linked at all:** `None linked.` in place of the list.
 
@@ -151,7 +151,7 @@ because with nothing matched there is no second term to compare against.
 
 **When something exceeds the ordered item:** one further uncolored line inside
 that entry, beginning `Against the ordered item:`. It is an aside about the
-ordered item rather than a fact about this bill, which is why it stays
+ordered item rather than a fact about this invoice, which is why it stays
 uncolored while the lines above it are toned — and why the frame it belongs to
 is named in the words.
 
@@ -166,7 +166,7 @@ here, and on the purchase order detail's list of invoices charging that order.
 `⚠ Check the total` is the other kind, and the purchase order detail is the one
 screen in the app that shows both at once. They change together or not at all.
 
-**The nesting grammar is shared with `/pos/[poId]`.** A parent line is a
+**The nesting grammar is shared with `/pos/[poId]`.** A parent row is a
 document's identity and its own facts; a child list under it, indented and in
 smaller gray text, is the facts about the pairing. That screen puts an invoice's
 charges under the invoice the same way, so a reader crossing between the two

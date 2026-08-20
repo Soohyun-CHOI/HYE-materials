@@ -16,12 +16,12 @@ import { createOverageDraftAction } from "./actions";
  * is about to do.
  *
  * The marker is #166's own component, because it was #166's ambiguity: the ordered
- * item carries more than one bill and the oldest is taken. Reusing the component
+ * item carries more than one invoice and the oldest is taken. Reusing the component
  * keeps the two markers from becoming two shapes for one idea — which is also why
  * #210 renamed it `QualifierMarker`, having removed the OTHER inference the old name
  * was taken from. This one survives #219's narrowing too, but on a narrower fact: the
- * candidates are now the bills naming THIS shipment, so the marker means either that
- * this shipment carries two of them or that nothing names it at all.
+ * candidates are now the invoices naming THIS delivery, so the marker means either that
+ * this delivery carries two of them or that nothing names it at all.
  *
  * `inferredLabel` is the sentence lib/overage.js already writes for the preview, so
  * the tooltip and the line inside the modal cannot come to explain the same guess

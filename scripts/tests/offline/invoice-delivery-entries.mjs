@@ -13,7 +13,7 @@
 // THE OTHER TWO MUTANTS ARE THE ARITHMETIC ONES, and each is the plausible mistake
 // rather than an invented one:
 //
-//   - RE-CLAMP AT THE FOLDED SCOPE — add the billed, add what arrived, clamp once.
+//   - RE-CLAMP AT THE FOLDED SCOPE — add the billed, add what was delivered, clamp once.
 //     It reads like the tidier rule and it is wrong twice over: a surplus on one
 //     ordered item cancels a shortfall on another, and the entry then disagrees with
 //     the chip, which is computed off the same per-row shares here AND on `/invoices`
@@ -66,18 +66,18 @@ const item = ({
  * on the way the walk grafts them, since they are the ordered item's and not the
  * share's.
  *
- * `rawArrived` IS NOT A FIELD OF THE WALK'S ROW. It is kept here for the re-clamp
+ * `rawDelivered` IS NOT A FIELD OF THE WALK'S ROW. It is kept here for the re-clamp
  * mutant alone, which cannot be written without it — the clamp destroys its own
  * input, so re-deriving a share at the folded scope would need the walk to hand the
- * arrival over. That it would take a new field is part of why the real rule adds.
+ * delivery over. That it would take a new field is part of why the real rule adds.
  */
 const row = ({
     id,
     poItemId = `${id}-ordered`,
     billed = 10,
-    arrived = 10,
+    delivered = 10,
     billedBeyondOrder = 0,
-    arrivedBeyondOrder = 0,
+    deliveredBeyondOrder = 0,
     judged = true,
     itemName = "Elbow",
     size = '2"',
@@ -90,9 +90,9 @@ const row = ({
     unit,
     poItemId: judged ? poItemId : null,
     materialRecordId: judged ? MATERIAL : null,
-    rawArrived: judged ? arrived : null,
+    rawDelivered: judged ? delivered : null,
     status: judged
-        ? { ...invoiceShareStatus({ billed, arrived }), billedBeyondOrder, arrivedBeyondOrder }
+        ? { ...invoiceShareStatus({ billed, delivered }), billedBeyondOrder, deliveredBeyondOrder }
         : null,
 });
 
@@ -106,8 +106,8 @@ function invoice(items, rows) {
 const SPLIT_COVERED = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, arrived: 10 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, arrived: 3 }),
+        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 10 }),
+        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 3 }),
     ]
 );
 
@@ -115,19 +115,19 @@ const SPLIT_COVERED = invoice(
 const SPLIT_SHORT = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, arrived: 8 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, arrived: 3 }),
+        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 8 }),
+        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 3 }),
     ]
 );
 
 // THE CROSSED CASE, which is where re-clamping at the folded scope shows itself: the
-// first ordered item is 2 short and the second carries 2 the bill does not charge.
+// first ordered item is 2 short and the second carries 2 the invoice does not charge.
 // Reachable through hand-entered data, which this base holds by design.
 const SPLIT_CROSSED = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, arrived: 8 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, arrived: 5 }),
+        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 8 }),
+        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 5 }),
     ]
 );
 
@@ -139,9 +139,9 @@ const COVERED = invoice(
         item({ id: "rec3", material: "recMAT_3", itemName: "Union", qty: 4, unitPrice: 8 }),
     ],
     [
-        row({ id: "rec1", billed: 10, arrived: 10 }),
-        row({ id: "rec2", billed: 7, arrived: 7, itemName: "Tee" }),
-        row({ id: "rec3", billed: 4, arrived: 4, itemName: "Union" }),
+        row({ id: "rec1", billed: 10, delivered: 10 }),
+        row({ id: "rec2", billed: 7, delivered: 7, itemName: "Tee" }),
+        row({ id: "rec3", billed: 4, delivered: 4, itemName: "Union" }),
     ]
 );
 
@@ -153,9 +153,9 @@ const ONE_SHORT = invoice(
         item({ id: "rec3", material: "recMAT_3", itemName: "Union", qty: 4, unitPrice: 8 }),
     ],
     [
-        row({ id: "rec1", billed: 10, arrived: 10 }),
-        row({ id: "rec2", billed: 7, arrived: 3, itemName: "Tee" }),
-        row({ id: "rec3", billed: 4, arrived: 4, itemName: "Union" }),
+        row({ id: "rec1", billed: 10, delivered: 10 }),
+        row({ id: "rec2", billed: 7, delivered: 3, itemName: "Tee" }),
+        row({ id: "rec3", billed: 4, delivered: 4, itemName: "Union" }),
     ]
 );
 
@@ -167,7 +167,7 @@ const COVERED_PLUS_FREE_TEXT = invoice(
         item({ id: "rec9", material: null, itemName: "Freight", size: "", unit: "", qty: 1, unitPrice: 40 }),
     ],
     [
-        row({ id: "rec1", billed: 10, arrived: 10 }),
+        row({ id: "rec1", billed: 10, delivered: 10 }),
         row({ id: "rec9", judged: false, itemName: "Freight", size: "", unit: "" }),
     ]
 );
@@ -177,8 +177,8 @@ const COVERED_PLUS_FREE_TEXT = invoice(
 const TWO_CHARGES_ONE_ORDERED_ITEM = invoice(
     [item({ id: "rec1", qty: 5 }), item({ id: "rec2", qty: 5 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 5, arrived: 6, billedBeyondOrder: 4 }),
-        row({ id: "rec2", poItemId: "poA", billed: 5, arrived: 6, billedBeyondOrder: 4 }),
+        row({ id: "rec1", poItemId: "poA", billed: 5, delivered: 6, billedBeyondOrder: 4 }),
+        row({ id: "rec2", poItemId: "poA", billed: 5, delivered: 6, billedBeyondOrder: 4 }),
     ]
 );
 
@@ -186,8 +186,8 @@ const TWO_CHARGES_ONE_ORDERED_ITEM = invoice(
 const SPLIT_BOTH_BEYOND = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, arrived: 10, billedBeyondOrder: 3 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, arrived: 3, billedBeyondOrder: 2 }),
+        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 10, billedBeyondOrder: 3 }),
+        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 3, billedBeyondOrder: 2 }),
     ]
 );
 
@@ -208,7 +208,7 @@ const entriesOf = (fixture) => invoiceDeliveryEntries({ ...fixture, hasDelivery:
 /** The chip this invoice's rows produce, which the entries must not contradict. */
 const chipOf = (fixture, hasDelivery = true) =>
     summarizeInvoiceStatus({
-        lines: fixture.rows.filter((r) => r.status).map((r) => r.status),
+        itemStatuses: fixture.rows.filter((r) => r.status).map((r) => r.status),
         hasDelivery,
         excludedCount: fixture.rows.filter((r) => !r.status).length,
     }).key;
@@ -244,7 +244,7 @@ export function run({ check, assert, log }) {
     check("a split short on one half speaks once, not twice", entriesOf(SPLIT_SHORT).length, 1);
     check(
         "  and states the FOLDED shortfall",
-        entriesOf(SPLIT_SHORT)[0].lines.verdict.text,
+        entriesOf(SPLIT_SHORT)[0].copy.verdict.text,
         "2 EA more billed than the matched delivery delivered"
     );
     check("a covered split says nothing at all", entriesOf(SPLIT_COVERED).length, 0);
@@ -258,8 +258,8 @@ export function run({ check, assert, log }) {
     const splitShortShare = foldedEntryShare(SPLIT_SHORT.rows);
     check("a folded entry's share adds what its members billed", splitShortShare.invoiced, 13);
     check("  and what they were delivered", splitShortShare.delivered, 11);
-    check("  and the shortfall falls out of the two", splitShortShare.billedNotArrived, 2);
-    check("  with nothing delivered beyond the bill, which the clamp guarantees", splitShortShare.arrivedNotBilled, 0);
+    check("  and the shortfall falls out of the two", splitShortShare.billedNotDelivered, 2);
+    check("  with nothing delivered beyond the invoice, which the clamp guarantees", splitShortShare.deliveredNotBilled, 0);
 
     // -----------------------------------------------------------------------
     log("");
@@ -267,24 +267,24 @@ export function run({ check, assert, log }) {
     const reclamped = (fixture) => {
         const judged = fixture.rows.filter((r) => r.status);
         const billed = judged.reduce((sum, r) => sum + r.status.invoiced, 0);
-        // `rawArrived` is the fixture's, not the row's — see its comment above.
-        const arrived = judged.reduce((sum, r) => sum + r.rawArrived, 0);
-        return invoiceShareStatus({ billed, arrived });
+        // `rawDelivered` is the fixture's, not the row's — see its comment above.
+        const delivered = judged.reduce((sum, r) => sum + r.rawDelivered, 0);
+        return invoiceShareStatus({ billed, delivered });
     };
     check(
         "on the crossed split the real rule still reports the shortfall",
-        entriesOf(SPLIT_CROSSED)[0]?.lines.verdict?.text,
+        entriesOf(SPLIT_CROSSED)[0]?.copy.verdict?.text,
         "2 EA more billed than the matched delivery delivered"
     );
-    check("  the mutant reports none", reclamped(SPLIT_CROSSED).billedNotArrived, 0);
+    check("  the mutant reports none", reclamped(SPLIT_CROSSED).billedNotDelivered, 0);
     assert(
         "  so one ordered item's surplus cancels another's shortfall — the clamp is per pair",
-        reclamped(SPLIT_CROSSED).billedNotArrived !== foldedEntryShare(SPLIT_CROSSED.rows).billedNotArrived
+        reclamped(SPLIT_CROSSED).billedNotDelivered !== foldedEntryShare(SPLIT_CROSSED.rows).billedNotDelivered
     );
     check("  while the chip, read off the same rows, says mismatch", chipOf(SPLIT_CROSSED), "mismatch");
     assert(
         "  which is the screen the mutant makes: an amber sentence with nothing pointing at it",
-        chipOf(SPLIT_CROSSED) === "mismatch" && reclamped(SPLIT_CROSSED).billedNotArrived === 0
+        chipOf(SPLIT_CROSSED) === "mismatch" && reclamped(SPLIT_CROSSED).billedNotDelivered === 0
     );
 
     // THE PROPERTY, over every fixture rather than the one case that shows it.
@@ -292,7 +292,7 @@ export function run({ check, assert, log }) {
     log("the chip and the entries say one thing, on every fixture:");
     for (const [name, fixture] of ALL_FIXTURES) {
         const speaksShort = entriesOf(fixture).some(
-            (e) => e.lines.verdict && e.lines.verdict.key !== "not-compared"
+            (e) => e.copy.verdict && e.copy.verdict.key !== "not-compared"
         );
         check(`  ${name}`, speaksShort, chipOf(fixture) === "mismatch");
     }
@@ -302,7 +302,7 @@ export function run({ check, assert, log }) {
     log("the two beyond-order terms add over DISTINCT ordered items:");
     check(
         "two charges on one ordered item state its excess once",
-        entriesOf(TWO_CHARGES_ONE_ORDERED_ITEM)[0]?.lines.againstOrder?.text,
+        entriesOf(TWO_CHARGES_ONE_ORDERED_ITEM)[0]?.copy.againstOrder?.text,
         "Against the ordered item: 4 EA more billed"
     );
     const perMember = TWO_CHARGES_ONE_ORDERED_ITEM.rows.reduce(
@@ -315,7 +315,7 @@ export function run({ check, assert, log }) {
     );
     check(
         "two ordered items each exceeding are added, and the subject agrees in number",
-        entriesOf(SPLIT_BOTH_BEYOND)[0]?.lines.againstOrder?.text,
+        entriesOf(SPLIT_BOTH_BEYOND)[0]?.copy.againstOrder?.text,
         "Against the ordered items: 5 EA more billed"
     );
     check("a split covers two ordered items, which is what the plural agrees with", orderedItemsCovered(SPLIT_SHORT.rows), 2);
@@ -324,9 +324,9 @@ export function run({ check, assert, log }) {
         entriesOf(
             invoice(
                 [item({ id: "rec1", qty: 10 })],
-                [row({ id: "rec1", billed: 10, arrived: 10, billedBeyondOrder: 3 })]
+                [row({ id: "rec1", billed: 10, delivered: 10, billedBeyondOrder: 3 })]
             )
-        )[0]?.lines.againstOrder?.text,
+        )[0]?.copy.againstOrder?.text,
         "Against the ordered item: 3 EA more billed"
     );
 
@@ -347,8 +347,8 @@ export function run({ check, assert, log }) {
                 item({ id: "rec2", material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41 }),
             ],
             [
-                row({ id: "rec1", billed: 10, arrived: 2 }),
-                row({ id: "rec2", billed: 7, arrived: 3, itemName: "Tee" }),
+                row({ id: "rec1", billed: 10, delivered: 2 }),
+                row({ id: "rec2", billed: 7, delivered: 3, itemName: "Tee" }),
             ]
         )
     ).map((e) => e.itemName).join(","), "Elbow,Tee");
@@ -358,7 +358,7 @@ export function run({ check, assert, log }) {
     log("a charge with no ordered item is its own entry and always speaks:");
     const freeText = entriesOf(COVERED_PLUS_FREE_TEXT);
     check("a covered invoice with one free-text charge renders one entry", freeText.length, 1);
-    check("  which says why it was left out", freeText[0].lines.verdict.text, "Not compared — no ordered item");
+    check("  which says why it was left out", freeText[0].copy.verdict.text, "Not compared — no ordered item");
     check("  and the chip above it still reads delivered", chipOf(COVERED_PLUS_FREE_TEXT), "delivered");
     assert(
         "  it is a group of one by the fold's own key, not by anything here",
@@ -374,7 +374,7 @@ export function run({ check, assert, log }) {
     check(
         "  and it is the verdict's own tone, not a second judgment",
         entriesOf(SPLIT_SHORT)[0].tone,
-        entriesOf(SPLIT_SHORT)[0].lines.verdict.tone
+        entriesOf(SPLIT_SHORT)[0].copy.verdict.tone
     );
     check(
         "an entry with no ordered item behind it is unjudged, not a problem",
@@ -388,11 +388,11 @@ export function run({ check, assert, log }) {
     // The order-scoped aside alone can put an entry in the list: no verdict to read a
     // tone off, and something exceeding an ordered item is why it is there.
     const asideOnly = entriesOf(TWO_CHARGES_ONE_ORDERED_ITEM)[0];
-    check("an entry the aside alone admitted has no verdict", asideOnly.lines.verdict, null);
+    check("an entry the aside alone admitted has no verdict", asideOnly.copy.verdict, null);
     check("  and is an exception all the same", asideOnly.tone, "exception");
     assert(
         "  which is a default rather than an accident: it speaks only through the aside",
-        Boolean(asideOnly.lines.againstOrder) && asideOnly.lines.verdict === null
+        Boolean(asideOnly.copy.againstOrder) && asideOnly.copy.verdict === null
     );
 
     // -----------------------------------------------------------------------

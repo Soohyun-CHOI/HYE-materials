@@ -38,17 +38,17 @@ import { AWAITING_INVOICE_COPY } from "@/lib/deliveryStatus";
 //      than a parameter.
 //   3. IT IS NOT ONE ORDER. Measured on this base: of the 13 deliveries waiting,
 //      9 span one purchase order and 4 span two, because planDelivery matches
-//      candidates per MATERIAL and one arrival can fill ordered items on two
+//      candidates per MATERIAL and one delivery can fill ordered items on two
 //      orders. So a prefill is not "set the field", it is "seed N slots", which
 //      is the detection path's whole complexity.
 //
 // AND NARROWING THE ITEM PICKER TO THIS DELIVERY WOULD BE WORSE THAN NOT
 // PREFILLING. An invoice can legitimately bill for something the delivery did not
 // bring — that is exactly the discrepancy #210's mismatch marker exists to catch —
-// so a picker restricted to what arrived would make the real case unenterable and
+// so a picker restricted to what was delivered would make the real case unenterable and
 // the marker unreachable.
 //
-// So this strip is a list and nothing else: which arrivals are unbilled and how
+// So this strip is a list and nothing else: which deliveries are unbilled and how
 // long they have waited, which is what replaces the month-end email. Recording an
 // invoice is the `New invoice` button already at the top of this page; a second
 // control going to the same place would be one fact rendered twice on one screen,
@@ -82,7 +82,7 @@ export default function AwaitingInvoiceStrip({ rows }) {
                             {row.receivedDate || "no date"}
                             {row.daysWaiting != null && ` · ${row.daysWaiting}d`}
                         </span>
-                        {/* What arrived, in the shape /deliveries already uses
+                        {/* What was delivered, in the shape /deliveries already uses
                             for the same summary — first item, then a `+N` for the
                             rest — so a reader who knows one list reads the other.
                             The summary object is `summarizeDelivery`'s; nothing

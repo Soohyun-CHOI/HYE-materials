@@ -179,13 +179,13 @@ reads the order number off the file and fills the slot.
 | Shipping Fee | `0` |
 | Amount Due | `786.00` |
 
-Save. **The pairing box appears**: the app matched this bill to
+Save. **The pairing box appears**: the app matched this invoice to
 `HYE-DL-260819-01` off the ordered items, and says nobody attached it by hand.
 The delivery chip reads `Delivered` — billed and delivered agree.
 
 > **Why it pairs.** The rule tests **set containment only** — does every ordered
-> item this bill charges appear on that arrival — plus the agreed unit price,
-> plus whether the arrival has room left. Quantity is deliberately not part of
+> item this invoice charges appear on that delivery — plus the agreed unit price,
+> plus whether the delivery has room left. Quantity is deliberately not part of
 > it, which is what makes Act IV possible.
 >
 > Billing only the Pipe Support would pair too (a subset is still contained), and
@@ -212,9 +212,9 @@ Under the row, the **allocation preview** shows which order the quantity will be
 split across, before you commit.
 
 Above the date, the **pairing box**: `HYE-INV-260819-03` is attached as you
-watch. That bill has been waiting with nothing delivered against it.
+watch. That invoice has been waiting with nothing delivered against it.
 
-> **Why 50 and not less.** Fifty is exactly what that bill charges and exactly
+> **Why 50 and not less.** Fifty is exactly what that invoice charges and exactly
 > what the order asked for, so the invoice reads `Delivered` and no over-delivery
 > is raised. Any smaller number still pairs — quantity is not part of the test —
 > but the invoice would read `Mismatch`, which is Act IV's moment, not this one.
@@ -246,7 +246,7 @@ At `/invoices/new`, attach it. Detection fills the slot with the live order.
 >
 > Nothing pairs with this one, and nothing needs to: no delivery exists against
 > an order raised minutes ago. Do not draw attention to the absent pairing box —
-> an unpaired bill is this feature's ordinary state.
+> an unpaired invoice is this feature's ordinary state.
 
 Save. On the invoice: the badge inside the item's name cell, the amber prompt
 near the foot, and the red box under the table. **Two different facts with two
@@ -256,7 +256,7 @@ different remedies**, which is why they keep two words.
 
 Attach `scripts/demo/output/demo26-withdrawn.pdf`: detection finds the order and
 warns it was withdrawn. Then `demo26-unsigned.pdf`: it warns the President has
-not signed and **selects it anyway**, because a bill can be recorded against an
+not signed and **selects it anyway**, because an invoice can be recorded against an
 unsigned order. Note the word `unsigned` appended to the option label itself.
 
 Navigate away without saving.
@@ -284,8 +284,8 @@ for.
 The row you fixed in Act II is **gone from the first strip**. Point at that.
 
 > Neither word claims a reason. The refusal reasons the pairing rule produces are
-> never stored, so an unmatched bill is equally consistent with a refusal, with
-> nothing having arrived, and with the pairing never having been attempted.
+> never stored, so an unmatched invoice is equally consistent with a refusal, with
+> nothing having been delivered, and with the pairing never having been attempted.
 
 ### 2. `/pos` — approved requests with no order
 
@@ -335,17 +335,17 @@ on data that does not agree, and the order is the argument: a reader who has see
 | Qty | **`3`** |
 
 `HYE-INV-260819-05` bills 10 of that item. The set of ordered items matches and
-the arrival has room, so the pairing is made — and the invoice now reads
+the delivery has room, so the pairing is made — and the invoice now reads
 `Mismatch`.
 
 Open `/invoices/HYE-INV-260819-05`: the chip, and below the named delivery an
-amber box saying the bill charges more than the delivery brought. **It names no
+amber box saying the invoice charges more than the delivery brought. **It names no
 quantity** — one invoice can be short on two ordered items with different units,
 so a single figure there would be a sum of unlike things.
 
 > Any quantity from 1 to 9 produces this. Quantity is not part of the pairing
 > test, which is exactly what lets the marker exist: matching on quantity would
-> drop such a bill out of consideration and no marker would ever appear.
+> drop such an invoice out of consideration and no marker would ever appear.
 >
 > This is the same rule that produced `Delivered` twice in Act II. Nothing about
 > the pairing changed — only the figures did.
@@ -354,7 +354,7 @@ so a single figure there would be a sum of unlike things.
 
 Attach `HYE-INV-260819-06` from the dropdown.
 
-That bill charges `Reducing Tee 3x2"`, which this arrival never brought — the
+That invoice charges `Reducing Tee 3x2"`, which this delivery never brought — the
 computed rule refuses it outright. The **hand-attach path does not**: it checks
 that the invoice exists, that you may see it, that the vendor matches, and that
 no other delivery has it. No containment check.
@@ -364,7 +364,7 @@ somebody knows and the app was guessing at. Point at the invoice detail
 afterwards, which now shows a disagreement a person created.
 
 While here, note the section's standing sentence — *one invoice belongs to one
-delivery, so a bill already attached elsewhere is listed but cannot be picked* —
+delivery, so one already attached elsewhere is listed but cannot be picked* —
 and that the three forms on this page submit separately.
 
 ### 3. `/invoices/HYE-INV-260819-11` — grey against amber
@@ -381,14 +381,14 @@ this" as an error while its own sentence says nothing was compared.
 
 ### 4. `/invoices/HYE-INV-260819-12` — `None linked.`
 
-Every charge on this bill is free text, so it links no order at all. It also
+Every charge on this invoice is free text, so it links no order at all. It also
 wears `Awaiting delivery` and can never appear in the waiting strip, because a
-bill charging no ordered item can never be paired with an arrival — which is why
+invoice charging no ordered item can never be paired with a delivery — which is why
 the strip's row count and the chip count differ.
 
-### 5. `/invoices/HYE-INV-260819-10` — one bill, two orders
+### 5. `/invoices/HYE-INV-260819-10` — one invoice, two orders
 
-A short indented list under each order line, naming what that order was billed
+A short indented list under each order's row, naming what that order was billed
 for and in what quantity. Quantities only, never prices. There is deliberately no
 order column in the items table: a folded row can span two orders, so that cell
 would have no single value.
@@ -417,7 +417,7 @@ its quotation. Then, live:
 ### 7. `/deliveries/HYE-DL-260819-09` — the app labelling its guess
 
 Eligible, with one extra sentence: *Inferred: no invoice names this delivery, so
-a bill that names no delivery at all is treated as carrying the excess.* A guess,
+an invoice that names no delivery at all is treated as carrying the excess.* A guess,
 labelled as one.
 
 ### 8. `/deliveries/HYE-DL-260819-12` — an excess against no order
@@ -539,7 +539,7 @@ about four minutes if you want screenshots.
 
 | URL | Sentence |
 |---|---|
-| `/deliveries` | `No deliveries recorded yet. Record one as material arrives — the packing list photo is what makes it a record.` |
+| `/deliveries` | `No deliveries recorded yet. Record one as material is delivered — the packing list photo is what makes it a record.` |
 
 > **Why the third needs its own step.** `/deliveries` picks its empty sentence
 > from the jobs the reader can reach. With **zero** jobs on the base that list is
@@ -593,9 +593,9 @@ distinction is the one worth keeping:
 2. `None linked.` was unreachable from the same invoice, which linked an order
    through its other row. Split into a second scenario.
 3. "Spans two invoices" came out **eligible**. The rule needs two candidates that
-   both name the arrival **and** a first candidate smaller than the excess.
+   both name the delivery **and** a first candidate smaller than the excess.
 4. No order showed both variance kinds, which is the one thing `/pos/[poId]` can
    do that no other screen can.
-5. The `+N` fold had no producer — every arrival brought one material.
+5. The `+N` fold had no producer — every delivery brought one material.
 6. The detection PDF for two orders yielded one. A hand-rolled PDF's content
    stream was a byte short; rebuilt on `pdf-lib`.

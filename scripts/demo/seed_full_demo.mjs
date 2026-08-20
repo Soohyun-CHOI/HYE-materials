@@ -313,7 +313,7 @@ async function makeOrder({ scenarioName, subTag = null, items, shippingFee = nul
     return { pr, po, poItems: await getItemsByPO(gen.poRecordId) };
 }
 
-/** Record an arrival. `rows` is `{ poItem, qty, over }` per allocated slice. */
+/** Record a delivery. `rows` is `{ poItem, qty, over }` per allocated slice. */
 async function deliver({ scenarioName, rows, receivedDate, packingListPO = null, notes = "" }) {
     const delivery = await createDelivery({
         jobRecordId: line.jobId,
@@ -324,7 +324,7 @@ async function deliver({ scenarioName, rows, receivedDate, packingListPO = null,
         notes: noteFor(scenarioName, notes),
         // No packing-list photo, on purpose: it gives the delivery detail's
         // "reload in a moment if it was just uploaded" state for free, and every
-        // arrival recorded live during the demo will have one to contrast with.
+        // delivery recorded live during the demo will have one to contrast with.
         file: [],
     });
     for (const r of rows) {
@@ -355,7 +355,7 @@ async function waitForIngest(invoiceRecordId, submittedUrl) {
 }
 
 /**
- * Enter a bill.
+ * Enter an invoice.
  *
  * VARIANCE IS COMPUTED, NEVER SET, and it runs the same three checks in the same
  * order `createInvoiceAction` does — unit price against the order, cumulative
@@ -363,7 +363,7 @@ async function waitForIngest(invoiceRecordId, submittedUrl) {
  * calculated one, read back fresh so the rollup has caught up. A hand-set flag would
  * be this seed asserting what the app decides.
  */
-async function bill({
+async function invoice({
     scenarioName,
     rows,
     issueDate,
@@ -761,7 +761,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
         items: [{ itemName: "Butterfly Valve", size: '6"', qty: 8, unitPrice: 120 }],
         sign: true,
     });
-    await bill({
+    await invoice({
         scenarioName: "CHIP_SET_FULL",
         rows: [{ po: full.po, poItem: full.poItems[0], qty: 8, unitPrice: 120 }],
         issueDate: "2026-08-10",
@@ -776,7 +776,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
         items: [{ itemName: "Check Valve", size: '3"', qty: 10, unitPrice: 88 }],
         sign: true,
     });
-    await bill({
+    await invoice({
         scenarioName: "CHIP_SET_PART",
         rows: [{ po: part.po, poItem: part.poItems[0], qty: 4, unitPrice: 88 }],
         issueDate: "2026-08-11",
@@ -804,17 +804,17 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
     ids.chipDash = gone.po.poId;
 });
 
-// --- DL_WAIT — an arrival nobody has billed --------------------------------
+// --- DL_WAIT — a delivery nobody has billed --------------------------------
 //
-// The starting point for the live invoice entry: entering a bill against this order
-// pairs it with this arrival while the room watches.
-await scenario("DL_WAIT", "an arrival waiting for a bill — strip 1's row", async () => {
-    // TWO MATERIALS ON ONE ARRIVAL, WHICH IS THE ONLY PLACE THIS SEED SHOWS THE `+N`
-    // CHIP. The deliveries list folds an arrival into its first item plus a count, and
+// The starting point for the live invoice entry: entering an invoice against this order
+// pairs it with this delivery while the room watches.
+await scenario("DL_WAIT", "a delivery waiting for an invoice — strip 1's row", async () => {
+    // TWO MATERIALS ON ONE DELIVERY, WHICH IS THE ONLY PLACE THIS SEED SHOWS THE `+N`
+    // CHIP. The deliveries list folds a delivery into its first item plus a count, and
     // the count renders only above one material — every other scenario here brings a
     // single item, so without this the chip has no producer once the older demo data
     // is deleted. It rides on this scenario rather than getting its own because the
-    // awaiting-invoice strip reads the same summary function, so one arrival with two
+    // awaiting-invoice strip reads the same summary function, so one delivery with two
     // items proves the fold in both places at once.
     const order = await makeOrder({
         scenarioName: "DL_WAIT",
@@ -825,7 +825,7 @@ await scenario("DL_WAIT", "an arrival waiting for a bill — strip 1's row", asy
         ],
         sign: true,
     });
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "DL_WAIT",
         rows: [
             { poItem: order.poItems[0], qty: 30 },
@@ -835,19 +835,19 @@ await scenario("DL_WAIT", "an arrival waiting for a bill — strip 1's row", asy
         packingListPO: order.po.id,
         notes: "Pallet matched the packing list, PO number was printed on it.",
     });
-    ids.dlWait = arrival.deliveryId;
+    ids.dlWait = delivery.deliveryId;
     ids.dlWaitPo = order.po.poId;
 });
 
-// --- INV_WAIT_A — a bill and nothing delivered -----------------------------
-await scenario("INV_WAIT_A", "a bill with nothing delivered — strip 2, first word", async () => {
+// --- INV_WAIT_A — an invoice and nothing delivered -----------------------------
+await scenario("INV_WAIT_A", "an invoice with nothing delivered — strip 2, first word", async () => {
     const order = await makeOrder({
         scenarioName: "INV_WAIT_A",
         notes: "Flange gaskets, full set for the tie-in.",
         items: [{ itemName: "Flange Gasket", size: '8"', qty: 50, unitPrice: 9 }],
         sign: true,
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "INV_WAIT_A",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 50, unitPrice: 9 }],
         issueDate: "2026-08-07",
@@ -869,7 +869,7 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
         rows: [{ poItem: order.poItems[0], qty: 100 }],
         receivedDate: "2026-08-12",
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "INV_WAIT_B",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 100, unitPrice: 1.8 }],
         issueDate: "2026-08-13",
@@ -877,21 +877,21 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
     ids.invWaitB = invoice.invoiceId;
 });
 
-// --- MISMATCH_START — a bill of 10 against an order nothing has filled ------
+// --- MISMATCH_START — an invoice of 10 against an order nothing has filled ------
 //
-// The live segment records an arrival of 3 against this. The set of ordered items
+// The live segment records a delivery of 3 against this. The set of ordered items
 // matches, so `fitRefusal` admits it and `roomOnOrderedItem` is 3 — positive — so the
 // pairing is computed and the invoice turns `Mismatch`. Quantity is deliberately not
 // part of the containment test (lib/deliveryInvoiceMatch.js), which is the whole
 // reason the marker can ever appear.
-await scenario("MISMATCH_START", "a bill of 10 waiting for the live arrival of 3", async () => {
+await scenario("MISMATCH_START", "an invoice of 10 waiting for the live delivery of 3", async () => {
     const order = await makeOrder({
         scenarioName: "MISMATCH_START",
         notes: "Steel pipe for the main run.",
         items: [{ itemName: "Steel Pipe", size: '2" SCH40', qty: 10, unitPrice: 210 }],
         sign: true,
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "MISMATCH_START",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 10, unitPrice: 210 }],
         issueDate: "2026-08-15",
@@ -902,13 +902,13 @@ await scenario("MISMATCH_START", "a bill of 10 waiting for the live arrival of 3
 
 // --- HAND_ATTACH — the pairing the computed rule refuses -------------------
 //
-// An arrival that brought one thing, and a bill from the same vendor charging
+// A delivery that brought one thing, and an invoice from the same vendor charging
 // SOMETHING ELSE. `fitRefusal` returns `not-contained`, so nothing is computed onto
 // it — but `invoiceLinkRefusal` (the delivery's own Edit page) tests only existence,
-// visibility, vendor and whether the bill is already taken, and has NO containment
+// visibility, vendor and whether the invoice is already taken, and has NO containment
 // check. So the pairing is made by hand on stage in four clicks, which is #210's
 // premise exactly: the pairing is a fact somebody knows and the app was guessing at.
-await scenario("HAND_ATTACH", "an arrival and a bill the computed rule will not pair", async () => {
+await scenario("HAND_ATTACH", "a delivery and an invoice the computed rule will not pair", async () => {
     const brought = await makeOrder({
         scenarioName: "HAND_ATTACH",
         notes: "Elbows for the riser.",
@@ -921,17 +921,17 @@ await scenario("HAND_ATTACH", "an arrival and a bill the computed rule will not 
         items: [{ itemName: "Reducing Tee", size: '3x2"', qty: 7, unitPrice: 41 }],
         sign: true,
     });
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "HAND_ATTACH",
         rows: [{ poItem: brought.poItems[0], qty: 20 }],
         receivedDate: "2026-08-14",
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "HAND_ATTACH",
         rows: [{ po: charged.po, poItem: charged.poItems[0], qty: 7, unitPrice: 41 }],
         issueDate: "2026-08-14",
     });
-    ids.handAttachDelivery = arrival.deliveryId;
+    ids.handAttachDelivery = delivery.deliveryId;
     ids.handAttachInvoice = invoice.invoiceId;
 });
 
@@ -943,7 +943,7 @@ await scenario("VAR_PRICE", "a charge at a price the order did not agree", async
         items: [{ itemName: "Pressure Gauge", size: '0-300 PSI', qty: 6, unitPrice: 75 }],
         sign: true,
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "VAR_PRICE",
         rows: [
             {
@@ -973,13 +973,13 @@ await scenario("VAR_TOTAL", "stated total ≠ computed total, and already paid",
         shippingFee: 150,
         sign: true,
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "VAR_TOTAL",
-        // BOTH VARIANCE KINDS ON ONE BILL, WHICH IS WHAT MAKES THE ORDER'S OWN PAGE
+        // BOTH VARIANCE KINDS ON ONE INVOICE, WHICH IS WHAT MAKES THE ORDER'S OWN PAGE
         // DEMONSTRABLE. `/pos/[poId]` is the one screen in the app that can show the
-        // pair at once — `⚠ Check the total` on the invoice's line and `⚠ Order
+        // pair at once — `⚠ Check the total` on the invoice's row and `⚠ Order
         // variance` on the charge beneath it — and it is the whole reason #179 made
-        // them two different words. A first pass gave this bill only the header
+        // them two different words. A first pass gave this invoice only the header
         // variance, so no order anywhere carried both and the distinction had nothing
         // to stand on. 39 against the 33 the order agreed is the item-level half.
         rows: [
@@ -1010,7 +1010,7 @@ await scenario("TARIFF", "an invoice carrying a tariff", async () => {
         shippingFee: 220,
         sign: true,
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "TARIFF",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 15, unitPrice: 190 }],
         shippingFee: 220,
@@ -1020,8 +1020,8 @@ await scenario("TARIFF", "an invoice carrying a tariff", async () => {
     ids.tariff = invoice.invoiceId;
 });
 
-// --- MULTI_ORDER — one bill across two orders ------------------------------
-await scenario("MULTI_ORDER", "one bill charging two orders, item sets differing", async () => {
+// --- MULTI_ORDER — one invoice across two orders ------------------------------
+await scenario("MULTI_ORDER", "one invoice charging two orders, item sets differing", async () => {
     const first = await makeOrder({
         scenarioName: "MULTI_ORDER",
         notes: "Conduit and clips for the lighting circuit.",
@@ -1037,7 +1037,7 @@ await scenario("MULTI_ORDER", "one bill charging two orders, item sets differing
         items: [{ itemName: "Junction Box", size: '4x4"', qty: 25, unitPrice: 14 }],
         sign: true,
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "MULTI_ORDER",
         rows: [
             { po: first.po, poItem: first.poItems[0], qty: 60, unitPrice: 11 },
@@ -1070,15 +1070,15 @@ await scenario("FREETEXT", "a charge no ordered item stands behind, beside one t
         items: [{ itemName: "Hex Nut", size: 'M20', qty: 200, unitPrice: 0.6 }],
         sign: true,
     });
-    // Short against what the bill charges, so the ordinary row carries `exception`
+    // Short against what the invoice charges, so the ordinary row carries `exception`
     // and the free-text row carries `unjudged` on the same screen.
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "FREETEXT",
         rows: [{ poItem: order.poItems[0], qty: 150 }],
         receivedDate: "2026-08-06",
-        notes: "Part shipment — 150 of the 200 nuts.",
+        notes: "Part delivery — 150 of the 200 nuts.",
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "FREETEXT",
         rows: [
             { po: order.po, poItem: order.poItems[0], qty: 200, unitPrice: 0.6 },
@@ -1088,18 +1088,18 @@ await scenario("FREETEXT", "a charge no ordered item stands behind, beside one t
         ],
         issueDate: "2026-08-06",
     });
-    await setInvoiceDelivery(invoice.id, arrival.id);
+    await setInvoiceDelivery(invoice.id, delivery.id);
     ids.freetext = invoice.invoiceId;
 });
 
-// --- FREETEXT_ONLY — a bill that charges no ordered item at all ------------
+// --- FREETEXT_ONLY — an invoice that charges no ordered item at all ------------
 //
 // The other half, and a different screen state: with EVERY row free-text the invoice
 // links no order, so the detail reads `None linked.` where the order list would be.
 // It is also why the awaiting-delivery strip's row count and the chip count can
-// differ — this bill wears `Awaiting delivery` and can never appear in the strip,
-// because a bill charging no ordered item can never be paired with an arrival.
-await scenario("FREETEXT_ONLY", "a bill charging no ordered item at all", async () => {
+// differ — this invoice wears `Awaiting delivery` and can never appear in the strip,
+// because an invoice charging no ordered item can never be paired with a delivery.
+await scenario("FREETEXT_ONLY", "an invoice charging no ordered item at all", async () => {
     const pr = await createPR({
         requesterId: requester.id,
         lineId: line.id,
@@ -1109,7 +1109,7 @@ await scenario("FREETEXT_ONLY", "a bill charging no ordered item at all", async 
     // A PR with no items and no order — it exists only to carry the tag, so the skip
     // check and the cleanup can both find this invoice. It is left as a Draft, which
     // is visible to its requester alone and so adds nothing to anybody else's screens.
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "FREETEXT_ONLY",
         rows: [
             { poItem: null, itemName: "Crane hire, half day", qty: 1, unitPrice: 850 },
@@ -1129,7 +1129,7 @@ await scenario("OVER", "12 delivered against 10 ordered, billed 12, invoice has 
         items: [{ itemName: "Coupling", size: '2"', qty: 10, unitPrice: 26 }],
         sign: true,
     });
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "OVER",
         // Two slices, which is what planDelivery writes for an over-delivery: the
         // within-order piece and the excess, the second flagged.
@@ -1139,13 +1139,13 @@ await scenario("OVER", "12 delivered against 10 ordered, billed 12, invoice has 
         ],
         receivedDate: "2026-08-11",
     });
-    const invoice = await bill({
+    const invoice = await invoice({
         scenarioName: "OVER",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 12, unitPrice: 26 }],
         issueDate: "2026-08-12",
     });
-    await setInvoiceDelivery(invoice.id, arrival.id);
-    ids.over = arrival.deliveryId;
+    await setInvoiceDelivery(invoice.id, delivery.id);
+    ids.over = delivery.deliveryId;
     ids.overInvoice = invoice.invoiceId;
     ids.overPo = order.po.poId;
 });
@@ -1155,7 +1155,7 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
     // (a) no invoice bills this ordered item yet
     const a = await makeOrder({
         scenarioName: "OVER_BLOCKED",
-        notes: "Four extra clamps, and no bill for them yet.",
+        notes: "Four extra clamps, and no invoice for them yet.",
         items: [{ itemName: "Pipe Clamp", size: '3"', qty: 15, unitPrice: 8 }],
         sign: true,
     });
@@ -1170,30 +1170,30 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
         })
     ).deliveryId;
 
-    // (b) the excess spans two of this arrival's own bills
+    // (b) the excess spans two of this delivery's own invoices
     //
-    // BOTH BILLS NAME THIS ARRIVAL, AND NEITHER COVERS THE EXCESS ON ITS OWN — which
-    // is what `spansInvoices` actually tests. `candidateBills` takes the bills naming
+    // BOTH INVOICES NAME THIS DELIVERY, AND NEITHER COVERS THE EXCESS ON ITS OWN — which
+    // is what `spansInvoices` actually tests. `candidateBills` takes the invoices naming
     // this delivery as its first tier, so with two of them there are two candidates;
-    // `selectOverageBill` then refuses because the first candidate's quantity is less
-    // than the excess. A first attempt at this seeded two bills that each DID cover
+    // `selectOverageInvoice` then refuses because the first candidate's quantity is less
+    // than the excess. A first attempt at this seeded two invoices that each DID cover
     // the excess and got an eligible button instead: two candidates alone is not the
     // condition. The refusal is about the QUOTATION rather than the arithmetic — two
     // invoices means two files and a purchase request takes one.
     const b = await makeOrder({
         scenarioName: "OVER_BLOCKED",
-        notes: "Two bills on this arrival, and the excess is bigger than either.",
+        notes: "Two invoices on this delivery, and the excess is bigger than either.",
         items: [{ itemName: "Threaded Rod", size: 'M16 x 1m', qty: 10, unitPrice: 12 }],
         sign: true,
     });
-    const bArrival = await deliver({
+    const bDelivery = await deliver({
         scenarioName: "OVER_BLOCKED",
         rows: [
             { poItem: b.poItems[0], qty: 10 },
             { poItem: b.poItems[0], qty: 20, over: true },
         ],
         receivedDate: "2026-08-08",
-        notes: "Twenty over — two part-shipments arrived together.",
+        notes: "Twenty over — two part-deliveries arrived together.",
     });
     // DATES SPELLED OUT, NOT BUILT BY ARITHMETIC. `` `2026-08-0${8 + n}` `` produced
     // `2026-08-010` on the second pass. Airtable coerced the field to 2026-08-10, so
@@ -1201,16 +1201,16 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
     // string, so the vendor's own number read `LSP-OVERBLOCKED2-08010`, a five-digit
     // tail on a screen a customer sees.
     for (const [n, qty, issueDate] of [[1, 15, "2026-08-09"], [2, 15, "2026-08-10"]]) {
-        const inv = await bill({
+        const inv = await invoice({
             scenarioName: `OVER_BLOCKED_${n}`,
             rows: [{ po: b.po, poItem: b.poItems[0], qty, unitPrice: 12 }],
             issueDate,
         });
-        // BOTH, not just the first: one bill naming the arrival is a single candidate
-        // and refuses under `excessExceedsBill` instead, which is a different sentence.
-        await setInvoiceDelivery(inv.id, bArrival.id);
+        // BOTH, not just the first: one invoice naming the delivery is a single candidate
+        // and refuses under `excessExceedsInvoice` instead, which is a different sentence.
+        await setInvoiceDelivery(inv.id, bDelivery.id);
     }
-    ids.blockedSpans = bArrival.deliveryId;
+    ids.blockedSpans = bDelivery.deliveryId;
 
     // (c) the invoice has no file
     const c = await makeOrder({
@@ -1219,7 +1219,7 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
         items: [{ itemName: "Spring Hanger", size: '2"', qty: 12, unitPrice: 34 }],
         sign: true,
     });
-    const cArrival = await deliver({
+    const cDelivery = await deliver({
         scenarioName: "OVER_BLOCKED",
         rows: [
             { poItem: c.poItems[0], qty: 12 },
@@ -1227,32 +1227,32 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
         ],
         receivedDate: "2026-08-07",
     });
-    const cInvoice = await bill({
+    const cInvoice = await invoice({
         scenarioName: "OVER_BLOCKED_3",
         rows: [{ po: c.po, poItem: c.poItems[0], qty: 15, unitPrice: 34 }],
         issueDate: "2026-08-08",
         withFile: false,
     });
-    await setInvoiceDelivery(cInvoice.id, cArrival.id);
-    ids.blockedNoFile = cArrival.deliveryId;
+    await setInvoiceDelivery(cInvoice.id, cDelivery.id);
+    ids.blockedNoFile = cDelivery.deliveryId;
 });
 
-// --- OVER_INFER — eligible, on a bill nobody paired ------------------------
+// --- OVER_INFER — eligible, on an invoice nobody paired ------------------------
 //
-// EXACTLY ONE UNPAIRED BILL, WHICH IS WHAT MAKES IT AN INFERENCE RATHER THAN A
-// REFUSAL. `candidateBills` tiers on the stored pairing: with no bill naming this
-// arrival it falls to the unpaired tier, and there ONE candidate is eligible but
-// carries `OVERAGE_INFERRED.noPairing` — the app saying it picked the bill that
-// happens to be the one nobody paired. Two unpaired bills is a different answer
+// EXACTLY ONE UNPAIRED INVOICE, WHICH IS WHAT MAKES IT AN INFERENCE RATHER THAN A
+// REFUSAL. `candidateBills` tiers on the stored pairing: with no invoice naming this
+// delivery it falls to the unpaired tier, and there ONE candidate is eligible but
+// carries `OVERAGE_INFERRED.noPairing` — the app saying it picked the invoice that
+// happens to be the one nobody paired. Two unpaired invoices is a different answer
 // entirely and has its own scenario below.
 await scenario("OVER_INFER", "eligible, with the app labelling its guess", async () => {
     const order = await makeOrder({
         scenarioName: "OVER_INFER",
-        notes: "One bill, and nobody paired it — so which bill carries the excess is inferred.",
+        notes: "One invoice, and nobody paired it — so which invoice carries the excess is inferred.",
         items: [{ itemName: "Blind Flange", size: '6"', qty: 10, unitPrice: 68 }],
         sign: true,
     });
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "OVER_INFER",
         rows: [
             { poItem: order.poItems[0], qty: 10 },
@@ -1261,27 +1261,27 @@ await scenario("OVER_INFER", "eligible, with the app labelling its guess", async
         receivedDate: "2026-08-06",
         notes: "Three extra flanges on the skid.",
     });
-    await bill({
+    await invoice({
         scenarioName: "OVER_INFER",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 13, unitPrice: 68 }],
         issueDate: "2026-08-06",
     });
-    ids.overInfer = arrival.deliveryId;
+    ids.overInfer = delivery.deliveryId;
 });
 
-// --- OVER_UNPAIRED — two bills, neither paired -----------------------------
+// --- OVER_UNPAIRED — two invoices, neither paired -----------------------------
 //
-// The tier above's other outcome, and a refusal rather than a guess: two bills bill
-// this ordered item, neither names this arrival, so nothing records which one bills
-// what came in here. `severalUnpairedBills`.
-await scenario("OVER_UNPAIRED", "blocked: two bills and neither names this delivery", async () => {
+// The tier above's other outcome, and a refusal rather than a guess: two invoices bill
+// this ordered item, neither names this delivery, so nothing records which one invoices
+// what came in here. `severalUnpairedInvoices`.
+await scenario("OVER_UNPAIRED", "blocked: two invoices and neither names this delivery", async () => {
     const order = await makeOrder({
         scenarioName: "OVER_UNPAIRED",
-        notes: "Two bills, neither attached, so nothing records which one covers this arrival.",
+        notes: "Two invoices, neither attached, so nothing records which one covers this delivery.",
         items: [{ itemName: "Weld Neck Flange", size: '4"', qty: 10, unitPrice: 72 }],
         sign: true,
     });
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "OVER_UNPAIRED",
         rows: [
             { poItem: order.poItems[0], qty: 10 },
@@ -1291,28 +1291,28 @@ await scenario("OVER_UNPAIRED", "blocked: two bills and neither names this deliv
         notes: "Three over on the flanges.",
     });
     for (const [n, issueDate] of [[1, "2026-08-04"], [2, "2026-08-09"]]) {
-        await bill({
+        await invoice({
             scenarioName: `OVER_UNPAIRED_${n}`,
             rows: [{ po: order.po, poItem: order.poItems[0], qty: 13, unitPrice: 72 }],
             issueDate,
         });
     }
-    ids.overUnpaired = arrival.deliveryId;
+    ids.overUnpaired = delivery.deliveryId;
 });
 
-// --- OVER_EXCEEDS — one bill for this arrival, and it does not cover the excess
+// --- OVER_EXCEEDS — one invoice for this delivery, and it does not cover the excess
 //
-// `excessExceedsBill`, which #219 split out of `spansInvoices` because one message
+// `excessExceedsInvoice`, which #219 split out of `spansInvoices` because one message
 // covering both was false for half of them: with a single candidate nothing is
-// spanned — the one bill for this arrival simply does not bill all of the excess.
-await scenario("OVER_EXCEEDS", "blocked: the one bill does not cover the excess", async () => {
+// spanned — the one invoice for this delivery simply does not bill all of the excess.
+await scenario("OVER_EXCEEDS", "blocked: the one invoice does not cover the excess", async () => {
     const order = await makeOrder({
         scenarioName: "OVER_EXCEEDS",
-        notes: "The bill attached to this arrival covers less than the excess.",
+        notes: "The invoice attached to this delivery covers less than the excess.",
         items: [{ itemName: "Slip-on Flange", size: '5"', qty: 10, unitPrice: 64 }],
         sign: true,
     });
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "OVER_EXCEEDS",
         rows: [
             { poItem: order.poItems[0], qty: 10 },
@@ -1321,14 +1321,14 @@ await scenario("OVER_EXCEEDS", "blocked: the one bill does not cover the excess"
         receivedDate: "2026-08-03",
         notes: "Nine over — the vendor shipped a full box.",
     });
-    const only = await bill({
+    const only = await invoice({
         scenarioName: "OVER_EXCEEDS",
-        // 4 billed against an excess of 9: this bill cannot carry it.
+        // 4 billed against an excess of 9: this invoice cannot carry it.
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 4, unitPrice: 64 }],
         issueDate: "2026-08-04",
     });
-    await setInvoiceDelivery(only.id, arrival.id);
-    ids.overExceeds = arrival.deliveryId;
+    await setInvoiceDelivery(only.id, delivery.id);
+    ids.overExceeds = delivery.deliveryId;
 });
 
 // --- UNATTRIB — an over-delivery attributed to no order --------------------
@@ -1348,7 +1348,7 @@ await scenario("UNATTRIB", "an excess the app could not attribute to one order",
         items: [{ itemName: "Insulation Roll", size: '50mm', qty: 8, unitPrice: 145 }],
         sign: true,
     });
-    const arrival = await deliver({
+    const delivery = await deliver({
         scenarioName: "UNATTRIB",
         rows: [
             { poItem: order.poItems[0], qty: 8 },
@@ -1356,9 +1356,9 @@ await scenario("UNATTRIB", "an excess the app could not attribute to one order",
         ],
         receivedDate: "2026-08-05",
     });
-    const excess = (await getItemsByDelivery(arrival.id)).find((r) => r.overDelivered);
+    const excess = (await getItemsByDelivery(delivery.id)).find((r) => r.overDelivered);
     await base(TABLES.DELIVERY_ITEMS).update(excess.id, { "PO Item": [] });
-    ids.unattrib = arrival.deliveryId;
+    ids.unattrib = delivery.deliveryId;
 });
 
 // --- DETECT — the PDFs the live invoice entry reads order numbers off -------
@@ -1395,7 +1395,7 @@ await scenario("DETECT", "5 PDFs, one per detection voice", async () => {
         items: [{ itemName: "Grout Bag", size: '25kg', qty: 20, unitPrice: 19 }],
         sign: true,
     });
-    await bill({
+    await invoice({
         scenarioName: "DETECT_CLOSED",
         rows: [{ po: closed.po, poItem: closed.poItems[0], qty: 20, unitPrice: 19 }],
         issueDate: "2026-08-05",
@@ -1561,7 +1561,7 @@ async function printGuide() {
     row("tariff in the totals footer", get("TARIFF", "invoices"));
 
     console.log("\nACT III — the three waiting lists                       (pre-made)");
-    row("/invoices strip 1", get("DL_WAIT", "deliveries"), " — arrival nobody has billed");
+    row("/invoices strip 1", get("DL_WAIT", "deliveries"), " — delivery nobody has billed");
     row("/invoices strip 2, word 1", get("INV_WAIT_A", "invoices"), " — nothing delivered yet");
     row("/invoices strip 2, word 2", get("INV_WAIT_B", "invoices"), " — delivered, not matched");
     row("/pos strip", get("PO_WAIT", "prs", 0), " and ", get("PO_WAIT", "prs", 1));
@@ -1581,7 +1581,7 @@ async function printGuide() {
     row("blocked: no invoice yet", get("OVER_BLOCKED", "deliveries", 0));
     row("blocked: spans two invoices", get("OVER_BLOCKED", "deliveries", 1));
     row("blocked: invoice has no file", get("OVER_BLOCKED", "deliveries", 2));
-    row("blocked: two unpaired bills", get("OVER_UNPAIRED", "deliveries"));
+    row("blocked: two unpaired invoices", get("OVER_UNPAIRED", "deliveries"));
     row("blocked: bill under the excess", get("OVER_EXCEEDS", "deliveries"));
     row("excess against no order", get("UNATTRIB", "deliveries"));
 

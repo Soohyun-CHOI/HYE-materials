@@ -1,7 +1,7 @@
 # New invoice
 
 Route: `/invoices/new`
-Who reaches it: Admin only. Recording a vendor's bill is office work.
+Who reaches it: Admin only. Recording a vendor's invoice is office work.
 
 ## What it answers
 

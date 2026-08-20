@@ -19,7 +19,7 @@
 // reason is the fold key. `lib/invoiceItemFold.js` keys on `Material` PLUS unit
 // price, so two halves at different prices do NOT fold — each would then touch one
 // order, the sets would differ, and the seed would produce the exact opposite of the
-// case it exists to show. `splitInvoiceLineForOverage` carries `bill.unitPrice` onto
+// case it exists to show. `splitInvoiceItemForOverage` carries `bill.unitPrice` onto
 // the half it creates and takes the ordered item's name, size and unit from the
 // corrective order, whose `Material` #18's cache wrote during the same PO
 // generation. Letting the app do it is what guarantees the shape; writing the end
@@ -44,7 +44,7 @@
 // (`237-DEMO Cap`) is left standing, an order having existed either way.
 //
 // IT RUNS #231's MATCHER, BECAUSE `createInvoice` DOES NOT. The computed pairing lives
-// in `createInvoiceAction` — `getArrivalsForBill`, then `matchArrivalToBill`, then
+// in `createInvoiceAction` — `getDeliveriesForInvoice`, then `matchDeliveryToInvoice`, then
 // `setInvoiceDelivery` on `matched` — and a seed that writes the record directly skips
 // all three, so an invoice whose material demonstrably arrived was left with an empty
 // `Delivery`. That is worse than a missing fixture: the screen then says
@@ -54,7 +54,7 @@
 // asked about. **Nothing here writes that link by hand** — the three steps run in the
 // order the action runs them, right after the charges land and before the correction,
 // which is also the order the office works in. Whatever the matcher answers is the
-// fixture's state: A matches its arrival, B has no arrival at all and answers `none`,
+// fixture's state: A matches its delivery, B has no delivery at all and answers `none`,
 // and both answers are printed by the run.
 //
 // THE TWO CASES CANNOT SHARE ONE INVOICE: A must render silent and B must render
@@ -96,8 +96,8 @@ import {
 } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
 import { createOverageDraft, getOverageContext } from "../../lib/overagePR.js";
-import { getArrivalsForBill } from "../../lib/deliveryInvoiceCandidates.js";
-import { PAIRING, matchArrivalToBill } from "../../lib/deliveryInvoiceMatch.js";
+import { getDeliveriesForInvoice } from "../../lib/deliveryInvoiceCandidates.js";
+import { PAIRING, matchDeliveryToInvoice } from "../../lib/deliveryInvoiceMatch.js";
 import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
@@ -235,7 +235,7 @@ async function makeOrder({ itemName, qty }) {
     return { pr, po, orderedItem };
 }
 
-/** An arrival that brings more than was ordered, in the app's own two-row shape. */
+/** A delivery that brings more than was ordered, in the app's own two-row shape. */
 async function overDeliver({ orderedItem, within, over, receivedDate }) {
     const delivery = await createDelivery({
         jobRecordId: line.jobId,
@@ -318,7 +318,7 @@ async function charge({ invoice, po, orderedItem, qty, unitPrice = PRICE }) {
  * walk, the pure matcher, and a write ONLY on `matched`. Called after an invoice's
  * charges exist and never with a delivery chosen here — see the header.
  *
- * The bill is read back off the base rather than assembled from what was just
+ * The invoice is read back off the base rather than assembled from what was just
  * written; the action assembles it from the submitted form rows to save a read, and
  * a seed has no reason to.
  */
@@ -328,29 +328,29 @@ async function pairInvoice(invoice) {
         poItemRecordId: it.poItem?.[0] || null,
         unitPrice: it.unitPrice,
     }));
-    const { arrivals, bills, agreedPrices } = await getArrivalsForBill(requester, {
+    const { deliveries, invoices, agreedPrices } = await getDeliveriesForInvoice(requester, {
         vendorRecordId: vendor.id,
         orderedItems,
     });
-    const outcome = matchArrivalToBill({
-        bill: {
+    const outcome = matchDeliveryToInvoice({
+        invoice: {
             invoiceRecordId: invoice.id,
             invoiceId: invoice.invoiceId,
             orderedItems: orderedItems.filter((o) => o.poItemRecordId),
             pairedDeliveryRecordId: null,
         },
-        arrivals,
-        bills,
+        deliveries,
+        invoices,
         agreedPrices,
     });
     if (outcome.key === PAIRING.matched) {
         await setInvoiceDelivery(invoice.id, outcome.deliveryRecordId);
     }
-    pairings.push({ invoiceId: invoice.invoiceId, outcome, arrivals: arrivals.length });
+    pairings.push({ invoiceId: invoice.invoiceId, outcome, deliveries: deliveries.length });
     console.log(
         `  pairing ${invoice.invoiceId}: ${outcome.key}` +
             `${outcome.deliveryId ? ` -> ${outcome.deliveryId}` : ""}` +
-            ` (${arrivals.length} arrival${arrivals.length === 1 ? "" : "s"} to choose from)`
+            ` (${deliveries.length} delivery${deliveries.length === 1 ? "" : "s"} to choose from)`
     );
     return outcome;
 }
@@ -376,9 +376,9 @@ await charge({ invoice: aInvoice, po: a.po, orderedItem: a.orderedItem, qty: 13 
 console.log(`  ordered 10, delivered 13, billed 13 on ${aInvoice.invoiceId}`);
 
 // BEFORE the correction, which is where the action runs it and the order the office
-// works in: the bill arrives, the pairing is computed, and only then does anyone
-// notice the excess. The link survives the split — the arrival's rows move to the
-// corrective order's ordered item, and the bill still charges every one of them.
+// works in: the invoice arrives, the pairing is computed, and only then does anyone
+// notice the excess. The link survives the split — the delivery's rows move to the
+// corrective order's ordered item, and the invoice still charges every one of them.
 await pairInvoice(aInvoice);
 
 // The correction, through the same context the delivery page's button reads.
@@ -395,7 +395,7 @@ const draft = await createOverageDraft({
     delivery: aDelivery,
     row,
     orderedItem: context.orderedItem,
-    bill: context.bill,
+    invoice: context.invoice,
     originalPR: context.originalPR,
 });
 made("Purchase Request", draft.pr.prId, "overage correction");
@@ -477,8 +477,8 @@ it are 10 on the first order and 3 on the second, at one price, which is
 what makes them fold.
 
 Its Delivery section reads Delivered, naming ${ids.aDelivery ?? "<A-DL>"} —
-#231's matcher put it there, the arrival having brought every ordered item
-the bill charges. The two entries under it are one per invoice item, both
+#231's matcher put it there, the delivery having brought every ordered item
+the invoice charges. The two entries under it are one per invoice item, both
 silent and both the same name, because the split made two rows of one item.
 
 ------------------------------------------------------------------
@@ -501,7 +501,7 @@ would make a future reader of the invoice axis debug their own code
 against data nobody had asked the matcher about.
 
 WHAT IS DELIBERATELY NOT HERE: an order reached only through an item with
-no ordered item behind it, which would keep its line with nothing under
+no ordered item behind it, which would keep its row with nothing under
 it. That needs a free-text invoice item, which the form cannot make
 (\`SHOW_OTHER_ITEM_OPTION\` is false, #96) and which the plan no longer
 calls for, so it is not a state this app produces. The exclusion still has
@@ -530,11 +530,11 @@ this seed created touches them.
         console.log(`\n${"=".repeat(72)}`);
         console.log("#231's PAIRING, PER INVOICE — the matcher's answer, not a choice made here");
         console.log("=".repeat(72));
-        for (const { invoiceId, outcome, arrivals } of pairings) {
+        for (const { invoiceId, outcome, deliveries } of pairings) {
             console.log(
                 `  ${invoiceId.padEnd(20)} ${outcome.key.padEnd(10)}` +
                     ` ${outcome.deliveryId ?? "(no link written)"}` +
-                    `   ${arrivals} arrival(s) considered`
+                    `   ${deliveries} delivery(s) considered`
             );
         }
     }

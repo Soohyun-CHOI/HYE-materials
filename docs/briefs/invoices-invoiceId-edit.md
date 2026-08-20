@@ -23,8 +23,8 @@ check — the app never overwrites the vendor's stated total, but a person may f
 typo in it.
 
 **action — `Items`,** with a standing sentence directly under the heading:
-`Edit line values. Size/Unit and the linked PO are fixed here — to change a line's
-PO or add/remove lines, delete and recreate the invoice.` This is the sentence that
+`Edit item values. Size/Unit and the linked PO are fixed here — to change an item's
+PO or add/remove items, delete and recreate the invoice.` This is the sentence that
 draws the boundary, and it is always visible rather than appearing on a failed
 attempt.
 

@@ -40,7 +40,7 @@ const DONE_MESSAGES = {
 };
 
 /**
- * One recorded arrival (#162).
+ * One recorded delivery (#162).
  *
  * Laid out like app/invoices/[invoiceId] — id and actions in the header, the
  * headline figure in its own box, then the detail rows, the delivery items, and the
@@ -82,10 +82,10 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
         );
     }
 
-    // Issue #193 — the arrival's rows come from the ids `delivery` already carries,
+    // Issue #193 — the delivery's rows come from the ids `delivery` already carries,
     // so this neither re-finds the delivery nor fetches its rows one at a time.
     // Every level below it was already batched (#166, #210); this was the one level
-    // still paying per row, which is why it read three finds on a three-row arrival.
+    // still paying per row, which is why it read three finds on a three-row delivery.
     const items = await getItemsByDelivery(delivery.id, { rowIds: delivery.deliveryItems });
 
     // Resolve each delivery item's PO through its PO Item, one level at a time.
@@ -99,7 +99,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
         delivery.recordedBy?.[0] ? getUserByRecordId(delivery.recordedBy[0]) : null,
         delivery.packingListPO?.[0] ? getPOsByRecordIds(delivery.packingListPO) : null,
-        // #210 — the bills naming this shipment. One batched read, and none at all
+        // #210 — the invoices naming this delivery. One batched read, and none at all
         // for a delivery nobody has paired yet. NOT GATED PER INVOICE, and that is
         // #167's exception on this page rather than a new one: the recorder is the
         // person who pairs them, from a dropdown that showed them these very
@@ -184,7 +184,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
     const grouped = groupRowsByItem(rows);
 
     // Issue #238 — the table below reads one row per material AND order, so an
-    // arrival split into a within piece and an excess against one order is one row
+    // delivery split into a within piece and an excess against one order is one row
     // rather than two differing only by a tag. A pure regrouping of the rows above:
     // no query, and nothing here reaches the flag, the banners or `summarizeDelivery`
     // — those judge, and this only reads. The rule is lib/deliveryAllocation.js.
@@ -198,7 +198,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                     {/* Editing is open to the same set that may view — Job
                         membership — because what it changes (the received date,
                         the note, the photo) is a correction to the record rather
-                        than to what the arrival was allocated against. */}
+                        than to what the delivery was allocated against. */}
                     <Link
                         href={`/deliveries/${encodeURIComponent(delivery.deliveryId)}/edit`}
                         className="text-sm underline"
@@ -321,10 +321,10 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                         "none"
                     )}
                 </p>
-                {/* #210 — the bill or bills this shipment is paired with, beside the
+                {/* #210 — the invoice or invoices this delivery is paired with, beside the
                     PO the packing list named, because both are facts copied off the
                     same document. Plural: one invoice names one delivery, so a
-                    shipment accumulates them as the office enters each one. Empty is
+                    delivery accumulates them as the office enters each one. Empty is
                     a reading rather than a gap, and the sentence says which. */}
                 <p>
                     <span className="text-zinc-500">Invoices:</span>{" "}
@@ -392,11 +392,11 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                         </thead>
                         <tbody>
                             {/* ONE ROW PER MATERIAL AND ORDER (#238). A stored row is
-                                one allocated slice, so an arrival that filled an order
+                                one allocated slice, so a delivery that filled an order
                                 and then exceeded it is two of them — the same name, the
                                 same order, differing only in a tag and a quantity. What
-                                is real there is the split, not two arrivals, and this
-                                table is where a reader meets the arrival first.
+                                is real there is the split, not two deliveries, and this
+                                table is where a reader meets the delivery first.
 
                                 THE `Over-delivered` TAG WENT WITH THE FOLD rather than
                                 moving onto the folded row: that row holds the within
@@ -411,7 +411,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                                 stored per row, the banners read the raw rows, and
                                 `summarizeDelivery` — shared with `/deliveries` and the
                                 strip on `/invoices` — reads them too, so no screen can
-                                describe this arrival differently because its table
+                                describe this delivery differently because its table
                                 regrouped. */}
                             {tableRows.map((row) => (
                                 <tr
@@ -439,7 +439,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                                         at its other half. There an entry was wholly an
                                         exception, so its name took the tone; here the
                                         row is partly one, and coloring the total would
-                                        say the 10 that arrived inside the order is a
+                                        say the 10 delivered inside the order is a
                                         problem too. Amber rather than the red
                                         `/pos/[poId]` gives the same word — see the
                                         notes for why the two differ. */}

@@ -9,7 +9,7 @@
 // same claim about the module it defers to.
 //
 // WHAT A PASS DOES NOT PROVE. That a refusal actually refuses. Whether a Server
-// Action re-runs the guard, and whether a bill already on another shipment is really
+// Action re-runs the guard, and whether an invoice already on another delivery is really
 // rejected, is behavior — measured in a browser with the two fixture accounts, and
 // recorded in the PR.
 
@@ -83,12 +83,12 @@ export function run({ check, log, assert }) {
         LINK_REFUSED.outOfScope
     );
     check(
-        "another vendor's bill cannot describe this shipment",
+        "another vendor's invoice cannot describe this delivery",
         invoiceLinkRefusal({ invoice: invoice(), deliveryRecordId: "recDL1", vendorRecordId: "recVEN9", visible: true }),
         LINK_REFUSED.wrongVendor
     );
     check(
-        "another shipment already holds it",
+        "another delivery already holds it",
         invoiceLinkRefusal({
             invoice: invoice({ delivery: "recDL9" }),
             deliveryRecordId: "recDL1",
@@ -125,7 +125,7 @@ export function run({ check, log, assert }) {
         LINK_REFUSED.takenByAnother
     );
     check(
-        "  while a free bill is admitted there too",
+        "  while a free invoice is admitted there too",
         invoiceLinkRefusal({ invoice: invoice(), deliveryRecordId: null, vendorRecordId: "recVEN1", visible: true }),
         null
     );
@@ -237,7 +237,7 @@ export function run({ check, log, assert }) {
     const mine = option({ invoiceRecordId: "recA", vendorRecordId: "recVEN1" });
     const theirs = option({ invoiceRecordId: "recB", vendorRecordId: "recVEN9" });
     check(
-        "another vendor's bill is not offered",
+        "another vendor's invoice is not offered",
         availableInvoiceOptions([mine, theirs], { vendorRecordId: "recVEN1" }).map((o) => o.invoiceRecordId).join(","),
         "recA"
     );
@@ -249,10 +249,10 @@ export function run({ check, log, assert }) {
     check("nullish does not throw", availableInvoiceOptions(null, { vendorRecordId: "recVEN1" }).length, 0);
 
     log("");
-    log("AN ALREADY-PAIRED BILL STAYS ON THE LIST — #162's rule, one level up:");
+    log("AN ALREADY-PAIRED INVOICE STAYS ON THE LIST — #162's rule, one level up:");
     // Its item dropdown lists a fully delivered item rather than dropping it, because
     // dropping it lands the recorder on "not in the dropdown", which says it may never
-    // have been ordered here and would be false. A bill somebody has already paired is
+    // have been ordered here and would be false. An invoice somebody has already paired is
     // the same shape: it exists, it is this vendor's, and the recorder holding a
     // packing list that names it needs telling where it went.
     const taken = option({ invoiceRecordId: "recC", linkedDeliveryRecordId: "recDL9", linkedDeliveryId: "HYE-DL-260803-01" });
@@ -269,7 +269,7 @@ export function run({ check, log, assert }) {
     );
 
     log("");
-    log("newest first, ties by Invoice ID, and an undated bill LAST:");
+    log("newest first, ties by Invoice ID, and an undated invoice LAST:");
     const dated = (id, issueDate) => option({ invoiceRecordId: id, invoiceId: id, issueDate });
     const sorted = availableInvoiceOptions(
         [dated("HYE-INV-260701-01", "2026-07-01"), dated("HYE-INV-260810-01", "2026-08-10"), dated("HYE-INV-260710-01", "2026-07-10")],
@@ -288,7 +288,7 @@ export function run({ check, log, assert }) {
         [dated("HYE-INV-260101-01", ""), dated("HYE-INV-260710-01", "2026-07-10")],
         { vendorRecordId: "recVEN1" }
     );
-    check("an undated bill sorts LAST, not first", withUndated.at(-1).invoiceId, "HYE-INV-260101-01");
+    check("an undated invoice sorts LAST, not first", withUndated.at(-1).invoiceId, "HYE-INV-260101-01");
 
     // --- the label ---------------------------------------------------------
     log("");
@@ -299,14 +299,14 @@ export function run({ check, log, assert }) {
     check("all three parts, vendor code first", invoiceOptionLabel(option()), "INV-88213 · HYE-INV-260801-03 · 2026-08-01");
     assert("the vendor's code really is first", invoiceOptionLabel(option()).startsWith("INV-88213"));
     check(
-        "a bill with no vendor code omits it rather than printing a gap",
+        "an invoice with no vendor code omits it rather than printing a gap",
         invoiceOptionLabel(option({ vendorInvoiceCode: "" })),
         "HYE-INV-260801-03 · 2026-08-01"
     );
     check("nullish does not throw", invoiceOptionLabel(null), "");
 
     log("");
-    log("and it NAMES the shipment holding it only when the reader may reach it:");
+    log("and it NAMES the delivery holding it only when the reader may reach it:");
     check(
         "in view: the delivery is named",
         invoiceOptionLabel(option({ linkedDeliveryRecordId: "recDL9", linkedDeliveryId: "HYE-DL-260803-01" })),
@@ -353,7 +353,7 @@ export function run({ check, log, assert }) {
     // #206's rule applied to a refusal: naming an action the reader cannot take is
     // worse than saying nothing, which is why that issue's qualifier has two voices
     // rather than three. A delivery is Job-scoped and an invoice can bill two jobs, so
-    // the shipment holding a bill is not always in view — and "detach it there first"
+    // the delivery holding an invoice is not always in view — and "detach it there first"
     // then sends someone to a page that will tell them it does not exist.
     const takenNamed = describeLinkRefusal(LINK_REFUSED.takenByAnother, {
         invoiceId: "HYE-INV-260801-03",
@@ -363,7 +363,7 @@ export function run({ check, log, assert }) {
         invoiceId: "HYE-INV-260801-03",
     }).text;
 
-    log("  reachable — names the shipment and says what to do:");
+    log("  reachable — names the delivery and says what to do:");
     assert("it says which delivery", takenNamed.includes("HYE-DL-260803-01"));
     assert("  and which invoice", takenNamed.includes("HYE-INV-260801-03"));
     assert("  and the rule that makes it exclusive", takenNamed.includes("One invoice belongs to one delivery"));
@@ -371,7 +371,7 @@ export function run({ check, log, assert }) {
 
     log("  out of reach — the same facts, and NO action:");
     assert("it still names the invoice", takenUnnamed.includes("HYE-INV-260801-03"));
-    assert("  and still says the bill is taken", takenUnnamed.includes("another delivery"));
+    assert("  and still says the invoice is taken", takenUnnamed.includes("another delivery"));
     assert("  and still says the rule", takenUnnamed.includes("One invoice belongs to one delivery"));
     // THE WHOLE POINT: no action, and no second one invented in its place either.
     for (const forbidden of ["detach", "ask", "contact", "the office", "instead"]) {

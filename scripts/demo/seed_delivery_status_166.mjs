@@ -3,7 +3,7 @@
 // #166 compares delivered against invoiced against ordered on three surfaces, and
 // NONE of its interesting states exists on this base: measured before seeding, 0 PO
 // ordered items carried both an invoice item and a delivery slice, so every invoice
-// read "nothing arrived" and every arrival read "no invoice yet". This seeds one
+// read "nothing delivered" and every delivery read "no invoice yet". This seeds one
 // scenario per state.
 //
 // EACH SCENARIO GETS ITS OWN MATERIAL, and that is load-bearing rather than tidy:
@@ -122,8 +122,8 @@ async function makeOrder({ itemName, qty, unitPrice = 10 }) {
     await updatePR(pr.id, { status: "Approved" });
     const gen = await generatePOForApprovedPR(await getPRByRecordId(pr.id));
     const po = await getPOByRecordId(gen.poRecordId);
-    const poLine = (await getItemsByPO(gen.poRecordId))[0];
-    return { po, poLine };
+    const orderedItem = (await getItemsByPO(gen.poRecordId))[0];
+    return { po, orderedItem };
 }
 
 /**
@@ -162,7 +162,7 @@ async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
     for (const want of wants) {
         const material = await getMaterialByKey({ itemName: want.itemName, size: SIZE, unit: UNIT });
         const plan = planDelivery({
-            lines: candidates.lines,
+            orderedItems: candidates.orderedItems,
             vendorRecordId: vendor.id,
             materialRecordId: material.id,
             // Still `poRecordId` here, and deliberately: the planner's parameter
@@ -176,23 +176,23 @@ async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
             await createDeliveryItem({
                 deliveryRecordId: delivery.id,
                 deliveryId: delivery.deliveryId,
-                poItemRecordId: row.line.id,
+                poItemRecordId: row.orderedItem.id,
                 materialRecordId: material.id,
-                itemName: row.line.itemName,
-                size: row.line.size,
-                unit: row.line.unit,
+                itemName: row.orderedItem.itemName,
+                size: row.orderedItem.size,
+                unit: row.orderedItem.unit,
                 qty: row.qty,
                 overDelivered: row.over,
             });
-            written.push(`${row.qty}${row.over ? " OVER" : ""} -> ${row.line.poId}`);
+            written.push(`${row.qty}${row.over ? " OVER" : ""} -> ${row.orderedItem.poId}`);
         }
     }
     return { delivery, written };
 }
 
 /** One invoice with one or more invoice items, optionally plus a free-text one. */
-async function bill({ lines: billLines, issueDate, freeText = false, note }) {
-    const total = billLines.reduce((s, l) => s + l.qty * 10, 0);
+async function invoice({ items: invoiceItems, issueDate, freeText = false, note }) {
+    const total = invoiceItems.reduce((s, l) => s + l.qty * 10, 0);
     const inv = await createInvoice({
         vendorId: vendor.id,
         vendorInvoiceCode: `166-DEMO ${note}`,
@@ -202,15 +202,15 @@ async function bill({ lines: billLines, issueDate, freeText = false, note }) {
         shippingFee: 0,
         file: [],
     });
-    for (const bl of billLines) {
+    for (const bl of invoiceItems) {
         await createInvoiceItem({
             invoiceRecordId: inv.id,
             invoiceId: inv.invoiceId,
             poRecordId: bl.po.id,
-            poItemRecordId: bl.poLine.id,
-            itemName: bl.poLine.itemName,
-            size: bl.poLine.size,
-            unit: bl.poLine.unit,
+            poItemRecordId: bl.orderedItem.id,
+            itemName: bl.orderedItem.itemName,
+            size: bl.orderedItem.size,
+            unit: bl.orderedItem.unit,
             qty: bl.qty,
             unitPrice: 10,
             remark: "",
@@ -223,7 +223,7 @@ async function bill({ lines: billLines, issueDate, freeText = false, note }) {
         await createInvoiceItem({
             invoiceRecordId: inv.id,
             invoiceId: inv.invoiceId,
-            poRecordId: billLines[0].po.id,
+            poRecordId: invoiceItems[0].po.id,
             poItemRecordId: null,
             itemName: "166-DEMO Miscellaneous charge",
             qty: 1,
@@ -243,56 +243,56 @@ const a = await makeOrder({ itemName: FIRST_ITEM, qty: 20 });
 const aDel = await deliver({
     wants: [{ itemName: FIRST_ITEM, qty: 20 }],
     receivedDate: "2026-07-18",
-    notes: "A, full arrival, packing list quotes the PO",
+    notes: "A, full delivery, packing list quotes the PO",
     packingListPO: a.po,
 });
 ids.aDelivery = aDel.delivery.deliveryId;
 ids.aPO = a.po.poId;
-ids.a = (await bill({ lines: [{ ...a, qty: 20 }], issueDate: "2026-07-19", note: "A arrived" })).invoiceId;
+ids.a = (await invoice({ items: [{ ...a, qty: 20 }], issueDate: "2026-07-19", note: "A arrived" })).invoiceId;
 console.log(`  A  ${ids.a}  Delivered   (${ids.aDelivery} quotes ${ids.aPO} on its packing list)`);
 
-// --- B: billed, nothing arrived, plus an invoice item with no ordered item ---
+// --- B: billed, nothing delivered, plus an invoice item with no ordered item ---
 const b = await makeOrder({ itemName: "166-DEMO Gasket", qty: 15 });
-ids.b = (await bill({
-    lines: [{ ...b, qty: 15 }],
+ids.b = (await invoice({
+    items: [{ ...b, qty: 15 }],
     issueDate: "2026-07-20",
     freeText: true,
-    note: "B not arrived",
+    note: "B not delivered",
 })).invoiceId;
-console.log(`  B  ${ids.b}  Awaiting delivery (+ 1 line not compared)`);
+console.log(`  B  ${ids.b}  Awaiting delivery (+ 1 item not compared)`);
 
 // --- C: one invoice over two ordered items, one arrived ----------------------
 const c1 = await makeOrder({ itemName: "166-DEMO Elbow", qty: 5 });
 const c2 = await makeOrder({ itemName: "166-DEMO Tee", qty: 7 });
 await deliver({ wants: [{ itemName: "166-DEMO Elbow", qty: 5 }], receivedDate: "2026-07-21", notes: "C, one of two" });
-ids.c = (await bill({
-    lines: [{ ...c1, qty: 5 }, { ...c2, qty: 7 }],
+ids.c = (await invoice({
+    items: [{ ...c1, qty: 5 }, { ...c2, qty: 7 }],
     issueDate: "2026-07-22",
     note: "C partly arrived",
 })).invoiceId;
 console.log(`  C  ${ids.c}  Partly delivered (1 of 2 ordered items)`);
 
-// --- D: TWO bills on one ordered item, arrival covers one -> ESTIMATED -------
+// --- D: TWO invoices on one ordered item, delivery covers one -> ESTIMATED -------
 const d = await makeOrder({ itemName: "166-DEMO Coupling", qty: 30 });
 await deliver({ wants: [{ itemName: "166-DEMO Coupling", qty: 15 }], receivedDate: "2026-07-23", notes: "D, half" });
-ids.dOld = (await bill({ lines: [{ ...d, qty: 15 }], issueDate: "2026-07-05", note: "D older bill" })).invoiceId;
-ids.dNew = (await bill({ lines: [{ ...d, qty: 15 }], issueDate: "2026-07-25", note: "D newer bill" })).invoiceId;
+ids.dOld = (await invoice({ items: [{ ...d, qty: 15 }], issueDate: "2026-07-05", note: "D older invoice" })).invoiceId;
+ids.dNew = (await invoice({ items: [{ ...d, qty: 15 }], issueDate: "2026-07-25", note: "D newer invoice" })).invoiceId;
 console.log(`  D  ${ids.dOld} (older) + ${ids.dNew} (newer)  both INFERRED`);
 
-// --- E: arrived beyond the order --------------------------------------------
+// --- E: delivered beyond the order --------------------------------------------
 const e = await makeOrder({ itemName: "166-DEMO Nipple", qty: 10 });
 const eDel = await deliver({
     wants: [{ itemName: "166-DEMO Nipple", qty: 12 }],
     receivedDate: "2026-07-24",
     notes: "E, 2 beyond the order",
 });
-ids.e = (await bill({ lines: [{ ...e, qty: 10 }], issueDate: "2026-07-26", note: "E over-delivered" })).invoiceId;
+ids.e = (await invoice({ items: [{ ...e, qty: 10 }], issueDate: "2026-07-26", note: "E over-delivered" })).invoiceId;
 console.log(`  E  ${ids.e}  Delivered, and 2 beyond the order  [${eDel.written.join(", ")}]`);
 
 // --- F: billed beyond the order --------------------------------------------
 const f = await makeOrder({ itemName: "166-DEMO Union", qty: 10 });
 await deliver({ wants: [{ itemName: "166-DEMO Union", qty: 10 }], receivedDate: "2026-07-25", notes: "F, exact" });
-ids.f = (await bill({ lines: [{ ...f, qty: 13 }], issueDate: "2026-07-27", note: "F over-billed" })).invoiceId;
+ids.f = (await invoice({ items: [{ ...f, qty: 13 }], issueDate: "2026-07-27", note: "F over-billed" })).invoiceId;
 console.log(`  F  ${ids.f}  Partly delivered — 3 more billed than delivered`);
 
 // --- G: arrived with no invoice at all — the vendor-chasing worklist --------
@@ -316,8 +316,8 @@ const iDel = await deliver({
     notes: "I, two materials, one billed",
 });
 ids.i = iDel.delivery.deliveryId;
-ids.iInvoice = (await bill({ lines: [{ ...i1, qty: 4 }], issueDate: "2026-07-28", note: "I one line only" })).invoiceId;
-console.log(`  I  ${ids.i}  Partly invoiced  (its bill is ${ids.iInvoice})`);
+ids.iInvoice = (await invoice({ items: [{ ...i1, qty: 4 }], issueDate: "2026-07-28", note: "I one item only" })).invoiceId;
+console.log(`  I  ${ids.i}  Partly invoiced  (its invoice is ${ids.iInvoice})`);
 
 printGuide();
 
@@ -365,11 +365,11 @@ Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
   billed-beyond-order is already on F's own page as the ⚠ Variance badge
   in the items table; E's over-delivery is a fact about the ORDERED ITEM,
   and inside a column headed Delivery it would read as "more arrived than
-  this bill covers". Both facts are on the detail, under the ordered item.
+  this invoice covers". Both facts are on the detail, under the ordered item.
 
-  D IS THE HEADLINE. One ordered item of 30 carries two bills of 15, and
+  D IS THE HEADLINE. One ordered item of 30 carries two invoices of 15, and
   15 was delivered. That covers exactly one of them, and nothing records
-  which — so the OLDER bill (issued 07-05) is treated as settled and the
+  which — so the OLDER invoice (issued 07-05) is treated as settled and the
   newer (07-25) as not delivered, and BOTH carry the (!) marker. Hover it,
   or tab to it with a screen reader, for why. Every other row above is
   computed outright, not inferred.
@@ -391,12 +391,12 @@ and sets nothing — so every invoice it creates reads:
          "No delivery has been matched to this invoice yet."
 
   ...and nothing else. That is the whole section for an unmatched
-  invoice: no item list at all, because this section compares a bill
+  invoice: no item list at all, because this section compares an invoice
   against ONE delivery and with none matched there is no second term.
   Every invoice in this seed looks like that.
 
   The sentence is the state itself, not a stand-in for one. #210 made
-  "no delivery matched" and "nothing arrived" different facts; every
+  "no delivery matched" and "nothing delivered" different facts; every
   entry below used to say "Nothing delivered yet" under an empty list,
   which asserted the second when only the first was known.
 
@@ -425,10 +425,10 @@ and sets nothing — so every invoice it creates reads:
        flag, which is how this seed made such an item at all.
 
   ${ids.dNew ?? "D-new"}   likewise nothing, and it is the case worth
-       knowing about: two bills of 15 on one ordered item of 30.
+       knowing about: two invoices of 15 on one ordered item of 30.
        "This bill: 15 of 30 EA" stood here to caption a "Billed" figure
        that was the ordered item's total across every invoice; #232
-       scoped that figure to this bill and then dropped the figures line
+       scoped that figure to this invoice and then dropped the figures line
        entirely, and #233 put "which invoices charge this order" on the
        order's own page.
 
@@ -443,7 +443,7 @@ and sets nothing — so every invoice it creates reads:
   ${ids.e ?? "E"}   the delivery-side excess, 12 arrived against an
        ordered item of 10. Match a delivery to this invoice and its
        entry reads "Against the ordered item: 2 EA more delivered",
-       uncolored, with an amber verdict above it if the bill also fell
+       uncolored, with an amber verdict above it if the invoice also fell
        short. Only the verdict is colored — with both lines amber, as
        the first version had them, the color distinguished nothing.
 
@@ -468,7 +468,7 @@ and sets nothing — so every invoice it creates reads:
   for it, which filtering on the empty state alone would have dropped.
   ${ids.g ?? "G"} is at the top, on received-date ascending.
 
-  Tick "Over-delivered" on /deliveries and only the scenario-E arrival
+  Tick "Over-delivered" on /deliveries and only the scenario-E delivery
   remains. It lands in the URL (?over=1), so refresh and the back button
   keep it.
 
@@ -496,7 +496,7 @@ and sets nothing — so every invoice it creates reads:
 
   THE ONLY SEEDED RECORD THAT CARRIES Deliveries."Packing List PO", and it
   is here because nothing else covered that field's read path. #181 renamed
-  the field off a bare "PO" — which read as the order the arrival was
+  the field off a bare "PO" — which read as the order the delivery was
   recorded AGAINST, a different thing living on Delivery Items."PO Item" —
   and verified the new name by creating a delivery by hand and deleting it,
   which covers a read path exactly once. This covers it on every run.
@@ -504,7 +504,7 @@ and sets nothing — so every invoice it creates reads:
   The same id goes to the header AND to planDelivery, because that is what
   createDeliveryAction does with a typed PO number: one records what the
   document said, the other hard-narrows allocation to that order. Scenario
-  A's material has one order, so the narrowing selects the same line and
+  A's material has one order, so the narrowing selects the same ordered item and
   the rows are what they would have been anyway.
 
   Contrast the "Recorded against" table on the same page: that names a PO

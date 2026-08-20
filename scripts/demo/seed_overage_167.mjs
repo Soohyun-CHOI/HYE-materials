@@ -104,10 +104,10 @@ async function makeOrder({ itemName, qty, unitPrice = 15 }) {
     await updatePR(pr.id, { status: "Approved" });
     const gen = await generatePOForApprovedPR(await getPRByRecordId(pr.id));
     const po = await getPOByRecordId(gen.poRecordId);
-    return { po, poLine: (await getItemsByPO(gen.poRecordId))[0] };
+    return { po, orderedItem: (await getItemsByPO(gen.poRecordId))[0] };
 }
 
-async function deliver({ poLine, within, over, receivedDate }) {
+async function deliver({ orderedItem, within, over, receivedDate }) {
     const delivery = await createDelivery({
         jobRecordId: line.jobId,
         vendorRecordId: vendor.id,
@@ -121,11 +121,11 @@ async function deliver({ poLine, within, over, receivedDate }) {
         await createDeliveryItem({
             deliveryRecordId: delivery.id,
             deliveryId: delivery.deliveryId,
-            poItemRecordId: poLine.id,
-            materialRecordId: poLine.material?.[0] ?? null,
-            itemName: poLine.itemName,
-            size: poLine.size,
-            unit: poLine.unit,
+            poItemRecordId: orderedItem.id,
+            materialRecordId: orderedItem.material?.[0] ?? null,
+            itemName: orderedItem.itemName,
+            size: orderedItem.size,
+            unit: orderedItem.unit,
             qty,
             overDelivered: isOver,
         });
@@ -133,8 +133,8 @@ async function deliver({ poLine, within, over, receivedDate }) {
     return (await getDeliveriesByRecordIds([delivery.id]))[0];
 }
 
-async function bill({ po, poLine, qty, issueDate, paid }) {
-    const blob = await put(`167-DEMO-${poLine.poItemId}.pdf`, invoicePdfBytes("167-DEMO invoice"), {
+async function invoice({ po, orderedItem, qty, issueDate, paid }) {
+    const blob = await put(`167-DEMO-${orderedItem.poItemId}.pdf`, invoicePdfBytes("167-DEMO invoice"), {
         access: "public",
         contentType: "application/pdf",
         addRandomSuffix: true,
@@ -152,10 +152,10 @@ async function bill({ po, poLine, qty, issueDate, paid }) {
         invoiceRecordId: invoice.id,
         invoiceId: invoice.invoiceId,
         poRecordId: po.id,
-        poItemRecordId: poLine.id,
-        itemName: poLine.itemName,
-        size: poLine.size,
-        unit: poLine.unit,
+        poItemRecordId: orderedItem.id,
+        itemName: orderedItem.itemName,
+        size: orderedItem.size,
+        unit: orderedItem.unit,
         qty,
         unitPrice: 15,
         remark: "",
@@ -175,8 +175,8 @@ console.log("\nSeeding two scenarios:");
 
 // --- A: eligible, unpaid ----------------------------------------------------
 const a = await makeOrder({ itemName: FIRST_ITEM, qty: 10 });
-const aDelivery = await deliver({ poLine: a.poLine, within: 10, over: 2, receivedDate: "2026-08-01" });
-const aInvoice = await bill({ po: a.po, poLine: a.poLine, qty: 12, issueDate: "2026-08-02", paid: false });
+const aDelivery = await deliver({ orderedItem: a.orderedItem, within: 10, over: 2, receivedDate: "2026-08-01" });
+const aInvoice = await invoice({ po: a.po, orderedItem: a.orderedItem, qty: 12, issueDate: "2026-08-02", paid: false });
 ids.aDelivery = aDelivery.deliveryId;
 ids.aInvoice = aInvoice.invoiceId;
 ids.aPo = a.po.poId;
@@ -184,8 +184,8 @@ console.log(`  A  ${ids.aDelivery}  2 EA over on ${ids.aPo}, billed by ${ids.aIn
 
 // --- B: eligible, and the invoice is already paid ---------------------------
 const b = await makeOrder({ itemName: "167-DEMO Coupling", qty: 8 });
-const bDelivery = await deliver({ poLine: b.poLine, within: 8, over: 3, receivedDate: "2026-08-02" });
-const bInvoice = await bill({ po: b.po, poLine: b.poLine, qty: 11, issueDate: "2026-08-03", paid: true });
+const bDelivery = await deliver({ orderedItem: b.orderedItem, within: 8, over: 3, receivedDate: "2026-08-02" });
+const bInvoice = await invoice({ po: b.po, orderedItem: b.orderedItem, qty: 11, issueDate: "2026-08-03", paid: true });
 ids.bDelivery = bDelivery.deliveryId;
 ids.bInvoice = bInvoice.invoiceId;
 ids.bPo = b.po.poId;
@@ -255,7 +255,7 @@ sentence the office needs and the reason the banner outlives signature.
 ------------------------------------------------------------------
 /deliveries/${ids.bDelivery ?? "<B>"} — 3 EA over, billed by ${ids.bInvoice ?? "<B-INV>"}, which is Paid.
 Splitting it is allowed BY DESIGN, because nothing on the header moves: the
-bill usually arrives and is settled before anyone corrects the record, so
+invoice usually arrives and is settled before anyone corrects the record, so
 refusing here would refuse the common case.
 
 ------------------------------------------------------------------

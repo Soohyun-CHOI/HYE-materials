@@ -147,7 +147,7 @@ console.log("\nDelivering scenario B in full, so nothing is left undelivered:");
 const elbowMaterial = await getMaterialByKey(ELBOW);
 const candidates = await getDeliveryCandidates([await getJobByRecordId(job.id)]);
 const fillPlan = planDelivery({
-    lines: candidates.lines,
+    orderedItems: candidates.orderedItems,
     vendorRecordId: vendor.id,
     materialRecordId: elbowMaterial.id,
     qty: 10,
@@ -168,15 +168,15 @@ for (const row of fillPlan.rows) {
     await createDeliveryItem({
         deliveryRecordId: delivery.id,
         deliveryId: delivery.deliveryId,
-        poItemRecordId: row.line.id,
+        poItemRecordId: row.orderedItem.id,
         materialRecordId: elbowMaterial.id,
-        itemName: row.line.itemName,
-        size: row.line.size,
-        unit: row.line.unit,
+        itemName: row.orderedItem.itemName,
+        size: row.orderedItem.size,
+        unit: row.orderedItem.unit,
         qty: row.qty,
         overDelivered: row.over,
     });
-    console.log(`  ${row.qty} ${row.line.unit} against ${row.line.poId}`);
+    console.log(`  ${row.qty} ${row.orderedItem.unit} against ${row.orderedItem.poId}`);
 }
 console.log(`  delivery ${delivery.deliveryId}`);
 
@@ -210,13 +210,13 @@ A. OVER-DELIVERY ACROSS TWO ORDERS — the case #165 is about
    Item "165-DEMO Pipe 2" (EA)", quantity 25. Leave the PO number blank.
    Two orders of 10 are open (${o.poA1}, ${o.poA2}), so 20 is absorbed and
    5 is excess. Expect two messages:
-     - spans 2 purchase orders, recorded as 2 lines
+     - spans 2 purchase orders, recorded as 2 rows
      - 5 EA more than the 20 still undelivered on ${o.poA2}, recorded
        against it and flagged as over-delivery
    Under #162 the second one said the excess could NOT be attributed to
    any one order. It names ${o.poA2} now — the last order filled.
-   Submit it: the detail page banner says "arrived beyond what ${o.poA2}
-   ordered", and ${o.poA2}'s line shows Delivered 15 against Qty 10.
+   Submit it: the detail page banner says "delivered beyond what ${o.poA2}
+   ordered", and ${o.poA2}'s ordered item shows Delivered 15 against Qty 10.
    Exceeding the ordered quantity is the intended shape, not a defect.
 
 B. NOTHING OUTSTANDING — the second branch of the rule
@@ -226,7 +226,7 @@ B. NOTHING OUTSTANDING — the second branch of the rule
      - everything ordered is already recorded as delivered, so all 3 PCS
        will be flagged as over-delivery and recorded against ${o.poB2}
    ${o.poB2} is the MOST RECENT of the two, which is what "the end of the
-   fill order" means when the arrival filled nothing.
+   fill order" means when the delivery filled nothing.
 
 C. BLOCKED — reachable at SUBMIT only, and it takes two tabs
    The form cannot offer this: tick the PO box and it drops the vendor
@@ -240,7 +240,7 @@ C. BLOCKED — reachable at SUBMIT only, and it takes two tabs
      2. Tab 2 — /pos/${o.poA2}. Withdraw it. (You are the requester on
         its PR, which is who may withdraw.)
      3. Back in tab 1, submit. The action re-reads, the withdrawn PO's
-        line stops counting as ordered, and nothing is left to attach to.
+        ordered item stops counting as ordered, and nothing is left to attach to.
         Expect a form-level error, not a row preview:
           - Nothing on this job orders 165-DEMO Pipe 2" (EA) from this
             vendor, so there is no order to record it against.
@@ -252,6 +252,6 @@ Also worth a look:
    /deliveries                     the seeded fill, plus anything you enter
    /deliveries/${o.deliveryId}${" ".repeat(Math.max(0, 20 - String(o.deliveryId).length))}the fill from scenario B (no photo:
                                    the seed uploads nothing to Blob)
-   /pos/${o.poA2}          Delivered vs Qty on the line the excess landed on
+   /pos/${o.poA2}          Delivered vs Qty on the ordered item the excess landed on
 `);
 }

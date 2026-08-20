@@ -83,7 +83,7 @@ const REQUIRED_HEADINGS = [
 /** Every `tone` a STATUS_COPY builder can return, walked rather than grepped. */
 function tonesInStatusCopy() {
     const tones = new Set();
-    const sample = { invoiced: 30, billedNotArrived: 15, arrived: 15, billedBeyondOrder: 5, arrivedBeyondOrder: 3 };
+    const sample = { invoiced: 30, billedNotDelivered: 15, delivered: 15, billedBeyondOrder: 5, deliveredBeyondOrder: 3 };
     const visit = (value) => {
         if (typeof value === "function") {
             try {
@@ -108,7 +108,7 @@ function tonesInStatusCopy() {
  * have almost nothing to compare against and would pass by looking at very little.
  */
 function stringsFrom(value, out = []) {
-    const sample = { invoiced: 30, billedNotArrived: 15, arrived: 15, billedBeyondOrder: 5, arrivedBeyondOrder: 3 };
+    const sample = { invoiced: 30, billedNotDelivered: 15, delivered: 15, billedBeyondOrder: 5, deliveredBeyondOrder: 3 };
     if (typeof value === "string") {
         out.push(value);
     } else if (typeof value === "function") {
@@ -147,8 +147,8 @@ const PINNED = [
     "⚠ Order variance",
     "⚠ Check the total",
     "Not compared — no ordered item",
-    "Longest wait first. No invoice yet covers what these arrivals brought.",
-    "Longest wait first. Nothing has confirmed the material these bills charge for.",
+    "Longest wait first. No invoice yet covers what these deliveries brought.",
+    "Longest wait first. Nothing has confirmed the material these invoices charge for.",
     "nothing delivered yet",
     "delivered, not matched",
     "No invoice charges this order yet.",
@@ -163,7 +163,7 @@ const PINNED = [
     "Confirm sign-in",
     "That invoice no longer exists.",
     "No invoice from this vendor has been entered yet, so there is nothing to attach.",
-    "One invoice belongs to one delivery, so a bill already attached elsewhere is",
+    "One invoice belongs to one delivery, so one already attached elsewhere is",
     "Nothing on this job orders this item from this vendor, so there is no order to",
     "✓ Paid",
     "Not paid",

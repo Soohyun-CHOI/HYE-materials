@@ -70,7 +70,7 @@ async function renderPRListPage({ searchParams }) {
     // Issue #217 — the strip's rows, read alongside the requester names rather than
     // after them, so the strip costs the page no extra round trip. ITS ROWS ARE
     // GATED BY THE DELIVERY RULE, NOT THIS PAGE'S: the table is purchase requests
-    // under canViewPR and these are arrivals under canAccessJobDeliveries, which
+    // under canViewPR and these are deliveries under canAccessJobDeliveries, which
     // admit different people — see getUncorrectedOverages for why the delivery rule
     // is the right one here (createOverageDraftAction re-authorizes on it, so any
     // other gate would render a button the action refuses). The accessible jobs are

@@ -18,9 +18,9 @@ import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 // ─────────────────────────────────────────────────────────────────────────────
 // WHY IT SITS BELOW #216's STRIP AND ABOVE THE TABLE
 //
-// The two strips are the two ends of one situation: a delivery waiting for a bill,
-// and a bill waiting for a delivery. Read down the page they are in the order the
-// documents themselves occur — material arrives, then it is billed — so the layout
+// The two strips are the two ends of one situation: a delivery waiting for an invoice,
+// and an invoice waiting for a delivery. Read down the page they are in the order the
+// documents themselves occur — material is delivered, then it is billed — so the layout
 // says which end is which without either heading having to explain it. That is the
 // reason, and it is stronger than the one considered first: this strip's rows also
 // appear in the table directly below, which argues for adjacency and equally well
@@ -36,10 +36,10 @@ import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 // different thing about the same documents.
 //
 // NEITHER STRIP'S CONTENTS DEPEND ON THE OTHER'S. An unbilled delivery and an
-// unmatched bill for the same material appear in both, once each, and suppressing
+// unmatched invoice for the same material appear in both, once each, and suppressing
 // either would make one strip's rule a function of the other's — a coupling nobody
 // could reason about later, and the two admit different readers anyway: #216's rows
-// are Job-scoped arrivals and these are invoices under #211's walk.
+// are Job-scoped deliveries and these are invoices under #211's walk.
 //
 // THEY ARE TOLD APART WITHOUT COLOR. Each heading names its own subject and counts
 // its own rows, and every row leads with a document id whose prefix differs —
@@ -51,9 +51,9 @@ import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 //
 // The Invoice ID, and nothing else. #216's three prefill measurements do not
 // transfer — they are about creating an invoice from a delivery — and the inverse
-// fails on a simpler point: prefilling a delivery form from a bill would guess a
+// fails on a simpler point: prefilling a delivery form from an invoice would guess a
 // packing list's contents from an invoice, which inverts which of the two documents
-// is the record of what arrived.
+// is the record of what was delivered.
 //
 // No `Record delivery` link either. That is Job-scoped site work, and the office
 // staff most likely to be reading this page are not assigned to the job, so the

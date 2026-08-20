@@ -18,7 +18,7 @@
 //       MOVED — the delivery row re-attached and unflagged, the invoice item split,
 //       and the original ordered item no longer over-delivered.
 //   C — THE SAME WITH A PAID INVOICE, which is the common case rather than an edge
-//       one: the bill usually arrives and is settled before anyone corrects the
+//       one: the invoice usually arrives and is settled before anyone corrects the
 //       record. Nothing on the header may move.
 //   D — THE BANNER, derived from the links on all three documents.
 //   E — THE REFUSALS on real data: no invoice, and an excess spanning two invoices.
@@ -62,7 +62,7 @@ import { getAllLines } from "../../lib/airtable/lines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { getOverageBannerFacts, getOverageBannerFactsForPO, getOverageContext, createOverageDraft } from "../../lib/overagePR.js";
 import { OVERAGE_BLOCKED, describeOverageBanner, isOverageApplied, resolveOriginalPOItem } from "../../lib/overage.js";
-import { lineStatus } from "../../lib/deliveryStatus.js";
+import { orderedItemStatus } from "../../lib/deliveryStatus.js";
 import { foldInvoiceItems } from "../../lib/invoiceItemFold.js";
 import { createFixtures } from "./_fixtures.mjs";
 
@@ -300,7 +300,7 @@ try {
         return {
             pr: await getPRByRecordId(pr.id),
             po: await getPOByRecordId(gen.poRecordId),
-            poLine: (await getItemsByPO(gen.poRecordId))[0],
+            orderedItem: (await getItemsByPO(gen.poRecordId))[0],
         };
     }
 
@@ -320,11 +320,11 @@ try {
             const di = await createDeliveryItem({
                 deliveryRecordId: delivery.id,
                 deliveryId: delivery.deliveryId,
-                poItemRecordId: row.poLine.id,
-                materialRecordId: row.poLine.material?.[0] ?? null,
-                itemName: row.poLine.itemName,
-                size: row.poLine.size,
-                unit: row.poLine.unit,
+                poItemRecordId: row.orderedItem.id,
+                materialRecordId: row.orderedItem.material?.[0] ?? null,
+                itemName: row.orderedItem.itemName,
+                size: row.orderedItem.size,
+                unit: row.orderedItem.unit,
                 qty: row.qty,
                 overDelivered: Boolean(row.over),
             });
@@ -334,7 +334,7 @@ try {
     }
 
     /** One invoice with a real attached file, plus one invoice item per entry. */
-    async function bill({ po, lines: billLines, issueDate, paid = false }) {
+    async function invoice({ po, items, issueDate, paid = false }) {
         const blob = await put(`${TAG}-invoice.pdf`, tinyPdfBytes(`${TAG} invoice`), {
             access: "public",
             contentType: "application/pdf",
@@ -346,20 +346,20 @@ try {
             vendorInvoiceCode: `${TAG}-${Math.random().toString(36).slice(2, 7)}`,
             issueDate,
             dueDate: "2026-09-01",
-            amountDue: billLines.reduce((s, l) => s + l.qty * (l.unitPrice ?? 12), 0),
+            amountDue: items.reduce((s, l) => s + l.qty * (l.unitPrice ?? 12), 0),
             shippingFee: 0,
             file: [{ url: blob.url, filename: `${TAG}-invoice.pdf` }],
         });
         track("invoices", invoice.id);
-        for (const l of billLines) {
+        for (const l of items) {
             const item = await createInvoiceItem({
                 invoiceRecordId: invoice.id,
                 invoiceId: invoice.invoiceId,
                 poRecordId: po.id,
-                poItemRecordId: l.poLine.id,
-                itemName: l.poLine.itemName,
-                size: l.poLine.size,
-                unit: l.poLine.unit,
+                poItemRecordId: l.orderedItem.id,
+                itemName: l.orderedItem.itemName,
+                size: l.orderedItem.size,
+                unit: l.orderedItem.unit,
                 qty: l.qty,
                 unitPrice: l.unitPrice ?? 12,
                 remark: "",
@@ -389,7 +389,7 @@ try {
             delivery,
             row: overRow,
             orderedItem: context.orderedItem,
-            bill: context.bill,
+            invoice: context.invoice,
             originalPR: context.originalPR,
         });
         track("prs", draft.pr.id);
@@ -417,19 +417,19 @@ try {
 
         check(`${label}: the row is re-attached to the overage order`, moved.poItem?.[0], overageItems[0].id);
         check(`${label}: its flag is cleared`, moved.overDelivered, false);
-        check(`${label}: and it records where it came from`, moved.formerPOItemRecordId, order.poLine.id);
+        check(`${label}: and it records where it came from`, moved.formerPOItemRecordId, order.orderedItem.id);
         assert(`${label}: so the flag reads as applied`, isOverageApplied(moved) === true);
         check(
             `${label}: the original ordered item is still recoverable`,
             resolveOriginalPOItem(moved),
-            order.poLine.id
+            order.orderedItem.id
         );
 
-        const invoiceLines = await getItemsByInvoice(invoice.id);
-        const onOriginal = invoiceLines.filter((l) => l.poItem?.[0] === order.poLine.id);
-        const onOverage = invoiceLines.filter((l) => l.poItem?.[0] === overageItems[0].id);
+        const invoiceItems = await getItemsByInvoice(invoice.id);
+        const onOriginal = invoiceItems.filter((l) => l.poItem?.[0] === order.orderedItem.id);
+        const onOverage = invoiceItems.filter((l) => l.poItem?.[0] === overageItems[0].id);
         check(`${label}: one line still bills the original order`, onOriginal.length, 1);
-        check(`${label}:   for what was ordered`, onOriginal[0].qty, order.poLine.qty);
+        check(`${label}:   for what was ordered`, onOriginal[0].qty, order.orderedItem.qty);
         check(`${label}: one line now bills the overage order`, onOverage.length, 1);
         check(`${label}:   for the excess`, onOverage[0].qty, overRow.qty);
         check(`${label}:   and its PO link moved too`, onOverage[0].po?.[0], result.overagePO.id);
@@ -442,29 +442,29 @@ try {
         check(`${label}: Calculated Total unchanged`, after.calculatedTotal, invoice.calculatedTotal);
 
         // THE OVER-DELIVERY IS RESOLVED on the original ordered item.
-        const [originalAfter] = await getPOItemsForReconciliation([order.poLine.id]);
-        const status = lineStatus({
+        const [originalAfter] = await getPOItemsForReconciliation([order.orderedItem.id]);
+        const status = orderedItemStatus({
             orderedQty: originalAfter.qty,
             invoicedQty: originalAfter.invoicedQty,
-            deliveredWithinQty: order.poLine.qty,
+            deliveredWithinQty: order.orderedItem.qty,
             deliveredOverQty: 0,
         });
-        check(`${label}: nothing is delivered beyond the original order now`, status.arrivedBeyondOrder, 0);
+        check(`${label}: nothing is delivered beyond the original order now`, status.deliveredBeyondOrder, 0);
         check(`${label}: nor billed beyond it`, status.billedBeyondOrder, 0);
-        check(`${label}: and the ordered item reads as fully billed`, originalAfter.invoicedQty, order.poLine.qty);
+        check(`${label}: and the ordered item reads as fully billed`, originalAfter.invoicedQty, order.orderedItem.qty);
 
         // The items table folds the two invoice items back into one.
         const folded = foldInvoiceItems(
-            invoiceLines.map((l) => ({
+            invoiceItems.map((l) => ({
                 ...l,
                 materialRecordId:
-                    l.poItem?.[0] === order.poLine.id
-                        ? order.poLine.material?.[0]
+                    l.poItem?.[0] === order.orderedItem.id
+                        ? order.orderedItem.material?.[0]
                         : overageItems[0].material?.[0],
             }))
         );
         check(`${label}: the items table folds them back into one row`, folded.length, 1);
-        check(`${label}:   summing to what the vendor billed`, folded[0].qty, order.poLine.qty + overRow.qty);
+        check(`${label}:   summing to what the vendor billed`, folded[0].qty, order.orderedItem.qty + overRow.qty);
         check(`${label}:   and it says it stands for two`, folded[0].rowCount, 2);
 
         // The quotation is the invoice's file, re-uploaded rather than re-submitted.
@@ -487,12 +487,12 @@ try {
     const orderB = await makeOrder({ itemName: `${TAG} Pipe`, qty: 10 });
     const deliveryB = await deliver({
         rows: [
-            { poLine: orderB.poLine, qty: 10 },
-            { poLine: orderB.poLine, qty: 2, over: true },
+            { orderedItem: orderB.orderedItem, qty: 10 },
+            { orderedItem: orderB.orderedItem, qty: 2, over: true },
         ],
         receivedDate: "2026-07-20",
     });
-    const invoiceB = await bill({ po: orderB.po, lines: [{ poLine: orderB.poLine, qty: 12 }], issueDate: "2026-07-21" });
+    const invoiceB = await invoice({ po: orderB.po, items: [{ orderedItem: orderB.orderedItem, qty: 12 }], issueDate: "2026-07-21" });
     const overRowB = (await getItemsByDelivery(deliveryB.id)).find((r) => r.overDelivered);
     const resultB = await correct({ delivery: deliveryB, overRow: overRowB });
 
@@ -514,14 +514,14 @@ try {
     const orderC = await makeOrder({ itemName: `${TAG} Elbow`, qty: 6 });
     const deliveryC = await deliver({
         rows: [
-            { poLine: orderC.poLine, qty: 6 },
-            { poLine: orderC.poLine, qty: 3, over: true },
+            { orderedItem: orderC.orderedItem, qty: 6 },
+            { orderedItem: orderC.orderedItem, qty: 3, over: true },
         ],
         receivedDate: "2026-07-22",
     });
-    const invoiceC = await bill({
+    const invoiceC = await invoice({
         po: orderC.po,
-        lines: [{ poLine: orderC.poLine, qty: 9 }],
+        items: [{ orderedItem: orderC.orderedItem, qty: 9 }],
         issueDate: "2026-07-23",
         paid: true,
     });
@@ -572,7 +572,7 @@ try {
     // Nothing bills the ordered item.
     const orderE = await makeOrder({ itemName: `${TAG} Tee`, qty: 4 });
     const deliveryE = await deliver({
-        rows: [{ poLine: orderE.poLine, qty: 4 }, { poLine: orderE.poLine, qty: 1, over: true }],
+        rows: [{ orderedItem: orderE.orderedItem, qty: 4 }, { orderedItem: orderE.orderedItem, qty: 1, over: true }],
         receivedDate: "2026-07-24",
     });
     const overRowE = (await getItemsByDelivery(deliveryE.id)).find((r) => r.overDelivered);
@@ -581,21 +581,21 @@ try {
     })).get(overRowE.id);
     check("no invoice on the ordered item", contextE.eligibility.blocked, OVERAGE_BLOCKED.noInvoice);
 
-    // An excess larger than the oldest bill — out of scope, and the reason is the
+    // An excess larger than the oldest invoice — out of scope, and the reason is the
     // quotation rather than the arithmetic.
     const orderF = await makeOrder({ itemName: `${TAG} Union`, qty: 10 });
     const deliveryF = await deliver({
-        rows: [{ poLine: orderF.poLine, qty: 10 }, { poLine: orderF.poLine, qty: 5, over: true }],
+        rows: [{ orderedItem: orderF.orderedItem, qty: 10 }, { orderedItem: orderF.orderedItem, qty: 5, over: true }],
         receivedDate: "2026-07-25",
     });
-    await bill({ po: orderF.po, lines: [{ poLine: orderF.poLine, qty: 3 }], issueDate: "2026-07-01" });
-    await bill({ po: orderF.po, lines: [{ poLine: orderF.poLine, qty: 12 }], issueDate: "2026-07-26" });
+    await invoice({ po: orderF.po, items: [{ orderedItem: orderF.orderedItem, qty: 3 }], issueDate: "2026-07-01" });
+    await invoice({ po: orderF.po, items: [{ orderedItem: orderF.orderedItem, qty: 12 }], issueDate: "2026-07-26" });
     const overRowF = (await getItemsByDelivery(deliveryF.id)).find((r) => r.overDelivered);
     const contextF = (await getOverageContext(await getItemsByDelivery(deliveryF.id), {
         deliveryId: deliveryF.deliveryId,
     })).get(overRowF.id);
     check("an excess spanning two invoices is refused", contextF.eligibility.blocked, OVERAGE_BLOCKED.spansInvoices);
-    check("  and it is marked inferred, since two bills share the ordered item", contextF.eligibility.inferred, true);
+    check("  and it is marked inferred, since two invoices share the ordered item", contextF.eligibility.inferred, true);
 
     // A row already carrying a live correction is not offered again.
     const contextBAgain = (await getOverageContext(await getItemsByDelivery(deliveryB.id), {

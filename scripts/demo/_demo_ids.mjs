@@ -167,7 +167,7 @@ function group(byScenario, name, kind) {
  *
  * `n` picks among a scenario's several records of one kind, in display-id order —
  * used where a scenario deliberately makes more than one, like OVER_BLOCKED's three
- * arrivals.
+ * deliveries.
  */
 export function pick(byScenario, name, kind, n = 0) {
     return group(byScenario, name, kind)[n]?.displayId;

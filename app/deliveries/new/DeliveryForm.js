@@ -13,8 +13,8 @@ import {
 import { availableInvoiceOptions } from "@/lib/deliveryInvoiceLink";
 import {
     PAIRING,
-    billFromInvoiceOption,
-    describeArrivalPairings,
+    invoiceFromOption,
+    describeDeliveryPairings,
     describePairing,
     describeTieBreak,
     planPairings,
@@ -39,7 +39,7 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * A packing list usually names SEVERAL items from one vendor on one day, so the
  * item rows repeat the way the invoice form's do. What does not repeat is the
  * header — job, vendor, optional PO number, date, photo — because those are
- * properties of the arrival, not of a delivery item.
+ * properties of the delivery, not of a delivery item.
  *
  * Job -> vendor -> items, each narrowing the next. WITHOUT a PO number the
  * recorder picks the vendor and then the items, in that order, because the item
@@ -52,7 +52,7 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * this calls the same function createDeliveryAction re-runs on submit; what the
  * form promises and what the server writes cannot be two implementations that
  * drift. It is still only a preview — the server re-reads and re-allocates,
- * because a PO can be withdrawn or another arrival recorded while this page sits
+ * because a PO can be withdrawn or another delivery recorded while this page sits
  * open.
  *
  * THE INVOICE IS A DROPDOWN AND NOT A TYPED NUMBER (#210), and #211 is what made
@@ -64,12 +64,12 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * removes both failure modes typing had: a mistyped number, and one naming an
  * invoice that does not exist.
  *
- * SINCE #231 THE APP DECIDES THE PAIRING AND THIS FORM ONLY SAYS SO. The bills
+ * SINCE #231 THE APP DECIDES THE PAIRING AND THIS FORM ONLY SAYS SO. The invoices
  * this vendor sent name ordered items and so do the rows above, so the app works
- * out which of them this arrival answers — in `createDeliveryAction`, the way
+ * out which of them this delivery answers — in `createDeliveryAction`, the way
  * `planDelivery` decides an allocation rather than filling in a picker for the
  * recorder to accept. Nothing here is preselected; the preview states what the
- * action is about to do, and it can name SEVERAL bills, because one shipment can
+ * action is about to do, and it can name SEVERAL invoices, because one delivery can
  * cover more than one document and the link is n:1.
  *
  * WHAT IS LEFT IN THE CONTROL IS A TRANSCRIPTION, AND IT IS BEHIND A CHECKBOX. The
@@ -79,7 +79,7 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * one, the recorder read it off the document and that beats anything computed, so
  * the action folds it in first.
  */
-export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions = [] }) {
+export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceOptions = [] }) {
     const [state, formAction, pending] = useActionState(createDeliveryAction, {});
 
     // A single accessible job is preselected: making someone choose from a list of
@@ -96,7 +96,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     // packing list's PO number and the invoice form uses for Tariff. A packing list
     // rarely carries an invoice number at all, so a control standing open asks a
     // question whose answer is almost always "there isn't one" — and now that the
-    // pairing is computed, an empty control sitting beside a sentence saying a bill
+    // pairing is computed, an empty control sitting beside a sentence saying an invoice
     // WAS attached reads as a contradiction. A plain string is enough state:
     // nothing preselects it any more, so "" means only what it says.
 
@@ -104,32 +104,33 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
 
     // Everything below narrows within the selected job's ordered items, so no
     // downstream control can offer something from another job.
-    const jobLines = useMemo(
-        () => (jobRecordId ? lines.filter((l) => l.jobRecordId === jobRecordId) : []),
-        [lines, jobRecordId]
+    const jobOrderedItems = useMemo(
+        () =>
+            jobRecordId ? orderedItems.filter((item) => item.jobRecordId === jobRecordId) : [],
+        [orderedItems, jobRecordId]
     );
 
     const vendors = useMemo(() => {
-        const ids = new Set(jobLines.map((l) => l.vendorRecordId).filter(Boolean));
+        const ids = new Set(jobOrderedItems.map((item) => item.vendorRecordId).filter(Boolean));
         return [...ids]
             .map((id) => ({ id, vendorName: vendorNames[id] ?? "Unknown vendor" }))
             .sort((a, b) => a.vendorName.localeCompare(b.vendorName));
-    }, [jobLines, vendorNames]);
+    }, [jobOrderedItems, vendorNames]);
 
     // A typed PO number fixes the vendor, resolved from the ordered items the page
     // already sent — no round trip. An unrecognized number leaves the vendor
     // unset, which the server refuses with a specific message rather than this
     // form guessing.
-    const matchedPoLines = useMemo(() => {
+    const matchedPoItems = useMemo(() => {
         const wanted = poId.trim().toUpperCase();
         if (!wanted) return [];
-        return jobLines.filter((l) => (l.poId || "").toUpperCase() === wanted);
-    }, [poId, jobLines]);
+        return jobOrderedItems.filter((item) => (item.poId || "").toUpperCase() === wanted);
+    }, [poId, jobOrderedItems]);
 
-    const poFixedVendorId = matchedPoLines[0]?.vendorRecordId ?? "";
+    const poFixedVendorId = matchedPoItems[0]?.vendorRecordId ?? "";
     const usingPo = hasPoNumber && Boolean(poId.trim());
     const effectiveVendorId = usingPo ? poFixedVendorId : vendorId;
-    const poRecordId = usingPo ? matchedPoLines[0]?.poRecordId ?? null : null;
+    const poRecordId = usingPo ? matchedPoItems[0]?.poRecordId ?? null : null;
 
     // With a PO in play the item list is that PO's ordered items; otherwise every
     // material the vendor supplied to this job. Both are wider than the allocation
@@ -137,8 +138,8 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     // undelivered, so the screen can say what is true about it instead of hiding it
     // behind "not in the dropdown".
     const itemOptions = useMemo(
-        () => buildItemOptions(usingPo ? matchedPoLines : jobLines, effectiveVendorId),
-        [usingPo, matchedPoLines, jobLines, effectiveVendorId]
+        () => buildItemOptions(usingPo ? matchedPoItems : jobOrderedItems, effectiveVendorId),
+        [usingPo, matchedPoItems, jobOrderedItems, effectiveVendorId]
     );
     const optionByMaterial = useMemo(
         () => new Map(itemOptions.map((o) => [o.materialRecordId, o])),
@@ -164,7 +165,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
             out.set(
                 material,
                 planDelivery({
-                    lines: jobLines,
+                    orderedItems: jobOrderedItems,
                     vendorRecordId: effectiveVendorId,
                     materialRecordId: material,
                     poRecordId,
@@ -173,7 +174,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
             );
         }
         return out;
-    }, [rows, jobLines, effectiveVendorId, poRecordId]);
+    }, [rows, jobOrderedItems, effectiveVendorId, poRecordId]);
 
     // Nothing left to add once every option is on a row, so the control that would
     // add an unfillable row is disabled rather than left to produce one.
@@ -183,7 +184,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
 
     const vendorHasNoItems = Boolean(effectiveVendorId) && itemOptions.length === 0;
 
-    // #210 — the bills this vendor could have sent for this arrival, narrowed and
+    // #210 — the invoices this vendor could have sent for this delivery, narrowed and
     // ordered by the shared rule so this form and the delivery's own edit page
     // cannot come to offer different sets. Not narrowed by JOB: an invoice can bill
     // orders on more than one, so that would risk hiding the right one.
@@ -192,7 +193,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
         [invoiceOptions, effectiveVendorId]
     );
 
-    // #231 — THE ARRIVAL AS THE MATCHER SEES IT: the ordered items the plan above
+    // #231 — THE DELIVERY AS THE MATCHER SEES IT: the ordered items the plan above
     // is about to attach rows to. Taken from the plan rather than from the item
     // dropdown, because a material maps to an ordered item only through allocation
     // — the same reason the preview runs the production `planDelivery` instead of
@@ -202,24 +203,26 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     // reading `checkInvoicePairing` already makes of the same null.
     // Every planned row, quantity and all — not a deduplicated set of ordered
     // items. A plan produces two rows for one ordered item when part of the
-    // arrival is over-delivered, and both are quantity that arrived, which is what
+    // delivery is over-delivered, and both are quantity that was delivered, which is what
     // the matcher's capacity clause counts.
-    const arrival = useMemo(
+    const delivery = useMemo(
         () => ({
             deliveryRecordId: null,
             orderedItems: [...plansByMaterial.values()]
-                .flatMap((p) => (p.rows || []).map((r) => ({ poItemRecordId: r.line?.id, qty: r.qty })))
+                .flatMap((p) =>
+                    (p.rows || []).map((r) => ({ poItemRecordId: r.orderedItem?.id, qty: r.qty }))
+                )
                 .filter((o) => o.poItemRecordId),
         }),
         [plansByMaterial]
     );
 
-    // The price each order agreed, which is what a candidate bill's own price is
+    // The price each order agreed, which is what a candidate invoice's own price is
     // tested against. Off the ordered items this page was already handed, so the
     // test costs no round trip.
     const agreedPrices = useMemo(
-        () => new Map(jobLines.map((l) => [l.id, l.unitPrice])),
-        [jobLines]
+        () => new Map(jobOrderedItems.map((item) => [item.id, item.unitPrice])),
+        [jobOrderedItems]
     );
 
     // THE SAME PURE RULE THE ACTION RUNS, PREVIEWED AND NEVER PREFILLED. planDelivery
@@ -228,18 +231,18 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     // computation belongs to createDeliveryAction, and what this shows is what the
     // action is about to do. There is no control here to prefill either way: the
     // form stopped asking for an invoice number when the pairing became computed.
-    const bills = useMemo(() => invoiceChoices.map(billFromInvoiceOption), [invoiceChoices]);
+    const invoices = useMemo(() => invoiceChoices.map(invoiceFromOption), [invoiceChoices]);
     const pairing = useMemo(
         () =>
-            describeArrivalPairings(
+            describeDeliveryPairings(
                 planPairings({
-                    arrival,
-                    bills,
+                    delivery,
+                    invoices,
                     agreedPrices,
                 }),
-                bills
+                invoices
             ),
-        [arrival, bills, agreedPrices]
+        [delivery, invoices, agreedPrices]
     );
     const pairingMessage = describePairing(pairing, "preview");
     // #231 — the qualifier, in the same box. Two sentences rather than two boxes:
@@ -260,9 +263,9 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
     function pickVendor(id) {
         setVendorId(id);
         setRows([{ ...EMPTY_ROW }]);
-        // The invoice list is vendor-narrowed, so a bill picked under the old vendor
+        // The invoice list is vendor-narrowed, so an invoice picked under the old vendor
         // is not on offer under the new one — the same reason the item rows reset.
-        // Back to computed, not to blank: the new vendor's own bills are about to be
+        // Back to computed, not to blank: the new vendor's own invoices are about to be
         // matched against these rows.
     }
 
@@ -354,7 +357,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                             setHasPoNumber(e.target.checked);
                             setRows([{ ...EMPTY_ROW }]);
                             // The PO fixes the vendor, and the invoice list is
-                            // vendor-narrowed, so a bill picked before this cannot be
+                            // vendor-narrowed, so an invoice picked before this cannot be
                             // assumed to still be on offer. A <select> holding a value
                             // that matches no option renders blank and loses it
                             // silently — the same trap the item rows guard against.
@@ -379,14 +382,14 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                             placeholder="HYE-PO-YYYYMMDD-##"
                             className={inputClass}
                         />
-                        {poId.trim() && matchedPoLines.length === 0 && (
+                        {poId.trim() && matchedPoItems.length === 0 && (
                             <p className="mt-2 text-sm text-amber-700">
                                 No purchase order {poId.trim()} on{" "}
                                 {selectedJob?.jobCode ?? "this job"}. Check the number on the packing
                                 list, or clear this box and pick the vendor instead.
                             </p>
                         )}
-                        {matchedPoLines.length > 0 && (
+                        {matchedPoItems.length > 0 && (
                             <p className="mt-2 text-sm text-zinc-600">
                                 Vendor:{" "}
                                 <span className="font-medium">
@@ -466,7 +469,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                         const option = optionByMaterial.get(row.materialRecordId) || null;
                         const plan = plansByMaterial.get(row.materialRecordId) || null;
                         // An item another row already claimed is not offered here —
-                        // same rule as the invoice form's per-line PO Item dropdown
+                        // same rule as the invoice form's per-item PO Item dropdown
                         // (#91). This row's own selection always stays, or the
                         // select would render blank and lose it.
                         const rowOptions = availableItemOptions(itemOptions, rows, i);
@@ -570,7 +573,9 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
                                             {plan.rows.map((r, k) => (
                                                 <li key={k} className="flex justify-between gap-4">
                                                     <span>
-                                                        {r.line ? r.line.poId : "Not against any order"}
+                                                        {r.orderedItem
+                                                            ? r.orderedItem.poId
+                                                            : "Not against any order"}
                                                         {r.over && (
                                                             <span className="ml-2 text-amber-700">
                                                                 over-delivered
@@ -617,7 +622,7 @@ export default function DeliveryForm({ jobs, lines, vendorNames, invoiceOptions 
             {/* THE PREVIEW COMES FIRST AND THE CONTROL SECOND, because that is the
                 order of the facts: the app has decided, and the checkbox is for the
                 rarer case where the document says otherwise. Nothing at all when the
-                ordered items place no bill — an unpaired invoice is the ordinary
+                ordered items place no invoice — an unpaired invoice is the ordinary
                 state, not an event to report. */}
             {pairingMessage && (
                 <div

@@ -174,7 +174,7 @@ async function renderPODetailPage({ params, searchParams }) {
     // call — but this page never imported the module, so both sentences were false
     // for four issues. #233 makes them true rather than deleting them.
     //
-    // NO NEW READ ON EITHER PATH. `poLineDelivery` wants `orderedQty`,
+    // NO NEW READ ON EITHER PATH. `orderedItemDelivery` wants `orderedQty`,
     // `deliveredQty` and `committedQty`, and `recordToPOItem` carries all three, so
     // the privileged and employee projections both already hold what this needs.
     // The shape below is the one `/pos` builds for the same call.
@@ -222,7 +222,7 @@ async function renderPODetailPage({ params, searchParams }) {
     // Issue #167 — the overage banner, from whichever side this order is on: its own
     // PR is the correction, or one of its ordered items is where an excess came from.
     // The second case reads the PO Items' own provenance reverse-link rather than
-    // walking the shared Delivery, so an arrival that filled two orders cannot put
+    // walking the shared Delivery, so a delivery that filled two orders cannot put
     // the banner on the one that was not exceeded. Delivery data either way, so it is
     // not withheld from a non-privileged viewer — but the invoice it names IS invoice
     // data, and that is the same narrowing the delivery page makes deliberately
@@ -374,7 +374,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                         is the rule #169 wrote here: the two perform
                                         the same subtraction against the same `Qty`
                                         and a negative means the same thing in both —
-                                        more arrived, or more was billed, than was
+                                        more delivered, or more billed, than was
                                         ordered. Signaling differently for one would
                                         imply a distinction neither makes, and
                                         `(over)` is this base's own word for it
@@ -482,7 +482,7 @@ async function renderPODetailPage({ params, searchParams }) {
                     IT SITS HERE BECAUSE THE INVOICE DETAIL PUTS ITS CHIP BESIDE THE
                     `Delivery` heading, so the two screens read with one grammar, and
                     because "is it all here" is the question a reader arrives at just
-                    before the arrivals themselves. Delivery-derived, so no gate —
+                    before the deliveries themselves. Delivery-derived, so no gate —
                     #169's line, and the same reason the `Delivered` column has none.
 
                     The tone comes from `describePOColumn` through `StatusChip`, which
@@ -517,11 +517,11 @@ async function renderPODetailPage({ params, searchParams }) {
                                         </span>
                                     )}
                                 </p>
-                                {/* ONE LINE PER ORDERED ITEM (#266), which this list
+                                {/* ONE ROW PER ORDERED ITEM (#266), which this list
                                     claimed to be while rendering one per stored row.
                                     An over-delivery writes the within piece and the
                                     excess against the SAME ordered item, so one
-                                    material that arrived once read as two lines and
+                                    material delivered once read as two lines and
                                     the ordered item's record id — the key — appeared
                                     twice.
 
@@ -542,7 +542,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                     the badge two lines up carries in amber, and the
                                     same fact #238 prints in amber one frame down.
                                     Coloring the total instead would say the part that
-                                    arrived inside the order is a problem too. */}
+                                    delivered inside the order is a problem too. */}
                                 <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
                                     {d.brought.map((b) => (
                                         <li key={b.key}>
@@ -621,7 +621,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                             </span>
                                         ))}
                                 </p>
-                                {/* ONE LINE PER ORDERED ITEM AND PRICE (#266), the
+                                {/* ONE ROW PER ORDERED ITEM AND PRICE (#266), the
                                     delivery list's fold with the unit price joined to
                                     the key — so two charges billed at different prices
                                     stay two facts and a folded one's `@ price` is
