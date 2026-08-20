@@ -189,7 +189,7 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 
 **A screen word is not a field name**, and a code identifier may diverge from the field it reads on purpose. Before naming a field, a screen word or an identifier, read `docs/notes/naming.md` — it holds the word-to-field table, the conventions (`X ID` / `X Label` / `X Date` / `X At`, a checkbox takes a participle, a subtraction is named for what it subtracts, plain `Qty` for a row's own quantity) and the divergences that are deliberate.
 
-- **`line` names a `Lines` row under a Job and nothing else** — the `Line` link on Purchase Requests. In prose, documentation and screen copy a `PO Items` row is an **ordered item**. The identifiers that say `line` for one, `lineStatus` and its family, are listed in `naming.md` and are #184's to rename, not a word to pick up from the code beside them.
+- **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Lines` → a Job's line, so a `PO Items` row is an **ordered item**. Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. **The record is not the act**: `billed` is what an invoice does, and no table gives a verb. Identifiers are bound too, but a rename belongs to the issue that owns it (#184, #227), so what this governs is the NEXT name. Nothing can check it — `lineStatus` is one token, `bills` is a verb — which is why it is here rather than in a test.
 
 ## ID generation (lib/ids.js)
 
@@ -316,6 +316,7 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed.
 - Don't open a PR unless asked. Never commit yourself — write commit-msg.txt at repo root (gitignored), user commits manually.
 - All GitHub content, project markdown, and web-app-facing text is English regardless of conversation language.
 - **That English is US English** — prose as well as identifiers, and in code comments as much as in user-facing copy. `behavior`, `judgment`, `canceled`, `labeled`, `catalog`, `gray`, `normalize`, `license`, `while` (not `whilst`). The rule exists because this repo's comments carry its reasoning, so the same word spelled two ways across two files reads as two authors rather than one, and because a mixed convention gives every later edit a coin to flip. It is not a claim that US spelling is better. The one thing it does NOT reach is a value that belongs to something outside this repo — an Airtable select option, a dependency's package name (`@img/colour` in `package-lock.json`), a third-party field or CSS keyword — where the external spelling is the correct one and changing it breaks a lookup rather than fixing a style. Enforced under `app/` and `lib/` by `offline/us-english.mjs` (#215), which is scoped there so that documentation — this line included — can cite a form without being excused for it.
+- **Every text this repo puts on GitHub uses the repository's vocabulary** — issue titles, bodies and comments, PR titles and bodies, commit messages. Same words as the code and the docs, for the same reason: one thing named twice is two things to whoever reads only one of them.
 
 ---
 
