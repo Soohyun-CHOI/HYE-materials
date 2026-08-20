@@ -17,7 +17,7 @@ import {
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
 import { seesEveryInvoice } from "@/lib/invoiceVisibility";
-import { describeOveragePreview, inferredLabel } from "@/lib/overage";
+import { describeOveragePreview, tieBreakLabel } from "@/lib/overage";
 import { getOverageContext } from "@/lib/overagePR";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
@@ -151,10 +151,12 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                 id: item.id,
                 label: [item.itemName, item.size].filter(Boolean).join(" "),
                 eligible: context.eligibility.eligible,
-                // #219 — `inferred` is a key, because the marker's sentence depends on
-                // which tier of candidates produced the answer. #217 moved the lookup
-                // into lib/overage.js, since the strip renders the same marker.
-                inferredLabel: inferredLabel(context.eligibility),
+                // #265 — the marker is the TIE-BREAK now, not an inference: #219's
+                // tiers are gone and a correction is offered only where the excess is
+                // billed, so what the `!` reports is that several invoices could have
+                // supplied the quotation at the same price. #217 put the lookup in
+                // lib/overage.js because the strip renders the same marker.
+                tieBreakLabel: tieBreakLabel(context.eligibility),
                 // `signersDropped: 0` WAS FORCED HERE AND IS NOT ANY MORE (#217). It
                 // made the one message that reports a dropped signer unreachable on
                 // the only screen that shows the preview, while getOverageContext paid
@@ -289,7 +291,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                             <OverageButton
                                 deliveryItemId={overage.id}
                                 messages={overage.messages.map((m) => m.text)}
-                                inferredLabel={overage.inferredLabel}
+                                tieBreakLabel={overage.tieBreakLabel}
                             />
                         </div>
                     )}

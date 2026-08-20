@@ -114,7 +114,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, which deliveries an invoice may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
-- `lib/overage.js` — the overage correction's judgment, `OVERAGE_COPY`, and which invoice carries an excess: the candidate tiers and their private ordering (#219). Also `awaitsCorrection` and the signer-copy rule (#217).
+- `lib/overage.js` — the overage correction's judgment and `OVERAGE_COPY`. What earns a correction is the delivery and the invoice agreeing above the order, read from the ordered item's totals: `overageAgreement`'s three states (#265). Which invoice supplies the quotation, and its private ordering (#219). Also `awaitsCorrection` and the signer-copy rule (#217).
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the uncorrected-excess list (#217), the Draft it creates, and the apply step. Credentialed.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders it bills (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.

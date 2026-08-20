@@ -1782,3 +1782,160 @@ side folded with it, on the ordered item AND the unit price. The rule is
   are #169's and #233's and unchanged; the delivery detail's own fold; and the demo
   runbook, which turned out to carry no claim this change makes false — its Act IV
   sentence about coloring only the excess is now true of two screens instead of one.
+
+### Raising a correction only where the invoice agrees (#265)
+
+`Over Delivered` sat on a `Delivery Items` row the moment a delivery filled past
+what an ordered item asked, and a correction was offered from there without asking
+what was invoiced — the invoice entering only as somewhere to quote a price from,
+picked by rules that guessed when nothing named the delivery. So a vendor's own
+mistake, twelve shipped and ten charged, read as an order to correct, and the
+purchase order that went out asked the vendor for material the vendor never charged
+for.
+
+- **THE RULE COMES FROM THE TWO SHAPES A CORRECTION ACTUALLY HAS, and both have the
+  same signature.** A site orders more without saying so; or a vendor ships in packs
+  and sends twenty against an order for fifteen. In both the vendor delivered what it
+  delivered and invoiced for it, so the two documents agree and the only thing out of
+  step is the ORDER. That is what earns a correction, and it is why the test is
+  agreement rather than excess.
+- **`Over Delivered` KEEPS ITS MEANING AND STOPS BEING SUFFICIENT.** More arriving
+  than was ordered is a fact about the delivery, true whatever any invoice says, and
+  the office should meet it the moment the packing list is entered — making it wait
+  for an invoice would hand over the information late. What changes is only that the
+  flag opens a QUESTION rather than an affordance. The flag is still stored and the
+  eligibility is still computed, and the line between them is not arbitrary: the flag
+  is an ATTRIBUTION — which row carries the excess, and which ordered item it attached
+  to under #165's fill order — and that is not re-derivable from later state. The
+  agreement is arithmetic over two live rollups. Storing what is re-derivable is what
+  `overagePRState` already refuses to do.
+- **THE COMPARISON IS THE ORDERED ITEM'S TOTALS, and three things force that scope.**
+  `Invoiced Qty` is a rollup over the ordered item and #166 already measured what
+  summing one invoice does — it reports material as unbilled when it is billed twice
+  over. An excess exists only relative to the ORDERED quantity, which is the ordered
+  item's, so one delivery's figure has nothing to compare against. And `Over
+  Delivered` is itself an ordered-item judgment: `recomputeOverDelivery` flags a row
+  only once the cumulative fill has passed what was ordered. **The consequence is
+  real rather than theoretical** — two invoices of 8 and 4 against 12 delivered
+  AGREE, because the vendor charged for everything it sent across two documents, and
+  a rule reading one invoice at a time would refuse a correction that is owed.
+  - **SO THE SCREEN HAS TO SAY WHAT IT COMPARED.** A reader is looking at ONE
+    delivery while the verdict comes from every delivery and every invoice on the
+    ordered item, and without that line the figures on the page do not add up to the
+    sentence beside them: `HYE-DL-260819-11` shows 19 EA received and its refusal is
+    derived from 19 delivered against 4 billed on an order of 10 — where the 4 came
+    from is nowhere else on the screen. One sentence, on all three states, naming the
+    order and the three totals. It is absent on the two answers that never reach the
+    totals (`notOverDelivered`, `noOrderedItem`) and on `alreadyRaised`, whose reader
+    is deciding whether to wait rather than what was measured.
+  - It says `on this order` rather than `on this ordered item`: the figures are one
+    ordered item's, but the box already names the order in its summary and the reader
+    has a packing list rather than the schema. `ordered item` stays the word
+    everywhere it is the subject.
+- **THREE STATES, AND THE THIRD IS NOT PERMANENT.** The totals meet above the order
+  (a correction is owed), they do not (the vendor's own discrepancy), or nothing bills
+  the ordered item yet. #231 pairs in both directions, but the third state does not
+  even need the pairing: `Invoiced Qty` moves the moment an invoice item is created,
+  so the answer arrives whichever document is entered second. The sentence says that
+  instead of naming an action nobody has to take.
+  - **THE DISAGREEMENT RUNS BOTH WAYS, and the issue's own rule covered half of it.**
+    "The invoice charges only inside the order" is one shape; 12 delivered against 11
+    billed is another, and billed-MORE-than-delivered is a third that is live on this
+    base (`HYE-DL-260819-10`, 13 delivered against 26 billed). So the test is that the
+    totals differ, not that the invoice stayed inside the order. ONE KEY, TWO VOICES:
+    both are the vendor's discrepancy rather than the order's and both refuse for the
+    same reason, so the direction belongs to the copy. The strip takes one chip,
+    because what a reader does about either is take it up with the vendor — #217's
+    density rule, where a closed set gains nothing from two values with one action.
+  - **IT NAMES FIGURES AND NEVER A VERDICT**, which is #166's standing rule on this
+    axis: "the vendor under-billed" and "a second invoice has not arrived" are the
+    same measurement at any one moment.
+- **`hasInvoice` IS NOT `invoicedQty > 0`, AND `delivered > 0` IS WHAT FAILS CLOSED.**
+  An invoice billing zero is a document saying nothing was charged, which is a
+  disagreement; NO document is a question nobody has answered. And the agreement
+  requires something delivered — **found by the check rather than reasoned in**: the
+  first version compared the two totals alone, so a caller that omitted the figures
+  read 0 against 0, called it agreement, and opened the correction. Fail-OPEN, on the
+  one path this issue exists to close. A flagged row always has something delivered on
+  its ordered item, so 0 is not a state the data reaches.
+- **#219's TIERS AND BOTH ITS INFERENCES ARE GONE.** They existed to pick a document
+  when the app could not tell whether the excess had been billed at all: the pairing
+  tiered the candidates and `OVERAGE_INFERRED` said which guess had been made. Under
+  the agreement rule a correction is owed only where the excess IS billed, so the
+  document exists by construction and there is nothing to infer. `OVERAGE_INFERRED`
+  and `inferredLabel` are deleted rather than left standing, the call `lib/deliveryStatus.js`
+  made on `arrived-more`.
+  - **WHAT REPLACED THEM IS NARROWER AND IS NOT A TIER.** The candidates are the
+    invoices charging AT LEAST the excess, because a request takes one quotation
+    (#167). If they disagree on the unit price the choice is REFUSED, since it would
+    change a figure on the order that goes to the vendor —
+    `severalUnpairedInvoices`'s posture on the axis where the choice is now
+    observable. Otherwise the pairing is a PREFERENCE among equals, then oldest first.
+  - **THE PAIRING SURVIVES BECAUSE #219's DEFECT DOES.** An ordered item filled by two
+    deliveries and billed by two invoices, each large enough to cover the excess and
+    both at the agreed price: the excess belongs to the delivery whose row carries the
+    flag, and `Invoices."Delivery"` is the only thing that says which invoice
+    describes it. Ignoring it would quote the other delivery's document at the right
+    price. It is a preference rather than a tier — an invoice naming ANOTHER delivery
+    is still a candidate, which is exactly what #219 refused, and it has to be,
+    because it counts toward `Invoiced Qty` and therefore toward the agreement that
+    got this far.
+  - **THE ORDERING DECIDES LESS THAN IT DID.** `sortInvoicesOldestFirst` now runs over
+    candidates that already agree on price, so what it picks changes no figure this app
+    computes — which retires the argument #219 had to make about a backdatable
+    `Issue Date`. What still differs is the file and the vendor's own code, so the
+    choice is said out loud: #231's argument for its own tie-break, inherited.
+  - **THE MARKER'S MEANING CHANGED AND ITS SHAPE DID NOT.** `QualifierMarker`'s `!`
+    stood for an inference; it carries the tie-break now, and the brief says so,
+    because a designer reading "the app guessed" would preserve the wrong idea.
+- **NINE REFUSALS BECAME EIGHT, AND THREE OF #219's WENT.** `other-delivery-only` said
+  every invoice on the ordered item names a different delivery, which is no longer a
+  refusal at all — those invoices are in `Invoiced Qty` and so are part of the
+  agreement. `several-unpaired-bills`'s choice is now either unobservable or refused
+  under `several-prices-differ`. And `excess-exceeds-bill` became UNREACHABLE: with one
+  invoice on an agreeing ordered item it charges the whole delivered quantity, which is
+  at least the excess, so nothing is left for it to say. `spans-invoices` absorbed the
+  many-invoice case it was split from, and its sentence got truer in the process — it
+  said "larger than the oldest invoice", which asked one document, and every invoice is
+  asked now.
+- **THERE IS NO FOURTH STATE, AND THE PREMISE IS PINNED RATHER THAN ASSUMED.** A flag
+  standing while the ordered item is no longer over would need one, and
+  `recomputeOverDelivery` flags a row only where `room === 0` — deletion being the
+  only thing that mutates rows after creation. So `overageAgreement` takes `orderedQty`
+  and never compares it. `offline/overage.mjs` asserts the implication as a property
+  of that function, which is what makes the absent key a decision rather than an
+  oversight; #206's own rule is that an unreachable message is removed rather than
+  written.
+- **THE CANDIDATES ARE FOLDED PER INVOICE, and #265 is where that stopped being
+  cosmetic.** `invoicesByOrderedItem` builds one entry per `Invoice Items` row, which
+  is the right projection of the level and the wrong unit for this question. #219 only
+  COUNTED entries, so an invoice split across two rows on one ordered item could not
+  change a figure; here a candidate has to cover the excess on its own, and two
+  half-entries would each look too small. `foldByInvoice` sums them. Noted as a
+  backlog item while the previous design was being weighed and resolved here instead,
+  because the rule now depends on it.
+- **COST, MEASURED, BEFORE AND AFTER: ZERO.** `/prs` 15 both ways, with the same one
+  `PO Items` list; `/deliveries/[deliveryId]` 20 both ways on `HYE-DL-260819-05`, with
+  the same `PO Items` breakdown. Every figure the judgment needs is a `PO Items` field
+  — `Qty`, plus the `Delivered Qty` and `Invoiced Qty` rollups — and
+  `getPOItemsForReconciliation` gained the two it was missing for nothing, because
+  `findByRecordIds` passes no `fields`. `Unit Price` came with them, for the price the
+  candidates are compared on. The comparison the previous design needed — an invoice's
+  whole billed set against a delivery's — is not asked at all, so the read it would
+  have cost is not spent.
+- **THE EIGHT OVER-DELIVERIES ON THIS BASE REDISTRIBUTE 4 / 2 / 1 / 1**, measured
+  through the real strip walk. AGREED: `HYE-DL-260819-05` and `-09` raise;
+  `-07` refuses as `spans-invoices` (excess 20 against invoices of 15 and 15) and
+  `-08` as `no-invoice-file`. DISAGREE: `-11` billed short (19 against 4) and `-10`
+  billed over (13 against 26). AWAITING: `-06`. And `-12` still names no ordered item.
+  So all three states are on the base and the demo keeps two raisable rows — the seed
+  was not touched. `-09` is the one row whose reading changed without its verdict
+  changing: it raised with the `!` marker under #219's fallback tier and raises with
+  no marker now, because its single invoice is the only candidate and nothing is
+  passed over.
+- **Not in this issue:** an invoice's pairing is still not recomputed when the invoice
+  is edited (#231's boundary); the correction still covers the ROW's quantity rather
+  than the ordered item's total beyond the order, which part company when two
+  deliveries each exceeded one ordered item; and nothing here reports the
+  disagreement anywhere but on the correction box — the invoice's own mismatch marker
+  (#210) is what says it on that axis.

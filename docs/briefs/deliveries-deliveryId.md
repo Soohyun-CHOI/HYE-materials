@@ -85,16 +85,37 @@ bordered block per case, directly under the banner that reported the excess,
 headed `Correction —` and the material's label. Inside, one or more sentences
 about what the correction would do, and a control to raise it.
 
+**The block answers one of three questions, and they are not degrees of the same
+thing.** What earns a correction is the delivery and the invoice agreeing above
+the order — the vendor sent more than was ordered and charged for it, so the only
+thing out of step is the order. Where they do not agree the discrepancy is the
+vendor's rather than the order's, and the reader's next step is the vendor, not a
+request. Where nothing has been invoiced yet there is nothing to compare and the
+answer is to wait. A design that collapses these into "can" and "cannot" loses
+the distinction the screen exists to make.
+
+**Every one of the three names what was compared.** One further sentence giving
+the ordered quantity, the delivered total and the billed total, and the order they
+belong to. This is not decoration: the reader is looking at ONE delivery while the
+verdict comes from every delivery and every invoice that touched the ordered item,
+so without it the figures on the page do not add up to the sentence beside them —
+a delivery of 13 sitting next to a refusal derived from 19. It is absent only on
+the two answers that never reach the totals: no ordered item behind the row, and
+nothing delivered beyond the order at all.
+
 **When it cannot be corrected, the block still appears and says why.** This is
 the important half. `No invoice bills this ordered item yet`, `the excess spans
-more than one invoice`, `every invoice billing it names a different delivery` and
-six more are all *answers*, and a missing button is not. So the block is present
-in both states and only the control is conditional.
+more than one invoice`, `more is billed than was delivered` and five more are all
+*answers*, and a missing button is not. So the block is present in both states and
+only the control is conditional.
 
-**When the app had to guess which invoice carries the excess:** one further
-sentence in that block, beginning `Inferred:`, saying what was assumed — that
-the oldest of several invoices carries it, or that an invoice naming no delivery does.
-It is a guess and is labeled as one.
+**When more than one invoice could have supplied the quotation:** one further
+sentence saying which was quoted and what it was chosen over. **The `!` marker
+beside the button means this and no longer means a guess** — the app used to pick
+a document without being able to say the excess had been billed at all, and the
+agreement rule removed that guess. The candidates here all cover the excess at the
+same price, so the choice changes no figure; what differs is the file and the
+vendor's own invoice code, which is why it is said rather than left silent.
 
 **When a message names a purchase request:** that ID is a link inside the
 sentence. The copy arrives in parts so the link can be rendered, and the same

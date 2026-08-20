@@ -62,7 +62,15 @@ everything it needs raises the correction here; the rest say what has to come
 first.`, and one line per case: the delivery ID as a link, a short label, and
 either a control to raise the correction or a short chip saying what has to
 happen first (`no invoice yet`, `spans two invoices`, `invoice has no file`, and
-three more).
+three more). The count was wrong here before this line was corrected — there were
+seven chips, not six.
+
+**One of those chips covers two opposite errors on purpose.** `invoice and
+delivery disagree` is shown both where the vendor billed less than it sent and
+where it billed more; the two are different facts and the delivery detail's
+sentence says which. They share a chip because what a reader does about either is
+the same — take it up with the vendor — and a closed set gains nothing from two
+values with one action behind them.
 
 **The strip renders nothing at all when there is nothing.** No all-clear, no
 empty box, no heading. This is a deliberate rule shared by all three strips in
