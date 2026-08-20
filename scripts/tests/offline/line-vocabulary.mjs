@@ -137,6 +137,20 @@ const WORD_RE = /\blines?\b/i;
  * is what is compared. `arrival` and `bill` are deliberately absent: neither is
  * barred yet, and a map entry for a word no assertion uses would claim coverage
  * this file does not have.
+ *
+ * BEFORE `arrival` CAN JOIN, FOUR COPY STRINGS HAVE TO BE REWORDED, AND THE ORDER IS
+ * WHY THIS IS SAID HERE RATHER THAN IN #227's THREAD. Adding it means a copy-only
+ * matcher beside `SHIPMENT_RE`, and ASSERTION 1 fails on all four the moment it
+ * exists: `ALLOCATION_COPY`'s `clear it to record the arrival`, `DELETE_COPY`'s
+ * `deleting the arrival record` and `record that the material arrived`, and
+ * `AWAITING_INVOICE_COPY`'s `what these arrivals brought`. THE MATCHER HAS TO TAKE
+ * BOTH FORMS OR IT FINDS THREE OF THE FOUR — `arrivals?` reaches all but
+ * `DELETE_COPY`'s verb, and #166 settled the pair together when it chose
+ * `delivered`. Rewording them is #227's — so that issue reaches this file to edit
+ * the ban list and reads the prerequisite on the way to the edit that needs it,
+ * which a comment on the issue could not guarantee. Adding the word to `BANNED`
+ * instead is not an option: assertion 4 refuses a bare entry, and there is no
+ * qualifier to give `arrival` the way `PO` qualifies `line`.
  */
 const BEATEN_BY_TABLE = {
     shipment: "Deliveries",
