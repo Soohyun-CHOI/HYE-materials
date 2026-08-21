@@ -191,7 +191,9 @@ async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
 }
 
 /** One invoice with one or more invoice items, optionally plus a free-text one. */
-async function invoice({ items: invoiceItems, issueDate, freeText = false, note }) {
+// A `freeText` parameter stood here and is gone (#278): it added a second invoice
+// item with no `PO Item`, which #96's hidden option made writable and #278 removed.
+async function invoice({ items: invoiceItems, issueDate, note }) {
     const total = invoiceItems.reduce((s, l) => s + l.qty * 10, 0);
     const inv = await createInvoice({
         vendorId: vendor.id,
@@ -216,21 +218,10 @@ async function invoice({ items: invoiceItems, issueDate, freeText = false, note 
             remark: "",
         });
     }
-    if (freeText) {
-        // An invoice item with no PO Item. The app does not create these
-        // (SHOW_OTHER_ITEM_OPTION = false, #96) but the backend path is intact, and
-        // it is what makes the "not compared" count visible on the detail page.
-        await createInvoiceItem({
-            invoiceRecordId: inv.id,
-            invoiceId: inv.invoiceId,
-            poRecordId: invoiceItems[0].po.id,
-            poItemRecordId: null,
-            itemName: "166-DEMO Miscellaneous charge",
-            qty: 1,
-            unitPrice: 40,
-            remark: "",
-        });
-    }
+    // A second `createInvoiceItem` call stood here under `if (freeText)`, writing an
+    // invoice item with no `PO Item` so that the detail page's "not compared" count
+    // had something to count. #278 removed the state; `createInvoiceItem` refuses a
+    // null link now, so this call would throw rather than seed.
     return inv;
 }
 
@@ -256,10 +247,9 @@ const b = await makeOrder({ itemName: "166-DEMO Gasket", qty: 15 });
 ids.b = (await invoice({
     items: [{ ...b, qty: 15 }],
     issueDate: "2026-07-20",
-    freeText: true,
     note: "B not delivered",
 })).invoiceId;
-console.log(`  B  ${ids.b}  Awaiting delivery (+ 1 item not compared)`);
+console.log(`  B  ${ids.b}  Awaiting delivery`);
 
 // --- C: one invoice over two ordered items, one arrived ----------------------
 const c1 = await makeOrder({ itemName: "166-DEMO Elbow", qty: 5 });
@@ -417,12 +407,11 @@ and sets nothing — so every invoice it creates reads:
   table dropping its PO column, and #237 took that question, under
   Purchase Orders above.
 
-  ${ids.b ?? "B"}   nothing under the sentence, though it has two items
-       — one judged, one free text. "Not compared — no ordered item"
-       used to appear for the second; it says why an item was left out
-       of a comparison, and with nothing matched there is no comparison
-       to be left out of. Its backend path is still intact behind #96's
-       flag, which is how this seed made such an item at all.
+  ${ids.b ?? "B"}   nothing under the sentence. It carried a second item
+       with no ordered item behind it until #278, so that
+       "Not compared — no ordered item" had a producer; both the item
+       and the sentence are gone, the second being a state this app
+       does not have.
 
   ${ids.dNew ?? "D-new"}   likewise nothing, and it is the case worth
        knowing about: two invoices of 15 on one ordered item of 30.

@@ -34,16 +34,19 @@ const DONE_MESSAGES = {
     "paid-updated": "Payment status updated.",
 };
 
-// The two tones a delivery entry can wear (#241), as colors. The DECISION is
-// lib/deliveryStatus.js's — an entry is a discrepancy or it is an invoice item
-// nothing was measured against — and only which amber is settled here, the same split
+// The tone a delivery entry can wear (#241), as a color. The DECISION is
+// lib/deliveryStatus.js's and only which amber is settled here, the same split
 // app/components/DeliveryStatusMarks.js states for the chips. Not in that file
 // although it holds the other tone map: these are text colors on a detail list, not
 // the closed set of chip states, and one map serving both would tie a discrepancy in
 // a sentence to the background of a chip that means something else.
+//
+// `unjudged: "text-zinc-500"` STOOD BESIDE IT AND IS GONE (#278). It was the color of
+// an entry nothing was measured against, and its only producer was a charge with no
+// ordered item behind it. A one-entry map is kept rather than inlined for the reason
+// the tone itself is: a second value re-entering finds a slot.
 const ENTRY_TONE_CLASS = {
     exception: "text-amber-700",
-    unjudged: "text-zinc-500",
 };
 
 // ROW-SCOPED, NOT ROLE-SCOPED (#211), gated exactly the way app/pos/[poId] is:
@@ -281,9 +284,13 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 already says. */}
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">Purchase Order{poRecords.length === 1 ? "" : "s"}</h2>
-                {poRecords.length === 0 ? (
-                    <p className="mt-2 text-sm text-zinc-500">None linked.</p>
-                ) : (
+                {/* A `None linked.` empty state stood here (#278). Every invoice
+                    links at least one order: `createInvoiceAction` requires a `PO`
+                    per item and writes one `Invoice-PO Link` per distinct PO used,
+                    so `poRecords` is never empty — not even with #96's flag flipped,
+                    which is why this one was category 1 rather than category 3. The
+                    two invoices that rendered it were hand-entered. */}
+                {poRecords.length > 0 && (
                     <ul className={`mt-2 text-sm ${orderBreakdown.shown ? "space-y-2" : "space-y-1"}`}>
                         {poRecords.map((po) => {
                             const charges = orderBreakdown.shown
@@ -461,13 +468,15 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 nothing a reader could name, and with several short items black and
                 amber alternate down the page.
 
-                THE TONE IS THE VERDICT'S, so `Not compared — no ordered item` is gray
-                in both halves — an invoice item nothing was measured against is not a
-                problem, and an amber name over that sentence would contradict it. An
-                entry the order-scoped aside alone put in the list has no verdict and
-                is amber: something exceeding an ordered item is why it is here. The
-                aside itself stays uncolored, which is #232's distinction and holds —
-                it is the ordered item's fact rather than this invoice's.
+                THE TONE IS THE VERDICT'S, and since #278 there is one of them. It
+                said `Not compared — no ordered item` was gray in both halves,
+                because an invoice item nothing was measured against is not a
+                problem; that entry is gone with the charge behind it, so every
+                entry in this list is amber. An entry the order-scoped aside alone
+                put in the list has no verdict and is amber too: something exceeding
+                an ordered item is why it is here. The aside itself stays uncolored,
+                which is #232's distinction and holds — it is the ordered item's fact
+                rather than this invoice's.
 
                 THE NAMED SLOTS STILL DO THEIR WORK, and that half of #232's argument
                 is untouched: lib/deliveryStatus.js returns `verdict` and `againstOrder`
@@ -542,9 +551,9 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     NO LIST WITHOUT A MATCHED DELIVERY is #232's and is unchanged: with
                     nothing matched there is no second term, so an entry per invoice
                     item was a list of names with no fact in any of them, and the
-                    sentence above is the whole answer. `Not compared — no ordered item`
-                    goes with them, since it says why an invoice item was left out of a
-                    comparison that is not happening.
+                    sentence above is the whole answer. It named
+                    `Not compared — no ordered item` as going with them; that entry no
+                    longer exists at any pairing (#278).
 
                     NO ENTRY THAT AGREES is #241's, and the fold is what forced it. #232
                     kept a silent entry when the list was one per invoice item; folded,

@@ -33,7 +33,7 @@
 // WHAT THIS FILE DELIBERATELY DOES NOT SEED, AND WHY THAT IS NOT A GAP: an order
 // reached only through an item with no ordered item behind it, which would keep its
 // line with nothing under it. It needs a free-text invoice item, and the form cannot
-// make one — `SHOW_OTHER_ITEM_OPTION` is false (#96) and the plan no longer calls for
+// make one — #278 removed the state outright, and the plan no longer calls for
 // free-text charges at all, so the exclusion in `lib/invoiceOrderBreakdown.js` is
 // defensive rather than a live path. A seed exists to put a state a person can reach
 // in front of them; writing one the app cannot produce would say the opposite. The
@@ -502,12 +502,13 @@ against data nobody had asked the matcher about.
 
 WHAT IS DELIBERATELY NOT HERE: an order reached only through an item with
 no ordered item behind it, which would keep its row with nothing under
-it. That needs a free-text invoice item, which the form cannot make
-(\`SHOW_OTHER_ITEM_OPTION\` is false, #96) and which the plan no longer
-calls for, so it is not a state this app produces. The exclusion still has
-to hold defensively, and \`offline/invoice-order-breakdown.mjs\` is what
-holds it — asserting both that such a row stays out of the judgment and
-that it lands under no order, each shown to fail under a mutation. An
+it. That needs a free-text invoice item, which the form could not make and
+which #278 removed outright — the flag, the backend path and the branch
+that kept the order's row are all gone. The read still has to hold
+defensively against a link emptied by hand, and
+\`offline/invoice-order-breakdown.mjs\` is what holds it — asserting both
+that such a row stays out of the judgment and that it lands under no
+order, each shown to fail under a mutation. An
 earlier revision of this file seeded that row on ${ids.bInvoice ?? "<B>"};
 it was retired, and the order it charged (237-DEMO Cap) is left where it
 is, an order having existed either way.

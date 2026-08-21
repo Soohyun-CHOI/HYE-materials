@@ -76,6 +76,16 @@ async function createInvoiceHandler(prevState, formData) {
             if (!item.poRecordId) {
                 return { error: "Every item needs a PO — pick one at the top or per item." };
             }
+            // Issue #278 — THE SAME REFUSAL ONE LEVEL DOWN, and the one that makes
+            // "every charge names an ordered item" a property rather than a habit.
+            // `PO Item` was optional here because #96 left a hidden free-text option
+            // and its backend path; #278 removed both, and this is what keeps the
+            // state closed after them. The form says why a row has nothing to pick
+            // before a reader types into it — this is the boundary rather than the
+            // message, the same division the PO refusal above already has.
+            if (!item.poItemRecordId) {
+                return { error: "Every item needs an ordered item from its PO." };
+            }
         }
 
         // Issue #138 — the inverse of the withdraw predicate's no-linked-invoice
@@ -144,7 +154,10 @@ async function createInvoiceHandler(prevState, formData) {
                     invoiceRecordId: invoice.id,
                     invoiceId: invoice.invoiceId,
                     poRecordId: item.poRecordId,
-                    poItemRecordId: item.poItemRecordId || null,
+                    // `|| null` until #278 — the coalesce WAS the backend path #96
+                    // left standing. The refusal above is what lets this pass the
+                    // value through.
+                    poItemRecordId: item.poItemRecordId,
                     itemName: item.itemName,
                     size: item.size,
                     unit: item.unit,
@@ -167,13 +180,18 @@ async function createInvoiceHandler(prevState, formData) {
                 createdLinkIds.push(link.id);
             }
 
-            // Variance checking (#15), per the tolerance rules decided in #17.
-            // Item-level checks only apply to items linked to a real PO Item —
-            // free-text "Other" invoice items have nothing to compare against. Qty is a
-            // creation-time snapshot: it reads the cumulative invoiced Qty
+            // Variance checking (#15), per the tolerance rules decided in #17. Qty
+            // is a creation-time snapshot: it reads the cumulative invoiced Qty
             // (already including this invoice item, since it's linked by now) and is
             // never retroactively recomputed for sibling Invoice Items created
             // earlier against the same PO Item.
+            //
+            // THE `continue` READS A WRITE THIS FUNCTION JUST MADE, so #278 leaves
+            // it: the refusal above guarantees a link went in, and this reads the
+            // record back. What it guards against is Airtable having failed to store
+            // one, which is not the free-text state and is not something to discover
+            // by dereferencing undefined. It said "free-text `Other` invoice items
+            // have nothing to compare against" and that is no longer why.
             for (const created of createdItems) {
                 const poItemRecordId = created.poItem?.[0];
                 if (!poItemRecordId) continue;

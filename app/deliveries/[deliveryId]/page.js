@@ -423,18 +423,25 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                                     <td className="py-2">
                                         {[row.itemName, row.size].filter(Boolean).join(" ")}
                                     </td>
+                                    {/* A `not against any order` cell stood in the
+                                        else branch here (#278). It named a row whose
+                                        `PO Item` link somebody had emptied in
+                                        Airtable — a state #165 measured at 0 rows and
+                                        which allocation cannot write, so the only
+                                        reader it could ever have is the one person
+                                        who can open the base and therefore already
+                                        knows. The cell renders empty for such a row
+                                        instead; `groupRowsByItem` still groups it and
+                                        the page still loads, which is the half of
+                                        #165's posture that stays. */}
                                     <td className="py-2">
-                                        {row.poId ? (
+                                        {row.poId && (
                                             <Link
                                                 href={`/pos/${encodeURIComponent(row.poId)}`}
                                                 className="underline"
                                             >
                                                 {row.poId}
                                             </Link>
-                                        ) : (
-                                            <span className="text-zinc-500">
-                                                not against any order
-                                            </span>
                                         )}
                                     </td>
                                     {/* COLOR ON THE EXCESS ALONE, which is #241's rule

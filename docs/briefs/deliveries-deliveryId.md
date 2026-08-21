@@ -47,7 +47,11 @@ it` rather than disappearing.
 One row per material and order: a stored row is one allocated slice, so an
 delivery that filled an order and then exceeded it is two slices, and this table
 folds them back into one row because what is real there is the split rather than
-two deliveries. An order cell with nothing behind it reads `not against any order`.
+two deliveries. **An order cell with nothing behind it read `not against any
+order` until #278** and is empty now: allocation attaches every row it writes
+(#165, measured at 0 unattached rows), so the only way to reach that cell is to
+empty the link in Airtable, and the one person who can do that is the one person
+who would have read the words.
 
 **evidence — the allocation caveat under the table.** That the app allocated the
 rows oldest order first, skipping ones already fully delivered, and that the
@@ -99,15 +103,20 @@ the ordered quantity, the delivered total and the invoiced total, and the order 
 belong to. This is not decoration: the reader is looking at ONE delivery while the
 verdict comes from every delivery and every invoice that touched the ordered item,
 so without it the figures on the page do not add up to the sentence beside them —
-a delivery of 13 sitting next to a refusal derived from 19. It is absent only on
-the two answers that never reach the totals: no ordered item behind the row, and
-nothing delivered beyond the order at all.
+a delivery of 13 sitting next to a refusal derived from 19. It is absent on the
+one answer that never reaches the totals: nothing delivered beyond the order at
+all. A second such answer, no ordered item behind the row, went in #278.
 
 **When it cannot be corrected, the block still appears and says why.** This is
 the important half. `No invoice charges this ordered item yet`, `the excess spans
-more than one invoice`, `more is invoiced than was delivered` and five more are all
-*answers*, and a missing button is not. So the block is present in both states and
-only the control is conditional.
+more than one invoice`, `more is invoiced than was delivered` and four more are
+all *answers*, and a missing button is not. So the block is present in both
+states and only the control is conditional.
+
+**The one exception is silent, and it is deliberate (#278).** A row whose order
+link was emptied in Airtable cannot be corrected and gets no sentence: the block
+is absent and so is the button. Every other refusal has a reader who did not
+cause it; this one does not.
 
 **When more than one invoice could have supplied the quotation:** one further
 sentence saying which was quoted and what it was chosen over. **The `!` marker

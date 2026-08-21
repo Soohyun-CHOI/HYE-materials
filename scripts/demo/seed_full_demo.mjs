@@ -33,12 +33,17 @@
 // `generatePOForApprovedPR`, and invoice variance is computed by the same three
 // checks `createInvoiceAction` runs rather than being set by hand.
 //
-// FOUR THINGS ARE WRITTEN BY HAND BECAUSE THE APP CANNOT WRITE THEM. Each is marked
+// THREE THINGS ARE WRITTEN BY HAND BECAUSE THE APP CANNOT WRITE THEM. Each is marked
 // at its own call site with the reason, so nobody later reads one as a bug:
-//   1. a free-text invoice item (no `PO Item`)      — see FREETEXT
-//   2. an over-delivery row with no `PO Item`        — see UNATTRIB
-//   3. an Approved PR with no purchase order         — see PO_WAIT
-//   4. a PR Signers chain frozen mid-return          — see CHAIN
+//   1. an over-delivery row with no `PO Item`        — see UNATTRIB
+//   2. an Approved PR with no purchase order         — see PO_WAIT
+//   3. a PR Signers chain frozen mid-return          — see CHAIN
+//
+// IT SAID FOUR AND LISTED THREE, WHICH IS ITS OWN SMALL LESSON. The missing entry was
+// FREETEXT_ONLY, an invoice charging no ordered item at all, seeded beside FREETEXT
+// and never added here — a list of hand-written states that does not list one of them
+// is how a hand-written state comes to read as ordinary. Both are gone with #278 and
+// the count is now what the list holds.
 //
 // NOTHING IS BACKDATED, and that is a decision rather than an omission. `lib/ids.js`
 // numbers a purchase order by counting the orders whose `Created Date` is today, so
@@ -1050,76 +1055,63 @@ await scenario("MULTI_ORDER", "one invoice charging two orders, item sets differ
     ids.multiOrderPo = first.po.poId;
 });
 
-// --- FREETEXT — an invoice item with no ordered item behind it -------------
+// --- SHORTFALL — a pre-made invoice charging more than its delivery brought ---
 //
-// HAND-WRITTEN, BECAUSE THE FORM CANNOT OFFER IT. `SHOW_OTHER_ITEM_OPTION = false` in
-// app/invoices/new/InvoiceForm.js hides the free-text option (#96); the backend path
-// is untouched, so this is what flipping that flag would produce.
+// THIS IS WHAT IS LEFT OF `FREETEXT`, AND SPLITTING IT OUT IS THE POINT (#278). That
+// scenario carried two charges: one ordinary one short against its delivery, and one
+// free-text row with no ordered item behind it. It existed for the SECOND, so that
+// the invoice detail could show a gray entry beside an amber one — and #278 removed
+// the free-text charge, which took the whole invoice with it when the scenario was
+// cleaned up.
 //
-// IT NEEDS A MATCHED DELIVERY, WHICH THE FIRST VERSION OF THIS SEED MISSED. The
-// invoice detail's per-item list renders only "when a delivery is matched AND
-// something disagrees" — with nothing matched there is no second term to compare
-// against and the whole list is absent, so the free-text row alone showed nothing.
-// The delivery is what makes `Not compared — no ordered item` and the `unjudged`
-// tone appear beside an `exception`, which is the distinction the screen exists to
-// make: grey says nothing was measured, amber says something is wrong.
-await scenario("FREETEXT", "a charge no ordered item stands behind, beside one that disagrees", async () => {
+// THE SHORTFALL WAS COLLATERAL AND HAD TO COME BACK. It is a reachable state, it is
+// the only PRE-MADE producer of `invoiced-more` on this base — Act IV's first step
+// makes one live, which is a different thing from having one to open — and it is what
+// the runbook's own step reads. So the ordinary half is seeded on its own here and
+// nothing about it is hand-written: the delivery goes through `planDelivery` and the
+// invoice through the same helper every other scenario uses.
+await scenario("SHORTFALL", "an invoice charging 200 against a delivery of 150", async () => {
     const order = await makeOrder({
-        scenarioName: "FREETEXT",
-        notes: "One ordinary charge, one free-text charge, and a delivery to judge them against.",
-        items: [{ itemName: "Hex Nut", size: 'M20', qty: 200, unitPrice: 0.6 }],
+        scenarioName: "SHORTFALL",
+        notes: "One charge, short against the delivery matched to it.",
+        items: [{ itemName: "Hex Nut", size: "M20", qty: 200, unitPrice: 0.6 }],
         sign: true,
     });
-    // Short against what the invoice charges, so the ordinary row carries `exception`
-    // and the free-text row carries `unjudged` on the same screen.
     const delivery = await deliver({
-        scenarioName: "FREETEXT",
+        scenarioName: "SHORTFALL",
         rows: [{ poItem: order.poItems[0], qty: 150 }],
         receivedDate: "2026-08-06",
         notes: "Part delivery — 150 of the 200 nuts.",
     });
-    const invoice = await invoice({
-        scenarioName: "FREETEXT",
-        rows: [
-            { po: order.po, poItem: order.poItems[0], qty: 200, unitPrice: 0.6 },
-            // No `po` and no `poItem`: `createInvoiceItem` leaves both links empty and
-            // omits Unit entirely, since an empty string is not a valid select choice.
-            { poItem: null, itemName: "Crating and export packing", qty: 1, unitPrice: 240 },
-        ],
+    // `inv`, NOT `invoice`, AND THE SCENARIO THIS REPLACES GOT THAT WRONG. FREETEXT
+    // wrote `const invoice = await invoice({…})`, which shadows the hoisted helper
+    // inside this arrow function and throws `Cannot access 'invoice' before
+    // initialization` — so that scenario had been unrunnable since whichever edit
+    // introduced the line, and the records it put on the base came from an earlier
+    // version. `--only=FREETEXT` never surfaced it because the cleanup path does not
+    // run scenario bodies. Found by running this one (#278).
+    const inv = await invoice({
+        scenarioName: "SHORTFALL",
+        rows: [{ po: order.po, poItem: order.poItems[0], qty: 200, unitPrice: 0.6 }],
         issueDate: "2026-08-06",
     });
-    await setInvoiceDelivery(invoice.id, delivery.id);
-    ids.freetext = invoice.invoiceId;
+    // The pairing is SET rather than computed, for the reason #231 gives: the rule
+    // refuses nothing here, but the seed should not depend on the matcher's outcome to
+    // put a known state on a screen.
+    await setInvoiceDelivery(inv.id, delivery.id);
+    ids.shortfall = inv.invoiceId;
 });
 
-// --- FREETEXT_ONLY — an invoice that charges no ordered item at all ------------
+// TWO SCENARIOS STOOD BESIDE IT AND ARE GONE (#278): FREETEXT's free-text half, and
+// FREETEXT_ONLY, an invoice every charge of which was free text. Both were
+// hand-written because the form could not offer them, and both were what the header
+// above listed as the first of four such states.
 //
-// The other half, and a different screen state: with EVERY row free-text the invoice
-// links no order, so the detail reads `None linked.` where the order list would be.
-// It is also why the awaiting-delivery strip's row count and the chip count can
-// differ — this invoice wears `Awaiting delivery` and can never appear in the strip,
-// because an invoice charging no ordered item can never be paired with a delivery.
-await scenario("FREETEXT_ONLY", "an invoice charging no ordered item at all", async () => {
-    const pr = await createPR({
-        requesterId: requester.id,
-        lineId: line.id,
-        vendorId: vendor.id,
-        notes: noteFor("FREETEXT_ONLY", "The vendor invoiced for site services against no order."),
-    });
-    // A PR with no items and no order — it exists only to carry the tag, so the skip
-    // check and the cleanup can both find this invoice. It is left as a Draft, which
-    // is visible to its requester alone and so adds nothing to anybody else's screens.
-    const invoice = await invoice({
-        scenarioName: "FREETEXT_ONLY",
-        rows: [
-            { poItem: null, itemName: "Crane hire, half day", qty: 1, unitPrice: 850 },
-            { poItem: null, itemName: "Site cleanup", qty: 2, unitPrice: 175 },
-        ],
-        issueDate: "2026-08-04",
-    });
-    ids.freetextOnly = invoice.invoiceId;
-    ids.freetextOnlyPr = pr.prId;
-});
+// THE SECOND WAS NEVER REACHABLE, EVEN WITH #96's FLAG FLIPPED, which is the part
+// worth recording: `createInvoiceAction` has always required a `PO` on every item,
+// so an invoice linking no order at all could only be written by a script. Their
+// rows are deleted from the base with this issue rather than left standing as dummy
+// data, because they are the only records that put an unwritable state on a screen.
 
 // --- OVER — the correction the demo raises live ----------------------------
 await scenario("OVER", "12 delivered against 10 ordered, invoiced 12, invoice has a file", async () => {
@@ -1337,10 +1329,17 @@ await scenario("OVER_EXCEEDS", "blocked: the one invoice does not cover the exce
 // says so at lib/deliveryAllocation.js:387 — "`narrowed` is non-empty here, so the
 // fallback always resolves and the row always names an ordered item". So the excess
 // is allocated first by the production rule and the link is cleared afterwards: the
-// row is what the app writes, minus the one field it can never omit. This is the only
-// producer of `ALLOCATION_COPY.detail.overUnattached`, which otherwise has none —
-// and `groupRowsByItem` already anticipates it, keying on the frozen name when there
-// is no material link.
+// row is what the app writes, minus the one field it can never omit.
+//
+// IT SAID `ALLOCATION_COPY.detail.overUnattached` AND THE CONSTANT IS
+// `.banner.overUnattached` — corrected in #278, which also found that this scenario
+// is NOT that sentence's only producer: it fires on `poIds.size !== 1`, so flagged
+// slices spanning two orders reach it with every link intact, and the app can write
+// that. What this scenario is the only producer of is the empty ORDER CELL in the
+// delivery detail's table, which #278 left empty rather than labeled — the words
+// `not against any order` went with the other descriptions of a hand-emptied link.
+// `groupRowsByItem` still anticipates the row, keying on the frozen name when there
+// is no material link, and the banner still speaks.
 await scenario("UNATTRIB", "an excess the app could not attribute to one order", async () => {
     const order = await makeOrder({
         scenarioName: "UNATTRIB",
@@ -1566,15 +1565,13 @@ async function printGuide() {
     row("/invoices strip 2, word 2", get("INV_WAIT_B", "invoices"), " — delivered, not matched");
     row("/pos strip", get("PO_WAIT", "prs", 0), " and ", get("PO_WAIT", "prs", 1));
     row("/prs strip, with a button", get("OVER", "deliveries"));
-    row("/prs strip, blocked rows", "6 — see Act IV for which reason is which");
+    row("/prs strip, blocked rows", "5 — see Act IV for which reason is which");
 
     console.log("\nACT IV — when they disagree                              (mixed)");
     row("live: record 3 against", get("MISMATCH_START", "pos"), " → ", get("MISMATCH_START", "invoices"), " goes Mismatch");
     row("live: hand-attach on Edit", get("HAND_ATTACH", "deliveries"), " ← ", get("HAND_ATTACH", "invoices"));
     row("Order variance", get("VAR_PRICE", "invoices"), " on ", get("VAR_PRICE", "pos"));
     row("Check the total, and paid", get("VAR_TOTAL", "invoices"));
-    row("unjudged beside exception", get("FREETEXT", "invoices"));
-    row("None linked.", get("FREETEXT_ONLY", "invoices"));
     row("per-order breakdown", get("MULTI_ORDER", "invoices"));
     row("correction: raise it here", get("OVER", "deliveries"), " (invoice ", get("OVER", "invoices"), ")");
     row("correction: Inferred:", get("OVER_INFER", "deliveries"));
