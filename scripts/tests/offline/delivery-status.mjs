@@ -63,22 +63,22 @@ export function run({ check, log, assert }) {
     // --- comparison 1: delivered against invoiced -------------------------
     log("comparison 1 — delivered against invoiced, both directions:");
     const short = itemStatus(100, 80, 50);
-    check("billed but not delivered", short.billedNotDelivered, 30);
-    check("and the other direction is 0, not negative", short.deliveredNotBilled, 0);
+    check("invoiced but not delivered", short.invoicedNotDelivered, 30);
+    check("and the other direction is 0, not negative", short.deliveredNotInvoiced, 0);
 
     const ahead = itemStatus(100, 50, 80);
-    check("delivered beyond this invoice", ahead.deliveredNotBilled, 30);
-    check("and the other direction is 0", ahead.billedNotDelivered, 0);
+    check("delivered beyond this invoice", ahead.deliveredNotInvoiced, 30);
+    check("and the other direction is 0", ahead.invoicedNotDelivered, 0);
 
     const level = itemStatus(100, 80, 80);
-    check("equal leaves both at 0", level.billedNotDelivered + level.deliveredNotBilled, 0);
+    check("equal leaves both at 0", level.invoicedNotDelivered + level.deliveredNotInvoiced, 0);
 
     // Clamping is the deliberate difference from lib/poItemQty.js:uninvoicedQty,
     // which MUST stay signed. Each direction here is its own named fact, so a
     // caller asking one of them wants 0 when the answer is the other way round.
     assert(
         "each direction is clamped at 0 — they are two facts, not one signed number",
-        short.deliveredNotBilled === 0 && ahead.billedNotDelivered === 0
+        short.deliveredNotInvoiced === 0 && ahead.invoicedNotDelivered === 0
     );
 
     log("");
@@ -88,7 +88,7 @@ export function run({ check, log, assert }) {
     // warehouse.
     const overShipped = itemStatus(10, 12, 10, 2);
     check("delivered counts both parts", overShipped.delivered, 12);
-    check("so an invoice for 12 is fully answered", overShipped.billedNotDelivered, 0);
+    check("so an invoice for 12 is fully answered", overShipped.invoicedNotDelivered, 0);
     check("and the beyond-order part is still reported separately", overShipped.deliveredBeyondOrder, 2);
 
     // --- comparison 2: each side against ordered --------------------------
@@ -96,23 +96,23 @@ export function run({ check, log, assert }) {
     log("comparison 2 — each side against ordered, as two named facts:");
     check("delivered beyond the order comes from the flag, not from a max()", overShipped.deliveredBeyondOrder, 2);
     // Beyond the order on the DELIVERY side only: order fully delivered plus 3
-    // extra, billed for the order. `overShipped` above is beyond on BOTH sides
-    // (it bills 12 against an order of 10), which is why it cannot serve here.
+    // extra, invoiced for the order. `overShipped` above is beyond on BOTH sides
+    // (it charges 12 against an order of 10), which is why it cannot serve here.
     const beyondOrderOnly = itemStatus(10, 10, 10, 3);
-    // ...and on the BILLING side only.
+    // ...and on the INVOICED side only.
     const overBilled = itemStatus(10, 14, 10);
-    check("billed beyond the order", overBilled.billedBeyondOrder, 4);
+    check("invoiced beyond the order", overBilled.invoicedBeyondOrder, 4);
     check("and nothing delivered beyond it", overBilled.deliveredBeyondOrder, 0);
     // The max form is true of both and distinguishes neither, which is why it is
     // not what the module computes.
-    check("delivered beyond the order, billed within it", beyondOrderOnly.billedBeyondOrder, 0);
+    check("delivered beyond the order, invoiced within it", beyondOrderOnly.invoicedBeyondOrder, 0);
     assert(
         "the two beyond-order facts are independent of each other",
-        beyondOrderOnly.billedBeyondOrder === 0 && overBilled.deliveredBeyondOrder === 0
+        beyondOrderOnly.invoicedBeyondOrder === 0 && overBilled.deliveredBeyondOrder === 0
     );
     const bothBeyond = itemStatus(10, 14, 10, 3);
     check("an ordered item can be beyond the order on both sides at once — delivered", bothBeyond.deliveredBeyondOrder, 3);
-    check("  and billed", bothBeyond.billedBeyondOrder, 4);
+    check("  and invoiced", bothBeyond.invoicedBeyondOrder, 4);
 
     log("");
     log("blank inputs are 0, because an empty Airtable rollup is undefined:");
@@ -126,29 +126,29 @@ export function run({ check, log, assert }) {
     log("");
     log("the invoice's verdict on one ordered item — four outcomes:");
     check("nothing delivered", invoiceVerdictKey(itemStatus(100, 80, 0)), "nothing-delivered");
-    check("more billed than delivered", invoiceVerdictKey(short), "billed-more");
-    check("everything billed is delivered", invoiceVerdictKey(level), "all-delivered");
+    check("more invoiced than delivered", invoiceVerdictKey(short), "invoiced-more");
+    check("everything invoiced is delivered", invoiceVerdictKey(level), "all-delivered");
     check("no ordered item to compare against", invoiceVerdictKey(null), "not-compared");
     check("  undefined takes the same branch", invoiceVerdictKey(undefined), "not-compared");
     // The absence is checked before the difference on purpose: it would otherwise
-    // fall into `billed-more` and read as a discrepancy rather than as an absence.
+    // fall into `invoiced-more` and read as a discrepancy rather than as an absence.
     assert(
-        "nothing-delivered is not reported as billed-more",
+        "nothing-delivered is not reported as invoiced-more",
         invoiceVerdictKey(itemStatus(100, 80, 0)) === "nothing-delivered"
     );
 
     // --- THE CLAMP, WHICH MOVED IN #210 -----------------------------------
     log("");
-    log("a share is CLAMPED at what its own invoice billed, and the clamp is here now:");
-    // It used to live in allocateLineToInvoices, which took `min(left, billed)` while
+    log("a share is CLAMPED at what its own invoice invoiced, and the clamp is here now:");
+    // It used to live in allocateLineToInvoices, which took `min(left, invoiced)` while
     // filling. With the pairing stored, `arrived` is a lookup — the linked delivery's
     // own slices on this ordered item — and that lookup can legitimately be LARGER
-    // than this invoice, because a delivery may carry material nobody has billed yet.
+    // than this invoice, because a delivery may carry material nobody has invoiced yet.
     // So the clamp had to move here, or `delivered > invoiced` would become reachable
     // and the two deleted verdicts would need writing again.
-    const surplusDelivery = invoiceShareStatus({ billed: 10, delivered: 25 });
+    const surplusDelivery = invoiceShareStatus({ invoicedQty: 10, delivered: 25 });
     check("a delivery carrying more than this invoice does not overflow it", surplusDelivery.delivered, 10);
-    check("  so the reverse direction stays 0", surplusDelivery.deliveredNotBilled, 0);
+    check("  so the reverse direction stays 0", surplusDelivery.deliveredNotInvoiced, 0);
     check("  and the verdict is simply covered", invoiceVerdictKey(surplusDelivery), "all-delivered");
     // FOUR JUDGMENTS, THREE SENTENCES (#232). Two of the original six were deleted in
     // #210 for being unreachable; `all-delivered` is reachable and has no copy, which
@@ -181,9 +181,9 @@ export function run({ check, log, assert }) {
         null
     );
     assert(
-        "and delivered-beyond-billed is stated against the ORDERED ITEM instead",
+        "and delivered-beyond-invoiced is stated against the ORDERED ITEM instead",
         describeInvoiceItem(
-            { ...invoiceShareStatus({ billed: 10, delivered: 10 }), deliveredBeyondOrder: 3 },
+            { ...invoiceShareStatus({ invoicedQty: 10, delivered: 10 }), deliveredBeyondOrder: 3 },
             "EA",
             { hasDelivery: true }
         ).againstOrder?.text === "Against the ordered item: 3 EA more delivered"
@@ -212,9 +212,9 @@ export function run({ check, log, assert }) {
     // --- THE INVOICE AXIS: THREE OUTCOMES SINCE #232 -----------------------
     log("");
     log("the FIRST question is the link, not the quantities:");
-    const covered = invoiceShareStatus({ billed: 40, delivered: 40 });
-    const shortShare = invoiceShareStatus({ billed: 40, delivered: 0 });
-    const partShare = invoiceShareStatus({ billed: 13, delivered: 10 });
+    const covered = invoiceShareStatus({ invoicedQty: 40, delivered: 40 });
+    const shortShare = invoiceShareStatus({ invoicedQty: 40, delivered: 0 });
+    const partShare = invoiceShareStatus({ invoicedQty: 13, delivered: 10 });
 
     const paired = summarizeInvoiceStatus({ itemStatuses: [covered], hasDelivery: true });
     const unpaired = summarizeInvoiceStatus({ itemStatuses: [shortShare], hasDelivery: false });
@@ -309,7 +309,7 @@ export function run({ check, log, assert }) {
     assert("no chip-density label survives", !("mismatch" in STATUS_COPY.column));
     check("one key, so a check pins the branch not the wording", STATUS_COPY.detail.mismatch().key, "mismatch");
     const mismatchSentence = STATUS_COPY.detail.mismatch().text;
-    assert("it says what is mismatched", mismatchSentence.includes("bills more than"));
+    assert("it says what is mismatched", mismatchSentence.includes("charges more than"));
     assert(
         "it names the matched delivery as the thing compared against",
         mismatchSentence.includes("the delivery matched to it")
@@ -342,13 +342,13 @@ export function run({ check, log, assert }) {
     // --- #232: A BOX SPEAKS ONLY WHEN SOMETHING DISAGREES ------------------
     //
     // THE ONE-DELIVERY PREMISE IS WHAT THESE ASSERT, one level down from where it
-    // was already settled. What an invoice bills is delivered by the delivery it matches
-    // or not at all, so "everything billed was delivered" is a fact about the
+    // was already settled. What an invoice charges is delivered by the delivery it matches
+    // or not at all, so "everything invoiced was delivered" is a fact about the
     // INVOICE, which the chip states; a box repeating it states one fact once per
     // invoice item. See the module header, and docs/notes for the premise itself.
     log("");
     log("a box that agrees says NOTHING — `all-delivered` renders no verdict:");
-    const covered15 = invoiceShareStatus({ billed: 15, delivered: 15 });
+    const covered15 = invoiceShareStatus({ invoicedQty: 15, delivered: 15 });
     check("the judgment is still made", invoiceVerdictKey(covered15), "all-delivered");
     // CAUGHT ON PURPOSE, so this reports rather than aborting the file. Re-opening
     // `speaks` for `all-delivered` without re-adding its copy branch throws — the
@@ -365,7 +365,7 @@ export function run({ check, log, assert }) {
     // "returns null" is just what this function always does.
     assert(
         "  while a box that disagrees does speak",
-        describeInvoiceItem(invoiceShareStatus({ billed: 15, delivered: 10 }), "EA", {
+        describeInvoiceItem(invoiceShareStatus({ invoicedQty: 15, delivered: 10 }), "EA", {
             hasDelivery: true,
         }).verdict !== null
     );
@@ -376,7 +376,7 @@ export function run({ check, log, assert }) {
     // cannot tell "nothing is matched to this invoice" from "the matched delivery
     // delivered none of this ordered item", so the caller supplies which it is. The
     // first has one answer for the whole invoice and the section states it once.
-    const judgedShare = invoiceShareStatus({ billed: 15, delivered: 0 });
+    const judgedShare = invoiceShareStatus({ invoicedQty: 15, delivered: 0 });
     check(
         "nothing matched, so the box says nothing about delivery",
         describeInvoiceItem(judgedShare, "EA", { hasDelivery: false }).verdict,
@@ -399,7 +399,7 @@ export function run({ check, log, assert }) {
     // (`HYE-INV-260804-03` is one), and so can an invoice of 0.
     check(
         "  an invoice of 0 reaches it by the clamp",
-        describeInvoiceItem(invoiceShareStatus({ billed: 0, delivered: 9 }), "EA", {
+        describeInvoiceItem(invoiceShareStatus({ invoicedQty: 0, delivered: 9 }), "EA", {
             hasDelivery: true,
         }).verdict?.key,
         "nothing-delivered"
@@ -415,19 +415,19 @@ export function run({ check, log, assert }) {
 
     log("");
     log("the two surviving verdicts are DISCREPANCIES, not stages:");
-    // Under the premise nothing further is coming: what this invoice bills either
+    // Under the premise nothing further is coming: what this invoice charges either
     // delivered against the delivery it matches or was never shipped. So a shortfall is an
     // event to take up with the vendor, and `yet` has exactly one honest home on this
     // screen — the section's empty state, where the material may still arrive or the
     // delivery may still be recorded.
-    const shortfall = describeInvoiceItem(invoiceShareStatus({ billed: 13, delivered: 10 }), "EA", {
+    const shortfall = describeInvoiceItem(invoiceShareStatus({ invoicedQty: 13, delivered: 10 }), "EA", {
         hasDelivery: true,
     }).verdict;
-    const nothingOfIt = describeInvoiceItem(invoiceShareStatus({ billed: 40, delivered: 0 }), "EA", {
+    const nothingOfIt = describeInvoiceItem(invoiceShareStatus({ invoicedQty: 40, delivered: 0 }), "EA", {
         hasDelivery: true,
     }).verdict;
-    check("the shortfall states its figure", shortfall.text, "3 EA more billed than the matched delivery delivered");
-    check("  so does the empty one", nothingOfIt.text, "40 EA billed, none of it delivered by the matched delivery");
+    check("the shortfall states its figure", shortfall.text, "3 EA more invoiced than the matched delivery delivered");
+    check("  so does the empty one", nothingOfIt.text, "40 EA invoiced, none of it delivered by the matched delivery");
     for (const v of [shortfall, nothingOfIt]) {
         assert(`\`${v.key}\` does not say 'yet'`, !/\byet\b/.test(v.text));
         assert(`  and names the matched delivery as what it compares against`, v.text.includes("matched delivery"));
@@ -451,41 +451,41 @@ export function run({ check, log, assert }) {
     // is nothing to anchor, and the ordered quantity is `/pos/[poId]`'s `Qty` column.
     // The label says `ordered item` because the figure it compares against is one
     // `PO Items` row's `Qty`, never the order's total (#227).
-    const ordinary = invoiceShareStatus({ billed: 15, delivered: 15 });
+    const ordinary = invoiceShareStatus({ invoicedQty: 15, delivered: 15 });
     check(
         "nothing exceeds, and the line is absent entirely",
         describeInvoiceItem(ordinary, "EA", { hasDelivery: true }).againstOrder,
         null
     );
     check(
-        "  both terms on ONE line, billed side first",
-        describeInvoiceItem({ ...ordinary, billedBeyondOrder: 3, deliveredBeyondOrder: 2 }, "EA", {
+        "  both terms on ONE line, invoiced side first",
+        describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 3, deliveredBeyondOrder: 2 }, "EA", {
             hasDelivery: true,
         }).againstOrder?.text,
-        "Against the ordered item: 3 EA more billed, 2 EA more delivered"
+        "Against the ordered item: 3 EA more invoiced, 2 EA more delivered"
     );
     check(
         "  and a blank unit reads without one",
-        describeInvoiceItem({ ...ordinary, billedBeyondOrder: 3 }, "", { hasDelivery: true })
+        describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 3 }, "", { hasDelivery: true })
             .againstOrder?.text,
-        "Against the ordered item: 3 more billed"
+        "Against the ordered item: 3 more invoiced"
     );
     assert(
         "no order-scoped sentence claims the ORDER any more",
         !STATUS_COPY.detail.againstOrder(bothBeyond, "EA").text.includes("Against the order:")
     );
-    // IT DOES NOT DEPEND ON `hasDelivery`: an ordered item billed beyond its `Qty` is
+    // IT DOES NOT DEPEND ON `hasDelivery`: an ordered item invoiced beyond its `Qty` is
     // a fact whether or not anything has been matched, and that is the figure this
     // screen alone shows.
     check(
-        "an unmatched invoice still states a billing excess",
-        describeInvoiceItem({ ...ordinary, billedBeyondOrder: 3 }, "EA", { hasDelivery: false })
+        "an unmatched invoice still states a invoicing excess",
+        describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 3 }, "EA", { hasDelivery: false })
             .againstOrder?.text,
-        "Against the ordered item: 3 EA more billed"
+        "Against the ordered item: 3 EA more invoiced"
     );
     check(
         "  even though its verdict is withheld",
-        describeInvoiceItem({ ...ordinary, billedBeyondOrder: 3 }, "EA", { hasDelivery: false })
+        describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 3 }, "EA", { hasDelivery: false })
             .verdict,
         null
     );
@@ -499,7 +499,7 @@ export function run({ check, log, assert }) {
     // nothing, which is the state #232's first pass was in.
     log("");
     log("a verdict says what tone it is (#241):");
-    const partlyShort = invoiceShareStatus({ billed: 15, delivered: 12 });
+    const partlyShort = invoiceShareStatus({ invoicedQty: 15, delivered: 12 });
     check(
         "a shortfall is an exception",
         describeInvoiceItem(partlyShort, "EA", { hasDelivery: true }).verdict?.tone,
@@ -507,7 +507,7 @@ export function run({ check, log, assert }) {
     );
     check(
         "nothing delivered is one too",
-        describeInvoiceItem(invoiceShareStatus({ billed: 40, delivered: 0 }), "EA", {
+        describeInvoiceItem(invoiceShareStatus({ invoicedQty: 40, delivered: 0 }), "EA", {
             hasDelivery: true,
         }).verdict?.tone,
         "exception"
@@ -519,7 +519,7 @@ export function run({ check, log, assert }) {
     );
     assert(
         "  so the two really differ — a single tone would color nothing apart",
-        STATUS_COPY.detail.verdict["billed-more"](partlyShort, "EA").tone !==
+        STATUS_COPY.detail.verdict["invoiced-more"](partlyShort, "EA").tone !==
             STATUS_COPY.detail.verdict["not-compared"]().tone
     );
     assert(
@@ -534,25 +534,25 @@ export function run({ check, log, assert }) {
     // which is why every assertion above reads unchanged.
     check(
         "one ordered item is the default, so the singular needs no argument",
-        describeInvoiceItem({ ...ordinary, billedBeyondOrder: 3 }, "EA", { hasDelivery: true })
+        describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 3 }, "EA", { hasDelivery: true })
             .againstOrder?.text,
-        "Against the ordered item: 3 EA more billed"
+        "Against the ordered item: 3 EA more invoiced"
     );
     check(
         "  an entry folded across two says so",
-        describeInvoiceItem({ ...ordinary, billedBeyondOrder: 5 }, "EA", {
+        describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 5 }, "EA", {
             hasDelivery: true,
             orderedItemCount: 2,
         }).againstOrder?.text,
-        "Against the ordered items: 5 EA more billed"
+        "Against the ordered items: 5 EA more invoiced"
     );
     assert(
         "  and the two really differ, so the count is read rather than ignored",
-        describeInvoiceItem({ ...ordinary, billedBeyondOrder: 5 }, "EA", {
+        describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 5 }, "EA", {
             hasDelivery: true,
             orderedItemCount: 2,
         }).againstOrder?.text !==
-            describeInvoiceItem({ ...ordinary, billedBeyondOrder: 5 }, "EA", { hasDelivery: true })
+            describeInvoiceItem({ ...ordinary, invoicedBeyondOrder: 5 }, "EA", { hasDelivery: true })
                 .againstOrder?.text
     );
 
@@ -563,37 +563,37 @@ export function run({ check, log, assert }) {
 
     log("");
     log("an invoice's SHARE is the same measurement at a smaller scope:");
-    check("billed but not delivered", shortShare.billedNotDelivered, 40);
+    check("invoiced but not delivered", shortShare.invoicedNotDelivered, 40);
     check("verdict comes from the shared function", invoiceVerdictKey(shortShare), "nothing-delivered");
     check("covered", invoiceVerdictKey(covered), "all-delivered");
     // Beyond-order facts belong to the ORDER, not to one invoice, so a share carries
     // none of its own and the caller attaches the ordered item's.
     check("a share claims no beyond-order fact of its own", covered.deliveredBeyondOrder, 0);
-    check("nor on the billing side", covered.billedBeyondOrder, 0);
+    check("nor on the invoiced side", covered.invoicedBeyondOrder, 0);
     check("no argument does not throw", invoiceShareStatus().invoiced, 0);
 
     // --- the delivery axis: QUANTITIES, NOT AN EXISTENCE TEST (#210) --------
     log("");
     log("a delivery is invoiced when the invoices NAMING IT cover what it brought:");
-    const dl = (delivered, billed) => ({ poItemRecordId: `recPOI${delivered}${billed}`, delivered, billed });
-    check("nothing billed — the vendor-chasing state", summarizeDeliveryInvoicing([dl(10, 0), dl(5, 0)]).key, "awaiting-invoice");
-    check("both ordered items billed in full", summarizeDeliveryInvoicing([dl(10, 10), dl(5, 5)]).key, "invoiced");
-    check("one of two billed", summarizeDeliveryInvoicing([dl(10, 10), dl(5, 0)]).key, "partly-invoiced");
+    const dl = (delivered, invoiced) => ({ poItemRecordId: `recPOI${delivered}${invoiced}`, delivered, invoiced });
+    check("nothing invoiced — the vendor-chasing state", summarizeDeliveryInvoicing([dl(10, 0), dl(5, 0)]).key, "awaiting-invoice");
+    check("both ordered items invoiced in full", summarizeDeliveryInvoicing([dl(10, 10), dl(5, 5)]).key, "invoiced");
+    check("one of two invoiced", summarizeDeliveryInvoicing([dl(10, 10), dl(5, 0)]).key, "partly-invoiced");
     // THE CASE THE ISSUE IS ABOUT, ONE LEVEL DOWN. A delivery can carry material
-    // nobody has billed yet, so "does this delivery have an invoice" would read
+    // nobody has invoiced yet, so "does this delivery have an invoice" would read
     // `Invoiced` while half of it is still owed. That is why the three keys survive
     // and why the comparison is per ordered item rather than a bare lookup.
     check("a delivery of two materials with one invoice is PARTLY, not invoiced", summarizeDeliveryInvoicing([dl(10, 10), dl(8, 0)]).key, "partly-invoiced");
-    check("part of one ordered item billed is partly too", summarizeDeliveryInvoicing([dl(10, 4)]).key, "partly-invoiced");
-    // The key is what separates "part of it is billed" from "none of it is", and it
+    check("part of one ordered item invoiced is partly too", summarizeDeliveryInvoicing([dl(10, 4)]).key, "partly-invoiced");
+    // The key is what separates "part of it is invoiced" from "none of it is", and it
     // is the only thing that does — the predicate behind it stays a local rather than
     // becoming a returned field no screen reads.
-    check("  while nothing billed at all is the other state", summarizeDeliveryInvoicing([dl(10, 0)]).key, "awaiting-invoice");
+    check("  while nothing invoiced at all is the other state", summarizeDeliveryInvoicing([dl(10, 0)]).key, "awaiting-invoice");
     check("no ordered items at all", summarizeDeliveryInvoicing([]).key, "no-ordered-items");
     check("nullish does not throw", summarizeDeliveryInvoicing(null).key, "no-ordered-items");
-    // A vendor billing MORE than it shipped is the INVOICE axis's discrepancy; from
+    // A vendor invoicing MORE than it shipped is the INVOICE axis's discrepancy; from
     // the delivery's side there is nothing left to chase, so `>=` rather than `===`.
-    check("billed more than delivered leaves nothing to chase here", summarizeDeliveryInvoicing([dl(10, 14)]).key, "invoiced");
+    check("invoiced more than delivered leaves nothing to chase here", summarizeDeliveryInvoicing([dl(10, 14)]).key, "invoiced");
     check("counts the ordered items it judged", summarizeDeliveryInvoicing([dl(10, 10), dl(5, 0)]).total, 2);
 
     // --- THE CHIPS ---------------------------------------------------------
@@ -638,8 +638,8 @@ export function run({ check, log, assert }) {
     // separate question — pinned in its own section above, on its own inputs.
     const detail = (status, unit = "EA") => describeInvoiceItem(status, unit, { hasDelivery: true });
     check("covered says nothing at all (#232)", detail(covered).verdict, null);
-    check("short", detail(partShare).verdict?.text, "3 EA more billed than the matched delivery delivered");
-    check("nothing", detail(shortShare).verdict?.text, "40 EA billed, none of it delivered by the matched delivery");
+    check("short", detail(partShare).verdict?.text, "3 EA more invoiced than the matched delivery delivered");
+    check("nothing", detail(shortShare).verdict?.text, "40 EA invoiced, none of it delivered by the matched delivery");
     check("not compared", detail(null).verdict?.text, "Not compared — no ordered item");
     // BOTH SURVIVING VERDICTS CARRY FIGURES, and #232 inverted the reason they did
     // not. The rule was "no figures where the box's own numbers line already has
@@ -649,7 +649,7 @@ export function run({ check, log, assert }) {
         "the shortfall verdict states the difference, which IS the fact",
         detail(partShare).verdict?.text.startsWith("3 EA")
     );
-    assert("and the empty one states the whole bill", detail(shortShare).verdict?.text.startsWith("40 EA"));
+    assert("and the empty one states the whole invoice", detail(shortShare).verdict?.text.startsWith("40 EA"));
     assert(
         "a blank unit omits it rather than printing 'undefined'",
         !detail(partShare, "").verdict?.text.includes("undefined")
@@ -659,10 +659,10 @@ export function run({ check, log, assert }) {
     log("`Against the ordered item:` is ONE line even when both sides exceed it:");
     // Conditional again since #232's second pass, and with no leading `ordered` term
     // — see the section above for both reversals.
-    const withBoth = { ...partShare, deliveredBeyondOrder: 2, billedBeyondOrder: 3 };
-    check("both terms, billed first", detail(withBoth).againstOrder?.text, "Against the ordered item: 3 EA more billed, 2 EA more delivered");
+    const withBoth = { ...partShare, deliveredBeyondOrder: 2, invoicedBeyondOrder: 3 };
+    check("both terms, invoiced first", detail(withBoth).againstOrder?.text, "Against the ordered item: 3 EA more invoiced, 2 EA more delivered");
     check("delivery side alone", detail({ ...covered, deliveredBeyondOrder: 2 }).againstOrder?.text, "Against the ordered item: 2 EA more delivered");
-    check("billing side alone", detail({ ...covered, billedBeyondOrder: 3 }).againstOrder?.text, "Against the ordered item: 3 EA more billed");
+    check("invoiced side alone", detail({ ...covered, invoicedBeyondOrder: 3 }).againstOrder?.text, "Against the ordered item: 3 EA more invoiced");
     check("neither, so the line is absent entirely", detail(covered).againstOrder, null);
     check("and it is absent for a not-compared line too", detail(null).againstOrder, null);
 
@@ -671,7 +671,7 @@ export function run({ check, log, assert }) {
     // The first version returned a list and the page colored everything that was
     // not `matched`, which made all three amber and the color distinguish nothing.
     const slots = detail(withBoth);
-    check("the verdict is its own slot", slots.verdict?.key, "billed-more");
+    check("the verdict is its own slot", slots.verdict?.key, "invoiced-more");
     check("and the aside is another", slots.againstOrder?.key, "against-order");
     // TWO SLOTS SINCE #210: the third explained a guess that no longer happens.
     assert(
@@ -709,8 +709,8 @@ export function run({ check, log, assert }) {
     // #166's. Two implementations of one rule is what this repo removes; what
     // stays here is #166's own vocabulary, which that check does not own.
     assert(
-        "the shortfall message says 'more billed than' what it compares against",
-        STATUS_COPY.detail.verdict["billed-more"](short, "EA").text.includes("more billed than the matched delivery")
+        "the shortfall message says 'more invoiced than' what it compares against",
+        STATUS_COPY.detail.verdict["invoiced-more"](short, "EA").text.includes("more invoiced than the matched delivery")
     );
     assert("every sentence is non-empty", everySentence.every((t) => t && t.length > 0));
 
@@ -718,7 +718,7 @@ export function run({ check, log, assert }) {
     log("");
     log("the vendor-chasing filter takes BOTH incomplete states (#166):");
     // Filtering on the empty state alone would drop a delivery carrying two
-    // materials where only one is billed — which is exactly "it is here and there
+    // materials where only one is invoiced — which is exactly "it is here and there
     // is no invoice for it", the thing this list exists to catch.
     check("nothing invoiced", isNotFullyInvoiced("awaiting-invoice"), true);
     check("partly invoiced", isNotFullyInvoiced("partly-invoiced"), true);
@@ -956,7 +956,7 @@ export function run({ check, log, assert }) {
     log("");
     log("THE QUIET MUTANT — a verdict that never changes is a chip that always reads:");
     // This rule's failure mode is a constant. One word in every row looks like a
-    // list where nothing has been billed, or one where everything has, and no other
+    // list where nothing has been invoiced, or one where everything has, and no other
     // check in this repository reads these keys — the station #237's `always agree`,
     // #242's removed narrowing, #241's always-silent list, #238's unfolded table and
     // #179's one word for two kinds stand at. So the first assertion is that the
@@ -966,7 +966,7 @@ export function run({ check, log, assert }) {
         invoicedQty: invoiced,
         committedQty: committed,
     });
-    const billing = (orderedItems) => summarizePOInvoicingStatus(orderedItems).key;
+    const invoicing = (orderedItems) => summarizePOInvoicingStatus(orderedItems).key;
     const everyState = [
         ["invoiced", [orderedItemInvoice(10, 10), orderedItemInvoice(5, 5)]],
         ["partly-invoiced", [orderedItemInvoice(10, 10), orderedItemInvoice(5, 0)]],
@@ -975,11 +975,11 @@ export function run({ check, log, assert }) {
     ];
     const alwaysAwaiting = () => "awaiting-invoice";
     for (const [expected, orderedItems] of everyState) {
-        check(`  ${expected}`, billing(orderedItems), expected);
+        check(`  ${expected}`, invoicing(orderedItems), expected);
     }
     assert(
         "  so a constant verdict disagrees on three of the four",
-        everyState.filter(([expected, orderedItems]) => alwaysAwaiting(orderedItems) !== billing(orderedItems)).length === 3
+        everyState.filter(([expected, orderedItems]) => alwaysAwaiting(orderedItems) !== invoicing(orderedItems)).length === 3
     );
 
     log("");
@@ -1001,7 +1001,7 @@ export function run({ check, log, assert }) {
     // `deliveredWithin` are order-scoped facts, which its docstring says the caller
     // grafts on. Everything else must match exactly.
     const ORDER_SCOPED_ONLY = ["ordered", "deliveredWithin"];
-    const shareShape = shapeOf(invoiceShareStatus({ billed: 10, delivered: 10 }));
+    const shareShape = shapeOf(invoiceShareStatus({ invoicedQty: 10, delivered: 10 }));
     const itemShape = Object.keys(orderedItemStatus({ orderedQty: 10, invoicedQty: 10, deliveredWithinQty: 10 }))
         .filter((k) => !ORDER_SCOPED_ONLY.includes(k))
         .sort()
@@ -1015,7 +1015,7 @@ export function run({ check, log, assert }) {
         ORDER_SCOPED_ONLY.every(
             (k) =>
                 k in orderedItemStatus({ orderedQty: 1 }) &&
-                !(k in invoiceShareStatus({ billed: 1, delivered: 1 }))
+                !(k in invoiceShareStatus({ invoicedQty: 1, delivered: 1 }))
         )
     );
     check(
@@ -1023,14 +1023,14 @@ export function run({ check, log, assert }) {
         shapeOf(summarizePOInvoicingStatus([orderedItemInvoice(10, 4)])),
         shapeOf(summarizePODeliveryStatus([orderedItem(10, 4)])).replace("anyDelivered", "anyInvoiced")
     );
-    check("a half-billed ordered item is the middle state", billing([orderedItemInvoice(10, 4)]), "partly-invoiced");
+    check("a half-invoiced ordered item is the middle state", invoicing([orderedItemInvoice(10, 4)]), "partly-invoiced");
     check(
         "  which the delivery axis reads the same way",
         summarizePODeliveryStatus([orderedItem(10, 4)]).key,
         "partly-delivered"
     );
     // #210 removed the middle from the INVOICE axis, where one invoice is answered by
-    // one delivery. An order is billed by as many invoices as the vendor sends, so
+    // one delivery. An order is invoiced by as many invoices as the vendor sends, so
     // the middle is real here — asserted rather than assumed, since the temptation
     // to carry that removal across is exactly what this pins.
     assert(
@@ -1041,8 +1041,8 @@ export function run({ check, log, assert }) {
     );
 
     log("");
-    log("billed beyond the order counts as billed, the way delivered beyond it does:");
-    check("one ordered item billed past its Qty", billing([orderedItemInvoice(10, 13)]), "invoiced");
+    log("invoiced beyond the order counts as invoiced, the way delivered beyond it does:");
+    check("one ordered item invoiced past its Qty", invoicing([orderedItemInvoice(10, 13)]), "invoiced");
     check("  and its own line says so", orderedItemInvoicing(orderedItemInvoice(10, 13)).complete, true);
     check(
         "  which is what the delivery axis does with an over-delivery",
@@ -1052,14 +1052,14 @@ export function run({ check, log, assert }) {
     // The excess is not lost by that: it is a per-ordered-item fact, marked `(over)`
     // beside `Invoiced` and flagged as #179's `Order variance` on the charge.
     check("a partly-invoiced order with one over-billed item stays partly invoiced",
-        billing([orderedItemInvoice(10, 13), orderedItemInvoice(5, 0)]), "partly-invoiced");
+        invoicing([orderedItemInvoice(10, 13), orderedItemInvoice(5, 0)]), "partly-invoiced");
 
     log("");
     log("a withdrawn order drops out through the same field as on the delivery axis:");
-    check("nothing-ordered", billing([orderedItemInvoice(10, 10, 0), orderedItemInvoice(5, 0, 0)]), "nothing-ordered");
+    check("nothing-ordered", invoicing([orderedItemInvoice(10, 10, 0), orderedItemInvoice(5, 0, 0)]), "nothing-ordered");
     check(
         "  and the same ordered items with a live Committed Qty do not",
-        billing([orderedItemInvoice(10, 10, 10), orderedItemInvoice(5, 0, 5)]),
+        invoicing([orderedItemInvoice(10, 10, 10), orderedItemInvoice(5, 0, 5)]),
         "partly-invoiced"
     );
     check("judged counts only what counts", summarizePOInvoicingStatus([orderedItemInvoice(10, 10, 0)]).ordered, 0);
@@ -1218,7 +1218,7 @@ export function run({ check, log, assert }) {
         staleSortFields.size === 0 ? "none" : [...staleSortFields].join(", "),
         "none"
     );
-    assert("and nothing here sorts bills by Issue Date any more", !sortedFields.has("issueDate"));
+    assert("and nothing here sorts invoices by Issue Date any more", !sortedFields.has("issueDate"));
 
     // ANTI-VACUITY FOR THE WHOLE SECTION. Every assertion above is of the form "this
     // identifier is absent", which is also what a walk that visited nothing reports —
@@ -1233,7 +1233,7 @@ export function run({ check, log, assert }) {
     // keeps the property this line is for: proof the walk is reading the new file
     // and not a stale parse.
     assert("  including one #232 ADDED, so it is reading the new file", identifiers.has("speaks"));
-    assert("it sees object keys", propertyKeys.has("billedNotDelivered"));
+    assert("it sees object keys", propertyKeys.has("invoicedNotDelivered"));
     assert("  including one #210 added", propertyKeys.has("mismatch"));
     // A control on the negative direction too: a name that is genuinely absent and
     // has never been in this module must also come back absent, or the sets are

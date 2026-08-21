@@ -168,7 +168,7 @@ const EXEMPTIONS = [
             "Admin, because raising the corrective request is site work. That NARROWED " +
             "#166, which withheld invoice existence from site staff on the deliveries " +
             "list, while this action and its preview reveal that the over-delivered " +
-            "ordered item is billed, by which invoice and at what unit price — none of " +
+            "ordered item is invoiced, by which invoice and at what unit price — none of " +
             "which can be hidden from someone raising a request quoted from it. #211 " +
             "then released that column to every viewer, so the contrast is gone while " +
             "the reasoning the disclosure rests on is not. It also re-derives " +

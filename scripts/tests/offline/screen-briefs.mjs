@@ -46,6 +46,7 @@ import {
     STATUS_COPY,
     AWAITING_INVOICE_COPY,
     AWAITING_DELIVERY_COPY,
+    orderedItemStatus,
 } from "../../../lib/deliveryStatus.js";
 import { VARIANCE_COPY } from "../../../lib/variance.js";
 import { EMPTY_COPY, AWAITING_PO_COPY } from "../../../lib/poListView.js";
@@ -72,6 +73,32 @@ export function briefFileName(route) {
     return route.replace(/^\//, "").replace(/\//g, "-").replace(/[[\]]/g, "") + ".md";
 }
 
+/**
+ * The status object handed to every copy builder below — BUILT BY THE JUDGMENT
+ * RATHER THAN WRITTEN OUT (#274).
+ *
+ * IT WAS A LITERAL AND THAT LITERAL WAS A SILENT FAILURE. Two copies of
+ * `{ invoiced, billedNotDelivered, delivered, billedBeyondOrder, deliveredBeyondOrder }`
+ * stood at the two call sites, naming fields of `orderedItemStatus`'s shape as INPUT
+ * keys. #274 renamed two of those fields; had the literals not been renamed with
+ * them, every builder would have read `undefined` and this file would still have
+ * passed 36 of 36 — the tone set stays seven whatever the figures are, and no pinned
+ * sentence carries one. Measured before the fix: `15 EA more invoiced …` became
+ * `undefined EA more invoiced …`, and `Against the ordered item:` dropped its
+ * invoiced term entirely while every check stayed green.
+ *
+ * Deriving it removes the hazard rather than documenting it: the producer names the
+ * keys, so a rename carries them. The four figures are exactly the old literal's —
+ * ordered 25 and invoiced 30 put 5 beyond the order, 12 within plus 3 over put 15
+ * delivered and 15 not invoiced. `ordered` and `deliveredWithin` come along unread.
+ */
+const SAMPLE_STATUS = orderedItemStatus({
+    orderedQty: 25,
+    invoicedQty: 30,
+    deliveredWithinQty: 12,
+    deliveredOverQty: 3,
+});
+
 /** The four sections every screen brief carries, in this order. */
 const REQUIRED_HEADINGS = [
     "## What it answers",
@@ -83,7 +110,7 @@ const REQUIRED_HEADINGS = [
 /** Every `tone` a STATUS_COPY builder can return, walked rather than grepped. */
 function tonesInStatusCopy() {
     const tones = new Set();
-    const sample = { invoiced: 30, billedNotDelivered: 15, delivered: 15, billedBeyondOrder: 5, deliveredBeyondOrder: 3 };
+    const sample = SAMPLE_STATUS;
     const visit = (value) => {
         if (typeof value === "function") {
             try {
@@ -108,7 +135,7 @@ function tonesInStatusCopy() {
  * have almost nothing to compare against and would pass by looking at very little.
  */
 function stringsFrom(value, out = []) {
-    const sample = { invoiced: 30, billedNotDelivered: 15, delivered: 15, billedBeyondOrder: 5, deliveredBeyondOrder: 3 };
+    const sample = SAMPLE_STATUS;
     if (typeof value === "string") {
         out.push(value);
     } else if (typeof value === "function") {
@@ -147,6 +174,17 @@ const PINNED = [
     "⚠ Order variance",
     "⚠ Check the total",
     "Not compared — no ordered item",
+    // #274 — THE THREE `_shared.md` CALLS TIER 1 AND NOTHING PINNED. Its status
+    // section quotes four sentences from `lib/deliveryStatus.js` as locked words;
+    // only `Not compared — no ordered item` above was ever pinned, so the other
+    // three could be reworded in the constant while the brief went on quoting the
+    // old wording to a designer. This issue reworded all three, which is the moment
+    // to close it. Each is pinned WITHOUT its figure, because the brief writes `N`
+    // where a builder puts a number — the pin is the wording, which is what a
+    // redesign may not change.
+    "⚠ This invoice charges more than the delivery matched to it delivered",
+    "more invoiced than the matched delivery delivered",
+    "invoiced, none of it delivered by the matched delivery",
     "Longest wait first. No invoice yet covers what these deliveries brought.",
     "Longest wait first. Nothing has confirmed the material these invoices charge for.",
     "nothing delivered yet",
@@ -301,6 +339,25 @@ export function run({ check, assert, log }) {
         ...stringsFrom(OVERAGE_COPY),
     ];
     assert("the copy constants yielded strings", loadable.length > 20);
+    // AND NO `STATUS_COPY` SENTENCE RENDERED `undefined`, WHICH IS WHAT A STALE INPUT
+    // KEY LOOKS LIKE (#274). This is the assertion the literal sample lacked, and it
+    // is name-free on purpose: it does not ask whether one field is spelled right, it
+    // asks whether every builder got a figure at all. `SAMPLE_STATUS` being derived is
+    // what makes it hold; this is what would say so if a future sample stopped being.
+    //
+    // SCOPED TO `STATUS_COPY`, WHICH IS THE ONLY CONSTANT THE SAMPLE IS FOR. Eleven
+    // other builders take a facts object of their own and are probed with the sample
+    // anyway — `stringsFrom` tries three argument shapes and keeps the first that does
+    // not throw — so they render `undefined` by design and always have. Widening this
+    // to `loadable` would fail on eleven strings that are nobody's defect.
+    const statusFigures = stringsFrom(STATUS_COPY).filter((s) => s.includes("undefined"));
+    check(
+        `STATUS_COPY sentences rendering \`undefined\` from a sample key that no longer exists${
+            statusFigures.length ? ` (first: ${JSON.stringify(statusFigures[0])})` : ""
+        }`,
+        statusFigures.length,
+        0
+    );
 
     // Each pinned sentence has to be BOTH still in a constant and still in a brief.
     // Either half alone would miss the drift: a constant reworded leaves the brief

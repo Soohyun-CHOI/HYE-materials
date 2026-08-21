@@ -9,8 +9,8 @@
 // marker itself for the same test applied one level down; see there.
 //
 // ONE FILE FOR BOTH LISTS because the two columns are one idea at two ends: the
-// invoice list says whether what was billed has been delivered, the deliveries
-// list whether what was delivered has been billed. A reader crossing between them
+// invoice list says whether what was invoiced has been delivered, the deliveries
+// list whether what was delivered has been invoiced. A reader crossing between them
 // should recognize the shape, so a tone means the same thing on both — complete,
 // partial, or neither — and neither list carries a palette of its own.
 //

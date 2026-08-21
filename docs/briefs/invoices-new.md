@@ -6,10 +6,10 @@ Who reaches it: Admin only. Recording a vendor's invoice is office work.
 ## What it answers
 
 Nothing about existing data — it is a create form. Its job is to get a vendor's
-paper invoice into the system **line by line against the orders it bills**, which
+paper invoice into the system **line by line against the orders it charges**, which
 is the reconciliation the whole app exists to make possible. This is the most
 complex form in the app by a wide margin, and almost all of that complexity is one
-thing: an invoice can bill more than one order, and each of its charges has to be
+thing: an invoice can charge more than one order, and each of its charges has to be
 matched to a specific ordered item.
 
 The reader is holding the vendor's document. Everything on the form is a

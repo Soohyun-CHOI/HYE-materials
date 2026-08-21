@@ -13,7 +13,7 @@
 // THE OTHER TWO MUTANTS ARE THE ARITHMETIC ONES, and each is the plausible mistake
 // rather than an invented one:
 //
-//   - RE-CLAMP AT THE FOLDED SCOPE — add the billed, add what was delivered, clamp once.
+//   - RE-CLAMP AT THE FOLDED SCOPE — add the invoiced, add what was delivered, clamp once.
 //     It reads like the tidier rule and it is wrong twice over: a surplus on one
 //     ordered item cancels a shortfall on another, and the entry then disagrees with
 //     the chip, which is computed off the same per-row shares here AND on `/invoices`
@@ -61,7 +61,7 @@ const item = ({
 }) => ({ id, invoiceItemId: id, materialRecordId: material, itemName, size, unit, qty, unitPrice });
 
 /**
- * One reconciliation row, as `getInvoiceReconciliation` returns it. `billed` and
+ * One reconciliation row, as `getInvoiceReconciliation` returns it. `invoiced` and
  * `arrived` go through the production clamp; the two beyond-order terms are grafted
  * on the way the walk grafts them, since they are the ordered item's and not the
  * share's.
@@ -74,9 +74,9 @@ const item = ({
 const row = ({
     id,
     poItemId = `${id}-ordered`,
-    billed = 10,
+    invoiced = 10,
     delivered = 10,
-    billedBeyondOrder = 0,
+    invoicedBeyondOrder = 0,
     deliveredBeyondOrder = 0,
     judged = true,
     itemName = "Elbow",
@@ -92,7 +92,7 @@ const row = ({
     materialRecordId: judged ? MATERIAL : null,
     rawDelivered: judged ? delivered : null,
     status: judged
-        ? { ...invoiceShareStatus({ billed, delivered }), billedBeyondOrder, deliveredBeyondOrder }
+        ? { ...invoiceShareStatus({ invoicedQty: invoiced, delivered }), invoicedBeyondOrder, deliveredBeyondOrder }
         : null,
 });
 
@@ -106,8 +106,8 @@ function invoice(items, rows) {
 const SPLIT_COVERED = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 10 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 3 }),
+        row({ id: "rec1", poItemId: "poA", invoiced: 10, delivered: 10 }),
+        row({ id: "rec2", poItemId: "poB", invoiced: 3, delivered: 3 }),
     ]
 );
 
@@ -115,8 +115,8 @@ const SPLIT_COVERED = invoice(
 const SPLIT_SHORT = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 8 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 3 }),
+        row({ id: "rec1", poItemId: "poA", invoiced: 10, delivered: 8 }),
+        row({ id: "rec2", poItemId: "poB", invoiced: 3, delivered: 3 }),
     ]
 );
 
@@ -126,8 +126,8 @@ const SPLIT_SHORT = invoice(
 const SPLIT_CROSSED = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 8 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 5 }),
+        row({ id: "rec1", poItemId: "poA", invoiced: 10, delivered: 8 }),
+        row({ id: "rec2", poItemId: "poB", invoiced: 3, delivered: 5 }),
     ]
 );
 
@@ -139,9 +139,9 @@ const COVERED = invoice(
         item({ id: "rec3", material: "recMAT_3", itemName: "Union", qty: 4, unitPrice: 8 }),
     ],
     [
-        row({ id: "rec1", billed: 10, delivered: 10 }),
-        row({ id: "rec2", billed: 7, delivered: 7, itemName: "Tee" }),
-        row({ id: "rec3", billed: 4, delivered: 4, itemName: "Union" }),
+        row({ id: "rec1", invoiced: 10, delivered: 10 }),
+        row({ id: "rec2", invoiced: 7, delivered: 7, itemName: "Tee" }),
+        row({ id: "rec3", invoiced: 4, delivered: 4, itemName: "Union" }),
     ]
 );
 
@@ -153,9 +153,9 @@ const ONE_SHORT = invoice(
         item({ id: "rec3", material: "recMAT_3", itemName: "Union", qty: 4, unitPrice: 8 }),
     ],
     [
-        row({ id: "rec1", billed: 10, delivered: 10 }),
-        row({ id: "rec2", billed: 7, delivered: 3, itemName: "Tee" }),
-        row({ id: "rec3", billed: 4, delivered: 4, itemName: "Union" }),
+        row({ id: "rec1", invoiced: 10, delivered: 10 }),
+        row({ id: "rec2", invoiced: 7, delivered: 3, itemName: "Tee" }),
+        row({ id: "rec3", invoiced: 4, delivered: 4, itemName: "Union" }),
     ]
 );
 
@@ -167,7 +167,7 @@ const COVERED_PLUS_FREE_TEXT = invoice(
         item({ id: "rec9", material: null, itemName: "Freight", size: "", unit: "", qty: 1, unitPrice: 40 }),
     ],
     [
-        row({ id: "rec1", billed: 10, delivered: 10 }),
+        row({ id: "rec1", invoiced: 10, delivered: 10 }),
         row({ id: "rec9", judged: false, itemName: "Freight", size: "", unit: "" }),
     ]
 );
@@ -177,8 +177,8 @@ const COVERED_PLUS_FREE_TEXT = invoice(
 const TWO_CHARGES_ONE_ORDERED_ITEM = invoice(
     [item({ id: "rec1", qty: 5 }), item({ id: "rec2", qty: 5 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 5, delivered: 6, billedBeyondOrder: 4 }),
-        row({ id: "rec2", poItemId: "poA", billed: 5, delivered: 6, billedBeyondOrder: 4 }),
+        row({ id: "rec1", poItemId: "poA", invoiced: 5, delivered: 6, invoicedBeyondOrder: 4 }),
+        row({ id: "rec2", poItemId: "poA", invoiced: 5, delivered: 6, invoicedBeyondOrder: 4 }),
     ]
 );
 
@@ -186,8 +186,8 @@ const TWO_CHARGES_ONE_ORDERED_ITEM = invoice(
 const SPLIT_BOTH_BEYOND = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
     [
-        row({ id: "rec1", poItemId: "poA", billed: 10, delivered: 10, billedBeyondOrder: 3 }),
-        row({ id: "rec2", poItemId: "poB", billed: 3, delivered: 3, billedBeyondOrder: 2 }),
+        row({ id: "rec1", poItemId: "poA", invoiced: 10, delivered: 10, invoicedBeyondOrder: 3 }),
+        row({ id: "rec2", poItemId: "poB", invoiced: 3, delivered: 3, invoicedBeyondOrder: 2 }),
     ]
 );
 
@@ -245,7 +245,7 @@ export function run({ check, assert, log }) {
     check(
         "  and states the FOLDED shortfall",
         entriesOf(SPLIT_SHORT)[0].copy.verdict.text,
-        "2 EA more billed than the matched delivery delivered"
+        "2 EA more invoiced than the matched delivery delivered"
     );
     check("a covered split says nothing at all", entriesOf(SPLIT_COVERED).length, 0);
     // The pre-#241 shape, kept as the thing being replaced: one entry per row would
@@ -256,35 +256,35 @@ export function run({ check, assert, log }) {
             SPLIT_COVERED.rows.every((r) => r.itemName === "Elbow")
     );
     const splitShortShare = foldedEntryShare(SPLIT_SHORT.rows);
-    check("a folded entry's share adds what its members billed", splitShortShare.invoiced, 13);
+    check("a folded entry's share adds what its members invoiced", splitShortShare.invoiced, 13);
     check("  and what they were delivered", splitShortShare.delivered, 11);
-    check("  and the shortfall falls out of the two", splitShortShare.billedNotDelivered, 2);
-    check("  with nothing delivered beyond the invoice, which the clamp guarantees", splitShortShare.deliveredNotBilled, 0);
+    check("  and the shortfall falls out of the two", splitShortShare.invoicedNotDelivered, 2);
+    check("  with nothing delivered beyond the invoice, which the clamp guarantees", splitShortShare.deliveredNotInvoiced, 0);
 
     // -----------------------------------------------------------------------
     log("");
     log("THE RE-CLAMP MUTANT — add the two sides, then clamp once:");
     const reclamped = (fixture) => {
         const judged = fixture.rows.filter((r) => r.status);
-        const billed = judged.reduce((sum, r) => sum + r.status.invoiced, 0);
+        const invoiced = judged.reduce((sum, r) => sum + r.status.invoiced, 0);
         // `rawDelivered` is the fixture's, not the row's — see its comment above.
         const delivered = judged.reduce((sum, r) => sum + r.rawDelivered, 0);
-        return invoiceShareStatus({ billed, delivered });
+        return invoiceShareStatus({ invoicedQty: invoiced, delivered });
     };
     check(
         "on the crossed split the real rule still reports the shortfall",
         entriesOf(SPLIT_CROSSED)[0]?.copy.verdict?.text,
-        "2 EA more billed than the matched delivery delivered"
+        "2 EA more invoiced than the matched delivery delivered"
     );
-    check("  the mutant reports none", reclamped(SPLIT_CROSSED).billedNotDelivered, 0);
+    check("  the mutant reports none", reclamped(SPLIT_CROSSED).invoicedNotDelivered, 0);
     assert(
         "  so one ordered item's surplus cancels another's shortfall — the clamp is per pair",
-        reclamped(SPLIT_CROSSED).billedNotDelivered !== foldedEntryShare(SPLIT_CROSSED.rows).billedNotDelivered
+        reclamped(SPLIT_CROSSED).invoicedNotDelivered !== foldedEntryShare(SPLIT_CROSSED.rows).invoicedNotDelivered
     );
     check("  while the chip, read off the same rows, says mismatch", chipOf(SPLIT_CROSSED), "mismatch");
     assert(
         "  which is the screen the mutant makes: an amber sentence with nothing pointing at it",
-        chipOf(SPLIT_CROSSED) === "mismatch" && reclamped(SPLIT_CROSSED).billedNotDelivered === 0
+        chipOf(SPLIT_CROSSED) === "mismatch" && reclamped(SPLIT_CROSSED).invoicedNotDelivered === 0
     );
 
     // THE PROPERTY, over every fixture rather than the one case that shows it.
@@ -303,20 +303,20 @@ export function run({ check, assert, log }) {
     check(
         "two charges on one ordered item state its excess once",
         entriesOf(TWO_CHARGES_ONE_ORDERED_ITEM)[0]?.copy.againstOrder?.text,
-        "Against the ordered item: 4 EA more billed"
+        "Against the ordered item: 4 EA more invoiced"
     );
     const perMember = TWO_CHARGES_ONE_ORDERED_ITEM.rows.reduce(
-        (sum, r) => sum + (r.status?.billedBeyondOrder || 0),
+        (sum, r) => sum + (r.status?.invoicedBeyondOrder || 0),
         0
     );
     assert(
         "  where adding per member would print it twice (8, not 4)",
-        perMember === 8 && foldedEntryShare(TWO_CHARGES_ONE_ORDERED_ITEM.rows).billedBeyondOrder === 4
+        perMember === 8 && foldedEntryShare(TWO_CHARGES_ONE_ORDERED_ITEM.rows).invoicedBeyondOrder === 4
     );
     check(
         "two ordered items each exceeding are added, and the subject agrees in number",
         entriesOf(SPLIT_BOTH_BEYOND)[0]?.copy.againstOrder?.text,
-        "Against the ordered items: 5 EA more billed"
+        "Against the ordered items: 5 EA more invoiced"
     );
     check("a split covers two ordered items, which is what the plural agrees with", orderedItemsCovered(SPLIT_SHORT.rows), 2);
     check(
@@ -324,10 +324,10 @@ export function run({ check, assert, log }) {
         entriesOf(
             invoice(
                 [item({ id: "rec1", qty: 10 })],
-                [row({ id: "rec1", billed: 10, delivered: 10, billedBeyondOrder: 3 })]
+                [row({ id: "rec1", invoiced: 10, delivered: 10, invoicedBeyondOrder: 3 })]
             )
         )[0]?.copy.againstOrder?.text,
-        "Against the ordered item: 3 EA more billed"
+        "Against the ordered item: 3 EA more invoiced"
     );
 
     // -----------------------------------------------------------------------
@@ -347,8 +347,8 @@ export function run({ check, assert, log }) {
                 item({ id: "rec2", material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41 }),
             ],
             [
-                row({ id: "rec1", billed: 10, delivered: 2 }),
-                row({ id: "rec2", billed: 7, delivered: 3, itemName: "Tee" }),
+                row({ id: "rec1", invoiced: 10, delivered: 2 }),
+                row({ id: "rec2", invoiced: 7, delivered: 3, itemName: "Tee" }),
             ]
         )
     ).map((e) => e.itemName).join(","), "Elbow,Tee");

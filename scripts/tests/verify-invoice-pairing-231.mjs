@@ -62,7 +62,7 @@ const ADMIN_EMAIL = "soo@hanyangengusa.com";
 
 // The target, chosen because it makes the outcome unambiguous rather than because
 // it is convenient: HYE-DL-260804-09 brought exactly one ordered item, nothing has
-// billed that ordered item, and no other invoice charges it — so `matched` is the only
+// invoiced that ordered item, and no other invoice charges it — so `matched` is the only
 // outcome the rule can reach, and a `shared-order` or `several` here would be a
 // real failure rather than a differently-shaped pass.
 const DELIVERY_RECORD_ID = "rec52KJ2RM8Rn5yD2"; // HYE-DL-260804-09

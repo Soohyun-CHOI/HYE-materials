@@ -6,7 +6,7 @@ reader is assigned to, or everything for the office.
 
 ## What it answers
 
-What has been delivered on my jobs, and has it been billed yet? A site staffer opens it
+What has been delivered on my jobs, and has it been invoiced yet? A site staffer opens it
 to confirm a delivery they recorded; the office opens it to see what is waiting on
 a vendor.
 
@@ -72,8 +72,8 @@ Both read the same summary function, and the awaiting-invoice strip on the invoi
 list reads it too — so no screen can describe one delivery differently.
 
 **The `Invoiced` chip's vocabulary is the purchase order detail's invoicing
-chip.** One question at two scopes — has this delivery been billed, has this order
-been billed — so a reader meets one vocabulary.
+chip.** One question at two scopes — has this delivery been invoiced, has this order
+been invoiced — so a reader meets one vocabulary.
 
 **`Over-delivered` is the same word on the delivery detail (twice) and on the
 purchase order detail**, and it is a stored checkbox rather than a per-screen

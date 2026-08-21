@@ -47,7 +47,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 
 ## What this project is
 
-Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice workflow (Hanyang ENG, a construction company) with a web app owning the full lifecycle. The core problem isn't any single step but that the three were never connected: the same order lived in a spreadsheet, an email thread, and a vendor's invoice with nothing tying them together, so reconciling what was ordered against what was billed was manual and after the fact.
+Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice workflow (Hanyang ENG, a construction company) with a web app owning the full lifecycle. The core problem isn't any single step but that the three were never connected: the same order lived in a spreadsheet, an email thread, and a vendor's invoice with nothing tying them together, so reconciling what was ordered against what was invoiced was manual and after the fact.
 
 ## How the work flows
 
@@ -117,7 +117,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/overage.js` — the overage correction's judgment and `OVERAGE_COPY`. What earns a correction is the delivery and the invoice agreeing above the order, read from the ordered item's totals: `overageAgreement`'s three states (#265). Which invoice supplies the quotation, and its private ordering (#219). Also `awaitsCorrection` and the signer-copy rule (#217).
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the uncorrected-excess list (#217), the Draft it creates, and the apply step. Credentialed.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
-- `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders it bills (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.
+- `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders they charge (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.
 - `lib/invoiceDeliveryEntries.js` — the invoice detail's delivery entries (#241): one per folded item, its members' shares added rather than re-clamped, and no entry where nothing disagrees.
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed.
@@ -189,7 +189,7 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 
 **A screen word is not a field name**, and a code identifier may diverge from the field it reads on purpose. Before naming a field, a screen word or an identifier, read `docs/notes/naming.md` — it holds the word-to-field table, the conventions (`X ID` / `X Label` / `X Date` / `X At`, a checkbox takes a participle, a subtraction is named for what it subtracts, plain `Qty` for a row's own quantity) and the divergences that are deliberate.
 
-- **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Lines` → a Job's line, so a `PO Items` row is an **ordered item**. Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. **The record is not the act**: `billed` is what an invoice does, and no table gives a verb — but a verb survives only where no other verb is already settled for the same act, which is why `arrived` went and `billed` stayed (#227). **Identifiers are bound and were swept in #227**, and `offline/line-vocabulary.mjs` inventories the ones that legitimately keep a barred stem, with a reason each. What no check can hold is prose, which is why the rule is here.
+- **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Lines` → a Job's line, so a `PO Items` row is an **ordered item**. Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. **The record is not the act, and a table giving no verb does not leave the verb free (#274):** a derivation already built on the table's name IS the choice. `Invoiced Qty`, `uninvoicedQty` and #235's `Invoiced` chip settled `invoice` for what an invoice does, so `billed` was a second verb and went the way `arrived` went. Where the participle will not carry a transitive sentence the verb is `charges` — `No invoice charges this order yet.` — never `invoices`. **Identifiers are bound and were swept in #227**, and `offline/line-vocabulary.mjs` inventories the ones that legitimately keep a barred stem, with a reason each. What no check can hold is prose, which is why the rule is here.
 
 ## ID generation (lib/ids.js)
 

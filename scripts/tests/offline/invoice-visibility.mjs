@@ -102,7 +102,7 @@ export async function run({ check, log, assert }) {
     // A DROPDOWN OF INVOICE NUMBERS IS A SURFACE THAT SHOWS INVOICES, so it gates per
     // record. The shortcut that was actually tempting here is worth naming, because
     // it is free and it is wrong: getDeliveryCandidates already holds every purchase
-    // order on the viewer's jobs, so "an invoice billing one of those orders" costs
+    // order on the viewer's jobs, so "an invoice invoicing one of those orders" costs
     // nothing — and it is a SECOND answer to the visibility question that would
     // disagree with the first, since canViewPR also admits a requester, a signer and
     // the recipient of a correction request, none of whom need a Job assignment.

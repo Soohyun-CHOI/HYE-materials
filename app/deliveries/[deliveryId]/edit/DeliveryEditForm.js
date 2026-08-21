@@ -22,7 +22,7 @@ import {
 
 /**
  * The four editable things on a recorded delivery: the received date and the note
- * (#162), the photo (#162), and the invoice this delivery is billed by (#210).
+ * (#162), the photo (#162), and the invoice this delivery is invoiced by (#210).
  *
  * FOUR SEPARATE FORMS, not one save. For the photo that is #142's rule made
  * structural rather than remembered: a combined save would carry the current
@@ -152,7 +152,7 @@ export default function DeliveryEditForm({
                 </button>
             </form>
 
-            {/* --- #210: the invoice this delivery is billed by ------------------ */}
+            {/* --- #210: the invoice this delivery is invoiced by ------------------ */}
             <div className="mt-8 border-t border-zinc-200 pt-6">
                 <h2 className="text-sm font-medium">Invoices</h2>
                 <p className="mt-1 text-xs text-zinc-500">

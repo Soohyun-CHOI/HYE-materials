@@ -215,7 +215,7 @@ export function run({ check, assert, log }) {
     // #162 left this row unattached, on the grounds that no single order had been
     // over-delivered. The cost was worse than the imprecision: an unlinked row is
     // in no ordered item's Delivered Qty, so a delivery that arrived in full read
-    // as less arrived than was billed.
+    // as less arrived than was invoiced.
     const overTwo = planDelivery({ orderedItems: two, vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 25 });
     check("three rows", overTwo.rows.length, 3);
     check("both orders filled", overTwo.rows.slice(0, 2).map((r) => r.qty).join(","), "10,10");

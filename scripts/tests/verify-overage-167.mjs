@@ -13,7 +13,7 @@
 //       (`prefersSingleRecordLink` is refused on create AND on update, both
 //       measured) — so it is checked on the DATA, where drift would actually
 //       show, rather than on a schema property nothing can set.
-//   B — THE WHOLE FLOW on real records: order 10, deliver 12, bill 12, raise the
+//   B — THE WHOLE FLOW on real records: order 10, deliver 12, invoice 12, raise the
 //       correction, approve it, generate its PO, and then assert that the excess
 //       MOVED — the delivery row re-attached and unflagged, the invoice item split,
 //       and the original ordered item no longer over-delivered.
@@ -428,9 +428,9 @@ try {
         const invoiceItems = await getItemsByInvoice(invoice.id);
         const onOriginal = invoiceItems.filter((l) => l.poItem?.[0] === order.orderedItem.id);
         const onOverage = invoiceItems.filter((l) => l.poItem?.[0] === overageItems[0].id);
-        check(`${label}: one line still bills the original order`, onOriginal.length, 1);
+        check(`${label}: one line still charges the original order`, onOriginal.length, 1);
         check(`${label}:   for what was ordered`, onOriginal[0].qty, order.orderedItem.qty);
-        check(`${label}: one line now bills the overage order`, onOverage.length, 1);
+        check(`${label}: one line now charges the overage order`, onOverage.length, 1);
         check(`${label}:   for the excess`, onOverage[0].qty, overRow.qty);
         check(`${label}:   and its PO link moved too`, onOverage[0].po?.[0], result.overagePO.id);
 
@@ -450,8 +450,8 @@ try {
             deliveredOverQty: 0,
         });
         check(`${label}: nothing is delivered beyond the original order now`, status.deliveredBeyondOrder, 0);
-        check(`${label}: nor billed beyond it`, status.billedBeyondOrder, 0);
-        check(`${label}: and the ordered item reads as fully billed`, originalAfter.invoicedQty, order.orderedItem.qty);
+        check(`${label}: nor invoiced beyond it`, status.invoicedBeyondOrder, 0);
+        check(`${label}: and the ordered item reads as fully invoiced`, originalAfter.invoicedQty, order.orderedItem.qty);
 
         // The items table folds the two invoice items back into one.
         const folded = foldInvoiceItems(
@@ -464,7 +464,7 @@ try {
             }))
         );
         check(`${label}: the items table folds them back into one row`, folded.length, 1);
-        check(`${label}:   summing to what the vendor billed`, folded[0].qty, order.orderedItem.qty + overRow.qty);
+        check(`${label}:   summing to what the vendor invoiced`, folded[0].qty, order.orderedItem.qty + overRow.qty);
         check(`${label}:   and it says it stands for two`, folded[0].rowCount, 2);
 
         // The quotation is the invoice's file, re-uploaded rather than re-submitted.
@@ -483,7 +483,7 @@ try {
     }
 
     // -------------------------------------------------------------------
-    console.log("\nPart B — the whole flow: order 10, deliver 12, bill 12, correct:");
+    console.log("\nPart B — the whole flow: order 10, deliver 12, invoice 12, correct:");
     const orderB = await makeOrder({ itemName: `${TAG} Pipe`, qty: 10 });
     const deliveryB = await deliver({
         rows: [
@@ -498,7 +498,7 @@ try {
 
     check("the correction's PO carries one ordered item", (await getItemsByPO(resultB.overagePO.id)).length, 1);
     check("  for the excess", (await getItemsByPO(resultB.overagePO.id))[0].qty, 2);
-    check("  at the price the vendor billed", (await getItemsByPO(resultB.overagePO.id))[0].unitPrice, 12);
+    check("  at the price the vendor invoiced", (await getItemsByPO(resultB.overagePO.id))[0].unitPrice, 12);
     check("the chain was copied", resultB.draft.signersDropped, 0);
     await assertSettled({
         label: "B",
@@ -569,7 +569,7 @@ try {
 
     // -------------------------------------------------------------------
     console.log("\nPart E — the refusals, on real data:");
-    // Nothing bills the ordered item.
+    // Nothing charges the ordered item.
     const orderE = await makeOrder({ itemName: `${TAG} Tee`, qty: 4 });
     const deliveryE = await deliver({
         rows: [{ orderedItem: orderE.orderedItem, qty: 4 }, { orderedItem: orderE.orderedItem, qty: 1, over: true }],

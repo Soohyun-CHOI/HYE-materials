@@ -49,7 +49,7 @@ export function run({ check, log, assert }) {
         2
     );
 
-    // A vendor billing one material at two prices is two facts, and a split cannot
+    // A vendor invoicing one material at two prices is two facts, and a split cannot
     // change the price — so a price difference means these were never one invoice item.
     check(
         "same material, DIFFERENT price — two rows",

@@ -149,7 +149,7 @@ the one document the system emits, and the office sends it to the vendor by hand
 
 ---
 
-## Act II — Billing, delivery, and the app doing the matching
+## Act II — Invoicing, delivery, and the app doing the matching
 
 **Live.** The centre of the demo. Both directions of the pairing, both ending
 clean — the disagreements are Act IV's, on purpose.
@@ -181,14 +181,14 @@ reads the order number off the file and fills the slot.
 
 Save. **The pairing box appears**: the app matched this invoice to
 `HYE-DL-260819-01` off the ordered items, and says nobody attached it by hand.
-The delivery chip reads `Delivered` — billed and delivered agree.
+The delivery chip reads `Delivered` — invoiced and delivered agree.
 
 > **Why it pairs.** The rule tests **set containment only** — does every ordered
 > item this invoice charges appear on that delivery — plus the agreed unit price,
 > plus whether the delivery has room left. Quantity is deliberately not part of
 > it, which is what makes Act IV possible.
 >
-> Billing only the Pipe Support would pair too (a subset is still contained), and
+> Charging only the Pipe Support would pair too (a subset is still contained), and
 > would leave the order `Partly invoiced`. Both items is the tidier story and the
 > PDF prints both.
 
@@ -221,7 +221,7 @@ watch. That invoice has been waiting with nothing delivered against it.
 
 ### 3. The order that was just live — and both variance kinds
 
-Now bill the order Act I created. Generate its document, substituting the PO ID
+Now invoice the order Act I created. Generate its document, substituting the PO ID
 from Act I:
 
 ```bash
@@ -235,7 +235,7 @@ At `/invoices/new`, attach it. Detection fills the slot with the live order.
 | Ordered item | `Gate Valve` `4"` | the only item on that order |
 | Qty | `10` | what the merge produced in Act I |
 | Unit Price | `48.00` | the order agreed **45.00** → `⚠ Order variance` |
-| Remark | `Vendor billed list price` | the field exists to say why |
+| Remark | `Vendor invoiced list price` | the field exists to say why |
 | Shipping Fee | `0` | |
 | Amount Due | `520.00` | items add to **480.00** → `⚠ Check the total` |
 
@@ -297,12 +297,15 @@ already failed.
 ### 3. `/prs` — over-deliveries with no correction
 
 Eight rows. Two carry a `Raise a correction` button; six say what has to happen
-first, in six different words:
+first, in five different words — the first two share one, because what a reader
+does about either direction is take it up with the vendor. **This table named
+two reasons #265 replaced** and is corrected in #274, which was sweeping the
+word one of them carried.
 
 | Row | Reason |
 |---|---|
-| `HYE-DL-260819-11` | `more than the invoice bills` |
-| `HYE-DL-260819-10` | `no invoice names this delivery` |
+| `HYE-DL-260819-11` | `invoice and delivery disagree` |
+| `HYE-DL-260819-10` | `invoice and delivery disagree` |
 | `HYE-DL-260819-12` | `no ordered item` |
 | `HYE-DL-260819-08` | `invoice has no file` |
 | `HYE-DL-260819-07` | `spans two invoices` |
@@ -334,7 +337,7 @@ on data that does not agree, and the order is the argument: a reader who has see
 | Material | `Steel Pipe 2" SCH40` |
 | Qty | **`3`** |
 
-`HYE-INV-260819-05` bills 10 of that item. The set of ordered items matches and
+`HYE-INV-260819-05` charges 10 of that item. The set of ordered items matches and
 the delivery has room, so the pairing is made — and the invoice now reads
 `Mismatch`.
 
@@ -371,7 +374,7 @@ and that the three forms on this page submit separately.
 
 Two entries under the delivery:
 
-- `Hex Nut M20` — *50 EA more billed than the matched delivery delivered*, in
+- `Hex Nut M20` — *50 EA more invoiced than the matched delivery delivered*, in
   **amber**. Something is wrong.
 - `Crating and export packing` — *Not compared — no ordered item*, in **grey**.
   Nothing was measured. Not a problem, the absence of one.
@@ -388,7 +391,7 @@ the strip's row count and the chip count differ.
 
 ### 5. `/invoices/HYE-INV-260819-10` — one invoice, two orders
 
-A short indented list under each order's row, naming what that order was billed
+A short indented list under each order's row, naming what that order was invoiced
 for and in what quantity. Quantities only, never prices. There is deliberately no
 order column in the items table: a folded row can span two orders, so that cell
 would have no single value.
@@ -511,7 +514,7 @@ reader.
 |---|---|
 | `/prs` | `No purchase requests to show.` — and the **job picker is absent**, not empty |
 | `/pos` | `No purchase orders to show. You see a purchase order when you can see the request behind it.` |
-| `/invoices` | `No invoices to show. You see an invoice when it bills a purchase order you raised or one on a job you are assigned to.` |
+| `/invoices` | `No invoices to show. You see an invoice when it charges a purchase order you raised or one on a job you are assigned to.` |
 | `/deliveries` | `You are not assigned to any job yet, so there are no deliveries to show. An Admin can add you to a job in Airtable.` |
 
 **All three strips are silent.** This is where the rule from Act III pays off.

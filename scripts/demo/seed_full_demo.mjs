@@ -753,7 +753,7 @@ await scenario("PO_WAIT", "2 approved requests whose order generation failed", a
 
 // --- CHIP_SET — all four invoicing values, and the dash ---------------------
 await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the dash", async () => {
-    // Invoiced — billed in full.
+    // Invoiced — invoiced in full.
     const full = await makeOrder({
         scenarioName: "CHIP_SET",
         subTag: "CHIP_INVOICED",
@@ -768,7 +768,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
     });
     ids.chipInvoiced = full.po.poId;
 
-    // Partly invoiced — half billed.
+    // Partly invoiced — half invoiced.
     const part = await makeOrder({
         scenarioName: "CHIP_SET",
         subTag: "CHIP_PARTLY",
@@ -783,7 +783,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
     });
     ids.chipPartly = part.po.poId;
 
-    // Awaiting invoice — nothing billed.
+    // Awaiting invoice — nothing invoiced.
     const none = await makeOrder({
         scenarioName: "CHIP_SET",
         subTag: "CHIP_AWAITING",
@@ -804,7 +804,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
     ids.chipDash = gone.po.poId;
 });
 
-// --- DL_WAIT — a delivery nobody has billed --------------------------------
+// --- DL_WAIT — a delivery nobody has invoiced --------------------------------
 //
 // The starting point for the live invoice entry: entering an invoice against this order
 // pairs it with this delivery while the room watches.
@@ -1104,7 +1104,7 @@ await scenario("FREETEXT_ONLY", "an invoice charging no ordered item at all", as
         requesterId: requester.id,
         lineId: line.id,
         vendorId: vendor.id,
-        notes: noteFor("FREETEXT_ONLY", "The vendor billed for site services against no order."),
+        notes: noteFor("FREETEXT_ONLY", "The vendor invoiced for site services against no order."),
     });
     // A PR with no items and no order — it exists only to carry the tag, so the skip
     // check and the cleanup can both find this invoice. It is left as a Draft, which
@@ -1122,7 +1122,7 @@ await scenario("FREETEXT_ONLY", "an invoice charging no ordered item at all", as
 });
 
 // --- OVER — the correction the demo raises live ----------------------------
-await scenario("OVER", "12 delivered against 10 ordered, billed 12, invoice has a file", async () => {
+await scenario("OVER", "12 delivered against 10 ordered, invoiced 12, invoice has a file", async () => {
     const order = await makeOrder({
         scenarioName: "OVER",
         notes: "Couplings for the branch lines.",
@@ -1152,7 +1152,7 @@ await scenario("OVER", "12 delivered against 10 ordered, billed 12, invoice has 
 
 // --- OVER_BLOCKED — three corrections that cannot be raised, three reasons --
 await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reasons", async () => {
-    // (a) no invoice bills this ordered item yet
+    // (a) no invoice charges this ordered item yet
     const a = await makeOrder({
         scenarioName: "OVER_BLOCKED",
         notes: "Four extra clamps, and no invoice for them yet.",
@@ -1271,7 +1271,7 @@ await scenario("OVER_INFER", "eligible, with the app labelling its guess", async
 
 // --- OVER_UNPAIRED — two invoices, neither paired -----------------------------
 //
-// The tier above's other outcome, and a refusal rather than a guess: two invoices bill
+// The tier above's other outcome, and a refusal rather than a guess: two invoices charge
 // this ordered item, neither names this delivery, so nothing records which one invoices
 // what came in here. `severalUnpairedInvoices`.
 await scenario("OVER_UNPAIRED", "blocked: two invoices and neither names this delivery", async () => {
@@ -1304,7 +1304,7 @@ await scenario("OVER_UNPAIRED", "blocked: two invoices and neither names this de
 //
 // `excessExceedsInvoice`, which #219 split out of `spansInvoices` because one message
 // covering both was false for half of them: with a single candidate nothing is
-// spanned — the one invoice for this delivery simply does not bill all of the excess.
+// spanned — the one invoice for this delivery simply does not charge all of the excess.
 await scenario("OVER_EXCEEDS", "blocked: the one invoice does not cover the excess", async () => {
     const order = await makeOrder({
         scenarioName: "OVER_EXCEEDS",
@@ -1323,7 +1323,7 @@ await scenario("OVER_EXCEEDS", "blocked: the one invoice does not cover the exce
     });
     const only = await invoice({
         scenarioName: "OVER_EXCEEDS",
-        // 4 billed against an excess of 9: this invoice cannot carry it.
+        // 4 invoiced against an excess of 9: this invoice cannot carry it.
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 4, unitPrice: 64 }],
         issueDate: "2026-08-04",
     });
@@ -1549,19 +1549,19 @@ async function printGuide() {
     row("four signing step states", get("CHAIN", "prs"));
     row("withdrawn request", get("WITHDRAWN_PR", "prs"));
 
-    console.log("\nACT II — billing, delivery, matching                         (live)");
+    console.log("\nACT II — invoicing, delivery, matching                         (live)");
     row("detection PDFs", "scripts/demo/output/demo26-*.pdf");
     row("  demo26-open.pdf applies", get("DETECT_OPEN", "pos"));
     row("  demo26-withdrawn.pdf warns", get("DETECT_WITHDRAWN", "pos"));
     row("  demo26-unsigned.pdf warns", get("DETECT_UNSIGNED", "pos"));
     row("  demo26-closed.pdf: nothing left", get("DETECT_CLOSED", "pos"));
     row("  demo26-none.pdf: no PO found", "(no order number printed on it)");
-    row("bill this → pairs on screen", get("DL_WAIT", "pos"), "  attaches ", get("DL_WAIT", "deliveries"));
+    row("invoice this → pairs on screen", get("DL_WAIT", "pos"), "  attaches ", get("DL_WAIT", "deliveries"));
     row("deliver this → pairs on screen", get("INV_WAIT_A", "invoices"), " is waiting for its material");
     row("tariff in the totals footer", get("TARIFF", "invoices"));
 
     console.log("\nACT III — the three waiting lists                       (pre-made)");
-    row("/invoices strip 1", get("DL_WAIT", "deliveries"), " — delivery nobody has billed");
+    row("/invoices strip 1", get("DL_WAIT", "deliveries"), " — delivery nobody has invoiced");
     row("/invoices strip 2, word 1", get("INV_WAIT_A", "invoices"), " — nothing delivered yet");
     row("/invoices strip 2, word 2", get("INV_WAIT_B", "invoices"), " — delivered, not matched");
     row("/pos strip", get("PO_WAIT", "prs", 0), " and ", get("PO_WAIT", "prs", 1));
@@ -1576,13 +1576,13 @@ async function printGuide() {
     row("unjudged beside exception", get("FREETEXT", "invoices"));
     row("None linked.", get("FREETEXT_ONLY", "invoices"));
     row("per-order breakdown", get("MULTI_ORDER", "invoices"));
-    row("correction: raise it here", get("OVER", "deliveries"), " (bill ", get("OVER", "invoices"), ")");
+    row("correction: raise it here", get("OVER", "deliveries"), " (invoice ", get("OVER", "invoices"), ")");
     row("correction: Inferred:", get("OVER_INFER", "deliveries"));
     row("blocked: no invoice yet", get("OVER_BLOCKED", "deliveries", 0));
     row("blocked: spans two invoices", get("OVER_BLOCKED", "deliveries", 1));
     row("blocked: invoice has no file", get("OVER_BLOCKED", "deliveries", 2));
     row("blocked: two unpaired invoices", get("OVER_UNPAIRED", "deliveries"));
-    row("blocked: bill under the excess", get("OVER_EXCEEDS", "deliveries"));
+    row("blocked: invoice under the excess", get("OVER_EXCEEDS", "deliveries"));
     row("excess against no order", get("UNATTRIB", "deliveries"));
 
     console.log("\nACT V — at a glance                                    (pre-made)");

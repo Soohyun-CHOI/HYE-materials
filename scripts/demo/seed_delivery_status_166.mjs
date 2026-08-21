@@ -236,7 +236,7 @@ async function invoice({ items: invoiceItems, issueDate, freeText = false, note 
 
 console.log("\nSeeding one scenario per state:");
 
-// --- A: everything billed arrived --------------------------------------------
+// --- A: everything invoiced arrived --------------------------------------------
 const a = await makeOrder({ itemName: FIRST_ITEM, qty: 20 });
 // The one delivery here whose packing list quotes a PO number (#181) — see
 // deliver() on why it is this scenario and why the rows are unaffected.
@@ -251,7 +251,7 @@ ids.aPO = a.po.poId;
 ids.a = (await invoice({ items: [{ ...a, qty: 20 }], issueDate: "2026-07-19", note: "A arrived" })).invoiceId;
 console.log(`  A  ${ids.a}  Delivered   (${ids.aDelivery} quotes ${ids.aPO} on its packing list)`);
 
-// --- B: billed, nothing delivered, plus an invoice item with no ordered item ---
+// --- B: invoiced, nothing delivered, plus an invoice item with no ordered item ---
 const b = await makeOrder({ itemName: "166-DEMO Gasket", qty: 15 });
 ids.b = (await invoice({
     items: [{ ...b, qty: 15 }],
@@ -289,11 +289,11 @@ const eDel = await deliver({
 ids.e = (await invoice({ items: [{ ...e, qty: 10 }], issueDate: "2026-07-26", note: "E over-delivered" })).invoiceId;
 console.log(`  E  ${ids.e}  Delivered, and 2 beyond the order  [${eDel.written.join(", ")}]`);
 
-// --- F: billed beyond the order --------------------------------------------
+// --- F: invoiced beyond the order --------------------------------------------
 const f = await makeOrder({ itemName: "166-DEMO Union", qty: 10 });
 await deliver({ wants: [{ itemName: "166-DEMO Union", qty: 10 }], receivedDate: "2026-07-25", notes: "F, exact" });
 ids.f = (await invoice({ items: [{ ...f, qty: 13 }], issueDate: "2026-07-27", note: "F over-billed" })).invoiceId;
-console.log(`  F  ${ids.f}  Partly delivered — 3 more billed than delivered`);
+console.log(`  F  ${ids.f}  Partly delivered — 3 more invoiced than delivered`);
 
 // --- G: arrived with no invoice at all — the vendor-chasing worklist --------
 await makeOrder({ itemName: "166-DEMO Bushing", qty: 8 });
@@ -302,18 +302,18 @@ const g = await deliver({
     // Deliberately the OLDEST received date here, so it tops the oldest-first
     // filter rather than merely appearing in it.
     receivedDate: "2026-06-30",
-    notes: "G, never billed — tops the worklist",
+    notes: "G, never invoiced — tops the worklist",
 });
 ids.g = g.delivery.deliveryId;
 console.log(`  G  ${ids.g}  Awaiting invoice (oldest received date)`);
 
-// --- I: one delivery over two ordered items, only one of them billed -------
+// --- I: one delivery over two ordered items, only one of them invoiced -------
 const i1 = await makeOrder({ itemName: "166-DEMO Cap", qty: 4 });
 await makeOrder({ itemName: "166-DEMO Plug", qty: 6 });
 const iDel = await deliver({
     wants: [{ itemName: "166-DEMO Cap", qty: 4 }, { itemName: "166-DEMO Plug", qty: 6 }],
     receivedDate: "2026-07-26",
-    notes: "I, two materials, one billed",
+    notes: "I, two materials, one invoiced",
 });
 ids.i = iDel.delivery.deliveryId;
 ids.iInvoice = (await invoice({ items: [{ ...i1, qty: 4 }], issueDate: "2026-07-28", note: "I one item only" })).invoiceId;
@@ -362,7 +362,7 @@ Vendor "${VENDOR_NAME}", vendor invoice codes starting "166-DEMO".
   has not been delivered yet".
 
   E AND F CARRY NO EXCEPTION TAG HERE, and that is deliberate. F's
-  billed-beyond-order is already on F's own page as the ⚠ Variance badge
+  invoiced-beyond-order is already on F's own page as the ⚠ Variance badge
   in the items table; E's over-delivery is a fact about the ORDERED ITEM,
   and inside a column headed Delivery it would read as "more arrived than
   this invoice covers". Both facts are on the detail, under the ordered item.
@@ -385,7 +385,7 @@ the discrepancy is a word now, so a reader meets it without hovering.
 
 Under the chip, ONE line naming the delivery this invoice matches:
 Invoices."Delivery" is single, so per-entry would print one document
-once per item. THIS SEED WRITES NO SUCH LINK — bill() predates the field
+once per item. THIS SEED WRITES NO SUCH LINK — invoice() predates the field
 and sets nothing — so every invoice it creates reads:
 
          "No delivery has been matched to this invoice yet."
@@ -401,8 +401,8 @@ and sets nothing — so every invoice it creates reads:
   which asserted the second when only the first was known.
 
   THE INVOICE LEVEL SAYS WHAT THE STATE IS; AN ENTRY POINTS AT AN
-  EXCEPTION. What an invoice bills arrives on the one delivery it
-  matches or not at all, so "everything billed was delivered" is one
+  EXCEPTION. What an invoice charges arrives on the one delivery it
+  matches or not at all, so "everything invoiced was delivered" is one
   fact about one document and the chip states it. So the density
   follows the state:
 
@@ -426,19 +426,19 @@ and sets nothing — so every invoice it creates reads:
 
   ${ids.dNew ?? "D-new"}   likewise nothing, and it is the case worth
        knowing about: two invoices of 15 on one ordered item of 30.
-       "This bill: 15 of 30 EA" stood here to caption a "Billed" figure
+       "This bill: 15 of 30 EA" stood here to caption a "Invoiced" figure
        that was the ordered item's total across every invoice; #232
        scoped that figure to this invoice and then dropped the figures line
        entirely, and #233 put "which invoices charge this order" on the
        order's own page.
 
   ${ids.f ?? "F"}   nothing here either, and this one changed twice.
-       13 billed against an ordered item of 10, so it briefly showed
-       "Against the ordered item: 3 EA more billed" even while unmatched,
+       13 invoiced against an ordered item of 10, so it briefly showed
+       "Against the ordered item: 3 EA more invoiced" even while unmatched,
        kept on the belief that the figure was visible nowhere else.
        #233 had already made that false: /pos/[poId] carries an Invoiced
        column with a red (over) mark, so HYE-PO-20260804-11 reads
-       Qty 10 and Invoiced 13 (over). Look for a billing excess there.
+       Qty 10 and Invoiced 13 (over). Look for a invoicing excess there.
 
   ${ids.e ?? "E"}   the delivery-side excess, 12 arrived against an
        ordered item of 10. Match a delivery to this invoice and its
@@ -456,7 +456,7 @@ and sets nothing — so every invoice it creates reads:
 3. /deliveries — the "Invoiced" column, and /invoices — the strip
 ------------------------------------------------------------------
   ${ids.g ?? "G"}   [Awaiting invoice]   (received 2026-06-30, the oldest)
-  ${ids.i ?? "I"}   [Partly invoiced]    (one delivery, two materials, one billed)
+  ${ids.i ?? "I"}   [Partly invoiced]    (one delivery, two materials, one invoiced)
   others           [Invoiced]
 
   The "Not fully invoiced · oldest first" filter this guide used to send
@@ -464,7 +464,7 @@ and sets nothing — so every invoice it creates reads:
   now, where recording the invoice happens. BOTH ${ids.g ?? "G"} and ${ids.i ?? "I"} are on
   it, and that pair is the whole point of the rule being both incomplete
   states rather than the empty one: ${ids.i ?? "I"} is one delivery carrying two
-  materials with only one billed, material that is here with no invoice
+  materials with only one invoiced, material that is here with no invoice
   for it, which filtering on the empty state alone would have dropped.
   ${ids.g ?? "G"} is at the top, on received-date ascending.
 
@@ -484,7 +484,7 @@ and sets nothing — so every invoice it creates reads:
   withheld from a non-Admin and the data was not fetched for them at all,
   so reading app/deliveries/page.js's showInvoicing branch was the only
   honest check. #211 released that withholding — every viewer who may see
-  a delivery may see whether it has been billed — so there is one column
+  a delivery may see whether it has been invoiced — so there is one column
   set and one filter set, and scoped-fixture@hanyangengusa.com (non-Admin,
   assigned to 26-DEMO-01) renders them like anyone else.
 

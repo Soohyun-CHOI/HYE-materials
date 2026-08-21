@@ -19,7 +19,7 @@
 //                  has more than one candidate invoice, so the whole branch exists
 //                  only here.
 //   price-departs — NOT reachable. One invoice departs from an agreed price
-//                  (`HYE-INV-260716-02`, 32.00 billed against 33.89 ordered) and
+//                  (`HYE-INV-260716-02`, 32.00 invoiced against 33.89 ordered) and
 //                  containment already excludes it, so the gate removes no pair
 //                  on live data and changes no verdict there.
 //   price-unknown — NOT reachable, and not by accident: both callers build
@@ -38,7 +38,7 @@
 // MATCH. `roomOnOrderedItem` reads quantities, and the rule this feature must not
 // break is that quantities never decide whether an invoice is a delivery's. The
 // section "capacity is not the quantity match this rule refuses to make" is what
-// separates them, and its first check is the whole feature: 13 billed against 10
+// separates them, and its first check is the whole feature: 13 invoiced against 10
 // delivered pairs, so #210's mismatch marker still has something to mark.
 //
 // WHAT A PASS DOES NOT PROVE. That either caller passes the right inputs. The form
@@ -61,7 +61,7 @@ import {
     matchDeliveryToInvoice,
     describeDeliveryPairings,
     planPairings,
-    orderedItemsBilled,
+    orderedItemsInvoiced,
     roomOnOrderedItem,
     orderedItemsDelivered,
     pairingRefusal,
@@ -127,7 +127,7 @@ export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
     log("containment — an invoice sits inside a delivery, or it is not its invoice:");
     check(
-        "every ordered item billed was brought: fits",
+        "every ordered item invoiced was brought: fits",
         fitRefusal(invoice({ charges: [["recPOI_A", 10]] }), delivery({ brought: ["recPOI_A", "recPOI_B"] }), PRICES),
         null
     );
@@ -137,7 +137,7 @@ export function run({ check, assert, log }) {
         null
     );
     check(
-        "an ordered item billed that the delivery did not bring: refused",
+        "an ordered item invoiced that the delivery did not bring: refused",
         fitRefusal(
             invoice({ charges: [["recPOI_A", 10], ["recPOI_B", 25]] }),
             delivery({ brought: ["recPOI_A"] }),
@@ -174,11 +174,11 @@ export function run({ check, assert, log }) {
                 agreedPrices: PRICES,
             }).key !== PAIRING.matched
     );
-    // A row with no `PO Item` is skipped rather than refusing the whole bill — the
+    // A row with no `PO Item` is skipped rather than refusing the whole invoice — the
     // same exclusion countsTowardStatus makes, and reachable while #96's free-text
     // option is only hidden.
     check(
-        "a MIXED bill — one free-text row, one ordered item — is judged on the ordered item",
+        "a MIXED invoice — one free-text row, one ordered item — is judged on the ordered item",
         fitRefusal(
             { ...invoice({ charges: [["recPOI_A", 10]] }), orderedItems: [{ poItemRecordId: null, unitPrice: 40 }, { poItemRecordId: "recPOI_A", unitPrice: 10 }] },
             delivery({ brought: ["recPOI_A"] }),
@@ -195,17 +195,17 @@ export function run({ check, assert, log }) {
     log("");
     log("unit price is agreed on the order, so an invoice departing from it is not a candidate:");
     check(
-        "billed at the agreed price: fits",
+        "invoiced at the agreed price: fits",
         fitRefusal(invoice({ charges: [["recPOI_A", 10]] }), delivery(), PRICES),
         null
     );
     check(
-        "billed above the agreed price: refused",
+        "invoiced above the agreed price: refused",
         fitRefusal(invoice({ charges: [["recPOI_A", 12.5]] }), delivery(), PRICES),
         PAIRING_REFUSED.priceDeparts
     );
     check(
-        "billed below it: refused just the same — the test is a difference, not a direction",
+        "invoiced below it: refused just the same — the test is a difference, not a direction",
         fitRefusal(invoice({ charges: [["recPOI_A", 7]] }), delivery(), PRICES),
         PAIRING_REFUSED.priceDeparts
     );
@@ -250,13 +250,13 @@ export function run({ check, assert, log }) {
     );
 
     // -----------------------------------------------------------------------
-    // The property the whole feature rests on: a vendor billing more than it
+    // The property the whole feature rests on: a vendor invoicing more than it
     // shipped must still pair, or the mismatch marker #210 built would never fire.
     // Mutation: add any quantity comparison to fitRefusal and this fails.
     log("");
     log("quantity is NOT part of the test — the invoice that over-charges still pairs:");
     assert(
-        "13 billed against a delivery of 10 pairs (HYE-INV-260804-07's real shape)",
+        "13 invoiced against a delivery of 10 pairs (HYE-INV-260804-07's real shape)",
         outcome1({
             delivery: delivery({ brought: ["recPOI_A"] }),
             invoices: [invoice({ charges: [["recPOI_A", 10]] })],
@@ -266,7 +266,7 @@ export function run({ check, assert, log }) {
     assert(
         "  and nothing in the module reads a quantity at all",
         !/\bqty\b|quantity[A-Z]/.test(
-            [orderedItemsBilled, orderedItemsDelivered, fitRefusal, pairingRefusal].map(String).join("\n")
+            [orderedItemsInvoiced, orderedItemsDelivered, fitRefusal, pairingRefusal].map(String).join("\n")
         )
     );
 
@@ -368,7 +368,7 @@ export function run({ check, assert, log }) {
         null
     );
     check(
-        "  even though it charges 15 against 5 of room — capacity is `> 0`, never `>= billed`",
+        "  even though it charges 15 against 5 of room — capacity is `> 0`, never `>= invoiced`",
         roomOnOrderedItem({
             delivery: brought15,
             poItemRecordId: "recPOI_A",
@@ -410,7 +410,7 @@ export function run({ check, assert, log }) {
     );
 
     // THE LINE BETWEEN CAPACITY AND THE FORBIDDEN QUANTITY MATCH, asserted rather
-    // than argued. Mutation: change `<= 0` to `< billed` in pairingRefusal and the
+    // than argued. Mutation: change `<= 0` to `< invoiced` in pairingRefusal and the
     // first of these fails — which is the whole feature breaking, since that invoice
     // is exactly what #210's mismatch marker exists to surface.
     log("");
@@ -418,12 +418,12 @@ export function run({ check, assert, log }) {
     const brought10 = delivery({ id: "recDL_M", brought: [["recPOI_A", 10]] });
     const invoices13 = invoice({ id: "recINV_13", charges: [["recPOI_A", 10, 13]] });
     check(
-        "13 billed against 10 delivered, nothing else attached: PAIRS",
+        "13 invoiced against 10 delivered, nothing else attached: PAIRS",
         pairingRefusal({ invoice: invoices13, delivery: brought10, invoices: [invoices13], agreedPrices: PRICES }),
         null
     );
     check(
-        "13 billed against 10 delivered, with 4 already claimed: STILL pairs — 6 of room",
+        "13 invoiced against 10 delivered, with 4 already claimed: STILL pairs — 6 of room",
         pairingRefusal({
             invoice: invoices13,
             delivery: brought10,
@@ -433,7 +433,7 @@ export function run({ check, assert, log }) {
         null
     );
     check(
-        "13 billed against 10 delivered, all 10 already claimed: no room",
+        "13 invoiced against 10 delivered, all 10 already claimed: no room",
         pairingRefusal({
             invoice: invoices13,
             delivery: brought10,
@@ -463,7 +463,7 @@ export function run({ check, assert, log }) {
         ["a rival recorded elsewhere", [older, heldElsewhere], [delivery]],
         ["a price departure", [invoice({ charges: [["recPOI_A", 99]] })], [delivery()]],
         ["a price nobody can answer for", [invoice()], [delivery()], new Map()],
-        ["nothing billed", [invoice({ charges: [] })], [delivery()]],
+        ["nothing invoiced", [invoice({ charges: [] })], [delivery()]],
         // A TIED PAIR AGREES ABOUT THE PAIR AND NOT ABOUT WHICH INVOICE, which is the
         // one place the two directions part company on purpose: both admit
         // (`older`, `shared`), and direction 1 additionally has to choose. See
@@ -525,7 +525,7 @@ export function run({ check, assert, log }) {
     // link is what that is for. Direction 2 reaches the same place one invoice at a
     // time, which is what makes this an arity difference in the ANSWER rather than
     // a disagreement about a pair. Not reachable on this base: measured 2026-08-13,
-    // no delivery holds two unpaired contained bills, sharing an ordered item or not.
+    // no delivery holds two unpaired contained invoices, sharing an ordered item or not.
     log("");
     log("one delivery, two invoices, nothing in common:");
     const twoItems = delivery({ id: "recDL_T", brought: ["recPOI_A", "recPOI_B"] });
@@ -537,7 +537,7 @@ export function run({ check, assert, log }) {
         PAIRING.severalAttached
     );
     check(
-        "recording either bill: one candidate delivery, so it attaches",
+        "recording either invoice: one candidate delivery, so it attaches",
         matchDeliveryToInvoice({ invoice: invoiceA, deliveries: [twoItems], invoices: [invoiceA, invoiceB], agreedPrices: PRICES }).key,
         PAIRING.matched
     );
@@ -573,7 +573,7 @@ export function run({ check, assert, log }) {
     log("");
     log("direction 2 — several deliveries could have brought it:");
     check(
-        "two deliveries each brought everything billed: nothing attached",
+        "two deliveries each brought everything invoiced: nothing attached",
         matchDeliveryToInvoice({
             invoice: invoice(),
             deliveries: [delivery({ id: "recDL1" }), delivery({ id: "recDL2" })],
@@ -610,7 +610,7 @@ export function run({ check, assert, log }) {
     log("");
     log("the entry path, where the delivery has no record id yet:");
     check(
-        "a lone bill fits, exactly as it would against a saved delivery",
+        "a lone invoice fits, exactly as it would against a saved delivery",
         pairingRefusal({ invoice: invoice(), delivery: beingRecorded, invoices: [invoice()], agreedPrices: PRICES }),
         null
     );
@@ -649,7 +649,7 @@ export function run({ check, assert, log }) {
     );
     check(
         "an option with no ordered items converts to an invoice with none, not to undefined",
-        orderedItemsBilled(invoiceFromOption({ invoiceRecordId: "recX" })).length,
+        orderedItemsInvoiced(invoiceFromOption({ invoiceRecordId: "recX" })).length,
         0
     );
 
@@ -730,7 +730,7 @@ export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
     log("");
     // -----------------------------------------------------------------------
-    // FOLDING AND DEDUCTING ARE ONE STEP. A decided bill joins the pool AS
+    // FOLDING AND DEDUCTING ARE ONE STEP. A decided invoice joins the pool AS
     // ATTACHED to this delivery, which stops it being an unplaced rival AND starts
     // its quantity counting against the room. Doing only the first is the defect:
     // the rival clause goes quiet and nothing replaces it.
@@ -811,7 +811,7 @@ export function run({ check, assert, log }) {
     // in any one of them puts the pair back under `shared-order`. Mutation: drop the
     // quantity or the price out of `chargeSignature` and one of these flips.
     assert(
-        "identical bills are tied",
+        "identical invoices are tied",
         chargesIdentically(sameItemA, sameItemB) && chargeSignature(sameItemA) === chargeSignature(sameItemB)
     );
     for (const [why, other] of [
@@ -894,10 +894,10 @@ export function run({ check, assert, log }) {
     // nothing — or they are tied, which is the case the fold exists for. Anything
     // else attached together would be two rivals on one delivery.
     for (const [name, pool, arr] of [
-        ["two disjoint bills", [onA, onB], twoBrought],
+        ["two disjoint invoices", [onA, onB], twoBrought],
         ["two tied invoices with room for both", [sameItemA, sameItemB], delivery({ id: "recDL_H", brought: [["recPOI_A", 30]] })],
         ["two tied invoices with room for one", [sameItemA, sameItemB], brought15b],
-        ["two partial bills on one ordered item", [partial, wantsFive], brought15b],
+        ["two partial invoices on one ordered item", [partial, wantsFive], brought15b],
     ]) {
         const attached = planPairings({ delivery: arr, invoices: pool, agreedPrices: PRICES }).attach;
         const bad = attached.some((x, i) =>
@@ -910,14 +910,14 @@ export function run({ check, assert, log }) {
 
     // THE POOL'S ORDER CANNOT CHANGE THE ANSWER, and it now has something to prove:
     // among tied invoices the pass really does choose, so it chooses in an order of its
-    // own rather than the caller's. Mutation: iterate `bills` instead of the sorted
+    // own rather than the caller's. Mutation: iterate `invoices` instead of the sorted
     // queue and the tied rows below flip with the reversal.
     log("");
     log("the pool's order cannot change the answer:");
     for (const [name, pool, arr] of [
-        ["two disjoint bills", [onA, onB], twoBrought],
+        ["two disjoint invoices", [onA, onB], twoBrought],
         ["two tied invoices", [sameItemA, sameItemB], brought15b],
-        ["two partial bills on one ordered item", [partial, wantsFive], brought15b],
+        ["two partial invoices on one ordered item", [partial, wantsFive], brought15b],
     ]) {
         const forward = planPairings({ delivery: arr, invoices: pool, agreedPrices: PRICES });
         const backward = planPairings({

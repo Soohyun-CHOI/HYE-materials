@@ -6,7 +6,7 @@
 // draft — had nothing to show.
 //
 // Two scenarios, one order each on 26-DEMO-01:
-//   A  ordered 10, delivered 12, billed 12 on an invoice WITH a file → eligible.
+//   A  ordered 10, delivered 12, invoiced 12 on an invoice WITH a file → eligible.
 //   B  the same shape but PAID before the correction, which is the common case
 //      rather than an edge one and the one whose safety rests on the invoice
 //      header not moving.
@@ -180,7 +180,7 @@ const aInvoice = await invoice({ po: a.po, orderedItem: a.orderedItem, qty: 12, 
 ids.aDelivery = aDelivery.deliveryId;
 ids.aInvoice = aInvoice.invoiceId;
 ids.aPo = a.po.poId;
-console.log(`  A  ${ids.aDelivery}  2 EA over on ${ids.aPo}, billed by ${ids.aInvoice} — button ELIGIBLE`);
+console.log(`  A  ${ids.aDelivery}  2 EA over on ${ids.aPo}, invoiced by ${ids.aInvoice} — button ELIGIBLE`);
 
 // --- B: eligible, and the invoice is already paid ---------------------------
 const b = await makeOrder({ itemName: "167-DEMO Coupling", qty: 8 });
@@ -189,7 +189,7 @@ const bInvoice = await invoice({ po: b.po, orderedItem: b.orderedItem, qty: 11, 
 ids.bDelivery = bDelivery.deliveryId;
 ids.bInvoice = bInvoice.invoiceId;
 ids.bPo = b.po.poId;
-console.log(`  B  ${ids.bDelivery}  3 EA over on ${ids.bPo}, billed by PAID ${ids.bInvoice} — button ELIGIBLE`);
+console.log(`  B  ${ids.bDelivery}  3 EA over on ${ids.bPo}, invoiced by PAID ${ids.bInvoice} — button ELIGIBLE`);
 
 const aOver = (await getItemsByDelivery(aDelivery.id)).find((r) => r.overDelivered);
 ids.aRow = aOver?.deliveryItemId;
@@ -211,7 +211,7 @@ Under the amber "Over-delivered" banner there is now a Correction box:
 
   Correction — 167-DEMO Flange 2"
   This will raise a purchase request for 2 EA ... at $15.00 each — the excess
-  delivered beyond what ${ids.aPo ?? "<A-PO>"} ordered. ${ids.aInvoice ?? "<A-INV>"} is billing for it
+  delivered beyond what ${ids.aPo ?? "<A-PO>"} ordered. ${ids.aInvoice ?? "<A-INV>"} is charging for it
   already, so its file becomes the quotation and its code the vendor
   quotation code.
   It opens as a draft, so quantity, price and signers can all be changed
@@ -246,14 +246,14 @@ Submit it, sign it through, and PO generation settles it:
 ------------------------------------------------------------------
 /prs/<the correction>, /pos/<the new order> and /pos/${ids.aPo ?? "<A-PO>"} all carry it, all
 derived from links — no stored flag anywhere. Each says what it is a
-correction of, and then the accounting caveat: ${ids.aInvoice ?? "<A-INV>"} bills BOTH orders,
+correction of, and then the accounting caveat: ${ids.aInvoice ?? "<A-INV>"} charges BOTH orders,
 so a payment against it matches neither order's total on its own. That is the
 sentence the office needs and the reason the banner outlives signature.
 
 ------------------------------------------------------------------
 4. Scenario B is the same, on an ALREADY PAID invoice
 ------------------------------------------------------------------
-/deliveries/${ids.bDelivery ?? "<B>"} — 3 EA over, billed by ${ids.bInvoice ?? "<B-INV>"}, which is Paid.
+/deliveries/${ids.bDelivery ?? "<B>"} — 3 EA over, invoiced by ${ids.bInvoice ?? "<B-INV>"}, which is Paid.
 Splitting it is allowed BY DESIGN, because nothing on the header moves: the
 invoice usually arrives and is settled before anyone corrects the record, so
 refusing here would refuse the common case.

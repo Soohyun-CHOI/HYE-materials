@@ -379,7 +379,7 @@ try {
 
         // The rollup on the FIRST read after the invoice item was created. The
         // reader subtracts it from delivered to decide what a screen claims, so a
-        // lagging value would report material as unbilled the moment it was billed.
+        // lagging value would report material as uninvoiced the moment it was invoiced.
         const rolled = await waitFor(
             async () => (await getPOItemsForReconciliation([delivered.orderedItem.id]))[0]?.invoicedQty,
             (v) => v === 10
@@ -446,7 +446,7 @@ try {
         // A PAIRED DELIVERY THAT BROUGHT LESS THAN THE INVOICE: the chip stays Delivered
         // and the discrepancy is the marker. This is the state `Partly delivered` used
         // to occupy, and the difference is that this one is a real shortfall rather
-        // than an artifact of filling bills oldest-first.
+        // than an artifact of filling invoices oldest-first.
         const shortOrder = await makeOrder({ itemName: `${TAG} Short`, qty: 13 });
         const shortDelivery = await deliver({
             orderedItem: shortOrder.orderedItem,
@@ -481,14 +481,14 @@ try {
             "not-compared"
         );
         // ONE SCOPE PER ROW SINCE #232, and the row's `line` field is gone with the
-        // second one. Every figure here is this invoice's: what it billed, and what
+        // second one. Every figure here is this invoice's: what it invoiced, and what
         // the delivery it MATCHES brought of that ordered item.
-        check("this invoice's billed share", judgedRow.status.invoiced, 10);
+        check("this invoice's invoiced share", judgedRow.status.invoiced, 10);
         check("and what the delivery it MATCHES brought on that ordered item", judgedRow.status.delivered, 10);
-        check("so nothing billed-not-delivered", judgedRow.status.billedNotDelivered, 0);
+        check("so nothing invoiced-not-delivered", judgedRow.status.invoicedNotDelivered, 0);
         assert("the ordered item's own totals no longer ride along", !("line" in judgedRow));
         assert("nor does the ordered quantity", !("ordered" in judgedRow.status));
-        // AND THIS BOX SAYS NOTHING, because everything it billed was delivered. The
+        // AND THIS BOX SAYS NOTHING, because everything it invoiced was delivered. The
         // whole invoice's answer is the chip; a box repeating it would state one fact
         // once per invoice item. Both slots null on a fixture where every figure
         // agrees is the shape #232's second pass is for.
@@ -507,9 +507,9 @@ try {
 
         // -------------------------------------------------------------------
         console.log("\nPart C — the delivery axis: a delivery with no invoice naming it:");
-        const unbilled = await makeOrder({ itemName: `${TAG} Unbilled`, qty: 4 });
+        const uninvoiced = await makeOrder({ itemName: `${TAG} Uninvoiced`, qty: 4 });
         const unbilledDelivery = await deliver({
-            orderedItem: unbilled.orderedItem,
+            orderedItem: uninvoiced.orderedItem,
             qty: 4,
             receivedDate: "2026-07-01",
         });
@@ -530,9 +530,9 @@ try {
         // arrived is still owed an invoice, and "does this delivery have one" would
         // read `Invoiced`. Before #210 the answer was worse still: the test asked
         // whether the ORDERED ITEM carried any invoice item at all, so a delivery with
-        // nothing billed dropped out of the worklist as soon as some earlier invoice had
+        // nothing invoiced dropped out of the worklist as soon as some earlier invoice had
         // touched the same order.
-        const partOrder = await makeOrder({ itemName: `${TAG} PartBilled`, qty: 20 });
+        const partOrder = await makeOrder({ itemName: `${TAG} PartInvoiced`, qty: 20 });
         const partDelivery = await deliver({
             orderedItem: partOrder.orderedItem,
             qty: 20,
@@ -556,7 +556,7 @@ try {
         // -------------------------------------------------------------------
         console.log("\nPart D — TWO INVOICES ON ONE ORDERED ITEM: the pairing decides, not an ordering:");
         // A second invoice on the SAME ordered item, paired with a SECOND delivery.
-        // This is the shape #166's estimate existed for and got wrong: with 16 billed
+        // This is the shape #166's estimate existed for and got wrong: with 16 invoiced
         // across two invoices and 10 arrived, it filled oldest-first, handed the older
         // invoice all 10, left the newer at 0, and marked BOTH as estimates. Each invoice
         // now reads its own delivery, and nothing depends on which is taken first.
@@ -572,8 +572,8 @@ try {
             (v) => v === 16
         );
         // Still the fact this part was named for: `Invoiced Qty` is the ORDERED ITEM's
-        // total. Summing the invoice in hand would report 6 billed against 16 arrived
-        // and hide that the order is billed twice over.
+        // total. Summing the invoice in hand would report 6 invoiced against 16 arrived
+        // and hide that the order is invoiced twice over.
         check(`the ordered item's Invoiced Qty is both invoices (${settleNote(itemTotal)})`, itemTotal.value, 16);
 
         const bothStatus = (await getInvoiceDeliveryStatus([await getInvoiceByRecordId(second.id)])).get(second.id);
@@ -597,24 +597,24 @@ try {
         const secondRecon = await getInvoiceReconciliation(await getItemsByInvoice(second.id), {
             linkedDeliveryRecordId: linkedDelivery(secondFull),
         });
-        check("billed on THIS invoice", secondRecon.rows[0].status.invoiced, 6);
+        check("invoiced on THIS invoice", secondRecon.rows[0].status.invoiced, 6);
         check("delivered by the delivery THIS invoice matches", secondRecon.rows[0].status.delivered, 6);
-        check("so nothing is billed-not-delivered", secondRecon.rows[0].status.billedNotDelivered, 0);
-        // THE ORDERED ITEM'S TOTALS ARE THE FIXTURE THIS PART EXISTS FOR — 16 billed
+        check("so nothing is invoiced-not-delivered", secondRecon.rows[0].status.invoicedNotDelivered, 0);
+        // THE ORDERED ITEM'S TOTALS ARE THE FIXTURE THIS PART EXISTS FOR — 16 invoiced
         // across two invoices, 16 delivered across two deliveries — and #232 took them
         // off the row precisely because a reader took them for this invoice's. What
         // reaches the screen from that level now is the two exception figures alone.
         assert("neither rollup reaches the row any more", !("line" in secondRecon.rows[0]));
         assert("nor the ordered quantity", !("ordered" in secondRecon.rows[0].status));
-        // 16 billed against an ordered item of 10, so the order-scoped line fires —
+        // 16 invoiced against an ordered item of 10, so the order-scoped line fires —
         // and its figure is the ORDERED ITEM's, which no per-invoice arithmetic could
-        // produce: neither bill exceeds 10 on its own. THIS IS THE CASE THAT KEEPS
+        // produce: neither invoice exceeds 10 on its own. THIS IS THE CASE THAT KEEPS
         // THE LINE, and the reason it does not depend on anything being matched.
         check(
-            "the ordered item's billing excess is stated, and only that",
+            "the ordered item's invoicing excess is stated, and only that",
             describeInvoiceItem(secondRecon.rows[0].status, "EA", { hasDelivery: true }).againstOrder
                 ?.text,
-            "Against the ordered item: 6 EA more billed"
+            "Against the ordered item: 6 EA more invoiced"
         );
         check(
             "  while the verdict stays silent, this invoice having been delivered in full",
@@ -716,11 +716,11 @@ try {
         // An EMPTY level costs no query at all. Asserted rather than left as noise in
         // the numbers, because it is why the two measurements above had to be
         // shape-matched — and it got CHEAPER in #210: the walk no longer visits
-        // `PO Items` to ask whether any invoice exists, so a delivery nobody has billed
+        // `PO Items` to ask whether any invoice exists, so a delivery nobody has invoiced
         // costs one read and stops.
         const dUnbilled = await countOps(() => getDeliveryInvoicing([unbilledDelivery]));
         console.log(`  delivery axis: a delivery no invoice names -> ${dUnbilled.total} ops`);
-        check("a delivery nobody has billed costs one read", dUnbilled.total, 1);
+        check("a delivery nobody has invoiced costs one read", dUnbilled.total, 1);
         assert("so the budget is a CEILING of three, not a fixed three", dUnbilled.total < dOne.total);
         // And the same on the other axis, for the same reason.
         const iUnpaired = await countOps(() => getInvoiceDeliveryStatus([pendingFull]));

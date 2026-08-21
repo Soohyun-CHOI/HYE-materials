@@ -186,7 +186,7 @@ export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceO
 
     // #210 — the invoices this vendor could have sent for this delivery, narrowed and
     // ordered by the shared rule so this form and the delivery's own edit page
-    // cannot come to offer different sets. Not narrowed by JOB: an invoice can bill
+    // cannot come to offer different sets. Not narrowed by JOB: an invoice can charge
     // orders on more than one, so that would risk hiding the right one.
     const invoiceChoices = useMemo(
         () => availableInvoiceOptions(invoiceOptions, { vendorRecordId: effectiveVendorId }),

@@ -64,7 +64,7 @@ async function renderDeliveriesListPage({ searchParams }) {
     // it at all; #211 RELEASED THAT, and the reason is that this list is already
     // Job-scoped. Every row here is a delivery on a job the viewer is assigned to,
     // which is exactly the condition under which #211 admits them to that job's
-    // invoices — so "has this been billed" is no longer information they are being
+    // invoices — so "has this been invoiced" is no longer information they are being
     // kept from one screen away. A rule that hides a figure on one screen and shows
     // it on another is not a rule. Payment is the fact that stays behind, and it is
     // not on this page at all.

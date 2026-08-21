@@ -8,7 +8,7 @@ Signing is the President's; withdrawing is the requester's.
 
 ## What it answers
 
-Has everything on this order been delivered, and has everything on it been billed? This
+Has everything on this order been delivered, and has everything on it been invoiced? This
 is the reconciliation screen — the one place where what was ordered, what came
 in and what was charged sit on one page — and it is the answer to the problem
 the whole app exists for. A secondary question, asked by a different reader: has
@@ -40,7 +40,7 @@ would do. Under the table: Items Subtotal, Shipping Fee, Total Amount.
 
 Every viewer who can see the order sees all nine columns, including both
 quantity axes. Delivery figures were never gated; invoice figures stopped being
-gated in #235, on the reasoning that what a vendor billed is readable by anyone
+gated in #235, on the reasoning that what a vendor invoiced is readable by anyone
 who may read the order behind it.
 
 **evidence — a caveat under the table.** That the shipping fee is a frozen copy
@@ -69,9 +69,9 @@ it.** One recorded delivery is one row per allocated slice, and an over-delivery
 writes two against the same ordered item — the part inside the order and the
 excess — so what a reader would otherwise meet is one material listed twice under
 one delivery. It is one line, with the quantities added. The invoice side folds on
-the same principle, with the unit price joined to it: two charges billed at two
+the same principle, with the unit price joined to it: two charges at two
 different prices are two facts and stay two lines, so a folded row's price is
-always exactly what was billed.
+always exactly what was invoiced.
 
 **Empty is a reading here, and the sentence says which.** Both sections render
 even with nothing in them, because this is the page a reader comes to in order to
@@ -104,7 +104,7 @@ are not being shown. This is the only thing left in that section that is gated.
 turns red and gains ` (over)` after the figure. The two columns are treated
 identically, because both perform the same subtraction against the same `Qty`
 and a negative means the same thing in either — more arrived, or more was
-billed, than was ordered. Signaling one differently would imply a distinction
+invoiced, than was ordered. Signaling one differently would imply a distinction
 neither makes. This is the only red in the table.
 
 **When a delivery brought more than the order asked for:** an `Over-delivered`
@@ -148,7 +148,7 @@ one or more amber banners at the very top, above everything including the
 confirmation line. Every word of them is derived rather than stored, so
 withdrawing the correction reopens the situation on its own. They stay visible
 after signature on purpose: an overage order read on its own looks like a
-duplicate with no quotation, and the invoice attached to it also bills the
+duplicate with no quotation, and the invoice attached to it also charges the
 original order — so a payment against that invoice matches neither order's total
 alone, and whoever reconciles it needs telling exactly once, here.
 

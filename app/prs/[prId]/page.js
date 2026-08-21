@@ -229,7 +229,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                 IT STAYS AFTER SIGNATURE, which is the point rather than an
                 oversight. An overage order read on its own looks like a duplicate
                 with no quotation of its own, and the invoice attached to it also
-                bills the original order — so a payment against that invoice matches
+                charges the original order — so a payment against that invoice matches
                 neither order's total alone, and whoever reconciles it needs telling
                 exactly once, here. */}
             {overageBanners.map((banner) =>

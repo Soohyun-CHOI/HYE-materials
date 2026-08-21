@@ -2,7 +2,7 @@
 
 Route: `/invoices`
 Who reaches it: anyone signed in, then row-scoped — an invoice is visible when it
-bills a purchase order the reader can see. Creating one is Admin only. One whole
+charges a purchase order the reader can see. Creating one is Admin only. One whole
 column is President-or-Admin.
 
 ## What it answers
@@ -59,7 +59,7 @@ has **no mark in this list at all**: it is on the invoice's own page, per charge
 where the order it disagrees with is one click away.
 
 **When there are no rows:** one of two sentences. `No invoices yet.` when the base
-has none, and `No invoices to show. You see an invoice when it bills a purchase
+has none, and `No invoices to show. You see an invoice when it charges a purchase
 order you raised or one on a job you are assigned to.` when the reader's scope is
 empty. Same distinction the purchase order list draws.
 
@@ -101,7 +101,7 @@ the vendor's own date on the document, the same choice the delivery strip makes 
 using the packing list's `Received Date` rather than when either was entered here.
 
 **Both strips can appear at once, and often on one situation seen from both ends.**
-A delivery nobody has billed and an invoice nobody has matched each get a row, in
+A delivery nobody has invoiced and an invoice nobody has matched each get a row, in
 different strips. Neither strip's contents depend on the other's. They are told
 apart without color: each heading names and counts its own subject, and the row IDs
 carry different prefixes.

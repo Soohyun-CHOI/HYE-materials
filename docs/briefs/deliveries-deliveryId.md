@@ -95,7 +95,7 @@ answer is to wait. A design that collapses these into "can" and "cannot" loses
 the distinction the screen exists to make.
 
 **Every one of the three names what was compared.** One further sentence giving
-the ordered quantity, the delivered total and the billed total, and the order they
+the ordered quantity, the delivered total and the invoiced total, and the order they
 belong to. This is not decoration: the reader is looking at ONE delivery while the
 verdict comes from every delivery and every invoice that touched the ordered item,
 so without it the figures on the page do not add up to the sentence beside them —
@@ -104,15 +104,15 @@ the two answers that never reach the totals: no ordered item behind the row, and
 nothing delivered beyond the order at all.
 
 **When it cannot be corrected, the block still appears and says why.** This is
-the important half. `No invoice bills this ordered item yet`, `the excess spans
-more than one invoice`, `more is billed than was delivered` and five more are all
+the important half. `No invoice charges this ordered item yet`, `the excess spans
+more than one invoice`, `more is invoiced than was delivered` and five more are all
 *answers*, and a missing button is not. So the block is present in both states and
 only the control is conditional.
 
 **When more than one invoice could have supplied the quotation:** one further
 sentence saying which was quoted and what it was chosen over. **The `!` marker
 beside the button means this and no longer means a guess** — the app used to pick
-a document without being able to say the excess had been billed at all, and the
+a document without being able to say the excess had been invoiced at all, and the
 agreement rule removed that guess. The candidates here all cover the excess at the
 same price, so the choice changes no figure; what differs is the file and the
 vendor's own invoice code, which is why it is said rather than left silent.

@@ -17,7 +17,7 @@
 // unit of wrapping has to be the whole paragraph. That is why this reflows blocks
 // rather than lines.
 //
-// A SPAN CAN BE TOO LONG TO BE INLINE AT ALL. `Mismatch: this invoice bills more
+// A SPAN CAN BE TOO LONG TO BE INLINE AT ALL. `Mismatch: this invoice charges more
 // than the delivery it names delivered.` is 73 characters with its backticks and 71
 // without, so no wrapping saves it — it has to move to a fenced block. This cannot
 // do that rewrite (where the fence goes is a judgment about the prose), so it
@@ -232,16 +232,16 @@ const SELF_TEST = [
     {
         name: "a span holding a full stop and spaces stays whole",
         input:
-            "Its accessible name is `Mismatch: this invoice bills more than it " +
+            "Its accessible name is `Mismatch: this invoice charges more than it " +
             "names.` and the chip is `Delivered`.",
         expect: (out) =>
-            out.includes("`Mismatch: this invoice bills more than it names.`") &&
+            out.includes("`Mismatch: this invoice charges more than it names.`") &&
             !findViolations(out).some((p) => p.kind === "broken-span"),
     },
     {
         name: "a span too wide to be inline is reported, never broken",
         input:
-            "The name is `Mismatch: this invoice bills more than the delivery it " +
+            "The name is `Mismatch: this invoice charges more than the delivery it " +
             "names delivered.` exactly.",
         expect: (out) =>
             findViolations(out).some((p) => p.kind === "too-long") &&
@@ -254,7 +254,7 @@ const SELF_TEST = [
     },
     {
         name: "fenced content is passed through",
-        input: "```\nMismatch: this invoice bills more than the delivery it names.\n```",
+        input: "```\nMismatch: this invoice charges more than the delivery it names.\n```",
         expect: (out) => out.split("\n").length === 3,
     },
     {
