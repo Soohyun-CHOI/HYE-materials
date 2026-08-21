@@ -296,17 +296,18 @@ already failed.
 
 ### 3. `/prs` — over-deliveries with no correction
 
-Eight rows. Two carry a `Raise a correction` button; six say what has to happen
-first, in five different words — the first two share one, because what a reader
+Seven rows. Two carry a `Raise a correction` button; five say what has to happen
+first, in four different words — the first two share one, because what a reader
 does about either direction is take it up with the vendor. **This table named
-two reasons #265 replaced** and is corrected in #274, which was sweeping the
-word one of them carried.
+two reasons #265 replaced** and was corrected in #274, which was sweeping the
+word one of them carried; #278 then took an eighth row off it, `HYE-DL-260819-12`
+with `no ordered item`, because the strip cannot say why that row is stuck
+without describing a state only its own author can create.
 
 | Row | Reason |
 |---|---|
 | `HYE-DL-260819-11` | `invoice and delivery disagree` |
 | `HYE-DL-260819-10` | `invoice and delivery disagree` |
-| `HYE-DL-260819-12` | `no ordered item` |
 | `HYE-DL-260819-08` | `invoice has no file` |
 | `HYE-DL-260819-07` | `spans two invoices` |
 | `HYE-DL-260819-06` | `no invoice yet` |
@@ -370,33 +371,30 @@ While here, note the section's standing sentence — *one invoice belongs to one
 delivery, so one already attached elsewhere is listed but cannot be picked* —
 and that the three forms on this page submit separately.
 
-### 3. `/invoices/HYE-INV-260819-11` — grey against amber
+### 3. `/invoices/HYE-INV-260821-01` — the exception list, and only exceptions
 
-Two entries under the delivery:
+The chip reads `Mismatch`. One entry under the delivery: `Hex Nut M20` — *50 EA
+more invoiced than the matched delivery delivered*, in **amber**. This is the
+only PRE-MADE shortfall on the base; step 1 of this act makes one live, which is
+a different thing from having one to open.
 
-- `Hex Nut M20` — *50 EA more invoiced than the matched delivery delivered*, in
-  **amber**. Something is wrong.
-- `Crating and export packing` — *Not compared — no ordered item*, in **grey**.
-  Nothing was measured. Not a problem, the absence of one.
+**Two steps stood here and #278 removed both**, with the seeded rows they read.
+Step 3 was `grey against amber` — this same entry beside a second one reading
+*Not compared — no ordered item* in grey — and step 4 was
+`/invoices/HYE-INV-260819-12`, an invoice every charge of which was free text and
+whose order list therefore read `None linked.` Neither is a state this app can
+produce. The shortfall was seeded on the same invoice as the grey entry and came
+back on its own as `SHORTFALL`, which is why the id above is newer than its
+neighbours.
 
-If the second wore the first's colour the screen would dress "we did not compare
-this" as an error while its own sentence says nothing was compared.
-
-### 4. `/invoices/HYE-INV-260819-12` — `None linked.`
-
-Every charge on this invoice is free text, so it links no order at all. It also
-wears `Awaiting delivery` and can never appear in the waiting strip, because a
-invoice charging no ordered item can never be paired with a delivery — which is why
-the strip's row count and the chip count differ.
-
-### 5. `/invoices/HYE-INV-260819-10` — one invoice, two orders
+### 4. `/invoices/HYE-INV-260819-10` — one invoice, two orders
 
 A short indented list under each order's row, naming what that order was invoiced
 for and in what quantity. Quantities only, never prices. There is deliberately no
 order column in the items table: a folded row can span two orders, so that cell
 would have no single value.
 
-### 6. `/deliveries/HYE-DL-260819-05` — raise the correction, live
+### 5. `/deliveries/HYE-DL-260819-05` — raise the correction, live
 
 The banner names the excess and the order. `(2 over)` sits on the quantity —
 **only the excess is coloured, never the total**.
@@ -417,16 +415,19 @@ its quotation. Then, live:
 > situation by itself. They stay after signature because an overage request read
 > on its own looks like a duplicate with no quotation.
 
-### 7. `/deliveries/HYE-DL-260819-09` — the app labelling its guess
+### 6. `/deliveries/HYE-DL-260819-09` — the app labelling its guess
 
 Eligible, with one extra sentence: *Inferred: no invoice names this delivery, so
 an invoice that names no delivery at all is treated as carrying the excess.* A guess,
 labelled as one.
 
-### 8. `/deliveries/HYE-DL-260819-12` — an excess against no order
+### 7. `/deliveries/HYE-DL-260819-12` — an excess the app could not place
 
 *2 EA delivered beyond what was ordered, and could not be attributed to one
-order.* The table row reads `not against any order`.
+order.* The banner is the point and it stays; the table's order cell is empty
+rather than reading `not against any order`, because #278 stopped naming that
+state on screen. The row still groups under its own item, which is the half of
+#165's posture the app keeps.
 
 ---
 
@@ -586,19 +587,21 @@ sentences, for not-found and out-of-scope. The picker cannot offer either, so
 reaching them needs a hand-built POST. That the two are indistinguishable is the
 point — telling them apart would confirm a record exists outside someone's scope.
 
-### Six states that needed the seed fixed
+### Four states that needed the seed fixed
 
 Recorded because each was a seed defect rather than a limit of the app, and the
 distinction is the one worth keeping:
 
-1. `Not compared — no ordered item` rendered nothing — the per-item list appears
-   only when a delivery is matched **and** something disagrees.
-2. `None linked.` was unreachable from the same invoice, which linked an order
-   through its other row. Split into a second scenario.
-3. "Spans two invoices" came out **eligible**. The rule needs two candidates that
+1. "Spans two invoices" came out **eligible**. The rule needs two candidates that
    both name the delivery **and** a first candidate smaller than the excess.
-4. No order showed both variance kinds, which is the one thing `/pos/[poId]` can
+2. No order showed both variance kinds, which is the one thing `/pos/[poId]` can
    do that no other screen can.
-5. The `+N` fold had no producer — every delivery brought one material.
-6. The detection PDF for two orders yielded one. A hand-rolled PDF's content
+3. The `+N` fold had no producer — every delivery brought one material.
+4. The detection PDF for two orders yielded one. A hand-rolled PDF's content
    stream was a byte short; rebuilt on `pdf-lib`.
+
+**Two more stood at the head of this list and #278 removed them**, because the
+states they were about are not states this app has: `Not compared — no ordered
+item` rendering nothing, and `None linked.` being unreachable from the same
+invoice. Both were about a charge with no ordered item behind it, and the work of
+getting the seed to show them is what made it worth asking whether it should.

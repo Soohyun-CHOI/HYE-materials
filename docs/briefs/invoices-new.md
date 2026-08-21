@@ -110,10 +110,18 @@ that control.
 reader says why, and its placeholder says so — `Remark — why this differs from the
 PO`. The field is always present; the placeholder is what names its purpose.
 
-**A free-text item, with no ordered item behind it, is currently switched off** by
-a flag in this file. The backend path for it is untouched, so re-exposing it is
-flipping that flag — which means a design should know the option exists and is
-hidden, not absent.
+**A free-text item, with no ordered item behind it, does not exist (#278).** It
+was hidden behind a flag in this file with its backend path left open, so a
+design was told the option existed and was merely hidden; the flag, the path and
+every branch that described the result are gone. Only a purchase request takes
+typed items.
+
+**When a line's purchase order has no ordered item left to pick:** the line says
+so in amber — every item on that order is already on another line of this
+invoice — and names the two ways out, a different order or removing the line.
+One ordered item belongs to one line of one invoice (#91), so a second line on
+an exhausted order has nothing to choose, and this is where a reader is told
+rather than refused on submit.
 
 ## What must agree elsewhere
 

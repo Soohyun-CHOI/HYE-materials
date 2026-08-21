@@ -173,7 +173,6 @@ function stringsFrom(value, out = []) {
 const PINNED = [
     "⚠ Order variance",
     "⚠ Check the total",
-    "Not compared — no ordered item",
     // #274 — THE THREE `_shared.md` CALLS TIER 1 AND NOTHING PINNED. Its status
     // section quotes four sentences from `lib/deliveryStatus.js` as locked words;
     // only `Not compared — no ordered item` above was ever pinned, so the other
@@ -310,7 +309,11 @@ export function run({ check, assert, log }) {
     // The two verdict tones come from the same module and the same walk; asserting
     // the count here is what makes a tone SILENTLY DROPPED from STATUS_COPY visible,
     // since a shrunken set would otherwise agree with a shrunken brief.
-    check("STATUS_COPY still reaches seven tones", tones.size, 7);
+    // SIX SINCE #278, WHICH TOOK `unjudged` WITH ITS ONLY PRODUCER — the verdict for a
+    // charge with no ordered item. This count is what makes a tone silently DROPPED
+    // visible, since a shrunken set would otherwise agree with a shrunken brief, so
+    // the number moving is the point rather than an inconvenience.
+    check("STATUS_COPY reaches six tones", tones.size, 6);
 
     const unlisted = [...tones].filter((t) => !shared.includes(`\`${t}\``)).sort();
     check("no tone the shared brief does not name", unlisted.length === 0 ? "none" : unlisted.join(", "), "none");

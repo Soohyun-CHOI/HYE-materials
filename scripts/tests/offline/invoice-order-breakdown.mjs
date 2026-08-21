@@ -24,9 +24,9 @@
 //
 //   - two items split across the SAME two orders, since one correction is one
 //     ordered item and a second correction means a third order;
-//   - an invoice item with no `PO Item`, since `SHOW_OTHER_ITEM_OPTION` is false
-//     (#96) and free-text charges are out of the plan — so the exclusion below is
-//     defensive, and this file is the only thing holding it.
+//   - an invoice item with no `PO Item`. That was a state behind a flag when this
+//     was written and is no state at all since #278, so what the read below guards
+//     is a link emptied by hand rather than a kind of charge.
 
 import { foldInvoiceItems } from "../../../lib/invoiceItemFold.js";
 import {
@@ -44,10 +44,9 @@ const C = "recPO_C";
 
 /**
  * One raw Invoice Item. `poItem` defaults to a truthy ordered item because the app
- * cannot currently create a row without one (`SHOW_OTHER_ITEM_OPTION` is false, #96);
- * a free-text row is the deliberate exception and passes `poItem: null`, keeping its
- * `PO` — which is the shape `createInvoiceAction` enforces and the reason the exclusion
- * cannot key on that link.
+ * cannot create a row without one (#278); a row passing `poItem: null` while keeping
+ * its `PO` is the shape a hand-emptied link leaves, and the reason the read cannot
+ * key on the order link.
  */
 const row = ({
     id,
@@ -198,12 +197,11 @@ export function run({ check, assert, log }) {
     check("  and the free-text row's order carries nothing", listedPlusFreeText.byOrder.has(C), false);
 
     // -----------------------------------------------------------------------
-    // THE EXCLUSION IS THE WHOLE OF WHAT THIS TIER CARRIES ALONE. It is not a state
-    // the app can produce — `SHOW_OTHER_ITEM_OPTION` is false (#96) and free-text
-    // charges are out of the plan — so no seed and no screen can show it, and the two
+    // THE READ IS THE WHOLE OF WHAT THIS TIER CARRIES ALONE. It is not a state the
+    // app can produce (#278), so no seed and no screen can show it, and the two
     // halves have to be pinned here separately: OUT OF THE JUDGMENT and UNDER NO
     // ORDER. Each is asserted above and each is shown below to fail under the one
-    // mutation that would break it, which is keying the exclusion on the wrong link.
+    // mutation that would break it, which is keying it on the wrong link.
     log("the exclusion's mutant — keyed on `PO` instead of `PO Item`:");
     const keyedOnPO = ({ folded, items } = {}) => {
         // The real rule with ONE change: a row is admitted on its `PO` alone. That is

@@ -106,13 +106,14 @@ answers no question about existing data, so its brief tags nothing as verdict.
 
 ## What the app must make visible
 
-### Status tones — seven names in three groups
+### Status tones — six names in three groups
 
 `lib/deliveryStatus.js` is the one place in the app where a distinction is
 stated apart from its rendering. Every status value it produces carries a `tone`,
 which is a semantic name rather than a color, so that two screens cannot drift
-into two palettes for one fact. Seven names exist. **They are not one set of
-seven, and treating them as one is the mistake this section exists to prevent.**
+into two palettes for one fact. Six names exist — seven until #278. **They are
+not one set of six, and treating them as one is the mistake this section exists
+to prevent.**
 
 **Group 1 — chip tones.** A closed set of states, each currently a background
 plus a text color. A reader learns them once and recognizes them thereafter, the
@@ -131,32 +132,39 @@ color say a stage on one list and an error on another, which is the single
 property this vocabulary exists to hold still. The current split is that the
 chip states the discrepancy in red and the prompt below it asks in amber.
 
-**Group 2 — verdict tones.** Two names, for a line of text rather than a chip,
-added by #241. They are deliberately not the chip tones: reusing one would make
-a single word mean a chip on one screen and a text color on another.
+**Group 2 — the verdict tone.** One name, for a line of text rather than a chip,
+added by #241. It is deliberately not a chip tone: reusing one would make a
+single word mean a chip on one screen and a text color on another.
 
 | Tone | What it means | Currently |
 |---|---|---|
 | `exception` | A discrepancy a person has to act on. | amber text |
-| `unjudged` | Nothing was measured here. Not a problem — the absence of one. | gray text |
 
-The distinction is load-bearing. `unjudged` is a free-text charge with no
-ordered item behind it; if it wore `exception` the screen would dress "we did
-not compare this" as an error while its own sentence says nothing was compared.
+**This group held two until #278, and the second is worth knowing about even
+though it is gone.** `unjudged` was gray text for a charge with no ordered item
+behind it — "nothing was measured here", not a problem but the absence of one —
+and the pair made a distinction the invoice detail drew on purpose: gray said
+nothing was compared, amber said something is wrong. #278 removed the charge
+itself, so the gray half has no producer and every entry in that list is now an
+exception. A design does not have to draw the distinction; it should know the
+list was once two things and is now one, because reintroducing a second grade
+there would need its own argument.
 
 **Group 3 — `absent`, which is not a chip at all.** It means the comparison was
 never made, and it renders as plain text with no color. Making it a chip would
 put "we did not measure" into the same set as three values that are
 measurements. Its text is an em dash, and the em dash is the copy — see the
-locked words.
+locked words. **Since #278 it reaches only the two ORDER axes**: the delivery
+axis's dash went with the state behind it, and the invoice axis lost its own in
+#210, so neither document axis has one.
 
 **Which tones can meet on one screen.** `complete`, `partial`, `none` and
 `absent` appear together anywhere a list column carries a status, and
 `/pos/[poId]` puts two such chips on one row since #235 — the delivery axis and
 the invoicing axis, deliberately sharing one palette so a reader crossing
 between them does not learn a second. `mismatch` reaches only the invoice list
-and the invoice detail. `exception` and `unjudged` reach only the invoice
-detail, where they can appear alongside chip tones on the same page. What never
+and the invoice detail. `exception` reaches only the invoice detail, where it can
+appear alongside chip tones on the same page. What never
 happens is two *different* chip vocabularies for one predicate on one screen;
 `STATUS_COPY.column.po` records that the two sets sharing three words never meet.
 
@@ -269,7 +277,6 @@ The sentences that go with them, all tier 1:
 - `⚠ This invoice charges more than the delivery matched to it delivered — take it up with the vendor, or with whoever received the material, before confirming payment.`
 - `N EA more invoiced than the matched delivery delivered`
 - `N EA invoiced, none of it delivered by the matched delivery`
-- `Not compared — no ordered item`
 - `Against the ordered item: N EA more invoiced, N EA more delivered`
 - `Longest wait first. No invoice yet covers what these deliveries brought.`
 
@@ -316,9 +323,11 @@ record exists outside someone's scope.
 
 `lib/deliveryInvoiceMatch.js` carries the seven pairing sentences, including the
 tie-break. `lib/overage.js` carries the correction's preview, its eight
-refusals, its six short strip reasons (`no ordered item`, `no invoice yet`,
-`invoice and delivery disagree`, `spans two invoices`, `invoices differ on
-price`, `invoice has no file`) and seven banners. **Three of those reasons are
+refusals, its five short strip reasons (`no invoice yet`, `invoice and delivery
+disagree`, `spans two invoices`, `invoices differ on price`, `invoice has no
+file`) and seven banners. **A sixth read `no ordered item` and went in #278**,
+with the state it named: a delivery row whose order link was emptied by hand.
+Such a row is refused silently now and the strip does not list it. **Three of those reasons are
 #265's and this list named the three it replaced** — corrected in #274, which
 was sweeping the word one of them carried.
 

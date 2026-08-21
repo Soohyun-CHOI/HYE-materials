@@ -28,10 +28,11 @@
 // real `foldInvoiceItems` for the same reason — the join is on its `rowIds`.
 //
 // WHAT THIS TIER CANNOT SEE is the rendering, so whether the section reads as an
-// exception list is a browser finding and is in the pull request. One state is pinned
-// ONLY here because the base has no invoice in it: a covered invoice carrying one row
-// with no ordered item, where the chip says `Delivered` and a single gray entry says
-// why one charge was left out of the comparison.
+// exception list is a browser finding and is in the pull request. One state was pinned
+// only here because the base held no invoice in it — a covered invoice carrying one row
+// with no ordered item, where a single gray entry said why one charge was left out of
+// the comparison. #278 removed that charge, and the gray entry with it, so this file
+// pins nothing the base cannot also show.
 
 import { foldInvoiceItems } from "../../../lib/invoiceItemFold.js";
 import { invoiceShareStatus, summarizeInvoiceStatus } from "../../../lib/deliveryStatus.js";
@@ -78,7 +79,6 @@ const row = ({
     delivered = 10,
     invoicedBeyondOrder = 0,
     deliveredBeyondOrder = 0,
-    judged = true,
     itemName = "Elbow",
     size = '2"',
     unit = "EA",
@@ -88,12 +88,16 @@ const row = ({
     itemName,
     size,
     unit,
-    poItemId: judged ? poItemId : null,
-    materialRecordId: judged ? MATERIAL : null,
-    rawDelivered: judged ? delivered : null,
-    status: judged
-        ? { ...invoiceShareStatus({ invoicedQty: invoiced, delivered }), invoicedBeyondOrder, deliveredBeyondOrder }
-        : null,
+    poItemId,
+    materialRecordId: MATERIAL,
+    rawDelivered: delivered,
+    // A `judged` flag decided all four fields above until #278. Every row the walk
+    // returns carries a status now, so an unjudged row is not a shape to build.
+    status: {
+        ...invoiceShareStatus({ invoicedQty: invoiced, delivered }),
+        invoicedBeyondOrder,
+        deliveredBeyondOrder,
+    },
 });
 
 /** Raw items and reconciliation rows in, `{ folded, rows }` out. */
@@ -159,18 +163,11 @@ const ONE_SHORT = invoice(
     ]
 );
 
-// A covered invoice carrying one charge with no ordered item behind it. Not on the
-// base: no invoice there matches a delivery AND holds a free-text row.
-const COVERED_PLUS_FREE_TEXT = invoice(
-    [
-        item({ id: "rec1", material: "recMAT_1", qty: 10 }),
-        item({ id: "rec9", material: null, itemName: "Freight", size: "", unit: "", qty: 1, unitPrice: 40 }),
-    ],
-    [
-        row({ id: "rec1", invoiced: 10, delivered: 10 }),
-        row({ id: "rec9", judged: false, itemName: "Freight", size: "", unit: "" }),
-    ]
-);
+// A `COVERED_PLUS_FREE_TEXT` fixture stood here — a covered invoice carrying one
+// charge with no ordered item behind it, which #241 could not find on the base and
+// pinned here instead. #278 removed the charge, so the fixture describes nothing and
+// its four assertions went with it. `judged: false` left the row builder in the same
+// edit: a row the walk cannot judge is no longer built at all.
 
 // Two charges against ONE ordered item, folded by price into one entry. #91's
 // dropdown exclusion keeps the form from making this; hand-entered data can.
@@ -197,7 +194,6 @@ const ALL_FIXTURES = [
     ["the crossed split", SPLIT_CROSSED],
     ["an ordinary covered invoice", COVERED],
     ["one material short", ONE_SHORT],
-    ["a covered invoice plus a free-text charge", COVERED_PLUS_FREE_TEXT],
     ["two charges on one ordered item", TWO_CHARGES_ONE_ORDERED_ITEM],
     ["a split exceeding both ordered items", SPLIT_BOTH_BEYOND],
 ];
@@ -210,7 +206,6 @@ const chipOf = (fixture, hasDelivery = true) =>
     summarizeInvoiceStatus({
         itemStatuses: fixture.rows.filter((r) => r.status).map((r) => r.status),
         hasDelivery,
-        excludedCount: fixture.rows.filter((r) => !r.status).length,
     }).key;
 
 export function run({ check, assert, log }) {
@@ -291,9 +286,9 @@ export function run({ check, assert, log }) {
     log("");
     log("the chip and the entries say one thing, on every fixture:");
     for (const [name, fixture] of ALL_FIXTURES) {
-        const speaksShort = entriesOf(fixture).some(
-            (e) => e.copy.verdict && e.copy.verdict.key !== "not-compared"
-        );
+        // The `not-compared` exclusion this filter carried is gone with the verdict
+        // (#278): every verdict an entry can hold is now a shortfall.
+        const speaksShort = entriesOf(fixture).some((e) => e.copy.verdict);
         check(`  ${name}`, speaksShort, chipOf(fixture) === "mismatch");
     }
 
@@ -355,17 +350,21 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
-    log("a charge with no ordered item is its own entry and always speaks:");
-    const freeText = entriesOf(COVERED_PLUS_FREE_TEXT);
-    check("a covered invoice with one free-text charge renders one entry", freeText.length, 1);
-    check("  which says why it was left out", freeText[0].copy.verdict.text, "Not compared — no ordered item");
-    check("  and the chip above it still reads delivered", chipOf(COVERED_PLUS_FREE_TEXT), "delivered");
-    assert(
-        "  it is a group of one by the fold's own key, not by anything here",
-        COVERED_PLUS_FREE_TEXT.folded.length === 2 &&
-            COVERED_PLUS_FREE_TEXT.folded.every((g) => g.rowIds.length === 1)
+    log("a fold group whose rows all dropped out contributes no entry (#278):");
+    // The walk drops a row with no resolvable ordered item rather than giving it one,
+    // so a fold group can now lose every member — which is the shape that replaced
+    // this section's free-text fixture. The guard was already here and this is what
+    // reaches it.
+    check(
+        "a group with no surviving member is left out",
+        invoiceDeliveryEntries({
+            folded: [{ key: "orphan", rowIds: ["gone"], itemName: "Freight", size: "", unit: "" }],
+            rows: [],
+            hasDelivery: true,
+        }).length,
+        0
     );
-    check("  and it carries no share to add", foldedEntryShare([COVERED_PLUS_FREE_TEXT.rows[1]]), null);
+    check("  and an empty member list carries no share", foldedEntryShare([]), null);
 
     // -----------------------------------------------------------------------
     log("");
@@ -376,14 +375,12 @@ export function run({ check, assert, log }) {
         entriesOf(SPLIT_SHORT)[0].tone,
         entriesOf(SPLIT_SHORT)[0].copy.verdict.tone
     );
-    check(
-        "an entry with no ordered item behind it is unjudged, not a problem",
-        entriesOf(COVERED_PLUS_FREE_TEXT)[0].tone,
-        "unjudged"
-    );
+    // An `unjudged` entry was asserted here and held apart from a shortfall's color.
+    // #278 removed the charge that produced it, so this list has one tone; what is
+    // asserted instead is that every entry any fixture produces wears it.
     assert(
-        "  so the two entry kinds do not wear one color",
-        entriesOf(SPLIT_SHORT)[0].tone !== entriesOf(COVERED_PLUS_FREE_TEXT)[0].tone
+        "every entry on every fixture is an exception",
+        ALL_FIXTURES.every(([, fixture]) => entriesOf(fixture).every((e) => e.tone === "exception"))
     );
     // The order-scoped aside alone can put an entry in the list: no verdict to read a
     // tone off, and something exceeding an ordered item is why it is there.
@@ -401,10 +398,12 @@ export function run({ check, assert, log }) {
     for (const [name, fixture] of ALL_FIXTURES) {
         check(`  ${name}`, invoiceDeliveryEntries({ ...fixture, hasDelivery: false }).length, 0);
     }
+    // ANTI-VACUITY: the loop above is a row of zeroes, which is also what a broken
+    // fixture set would give. At least one fixture must produce entries WITH a
+    // delivery, or the rule being pinned is that nothing ever renders.
     assert(
-        "  including the free-text entry, which speaks whenever the list renders at all",
-        entriesOf(COVERED_PLUS_FREE_TEXT).length === 1 &&
-            invoiceDeliveryEntries({ ...COVERED_PLUS_FREE_TEXT, hasDelivery: false }).length === 0
+        "  and with a delivery matched, something does render",
+        ALL_FIXTURES.some(([, fixture]) => entriesOf(fixture).length > 0)
     );
 
     // -----------------------------------------------------------------------

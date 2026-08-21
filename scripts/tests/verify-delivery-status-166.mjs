@@ -1,9 +1,10 @@
 // Delivered against invoiced against ordered — credentialed (#166, #210).
 //
 // The offline tier pins the judgment itself (scripts/tests/offline/
-// delivery-status.mjs: the two comparisons, the four verdicts, the chips, the
-// freight exclusion, the copy branches, the filters and the worklist order; and
-// offline/delivery-invoice-link.mjs the pairing rule and its refusals).
+// delivery-status.mjs: the two comparisons, the three verdicts, the chips, the copy
+// branches, the filters and the worklist order; and offline/delivery-invoice-link.mjs
+// the pairing rule and its refusals). It listed a fourth verdict and a freight
+// exclusion until #278 removed the state both were about.
 // What only real records can answer is here:
 //
 //   A — the THREE links the two walks travel — `PO Items."Delivery Items"`,
@@ -14,8 +15,10 @@
 //       in the UI makes `record.get()` return undefined, which every screen would
 //       render as nothing at all.
 //   B — the invoice axis on real records: an invoice paired with the delivery that
-//       answered it, one with nothing paired, and a free-text invoice item that
-//       is excluded rather than counted as short.
+//       answered it, and one with nothing paired. A third fixture stood here — a
+//       free-text invoice item, excluded rather than counted as short — and went
+//       with the state in #278: `createInvoiceItem` refuses a null `PO Item` now, so
+//       this script could not create one even to test it.
 //   C — the delivery axis: a delivery with no invoice naming it, which is the
 //       worklist this feature exists to replace the month-end email with, and one
 //       whose invoice covers only part of what it brought.
@@ -323,7 +326,9 @@ try {
             return (await getDeliveriesByRecordIds([d.id]))[0];
         }
 
-        async function invoice({ po, orderedItem, qty, freight = false }) {
+        // A `freight` parameter added a second invoice item with no `PO Item`. Gone
+        // with the state (#278) — the writer throws on one.
+        async function invoice({ po, orderedItem, qty }) {
             const inv = await createInvoice({
                 vendorId: vendor.id,
                 vendorInvoiceCode: `${TAG}-${Math.random().toString(36).slice(2, 7)}`,
@@ -347,21 +352,6 @@ try {
                 remark: "",
             });
             track("invoiceItems", item.id);
-            if (freight) {
-                // A free-text invoice item: no PO Item, so no ordered quantity and no
-                // delivery could ever correspond to it.
-                const fr = await createInvoiceItem({
-                    invoiceRecordId: inv.id,
-                    invoiceId: inv.invoiceId,
-                    poRecordId: po.id,
-                    poItemRecordId: null,
-                    itemName: `${TAG} Freight`,
-                    qty: 1,
-                    unitPrice: 25,
-                    remark: "",
-                });
-                track("invoiceItems", fr.id);
-            }
             return inv;
         }
 
@@ -373,7 +363,7 @@ try {
             qty: 10,
             receivedDate: "2026-07-15",
         });
-        const deliveredInvoice = await invoice({ po: delivered.po, orderedItem: delivered.orderedItem, qty: 10, freight: true });
+        const deliveredInvoice = await invoice({ po: delivered.po, orderedItem: delivered.orderedItem, qty: 10 });
         // #210 — the pairing, written the way both production paths write it.
         await setInvoiceDelivery(deliveredInvoice.id, fullyDeliveredDelivery.id);
 
@@ -420,9 +410,9 @@ try {
         check("a delivery is named, so the chip is Delivered", s.key, "delivered");
         check("and the quantities match, so no marker", s.mismatch, false);
         check("one ordered item judged", s.judged, 1);
-        // The freight invoice item is excluded rather than counted as short —
-        // without this every invoice carrying one would read as not delivered.
-        check("and the free-text line was excluded, not judged", s.excludedCount, 1);
+        // An `excludedCount` of 1 was asserted here for the freight item that stood
+        // beside it. Both are gone (#278); every charge is judged now, so `judged`
+        // above is the whole count.
         check("the chip says so", describeInvoiceColumn(s).text, "Delivered");
 
         const notDelivered = await makeOrder({ itemName: `${TAG} Pending`, qty: 6 });
@@ -466,20 +456,14 @@ try {
         const recon = await getInvoiceReconciliation(await getItemsByInvoice(deliveredFull.id), {
             linkedDeliveryRecordId: linkedDelivery(deliveredFull),
         });
-        // ONE ROW PER INVOICE ITEM, judged or not: the free-text invoice item gets
-        // a box of its own saying why it was not compared, rather than a footnote
-        // about an invoice item the reader cannot see.
-        check("a row for every invoice item", recon.rows.length, 2);
-        const judgedRow = recon.rows.find((r) => r.status);
-        const notComparedRow = recon.rows.find((r) => !r.status);
-        check("one of them is judged", Boolean(judgedRow), true);
-        check("the freight item is counted as excluded", recon.excludedCount, 1);
-        check(
-            "and its own row says so where it is",
-            describeInvoiceItem(notComparedRow.status, notComparedRow.unit, { hasDelivery: true })
-                .verdict.key,
-            "not-compared"
-        );
+        // ONE ROW PER JUDGED CHARGE, AND EVERY CHARGE IS JUDGED (#278). This read
+        // `a row for every invoice item, judged or not` and asserted a second row
+        // carrying `not-compared` — the free-text charge's own box. The charge is
+        // gone, so the walk returns one row and every row has a status.
+        check("a row for the charge", recon.rows.length, 1);
+        const judgedRow = recon.rows[0];
+        check("which is judged", Boolean(judgedRow.status), true);
+        check("and nothing came back unjudged", recon.rows.filter((r) => !r.status).length, 0);
         // ONE SCOPE PER ROW SINCE #232, and the row's `line` field is gone with the
         // second one. Every figure here is this invoice's: what it invoiced, and what
         // the delivery it MATCHES brought of that ordered item.

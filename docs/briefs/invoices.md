@@ -107,10 +107,13 @@ apart without color: each heading names and counts its own subject, and the row 
 carry different prefixes.
 
 **Its row count and the number of `Awaiting delivery` chips in the table can
-differ, and that is not a defect.** An invoice that charges no ordered item at all
-wears the chip below and has no row above, because it can never be paired and the
-delivery question cannot be asked of it. Some of the base's invoices are in
-exactly that state.
+differ, and that is not a defect.** A chip says an invoice has no delivery
+matched; a row says the app could compute no pairing for it yet. An invoice
+whose ordered items nothing has delivered wears the chip and has a row; one the
+pairing refused for another reason wears the chip and has none. **This paragraph
+named a third case until #278** — an invoice charging no ordered item at all,
+which two hand-entered rows on the base were in and which no invoice can be in
+now.
 
 ## What must agree elsewhere
 

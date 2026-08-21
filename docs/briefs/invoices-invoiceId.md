@@ -126,21 +126,16 @@ figure here would be either wrong or a sum of unlike things.
 **When the folded items do not all touch the same set of orders:** a short
 indented list under each order's row, naming what that order was invoiced for
 and in what quantity. Only quantities, never prices. When every item touches
-the same orders the question is not ambiguous and nothing appears. An order
-with no child row under it in this state is correct rather than broken — it is
-charged through an item with no ordered item behind it, so it keeps its row
-and the space under it stays empty.
-
-**When no order is linked at all:** `None linked.` in place of the list.
+the same orders the question is not ambiguous and nothing appears.
 
 **When a delivery is matched AND something disagrees:** a list under the
 delivery, one entry per folded item, and **only** for the items that disagree.
-An entry carries the item's name and size, colored by its own verdict tone, and
-one sentence with the figures. Two verdict tones reach it: `exception` for a
-shortfall against the matched delivery, and `unjudged` for an invoice item with
-no ordered item behind it, whose sentence is `Not compared — no ordered item`.
-The second must not wear the first's color — it says nothing was measured, which
-is not a problem.
+An entry carries the item's name and size, colored by its verdict tone, and one
+sentence with the figures. One tone reaches it, `exception`, for a shortfall
+against the matched delivery. **A second, `unjudged`, reached it until #278** —
+gray text for an invoice item with no ordered item behind it, saying `Not
+compared — no ordered item`. That charge is not a state this app has, so the
+list holds one grade of thing now.
 
 When the delivery is matched and everything agrees, this list is **empty and
 absent**: the delivery, named once, is the whole section. The item level points

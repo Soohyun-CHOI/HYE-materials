@@ -14,18 +14,21 @@ import { PO_ORIGIN, claimDetected, poOptionsForSlot } from "@/lib/poPickerOption
 // inline copy of it.
 import { hasUninvoicedQty } from "@/lib/poItemQty";
 
-// poItemTouched: false until the user (or #57's auto-default below) makes
-// an explicit choice in the PO Item dropdown — distinguishes "still
-// unset" from "deliberately Other (free text)", both of which otherwise
-// collapse to poItemRecordId: "". unitPriceEditing: whether the Unit
-// Price lock (#57) is currently open for a linked PO Item; irrelevant
-// (and ignored) once poItemRecordId is empty, since free-text invoice items were
-// never locked to begin with.
+// poItemTouched: false until the user (or #57's auto-default below) makes an
+// explicit choice in the PO Item dropdown. It distinguished "still unset" from
+// "deliberately Other (free text)" until #278 removed the second; what it
+// separates now is a pick from an auto-default, which is what keeps
+// `applyDefaultsAcrossItems` idempotent. unitPriceEditing: whether the Unit
+// Price lock (#57) is currently open for a linked PO Item.
+//
+// `poItemRecordId: ""` IS A STATE OF THE FORM AND NOT OF A SAVED CHARGE (#278).
+// A row holds it before its PO is picked, while that PO's items load, and when
+// #91 leaves it nothing to claim — none of which may be submitted, which
+// `createInvoiceAction` refuses and the row itself explains.
 const EMPTY_ITEM = {
     itemName: "",
     // Issue #84 — frozen copies from the linked PO Item, same as itemName/
-    // unitPrice: never manually entered, never editable. Blank for a
-    // free-text "Other" invoice item, since there's no PO Item to copy from.
+    // unitPrice: never manually entered, never editable.
     size: "",
     unit: "",
     qty: "",
@@ -164,11 +167,19 @@ const TABS = [
 const confirmChangeMessage = (subject) =>
     `Changing the ${subject} will clear the items you've entered so far. Continue?`;
 
-// Issue #96 — decided in #93: no legitimate free-text use case has
-// surfaced yet, so hidden from the UI for now. Backend path (PO-Item-less
-// Invoice Item) is untouched. Flip to true to re-expose — no other code
-// change needed.
-const SHOW_OTHER_ITEM_OPTION = false;
+// `SHOW_OTHER_ITEM_OPTION` STOOD HERE AND IS GONE (#278). It hid an `Other (free
+// text)` choice from the PO Item select and had been false since #96, which left
+// the backend path standing and said flipping it back was the whole of
+// re-exposing the option. #278 decided the option is not a feature: only a
+// purchase request takes typed items, a `PO Items` row is a snapshot of one, and
+// an `Invoice Items` row is chosen from those — so a charge with no ordered item
+// behind it is not a state this app has, and the twenty-two branches that
+// described one went with the flag.
+//
+// REMOVING THE FLAG WAS NOT THE WHOLE OF CLOSING IT, WHICH IS WHY THIS NOTE IS
+// HERE RATHER THAN IN THE PULL REQUEST. The flag gated one `<option>`; a second
+// path reached the same state with the flag untouched, and it is closed below at
+// `noOrderedItemLeft` and in `createInvoiceAction`.
 
 // The common case (per product decision) is one PO with several invoices —
 // an invoice spanning several POs is the supported edge case, not the
@@ -844,20 +855,20 @@ export default function InvoiceForm({ vendors, pos }) {
     }
 
     // Issue #51 — the single sync point for an invoice item's PO Item choice.
-    // Selecting a real PO Item copies its name (and, per #57, its
-    // Unit Price, freshly re-locked, plus per #84, its Size/Unit) in;
-    // selecting empty means "Other (free text)", which also clears
-    // Size/Unit -- there's no PO Item left to have copied them from.
-    // Issue #57 — poItemTouched is set true on any explicit choice here
-    // (including Other), so applyDefaultPoItemSelection never later
-    // overwrites a deliberate pick with its own default.
+    // Selecting a PO Item copies its name (and, per #57, its Unit Price, freshly
+    // re-locked, plus per #84, its Size/Unit) in.
+    // Issue #57 — poItemTouched is set true on any explicit choice here, so
+    // applyDefaultPoItemSelection never later overwrites a deliberate pick with
+    // its own default.
+    //
+    // NO EMPTY BRANCH SINCE #278. The select's only options are ordered items, so
+    // it cannot emit `""` any more; the branch that stood here read an empty value
+    // as "Other (free text)" and cleared Size/Unit for it. A defensive early
+    // return would be a guard for a value nothing sends.
     function updatePoItemSelection(index, poItemRecordId) {
         setItems((prev) =>
             prev.map((item, i) => {
                 if (i !== index) return item;
-                if (!poItemRecordId) {
-                    return { ...item, poItemRecordId: "", poItemTouched: true, size: "", unit: "" };
-                }
                 const candidates = poItemsCache[item.poRecordId]?.items || [];
                 const matched = candidates.find((poItem) => poItem.id === poItemRecordId);
                 return {
@@ -1192,10 +1203,33 @@ export default function InvoiceForm({ vendors, pos }) {
                         const availablePoItemOptions = poItemOptions.filter(
                             (poItem) => poItem.id === item.poItemRecordId || !usedElsewhere.has(poItem.id)
                         );
-                        // Issue #57 — only meaningful once a real PO Item is
-                        // linked; "Other" invoice items have nothing to compare
-                        // against, so neither the Unit Price lock nor the
-                        // Qty warning ever applies to them.
+                        // Issue #278 — THE SECOND PATH TO A CHARGE WITH NO ORDERED
+                        // ITEM, and the one removing `SHOW_OTHER_ITEM_OPTION` does
+                        // not close. #91 keeps one ordered item to one row of one
+                        // invoice, so a row pointed at a PO whose every ordered item
+                        // a sibling row has already claimed has nothing left to
+                        // pick: `defaultedItem` returns it untouched with an empty
+                        // `poItemRecordId`, this filter comes back empty, and the
+                        // select renders with no options at all.
+                        //
+                        // #99's COMMENT BELOW SAYS THAT COMBINATION WAS FIXED, AND
+                        // IT FIXED ONE CAUSE OF IT. There it was a PO picked whose
+                        // items had not finished loading, which `!locked` now
+                        // covers; the same empty select above the same free-text box
+                        // survived for this cause, because the items ARE loaded and
+                        // every one of them is spoken for. Same symptom, different
+                        // cause, and only the first had a guard.
+                        //
+                        // The row says why rather than offering a box that
+                        // `createInvoiceAction` will refuse — this repo names what a
+                        // reader cannot do where they would try it (#232) and marks
+                        // a choice it still offers (#198), so silently accepting a
+                        // typed name and rejecting it on submit is the shape both
+                        // of those decisions are against.
+                        const noOrderedItemLeft =
+                            !locked && Boolean(item.poRecordId) && availablePoItemOptions.length === 0;
+                        // Issue #57 — only meaningful once a real PO Item is linked,
+                        // and since #278 that is every saved charge.
                         const linkedPoItem = item.poItemRecordId
                             ? poItemOptions.find((p) => p.id === item.poItemRecordId)
                             : null;
@@ -1241,13 +1275,10 @@ export default function InvoiceForm({ vendors, pos }) {
                                                             : ""}
                                                     </option>
                                                 ))}
-                                                {/* Issue #57 — moved to the end of the list, a
-                                                    deliberate choice rather than the default.
-                                                    Issue #96 — hidden by default (see
-                                                    SHOW_OTHER_ITEM_OPTION above). */}
-                                                {SHOW_OTHER_ITEM_OPTION && (
-                                                    <option value="">Other (free text)</option>
-                                                )}
+                                                {/* An `Other (free text)` option stood here, moved
+                                                    to the end of the list by #57 and hidden by #96.
+                                                    It is gone with the flag (#278) — see the note
+                                                    where that constant was. */}
                                             </select>
                                             {/* Issue #84 — reference-only, frozen from the linked
                                                 PO Item at selection time; no input, no edit path.
@@ -1258,14 +1289,17 @@ export default function InvoiceForm({ vendors, pos }) {
                                                     Size: {item.size || "—"} · Unit: {item.unit || "—"}
                                                 </p>
                                             )}
-                                            {!item.poItemRecordId && (
-                                                <input
-                                                    placeholder="Item Name"
-                                                    required
-                                                    value={item.itemName}
-                                                    onChange={(e) => updateItem(i, "itemName", e.target.value)}
-                                                    className={inputClass + " w-full"}
-                                                />
+                                            {/* Issue #278 — a free-text Item Name box stood here,
+                                                on `!item.poItemRecordId`. It was the other half of
+                                                the option above, and the only way to reach it now
+                                                is the exhausted-PO state, which says what happened
+                                                instead. */}
+                                            {noOrderedItemLeft && (
+                                                <p className="text-xs text-amber-700">
+                                                    Every item on this purchase order is already on
+                                                    another line of this invoice. Pick a different
+                                                    purchase order for this line, or remove it.
+                                                </p>
                                             )}
                                         </div>
                                     ) : (

@@ -175,8 +175,8 @@ export function run({ check, assert, log }) {
             }).key !== PAIRING.matched
     );
     // A row with no `PO Item` is skipped rather than refusing the whole invoice — the
-    // same exclusion countsTowardStatus makes, and reachable while #96's free-text
-    // option is only hidden.
+    // the same skip the reconciliation walk makes. Unreachable through the app since
+    // #278 and kept as a crash guard, which is what a hand-emptied link needs.
     check(
         "a MIXED invoice — one free-text row, one ordered item — is judged on the ordered item",
         fitRefusal(

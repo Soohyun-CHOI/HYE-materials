@@ -207,10 +207,32 @@ export function run({ check, log, assert }) {
         overageEligibility({ row: row({ overDelivered: false }), invoices: [] }).blocked,
         OVERAGE_BLOCKED.notOverDelivered
     );
+    // #278 — THE ONE SILENT REFUSAL, and the assertion is that it names no key. A
+    // row whose `PO Item` was emptied by hand still cannot be corrected, and nothing
+    // on the screen says so: the state's only possible reader is whoever emptied the
+    // link. `describeOveragePreview` renders nothing for it, asserted below.
     check(
-        "a row naming no ordered item",
+        "a row naming no ordered item is refused",
+        overageEligibility({ row: row({ poItem: [] }), invoices: [] }).eligible,
+        false
+    );
+    check(
+        "  under no key, so no sentence and no chip exist for it",
         overageEligibility({ row: row({ poItem: [] }), invoices: [] }).blocked,
-        OVERAGE_BLOCKED.noOrderedItem
+        null
+    );
+    check(
+        "  and the preview says nothing at all",
+        describeOveragePreview(
+            overageEligibility({ row: row({ poItem: [] }), invoices: [] }),
+            {}
+        ).length,
+        0
+    );
+    check(
+        "  and the strip does not list it, having nothing to put in its reason cell",
+        awaitsCorrection({ row: row({ poItem: [] }) }),
+        false
     );
     check(
         "nothing charges the ordered item yet",
@@ -991,11 +1013,15 @@ export function run({ check, log, assert }) {
             /12 EA delivered/.test(blockedMessages[1].text) &&
             /12 EA invoiced/.test(blockedMessages[1].text));
     assert("  and the order they belong to", blockedMessages[1].text.includes(facts.originalPoId));
-    // THE TWO THAT NEVER REACH THE TOTALS GET NO COMPARISON LINE, because naming
-    // figures there would claim a measurement that was not taken.
-    for (const key of [OVERAGE_BLOCKED.notOverDelivered, OVERAGE_BLOCKED.noOrderedItem]) {
-        check(`${key} says nothing about figures`, describeOveragePreview({ eligible: false, blocked: key }, facts).length, 1);
-    }
+    // THE ONE THAT NEVER REACHES THE TOTALS GETS NO COMPARISON LINE, because naming
+    // figures there would claim a measurement that was not taken. `noOrderedItem` was
+    // the second until #278 made it silent — a refusal with no key renders no line of
+    // any kind, which is asserted where that refusal is.
+    check(
+        `${OVERAGE_BLOCKED.notOverDelivered} says nothing about figures`,
+        describeOveragePreview({ eligible: false, blocked: OVERAGE_BLOCKED.notOverDelivered }, facts).length,
+        1
+    );
     // NOR DOES `alreadyRaised`: the excess is somebody's already, so what was compared
     // is not the question its reader has.
     check(
