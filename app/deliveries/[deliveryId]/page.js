@@ -153,7 +153,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                 eligible: context.eligibility.eligible,
                 // #265 — the marker is the TIE-BREAK now, not an inference: #219's
                 // tiers are gone and a correction is offered only where the excess is
-                // billed, so what the `!` reports is that several invoices could have
+                // invoiced, so what the `!` reports is that several invoices could have
                 // supplied the quotation at the same price. #217 put the lookup in
                 // lib/overage.js because the strip renders the same marker.
                 tieBreakLabel: tieBreakLabel(context.eligibility),

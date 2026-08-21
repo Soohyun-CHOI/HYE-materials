@@ -5,7 +5,7 @@
 // put the base back. The overage correction in Act IV is the clearest case:
 // `applyOverageToPO` re-points the over-delivered `Delivery Items` row onto the
 // corrective order's ordered item, clears `Over Delivered`, and splits the invoice item
-// that billed it. The delivery that started the act is now a different row pointing at a
+// that invoiced it. The delivery that started the act is now a different row pointing at a
 // different order, and no amount of deleting the correction restores it — the original
 // order keeps only `Former Delivery Items`, and the delivery drops off its `Delivered`
 // column. Act I's signing chain is the same shape: approving advances
@@ -237,7 +237,7 @@ if (!invWaitAId) {
     );
 }
 
-// Act II's reverse pairing: the delivery is waiting again, and its order is unbilled.
+// Act II's reverse pairing: the delivery is waiting again, and its order is uninvoiced.
 const dlWaitId = pickRecordId(after.byScenario, "DL_WAIT", "deliveries");
 if (!dlWaitId) {
     check("the DL_WAIT delivery exists", false, "no delivery carries that tag");
@@ -253,11 +253,11 @@ if (!dlWaitPoId) {
     check("the DL_WAIT order exists", false, "no order under that request");
 } else {
     const items = await getItemsByPO(dlWaitPoId);
-    const billed = items.filter((it) => (it.invoicedQty || 0) > 0);
+    const invoiced = items.filter((it) => (it.invoicedQty || 0) > 0);
     check(
         `${pick(after.byScenario, "DL_WAIT", "pos")} has nothing invoiced`,
-        billed.length === 0,
-        `${billed.length} of ${items.length} ordered item(s) carry an invoiced quantity`
+        invoiced.length === 0,
+        `${invoiced.length} of ${items.length} ordered item(s) carry an invoiced quantity`
     );
 }
 

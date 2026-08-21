@@ -23,7 +23,7 @@ nothing.
 It runs the wipe, clears the Blob objects a script wrote, runs the seed, and then
 reads the base back to check the four things a rehearsal moves — the over-delivery
 is over again with no correction against it, the waiting invoice names no delivery,
-the waiting delivery has no invoice, and its order is unbilled — plus that no record
+the waiting delivery has no invoice, and its order is uninvoiced — plus that no record
 outside the seed's own survived. Six checks; a failure exits 1.
 
 **Two things to do after it finishes.** Sign in again — the wipe cleared Auth

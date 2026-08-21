@@ -3,7 +3,7 @@
 // TWO INVOICES, ONE EACH SIDE OF THE RULE, and the silent one is the shape nothing on
 // this base held — a case observable only in the data rather than in the copy:
 //
-//   A  a CORRECTIVE order. One item billed 13, corrected to 10 on the original
+//   A  a CORRECTIVE order. One item invoiced 13, corrected to 10 on the original
 //      order and 3 on the correction's, so the invoice names two orders and its one
 //      folded item touches BOTH. The sets agree, so the list stays SILENT — which is
 //      the case that matters most, a correction being the overwhelmingly common
@@ -11,7 +11,7 @@
 //      two-order invoice on the base was `HYE-INV-260804-03`, where each item
 //      touches one order, so only the LISTED half had ever been seen on a screen.
 //   B  one item per order. Two items, two orders, the sets differ, so the list is
-//      ON and each order carries the quantity billed against it. The base did hold
+//      ON and each order carries the quantity invoiced against it. The base did hold
 //      this half already (`HYE-INV-260804-03`), and it is here as the pair to A:
 //      one invoice each side of the same rule, on the same job and vendor.
 //
@@ -19,7 +19,7 @@
 // reason is the fold key. `lib/invoiceItemFold.js` keys on `Material` PLUS unit
 // price, so two halves at different prices do NOT fold — each would then touch one
 // order, the sets would differ, and the seed would produce the exact opposite of the
-// case it exists to show. `splitInvoiceItemForOverage` carries `bill.unitPrice` onto
+// case it exists to show. `splitInvoiceItemForOverage` carries `invoice.unitPrice` onto
 // the half it creates and takes the ordered item's name, size and unit from the
 // corrective order, whose `Material` #18's cache wrote during the same PO
 // generation. Letting the app do it is what guarantees the shape; writing the end
@@ -358,7 +358,7 @@ async function pairInvoice(invoice) {
 // ---------------------------------------------------------------------------
 // A — the corrective order: two orders, one folded item touching both, SILENT
 // ---------------------------------------------------------------------------
-console.log("\nA — a correction splits one billed item across two orders:");
+console.log("\nA — a correction splits one invoiced item across two orders:");
 
 const a = await makeOrder({ itemName: FIRST_ITEM, qty: 10 });
 const aDelivery = await overDeliver({
@@ -373,7 +373,7 @@ const aInvoice = await makeInvoice({
     amountDue: 13 * PRICE,
 });
 await charge({ invoice: aInvoice, po: a.po, orderedItem: a.orderedItem, qty: 13 });
-console.log(`  ordered 10, delivered 13, billed 13 on ${aInvoice.invoiceId}`);
+console.log(`  ordered 10, delivered 13, invoiced 13 on ${aInvoice.invoiceId}`);
 
 // BEFORE the correction, which is where the action runs it and the order the office
 // works in: the invoice arrives, the pairing is computed, and only then does anyone
@@ -421,7 +421,7 @@ for (const it of aItems) {
     }
 }
 console.log(
-    `  ${aInvoice.invoiceId} now bills ` +
+    `  ${aInvoice.invoiceId} now charges ` +
         aItems.map((it) => `${it.qty} @ $${it.unitPrice}`).join(" + ") +
         " across two orders"
 );
@@ -471,7 +471,7 @@ function printGuide() {
 
 Nothing under either line, and that is the answer rather than a gap: the
 invoice's ONE folded item touches both orders, so "which order was this
-billed against" has the same answer for every item and the list would
+invoiced against" has the same answer for every item and the list would
 repeat it. The items table below shows one row of 13; the two rows behind
 it are 10 on the first order and 3 on the second, at one price, which is
 what makes them fold.
@@ -491,7 +491,7 @@ silent and both the same name, because the split made two rows of one item.
       237-DEMO Union 2" — 7 EA
 
 The sets differ — one item names one order, the other names the other — so
-the list appears and each order carries the quantity billed against IT.
+the list appears and each order carries the quantity invoiced against IT.
 
 Its Delivery section reads Awaiting delivery, and THAT IS A RESULT: the
 matcher ran and answered \`none\`, nothing having been delivered against
@@ -541,7 +541,7 @@ this seed created touches them.
     console.log(`
 Also written by this run, and by #231's matcher rather than by hand: the
 \`Delivery\` link on each invoice the matcher paired. Never set here
-directly — an empty link is a real state of a real bill, and a hand-set one
+directly — an empty link is a real state of a real invoice, and a hand-set one
 would be indistinguishable from a computed one, which is the confusion this
 whole paragraph exists to avoid.
 

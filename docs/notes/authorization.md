@@ -53,10 +53,10 @@ None of the three passes the resolved user to the handler, because no Admin/Pres
 **The two invoice routes were President-or-Admin and NO REASON FOR THAT WAS EVER RECORDED.** #132's "the invoice pages stay President-or-Admin" scoped *that* issue rather than deciding this one, and #166 withheld vendor invoice figures from the delivery screens without saying why either. So there was no argument to overturn, and the reason this file now carries is the pair that replaced it.
 
 - **The boundary was already leaking.** #167 hands a site employee the vendor's own invoice PDF as the quotation on a corrective request and puts its number in `Vendor Quotation Code`; `/pos/[poId]` shows that same employee the `Amount` column. What the company agreed to pay was fully in view while what the vendor charged was not — not a line anyone would draw on purpose.
-- **The person who counted the material is the only reader positioned to notice that a vendor billed for thirteen and shipped ten.** Withholding the billed quantity from them removes the one check that catches it.
+- **The person who counted the material is the only reader positioned to notice that a vendor invoiced for thirteen and shipped ten.** Withholding the invoiced quantity from them removes the one check that catches it.
 
 **The rule is `canViewPR`, reached through the order.** President and Admin see every invoice; anyone else sees one whose lines sit on a PO whose parent PR they raised or whose parent PR sits on one of their assigned Jobs. `lib/invoiceVisibility.js` owns the WALK and no predicate of its own — `offline/invoice-visibility.mjs` asserts on the AST that it imports and calls `canViewPR` and that it touches none of that function's own inputs, because a second predicate would not fail anything for as long as the two happened to agree.
-- **ANY line is enough.** A multi-PO invoice is real, so one document can bill an order the viewer raised and one they have never heard of. The viewer is looking for the line that is theirs, and refusing the whole document because it also covers someone else's order would hide the thing they can actually check.
+- **ANY line is enough.** A multi-PO invoice is real, so one document can charge an order the viewer raised and one they have never heard of. The viewer is looking for the line that is theirs, and refusing the whole document because it also covers someone else's order would hide the thing they can actually check.
 - **An invoice with no resolvable order is REFUSED**, which is the opposite direction from `canViewPR`'s own throw-on-missing-data — there, refusing would stall a signing chain; here it just means an employee does not see a document, which is the pre-#211 state. Measured on this base: `scoped-fixture@` sees fewer invoices than an Admin, and the excluded ones were the hand-entered dummies with no `PO` link (`HYE-INV-260727-03` rendered `None linked.`).
 - **Two operations for a page of any size, and ZERO for the office** — the privileged answer needs no walk. The list runs the reconciliation over the GATED rows, so a refused invoice's lines never reach the wire either (#169's shape).
 
@@ -68,7 +68,7 @@ The whole surface is enumerated in `scripts/tests/offline/invoice-visibility.mjs
 
 | Where | What #211 did |
 |---|---|
-| `/invoices` Status column | rendered only for a privileged viewer. The column becomes `Variance` for everyone else, keeping the badge — billed-against-ordered is not payment, and catching it is why an employee is on the page |
+| `/invoices` Status column | rendered only for a privileged viewer. The column becomes `Variance` for everyone else, keeping the badge — invoiced-against-ordered is not payment, and catching it is why an employee is on the page |
 | `/invoices/[invoiceId]` Payment section | the whole section, heading included. A heading with nothing under it announces a fact and refuses to say it |
 | `/invoices/[invoiceId]` variance prompt | **hoisted OUT of that section** so it outlives the gate — it is the only thing that raises a LINE-only variance to invoice level |
 | `/pos/[poId]` `✓ Paid` badge | nothing — already inside #132's `isPrivileged` branch |

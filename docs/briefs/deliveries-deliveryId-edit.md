@@ -40,7 +40,7 @@ on its own, and the buttons are secondary-weight rather than one primary.
 
 **When the vendor has invoices that could be attached:** a dropdown with the
 placeholder `Select an invoice…` and an `Attach invoice` button, disabled until one
-is picked. Bills already attached to another delivery are **listed but not
+is picked. Invoices already attached to another delivery are **listed but not
 selectable**, so the reader can see they exist and why they are unavailable.
 
 **When the vendor has no invoice entered at all:** the dropdown is replaced by

@@ -30,7 +30,7 @@ export const metadata = { title: "Edit Delivery" };
  * enter it again, which the detail page offers.
  *
  * #210 ADDED A FOURTH EDITABLE THING, AND IT PASSES THAT TEST RATHER THAN BENDING
- * IT. The invoice this delivery is billed by changes no `Delivery Items` row, moves
+ * IT. The invoice this delivery is invoiced by changes no `Delivery Items` row, moves
  * no quantity between orders and re-runs no allocation — it is orthogonal to the
  * one reason the four above are fixed. It has to be editable because the invoice is
  * not always in the app when the material lands: the vendor usually emails it at
@@ -110,7 +110,7 @@ async function renderEditDeliveryPage({ params }) {
 
             <p className="mt-4 rounded border border-zinc-200 px-3 py-2 text-xs text-zinc-600">
                 Only the received date, the note, the packing list photo and the invoice this
-                delivery is billed by can be changed. The item, the quantity, the vendor and the PO
+                delivery is invoiced by can be changed. The item, the quantity, the vendor and the PO
                 are fixed — correcting one of those means deleting this delivery and entering it
                 again.
             </p>

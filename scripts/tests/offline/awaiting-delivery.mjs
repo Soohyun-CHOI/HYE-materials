@@ -69,7 +69,7 @@ export function run({ check, assert, log }) {
     // Asserted before anything else, because every check below this one is of the form
     // "the rows are shaped so" and an empty list satisfies all of them vacuously.
     assert("an awaiting invoice is SELECTED at all", baseline.length > 0);
-    check("both awaiting bills are selected", baseline.length, 2);
+    check("both awaiting invoices are selected", baseline.length, 2);
     log("  a selector returning [] passes every ordering and shape check below");
 
     // -----------------------------------------------------------------------
@@ -142,7 +142,7 @@ export function run({ check, assert, log }) {
     );
     // ANY, NOT ALL: one slice against one of the ordered items is enough for a person
     // to have something to look at, and requiring all of them would put a partly
-    // delivered bill in the "nothing delivered" kind, which is the misreading the two
+    // delivered invoice in the "nothing delivered" kind, which is the misreading the two
     // words exist to prevent.
     assert(
         "  ANY ordered item with a delivery is enough",

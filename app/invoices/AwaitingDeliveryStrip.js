@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 
-// Bills nobody has matched to a delivery, above the list of invoices (#256). The
+// Invoices nobody has matched to a delivery, above the list of invoices (#256). The
 // fourth strip built to the shape #176 set, and the second on this page; the
 // selection rule, the two row kinds and the ordering are lib/deliveryStatus.js's,
 // so this file is the rendering and nothing else.
@@ -20,7 +20,7 @@ import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 //
 // The two strips are the two ends of one situation: a delivery waiting for an invoice,
 // and an invoice waiting for a delivery. Read down the page they are in the order the
-// documents themselves occur — material is delivered, then it is billed — so the layout
+// documents themselves occur — material is delivered, then it is invoiced — so the layout
 // says which end is which without either heading having to explain it. That is the
 // reason, and it is stronger than the one considered first: this strip's rows also
 // appear in the table directly below, which argues for adjacency and equally well
@@ -35,7 +35,7 @@ import { AWAITING_DELIVERY_COPY } from "@/lib/deliveryStatus";
 // not reach it: that tag said the same thing twice in one frame, and this says a
 // different thing about the same documents.
 //
-// NEITHER STRIP'S CONTENTS DEPEND ON THE OTHER'S. An unbilled delivery and an
+// NEITHER STRIP'S CONTENTS DEPEND ON THE OTHER'S. An uninvoiced delivery and an
 // unmatched invoice for the same material appear in both, once each, and suppressing
 // either would make one strip's rule a function of the other's — a coupling nobody
 // could reason about later, and the two admit different readers anyway: #216's rows

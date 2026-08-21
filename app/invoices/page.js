@@ -35,7 +35,7 @@ export const metadata = { title: "Invoices" };
 // anywhere — #132 wrote "the invoice pages stay President-or-Admin" as a scope
 // boundary for that issue rather than as a decision, so there was no argument to
 // overturn. What replaced it: the employee who counted the material is the only
-// reader positioned to notice that a vendor billed for thirteen and shipped ten,
+// reader positioned to notice that a vendor invoiced for thirteen and shipped ten,
 // and the line as drawn was already leaking anyway — #167 hands that same employee
 // the vendor's invoice PDF as a quotation, and /pos/[poId] shows them the Amount
 // column, so what the company agreed to pay was fully in view while what the
@@ -73,7 +73,7 @@ async function renderInvoiceListPage() {
     const visibleIds = await getVisibleInvoiceIds(user, allInvoices, invoiceItems);
     const invoices = allInvoices.filter((inv) => visibleIds.has(inv.id));
 
-    // Issue #166 — whether what each invoice billed for has been delivered. THREE
+    // Issue #166 — whether what each invoice invoiced for has been delivered. THREE
     // operations for a page of any size, down from five: #210 stores the pairing on
     // `Invoices."Delivery"`, so the two levels that existed only to attribute an
     // answer — every OTHER invoice on the same ordered item, and those invoices' parents
@@ -196,7 +196,7 @@ async function renderInvoiceListPage() {
                 )}
             </div>
 
-            {/* Above the list, because a delivery nobody has billed for cannot
+            {/* Above the list, because a delivery nobody has invoiced for cannot
                 appear in a list of invoices — there is no invoice to carry the
                 row. Renders nothing when there is nothing, which is the correct
                 and common state. */}
@@ -220,7 +220,7 @@ async function renderInvoiceListPage() {
                 <p className="mt-6 text-sm text-zinc-600">No invoices yet.</p>
             ) : invoices.length === 0 ? (
                 <p className="mt-6 text-sm text-zinc-600">
-                    No invoices to show. You see an invoice when it bills a purchase order you
+                    No invoices to show. You see an invoice when it charges a purchase order you
                     raised or one on a job you are assigned to.
                 </p>
             ) : (
@@ -255,7 +255,7 @@ async function renderInvoiceListPage() {
                     SIX COLUMNS FOR AN EMPLOYEE SINCE #179, seven for the office.
                     #211 gave this table two budgets because the last column held two
                     unrelated things — payment, which is President-or-Admin, and a
-                    variance badge, which it took for the billed-against-ordered kind
+                    variance badge, which it took for the invoiced-against-ordered kind
                     and kept for every viewer. It is the HEADER kind: an arithmetic
                     check on one document that only an Admin can act on, since only an
                     Admin can edit an invoice. So the column goes with payment and an
@@ -290,7 +290,7 @@ async function renderInvoiceListPage() {
                                 the badge is the HEADER flag, an arithmetic check on
                                 one document that the office performs and the office
                                 fixes, and #211 kept it for every viewer on the stated
-                                ground that it was billed-against-ordered, which it
+                                ground that it was invoiced-against-ordered, which it
                                 never was. So the column goes with the payment state
                                 it shares a cell with. */}
                             {privileged && <th className="pr-2">Status</th>}
@@ -308,7 +308,7 @@ async function renderInvoiceListPage() {
                                 <td className="py-1 pr-2">{inv.issueDate || "—"}</td>
                                 <td className="py-1 pr-2">{inv.dueDate || "—"}</td>
                                 <td className="py-1 pr-2 text-right">{formatUSD(inv.amountDue)}</td>
-                                {/* Issue #166 — a FACT, never a verdict: "more billed
+                                {/* Issue #166 — a FACT, never a verdict: "more invoiced
                                     than delivered" and not "over-billed", because at
                                     any one moment the two are the same measurement.
 
@@ -324,7 +324,7 @@ async function renderInvoiceListPage() {
 
                                     STILL NO EXCEPTION TAGS. The two beyond-the-order
                                     tags this column used to carry both left it, for
-                                    different reasons. `beyond order` (billed >
+                                    different reasons. `beyond order` (invoiced >
                                     ordered) is one of the two things
                                     `Invoice Items.Variance Flag` is set for, and the
                                     invoice detail marks it per charge —
@@ -369,7 +369,7 @@ async function renderInvoiceListPage() {
                                     check to make and the office's to fix, since only
                                     an Admin can edit an invoice. #211 kept it for
                                     every viewer on the ground that it was
-                                    billed-against-ordered; it never was, and the kind
+                                    invoiced-against-ordered; it never was, and the kind
                                     an employee is on this page to catch has no mark in
                                     this list at all — it is on the invoice's own page,
                                     per charge, where the order it disagrees with is

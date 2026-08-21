@@ -11,7 +11,7 @@ Admin.
 Should this invoice be paid? That decomposes into three questions the screen
 answers in order — does the vendor's stated total match what the items add up
 to, does any single charge differ from what its order agreed, and did the
-material it bills for was actually delivered. A reader who can answer all three
+material it charges for was actually delivered. A reader who can answer all three
 without scrolling twice has what they came for.
 
 This is the densest screen in the app and the one where a redesign can do the
@@ -40,7 +40,7 @@ chip the invoice list shows for this row, from the same function, so the row a
 reader clicked and the page they land on cannot describe the invoice
 differently.
 
-**evidence — the orders this invoice bills.** A heading that is `Purchase Order`
+**evidence — the orders this invoice charges.** A heading that is `Purchase Order`
 or `Purchase Orders` depending on the count, then one line per order: the order
 ID as a link, an em dash, and the order's status in bold.
 
@@ -98,7 +98,7 @@ made at creation.
 
 **When an individual charge differs from what its order agreed:** a small
 `⚠ Order variance` badge inside that item's name cell, and **no sentence beside
-it**. The stored flag fires on either a price difference or a quantity billed
+it**. The stored flag fires on either a price difference or a quantity invoiced
 beyond the order, so any explanation naming a cause would be false whenever the
 other one fired. What it was compared against lives on the order's own page.
 
@@ -116,7 +116,7 @@ Red states a discrepancy; amber asks a person to look. That split is the page's
 own and both colors appear on it.
 
 **When the verdict is `Mismatch`:** an amber box, below the named delivery
-rather than above it, saying the invoice bills more than the matched delivery
+rather than above it, saying the invoice charges more than the matched delivery
 delivered and who to take it up with. It sits after the delivery because the
 sentence is about that document — putting the accusation above the document it
 accuses makes the reader scroll back for the subject. It names no quantity: one
@@ -124,7 +124,7 @@ invoice can be short on two ordered items with different units, so a single
 figure here would be either wrong or a sum of unlike things.
 
 **When the folded items do not all touch the same set of orders:** a short
-indented list under each order's row, naming what that order was billed for
+indented list under each order's row, naming what that order was invoiced for
 and in what quantity. Only quantities, never prices. When every item touches
 the same orders the question is not ambiguous and nothing appears. An order
 with no child row under it in this state is correct rather than broken — it is

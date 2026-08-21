@@ -157,7 +157,7 @@ async function renderPOListPage({ searchParams }) {
             // delivery one is: the copy lives in lib/deliveryStatus.js and the client
             // component never sees a quantity. Every viewer of a row reads it, which
             // needs no branch because this list has none — an order is visible or it
-            // is not, and what a vendor billed is readable by whoever may read the
+            // is not, and what a vendor invoiced is readable by whoever may read the
             // order behind it (#211).
             invoicingChip: describePOInvoicingColumn(
                 summarizePOInvoicingStatus(linesByPO.get(po.id) || [])

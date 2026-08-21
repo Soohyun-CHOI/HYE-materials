@@ -611,7 +611,7 @@ export function run(reporter) {
     // WHAT THIS STANDS IN FOR IS AN ACCESS QUESTION, NOT A SHAPE ONE. #169's premise
     // was that delivered quantity is delivery-derived and must not be withheld with
     // the invoice-derived fields #132 kept from a non-privileged viewer of
-    // /pos/[poId]. #235 RETIRED THE OTHER HALF: what a vendor billed is readable by
+    // /pos/[poId]. #235 RETIRED THE OTHER HALF: what a vendor invoiced is readable by
     // anyone who may read the order behind it (#211), so `invoicedQty` belongs here
     // too and this file no longer asserts its absence. The property is still checked
     // where it is decided — a field absent from this mapper is withheld from

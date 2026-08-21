@@ -128,7 +128,7 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
 }
 
 /**
- * Attach the invoice this delivery is billed by, after the fact (#210).
+ * Attach the invoice this delivery is invoiced by, after the fact (#210).
  *
  * THE LATER-ATTACHMENT PATH, and it is an in-place edit rather than a second entry
  * screen because the pairing is ORTHOGONAL TO ALLOCATION. What this page refuses to
@@ -233,7 +233,7 @@ export async function deleteDeliveryAction(prevState, formData) {
  * JOB-SCOPED, not office-gated, per the issue: raising the request is site work.
  * That was a NARROWING of #166, which withheld invoice existence from site staff on
  * the deliveries LIST while this affordance and its preview deliberately revealed
- * that the over-delivered ordered item is billed, by which invoice and at what unit
+ * that the over-delivered ordered item is invoiced, by which invoice and at what unit
  * price, because none of that can be hidden from someone raising a request quoted
  * from it. #211 THEN RELEASED THE LIST COLUMN TO EVERY VIEWER, so this is no longer
  * an exception to anything — the reasoning is kept because it is what the

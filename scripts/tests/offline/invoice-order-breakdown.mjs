@@ -1,4 +1,4 @@
-// Which order an invoice item was billed against (#237) — the same-set test, the
+// Which order an invoice item was invoiced against (#237) — the same-set test, the
 // exclusion, the per-order quantity and the copy.
 //
 // THE FOLD IS THE REAL ONE, NOT A HAND-MADE SHAPE. Every fixture here is raw Invoice
@@ -31,12 +31,12 @@
 import { foldInvoiceItems } from "../../../lib/invoiceItemFold.js";
 import {
     ORDER_BREAKDOWN_COPY,
-    billedItemsByOrder,
+    chargesByOrder,
     ordersNamedByFoldedItem,
 } from "../../../lib/invoiceOrderBreakdown.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Which order an invoice item was billed against (#237)";
+export const title = "Which order an invoice item was invoiced against (#237)";
 
 const A = "recPO_A";
 const B = "recPO_B";
@@ -83,7 +83,7 @@ const ONE_ORDER = invoice([
     row({ id: "rec2", po: A, material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41.07 }),
 ]);
 
-// A corrective order every item is split across: two materials, each billed on both
+// A corrective order every item is split across: two materials, each invoiced on both
 // orders at one price, so each folds to a single item touching {A, B}.
 const CORRECTIVE = invoice([
     row({ id: "rec1", po: A, material: "recMAT_1", qty: 10 }),
@@ -92,7 +92,7 @@ const CORRECTIVE = invoice([
     row({ id: "rec4", po: B, material: "recMAT_2", itemName: "Tee", qty: 4, unitPrice: 41.07 }),
 ]);
 
-// One item billed against A, another against B. The case that opened the issue.
+// One item invoiced against A, another against B. The case that opened the issue.
 const EACH_ITS_OWN = invoice([
     row({ id: "rec1", po: A, material: "recMAT_1" }),
     row({ id: "rec2", po: B, material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41.07 }),
@@ -128,10 +128,10 @@ const LISTED_PLUS_FREE_TEXT = invoice([
 export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
     log("anti-vacuity — the rule reads its inputs and is not a constant:");
-    const empty = billedItemsByOrder({});
+    const empty = chargesByOrder({});
     check("no folded items, nothing shown", empty.shown, false);
     check("  and no order carries anything", empty.byOrder.size, 0);
-    check("an invoice whose items name orders populates byOrder", billedItemsByOrder(ONE_ORDER).byOrder.size, 1);
+    check("an invoice whose items name orders populates byOrder", chargesByOrder(ONE_ORDER).byOrder.size, 1);
     assert(
         "the fold still exports the membership this module joins on (`rowIds`)",
         ONE_ORDER.folded.every((g) => Array.isArray(g.rowIds) && g.rowIds.length > 0)
@@ -143,10 +143,10 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("the same-set test — the four cases, and neither answer is the constant one:");
-    check("one order: silent", billedItemsByOrder(ONE_ORDER).shown, false);
-    check("corrective order, every item split across both: silent", billedItemsByOrder(CORRECTIVE).shown, false);
-    check("one item on A, one on B: listed", billedItemsByOrder(EACH_ITS_OWN).shown, true);
-    check("one item split, one not: listed", billedItemsByOrder(ONE_SPLIT).shown, true);
+    check("one order: silent", chargesByOrder(ONE_ORDER).shown, false);
+    check("corrective order, every item split across both: silent", chargesByOrder(CORRECTIVE).shown, false);
+    check("one item on A, one on B: listed", chargesByOrder(EACH_ITS_OWN).shown, true);
+    check("one item split, one not: listed", chargesByOrder(ONE_SPLIT).shown, true);
 
     // The corrective case needs no rule of its own — it is silent because its sets
     // AGREE, which is the whole reason this module has no branch naming a correction.
@@ -157,23 +157,23 @@ export function run({ check, assert, log }) {
     log("the mutants, built and run — a broken rule must not pass this file:");
     // Written as wrappers over the real function so they cannot drift from it: only
     // `shown` is replaced, which is exactly the judgment under test.
-    const alwaysAgree = (input) => ({ ...billedItemsByOrder(input), shown: false });
-    const alwaysDiffer = (input) => ({ ...billedItemsByOrder(input), shown: true });
+    const alwaysAgree = (input) => ({ ...chargesByOrder(input), shown: false });
+    const alwaysDiffer = (input) => ({ ...chargesByOrder(input), shown: true });
     assert(
         "`shown` hard-wired to false (the quiet death) disagrees on `one item on A, one on B`",
-        alwaysAgree(EACH_ITS_OWN).shown !== billedItemsByOrder(EACH_ITS_OWN).shown
+        alwaysAgree(EACH_ITS_OWN).shown !== chargesByOrder(EACH_ITS_OWN).shown
     );
     assert(
         "  and on `one item split, one not`",
-        alwaysAgree(ONE_SPLIT).shown !== billedItemsByOrder(ONE_SPLIT).shown
+        alwaysAgree(ONE_SPLIT).shown !== chargesByOrder(ONE_SPLIT).shown
     );
     assert(
         "`shown` hard-wired to true (a list everywhere) disagrees on `one order`",
-        alwaysDiffer(ONE_ORDER).shown !== billedItemsByOrder(ONE_ORDER).shown
+        alwaysDiffer(ONE_ORDER).shown !== chargesByOrder(ONE_ORDER).shown
     );
     assert(
         "  and on the corrective order",
-        alwaysDiffer(CORRECTIVE).shown !== billedItemsByOrder(CORRECTIVE).shown
+        alwaysDiffer(CORRECTIVE).shown !== chargesByOrder(CORRECTIVE).shown
     );
 
     // -----------------------------------------------------------------------
@@ -185,15 +185,15 @@ export function run({ check, assert, log }) {
         "  although each carries a `PO` — the exclusion is on `PO Item`, or it excludes nothing",
         ALL_FREE_TEXT.items.every((it) => it.po.length === 1 && it.poItem.length === 0)
     );
-    check("an invoice of nothing but free text is silent", billedItemsByOrder(ALL_FREE_TEXT).shown, false);
-    check("  and puts nothing under any order", billedItemsByOrder(ALL_FREE_TEXT).byOrder.size, 0);
+    check("an invoice of nothing but free text is silent", chargesByOrder(ALL_FREE_TEXT).shown, false);
+    check("  and puts nothing under any order", chargesByOrder(ALL_FREE_TEXT).byOrder.size, 0);
     // The load-bearing half: one free-text row must not turn the list on.
     check(
         "one order plus a free-text row on a second: still silent",
-        billedItemsByOrder(ONE_ORDER_PLUS_FREE_TEXT).shown,
+        chargesByOrder(ONE_ORDER_PLUS_FREE_TEXT).shown,
         false
     );
-    const listedPlusFreeText = billedItemsByOrder(LISTED_PLUS_FREE_TEXT);
+    const listedPlusFreeText = chargesByOrder(LISTED_PLUS_FREE_TEXT);
     check("a listed invoice stays listed with a free-text row added", listedPlusFreeText.shown, true);
     check("  and the free-text row's order carries nothing", listedPlusFreeText.byOrder.has(C), false);
 
@@ -228,14 +228,14 @@ export function run({ check, assert, log }) {
         }
         return { shown: signatures.size > 1, byOrder };
     };
-    const realOnePlus = billedItemsByOrder(ONE_ORDER_PLUS_FREE_TEXT);
+    const realOnePlus = chargesByOrder(ONE_ORDER_PLUS_FREE_TEXT);
     const mutantOnePlus = keyedOnPO(ONE_ORDER_PLUS_FREE_TEXT);
     check("the mutant lets the free-text row into the judgment, so the list turns ON", mutantOnePlus.shown, true);
     assert(
         "  and the real rule disagrees with it there — this is the assertion that catches it",
         realOnePlus.shown === false && mutantOnePlus.shown !== realOnePlus.shown
     );
-    const realListed = billedItemsByOrder(LISTED_PLUS_FREE_TEXT);
+    const realListed = chargesByOrder(LISTED_PLUS_FREE_TEXT);
     const mutantListed = keyedOnPO(LISTED_PLUS_FREE_TEXT);
     check("the mutant also puts that row under an order", mutantListed.byOrder.has(C), true);
     assert(
@@ -251,17 +251,17 @@ export function run({ check, assert, log }) {
     );
 
     // -----------------------------------------------------------------------
-    log("what each order carries — the quantity billed against IT, in the table's order:");
-    const split = billedItemsByOrder(ONE_SPLIT).byOrder;
+    log("what each order carries — the quantity invoiced against IT, in the table's order:");
+    const split = chargesByOrder(ONE_SPLIT).byOrder;
     check("A carries both items", split.get(A).map((b) => b.itemName).join(","), "Elbow,Tee");
     check("  in the folded items' own order, which is the items table's", split.get(A)[0].itemName, "Elbow");
-    check("  with the quantity billed against A, not the item's total", split.get(A)[0].qty, 10);
+    check("  with the quantity invoiced against A, not the item's total", split.get(A)[0].qty, 10);
     check("B carries the split item alone", split.get(B).map((b) => b.itemName).join(","), "Elbow");
     check("  with its own quantity", split.get(B)[0].qty, 3);
     check("and 10 + 3 is the folded row's Qty in the table above", ONE_SPLIT.folded[0].qty, 13);
 
     // Two rows of one item on ONE order sum rather than repeating the item.
-    const twiceOnOneOrder = billedItemsByOrder(
+    const twiceOnOneOrder = chargesByOrder(
         invoice([
             row({ id: "rec1", po: A, material: "recMAT_1", qty: 5 }),
             row({ id: "rec2", po: A, material: "recMAT_1", qty: 6 }),
@@ -273,29 +273,29 @@ export function run({ check, assert, log }) {
 
     // byOrder is populated whether or not it is shown — the decision and the data are
     // separable, and the page reads `shown`.
-    check("byOrder is built for a silent invoice too", billedItemsByOrder(ONE_ORDER).byOrder.get(A).length, 2);
+    check("byOrder is built for a silent invoice too", chargesByOrder(ONE_ORDER).byOrder.get(A).length, 2);
 
     // -----------------------------------------------------------------------
     log("the copy — item, size, quantity, unit, and no money:");
     check(
-        "a line names the item and what was billed against that order",
-        ORDER_BREAKDOWN_COPY.billed({ itemName: "166-DEMO Elbow", size: '3"', unit: "EA", qty: 5 }).text,
+        "a line names the item and what was invoiced against that order",
+        ORDER_BREAKDOWN_COPY.charged({ itemName: "166-DEMO Elbow", size: '3"', unit: "EA", qty: 5 }).text,
         '166-DEMO Elbow 3" — 5 EA'
     );
     check(
         "a blank size leaves no double space",
-        ORDER_BREAKDOWN_COPY.billed({ itemName: "Rebar", size: "", unit: "FT", qty: 120 }).text,
+        ORDER_BREAKDOWN_COPY.charged({ itemName: "Rebar", size: "", unit: "FT", qty: 120 }).text,
         "Rebar — 120 FT"
     );
     check(
         "a blank unit leaves no trailing space",
-        ORDER_BREAKDOWN_COPY.billed({ itemName: "Rebar", size: "", unit: "", qty: 120 }).text,
+        ORDER_BREAKDOWN_COPY.charged({ itemName: "Rebar", size: "", unit: "", qty: 120 }).text,
         "Rebar — 120"
     );
-    check("and a nameless item still says something", ORDER_BREAKDOWN_COPY.billed({}).text, "That item — 0");
+    check("and a nameless item still says something", ORDER_BREAKDOWN_COPY.charged({}).text, "That item — 0");
     // Decision pinned mechanically rather than by reading the string: no price, no
     // amount, so no currency can reach this line.
-    const withMoney = ORDER_BREAKDOWN_COPY.billed({
+    const withMoney = ORDER_BREAKDOWN_COPY.charged({
         itemName: "Elbow",
         size: '3"',
         unit: "EA",
@@ -305,7 +305,7 @@ export function run({ check, assert, log }) {
     }).text;
     assert("a line carries no price and no amount even when handed both", !withMoney.includes("$"));
     check("  and says exactly what it said without them", withMoney, 'Elbow 3" — 5 EA');
-    check("the key is stable, so a call site can branch on it", ORDER_BREAKDOWN_COPY.billed({}).key, "order-billed");
+    check("the key is stable, so a call site can branch on it", ORDER_BREAKDOWN_COPY.charged({}).key, "order-charged");
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

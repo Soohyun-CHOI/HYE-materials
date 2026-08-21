@@ -66,8 +66,8 @@ three more). The count was wrong here before this line was corrected — there w
 seven chips, not six.
 
 **One of those chips covers two opposite errors on purpose.** `invoice and
-delivery disagree` is shown both where the vendor billed less than it sent and
-where it billed more; the two are different facts and the delivery detail's
+delivery disagree` is shown both where the vendor invoiced less than it sent and
+where it invoiced more; the two are different facts and the delivery detail's
 sentence says which. They share a chip because what a reader does about either is
 the same — take it up with the vendor — and a closed set gains nothing from two
 values with one action behind them.

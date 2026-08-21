@@ -35,7 +35,7 @@ export function run({ check, log }) {
     check("partial invoicing leaves the rest", uninvoicedQty({ qty: 10, invoicedQty: 4 }), 6);
     check("fully invoiced leaves zero", uninvoicedQty({ qty: 10, invoicedQty: 10 }), 0);
 
-    // The one that matters. A vendor over-billing, or an invoice item pointed at
+    // The one that matters. A vendor over-invoicing, or an invoice item pointed at
     // the wrong PO Item, is a real state the PO detail page and the invoice form
     // both surface distinctly. Clamping at 0 would make it indistinguishable
     // from an exactly-fulfilled ordered item.

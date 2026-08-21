@@ -109,7 +109,7 @@ const pick = (invoices, excess, deliveryRecordId = DELIVERY) =>
 /**
  * The ordered item's three totals, AGREEING by default, so a clause that is not about
  * the agreement does not have to restate it. `ordered` 10 with 12 delivered and 12
- * billed is the paradigm correctable shape — the vendor shipped a pack of two extra
+ * invoiced is the paradigm correctable shape — the vendor shipped a pack of two extra
  * and charged for them.
  */
 const totals = (over = {}) => ({ orderedQty: 10, deliveredQty: 12, invoicedQty: 12, ...over });
@@ -126,32 +126,32 @@ export function run({ check, log, assert }) {
     // correction, the preview still names an invoice and a price, no figure on any
     // screen changes, and the purchase order that leaves the company asks the vendor
     // for material the vendor never charged for. `HYE-DL-260819-11` on the demo base
-    // is that exact shape — 19 delivered, 4 billed.
+    // is that exact shape — 19 delivered, 4 invoiced.
     log("#265 — a correction is earned by the two documents agreeing, not by the flag:");
     const short = eligible([invoice("01", 4, "2026-07-01")], {
         orderedItem: totals({ deliveredQty: 19, invoicedQty: 4 }),
         row: row({ qty: 9 }),
     });
-    check("billed short of the delivery — not eligible", short.eligible, false);
+    check("invoiced short of the delivery — not eligible", short.eligible, false);
     check("  and refused as a disagreement", short.blocked, OVERAGE_BLOCKED.documentsDisagree);
-    check("  naming which way it runs", short.disagreement, DISAGREEMENT.billedShort);
+    check("  naming which way it runs", short.disagreement, DISAGREEMENT.invoicedShort);
 
     // THE OTHER DIRECTION IS THE HALF A ONE-SIDED TEST WOULD MISS, and it is on the
-    // base too: `HYE-DL-260819-10`, 13 delivered against 26 billed.
+    // base too: `HYE-DL-260819-10`, 13 delivered against 26 invoiced.
     const over = eligible([invoice("01", 13, "2026-07-01"), invoice("02", 13, "2026-07-02")], {
         orderedItem: totals({ deliveredQty: 13, invoicedQty: 26 }),
         row: row({ qty: 3 }),
     });
-    check("billed beyond the delivery — also not eligible", over.eligible, false);
+    check("invoiced beyond the delivery — also not eligible", over.eligible, false);
     check("  same key", over.blocked, OVERAGE_BLOCKED.documentsDisagree);
-    check("  opposite voice", over.disagreement, DISAGREEMENT.billedOver);
+    check("  opposite voice", over.disagreement, DISAGREEMENT.invoicedOver);
 
     // ANTI-VACUITY, and it is what makes the two above mean something: the agreeing
     // shape IS eligible. Without this a gate refusing everything would pass them.
     check("the two agreeing above the order is eligible", eligible([invoice("01", 12, "2026-07-01")]).eligible, true);
 
     // A CALLER THAT OMITS THE TOTALS FAILS CLOSED, on the same reasoning: 0 delivered
-    // against something billed is a disagreement, so a forgotten argument refuses
+    // against something invoiced is a disagreement, so a forgotten argument refuses
     // rather than reverting to the flag-only rule the mutant restores.
     check(
         "no totals at all refuses rather than passing",
@@ -164,16 +164,16 @@ export function run({ check, log, assert }) {
     log("  the three answers, from the ordered item's totals alone:");
     check("the totals meet", overageAgreement({ deliveredQty: 12, invoicedQty: 12, hasInvoice: true }), OVERAGE_AGREEMENT.agreed);
     check("they do not", overageAgreement({ deliveredQty: 12, invoicedQty: 10, hasInvoice: true }), OVERAGE_AGREEMENT.disagree);
-    check("nothing bills it", overageAgreement({ deliveredQty: 12, invoicedQty: 0, hasInvoice: false }), OVERAGE_AGREEMENT.noInvoice);
+    check("nothing charges it", overageAgreement({ deliveredQty: 12, invoicedQty: 0, hasInvoice: false }), OVERAGE_AGREEMENT.noInvoice);
     // `hasInvoice` IS NOT `invoicedQty > 0`, and that is the trap the flag exists for:
-    // an invoice item of zero is a document that says nothing was billed, which is a
+    // an invoice item of zero is a document that says nothing was invoiced, which is a
     // disagreement, while NO document is a question nobody has answered yet.
     check(
-        "an invoice billing zero is a disagreement, not an absence",
+        "an invoice invoicing zero is a disagreement, not an absence",
         overageAgreement({ deliveredQty: 12, invoicedQty: 0, hasInvoice: true }),
         OVERAGE_AGREEMENT.disagree
     );
-    check("nullish reads as nothing billed", overageAgreement(), OVERAGE_AGREEMENT.noInvoice);
+    check("nullish reads as nothing invoiced", overageAgreement(), OVERAGE_AGREEMENT.noInvoice);
     check("the direction is null on agreement", disagreementDirection({ deliveredQty: 5, invoicedQty: 5 }), null);
     check("  nullish does not throw", disagreementDirection(), null);
 
@@ -213,7 +213,7 @@ export function run({ check, log, assert }) {
         OVERAGE_BLOCKED.noOrderedItem
     );
     check(
-        "nothing bills the ordered item yet",
+        "nothing charges the ordered item yet",
         eligible([]).blocked,
         OVERAGE_BLOCKED.noInvoice
     );
@@ -269,7 +269,7 @@ export function run({ check, log, assert }) {
     // --- #265: WHICH INVOICE SUPPLIES THE QUOTATION -----------------------
     //
     // #219's THREE TIERS ARE GONE AND THIS IS WHAT REPLACED THEM. They existed to pick
-    // a document when the app could not tell whether the excess was billed at all; the
+    // a document when the app could not tell whether the excess was invoiced at all; the
     // agreement rule answers that first, so what is left is narrower — a candidate has
     // to cover the excess on its own, they have to agree on price, and the pairing is a
     // preference among equals.
@@ -296,7 +296,7 @@ export function run({ check, log, assert }) {
     );
     // `excessExceedsInvoice` IS GONE AND CANNOT COME BACK, because every invoice is
     // asked rather than only the oldest: a single invoice reaching here on an agreeing
-    // ordered item bills the whole delivered quantity, which is at least the excess.
+    // ordered item charges the whole delivered quantity, which is at least the excess.
     assert("the retired single-candidate refusal is not a key", !("excessExceedsInvoice" in OVERAGE_BLOCKED));
     assert(
         "nor the two the tiers needed",
@@ -329,7 +329,7 @@ export function run({ check, log, assert }) {
     log("");
     log("  the pairing is a PREFERENCE among equals, not a tier:");
     // #219's OWN DEFECT, WHICH IS WHY THE PAIRING SURVIVES AT ALL: an ordered item
-    // filled by two deliveries and billed by two invoices, each large enough to cover
+    // filled by two deliveries and invoiced by two invoices, each large enough to cover
     // the excess and both at the agreed price. The excess belongs to the delivery whose
     // row carries the flag, and the stored pairing is the only thing that says which
     // invoice describes it — so the older invoice must NOT win on age alone.
@@ -388,7 +388,7 @@ export function run({ check, log, assert }) {
     check("  nullish does not throw", foldByInvoice().length, 0);
 
     log("");
-    log("  nothing bills the ordered item at all:");
+    log("  nothing charges the ordered item at all:");
     check("no invoice", pick([], 3).blocked, OVERAGE_BLOCKED.noInvoice);
     check("nullish does not throw", selectOverageInvoice().blocked, OVERAGE_BLOCKED.noInvoice);
 
@@ -699,7 +699,7 @@ export function run({ check, log, assert }) {
         assert(`  the first sentence names the delivery`, applied[0].text.includes("HYE-DL-260804-07"));
         const pending = describeOverageBanner({ site, state: "pending", facts });
         check(`${site}: pending says so`, pending[1].key, "banner-pending");
-        // Until the split happens the invoice bills ONE order, so claiming it spans
+        // Until the split happens the invoice charges ONE order, so claiming it spans
         // two would be false.
         assert(`  and carries NO invoice caveat`, !pending.some((m) => m.key === "banner-invoice-caveat"));
         const notApplied = describeOverageBanner({ site, state: "not-applied", facts });
@@ -928,7 +928,7 @@ export function run({ check, log, assert }) {
     );
     // AND IT NO LONGER SAYS THE APP GUESSED, which is the whole of what #265 changed
     // about it: the word would be false now that a correction is offered only where
-    // the excess is billed.
+    // the excess is invoiced.
     assert("  and never claims an inference", !/[Ii]nferred/.test(tieBreakLabel({ tieBreak: tied })));
     check("nothing passed over, no label", tieBreakLabel({ tieBreak: null }), null);
     check("nullish does not throw", tieBreakLabel(), null);
@@ -962,7 +962,7 @@ export function run({ check, log, assert }) {
     log("THE ACCOUNTING CAVEAT is why the banner outlives signature:");
     const caveat = OVERAGE_COPY.banner.invoiceCaveat(facts).text;
     assert("it names the invoice", caveat.includes("HYE-INV-260804-06"));
-    assert("says the invoice bills BOTH orders", caveat.includes("both orders"));
+    assert("says the invoice charges BOTH orders", caveat.includes("both orders"));
     assert("and that a payment will not match this order alone", caveat.includes("will not match"));
     assert("naming which order it means", caveat.includes("HYE-PO-20260806-01"));
 
@@ -989,7 +989,7 @@ export function run({ check, log, assert }) {
     assert("  and the comparison names all three totals",
         /10 EA ordered/.test(blockedMessages[1].text) &&
             /12 EA delivered/.test(blockedMessages[1].text) &&
-            /12 EA billed/.test(blockedMessages[1].text));
+            /12 EA invoiced/.test(blockedMessages[1].text));
     assert("  and the order they belong to", blockedMessages[1].text.includes(facts.originalPoId));
     // THE TWO THAT NEVER REACH THE TOTALS GET NO COMPARISON LINE, because naming
     // figures there would claim a measurement that was not taken.
@@ -1050,8 +1050,16 @@ export function run({ check, log, assert }) {
         // #219's two inference voices — neither can drift out of the vocabulary.
         OVERAGE_COPY.preview.compared({ ...facts, orderedQty: 10, deliveredQty: 12, invoicedQty: 12 }).text,
         OVERAGE_COPY.preview.tieBreak({ chosen: "HYE-INV-A", passedOver: ["HYE-INV-B"] }).text,
-        // Both voices of the disagreement, which one builder produces from a key.
-        ...[DISAGREEMENT.billedShort, DISAGREEMENT.billedOver, undefined].map(
+        // Every voice of the disagreement, which one builder produces from a key,
+        // plus the no-direction one — DERIVED FROM THE CONSTANT, NOT NAMED (#274).
+        // This line read `[DISAGREEMENT.billedShort, DISAGREEMENT.billedOver,
+        // undefined]` and #274 renamed both keys. Left as it was, the two lookups
+        // would have become `undefined` and this sweep would have tested the SAME
+        // no-direction voice three times while reporting 313 of 313 — run before the
+        // fix, with a barred word planted in the second voice, and it passed. So the
+        // directions come off the constant, and a third one joins this sweep by
+        // existing rather than by being remembered here.
+        ...[...Object.values(DISAGREEMENT), undefined].map(
             (d) => OVERAGE_COPY.preview.blocked[OVERAGE_BLOCKED.documentsDisagree]({ ...facts, disagreement: d }).text
         ),
         OVERAGE_COPY.preview.signersDropped(2).text,
@@ -1081,6 +1089,14 @@ export function run({ check, log, assert }) {
             !everySentence.some((t) => t.toLowerCase().includes(forbidden))
         );
     }
+    // ANTI-VACUITY FOR THE SWEEP ITSELF, which the mutant above showed it needed: a
+    // list of "no message says X" passes just as happily over three copies of one
+    // message. Both directions have to be IN what was walked, by their own words.
+    assert(
+        "the sweep walked both directions of the disagreement, not one of them thrice",
+        everySentence.some((t) => t.includes("has not invoiced everything it sent")) &&
+            everySentence.some((t) => t.includes("More is invoiced than was delivered"))
+    );
     // A `Line` on this base is a child of a Job, so an ordered item is never a line.
     assert(
         'no message calls an ordered item a "line"',

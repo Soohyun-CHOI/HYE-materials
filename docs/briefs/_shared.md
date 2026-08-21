@@ -180,10 +180,16 @@ formulas. A purchase order showing a stale price is correct — that is the pric
 that was agreed. The two must not read as the same kind of number.
 
 **This document's figure against the ordered item's total.** The invoice detail
-carries both, and the words are `Billed` for the ordered item's total across
-every invoice and `This bill:` for this document's own share. The second exists
-only because the first is not this document's (see `naming.md`). Anywhere both
-appear, which scope a figure belongs to has to be recoverable without counting.
+carried both, under `Billed` for the ordered item's total across every invoice
+and `This bill:` for this document's own share. **Neither word is on a screen
+any more** — #232 scoped the figure to the invoice being read and deleted the
+caption that existed only to say it was not, and #241 folded the entries — so
+this paragraph is corrected rather than restated (#181, in #274). The
+DISTINCTION survives and is what a redesign inherits: `/invoices/[invoiceId]`
+speaks for one document and `/pos/[poId]` for the order across every invoice on
+it, so a figure moved between those two pages changes meaning. Anywhere both
+scopes appear on one screen, which one a figure belongs to has to be
+recoverable without counting.
 
 **A document's own arithmetic against a cross-document variance.** #179 named
 these two apart after they had shared one word: `⚠ Order variance` is a charge
@@ -250,13 +256,21 @@ invoiced` / `Awaiting invoice`, never `Billed` / `Partly billed` alongside them.
 `Delivered` and `delivery`, never `arrived` or `arrival` — #166 swept that and
 the sweep is the reason the words agree at all.
 
+**The word for what an invoice does, in two forms and no third (#274).** As a
+participle or a quantity it is `invoiced`, which is what the base already says
+(`Invoiced Qty`, `Uninvoiced Items`) and what every chip above says. As a
+transitive verb — an invoice doing something to an order, an ordered item or an
+item — it is `charges`, which is what `No invoice charges this order yet.`
+already said. Never `billed`, and never `invoices` as a verb: an invoice
+invoicing something reads as a plural noun and was tried.
+
 The sentences that go with them, all tier 1:
 
-- `⚠ This invoice bills more than the delivery matched to it delivered — take it up with the vendor, or with whoever received the material, before confirming payment.`
-- `N EA more billed than the matched delivery delivered`
-- `N EA billed, none of it delivered by the matched delivery`
+- `⚠ This invoice charges more than the delivery matched to it delivered — take it up with the vendor, or with whoever received the material, before confirming payment.`
+- `N EA more invoiced than the matched delivery delivered`
+- `N EA invoiced, none of it delivered by the matched delivery`
 - `Not compared — no ordered item`
-- `Against the ordered item: N EA more billed, N EA more delivered`
+- `Against the ordered item: N EA more invoiced, N EA more delivered`
 - `Longest wait first. No invoice yet covers what these deliveries brought.`
 
 `Against the ordered item`, not `Against the order`: the comparison is against
@@ -301,10 +315,12 @@ and "outside your scope", because telling the two apart would confirm that a
 record exists outside someone's scope.
 
 `lib/deliveryInvoiceMatch.js` carries the seven pairing sentences, including the
-tie-break. `lib/overage.js` carries the correction's preview, its nine refusals,
-its six short strip reasons (`no invoice yet`, `invoices name another delivery`,
-`no invoice names this delivery`, `spans two invoices`, `more than the invoice
-bills`, `invoice has no file`) and seven banners.
+tie-break. `lib/overage.js` carries the correction's preview, its eight
+refusals, its six short strip reasons (`no ordered item`, `no invoice yet`,
+`invoice and delivery disagree`, `spans two invoices`, `invoices differ on
+price`, `invoice has no file`) and seven banners. **Three of those reasons are
+#265's and this list named the three it replaced** — corrected in #274, which
+was sweeping the word one of them carried.
 
 ### Sign-in (tier 1, `lib/authTokenState.js`, `lib/productName.js`)
 
@@ -383,7 +399,7 @@ office. Invoicing is Admin because invoicing is office work.
 |---|---|
 | `/`, `/login`, `/login/confirm` | anyone, signed in or not |
 | `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]` | row-scoped by `canViewPR` |
-| `/invoices`, `/invoices/[invoiceId]` | row-scoped, reaching `canViewPR` through the orders the invoice bills (#211) |
+| `/invoices`, `/invoices/[invoiceId]` | row-scoped, reaching `canViewPR` through the orders the invoice charges (#211) |
 | `/prs/new` | anyone signed in |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |

@@ -76,7 +76,7 @@ export default async function PODetailPage(props) {
 // the record of it happening rather than a warning about it. That issue said
 // `Paid` rode on `isPrivileged` with everything else invoice-derived and was the
 // one thing to split before the gate was ever widened — the two sharing one flag
-// only because the flag had never moved. The gate moved: what a vendor billed is
+// only because the flag had never moved. The gate moved: what a vendor invoiced is
 // readable by anyone who may read the order behind it (#211, on
 // `getPOItemsForReconciliation`), so the `Invoiced` column, the invoices charging
 // this order and the invoicing chip above them are open to every viewer who can
@@ -84,7 +84,7 @@ export default async function PODetailPage(props) {
 //
 // SO THERE ARE TWO FLAGS AND THEY ARE EQUAL TODAY. `seesPayment` is
 // President-or-Admin and gates the payment badge alone. `isOffice` is the same
-// people and gates what has nothing to do with billing: the internal
+// people and gates what has nothing to do with invoicing: the internal
 // `Delivery Address Used` field (#132) and the sign/regenerate write controls.
 // Naming them apart is the whole of the fix #233 asked for — the next issue that
 // widens one of them cannot take the other along without saying so.
@@ -149,7 +149,7 @@ async function renderPODetailPage({ params, searchParams }) {
     // #235 FOLLOWED THE LINE #211 MOVED, so there is one projection rather than a
     // branch. This page withheld the invoicing figures from a non-privileged viewer
     // while `getPOItemsForReconciliation` had already stopped being
-    // President-or-Admin, on the ground that what a vendor billed is readable by
+    // President-or-Admin, on the ground that what a vendor invoiced is readable by
     // anyone who may read the order behind it; the branch was the last of that
     // over-withholding. One call for everyone also means the page cannot come to
     // judge its own chip from two different field sets.
@@ -193,10 +193,10 @@ async function renderPODetailPage({ params, searchParams }) {
     // `getInvoiceByRecordId` per invoice: both were `getLinkedRecords`' 1 + N, the
     // shape docs/notes/airtable-access.md measured on this page and left for #191.
     // An empty id list costs nothing — findByRecordIds returns early — so an order
-    // nothing has billed pays for neither level.
+    // nothing has invoiced pays for neither level.
     // #235 — FOR EVERY VIEWER NOW. Two batched reads that the employee path did not
     // pay before, which is the measured cost of opening the gate rather than a side
-    // effect: an order with nothing billed still pays for neither level, since
+    // effect: an order with nothing invoiced still pays for neither level, since
     // findByRecordIds returns early on an empty id list.
     const invoiceItems = await getInvoiceItemsByRecordIds([
         ...new Set(orderedItems.flatMap((it) => it.invoiceItems || [])),
@@ -245,7 +245,7 @@ async function renderPODetailPage({ params, searchParams }) {
                 IT STAYS AFTER SIGNATURE, which is the point rather than an
                 oversight. An overage order read on its own looks like a duplicate
                 with no quotation of its own, and the invoice attached to it also
-                bills the original order — so a payment against that invoice matches
+                charges the original order — so a payment against that invoice matches
                 neither order's total alone, and whoever reconciles it needs telling
                 exactly once, here. */}
             {overageBanners.map((banner) =>
@@ -366,7 +366,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                         `Uninvoiced` GOING NEGATIVE, and it moved here
                                         with those columns' removal rather than going
                                         with them (#233) — otherwise an over-delivery
-                                        and an over-billing would have left the table
+                                        and an over-invoicing would have left the table
                                         entirely, and this is the only place in the
                                         change where information could have been lost.
 
@@ -374,7 +374,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                         is the rule #169 wrote here: the two perform
                                         the same subtraction against the same `Qty`
                                         and a negative means the same thing in both —
-                                        more delivered, or more billed, than was
+                                        more delivered, or more invoiced, than was
                                         ordered. Signaling differently for one would
                                         imply a distinction neither makes, and
                                         `(over)` is this base's own word for it
@@ -459,10 +459,10 @@ async function renderPODetailPage({ params, searchParams }) {
                 which.
 
                 THE INVOICE SECTION WAS ABSENT ENTIRELY FOR A NON-PRIVILEGED VIEWER
-                UNTIL #235, on the ground that "nothing has billed this order" is
+                UNTIL #235, on the ground that "nothing has invoiced this order" is
                 itself invoice information — the same server-side omission the
                 columns above were making. That premise is what #235 overturned:
-                what a vendor billed is readable by anyone who may read the order
+                what a vendor invoiced is readable by anyone who may read the order
                 behind it (#211), so this section now renders for every viewer who
                 reaches this page, exactly as those columns now do.
 
@@ -561,7 +561,7 @@ async function renderPODetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {/* #235 — NO LONGER GATED. What a vendor billed is readable by anyone who
+            {/* #235 — NO LONGER GATED. What a vendor invoiced is readable by anyone who
                 may read the order behind it (#211); `Paid` inside is the one thing
                 that kept its own line, on `seesPayment`. The chip beside the heading
                 is this order's invoicing state, in the placement #233 gave the
@@ -623,7 +623,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                 </p>
                                 {/* ONE ROW PER ORDERED ITEM AND PRICE (#266), the
                                     delivery list's fold with the unit price joined to
-                                    the key — so two charges billed at different prices
+                                    the key — so two charges at different prices
                                     stay two facts and a folded one's `@ price` is
                                     exact rather than a choice between two.
 

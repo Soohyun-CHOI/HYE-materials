@@ -9,7 +9,7 @@ import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoic
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
-import { ORDER_BREAKDOWN_COPY, billedItemsByOrder } from "@/lib/invoiceOrderBreakdown";
+import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "@/lib/invoiceOrderBreakdown";
 import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
@@ -47,7 +47,7 @@ const ENTRY_TONE_CLASS = {
 };
 
 // ROW-SCOPED, NOT ROLE-SCOPED (#211), gated exactly the way app/pos/[poId] is:
-// President and Admin reach every invoice, and anyone else reaches one that bills
+// President and Admin reach every invoice, and anyone else reaches one that charges
 // an order whose request they raised or whose request sits on a job they are
 // assigned to. The walk from invoice to request is lib/invoiceVisibility.js and the
 // judgment inside it is canViewPR, so this page adds no rule of its own. It
@@ -140,12 +140,12 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
         items.map((it) => ({ ...it, materialRecordId: materialByOrderedItem.get(it.invoiceItemId) ?? null }))
     );
 
-    // Issue #237 — which order each item was billed against, for the `Purchase Orders`
+    // Issue #237 — which order each item was invoiced against, for the `Purchase Orders`
     // section below, and only where the folded items disagree about that. Reads the
     // fold's `rowIds` against the invoice items already loaded, so it costs no query:
     // an Invoice Item carries its own `PO` and `PO Item`, and the order records are the
     // ones that section already renders. The rule is lib/invoiceOrderBreakdown.js.
-    const orderBreakdown = billedItemsByOrder({ folded: foldedItems, items });
+    const orderBreakdown = chargesByOrder({ folded: foldedItems, items });
 
     // Issue #241 — the delivery section's entries, one per FOLDED item rather than
     // one per invoice item, so what counts as one material is decided once for this
@@ -170,7 +170,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // invoice's own figures. Shipping Fee always renders (as $0.00 when
     // blank): "$0.00 shipping" is accurate info for this invoice. Tariff is
     // deliberately asymmetric — it renders only when the invoice actually
-    // itemizes one, because customs duty is often billed separately, so a
+    // itemizes one, because customs duty is often invoiced separately, so a
     // blank Tariff means "no duty line on this invoice", not "$0.00 of duty";
     // showing "Tariff: $0.00" would wrongly assert the latter. Hiding the row
     // doesn't affect Calculated Total: it's the Airtable formula (Items
@@ -286,7 +286,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 ) : (
                     <ul className={`mt-2 text-sm ${orderBreakdown.shown ? "space-y-2" : "space-y-1"}`}>
                         {poRecords.map((po) => {
-                            const billed = orderBreakdown.shown
+                            const charges = orderBreakdown.shown
                                 ? orderBreakdown.byOrder.get(po.id) ?? []
                                 : [];
                             return (
@@ -299,11 +299,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                             — <strong>{po.status}</strong>
                                         </span>
                                     </p>
-                                    {billed.length > 0 && (
+                                    {charges.length > 0 && (
                                         <ul className="mt-0.5 pl-4 text-xs text-zinc-500">
-                                            {billed.map((b) => (
+                                            {charges.map((b) => (
                                                 <li key={b.key}>
-                                                    {ORDER_BREAKDOWN_COPY.billed(b).text}
+                                                    {ORDER_BREAKDOWN_COPY.charged(b).text}
                                                 </li>
                                             ))}
                                         </ul>
@@ -347,7 +347,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         the two kinds this is: a charge against what
                                         the order agreed. NO SENTENCE BESIDE IT: the
                                         stored flag is one checkbox set by a price
-                                        difference OR a quantity billed beyond the
+                                        difference OR a quantity invoiced beyond the
                                         order, so any explanation naming a cause would
                                         be false whenever the other one fired. What it
                                         was compared against is on the order's own
@@ -412,7 +412,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {/* Issue #166 — was the material this invoice billed for delivered.
+            {/* Issue #166 — was the material this invoice invoiced for delivered.
                 One box per invoice item, in the items table's own order.
 
                 THE HEADING CHIP IS THE ONE THE LIST SHOWS, from the same function,
@@ -429,8 +429,8 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 THE INVOICE LEVEL SAYS WHAT THE STATE IS AND A BOX POINTS AT AN
                 EXCEPTION — that is the whole layout, and it follows from the
                 one-delivery premise (docs/notes, "The one-delivery premise"). What
-                this invoice bills is delivered by the delivery it matches or not at all,
-                so "everything billed was delivered" is one fact about one document:
+                this invoice charges is delivered by the delivery it matches or not at all,
+                so "everything invoiced was delivered" is one fact about one document:
                 the chip states it, and a box repeating it would state it once per
                 invoice item.
 
@@ -484,7 +484,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 </div>
 
                 {/* #232 — THE MATCHED DELIVERY, ONCE, AND NOTHING OF ITS OWN BESIDE
-                    IT. No ordered items: a delivery can carry bills this invoice has
+                    IT. No ordered items: a delivery can carry charges this invoice has
                     nothing to do with, so listing what it brought would show orders
                     this invoice never charged. No marker either — a document named
                     directly under this invoice's own heading is this invoice's
@@ -515,7 +515,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 )}
 
                 {/* AFTER THE DELIVERY IS NAMED, NOT BEFORE IT, and the order is the
-                    sentence's own grammar. It says the invoice bills more than the
+                    sentence's own grammar. It says the invoice charges more than the
                     delivery matched to it delivered, so a reader meets the delivery
                     it is about first and the claim about it second — putting the
                     accusation above the document it accuses would have the reader
@@ -562,7 +562,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                             const copy = entry.copy;
                             return (
                                 /* NO BORDER SINCE #232's THIRD PASS. It was a box
-                                   drawn around `Ordered · Billed · Delivered`, a share
+                                   drawn around `Ordered · Invoiced · Delivered`, a share
                                    line, a verdict, an aside and a delivery list; with
                                    the inside emptied it framed a name. A list is
                                    enough, and the border was making a silent entry
@@ -581,7 +581,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                         orders once folded, so that cell had no single
                                         value — and this section was the nearest place
                                         with one order per entry. It is the wrong place
-                                        on two counts: which order an item was billed
+                                        on two counts: which order an item was invoiced
                                         against is not a delivery fact, and it is not
                                         a fact a reader of THIS screen acts on, since
                                         nothing about whether to pay turns on it. #237
@@ -632,7 +632,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
             {/* HOISTED OUT OF THE PAYMENT SECTION BY #211, because it is a fact
                 about the invoice and that section is now President-or-Admin. It has
                 to outlive the gate: this prompt is the only thing that raises an
-                invoice-item variance to invoice level, and a charge billed at other
+                invoice-item variance to invoice level, and a charge invoiced at other
                 than what the order agreed is exactly what the employee reading this
                 page is here to catch. Copy that mentions payment does not disclose
                 whether THIS vendor was paid, which is where the line actually runs.

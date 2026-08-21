@@ -449,7 +449,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // over-delivery, and the flagged row attaches to the LAST ONE FILLED rather
     // than to nothing. #162 left it unattached here, which put the quantity in no
     // ordered item's rollup and made a delivery that arrived in full read as less
-    // arrived than was billed.
+    // arrived than was invoiced.
     check("two ordered items were narrowed to", overPlan.narrowed.length, 2);
     assert("and the flagged row names one of them", overPlan.rows[1].orderedItem !== null);
     check(

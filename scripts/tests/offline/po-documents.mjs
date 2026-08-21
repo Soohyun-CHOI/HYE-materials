@@ -5,7 +5,7 @@
 // a browser on this base: it needs one invoice charging TWO ordered items of one
 // order, and `HYE-PO-20260716-03` and `HYE-PO-20260716-02` are the only two that
 // have it. So the fold is asserted over shapes the base does not hold — three
-// ordered items billed by two invoices, a delivery filling two of them, a slice
+// ordered items invoiced by two invoices, a delivery filling two of them, a slice
 // belonging to another order — and the browser run confirms the two real ones.
 //
 // THE ANTI-VACUITY PAIR IS THE POINT OF THIS FILE, not a formality. "One invoice

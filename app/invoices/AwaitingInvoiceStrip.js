@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AWAITING_INVOICE_COPY } from "@/lib/deliveryStatus";
 
-// Deliveries nobody has billed for, above the list of invoices (#216). The
+// Deliveries nobody has invoiced for, above the list of invoices (#216). The
 // second of three strips built to the shape #176 set; the selection rule and the
 // ordering are lib/deliveryStatus.js's and were already there, so this file is
 // the rendering and nothing else.
@@ -43,12 +43,12 @@ import { AWAITING_INVOICE_COPY } from "@/lib/deliveryStatus";
 //      is the detection path's whole complexity.
 //
 // AND NARROWING THE ITEM PICKER TO THIS DELIVERY WOULD BE WORSE THAN NOT
-// PREFILLING. An invoice can legitimately bill for something the delivery did not
+// PREFILLING. An invoice can legitimately charge for something the delivery did not
 // bring — that is exactly the discrepancy #210's mismatch marker exists to catch —
 // so a picker restricted to what was delivered would make the real case unenterable and
 // the marker unreachable.
 //
-// So this strip is a list and nothing else: which deliveries are unbilled and how
+// So this strip is a list and nothing else: which deliveries are uninvoiced and how
 // long they have waited, which is what replaces the month-end email. Recording an
 // invoice is the `New invoice` button already at the top of this page; a second
 // control going to the same place would be one fact rendered twice on one screen,

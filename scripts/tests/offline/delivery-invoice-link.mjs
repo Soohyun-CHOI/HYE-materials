@@ -68,7 +68,7 @@ export function run({ check, log, assert }) {
     log("");
     log("may this invoice be paired with this delivery — and if not, why:");
     check(
-        "a free bill from the right vendor is fine",
+        "a free invoice from the right vendor is fine",
         invoiceLinkRefusal({ invoice: invoice(), deliveryRecordId: "recDL1", vendorRecordId: "recVEN1", visible: true }),
         null
     );
@@ -133,7 +133,7 @@ export function run({ check, log, assert }) {
     log("");
     log("the ORDER of those tests, which is what each refusal may disclose:");
     // Scope first: a caller who may not see the record must learn nothing about its
-    // contents from the refusal, so an out-of-scope bill from the wrong vendor must
+    // contents from the refusal, so an out-of-scope invoice from the wrong vendor must
     // report the scope refusal rather than the vendor one.
     check(
         "out of scope beats wrong vendor",
@@ -312,7 +312,7 @@ export function run({ check, log, assert }) {
         invoiceOptionLabel(option({ linkedDeliveryRecordId: "recDL9", linkedDeliveryId: "HYE-DL-260803-01" })),
         "INV-88213 · HYE-INV-260801-03 · 2026-08-01 — already on HYE-DL-260803-01"
     );
-    // A delivery is Job-scoped and an invoice can bill two jobs, so the holder is not
+    // A delivery is Job-scoped and an invoice can charge two jobs, so the holder is not
     // always in view — and naming it then would confirm a record outside someone's
     // scope, which no surface in this app does.
     check(
@@ -352,7 +352,7 @@ export function run({ check, log, assert }) {
     log("the taken refusal has TWO VOICES, split on whether the reader can reach it:");
     // #206's rule applied to a refusal: naming an action the reader cannot take is
     // worse than saying nothing, which is why that issue's qualifier has two voices
-    // rather than three. A delivery is Job-scoped and an invoice can bill two jobs, so
+    // rather than three. A delivery is Job-scoped and an invoice can charge two jobs, so
     // the delivery holding an invoice is not always in view — and "detach it there first"
     // then sends someone to a page that will tell them it does not exist.
     const takenNamed = describeLinkRefusal(LINK_REFUSED.takenByAnother, {

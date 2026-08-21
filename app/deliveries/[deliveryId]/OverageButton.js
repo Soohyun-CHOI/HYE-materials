@@ -22,7 +22,7 @@ import { createOverageDraftAction } from "./actions";
  * inference the old name was taken from.
  *
  * #265 CHANGED WHAT IT MEANS AND KEPT THE SHAPE. It stood for an INFERENCE until
- * then: the app had picked a document without being able to say the excess was billed
+ * then: the app had picked a document without being able to say the excess was invoiced
  * at all. The agreement rule made that guess unnecessary — a correction is offered
  * only where the two documents meet above the order — so what is left is a TIE-BREAK,
  * and the sentence says several invoices could have supplied the quotation at the same

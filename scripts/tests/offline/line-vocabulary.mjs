@@ -15,6 +15,15 @@
 // leaving the verb. Four words, four different treatments, one reason — the table
 // name wins. The assertions below hold as much of that as a check can.
 //
+// #274 THEN TOOK THE VERB, AND THE FOURTH WORD IS NOW LIKE THE OTHER THREE. What
+// #227 left standing was `bill` as what an invoice DOES, on the ground that
+// `Invoices` gives no verb — but the derivations already built on that table's name
+// were the choice, not free ground: `Invoiced Qty` and `Uninvoiced Items` on the
+// base, `uninvoicedQty` in lib/poItemQty.js, and the chip #235 moved from `Billed`
+// to `Invoiced`. So the act had two spellings and only one had ever been decided.
+// #227's own test settles it — a verb survives only where no verb is already settled
+// for the same act, which is why `arrived` went for `delivered`.
+//
 // SCOPE IS `app/` + `lib/` FOR COPY, PLUS `docs/briefs/` FOR PROSE — close to the
 // boundary us-english.mjs, product-name.mjs and formula-escaping.mjs draw, and it
 // does the same second job: it is what lets this check have NO EXEMPTION LIST. The
@@ -31,12 +40,13 @@
 //
 // THREE KINDS OF ASSERTION, BECAUSE COPY, PROSE AND IDENTIFIERS FAIL DIFFERENTLY.
 //
-//   1, 1b, 1c. COPY CONSTANTS take the bare word — `line`, `shipment`, and since
-//      #227 `arrival`/`arrived` as well. A `*_COPY` object is text a person reads
-//      on a screen, and no screen in this app shows a Job's `Lines` row as "line"
-//      or talks about a line of text, so the whole word can be barred there with
-//      nothing to excuse. `key` and `tone` are exempt by STRUCTURE rather than by
-//      list: they are closed vocabularies the UI switches on, never sentences.
+//   1, 1b, 1c, 1d. COPY CONSTANTS take the bare word — `line`, `shipment`, since
+//      #227 `arrival`/`arrived`, and since #274 `bill` as well. A `*_COPY` object is
+//      text a person reads on a screen, and no screen in this app shows a Job's
+//      `Lines` row as "line" or talks about a line of text, so the whole word can be
+//      barred there with nothing to excuse. `key` and `tone` are exempt by STRUCTURE
+//      rather than by list: they are closed vocabularies the UI switches on, never
+//      sentences — and that exemption has a cost, spelled out below.
 //
 //   2. COMMENTS, RENDERED TEXT AND THE BRIEFS take an EXPLICIT PHRASE LIST,
 //      us-english's move for the same reason it gives: `\bline\b` alone matches a
@@ -104,16 +114,39 @@
 // outside this base — a request arriving, a PR arriving with its prices settled — so
 // prose keeps it and only a screen may not.
 //
-// `bill` can NEVER join: of 422 strings walked out of `*_COPY` constants, 26 carry the
-// word and every one of them is the VERB, which is correct English with no table
-// competing for it — `this invoice bills more than the delivery matched to it
-// delivered`. The seven NOUNS that stood beside them are reworded (#227) and no
-// expression separates the two, since the noun appears bare as `a bill`. So the WORD
-// stays unbarred and its identifiers are accounted for by name in assertion 5, where
-// `billed` and its family carry "the verb" as their reason. That division — a lexical
-// matcher for the words a screen may not use, a named inventory for the tokens — is
-// what #269 meant by "this rule cannot live in a test": no single matcher can hold
-// it, but two can hold most of it between them.
+// `bill` HAS JOINED (#274), AND THE MEASUREMENT THAT KEPT IT OUT IS WHAT CHANGED
+// RATHER THAN THE ARGUMENT. This paragraph said the word could never be barred: of
+// 422 strings walked out of `*_COPY` constants, 26 carried it and every one was the
+// VERB, correct English with no table competing for it — and no expression separates
+// the verb from the noun, since the noun appears bare as `a bill`. Both halves were
+// true. What #274 changed is that the verb has somewhere to go, so the count is now
+// 0 of 446 and the whole word is barrable exactly as `arrival` became barrable once
+// its four strings were reworded. Two verbs took the 23 sites, and which one applies
+// is not a preference: the PARTICIPLE and every quantity are `invoiced`, matching
+// `Invoiced Qty` and the `Invoiced` chip, and the TRANSITIVE verb is `charges`,
+// matching `No invoice charges this order yet.` — which was already on a screen and
+// already pinned. `invoices` as a transitive verb is barred by neither and reads
+// badly enough that #227 proved it: it rewrote `each bill ordered items` to `each
+// invoice ordered items` and `both bill an ordered item` to `both invoice an ordered
+// item`, two sentences that garden-path into a noun phrase and that #274 fixed.
+//
+// COPY ONLY, LIKE `shipment` AND `arrival`, AND FOR A SHARPER REASON THAN EITHER.
+// Three classes of prose keep the word legitimately, so a phrase entry would buy the
+// exemption list this file exists without: Airtable's own billing (`airtableOps.js`
+// calls its counts a floor of the billed total), `Bill To:` on a vendor's document,
+// and citations of words this repo REJECTED — `Over-billed` in lib/variance.js,
+// `Billed` / `Partly billed` as the chip set #235 turned down. A screen has no such
+// use, so there the whole word goes.
+//
+// WHAT THE `key` EXEMPTION COSTS, and #274 paid it: a closed vocabulary the UI
+// switches on is INVISIBLE TO BOTH MATCHERS. `copyStrings` skips a `key` property's
+// value by structure, and assertion 5 visits Identifier nodes, so a string literal is
+// no identifier — which left `billed-more`, `order-billed`, `billed-short` and
+// `billed-over` unseen by everything here. They were renamed with the rest, and what
+// catches a NEW one is not this file: it is the value pins in
+// `offline/delivery-status.mjs`, `offline/invoice-order-breakdown.mjs` and
+// `offline/overage.mjs`, each of which asserts a key by its literal. So a barred word
+// put into a `key` today fails there or nowhere.
 //
 // SO THE TWO ASSERTIONS #269 ADDED CHECK THE RULE'S PREMISES RATHER THAN ITS WORDS.
 // Prose cannot be pinned, but a premise can: assertion 3 holds each barred word to
@@ -178,14 +211,20 @@ const WORD_RE = /\blines?\b/i;
  * through the vocabulary.
  *
  * The right-hand side is the table's name exactly as `TABLES` spells it, since that
- * is what is compared. `bill` is deliberately absent: it is barred nowhere, and a map
- * entry for a word no assertion uses would claim coverage this file does not have.
+ * is what is compared.
  *
  * `arrival` IS HERE BECAUSE #227 REWORDED THE FOUR COPY STRINGS THAT BLOCKED IT, in
  * the commit that added this entry. `Deliveries` beats it exactly as it beats
  * `shipment` — one table, one word for its rows — and the two are barred by two
  * matchers rather than one because they are two spellings of the same mistake and a
  * failure should name which one it found.
+ *
+ * `bill` IS HERE FOR THE SAME REASON ONE ISSUE LATER (#274), and this entry replaces a
+ * paragraph explaining why the word could have none: it was barred nowhere, so a
+ * premise for it would have claimed coverage this file did not have. `Invoices` beats
+ * it — but note what the table settles and what it does not. It settles the NOUN, so
+ * a row of it is an invoice; the verb is settled by the derivations already built on
+ * the name, which is the clause #274 added to CLAUDE.md and which no map can hold.
  */
 const BEATEN_BY_TABLE = {
     // These keys are the BARRED WORDS THEMSELVES, not names of anything — so an
@@ -195,6 +234,7 @@ const BEATEN_BY_TABLE = {
     shipment: "Deliveries",
     arrival: "Deliveries",
     line: "Lines",
+    bill: "Invoices",
 };
 
 /**
@@ -260,8 +300,14 @@ export function isQualified(entry) {
  * whatever the code happened to say on the day it was written, and the next reader
  * cannot tell a survivor from an oversight. Each one says which of the three
  * legitimate senses the name is in: a `Lines` row, a line of text, or a word that
- * merely contains the letters. `billed` and its family are the fourth sense — the
- * VERB, which no table competes for.
+ * merely contains the letters.
+ *
+ * THERE WAS A FOURTH SENSE AND IT IS GONE (#274). Ten entries stood here for `billed`
+ * and its family, each reading "the verb, which `Invoices` does not compete for" —
+ * and the sense was real while nothing else claimed the act. `Invoiced Qty` did claim
+ * it, so the ten are renamed and the list is three senses again. That the shrink is a
+ * sweep rather than a stem quietly dropped out of `STEM_RE` is what the two new
+ * anti-vacuity lines below assert.
  *
  * SCOPE IS `app/` + `lib/` for the reason the header gives: this file lives under
  * `scripts/`, whose own fixtures and ban-list literals would otherwise have to be
@@ -303,17 +349,6 @@ const SURVIVING_IDENTIFIERS = {
     polyline: "the SVG element",
     strokeLinecap: "the SVG attribute",
     strokeLinejoin: "the SVG attribute",
-    // The verb, which `Invoices` does not compete for (#269).
-    billed: "the verb: what an invoice did",
-    billedBeyondOrder: "the verb, scoped to the order",
-    billedNotDelivered: "the verb, against the delivery",
-    deliveredNotBilled: "its mirror",
-    billedByPair: "billed quantity per delivery-and-ordered-item pair",
-    billedShort: "the verb: the vendor billed less than it delivered (#265)",
-    billedOver: "the verb: it billed more than it delivered (#265)",
-    billedItemsByOrder: "an invoice's items grouped by the order they bill",
-    orderedItemsBilled: "the ordered items one invoice bills",
-    anyBilled: "whether anything on the order is billed",
 };
 
 // #231 — likewise for the third name of one fact. Copy only, and with no phrase
@@ -329,6 +364,11 @@ const STEM_RE = /line|shipment|arriv|bill/i;
 // #227 — the fourth name, and the pair #166 settled together. Both forms, or
 // `DELETE_COPY`'s verb walks: see the header.
 const ARRIVAL_RE = /\barriv(?:al|als|ed|es|e|ing)\b/i;
+
+// #274 — the noun AND the verb now. Every inflection, because the noun went with
+// #227 and the verb has two replacements (`invoiced` for the participle, `charges`
+// for the transitive), so nothing is left for a screen to say.
+const BILL_RE = /\bbill(?:s|ed|ing)?\b/i;
 
 function walk(dir, out = [], pattern = /\.(js|jsx|mjs)$/) {
     for (const entry of readdirSync(dir)) {
@@ -457,6 +497,23 @@ export function run({ check, assert, log }) {
                 (c) => WORD_RE.test(c.text) || SHIPMENT_RE.test(c.text)
             )
     );
+    const plantedBill = copyStrings('const X_COPY = { body: () => `this invoice bills more than it names` };');
+    const plantedBilled = copyStrings('const X_COPY = { body: () => `40 EA billed, none delivered` };');
+    assert(
+        "assertion 1d fires on the verb in both inflections, and no other matcher does",
+        plantedBill.some((c) => BILL_RE.test(c.text)) &&
+            plantedBilled.some((c) => BILL_RE.test(c.text)) &&
+            ![...plantedBill, ...plantedBilled].some(
+                (c) => WORD_RE.test(c.text) || SHIPMENT_RE.test(c.text) || ARRIVAL_RE.test(c.text)
+            )
+    );
+    // And it must NOT fire on the two verbs that replaced it, or the sweep would have
+    // had nowhere to go and this matcher would bar its own remedy.
+    assert(
+        "  and not on `invoiced` or `charges`, which is where the word went",
+        !BILL_RE.test("40 EA invoiced, none delivered") &&
+            !BILL_RE.test("No invoice charges this order yet.")
+    );
     const plantedProse = "// the PO line and the invoice lines and one order line";
     const plantedHits = plantedProse.match(PHRASE_RE) || [];
     assert(`assertion 2 fires on a planted comment (${plantedHits.length} phrases)`, plantedHits.length === 3);
@@ -544,6 +601,35 @@ export function run({ check, assert, log }) {
         0
     );
 
+    // ── 1d: and no *_COPY sentence says `bill` in any inflection (#274) ─────
+    // THE WORD #227 LEFT STANDING, barred one issue later — and the thing that
+    // changed is not the argument but the destination. `Invoices` gives no verb,
+    // so `bill` was correct English with nothing competing for it; what #274
+    // found is that the act already had a verb anyway, in every derivation built
+    // on the table's name (`Invoiced Qty`, `uninvoicedQty`, #235's chip). The 23
+    // strings went to `invoiced` where the word is a participle or a quantity and
+    // to `charges` where it is transitive — `No invoice charges this order yet.`
+    // was on a screen already. Copy only, and the three prose classes that keep
+    // the word are in the header.
+    log("");
+    log("no *_COPY sentence says `bill`, `bills`, `billed` or `billing`:");
+    const billOffenders = [];
+    for (const [path, src] of sources) {
+        for (const { copyName, text } of copyStrings(src)) {
+            if (BILL_RE.test(text)) {
+                billOffenders.push(`${path} ${copyName}: ${JSON.stringify(text)}`);
+            }
+        }
+    }
+    billOffenders.slice(0, 10).forEach((o) => log(`    ${o}`));
+    check(
+        `copy strings calling it anything but "invoiced" or "charges"${
+            billOffenders.length ? ` (first: ${billOffenders[0]})` : ""
+        }`,
+        billOffenders.length,
+        0
+    );
+
     // ── 2: prose takes the phrase list ──────────────────────────────────────
     log("");
     log("no comment, rendered text or brief names a child row with the old word:");
@@ -589,7 +675,7 @@ export function run({ check, assert, log }) {
     check(
         "every matcher's word carries a premise",
         Object.keys(BEATEN_BY_TABLE).sort().join(),
-        "arrival,line,shipment"
+        "arrival,bill,line,shipment"
     );
 
     // ── 4: the prose list stays qualified ───────────────────────────────────
@@ -633,6 +719,16 @@ export function run({ check, assert, log }) {
     assert(
         "the stem matcher sees inside a token, which is what assertion 2 cannot",
         STEM_RE.test("orderedItemStatus") === false && STEM_RE.test("lineStatus")
+    );
+    // AND THE SHRINK #274 MADE IS A SWEEP RATHER THAN A BLIND SPOT. Ten entries left
+    // this inventory in one commit, which is also what dropping `bill` out of
+    // `STEM_RE` would look like from here: no unlisted names, no stale ones, a
+    // shorter list. Two lines separate the two — the stem still MATCHES a token that
+    // carries it, and no identifier under app/ + lib/ carries it any more.
+    assert("  the stem matcher still sees the word #274 swept", STEM_RE.test("billedNotDelivered"));
+    assert(
+        "  and no identifier carries it, which is why it left the inventory",
+        ![...found.keys()].some((n) => /bill/i.test(n))
     );
 
     const unlisted = [...found.keys()].filter((n) => !SURVIVING_IDENTIFIERS[n]).sort();
