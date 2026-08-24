@@ -79,8 +79,19 @@ toggles paid state; the President gets the same fact as a sentence,
 exist. And when it does not, nothing on the page hints that it might.
 
 **When a tariff was entered:** one extra row in the totals footer, between
-Shipping Fee and Calculated Total. Otherwise the footer has three rows, not
-four.
+Shipping Fee and Calculated Total.
+
+**When a sales tax was entered:** one extra row in the same place, and **after
+the tariff row** when both are there. That order is the vendor's document's own —
+a duty prints with the goods it is charged on, a tax prints last before the total
+— and it is also the order the `Calculated Total` formula adds its terms in.
+
+**So the footer is three, four or five rows**, and the absent rows are absent
+rather than blank or zeroed: a missing tariff means "no duty line on this
+invoice", not "$0.00 of duty", and the same for tax. A footer drawn at a fixed
+five rows would make every ordinary invoice assert two charges the vendor never
+made. A term stated as zero is different again and does get its row, because "this
+document says no tax was charged" is a true claim worth printing.
 
 **When the reader has just arrived from an action:** a green confirmation line
 under the heading. It comes off the query string, so it appears once and is gone

@@ -86,6 +86,7 @@ async function updateInvoiceHandler(prevState, formData) {
         const amountDue = formData.get("amountDue");
         const shippingFee = formData.get("shippingFee") || 0;
         const tariff = formData.get("tariff");
+        const salesTax = formData.get("salesTax");
         const items = JSON.parse(formData.get("itemsJson") || "[]");
 
         if (!vendorId) return { error: "Select a Vendor." };
@@ -109,6 +110,9 @@ async function updateInvoiceHandler(prevState, formData) {
                 amountDue: parseFloat(amountDue),
                 shippingFee: parseFloat(shippingFee) || 0,
                 tariff: tariff ? parseFloat(tariff) : null,
+                // Issue #283 — Tariff's coercion; see createInvoiceHandler for why
+                // it is copied rather than improved on one of the two terms.
+                salesTax: salesTax ? parseFloat(salesTax) : null,
             });
 
             // Apply line-value edits, but only to items that actually belong to
@@ -130,7 +134,10 @@ async function updateInvoiceHandler(prevState, formData) {
             // creation which only sets): a correction can remove a variance, so a
             // stale flag must be cleared. Per-item uses the fresh Unit Price and
             // the cumulative invoiced Qty (this invoice's new Qty already
-            // included); free-text invoice items have no PO Item to compare, so clear.
+            // included). The `if (poItemRecordId)` guard below is NOT the free-text
+            // charge #278 removed — no such row exists any more — but a link a hand
+            // edit emptied in Airtable, which is a row to survive rather than to
+            // describe; with nothing to compare against, its flag clears.
             const itemsAfter = await getItemsByInvoice(invoice.id);
             for (const item of itemsAfter) {
                 const poItemRecordId = item.poItem?.[0];
@@ -147,7 +154,7 @@ async function updateInvoiceHandler(prevState, formData) {
             }
 
             // Header check needs Calculated Total's rollup (Items Subtotal +
-            // Shipping + Tariff) to have caught up, so re-read fresh.
+            // Shipping + Tariff + Sales Tax) to have caught up, so re-read fresh.
             const invoiceAfter = await getInvoiceByRecordId(invoice.id);
             const headerFlag = checkHeaderVariance(
                 invoiceAfter.amountDue,

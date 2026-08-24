@@ -57,6 +57,7 @@ async function createInvoiceHandler(prevState, formData) {
         const amountDue = formData.get("amountDue");
         const shippingFee = formData.get("shippingFee") || 0;
         const tariff = formData.get("tariff"); // issue #57 — optional, only present once the header's "+ Add Tariff" was used
+        const salesTax = formData.get("salesTax"); // issue #283 — the same, behind "+ Add Sales Tax"
         const items = JSON.parse(formData.get("itemsJson") || "[]");
         const invoiceFileUrl = formData.get("invoiceFileUrl");
         const invoiceFileFilename = formData.get("invoiceFileFilename");
@@ -147,6 +148,13 @@ async function createInvoiceHandler(prevState, formData) {
                 amountDue: parseFloat(amountDue),
                 shippingFee: parseFloat(shippingFee) || 0,
                 tariff: tariff ? parseFloat(tariff) : null,
+                // Issue #283 — Tariff's coercion, character for character. It maps
+                // a typed `0` to null along with an empty box, so a document
+                // stating zero tax is stored as no tax line; the total is the same
+                // either way and only the detail's row differs. Diverging on one of
+                // the two terms would be two shapes for one rule, and changing both
+                // is a change to Tariff's behavior.
+                salesTax: salesTax ? parseFloat(salesTax) : null,
                 file: [{ url: invoiceFileUrl, filename: invoiceFileFilename || undefined }],
             });
 

@@ -130,7 +130,16 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                     </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* #283 — Sales Tax joins the group Tariff is already in, and it
+                    follows THIS screen's convention rather than the create form's:
+                    an always-visible optional field with a placeholder saying what
+                    blank means. The two screens differ on purpose — a correction
+                    screen shows every correctable value, including the ones this
+                    invoice does not have, while a create form asks only for what
+                    the document in front of the reader actually states. Moving
+                    either convention onto the other screen was considered and
+                    declined. A third field in a two-column grid is a third column. */}
+                <div className="grid grid-cols-3 gap-4">
                     <div>
                         <label htmlFor="shippingFee" className="block text-sm font-medium">
                             Shipping Fee
@@ -154,6 +163,20 @@ export default function EditInvoiceForm({ invoice, items: initialItems, vendors 
                             id="tariff"
                             name="tariff"
                             defaultValue={invoice.tariff ?? ""}
+                            placeholder="Leave blank if none"
+                            className={fieldClass}
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="salesTax" className="block text-sm font-medium">
+                            Sales Tax (optional)
+                        </label>
+                        <input
+                            type="number"
+                            step="0.01"
+                            id="salesTax"
+                            name="salesTax"
+                            defaultValue={invoice.salesTax ?? ""}
                             placeholder="Leave blank if none"
                             className={fieldClass}
                         />
