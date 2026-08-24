@@ -120,6 +120,15 @@ visibility clause, including the office. Both Save and Submit re-target that sam
 record, Submit promoting it rather than creating a second one. A design implying
 drafts are unsaved local state would contradict where they actually live.
 
+**A draft can arrive already holding a quotation, from two places.** The
+over-delivery strip on the request list opens one carrying the excess as its
+single item, and the direct-purchase strip opens one carrying the vendor and the
+vendor's own invoice as its quotation — and nothing else, because what is missing
+is exactly what only the requester knows: the items, the line, and the signers.
+Both land here through the ordinary draft-resume path, so this form is what
+finishes them. A reader who arrives that way did not fill in what is already
+there, and the form should not read as though they did.
+
 **A quotation is required, and that is the workflow rather than a validation
 choice.** The vendor and the prices were settled before this form opened, and the
 quotation is the evidence. The same requirement appears on the delivery form as

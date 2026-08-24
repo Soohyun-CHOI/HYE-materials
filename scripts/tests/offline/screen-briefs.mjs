@@ -55,6 +55,8 @@ import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
 import { OVERAGE_COPY } from "../../../lib/overage.js";
+import { DIRECT_PURCHASE_COPY } from "../../../lib/directPurchase.js";
+import { WAIT_COPY } from "../../../lib/prWait.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -224,6 +226,15 @@ const PINNED = [
     "spans two invoices",
     "invoices differ on price",
     "invoice has no file",
+    // #272 — the second strip's own words, pinned as the first strip's now are, and
+    // the chip they share. `draft with` is pinned without a name for the reason the
+    // heading above is pinned without its figure: the brief writes an example where
+    // the constant interpolates.
+    "direct purchases are waiting for a request",
+    "recorded these from a vendor's invoice",
+    "no invoice number",
+    "View invoice",
+    "draft with",
 ];
 
 export function run({ check, assert, log }) {
@@ -359,6 +370,8 @@ export function run({ check, assert, log }) {
         ...stringsFrom(AWAITING_PO_COPY),
         ...stringsFrom(ALLOCATION_COPY),
         ...stringsFrom(OVERAGE_COPY),
+        ...stringsFrom(DIRECT_PURCHASE_COPY),
+        ...stringsFrom(WAIT_COPY),
     ];
     assert("the copy constants yielded strings", loadable.length > 20);
     // AND NO `STATUS_COPY` SENTENCE RENDERED `undefined`, WHICH IS WHAT A STALE INPUT

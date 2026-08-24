@@ -174,3 +174,45 @@ new table, `Direct Purchases`, and the site raises the request from it.
 - **What it costs: one ID family.** `HYE-DP-YYMMDD-##`, the fifth in `ID_KINDS`, and
   it takes the daily-prefix rule unchanged — see `id-generation.md` for why this is
   the family whose own record carries the most tempting date field to count instead.
+
+### Listing and offering are two questions (#272)
+
+Both strips above `/prs` hand a record to somebody who will raise a request from
+it, and both had the same hole until this issue: the row left the list the moment
+anybody pressed the button.
+
+- **THE DEFECT WAS LIVE AND IS WORTH STATING PLAINLY.** `awaitsOverageRequest`
+  answered false as soon as any request covered the excess, `Draft` included, and
+  the strip selected on it alone. So the first person to press the button took the
+  row off everyone else's screen — and if they then closed the tab, the excess was
+  visible on no screen at all: `canViewPR`'s first clause shows a `Draft` to its
+  requester and nobody else, the strip had let it go, and the delivery detail's
+  banner is the only other place it appears. The direct purchase would have
+  inherited exactly that, since its claim also produces a Draft.
+- **SO THE ONE TEST BECAME TWO, AND THE RULE IS `lib/prWait.js`'s.** A record is
+  LISTED until the request it produced has been submitted; the control is OFFERED
+  only while nothing covers it. Between them is a state with a chip and no button:
+  somebody has a draft, nobody has been asked to approve it, and the row says so
+  with their name on it. The row leaves when the request reaches `In Review`,
+  which is the moment `/prs` itself starts carrying the fact under `canViewPR`.
+- **THE NAME IN THE CHIP IS `Users."User Name"`,** which is what every other
+  screen prints for a person. It is the email's local part today (`chkim`),
+  because a Users row is created by a first magic-link sign-in and nothing else
+  sets it; a real display name is one edit per row in Airtable and improves every
+  screen at once. Naming people a second way here would be the mistake.
+- **THE TWO CLAUSES ARE ORDERED IN `overageStillWaiting`, and the case that forces
+  it is #167's own:** a withdrawn overage ORDER reopens a row whose request says
+  `PO Signed`, so `overagePRState` is asked first and only a row nothing offers
+  falls through to the stage. Asking the stage first would drop that row silently.
+- **WHY TWO STRIPS RATHER THAN ONE.** They were weighed as one list and kept
+  apart: the rows come from different tables under different gates, the actions
+  take different records, and the refusals are different closed sets, so a merged
+  strip would need a row that is two row types and an action that is two actions —
+  the duplication a merge removes, moved inside. What they share is shared as
+  code: the pattern, the wait rule, and #256's ordering.
+- **THE CHECK IS `offline/pr-wait.mjs`, AND ITS FIRST ASSERTION IS THE MUTANT.**
+  Collapse the two answers back into one and every screen still renders: either
+  every row has a button, or every row vanishes the moment somebody drafts a
+  request — the state that shipped. So the first thing asserted is that the two
+  answers diverge at all, before any per-stage detail. Verified by mutation:
+  making `stillWaiting` mean `requestOfferable` fails it on the first line.

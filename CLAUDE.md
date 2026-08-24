@@ -106,6 +106,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/directPurchase.js` — the way out of an invoice with no order (#272): `directPurchaseBlocked`, the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
+- `lib/directPurchaseClaim.js` — the strip's rows and the Draft a site raises from one. Credentialed.
+- `lib/prWait.js` — a record waiting for a request: `WAIT_STAGE`, and the split both strips above `/prs` obey — **a record stays listed until its request is SUBMITTED, and the control is offered only while nothing covers it** (#272). A draft is neither.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds ordered items. Credentialed.
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. Both order-scope summaries live here (#235), so the delivery and invoicing chips stay one shape.

@@ -8,9 +8,11 @@ import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { getOveragesAwaitingRequest } from "@/lib/overagePR";
+import { getDirectPurchasesAwaitingRequest } from "@/lib/directPurchaseClaim";
 import { withOpsLabel } from "@/lib/airtableOps";
 import PRListClient from "./PRListClient";
 import OverageStrip from "./OverageStrip";
+import DirectPurchaseStrip from "./DirectPurchaseStrip";
 
 export const metadata = { title: "Purchase Requests" };
 
@@ -76,9 +78,15 @@ async function renderPRListPage({ searchParams }) {
     // other gate would render a button the action refuses). The accessible jobs are
     // narrowed before the read, so a delivery on a job this viewer cannot reach is
     // never fetched.
-    const [requesterRecords, overages] = await Promise.all([
+    // #272 — the second strip's rows, read alongside the first for the same reason:
+    // both walks take the jobs this page has already narrowed, so neither costs a
+    // round trip of its own and neither can fetch a record on a job the viewer cannot
+    // reach. The vendors are passed in as well — this page loads them for its own
+    // column, so naming a direct purchase's vendor costs no query.
+    const [requesterRecords, overages, directPurchases] = await Promise.all([
         getUsersByRecordIds(requesterIds),
         getOveragesAwaitingRequest(jobsFor(user, jobs)),
+        getDirectPurchasesAwaitingRequest(jobsFor(user, jobs), vendors),
     ]);
     const userNameById = Object.fromEntries(
         requesterRecords.filter(Boolean).map((u) => [u.id, u.userName])
@@ -134,6 +142,10 @@ async function renderPRListPage({ searchParams }) {
                 exist yet: the same reason #176's strip is a strip rather than a
                 column, since the row that would carry the fact is the thing missing. */}
             <OverageStrip rows={overages} />
+            {/* #272 — second, and deliberately weakly so: neither list outranks the
+                other, so the strip people already know keeps its position. Both are
+                material the company holds with no request behind it. */}
+            <DirectPurchaseStrip rows={directPurchases} />
 
             <PRListClient
                 rows={rows}

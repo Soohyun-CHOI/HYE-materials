@@ -66,12 +66,46 @@ first. The chips are `no invoice yet`, `invoice and delivery disagree`,
 named rather than counted, because this paragraph has twice carried a count that
 went stale under it.
 
+**When someone has a draft for one of those rows and has not submitted it:** the
+row stays, and its control is replaced by a chip naming them —
+`draft with chkim`. It is the same chip on both strips. The row leaves only when
+the request is submitted, because until then it is visible to its requester and
+nobody else; before this the row vanished the moment anyone pressed the button,
+so an abandoned draft took the excess off the only list that showed it.
+
 **One of those chips covers two opposite errors on purpose.** `invoice and
 delivery disagree` is shown both where the vendor invoiced less than it sent and
 where it invoiced more; the two are different facts and the delivery detail's
 sentence says which. They share a chip because what a reader does about either is
 the same — take it up with the vendor — and a closed set gains nothing from two
 values with one action behind them.
+
+**When the office has recorded a direct purchase on one of the reader's jobs:** a
+second amber strip, under the first. Heading
+`N direct purchases are waiting for a request`, the line `Longest wait first. The
+office recorded these from a vendor's invoice; whoever bought the material raises
+the request here.`, and one row per case: the vendor, the job code, the vendor's
+own invoice number or `no invoice number`, the note the office left, a
+`View invoice` link that opens the document they attached, and either a
+`Raise the request` control or the same `draft with …` chip.
+
+**This is the only strip whose rows were put there by a person.** Every other
+list in the app is derived from records; these were entered by the office
+because `/invoices/new` had no order to charge the invoice against, and the
+reader is being asked to take responsibility for material somebody else
+recorded. That is why the document is one click away and why the note is on the
+row rather than behind anything.
+
+**Its control opens a preview, not a request.** The modal says what the draft
+will arrive with — the vendor and their invoice as its quotation — and what it
+will not: what was bought, which part of the job it was for, and who signs. It
+also says the row stays on this list, marked as theirs, until they submit.
+
+**Two strips is the shape, not a stage.** They are not merged because their rows
+come from different tables under different gates, their actions take different
+records, and their refusals are different sets. The direct-purchase one is
+second for no strong reason — neither outranks the other — so the strip readers
+already know keeps its position.
 
 **The strip renders nothing at all when there is nothing.** No all-clear, no
 empty box, no heading. This is a deliberate rule shared by every strip in
@@ -97,6 +131,11 @@ learned them all.
 takes.** One purchase order can carry several ordered items each with its own
 excess, so the unit that can raise anything is the row, not the order and not the
 delivery. The same reasoning put the retry on a row in the awaiting-order strip.
+
+**Both strips let a row go at the same moment, and it is not when somebody takes
+it.** A record waiting for a request stays listed until that request has been
+submitted; a draft is not a submission, and a draft is invisible to everyone but
+its author. One rule, one implementation, two strips.
 
 **A blocked row gets a chip, not its sentence.** The shortest refusal runs to 130
 characters, which is not a row at this width. The full sentences are on the
