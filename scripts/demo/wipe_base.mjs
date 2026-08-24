@@ -74,6 +74,11 @@ const ORDER = [
     // The order side.
     TABLES.PO_ITEMS,
     TABLES.PURCHASE_ORDERS,
+    // The office's record of a purchase with no order behind it (#272), before the
+    // request side: a row points AT the request a site raised from it, so clearing
+    // it first leaves nothing pointing at a gap — the reason prices go before
+    // materials above.
+    TABLES.DIRECT_PURCHASES,
     // The request side and its history.
     TABLES.EDIT_LOG,
     TABLES.CORRECTION_REQUESTS,
