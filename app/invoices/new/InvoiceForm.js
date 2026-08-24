@@ -270,6 +270,12 @@ export default function InvoiceForm({ vendors, pos }) {
     const [shippingFeeTouched, setShippingFeeTouched] = useState(false);
     const [tariffEnabled, setTariffEnabled] = useState(false);
     const [tariff, setTariff] = useState("");
+    // Issue #283 — the second optional term, in the first one's shape. Two flags
+    // rather than one, because the two are independent facts about the vendor's
+    // document: an invoice can state a duty with no tax, a tax with no duty, or
+    // both.
+    const [salesTaxEnabled, setSalesTaxEnabled] = useState(false);
+    const [salesTax, setSalesTax] = useState("");
     // Issue #272 — CONTROLLED ONLY BECAUSE A SECOND FORM NEEDS THEM. Both were
     // uncontrolled inputs that `createInvoiceAction` read straight off the
     // FormData; the direct-purchase modal is its own form, so the two facts it
@@ -963,8 +969,18 @@ export default function InvoiceForm({ vendors, pos }) {
     // Issue #57 — sanity-check preview only, never what's stored (Amount
     // Due/vendorStatedTotal is). Tariff only counts once the optional
     // field is actually shown, matching what's actually submitted.
+    //
+    // #283 — THIS IS THE CLIENT-SIDE TWIN OF THE ISSUE'S OWN BUG, which is why
+    // `offline/invoice-money-terms.mjs` asserts on this declaration by name. A
+    // term that reaches the form and the screen but not this sum makes the
+    // preview read low, and a reader comparing it against the vendor's document
+    // then sees a disagreement the vendor did not cause — the same shape as the
+    // Airtable formula missing the term, one layer up.
     const calculatedTotal =
-        itemsTotal + (parseFloat(shippingFee) || 0) + (tariffEnabled ? parseFloat(tariff) || 0 : 0);
+        itemsTotal +
+        (parseFloat(shippingFee) || 0) +
+        (tariffEnabled ? parseFloat(tariff) || 0 : 0) +
+        (salesTaxEnabled ? parseFloat(salesTax) || 0 : 0);
     const totalsMismatch =
         vendorStatedTotal !== "" &&
         !Number.isNaN(parseFloat(vendorStatedTotal)) &&
@@ -1633,6 +1649,12 @@ export default function InvoiceForm({ vendors, pos }) {
     // columns normally and 3 once Tariff is added — flex-1 on each column
     // means the widths reflow automatically either way, no fixed grid to
     // keep in sync with tariffEnabled.
+    //
+    // #283 — Sales Tax is the fourth slot, after Tariff, and `flex-1` is what
+    // makes a second optional term cost nothing here: the row is 2, 3 or 4
+    // columns and no branch counts them. Its order matches the invoice detail's
+    // totals footer and the Calculated Total formula's own argument order, so
+    // the three places that enumerate these terms enumerate them alike.
     function renderTotalsSection() {
         return (
             <div>
@@ -1702,6 +1724,34 @@ export default function InvoiceForm({ vendors, pos }) {
                             </div>
                         </div>
                     )}
+                    {salesTaxEnabled && (
+                        <div className="flex-1">
+                            <label htmlFor="salesTax" className="block text-sm font-medium">
+                                Sales Tax
+                            </label>
+                            <div className="mt-1 flex items-center gap-1">
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    id="salesTax"
+                                    name="salesTax"
+                                    value={salesTax}
+                                    onChange={(e) => setSalesTax(e.target.value)}
+                                    className={inputClass + " flex-1"}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSalesTaxEnabled(false);
+                                        setSalesTax("");
+                                    }}
+                                    className="shrink-0 text-xs text-zinc-500 underline"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
                     <div className="flex-1">
                         <label htmlFor="amountDue" className="block text-sm font-medium">
                             Vendor&apos;s Stated Total
@@ -1719,24 +1769,60 @@ export default function InvoiceForm({ vendors, pos }) {
                     </div>
                 </div>
 
-                {!tariffEnabled && (
-                    <button
-                        type="button"
-                        onClick={() => setTariffEnabled(true)}
-                        className="mt-2 text-xs text-zinc-500 underline"
-                    >
-                        + Add Tariff
-                    </button>
+                {/* #283 — one reveal control per absent term, in the same order as
+                    the slots they open. Each is present exactly when its own term
+                    is not in the sum, so the pair also states which terms this
+                    invoice is being recorded WITHOUT. */}
+                {(!tariffEnabled || !salesTaxEnabled) && (
+                    <div className="mt-2 flex items-center gap-4">
+                        {!tariffEnabled && (
+                            <button
+                                type="button"
+                                onClick={() => setTariffEnabled(true)}
+                                className="text-xs text-zinc-500 underline"
+                            >
+                                + Add Tariff
+                            </button>
+                        )}
+                        {!salesTaxEnabled && (
+                            <button
+                                type="button"
+                                onClick={() => setSalesTaxEnabled(true)}
+                                className="text-xs text-zinc-500 underline"
+                            >
+                                + Add Sales Tax
+                            </button>
+                        )}
+                    </div>
                 )}
 
                 {/* Issue #57 — sanity check, not enforcement: Amount Due
                     (Vendor's Stated Total) is still what gets stored and
                     submitted regardless of whether it agrees with this
                     preview. Catches a vendor's own arithmetic error or a
-                    missed line — the calculation alone can't. */}
+                    missed charge — the calculation alone can't.
+
+                    #283 — THE TERM LIST IS GONE FROM THE LABEL, and the reason is
+                    that a list with optional members has only two states and both
+                    are wrong: fixed, it omits a term that is in the sum; complete,
+                    it grows a word every time a term is added, and two optional
+                    terms already make four spellings of one label. So the label
+                    names the figure and the terms are named where their figures
+                    are — which is what the invoice detail's totals footer already
+                    does with the same computation, one row per term and no row for
+                    an absent one.
+
+                    WHAT THIS GIVES UP, stated because it was the list's real work:
+                    `Vendor's Stated Total` sits in the same row as the three terms
+                    and is not one of them, and the parenthetical was the only thing
+                    saying so. What carries it now is the two words themselves —
+                    `Calculated` against `Stated` — and, at the moment the question
+                    actually arises, the mismatch line below, which puts the two
+                    figures on opposite sides of one comparison. If that proves not
+                    to be enough, the fix is a word on the stated-total field, not a
+                    term list back on this one. */}
                 <p className="mt-2 text-xs text-zinc-500">
-                    Calculated total (Items + Shipping{tariffEnabled ? " + Tariff" : ""}):{" "}
-                    {calculatedTotal.toFixed(2)}
+                    Calculated total: {calculatedTotal.toFixed(2)}
                 </p>
                 {totalsMismatch && (
                     <p className="mt-1 text-xs text-amber-700">

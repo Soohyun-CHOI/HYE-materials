@@ -376,6 +376,7 @@ async function invoice({
     amountDue = null,
     shippingFee = 0,
     tariff = null,
+    salesTax = null,
     paid = false,
     withFile = true,
     vendorInvoiceCode = null,
@@ -399,7 +400,12 @@ async function invoice({
         file = [{ url: blob.url, filename: `${code}.pdf` }];
     }
 
-    const computed = rows.reduce((t, r) => t + r.qty * r.unitPrice, 0) + shippingFee + (tariff || 0);
+    // #283 — the sales tax is a term of this sum too. A seed that omitted it would
+    // default `Amount Due` to less than `Calculated Total` and hand every taxed
+    // scenario a header variance it was not written to have: the same missing-term
+    // mutant as the Airtable formula's, one layer out.
+    const computed =
+        rows.reduce((t, r) => t + r.qty * r.unitPrice, 0) + shippingFee + (tariff || 0) + (salesTax || 0);
     const invoice = await createInvoice({
         vendorId: vendor.id,
         vendorInvoiceCode: code,
@@ -408,6 +414,7 @@ async function invoice({
         amountDue: amountDue ?? computed,
         shippingFee,
         ...(tariff !== null ? { tariff } : {}),
+        ...(salesTax !== null ? { salesTax } : {}),
         file,
     });
 
@@ -852,12 +859,12 @@ await scenario("INV_WAIT_A", "an invoice with nothing delivered — strip 2, fir
         items: [{ itemName: "Flange Gasket", size: '8"', qty: 50, unitPrice: 9 }],
         sign: true,
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "INV_WAIT_A",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 50, unitPrice: 9 }],
         issueDate: "2026-08-07",
     });
-    ids.invWaitA = invoice.invoiceId;
+    ids.invWaitA = inv.invoiceId;
     ids.invWaitAPo = order.po.poId;
 });
 
@@ -874,12 +881,12 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
         rows: [{ poItem: order.poItems[0], qty: 100 }],
         receivedDate: "2026-08-12",
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "INV_WAIT_B",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 100, unitPrice: 1.8 }],
         issueDate: "2026-08-13",
     });
-    ids.invWaitB = invoice.invoiceId;
+    ids.invWaitB = inv.invoiceId;
 });
 
 // --- MISMATCH_START — an invoice of 10 against an order nothing has filled ------
@@ -896,12 +903,12 @@ await scenario("MISMATCH_START", "an invoice of 10 waiting for the live delivery
         items: [{ itemName: "Steel Pipe", size: '2" SCH40', qty: 10, unitPrice: 210 }],
         sign: true,
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "MISMATCH_START",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 10, unitPrice: 210 }],
         issueDate: "2026-08-15",
     });
-    ids.mismatchInvoice = invoice.invoiceId;
+    ids.mismatchInvoice = inv.invoiceId;
     ids.mismatchPo = order.po.poId;
 });
 
@@ -931,13 +938,13 @@ await scenario("HAND_ATTACH", "a delivery and an invoice the computed rule will 
         rows: [{ poItem: brought.poItems[0], qty: 20 }],
         receivedDate: "2026-08-14",
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "HAND_ATTACH",
         rows: [{ po: charged.po, poItem: charged.poItems[0], qty: 7, unitPrice: 41 }],
         issueDate: "2026-08-14",
     });
     ids.handAttachDelivery = delivery.deliveryId;
-    ids.handAttachInvoice = invoice.invoiceId;
+    ids.handAttachInvoice = inv.invoiceId;
 });
 
 // --- VAR_PRICE — a charge the order did not agree --------------------------
@@ -948,7 +955,7 @@ await scenario("VAR_PRICE", "a charge at a price the order did not agree", async
         items: [{ itemName: "Pressure Gauge", size: '0-300 PSI', qty: 6, unitPrice: 75 }],
         sign: true,
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "VAR_PRICE",
         rows: [
             {
@@ -961,7 +968,7 @@ await scenario("VAR_PRICE", "a charge at a price the order did not agree", async
         ],
         issueDate: "2026-08-12",
     });
-    ids.varPrice = invoice.invoiceId;
+    ids.varPrice = inv.invoiceId;
     ids.varPricePo = order.po.poId;
 });
 
@@ -978,7 +985,7 @@ await scenario("VAR_TOTAL", "stated total ≠ computed total, and already paid",
         shippingFee: 150,
         sign: true,
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "VAR_TOTAL",
         // BOTH VARIANCE KINDS ON ONE INVOICE, WHICH IS WHAT MAKES THE ORDER'S OWN PAGE
         // DEMONSTRABLE. `/pos/[poId]` is the one screen in the app that can show the
@@ -1003,7 +1010,7 @@ await scenario("VAR_TOTAL", "stated total ≠ computed total, and already paid",
         issueDate: "2026-08-09",
         paid: true,
     });
-    ids.varTotal = invoice.invoiceId;
+    ids.varTotal = inv.invoiceId;
 });
 
 // --- TARIFF — the fourth row in the totals footer --------------------------
@@ -1015,14 +1022,73 @@ await scenario("TARIFF", "an invoice carrying a tariff", async () => {
         shippingFee: 220,
         sign: true,
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "TARIFF",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 15, unitPrice: 190 }],
         shippingFee: 220,
         tariff: 385,
         issueDate: "2026-08-08",
     });
-    ids.tariff = invoice.invoiceId;
+    ids.tariff = inv.invoiceId;
+});
+
+// --- SALES_TAX — the fifth row, and the fourth-and-fifth together ------------
+//
+// TWO INVOICES RATHER THAN ONE, because the footer's whole design is that an
+// optional row is absent when its term is, and one invoice can only show one of
+// the two arrangements. The first states a tax and no duty, so the row appears
+// between Shipping Fee and Calculated Total with nothing else new; the second
+// states both, which is the only way to see that Sales Tax sits AFTER Tariff.
+// The no-tax arrangement needs no scenario of its own — every other invoice on
+// this base is one.
+//
+// THE LOCALS ARE NOT NAMED `invoice`, AND THAT IS DELIBERATE RATHER THAN A STYLE
+// CHOICE. `const invoice = await invoice({…})` shadows the hoisted helper inside
+// the arrow function and throws `Cannot access 'invoice' before initialization`
+// — see the SHORTFALL scenario below, where #278 found the first instance. #283
+// found the other nine and renamed them all, so `inv` is now the convention here
+// rather than one scenario's workaround.
+await scenario("SALES_TAX", "sales tax alone, and sales tax beside a tariff", async () => {
+    const order = await makeOrder({
+        scenarioName: "SALES_TAX",
+        notes: "Conduit and fittings, bought in state — expect tax on the invoice.",
+        items: [{ itemName: "EMT Conduit", size: '3/4"', qty: 40, unitPrice: 18.5 }],
+        shippingFee: 65,
+        sign: true,
+    });
+    // 40 x 18.5 + 65 = 805, plus 8.25% of the material = 61.05. Amount Due
+    // AGREES, which is the point: the term reaching Calculated Total is what
+    // stops the header check reporting the vendor's own arithmetic as wrong.
+    const taxOnly = await invoice({
+        scenarioName: "SALES_TAX",
+        rows: [{ po: order.po, poItem: order.poItems[0], qty: 40, unitPrice: 18.5 }],
+        shippingFee: 65,
+        salesTax: 61.05,
+        amountDue: 866.05,
+        issueDate: "2026-08-10",
+    });
+    ids.salesTax = taxOnly.invoiceId;
+
+    const dutied = await makeOrder({
+        scenarioName: "SALES_TAX",
+        notes: "Imported valve body, bought in state — expect duty AND tax.",
+        items: [{ itemName: "Ball Valve Body", size: '2"', qty: 6, unitPrice: 240 }],
+        shippingFee: 120,
+        sign: true,
+    });
+    // 6 x 240 + 120 = 1560, duty 132, tax 118.80 — every figure distinct, so a
+    // footer printing one term's value under the other's label reads wrong rather
+    // than plausible.
+    const bothTerms = await invoice({
+        scenarioName: "SALES_TAX",
+        rows: [{ po: dutied.po, poItem: dutied.poItems[0], qty: 6, unitPrice: 240 }],
+        shippingFee: 120,
+        tariff: 132,
+        salesTax: 118.8,
+        amountDue: 1810.8,
+        issueDate: "2026-08-11",
+    });
+    ids.salesTaxTariff = bothTerms.invoiceId;
 });
 
 // --- MULTI_ORDER — one invoice across two orders ------------------------------
@@ -1042,7 +1108,7 @@ await scenario("MULTI_ORDER", "one invoice charging two orders, item sets differ
         items: [{ itemName: "Junction Box", size: '4x4"', qty: 25, unitPrice: 14 }],
         sign: true,
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "MULTI_ORDER",
         rows: [
             { po: first.po, poItem: first.poItems[0], qty: 60, unitPrice: 11 },
@@ -1051,7 +1117,7 @@ await scenario("MULTI_ORDER", "one invoice charging two orders, item sets differ
         ],
         issueDate: "2026-08-11",
     });
-    ids.multiOrder = invoice.invoiceId;
+    ids.multiOrder = inv.invoiceId;
     ids.multiOrderPo = first.po.poId;
 });
 
@@ -1090,6 +1156,13 @@ await scenario("SHORTFALL", "an invoice charging 200 against a delivery of 150",
     // introduced the line, and the records it put on the base came from an earlier
     // version. `--only=FREETEXT` never surfaced it because the cleanup path does not
     // run scenario bodies. Found by running this one (#278).
+    //
+    // #283 — AND FIXING ONE WAS NOT FIXING IT. Nine other scenarios carried the
+    // same line, so the seed died at the FIRST of them (INV_WAIT_A) and
+    // `reset_demo.mjs --confirm` wiped the base and then failed to refill it. All
+    // nine are renamed now. The lesson is in the sentence above rather than in the
+    // fix: this shape is invisible to `node --check`, to eslint and to every
+    // offline check, and reachable only by running the scenario body.
     const inv = await invoice({
         scenarioName: "SHORTFALL",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 200, unitPrice: 0.6 }],
@@ -1131,14 +1204,14 @@ await scenario("OVER", "12 delivered against 10 ordered, invoiced 12, invoice ha
         ],
         receivedDate: "2026-08-11",
     });
-    const invoice = await invoice({
+    const inv = await invoice({
         scenarioName: "OVER",
         rows: [{ po: order.po, poItem: order.poItems[0], qty: 12, unitPrice: 26 }],
         issueDate: "2026-08-12",
     });
-    await setInvoiceDelivery(invoice.id, delivery.id);
+    await setInvoiceDelivery(inv.id, delivery.id);
     ids.over = delivery.deliveryId;
-    ids.overInvoice = invoice.invoiceId;
+    ids.overInvoice = inv.invoiceId;
     ids.overPo = order.po.poId;
 });
 
@@ -1558,6 +1631,8 @@ async function printGuide() {
     row("invoice this → pairs on screen", get("DL_WAIT", "pos"), "  attaches ", get("DL_WAIT", "deliveries"));
     row("deliver this → pairs on screen", get("INV_WAIT_A", "invoices"), " is waiting for its material");
     row("tariff in the totals footer", get("TARIFF", "invoices"));
+    row("sales tax in the totals footer", get("SALES_TAX", "invoices", 0));
+    row("  both terms, tax after duty", get("SALES_TAX", "invoices", 1));
 
     console.log("\nACT III — the three waiting lists                       (pre-made)");
     row("/invoices strip 1", get("DL_WAIT", "deliveries"), " — delivery nobody has invoiced");

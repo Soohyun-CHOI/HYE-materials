@@ -17,10 +17,18 @@ heading is the record's name with one word in front of it. A link back to the
 invoice, labeled `← Back to invoice`.
 
 **action — the header fields:** vendor, the vendor's own invoice number, issue
-date, due date, `Amount Due`, `Shipping Fee`, and `Tariff` with the placeholder
-`Leave blank if none`. Editing `Amount Due` is allowed and recomputes the variance
-check — the app never overwrites the vendor's stated total, but a person may fix a
-typo in it.
+date, due date, `Amount Due`, `Shipping Fee`, and then `Tariff (optional)` and
+`Sales Tax (optional)`, both with the placeholder `Leave blank if none`. Editing
+`Amount Due` is allowed and recomputes the variance check — the app never
+overwrites the vendor's stated total, but a person may fix a typo in it.
+
+**Both optional money terms are always visible here, and hidden behind reveal
+controls on the create form.** The difference is what each screen is for: a
+correction screen shows every value that can be corrected, including the ones this
+invoice does not currently have, because a term the vendor charged and nobody
+typed is exactly what someone comes here to fix. A create form asks only for what
+the document in front of the reader states. Neither convention should be moved
+onto the other screen.
 
 **action — `Items`,** with a standing sentence directly under the heading:
 `Edit item values. Size/Unit and the linked PO are fixed here — to change an item's

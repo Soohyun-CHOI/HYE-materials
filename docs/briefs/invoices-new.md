@@ -70,9 +70,22 @@ ordered item was picked, not that the value needs correcting.
 `Amount Due` is the vendor's stated total and the app never overwrites it.
 
 **evidence — a calculated total,** stated under the money row as
-`Calculated total (Items + Shipping):`, with `+ Tariff` added to the label when a
-tariff is present. It is a **sanity check rather than enforcement** — the form does
-not refuse a mismatch, it shows the reader both numbers.
+`Calculated total:` and nothing more. It is a **sanity check rather than
+enforcement** — the form does not refuse a mismatch, it shows the reader both
+numbers.
+
+**The label names the figure and not its terms, which is a decision and not an
+omission.** It used to enumerate them — `Calculated total (Items + Shipping):`,
+gaining `+ Tariff` when a tariff was present — and a term list with optional
+members has only two states, both wrong: fixed, it omits a term that is in the
+sum; complete, it grows a word per term, and two optional terms already make four
+spellings of one label. So the terms are named where their figures are, which is
+the money row's own labels plus the reveal controls for the terms that are absent.
+What the list was really keeping out was `Vendor's Stated Total`, which sits in
+that same row and is the one figure the sum must exclude; what carries that now is
+`Calculated` against `Stated`, and the mismatch line that puts the two figures on
+opposite sides of one comparison. A redesign that wants to say more here should
+say it on the stated-total field, not by putting a term list back on this one.
 
 **action — the submit button,** full width, and its label is the form's validation
 state: `Attach the invoice file to continue` until a file is attached,
@@ -116,9 +129,22 @@ reference instead. **When more than one order is selected, neither appears** —
 there is no single order shipping fee to compare against.
 
 **When the reader adds a tariff:** a `+ Add Tariff` control reveals a `Tariff`
-field between shipping fee and amount due, with a control to remove it again. The
-money row goes from two columns to three. Absent by default, and revealed only by
-that control.
+field between shipping fee and amount due, with a control to remove it again.
+Absent by default, and revealed only by that control.
+
+**When the reader adds a sales tax:** the same thing again, `+ Add Sales Tax`
+revealing a `Sales Tax` field. It sits after `Tariff` and before amount due —
+the order the vendor's own document prints them in, a duty being a cost of the
+goods and a tax being assessed on the sale, and the same order the invoice
+detail's totals footer uses.
+
+**The two are independent, so the money row has four arrangements** — neither
+term, either one, or both — and the reveal controls are present exactly for the
+terms that are absent, so the pair also states what this invoice is being
+recorded without. This screen asks only for what the document in front of the
+reader actually states, which is why both terms are hidden by default here and
+both are always visible on the edit screen. The two conventions differ on
+purpose; neither is drifting toward the other.
 
 **When a charge differs from what its order agreed:** the remark field is where the
 reader says why, and its placeholder says so — `Remark — why this differs from the

@@ -177,13 +177,31 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // blank Tariff means "no duty line on this invoice", not "$0.00 of duty";
     // showing "Tariff: $0.00" would wrongly assert the latter. Hiding the row
     // doesn't affect Calculated Total: it's the Airtable formula (Items
-    // Subtotal + Shipping Fee + Tariff, blank = 0), so an absent Tariff
-    // contributes 0 whether or not the row is shown.
+    // Subtotal + Shipping Fee + Tariff + Sales Tax, blank = 0), so an absent
+    // Tariff contributes 0 whether or not the row is shown.
+    //
+    // #283 — Sales Tax takes the same asymmetry for the same reason, and it goes
+    // AFTER Tariff. On the document being transcribed a duty is a cost of the
+    // goods and prints with them, while a tax is assessed on the sale and prints
+    // last before the total, so this order is the vendor's own; it is also the
+    // formula's argument order and the create form's slot order. Appending
+    // rather than inserting also leaves an invoice that has a tariff and no tax
+    // rendering exactly as it did before this issue.
+    //
+    // `!= null` ADMITS 0, which is deliberate on both terms: a document stating
+    // a zero tax gets a `$0.00` row, because "this document says no tax was
+    // charged" is a different and true claim from "this document has no tax
+    // line". Nothing in the app currently stores that 0 — both forms coerce a
+    // typed zero to blank — so the row is reachable today only from a hand edit
+    // in Airtable, and the reading side is right either way.
     const summaryRows = [
         { label: "Items Subtotal", value: invoice.itemsSubtotal, strong: false },
         { label: "Shipping Fee", value: invoice.shippingFee, strong: false },
         ...(invoice.tariff != null
             ? [{ label: "Tariff", value: invoice.tariff, strong: false }]
+            : []),
+        ...(invoice.salesTax != null
+            ? [{ label: "Sales Tax", value: invoice.salesTax, strong: false }]
             : []),
         {
             label: "Calculated Total",
