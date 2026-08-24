@@ -1951,3 +1951,53 @@ for.
   deliveries each exceeded one ordered item; and nothing here reports the
   disagreement anywhere but on the correction box — the invoice's own mismatch marker
   (#210) is what says it on that axis.
+
+### The way out of an invoice with no order (#272)
+
+`/invoices/new` could reach a state it had no exit from: the vendor's invoice
+names no order this app holds, or names one whose ordered items are not what it
+charges for. The office records the invoice as a `Direct Purchases` row instead,
+and the site raises the purchase request from it — the table, and why it is a
+table, are in `purchase-requests.md`; what belongs here is the half that lives on
+this screen.
+
+- **THREE DEAD ENDS, AND ONLY TWO OF THEM ARE STATES.** The vendor has no open
+  order at all (the picker is empty and the items section stays locked behind
+  `Select a PO above to add items.`); detection found nothing, or a number
+  matching nothing, or a withdrawn order (three messages, all ending "select the
+  PO manually below", which is advice with nothing behind it here); or an order
+  IS picked and its ordered items are not what the invoice charges for. **The
+  third is a judgment only the reader can make** — nothing in the data says that
+  `Elbow 90` is not what this document is about — so no conditional can reveal a
+  control for it, and the way out has to be a control that is always there. That
+  is the whole argument for an always-visible affordance on a screen whose other
+  messages are all conditional.
+- **IT DOES NOT OVERLAP #278's AMBER LINE, and the two were checked against each
+  other.** That one fires when every ordered item on a row's order is already
+  claimed by another charge of the same invoice (#91), and its remedy is a
+  different order or one fewer charge — a real fix, on a row whose order exists.
+  This is the case where no order holds the material at all, and there is nothing
+  to pick. Different cause, different remedy, separate words.
+- **THE FILE GOES STRAIGHT TO AIRTABLE, WHICH THE OVERAGE REQUEST CANNOT DO.**
+  #167 fetches Airtable's own copy of an invoice and uploads a fresh Blob object
+  because re-submitting an expired attachment url silently empties the field
+  (#142). Here the office uploaded the document minutes earlier and nobody has
+  ingested it, so the url the form is already carrying is handed over as it is.
+  The action schedules `confirmIngestThenDelete` at its end, as every path does.
+- **THE JOB IS FETCHED WHEN THE MODAL OPENS.** `/invoices/new` is a heavily read
+  screen and this modal is for the rare invoice; `getAllJobs()` on the page would
+  have spent a read on every load that never reaches it. `GET /api/jobs` is #57's
+  own shape — the escape hatch on the same form fetches its orders the same way —
+  and its own ops label is what keeps that cost visible instead of folded into
+  the page's.
+- **WHAT THE OFFICE LOSES BY LEAVING IS SAID BEFORE THEY LEAVE.** The invoice
+  cannot be entered until the request is approved and its order signed, so the
+  form's contents are not kept and the modal says so in its second sentence. The
+  landing is a fresh `/invoices/new` with a green line naming the record and the
+  job it waits on, because there is nothing to come back to and the next invoice
+  is the likely next act.
+- **Not in this issue:** the items typed on the invoice form are not carried onto
+  anything, and could not be — at the dead end the items section is locked, so
+  there are none. Nothing reminds the office when the request they are waiting on
+  is approved; `/pos` shows the new order like any other, and the awaiting-invoice
+  strip is keyed on deliveries rather than orders, so it will not list it.

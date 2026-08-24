@@ -14,7 +14,9 @@ import {
 import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
-import { confirmIngestThenDelete } from "@/lib/blobIngest";
+import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
+import { createDirectPurchase } from "@/lib/airtable/directPurchases";
+import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { getDeliveriesForInvoice } from "@/lib/deliveryInvoiceCandidates";
@@ -327,5 +329,103 @@ async function createInvoiceHandler(prevState, formData) {
         const paired = pairing.key === PAIRING.none ? "" : `&paired=${pairing.key}`;
         const tied = pairing.tieBreak ? "&tied=1" : "";
         redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}?done=created${paired}${tied}`);
+    });
+}
+
+// Issue #272 — the way out of the dead end this screen can otherwise only sit in:
+// the vendor's invoice names no order this app holds, or names one whose ordered
+// items are not what it charges for, so there is nothing to record it against.
+// The office records what the invoice says as a `Direct Purchases` row and the
+// site raises the purchase request from it.
+//
+// ADMIN, LIKE EVERY OTHER WRITE ON THIS SCREEN, and by the wrapper rather than a
+// bare call so the handler cannot run unauthorized (#147). The Job scope that
+// decides who may CLAIM the row is the claim action's, not this one's: recording
+// is office work and the office reaches every job.
+export const createDirectPurchaseAction = withAdminAction(
+    () => ({ error: "Not authorized." }),
+    createDirectPurchaseHandler
+);
+
+async function createDirectPurchaseHandler(prevState, formData) {
+    return withOpsLabel("createDirectPurchaseAction", async () => {
+        const vendorId = formData.get("vendorId") || "";
+        const jobId = formData.get("jobId") || "";
+        const jobCode = formData.get("jobCode") || "";
+        const fileUrl = formData.get("invoiceFileUrl") || "";
+        const filename = formData.get("invoiceFileFilename") || "";
+        const vendorInvoiceCode = formData.get("vendorInvoiceCode") || "";
+        const issueDate = formData.get("issueDate") || null;
+        const notes = formData.get("notes") || "";
+
+        // THE SAME PREDICATE THE MODAL ASKED, and this call is the guarantee: a
+        // Server Action is directly callable, so the button's own check proves
+        // nothing about what arrives here. One implementation, so the two cannot
+        // come to disagree about what counts as blank.
+        const blocked = directPurchaseBlocked({ vendorId, fileUrl, jobId });
+        if (blocked) return { error: DIRECT_PURCHASE_COPY.blocked[blocked] };
+
+        // A url this app uploaded, and nothing else. Airtable is about to fetch
+        // whatever is handed to it, so an arbitrary one would make this action a
+        // fetcher of caller-supplied addresses — the restriction CLAUDE.md puts on
+        // every route that takes one. The reader is told what they can act on
+        // rather than how the check is spelled; the real reason is logged.
+        if (!isOurBlobUrl(fileUrl)) {
+            console.error("createDirectPurchaseAction refused a foreign file url");
+            return { error: DIRECT_PURCHASE_COPY.blocked["no-file"] };
+        }
+
+        let record;
+        try {
+            // Re-read for the same reason createInvoiceHandler does: withAdminAction
+            // loads a user to decide the gate and discards it, so an action needing
+            // the person pays one operation for them (#185's question, reported at
+            // #193 rather than fixed by changing every wrapper's contract).
+            const user = await requireUser();
+            record = await createDirectPurchase({
+                vendorRecordId: vendorId,
+                jobRecordId: jobId,
+                vendorInvoiceCode,
+                issueDate,
+                notes,
+                recordedByUserId: user.id,
+                // The invoice the office attached moments ago: a fresh Blob object
+                // nobody has ingested, so it goes to Airtable as it is. The overage
+                // request has to re-upload because its source is Airtable's own copy
+                // of an invoice (#167, #142); this one does not.
+                file: [{ url: fileUrl, filename: filename || undefined }],
+            });
+        } catch (err) {
+            console.error("createDirectPurchaseAction failed", err);
+            return { error: "Couldn't record the direct purchase. Please try again." };
+        }
+
+        // Issue #140 — the end of this action's transaction. Scheduled rather than
+        // awaited, which also survives the redirect below throwing.
+        after(() =>
+            confirmIngestThenDelete([
+                {
+                    table: TABLES.DIRECT_PURCHASES,
+                    recordId: record.id,
+                    field: "File",
+                    blobUrl: fileUrl,
+                    attachmentId: record.file?.[0]?.id,
+                    label: `direct purchase file ${record.directPurchaseId}`,
+                },
+            ])
+        );
+
+        // BACK TO AN EMPTY FORM, WHICH IS THE HONEST DESTINATION. The invoice that
+        // started this cannot be entered until the request is approved and its order
+        // signed, so there is nothing to return to and the modal said so before the
+        // button was pressed. The office's next invoice is the likely next act.
+        //
+        // The Job's CODE rides along beside the id because the confirmation names
+        // it and this action holds only a record id; the client had the code from
+        // `GET /api/jobs`. It is display text rather than the fact — #231's rule is
+        // that a query string carries keys and never sentences, and the sentence is
+        // DIRECT_PURCHASE_COPY's either way.
+        const job = jobCode ? `&job=${encodeURIComponent(jobCode)}` : "";
+        redirect(`/invoices/new?recorded=${encodeURIComponent(record.directPurchaseId)}${job}`);
     });
 }

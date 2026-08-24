@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/authz";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
 import { isPOUnsigned } from "@/lib/poUnsigned";
+import { DIRECT_PURCHASE_COPY } from "@/lib/directPurchase";
 import { withOpsLabel } from "@/lib/airtableOps";
 import InvoiceForm from "./InvoiceForm";
 
@@ -15,14 +16,14 @@ export const metadata = { title: "New Invoice" };
 // path in the app; the label proved it, at 83 of this screen's 85 operations, and
 // #244 then took it to 1. #224 remains the sweep across every other unlabeled
 // entry point.
-export default async function NewInvoicePage() {
-    return withOpsLabel("/invoices/new", () => renderNewInvoicePage());
+export default async function NewInvoicePage(props) {
+    return withOpsLabel("/invoices/new", () => renderNewInvoicePage(props));
 }
 
 // Admin-only (issue #14) — manual invoice entry is back-office data entry,
 // same category as the Job/Vendor/Line admin forms, not a floor-level
 // action like PR creation (requireUser()).
-async function renderNewInvoicePage() {
+async function renderNewInvoicePage({ searchParams } = {}) {
     const { authorized } = await requireAdmin();
     if (!authorized) {
         return (
@@ -61,6 +62,14 @@ async function renderNewInvoicePage() {
         shippingFee: po.shippingFee ?? null,
     }));
 
+    // Issue #272 — where the office lands after recording a direct purchase. The
+    // invoice that started it cannot be entered until the request is approved and
+    // its order signed, so there is nothing to return to and this is a fresh form
+    // with a line saying what was recorded. The sentence is lib/directPurchase.js's;
+    // the query string carries the id and the job's code and no words at all (#231).
+    const sp = (await searchParams) ?? {};
+    const recorded = typeof sp.recorded === "string" ? sp.recorded : null;
+
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
             <div className="flex items-center justify-between">
@@ -69,6 +78,17 @@ async function renderNewInvoicePage() {
                     View all invoices
                 </Link>
             </div>
+
+            {recorded && (
+                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
+                    {
+                        DIRECT_PURCHASE_COPY.recorded({
+                            directPurchaseId: recorded,
+                            jobCode: typeof sp.job === "string" ? sp.job : null,
+                        }).text
+                    }
+                </p>
+            )}
 
             <InvoiceForm vendors={vendors} pos={posWithVendorId} />
         </div>

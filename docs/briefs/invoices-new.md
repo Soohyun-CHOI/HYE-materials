@@ -38,6 +38,14 @@ order, chosen from a dropdown. A `+ Add another PO` control appends a slot; each
 slot past the first can be removed. **One slot holds one order and no order can be
 picked twice**, which is the rule the whole picker is built around.
 
+**action — `Bought without an order?`,** a small text control on the same row as
+`+ Add another PO`, under the order slots. It opens the direct-purchase modal
+below. **It is always present, and that is a decision rather than an oversight:**
+one of the two dead ends it answers — an order was found, and its ordered items
+are not what this invoice charges for — is a judgment only the reader can make,
+so there is no state the app could reveal the control on. It sits with the order
+picker because that is where a reader runs out of orders.
+
 **Each slot has its own independent search toggle,** labeled
 `Show all / search closed POs`. Off, the dropdown offers orders with something
 still uninvoiced. On, the slot gets a search box with the placeholder
@@ -132,6 +140,29 @@ disabled dropdown reading `Pick this charge's PO first`, and `Select a PO above`
 while the whole section is still waiting for one. The words are short because
 the long form of the same fact is the section's own message above the rows.
 
+**When the direct-purchase control is used:** a modal headed
+`Record a direct purchase`, over the form rather than replacing it. It states
+what will be recorded and what will not — the file becomes the evidence, and
+what was bought, which part of the job it was for and who signs are the site's
+to fill in — and then that **nothing else typed on this form is kept**, because
+the invoice cannot be entered until the request is approved and its order
+signed. It asks for two things the document cannot supply: the **Job**, required,
+which is what puts the record in front of a site and which the office learns by
+telephone; and a free-text **note**, which is the only thing the site's list can
+say about what was bought, since no items are recorded. The job list is fetched
+when the modal opens, not when the page loads.
+
+**When something is still missing, the modal says which, and in the order a
+reader would fix it:** the vendor at the top of the form, then the attached file,
+then the Job inside the modal. The confirm button is disabled while any of them
+is. The same rule answers the server, so the button never offers what the action
+declines.
+
+**When the reader has just recorded one:** a green line above the form, naming
+the record and the job it is waiting on, over an empty form. There is nothing to
+return to — the invoice that started it cannot be entered yet — and the office's
+likely next act is the next invoice.
+
 ## What must agree elsewhere
 
 **`Amount Due` carries the gloss `(vendor's stated total)` on the invoice
@@ -160,4 +191,11 @@ detail's `Purchase Orders` list unambiguous. A design that allowed one order in 
 slots would make that list meaningless.
 
 **A file is required, as the packing list photo is on the delivery form.** In both
-cases the document is what makes the record a record.
+cases the document is what makes the record a record. **The direct purchase takes
+the same file for the same reason** — it is the whole evidence that a purchase
+happened — and it is the one thing the modal will not proceed without.
+
+**The direct purchase leaves this screen and lands on the purchase request list.**
+What is recorded here appears on a strip above `/prs`, on the job picked in the
+modal, for someone at that site to raise the request from. The office's part ends
+at the green line; nothing on this screen changes when the request is raised.

@@ -105,6 +105,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242): `PO_ORIGIN`, the searched-order claim rule, the one-slot-one-order exclusion, and detection's claim over an entry the search put there.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
+- `lib/directPurchase.js` — the way out of an invoice with no order (#272): `directPurchaseBlocked`, the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds ordered items. Credentialed.
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. Both order-scope summaries live here (#235), so the delivery and invoicing chips stay one shape.
