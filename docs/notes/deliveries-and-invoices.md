@@ -1693,6 +1693,90 @@ matched to a delivery, longest wait first. The fourth built to the shape #176 se
   asked". That is the seed defect `backlog.md` records, and it changes another
   issue's data.
 
+### Holding an invoice out until it has waited (#263)
+
+#256's strip listed every invoice naming no delivery, so one entered a minute ago sat
+beside one from six weeks back. That is the ordinary case rather than an exception —
+the vendor emails the invoice at shipment, so an unmatched invoice is what a normal
+Tuesday looks like, and a worklist holding all of them is the table below with a
+different heading. **The threshold goes on this axis only**, which is the whole
+content of the issue: material standing uninvoiced reads as waiting from the first
+day, so #216's strip is right as it is and `AWAITING_INVOICE_COPY` must not grow a
+threshold.
+
+- **CALENDAR DAYS, AND 7 IS WHAT MAKES THAT HONEST.** `daysWaiting` subtracts two
+  dates and sees neither weekends nor holidays; the office's intuition is five working
+  days. **Any seven consecutive days contain exactly five weekdays**, so a 7-day
+  calendar threshold delivers the working-day intuition without claiming to be a
+  working-day count. Three reasons that is the right trade: what is waited for is not
+  on this office's calendar, since material in transit does not stop on Saturday and
+  only recording it is office work; a working-day count with no holiday table is not
+  one, and calling weekend-skipping arithmetic `business days` on a screen would be a
+  name its contents contradict, which is `naming.md`'s own test; and a row already
+  renders `· 20d` from `daysWaiting`, so a threshold on a second clock would filter on
+  one number while showing another. **What 7 fixes over 5 is the wobble** — at 5 the
+  working days inside the window ranged from three to five depending on the issue
+  weekday. Holidays still shorten it, which is accepted rather than solved.
+- **`daysWaiting` IS UNTOUCHED AND THE JUDGMENT SITS BESIDE IT.** Three strips read
+  that function — #216's, #217's and #256's — and only one has a threshold, so folding
+  the rule in would move the figure the other two display.
+- **THE NUMBER IS A MODULE CONSTANT, AND THE ISSUE SETTLED THAT RATHER THAN THE
+  NUMBER.** `TOKEN_TTL_MINUTES` is the precedent, including the reason it lives where
+  it does: every reader that states the figure has to be able to read it, the offline
+  tier included, and `lib/deliveryStatus.js` is offline-safe. Not an environment
+  variable — all twelve `process.env` uses under `lib/` are secrets or infrastructure
+  toggles and no business rule is tuned that way here, and the ability to change it
+  without a deploy is worth nothing while there is no deploy and no non-developer who
+  would change it. Not a row on the base — that puts the rule in the tier no file-only
+  check can see and adds a read to a page whose budget this issue must not grow. Not a
+  settings screen — a surface with its own authorization, audit and brief, for a number
+  that changes approximately never. **The test the issue names is who edits it**, and
+  today that is whoever edits this repository; the day it is somebody else is the day
+  to move it, and it moves from one place.
+- **THE SENTENCE INTERPOLATES THE CONSTANT, so the two homes are unreachable rather
+  than merely discouraged** — `CONFIRM_COPY`'s shape. It is the THIRD sentence and the
+  first two are byte-identical to #256's, because the two strips share a grammar on
+  purpose and `screen-briefs.mjs` pins those two as one substring; the asymmetry this
+  issue is about is additive. The new pin carries the wording and **not** the figure,
+  which is the convention that list already documents — the figure is the one thing
+  meant to change.
+- **A NULL WAIT IS REFUSED, AND THAT IS `sortLongestWaitingFirst`'s CALL EXTENDED.**
+  That comparator already refuses to let an undated row claim the longest wait, on the
+  ground that a data gap must not take the top of a worklist; this says a data gap does
+  not earn a place in the worklist either. Admitting it while sorting it last would be
+  two judgments about one row. The cost is that such an invoice appears in no
+  worklist — real, and small: it is in the table below with its chip and an em dash
+  where its date would be, and a row with no date is a DATA problem fixed by filling
+  the date in. Reachable only by a hand edit, since both write actions refuse a blank
+  `Issue Date`, which is the category `getOrderedItemsWithDelivery`'s neighbors already
+  decided to survive rather than describe.
+- **ONE THRESHOLD FOR BOTH ROW KINDS, AND THE SIGNAL DECIDES THAT RATHER THAN
+  SYMMETRY.** `deliveredNotMatched` reads as though it should skip the wait: something
+  arrived, so the office rather than the vendor is what is being waited on. That is
+  right about the concept and cannot be built on this flag, which means "some slice was
+  allocated against SOME ordered item this invoice charges, in any quantity, by any
+  delivery, possibly answering another invoice". The measured pair is recorded on
+  `getOrderedItemsWithDelivery` rather than here, because that is where the imprecision
+  is created and already described. **The counter-argument is NOT the kinds' "observation
+  never cause" rule** — that is about why the flag cannot NAME a cause and licenses no
+  second rule; the reason is the imprecision, which is measurable. **Tightening the flag
+  was considered and refused:** the kinds are a binary ternary with two words, so a row
+  failing a stricter test falls to `noDeliveryRecorded`, whose word is `nothing
+  delivered yet`, and the measured pair did take delivery — one false word for another,
+  needing a third state. The condition for revisiting is storage of the refusal.
+- **THE STRIP IS A SUBSET OF THE CHIP NOW, not a second reading of it.** Every row
+  carries `Awaiting delivery` and not every chip earns a row, and the threshold is the
+  ordinary reason the two figures disagree — measured the day it went in, 17 chips
+  against 16 rows on this base.
+- **NO AIRTABLE OPERATION IS ADDED, verified in the code rather than assumed.**
+  `selectInvoicesAwaitingDelivery` is a pure loop over rows the page already holds, and
+  the one read behind it — `getOrderedItemsWithDelivery` — is awaited in the argument
+  list over every invoice's ordered items regardless of what the filter later keeps. So
+  the filter can neither add an operation nor remove one; making it remove one would
+  mean narrowing before that read, which changes what the set covers.
+- **Not in this issue:** `daysWaiting`, `sortLongestWaitingFirst`, #216's strip and its
+  copy, #217's strip, a holiday calendar, and any change to #256's two row kinds.
+
 ### Reading one ordered item as one line on an order (#266)
 
 An order's page listed one line per stored child row, so an over-delivery — two

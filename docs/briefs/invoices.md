@@ -83,9 +83,26 @@ first and above the table, with a counted heading —
 `N invoices are waiting on a delivery` — then this line:
 
 `Longest wait first. Nothing has confirmed the material these invoices charge for.`
+`Only invoices that have waited N days or more are listed.`
 
 and one row per invoice: its ID as a link, its issue date with the days it has
 waited, the vendor, and one of two words saying which state it is in.
+
+**The third sentence is the threshold, and the strip states it because the list is
+a claim.** An invoice with no delivery matched to it is the ordinary state, not an
+exception — the vendor emails the invoice at shipment, so a worklist holding every
+one of them is the table below with a different heading. So an invoice reaches this
+strip only once it has waited long enough that nobody expects the delivery to still
+be in flight, and the strip says which number it applied so a reader knows what the
+list is asserting. `N` is a whole number of **calendar** days, counted the same way
+the row's own `Nd` is counted, so a reader can check one against the other.
+
+**The wait applies to both row words equally.** `delivered, not matched` looks like
+it should skip it — something arrived, so the office rather than the vendor is what
+is being waited on — but the signal behind that word is much weaker than it reads:
+it fires when any quantity was delivered against any one of the orders the invoice
+charges, by any delivery, possibly answering a different invoice entirely. A
+redesign must not present the two words as two urgencies.
 
 The two words are `nothing delivered yet`, when nothing has been delivered against
 any order the invoice charges, and `delivered, not matched`, when something has and no
@@ -108,9 +125,11 @@ carry different prefixes.
 
 **Its row count and the number of `Awaiting delivery` chips in the table can
 differ, and that is not a defect.** A chip says an invoice has no delivery
-matched; a row says the app could compute no pairing for it yet. An invoice
-whose ordered items nothing has delivered wears the chip and has a row; one the
-pairing refused for another reason wears the chip and has none. **This paragraph
+matched; a row says the app could compute no pairing for it yet **and enough time
+has passed to ask about it**. The threshold is now the ordinary reason the two
+figures disagree: an invoice entered this week wears the chip and earns no row.
+An invoice whose ordered items nothing has delivered wears the chip and has a row;
+one the pairing refused for another reason wears the chip and has none. **This paragraph
 named a third case until #278** — an invoice charging no ordered item at all,
 which two hand-entered rows on the base were in and which no invoice can be in
 now.
