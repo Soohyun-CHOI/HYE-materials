@@ -207,16 +207,16 @@ is JOB-SCOPED — any user on ${JOB_CODE} sees the same thing).
 ------------------------------------------------------------------
 1. /deliveries/${ids.aDelivery ?? "<A>"}  —  the button
 ------------------------------------------------------------------
-Under the amber "Over-delivered" banner there is now a Correction box:
+Under the amber "Over-delivered" banner there is now an Overage box:
 
-  Correction — 167-DEMO Flange 2"
+  Overage — 167-DEMO Flange 2"
   This will raise a purchase request for 2 EA ... at $15.00 each — the excess
   delivered beyond what ${ids.aPo ?? "<A-PO>"} ordered. ${ids.aInvoice ?? "<A-INV>"} is charging for it
   already, so its file becomes the quotation and its code the vendor
   quotation code.
   It opens as a draft, so quantity, price and signers can all be changed
   before it is submitted.
-  [ Raise a correction ]
+  [ Raise the request ]
 
   Click it: the modal repeats the preview, and confirming lands you on
   /prs/new?draft=<new PR> with the item, the quotation and the copied signer
@@ -262,7 +262,7 @@ refusing here would refuse the common case.
 Also worth seeing: the REFUSALS
 ------------------------------------------------------------------
 #166's own seed has over-deliveries whose invoices carry no file, so
-/deliveries/HYE-DL-260804-07 shows the Correction box with
+/deliveries/HYE-DL-260804-07 shows the Overage box with
 "${"${invoiceId}"} has no file attached, so there is nothing to quote from."
 An ineligible row still says WHY — a missing button is not an answer.
 `);

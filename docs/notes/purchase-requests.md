@@ -129,3 +129,146 @@ Two rows agreeing on name, size, unit, unit price, remark and quotation are one
   deliveries note records in its own words that this "does not wait on #170". There is
   no workaround left to preserve — what remains is a total order that resolves the
   ordered item by fill order, which merging neither helps nor harms.
+
+### A request that has not found its requester yet (#272)
+
+A site buys material directly from a vendor with no order behind it. The invoice
+reaches the office, `/invoices/new` has no order for it to charge, and the office
+cannot raise the request either — so the office records what the invoice says on a
+new table, `Direct Purchases`, and the site raises the request from it.
+
+- **IT IS A TABLE FOR A STRUCTURAL REASON, NOT A PREFERENCE, and the reason is one
+  field.** `Purchase Requests."Job"` is a Lookup THROUGH `Line`. The office learns
+  the Job by telephone and cannot learn the Line — #19's boundary, that a decision
+  made before a request exists cannot be helped by a form inside one — so a request
+  record physically cannot carry the one value that decides which site sees the row.
+  Two further reasons stand behind that one and would each need an exception of its
+  own: `canViewPR`'s first clause shows a `Draft` to its Requester and nobody else,
+  which is what protects every unfinished request in the app, so an office-owned
+  Draft would reach the site by widening a rule that has nothing to do with this
+  case; and `Requester` is written at create, while the whole point is that the
+  requester is the site staff who bought the material.
+- **AN INVOICE ENTERED EARLY WAS THE OTHER CANDIDATE AND IS CLOSED BY #278.** The
+  office is holding an invoice, so recording it as one is the obvious thought. But an
+  `Invoice Items` row requires an ordered item now, and an invoice with no items is
+  not a state this app has — it would also enter the invoice list, the variance
+  checks and the awaiting-delivery walk, each of which would need a case for a
+  document that charges nothing.
+- **NO ITEMS ON THE TABLE, AND THE MEASUREMENT DECIDED IT.** `/invoices/new` locks
+  its items section until at least one order is selected (`itemsReady`), so in the
+  dead end that produces these rows the office has typed no items and cannot: a
+  fifth items table would have to come with a form of its own, a sixth `Unit` select
+  that only `add_unit_options.py` may create, a ninth `CHILD_KINDS` entry — and it
+  would break the sentence #278 leaned on, that only a purchase request takes typed
+  items. The invoice travels as the `File` and the requester types the items into
+  the request, which is where a human types one. What the strip would lose is a row
+  that says what was bought, and `Notes` carries that instead: it is where the
+  office writes what it learned on the telephone. Adding the child table later is
+  purely additive — the claim would seed `PR Items` from it instead of leaving them
+  empty — so nothing here forecloses it.
+- **NO STATUS FIELD AND NO KIND FIELD.** What a row is waiting for is read from
+  `Purchase Request` and, when that is set, from the request's own `Status`; the
+  request's kind is read from the same link. Both are the rule this issue settled
+  for the overage side too — a link that exists is the fact, and a field beside it
+  is a second copy nothing would notice going stale.
+- **What it costs: one ID family.** `HYE-DP-YYMMDD-##`, the fifth in `ID_KINDS`, and
+  it takes the daily-prefix rule unchanged — see `id-generation.md` for why this is
+  the family whose own record carries the most tempting date field to count instead.
+
+### Listing and offering are two questions (#272)
+
+Both strips above `/prs` hand a record to somebody who will raise a request from
+it, and both had the same hole until this issue: the row left the list the moment
+anybody pressed the button.
+
+- **THE DEFECT WAS LIVE AND IS WORTH STATING PLAINLY.** `awaitsOverageRequest`
+  answered false as soon as any request covered the excess, `Draft` included, and
+  the strip selected on it alone. So the first person to press the button took the
+  row off everyone else's screen — and if they then closed the tab, the excess was
+  visible on no screen at all: `canViewPR`'s first clause shows a `Draft` to its
+  requester and nobody else, the strip had let it go, and the delivery detail's
+  banner is the only other place it appears. The direct purchase would have
+  inherited exactly that, since its claim also produces a Draft.
+- **SO THE ONE TEST BECAME TWO, AND THE RULE IS `lib/prWait.js`'s.** A record is
+  LISTED until the request it produced has been submitted; the control is OFFERED
+  only while nothing covers it. Between them is a state with a chip and no button:
+  somebody has a draft, nobody has been asked to approve it, and the row says so
+  with their name on it. The row leaves when the request reaches `In Review`,
+  which is the moment `/prs` itself starts carrying the fact under `canViewPR`.
+- **THE NAME IN THE CHIP IS `Users."User Name"`,** which is what every other
+  screen prints for a person. It is the email's local part today (`chkim`),
+  because a Users row is created by a first magic-link sign-in and nothing else
+  sets it; a real display name is one edit per row in Airtable and improves every
+  screen at once. Naming people a second way here would be the mistake.
+- **THE TWO CLAUSES ARE ORDERED IN `overageStillWaiting`, and the case that forces
+  it is #167's own:** a withdrawn overage ORDER reopens a row whose request says
+  `PO Signed`, so `overagePRState` is asked first and only a row nothing offers
+  falls through to the stage. Asking the stage first would drop that row silently.
+- **WHY TWO STRIPS RATHER THAN ONE.** They were weighed as one list and kept
+  apart: the rows come from different tables under different gates, the actions
+  take different records, and the refusals are different closed sets, so a merged
+  strip would need a row that is two row types and an action that is two actions —
+  the duplication a merge removes, moved inside. What they share is shared as
+  code: the pattern, the wait rule, and #256's ordering.
+- **THE CHECK IS `offline/pr-wait.mjs`, AND ITS FIRST ASSERTION IS THE MUTANT.**
+  Collapse the two answers back into one and every screen still renders: either
+  every row has a button, or every row vanishes the moment somebody drafts a
+  request — the state that shipped. So the first thing asserted is that the two
+  answers diverge at all, before any per-stage detail. Verified by mutation:
+  making `stillWaiting` mean `requestOfferable` fails it on the first line.
+
+### Three kinds, and where the kind lives (#272)
+
+A signer approving a request is making one of three different decisions —
+whether to buy something, whether to accept an excess that already arrived and
+was invoiced, or whether to accept a purchase somebody already made — and until
+this issue the screen said nothing about which. #167's request carried its kind
+in a sentence written into `Notes` and in a banner derived on its own page; the
+list could not tell them apart at all, and the third kind did not exist yet.
+
+- **THE KIND IS TWO LINKS AND NO FIELD, and the alternatives were weighed rather
+  than skipped.** A `Kind` select on `Purchase Requests` was the obvious shape and
+  is the one this rejected: an overage request already HAS a record pointing at it
+  (`Delivery Items."Overage PR"`), so a field would be a second home for a fact the
+  base already states — it would need writing by every path that ever creates one,
+  nothing would fail if a future path forgot, and the request would then read as
+  ORDINARY. That is the worst failure available to a mark whose only job is to say
+  "this one is not". Deriving everything was the other option and it could not
+  express the third kind at all: at the moment the office records a direct purchase
+  there is no invoice record, no delivery and no order to derive from. So the third
+  kind got a record of its own — which is `Direct Purchases`, and which is also
+  what makes the link symmetric with the overage side.
+- **WHICH IS WHY THERE IS NO CHECKBOX.** An earlier pass of this design had one,
+  `Already Bought`, set by the office's write. Once the hand-off became a table
+  with a link back to the request, the checkbox was a second copy of what the link
+  said, written in the same transaction — exactly the shape the paragraph above
+  rejects. What it would have bought is a `filterByFormula`, and `/prs` filters in
+  the browser over rows it already holds.
+- **BOTH LINKS ARE FREE.** `recordToPR` carries both arrays because Airtable's
+  symmetric field puts them on the record, so `prKind` costs no query on any screen
+  holding a mapped request — `/prs` reads it for every row and `/prs/[prId]` for
+  one, and neither spends an operation.
+- **THE WORDS ARE `Overage` AND `Direct purchase`, AND ORDINARY IS SILENT.** The
+  ban on `correction` is in `naming.md`; what belongs here is the silence. A mark
+  on every row makes the exceptional rows ordinary, which is the failure the mark
+  exists to prevent — the same judgment #232 made when it deleted a caption whose
+  only content was "nothing unusual here", and the same one every strip makes by
+  rendering nothing when there is nothing. The silence is a computed answer: the
+  derivation runs on every request and returns `ordinary`.
+- **THE SIGNER GETS A SENTENCE, THE LIST GETS A MARK, AND ONLY ONE KIND NEEDS
+  BOTH.** A chip cannot say what approving means, and that is the whole ground of
+  this issue, so the direct-purchase kind carries a sentence on the request's own
+  page: the material was bought before any request existed, here is the vendor and
+  their own invoice number, and approving accepts a purchase already made. The
+  overage kind deliberately has none — #167's banner is already in that slot and
+  says more than a kind sentence could, so a second one would be two voices for one
+  fact.
+- **THE CHECK IS `offline/pr-kind.mjs`, AND ITS FIRST ASSERTION IS THE MUTANT.** A
+  deriver that always answers the same kind leaves every screen looking ordinary —
+  no chip anywhere, which is exactly the ordinary day — or puts one word on every
+  exceptional row, which reads as a decision. So the first thing asserted is that
+  the three inputs produce three DIFFERENT answers. Verified by mutation: replacing
+  the body with `return PR_KIND.ordinary` fails it on the first line. The
+  precedence when both links are set is pinned too, though the app cannot produce
+  such a request: "cannot happen" is not a reason to leave the answer to the order
+  two clauses were written in.

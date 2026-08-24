@@ -143,10 +143,10 @@ the regeneration control, and replaces the missing-PDF message with one saying
 none will be generated now. An already-generated PDF stays downloadable, because
 the order did exist and was signed and that document is audit trail.
 
-**When an over-delivery on this order was corrected by raising another request:**
+**When an over-delivery on this order is covered by an overage request:**
 one or more amber banners at the very top, above everything including the
 confirmation line. Every word of them is derived rather than stored, so
-withdrawing the correction reopens the situation on its own. They stay visible
+withdrawing the request reopens the situation on its own. They stay visible
 after signature on purpose: an overage order read on its own looks like a
 duplicate with no quotation, and the invoice attached to it also charges the
 original order — so a payment against that invoice matches neither order's total

@@ -84,13 +84,13 @@ same color, on its own folded row; the red `(over)` on that screen is a differen
 scope and says *the ordered item is over*, counting every delivery. The
 distinction is by scope, not by screen.
 
-**When an over-delivery can be corrected by raising a request for it:** a
+**When an over-delivery can have a request raised for it:** a
 bordered block per case, directly under the banner that reported the excess,
-headed `Correction —` and the material's label. Inside, one or more sentences
-about what the correction would do, and a control to raise it.
+headed `Overage —` and the material's label. Inside, one or more sentences
+about what the request would do, and a control to raise it.
 
 **The block answers one of three questions, and they are not degrees of the same
-thing.** What earns a correction is the delivery and the invoice agreeing above
+thing.** What earns a request is the delivery and the invoice agreeing above
 the order — the vendor sent more than was ordered and charged for it, so the only
 thing out of step is the order. Where they do not agree the discrepancy is the
 vendor's rather than the order's, and the reader's next step is the vendor, not a
@@ -168,8 +168,8 @@ disagree about which orders a delivery touched.
 facts copied off the same physical document, and they sit together for that
 reason.
 
-**The correction's sentences are shared with the strip on the purchase request
-list**, which lists uncorrected excesses in short form. The long sentence here
+**The block's sentences are shared with the strip on the purchase request
+list**, which lists the excesses still waiting for a request in short form. The long sentence here
 and the short reason there describe one situation and are authored together.
 
 **The `(N over)` mark is shared with the purchase order detail**, which prints it

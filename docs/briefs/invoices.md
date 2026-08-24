@@ -137,4 +137,4 @@ the invoice.
 distinction between "none exists" and "none for you" is the one that has to
 survive.
 
-**The strip is one of three** and shares their shape.
+**The strip shares its shape with every other strip in the app.**

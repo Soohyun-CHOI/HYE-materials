@@ -214,6 +214,20 @@ claim a person made. `PAIRING_COPY` carries the sentences.
 means a comparison was made and came to zero. They are different facts and the
 app already spells them differently.
 
+**What a request IS, against how far it has got.** A request carries a mark
+saying which of three kinds it is — nothing at all for an ordinary one,
+`Overage` for one covering material that arrived beyond an order, and
+`Direct purchase` for one covering material a site bought with no order behind
+it (#272). It appears beside the id on the request list and on the request's own
+page. **It is not a status and must not be rendered as one:** the tones above are
+one closed vocabulary for how far something has got on an axis, and reusing one
+here would make a single word mean a stage on one screen and a classification on
+another — the reason `exception` is not a chip tone either. The silence on an
+ordinary request is the answer rather than a gap: the derivation runs on every
+row, and a word on all of them would make the exceptional ones invisible. The
+two words are one set and share a grammar for #235's reason; a redesign may give
+them any treatment except the status palette.
+
 **The signing chain's four step states.** A fourth vocabulary, on the purchase
 request detail only, and not one of the tones above: `done`, `current`, `paused`
 — a signer who was passed and then pushed back by a correction — and `not reached
@@ -322,7 +336,7 @@ and "outside your scope", because telling the two apart would confirm that a
 record exists outside someone's scope.
 
 `lib/deliveryInvoiceMatch.js` carries the seven pairing sentences, including the
-tie-break. `lib/overage.js` carries the correction's preview, its eight
+tie-break. `lib/overage.js` carries the overage request's preview, its eight
 refusals, its five short strip reasons (`no invoice yet`, `invoice and delivery
 disagree`, `spans two invoices`, `invoices differ on price`, `invoice has no
 file`) and seven banners. **A sixth read `no ordered item` and went in #278**,

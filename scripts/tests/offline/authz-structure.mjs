@@ -165,15 +165,28 @@ const EXEMPTIONS = [
         mustCall: "requireUser",
         reason:
             `${DELIVERY_JOB_AXIS} Issue #167 — deliberately Job-scoped rather than ` +
-            "Admin, because raising the corrective request is site work. That NARROWED " +
+            "Admin, because raising the overage request is site work. That NARROWED " +
             "#166, which withheld invoice existence from site staff on the deliveries " +
             "list, while this action and its preview reveal that the over-delivered " +
             "ordered item is invoiced, by which invoice and at what unit price — none of " +
             "which can be hidden from someone raising a request quoted from it. #211 " +
             "then released that column to every viewer, so the contrast is gone while " +
             "the reasoning the disclosure rests on is not. It also re-derives " +
-            "eligibility from a fresh read, so a correction raised in another tab " +
+            "eligibility from a fresh read, so a request raised in another tab " +
             "lands as a refusal rather than a second Draft.",
+    },
+    {
+        file: "app/prs/actions.js",
+        name: "claimDirectPurchaseAction",
+        mustCall: "requireUser",
+        reason:
+            `${DELIVERY_JOB_AXIS} Issue #272 — the SECOND axis to ask that function, ` +
+            "and deliberately not Admin: the office recorded the direct purchase " +
+            "precisely because it could not raise the request, so gating this to the " +
+            "office would hand it back to the people who cannot act on it. A row " +
+            "outside the viewer's jobs reads as gone rather than refused, and the " +
+            "claim re-reads the row so one raised in another tab lands as a refusal " +
+            "naming its holder rather than as a second Draft.",
     },
 ];
 

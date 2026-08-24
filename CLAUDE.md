@@ -86,7 +86,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, plus the whole-formula builders `orByRecordId` / `orByField` / `andSearchAll` / `prefixMatch`.
 - `lib/ids.js` — all ID generation: the lock, the query and the create.
-- `lib/idSequence.js` — the pure half: the four daily ID families, the eight child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
+- `lib/idSequence.js` — the pure half: the daily ID families, the eight child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
 - `lib/productName.js` — `PRODUCT_NAME` and `SIGN_IN_TITLE`. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/authTokenState.js` — whether a magic-link token can still be used: the five states, their copy, `TOKEN_TTL_MINUTES`.
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
@@ -105,6 +105,10 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242): `PO_ORIGIN`, the searched-order claim rule, the one-slot-one-order exclusion, and detection's claim over an entry the search put there.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
+- `lib/directPurchase.js` — the way out of an invoice with no order (#272): `directPurchaseBlocked`, the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
+- `lib/directPurchaseClaim.js` — the strip's rows and the Draft a site raises from one. Credentialed.
+- `lib/prKind.js` — which of three kinds a request is (#272), read from two reverse-links and **stored in no field**, plus the mark for each and the signer's sentence. Ordinary carries none.
+- `lib/prWait.js` — a record waiting for a request: `WAIT_STAGE`, and the split both strips above `/prs` obey — **a record stays listed until its request is SUBMITTED, and the control is offered only while nothing covers it** (#272). A draft is neither.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds ordered items. Credentialed.
 - `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. Both order-scope summaries live here (#235), so the delivery and invoicing chips stay one shape.
@@ -114,7 +118,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, which deliveries an invoice may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
-- `lib/overage.js` — the overage correction's judgment and `OVERAGE_COPY`. What earns a correction is the delivery and the invoice agreeing above the order, read from the ordered item's totals: `overageAgreement`'s three states (#265). Which invoice supplies the quotation, and its private ordering (#219). Also `awaitsCorrection` and the signer-copy rule (#217).
+- `lib/overage.js` — the overage request's judgment and `OVERAGE_COPY`. What earns one is the delivery and the invoice agreeing above the order, read from the ordered item's totals: `overageAgreement`'s three states (#265). Which invoice supplies the quotation, and its private ordering (#219). Also `awaitsOverageRequest` and the signer-copy rule (#217).
 - `lib/overagePR.js` — the read and write sides of the correction: the facts, the uncorrected-excess list (#217), the Draft it creates, and the apply step. Credentialed.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
 - `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders they charge (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.
@@ -130,7 +134,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 
 Two implementations of one judgment diverge, and catching the divergence then needs a third thing. A duplication is not closed by "leave it as two for now": if there is a real reason to keep two, that reason has to be a **measurable condition**, and the path to merging when it lifts has to be written down.
 
-## Data model (21 tables)
+## Data model (22 tables)
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index above.
 
@@ -174,6 +178,8 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Delivery Items**: one allocated slice of a delivery (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Unit` (frozen reference copies), `Qty`, `Over Delivered` (checkbox, backend-set).
 
+**Direct Purchases**: material a site bought with no order behind it (#272). `Direct Purchase ID` (HYE-DP-YYMMDD-##), `Vendor` / `Job` (links, single; Job required, and app-enforced), `Vendor Invoice Code`, `Issue Date` (calendar), `File` (attachment, required at creation), `Notes`, `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Purchase Request` (link, single, optional). No items, no total and no status — what a row is waiting for is read from that last link and the request's own `Status`. **The request's KIND is read from the same link and stored nowhere else**, exactly as the overage kind is read from `Delivery Items."Overage PR"`: a field on `Purchase Requests` would be one fact in two places.
+
 **Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
 ### Units (PR Items / PO Items / Invoice Items / Materials / Delivery Items)
@@ -189,11 +195,11 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 
 **A screen word is not a field name**, and a code identifier may diverge from the field it reads on purpose. Before naming a field, a screen word or an identifier, read `docs/notes/naming.md` — it holds the word-to-field table, the conventions (`X ID` / `X Label` / `X Date` / `X At`, a checkbox takes a participle, a subtraction is named for what it subtracts, plain `Qty` for a row's own quantity) and the divergences that are deliberate.
 
-- **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Lines` → a Job's line, so a `PO Items` row is an **ordered item**. Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. **The record is not the act, and a table giving no verb does not leave the verb free (#274):** a derivation already built on the table's name IS the choice. `Invoiced Qty`, `uninvoicedQty` and #235's `Invoiced` chip settled `invoice` for what an invoice does, so `billed` was a second verb and went the way `arrived` went. Where the participle will not carry a transitive sentence the verb is `charges` — `No invoice charges this order yet.` — never `invoices`. **Identifiers are bound and were swept in #227**, and `offline/line-vocabulary.mjs` inventories the ones that legitimately keep a barred stem, with a reason each. What no check can hold is prose, which is why the rule is here.
+- **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Lines` → a Job's line, so a `PO Items` row is an **ordered item**; `Correction Requests` → a correction is what a signer sends back, so what #167 raises for an excess is an **overage request** (#272). Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. **The record is not the act, and a table giving no verb does not leave the verb free (#274):** a derivation already built on the table's name IS the choice. `Invoiced Qty`, `uninvoicedQty` and #235's `Invoiced` chip settled `invoice` for what an invoice does, so `billed` was a second verb and went the way `arrived` went. Where the participle will not carry a transitive sentence the verb is `charges` — `No invoice charges this order yet.` — never `invoices`. **Identifiers are bound and were swept in #227**, and `offline/line-vocabulary.mjs` inventories the ones that legitimately keep a barred stem, with a reason each. What no check can hold is prose, which is why the rule is here.
 
 ## ID generation (lib/ids.js)
 
-1. Top-level IDs (PR/PO/Invoice/Delivery): daily-reset counters, all four sharing one rule. PO uses a 4-digit year; the rest use 2-digit.
+1. Top-level IDs (PR/PO/Invoice/Delivery/Direct Purchase): daily-reset counters sharing one rule. PO uses a 4-digit year; the rest use 2-digit.
 2. Child-table IDs: `{Parent ID}-{seq}`, resetting per parent, same **max + 1** rule.
 3. Vendor-issued codes (Vendor Quotation Code, Vendor Invoice Code): human-entered, scoped by Vendor.
 

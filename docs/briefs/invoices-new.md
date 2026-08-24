@@ -6,7 +6,7 @@ Who reaches it: Admin only. Recording a vendor's invoice is office work.
 ## What it answers
 
 Nothing about existing data — it is a create form. Its job is to get a vendor's
-paper invoice into the system **line by line against the orders it charges**, which
+paper invoice into the system **charge by charge against the orders it names**, which
 is the reconciliation the whole app exists to make possible. This is the most
 complex form in the app by a wide margin, and almost all of that complexity is one
 thing: an invoice can charge more than one order, and each of its charges has to be
@@ -37,6 +37,20 @@ be pressed without it, and says so — see below.
 order, chosen from a dropdown. A `+ Add another PO` control appends a slot; each
 slot past the first can be removed. **One slot holds one order and no order can be
 picked twice**, which is the rule the whole picker is built around.
+
+**action — `No PO for this invoice?`,** a small text control on the same row as
+`+ Add another PO`, under the order slots. It opens the direct-purchase modal
+below. **It is always present, and that is a decision rather than an oversight:**
+one of the two dead ends it answers — an order was found, and its ordered items
+are not what this invoice charges for — is a judgment only the reader can make,
+so there is no state the app could reveal the control on. It sits with the order
+picker because that is where a reader runs out of orders.
+
+**The label names what this app is missing, not what the site failed to do.**
+The site placed an order; that is what buying from a vendor is. What is absent
+is the `Purchase Orders` row, which is also the only thing `order` may mean on
+a screen, so the question asks about the gap in the app rather than about the
+purchase.
 
 **Each slot has its own independent search toggle,** labeled
 `Show all / search closed POs`. Off, the dropdown offers orders with something
@@ -114,14 +128,46 @@ PO`. The field is always present; the placeholder is what names its purpose.
 was hidden behind a flag in this file with its backend path left open, so a
 design was told the option existed and was merely hidden; the flag, the path and
 every branch that described the result are gone. Only a purchase request takes
-typed items.
+typed items. **A second box survived that removal and went in #272**: the one a
+row showed before its own order was picked, which the header reaches whenever it
+holds two orders. **Nothing on this screen types an item name.** Every charge
+takes its name from the ordered item it is matched to, and a row that cannot be
+matched yet says which choice is missing instead of offering a box.
 
-**When a line's purchase order has no ordered item left to pick:** the line says
-so in amber — every item on that order is already on another line of this
-invoice — and names the two ways out, a different order or removing the line.
-One ordered item belongs to one line of one invoice (#91), so a second line on
-an exhausted order has nothing to choose, and this is where a reader is told
+**When a charge's purchase order has no ordered item left to pick:** the row says
+so in amber — every item on that order is already on another charge of this
+invoice — and names the two ways out, a different order or removing the charge.
+One ordered item belongs to one charge of one invoice (#91), so a second charge
+on an exhausted order has nothing to choose, and this is where a reader is told
 rather than refused on submit.
+
+**When a row has no purchase order of its own yet:** its item control is a
+disabled dropdown reading `Pick this charge's PO first`, and `Select a PO above`
+while the whole section is still waiting for one. The words are short because
+the long form of the same fact is the section's own message above the rows.
+
+**When the direct-purchase control is used:** a modal headed
+`Record a direct purchase`, over the form rather than replacing it. It states
+what will be recorded and what will not — the file becomes the evidence, and
+what was bought, which part of the job it was for and who signs are the site's
+to fill in — and then that **nothing else typed on this form is kept**, because
+the invoice cannot be entered until the request is approved and its purchase
+order signed. It asks for two things the document cannot supply: the **Job**, required,
+which is what puts the record in front of a site and which the office learns by
+telephone; and a free-text **note**, which is the only thing the site's list can
+say about what was bought, since no items are recorded. The job list is fetched
+when the modal opens, not when the page loads.
+
+**When something is still missing, the modal says which, and in the order a
+reader would fix it:** the vendor at the top of the form, then the attached file,
+then the Job inside the modal. The confirm button is disabled while any of them
+is. The same rule answers the server, so the button never offers what the action
+declines.
+
+**When the reader has just recorded one:** a green line above the form, naming
+the record and the job it is waiting on, over an empty form. There is nothing to
+return to — the invoice that started it cannot be entered yet — and the office's
+likely next act is the next invoice.
 
 ## What must agree elsewhere
 
@@ -151,4 +197,11 @@ detail's `Purchase Orders` list unambiguous. A design that allowed one order in 
 slots would make that list meaningless.
 
 **A file is required, as the packing list photo is on the delivery form.** In both
-cases the document is what makes the record a record.
+cases the document is what makes the record a record. **The direct purchase takes
+the same file for the same reason** — it is the whole evidence that a purchase
+happened — and it is the one thing the modal will not proceed without.
+
+**The direct purchase leaves this screen and lands on the purchase request list.**
+What is recorded here appears on a strip above `/prs`, on the job picked in the
+modal, for someone at that site to raise the request from. The office's part ends
+at the green line; nothing on this screen changes when the request is raised.

@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
-import { createInvoiceAction } from "./actions";
+import { createInvoiceAction, createDirectPurchaseAction } from "./actions";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // Issue #198 — pure and import-free, so a client component may hold it; the judgment
 // itself already ran on the server and every PO here carries its answer as `unsigned`.
 import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
@@ -13,6 +14,10 @@ import { PO_ORIGIN, claimDetected, poOptionsForSlot } from "@/lib/poPickerOption
 // the per-item half of what leaves an order open, and the sort below was an
 // inline copy of it.
 import { hasUninvoicedQty } from "@/lib/poItemQty";
+// Issue #272 — pure and import-free, same category again: the words for the way
+// out of an invoice with no order, and the one predicate the modal and
+// `createDirectPurchaseAction` both ask so they cannot disagree about it.
+import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes an
 // explicit choice in the PO Item dropdown. It distinguished "still unset" from
@@ -24,7 +29,10 @@ import { hasUninvoicedQty } from "@/lib/poItemQty";
 // `poItemRecordId: ""` IS A STATE OF THE FORM AND NOT OF A SAVED CHARGE (#278).
 // A row holds it before its PO is picked, while that PO's items load, and when
 // #91 leaves it nothing to claim — none of which may be submitted, which
-// `createInvoiceAction` refuses and the row itself explains.
+// `createInvoiceAction` refuses and the row itself explains. THE ROW REALLY DOES
+// EXPLAIN ALL THREE SINCE #272: the first two still offered a free-text
+// `Item Name` box, which is the half of the free-text charge #278 did not reach.
+// Nothing but the ordered item writes `itemName` now.
 const EMPTY_ITEM = {
     itemName: "",
     // Issue #84 — frozen copies from the linked PO Item, same as itemName/
@@ -188,6 +196,11 @@ const confirmChangeMessage = (subject) =>
 // deliberate extra step needed to reveal a second one.
 export default function InvoiceForm({ vendors, pos }) {
     const [state, formAction, pending] = useActionState(createInvoiceAction, null);
+    // Issue #272 — its own form and its own state, because it cannot be nested
+    // inside the invoice form and a `formAction` override on a button would have
+    // nowhere to put a refusal. The modal renders after `</form>`, beside
+    // ConfirmDialog, for the same reason.
+    const [dpState, dpFormAction, dpPending] = useActionState(createDirectPurchaseAction, {});
     // Default "pdf" — the primary path most people try first.
     const [activeTab, setActiveTab] = useState("pdf");
 
@@ -257,6 +270,22 @@ export default function InvoiceForm({ vendors, pos }) {
     const [shippingFeeTouched, setShippingFeeTouched] = useState(false);
     const [tariffEnabled, setTariffEnabled] = useState(false);
     const [tariff, setTariff] = useState("");
+    // Issue #272 — CONTROLLED ONLY BECAUSE A SECOND FORM NEEDS THEM. Both were
+    // uncontrolled inputs that `createInvoiceAction` read straight off the
+    // FormData; the direct-purchase modal is its own form, so the two facts it
+    // copies off the vendor's document have to be readable from state. Nothing
+    // else about them changed.
+    const [vendorInvoiceCode, setVendorInvoiceCode] = useState("");
+    const [issueDate, setIssueDate] = useState("");
+    // The modal itself: whether it is open, the job picked in it, the note, and
+    // the job list fetched when it opens. FETCHED THERE RATHER THAN ON THE PAGE:
+    // the office reaches this on the rare invoice with no order to charge, so
+    // loading every job on every page load would spend a read on all the others
+    // (`GET /api/jobs`, the same on-demand shape as #57's PO search).
+    const [dpOpen, setDpOpen] = useState(false);
+    const [dpJobId, setDpJobId] = useState("");
+    const [dpNotes, setDpNotes] = useState("");
+    const [dpJobs, setDpJobs] = useState({ status: "idle", jobs: [] });
     // One debounce timer per slot index, since each slot's search toggle
     // is independent.
     const slotSearchTimeoutsRef = useRef({});
@@ -281,6 +310,25 @@ export default function InvoiceForm({ vendors, pos }) {
     // replacing the old itemName/qty/unitPrice truthiness check, which
     // couldn't tell an auto-filled value from a typed one.
     const autoInsertedItemsRef = useRef(JSON.stringify([{ ...EMPTY_ITEM }]));
+
+    // Issue #272 — the jobs are fetched the first time the modal opens and kept
+    // for the rest of the session: the list is small, it does not change while a
+    // form is open, and a second open should not spend a second read. `idle`
+    // means never asked, which is what makes that test one line.
+    async function openDirectPurchase() {
+        setDpOpen(true);
+        if (dpJobs.status !== "idle") return;
+        setDpJobs({ status: "loading", jobs: [] });
+        try {
+            const res = await fetch("/api/jobs");
+            if (!res.ok) throw new Error(`jobs ${res.status}`);
+            const { jobs = [] } = await res.json();
+            setDpJobs({ status: "done", jobs });
+        } catch (err) {
+            console.error("could not load the job list", err);
+            setDpJobs({ status: "error", jobs: [] });
+        }
+    }
 
     async function handleInvoiceFileChange(e) {
         const file = e.target.files?.[0];
@@ -1073,9 +1121,25 @@ export default function InvoiceForm({ vendors, pos }) {
                 {/* Minimal presence, per issue #57 — the exception path for
                     an invoice spanning more than one PO, not a feature to
                     advertise alongside the primary Vendor/PO row above. */}
-                <button type="button" onClick={handleAddSlot} className="text-xs text-zinc-400 underline">
-                    + Add another PO
-                </button>
+                <div className="flex items-center justify-between gap-4">
+                    <button type="button" onClick={handleAddSlot} className="text-xs text-zinc-400 underline">
+                        + Add another PO
+                    </button>
+                    {/* Issue #272 — THE WAY OUT, AND IT IS ALWAYS HERE. One of the two
+                        dead ends is a judgment only the reader can make — an order
+                        matched, and its ordered items are not what this invoice charges
+                        for — so there is no state to reveal a control on. It sits with
+                        the order picker because that is where a reader runs out of
+                        orders, next to #57's search toggle, which is the other escape
+                        hatch from the same control. */}
+                    <button
+                        type="button"
+                        onClick={openDirectPurchase}
+                        className="text-xs underline"
+                    >
+                        {DIRECT_PURCHASE_COPY.affordance}
+                    </button>
+                </div>
 
                 <div>
                     <label htmlFor="vendorInvoiceCode" className="block text-sm font-medium">
@@ -1085,6 +1149,8 @@ export default function InvoiceForm({ vendors, pos }) {
                         id="vendorInvoiceCode"
                         name="vendorInvoiceCode"
                         placeholder="The vendor's own invoice number, as printed on their document"
+                        value={vendorInvoiceCode}
+                        onChange={(e) => setVendorInvoiceCode(e.target.value)}
                         className={fieldClass}
                     />
                 </div>
@@ -1094,7 +1160,15 @@ export default function InvoiceForm({ vendors, pos }) {
                         <label htmlFor="issueDate" className="block text-sm font-medium">
                             Issue Date
                         </label>
-                        <input type="date" id="issueDate" name="issueDate" required className={fieldClass} />
+                        <input
+                            type="date"
+                            id="issueDate"
+                            name="issueDate"
+                            required
+                            value={issueDate}
+                            onChange={(e) => setIssueDate(e.target.value)}
+                            className={fieldClass}
+                        />
                     </div>
                     <div>
                         <label htmlFor="dueDate" className="block text-sm font-medium">
@@ -1102,6 +1176,122 @@ export default function InvoiceForm({ vendors, pos }) {
                         </label>
                         <input type="date" id="dueDate" name="dueDate" className={fieldClass} />
                     </div>
+                </div>
+            </div>
+        );
+    }
+
+    /**
+     * Issue #272 — recording the invoice as a direct purchase.
+     *
+     * ITS OWN FORM, RENDERED OUTSIDE THE INVOICE FORM. Forms cannot nest, and a
+     * `formAction` override on a button inside the invoice form would return into
+     * nothing: `useActionState` belongs to the form, so a refusal would be silently
+     * dropped. The two hidden fields the invoice form already carries are therefore
+     * restated here off the same state — one source, two readers.
+     *
+     * IT ASKS FOR THE TWO THINGS THE DOCUMENT CANNOT SUPPLY. The Job is what puts
+     * the row in front of a site and the office learns it by telephone; the note is
+     * what that call leaves behind, and it is the only thing the site's list can say
+     * about what was bought, since no items are recorded here.
+     */
+    function renderDirectPurchaseModal() {
+        const fileUrl = invoiceFile.status === "done" ? invoiceFile.url : "";
+        const blocked = directPurchaseBlocked({ vendorId, fileUrl, jobId: dpJobId });
+        const pickedJob = dpJobs.jobs.find((job) => job.id === dpJobId);
+
+        return (
+            <div className={MODAL_BACKDROP}>
+                <div className={`${MODAL_CARD} max-w-lg`}>
+                    <h2 className="text-lg font-medium">{DIRECT_PURCHASE_COPY.modal.heading}</h2>
+                    <div className="mt-3 space-y-2 text-sm text-zinc-600">
+                        <p>{DIRECT_PURCHASE_COPY.modal.summary({ vendorInvoiceCode }).text}</p>
+                        <p>{DIRECT_PURCHASE_COPY.modal.abandons.text}</p>
+                    </div>
+
+                    <form action={dpFormAction} className="mt-4 space-y-3">
+                        <input type="hidden" name="vendorId" value={vendorId} />
+                        <input type="hidden" name="invoiceFileUrl" value={fileUrl} />
+                        <input type="hidden" name="invoiceFileFilename" value={invoiceFile.filename || ""} />
+                        <input type="hidden" name="vendorInvoiceCode" value={vendorInvoiceCode} />
+                        <input type="hidden" name="issueDate" value={issueDate} />
+                        {/* Display text for the confirmation the office lands on, out of
+                            the list this modal already fetched. The id is the fact and
+                            the action carries that; this is what saves a read to turn a
+                            record id back into a job code. */}
+                        <input type="hidden" name="jobCode" value={pickedJob?.jobCode || ""} />
+
+                        <div>
+                            <label htmlFor="dpJob" className="block text-sm font-medium">
+                                Job
+                            </label>
+                            <p className="text-xs text-zinc-500">
+                                {DIRECT_PURCHASE_COPY.modal.job({ jobKnown: false }).text}
+                            </p>
+                            <select
+                                id="dpJob"
+                                name="jobId"
+                                value={dpJobId}
+                                onChange={(e) => setDpJobId(e.target.value)}
+                                disabled={dpJobs.status !== "done"}
+                                className={fieldClass}
+                            >
+                                <option value="">
+                                    {dpJobs.status === "loading"
+                                        ? "Loading jobs..."
+                                        : dpJobs.status === "error"
+                                          ? "Couldn't load the jobs — close this and try again"
+                                          : "Select a Job"}
+                                </option>
+                                {dpJobs.jobs.map((job) => (
+                                    <option key={job.id} value={job.id}>
+                                        {job.jobCode} — {job.jobName}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label htmlFor="dpNotes" className="block text-sm font-medium">
+                                Notes
+                            </label>
+                            <p className="text-xs text-zinc-500">{DIRECT_PURCHASE_COPY.modal.notes.text}</p>
+                            <textarea
+                                id="dpNotes"
+                                name="notes"
+                                rows={3}
+                                value={dpNotes}
+                                onChange={(e) => setDpNotes(e.target.value)}
+                                className={fieldClass}
+                            />
+                        </div>
+
+                        {/* The refusal a reader can act on, in the order they would fix
+                            them, and the same predicate the action re-asks — so this
+                            button never offers what the server declines. */}
+                        {blocked && (
+                            <p className="text-sm text-amber-700">{DIRECT_PURCHASE_COPY.blocked[blocked]}</p>
+                        )}
+                        {dpState?.error && <p className="text-sm text-red-700">{dpState.error}</p>}
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setDpOpen(false)}
+                                disabled={dpPending}
+                                className="rounded border border-zinc-300 px-3 py-1.5 text-sm disabled:opacity-50"
+                            >
+                                {DIRECT_PURCHASE_COPY.modal.cancel}
+                            </button>
+                            <button
+                                type="submit"
+                                disabled={dpPending || Boolean(blocked)}
+                                className="rounded bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50"
+                            >
+                                {dpPending ? "Recording..." : DIRECT_PURCHASE_COPY.modal.confirm}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         );
@@ -1297,20 +1487,39 @@ export default function InvoiceForm({ vendors, pos }) {
                                             {noOrderedItemLeft && (
                                                 <p className="text-xs text-amber-700">
                                                     Every item on this purchase order is already on
-                                                    another line of this invoice. Pick a different
-                                                    purchase order for this line, or remove it.
+                                                    another charge of this invoice. Pick a different
+                                                    purchase order for this charge, or remove it.
                                                 </p>
                                             )}
                                         </div>
                                     ) : (
-                                        <input
-                                            placeholder="Item Name"
-                                            required
-                                            disabled={locked}
-                                            value={item.itemName}
-                                            onChange={(e) => updateItem(i, "itemName", e.target.value)}
-                                            className={inputClass}
-                                        />
+                                        /* Issue #272 — THE OTHER FREE-TEXT `Item Name` BOX, and the one
+                                           #278 did not reach. It removed the box on
+                                           `!item.poItemRecordId` and left this one, on
+                                           `!item.poRecordId`, where the row's own purchase order has
+                                           not been picked yet — reachable whenever the header holds
+                                           two orders, since then each row picks its own. Whatever was
+                                           typed here could never survive: choosing the order
+                                           overwrites `itemName` from the ordered item, and submitting
+                                           without one is refused by `createInvoiceAction`. It was
+                                           `required` as well, so the browser blocked the submit and
+                                           pointed at a name when what was missing was an order.
+
+                                           A DISABLED SELECT RATHER THAN NOTHING, so the row keeps the
+                                           shape #99 kept it for, and its one option names the
+                                           prerequisite the way the PO slot's `Select a Vendor first`
+                                           already does. The long form of the same fact is the
+                                           section-level message above; this is the short one, which
+                                           is the density split the strip chips make. */
+                                        <select
+                                            disabled
+                                            value=""
+                                            className={inputClass + " w-full"}
+                                        >
+                                            <option value="">
+                                                {locked ? "Select a PO above" : "Pick this charge's PO first"}
+                                            </option>
+                                        </select>
                                     )}
                                     <input
                                         type="number"
@@ -1610,6 +1819,8 @@ export default function InvoiceForm({ vendors, pos }) {
                             : "Create Invoice"}
             </button>
         </form>
+
+        {dpOpen && renderDirectPurchaseModal()}
 
         <ConfirmDialog
             open={pendingConfirm !== null}

@@ -194,6 +194,14 @@ const BANNED = [
     "line items?",
     "candidate lines?",
     "bill's lines?",
+    // #272 — THE FORM THAT GOT PAST THIS LIST, and it got past it by putting the
+    // possessive the other way round: #278 shipped `already on another line of this
+    // invoice` on `/invoices/new`, which `invoice lines?` above does not match. It is
+    // as narrow as `bill's lines?` beside it and for the same reason — the entry
+    // records a phrasing that actually occurred rather than guessing at the next one.
+    // What no phrase can reach is the bare `this line` for an `Invoice Items` row;
+    // that is the rule's uncheckable half, which is why CLAUDE.md carries it.
+    "lines? of (this|the) invoice",
 ];
 const PHRASE_RE = new RegExp(`\\b(${BANNED.join("|")})\\b`, "gi");
 

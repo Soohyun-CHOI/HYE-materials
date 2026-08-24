@@ -255,7 +255,7 @@ More arrived than was ordered, the vendor invoiced for it, and the record has to
 - **`Qty` is per row, and that is what makes the rollup correct.** A link field carries no quantity, so one row pointing at two ordered items would contribute its FULL Qty to both ordered items' `Delivered Qty` (a rollup counts the row once per linked parent) and double-count. Splitting 20 into 15 + 5 is structural, not cosmetic.
 - **`PO Item` is never empty on a row this app writes (#165), and the field stays optional in the schema anyway.** Those are two different statements and both are deliberate. Allocation attaches every row, including the over-delivery one, and refuses to plan at all when it has no ordered item to attach to — so `createDeliveryItem` is never called with a null link. The Airtable field is left optional because tightening it would be a schema change that buys nothing the code does not already guarantee — and because it cannot be done: **Airtable exposes no way to make a link field required**, on the Metadata API or in the UI, which is the same limit `prefersSingleRecordLink` runs into. Measured at #165: 0 of the base's stored rows lack the link, so there was nothing to backfill.
   - **THE READING SIDE SURVIVES A HAND-EMPTIED LINK AND NO LONGER DESCRIBES ONE (#278), and the split is by what each half is for.** This bullet said readers must "cope with" such a row and cited `ALLOCATION_COPY.banner.overUnattached` as rendering the state rather than swallowing it. Half of that is still true and half is not, so it is split rather than kept. **What survives is every guard against a crash**: the four slice guards in `lib/deliveryReconciliation.js`, the `continue` in `lib/poDocuments.js`, `groupRowsByItem`'s fall back to the frozen name when there is no `Material`, and the null-tolerant writes in `lib/airtable/deliveryItems.js`. A page that does not load shows nobody anything, so that half is about the reader whether or not the state is reachable. **What went is every place that named the state on a screen**: `not against any order` in the delivery detail's order cell, the delivery axis's `no-ordered-items` chip and its em dash, and `OVERAGE_BLOCKED.noOrderedItem` with its sentence and its strip chip. Two reasons, and the second is the one that decides it. #165 measured the state at **0 rows**, so three pieces of copy existed for something that has never happened. And the only person who can empty a `PO Item` link is somebody with the Airtable base open — who is, on this project, the one person who would be reading the explanation. A screen explaining a state to whoever created it is copy with no audience, which is a different thing from a defensive guard.
-  - **What that costs, stated rather than hidden.** A delivery whose every link was emptied now reads `Awaiting invoice` instead of an em dash, which is false in a specific direction: nothing has invoiced it *as far as this walk can see*, and the row stays on the vendor-chasing worklist where somebody will open it. The alternative false answer was `Invoiced`, which would have called it settled and dropped it. Neither is right; the one that takes a reader to the row is the one to prefer. `overageEligibility` refuses such a row under **no key at all**, so the delivery detail offers no correction and says nothing about why, and `awaitsCorrection` excludes it so the uncorrected-excess strip does not list a row it cannot explain.
+  - **What that costs, stated rather than hidden.** A delivery whose every link was emptied now reads `Awaiting invoice` instead of an em dash, which is false in a specific direction: nothing has invoiced it *as far as this walk can see*, and the row stays on the vendor-chasing worklist where somebody will open it. The alternative false answer was `Invoiced`, which would have called it settled and dropped it. Neither is right; the one that takes a reader to the row is the one to prefer. `overageEligibility` refuses such a row under **no key at all**, so the delivery detail offers no request and says nothing about why, and `awaitsOverageRequest` excludes it so the strip of excesses awaiting one does not list a row it cannot explain.
   - **`ALLOCATION_COPY.banner.overUnattached` STAYS, and #278 found that it is not about this state at all.** It fires when the flagged slices of one item do not all name ONE order (`poIds.size !== 1`), which includes slices spanning two orders with every link intact — a shape the app can write through the delete-replay split. So it describes something reachable, which is exactly the test the rest of this bullet applies. The seed comment calling `UNATTRIB` its only producer was wrong on that point and is corrected.
 - **`Item Name` / `Size` / `Unit` are never blank**, unlike Invoice Items': they come from the linked PO Item, or from the `Material` when there is no PO Item, and a Material is always linked and carries all three as its natural key.
 - **`Overage PR` (link -> Purchase Requests, single) and `Former PO Item` (link -> PO Items, single) are #167's two fields**, both app-enforced as single-record: the Metadata API refuses `prefersSingleRecordLink` on field CREATE (measured 422 `INVALID_FIELD_TYPE_OPTIONS_FOR_CREATE`, another limit alongside its refusal to write a select's option list), and on field UPDATE (422 `INVALID_REQUEST_UNKNOWN`, both shapes tried), so the field is multi in Airtable and single in this app, exactly as `Invoice Items."PO Item"` already is — and the invariant is therefore checked on the stored ROWS rather than on a schema property nothing can set. Their symmetric sides are `Purchase Requests."Overage Delivery Items"` (the rows this request corrects) and `PO Items."Former Delivery Items"` (the rows that left this ordered item), and nothing writes either. **The two symmetric sides are deliberately NOT the same name**, which they were until the rename: one name for two meanings across two parents is worse than the accidental collisions #164 had to census, because it would be on purpose. The PO-side name went through `Reattached Delivery Items` first and that named THE WRONG END — the row is re-attached to the OVERAGE order's item and from this one it DEPARTED, so anyone opening the record read it backwards. `Former` says what the field it mirrors says, and beside `Delivery Items` it makes clear at a glance which of the two is the past. **`Overage PR` is the whole of "is a correction pending" — read from that PR's Status, never stored, which is what makes a withdrawal reopen the row.** **`Former PO Item` is PROVENANCE, not state:** the apply step re-points `PO Item` at the overage order, which destroys the only link back, and deriving the original through the shared Delivery breaks whenever the whole delivery was excess (#165's fully-delivered branch leaves that delivery with no other row for the material). Every reader takes `Former PO Item ?? PO Item` (`lib/overage.js:resolveOriginalPOItem`). **NAMED FOR WHAT IT STORES, WHICH IS ALWAYS A PAST VALUE** — empty on a row that never moved, the previous ordered item on one that did, and never a current one. It was briefly `Original PO Item`, chosen on the strength of that `?? PO Item` fallback, but the fallback is a property of the EXPRESSION rather than of the field: the field holds the past and the function collects an answer across both states. Named for what it holds rather than for the overage for a second reason too — a later re-attachment for some other cause belongs in the same field, and the cause is already next to it on `Overage PR`.
@@ -512,7 +512,7 @@ settles what those three actually share.
   take it"** — #176's action was Admin-only, which is what forced its second voice.
   The copy may therefore name the control, which #216's was barred from doing.
 - **THE SELECTION RULE WAS HALF-WRITTEN ALREADY, WHICH IS #216's LESSON APPLIED.**
-  `awaitsCorrection` is `overDelivered` and `overagePRState === "none"` — the
+  `awaitsOverageRequest` is `overDelivered` and `overagePRState === "none"` — the
   complement of two refusals `overageEligibility` already returns
   (`notOverDelivered`, `alreadyRaised`). So it is a composition in
   `lib/overage.js` beside them rather than a fresh predicate in the screen's view
@@ -1951,3 +1951,53 @@ for.
   deliveries each exceeded one ordered item; and nothing here reports the
   disagreement anywhere but on the correction box — the invoice's own mismatch marker
   (#210) is what says it on that axis.
+
+### The way out of an invoice with no order (#272)
+
+`/invoices/new` could reach a state it had no exit from: the vendor's invoice
+names no order this app holds, or names one whose ordered items are not what it
+charges for. The office records the invoice as a `Direct Purchases` row instead,
+and the site raises the purchase request from it — the table, and why it is a
+table, are in `purchase-requests.md`; what belongs here is the half that lives on
+this screen.
+
+- **THREE DEAD ENDS, AND ONLY TWO OF THEM ARE STATES.** The vendor has no open
+  order at all (the picker is empty and the items section stays locked behind
+  `Select a PO above to add items.`); detection found nothing, or a number
+  matching nothing, or a withdrawn order (three messages, all ending "select the
+  PO manually below", which is advice with nothing behind it here); or an order
+  IS picked and its ordered items are not what the invoice charges for. **The
+  third is a judgment only the reader can make** — nothing in the data says that
+  `Elbow 90` is not what this document is about — so no conditional can reveal a
+  control for it, and the way out has to be a control that is always there. That
+  is the whole argument for an always-visible affordance on a screen whose other
+  messages are all conditional.
+- **IT DOES NOT OVERLAP #278's AMBER LINE, and the two were checked against each
+  other.** That one fires when every ordered item on a row's order is already
+  claimed by another charge of the same invoice (#91), and its remedy is a
+  different order or one fewer charge — a real fix, on a row whose order exists.
+  This is the case where no order holds the material at all, and there is nothing
+  to pick. Different cause, different remedy, separate words.
+- **THE FILE GOES STRAIGHT TO AIRTABLE, WHICH THE OVERAGE REQUEST CANNOT DO.**
+  #167 fetches Airtable's own copy of an invoice and uploads a fresh Blob object
+  because re-submitting an expired attachment url silently empties the field
+  (#142). Here the office uploaded the document minutes earlier and nobody has
+  ingested it, so the url the form is already carrying is handed over as it is.
+  The action schedules `confirmIngestThenDelete` at its end, as every path does.
+- **THE JOB IS FETCHED WHEN THE MODAL OPENS.** `/invoices/new` is a heavily read
+  screen and this modal is for the rare invoice; `getAllJobs()` on the page would
+  have spent a read on every load that never reaches it. `GET /api/jobs` is #57's
+  own shape — the escape hatch on the same form fetches its orders the same way —
+  and its own ops label is what keeps that cost visible instead of folded into
+  the page's.
+- **WHAT THE OFFICE LOSES BY LEAVING IS SAID BEFORE THEY LEAVE.** The invoice
+  cannot be entered until the request is approved and its order signed, so the
+  form's contents are not kept and the modal says so in its second sentence. The
+  landing is a fresh `/invoices/new` with a green line naming the record and the
+  job it waits on, because there is nothing to come back to and the next invoice
+  is the likely next act.
+- **Not in this issue:** the items typed on the invoice form are not carried onto
+  anything, and could not be — at the dead end the items section is locked, so
+  there are none. Nothing reminds the office when the request they are waiting on
+  is approved; `/pos` shows the new order like any other, and the awaiting-invoice
+  strip is keyed on deliveries rather than orders, so it will not list it.

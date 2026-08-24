@@ -75,7 +75,7 @@ function AwaitingPORow({ row, isAdmin }) {
 // IT REDIRECTS TO THE PR, WHICH MEANS PRESSING IT HERE LEAVES THIS PAGE. That is
 // left alone on purpose: the redirect is correct for the caller that already
 // existed, and changing a shared action's behavior on the evidence of one new
-// screen is the kind of decision worth having all three strips in hand for. The
+// screen is the kind of decision worth having every strip in hand for. The
 // result is at least visible where it lands.
 function GeneratePOButton({ prId }) {
     const [state, formAction, pending] = useActionState(generatePOAction, null);

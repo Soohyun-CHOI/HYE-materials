@@ -1,7 +1,7 @@
 // Raising an overage PR from an over-delivery (#167, #219, #265) — the pure judgment.
 //
 // Five things this pins that nothing else can:
-//   - THE AGREEMENT RULE (#265): a correction is earned by the two documents meeting
+//   - THE AGREEMENT RULE (#265): an overage request is earned by the two documents meeting
 //     above the order, and `Over Delivered` alone does not earn it. THIS IS THE
 //     SILENT MUTANT — dropping the comparison restores exactly what #167 shipped, the
 //     button opens, no figure on any screen moves, and the order that goes to the
@@ -30,7 +30,7 @@ import {
     OVERAGE_STAGE,
     attachedDeliveryRecordId,
     attachedPOItemRecordId,
-    awaitsCorrection,
+    awaitsOverageRequest,
     describeOverageBanner,
     describeOveragePreview,
     disagreementDirection,
@@ -55,7 +55,7 @@ import { STATUS_COPY } from "../../../lib/deliveryStatus.js";
 import { callPassesProperty, callsTo, parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Overage correction — the agreement rule, the quotation, the banner (#167, #265)";
+export const title = "Overage requests — the agreement rule, the quotation, the banner (#167, #265)";
 
 /** The delivery the excess delivered against, and one it did not. */
 const DELIVERY = "recDL1";
@@ -109,7 +109,7 @@ const pick = (invoices, excess, deliveryRecordId = DELIVERY) =>
 /**
  * The ordered item's three totals, AGREEING by default, so a clause that is not about
  * the agreement does not have to restate it. `ordered` 10 with 12 delivered and 12
- * invoiced is the paradigm correctable shape — the vendor shipped a pack of two extra
+ * invoiced is the paradigm shape for one — the vendor shipped a pack of two extra
  * and charged for them.
  */
 const totals = (over = {}) => ({ orderedQty: 10, deliveredQty: 12, invoicedQty: 12, ...over });
@@ -123,11 +123,11 @@ export function run({ check, log, assert }) {
     //
     // ASSERTED FIRST BECAUSE IT IS THE ONE NOTHING ELSE NOTICES. Delete the comparison
     // and eligibility falls back to what #167 shipped: the flag alone opens the
-    // correction, the preview still names an invoice and a price, no figure on any
+    // request, the preview still names an invoice and a price, no figure on any
     // screen changes, and the purchase order that leaves the company asks the vendor
     // for material the vendor never charged for. `HYE-DL-260819-11` on the demo base
     // is that exact shape — 19 delivered, 4 invoiced.
-    log("#265 — a correction is earned by the two documents agreeing, not by the flag:");
+    log("#265 — an overage request is earned by the two documents agreeing, not by the flag:");
     const short = eligible([invoice("01", 4, "2026-07-01")], {
         orderedItem: totals({ deliveredQty: 19, invoicedQty: 4 }),
         row: row({ qty: 9 }),
@@ -183,7 +183,7 @@ export function run({ check, log, assert }) {
     // than left to the paragraph that argues it. Two invoices summing to what was
     // delivered AGREE: the vendor charged for everything it sent, across two
     // documents. A rule reading one invoice at a time would call this a disagreement
-    // and refuse a correction that is owed.
+    // and refuse an overage request that is owed.
     log("");
     log("  two invoices summing to the delivery agree — the totals are the ordered item's:");
     const acrossTwo = eligible([invoice("01", 8, "2026-07-01"), invoice("02", 4, "2026-07-02")]);
@@ -208,7 +208,7 @@ export function run({ check, log, assert }) {
         OVERAGE_BLOCKED.notOverDelivered
     );
     // #278 — THE ONE SILENT REFUSAL, and the assertion is that it names no key. A
-    // row whose `PO Item` was emptied by hand still cannot be corrected, and nothing
+    // row whose `PO Item` was emptied by hand still cannot have one raised for it, and nothing
     // on the screen says so: the state's only possible reader is whoever emptied the
     // link. `describeOveragePreview` renders nothing for it, asserted below.
     check(
@@ -231,7 +231,7 @@ export function run({ check, log, assert }) {
     );
     check(
         "  and the strip does not list it, having nothing to put in its reason cell",
-        awaitsCorrection({ row: row({ poItem: [] }) }),
+        awaitsOverageRequest({ row: row({ poItem: [] }) }),
         false
     );
     check(
@@ -248,7 +248,7 @@ export function run({ check, log, assert }) {
     check("nullish does not throw", overageEligibility().blocked, OVERAGE_BLOCKED.notOverDelivered);
 
     // THE AGREEMENT COMES BEFORE ANYTHING ABOUT THE QUOTATION, on `alreadyRaised`'s own
-    // ordering rule: with the documents apart there is no correction to raise, so
+    // ordering rule: with the documents apart there is no overage request to raise, so
     // naming a missing file would send a reader to fix what is not in the way.
     check(
         "a disagreement wins over the missing file",
@@ -268,7 +268,7 @@ export function run({ check, log, assert }) {
     );
     // AND IT IS NOT THE ORDERED ITEM'S TOTAL BEYOND THE ORDER, which is 2 here. The
     // two part company when two deliveries each exceeded the same ordered item, and
-    // the correction covers the row the button was pressed on.
+    // the overage request covers the row the button was pressed on.
     check(
         "  even where the ordered item's own excess differs",
         eligible([invoice("01", 12, "2026-07-01")], { row: row({ qty: 3 }) }).figures.deliveredQty -
@@ -277,10 +277,10 @@ export function run({ check, log, assert }) {
     );
 
     // ALREADY RAISED is tested before anything about the invoice, so a row someone
-    // is already correcting is never reported as blocked for a reason a reader
+    // already has one is never reported as blocked for a reason a reader
     // would then try to fix — getPOWithdrawEligibility's own ordering argument.
     log("");
-    log("a live correction blocks BEFORE any invoice reason, deliberately:");
+    log("a live overage request blocks BEFORE any invoice reason, deliberately:");
     const withNoInvoice = { row: row({ overagePRRecordId: "recPR1" }), invoices: [] };
     check(
         "already raised wins over no-invoice",
@@ -578,7 +578,7 @@ export function run({ check, log, assert }) {
 
     // --- STATE IS READ, NEVER STORED --------------------------------------
     log("");
-    log("whether a correction is pending is READ from the linked PR's Status:");
+    log("whether an overage request is pending is READ from the linked PR's Status:");
     check("no link", overagePRState(null), "none");
     check("a draft", overagePRState({ status: "Draft" }), "pending");
     check("in review", overagePRState({ status: "In Review" }), "pending");
@@ -588,18 +588,18 @@ export function run({ check, log, assert }) {
     // write anywhere.
     check("WITHDRAWN reopens the row", overagePRState({ status: "Withdrawn" }), "none");
     assert(
-        "so a withdrawn correction makes the row eligible again",
+        "so a withdrawn overage request makes the row eligible again",
         eligible([invoice("01", 12, "2026-07-01")], {
             row: row({ overagePRRecordId: "recPR1" }),
             overagePR: { status: "Withdrawn" },
         }).eligible === true
     );
-    // An option added to the field later must not silently make a live correction
+    // An option added to the field later must not silently make a live overage request
     // offerable twice — the opposite default from #144's denylist, on purpose.
     check("an unrecognized status is treated as pending", overagePRState({ status: "Something New" }), "pending");
 
     log("");
-    log("and one hop further, to the overage order — a withdrawn PO is no correction:");
+    log("and one hop further, to the overage order — a withdrawn PO is no overage request:");
     check(
         "PO Signed with a withdrawn order reopens the row",
         overagePRState({ status: "PO Signed" }, { status: "Withdrawn" }),
@@ -631,7 +631,7 @@ export function run({ check, log, assert }) {
     );
 
     log("");
-    log("the qualifier — a live correction whose excess is no longer there:");
+    log("the qualifier — a live overage request whose excess is no longer there:");
     check(
         "linked, unflagged, never moved — fires",
         isNoLongerOverDelivered(row({ overagePRRecordId: "recPR1", overDelivered: false })),
@@ -643,7 +643,7 @@ export function run({ check, log, assert }) {
         false
     );
     // The third clause, and what it is for: an applied row is unflagged forever,
-    // so without it the qualifier would fire on every settled correction.
+    // so without it the qualifier would fire on every settled overage request.
     check("applied — does not, which is what the provenance clause buys", isNoLongerOverDelivered(row(moved)), false);
     check("no link at all — does not", isNoLongerOverDelivered(row({ overDelivered: false })), false);
     check("nullish does not throw", isNoLongerOverDelivered(null), false);
@@ -665,7 +665,7 @@ export function run({ check, log, assert }) {
     // --- THE BANNER --------------------------------------------------------
     log("");
     log("the banner state is derived from the link and the flag, nothing else:");
-    check("no correction, no banner", overageBannerState({ row: row(), overagePR: null }), null);
+    check("no overage request, no banner", overageBannerState({ row: row(), overagePR: null }), null);
     check(
         "pending",
         overageBannerState({ row: row({ overagePRRecordId: "recPR1" }), overagePR: { status: "In Review" } }),
@@ -729,7 +729,7 @@ export function run({ check, log, assert }) {
         assert(`  and carries no caveat either`, !notApplied.some((m) => m.key === "banner-invoice-caveat"));
         // #233 — NO SENTENCE PRINTS A MISSING FACT AS `null`. The order's page
         // supplies these facts without an invoice whenever the reader is not the
-        // office, since the invoice a correction spans is invoice-derived while the
+        // office, since the invoice an overage request spans is invoice-derived while the
         // banner itself is not; `invoiceCaveat` interpolated `f.invoiceId` with no
         // fallback, so it opened with the literal word.
         for (const state of ["applied", "pending", "not-applied"]) {
@@ -790,33 +790,33 @@ export function run({ check, log, assert }) {
 
     // --- #217: THE STRIP'S SELECTION ---------------------------------------
     log("");
-    log("which rows the strip above /prs lists — flagged, and no live correction:");
-    check("flagged with nothing covering it", awaitsCorrection({ row: row() }), true);
-    check("a draft covers it", awaitsCorrection({ row: row(), overagePR: { status: "Draft" } }), false);
-    check("  as does one in review", awaitsCorrection({ row: row(), overagePR: { status: "In Review" } }), false);
-    check("  and one whose order exists", awaitsCorrection({ row: row(), overagePR: { status: "PO Signed" } }), false);
+    log("which rows the strip above /prs lists — flagged, and no live request:");
+    check("flagged with nothing covering it", awaitsOverageRequest({ row: row() }), true);
+    check("a draft covers it", awaitsOverageRequest({ row: row(), overagePR: { status: "Draft" } }), false);
+    check("  as does one in review", awaitsOverageRequest({ row: row(), overagePR: { status: "In Review" } }), false);
+    check("  and one whose order exists", awaitsOverageRequest({ row: row(), overagePR: { status: "PO Signed" } }), false);
     // The two clauses this composition inherits, and the reason it is a composition:
     // a withdrawal reopens the row with no write anywhere, and so does withdrawing
     // the overage ORDER one hop further.
     check(
-        "a WITHDRAWN correction puts the row back on the list",
-        awaitsCorrection({ row: row(), overagePR: { status: "Withdrawn" } }),
+        "a WITHDRAWN overage request puts the row back on the list",
+        awaitsOverageRequest({ row: row(), overagePR: { status: "Withdrawn" } }),
         true
     );
     check(
         "  and so does a withdrawn overage order",
-        awaitsCorrection({ row: row(), overagePR: { status: "PO Signed" }, overagePO: { status: "Withdrawn" } }),
+        awaitsOverageRequest({ row: row(), overagePR: { status: "PO Signed" }, overagePO: { status: "Withdrawn" } }),
         true
     );
-    check("an unflagged row is not on the list", awaitsCorrection({ row: row({ overDelivered: false }) }), false);
+    check("an unflagged row is not on the list", awaitsOverageRequest({ row: row({ overDelivered: false }) }), false);
     // #206's row: linked, unflagged, never moved. It is not an over-delivery any
-    // more, so it is not something to correct.
+    // more, so it is not something to raise one for.
     check(
         "nor is #206's no-longer-over-delivered row",
-        awaitsCorrection({ row: row({ overDelivered: false, overagePRRecordId: "recPR1" }) }),
+        awaitsOverageRequest({ row: row({ overDelivered: false, overagePRRecordId: "recPR1" }) }),
         false
     );
-    check("nullish does not throw", awaitsCorrection(), false);
+    check("nullish does not throw", awaitsOverageRequest(), false);
     // ANTI-VACUITY: the predicate must both admit and refuse within one corpus, or
     // it is either a constant or unreachable.
     const corpus = [
@@ -824,19 +824,19 @@ export function run({ check, log, assert }) {
         { row: row(), overagePR: { status: "In Review" } },
         { row: row({ overDelivered: false }) },
     ];
-    const admitted = corpus.filter((c) => awaitsCorrection(c)).length;
+    const admitted = corpus.filter((c) => awaitsOverageRequest(c)).length;
     assert(`admits ${admitted} of ${corpus.length} — neither all nor none`, admitted === 1);
 
     // --- #217: WHICH STAGE, AND THE COPY THAT NAMES IT --------------------
     log("");
-    log("the stage a live correction has reached — a copy-only refinement:");
-    check("no correction has no stage", overageStageKey(null), null);
+    log("the stage a live overage request has reached — a copy-only refinement:");
+    check("no overage request has no stage", overageStageKey(null), null);
     check("a draft", overageStageKey({ status: "Draft" }), OVERAGE_STAGE.draft);
     check("in review", overageStageKey({ status: "In Review" }), OVERAGE_STAGE.inReview);
     check("approved — the order exists", overageStageKey({ status: "Approved" }), OVERAGE_STAGE.generated);
     check("PO signed", overageStageKey({ status: "PO Signed" }), OVERAGE_STAGE.generated);
     check(
-        "a withdrawn overage order is no correction, so no stage",
+        "a withdrawn overage order is no overage request, so no stage",
         overageStageKey({ status: "PO Signed" }, { status: "Withdrawn" }),
         null
     );
@@ -891,14 +891,14 @@ export function run({ check, log, assert }) {
     // --- #217: THE STRIP'S OWN COPY ---------------------------------------
     log("");
     log("the strip's heading, its one voice, and a chip per refusal:");
-    check("one row", OVERAGE_COPY.strip.heading(1), "1 over-delivery has no correction");
+    check("one row", OVERAGE_COPY.strip.heading(1), "1 over-delivery is waiting for a request");
     assert("more than one", OVERAGE_COPY.strip.heading(4).startsWith("4 over-deliveries"));
     // ONE VOICE, and the condition is narrower than #216 left it: the action is on
     // the row, and everyone who can see a row can take it, so there is nothing to
     // split over. Naming the control is therefore allowed here, where #216's copy
     // was barred from it.
     assert("the explanation names the ordering", /Longest wait first/.test(OVERAGE_COPY.strip.explain));
-    assert("  and says a row can raise it here", /raises the correction here/.test(OVERAGE_COPY.strip.explain));
+    assert("  and says a row can raise it here", /raises the request here/.test(OVERAGE_COPY.strip.explain));
     assert("  while not promising every row can", /the rest say what has to come first/.test(OVERAGE_COPY.strip.explain));
     // #166 bars the word outright, and this sentence is inside that sweep — see the
     // copy for why it says what it says.
@@ -949,7 +949,7 @@ export function run({ check, log, assert }) {
         /changes no figure/.test(tieBreakLabel({ tieBreak: tied }))
     );
     // AND IT NO LONGER SAYS THE APP GUESSED, which is the whole of what #265 changed
-    // about it: the word would be false now that a correction is offered only where
+    // about it: the word would be false now that an overage request is offered only where
     // the excess is invoiced.
     assert("  and never claims an inference", !/[Ii]nferred/.test(tieBreakLabel({ tieBreak: tied })));
     check("nothing passed over, no label", tieBreakLabel({ tieBreak: null }), null);
@@ -957,7 +957,7 @@ export function run({ check, log, assert }) {
 
     // --- #217: THE CHAIN RULE, NOW PURE -----------------------------------
     log("");
-    log("which signers a correction copies — one rule, two fetch shapes:");
+    log("which signers an overage request copies — one rule, two fetch shapes:");
     const signer = (seq, userId) => ({ id: `recS${seq}`, sequenceOrder: seq, signer: userId ? [userId] : [] });
     const active = new Set(["recU1", "recU2"]);
     // Fed in the order a batched read by record id returns — which is the ids' order,
@@ -993,7 +993,7 @@ export function run({ check, log, assert }) {
     // excess to the last one filled.
     const original = OVERAGE_COPY.banner.originalPO(facts).text;
     assert("the original PO's banner names the delivery, not a claim about the order", original.startsWith("Delivery "));
-    assert("and points at the correction", original.includes("HYE-PR-260805-01"));
+    assert("and points at the overage request", original.includes("HYE-PR-260805-01"));
 
     // --- THE PREVIEW -------------------------------------------------------
     log("");

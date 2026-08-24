@@ -55,6 +55,9 @@ import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
 import { OVERAGE_COPY } from "../../../lib/overage.js";
+import { DIRECT_PURCHASE_COPY } from "../../../lib/directPurchase.js";
+import { WAIT_COPY } from "../../../lib/prWait.js";
+import { PR_KIND_COPY } from "../../../lib/prKind.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -205,6 +208,46 @@ const PINNED = [
     "✓ Paid",
     "Not paid",
     "Over-delivered",
+    // #272 — THE STRIP ABOVE `/prs` WAS QUOTED IN A BRIEF AND PINNED NOWHERE, and
+    // this issue is what found it: the vocabulary sweep reworded the heading, the
+    // explanation and the block heading on the delivery detail, and every check
+    // stayed green while `prs.md` went on quoting the old sentences to a designer.
+    // That is the exact drift this list exists to catch, so the strip's own words
+    // join it. The heading is pinned without its figure, as the three above are.
+    // A PIN MUST NOT CROSS THE BRIEF'S OWN LINE WRAP, which is why the second of
+    // these starts mid-sentence: the briefs wrap at 72 characters and this one
+    // breaks after `A`, so the longer form matched the constant and not the brief.
+    "over-deliveries are waiting for a request",
+    "row with everything it needs raises the request here",
+    // The five chips the same paragraph names. `prs.md` used to say how many there
+    // were and was wrong twice; it names them now, which is only worth doing if the
+    // names are held to the constant.
+    "no invoice yet",
+    "invoice and delivery disagree",
+    "spans two invoices",
+    "invoices differ on price",
+    "invoice has no file",
+    // #272 — the second strip's own words, pinned as the first strip's now are, and
+    // the chip they share. `draft with` is pinned without a name for the reason the
+    // heading above is pinned without its figure: the brief writes an example where
+    // the constant interpolates.
+    "direct purchases are waiting for a request",
+    "recorded these from a vendor's invoice",
+    // The way out of an invoice with no order, and the modal it opens. The label was
+    // reworded once already — `Bought without an order?` spent `order` on the act of
+    // ordering, which `Purchase Orders` owns and the site had in fact done — so it is
+    // exactly the kind of string a brief goes on quoting after the screen has moved.
+    "No PO for this invoice?",
+    "Record a direct purchase",
+    "no invoice number",
+    "View invoice",
+    "draft with",
+    // #272 — the kind marks. Two words rather than one repeated is what the offline
+    // check pins; that the BRIEFS still quote them is what this pins, and the two
+    // together are what stops a designer being handed a word the app no longer says.
+    "Overage",
+    "Direct purchase",
+    "rather than authorizing a new one",
 ];
 
 export function run({ check, assert, log }) {
@@ -340,6 +383,9 @@ export function run({ check, assert, log }) {
         ...stringsFrom(AWAITING_PO_COPY),
         ...stringsFrom(ALLOCATION_COPY),
         ...stringsFrom(OVERAGE_COPY),
+        ...stringsFrom(DIRECT_PURCHASE_COPY),
+        ...stringsFrom(WAIT_COPY),
+        ...stringsFrom(PR_KIND_COPY),
     ];
     assert("the copy constants yielded strings", loadable.length > 20);
     // AND NO `STATUS_COPY` SENTENCE RENDERED `undefined`, WHICH IS WHAT A STALE INPUT
