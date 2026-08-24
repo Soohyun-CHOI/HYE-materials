@@ -6,7 +6,7 @@ Who reaches it: Admin only. Recording a vendor's invoice is office work.
 ## What it answers
 
 Nothing about existing data — it is a create form. Its job is to get a vendor's
-paper invoice into the system **line by line against the orders it charges**, which
+paper invoice into the system **charge by charge against the orders it names**, which
 is the reconciliation the whole app exists to make possible. This is the most
 complex form in the app by a wide margin, and almost all of that complexity is one
 thing: an invoice can charge more than one order, and each of its charges has to be
@@ -114,14 +114,23 @@ PO`. The field is always present; the placeholder is what names its purpose.
 was hidden behind a flag in this file with its backend path left open, so a
 design was told the option existed and was merely hidden; the flag, the path and
 every branch that described the result are gone. Only a purchase request takes
-typed items.
+typed items. **A second box survived that removal and went in #272**: the one a
+row showed before its own order was picked, which the header reaches whenever it
+holds two orders. **Nothing on this screen types an item name.** Every charge
+takes its name from the ordered item it is matched to, and a row that cannot be
+matched yet says which choice is missing instead of offering a box.
 
-**When a line's purchase order has no ordered item left to pick:** the line says
-so in amber — every item on that order is already on another line of this
-invoice — and names the two ways out, a different order or removing the line.
-One ordered item belongs to one line of one invoice (#91), so a second line on
-an exhausted order has nothing to choose, and this is where a reader is told
+**When a charge's purchase order has no ordered item left to pick:** the row says
+so in amber — every item on that order is already on another charge of this
+invoice — and names the two ways out, a different order or removing the charge.
+One ordered item belongs to one charge of one invoice (#91), so a second charge
+on an exhausted order has nothing to choose, and this is where a reader is told
 rather than refused on submit.
+
+**When a row has no purchase order of its own yet:** its item control is a
+disabled dropdown reading `Pick this charge's PO first`, and `Select a PO above`
+while the whole section is still waiting for one. The words are short because
+the long form of the same fact is the section's own message above the rows.
 
 ## What must agree elsewhere
 

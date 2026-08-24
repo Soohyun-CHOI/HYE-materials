@@ -24,7 +24,10 @@ import { hasUninvoicedQty } from "@/lib/poItemQty";
 // `poItemRecordId: ""` IS A STATE OF THE FORM AND NOT OF A SAVED CHARGE (#278).
 // A row holds it before its PO is picked, while that PO's items load, and when
 // #91 leaves it nothing to claim — none of which may be submitted, which
-// `createInvoiceAction` refuses and the row itself explains.
+// `createInvoiceAction` refuses and the row itself explains. THE ROW REALLY DOES
+// EXPLAIN ALL THREE SINCE #272: the first two still offered a free-text
+// `Item Name` box, which is the half of the free-text charge #278 did not reach.
+// Nothing but the ordered item writes `itemName` now.
 const EMPTY_ITEM = {
     itemName: "",
     // Issue #84 — frozen copies from the linked PO Item, same as itemName/
@@ -1297,20 +1300,39 @@ export default function InvoiceForm({ vendors, pos }) {
                                             {noOrderedItemLeft && (
                                                 <p className="text-xs text-amber-700">
                                                     Every item on this purchase order is already on
-                                                    another line of this invoice. Pick a different
-                                                    purchase order for this line, or remove it.
+                                                    another charge of this invoice. Pick a different
+                                                    purchase order for this charge, or remove it.
                                                 </p>
                                             )}
                                         </div>
                                     ) : (
-                                        <input
-                                            placeholder="Item Name"
-                                            required
-                                            disabled={locked}
-                                            value={item.itemName}
-                                            onChange={(e) => updateItem(i, "itemName", e.target.value)}
-                                            className={inputClass}
-                                        />
+                                        /* Issue #272 — THE OTHER FREE-TEXT `Item Name` BOX, and the one
+                                           #278 did not reach. It removed the box on
+                                           `!item.poItemRecordId` and left this one, on
+                                           `!item.poRecordId`, where the row's own purchase order has
+                                           not been picked yet — reachable whenever the header holds
+                                           two orders, since then each row picks its own. Whatever was
+                                           typed here could never survive: choosing the order
+                                           overwrites `itemName` from the ordered item, and submitting
+                                           without one is refused by `createInvoiceAction`. It was
+                                           `required` as well, so the browser blocked the submit and
+                                           pointed at a name when what was missing was an order.
+
+                                           A DISABLED SELECT RATHER THAN NOTHING, so the row keeps the
+                                           shape #99 kept it for, and its one option names the
+                                           prerequisite the way the PO slot's `Select a Vendor first`
+                                           already does. The long form of the same fact is the
+                                           section-level message above; this is the short one, which
+                                           is the density split the strip chips make. */
+                                        <select
+                                            disabled
+                                            value=""
+                                            className={inputClass + " w-full"}
+                                        >
+                                            <option value="">
+                                                {locked ? "Select a PO above" : "Pick this charge's PO first"}
+                                            </option>
+                                        </select>
                                     )}
                                     <input
                                         type="number"
