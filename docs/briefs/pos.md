@@ -82,12 +82,12 @@ the same state for one request. Both voices travel together.
 and "none for you" has to survive. The invoice list draws the same distinction
 with its own two sentences.
 
-**The strip is one of three in the app** and shares their shape: above the list,
+**The strip's shape is shared with every other strip in the app**: above the list,
 counted heading, one explanatory line, an action on the row where the action
 takes a row, silent when empty.
 
 **This strip is on this screen because the office works here.** The
-awaiting-correction strip is on the request list because site staff work there.
+over-delivery strip is on the request list because site staff work there.
 If a redesign introduces a real dashboard, that split is the thing to carry over —
 a strip belongs where the people who can act on it already are.
 

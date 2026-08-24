@@ -47,7 +47,7 @@ async function loadForEdit(user, deliveryId) {
  * the quantity, the vendor and the PO are not: changing any of them changes what
  * the delivery was allocated against, which would mean re-running allocation and
  * mutating or destroying existing Delivery Items. There is deliberately no
- * allocation-editing UI, so the correction for those is delete and re-enter.
+ * allocation-editing UI, so putting one right means delete and re-enter.
  */
 export async function updateDeliveryAction(prevState, formData) {
     return withOpsLabel("updateDeliveryAction", async () => {
@@ -228,7 +228,7 @@ export async function deleteDeliveryAction(prevState, formData) {
 }
 
 /**
- * Raise the corrective PR for one over-delivery (#167).
+ * Raise the overage request for one over-delivery (#167).
  *
  * JOB-SCOPED, not office-gated, per the issue: raising the request is site work.
  * That was a NARROWING of #166, which withheld invoice existence from site staff on
@@ -242,7 +242,7 @@ export async function deleteDeliveryAction(prevState, formData) {
  * RE-AUTHORIZES AND RE-DERIVES EVERYTHING. A Server Action is callable directly, so
  * the button having rendered proves nothing: the Job check runs again and
  * getOverageContext recomputes eligibility from a fresh read. A PO withdrawn or a
- * correction raised in another tab while this page sat open lands here as a refusal
+ * request raised in another tab while this page sat open lands here as a refusal
  * rather than a second Draft.
  */
 export async function createOverageDraftAction(prevState, formData) {
@@ -287,7 +287,7 @@ export async function createOverageDraftAction(prevState, formData) {
             });
         } catch (err) {
             console.error("createOverageDraftAction failed", err);
-            return { error: "Couldn't open the correction draft. Please try again." };
+            return { error: "Couldn't open the request draft. Please try again." };
         }
 
         // Issue #140 — the END of this action's transaction, which is here: every write

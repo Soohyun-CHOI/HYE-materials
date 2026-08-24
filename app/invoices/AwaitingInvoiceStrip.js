@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AWAITING_INVOICE_COPY } from "@/lib/deliveryStatus";
 
 // Deliveries nobody has invoiced for, above the list of invoices (#216). The
-// second of three strips built to the shape #176 set; the selection rule and the
+// one of the strips built to the shape #176 set; the selection rule and the
 // ordering are lib/deliveryStatus.js's and were already there, so this file is
 // the rendering and nothing else.
 //

@@ -294,9 +294,9 @@ on its row. The sentence deliberately avoids the word *yet*: generation runs
 inside the approving action and is never retried, so a request in this state has
 already failed.
 
-### 3. `/prs` — over-deliveries with no correction
+### 3. `/prs` — over-deliveries waiting for a request
 
-Seven rows. Two carry a `Raise a correction` button; five say what has to happen
+Seven rows. Two carry a `Raise the request` button; five say what has to happen
 first, in four different words — the first two share one, because what a reader
 does about either direction is take it up with the vendor. **This table named
 two reasons #265 replaced** and was corrected in #274, which was sweeping the
@@ -394,13 +394,13 @@ for and in what quantity. Quantities only, never prices. There is deliberately n
 order column in the items table: a folded row can span two orders, so that cell
 would have no single value.
 
-### 5. `/deliveries/HYE-DL-260819-05` — raise the correction, live
+### 5. `/deliveries/HYE-DL-260819-05` — raise the request, live
 
 The banner names the excess and the order. `(2 over)` sits on the quantity —
 **only the excess is coloured, never the total**.
 
-The correction block names the invoice, the unit price, and the file the
-quotation will come from. Press `Raise a correction`.
+The overage block names the invoice, the unit price, and the file the
+quotation will come from. Press `Raise the request`.
 
 It writes a real **Draft** purchase request, using the vendor's own invoice as
 its quotation. Then, live:
@@ -411,7 +411,7 @@ its quotation. Then, live:
    new order and splits the invoice item**
 4. amber banners now sit at the top of both orders and both requests
 
-> Those banners are derived, not stored — withdrawing the correction reopens the
+> Those banners are derived, not stored — withdrawing the request reopens the
 > situation by itself. They stay after signature because an overage request read
 > on its own looks like a duplicate with no quotation.
 

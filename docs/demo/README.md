@@ -7,7 +7,7 @@ time, with the exact values to type. Everything else here is setup.
 
 ## Between rehearsals — the one command
 
-A rehearsal leaves the base changed, not just fuller: Act IV's correction re-points
+A rehearsal leaves the base changed, not just fuller: Act IV's overage request re-points
 the over-delivered row onto the corrective order and clears its flag, and Act I's
 approvals advance the signing chain. Neither rewinds, so the way back is a rebuild.
 That is one command:
@@ -22,7 +22,7 @@ nothing.
 
 It runs the wipe, clears the Blob objects a script wrote, runs the seed, and then
 reads the base back to check the four things a rehearsal moves — the over-delivery
-is over again with no correction against it, the waiting invoice names no delivery,
+is over again with no request against it, the waiting invoice names no delivery,
 the waiting delivery has no invoice, and its order is uninvoiced — plus that no record
 outside the seed's own survived. Six checks; a failure exits 1.
 

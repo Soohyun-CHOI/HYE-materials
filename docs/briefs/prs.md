@@ -55,15 +55,16 @@ on record; dimming is the app's standing language for "ended", used again on the
 purchase order list and on this request's own signing chain. The ID link inherits
 the muted color and stays clickable.
 
-**When some over-delivery has no correction raised for it:** an amber strip
-between the heading and the filter bar. It carries a heading with a count —
-`N over-deliveries have no correction` — the line `Longest wait first. A row with
-everything it needs raises the correction here; the rest say what has to come
-first.`, and one line per case: the delivery ID as a link, a short label, and
-either a control to raise the correction or a short chip saying what has to
-happen first (`no invoice yet`, `spans two invoices`, `invoice has no file`, and
-three more). The count was wrong here before this line was corrected — there were
-seven chips, not six.
+**When some over-delivery is waiting for a request:** an amber strip between the
+heading and the filter bar. It carries a heading with a count —
+`N over-deliveries are waiting for a request` — the line `Longest wait first. A
+row with everything it needs raises the request here; the rest say what has to
+come first.`, and one row per case: the delivery ID as a link, a short label, and
+either a control to raise the request or a short chip saying what has to happen
+first. The chips are `no invoice yet`, `invoice and delivery disagree`,
+`spans two invoices`, `invoices differ on price` and `invoice has no file` —
+named rather than counted, because this paragraph has twice carried a count that
+went stale under it.
 
 **One of those chips covers two opposite errors on purpose.** `invoice and
 delivery disagree` is shown both where the vendor invoiced less than it sent and
@@ -73,7 +74,7 @@ the same — take it up with the vendor — and a closed set gains nothing from 
 values with one action behind them.
 
 **The strip renders nothing at all when there is nothing.** No all-clear, no
-empty box, no heading. This is a deliberate rule shared by all three strips in
+empty box, no heading. This is a deliberate rule shared by every strip in
 the app: a standing all-clear above every list is a thing people learn to skip,
 and then it is not a signal on the day it changes. It is the single most
 important conditional behavior in the app to preserve.
@@ -85,12 +86,12 @@ is a column for that reason.
 
 ## What must agree elsewhere
 
-**The strip's shape is one of three.** This one, the purchase-order list's
-awaiting-order strip, and the invoice list's awaiting-invoice strip are one
+**The strip's shape is shared.** This one, the purchase-order list's
+awaiting-order strip and the invoice list's awaiting-invoice strip are one
 pattern: sit above the list, carry a counted heading and one explanatory line,
 list one row per case with an action on the row where there is one, and render
 nothing when empty. They should stay one pattern — a reader who learns one has
-learned all three.
+learned them all.
 
 **The action on a strip row is on the row because the row is what the action
 takes.** One purchase order can carry several ordered items each with its own

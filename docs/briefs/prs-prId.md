@@ -108,9 +108,9 @@ dims. The circles stay frozen where they got to, which is the honest record of
 how far it went. The caption is needed because the paused and not-reached colors
 read the same as a chain that never started.
 
-**When this request corrects an over-delivery, or one corrects it:** one or more
+**When this request covers an over-delivery, or one covers its own:** one or more
 amber banners at the very top, above the confirmation line and the money. Every
-word is derived rather than stored, so withdrawing the correction reopens the
+word is derived rather than stored, so withdrawing the request reopens the
 situation by itself. They stay after signature, because an overage request read
 on its own looks like a duplicate with no quotation of its own.
 

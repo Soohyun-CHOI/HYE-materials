@@ -132,9 +132,9 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
 
     const banners = describeDelivery(rows);
 
-    // Issue #167 — the correction affordance, one entry per over-delivered row.
+    // Issue #167 — the overage-request affordance, one entry per over-delivered row.
     // Costs no query on an ordinary delivery: getOverageContext returns immediately
-    // when no row is flagged and none carries a correction already. Job-scoped
+    // when no row is flagged and none carries a request already. Job-scoped
     // rather than office-gated, per the issue — raising the request is site work,
     // which narrows what #166 withheld on the deliveries LIST. See
     // createOverageDraftAction on what that reveals and what it does not.
@@ -152,7 +152,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                 label: [item.itemName, item.size].filter(Boolean).join(" "),
                 eligible: context.eligibility.eligible,
                 // #265 — the marker is the TIE-BREAK now, not an inference: #219's
-                // tiers are gone and a correction is offered only where the excess is
+                // tiers are gone and a request is offered only where the excess is
                 // invoiced, so what the `!` reports is that several invoices could have
                 // supplied the quotation at the same price. #217 put the lookup in
                 // lib/overage.js because the strip renders the same marker.
@@ -252,7 +252,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                 </p>
             ))}
 
-            {/* Issue #167 — the correction, right under the banner that reports the
+            {/* Issue #167 — the overage request, right under the banner that reports the
                 over-delivery, because that is where a reader has just been told
                 there is one. An INELIGIBLE row still says why rather than showing
                 nothing: "there is no invoice yet" and "the excess spans two
@@ -262,7 +262,7 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                     key={overage.id}
                     className="mt-2 rounded border border-zinc-200 px-3 py-2 text-sm"
                 >
-                    <p className="font-medium">Correction — {overage.label}</p>
+                    <p className="font-medium">Overage — {overage.label}</p>
                     {/* #217 — a message that names a request arrives in parts so the
                         id can be a link: copy stays a pure module with no JSX in it,
                         and this is the one site that can render one. Everything else

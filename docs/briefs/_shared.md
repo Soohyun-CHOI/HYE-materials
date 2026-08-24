@@ -322,7 +322,7 @@ and "outside your scope", because telling the two apart would confirm that a
 record exists outside someone's scope.
 
 `lib/deliveryInvoiceMatch.js` carries the seven pairing sentences, including the
-tie-break. `lib/overage.js` carries the correction's preview, its eight
+tie-break. `lib/overage.js` carries the overage request's preview, its eight
 refusals, its five short strip reasons (`no invoice yet`, `invoice and delivery
 disagree`, `spans two invoices`, `invoices differ on price`, `invoice has no
 file`) and seven banners. **A sixth read `no ordered item` and went in #278**,

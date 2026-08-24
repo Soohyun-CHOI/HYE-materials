@@ -205,6 +205,25 @@ const PINNED = [
     "✓ Paid",
     "Not paid",
     "Over-delivered",
+    // #272 — THE STRIP ABOVE `/prs` WAS QUOTED IN A BRIEF AND PINNED NOWHERE, and
+    // this issue is what found it: the vocabulary sweep reworded the heading, the
+    // explanation and the block heading on the delivery detail, and every check
+    // stayed green while `prs.md` went on quoting the old sentences to a designer.
+    // That is the exact drift this list exists to catch, so the strip's own words
+    // join it. The heading is pinned without its figure, as the three above are.
+    // A PIN MUST NOT CROSS THE BRIEF'S OWN LINE WRAP, which is why the second of
+    // these starts mid-sentence: the briefs wrap at 72 characters and this one
+    // breaks after `A`, so the longer form matched the constant and not the brief.
+    "over-deliveries are waiting for a request",
+    "row with everything it needs raises the request here",
+    // The five chips the same paragraph names. `prs.md` used to say how many there
+    // were and was wrong twice; it names them now, which is only worth doing if the
+    // names are held to the constant.
+    "no invoice yet",
+    "invoice and delivery disagree",
+    "spans two invoices",
+    "invoices differ on price",
+    "invoice has no file",
 ];
 
 export function run({ check, assert, log }) {

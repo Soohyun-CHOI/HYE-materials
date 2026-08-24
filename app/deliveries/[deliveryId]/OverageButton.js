@@ -6,7 +6,7 @@ import { QualifierMarker } from "@/app/components/DeliveryStatusMarks";
 import { createOverageDraftAction } from "./actions";
 
 /**
- * Raise the corrective request for one over-delivery (#167).
+ * Raise the overage request for one over-delivery (#167).
  *
  * THE PREVIEW IS RESOLVED ON THE SERVER — `messages` arrives as plain strings from
  * lib/overage.js:describeOveragePreview, the same arrangement DeleteDeliveryButton
@@ -23,7 +23,7 @@ import { createOverageDraftAction } from "./actions";
  *
  * #265 CHANGED WHAT IT MEANS AND KEPT THE SHAPE. It stood for an INFERENCE until
  * then: the app had picked a document without being able to say the excess was invoiced
- * at all. The agreement rule made that guess unnecessary — a correction is offered
+ * at all. The agreement rule made that guess unnecessary — a request is offered
  * only where the two documents meet above the order — so what is left is a TIE-BREAK,
  * and the sentence says several invoices could have supplied the quotation at the same
  * price. The `!` is the same `!`; it no longer says the app guessed.
@@ -46,7 +46,7 @@ export default function OverageButton({ deliveryItemId, messages, tieBreakLabel 
                     onClick={() => setOpen(true)}
                     className="rounded border border-zinc-300 px-2 py-0.5 text-xs"
                 >
-                    Raise a correction
+                    Raise the request
                 </button>
                 {tieBreakLabel && <QualifierMarker label={tieBreakLabel} />}
             </span>
@@ -58,7 +58,7 @@ export default function OverageButton({ deliveryItemId, messages, tieBreakLabel 
             {open && (
                 <div className={MODAL_BACKDROP}>
                     <div className={`${MODAL_CARD} max-w-lg`}>
-                        <h2 className="text-lg font-medium">Raise a correction for this over-delivery</h2>
+                        <h2 className="text-lg font-medium">Raise a request for this over-delivery</h2>
                         <div className="mt-3 space-y-2 text-sm text-zinc-600">
                             {messages.map((m, i) => (
                                 <p key={i}>{m}</p>

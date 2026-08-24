@@ -7,10 +7,10 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
-import { getUncorrectedOverages } from "@/lib/overagePR";
+import { getOveragesAwaitingRequest } from "@/lib/overagePR";
 import { withOpsLabel } from "@/lib/airtableOps";
 import PRListClient from "./PRListClient";
-import UncorrectedOverageStrip from "./UncorrectedOverageStrip";
+import OverageStrip from "./OverageStrip";
 
 export const metadata = { title: "Purchase Requests" };
 
@@ -71,14 +71,14 @@ async function renderPRListPage({ searchParams }) {
     // after them, so the strip costs the page no extra round trip. ITS ROWS ARE
     // GATED BY THE DELIVERY RULE, NOT THIS PAGE'S: the table is purchase requests
     // under canViewPR and these are deliveries under canAccessJobDeliveries, which
-    // admit different people — see getUncorrectedOverages for why the delivery rule
+    // admit different people — see getOveragesAwaitingRequest for why the delivery rule
     // is the right one here (createOverageDraftAction re-authorizes on it, so any
     // other gate would render a button the action refuses). The accessible jobs are
     // narrowed before the read, so a delivery on a job this viewer cannot reach is
     // never fetched.
     const [requesterRecords, overages] = await Promise.all([
         getUsersByRecordIds(requesterIds),
-        getUncorrectedOverages(jobsFor(user, jobs)),
+        getOveragesAwaitingRequest(jobsFor(user, jobs)),
     ]);
     const userNameById = Object.fromEntries(
         requesterRecords.filter(Boolean).map((u) => [u.id, u.userName])
@@ -133,7 +133,7 @@ async function renderPRListPage({ searchParams }) {
             {/* Issue #217 — above the list, because it is about requests that do not
                 exist yet: the same reason #176's strip is a strip rather than a
                 column, since the row that would carry the fact is the thing missing. */}
-            <UncorrectedOverageStrip rows={overages} />
+            <OverageStrip rows={overages} />
 
             <PRListClient
                 rows={rows}
