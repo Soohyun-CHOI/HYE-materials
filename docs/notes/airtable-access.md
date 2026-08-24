@@ -139,12 +139,13 @@ Enforced by `scripts/tests/offline/client-import-safety.mjs`, which walks the re
 
 **What is NOT covered by that.** The Metadata API cannot write everything, and the limits are measured rather than inferred from the documentation. **Two of them constrain a design:** an existing single select's option list cannot be PATCHed at all (see Units), and `prefersSingleRecordLink` is refused on field CREATE (422 `INVALID_FIELD_TYPE_OPTIONS_FOR_CREATE`) **and on field UPDATE** (422 `INVALID_REQUEST_UNKNOWN`, with and without `linkedTableId` alongside it). It is READABLE, though, so a check can report it — and where the app enforces single-record itself, the invariant is checked on the DATA instead, since an unenforced invariant drifts silently and no schema property would show it (`verify-overage-167.mjs` Part A).
 
-**Three more are measured and constrain a procedure rather than a design.** They were CLAUDE.md's until the routing pass that followed #263 moved them here, on the ground that a measured limit is evidence and belongs with the derivation; the rule they support — that a schema edit may not be assumed scriptable, and that this file has the figures — stays there, because a schema change ships from whichever area's commit needs it.
+**Three more constrain a procedure rather than a design.** They were CLAUDE.md's until the routing pass that followed #263 moved them here, on the ground that a measured limit is evidence and belongs with the derivation; the rule they support — that a schema edit may not be assumed scriptable, and that this file has the figures — stays there, because a schema change ships from whichever area's commit needs it.
 
 - A `multipleRecordLinks` field CAN be created, and a table CAN be created.
 - A table CANNOT be deleted: 404, there is no endpoint.
 - Creating a link field auto-creates the symmetric field on the far table, named after the source table, and **that name can be PATCHed afterwards** — which is why every reverse-link on this base reads as a deliberate name rather than as whatever Airtable generated.
-- A field's `description` PATCHes cleanly (200) where its `options` do not, which is the asymmetry #283's sweep of sixteen descriptions rests on.
+
+**A fourth was measured in #283 and never lived in CLAUDE.md:** a field's `description` PATCHes cleanly (200) where its `options` do not. That asymmetry is what the sweep of sixteen descriptions in that issue rests on, and it is recorded here rather than left in a pull request body because it is the limit somebody planning the next schema edit will want first.
 
 **Deleting or retyping a field is still not the same as renaming it**, and neither is adding one. A rename preserves every value; a type change can silently drop them. The dummy-data convention below is unchanged: records in this base are not to be removed as tidying-up.
 

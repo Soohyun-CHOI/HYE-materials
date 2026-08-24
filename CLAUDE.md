@@ -170,7 +170,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Addresses**: Address Label (primary), Line 1/2, City, State, Zip Code, Country, Formatted Address (formula).
 
-**Materials**: **item identity** (#18). Natural key = Item Name + Size + Unit `Unit` is the same 19-value single select as the three item tables (see Units). Writable: those three fields, and nothing else. Computed: `Material Label` (primary, formula = `Item Name` + `_Size` + `_Unit`, omitting blanks), `_Record ID`, the `Committed Qty` / `Signed Qty` / `Invoiced Qty` rollups and the `Uninvoiced Qty` formula. The `Material Prices` and `PO Items` links are both maintained from the far side. USD only.
+**Materials**: **item identity** (#18). Natural key = Item Name + Size + Unit. `Unit` is the same 19-value single select as the three item tables (see Units). Writable: those three fields, and nothing else. Computed: `Material Label` (primary, formula = `Item Name` + `_Size` + `_Unit`, omitting blanks), `_Record ID`, the `Committed Qty` / `Signed Qty` / `Invoiced Qty` rollups and the `Uninvoiced Qty` formula. The `Material Prices` and `PO Items` links are both maintained from the far side. USD only.
 
 **Material Prices**: item × vendor (#18). Natural key = Material + Vendor. `Price Label` (primary, formula over the two links), `Material` / `Vendor` (links, single), `Unit Price`, `Latest Date` (calendar), `Latest PO` (link), and `Material Record ID` / `Vendor Record ID` lookups. Still a latest-value cache.
 
