@@ -55,6 +55,21 @@ on record; dimming is the app's standing language for "ended", used again on the
 purchase order list and on this request's own signing chain. The ID link inherits
 the muted color and stays clickable.
 
+**When a request is not an ordinary one:** a small mark beside its id, reading
+`Overage` or `Direct purchase`. Nothing at all on an ordinary request, which is
+almost all of them — and that silence is a computed answer rather than a missing
+one. The mark exists because a signer's decision differs: an ordinary request
+asks whether to buy, an overage one whether to accept an excess that has already
+arrived and been invoiced, and a direct-purchase one whether to accept a purchase
+somebody already made. A word on every row would make the exceptional rows
+ordinary again.
+
+**It is in the ID cell rather than the Status column or a column of its own.**
+Status carries this list's one verdict and would then hold two kinds of fact; a
+seventh column would be blank on almost every row. The mark is also NOT one of
+the status tones — it says what a request IS, not how far it has got — and the
+shared brief lists it among the distinctions that are not tones.
+
 **When some over-delivery is waiting for a request:** an amber strip between the
 heading and the filter bar. It carries a heading with a count —
 `N over-deliveries are waiting for a request` — the line `Longest wait first. A

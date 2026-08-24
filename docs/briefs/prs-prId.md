@@ -24,7 +24,9 @@ loses the record of who agreed to what.
 **identity.** The PR ID as the page heading, then a block of small lines: the
 status in bold, the job, the line, the vendor, and the requester. `Line` here
 means a `Lines` row under a job and nothing else — it is not a row of the items
-table, and the word is reserved.
+table, and the word is reserved. **A mark sits beside the heading when this is
+not an ordinary request** — `Overage` or `Direct purchase`, the same two words
+the request list uses.
 
 **evidence — `Total Amount`.** The request's total, in the largest type on the
 page, in a bordered block of its own.
@@ -107,6 +109,19 @@ the requester ended it and no further signing will happen, and the chain below i
 dims. The circles stay frozen where they got to, which is the honest record of
 how far it went. The caption is needed because the paused and not-reached colors
 read the same as a chain that never started.
+
+**When this request covers material a site bought directly:** one amber line at
+the top, in the same slot the overage banner uses, saying that the material was
+bought before any request existed, naming the vendor and their own invoice
+number, and then what approving it means — that it accepts a purchase already
+made rather than authorizing a new one. **That last clause is the point of the
+whole mark**: a signer's decision here is not whether to buy.
+
+**The overage kind has no such sentence, deliberately.** Its own banner is
+already at the top of the page and says more than a kind sentence could — how
+much arrived beyond which order, on which delivery. Two voices for one fact is
+what the shared slot exists to avoid, so the two kinds differ only in what fills
+it.
 
 **When this request covers an over-delivery, or one covers its own:** one or more
 amber banners at the very top, above the confirmation line and the money. Every

@@ -14,6 +14,7 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import { describeOverageBanner } from "@/lib/overage";
+import { PR_KIND, PR_KIND_COPY, prKind } from "@/lib/prKind";
 import { awaitingPOCopy } from "@/lib/poListView";
 import { getOverageBannerFacts } from "@/lib/overagePR";
 import { formatUSD } from "@/lib/format";
@@ -95,6 +96,11 @@ async function renderPRDetailPage({ params, searchParams }) {
     // Issue #167 — is this request an overage correction? Free on every ordinary PR:
     // the reverse-link recordToPR exposes is empty unless a delivery row points here,
     // and getOverageBannerFacts returns before its first query in that case.
+    // Issue #272 — what kind of request a signer is looking at, read from the two
+    // reverse-links recordToPR already carries. Free on every request, ordinary ones
+    // included, and stored nowhere: see lib/prKind.js.
+    const kind = prKind(pr);
+
     const overageBanners =
         (await getOverageBannerFacts(pr))?.map((banner) => ({
             ...banner,
@@ -210,7 +216,15 @@ async function renderPRDetailPage({ params, searchParams }) {
     return (
         <div className="mx-auto w-full max-w-2xl p-8">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold">{pr.prId}</h1>
+                <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-semibold">{pr.prId}</h1>
+                    {/* #272 — the same mark the list carries, in the same words. */}
+                    {PR_KIND_COPY.chip[kind] && (
+                        <span className="rounded bg-zinc-200 px-2 py-0.5 text-xs text-zinc-700">
+                            {PR_KIND_COPY.chip[kind]}
+                        </span>
+                    )}
+                </div>
                 {/* Always the unfiltered full list — returning to a filtered
                     list is the back button's job (the filter URL is preserved
                     there), so this link deliberately carries no filter params. */}
@@ -248,6 +262,28 @@ async function renderPRDetailPage({ params, searchParams }) {
                         </p>
                     )
                 )
+            )}
+
+            {/* Issue #272 — the direct-purchase kind's own sentence, in the slot the
+                overage banner uses, because the two kinds are answering the same
+                question for a signer: what am I actually approving. The overage kind
+                has no sentence of its own here on purpose — its banner above already
+                says more than one could, and two voices for one fact is what this
+                slot exists to avoid.
+
+                Every word is derived: the vendor is already resolved for the panel
+                below, and the invoice's own number is the quotation's
+                `Vendor Quotation Code`, which the claim wrote and this page already
+                loaded. So the sentence costs no read. */}
+            {kind === PR_KIND.directPurchase && (
+                <p className="mt-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                    {
+                        PR_KIND_COPY.signer[PR_KIND.directPurchase]({
+                            vendorName,
+                            vendorInvoiceCode: quotations[0]?.vendorQuotationCode || "",
+                        }).text
+                    }
+                </p>
             )}
 
             {done && DONE_MESSAGES[done] && (

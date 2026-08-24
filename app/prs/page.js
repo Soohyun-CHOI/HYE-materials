@@ -6,6 +6,7 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
+import { prKind } from "@/lib/prKind";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { getOveragesAwaitingRequest } from "@/lib/overagePR";
 import { getDirectPurchasesAwaitingRequest } from "@/lib/directPurchaseClaim";
@@ -106,6 +107,12 @@ async function renderPRListPage({ searchParams }) {
         jobCode: jobsById[pr.job?.[0]]?.jobCode || null,
         lineName: linesById[pr.line?.[0]]?.lineName || null,
         total: pr.totalAmount ?? pr.itemsSubtotal ?? 0,
+        // Issue #272 — FREE, and that is why it is here rather than in the client:
+        // both reverse-links the kind is read from are already on the record
+        // getSubmittedPRs returned, so this costs no query and no round trip. The
+        // judgment runs on the server and the browser reads a key, which is the
+        // arrangement #198 uses for an unsigned order.
+        kind: prKind(pr),
     }));
 
     const jobOptions = accessibleJobs.map((j) => ({

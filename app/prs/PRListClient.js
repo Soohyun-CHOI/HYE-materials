@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
+// Issue #272 — pure and import-free, so this component may hold the words while the
+// judgment stays on the server: `kind` arrives as a key, exactly as `unsigned`
+// arrives as a boolean on the invoice form (#198).
+import { PR_KIND_COPY } from "@/lib/prKind";
 import JobFilterDropdown from "./JobFilterDropdown";
 
 // Issue #119 (follow-up) — instant, client-side narrow-filtering over the
@@ -151,10 +155,22 @@ export default function PRListClient({
                                         (isWithdrawn ? " text-zinc-400" : "")
                                     }
                                 >
+                                    {/* Issue #272 — the kind sits in the IDENTITY cell
+                                        rather than in a seventh column, because it is
+                                        absent on almost every row and a column of blanks
+                                        buys nothing; and not in the Status cell, which is
+                                        this list's one verdict and would then be carrying
+                                        two different kinds of fact. The judgment ran on
+                                        the server (page.js); this reads a key. */}
                                     <td className="py-1 pr-2">
                                         <Link href={`/prs/${r.prId}`} className="underline">
                                             {r.prId}
                                         </Link>
+                                        {PR_KIND_COPY.chip[r.kind] && (
+                                            <span className="ml-2 rounded bg-zinc-200 px-1.5 py-0.5 text-xs text-zinc-700">
+                                                {PR_KIND_COPY.chip[r.kind]}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="py-1 pr-2">{r.requesterName}</td>
                                     <td className="py-1 pr-2">{r.vendorName}</td>

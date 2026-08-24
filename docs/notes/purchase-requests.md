@@ -216,3 +216,59 @@ anybody pressed the button.
   request — the state that shipped. So the first thing asserted is that the two
   answers diverge at all, before any per-stage detail. Verified by mutation:
   making `stillWaiting` mean `requestOfferable` fails it on the first line.
+
+### Three kinds, and where the kind lives (#272)
+
+A signer approving a request is making one of three different decisions —
+whether to buy something, whether to accept an excess that already arrived and
+was invoiced, or whether to accept a purchase somebody already made — and until
+this issue the screen said nothing about which. #167's request carried its kind
+in a sentence written into `Notes` and in a banner derived on its own page; the
+list could not tell them apart at all, and the third kind did not exist yet.
+
+- **THE KIND IS TWO LINKS AND NO FIELD, and the alternatives were weighed rather
+  than skipped.** A `Kind` select on `Purchase Requests` was the obvious shape and
+  is the one this rejected: an overage request already HAS a record pointing at it
+  (`Delivery Items."Overage PR"`), so a field would be a second home for a fact the
+  base already states — it would need writing by every path that ever creates one,
+  nothing would fail if a future path forgot, and the request would then read as
+  ORDINARY. That is the worst failure available to a mark whose only job is to say
+  "this one is not". Deriving everything was the other option and it could not
+  express the third kind at all: at the moment the office records a direct purchase
+  there is no invoice record, no delivery and no order to derive from. So the third
+  kind got a record of its own — which is `Direct Purchases`, and which is also
+  what makes the link symmetric with the overage side.
+- **WHICH IS WHY THERE IS NO CHECKBOX.** An earlier pass of this design had one,
+  `Already Bought`, set by the office's write. Once the hand-off became a table
+  with a link back to the request, the checkbox was a second copy of what the link
+  said, written in the same transaction — exactly the shape the paragraph above
+  rejects. What it would have bought is a `filterByFormula`, and `/prs` filters in
+  the browser over rows it already holds.
+- **BOTH LINKS ARE FREE.** `recordToPR` carries both arrays because Airtable's
+  symmetric field puts them on the record, so `prKind` costs no query on any screen
+  holding a mapped request — `/prs` reads it for every row and `/prs/[prId]` for
+  one, and neither spends an operation.
+- **THE WORDS ARE `Overage` AND `Direct purchase`, AND ORDINARY IS SILENT.** The
+  ban on `correction` is in `naming.md`; what belongs here is the silence. A mark
+  on every row makes the exceptional rows ordinary, which is the failure the mark
+  exists to prevent — the same judgment #232 made when it deleted a caption whose
+  only content was "nothing unusual here", and the same one every strip makes by
+  rendering nothing when there is nothing. The silence is a computed answer: the
+  derivation runs on every request and returns `ordinary`.
+- **THE SIGNER GETS A SENTENCE, THE LIST GETS A MARK, AND ONLY ONE KIND NEEDS
+  BOTH.** A chip cannot say what approving means, and that is the whole ground of
+  this issue, so the direct-purchase kind carries a sentence on the request's own
+  page: the material was bought before any request existed, here is the vendor and
+  their own invoice number, and approving accepts a purchase already made. The
+  overage kind deliberately has none — #167's banner is already in that slot and
+  says more than a kind sentence could, so a second one would be two voices for one
+  fact.
+- **THE CHECK IS `offline/pr-kind.mjs`, AND ITS FIRST ASSERTION IS THE MUTANT.** A
+  deriver that always answers the same kind leaves every screen looking ordinary —
+  no chip anywhere, which is exactly the ordinary day — or puts one word on every
+  exceptional row, which reads as a decision. So the first thing asserted is that
+  the three inputs produce three DIFFERENT answers. Verified by mutation: replacing
+  the body with `return PR_KIND.ordinary` fails it on the first line. The
+  precedence when both links are set is pinned too, though the app cannot produce
+  such a request: "cannot happen" is not a reason to leave the answer to the order
+  two clauses were written in.

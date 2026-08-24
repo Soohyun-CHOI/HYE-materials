@@ -57,6 +57,7 @@ import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
 import { OVERAGE_COPY } from "../../../lib/overage.js";
 import { DIRECT_PURCHASE_COPY } from "../../../lib/directPurchase.js";
 import { WAIT_COPY } from "../../../lib/prWait.js";
+import { PR_KIND_COPY } from "../../../lib/prKind.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -235,6 +236,12 @@ const PINNED = [
     "no invoice number",
     "View invoice",
     "draft with",
+    // #272 — the kind marks. Two words rather than one repeated is what the offline
+    // check pins; that the BRIEFS still quote them is what this pins, and the two
+    // together are what stops a designer being handed a word the app no longer says.
+    "Overage",
+    "Direct purchase",
+    "rather than authorizing a new one",
 ];
 
 export function run({ check, assert, log }) {
@@ -372,6 +379,7 @@ export function run({ check, assert, log }) {
         ...stringsFrom(OVERAGE_COPY),
         ...stringsFrom(DIRECT_PURCHASE_COPY),
         ...stringsFrom(WAIT_COPY),
+        ...stringsFrom(PR_KIND_COPY),
     ];
     assert("the copy constants yielded strings", loadable.length > 20);
     // AND NO `STATUS_COPY` SENTENCE RENDERED `undefined`, WHICH IS WHAT A STALE INPUT
