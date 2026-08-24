@@ -95,6 +95,7 @@ export function run({ check, log, assert }) {
     check("PO keeps the 4-digit year", dailyIdPrefix(ID_KINDS.PO, AUG_3), "HYE-PO-20260803");
     check("Invoice", dailyIdPrefix(ID_KINDS.INVOICE, AUG_3), "HYE-INV-260803");
     check("Delivery", dailyIdPrefix(ID_KINDS.DELIVERY, AUG_3), "HYE-DL-260803");
+    check("Direct purchase", dailyIdPrefix(ID_KINDS.DIRECT_PURCHASE, AUG_3), "HYE-DP-260803");
 
     // The lengths the issue and CLAUDE.md both wrote down wrong. Recorded as
     // measurements rather than as a constant anything reads: `LEFT({Invoice ID},
@@ -107,6 +108,7 @@ export function run({ check, log, assert }) {
     check("PR is 13", dailyIdPrefix(ID_KINDS.PR, AUG_3).length, 13);
     check("PO is 15", dailyIdPrefix(ID_KINDS.PO, AUG_3).length, 15);
     check("Delivery is 13", dailyIdPrefix(ID_KINDS.DELIVERY, AUG_3).length, 13);
+    check("Direct purchase is 13", dailyIdPrefix(ID_KINDS.DIRECT_PURCHASE, AUG_3).length, 13);
 
     log("");
     log("the ID field each family counts — never a date field:");
@@ -114,6 +116,10 @@ export function run({ check, log, assert }) {
     check("PO", ID_KINDS.PO.idField, "PO ID");
     check("Invoice", ID_KINDS.INVOICE.idField, "Invoice ID");
     check("Delivery", ID_KINDS.DELIVERY.idField, "Delivery ID");
+    // #272 — the fifth family, and the one with the most tempting date field on its
+    // own record: `Issue Date` is copied off the vendor's document and is routinely
+    // months old, so counting it would be #164 with a worse input.
+    check("Direct purchase", ID_KINDS.DIRECT_PURCHASE.idField, "Direct Purchase ID");
     // The defect as a property rather than as four equalities: whatever a kind
     // names, it must not be one of the fields a date lives in.
     const kinds = Object.entries(ID_KINDS);
@@ -121,7 +127,7 @@ export function run({ check, log, assert }) {
         "no kind names a date field (the #164 defect, as a property)",
         kinds.every(([, kind]) => !DATE_FIELD_NAMES.includes(kind.idField))
     );
-    assert("all four families are registered", kinds.length === 4);
+    assert("every family is registered", kinds.length === 5);
 
     log("");
     log("assembling an ID:");
@@ -369,7 +375,7 @@ export function run({ check, log, assert }) {
     });
 
     assert("it still builds a filterByFormula at all (else this check is inert)", formulas.length > 0);
-    check("exactly one, shared by all four families", formulas.length, 1);
+    check("exactly one, shared by every family", formulas.length, 1);
     check("and it is a bare prefixMatch() call", formulas[0], "prefixMatch(kind.idField, prefix)");
 
     const named = DATE_FIELD_NAMES.filter((field) => literals.some((text) => text.includes(`{${field}}`)));
@@ -387,14 +393,20 @@ export function run({ check, log, assert }) {
 
     // The four generators must go through the shared helper, or "one rule" is a
     // comment rather than a fact. Each body is one return of mintDailyId(...).
-    const GENERATORS = ["generateNextPRId", "generateNextPOId", "generateNextInvoiceId", "generateNextDeliveryId"];
+    const GENERATORS = [
+        "generateNextPRId",
+        "generateNextPOId",
+        "generateNextInvoiceId",
+        "generateNextDeliveryId",
+        "generateNextDirectPurchaseId",
+    ];
     const delegating = [];
     walk(ids.ast, (node) => {
         if (node.type !== "FunctionDeclaration" || !GENERATORS.includes(node.id?.name)) return;
         const body = ids.source.slice(node.body.start, node.body.end);
         if (/\breturn mintDailyId\(/.test(body)) delegating.push(node.id.name);
     });
-    check("all four generators delegate to the one helper", delegating.length, GENERATORS.length);
+    check("every generator delegates to the one helper", delegating.length, GENERATORS.length);
     for (const name of GENERATORS) {
         assert(`${name} delegates`, delegating.includes(name));
     }

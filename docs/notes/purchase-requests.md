@@ -129,3 +129,48 @@ Two rows agreeing on name, size, unit, unit price, remark and quotation are one
   deliveries note records in its own words that this "does not wait on #170". There is
   no workaround left to preserve — what remains is a total order that resolves the
   ordered item by fill order, which merging neither helps nor harms.
+
+### A request that has not found its requester yet (#272)
+
+A site buys material directly from a vendor with no order behind it. The invoice
+reaches the office, `/invoices/new` has no order for it to charge, and the office
+cannot raise the request either — so the office records what the invoice says on a
+new table, `Direct Purchases`, and the site raises the request from it.
+
+- **IT IS A TABLE FOR A STRUCTURAL REASON, NOT A PREFERENCE, and the reason is one
+  field.** `Purchase Requests."Job"` is a Lookup THROUGH `Line`. The office learns
+  the Job by telephone and cannot learn the Line — #19's boundary, that a decision
+  made before a request exists cannot be helped by a form inside one — so a request
+  record physically cannot carry the one value that decides which site sees the row.
+  Two further reasons stand behind that one and would each need an exception of its
+  own: `canViewPR`'s first clause shows a `Draft` to its Requester and nobody else,
+  which is what protects every unfinished request in the app, so an office-owned
+  Draft would reach the site by widening a rule that has nothing to do with this
+  case; and `Requester` is written at create, while the whole point is that the
+  requester is the site staff who bought the material.
+- **AN INVOICE ENTERED EARLY WAS THE OTHER CANDIDATE AND IS CLOSED BY #278.** The
+  office is holding an invoice, so recording it as one is the obvious thought. But an
+  `Invoice Items` row requires an ordered item now, and an invoice with no items is
+  not a state this app has — it would also enter the invoice list, the variance
+  checks and the awaiting-delivery walk, each of which would need a case for a
+  document that charges nothing.
+- **NO ITEMS ON THE TABLE, AND THE MEASUREMENT DECIDED IT.** `/invoices/new` locks
+  its items section until at least one order is selected (`itemsReady`), so in the
+  dead end that produces these rows the office has typed no items and cannot: a
+  fifth items table would have to come with a form of its own, a sixth `Unit` select
+  that only `add_unit_options.py` may create, a ninth `CHILD_KINDS` entry — and it
+  would break the sentence #278 leaned on, that only a purchase request takes typed
+  items. The invoice travels as the `File` and the requester types the items into
+  the request, which is where a human types one. What the strip would lose is a row
+  that says what was bought, and `Notes` carries that instead: it is where the
+  office writes what it learned on the telephone. Adding the child table later is
+  purely additive — the claim would seed `PR Items` from it instead of leaving them
+  empty — so nothing here forecloses it.
+- **NO STATUS FIELD AND NO KIND FIELD.** What a row is waiting for is read from
+  `Purchase Request` and, when that is set, from the request's own `Status`; the
+  request's kind is read from the same link. Both are the rule this issue settled
+  for the overage side too — a link that exists is the fact, and a field beside it
+  is a second copy nothing would notice going stale.
+- **What it costs: one ID family.** `HYE-DP-YYMMDD-##`, the fifth in `ID_KINDS`, and
+  it takes the daily-prefix rule unchanged — see `id-generation.md` for why this is
+  the family whose own record carries the most tempting date field to count instead.

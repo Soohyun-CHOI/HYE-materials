@@ -86,7 +86,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, plus the whole-formula builders `orByRecordId` / `orByField` / `andSearchAll` / `prefixMatch`.
 - `lib/ids.js` — all ID generation: the lock, the query and the create.
-- `lib/idSequence.js` — the pure half: the four daily ID families, the eight child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
+- `lib/idSequence.js` — the pure half: the daily ID families, the eight child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
 - `lib/productName.js` — `PRODUCT_NAME` and `SIGN_IN_TITLE`. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/authTokenState.js` — whether a magic-link token can still be used: the five states, their copy, `TOKEN_TTL_MINUTES`.
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
@@ -130,7 +130,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 
 Two implementations of one judgment diverge, and catching the divergence then needs a third thing. A duplication is not closed by "leave it as two for now": if there is a real reason to keep two, that reason has to be a **measurable condition**, and the path to merging when it lifts has to be written down.
 
-## Data model (21 tables)
+## Data model (22 tables)
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index above.
 
@@ -174,6 +174,8 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Delivery Items**: one allocated slice of a delivery (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Unit` (frozen reference copies), `Qty`, `Over Delivered` (checkbox, backend-set).
 
+**Direct Purchases**: material a site bought with no order behind it (#272). `Direct Purchase ID` (HYE-DP-YYMMDD-##), `Vendor` / `Job` (links, single; Job required, and app-enforced), `Vendor Invoice Code`, `Issue Date` (calendar), `File` (attachment, required at creation), `Notes`, `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Purchase Request` (link, single, optional). No items, no total and no status — what a row is waiting for is read from that last link and the request's own `Status`. **The request's KIND is read from the same link and stored nowhere else**, exactly as the overage kind is read from `Delivery Items."Overage PR"`: a field on `Purchase Requests` would be one fact in two places.
+
 **Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
 ### Units (PR Items / PO Items / Invoice Items / Materials / Delivery Items)
@@ -193,7 +195,7 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 
 ## ID generation (lib/ids.js)
 
-1. Top-level IDs (PR/PO/Invoice/Delivery): daily-reset counters, all four sharing one rule. PO uses a 4-digit year; the rest use 2-digit.
+1. Top-level IDs (PR/PO/Invoice/Delivery/Direct Purchase): daily-reset counters sharing one rule. PO uses a 4-digit year; the rest use 2-digit.
 2. Child-table IDs: `{Parent ID}-{seq}`, resetting per parent, same **max + 1** rule.
 3. Vendor-issued codes (Vendor Quotation Code, Vendor Invoice Code): human-entered, scoped by Vendor.
 
