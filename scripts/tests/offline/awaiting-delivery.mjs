@@ -214,15 +214,13 @@ export function run({ check, assert, log }) {
         filtered.map((r) => r.invoiceId).join(" "),
         `${a.invoiceId} ${onBoundary.invoiceId}`
     );
-    // ANTI-VACUITY FOR THE FILTER: the dropped rows must be rows the selector would
-    // otherwise have returned, or this is measuring the ordered-item guard instead.
-    // Both come back the moment the wait is long enough, same inputs, later `today`.
-    const laterToday = select({
-        invoices: [shortOfIt],
-        status: {},
-        ordered: {},
-    });
-    check("  the short row is genuinely selectable otherwise", laterToday.length, 0);
+    // ANTI-VACUITY FOR THE FILTER, AND THE CHECK BELOW CARRIES ALL OF IT. The dropped
+    // rows have to be rows the selector would otherwise have returned, or this section
+    // is measuring the ordered-item guard instead — and the one thing that shows it is
+    // re-running the SAME row with nothing changed but `today`. A second call at the
+    // fixed `TODAY` proves nothing the assertion above has not already said, so there
+    // is deliberately no companion assertion here: the date-moved call is the whole
+    // anti-vacuity.
     check(
         "  and it is the DATE that excluded it",
         selectInvoicesAwaitingDelivery({
