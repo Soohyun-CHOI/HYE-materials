@@ -38,13 +38,19 @@ order, chosen from a dropdown. A `+ Add another PO` control appends a slot; each
 slot past the first can be removed. **One slot holds one order and no order can be
 picked twice**, which is the rule the whole picker is built around.
 
-**action — `Bought without an order?`,** a small text control on the same row as
+**action — `No PO for this invoice?`,** a small text control on the same row as
 `+ Add another PO`, under the order slots. It opens the direct-purchase modal
 below. **It is always present, and that is a decision rather than an oversight:**
 one of the two dead ends it answers — an order was found, and its ordered items
 are not what this invoice charges for — is a judgment only the reader can make,
 so there is no state the app could reveal the control on. It sits with the order
 picker because that is where a reader runs out of orders.
+
+**The label names what this app is missing, not what the site failed to do.**
+The site placed an order; that is what buying from a vendor is. What is absent
+is the `Purchase Orders` row, which is also the only thing `order` may mean on
+a screen, so the question asks about the gap in the app rather than about the
+purchase.
 
 **Each slot has its own independent search toggle,** labeled
 `Show all / search closed POs`. Off, the dropdown offers orders with something
@@ -145,8 +151,8 @@ the long form of the same fact is the section's own message above the rows.
 what will be recorded and what will not — the file becomes the evidence, and
 what was bought, which part of the job it was for and who signs are the site's
 to fill in — and then that **nothing else typed on this form is kept**, because
-the invoice cannot be entered until the request is approved and its order
-signed. It asks for two things the document cannot supply: the **Job**, required,
+the invoice cannot be entered until the request is approved and its purchase
+order signed. It asks for two things the document cannot supply: the **Job**, required,
 which is what puts the record in front of a site and which the office learns by
 telephone; and a free-text **note**, which is the only thing the site's list can
 say about what was bought, since no items are recorded. The job list is fetched

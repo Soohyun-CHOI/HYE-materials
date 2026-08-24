@@ -233,6 +233,12 @@ const PINNED = [
     // the constant interpolates.
     "direct purchases are waiting for a request",
     "recorded these from a vendor's invoice",
+    // The way out of an invoice with no order, and the modal it opens. The label was
+    // reworded once already — `Bought without an order?` spent `order` on the act of
+    // ordering, which `Purchase Orders` owns and the site had in fact done — so it is
+    // exactly the kind of string a brief goes on quoting after the screen has moved.
+    "No PO for this invoice?",
+    "Record a direct purchase",
     "no invoice number",
     "View invoice",
     "draft with",
