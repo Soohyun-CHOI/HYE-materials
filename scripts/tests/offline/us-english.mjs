@@ -6,6 +6,15 @@
 // stopped the next commit putting one back. A rule that only a person enforces
 // is the shape #187 removed for eslint; this is the same move for spelling.
 //
+// WHY THE RULE EXISTS, AND IT IS NOT A CLAIM THAT US SPELLING IS BETTER. This
+// repository's comments carry its reasoning, so the same word spelled two ways
+// across two files reads as two authors rather than one; and a mixed convention
+// gives every later edit a coin to flip. That is the whole argument, and it lives
+// here rather than in CLAUDE.md after the routing pass that followed #263: the
+// rule and its word list are what a writer needs and stay there, while the
+// justification is what somebody would need in order to RELAX the rule — and the
+// only way to relax it is to edit this file.
+//
 // SCOPE IS `app/` + `lib/`, THE SAME BOUNDARY product-name.mjs AND
 // formula-escaping.mjs DRAW, and here it does the same second job it does
 // there: it is what lets this check have NO EXEMPTION LIST. A British form has

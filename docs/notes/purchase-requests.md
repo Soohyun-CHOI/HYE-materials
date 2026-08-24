@@ -6,6 +6,12 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 
 ### Purchase Requests
 
+- **`Created At` was `Created Date` and was date-only until #105.** The migration is
+  provenance rather than a rule — the rule is the `*At` convention itself, which
+  CLAUDE.md's ID-generation section states for every table — so it sits here after the
+  routing pass that followed #263. What it explains for a reader of old code: a
+  same-day pair had no order before #105, and `lib/ids.js` no longer reads any date
+  field at all (#164), so nothing now depends on this field's precision.
 - **Withdrawn (#122)** is the documented exception to the "no Rejected status" posture: it's the Requester's own *self-retraction* of a submitted PR (circumstances changed / submitted in error), NOT a signer's rejection — signers keep Return for correction. It's a state transition (not a delete — contrast Draft delete): the PR, signer chain, correction history, and Edit Log all stay on record. Requester-only, allowed **only from In Review** this pass, terminal (no revive — re-request = a new PR). The Status flip is the single lever needed (every actionable path is gated behind In Review); Pending signers / open Correction Requests / Current Signer Step are left untouched to preserve the audit trail, and the signer progress bar drops correction arcs off-In-Review so a withdrawn PR reads as ended. `getSubmittedPRs` returns Withdrawn PRs (they aren't Drafts) so they stay visible/filterable in the #119 list. PR withdrawal stays **In Review-only**, and there is no plan to extend it to Approved: once a PR is approved its PO exists, and "we're not ordering after all" is a decision about the *order*, so it's expressed as the PO's own terminal `Withdrawn` (#138, see Purchase Orders below) — an Approved PR really was approved and its signer chain records that. The PR-status check that was once wanted in `signPOAction` therefore no longer applies rather than being satisfied: the guard added in #138 checks **PO** status, and since a PR is never withdrawn past In Review, an Approved PR's PO can't be signed out from under a withdrawn PR.
 
 ### PR Signers
