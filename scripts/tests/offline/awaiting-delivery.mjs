@@ -24,12 +24,73 @@ import { walk } from "./_ast.mjs";
 import { parseFile } from "./_ast.mjs";
 import {
     AWAITING_DELIVERY_COPY,
+    AWAITING_DELIVERY_DAYS,
     AWAITING_DELIVERY_KIND,
+    daysWaiting,
+    hasWaitedLongEnough,
     selectInvoicesAwaitingDelivery,
 } from "../../../lib/deliveryStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The invoices waiting on a delivery: selection, split, order (#256)";
+export const title = "The invoices waiting on a delivery: selection, split, order, threshold (#256, #263)";
+
+/**
+ * The `AWAITING_DELIVERY_COPY.explain` node, and every numeric literal under it.
+ *
+ * WHY THIS IS ASKED ON THE SOURCE. The threshold sentence must take its figure from
+ * `AWAITING_DELIVERY_DAYS` rather than spell it, and no runtime comparison can tell
+ * the two apart while they agree: `explain.includes(String(AWAITING_DELIVERY_DAYS))`
+ * passes just as happily on a hard-coded `7`. The two homes are then real and silent
+ * until somebody changes the constant, at which point the filter is exact and the
+ * screen claims the old number — which is #263's named mutant. `auth-token-state.mjs`
+ * checks the same property with `includes` plus a value pin, and that pair only fires
+ * once the two have already diverged; this fires when the second home appears.
+ */
+function explainCopySource() {
+    const { ast } = parseFile("lib/deliveryStatus.js");
+    let node = null;
+    walk(ast, (n) => {
+        if (node || n.type !== "VariableDeclarator") return;
+        if (n.id?.name !== "AWAITING_DELIVERY_COPY") return;
+        walk(n.init, (p) => {
+            if (node || p.type !== "Property") return;
+            if ((p.key?.name ?? p.key?.value) === "explain") node = p.value;
+        });
+    });
+    if (!node) return null;
+    const templateRefs = [];
+    const numbers = [];
+    const staticText = [];
+    walk(node, (n) => {
+        if (n.type === "TemplateLiteral") {
+            for (const e of n.expressions || []) {
+                if (e.type === "Identifier") templateRefs.push(e.name);
+            }
+        }
+        if (n.type === "Literal" && typeof n.value === "number") numbers.push(n.value);
+        // THE STATIC TEXT IS COLLECTED BECAUSE THE FIRST VERSION OF THIS FUNCTION
+        // MISSED THE MUTANT IT EXISTS FOR, and running it is what showed that. Spelling
+        // the figure in the sentence writes `"…waited 7 days…"` — a STRING literal, so
+        // the numeric scan below saw nothing and reported "spells no number of its
+        // own" while the sentence spelled it. A number in copy is prose, not a number.
+        if (n.type === "Literal" && typeof n.value === "string") staticText.push(n.value);
+        if (n.type === "TemplateElement") staticText.push(n.value.cooked ?? "");
+    });
+    return { templateRefs, numbers, staticText };
+}
+
+/** Every numeric literal in the constant's own declaration, for the scan's positive case. */
+function thresholdDeclarationNumbers() {
+    const { ast } = parseFile("lib/deliveryStatus.js");
+    const numbers = [];
+    walk(ast, (n) => {
+        if (n.type !== "VariableDeclarator" || n.id?.name !== "AWAITING_DELIVERY_DAYS") return;
+        walk(n.init, (p) => {
+            if (p.type === "Literal" && typeof p.value === "number") numbers.push(p.value);
+        });
+    });
+    return numbers;
+}
 
 const AWAITING = { key: "awaiting-delivery" };
 const MATCHED = { key: "delivered" };
@@ -71,6 +132,127 @@ export function run({ check, assert, log }) {
     assert("an awaiting invoice is SELECTED at all", baseline.length > 0);
     check("both awaiting invoices are selected", baseline.length, 2);
     log("  a selector returning [] passes every ordering and shape check below");
+
+    // -----------------------------------------------------------------------
+    // #263's OWN QUIET MUTANT, AND IT SITS SECOND RATHER THAN FIRST DELIBERATELY.
+    // It is: the threshold exists as a constant, the sentence states a number, and the
+    // two are different values — the filter is exact while the screen claims something
+    // else, and nothing fails. It cannot go above the assertion just made, because a
+    // selector returning nothing passes every threshold assertion below as vacuously
+    // as it passes the ordering ones; the empty-selector mutant has to be excluded
+    // first or this section is checking a list it never saw.
+    log("");
+    log("#263 THE THRESHOLD SENTENCE HAS ONE HOME — asserted on the source:");
+    const copySource = explainCopySource();
+    assert("the explain property was found in the source", copySource !== null);
+    assert(
+        `  it interpolates AWAITING_DELIVERY_DAYS rather than spelling ${AWAITING_DELIVERY_DAYS}`,
+        copySource?.templateRefs.includes("AWAITING_DELIVERY_DAYS")
+    );
+    check(
+        "  and spells no number of its own",
+        (copySource?.numbers ?? []).join(",") || "none",
+        "none"
+    );
+    // AND NOT IN THE PROSE EITHER, which is where a spelled figure actually goes. Both
+    // halves are needed: `${7}` is a numeric literal and `"7 days"` is a string one,
+    // and only the second is what somebody would really write.
+    const spelledInProse = (copySource?.staticText ?? []).filter((s) =>
+        new RegExp(`\\b${AWAITING_DELIVERY_DAYS}\\b`).test(s)
+    );
+    check(
+        "  nor spells it in the prose",
+        spelledInProse.join(" | ") || "none",
+        "none"
+    );
+    // ANTI-VACUITY, AND THE NUMERIC SCAN NEEDS IT MOST: "no number under `explain`" and
+    // "the scan cannot see a number" print the same result. So the same scan is run
+    // where a literal legitimately IS — the constant's own declaration — and has to
+    // find it there.
+    check(
+        "the numeric scan finds the literal where it belongs",
+        thresholdDeclarationNumbers().join(","),
+        String(AWAITING_DELIVERY_DAYS)
+    );
+    // And the sentence really does end up stating the figure at runtime, which is the
+    // half the source check does not cover: a template referencing the right identifier
+    // could still be built into a string nobody renders.
+    assert(
+        "the rendered sentence carries the figure",
+        AWAITING_DELIVERY_COPY.explain.includes(String(AWAITING_DELIVERY_DAYS))
+    );
+    check("the threshold itself", AWAITING_DELIVERY_DAYS, 7);
+
+    // -----------------------------------------------------------------------
+    log("");
+    log("#263 the threshold decides membership, at the boundary and below it:");
+    // CALENDAR DAYS, which is what `daysWaiting` counts and therefore what the
+    // threshold has to be in. The three cases are the boundary, one short of it, and
+    // the data gap — every branch `hasWaitedLongEnough` has.
+    check(`exactly ${AWAITING_DELIVERY_DAYS} days waits long enough`, hasWaitedLongEnough(AWAITING_DELIVERY_DAYS), true);
+    check("  one day short does not", hasWaitedLongEnough(AWAITING_DELIVERY_DAYS - 1), false);
+    check("  a longer wait does", hasWaitedLongEnough(AWAITING_DELIVERY_DAYS + 40), true);
+    check("  zero days does not", hasWaitedLongEnough(0), false);
+    // A NULL WAIT IS REFUSED, which is #263's third decision and the same direction
+    // `sortLongestWaitingFirst` already took on an undated row (pinned on that function
+    // in offline/delivery-status.mjs). The strip claims "this has waited long enough";
+    // an invoice with no `Issue Date` has not been shown to have waited at all.
+    check("  and a null wait does not", hasWaitedLongEnough(null), false);
+    check("  nor undefined", hasWaitedLongEnough(undefined), false);
+    check("  nor NaN", hasWaitedLongEnough(NaN), false);
+    // The predicate is fed by `daysWaiting`, so the null path has to actually connect:
+    // a blank date counts to null there, which is what reaches the refusal above.
+    check("a blank Issue Date counts to null", daysWaiting("", TODAY), null);
+
+    // Through the selector, which is where it decides anything.
+    const onBoundary = inv("HYE-INV-260811-01", "2026-08-11"); // 7 days before TODAY
+    const shortOfIt = inv("HYE-INV-260813-01", "2026-08-13"); // 5 days before TODAY
+    const noDate = inv("HYE-INV-260101-01", "");
+    const filtered = select({ invoices: [a, onBoundary, shortOfIt, noDate], status: {}, ordered: {} });
+    check(
+        "the selector keeps the boundary and drops the rest",
+        filtered.map((r) => r.invoiceId).join(" "),
+        `${a.invoiceId} ${onBoundary.invoiceId}`
+    );
+    // ANTI-VACUITY FOR THE FILTER, AND THE CHECK BELOW CARRIES ALL OF IT. The dropped
+    // rows have to be rows the selector would otherwise have returned, or this section
+    // is measuring the ordered-item guard instead — and the one thing that shows it is
+    // re-running the SAME row with nothing changed but `today`. A second call at the
+    // fixed `TODAY` proves nothing the assertion above has not already said, so there
+    // is deliberately no companion assertion here: the date-moved call is the whole
+    // anti-vacuity.
+    check(
+        "  and it is the DATE that excluded it",
+        selectInvoicesAwaitingDelivery({
+            invoices: [shortOfIt],
+            statusByInvoice: new Map([[shortOfIt.id, AWAITING]]),
+            orderedItemsByInvoice: new Map([[shortOfIt.id, ["poItem-1"]]]),
+            deliveredOrderedItems: new Set(),
+            vendorNameById: VENDORS,
+            today: "2026-09-30",
+        }).length,
+        1
+    );
+    // THE THRESHOLD IS ONE RULE FOR BOTH ROW KINDS (#263). `deliveredNotMatched` looks
+    // like it should skip the wait — something arrived and only the pairing is missing —
+    // but the flag means "some slice against SOME ordered item, any quantity, any
+    // delivery, possibly another invoice's". The measured pair is in
+    // lib/deliveryReconciliation.js:getOrderedItemsWithDelivery.
+    const bothKindsShort = select({
+        invoices: [shortOfIt, inv("HYE-INV-260813-02", "2026-08-13")],
+        status: {},
+        ordered: { [shortOfIt.invoiceId]: ["poItem-9"] },
+        delivered: ["poItem-9"],
+    });
+    check("neither kind is exempt from the wait", bothKindsShort.length, 0);
+    // ANTI-VACUITY: that call has to be one where a kind split really would happen.
+    const bothKindsWaited = select({
+        invoices: [a, b],
+        status: {},
+        ordered: { [a.invoiceId]: ["poItem-9"] },
+        delivered: ["poItem-9"],
+    });
+    check("  and the same shapes past the threshold give two kinds", new Set(bothKindsWaited.map((r) => r.kind)).size, 2);
 
     // -----------------------------------------------------------------------
     log("");
@@ -155,7 +337,13 @@ export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
     log("");
     log("the order is longest wait first, shared with the other two strips:");
-    const c = inv("HYE-INV-260815-01", "2026-08-15");
+    // WAS `2026-08-15` UNTIL #263 AND THAT IS THE THRESHOLD'S DOING, not a fixture
+    // tidy-up: three days before `TODAY` is inside the wait now, so the row this case
+    // needs as its newest would have been filtered out and the ordering would have been
+    // asserted over two rows. Moved clear of the boundary rather than onto it, so a
+    // future change to the threshold cannot break an ordering test for an unrelated
+    // reason — the boundary has its own cases in the section above.
+    const c = inv("HYE-INV-260808-01", "2026-08-08");
     const ordered3 = select({ invoices: [b, c, a], status: {}, ordered: {} });
     check(
         "oldest Issue Date first",
@@ -165,8 +353,12 @@ export function run({ check, assert, log }) {
     // THE SORT MUTANT: return the input order. The input here is deliberately NOT
     // sorted, so a passthrough fails this and only this.
     assert("  the input was not already in that order", [b, c, a][0].invoiceId !== a.invoiceId);
-    const undated = select({ invoices: [inv("HYE-INV-260101-01", ""), a], status: {}, ordered: {} });
-    check("an undated invoice sorts LAST, not first", undated.at(-1).waitingSince, "");
+    // THE UNDATED CASE LEFT THIS SECTION IN #263, and it is a deletion rather than a
+    // move: an undated invoice is no longer selected at all, so there is no row here
+    // whose position could be asserted. What it used to prove still is, one level down
+    // and where it belongs — `offline/delivery-status.mjs` pins "an undated row sorts
+    // LAST, not first" on `sortLongestWaitingFirst` itself, and the refusal that now
+    // keeps such a row out of this list is pinned in the threshold section above.
 
     // -----------------------------------------------------------------------
     log("");
@@ -213,9 +405,13 @@ export function run({ check, assert, log }) {
     log("the row carries the date beside the count, and the count is days:");
     check("days from Issue Date to today", baseline[0].daysWaiting, 48);
     check("  and the date itself travels for checking", baseline[0].waitingSince, "2026-07-01");
-    // The blank one is LAST, per the assertion just above — reading it at [0] would
-    // have measured the dated row and passed for the wrong reason.
-    check("a blank date counts to null rather than 0", undated.at(-1).daysWaiting, null);
+    // THE BLANK-DATE ROW IS GONE FROM THIS SECTION TOO (#263) — it is not selected, so
+    // there is no row to read a null off. `daysWaiting("", TODAY)` is asserted directly
+    // in the threshold section above, which is the function that produces the null and
+    // the only thing this case was ever really about.
+    // And the count is per row rather than one figure for the list: the second row of
+    // the same call carries its own.
+    check("  the second row counts from its own date", baseline[1].daysWaiting, 17);
     check("the vendor is resolved", baseline[0].vendorName, "Demo Vendor Co.");
     check(
         "an unknown vendor does not blank the row",
@@ -285,6 +481,30 @@ export function run({ check, assert, log }) {
     for (const judgment of ["sort", "filter", "selectInvoicesAwaitingDelivery", "daysWaiting"]) {
         assert(`  does not call \`${judgment}\``, !called.has(judgment));
     }
+
+    // #263's SECOND MUTANT: THE HEADING COUNTS ONE ARRAY AND THE LIST RENDERS ANOTHER.
+    // The threshold made this reachable in a way it was not before — a filter is now a
+    // thing somebody might reasonably reach for on this page, and put in the wrong
+    // place. `does not call filter` above catches it inside this component; it does not
+    // catch a heading counting `rows` while the list maps something derived from it. So
+    // both are asserted on the shape: the count is `rows.length` and the list maps
+    // `rows` itself, which is what makes the two figures the same figure.
+    let headingArg = null;
+    let mapObject = null;
+    walk(ast, (node) => {
+        if (node.type !== "CallExpression") return;
+        const p = node.callee?.property?.name;
+        if (p === "heading" && node.arguments.length === 1) {
+            const arg = node.arguments[0];
+            headingArg = `${arg?.object?.name ?? "?"}.${arg?.property?.name ?? "?"}`;
+        }
+        if (p === "map") mapObject = node.callee?.object?.name ?? "(an expression)";
+    });
+    check("the heading counts `rows.length`", headingArg, "rows.length");
+    check("  and the list maps `rows` itself", mapObject, "rows");
+    // ANTI-VACUITY: both matchers had to find their call. A null on either would print
+    // as a mismatch above, but only after somebody read the value — this says it plainly.
+    assert("both shape matchers found their call", headingArg !== null && mapObject !== null);
 
     // -----------------------------------------------------------------------
     log("");

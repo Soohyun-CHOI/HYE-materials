@@ -189,6 +189,12 @@ const PINNED = [
     "invoiced, none of it delivered by the matched delivery",
     "Longest wait first. No invoice yet covers what these deliveries brought.",
     "Longest wait first. Nothing has confirmed the material these invoices charge for.",
+    // #263 — THE THRESHOLD SENTENCE, PINNED WITHOUT ITS FIGURE like the three above,
+    // and for a reason this one makes sharper: the brief writes `N` where the constant
+    // interpolates `AWAITING_DELIVERY_DAYS`, so a pin carrying the number would fail
+    // the day the threshold is tuned — which is the one edit its own docstring says to
+    // expect. The wording is what a redesign may not change; the figure is meant to.
+    "Only invoices that have waited",
     "nothing delivered yet",
     "delivered, not matched",
     "No invoice charges this order yet.",

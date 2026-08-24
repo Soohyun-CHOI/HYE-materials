@@ -111,7 +111,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prWait.js` — a record waiting for a request: `WAIT_STAGE`, and the split both strips above `/prs` obey — **a record stays listed until its request is SUBMITTED, and the control is offered only while nothing covers it** (#272). A draft is neither.
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
 - `lib/deliveryCandidates.js` — the Job → Lines → PRs → POs → PO Items walk that finds ordered items. Credentialed.
-- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. Both order-scope summaries live here (#235), so the delivery and invoicing chips stay one shape.
+- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. Both order-scope summaries live here (#235), so the delivery and invoicing chips stay one shape. `AWAITING_DELIVERY_DAYS` (#263) is the one home for how long an invoice waits before the strip lists it — calendar days, stated by the copy that interpolates it, and on that axis only.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
 - `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
 - `lib/deliveryInvoiceMatch.js` — the COMPUTED pairing (#231): containment, the price gate, a delivery's remaining capacity, the rival clause and its tie-break, `PAIRING_COPY`. One predicate serves both directions.
