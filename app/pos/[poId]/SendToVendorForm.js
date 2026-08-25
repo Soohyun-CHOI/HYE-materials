@@ -27,6 +27,15 @@ export default function SendToVendorForm({ poId, address }) {
                     {state.error}
                 </p>
             )}
+            {/* Issue #281 — a NOTICE and not an error, in its own tone. Two people may
+                send, so the second presser's answer is "the vendor already has it",
+                which is what they wanted rather than a failure. Red would tell them
+                something went wrong when nothing did. */}
+            {state?.notice && (
+                <p className="rounded border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                    {state.notice}
+                </p>
+            )}
             <p className="text-xs text-zinc-500">{address}</p>
             <input type="hidden" name="poId" value={poId} />
             <button

@@ -40,7 +40,7 @@ import {
     isPOWithdrawn,
     WITHDRAW_REFUSAL,
 } from "@/lib/poWithdraw";
-import { getPOSendEligibility, SEND_COPY } from "@/lib/poSend";
+import { canSendPOToVendor, getPOSendEligibility, SEND_COPY } from "@/lib/poSend";
 import SignForm from "./SignForm";
 import RegeneratePDFForm from "./RegeneratePDFForm";
 import WithdrawPOForm from "./WithdrawPOForm";
@@ -104,12 +104,12 @@ async function renderPODetailPage({ params, searchParams }) {
     // Two names, one predicate — see this file's header on why they are separate.
     const isOffice = user.role === "President" || user.isAdmin === true;
     const seesPayment = user.role === "President" || user.isAdmin === true;
-    // Issue #281 — the two write axes, each named for the action it renders. `isOffice`
-    // stays for the two READ-side narrowings (the internal address line and payment),
-    // which really are President-or-Admin; every write control now matches its own
-    // action's gate instead, which is what this page was getting wrong.
+    // Issue #281 — `isOffice` stays for the two READ-side narrowings (the internal
+    // address line and payment), which really are President-or-Admin. The write
+    // controls each match their own action's gate instead, which is what this page was
+    // getting wrong: signing is the President's, and the two document controls are
+    // `canSendPOToVendor`'s, resolved below once the PR is loaded.
     const isPresident = user.role === "President";
-    const isAdmin = user.isAdmin === true;
     const { poId } = await params;
     const { done } = await searchParams;
 
@@ -162,6 +162,11 @@ async function renderPODetailPage({ params, searchParams }) {
     // the control and its refusal read one answer. The address comes from the vendor
     // this page already loaded, so the `no-address` branch costs nothing.
     const sendEligibility = getPOSendEligibility({ po, vendorEmail: vendor?.picEmail });
+    // WHO, as against WHETHER — the same split the withdrawal has (`isRequester` gates
+    // the section, then eligibility picks control-or-refusal). One predicate for both
+    // document controls: sending an order is placing it, so it is the requester's act
+    // as much as the office's, and making the document is the send's precondition.
+    const canSend = canSendPOToVendor(user, pr);
 
     // Invoiced/Uninvoiced (#48) and the invoices charging this order (#15, #233)
     // are invoice-derived. The invoice pages were President/Admin-only when that
@@ -683,11 +688,14 @@ async function renderPODetailPage({ params, searchParams }) {
                 (President-or-Admin) while signing and regeneration were both
                 President-only actions, so an Admin who is not the President saw two
                 buttons that could only throw — five of eleven users on this base.
-                Signing narrowed to the President; regeneration widened to Admin,
-                because the office is the side that handles the order document; and
-                #281's send control is Admin for the same reason. The PO PDF itself is
-                visible to everyone who can see the PO (#132) — site staff place the
-                order from it — so the download link stays outside every gate. */}
+                Signing narrowed to the President, on both sides. The two DOCUMENT
+                controls went the other way, to `canSendPOToVendor` — the requester or
+                the office — because sending an order with its document attached IS
+                placing the order, which is the act #138 gave the requester the
+                withdrawal control for; that module carries the argument. The PO PDF
+                itself is visible to everyone who can see the PO (#132) — site staff
+                place the order from it — so the download link stays outside every
+                gate. */}
             <div className="mt-8">
                 {po.presidentSigned ? (
                     <div className="space-y-2 text-sm">
@@ -723,7 +731,7 @@ async function renderPODetailPage({ params, searchParams }) {
                                             by: sentByName,
                                         })}
                                     </p>
-                                ) : isAdmin ? (
+                                ) : canSend ? (
                                     sendEligibility.eligible ? (
                                         <SendToVendorForm poId={po.poId} address={vendor?.picEmail} />
                                     ) : (
@@ -738,11 +746,20 @@ async function renderPODetailPage({ params, searchParams }) {
                                 No PO document is on file, and none will be generated now that this PO is
                                 withdrawn.
                             </p>
-                        ) : isAdmin ? (
+                        ) : canSend ? (
+                            /* Issue #281 — the same people who may send may make the
+                               document, because sending needs one. The sentence
+                               replaced `PDF generation hasn't completed yet for this
+                               PO.`, which stated the fact and left a reader who did
+                               not create the state to guess what it meant: it says
+                               the signature should have produced it, that pressing
+                               makes it now, and that sending becomes possible once it
+                               exists — the question a requester arrived with. It is
+                               shown to everyone who has the control, not to the
+                               requester alone; the office did not create the state
+                               either. */
                             <div className="space-y-2">
-                                <p className="text-zinc-600">
-                                    PDF generation hasn&apos;t completed yet for this PO.
-                                </p>
+                                <p className="text-zinc-600">{SEND_COPY.documentMissing}</p>
                                 <RegeneratePDFForm poId={po.poId} />
                             </div>
                         ) : (

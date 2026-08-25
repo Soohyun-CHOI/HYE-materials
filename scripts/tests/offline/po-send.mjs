@@ -15,7 +15,15 @@
 // regardless of what the page rendered — the rule #138 states for signing and
 // regeneration, and mailing the order to the vendor is the strongest form of a new
 // document. Asserted as "the predicate runs before the send", plus the predicate's own
-// five refusals, which are behavioral because `lib/poSend.js` is pure.
+// verdicts, which are behavioral because `lib/poSend.js` is pure.
+//
+// THE THIRD THING IS WHO MAY PRESS, and it stopped being a role in #281. Sending an
+// order with its document attached IS placing the order, so `canSendPOToVendor` admits
+// the requester of the purchase request as well as the office — the mixed shape
+// `lib/deliveryAccess.js` already has. That also means TWO PEOPLE CAN PRESS AT ONCE,
+// and the second one's answer is a NOTICE rather than a refusal: nothing went wrong,
+// the vendor has the order. `already-sent` is therefore deliberately absent from the
+// refusal map, and that absence is asserted rather than assumed.
 //
 // WHAT THIS TIER CANNOT SEE, and it is the one thing that has to be added by hand:
 // the `Sent to Vendor` option on `Purchase Orders.Status`. Airtable refuses an option
@@ -27,6 +35,7 @@
 
 import { readFileSync } from "node:fs";
 import {
+    canSendPOToVendor,
     getPOSendEligibility,
     PO_SENT_STATUS,
     SEND_COPY,
@@ -88,8 +97,8 @@ export function run({ check, assert, log }) {
     log("");
     log("the record is written after the send, never beside it:");
     const actions = parseFile(ACTIONS);
-    const handler = resolveFunction(actions.ast, "sendPOToVendorHandler");
-    assert("sendPOToVendorHandler resolves", handler !== null);
+    const handler = resolveFunction(actions.ast, "sendPOToVendorAction");
+    assert("sendPOToVendorAction resolves", handler !== null);
     if (handler) {
         assert(
             "the send precedes the write — a send that throws never reaches updatePO",
@@ -154,14 +163,48 @@ export function run({ check, assert, log }) {
         "already-sent"
     );
 
+    // ── 3b. WHO may press, which stopped being a role ───────────────────────
+    log("");
+    log("the requester or the office, and nobody else:");
+    const pr = { requester: ["recREQ"] };
+    const requester = { id: "recREQ", role: "Employee", isAdmin: false };
+    const office = { id: "recADMIN", role: "Employee", isAdmin: true };
+    const president = { id: "recPRES", role: "President", isAdmin: false };
+    const stranger = { id: "recOTHER", role: "Employee", isAdmin: false };
+    assert("the requester of the request behind it may send", canSendPOToVendor(requester, pr));
+    assert("  the office may too", canSendPOToVendor(office, pr));
+    assert("  and the President, as canAccessJobDeliveries admits them", canSendPOToVendor(president, pr));
+    assert("  another site employee may not", !canSendPOToVendor(stranger, pr));
+    // ANTI-VACUITY on the identity half: the office short-circuit must not be what
+    // admits the requester, or the per-record comparison is untested.
+    assert(
+        "  the requester passes on identity rather than on being the office",
+        requester.isAdmin === false && requester.role !== "President"
+    );
+    // A request with no requester admits nobody but the office.
+    assert("a request with no requester admits no site reader", !canSendPOToVendor(requester, { requester: [] }));
+    assert("  but still admits the office", canSendPOToVendor(office, { requester: [] }));
+    // Missing arguments are a refusal, not a throw — the page calls this before it
+    // knows whether the PR resolved.
+    assert("no user is a refusal", !canSendPOToVendor(null, pr));
+    assert("  no request is a refusal", !canSendPOToVendor(requester, null));
+
     // ── 4. the copy ─────────────────────────────────────────────────────────
     log("");
     log("every refusal the predicate can return has words:");
+    // `already-sent` IS DELIBERATELY NOT IN THE REFUSAL MAP (#281). It is not a
+    // failure — the vendor has the order, which is what the presser wanted — so it has
+    // its own voice and its own rendering. Four refusals, five reasons.
     const reasons = new Set(cases.map(([r]) => r));
     for (const r of reasons) {
-        assert(`  ${r} has a sentence`, typeof SEND_REFUSAL[r] === "string" && SEND_REFUSAL[r].length > 0);
+        const isRefusal = r !== "already-sent";
+        check(
+            `  ${r} ${isRefusal ? "has a sentence" : "is NOT a refusal"}`,
+            typeof SEND_REFUSAL[r] === "string",
+            isRefusal
+        );
     }
-    check("and no sentence for a reason nothing returns", Object.keys(SEND_REFUSAL).length, reasons.size);
+    check("and no sentence for a reason nothing returns", Object.keys(SEND_REFUSAL).length, reasons.size - 1);
     // THE TWO FAILURE MESSAGES SAY OPPOSITE THINGS AND MUST NOT BE SWAPPED. One says
     // nothing was sent; the other says the vendor has it. A reader acting on the wrong
     // one either sends twice or never sends at all.
@@ -189,6 +232,28 @@ export function run({ check, assert, log }) {
         "a send with no actor on record still reads",
         !SEND_COPY.sent({ address: "a@b.co", when: "now", by: null }).includes("by ")
     );
+
+    // #281 — the second presser's answer, and the guidance beside the document
+    // control. Neither is a refusal.
+    const already = SEND_COPY.alreadySent({ address: "a@b.co", when: "8/25/2026, 1:33 PM", by: "Soo Choi" });
+    assert("the already-sent notice names who, when and where", 
+        already.includes("Soo Choi") && already.includes("8/25/2026, 1:33 PM") && already.includes("a@b.co"));
+    assert("  and says nothing was sent again", /nothing was sent again/i.test(already));
+    assert("  and does not read as a failure", !/(couldn't|failed|error|wrong)/i.test(already));
+    assert(
+        "  a send with no recorded actor still reads",
+        !SEND_COPY.alreadySent({ address: "a@b.co", when: "now", by: null }).includes("by ")
+    );
+    // The guidance says all three things a reader who did not create the state needs.
+    assert("the guidance says it should have existed", /should have been created/i.test(SEND_COPY.documentMissing));
+    assert("  that pressing makes it", /generating it here/i.test(SEND_COPY.documentMissing));
+    assert("  and that sending follows", /sent to the vendor once it exists/i.test(SEND_COPY.documentMissing));
+    // The two the document control needs, and neither names a role — the axis is not one.
+    for (const [label, text] of [["notYours", SEND_COPY.notYours], ["documentExists", SEND_COPY.documentExists]]) {
+        assert(`${label} has words`, typeof text === "string" && text.length > 0);
+    }
+    assert("notYours names the two who may act rather than a role", /purchase request/i.test(SEND_COPY.notYours) && /office/i.test(SEND_COPY.notYours));
+    assert("documentExists reads as nothing-to-do", /nothing to generate/i.test(SEND_COPY.documentExists));
 
     log("");
     log("the mail says what a vendor needs and no more:");

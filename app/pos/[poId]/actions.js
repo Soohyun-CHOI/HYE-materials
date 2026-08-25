@@ -1,15 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireUser, withAdminAction, withPresidentAction } from "@/lib/authz";
+import { requireUser, withPresidentAction } from "@/lib/authz";
 import { getPOById, updatePO } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
-import { getCurrentUser } from "@/lib/session";
+import { getUserByRecordId } from "@/lib/airtable/users";
 import { generateAndAttachPOPdf, HYE_BUYER_NAME } from "@/lib/poPdf";
 import { notifyPOSigned } from "@/lib/notifications";
 import { isPOWithdrawn, withdrawPOAsRequester } from "@/lib/poWithdraw";
-import { getPOSendEligibility, PO_SENT_STATUS, SEND_COPY } from "@/lib/poSend";
+import { canSendPOToVendor, getPOSendEligibility, PO_SENT_STATUS, SEND_COPY } from "@/lib/poSend";
 import { sendPOToVendorEmail } from "@/lib/email";
 import { formatUSD } from "@/lib/format";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -117,32 +117,41 @@ async function signPOHandler(prevState, formData) {
  * way there is for PO creation.
  */
 /**
- * ADMIN SINCE #281, WHERE IT WAS PRESIDENT-ONLY, AND THE PAGE IS WHAT FORCED THE
- * CHOICE. `page.js` rendered this control on President-or-Admin while the action
- * refused everyone but the President, so five of the eleven users on this base saw a
- * button that could only throw. One of the two had to move, and the office is the
- * side that handles the order document — the same convention that puts invoicing
- * behind Admin and that #281's send control follows. Signing went the other way, to
- * President on both sides.
+ * WHOEVER MAY SEND THE ORDER MAY PRODUCE THE DOCUMENT IT NEEDS (#281). It was
+ * President-only and the page offered it to the whole office, so five of eleven users
+ * saw a button that could only throw. Rather than pick one of those two, both moved to
+ * `canSendPOToVendor`: sending an order is placing it, which is the requester's act as
+ * much as the office's, and a requester who may send but must ask somebody else to
+ * generate is blocked with no signal that they are.
  *
- * WHAT THIS COSTS is a President who is not an Admin, who could regenerate before and
- * cannot now. Nobody on this base is one, and the President's act here is the
- * signature.
+ * IT NOW REFUSES AN ORDER THAT ALREADY HAS A DOCUMENT, and that is a narrowing of this
+ * function's contract to what the screen has always offered. The docstring said it
+ * "always re-generates … there's no equivalent 'already succeeded, don't redo it'
+ * case", but `page.js` renders the control only inside the `!pdfFile` branch, so the
+ * overwrite has never been reachable. Closing it matters because **the PO document is
+ * only a PARTIAL snapshot**: the items and the money are frozen, while the vendor, the
+ * job, every address, both internal contacts and the President are read live at
+ * generation time. A second generation would therefore produce a DIFFERENT document,
+ * and some of the differences misstate history — a changed President would put another
+ * name in the signature block of an order somebody else signed. See
+ * `docs/notes/purchase-orders.md` before reopening this.
  *
- * THE UNSIGNED REFUSAL BELOW IS UNCHANGED. The PDF is generated at signing and there
- * is no reason to make a draft of a document nobody has signed.
+ * THE UNSIGNED REFUSAL IS UNCHANGED. The document is produced by the signature and
+ * there is no reason to draft one nobody has signed.
  */
-export const regeneratePDFAction = withAdminAction(
-    () => ({ error: "Only office staff can regenerate this PO's document." }),
-    regeneratePDFHandler
-);
-
-async function regeneratePDFHandler(prevState, formData) {
+export async function regeneratePDFAction(prevState, formData) {
     return withOpsLabel("regeneratePDFAction", async () => {
+        const user = await requireUser();
         const poId = formData.get("poId");
 
         const po = await getPOById(poId);
         if (!po) throw new Error("PO not found");
+
+        const pr = po.pr?.[0] ? await getPRByRecordId(po.pr[0]) : null;
+        if (!canSendPOToVendor(user, pr)) {
+            return { error: SEND_COPY.notYours };
+        }
+
         // Issue #138 — the PO PDF *is* the document sent to the vendor.
         // Regenerating it after a withdrawal would print a fresh formal order
         // for an order that was canceled, which is exactly the confusion
@@ -155,6 +164,14 @@ async function regeneratePDFHandler(prevState, formData) {
         }
         if (!po.presidentSigned) {
             return { error: "This PO hasn't been signed yet." };
+        }
+        // #281 — the contract narrowed to what the screen offers, and it is tested
+        // LAST so the two refusals above keep the precedence they had: a withdrawn
+        // order is a more useful thing to be told than "nothing to generate". See the
+        // docstring — regenerating over an existing document would produce a different
+        // one, from live party data the signature never saw.
+        if (po.poPdfFile?.[0]) {
+            return { error: SEND_COPY.documentExists };
         }
 
         // Independent of the PDF retry below — also catches up a PR whose
@@ -175,10 +192,13 @@ async function regeneratePDFHandler(prevState, formData) {
 /**
  * Issue #281 — emails the signed order to the vendor, with the PDF attached.
  *
- * ADMIN RATHER THAN PRESIDENT, WHICH IS WHERE THIS DIVERGES FROM THE TWO CONTROLS
- * BESIDE IT. CLAUDE.md's own account of the workflow is that the President signs and
- * "office staff send that PDF to the vendor"; gating to Admin is what scopes something
- * to the office. Signing stays the President's.
+ * THE REQUESTER OR THE OFFICE, WHICH IS `canSendPOToVendor` AND NOT A ROLE. Sending
+ * the order with its document attached IS placing the order, so this is the act #138
+ * built the requester's withdrawal control around; the office is here too because not
+ * sending stops the work where not withdrawing stops nothing. That module has the
+ * whole argument. `requireUser()` rather than a wrapper for the same reason
+ * `withdrawPOAction` uses one: the deciding comparison is per record, and a role
+ * wrapper would cover the half that was never at risk.
  *
  * THE SEND HAPPENS BEFORE THE RECORD, AND THAT ORDERING IS THE WHOLE SAFETY PROPERTY.
  * `sendPOToVendorEmail` throws on a real failure — the Resend SDK returns
@@ -195,34 +215,50 @@ async function regeneratePDFHandler(prevState, formData) {
  * state change it reports on is already committed; here the send is the action and
  * nothing is committed until it succeeds.
  */
-export const sendPOToVendorAction = withAdminAction(
-    () => ({ error: "Only office staff can send a PO to the vendor." }),
-    sendPOToVendorHandler
-);
-
-async function sendPOToVendorHandler(prevState, formData) {
+export async function sendPOToVendorAction(prevState, formData) {
     return withOpsLabel("sendPOToVendorAction", async () => {
+        // ONE READ FOR THE GATE AND THE REPLY-TO BOTH. `requireUser()` returns the
+        // user, so the sender's address costs nothing beyond the session check — where
+        // a role wrapper would have decided the gate and discarded it, which is the
+        // #193 measurement #254 reported.
+        const sender = await requireUser();
         const poId = formData.get("poId");
-
-        // The wrapper decides the gate and discards the user it loaded
-        // (lib/authzWrap.js:createFlagGuard), so the sender's address costs one read
-        // here. Reported to #193 as a measurement rather than fixed, since changing
-        // that contract touches every wrapped action.
-        const sender = await getCurrentUser();
 
         const po = await getPOById(poId);
         if (!po) throw new Error("PO not found");
 
         // The vendor lives through the PR, because `Purchase Orders."Vendor"` is a
         // Lookup and carries the NAME rather than a record id. The same walk
-        // lib/notifications.js:notifyPOSigned makes.
+        // lib/notifications.js:notifyPOSigned makes — and since #281 this read is
+        // load-bearing for authorization too, since the requester is on the PR.
         const pr = po.pr?.[0] ? await getPRByRecordId(po.pr[0]) : null;
+        if (!canSendPOToVendor(sender, pr)) {
+            return { error: SEND_COPY.notYours };
+        }
         const vendor = pr?.vendor?.[0] ? await getVendorByRecordId(pr.vendor[0]) : null;
 
         // Every refusal is re-asked here regardless of what the page rendered: a
         // Server Action is directly callable, so the page hiding the control is not a
         // gate. The predicate is the one the page reads.
         const eligibility = getPOSendEligibility({ po, vendorEmail: vendor?.picEmail });
+        // TWO PEOPLE MAY SEND NOW, SO TWO CAN PRESS AT ONCE (#281). The second one's
+        // screen is a moment stale and their button still works; `Sent At` is what
+        // refuses them, which is the same judgment that refuses a resend. What they get
+        // is a NOTICE and not an error: nothing went wrong, the vendor has the order,
+        // and the form renders this away from the red box.
+        if (eligibility.reason === "already-sent") {
+            // The sender's NAME costs one read, and only here — the collision path,
+            // not the send. Worth it because "already sent" without who is the answer
+            // that makes somebody go and ask.
+            const already = po.sentBy?.[0] ? await getUserByRecordId(po.sentBy[0]) : null;
+            return {
+                notice: SEND_COPY.alreadySent({
+                    address: po.sentTo || "—",
+                    when: new Date(po.sentAt).toLocaleString(),
+                    by: already?.userName || null,
+                }),
+            };
+        }
         if (!eligibility.eligible) {
             return { error: SEND_COPY.refusal[eligibility.reason] };
         }

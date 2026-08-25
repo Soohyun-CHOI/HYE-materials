@@ -4,12 +4,13 @@ Route: `/pos/[poId]`
 Who reaches it: row-scoped — anyone signed in, then only orders whose purchase
 request they can see, through `canViewPR`. Two facts are narrower: one internal
 address field is office-only, and payment badges are President-or-Admin.
-**Each write control has its own reader**: signing is the President's, regenerating
-the document and sending it to the vendor are the office's, and withdrawing is the
-requester's. They were not always separated this way — the page used to offer
-signing and regeneration to the whole office while only the President could do
-either, so a redesign that groups the three into one "admin" block would rebuild
-the defect.
+**Each write control has its own reader**: signing is the President's; making the
+order document and sending it to the vendor belong to the requester who raised the
+request **or** the office; and withdrawing is the requester's. Sending the order
+is placing it, which is why the requester is on those two at all. They were not
+always separated this way — the page offered signing and document work to the
+whole office while only the President could do either — so a redesign that groups
+them into one "admin" block would rebuild the defect.
 
 ## What it answers
 
@@ -17,7 +18,7 @@ Has everything on this order been delivered, and has everything on it been invoi
 is the reconciliation screen — the one place where what was ordered, what came
 in and what was charged sit on one page — and it is the answer to the problem
 the whole app exists for. A secondary question, asked by a different reader: has
-the President signed it, and has the vendor been sent it — the office sends it
+the President signed it, and has the vendor been sent it — the order is sent
 **from this page**, so both halves of that are answered and acted on here.
 
 The order is a **frozen snapshot**. Its items were copied from the purchase
@@ -177,33 +178,53 @@ It comes off the query string and is gone on reload.
 **When the order is unsigned and the reader is office staff:** the signing
 control. For any other reader, the sentence that it has not been signed yet.
 
-**When the order is signed but its PDF has not been generated:** for the office, a
-sentence plus a regeneration control; for everyone else, a sentence saying the
-document is not available yet. A control that can only fail is never offered.
+**When the order is signed but its document was not created:** for the
+requester or the office, a control that makes it, and above it the sentence
+explaining why it is missing — the signature should have produced it, that step
+failed, pressing makes it now, and the order can be sent once it exists. **That
+sentence goes to everyone who has the control, not to the requester alone**:
+neither of them created the state. For any other reader, a sentence saying the
+document is not available yet, and no control. A control that can only fail is
+never offered.
+
+**The control appears only when there is no document, and that is a rule rather
+than a coincidence.** The order document is a partial snapshot — the items and
+the money are frozen, while the vendor, the job, the addresses, the internal
+contacts and the President are read fresh each time it is made — so making it a
+second time would produce a *different* document, and a changed President would
+sign an order somebody else signed. A design must not offer a way to remake a
+document that exists.
 
 **When the order is signed, its document is on file, and it has not been sent
-yet:** for the office, a `Send to vendor` control beside the download, with the
-address it would use printed above it. **The address is on the screen and that is
-why there is no confirmation dialog** — the reader has already seen where it goes,
-so a dialog would ask the same question twice. If a redesign moves the address away
-from the button, the dialog has to come back.
+yet:** for the requester or the office, a `Send to vendor` control beside the
+download, with the address it would use printed above it. **The address is on
+the screen and that is why there is no confirmation dialog** — the reader has
+already seen where it goes, so a dialog would ask the same question twice. If a
+redesign moves the address away from the button, the dialog has to come back.
 
-**When the office cannot send it, the reason is named where the control would be**,
-and on this screen only two of the send's four refusals can appear: the order was
-withdrawn, or the vendor has no `PIC Email` on record — that second one says to add
-the address on the vendor's record first. **The other two cannot be reached from
-here, because the page's own shape already answers them**: this whole block only
-exists once the order is signed, and the send lives inside the branch where a
-document is on file, so "not signed" and "no document" have their own sentences
-higher up and never reach the send. They are still refused by the app, for a caller
-that does not come through this page. Nobody outside the office sees any of the
-four: for another reader there is simply nothing there, since the send is not
-theirs to make.
+**When the office cannot send it, the reason is named where the control would
+be**, and on this screen only two of the send's four refusals can appear: the
+order was withdrawn, or the vendor has no `PIC Email` on record — that second
+one says to add the address on the vendor's record first. **The other two
+cannot be reached from here, because the page's own shape already answers
+them**: this whole block only exists once the order is signed, and the send
+lives inside the branch where a document is on file, so "not signed" and "no
+document" have their own sentences higher up and never reach the send. They are
+still refused by the app, for a caller that does not come through this page.
+Nobody outside the office sees any of the four: for another reader there is
+simply nothing there, since the send is not theirs to make.
 
-**Once it has been sent the control is gone for good**, replaced by the record of
-the send. A second send is refused rather than offered: two copies of one order read
-as two orders, and material arrives twice. A send that FAILS records nothing, so the
-control is still there and pressing it again is a first send rather than a second.
+**Once it has been sent the control is gone for good**, replaced by the record
+of the send. A second send is refused rather than offered: two copies of one
+order read as two orders, and material arrives twice. A send that FAILS records
+nothing, so the control is still there and pressing it again is a first send
+rather than a second.
+
+**Two people may send, so two can press at once, and the second one is told a
+fact rather than shown a failure.** Their screen is a moment stale and their
+button still works; the answer names who sent it and when, and says nothing was
+sent again. It must not be styled as an error — nothing went wrong, and the
+vendor has the order, which is what the presser wanted.
 
 **When the reader raised the request behind this order:** a withdrawal control
 at the foot, behind a top border — and this sits outside the office gate on
@@ -230,21 +251,21 @@ is the facts about the pairing. Both screens do this, in both directions.
 **`Invoiced` is both a column head here and a chip word on this same page, and
 that is not a collision to fix.** A chip is one of a closed set of three; a
 column head sits over a quantity. The delivery axis has had the identical pair
-since #233 — a `Delivered` column under a `Delivered` chip — and the shapes keep
-them apart. Renaming either to break a tie the shapes already break would cost a
-word for nothing.
+since #233 — a `Delivered` column under a `Delivered` chip — and the shapes
+keep them apart. Renaming either to break a tie the shapes already break would
+cost a word for nothing.
 
 **This screen owns the ordered quantity.** The invoice detail deliberately does
-not carry it, and points here instead. Whatever happens to this table, `Qty` per
-ordered item stays legible on it.
+not carry it, and points here instead. Whatever happens to this table, `Qty`
+per ordered item stays legible on it.
 
-**`Over-delivered` is this base's own word**, a checkbox on the delivery's rows,
-and the delivery detail uses the same tag.
+**`Over-delivered` is this base's own word**, a checkbox on the delivery's
+rows, and the delivery detail uses the same tag.
 
-**The `(N over)` on a folded child row is the delivery detail's own mark**, from
-the same constant, for the same fact one frame down: part of a quantity was
-excess. That screen's table and this list read alike on purpose, and a redesign
-that changes the shape of one changes both.
+**The `(N over)` on a folded child row is the delivery detail's own mark**,
+from the same constant, for the same fact one frame down: part of a quantity
+was excess. That screen's table and this list read alike on purpose, and a
+redesign that changes the shape of one changes both.
 
 **The two withdrawal voices are paired with the modal's.** The banner is third
 person and past tense; the confirmation dialog is second person. They are
