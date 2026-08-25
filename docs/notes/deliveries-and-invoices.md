@@ -1666,18 +1666,34 @@ than as the app having decided it was small enough to ignore. One rule decides i
   carry the mark. `calculatedTotal` is the same binding the `Calculated total:` label
   renders, so the warning and the figure a reader is comparing against cannot come apart.
 - **THE PREMISE WAS RESTING ON NOTHING, AND ESTABLISHING IT IS PART OF THE ISSUE.**
-  Half a cent needs both sides to be whole numbers of cents. Airtable does not enforce
-  that: `precision` is a DISPLAY option, measured on this base by writing 2.5 into the
-  precision-0 `Qty` field and 1.005 into the 2-decimal `Unit Price` — both stored
-  verbatim, and `Amount` came back as `2.5124999999999997`. The only gate anyone could
-  name was `step="1"` on the form's quantity control, and **both invoice forms submit a
-  hidden `itemsJson` rather than that control**, so it was not on the path a Server
-  Action reads. So `lib/airtable/invoiceItems.js` refuses a fractional quantity and a
-  sub-cent price, in both writers, next to the `PO Item` refusal #278 put there for the
-  same reason — a constraint Airtable cannot hold has nowhere to live but the write path.
-  The price check compares with 1e-9 of slack rather than exactly, because a whole-cent
-  value need not be exactly representable in binary: 8.11 is not, and an exact test
-  rejects prices the rule is meant to admit.
+  Half a cent needs both sides to be whole numbers of cents, and three separate things
+  were assumed to hold that. None does, and all three were measured. **Airtable's
+  `precision` is a DISPLAY option** — writing 2.5 into the precision-0 `Qty` field and
+  1.005 into the 2-decimal `Unit Price` stored both verbatim, and `Amount` came back as
+  `2.5124999999999997`. **The value the actions read is a hidden `itemsJson`**, not the
+  controls, so nothing declared on a control could gate it. **And the controls' own
+  validation does not fire**: the quantity input declares no `step` and the price input
+  declares `step="0.01"`, yet on this form `2.5` and `1.005` both report
+  `checkValidity() === true` and the form submits — while a detached
+  `<input type="number">` DOES report `stepMismatch` for 2.5, so the absent attribute is
+  not the cause and the shape of the form is. The judgment is
+  `lib/variance.js:isWholeQty` / `isWholeCentPrice`, beside the tolerance it is the
+  premise for. The price test carries 1e-9 of slack rather than comparing exactly,
+  because a whole-cent value need not be exactly representable in binary: 8.11 is not,
+  and an exact test rejects prices the rule is meant to admit.
+- **SO IT IS REFUSED AT TWO LEVELS, AND THE SECOND ONE WAS ADDED BECAUSE THE FIRST
+  DRAFT GOT THIS WRONG.** That draft paired the guard with no message, on the ground
+  that no form could produce the state — the reasoning #278 uses to decide when a
+  service-layer throw stands alone. The measurement above refutes it: a person can type
+  `2.5` into the quantity box and press the button. Without a refusal the throw reached
+  them as `Something went wrong creating the invoice. Please try again.`, on an input
+  they could have corrected and would have retried unchanged — which is the shape #232
+  and #278 both argue against, a reader refused where they cannot see why. So both
+  invoice actions ask the predicate and return `CHARGE_PRECISION_COPY`, and
+  `lib/airtable/invoiceItems.js` keeps the throw as the last line for a request that
+  never went through a control. **The lesson is not about `step`**: it is that a claim
+  about what a form cannot produce is a measurement, and this one was written as an
+  inference.
 - **`PO Items` AND `PR Items` ARE NOT GUARDED, AND THE CHAIN IS WORTH NAMING BECAUSE
   ONE HALF OF IT REALLY DOES FLOW IN.** `PO Items."Unit Price"` is copied into a charge
   in three places on the form — `defaultedItem`, `updatePoItemSelection` and

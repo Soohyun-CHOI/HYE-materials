@@ -193,6 +193,13 @@ telephone; and a free-text **note**, which is the only thing the site's list can
 say about what was bought, since no items are recorded. The job list is fetched
 when the modal opens, not when the page loads.
 
+**When a charge's quantity is not a whole number, or its unit price not a whole
+number of cents:** the form is refused on submit with
+`Every charge's quantity has to be a whole number.` or
+`Every charge's unit price has to be a whole number of cents.` These sit with the
+form's other submit-time refusals, above the tabs, and they are the only place the
+app states this rule to a reader — no control marks either figure as it is typed.
+
 **When something is still missing, the modal says which, and in the order a
 reader would fix it:** the vendor at the top of the form, then the attached file,
 then the Job inside the modal. The confirm button is disabled while any of them
@@ -219,8 +226,11 @@ person still typing, and the stored one has no such reader.
 
 **A charge's quantity is a whole number and its unit price a whole number of
 cents**, which is what makes that shared threshold half a cent rather than
-something looser. The quantity control refuses a fraction and the unit price is
-frozen from the ordered item, so a design here has no decimal quantity to lay out.
+something looser. **Nothing about the controls enforces it** — the browser marks
+neither a fractional quantity nor a sub-cent price invalid on this form — so the
+app refuses them on submit, and the same rule holds on the edit screen. A design
+here has no decimal quantity to lay out, and a redesign that adds a decimal
+affordance to either control is promising something the app will decline.
 
 **The unsigned-order wording is shared with every other place an order is offered
 for an invoice.** The judgment runs on the server and the client reads only a

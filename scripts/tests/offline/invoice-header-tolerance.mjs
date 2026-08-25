@@ -27,9 +27,17 @@
 // THE THIRD GROUP IS THE PREMISE THE FIGURE RESTS ON, and it is here rather than
 // with the write path because a threshold and the thing that makes it correct
 // should fail in the same file. Half a cent is derived from both sides of the
-// comparison being whole numbers of cents; `lib/airtable/invoiceItems.js` is what
-// makes that true, since Airtable's `precision` is a display option and stores a
-// fractional quantity verbatim.
+// comparison being whole numbers of cents, and nothing outside the code holds
+// that: Airtable's `precision` is a display option, the value the actions read is
+// a hidden `itemsJson` rather than a control, and — measured — the controls' own
+// step validation does not fire on this form, so a typed `2.5` submits.
+//
+// WHICH IS WHY THE PREMISE IS ASSERTED AT TWO LEVELS. Both invoice actions refuse
+// it with `CHARGE_PRECISION_COPY` and both service writers throw. Dropping the
+// action half is the mutant that matters here: the guard still holds, the premise
+// still holds, and a reader who typed a fractional quantity gets
+// `Something went wrong creating the invoice. Please try again.` on an input they
+// could have fixed.
 //
 // WHAT THIS TIER CANNOT SEE, STATED BECAUSE IT IS THE RESIDUE: a hand edit in the
 // Airtable UI. A `Qty` of 2.5 typed into a precision-0 field is stored and shown
@@ -43,8 +51,11 @@
 
 import { readFileSync } from "node:fs";
 import {
+    CHARGE_PRECISION_COPY,
     checkHeaderVariance,
     checkUnitPriceVariance,
+    isWholeCentPrice,
+    isWholeQty,
     VARIANCE_COPY,
 } from "../../../lib/variance.js";
 import { parseFile, repoPath, resolveFunction, walk } from "./_ast.mjs";
@@ -54,6 +65,8 @@ export const title = "One tolerance decides whether an invoice's total disagrees
 
 const FORM = "app/invoices/new/InvoiceForm.js";
 const WRITER = "lib/airtable/invoiceItems.js";
+const CREATE_ACTION = "app/invoices/new/actions.js";
+const EDIT_ACTION = "app/invoices/[invoiceId]/actions.js";
 
 /** The two figures the header comparison is about, as this form names them. */
 const STATED = "vendorStatedTotal";
@@ -236,6 +249,57 @@ export function run({ check, assert, log }) {
     const reader = resolveFunction(writer.ast, "getItemsByInvoice");
     assert("the call walk works on a neighbor", namesIn(reader).has("getLinkedRecords"));
     assert("  and says no to a guard that reader does not run", !namesIn(reader).has("assertWholeQty"));
+
+    // Both predicates behave, or the guards above are asking the wrong question.
+    assert("a fraction is not a whole quantity", !isWholeQty(2.5) && isWholeQty(3));
+    assert("  and an absent one is not the question", isWholeQty(null) && isWholeQty(undefined));
+    assert("a sub-cent price is refused", !isWholeCentPrice(1.005));
+    // The slack, which is the whole reason this is not an equality test: neither of
+    // these is exactly representable in binary and both are whole cents.
+    assert("  while a whole cent that binary cannot hold exactly is admitted",
+        isWholeCentPrice(8.11) && isWholeCentPrice(0.07) && isWholeCentPrice(480));
+
+    // -----------------------------------------------------------------------
+    log("");
+    log("and the reader who typed the figure is refused before the throw:");
+    // THE MUTANT: drop the action-level refusal. Everything above still passes and
+    // the premise still holds — the reader just gets `Something went wrong` on an
+    // input they could fix. Measured in a browser: both controls' step validation
+    // does not fire on this form, so this state is reachable by typing.
+    for (const [path, handler] of [
+        [CREATE_ACTION, "createInvoiceAction"],
+        [EDIT_ACTION, "updateInvoiceAction"],
+    ]) {
+        const { ast } = parseFile(path);
+        const fn = resolveFunction(ast, handler);
+        assert(`${handler} resolves`, fn !== null);
+        if (!fn) continue;
+        const names = namesIn(fn);
+        check(`  ${handler} asks isWholeQty`, names.has("isWholeQty"), true);
+        check(`  ${handler} asks isWholeCentPrice`, names.has("isWholeCentPrice"), true);
+        check(`  ${handler} returns the reader's own words`, names.has("CHARGE_PRECISION_COPY"), true);
+        // ANTI-VACUITY: the walk has to be inside this handler's body rather than
+        // its wrapper, which is `invoice-money-terms.mjs`'s own lesson on these two
+        // exports. `shippingFee` is read in both bodies and nowhere else.
+        assert(`  the walk reached ${handler}'s body`, names.has("shippingFee"));
+    }
+    // The two messages have to differ and name their own figure, or one refusal
+    // points a reader at the wrong control.
+    assert(
+        "the two refusals are two",
+        CHARGE_PRECISION_COPY.qty !== CHARGE_PRECISION_COPY.unitPrice
+    );
+    assert(
+        "  each naming the figure it is about",
+        /quantity/i.test(CHARGE_PRECISION_COPY.qty) &&
+            /unit price/i.test(CHARGE_PRECISION_COPY.unitPrice) &&
+            !/unit price/i.test(CHARGE_PRECISION_COPY.qty)
+    );
+    // The word for an `Invoice Items` row, per the vocabulary.
+    assert(
+        "  and both say charge",
+        [CHARGE_PRECISION_COPY.qty, CHARGE_PRECISION_COPY.unitPrice].every((s) => /charge/i.test(s))
+    );
 
     // -----------------------------------------------------------------------
     log("");

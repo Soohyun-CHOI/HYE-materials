@@ -10,7 +10,13 @@ import {
 } from "@/lib/airtable/invoices";
 import { getItemsByInvoice, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
-import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
+import {
+    CHARGE_PRECISION_COPY,
+    checkHeaderVariance,
+    checkUnitPriceVariance,
+    isWholeCentPrice,
+    isWholeQty,
+} from "@/lib/variance";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Server Actions are directly callable regardless of what the page
@@ -95,6 +101,15 @@ async function updateInvoiceHandler(prevState, formData) {
         for (const item of items) {
             if (!item.itemName || !item.qty || !item.unitPrice) {
                 return { error: "Every item needs a name, quantity, and unit price." };
+            }
+            // Issue #254 — the same refusal as `createInvoiceAction`'s, and this
+            // screen needs it more: both figures are freely editable here, where the
+            // create form at least freezes the price to the ordered item.
+            if (!isWholeQty(parseFloat(item.qty))) {
+                return { error: CHARGE_PRECISION_COPY.qty };
+            }
+            if (!isWholeCentPrice(parseFloat(item.unitPrice))) {
+                return { error: CHARGE_PRECISION_COPY.unitPrice };
             }
         }
 

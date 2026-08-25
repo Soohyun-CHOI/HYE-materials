@@ -48,7 +48,7 @@ import {
     AWAITING_DELIVERY_COPY,
     orderedItemStatus,
 } from "../../../lib/deliveryStatus.js";
-import { VARIANCE_COPY } from "../../../lib/variance.js";
+import { CHARGE_PRECISION_COPY, VARIANCE_COPY } from "../../../lib/variance.js";
 import { EMPTY_COPY, AWAITING_PO_COPY } from "../../../lib/poListView.js";
 import { CONFIRM_COPY } from "../../../lib/authTokenState.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
@@ -181,6 +181,12 @@ const PINNED = [
     // the builder puts a figure, so it is pinned without them, as the sentences
     // below are.
     "doesn't match the calculated total",
+    // #254 — the two refusals that hold the threshold's premise up. Both briefs
+    // quote them verbatim, and they are the only place the app states the rule to a
+    // reader, so a rewording that left a brief behind would be telling a designer
+    // about a message the app no longer sends.
+    "Every charge's quantity has to be a whole number.",
+    "Every charge's unit price has to be a whole number of cents.",
     // #274 — THE THREE `_shared.md` CALLS TIER 1 AND NOTHING PINNED. Its status
     // section quotes four sentences from `lib/deliveryStatus.js` as locked words;
     // only `Not compared — no ordered item` above was ever pinned, so the other
@@ -384,6 +390,7 @@ export function run({ check, assert, log }) {
     log("every word the shared brief quotes is still what the constant holds:");
     const loadable = [
         ...stringsFrom(VARIANCE_COPY),
+        ...stringsFrom(CHARGE_PRECISION_COPY),
         ...stringsFrom(EMPTY_COPY),
         ...stringsFrom(CONFIRM_COPY),
         ...stringsFrom(PO_DOCUMENTS_COPY),
