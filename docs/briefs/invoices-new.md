@@ -71,7 +71,7 @@ ordered item was picked, not that the value needs correcting.
 
 **evidence — a calculated total,** stated under the money row as
 `Calculated total:` and nothing more. It is a **sanity check rather than
-enforcement** — the form does not refuse a mismatch, it shows the reader both
+enforcement** — the form does not refuse a disagreement, it shows the reader both
 numbers.
 
 **The label names the figure and not its terms, which is a decision and not an
@@ -83,9 +83,18 @@ spellings of one label. So the terms are named where their figures are, which is
 the money row's own labels plus the reveal controls for the terms that are absent.
 What the list was really keeping out was `Vendor's Stated Total`, which sits in
 that same row and is the one figure the sum must exclude; what carries that now is
-`Calculated` against `Stated`, and the mismatch line that puts the two figures on
+`Calculated` against `Stated`, and the warning below that puts the two figures on
 opposite sides of one comparison. A redesign that wants to say more here should
 say it on the stated-total field, not by putting a term list back on this one.
+
+**When the two totals disagree:** a warning under the calculated total, reading
+`Vendor's Stated Total (N) doesn't match the calculated total (N) — double-check
+before submitting.` **The threshold is half a cent, which is the same rule the
+saved record's own red box uses** — so a reader warned here finds the mark on the
+invoice afterwards, and silence here means the two figures agree as currency
+rather than that the app decided the gap was small enough to ignore. The form
+carried its own looser threshold until #254 and the two could disagree. It does
+not block: the vendor's stated total is what gets stored either way.
 
 **action — the submit button,** full width, and its label is the form's validation
 state: `Attach the invoice file to continue` until a file is attached,
@@ -184,6 +193,13 @@ telephone; and a free-text **note**, which is the only thing the site's list can
 say about what was bought, since no items are recorded. The job list is fetched
 when the modal opens, not when the page loads.
 
+**When a charge's quantity is not a whole number, or its unit price not a whole
+number of cents:** the form is refused on submit with
+`Every charge's quantity has to be a whole number.` or
+`Every charge's unit price has to be a whole number of cents.` These sit with the
+form's other submit-time refusals, above the tabs, and they are the only place the
+app states this rule to a reader — no control marks either figure as it is typed.
+
 **When something is still missing, the modal says which, and in the order a
 reader would fix it:** the vendor at the top of the form, then the attached file,
 then the Job inside the modal. The confirm button is disabled while any of them
@@ -204,7 +220,17 @@ the reader is looking at the vendor's document while they type it.
 **`Calculated Total` is the invoice detail's word** for the same computation, and
 the two must not diverge — the detail's red `⚠ Check the total` box is what fires
 when the two figures disagree after saving. This form shows the same comparison
-before saving and does not block on it.
+before saving, **at the same threshold since #254**, and does not block on it. The
+two sentences differ in tense on purpose and only in tense: this one addresses the
+person still typing, and the stored one has no such reader.
+
+**A charge's quantity is a whole number and its unit price a whole number of
+cents**, which is what makes that shared threshold half a cent rather than
+something looser. **Nothing about the controls enforces it** — the browser marks
+neither a fractional quantity nor a sub-cent price invalid on this form — so the
+app refuses them on submit, and the same rule holds on the edit screen. A design
+here has no decimal quantity to lay out, and a redesign that adds a decimal
+affordance to either control is promising something the app will decline.
 
 **The unsigned-order wording is shared with every other place an order is offered
 for an invoice.** The judgment runs on the server and the client reads only a

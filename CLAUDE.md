@@ -12,7 +12,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 
 | Before editing | Read first |
 |---|---|
-| `app/deliveries/**`, `app/invoices/**`, `lib/delivery*.js`, `lib/overage*.js`, `lib/invoice*.js` | `docs/notes/deliveries-and-invoices.md` |
+| `app/deliveries/**`, `app/invoices/**`, `lib/delivery*.js`, `lib/overage*.js`, `lib/invoice*.js`, `lib/variance.js` | `docs/notes/deliveries-and-invoices.md` |
 | `app/pos/**`, `lib/po*.js` | `docs/notes/purchase-orders.md` |
 | `app/prs/**`, `lib/prSigning.js`, `lib/prDraft.js` | `docs/notes/purchase-requests.md` |
 | `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |

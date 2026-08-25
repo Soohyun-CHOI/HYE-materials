@@ -120,8 +120,10 @@ payment gate — an employee who cannot see whether the vendor was paid is exact
 the reader who is here to catch a wrong charge, and naming payment as a deadline
 discloses nothing about this vendor.
 
-**When the invoice's own total does not match its computed total:** a red box
-under the items table, carrying `⚠ Check the total` and both figures. This is a
+**When the invoice's own total does not match its computed total** — past half a
+cent, which is the same rule the new-invoice form warns by (#254), so the two say
+the same thing about the same invoice: a red box under the items table, carrying
+`⚠ Check the total` and both figures. This is a
 different fact from the badge above and the two can be on one invoice at once.
 Red states a discrepancy; amber asks a person to look. That split is the page's
 own and both colors appear on it.

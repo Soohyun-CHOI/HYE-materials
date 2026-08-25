@@ -66,6 +66,13 @@ mismatch means the wrong ordered item was picked, so the fix is the link and nev
 the value. Both screens have to keep saying that, and the disabled-input treatment
 is currently how this one says it.
 
+**A charge's quantity has to be a whole number and its unit price a whole number
+of cents**, and this screen edits both freely, so it is refused on submit with
+`Every charge's quantity has to be a whole number.` or
+`Every charge's unit price has to be a whole number of cents.` The same rule holds
+on the new-invoice form; no control marks either figure as it is typed. What rests
+on it is the half-cent threshold behind the box below.
+
 **Editing `Amount Due` recomputes the variance flags** that the invoice detail and
 the invoice list then render. So this screen is where the red `⚠ Check the total`
 box on the detail gets resolved — a design that hides the relationship between the

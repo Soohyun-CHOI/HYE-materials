@@ -1597,6 +1597,153 @@ set them.
 - **Not in this issue:** the tolerance the form applies against the one the backend
   applies, which #254 owns — `lib/variance.js`'s three numbers are untouched here.
 
+### One tolerance for the header comparison (#254)
+
+`/invoices/new` warned when the vendor's stated total differed from the sum of what was
+typed in, past a cent. The flag stored on the saved record needed five dollars or one
+percent, whichever was larger. So an invoice could be warned about on the way in and
+then carry no mark at all, which reads as the discrepancy having been resolved rather
+than as the app having decided it was small enough to ignore. One rule decides it now,
+`lib/variance.js:checkHeaderVariance`, and the figure is **half a cent**.
+
+- **NEITHER NUMBER IN THE CODE HAD BEEN CHOSEN FOR THIS COMPARISON, which is what
+  reframed the issue from picking a survivor to making a first choice.** #57's body says
+  it outright — `No variance-tolerance decision (#17) needed here — these are
+  data-entry-time sanity checks on what's being typed in` — and it took a cent as a
+  floating-point epsilon. #17 did choose two shapes, but they were the header against the
+  UNIT PRICE, two comparisons on different data; the form's check is nowhere in its
+  comment. So a single comparison had acquired two thresholds because two issues each
+  answered a question the other believed it was not being asked. Neither was inherited.
+- **THE DERIVATION, WHICH IS WHERE THE FIVE DOLLARS DIED.** `Amount Due` is a total
+  someone copied off the vendor's paper; `Calculated Total` is
+  `SUM(Items Subtotal, Shipping Fee, Tariff, Sales Tax)` over figures copied off the same
+  paper. Two transcriptions of one document are not measurements, so the noise #17's
+  comment names — `normal rounding accumulation and minor line-item aggregation noise` —
+  can only come from the vendor rounding its own printed amounts while we recompute
+  `{Qty} * {Unit Price}`. That is at most half a cent per charge, so the accumulation is
+  `N × $0.005`: five cents at ten charges, ten at twenty, and **five dollars at a
+  thousand charges all rounding the same direction**. Measured on this base the largest
+  invoice carries three charges and the median carries one, and the count is structurally
+  bounded by the ordered items of the orders an invoice charges, since #91 gives one
+  ordered item to one charge. The floor was three orders of magnitude away from its own
+  mechanism.
+- **AND THERE IS NO PER-CHARGE ROUNDING ON OUR SIDE AT ALL**, which takes the bound
+  further down than the table above. A whole quantity at a whole-cent price is exact to
+  the cent, so both sides of the comparison are whole numbers of cents and any real
+  difference is at least one. What remains is the binary representation error of summing
+  them — about 1e-11 dollars on a hundred-thousand-dollar invoice. **Half a cent is the
+  interval's own name**: five hundred thousand times above the slop, one unit below the
+  smallest difference the currency can express. A cent would go silent on a genuine cent,
+  which is what #57's figure would have done had it been adopted rather than derived to.
+- **THE REPOSITORY HAD ALREADY WRITTEN THE ANSWER DOWN, in the one place that actually
+  ran the comparison.** `scripts/tests/verify-variance-15.mjs` reads `Amount Due` against
+  `Calculated Total` on the live base and compares them with `const CENT = 0.005`, whose
+  comment gives the same reason in the same words. The shipped rule was `max($5, 1%)` and
+  its own credentialed verification used half a cent, and that disagreement was green for
+  as long as #254 was open.
+- **THE PERCENTAGE TERM WAS PROPORTIONAL TO THE WRONG QUANTITY.** One percent of a
+  fifty-thousand-dollar invoice is five hundred dollars, so a missing four-hundred-dollar
+  charge was silent — the larger the invoice, the larger the error that hid, which is the
+  wrong direction for a mark whose whole purpose is to be acted on. And the mechanism it
+  claimed to absorb scales with how many charges there are, not with what they come to: a
+  fifty-thousand-dollar invoice can be one charge.
+- **#283 IS THE COUNTEREXAMPLE TO ANY DOLLAR FLOOR, and it is sharper than a floor
+  hiding small errors.** A term the app has no column for makes `Calculated Total` short
+  by exactly that term's value, which is unbounded downward — a small freight surcharge,
+  a pallet charge, sales tax on a small invoice. The smallest invoices on this base are
+  $120–$180 and a state sales tax there is $5–$15, so a five-dollar floor swallows the
+  small end of precisely the class #283 was raised to expose, and it swallows a larger
+  FRACTION of a smaller invoice: $5 is 4.2% of $120. A cent-scale threshold is not
+  reachable by that argument, since no missing column is worth a cent.
+- **WHAT THE FORM PASSES, AND WHY THE SHARED THING IS THE TOLERANCE AND NEVER THE
+  INPUTS.** The form computes `calculatedTotal` from what was typed and always will:
+  there is no rollup in a browser, and `offline/invoice-money-terms.mjs` asserts on that
+  declaration by name because a term missing from it reads low. The backend re-reads
+  Airtable's `Calculated Total` after the charges are linked. The two cannot always see
+  the same number — a coercion maps a typed `0` to null, and a rollup is not a
+  client-side reduce — so the form asserts only that **the two figures on the screen
+  right now disagree by more than the rule allows**, and never that the saved record will
+  carry the mark. `calculatedTotal` is the same binding the `Calculated total:` label
+  renders, so the warning and the figure a reader is comparing against cannot come apart.
+- **THE PREMISE WAS RESTING ON NOTHING, AND ESTABLISHING IT IS PART OF THE ISSUE.**
+  Half a cent needs both sides to be whole numbers of cents, and three separate things
+  were assumed to hold that. None does, and all three were measured. **Airtable's
+  `precision` is a DISPLAY option** — writing 2.5 into the precision-0 `Qty` field and
+  1.005 into the 2-decimal `Unit Price` stored both verbatim, and `Amount` came back as
+  `2.5124999999999997`. **The value the actions read is a hidden `itemsJson`**, not the
+  controls, so nothing declared on a control could gate it. **And the controls' own
+  validation does not fire**: the quantity input declares no `step` and the price input
+  declares `step="0.01"`, yet on this form `2.5` and `1.005` both report
+  `checkValidity() === true` and the form submits — while a detached
+  `<input type="number">` DOES report `stepMismatch` for 2.5, so the absent attribute is
+  not the cause and the shape of the form is. The judgment is
+  `lib/variance.js:isWholeQty` / `isWholeCentPrice`, beside the tolerance it is the
+  premise for. The price test carries 1e-9 of slack rather than comparing exactly,
+  because a whole-cent value need not be exactly representable in binary: 8.11 is not,
+  and an exact test rejects prices the rule is meant to admit.
+- **SO IT IS REFUSED AT TWO LEVELS, AND THE SECOND ONE WAS ADDED BECAUSE THE FIRST
+  DRAFT GOT THIS WRONG.** That draft paired the guard with no message, on the ground
+  that no form could produce the state — the reasoning #278 uses to decide when a
+  service-layer throw stands alone. The measurement above refutes it: a person can type
+  `2.5` into the quantity box and press the button. Without a refusal the throw reached
+  them as `Something went wrong creating the invoice. Please try again.`, on an input
+  they could have corrected and would have retried unchanged — which is the shape #232
+  and #278 both argue against, a reader refused where they cannot see why. So both
+  invoice actions ask the predicate and return `CHARGE_PRECISION_COPY`, and
+  `lib/airtable/invoiceItems.js` keeps the throw as the last line for a request that
+  never went through a control. **The lesson is not about `step`**: it is that a claim
+  about what a form cannot produce is a measurement, and this one was written as an
+  inference.
+- **`PO Items` AND `PR Items` ARE NOT GUARDED, AND THE CHAIN IS WORTH NAMING BECAUSE
+  ONE HALF OF IT REALLY DOES FLOW IN.** `PO Items."Unit Price"` is copied into a charge
+  in three places on the form — `defaultedItem`, `updatePoItemSelection` and
+  `handleCancelUnitPriceEdit` — and the PR form's own `step="0.01"` is behind the same
+  hidden-JSON submit, so `PR Items` → `PO Items` → `Invoice Items` is open for a price
+  the whole way. `Qty` is not copied at all; a charge's quantity is typed. The guard is
+  still a funnel because it sits DOWNSTREAM of the copy: a price that arrives from an
+  ordered item still passes through it. What changes is only the failure mode, from a
+  silent wrong mark on a stored record to a refusal at creation — which is the trade
+  worth having. Guarding upstream would mean `lib/poGeneration.js` and
+  `persistPRFromForm`, in two areas with their own notes files, and the PR is where a
+  price is typed, so a refusal there needs copy and a brief. Measured: all 37 `PO Items`
+  and all 43 `PR Items` rows are whole-cent today.
+- **THE OVERAGE SPLIT COMPUTES A QUANTITY AND STILL CANNOT INVENT A FRACTION.**
+  `lib/overagePR.js` writes `(invoice.qty || 0) - excess` and `qty: excess`, where
+  `excess` is always a `Delivery Items."Qty"` passed straight through, and there is no
+  division anywhere in that path. Integer minus integer is exact at these magnitudes, so
+  the split can only PROPAGATE a fraction already stored — and if it ever does, the
+  guard's throw is caught per row by the apply step's own `catch` and reported in
+  `failed` with the guard's message, so the correction fails to settle loudly rather than
+  reaching `Calculated Total` quietly.
+- **THE THREE CENT-SCALE CONSTANTS STAY THREE.** `UNIT_PRICE_TOLERANCE_ABS` compares a
+  charge's price against the order's — two figures that should be identical — and the
+  form's `shippingFeeMismatch` compares a typed shipping fee against the order's frozen
+  one, which is the same question again. The header compares one statement against a sum
+  of terms. Same order of magnitude, three different questions. The same derivation does
+  land on half a cent for the unit-price one, which is written in that constant's own
+  docstring and is the only place it is said: changing it moves what
+  `Invoice Items."Variance Flag"` is set on, which is stored data on records that already
+  exist, and #254 owns the header comparison alone. **The header being the tighter of the
+  two is not a principled ordering** — it is one constant tightened and one not.
+- **WHAT NO CHECK IN THIS REPOSITORY CATCHES:** a fractional quantity typed by hand in
+  the Airtable UI, where a precision-0 field stores 2.5 and shows 3. No credentialed
+  script reads live rows for it — `verify-variance-15.mjs` builds its own whole-number
+  fixtures and compares its own invoice — so the state would surface only as the screen's
+  own false positive, `⚠ Check the total` on an invoice whose vendor did nothing but
+  round its printed amounts. Closing it needs a credentialed check reading live values,
+  the shape `verification.md` prescribes for every Airtable-side rule, and #254 does not
+  add one. `offline/invoice-header-tolerance.mjs` says so in its header, where the
+  threshold's own premise is asserted.
+- **NOT MEASURED AS A COST, BECAUSE THERE IS NONE:** the form judges with two figures it
+  already holds in state, and the backend uses the `getInvoiceByRecordId` it already
+  calls after linking the charges. No screen gained or lost an Airtable operation.
+- **THE COUNT THAT IS SAFETY RATHER THAN JUSTIFICATION.** Of the 23 invoices on this
+  base, exactly one has a non-zero difference (90.00) and the other 22 are exactly zero,
+  because `seed_full_demo.mjs` writes `amountDue: amountDue ?? computed` — the same
+  arithmetic — so there is no rounding-noise population to count and the base could not
+  have decided this either way. What it does establish is that no stored mark changes:
+  the one flagged invoice stays flagged under half a cent, and the 22 stay silent.
+
 ### Invoices waiting on a delivery (#256)
 
 The other end of #216: a second strip above `/invoices`, listing invoices nobody has

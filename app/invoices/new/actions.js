@@ -21,7 +21,13 @@ import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { getDeliveriesForInvoice } from "@/lib/deliveryInvoiceCandidates";
 import { PAIRING, matchDeliveryToInvoice } from "@/lib/deliveryInvoiceMatch";
-import { checkHeaderVariance, checkUnitPriceVariance } from "@/lib/variance";
+import {
+    CHARGE_PRECISION_COPY,
+    checkHeaderVariance,
+    checkUnitPriceVariance,
+    isWholeCentPrice,
+    isWholeQty,
+} from "@/lib/variance";
 
 // Server Actions are directly callable regardless of what the page
 // rendered, so the Admin check happens here too, not just in the page
@@ -88,6 +94,19 @@ async function createInvoiceHandler(prevState, formData) {
             // message, the same division the PO refusal above already has.
             if (!item.poItemRecordId) {
                 return { error: "Every item needs an ordered item from its PO." };
+            }
+            // Issue #254 — the premise `HEADER_TOLERANCE` is derived from, refused
+            // where the reader can fix it. `createInvoiceItem` throws on the same
+            // judgment and stays the backstop; this is here because BOTH STATES ARE
+            // REACHABLE FROM THE FORM — measured, the two controls' step validation
+            // does not fire, so a typed `2.5` submits — and a throw inside the
+            // rollback block reaches a reader as `Something went wrong`, on an
+            // input they could correct.
+            if (!isWholeQty(parseFloat(item.qty))) {
+                return { error: CHARGE_PRECISION_COPY.qty };
+            }
+            if (!isWholeCentPrice(parseFloat(item.unitPrice))) {
+                return { error: CHARGE_PRECISION_COPY.unitPrice };
             }
         }
 

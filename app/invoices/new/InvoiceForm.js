@@ -18,6 +18,11 @@ import { hasUninvoicedQty } from "@/lib/poItemQty";
 // out of an invoice with no order, and the one predicate the modal and
 // `createDirectPurchaseAction` both ask so they cannot disagree about it.
 import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
+// Issue #254 — the same category again, and the one that closes a divergence
+// rather than avoiding one: `lib/variance.js` imports nothing at all, so the
+// predicate the saved flag is set by is reachable from here. The form used to
+// carry its own threshold for the same comparison.
+import { VARIANCE_COPY, checkHeaderVariance } from "@/lib/variance";
 
 // poItemTouched: false until the user (or #57's auto-default below) makes an
 // explicit choice in the PO Item dropdown. It distinguished "still unset" from
@@ -981,10 +986,22 @@ export default function InvoiceForm({ vendors, pos }) {
         (parseFloat(shippingFee) || 0) +
         (tariffEnabled ? parseFloat(tariff) || 0 : 0) +
         (salesTaxEnabled ? parseFloat(salesTax) || 0 : 0);
+    // Issue #254 — THE JUDGMENT IS `lib/variance.js`'s, AND WHAT IS SHARED IS THE
+    // TOLERANCE RATHER THAN THE INPUTS. This read `> 0.01` (#57) while the flag
+    // stored on the saved record needed five dollars or one percent (#15), so an
+    // invoice could be warned about here and then carry no mark at all — which
+    // reads as the discrepancy having been resolved.
+    //
+    // THE SUM STAYS THIS FORM'S OWN and has to: there is no rollup in a browser,
+    // and the backend's figure is Airtable's `Calculated Total` re-read after the
+    // charges are linked. The two cannot always see the same number, so passing
+    // this form's own two figures to the shared predicate is the whole of what
+    // one rule can mean here — `calculatedTotal` above is the same binding the
+    // label renders, so the warning and the preview cannot come apart.
     const totalsMismatch =
         vendorStatedTotal !== "" &&
         !Number.isNaN(parseFloat(vendorStatedTotal)) &&
-        Math.abs(parseFloat(vendorStatedTotal) - calculatedTotal) > 0.01;
+        checkHeaderVariance(parseFloat(vendorStatedTotal), calculatedTotal);
     // Issue #91 — same sanity-check idea as totalsMismatch, scoped to
     // Shipping Fee vs. the single selected PO's own figure: the field
     // stays freely editable (prefilled, not locked), so this is what
@@ -1824,11 +1841,17 @@ export default function InvoiceForm({ vendors, pos }) {
                 <p className="mt-2 text-xs text-zinc-500">
                     Calculated total: {calculatedTotal.toFixed(2)}
                 </p>
+                {/* #254 — the sentence is `lib/variance.js`'s now, unchanged in
+                    wording. Written here as element text it was invisible to the
+                    vocabulary check, which reads `*_COPY` strings and nothing
+                    else, and it belongs beside the predicate that decides when it
+                    appears. */}
                 {totalsMismatch && (
                     <p className="mt-1 text-xs text-amber-700">
-                        Vendor&apos;s Stated Total ({(parseFloat(vendorStatedTotal) || 0).toFixed(2)}) doesn&apos;t
-                        match the calculated total ({calculatedTotal.toFixed(2)}) — double-check before
-                        submitting.
+                        {VARIANCE_COPY.headerBeforeSaving(
+                            (parseFloat(vendorStatedTotal) || 0).toFixed(2),
+                            calculatedTotal.toFixed(2)
+                        )}
                     </p>
                 )}
             </div>
