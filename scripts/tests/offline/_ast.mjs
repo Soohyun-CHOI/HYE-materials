@@ -59,15 +59,26 @@ export function listJsFiles(dir, out = []) {
     return out;
 }
 
-/** Parse one repo-relative file. Throws with the path on a parse failure. */
-export function parseFile(relPath) {
-    const source = readFileSync(repoPath(relPath), "utf8");
+/**
+ * Parse a source string. `label` only names it in a parse error.
+ *
+ * Exported for the anti-vacuity half of a source assertion (#290): a check that a
+ * shape is ABSENT from the repo has to be seen finding that shape somewhere, and a
+ * planted violation written beside the assertion reads better than one committed to a
+ * file — which is `line-vocabulary.mjs`'s move for copy strings, one level down.
+ */
+export function parseSource(source, label = "<source>") {
     try {
         const ast = JsxParser.parse(source, { ecmaVersion: "latest", sourceType: "module" });
-        return { ast, source, relPath };
+        return { ast, source, relPath: label };
     } catch (err) {
-        throw new Error(`${relPath}: could not parse (${err.message})`);
+        throw new Error(`${label}: could not parse (${err.message})`);
     }
+}
+
+/** Parse one repo-relative file. Throws with the path on a parse failure. */
+export function parseFile(relPath) {
+    return parseSource(readFileSync(repoPath(relPath), "utf8"), relPath);
 }
 
 const SKIP_KEYS = new Set(["type", "start", "end", "loc", "range", "parent"]);
