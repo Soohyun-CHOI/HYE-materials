@@ -172,12 +172,22 @@ export function run({ check, log, assert }) {
     check("Withdrawn names the PO too", statusTag("Withdrawn"), "PO withdrawn");
     assert(
         "no label is ambiguous about what it describes",
-        ["Awaiting Signature", "Withdrawn", "Sent to Vendor"].every((s) => statusTag(s).startsWith("PO"))
+        ["Awaiting Signature", "Withdrawn", "Late Delivery"].every((s) => statusTag(s).startsWith("PO"))
     );
     // A status option added to the Airtable field later must SHOW rather than
     // vanish — the failure mode #144 recorded for a denylist. Colon form, because
     // an arbitrary option name will not read grammatically after a bare "PO".
-    check("an unknown status shows itself rather than disappearing", statusTag("Sent to Vendor"), "PO: Sent to Vendor");
+    //
+    // THIS CASE USED `Sent to Vendor` AS ITS UNKNOWN STATUS AND #281 MADE IT KNOWN,
+    // which is the fixture going stale under the code — loudly here, since the
+    // function returns null for it now and `null.startsWith` throws. The example is a
+    // status this base does not have, so it cannot be overtaken the same way; what it
+    // is testing is the fallthrough, not any particular option.
+    check("an unknown status shows itself rather than disappearing", statusTag("Late Delivery"), "PO: Late Delivery");
+    // #281 — and the two statuses past the signature are both silent, for the same
+    // reason `Signed` always was: the tag exists to say a price came from an order
+    // that is NOT settled, and a sent order is the most settled there is.
+    check("Sent to Vendor gets no tag either", statusTag("Sent to Vendor"), null);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

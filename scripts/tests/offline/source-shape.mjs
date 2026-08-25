@@ -27,6 +27,7 @@
 // behavioral check — see _ast.mjs's note on source order vs execution order,
 // which is exactly what these still cannot distinguish.
 
+import { readFileSync } from "node:fs";
 import {
     callPassesProperty,
     callsBefore,
@@ -38,6 +39,7 @@ import {
     insideTry,
     isAwaited,
     parseFile,
+    repoPath,
     resolveFunction,
     walk,
 } from "./_ast.mjs";
@@ -141,6 +143,34 @@ const WITHDRAW_GUARDS = [
         work: "createInvoice",
         why: "an invoice must not be linked to a withdrawn PO",
     },
+    {
+        file: "app/pos/[poId]/actions.js",
+        // #281 renamed this: the action is a plain export calling requireUser() now
+        // rather than a wrapped handler, so there is no separate handler to name.
+        fn: "sendPOToVendorAction",
+        // #281 reaches the same rule through its own predicate rather than a second
+        // isPOWithdrawn call, so the gate named here is that predicate. What matters
+        // is unchanged: the withdrawal test runs before the side effect.
+        gate: "getPOSendEligibility",
+        work: "sendPOToVendorEmail",
+        why: "mailing a canceled order to the vendor is the strongest form of a new document",
+    },
+];
+
+// Each write control on /pos/[poId] renders on exactly its own action's gate (#281).
+// The page had all three on President-or-Admin while two of the actions were
+// President-only, so an Admin saw buttons that could only throw. A page condition and
+// an action's own gate are in different files, so nothing but this pairs them.
+//
+// TWO SHAPES, BECAUSE THE TWO AXES ARE NOT THE SAME KIND. Signing is a role, so its
+// gate is a wrapper and `wrapper` names it. The two document controls are the
+// requester-or-office axis, which no wrapper covers, so their gate is a predicate
+// called in the body and `gate` names that instead — the `withdrawPOAction` shape, and
+// the reason both are exemptions in `authz-structure.mjs`.
+const PO_CONTROL_GATES = [
+    { form: "SignForm", pageFlag: "isPresident", wrapper: "withPresidentAction", export: "signPOAction" },
+    { form: "RegeneratePDFForm", pageFlag: "canSend", gate: "canSendPOToVendor", export: "regeneratePDFAction" },
+    { form: "SendToVendorForm", pageFlag: "canSend", gate: "canSendPOToVendor", export: "sendPOToVendorAction" },
 ];
 
 /** A call like `obj.prop(...)`, matched on both halves. */
@@ -426,6 +456,75 @@ export function run(reporter) {
             guardAt !== -1 && pushAt !== -1 && guardAt < pushAt
         );
     }
+
+    // ── each write control's render condition matches its action's gate (#281) ──
+    log("");
+    log("PO controls render on exactly their own action's gate (#281):");
+    // COMMENTS STRIPPED BEFORE MATCHING, which is not tidiness: the windows below
+    // measure the distance from a flag to the element it guards, and this page
+    // explains every one of those decisions in a block comment sitting exactly
+    // between them. Measuring code, not prose. `variance-copy.mjs` strips for the
+    // same reason on a different question.
+    const stripComments = (src) => src.replace(/\{?\/\*[\s\S]*?\*\/\}?/g, "");
+    const poPageSrc = stripComments(readFileSync(repoPath("app/pos/[poId]/page.js"), "utf8"));
+    const poActionsSrc = readFileSync(repoPath("app/pos/[poId]/actions.js"), "utf8");
+    for (const g of PO_CONTROL_GATES) {
+        // The JSX condition immediately before the control, as source text: a
+        // `{flag ? <Form …` or `flag && <Form …`. Text rather than AST because what
+        // is being pinned is which flag guards which element, and the flags are
+        // plain identifiers whose names are the whole claim.
+        const rendered = new RegExp(`${g.pageFlag}\\s*(\\?|&&)[\\s\\S]{0,400}?<${g.form}\\b`).test(poPageSrc);
+        check(`  ${g.form} renders on ${g.pageFlag}`, rendered, true);
+        // And no OTHER flag guards it, which is the half that caught #281's defect:
+        // the page said isOffice and the action said President.
+        for (const other of ["isOffice", "isPresident", "canSend"]) {
+            if (other === g.pageFlag) continue;
+            const wrong = new RegExp(`${other}\\s*(\\?|&&)[\\s\\S]{0,200}?<${g.form}\\b`).test(poPageSrc);
+            check(`    and not on ${other}`, wrong, false);
+        }
+        if (g.wrapper) {
+            const wrapped = new RegExp(`export const ${g.export} = ${g.wrapper}\\b`).test(poActionsSrc);
+            check(`  ${g.export} is ${g.wrapper}`, wrapped, true);
+        } else {
+            // A predicate gate, so what is pinned is that the action asks it and asks
+            // it BEFORE doing anything — the wrapper's guarantee, spelled out.
+            const fn = bodyOf(fileOf("app/pos/[poId]/actions.js"), g.export, "app/pos/[poId]/actions.js", reporter);
+            check(`  ${g.export} asks ${g.gate}`, fn ? callsFunction(fn, g.gate) : false, true);
+            check(
+                `    after requireUser and before its own work`,
+                fn ? callsBefore(fn, "requireUser", g.gate) : false,
+                true
+            );
+        }
+    }
+    // ANTI-VACUITY: the matcher has to be able to say NO, or every clause above is
+    // what it reports for any pair. `isPresident` does not guard the send control.
+    assert(
+        "the pairing matcher rejects a control guarded by the wrong flag",
+        !/isPresident\s*(\?|&&)[\s\S]{0,200}?<SendToVendorForm\b/.test(poPageSrc)
+    );
+    // And the flags it is choosing between must all be defined on the page, or a
+    // renamed one would make every "not on X" clause pass for free.
+    for (const flag of ["isOffice", "isPresident", "canSend"]) {
+        assert(`  ${flag} is a real binding on the page`, new RegExp(`const ${flag} =`).test(poPageSrc));
+    }
+    // #281 — the document control's contract matches what the page offers: it refuses
+    // an order that already has one. The page renders it only inside the `!pdfFile`
+    // branch, so the overwrite the old docstring promised was never reachable, and the
+    // PO document is only a partial snapshot — a second generation reads live party
+    // data. See docs/notes/purchase-orders.md.
+    const regenFn = bodyOf(
+        fileOf("app/pos/[poId]/actions.js"),
+        "regeneratePDFAction",
+        "app/pos/[poId]/actions.js",
+        reporter
+    );
+    assert(
+        "regeneratePDFAction refuses an order that already has its document",
+        regenFn
+            ? /po\.poPdfFile\?\.\[0\]/.test(poActionsSrc.slice(regenFn.start, regenFn.end))
+            : false
+    );
 
     // The PO page must consume the shared predicate rather than re-deriving the
     // rule from status literals.

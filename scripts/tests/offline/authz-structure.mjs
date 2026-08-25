@@ -66,6 +66,16 @@ const DELIVERY_JOB_AXIS =
     "record in the body — an axis no role helper covers, since a site employee assigned to the Job must pass and " +
     "an Admin on no job must too. Same shape as withdrawPOAction (#138).";
 
+// #281's axis, and the third of this mixed shape after the two delivery ones.
+const PO_DOCUMENT_AXIS =
+    "Session + either the requester of the order's purchase request or the office, not a role. " +
+    "requireUser() already cannot be dropped (it redirects), and the deciding comparison is " +
+    "canSendPOToVendor (lib/poSend.js) per record in the body — no role helper covers it, since the " +
+    "requester passes on identity while the office passes on being the office. Same mixed shape as " +
+    "canAccessJobDeliveries. Sending an order with its document attached IS placing the order, which is why " +
+    "the requester is on it at all (#138's symmetry); the office is on it because not sending stops the work " +
+    "where not withdrawing stops nothing.";
+
 const DELIVERY_AUTHOR_AXIS =
     "Session + authorship, not a role. The Job scope is checked first so someone outside it learns nothing, then " +
     "canDeleteDelivery (lib/deliveryDelete.js) decides on author-or-Admin inside the shared write path. Admin is " +
@@ -126,6 +136,21 @@ const EXEMPTIONS = [
             `membership check lives in createDeliveryAction instead. And ${UPLOAD_CALLBACK_GATE}`,
     },
     { file: "app/pos/[poId]/actions.js", name: "withdrawPOAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
+    {
+        file: "app/pos/[poId]/actions.js",
+        name: "sendPOToVendorAction",
+        mustCall: "requireUser",
+        reason: PO_DOCUMENT_AXIS,
+    },
+    {
+        file: "app/pos/[poId]/actions.js",
+        name: "regeneratePDFAction",
+        mustCall: "requireUser",
+        reason:
+            `${PO_DOCUMENT_AXIS} Issue #281 — the SECOND action on that predicate, and it is there because ` +
+            `sending needs a document to attach: a requester who may send but must ask somebody else to ` +
+            `generate is blocked with no signal that they are. It was withPresidentAction until this issue.`,
+    },
     { file: "app/prs/[prId]/actions.js", name: "approveAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/[prId]/actions.js", name: "editAndContinueAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/[prId]/actions.js", name: "returnForCorrectionAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },

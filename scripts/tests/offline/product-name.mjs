@@ -118,7 +118,17 @@ export function run({ check, assert, log }) {
     log("the buyer name on the PO is untouched and separate:");
     const poPdf = sources.get("lib/poPdf.js") ?? "";
     assert("lib/poPdf.js still declares HYE_BUYER_NAME", /const HYE_BUYER_NAME = "HANYANGENG USA INC\.";/.test(poPdf));
-    assert("and does not import the product name", !poPdf.includes("productName"));
+    // MATCHED ON AN IMPORT LINE RATHER THAN ON THE BARE TOKEN (#281). It read
+    // `!poPdf.includes("productName")`, which is the same over-reach #203 had to fix
+    // on the confirm page: prose ABOUT a rule is not a violation of it. #281 exported
+    // `HYE_BUYER_NAME` for the vendor mail and gave it a docstring saying it is not
+    // the product's name and where that one lives — a comment that serves this
+    // assertion's own intent and tripped it. The intent is that no product name
+    // reaches this module, so an import is what to look for.
+    assert(
+        "and does not import the product name",
+        !/^\s*import[^\n]*productName/m.test(poPdf)
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

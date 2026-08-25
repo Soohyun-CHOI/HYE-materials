@@ -8,6 +8,7 @@ import { getAllLines } from "@/lib/airtable/lines";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { canViewPR } from "@/lib/prVisibility";
 import { selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
+import { PO_SENT_STATUS } from "@/lib/poSend";
 import {
     describePOColumn,
     describePOInvoicingColumn,
@@ -33,7 +34,11 @@ export const metadata = { title: "Purchase Orders" };
 // A refused row is simply absent. There is no "you may not see this" message,
 // matching /pos/[poId], which renders the ordinary not-found text rather than
 // confirming that a record exists outside someone's scope.
-const STATUSES = ["Awaiting Signature", "Signed", "Withdrawn"];
+// Issue #281 added the fourth. This list is BOTH the filter chips and the validator
+// for `?status=`, so an option missing from it is a state nobody can filter for and a
+// link nobody can share — the row still renders unfiltered, which is what made the
+// omission quiet. In the order an order passes through them.
+const STATUSES = ["Awaiting Signature", "Signed", PO_SENT_STATUS, "Withdrawn"];
 
 // Labeled for #190, and NOT because every screen is — attribution there is
 // opt-in, and /invoices, /deliveries and /materials are still unlabeled by

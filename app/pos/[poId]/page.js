@@ -40,9 +40,11 @@ import {
     isPOWithdrawn,
     WITHDRAW_REFUSAL,
 } from "@/lib/poWithdraw";
+import { canSendPOToVendor, getPOSendEligibility, SEND_COPY } from "@/lib/poSend";
 import SignForm from "./SignForm";
 import RegeneratePDFForm from "./RegeneratePDFForm";
 import WithdrawPOForm from "./WithdrawPOForm";
+import SendToVendorForm from "./SendToVendorForm";
 
 // The route param IS the human-readable ID, so the tab names the record for
 // ZERO Airtable operations (#201) — this reads the URL and nothing else.
@@ -55,6 +57,10 @@ const DONE_MESSAGES = {
     signed: "Signed the PO.",
     "pdf-regenerated": "Regenerated the PDF.",
     withdrawn: "Withdrew this PO.",
+    // Issue #281 — the send's own confirmation. Names the vendor rather than the
+    // address: the address is on the record right below it, and this line is gone on
+    // reload while that one stays.
+    sent: "Sent this PO to the vendor.",
 };
 
 // Labeled for #190, the way #200 labeled /pos and app/prs/page.js labels /prs.
@@ -98,6 +104,12 @@ async function renderPODetailPage({ params, searchParams }) {
     // Two names, one predicate — see this file's header on why they are separate.
     const isOffice = user.role === "President" || user.isAdmin === true;
     const seesPayment = user.role === "President" || user.isAdmin === true;
+    // Issue #281 — `isOffice` stays for the two READ-side narrowings (the internal
+    // address line and payment), which really are President-or-Admin. The write
+    // controls each match their own action's gate instead, which is what this page was
+    // getting wrong: signing is the President's, and the two document controls are
+    // `canSendPOToVendor`'s, resolved below once the PR is loaded.
+    const isPresident = user.role === "President";
     const { poId } = await params;
     const { done } = await searchParams;
 
@@ -132,12 +144,29 @@ async function renderPODetailPage({ params, searchParams }) {
     const withdrawCopy = getWithdrawCopy(po.presidentSigned);
     const withdrawEligibility = isRequester ? getPOWithdrawEligibility(po) : null;
 
-    const [job, vendor, ourPic, ourManager] = await Promise.all([
+    // Issue #281 — `sentBy` joins the three users this page already resolves in one
+    // batch, so naming who sent the order costs one more id in a fetch that was
+    // happening anyway rather than a read of its own. The vendor is in the same
+    // batch, which is why the send control can show the address it would use for
+    // nothing: this page has resolved the vendor since #10.
+    const [job, vendor, ourPic, ourManager, sentBy] = await Promise.all([
         pr.job?.[0] ? getJobByRecordId(pr.job[0]) : null,
         pr.vendor?.[0] ? getVendorByRecordId(pr.vendor[0]) : null,
         po.ourPic?.[0] ? getUserByRecordId(po.ourPic[0]) : null,
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
+        po.sentBy?.[0] ? getUserByRecordId(po.sentBy[0]) : null,
     ]);
+    const sentByName = sentBy?.userName || null;
+
+    // Issue #281 — resolved once here, for the same reason the withdrawal pair is:
+    // the control and its refusal read one answer. The address comes from the vendor
+    // this page already loaded, so the `no-address` branch costs nothing.
+    const sendEligibility = getPOSendEligibility({ po, vendorEmail: vendor?.picEmail });
+    // WHO, as against WHETHER — the same split the withdrawal has (`isRequester` gates
+    // the section, then eligibility picks control-or-refusal). One predicate for both
+    // document controls: sending an order is placing it, so it is the requester's act
+    // as much as the office's, and making the document is the send's precondition.
+    const canSend = canSendPOToVendor(user, pr);
 
     // Invoiced/Uninvoiced (#48) and the invoices charging this order (#15, #233)
     // are invoice-derived. The invoice pages were President/Admin-only when that
@@ -654,11 +683,19 @@ async function renderPODetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {/* Signing/regeneration are President-only write actions, so those
-                controls render only for privileged viewers. The PO PDF itself
-                is visible to everyone who can see the PO (#132) — site staff
-                place the order from it — so the download link is outside the
-                privileged gate. */}
+            {/* EACH CONTROL NOW RENDERS ON EXACTLY ITS OWN ACTION'S GATE (#281).
+                This block gated all three write controls on `isOffice`
+                (President-or-Admin) while signing and regeneration were both
+                President-only actions, so an Admin who is not the President saw two
+                buttons that could only throw — five of eleven users on this base.
+                Signing narrowed to the President, on both sides. The two DOCUMENT
+                controls went the other way, to `canSendPOToVendor` — the requester or
+                the office — because sending an order with its document attached IS
+                placing the order, which is the act #138 gave the requester the
+                withdrawal control for; that module carries the argument. The PO PDF
+                itself is visible to everyone who can see the PO (#132) — site staff
+                place the order from it — so the download link stays outside every
+                gate. */}
             <div className="mt-8">
                 {po.presidentSigned ? (
                     <div className="space-y-2 text-sm">
@@ -673,19 +710,56 @@ async function renderPODetailPage({ params, searchParams }) {
                             regeneratePDFAction refuses it regardless of what
                             renders here). */}
                         {pdfFile ? (
-                            <a href={pdfFile.url} target="_blank" rel="noreferrer" className="underline">
-                                {pdfFile.filename || "PO PDF"}
-                            </a>
+                            <div className="space-y-3">
+                                <a href={pdfFile.url} target="_blank" rel="noreferrer" className="underline">
+                                    {pdfFile.filename || "PO PDF"}
+                                </a>
+                                {/* Issue #281 — the send sits beside the download
+                                    because they are two things to do with one
+                                    document, and the reader who mails it is the one
+                                    who was downloading it to mail it by hand. Once
+                                    sent, the record replaces the control: a second
+                                    send is refused, so there is no button to show and
+                                    the three facts of the send go in its place.
+                                    Everyone who can see the order sees that record —
+                                    whether the vendor has it is not office-only. */}
+                                {po.sentAt ? (
+                                    <p className="text-zinc-600">
+                                        {SEND_COPY.sent({
+                                            address: po.sentTo || "—",
+                                            when: new Date(po.sentAt).toLocaleString(),
+                                            by: sentByName,
+                                        })}
+                                    </p>
+                                ) : canSend ? (
+                                    sendEligibility.eligible ? (
+                                        <SendToVendorForm poId={po.poId} address={vendor?.picEmail} />
+                                    ) : (
+                                        <p className="text-amber-700">
+                                            {SEND_COPY.refusal[sendEligibility.reason]}
+                                        </p>
+                                    )
+                                ) : null}
+                            </div>
                         ) : withdrawn ? (
                             <p className="text-zinc-600">
                                 No PO document is on file, and none will be generated now that this PO is
                                 withdrawn.
                             </p>
-                        ) : isOffice ? (
+                        ) : canSend ? (
+                            /* Issue #281 — the same people who may send may make the
+                               document, because sending needs one. The sentence
+                               replaced `PDF generation hasn't completed yet for this
+                               PO.`, which stated the fact and left a reader who did
+                               not create the state to guess what it meant: it says
+                               the signature should have produced it, that pressing
+                               makes it now, and that sending becomes possible once it
+                               exists — the question a requester arrived with. It is
+                               shown to everyone who has the control, not to the
+                               requester alone; the office did not create the state
+                               either. */
                             <div className="space-y-2">
-                                <p className="text-zinc-600">
-                                    PDF generation hasn&apos;t completed yet for this PO.
-                                </p>
+                                <p className="text-zinc-600">{SEND_COPY.documentMissing}</p>
                                 <RegeneratePDFForm poId={po.poId} />
                             </div>
                         ) : (
@@ -702,7 +776,7 @@ async function renderPODetailPage({ params, searchParams }) {
                     <p className="text-sm text-zinc-600">
                         This PO was never signed.
                     </p>
-                ) : isOffice ? (
+                ) : isPresident ? (
                     <SignForm poId={po.poId} />
                 ) : (
                     <p className="text-sm text-zinc-600">
@@ -731,8 +805,16 @@ async function renderPODetailPage({ params, searchParams }) {
                             body={withdrawCopy.modal.body(po.poId)}
                         />
                     ) : (
+                        /* Issue #281 — keyed on the reason rather than assuming
+                           `invoice-linked`, which was the only refusal that reached
+                           here. A sent order is the second, and it is #138's own
+                           decision becoming visible: that issue put `Sent to Vendor`
+                           out of withdrawal's reach because by then calling the order
+                           off involves the vendor, and #144 then removed the status
+                           so no order could reach the refusal. Writing the status
+                           gives it a reader. */
                         <p className="text-sm text-zinc-600">
-                            {WITHDRAW_REFUSAL["invoice-linked"]}
+                            {WITHDRAW_REFUSAL[withdrawEligibility.reason]}
                         </p>
                     )}
                 </div>
