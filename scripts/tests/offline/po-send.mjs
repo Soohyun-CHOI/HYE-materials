@@ -202,6 +202,31 @@ export function run({ check, assert, log }) {
         totalAmount: "$1,234.00",
         senderName: "Soo Choi",
     });
+    // THE BUYER NAME ENDS IN ITS OWN ABBREVIATING PERIOD, AND THE FIRST SEND WENT OUT
+    // SAYING `HANYANGENG USA INC..` — the name's period plus the sentence's. It is the
+    // sentence's subject now, so the word after it is always a lowercase verb.
+    assert("the buyer name is never followed by a period", !html.includes("HANYANGENG USA INC.."));
+    assert("  and nothing else doubles one either", !/\.\./.test(html) && !/\.\./.test(subject));
+    // THE TEMPLATE MUST NOT INSPECT THE NAME, which is what the two easier fixes would
+    // have done — stripping a trailing period, or appending one conditionally. A name
+    // that does NOT end in a period has to read just as well, and that is what proves
+    // no branch is in there.
+    const plainBuyer = SEND_COPY.mail.html({
+        poId: "HYE-PO-20260101-01",
+        buyerName: "ACME SUPPLY CO",
+        vendorName: "Lone Star Pipe & Supply",
+        totalAmount: "$1,234.00",
+        senderName: "Soo Choi",
+    });
+    assert("a buyer name with no trailing period reads the same way", plainBuyer.includes("ACME SUPPLY CO has issued"));
+    assert("  and gains no period of its own", !plainBuyer.includes("ACME SUPPLY CO."));
+    assert("  and doubles nothing", !/\.\./.test(plainBuyer));
+    // ANTI-VACUITY: the double-period matcher has to be seen to catch the sentence
+    // that actually shipped.
+    assert(
+        "the matcher would have caught the sentence that went out",
+        /\.\./.test("Attached is purchase order X from HANYANGENG USA INC.. The order total is $1.00.")
+    );
     assert("the body greets the vendor by name", html.includes("Lone Star Pipe & Supply"));
     assert("  names the order and its total once each", html.includes("HYE-PO-20260101-01") && html.includes("$1,234.00"));
     // THE LAST LINE IS WHAT Reply-To IS FOR, SAID OUT LOUD. A vendor who does not know
