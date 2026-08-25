@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/authz";
 import { countMaterials } from "@/lib/airtable/materials";
 import { searchMaterialPrices } from "@/lib/materialHistory";
 import { lowestPriceRowIds, qtyDiffersAcross, statusTag } from "@/lib/materialPriceView";
+import { isPOSigned } from "@/lib/poUnsigned";
 import { formatUSD } from "@/lib/format";
 import MaterialSearchForm from "./MaterialSearchForm";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -23,10 +24,12 @@ export const dynamic = "force-dynamic";
  * status, so "Withdrawn — this order was withdrawn" said the same thing twice.
  * This says the consequence once, per group, and only when it applies.
  */
-const SETTLED_STATUS = "Signed";
-
+// Issue #281 — `isPOSigned` rather than a status literal of its own. `Sent to Vendor`
+// is a second status past the signature, and against a single `"Signed"` a sent order
+// counted as unsettled — the caveat would have fired on the most settled price on the
+// screen. The set lives in lib/poUnsigned.js, which owns the signature axis.
 function hasUnsettledPrice(rows) {
-    return rows.some((r) => r.poStatus && r.poStatus !== SETTLED_STATUS);
+    return rows.some((r) => r.poStatus && !isPOSigned(r.poStatus));
 }
 
 // Labeled for #190 by #224, the sweep across every entry point that opened no

@@ -145,7 +145,9 @@ Enforced by `scripts/tests/offline/client-import-safety.mjs`, which walks the re
 - A table CANNOT be deleted: 404, there is no endpoint.
 - Creating a link field auto-creates the symmetric field on the far table, named after the source table, and **that name can be PATCHed afterwards** — which is why every reverse-link on this base reads as a deliberate name rather than as whatever Airtable generated.
 
-**A fourth was measured in #283 and never lived in CLAUDE.md:** a field's `description` PATCHes cleanly (200) where its `options` do not. That asymmetry is what the sweep of sixteen descriptions in that issue rests on, and it is recorded here rather than left in a pull request body because it is the limit somebody planning the next schema edit will want first.
+**A fourth was measured in #283 and never lived in CLAUDE.md:** a field's `description` PATCHes cleanly (200). That is what the sweep of sixteen descriptions in that issue rests on, and it is recorded here rather than left in a pull request body because it is the limit somebody planning the next schema edit will want first.
+
+- **That entry said `options` do not PATCH, and #281 measured that too broadly.** A **formula** field's `options.formula` PATCHes cleanly (200) — #281 widened `PO Items."Signed Qty"` that way. What is refused is a **single select's option list**, which comes back 422 `INVALID_REQUEST_UNKNOWN` with "Changing a field's type or number precision is not currently supported" — a message about something else entirely, which is worth knowing because it gives no hint that the option list is the part being refused. So the limit is per option shape rather than per key, and the one that constrains a design is the select: adding a status value is a UI edit, which is why both #138 and #281 added theirs by hand.
 
 **Deleting or retyping a field is still not the same as renaming it**, and neither is adding one. A rename preserves every value; a type change can silently drop them. The dummy-data convention below is unchanged: records in this base are not to be removed as tidying-up.
 

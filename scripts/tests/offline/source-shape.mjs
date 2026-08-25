@@ -27,6 +27,7 @@
 // behavioral check — see _ast.mjs's note on source order vs execution order,
 // which is exactly what these still cannot distinguish.
 
+import { readFileSync } from "node:fs";
 import {
     callPassesProperty,
     callsBefore,
@@ -38,6 +39,7 @@ import {
     insideTry,
     isAwaited,
     parseFile,
+    repoPath,
     resolveFunction,
     walk,
 } from "./_ast.mjs";
@@ -141,6 +143,26 @@ const WITHDRAW_GUARDS = [
         work: "createInvoice",
         why: "an invoice must not be linked to a withdrawn PO",
     },
+    {
+        file: "app/pos/[poId]/actions.js",
+        fn: "sendPOToVendorHandler",
+        // #281 reaches the same rule through its own predicate rather than a second
+        // isPOWithdrawn call, so the gate named here is that predicate. What matters
+        // is unchanged: the withdrawal test runs before the side effect.
+        gate: "getPOSendEligibility",
+        work: "sendPOToVendorEmail",
+        why: "mailing a canceled order to the vendor is the strongest form of a new document",
+    },
+];
+
+// Each write control on /pos/[poId] renders on exactly its own action's gate (#281).
+// The page had all three on President-or-Admin while two of the actions were
+// President-only, so an Admin saw buttons that could only throw. A page condition and
+// an action wrapper are in different files, so nothing but this pairs them.
+const PO_CONTROL_GATES = [
+    { form: "SignForm", pageFlag: "isPresident", wrapper: "withPresidentAction", export: "signPOAction" },
+    { form: "RegeneratePDFForm", pageFlag: "isAdmin", wrapper: "withAdminAction", export: "regeneratePDFAction" },
+    { form: "SendToVendorForm", pageFlag: "isAdmin", wrapper: "withAdminAction", export: "sendPOToVendorAction" },
 ];
 
 /** A call like `obj.prop(...)`, matched on both halves. */
@@ -425,6 +447,40 @@ export function run(reporter) {
             "detect-po classifies withdrawn before pushing a confirmed candidate",
             guardAt !== -1 && pushAt !== -1 && guardAt < pushAt
         );
+    }
+
+    // ── each write control's render condition matches its action's gate (#281) ──
+    log("");
+    log("PO controls render on exactly their own action's gate (#281):");
+    const poPageSrc = readFileSync(repoPath("app/pos/[poId]/page.js"), "utf8");
+    const poActionsSrc = readFileSync(repoPath("app/pos/[poId]/actions.js"), "utf8");
+    for (const g of PO_CONTROL_GATES) {
+        // The JSX condition immediately before the control, as source text: a
+        // `{flag ? <Form …` or `flag && <Form …`. Text rather than AST because what
+        // is being pinned is which flag guards which element, and the flags are
+        // plain identifiers whose names are the whole claim.
+        const rendered = new RegExp(`${g.pageFlag}\\s*(\\?|&&)[\\s\\S]{0,400}?<${g.form}\\b`).test(poPageSrc);
+        check(`  ${g.form} renders on ${g.pageFlag}`, rendered, true);
+        // And no OTHER flag guards it, which is the half that caught #281's defect:
+        // the page said isOffice and the action said President.
+        for (const other of ["isOffice", "isPresident", "isAdmin"]) {
+            if (other === g.pageFlag) continue;
+            const wrong = new RegExp(`${other}\\s*(\\?|&&)[\\s\\S]{0,200}?<${g.form}\\b`).test(poPageSrc);
+            check(`    and not on ${other}`, wrong, false);
+        }
+        const wrapped = new RegExp(`export const ${g.export} = ${g.wrapper}\\b`).test(poActionsSrc);
+        check(`  ${g.export} is ${g.wrapper}`, wrapped, true);
+    }
+    // ANTI-VACUITY: the matcher has to be able to say NO, or every clause above is
+    // what it reports for any pair. `isPresident` does not guard the send control.
+    assert(
+        "the pairing matcher rejects a control guarded by the wrong flag",
+        !/isPresident\s*(\?|&&)[\s\S]{0,200}?<SendToVendorForm\b/.test(poPageSrc)
+    );
+    // And the flags it is choosing between must all be defined on the page, or a
+    // renamed one would make every "not on X" clause pass for free.
+    for (const flag of ["isOffice", "isPresident", "isAdmin"]) {
+        assert(`  ${flag} is a real binding on the page`, new RegExp(`const ${flag} =`).test(poPageSrc));
     }
 
     // The PO page must consume the shared predicate rather than re-deriving the

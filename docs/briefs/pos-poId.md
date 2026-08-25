@@ -4,7 +4,12 @@ Route: `/pos/[poId]`
 Who reaches it: row-scoped — anyone signed in, then only orders whose purchase
 request they can see, through `canViewPR`. Two facts are narrower: one internal
 address field is office-only, and payment badges are President-or-Admin.
-Signing is the President's; withdrawing is the requester's.
+**Each write control has its own reader**: signing is the President's, regenerating
+the document and sending it to the vendor are the office's, and withdrawing is the
+requester's. They were not always separated this way — the page used to offer
+signing and regeneration to the whole office while only the President could do
+either, so a redesign that groups the three into one "admin" block would rebuild
+the defect.
 
 ## What it answers
 
@@ -12,7 +17,8 @@ Has everything on this order been delivered, and has everything on it been invoi
 is the reconciliation screen — the one place where what was ordered, what came
 in and what was charged sit on one page — and it is the answer to the problem
 the whole app exists for. A secondary question, asked by a different reader: has
-the President signed it, so the office can send it to the vendor.
+the President signed it, and has the vendor been sent it — the office sends it
+**from this page**, so both halves of that are answered and acted on here.
 
 The order is a **frozen snapshot**. Its items were copied from the purchase
 request when the order was generated and are never recomputed, so a price here
@@ -86,6 +92,12 @@ been signed yet.
 **action.** The purchase order PDF, downloadable by anyone who can see the
 order — site staff place the order from it.
 
+**evidence — whether the vendor has been sent it.** Once the order has been
+emailed to the vendor, a line beside the download says so, naming the address, the
+time and the person who sent it. **Every viewer who can see the order sees this**,
+not just the office: whether the vendor has the order is not office-only
+information, and it is the question the whole screen is downstream of.
+
 ## What it carries only sometimes
 
 Everything here is absent in the normal case unless the entry says otherwise.
@@ -134,6 +146,13 @@ why they must keep two different words.
 **When an invoice carries the vendor's own invoice number:** it appears in gray
 between the invoice ID and the date.
 
+**When the reader raised the request and the order has already been sent:** the
+withdrawal control is replaced by a sentence saying it cannot be withdrawn here,
+because calling off an order the vendor already has means agreeing it with them
+first. This is the second of two refusals in that slot — the other is an invoice
+already being linked — and both explain rather than vanish, unlike a status from
+which withdrawal was never possible.
+
 **When the order has been withdrawn:** a red box above the money and the items,
 saying so in the third person and past tense — it is stated to whoever opens the
 page rather than to whoever acted — with the withdrawal timestamp under it. It
@@ -158,10 +177,33 @@ It comes off the query string and is gone on reload.
 **When the order is unsigned and the reader is office staff:** the signing
 control. For any other reader, the sentence that it has not been signed yet.
 
-**When the order is signed but its PDF has not been generated:** for office
-staff, a sentence plus a regeneration control; for everyone else, a sentence
-saying the document is not available yet. A control that can only fail is never
-offered.
+**When the order is signed but its PDF has not been generated:** for the office, a
+sentence plus a regeneration control; for everyone else, a sentence saying the
+document is not available yet. A control that can only fail is never offered.
+
+**When the order is signed, its document is on file, and it has not been sent
+yet:** for the office, a `Send to vendor` control beside the download, with the
+address it would use printed above it. **The address is on the screen and that is
+why there is no confirmation dialog** — the reader has already seen where it goes,
+so a dialog would ask the same question twice. If a redesign moves the address away
+from the button, the dialog has to come back.
+
+**When the office cannot send it, the reason is named where the control would be**,
+and on this screen only two of the send's four refusals can appear: the order was
+withdrawn, or the vendor has no `PIC Email` on record — that second one says to add
+the address on the vendor's record first. **The other two cannot be reached from
+here, because the page's own shape already answers them**: this whole block only
+exists once the order is signed, and the send lives inside the branch where a
+document is on file, so "not signed" and "no document" have their own sentences
+higher up and never reach the send. They are still refused by the app, for a caller
+that does not come through this page. Nobody outside the office sees any of the
+four: for another reader there is simply nothing there, since the send is not
+theirs to make.
+
+**Once it has been sent the control is gone for good**, replaced by the record of
+the send. A second send is refused rather than offered: two copies of one order read
+as two orders, and material arrives twice. A send that FAILS records nothing, so the
+control is still there and pressing it again is a first send rather than a second.
 
 **When the reader raised the request behind this order:** a withdrawal control
 at the foot, behind a top border — and this sits outside the office gate on

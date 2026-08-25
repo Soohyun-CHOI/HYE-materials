@@ -1,12 +1,17 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireUser, withPresidentAction } from "@/lib/authz";
+import { requireUser, withAdminAction, withPresidentAction } from "@/lib/authz";
 import { getPOById, updatePO } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
-import { generateAndAttachPOPdf } from "@/lib/poPdf";
+import { getVendorByRecordId } from "@/lib/airtable/vendors";
+import { getCurrentUser } from "@/lib/session";
+import { generateAndAttachPOPdf, HYE_BUYER_NAME } from "@/lib/poPdf";
 import { notifyPOSigned } from "@/lib/notifications";
 import { isPOWithdrawn, withdrawPOAsRequester } from "@/lib/poWithdraw";
+import { getPOSendEligibility, PO_SENT_STATUS, SEND_COPY } from "@/lib/poSend";
+import { sendPOToVendorEmail } from "@/lib/email";
+import { formatUSD } from "@/lib/format";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Issue #63 — the linked PR's Status only ever reaches "Approved" (see
@@ -111,7 +116,26 @@ async function signPOHandler(prevState, formData) {
  * there's no equivalent "already succeeded, don't redo it" case here the
  * way there is for PO creation.
  */
-export const regeneratePDFAction = withPresidentAction(regeneratePDFHandler);
+/**
+ * ADMIN SINCE #281, WHERE IT WAS PRESIDENT-ONLY, AND THE PAGE IS WHAT FORCED THE
+ * CHOICE. `page.js` rendered this control on President-or-Admin while the action
+ * refused everyone but the President, so five of the eleven users on this base saw a
+ * button that could only throw. One of the two had to move, and the office is the
+ * side that handles the order document — the same convention that puts invoicing
+ * behind Admin and that #281's send control follows. Signing went the other way, to
+ * President on both sides.
+ *
+ * WHAT THIS COSTS is a President who is not an Admin, who could regenerate before and
+ * cannot now. Nobody on this base is one, and the President's act here is the
+ * signature.
+ *
+ * THE UNSIGNED REFUSAL BELOW IS UNCHANGED. The PDF is generated at signing and there
+ * is no reason to make a draft of a document nobody has signed.
+ */
+export const regeneratePDFAction = withAdminAction(
+    () => ({ error: "Only office staff can regenerate this PO's document." }),
+    regeneratePDFHandler
+);
 
 async function regeneratePDFHandler(prevState, formData) {
     return withOpsLabel("regeneratePDFAction", async () => {
@@ -145,6 +169,116 @@ async function regeneratePDFHandler(prevState, formData) {
         }
 
         redirect(`/pos/${po.poId}?done=pdf-regenerated`);
+    });
+}
+
+/**
+ * Issue #281 — emails the signed order to the vendor, with the PDF attached.
+ *
+ * ADMIN RATHER THAN PRESIDENT, WHICH IS WHERE THIS DIVERGES FROM THE TWO CONTROLS
+ * BESIDE IT. CLAUDE.md's own account of the workflow is that the President signs and
+ * "office staff send that PDF to the vendor"; gating to Admin is what scopes something
+ * to the office. Signing stays the President's.
+ *
+ * THE SEND HAPPENS BEFORE THE RECORD, AND THAT ORDERING IS THE WHOLE SAFETY PROPERTY.
+ * `sendPOToVendorEmail` throws on a real failure — the Resend SDK returns
+ * `{ data, error }` rather than rejecting, so an unchecked call makes a failed send
+ * look like a success — and this function only writes after it returns. A failed send
+ * therefore leaves the order exactly as it was, which is also what makes pressing
+ * again a FIRST send rather than a second.
+ *
+ * THE REVERSE FAILURE GETS ITS OWN MESSAGE. If the mail goes and the write does not,
+ * the vendor has the order and the record does not say so; the one thing the reader
+ * must not do is assume it never went, so `SEND_COPY.recordFailed` says it did.
+ *
+ * NO `notify*` WRAPPER. `lib/notifications.js` swallows every failure because the
+ * state change it reports on is already committed; here the send is the action and
+ * nothing is committed until it succeeds.
+ */
+export const sendPOToVendorAction = withAdminAction(
+    () => ({ error: "Only office staff can send a PO to the vendor." }),
+    sendPOToVendorHandler
+);
+
+async function sendPOToVendorHandler(prevState, formData) {
+    return withOpsLabel("sendPOToVendorAction", async () => {
+        const poId = formData.get("poId");
+
+        // The wrapper decides the gate and discards the user it loaded
+        // (lib/authzWrap.js:createFlagGuard), so the sender's address costs one read
+        // here. Reported to #193 as a measurement rather than fixed, since changing
+        // that contract touches every wrapped action.
+        const sender = await getCurrentUser();
+
+        const po = await getPOById(poId);
+        if (!po) throw new Error("PO not found");
+
+        // The vendor lives through the PR, because `Purchase Orders."Vendor"` is a
+        // Lookup and carries the NAME rather than a record id. The same walk
+        // lib/notifications.js:notifyPOSigned makes.
+        const pr = po.pr?.[0] ? await getPRByRecordId(po.pr[0]) : null;
+        const vendor = pr?.vendor?.[0] ? await getVendorByRecordId(pr.vendor[0]) : null;
+
+        // Every refusal is re-asked here regardless of what the page rendered: a
+        // Server Action is directly callable, so the page hiding the control is not a
+        // gate. The predicate is the one the page reads.
+        const eligibility = getPOSendEligibility({ po, vendorEmail: vendor?.picEmail });
+        if (!eligibility.eligible) {
+            return { error: SEND_COPY.refusal[eligibility.reason] };
+        }
+
+        const pdf = po.poPdfFile[0];
+        let attachmentContent;
+        try {
+            // Airtable's attachment URLs live about two hours, so this is fetched from
+            // the record read moments ago and never stored. Not an Airtable API
+            // operation, so the ops counter cannot see it — see
+            // docs/notes/airtable-access.md on the count being a floor.
+            const res = await fetch(pdf.url);
+            if (!res.ok) throw new Error(`attachment fetch ${res.status}`);
+            attachmentContent = Buffer.from(await res.arrayBuffer()).toString("base64");
+        } catch (err) {
+            console.error("sendPOToVendorAction could not read the PO document", err);
+            return { error: SEND_COPY.sendFailed };
+        }
+
+        try {
+            await sendPOToVendorEmail({
+                to: vendor.picEmail,
+                replyTo: sender.email,
+                subject: SEND_COPY.mail.subject({ poId: po.poId, buyerName: HYE_BUYER_NAME }),
+                html: SEND_COPY.mail.html({
+                    poId: po.poId,
+                    buyerName: HYE_BUYER_NAME,
+                    vendorName: vendor.vendorName || "—",
+                    totalAmount: formatUSD(po.totalAmount),
+                    senderName: sender.userName || sender.email,
+                }),
+                attachment: {
+                    filename: pdf.filename || SEND_COPY.mail.fallbackFilename(po.poId),
+                    content: attachmentContent,
+                },
+            });
+        } catch (err) {
+            console.error("sendPOToVendorAction failed to send", err);
+            return { error: SEND_COPY.sendFailed };
+        }
+
+        try {
+            // One write, all four keys — the status and the event's three facts
+            // together, mirroring the withdrawal's status-plus-timestamp pair.
+            await updatePO(po.id, {
+                status: PO_SENT_STATUS,
+                sentAt: new Date().toISOString(),
+                sentBy: sender.id,
+                sentTo: vendor.picEmail,
+            });
+        } catch (err) {
+            console.error("sendPOToVendorAction sent the mail but could not record it", err);
+            return { error: SEND_COPY.recordFailed };
+        }
+
+        redirect(`/pos/${po.poId}?done=sent`);
     });
 }
 
