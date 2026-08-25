@@ -176,6 +176,11 @@ function stringsFrom(value, out = []) {
 const PINNED = [
     "⚠ Order variance",
     "⚠ Check the total",
+    // #254 — the third string in the same constant, and the one whose whole reason
+    // for existing separately is a tense. `invoices-new.md` quotes it with `N` where
+    // the builder puts a figure, so it is pinned without them, as the sentences
+    // below are.
+    "doesn't match the calculated total",
     // #274 — THE THREE `_shared.md` CALLS TIER 1 AND NOTHING PINNED. Its status
     // section quotes four sentences from `lib/deliveryStatus.js` as locked words;
     // only `Not compared — no ordered item` above was ever pinned, so the other
