@@ -1,7 +1,17 @@
-// The purchase order list's view rules (#168) — the Status column's text, and
-// which empty state a viewer gets.
+// The purchase order list's view rules (#168) — the Status column's text, which
+// empty state a viewer gets, and which orders each of the two strips selects.
 //
-// lib/poListView.js is pure and dependency-free, so every clause is pinnable here.
+// #295's SELECTOR IS THE QUIET MUTANT IN THIS FILE, and it is quiet because the two
+// answers agree. That strip lists orders that have been signed and not sent, and the
+// obvious way to write it is `status !== "Sent to Vendor"` — which on this base
+// returns the same 30 rows as reading `Sent At`, because the send writes both in one
+// operation. They come apart in exactly two places: a hand edit, and a send whose
+// record write failed. The second is the dangerous one — the vendor HAS that order,
+// and a status test would put it in a strip that tells somebody to send it. So the
+// first thing asserted about the selector is its verdict on both divergent shapes,
+// before anything about the ordinary ones.
+//
+// lib/poListView.js is pure, so every clause is pinnable here.
 // ORDERING IS NO LONGER ONE OF THEM: the list sorts by `PO ID` descending, which
 // Airtable does server-side in getAllPOs, so there is no comparator left to pin.
 // offline/source-shape.mjs asserts that sort instead.
@@ -11,18 +21,33 @@
 // verify-po-visibility-132.mjs, and the query budget is a property of
 // app/pos/page.js that #190's counter measures rather than this file.
 
+import { readFileSync } from "node:fs";
 import { isMain, standalone } from "./_harness.mjs";
+import { callsTo, parseFile, repoPath, resolveFunction } from "./_ast.mjs";
 import {
     AWAITING_PO_COPY,
     AWAITING_PO_STATUSES,
+    AWAITING_SEND_COPY,
     EMPTY_COPY,
     awaitingPOCopy,
     emptyStateKind,
+    selectPOsAwaitingSend,
     selectPRsAwaitingPO,
     statusLabel,
 } from "../../../lib/poListView.js";
 
-export const title = "Purchase order list — status text and empty states (#168)";
+export const title = "Purchase order list — status text, empty states and both strips";
+
+const PAGE = "app/pos/page.js";
+
+/** A signed order nobody has sent, and the one field each case spoils. */
+const UNSENT = {
+    poId: "HYE-PO-20260101-01",
+    presidentSigned: true,
+    presidentSignedAt: "2026-01-01T10:00:00.000Z",
+    status: "Signed",
+    sentAt: null,
+};
 
 export function run({ check, assert, log }) {
     // ── the Status column ───────────────────────────────────────────────────
@@ -213,6 +238,111 @@ export function run({ check, assert, log }) {
     assert(
         "the singular and plural headings actually differ",
         AWAITING_PO_COPY.heading(1) !== AWAITING_PO_COPY.heading(2)
+    );
+
+    // ── #295: signed orders nobody has sent ─────────────────────────────────
+    log("");
+    log("THE QUIET MUTANT — a strip that reads the status instead of the send:");
+    // THE TWO SHAPES WHERE THE JUDGMENTS COME APART. Everything else on the base
+    // answers the same either way, which is why these two lead.
+    const sentStatusStale = { ...UNSENT, sentAt: "2026-01-02T09:00:00.000Z", status: "Signed" };
+    check(
+        "an order the vendor HAS is absent even with the status left behind",
+        selectPOsAwaitingSend([sentStatusStale]).length,
+        0
+    );
+    const statusMovedByHand = { ...UNSENT, status: "Sent to Vendor", sentAt: null };
+    check(
+        "  and an order whose status was hand-edited is still listed, because nobody sent it",
+        selectPOsAwaitingSend([statusMovedByHand]).length,
+        1
+    );
+    // ANTI-VACUITY: the status test has to be seen giving the OPPOSITE answer on both,
+    // or "reading Sent At" is indistinguishable from reading either field.
+    const byStatus = (pos) => pos.filter((po) => po.status !== "Sent to Vendor");
+    assert(
+        "a status test would answer the other way on both",
+        byStatus([sentStatusStale]).length === 1 && byStatus([statusMovedByHand]).length === 0
+    );
+    // AND IT AGREES WITH THE STATUS TEST EVERYWHERE ELSE, which is the whole reason
+    // the mutation is invisible on a screen: on the ordinary shapes both return the
+    // same rows.
+    const ordinary = [UNSENT, { ...UNSENT, poId: "HYE-PO-20260101-02", sentAt: "2026-01-02T09:00:00.000Z", status: "Sent to Vendor" }];
+    check(
+        "the two judgments agree on every ordinary order",
+        selectPOsAwaitingSend(ordinary).length,
+        byStatus(ordinary).length
+    );
+
+    log("");
+    log("what the strip lists, and what it must not:");
+    check("a signed order with no send is listed", selectPOsAwaitingSend([UNSENT]).length, 1);
+    check(
+        "an unsigned order is not — there is nothing to send yet",
+        selectPOsAwaitingSend([{ ...UNSENT, presidentSigned: false, status: "Awaiting Signature" }]).length,
+        0
+    );
+    // THE SECOND MUTANT, AND IT HAS A WITNESS ON THE BASE. A withdrawn order's
+    // `Sent At` is empty and will never be filled, so an unconditional list keeps it
+    // forever — `HYE-PO-20260819-26` is withdrawn AND signed today.
+    check(
+        "a withdrawn order is not, however signed it is",
+        selectPOsAwaitingSend([{ ...UNSENT, status: "Withdrawn" }]).length,
+        0
+    );
+    assert(
+        "  and that exclusion is not what the send test was already doing",
+        selectPOsAwaitingSend([{ ...UNSENT, status: "Withdrawn", sentAt: null }]).length === 0 &&
+            selectPOsAwaitingSend([UNSENT]).length === 1
+    );
+    check("no orders is no rows", selectPOsAwaitingSend([]).length, 0);
+    check("  and a missing list is not a throw", selectPOsAwaitingSend(undefined).length, 0);
+    // THE SELECTOR DOES NOT ORDER, and the page is where that is asserted: the shared
+    // comparator takes rows rather than records, so mapping happens first.
+    const page = parseFile(PAGE);
+    const render = resolveFunction(page.ast, "renderPOListPage");
+    assert("the page's render resolves", render !== null);
+    if (render) {
+        const src = readFileSync(repoPath(PAGE), "utf8").slice(render.start, render.end);
+        assert("the strip's rows go through the shared wait ordering", /sortLongestWaitingFirst\(\s*\n?\s*selectPOsAwaitingSend/.test(src));
+        assert("  and the day count through the shared arithmetic", /daysWaiting\(signedDate, today\)/.test(src));
+        // NO READ OF ITS OWN: the strip maps `visible`, which the table already gated,
+        // and names no field the mapper does not carry.
+        assert("  it selects from the rows the table already gated", /selectPOsAwaitingSend\(visible\)/.test(src));
+        check("  and adds no Airtable call", callsTo(render, "getUsersByRecordIds").length, 0);
+        assert("  nor a sender lookup of any kind", !src.includes("sentBy"));
+    }
+
+    log("");
+    log("one voice, one sentence, and no control named:");
+    check("one order reads as one", AWAITING_SEND_COPY.heading(1), "1 signed order has not been sent to the vendor");
+    check("and two do not", AWAITING_SEND_COPY.heading(2), "2 signed orders have not been sent to the vendor");
+    assert(
+        "the singular and plural headings actually differ",
+        AWAITING_SEND_COPY.heading(1) !== AWAITING_SEND_COPY.heading(2)
+    );
+    assert("the explanation is one string rather than two voices", typeof AWAITING_SEND_COPY.explain === "string");
+    assert("  it orders the reader's attention", /longest wait first/i.test(AWAITING_SEND_COPY.explain));
+    assert("  and says why the state matters", /places the order/i.test(AWAITING_SEND_COPY.explain));
+    // IT NAMES NO CONTROL, because who may send is per record rather than per role and
+    // a missing document changes which control the order's page even offers (#290).
+    assert(
+        "no control is named",
+        !/send to vendor/i.test(AWAITING_SEND_COPY.explain) && !/button|click|press/i.test(AWAITING_SEND_COPY.explain)
+    );
+    // NO THRESHOLD, AND ITS ABSENCE IS ASSERTED RATHER THAN ASSUMED: #263's sentence
+    // names its figure in the copy, so a threshold added here without one would be a
+    // rule no reader is told about.
+    assert(
+        "and the sentence promises no threshold",
+        !/\bdays?\b/i.test(AWAITING_SEND_COPY.explain) && !/\bonly\b/i.test(AWAITING_SEND_COPY.explain)
+    );
+    // The two strips' sentences must not be one another's: they report different
+    // states and #176's carries two voices where this carries one.
+    assert(
+        "the two strips on this page say different things",
+        AWAITING_SEND_COPY.explain !== AWAITING_PO_COPY.explain.admin &&
+            AWAITING_SEND_COPY.heading(2) !== AWAITING_PO_COPY.heading(2)
     );
 }
 
