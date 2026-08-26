@@ -30,11 +30,6 @@ That is the whole screen. It is centered in the viewport rather than laid out do
 the page, and it is one of only two screens in the app with no navigation of any
 kind.
 
-**The line above was missing from this brief until #288**, whose string inventory
-listed it and made the sentence after it false. `strings/login.md` is that
-inventory, and it holds every string this screen can render with the condition on
-each.
-
 ## What it carries only sometimes
 
 **While submitting:** the button reads `Sending...` and is disabled.
