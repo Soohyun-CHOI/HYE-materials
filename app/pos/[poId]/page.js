@@ -329,7 +329,26 @@ async function renderPODetailPage({ params, searchParams }) {
                 <p>
                     Status: <strong>{po.status}</strong>
                 </p>
-                <p>PR: {pr.prId}</p>
+                {/* Issue #293 — the request behind this order, and the only path
+                    to it from here: #290 took the request's link out of the
+                    order-signed mail, on the ground that a reader placing an
+                    order needs the order. THE LINK CARRIES NO GATE OF ITS OWN
+                    AND MUST NOT ACQUIRE ONE. `canViewPR` already ran above, on
+                    this exact PR, and refused the whole page — so every reader
+                    who gets here can open it, and a condition here would claim
+                    a state that cannot exist while leaving `Job`, `Vendor` and
+                    the items table, all equally PR-derived, beside it. That is
+                    the opposite of `/materials`, where identifiers ARE gated
+                    per row: that page shows rows from many requests and cannot
+                    refuse itself, so the same rule applies per row there and
+                    once here. `Link` and `encodeURIComponent` match this page's
+                    two other record links, below. */}
+                <p>
+                    PR:{" "}
+                    <Link href={`/prs/${encodeURIComponent(pr.prId)}`} className="underline">
+                        {pr.prId}
+                    </Link>
+                </p>
                 <p>Job: {job ? `${job.jobCode} — ${job.jobName}` : "—"}</p>
                 <p>Vendor: {vendor?.vendorName || "—"}</p>
                 <p>Our PIC: {ourPic?.userName || "—"}</p>

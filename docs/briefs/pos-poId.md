@@ -33,6 +33,14 @@ status in bold, the purchase request's ID, the job as code and name, the vendor,
 and the two internal contacts, `Our PIC` and `Our Manager`. Any of them may be
 missing and renders as an em dash.
 
+**The request's ID is a link to that request, and it carries no condition of its
+own.** It is the only way into the request from here, and it works for every
+reader of this page: whether the request may be read is what decides whether
+this page opens at all, so by the time the block renders the question has been
+answered. A design that hides or disables this one line for some readers would
+be describing a reader who does not exist — and the job, the vendor and every
+figure in the items table come from that same request and sit beside it.
+
 **evidence — `Total Amount`.** The order's total, in the largest type on the
 page, in a bordered block of its own. This is the figure the purchase order PDF
 prints as its TOTAL line, so it is what the vendor was told.
@@ -239,6 +247,13 @@ silence.
 
 **Both chips are the ones the purchase order list shows**, from the same
 functions. The list and this page cannot describe one order two ways.
+
+**The request's page points back the same way.** On the purchase request there
+is a `Purchase Order` section holding the order's ID as a link with its status
+beside it, and here the request's ID is a link in the identity block. Two
+screens, one shape: an underlined identifier, no badge, no button, and no
+gate of its own on either side, since each page has already asked whether its
+reader may see the request.
 
 **The chip's placement is the invoice detail's grammar.** That screen puts its
 chip beside the `Delivery` heading; this one does the same beside each document
