@@ -28,14 +28,13 @@ Of the six shapes `README.md` names, three reach this screen.
    it differently, so no file here can quote it.
 5. **a figure inside a counted sentence** — one, the `15` in the sent-state
    sentence. It comes from `TOKEN_TTL_MINUTES` and is meant to move.
-6. **a state this pass could not create** — one, marked `[unreachable]`.
+6. **a state this pass could not create** — one, graded `unreachable`.
 
 ## Strings
 
 ### The tab
 
-- **`HYE USA Portal`** — read · auto
-  - when: always, as the browser tab's text `[reachable]`
+- **`HYE USA Portal`** — read · auto · reachable
   - from: `app/layout.js:24` composes it as the `default` of the metadata title;
     the value is `lib/productName.js:30`. This screen exports no metadata of its
     own — it is a Client Component and cannot — so it is the one route that reads
@@ -46,9 +45,7 @@ Of the six shapes `README.md` names, three reach this screen.
 
 ### The form
 
-- **`Sign in to {HYE USA Portal}`** — read · auto
-  - when: always, except in the sent state, where the form is replaced
-    `[seen]`
+- **`Sign in to {HYE USA Portal}`** — read · auto · seen
   - from: `app/login/page.js:65`, `{SIGN_IN_TITLE}` — a bare identifier in a JSX
     expression container, resolved through the import to
     `lib/productName.js:39`, where it is a template over `PRODUCT_NAME`. **The
@@ -58,49 +55,41 @@ Of the six shapes `README.md` names, three reach this screen.
   - held: quoted by `login.md` and by `login-confirm.md`, which uses the
     identical line; not in the `PINNED` list
 
-- **`Use your company email address.`** — read · auto
-  - when: always, except in the sent state `[seen]`
+- **`Use your company email address.`** — read · auto · seen
   - from: `app/login/page.js:67`, JSXText
   - names: no table
-  - held: **no brief carries this line.** `login.md` lists the heading, the
-    placeholder and the button and then says that is the whole screen — which is
-    what this inventory corrected in the commit that added this file
+  - held: quoted by `login.md`, as the one `evidence` entry that screen has. It
+    was in no brief when this file was written, which made the sentence after it
+    false
 
-- **`you@company.com`** — read · auto
-  - when: always, until the reader types into the field `[seen]`
+- **`you@company.com`** — read · auto · seen
   - from: `app/login/page.js:77`, a `placeholder` attribute
   - names: no table
   - held: quoted by `login.md`, which also records why the placeholder is
     company-shaped — the domain restriction
 
-- **`Send sign-in link`** — read · auto
-  - when: always, except while the request is in flight `[seen]`
+- **`Send sign-in link`** — read · auto · seen
   - from: `app/login/page.js:91`, the alternate of a ternary inside a JSX
     expression container. **This is the shape the #254 census could not see**,
     and it is the label on the button a first-time reader presses
   - names: no table
   - held: quoted by `login.md`; not pinned
 
-- **`Sending...`** — read · auto
-  - when: while the sign-in request is in flight; the button is disabled with it
-    `[reachable]` — the state lasts as long as one round trip
+- **`Sending...`** — read · auto · reachable
   - from: `app/login/page.js:91`, the consequent of the same ternary
   - names: no table
   - held: quoted by `login.md`; not pinned
 
 ### After the link is sent
 
-- **`Check your email`** — read · auto
-  - when: after the link has been sent. It does not join the form — it
-    **replaces** it `[reachable]`
+- **`Check your email`** — read · auto · reachable
   - from: `app/login/page.js:48`, JSXText in the heading
   - names: no table
   - held: quoted by `login.md`; listed in `_shared.md` among the tier-3 screen
     headings; not pinned
 
 - **`We sent a sign-in link to {email}. Open it and press Confirm sign-in. It
-  expires in {15} minutes.`** — read · auto
-  - when: after the link has been sent, beneath the heading above `[reachable]`
+  expires in {15} minutes.`** — read · auto · reachable
   - from: `app/login/page.js:50-51` — **one sentence across three JSXText nodes
     split by two expression containers**, `{email}` and `{TOKEN_TTL_MINUTES}`.
     Counted as one string
@@ -111,9 +100,7 @@ Of the six shapes `README.md` names, three reach this screen.
 
 ### When the request is refused
 
-- **`Something went wrong`** — read · auto
-  - when: the request fails and the response carries no message of its own
-    `[reachable]` — a failed `fetch` reaches it
+- **`Something went wrong`** — read · auto · reachable
   - from: `app/login/page.js:35`, a string literal inside `throw new Error(...)`,
     rendered at `app/login/page.js:83`. **In no JSX node**, so a walker that
     reads only JSX never sees it; attributable at all only because it is
@@ -121,8 +108,7 @@ Of the six shapes `README.md` names, three reach this screen.
   - names: no table
   - held: quoted by `login.md`; not pinned
 
-- **`Email must be a company address`** — read · hand
-  - when: the address submitted is outside the company's domain `[seen]`
+- **`Email must be a company address`** — read · hand · seen
   - from: `lib/auth.js:26`, thrown; serialized as `err.message` by
     `app/api/auth/request/route.js:18`; rendered at `app/login/page.js:83`.
     **Two hops, neither in this route's files** — shape 2 above
@@ -130,11 +116,7 @@ Of the six shapes `README.md` names, three reach this screen.
   - held: `login.md` says a foreign domain is refused here and does not quote the
     sentence
 
-- **`Email is required`** — read · hand
-  - when: **`[unreachable]` through this screen, and this was checked rather than
-    reasoned.** With the field emptied, the form reports `valid: false` and the
-    submit handler never runs, so the standing message stays and this one never
-    renders. Reaching it means calling the route some other way
+- **`Email is required`** — read · hand · unreachable
   - from: `app/api/auth/request/route.js:10` — shape 2 again
   - names: no table
   - held: quoted by no brief, correctly — a design reserving room for it would be
@@ -142,13 +124,9 @@ Of the six shapes `README.md` names, three reach this screen.
 
 ### Values the screen switches on
 
-- **`idle` · `submitting` · `sent` · `error`** — switch · auto
-  - when: never read by a person
-  - from: `app/login/page.js:16`, the initial value and the three `setStatus`
-    arguments
-  - names: no table
-  - held: nothing quotes them and nothing should. Inventoried because a closed
-    vocabulary is invisible to a vocabulary check
+- **`idle` · `submitting` · `sent` · `error`** — switch · auto —
+  `app/login/page.js:16`, the initial value and the three `setStatus` arguments.
+  `idle` is never compared, so the extractor cannot see it
 
 ## Attributed here and not rendered
 

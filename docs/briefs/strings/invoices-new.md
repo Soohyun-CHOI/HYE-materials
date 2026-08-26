@@ -42,11 +42,11 @@ is true, which is the other reason the hand pass took it.
    `required` controls (Vendor, Issue Date, Vendor's Stated Total, each row's Qty
    and Unit Price, and the per-row PO select), and the native file picker's own
    chrome. Most of this screen's server-side refusals are unreachable precisely
-   BECAUSE these fire first — see the condition on each.
+   BECAUSE these fire first — see the grade on each.
 5. **a figure inside a counted sentence** — many, and this screen is where they
    matter: every preview total, every uninvoiced quantity, every PO ID and every
    interpolated error message. The sentence is the entry; the number is not.
-6. **a state this pass could not create** — eleven, marked `[unreachable]`, and
+6. **a state this pass could not create** — thirteen, graded `unreachable`, and
    ten of them are refusals from `createInvoiceAction`. That is the finding this
    section exists to carry: a design that reserves room for this action's error
    list is drawing states a reader cannot reach through this screen.
@@ -55,8 +55,7 @@ is true, which is the other reason the hand pass took it.
 
 ### The tab
 
-- **`{New Invoice} · {HYE USA Portal}`** — read · auto
-  - when: always `[seen]`
+- **`{New Invoice} · {HYE USA Portal}`** — read · auto · seen
   - from: `app/invoices/new/page.js:10` supplies `New Invoice`;
     `app/layout.js:26` supplies the `%s · …` template. **Composed across two
     files, one of which is not this route's**, and the braces mark that: a
@@ -68,9 +67,7 @@ is true, which is the other reason the hand pass took it.
 
 ### Refused before the form exists
 
-- **`Not authorized. This page is Admin-only.`** — read · auto
-  - when: a signed-in reader who is not Admin opens the URL. The form is not
-    rendered at all `[reachable]` with `authz-fixture@`
+- **`Not authorized. This page is Admin-only.`** — read · auto · reachable
   - from: `page.js:31`, JSXText
   - names: no table
   - held: quoted by no brief. `_shared.md` records that this route is Admin-only
@@ -78,22 +75,18 @@ is true, which is the other reason the hand pass took it.
 
 ### Page chrome
 
-- **`New Invoice`** — read · auto
-  - when: always `[seen]`
+- **`New Invoice`** — read · auto · seen
   - from: `page.js:76`, JSXText in the heading
   - names: no table. `Invoices` is the table; this names the act of creating one
   - held: `_shared.md` lists it among the tier-3 screen headings; not pinned
 
-- **`View all invoices`** — read · auto
-  - when: always `[seen]`
+- **`View all invoices`** — read · auto · seen
   - from: `page.js:78`, JSXText in a `Link`
   - names: `Invoices`
   - held: quoted by no brief
 
 - **`{HYE-DP-…} is recorded and waiting on {job}'s list for someone there to
-  raise the purchase request.`** — read · auto
-  - when: arriving back here after recording a direct purchase — the only way to
-    reach this screen with `?recorded=` set `[reachable]`
+  raise the purchase request.`** — read · auto · reachable
   - from: `page.js:85` calls `DIRECT_PURCHASE_COPY.recorded`, at
     `lib/directPurchase.js:236`. A builder call on a literal member, so the text
     is resolvable
@@ -101,10 +94,7 @@ is true, which is the other reason the hand pass took it.
     Requests` for what the site raises
   - held: quoted by `invoices-new.md`; not pinned
 
-- **`that job`** — read · auto
-  - when: in the sentence above, in place of the job's code, when the direct
-    purchase was recorded without one — the query string omits `&job=` if the
-    modal's chosen job had no code to send `[reachable]`
+- **`that job`** — read · auto · reachable
   - from: `lib/directPurchase.js:240`, the fallback of a `??` inside the
     template. **Found by the extractor and missed by the hand pass**, which read
     the sentence and not its two fallbacks
@@ -113,9 +103,7 @@ is true, which is the other reason the hand pass took it.
 
 ### The two tabs
 
-- **`PDF Upload`** / **`Manual Entry`** — read · auto
-  - when: always, both at once. The tab only reorders four blocks; every field
-    exists in both `[seen]`
+- **`PDF Upload`** / **`Manual Entry`** — read · auto · seen
   - from: `InvoiceForm.js:172-173`, `label` properties of the `TABS` array,
     rendered at `:1882` through an expression container
   - names: no table
@@ -123,48 +111,38 @@ is true, which is the other reason the hand pass took it.
 
 ### The invoice file
 
-- **`Invoice File`** — read · auto
-  - when: always `[seen]`
+- **`Invoice File`** — read · auto · seen
   - from: `InvoiceForm.js:1336`, JSXText
   - names: `Invoices`, the `File` attachment
   - held: quoted by `invoices-new.md`
 
 - **`The vendor's original invoice document — required, every received invoice is
-  kept on file.`** — read · auto
-  - when: always `[seen]`
+  kept on file.`** — read · auto · seen
   - from: `InvoiceForm.js:1338`, JSXText with an `&apos;` entity
   - names: `Invoices`
   - held: quoted by `invoices-new.md`
 
-- **`Uploading {filename}...`** — read · auto
-  - when: while the attached file is uploading `[reachable]`
+- **`Uploading {filename}...`** — read · auto · reachable
   - from: `InvoiceForm.js:1348`, JSXText either side of a container
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`Uploaded {filename}`** — read · auto
-  - when: the upload finished. The filename is a link to the Blob object
-    `[reachable]`
+- **`Uploaded {filename}`** — read · auto · reachable
   - from: `InvoiceForm.js:1352`, JSXText followed by `{" "}` and a link whose
     whole text is the filename
   - names: no table
   - held: not quoted
 
 - **`Upload failed: {error}. Pick a different file to continue — the invoice
-  can't be created without one.`** — read · auto
-  - when: the upload threw. `{error}` is the thrown message, which may come from
-    `/api/invoices/upload` `[unreachable]` without forcing a failed upload —
-    the 20MB cap or a content type outside PDF/JPEG/PNG would do it
+  can't be created without one.`** — read · auto · unreachable
   - from: `InvoiceForm.js:1360-1361`, JSXText around one container
   - names: `Invoices`
   - held: not quoted
 
-- **`No file attached yet.`** — read · auto
-  - when: nothing has been attached — the state this screen opens in
-    `[seen]`
+- **`No file attached yet.`** — read · auto · seen
   - from: `InvoiceForm.js:1365`, JSXText
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
 ### What PO detection says
 
@@ -174,85 +152,69 @@ Seven whole messages and five fragments, all rendered in one paragraph at
 fragments applied.
 
 - **`Found PO references from more than one Vendor ({ids}) — please verify and
-  select manually below.`** — read · auto
-  - when: the uploaded file names POs belonging to two vendors `[reachable]`
-    with a file citing two vendors' orders
+  select manually below.`** — read · auto · reachable
   - from: `InvoiceForm.js:415-417`, a template literal
   - names: `Purchase Orders`, `Vendors`
   - held: not quoted
 
-- **`No PO on this invoice can be invoiced against.`** — read · auto
-  - when: every PO the file names is withdrawn `[reachable]`
+- **`No PO on this invoice can be invoiced against.`** — read · auto ·
+  reachable
   - from: `InvoiceForm.js:429`, a template literal
   - names: `Purchase Orders`
   - held: not quoted
 
 - **`Found what looks like a PO number ({refs}) but no matching PO exists —
-  check it wasn't mistyped, or select manually below.`** — read · auto
-  - when: the file holds a PO-shaped string that matches no order `[reachable]`
+  check it wasn't mistyped, or select manually below.`** — read · auto ·
+  reachable
   - from: `InvoiceForm.js:436-438`
   - names: `Purchase Orders`
   - held: not quoted
 
 - **`Auto-detection didn't find a PO number in this file — select the PO manually
-  below.`** — read · auto
-  - when: nothing PO-shaped was found, **and also when the parse itself failed** —
-    the route returns the same empty shape and the two are indistinguishable to a
-    reader `[reachable]` with any file carrying no PO number
+  below.`** — read · auto · reachable
   - from: `InvoiceForm.js:450`, a string literal in a container
   - names: `Purchase Orders`
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`Detected PO: {poId} (auto-filled below).`** — read · auto
-  - when: exactly one order was matched and the form was untouched `[reachable]`
+- **`Detected PO: {poId} (auto-filled below).`** — read · auto · reachable
   - from: `InvoiceForm.js:553`
   - names: `Purchase Orders`
   - held: not quoted
 
 - **`Detected PO{s}: {ids} — not auto-applied since a PO or items are already
-  entered. Select manually above if needed.`** — read · auto
-  - when: an order was matched but a PO or an item was already entered, so
-    detection backs off `[reachable]` by picking a PO before attaching the file
+  entered. Select manually above if needed.`** — read · auto · reachable
   - from: `InvoiceForm.js:530-532`
   - names: `Purchase Orders`, `Invoice Items`
   - held: not quoted
 
 - **`Detected {n} POs: {ids} — auto-filled below, verify each item's
-  assignment.`** — read · auto
-  - when: two or more orders were matched and the form was untouched
-    `[reachable]`
+  assignment.`** — read · auto · reachable
   - from: `InvoiceForm.js:566-568`
   - names: `Purchase Orders`, `Invoice Items`
   - held: not quoted
 
 - **` {ids} {is|are} withdrawn, so no invoice can be entered against
   {it|them} and {it wasn't|they weren't} selected — confirm with the vendor
-  before continuing.`** — read · auto
-  - when: appended to any message above when a detected order is withdrawn.
-    **Three separate plural switches in one fragment** `[reachable]`
+  before continuing.`** — read · auto · reachable
   - from: `InvoiceForm.js:386-392`
   - names: `Purchase Orders`, `Invoices`, `Vendors`
   - held: not quoted
 
-- **` ({n} unrecognized reference{s} ignored)`** — read · auto
-  - when: appended when the file held PO-shaped strings that matched nothing
-    `[reachable]`
+- **` ({n} unrecognized reference{s} ignored)`** — read · auto · reachable
   - from: `InvoiceForm.js:400`
   - names: no table
   - held: not quoted
 
 - **` — already fully invoiced: {ids} (double-check before submitting)`** and
-  **` — already fully invoiced (double-check before submitting)`** — read · auto
-  - when: a matched order has no uninvoiced quantity left. The first spells the
-    ids and is used only when more than one order was matched `[reachable]`
+  **` — already fully invoiced (double-check before submitting)`** —
+  read · auto · reachable
   - from: `InvoiceForm.js:474-475`, the two arms of a nested ternary
   - names: `Purchase Orders`
   - held: not quoted
 
 - **` {ids} {is|are} unsigned: the President has not signed {it|them}. {It
   was|They were} still selected — an invoice can be recorded against an unsigned
-  order.`** — read · auto
-  - when: appended when a matched order is unsigned `[reachable]`
+  order.`** — read · auto · reachable
   - from: `InvoiceForm.js:409` calls `UNSIGNED_COPY.detected`, at
     `lib/poUnsigned.js:151`
   - names: `Purchase Orders`, `Users` for the President
@@ -261,56 +223,46 @@ fragments applied.
 
 ### The vendor and the order
 
-- **`Vendor`** — read · auto
-  - when: always `[seen]`
+- **`Vendor`** — read · auto · seen
   - from: `InvoiceForm.js:1125`, JSXText in a `label`
   - names: `Vendors`
   - held: quoted by `invoices-new.md`
 
-- **`Select a Vendor`** — read · auto
-  - when: always, as the disabled first option, until one is chosen
-    `[seen]`
+- **`Select a Vendor`** — read · auto · seen
   - from: `InvoiceForm.js:1136`, JSXText in an `<option>`
   - names: `Vendors`
-  - held: not quoted. **Not the same string as the action's `Select a Vendor.`,
+  - held: quoted by `invoices-new.md`. **Not the same string as the action's `Select a Vendor.`,
     which carries a full stop** — two spellings of one instruction, in two places
 
-- **`PO`** — read · auto
-  - when: always, as the label above the header's order picker `[seen]`
+- **`PO`** — read · auto · seen
   - from: `InvoiceForm.js:1146`, JSXText in a `span`
   - names: `Purchase Orders`
   - held: quoted by `invoices-new.md`
 
-- **`+ Add another PO`** — read · auto
-  - when: always `[seen]`
+- **`+ Add another PO`** — read · auto · seen
   - from: `InvoiceForm.js:1159`, JSXText
   - names: `Purchase Orders`
   - held: quoted by `invoices-new.md`
 
-- **`No PO for this invoice?`** — read · auto
-  - when: always. The way out is deliberately not conditional — one of the two
-    dead ends is a judgment only the reader can make `[seen]`
+- **`No PO for this invoice?`** — read · auto · seen
   - from: `InvoiceForm.js:1173` renders `DIRECT_PURCHASE_COPY.affordance`, at
     `lib/directPurchase.js:72`
   - names: `Purchase Orders`, `Invoices`
   - held: quoted by `invoices-new.md`; **pinned** by `offline/screen-briefs.mjs`
 
-- **`Vendor Invoice #`** — read · auto
-  - when: always `[seen]`
+- **`Vendor Invoice #`** — read · auto · seen
   - from: `InvoiceForm.js:1179`, JSXText in a `label`
   - names: `Invoices`, the `Vendor Invoice Code` field. **A screen word that is
     not the field name**
   - held: quoted by `invoices-new.md`
 
 - **`The vendor's own invoice number, as printed on their document`** — read ·
-  auto
-  - when: always, until the field is typed into `[seen]`
+  auto · seen
   - from: `InvoiceForm.js:1184`, a `placeholder` attribute
   - names: `Invoices`
   - held: quoted by `invoices-new.md`
 
-- **`Issue Date`** / **`Due Date`** — read · auto
-  - when: always `[seen]`
+- **`Issue Date`** / **`Due Date`** — read · auto · seen
   - from: `InvoiceForm.js:1194` and `:1208`, JSXText in labels
   - names: `Invoices`. Both are `X Date` by the calendar-only convention
   - held: quoted by `invoices-new.md`
@@ -320,35 +272,27 @@ fragments applied.
 Rendered once beside Vendor and again for every added slot, so every string here
 can appear more than once on the screen at the same time.
 
-- **`Search all POs by number...`** — read · auto
-  - when: that slot's search toggle is on `[reachable]`
+- **`Search all POs by number...`** — read · auto · reachable
   - from: `InvoiceForm.js:1044`, a `placeholder` attribute
   - names: `Purchase Orders`
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`Searching...`** — read · auto
-  - when: a search is in flight, after the 300ms debounce `[reachable]`
+- **`Searching...`** — read · auto · reachable
   - from: `InvoiceForm.js:1051`, JSXText
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`Search failed — try again.`** — read · auto
-  - when: the search request threw `[unreachable]` without forcing the request
-    to fail
+- **`Search failed — try again.`** — read · auto · unreachable
   - from: `InvoiceForm.js:1054`, JSXText
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`No matching POs.`** — read · auto
-  - when: the search returned, and nothing it found is offerable in this slot —
-    which includes an order another slot already holds `[reachable]`
+- **`No matching POs.`** — read · auto · reachable
   - from: `InvoiceForm.js:1059`, JSXText
   - names: `Purchase Orders`
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`{poId}`** and **`{poId} — unsigned`** — read · auto
-  - when: for every order this slot may offer, and for every search result. The
-    suffix appears only for an order the President has not signed `[seen]`
+- **`{poId}`** and **`{poId} — unsigned`** — read · auto · seen
   - from: `InvoiceForm.js:1068` and `:1086` and `:1611` all render
     `poOptionLabel`, at `lib/poUnsigned.js:123`; the suffix is
     `UNSIGNED_COPY.option` at `:139`
@@ -356,61 +300,50 @@ can appear more than once on the screen at the same time.
   - held: `_shared.md` locks `unsigned`, lowercase, as a dropdown suffix;
     **pinned** by `offline/screen-briefs.mjs`
 
-- **`Select a PO...`** and **`Select a Vendor first`** — read · auto
-  - when: as the empty option — the first once a vendor is chosen, the second
-    before that, when the select is also disabled `[seen]`
+- **`Select a PO...`** and **`Select a Vendor first`** — read · auto · seen
   - from: `InvoiceForm.js:1083`, the two arms of a ternary in a JSX expression
     container
   - names: `Purchase Orders`, `Vendors`
-  - held: not quoted. The row's own disabled select cites this one by name for
+  - held: quoted by `invoices-new.md`. The row's own disabled select cites this one by name for
     its shorter form — see `Pick this charge's PO first`
 
-- **`Show all / search closed POs`** — read · auto
-  - when: always, beside every slot `[seen]`
+- **`Show all / search closed POs`** — read · auto · seen
   - from: `InvoiceForm.js:1097`, JSXText in a `label`
   - names: `Purchase Orders`. **`closed` is not a `Status` value** — an order
     with no uninvoiced quantity left, which is `getOpenPOs`'s inverse
   - held: quoted by `invoices-new.md`
 
-- **`Remove`** — read · auto
-  - when: on every slot after the first `[seen]`
+- **`Remove`** — read · auto · seen
   - from: `InvoiceForm.js:1106`, JSXText. **The same word as the item row's own
     Remove**, at `:1641`, for a different object
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
 ### The charges
 
-- **`Items`** — read · auto
-  - when: always `[seen]`
+- **`Items`** — read · auto · seen
   - from: `InvoiceForm.js:1394`, JSXText in a heading
   - names: `Invoice Items`. **`item` names a row on four tables and this is one
     of the four** — #288's own finding
   - held: quoted by `invoices-new.md`
 
-- **`Select a PO above to add items.`** — read · auto
-  - when: the section is locked because no order is chosen — the state this
-    screen opens in `[seen]`
+- **`Select a PO above to add items.`** — read · auto · seen
   - from: `InvoiceForm.js:1398`, the first arm of a nested ternary in a container
   - names: `Purchase Orders`, `Invoice Items`
   - held: quoted by `invoices-new.md`
 
-- **`Couldn't load this PO's items — try re-selecting the PO.`** — read · auto
-  - when: a chosen order's items failed to load `[unreachable]` without forcing
-    `/api/pos/[id]/items` to fail
+- **`Couldn't load this PO's items — try re-selecting the PO.`** — read
+  · auto · unreachable
   - from: `InvoiceForm.js:1400`, the second arm of the same ternary
   - names: `Purchase Orders`, `PO Items`
   - held: not quoted
 
-- **`Loading PO items...`** — read · auto
-  - when: an order is chosen and its items are still loading `[reachable]`
+- **`Loading PO items...`** — read · auto · reachable
   - from: `InvoiceForm.js:1401`, the third arm of the same ternary
   - names: `PO Items`
   - held: not quoted
 
-- **`{itemName}{ — size}{ (Uninvoiced: n)}`** — read · auto
-  - when: one per ordered item this row may pick. Each of the two suffixes is
-    present only when its own value is `[seen]`
+- **`{itemName}{ — size}{ (Uninvoiced: n)}`** — read · auto · seen
   - from: `InvoiceForm.js:1494-1498`, four containers and two conditional
     template fragments inside one `<option>`
   - names: `PO Items`. `Uninvoiced` is `Qty` less `Invoiced Qty`, and it is the
@@ -418,9 +351,7 @@ can appear more than once on the screen at the same time.
   - held: `naming.md` carries `(Uninvoiced: N)` as a screen word with the
     subtraction behind it; no brief quotes it and nothing pins it
 
-- **`Size: {size|—} · Unit: {unit|—}`** — read · auto
-  - when: a row has an ordered item picked and that item carries a size or a
-    unit `[reachable]`
+- **`Size: {size|—} · Unit: {unit|—}`** — read · auto · reachable
   - from: `InvoiceForm.js:1512`, JSXText around two containers, each with an em
     dash fallback
   - names: `PO Items`, frozen reference copies. **The em dash is a value here,
@@ -429,100 +360,79 @@ can appear more than once on the screen at the same time.
 
 - **`Every item on this purchase order is already on another charge of this
   invoice. Pick a different purchase order for this charge, or remove it.`** —
-  read · auto
-  - when: a row's order has every ordered item claimed by a sibling row, so its
-    select renders with no options at all `[reachable]` with two rows on a
-    one-item order
+  read · auto · reachable
   - from: `InvoiceForm.js:1522-1524`, JSXText
   - names: `PO Items` for `item`, `Purchase Orders`, `Invoice Items` for
     `charge`. **Both words for a row are in one sentence** — the shape #288 was
     raised for
   - held: not quoted
 
-- **`Select a PO above`** and **`Pick this charge's PO first`** — read · auto
-  - when: on a row whose own order is not picked, as the only option of a
-    disabled select. The first while the section is locked, the second once it is
-    not — which needs the header to hold two orders, since only then does a row
-    pick its own `[seen]`
+- **`Select a PO above`** and **`Pick this charge's PO first`** — read ·
+  auto · seen
   - from: `InvoiceForm.js:1553`, the two arms of a ternary inside a JSX
     expression container. **This is the string #288 names as the shape the #254
     census could not see**
   - names: `Invoice Items` for `charge`, `Purchase Orders`
-  - held: not quoted, and pinned by nothing
+  - held: quoted by `invoices-new.md`, and pinned by nothing
 
-- **`Qty`** — read · auto
-  - when: always, on every row `[seen]`
+- **`Qty`** — read · auto · seen
   - from: `InvoiceForm.js:1559`, a `placeholder` attribute
   - names: `Invoice Items`. Plain `Qty` for a row's own quantity, per the
     symmetry every child table keeps
   - held: quoted by `invoices-new.md`
 
-- **`Unit Price`** — read · auto
-  - when: always, on every row `[seen]`
+- **`Unit Price`** — read · auto · seen
   - from: `InvoiceForm.js:1570`, a `placeholder` attribute
   - names: `Invoice Items`
   - held: quoted by `invoices-new.md`
 
-- **`Edit`** — read · auto
-  - when: a row has an ordered item picked, so its unit price is locked
-    `[seen]`
+- **`Edit`** — read · auto · seen
   - from: `InvoiceForm.js:1584`, JSXText
   - names: no table
   - held: quoted by `invoices-new.md`
 
-- **`Cancel`** — read · auto
-  - when: a row's unit price lock is open `[seen]`
+- **`Cancel`** — read · auto · seen
   - from: `InvoiceForm.js:1594`, JSXText. **One of four `Cancel`s on this
     screen** — the others are at `:1739`, `:1767` and in the modal
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`PO`** — read · auto
-  - when: as the disabled first option of a row's own order select, which
-    renders only when the header holds two or more orders `[seen]`
+- **`PO`** — read · auto · seen
   - from: `InvoiceForm.js:1607`, JSXText in an `<option>`. **The same word as
     the header's label** at `:1146`
   - names: `Purchase Orders`
   - held: not quoted
 
 - **`Qty ({qty}) exceeds this PO Item's uninvoiced quantity ({n}) — not blocked,
-  but worth a note below.`** — read · auto
-  - when: a row's quantity is above what its ordered item has left uninvoiced
-    `[reachable]`
+  but worth a note below.`** — read · auto · reachable
   - from: `InvoiceForm.js:1619-1620`, JSXText around three containers
   - names: `PO Items`. **It says `PO Item` where the settled word is `ordered
     item`** — a divergence for the sweep, not fixed here
   - held: quoted by `invoices-new.md`
 
-- **`Remark — why this differs from the PO`** — read · auto
-  - when: a row's unit price lock is open, or its quantity exceeds what is
-    uninvoiced `[reachable]`
+- **`Remark — why this differs from the PO`** — read · auto · reachable
   - from: `InvoiceForm.js:1625`, a `placeholder` attribute
   - names: `Invoice Items`, the `Remark` field — a discrepancy note here, free
     text on `PR Items`
   - held: quoted by `invoices-new.md`
 
-- **`Amount (preview): {n}`** — read · auto
-  - when: always, on every row `[seen]`
+- **`Amount (preview): {n}`** — read · auto · seen
   - from: `InvoiceForm.js:1633`, JSXText and one container
   - names: `Invoice Items`, the `Amount` formula. `(preview)` says this is not
     the stored figure
   - held: quoted by `invoices-new.md`
 
-- **`Remove`** — read · auto
-  - when: on every row, once there are two or more `[seen]`
+- **`Remove`** — read · auto · seen
   - from: `InvoiceForm.js:1641`, JSXText
   - names: `Invoice Items`
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`+ Add item`** — read · auto
-  - when: always; disabled while the section is locked `[seen]`
+- **`+ Add item`** — read · auto · seen
   - from: `InvoiceForm.js:1655`, JSXText
   - names: `Invoice Items`
   - held: quoted by `invoices-new.md`
 
-- **`Items total (preview): {n}`** — read · auto
-  - when: always `[seen]`
+- **`Items total (preview): {n}`** — read · auto · seen
   - from: `InvoiceForm.js:1657`, JSXText and one container
   - names: `Invoices`, the `Items Subtotal` rollup. **A screen word that is not
     the field name**
@@ -530,70 +440,56 @@ can appear more than once on the screen at the same time.
 
 ### The totals
 
-- **`Shipping Fee`** — read · auto
-  - when: always `[seen]`
+- **`Shipping Fee`** — read · auto · seen
   - from: `InvoiceForm.js:1681`, JSXText in a `label`
   - names: `Invoices`
   - held: quoted by `invoices-new.md`
 
-- **`PO's Shipping Fee: {n}`** — read · auto
-  - when: exactly one order is chosen and it carries a shipping fee
-    `[reachable]`
+- **`PO's Shipping Fee: {n}`** — read · auto · reachable
   - from: `InvoiceForm.js:1705`, JSXText with an `&apos;` entity and one
     container
   - names: `Purchase Orders`, the frozen copy taken at generation
   - held: quoted by `invoices-new.md`
 
 - **`Shipping Fee ({n}) doesn't match the PO's Shipping Fee ({n}) — double-check
-  before submitting.`** — read · auto
-  - when: one order is chosen, it carries a fee, and the typed fee differs from
-    it by more than a cent `[reachable]`
+  before submitting.`** — read · auto · reachable
   - from: `InvoiceForm.js:1710-1712`, JSXText around two containers
   - names: `Invoices`, `Purchase Orders`
   - held: not quoted. **Its own threshold, and not `lib/variance.js`'s** — the
     header comparison beside it shares the module's predicate and this one does
     not
 
-- **`Tariff`** / **`Sales Tax`** — read · auto
-  - when: each only once its own reveal control has been used `[reachable]`
+- **`Tariff`** / **`Sales Tax`** — read · auto · reachable
   - from: `InvoiceForm.js:1719` and `:1747`, JSXText in labels
   - names: `Invoices`. `Sales Tax` is on `Invoices` only — neither a request nor
     an order states a tax
   - held: quoted by `invoices-new.md`
 
-- **`Cancel`** — read · auto
-  - when: beside each optional term that has been revealed. **Two more
-    instances of the same word** `[seen]`
+- **`Cancel`** — read · auto · seen
   - from: `InvoiceForm.js:1739` and `:1767`, JSXText
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`Vendor's Stated Total`** — read · auto
-  - when: always `[seen]`
+- **`Vendor's Stated Total`** — read · auto · seen
   - from: `InvoiceForm.js:1774`, JSXText with an `&apos;` entity
   - names: `Invoices`, the `Amount Due` field. **A deliberate divergence** — the
     base carries two totals and the field name only tells them apart by
     convention, which is why the gloss is on the screen
   - held: quoted by `invoices-new.md`; `naming.md` carries the pair
 
-- **`+ Add Tariff`** / **`+ Add Sales Tax`** — read · auto
-  - when: each while its own term is absent, so the pair also states which terms
-    this invoice is being recorded without `[seen]`
+- **`+ Add Tariff`** / **`+ Add Sales Tax`** — read · auto · seen
   - from: `InvoiceForm.js:1801` and `:1810`, JSXText
   - names: `Invoices`
   - held: quoted by `invoices-new.md`
 
-- **`Calculated total: {n}`** — read · auto
-  - when: always `[seen]`
+- **`Calculated total: {n}`** — read · auto · seen
   - from: `InvoiceForm.js:1842`, JSXText and one container. **The sum is this
     form's own** — there is no rollup in a browser
   - names: `Invoices`, the `Calculated Total` formula
   - held: quoted by `invoices-new.md`
 
 - **`Vendor's Stated Total ({n}) doesn't match the calculated total ({n}) —
-  double-check before submitting.`** — read · auto
-  - when: a stated total is typed and differs from the calculated one by more
-    than the shared tolerance `[reachable]`
+  double-check before submitting.`** — read · auto · reachable
   - from: `InvoiceForm.js:1851` calls `VARIANCE_COPY.headerBeforeSaving`, at
     `lib/variance.js:207`
   - names: `Invoices`
@@ -604,10 +500,7 @@ can appear more than once on the screen at the same time.
 ### Submitting
 
 - **`Submitting...`**, **`Uploading file...`**, **`Attach the invoice file to
-  continue`**, **`Create Invoice`** — read · auto
-  - when: the four states of one button, in this order of precedence: the action
-    is running; the file is uploading; no file is attached; everything else.
-    **The button is disabled in the first three** `[seen]`
+  continue`**, **`Create Invoice`** — read · auto · seen
   - from: `InvoiceForm.js:1922-1928`, a three-deep nested ternary inside a JSX
     expression container
   - names: `Invoices`
@@ -617,22 +510,18 @@ can appear more than once on the screen at the same time.
 ### The change-confirmation dialog
 
 - **`Changing the {Vendor|PO} will clear the items you've entered so far.
-  Continue?`** — read · auto
-  - when: changing a vendor or replacing an already-chosen order, and only once
-    the rows have diverged from what was auto-inserted `[reachable]`
+  Continue?`** — read · auto · reachable
   - from: `InvoiceForm.js:181`, a template literal returned by
     `confirmChangeMessage`; the subject is the literal `"Vendor"` at `:708` or
     `"PO"` at `:782` and `:794`
   - names: `Vendors`, `Purchase Orders`, `Invoice Items`
   - held: quoted by `invoices-new.md`
 
-- **`Continue`** / **`Cancel`** — read · auto
-  - when: whenever that dialog is open. This screen passes neither label, so
-    both are the shared component's defaults `[seen]`
+- **`Continue`** / **`Cancel`** — read · auto · seen
   - from: `components/ConfirmDialog.js:11-12`, default parameter values.
     **Attributable only by following the import into a shared component**
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
 - The dialog's `title` is **never rendered on this screen**: it has no default
   and this screen passes none, so the heading is absent rather than empty.
@@ -641,8 +530,7 @@ can appear more than once on the screen at the same time.
 
 ### The direct-purchase modal
 
-- **`Record a direct purchase`** — read · auto
-  - when: the modal is open `[seen]`
+- **`Record a direct purchase`** — read · auto · seen
   - from: `InvoiceForm.js:1239` renders `DIRECT_PURCHASE_COPY.modal.heading`, at
     `lib/directPurchase.js:75`
   - names: `Direct Purchases` — the table's own name, so the mark points at the
@@ -653,70 +541,63 @@ can appear more than once on the screen at the same time.
   PO in this app to charge it to. The file you attached becomes the evidence, and
   the site raises the purchase request from it: what was bought, which part of
   the job it was for, and who signs are all theirs to fill in, because the
-  invoice says none of them.`** — read · auto
-  - when: the modal is open. The label names the vendor's own invoice number when
-    one has been typed `[seen]`
+  invoice says none of them.`** — read · auto · seen
   - from: `InvoiceForm.js:1241` calls `DIRECT_PURCHASE_COPY.modal.summary`, at
     `lib/directPurchase.js:96`
   - names: `Direct Purchases`, `Purchase Orders`, `Purchase Requests`, `Lines`
     for the part of the job — **named around the barred word on purpose**
   - held: quoted by `invoices-new.md`
 
-- **`this invoice`** — read · **hand**
-  - when: inside the summary above, in place of the vendor's own invoice number,
-    whenever that field has not been typed into — which is every open of the
-    modal before the office copies the number off the document `[seen]`
+- **`this invoice`** — read · **hand** · seen
   - from: `lib/directPurchase.js:55`, the fallback of a `||` inside
     `invoiceLabel`, **a helper arrow function outside the copy constant**, so the
     extractor's walk over the constant's members does not reach it. **Found by
     neither counting pass** — the browser pass read it on the screen
   - names: `Invoices`
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
 - **`This invoice cannot be entered until the request is approved and its
   purchase order signed, so nothing else you have typed on this form is kept.`**
-  — read · auto
-  - when: the modal is open `[seen]`
+  — read · auto · seen
   - from: `InvoiceForm.js:1242` renders
     `DIRECT_PURCHASE_COPY.modal.abandons.text`, at `lib/directPurchase.js:132`
   - names: `Invoices`, `Purchase Requests`, `Purchase Orders`
   - held: quoted by `invoices-new.md`
 
-- **`Job`** — read · auto
-  - when: the modal is open `[seen]`
+- **`Job`** — read · auto · seen
   - from: `InvoiceForm.js:1259`, JSXText in a `label`
   - names: `Jobs`
   - held: quoted by `invoices-new.md`
 
 - **`Pick the job it was bought for — that is what puts the record in front of
-  the right site. {The invoice does not say it; the site does.}`** — read · auto
-  - when: the modal is open. The braced sentence is present because the caller
-    passes `jobKnown: false`, which is the only value this screen passes — the
-    constant omits it for the other `[seen]`
+  the right site. {The invoice does not say it; the site does.}`** —
+  read · auto · seen
   - from: `InvoiceForm.js:1262` calls `DIRECT_PURCHASE_COPY.modal.job`, at
     `lib/directPurchase.js:109`
   - names: `Jobs`, `Invoices`
   - held: quoted by `invoices-new.md`
 
-- **`Loading jobs...`**, **`Couldn't load the jobs — close this and try
-  again`**, **`Select a Job`** — read · auto
-  - when: the three states of the job select's empty option — while the list
-    loads, after it failed, and otherwise. The middle one is `[unreachable]`
-    without forcing `/api/jobs` to fail
-  - from: `InvoiceForm.js:1273-1277`, a nested ternary in a container
+- **`Loading jobs...`** and **`Select a Job`** — read · auto · seen
+  - from: `InvoiceForm.js:1273-1277`, two arms of a nested ternary in a container
   - names: `Jobs`
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`Notes`** — read · auto
-  - when: the modal is open `[seen]`
+- **`Couldn't load the jobs — close this and try again`** — read · auto ·
+  unreachable
+  - from: `InvoiceForm.js:1276`, the middle arm of the same ternary. **Split from
+    the pair above because it is the grade that differs** — reaching it means
+    forcing `GET /api/jobs` to fail
+  - names: `Jobs`
+  - held: quoted by `invoices-new.md`
+
+- **`Notes`** — read · auto · seen
   - from: `InvoiceForm.js:1289`, JSXText in a `label`
   - names: `Direct Purchases`, the `Notes` field
   - held: quoted by `invoices-new.md`
 
 - **`Anything you learned on the telephone — who bought it, what it was for —
   goes in the note. It is the only thing the site's list can say about what this
-  was, since no items are recorded here.`** — read · auto
-  - when: the modal is open `[seen]`
+  was, since no items are recorded here.`** — read · auto · seen
   - from: `InvoiceForm.js:1291` renders `DIRECT_PURCHASE_COPY.modal.notes.text`,
     at `lib/directPurchase.js:115`
   - names: `Direct Purchases`
@@ -724,24 +605,20 @@ can appear more than once on the screen at the same time.
 
 - **`Pick the vendor at the top of the form first.`**, **`Attach the vendor's
   invoice first — the record is that document.`**, **`Pick the job it was bought
-  for.`** — read · **hand**
-  - when: one at a time, in the order a reader would fix them, whenever that
-    input is still missing. The confirm button is disabled with it `[seen]`
+  for.`** — read · **hand** · seen
   - from: `InvoiceForm.js:1306` renders `DIRECT_PURCHASE_COPY.blocked[blocked]`,
     at `lib/directPurchase.js:143`. **A computed member** — shape 1. The middle
     sentence is also rendered by `actions.js:402`, there by a literal key
   - names: `Vendors`, `Invoices`, `Jobs`
   - held: not quoted, and nothing pins them
 
-- **`Cancel`**, **`Recording...`**, **`Record it`** — read · auto
-  - when: the modal's two buttons. `Recording...` replaces `Record it` while the
-    action runs `[seen]`
+- **`Cancel`**, **`Recording...`**, **`Record it`** — read · auto · seen
   - from: `InvoiceForm.js:1317` and `:1324`;
     `DIRECT_PURCHASE_COPY.modal.cancel` and `.confirm` at
     `lib/directPurchase.js:138-139`, with `Recording...` a literal in the
     ternary beside them
   - names: `Direct Purchases`
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
 ### What the create action refuses
 
@@ -750,73 +627,56 @@ unreachable through this screen**, because a `required` control or a disabled
 button fires first — which is what makes this the section a design must not draw
 room for.
 
-- **`Not authorized.`** — read · auto
-  - when: `[unreachable]`. A non-Admin never receives the form, and both actions
-    return this only to a direct call
+- **`Not authorized.`** — read · auto · unreachable
   - from: `actions.js:40` and `:373`, one literal each, in the two wrappers'
     refusal callbacks
   - names: no table
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
-- **`Select a Vendor.`** — read · auto
-  - when: `[unreachable]`. The vendor select is `required`, and the submit button
-    needs a chosen order, which needs a vendor
+- **`Select a Vendor.`** — read · auto · unreachable
   - from: `actions.js:71`
   - names: `Vendors`
   - held: not quoted. **The screen's own option says the same thing without the
     full stop**
 
-- **`Issue Date is required.`** / **`Amount Due is required.`** — read · auto
-  - when: `[unreachable]`. Both inputs are `required`, so the browser refuses the
-    submit first — with its own words, not these
+- **`Issue Date is required.`** / **`Amount Due is required.`** — read ·
+  auto · unreachable
   - from: `actions.js:72-73`
   - names: `Invoices`. The second names the FIELD, while the label above it says
     `Vendor's Stated Total`
   - held: not quoted
 
-- **`Attach the invoice file.`** — read · auto
-  - when: `[unreachable]`. The submit button is disabled until the upload
-    reports done
+- **`Attach the invoice file.`** — read · auto · unreachable
   - from: `actions.js:79`
   - names: `Invoices`
   - held: not quoted
 
-- **`Add at least one item.`** — read · auto
-  - when: `[unreachable]`. The form starts with one row and the Remove control
-    renders only when there are two or more
+- **`Add at least one item.`** — read · auto · unreachable
   - from: `actions.js:80`
   - names: `Invoice Items`
   - held: not quoted
 
 - **`Every item needs a name, quantity, and unit price.`** — read · auto
-  - when: `[unreachable]`. Qty and Unit Price are `required`, and the name is
-    copied from the chosen ordered item
+  · unreachable
   - from: `actions.js:83`
   - names: `Invoice Items`
   - held: not quoted
 
-- **`Every item needs a PO — pick one at the top or per item.`** — read · auto
-  - when: `[unreachable]`. A row's own order select is `required` whenever it
-    renders
+- **`Every item needs a PO — pick one at the top or per item.`** — read
+  · auto · unreachable
   - from: `actions.js:86`
   - names: `Invoice Items`, `Purchase Orders`
   - held: not quoted
 
-- **`Every item needs an ordered item from its PO.`** — read · auto
-  - when: **`[reachable]`, and it is the one refusal in this list that is.** The
-    ordered-item select is not `required`, so a row whose order has every item
-    claimed by a sibling submits with nothing picked. The row says so first, in
-    its own words
+- **`Every item needs an ordered item from its PO.`** — read · auto ·
+  reachable
   - from: `actions.js:96`
   - names: `Invoice Items`, `PO Items`, `Purchase Orders`. **The one string on
     this screen that says `ordered item`**
-  - held: not quoted
+  - held: quoted by `invoices-new.md`
 
 - **`Every charge's quantity has to be a whole number.`** and **`Every charge's
-  unit price has to be a whole number of cents.`** — read · auto
-  - when: a typed quantity is fractional, or a price is not a whole number of
-    cents. `[reachable]` — #254 measured that the controls' `step` validation
-    does not fire, so a typed `2.5` submits
+  unit price has to be a whole number of cents.`** — read · auto · reachable
   - from: `actions.js:106` and `:109` render `CHARGE_PRECISION_COPY.qty` and
     `.unitPrice`, at `lib/variance.js:115-116`
   - names: `Invoice Items` — **the two strings on this screen that call a row a
@@ -824,34 +684,27 @@ room for.
   - held: quoted by `invoices-new.md`; both **pinned**
 
 - **`One of the selected POs no longer exists. Reload the form and try again.`**
-  — read · auto
-  - when: `[unreachable]` through this screen alone — an order has to be deleted
-    from the base between the page load and the submit
+  — read · auto · unreachable
   - from: `actions.js:138`
   - names: `Purchase Orders`
   - held: not quoted
 
 - **`{ids} was withdrawn, so an invoice can't be linked to it.`** and **`{ids}
-  were withdrawn, so an invoice can't be linked to them.`** — read · auto
-  - when: a chosen order was withdrawn while this form sat open. `[reachable]`
-    with a second browser tab; the picker excludes a withdrawn order, so it
-    cannot be chosen in the first place
+  were withdrawn, so an invoice can't be linked to them.`** — read ·
+  auto · reachable
   - from: `actions.js:146-147`, the two arms of a ternary inside a template
     literal
   - names: `Purchase Orders`, `Invoices`
   - held: not quoted
 
 - **`Something went wrong creating the invoice. Please try again.`** — read ·
-  auto
-  - when: `[unreachable]`. Any throw inside the rolled-back block, which needs
-    Airtable to fail
+  auto · unreachable
   - from: `actions.js:259`
   - names: `Invoices`
   - held: not quoted
 
-- **`Couldn't record the direct purchase. Please try again.`** — read · auto
-  - when: `[unreachable]`, for the same reason, on the other action. Rendered in
-    the modal at `InvoiceForm.js:1308` rather than in the form
+- **`Couldn't record the direct purchase. Please try again.`** — read ·
+  auto · unreachable
   - from: `actions.js:427`
   - names: `Direct Purchases`
   - held: not quoted
@@ -863,7 +716,8 @@ invisible to a vocabulary check.
 
 - **`pdf` · `manual`** — switch · auto — `InvoiceForm.js:172-173`, the `TABS`
   ids
-- **`info` · `warning`** — switch · auto — `InvoiceForm.js:413`, `:427`, `:434`,
+- **`info` · `warning`** — switch · auto — `InvoiceForm.js:413`, `:427`,
+  `:434`,
   `:449`, `:476`; detection's `level`, which picks the paragraph's color
 - **`idle` · `uploading` · `done` · `error`** — switch · auto — the file's
   status, at `:237`, `:348`, `:355`, `:358`
@@ -881,7 +735,8 @@ invisible to a vocabulary check.
   `DIRECT_PURCHASE_BLOCKED`, the keys behind the runtime-keyed refusal above.
   **These are the values a `blocked[key]` lookup takes**, so they are what a
   sweep would have to read to find the sentences
-- **`detected` · `search`** — switch · auto — `PO_ORIGIN`, which decides whether
+- **`detected` · `search`** — switch · auto — `PO_ORIGIN`, which decides
+  whether
   a slot still offers an order
 - **`matched` · `none`** — switch · auto — `PAIRING`, read at `actions.js:306`
   and sent onward in the redirect's query string rather than rendered here

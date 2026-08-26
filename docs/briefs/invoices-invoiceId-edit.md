@@ -12,6 +12,11 @@ connect it to an order are not.
 
 ## What it always carries
 
+**Two states come before the form.** A reader who is not an Admin gets one
+centered line, `Not authorized. Editing an invoice is Admin-only.` An id matching
+no invoice gets `Invoice not found.` In neither case is any part of the form
+drawn.
+
 **identity.** The heading `Edit {invoice ID}`, using the app's own ID — so the
 heading is the record's name with one word in front of it. A link back to the
 invoice, labeled `← Back to invoice`.
@@ -20,7 +25,9 @@ invoice, labeled `← Back to invoice`.
 date, due date, `Amount Due`, `Shipping Fee`, and then `Tariff (optional)` and
 `Sales Tax (optional)`, both with the placeholder `Leave blank if none`. Editing
 `Amount Due` is allowed and recomputes the variance check — the app never
-overwrites the vendor's stated total, but a person may fix a typo in it.
+overwrites the vendor's stated total, but a person may fix a typo in it, and a
+line under that field says so: `The figure printed on the vendor's invoice.
+Editing it re-checks it against our calculated total.`
 
 **Both optional money terms are always visible here, and hidden behind reveal
 controls on the create form.** The difference is what each screen is for: a
@@ -36,7 +43,9 @@ PO or add/remove items, delete and recreate the invoice.` This is the sentence t
 draws the boundary, and it is always visible rather than appearing on a failed
 attempt.
 
-**Each item is a card.** Item name, quantity, unit price and remark are editable.
+**Each item is a card, and its fields are labeled by placeholder alone** — no
+label sits above any of them, so a filled row shows no field names at all. Item
+name, quantity, unit price and remark are editable.
 Size and Unit are rendered as **disabled inputs**, not as text — they are frozen
 reference copies from the ordered item, and the disabled control shows both what
 they are and that they are not yours to change. The linked order is shown as a
@@ -47,7 +56,9 @@ the quantity and price as typed, and the section foot shows
 `Items Subtotal (preview):`. Labeled `preview` because the stored values are
 formulas that will be recomputed on save.
 
-**action — a submit button.**
+**action — a submit button, and a `Cancel` beside it.** The cancel is a link back
+to the invoice rather than a button: nothing is staged here, so there is nothing
+for it to discard.
 
 ## What it carries only sometimes
 
