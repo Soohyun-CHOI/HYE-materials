@@ -20,12 +20,20 @@ nothing on the screen distinguishes the two cases.
 inside a sentence, from the app's single naming constant. The same line is the
 subject of the magic-link email, so the screen and the mail agree by construction.
 
+**evidence.** One line under the heading, `Use your company email address.`,
+which is the only place the domain restriction is stated before a reader hits it.
+
 **action.** One email field with the placeholder `you@company.com`, and one
 full-width filled button, `Send sign-in link`.
 
 That is the whole screen. It is centered in the viewport rather than laid out down
 the page, and it is one of only two screens in the app with no navigation of any
 kind.
+
+**The line above was missing from this brief until #288**, whose string inventory
+listed it and made the sentence after it false. `strings/login.md` is that
+inventory, and it holds every string this screen can render with the condition on
+each.
 
 ## What it carries only sometimes
 

@@ -60,6 +60,23 @@ Every page gets a file. There is no exemption list, and length follows what the
 screen carries — the three admin create forms are short because a brief saying
 "one form, no distinctions, nothing conditional" is complete for them.
 
+## The string inventory beside them
+
+`strings/` holds one file per screen recording **every string that screen can
+render** — the condition on each, the file and line it comes from, which table's
+row it names, and whether a brief quotes it or `screen-briefs.mjs` pins it (#288).
+`strings/README.md` is its format and its limits.
+
+A brief says what a screen *carries* and an inventory says what it *says*, which
+is why they are two documents rather than one: a brief that listed every string
+would stop being readable at a sitting, and an inventory that argued about
+distinctions would stop being checkable. The inventory is the input to the
+vocabulary work and to #258's token layer; the brief is what the designer reads.
+
+**It also reads back on these files.** The first five inventories found a
+completeness claim in `login.md` that was false — the screen carries a line the
+brief did not list — and that sentence is corrected in the commit that added them.
+
 ## Keeping them true
 
 `scripts/tests/offline/screen-briefs.mjs` runs in CI and checks four things: that
