@@ -1,205 +1,91 @@
-# Screen strings — the inventory
+# Screen strings
 
-**Every string each screen can render, one file per screen (#288).** These sit
-beside the briefs because the same document settles the naming decisions and feeds
-the design work, and because a brief says what a screen *carries* while this says
-what it *says*.
+**Two files and a tool, and no per-screen inventory (#288).**
 
-Five vocabulary sweeps each found their word the same way — somebody read a screen
-that said two things for one fact — and each set a rule from the strings it
-happened to be looking at. The next sweep then found a shape the rule did not
-cover, because no list of what the screens actually say had ever existed. This is
-that list. The sweep that acts on it is a later pass, and it can be one pass
-rather than a sixth because the shapes are all on the page before a rule is
-written.
+- `scripts/screen-strings.mjs` — produces every string each screen renders, on
+  demand, with the file, the line and the shape it sits in.
+- `unfindable.md` — what the tool cannot produce, grouped by the shape that hides it,
+  with the test for whether a shape can be closed.
+- `unreachable.md` — text the app holds that no reader can reach, by screen. A sweep
+  does not need to reword it and a design must not draw room for it.
 
-## Why these files exist and `screen-strings.mjs` is not enough
+## Why there is no file per screen
 
-**`scripts/screen-strings.mjs` produces most of this list on demand, so the
-question worth answering first is what the files hold that a re-run does not.**
-Measured over the first five screens, which carry 353 of the app's strings:
+**#288 built that first, and then measured it.** One inventory per screen: every
+string, the condition that renders it, the file and line, the table its noun points
+at, and whether a brief quotes it or `offline/screen-briefs.mjs` pins it. Five
+screens came to **218 entries in 1,861 lines**. Three measurements against those five
+files are why the other sixteen were never written.
 
-**33 strings the extractor cannot produce at all** — 22 a person reads and 11
-closed-vocabulary values. Not a gap in its coverage but in its reach: a message
-another entry point authored, a `??` fallback in a helper beside a copy constant,
-a plain object that holds copy under a name no rule looks for, a constant reached
-only through a function. Re-running finds none of them, ever.
+**Of 218 entries, 40 carried a word the vocabulary work is deciding.** The test was
+whether the string contains `item`, `charge`, `line` or `ordered item`, or whether its
+`names` field points at a table. Those turned out not to be two tests: every one of
+the 40 also had a table, and 162 had a table without carrying a word. So the entries
+that feed a naming decision were **18% of the file**, and across all twenty-one
+screens the whole input to the `item`-against-`charge` question is **109 of 1,337
+strings** — four of which say both words in one sentence.
 
-**Three of those 33 are words `_shared.md` locks as tier 1.** `Delivered`,
-`Mismatch` and `Awaiting delivery` reach `/invoices` through
-`describeInvoiceColumn`, which reads `STATUS_COPY` inside `lib/deliveryStatus.js`
-— a constant that screen never names. **So a vocabulary sweep working from the
-extractor alone would stand on a list with three locked words missing from it, on
-the one screen where the delivery axis and the invoicing axis meet.** That is the
-sixth sweep, arriving the same way the first five did.
+**Of 194 conditions, 127 gave a reader nothing the brief already said.** 65%, and the
+overlap rose with the brief's length: `/invoices` was 85% duplicated. Of the 67 that
+were new, 28 were facts a design genuinely needs — including that `/invoices/new` is
+two tabs, which no brief had said — and 26 were refusals no reader can reach, which a
+brief must not list at all. The 28 went into the briefs. The rest went.
 
-**And every judgment.** The extractor emits a string, a file, a line and a shape.
-Which table's row the string's noun points at, what protects the word, and whether
-a reader can reach it are three questions no walk over source answers, and they
-are the three the next pass needs.
+**Of the four fields per entry, three were derivable from the code.** The string
+itself, the file and line, and what quotes or pins it are all things a script
+computes — and one did, correcting 37 `held:` lines mechanically, some of which had
+been wrong since they were written. Only `names`, which table a noun points at, was a
+judgment. One field of four.
 
-## What counts as a string
+**And the shape was a snapshot in front of a sweep.** Twenty-one screens on that
+format extrapolated to about 6,000 lines, which a vocabulary sweep would then make
+stale in the same pass that used it: the strings change, the line numbers move, and
+`--check` reports the drift without repairing it. Write 6,000 lines, sweep, write
+6,000 lines again.
 
-**A run of words this app authors and a reader of this screen can read** — and,
-second, **a closed-vocabulary value a person never reads but a vocabulary sweep has
-to see.** Both are inventoried; the entry says which, as `read` or `switch`.
+**One of five sweeps would have been helped.** #227's bulk was identifiers — `line`
+alone was 134 `poLine` uses and about 400 bare ones, and of `shipment`'s 322 uses
+exactly **two** were strings a reader sees. #269 changed no screen, no constant and no
+identifier: what was missing was a rule. #274's trigger was a false premise in #227's
+own reasoning, and the evidence against it was on the Airtable base. #280 is a table
+rename whose whole screen surface is **11 strings**, all of which this tool finds.
+Only #254's `item`-against-`charge` finding wanted a list of strings — and it wanted
+109 of them, not 6,000 lines.
 
-The second class is here because #274 measured what happens without it:
-`billed-more`, `order-billed`, `billed-short` and `billed-over` were `key` values,
-which `copyStrings` skips by structure and the identifier walk never visits, so
-four uses of a barred word were invisible to every matcher at once.
+## How to make a naming decision
 
-**Counted:** JSXText; a string literal or template chunk inside a JSX expression
-container, including both arms of a ternary; a string literal in an attribute a
-person reads (`placeholder`, `title`, `aria-label`, `alt`, an `<option>`'s text, a
-`label`); a string in a copy constant this screen imports; a message a co-located
-Server Action returns for the screen to show; a `throw new Error` message the
-screen renders; a closed-vocabulary value.
+**Filter, judge, sweep, re-filter — one act, with no document in the middle to go
+stale.**
 
-**Not counted:** a class name, a route, `type=` / `name=` / `href`, an Airtable
-field name, a record id, a form field's `name` — anything only a developer reads.
-
-**One sentence is one entry, however it is spelled.** A sentence split across three
-JSXText nodes by two expression containers is one string, written with the
-containers in braces. Braces also mark a value composed across files, where the
-words a reader sees are held together by no single literal.
-
-## How an entry reads
+Run the extractor over every screen and keep the strings carrying the word in
+question. Today that is 109 strings for `item` / `charge` / `line`, of which 81 say
+`item`, 21 say `charge` and 11 say `line`; the four that say both `item` and `charge`
+in one sentence are on `/invoices/new` and `/prs`, and they are where the decision
+actually bites.
 
 ```
-- **`Send sign-in link`** — read · auto · seen
-  - from: `app/login/page.js:91`, the alternate of a ternary inside a JSX
-    expression container
-  - names: no table
-  - held: quoted by `login.md`
+node scripts/screen-strings.mjs > /tmp/all.txt          # the census, 21 screens
+node scripts/screen-strings.mjs /invoices/new           # one screen, with shapes
 ```
 
-`read` / `switch` is the class above. `auto` / `hand` says whether
-`scripts/screen-strings.mjs` can attribute the string to this screen, so the `hand`
-entries are the extractor's blind spot, named rather than implied. The third word
-is the grade — see below.
+Then, for each string the filter kept, decide which table's row its noun points at —
+that is the one judgment no tool makes, and it is made against the strings in front
+of you rather than read out of a file somebody wrote weeks earlier. Rewrite, and run
+the same filter again: it comes back empty or it does not.
 
-`from:` names the file and the line, and then the SHAPE, which is what a later
-sweep needs: a shape is what a rule covers or misses.
+**Read `unfindable.md` before trusting the filter.** Three of the words
+`docs/briefs/_shared.md` locks as tier 1 — `Delivered`, `Mismatch`,
+`Awaiting delivery` — reach `/invoices` through a constant that screen never names,
+so the extractor produces none of them. A sweep that skipped that file would stand on
+a list with three locked words missing from it, on the screens where the delivery
+axis and the invoicing axis meet.
 
-`names:` is the table whose row the string's noun points at, or `no table`. **This
-is the field the vocabulary work actually consumes.** `Deliveries` gives a
-delivery, `Invoices` an invoice, `Lines` a job's line, and so a `PO Items` row is
-an ordered item; gathering the entries by this field is what shows one sentence
-naming two tables' rows with two words, or one word doing duty for four tables.
+## What a brief carries and what these files carry
 
-`held:` says whether a brief quotes the string and whether
-`offline/screen-briefs.mjs` pins it. A string that is quoted and not pinned can be
-reworded in the code while a brief goes on showing the old wording to a designer; a
-string that is neither is protected by nothing at all. It is what decides how far a
-rename has to reach.
+A brief says what a screen **carries** — which facts, at what level, which
+distinctions a redesign may not lose — and it is what a designer reads. These files
+say what the tool **cannot** say, which is a fact about the tool.
 
-**A `switch` entry takes a single compact line** — its `names` is always `no table`
-and nothing ever quotes it, so three of the four fields would say the same thing
-twenty times. It carries no grade either, because nobody reads it.
-
-## The grade, and the condition sentence that is not here
-
-Every `read` entry carries one word saying whether a reader can reach the string
-through this screen.
-
-| Grade | Means |
-|---|---|
-| `seen` | the state was created in a browser and the string was read |
-| `reachable` | the state can be created in a browser; this pass did not |
-| `unreachable` | not reachable through this screen |
-
-Where an entry holds several strings the grade is the lowest they share, and **an
-entry mixing `unreachable` with a readable string is split**, because that is the
-distinction the grade exists for. `/login` renders `Email is required`, authored
-two files away, and no reader can ever see it: the input is `required`, so an empty
-submit never leaves the page — checked with the field cleared, where the form
-reports invalid and the submit handler never runs.
-
-**There is no condition sentence, and that was measured rather than decided.** An
-earlier version of these files carried a `when:` field per entry, written as the
-state a reader could put the screen into. Across the five screens it held 194
-conditions. **127 of them — 65% — gave a reader nothing the screen's own brief did
-not already say**, and the overlap rose with the brief's length: `/invoices` was
-85% duplicated. Of the 67 that were new, **28 were facts a design genuinely needs**
-and 26 were refusals no reader can reach, which a brief must not list at all.
-
-So the 28 went into the briefs, where a fact about what a screen carries belongs
-and where `offline/screen-briefs.mjs` already guards it, and the field went. Two
-documents saying one fact drift; the brief is the one whose reader is the designer.
-**The grade stayed here** because it is the one thing the `when:` field held that a
-brief cannot take: `unreachable` in a brief would tell a designer to draw a state
-that cannot happen, and `seen` is an observation about a pass rather than a fact
-about a screen.
-
-## Six shapes an inventory cannot count
-
-**Every file names which of these reach its screen, and says so when none do.** A
-silence has to read as a measurement rather than as an omission — the #254 census
-was a lower bound by its own admission, and that admission is the only reason it
-was safe to build on.
-
-1. **runtime-keyed** — a string chosen at runtime from a keyed constant
-   (`COPY.blocked[key]`, a `.map()`, any computed member). The module is
-   attributable and the member is not.
-2. **another entry point's message** — a string this screen renders that a
-   different entry point authored: a Route Handler's `error`, or something thrown
-   deeper and serialized on the way out. Nothing that walks a route's own files can
-   reach it.
-3. **a value from the base** — a single select's option text, a `Unit`, an
-   `Edit Log."Field"` label. Not in this repository at all, and `DRUM` is the
-   precedent for what that costs.
-4. **text this app does not author** — the browser's own validation bubble, a date
-   picker's chrome, a framework error page. A reader reads it; no file here can
-   quote it, because each browser words it differently.
-5. **a figure or a record's own value inside a counted sentence** — the sentence is
-   an entry; the number, date, amount or field value interpolated into it is not.
-6. **a state this pass could not create** — an `unreachable` entry. Its existence
-   is counted; its grade is a claim about the screen rather than an observation.
-
-**And one shape the extractor over-reaches on, which every file records under
-"Attributed here and not rendered".** A thrown message it cannot tell from a
-rendered one, a fallback that cannot be reached, a copy member reached through the
-union that keeps a sibling function's own string attributable. Naming each with its
-reason is what stops an over-reach reading as a string the screen says.
-
-**The extractor sees a closed vocabulary's COMPARED members and its `key`
-properties, not its declared ones.** A value that is only ever assigned — an array
-of tab definitions, a `PAIRING` constant — is invisible to it and is hand work.
-#274's four `billed-` values were `key` properties, so that half is covered by
-structure; the other half is not, and `/invoices/new` measured it at ten values.
-
-## How this stays true
-
-**`scripts/screen-strings.mjs` is this file's rule executable**, the shape
-`scripts/wrap-72.mjs` already has. `--check` compares each screen's inventory
-against the code without rewriting it, and it is run by hand until every screen has
-a file.
-
-**A file is remade when a file it names changes, when its route gains or loses one,
-or when a constant it renders is reworded** — not on a schedule and not once per
-issue. Each file says so in its own header, because a reader who has one file open
-should not have to find this one.
-
-**The check that makes this a CI obligation needs every screen present.** Its first
-assertion is the one `offline/screen-briefs.mjs` already makes both ways — every
-brief has an inventory and every inventory has a brief — which cannot hold while
-sixteen screens have no file. So it lands with the last group of screens, and what
-it will assert is already fixed: that every string the extractor finds under a
-screen's files is in that screen's inventory, and that every entry's quoted text is
-still in the file the entry names. The second covers the `hand` entries with no
-exemption list, because it verifies a claim about a named file rather than finding
-the string by traversal.
-
-## The files
-
-One per screen, named exactly as the brief is: the route with its leading slash
-dropped, `/` replaced by `-`, brackets stripped. `/pos/[poId]` is `pos-poId.md`;
-`/` is `root.md`. The name is derived rather than typed, which is what lets the
-check's first assertion be an equality in both directions.
-
-**A subdirectory rather than a suffix in `docs/briefs/`, and that is forced.**
-`offline/screen-briefs.mjs` counts every `.md` in that directory as a screen brief
-and requires a page for each, so a file named `invoices-new.strings.md` beside the
-briefs fails it. `readdirSync` does not recurse, so this directory is invisible to
-that check and the briefs' own guarantee is untouched.
+Nothing here records what a screen says, because a re-run does that better: a
+document with 1,337 strings in it is stale the first time one is reworded, and the
+tool is never stale. What is written down is only what a re-run cannot produce.

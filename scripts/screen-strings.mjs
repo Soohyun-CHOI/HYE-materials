@@ -1,55 +1,53 @@
-// The screen-string inventory's rule, executable (#288).
+// Every string each screen renders, extracted (#288).
 //
-// `docs/briefs/strings/` records every string each screen can render. This is what
-// counts them, and it exists for the reason `scripts/wrap-72.mjs` exists: the rule is
-// mechanical, so a prose statement of it is applied at a different moment from when
-// it is read, and a hand pass over 2,500 lines of JSX misses things.
+// This is the deliverable rather than a document, and the reason is measured. #288
+// began by writing one inventory file per screen — the strings, the condition on
+// each, the table its noun points at, what protects it — and the first five files
+// came to 1,861 lines for 218 entries. Then three things were measured against them.
+// Of 218 entries, 40 carried a word the vocabulary work is deciding. Of 194
+// conditions, 127 said what that screen's brief already said. And of the four fields
+// per entry, three were derivable from the code: only which table a noun points at
+// was not. Twenty-one screens on that shape came to about 6,000 lines that a sweep
+// would then make stale.
 //
-// WHAT IT IS FOR IS MEASURING ITS OWN BLIND SPOT, not replacing the hand pass. Three
-// ways of counting screen strings already existed and each missed a different shape:
-// #254's census could not see inside a JSX expression container,
-// `offline/line-vocabulary.mjs` reads `*_COPY` declarators and nothing else, and
-// #292's `offline/mail-money.mjs` is keyed on parameter names. #288 did not merge
-// them. It took two screens by hand, ran this afterwards, and reported the difference
-// in both directions — because a difference of zero can mean the two passes saw the
-// same thing rather than that either was complete.
+// So the shape inverted. This file produces the list on demand, `unfindable.md`
+// records what it cannot produce, `unreachable.md` records what nobody reads, and the
+// per-screen inventories are gone. The 28 facts a design actually needed out of those
+// conditions went into the briefs, which is where a fact about what a screen carries
+// belongs and where `offline/screen-briefs.mjs` already guards it.
 //
-// SO THE OUTPUT IS THREE NUMBERS AND NEVER ONE:
+// FIVE SHAPES WERE CLOSED HERE WHILE THAT LIST WAS BEING WRITTEN, and one question
+// decided each: **did the screen call that string, or did it call something that HAS
+// that string?** A screen that names a string has called it, and a name is what this
+// file can see — that closed a `label:` property, a `message:` property, a string map
+// or set read through a JSX child container, and a bare string const the screen
+// imports by name. A screen that calls a FUNCTION has called the function, and the
+// literal inside belongs to that function's own purpose: reaching it means walking
+// somebody else's body and dragging their log lines out with it, which is why
+// `lib/materialPriceView.js:statusTag`'s three words stayed hand work.
+// `docs/briefs/strings/unfindable.md` carries that test and what each fix cost.
 //
-//   hand-only            what this cannot attribute. The blind spot, named.
-//   tool-only, real      what the hand pass missed. The hand pass's own error bar.
-//   tool-only, unrendered  what this attributed and the screen does not say. A copy
-//                        module reached by an import is attributed WHOLE, so every
-//                        constant a screen imports and does not render lands here.
-//                        Over-reach is reported rather than filtered, because the
-//                        filter would be the judgment the inventory is for.
+// THE COSTS, because a closed shape has one and hiding it would be the whole mistake
+// this file exists against. Reading a `label:` property also collects
+// `confirmIngestThenDelete`'s cleanup labels, which no reader sees — one over-reach
+// per screen that uploads a file. The container rule reaches only a CHILD container,
+// which is what keeps `ENTRY_TONE_CLASS` and `MODAL_BACKDROP` out; the first version
+// of its pre-pass forgot the attribute skip and put CSS classes on the invoice
+// detail.
 //
-// TWO LIMITS MEASURED ON `/invoices/[invoiceId]`, BOTH NAME-SHAPED, and both are the
-// weakness #292's `offline/mail-money.mjs` records about itself one level over:
+// WHAT IT STILL CANNOT SEE is `unfindable.md`, grouped by shape, and the two worth
+// repeating here are the ones no rule will ever close: a string another entry point
+// authored and a screen renders (`/login` shows two, thrown in `lib/auth.js` and
+// serialized by a Route Handler), and a copy constant reached only through a
+// function, where the link between screen and string is a return value rather than a
+// name.
 //
-//   1. IT FINDS COPY IN A CONSTANT NAMED `*_COPY` (or `*_TITLE`, or `PRODUCT_NAME`).
-//      `DONE_MESSAGES` holds that screen's three confirmation banners and is invisible
-//      to every rule here. Widening `COPY_NAME` is not the fix on its own: the map is
-//      also read through a computed member, so the member filter would take it whole.
-//   2. IT READS A `label` JSX ATTRIBUTE AND NOT A `label` PROPERTY. The invoice
-//      detail's totals footer is five strings under `label:` in an array, and all five
-//      are hand work. Adding the property is one line and would also collect
-//      `lib/blobIngest.js`'s cleanup labels, which no reader sees — so it is a change
-//      with a measurement attached, not a tidy-up, and it belongs to the pass that can
-//      re-reconcile the two hand-counted screens against it.
-//
-// THE SIX SHAPES IT CANNOT COUNT AT ALL are in `docs/briefs/strings/README.md`, and
-// every inventory file names the ones that reach its own screen. Two are worth
-// repeating here because they bound what `--check` can ever prove: a string another
-// entry point authored and this screen renders (`/login` shows two, thrown in
-// `lib/auth.js` and serialized by a Route Handler), and a value that lives on the
-// Airtable base rather than in this repository.
-//
-// WHY THIS IS NOT IN `scripts/tests/offline/` YET. The check it will become asserts,
-// first, that every brief has an inventory and every inventory has a brief — the
-// equality `offline/screen-briefs.mjs` already makes both ways. That cannot hold
-// while sixteen screens have no file, so it lands with the last group of them. What
-// it will assert is what `--check` asserts here, unchanged.
+// `--check` VERIFIES THAT LIST AND NOTHING ELSE. It asserts every string
+// `unfindable.md` quotes is still absent from this file's own output, so a rule added
+// here fails it — which is good news, and means an entry is stale. It caught one on
+// its first run. What it cannot check is whether the list is COMPLETE: a string this
+// file cannot see and nobody wrote down is invisible to both, and that gap is the
+// list's own subject.
 //
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed, 2 no
 // failures but a part could not run.
@@ -58,7 +56,6 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { listJsFiles, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./tests/offline/_ast.mjs";
 import { isPageFile, routeTemplate } from "./tests/offline/_entrypoints.mjs";
-import { briefFileName } from "./tests/offline/screen-briefs.mjs";
 
 const INVENTORY_DIR = "docs/briefs/strings";
 
@@ -67,13 +64,6 @@ const SHARED_FILES = ["app/layout.js"];
 
 /** Attributes whose string value a person reads. Everything else is machinery. */
 const READ_ATTRS = new Set(["placeholder", "title", "alt", "aria-label", "aria-description", "label"]);
-
-/**
- * The shortest literal run `--check` will look for in a file. Below it a run is not
- * evidence of anything — `Qty` and `PO` occur everywhere — so the entry goes
- * unverified rather than falsely confirmed, and the count of skipped ones is reported.
- */
-const MIN_RUN = 8;
 
 /** The constants that hold screen copy. A name, not a heuristic over values. */
 const COPY_NAME = /_COPY$|_TITLE$|^PRODUCT_NAME$/;
@@ -85,16 +75,6 @@ const collapse = (s) =>
         .replace(/&amp;/g, "&")
         .replace(/\s+/g, " ")
         .trim();
-
-/**
- * A file's text as a haystack for one sentence.
- *
- * CONCATENATION IS STITCHED, and without that the assertion is a false alarm on every
- * long constant in `lib/`: `DIRECT_PURCHASE_COPY.modal.summary` is five string
- * literals joined by `+`, so the sentence a reader sees exists in no single literal
- * and a search for it fails while nothing is wrong.
- */
-const codeHaystack = (s) => collapse(s.replace(/["'`]\s*\+\s*\n?\s*["'`]/g, ""));
 
 const lineOf = (source, offset) => source.slice(0, offset).split("\n").length;
 
@@ -361,8 +341,20 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
                     if (n.callee?.name === "Error") inExpression(n.arguments?.[0], "thrown message");
                     break;
                 case "Property":
-                    // A refusal a Server Action hands back, and `metadata.title`.
-                    if (n.key?.name === "error" || n.key?.name === "title" || n.key?.name === "default")
+                    // A refusal a Server Action hands back, `metadata.title`, and a
+                    // `label` — which is a person's word wherever it appears, on a JSX
+                    // attribute or on an object. The invoice detail's totals footer is
+                    // five strings under `label:` in an array and the new-invoice form's
+                    // two tab names are two more, and every one was hand work until this
+                    // clause read the property the same way the attribute rule already
+                    // read the attribute.
+                    if (
+                        n.key?.name === "error" ||
+                        n.key?.name === "title" ||
+                        n.key?.name === "default" ||
+                        n.key?.name === "label" ||
+                        n.key?.name === "message"
+                    )
                         inExpression(n.value, `${n.key.name} property`);
                     break;
                 case "VariableDeclarator":
@@ -394,7 +386,65 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
         }
     };
 
-    if (allowed === "*") descend(ast, visitAll, skip);
+    /**
+     * A MODULE-LEVEL STRING MAP READ THROUGH A JSX CHILD CONTAINER is copy, whatever
+     * it is called.
+     *
+     * `DONE_MESSAGES` holds the invoice detail's three confirmation banners and was
+     * invisible to every rule here, because it is not named `*_COPY` and its member is
+     * computed. Widening the name test would have fixed that one map and left the next
+     * differently-named one invisible — the same weakness `offline/mail-money.mjs`
+     * records about itself — so the signal is structural instead: the identifier has to
+     * be read inside a container in CHILD position, which `skip` already separates from
+     * an attribute's. That is what keeps `ENTRY_TONE_CLASS` and `MODAL_BACKDROP` out:
+     * both are read into `className`, and a className is the one string this file
+     * exists to exclude. Module level only, so a local object cannot be swept in.
+     */
+    const readByJsx = new Set();
+    if (allowed === "*")
+        descend(
+            ast,
+            (n) => {
+                if (n.type !== "JSXExpressionContainer") return;
+                // The inner walk takes `skip` too. Without it a container holding a
+                // nested element reached that element's `className`, which put
+                // `ENTRY_TONE_CLASS` and its CSS classes on the invoice detail.
+                descend(
+                    n.expression,
+                    (m) => {
+                        if (m.type === "Identifier") readByJsx.add(m.name);
+                    },
+                    skip
+                );
+            },
+            skip
+        );
+
+    const moduleLevelDeclarators = () =>
+        ast.body.flatMap((stmt) =>
+            stmt.type === "VariableDeclaration"
+                ? stmt.declarations
+                : stmt.type === "ExportNamedDeclaration" && stmt.declaration?.type === "VariableDeclaration"
+                  ? stmt.declaration.declarations
+                  : []
+        );
+
+    if (allowed === "*") {
+        descend(ast, visitAll, skip);
+        for (const d of moduleLevelDeclarators()) {
+            const name = d.id?.name;
+            if (!name || COPY_NAME.test(name)) continue;
+            // An ARRAY counts as well as an object, and the array case was the one
+            // found by reading rather than predicted: `CONFIRMATION_TYPES` is
+            // `["Approval", "Agreement"]` mapped into two buttons on `/prs/new`, and
+            // each `STATUSES` is a filter's options. A screen that maps a list into JSX
+            // has named every member of it.
+            if (!readByJsx.has(name)) continue;
+            if (d.init?.type !== "ObjectExpression" && d.init?.type !== "ArrayExpression") continue;
+            inExpression(d.init, `${name}, a string set read through a container`);
+            switchesIn(d.init);
+        }
+    }
     else
         descend(
             ast,
@@ -402,8 +452,18 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
                 // A COPY CONSTANT, not any named export. `actions.js` imports `TABLES`
                 // from `lib/airtable/client.js`, and collecting every declarator this
                 // screen names put eleven Airtable table names in its inventory.
+                //
+                // OR A BARE STRING CONST THE SCREEN IMPORTS BY NAME, whatever it is
+                // called. `lib/authTokenState.js:REQUEST_NEW_LINK` is one sentence on
+                // `/login/confirm` and the name test alone skipped it. **The signal is
+                // the import, not the spelling** — a screen that names a string has
+                // called that string. `TABLES` stays out because it is an object, and a
+                // number like `TOKEN_TTL_MINUTES` because it is not a string.
                 if (n.type !== "VariableDeclarator") return;
-                if (!COPY_NAME.test(n.id?.name ?? "") || !allowed.has(n.id.name)) return;
+                const named = n.id?.name;
+                if (!named || !allowed.has(named)) return;
+                const bareString = isStr(n.init) || n.init?.type === "TemplateLiteral";
+                if (!COPY_NAME.test(named) && !bareString) return;
                 const wanted = members.get(n.id.name) ?? "*";
                 const roots =
                     wanted === "*" || n.init?.type !== "ObjectExpression"
@@ -461,101 +521,48 @@ export function stringsForRoute(route) {
 }
 
 // ---------------------------------------------------------------------------
-// --check: the inventory against the code
+// --check: the unfindable list against the code
 // ---------------------------------------------------------------------------
 
 /**
- * Every string an inventory file quotes as an entry heading, with the files that
- * entry names.
+ * `docs/briefs/strings/unfindable.md` claims that certain strings cannot be produced
+ * by this file. That is a claim about THIS FILE, so it is the one thing here that can
+ * check itself: run the extractor over every screen and assert that each string the
+ * list quotes is still absent.
  *
- * THE ENTRY'S OWN `from:` LINE IS WHAT MAKES THE `hand` CLASS CHECKABLE, and this is
- * the assertion that needs no exemption list: it does not ask this file to FIND the
- * string, only whether the claim the entry makes about a named file still holds. So a
- * string authored two modules away and rendered here is verified exactly as a JSXText
- * node is.
+ * IT FAILS ON GOOD NEWS AS WELL AS BAD. A rule added here can make a listed string
+ * findable, and then the entry is stale and has to come out — which is exactly what
+ * happened five times while the list was being written. So a failure means "read the
+ * list", not "something broke".
+ *
+ * WHAT IT DOES NOT CHECK: whether the list is COMPLETE. Nothing can — a string the
+ * extractor cannot see and nobody wrote down is invisible to both. That gap is the
+ * list's own subject and its opening section says so.
  */
-export function entriesInInventory(text) {
-    const blocks = text.split(/\n(?=- \*\*`)/);
+const UNFINDABLE = `${INVENTORY_DIR}/unfindable.md`;
+
+/** The strings the list quotes, from its tables and its bullets alike. */
+export function quotedInUnfindable(text) {
     const out = [];
-    for (const block of blocks) {
-        if (!/^- \*\*`/.test(block)) continue;
-        // The heading runs to the class marker — ` — read · ` or ` — switch · ` — and
-        // only its BOLD spans are the strings the entry is about. Two narrowings, both
-        // forced by a false alarm: taking every backtick span read
-        // `InvoiceForm.js:172-173` as a quotation, and running the heading to the first
-        // sub-bullet swallowed a following paragraph, which is how `blocked[key]` became
-        // a string this file claimed the screen renders.
-        const cuts = [block.search(/—\s*(?:read|switch)\s*·/), block.search(/\n\s+- /)].filter((i) => i !== -1);
-        const heading = cuts.length ? block.slice(0, Math.min(...cuts)) : block;
-        const quoted = [...heading.matchAll(/\*\*([\s\S]+?)\*\*/g)].flatMap((bold) =>
-            [...bold[1].matchAll(/`([^`]+)`/g)].map((m) => collapse(m[1]))
-        );
-        // ONLY THE `from:` BULLET NAMES FILES. Scanning the whole block took a path out
-        // of a sentence comparing this string to another module's and then looked for
-        // the string there, which fails while nothing is wrong.
-        const fromLine = block.match(/\n\s+- from:([\s\S]*?)(?=\n\s+- |$)/);
-        const files = [...(fromLine?.[1] ?? "").matchAll(/`((?:app|lib|components|scripts)\/[\w[\]/.-]+\.js)/g)].map(
-            (m) => m[1]
-        );
-        for (const q of quoted) out.push({ quoted: q, files: [...new Set(files)] });
+    for (const m of text.matchAll(/\*\*`([^`]+)`\*\*/g)) out.push(collapse(m[1]));
+    for (const row of text.split(/\r?\n/)) {
+        if (!row.startsWith("|")) continue;
+        for (const m of row.matchAll(/`([^`]+)`/g)) {
+            const s = collapse(m[1]);
+            // a cell naming a module, a constant or a route is not a quoted string
+            if (/^(?:app|lib|components|scripts)\//.test(s)) continue;
+            if (/^[A-Z][A-Z0-9_]*$/.test(s)) continue;
+            if (s.startsWith("/")) continue;
+            if (/^[a-z][A-Za-z]*$/.test(s)) continue;
+            out.push(s);
+        }
     }
-    return out;
-}
-
-/** Every backtick span in the file, which is where a quoted string may be found. */
-export function spansIn(text) {
-    return collapse([...text.matchAll(/`([^`]+)`/g)].map((m) => m[1]).join("  "));
-}
-
-/**
- * The longest run of literal text in a quoted string — what survives once the
- * `{placeholders}` standing where the code interpolates are removed.
- */
-export function longestLiteralRun(quoted) {
-    return quoted
-        .split(/\{[^}]*\}/)
-        .map((part) => collapse(part.replace(/^[\s.,:—·|]+|[\s.,:—·|]+$/g, "")))
-        .reduce((best, part) => (part.length > best.length ? part : best), "");
-}
-
-const readFileText = (rel) => (existsSync(repoPath(rel)) ? codeHaystack(readFileSync(repoPath(rel), "utf8")) : "");
-
-function checkRoute(route, inventoryPath) {
-    const inventory = readFileSync(repoPath(inventoryPath), "utf8");
-    // Compared against the file's BACKTICK SPANS rather than its whole text, so a
-    // fragment counts only where the inventory is quoting rather than describing.
-    const haystack = spansIn(inventory);
-    const { files, strings, errors } = stringsForRoute(route);
-    const routeText = codeHaystack(files.map((f) => readFileSync(repoPath(f), "utf8")).join("\n"));
-
-    const notInInventory = strings.filter((s) => !haystack.includes(s.text));
-
-    const entries = entriesInInventory(inventory).map((e) => ({ ...e, run: longestLiteralRun(e.quoted) }));
-    const checkable = entries.filter(({ run }) => run.length >= MIN_RUN);
-    const notInCode = checkable.filter(({ run, files: named }) => {
-        const hay = named.length ? named.map(readFileText).join("  ") : routeText;
-        return !hay.includes(run);
-    });
-
-    return {
-        files,
-        strings,
-        errors,
-        notInInventory,
-        notInCode,
-        quoted: entries.length,
-        unverified: entries.length - checkable.length,
-    };
+    return [...new Set(out)].filter((s) => /[A-Za-z]{4}/.test(s) && !s.includes("{"));
 }
 
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
-
-function inventoryPathFor(route) {
-    const rel = `${INVENTORY_DIR}/${briefFileName(route)}`;
-    return existsSync(repoPath(rel)) ? rel : null;
-}
 
 function reportRoute(route) {
     const { files, strings, errors } = stringsForRoute(route);
@@ -575,34 +582,38 @@ function reportRoute(route) {
 }
 
 function runCheck(routes) {
-    let failed = 0;
-    let unrun = 0;
-    let covered = 0;
-    for (const route of routes) {
-        const inventoryPath = inventoryPathFor(route);
-        if (!inventoryPath) {
-            console.log(`~ ${route} — no inventory yet`);
-            unrun += 1;
-            continue;
-        }
-        covered += 1;
-        const { strings, errors, notInInventory, notInCode, quoted, unverified } = checkRoute(route, inventoryPath);
-        const bad = notInInventory.length + notInCode.length + errors.length;
-        console.log(
-            `${bad === 0 ? "ok" : "FAIL"} ${route} — ${strings.length} found, ` +
-                `${notInInventory.length} not in the inventory, ${notInCode.length} of ${quoted} quoted ` +
-                `no longer in the code (${unverified} too short to look for)`
-        );
-        for (const s of notInInventory) console.log(`    missing  ${s.file}:${s.line}  ${JSON.stringify(s.text)}`);
-        for (const { quoted, run } of notInCode)
-            console.log(`    stale    ${JSON.stringify(quoted)} (looked for ${JSON.stringify(run)})`);
-        errors.forEach((e) => console.log(`    UNPARSED ${e}`));
-        if (bad > 0) failed += 1;
+    const path = repoPath(UNFINDABLE);
+    if (!existsSync(path)) {
+        console.log(`${UNFINDABLE} is not there, so there is nothing to check`);
+        return 2;
     }
-    console.log("");
-    console.log(`${covered} of ${routes.length} screens have an inventory; ${failed} disagree with the code`);
-    if (failed > 0) return 1;
-    return unrun > 0 ? 2 : 0;
+    const quoted = quotedInUnfindable(readFileSync(path, "utf8"));
+    if (quoted.length === 0) {
+        console.log(`${UNFINDABLE} quotes no strings — the check cannot see what it is for`);
+        return 2;
+    }
+
+    // Every string every screen produces, squashed, so a run can span the chunk
+    // boundary a concatenated template leaves behind.
+    const parseErrors = [];
+    let hay = "";
+    for (const route of routes) {
+        const { strings, errors } = stringsForRoute(route);
+        errors.forEach((e) => parseErrors.push(`${route}: ${e}`));
+        hay += strings.map((s) => s.text).join("  ") + "  ";
+    }
+    const squashed = hay.replace(/\s+/g, "");
+
+    const nowFound = quoted.filter((q) => squashed.includes(q.replace(/\s+/g, "")));
+    console.log(`${quoted.length} strings quoted as unfindable, across ${routes.length} screens`);
+    parseErrors.forEach((e) => console.log(`  UNPARSED ${e}`));
+    if (nowFound.length === 0) {
+        console.log("  every one is still absent from the extractor's output");
+        return parseErrors.length ? 2 : 0;
+    }
+    console.log(`  ${nowFound.length} the extractor NOW PRODUCES — the entry is stale and should come out:`);
+    nowFound.forEach((q) => console.log(`    ${JSON.stringify(q)}`));
+    return 1;
 }
 
 const args = process.argv.slice(2);

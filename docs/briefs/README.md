@@ -60,22 +60,22 @@ Every page gets a file. There is no exemption list, and length follows what the
 screen carries — the three admin create forms are short because a brief saying
 "one form, no distinctions, nothing conditional" is complete for them.
 
-## The string inventory beside them
+## What a screen SAYS, beside what it carries
 
-`strings/` holds one file per screen recording **every string that screen can
-render** — the condition on each, the file and line it comes from, which table's
-row it names, and whether a brief quotes it or `screen-briefs.mjs` pins it (#288).
-`strings/README.md` is its format and its limits.
+`strings/` is not a second set of briefs. `scripts/screen-strings.mjs` produces
+every string each screen renders on demand, and `strings/` holds only the two
+things a re-run cannot give: what the tool cannot see, grouped by the shape that
+hides it, and what no reader can reach (#288). `strings/README.md` says why an
+inventory per screen was built, measured and dropped.
 
-A brief says what a screen *carries* and an inventory says what it *says*, which
-is why they are two documents rather than one: a brief that listed every string
-would stop being readable at a sitting, and an inventory that argued about
-distinctions would stop being checkable. The inventory is the input to the
-vocabulary work and to #258's token layer; the brief is what the designer reads.
+A brief says what a screen *carries* — which facts, at what level, which
+distinctions a redesign may not lose — and it is what a designer reads. A list of
+strings is what a vocabulary sweep reads, and it is better re-run than stored.
 
-**It also reads back on these files.** The first five inventories found a
+**Reading the screens that closely did read back on these files.** It found a
 completeness claim in `login.md` that was false — the screen carries a line the
-brief did not list — and that sentence is corrected in the commit that added them.
+brief did not list — and it moved 28 facts into four briefs that none of them
+carried, including that `/invoices/new` is two tabs.
 
 ## Keeping them true
 
