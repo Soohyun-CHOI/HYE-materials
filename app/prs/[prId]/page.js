@@ -424,9 +424,15 @@ async function renderPRDetailPage({ params, searchParams }) {
                     <h2 className="text-lg font-semibold">Purchase Order</h2>
                     {po ? (
                         <p className="mt-2 text-sm">
-                            <a href={`/pos/${po.poId}`} className="underline">
+                            {/* Issue #293 — `Link` and `encodeURIComponent`, matching
+                                the request list's link above and the order page's
+                                three. This was a plain `<a>`, so the two pages
+                                pointed at each other by two mechanisms while
+                                looking identical; #293 gave the order page its link
+                                back to here and closed the pair. */}
+                            <Link href={`/pos/${encodeURIComponent(po.poId)}`} className="underline">
                                 {po.poId}
-                            </a>{" "}
+                            </Link>{" "}
                             — <strong>{po.status}</strong>
                         </p>
                     ) : (
