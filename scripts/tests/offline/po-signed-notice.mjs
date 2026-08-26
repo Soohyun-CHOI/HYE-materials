@@ -65,7 +65,9 @@ const NOTICE = {
     prId: "HYE-PR-260101-01",
     poUrl: "https://portal.example.com/pos/HYE-PO-20260101-01",
     vendorName: "Lone Star Pipe & Supply",
-    totalAmount: "$220.00",
+    // A NUMBER SINCE #292 — the builder formats it. Every assertion about the money
+    // itself is in offline/mail-money.mjs, which owns that rule for all five senders.
+    totalAmount: 220,
 };
 
 /** Every href in a body, in source order. */
@@ -174,9 +176,13 @@ export function run({ check, assert, log }) {
         // request's path is the same defect one level in.
         assert("the url it passes is an order's", /poUrl:\s*`\$\{baseUrl\}\/pos\//.test(src));
         assert("  and the request's path is gone from this function", !src.includes("/prs/"));
-        // #233's rule reaches the mail. Until #290 this figure went out raw, so a
-        // total of 220.00000000000003 on the base printed every digit of it.
-        assert("the total goes through formatUSD", /totalAmount:\s*formatUSD\(/.test(src));
+        // #292 TOOK THE MONEY ASSERTION THAT STOOD HERE, AND THE RULE DID NOT GO WITH
+        // IT — it moved one layer down. This file asserted `totalAmount: formatUSD(`
+        // at this call site, which was exactly the fix #290 made; #292 put the
+        // formatting inside the builder, so a correct call site now passes the field
+        // unformatted and that assertion would fail on the fix. What it stood for is
+        // `offline/mail-money.mjs`'s, over all five senders, where the same property
+        // is pinned by SHAPE rather than by the call around it.
     }
 
     // ── 4. the act, never the control ───────────────────────────────────────

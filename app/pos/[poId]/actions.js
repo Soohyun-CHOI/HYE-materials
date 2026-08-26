@@ -11,7 +11,6 @@ import { notifyPOSigned } from "@/lib/notifications";
 import { isPOWithdrawn, withdrawPOAsRequester } from "@/lib/poWithdraw";
 import { canSendPOToVendor, getPOSendEligibility, PO_SENT_STATUS, SEND_COPY } from "@/lib/poSend";
 import { sendPOToVendorEmail } from "@/lib/email";
-import { formatUSD } from "@/lib/format";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Issue #63 — the linked PR's Status only ever reaches "Approved" (see
@@ -287,7 +286,8 @@ export async function sendPOToVendorAction(prevState, formData) {
                     poId: po.poId,
                     buyerName: HYE_BUYER_NAME,
                     vendorName: vendor.vendorName || "—",
-                    totalAmount: formatUSD(po.totalAmount),
+                    // The field, not a rendering of it (#292) — the builder formats.
+                    totalAmount: po.totalAmount,
                     senderName: sender.userName || sender.email,
                 }),
                 attachment: {

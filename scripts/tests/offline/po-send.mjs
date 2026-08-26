@@ -264,7 +264,9 @@ export function run({ check, assert, log }) {
         poId: "HYE-PO-20260101-01",
         buyerName: "HANYANGENG USA INC.",
         vendorName: "Lone Star Pipe & Supply",
-        totalAmount: "$1,234.00",
+        // A NUMBER SINCE #292 — the builder formats it. See offline/mail-money.mjs
+        // for the rule over all five senders.
+        totalAmount: 1234,
         senderName: "Soo Choi",
     });
     // THE BUYER NAME ENDS IN ITS OWN ABBREVIATING PERIOD, AND THE FIRST SEND WENT OUT
@@ -280,7 +282,9 @@ export function run({ check, assert, log }) {
         poId: "HYE-PO-20260101-01",
         buyerName: "ACME SUPPLY CO",
         vendorName: "Lone Star Pipe & Supply",
-        totalAmount: "$1,234.00",
+        // A NUMBER SINCE #292 — the builder formats it. See offline/mail-money.mjs
+        // for the rule over all five senders.
+        totalAmount: 1234,
         senderName: "Soo Choi",
     });
     assert("a buyer name with no trailing period reads the same way", plainBuyer.includes("ACME SUPPLY CO has issued"));
