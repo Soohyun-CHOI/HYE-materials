@@ -99,7 +99,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
-- `lib/poListView.js` — the PO list's ordering, Status text, three empty states, and which approved PRs have no PO with both voices of that copy (#176).
+- `lib/poListView.js` — the PO list's ordering, Status text, three empty states, and which approved PRs have no PO with both voices of that copy (#176). `selectPOsAwaitingSend` + `AWAITING_SEND_COPY` (#295) are the second strip: **it counts `Sent At` and never the status beside it**, which is #281's rule wherever a send is judged.
 - `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, folded to one entry per document, their ordering, their empty states and `PO_DOCUMENTS_COPY`.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/poSend.js` — sending a signed order to the vendor (#281): `PO_SENT_STATUS`, the five refusals, and the screen and mail copy. The mail's words are here rather than in `lib/email.js` because that file's inline HTML is outside the vocabulary check's reach. `SIGNED_NOTICE_COPY` (#290) is the mail telling the requester to place it — here because `lib/email.js` cannot be imported by a check at all, so only a pure builder can be called with an argument missing.

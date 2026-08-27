@@ -49,7 +49,7 @@ import {
     orderedItemStatus,
 } from "../../../lib/deliveryStatus.js";
 import { CHARGE_PRECISION_COPY, VARIANCE_COPY } from "../../../lib/variance.js";
-import { EMPTY_COPY, AWAITING_PO_COPY } from "../../../lib/poListView.js";
+import { AWAITING_PO_COPY, AWAITING_SEND_COPY, EMPTY_COPY } from "../../../lib/poListView.js";
 import { CONFIRM_COPY } from "../../../lib/authTokenState.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
@@ -214,6 +214,11 @@ const PINNED = [
     "No purchase orders to show. You see a purchase order when you can see the request behind it.",
     "No purchase orders match these filters.",
     "Generation failed when the request was approved. Generate the order here.",
+    // #295 — the second strip on `/pos`. Pinned like the other strips' lines and
+    // without the figure, which the heading interpolates. The last clause is the one
+    // that has to survive a rewording: it is why the state matters, and #281 is the
+    // only place a reader learns that sending IS placing the order.
+    "received these, and sending one to the vendor is what places the order.",
     "This sign-in link has already been used.",
     "This sign-in link has expired. Sign-in links last 15 minutes.",
     "Press the button to finish signing in on this device.",
@@ -399,6 +404,7 @@ export function run({ check, assert, log }) {
         ...stringsFrom(AWAITING_INVOICE_COPY),
         ...stringsFrom(AWAITING_DELIVERY_COPY),
         ...stringsFrom(AWAITING_PO_COPY),
+        ...stringsFrom(AWAITING_SEND_COPY),
         ...stringsFrom(ALLOCATION_COPY),
         ...stringsFrom(OVERAGE_COPY),
         ...stringsFrom(DIRECT_PURCHASE_COPY),

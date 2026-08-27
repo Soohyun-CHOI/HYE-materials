@@ -69,6 +69,30 @@ arrive.
 in this table**. The thing being reported is the absence of the row, so it cannot
 be reported in one.
 
+**When a signed order has not been sent to the vendor:** a second strip, below
+the first, with a counted heading — `N signed orders have not been sent to the
+vendor` — and one line for everyone: `Longest wait first. The vendor has not
+received these, and sending one to the vendor is what places the order.` Each row
+is the order's ID as a link, the day it was signed with a day count beside it,
+and Job / Line · Vendor.
+
+**One voice and no control, and both follow from the same thing.** Sending
+happens on the order's own page, where the vendor's address sits above the button
+— that address is why there is no confirmation dialog, so a button here, with no
+address beside it, would owe one. With nothing offered there is nothing for a
+second voice to be about, and the line names no control because who may send is
+decided per order rather than by role.
+
+**No threshold: an order signed an hour ago is on this list.** What is waited for
+is one click by a colleague who was emailed at the signature, not a vendor's
+shipment, so it reads as waiting from the first day. The invoice list's own strip
+does carry a threshold and says so in its sentence; if this one ever grows one,
+the sentence has to say so too.
+
+**The two strips stack in the order the document chain runs** — a request that
+never became an order, then an order that never reached its vendor — and each
+disappears on its own count, so a reader meets one, both or neither.
+
 ## What must agree elsewhere
 
 **Both chips are the ones the order's own detail screen shows**, from the same
@@ -85,6 +109,11 @@ with its own two sentences.
 **The strip's shape is shared with every other strip in the app**: above the list,
 counted heading, one explanatory line, an action on the row where the action
 takes a row, silent when empty.
+
+**The unsent strip's row shape is the invoice list's**: an id, then the date it
+has been waiting since with a day count, then the wide cell. The ordering is the
+same rule as well — longest wait first, shared with both strips on the other two
+lists.
 
 **This strip is on this screen because the office works here.** The
 over-delivery strip is on the request list because site staff work there.

@@ -7,17 +7,20 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllLines } from "@/lib/airtable/lines";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { canViewPR } from "@/lib/prVisibility";
-import { selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
+import { selectPOsAwaitingSend, selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
 import { PO_SENT_STATUS } from "@/lib/poSend";
 import {
+    daysWaiting,
     describePOColumn,
     describePOInvoicingColumn,
+    sortLongestWaitingFirst,
     summarizePODeliveryStatus,
     summarizePOInvoicingStatus,
 } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import POListClient from "./POListClient";
 import AwaitingPOStrip from "./AwaitingPOStrip";
+import AwaitingSendStrip from "./AwaitingSendStrip";
 
 export const metadata = { title: "Purchase Orders" };
 
@@ -206,6 +209,42 @@ async function renderPOListPage({ searchParams }) {
         vendorName: vendorNameById.get(pr.vendor?.[0]) || null,
     }));
 
+    // #295 — SIGNED ORDERS NOBODY HAS SENT, AND NOT ONE NEW READ. The orders are
+    // `visible`, so the strip inherits the table's gate rather than applying a second
+    // one; `Sent At`, `President Signed At` and `President Signed` all ride on
+    // recordToPO already (#281 put the first there), and Job, Line and Vendor come out
+    // of the three maps the table built. `Sent By` is deliberately absent: the send
+    // writes it in the same operation as `Sent At`, so every row here has none, and a
+    // column naming the person would cost a Users read per row to name nobody.
+    //
+    // The server's day, taken once so every row is measured against the same one —
+    // app/invoices/page.js's shape, and `daysWaiting` documents what it does and does
+    // not promise.
+    const today = new Date().toISOString().slice(0, 10);
+    const awaitingSendRows = sortLongestWaitingFirst(
+        selectPOsAwaitingSend(visible).map((po) => {
+            const pr = prById.get(po.pr?.[0]);
+            const jobId = pr?.job?.[0] ?? null;
+            // BOTH NAMES, AND NEITHER IS REDUNDANT (#256's rule for this comparator).
+            // `waitingSince` is what the shared sort orders by and holds the INSTANT,
+            // which orders exactly; `signedDate` is what the row renders and is the
+            // calendar day, because `daysWaiting` subtracts two dates and the strip
+            // prints the day it counted from.
+            const signedDate = po.presidentSignedAt ? po.presidentSignedAt.slice(0, 10) : "";
+            return {
+                poId: po.poId,
+                waitingSince: po.presidentSignedAt || "",
+                signedDate,
+                // The tie-break, sort-only: nothing renders it.
+                createdKey: po.poId || "",
+                jobCode: jobById.get(jobId)?.jobCode || null,
+                lineName: lineById.get(pr?.line?.[0])?.lineName || null,
+                vendorName: vendorNameById.get(po.vendor?.[0]) || null,
+                daysWaiting: daysWaiting(signedDate, today),
+            };
+        })
+    );
+
     // Initial filter state parsed from the URL, so refresh, a shared link and the
     // back button all restore the view. Intersected with the options above, so a
     // forged ?job in a pasted URL is dropped before it reaches the client.
@@ -223,6 +262,12 @@ async function renderPOListPage({ searchParams }) {
                 list: an approved request with no order has no row here. Renders
                 nothing at all when there is nothing, which is the normal case. */}
             <AwaitingPOStrip rows={awaitingPORows} isAdmin={user.isAdmin === true} />
+
+            {/* #295 — second of the two, in the order the document chain runs: a
+                request that never became an order, then an order that never reached
+                its vendor. Each renders nothing on its own count, so a reader meets
+                one, both or neither. */}
+            <AwaitingSendStrip rows={awaitingSendRows} />
 
             <POListClient
                 rows={rows}
