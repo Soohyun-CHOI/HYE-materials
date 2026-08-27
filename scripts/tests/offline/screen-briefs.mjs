@@ -58,6 +58,7 @@ import { OVERAGE_COPY } from "../../../lib/overage.js";
 import { DIRECT_PURCHASE_COPY } from "../../../lib/directPurchase.js";
 import { WAIT_COPY } from "../../../lib/prWait.js";
 import { PR_KIND_COPY } from "../../../lib/prKind.js";
+import { RESTORE, ROLLBACK_COPY } from "../../../lib/rollbackReport.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -270,6 +271,15 @@ const PINNED = [
     "Overage",
     "Direct purchase",
     "rather than authorizing a new one",
+    // #188 — the three refusals a rollback that did not finish returns, pinned by
+    // the clause that carries the whole decision: a reader who follows the ordinary
+    // failure's advice here commits the edit and destroys the record of it. The
+    // three differ only in the act, so all three are pinned rather than one standing
+    // for the set — a rewording that reached two of them is the likelier drift.
+    "Do not save again",
+    "Do not approve again",
+    "Do not send it back again",
+    "Ask for these to be corrected in Airtable",
 ];
 
 export function run({ check, assert, log }) {
@@ -410,6 +420,12 @@ export function run({ check, assert, log }) {
         ...stringsFrom(DIRECT_PURCHASE_COPY),
         ...stringsFrom(WAIT_COPY),
         ...stringsFrom(PR_KIND_COPY),
+        // #188 — CALLED WITH A REAL LIST RATHER THAN LEFT TO `stringsFrom`, whose
+        // three probe shapes cannot supply one: every one of them makes the builder
+        // throw, so the sentence a brief quotes would silently be absent from
+        // `loadable` and its pin would fail for the wrong reason.
+        ...Object.values(ROLLBACK_COPY).map((v) => v.clean),
+        ...Object.values(ROLLBACK_COPY).map((v) => v.incomplete([RESTORE.items])),
     ];
     assert("the copy constants yielded strings", loadable.length > 20);
     // AND NO `STATUS_COPY` SENTENCE RENDERED `undefined`, WHICH IS WHAT A STALE INPUT

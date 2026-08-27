@@ -154,11 +154,21 @@ gating was not traced.
 
 ## `/prs/[prId]`
 
-Seventeen refusals; **none judged.** The signing chain's guards depend on whose turn
-it is and on the request's status, and the controls that would produce each state are
-spread across the signer bar, the correction form, the withdraw button and the
-edit-and-continue form. Judging them means tracing four control sets against
+Twenty refusals; **three judged, seventeen not.** The signing chain's guards depend
+on whose turn it is and on the request's status, and the controls that would produce
+each state are spread across the signer bar, the correction form, the withdraw button
+and the edit-and-continue form. Judging those means tracing four control sets against
 `prSigning`'s turn rule, which this pass did not do.
+
+- **The three that are judged are #188's**, and they are judged REACHABLE rather than
+  unreachable: the failed-rollback voice of each signing action, reached when an
+  Airtable write fails inside the rollback of a turn that already failed. Two
+  failures, not one, which is why the pair they belong to reads as the shape below —
+  and why they were demonstrated rather than reasoned about. **Fourteen of the
+  seventeen unjudged are what the extractor still finds in `actions.js`; the other
+  three are these three's clean counterparts, which moved into
+  `lib/rollbackReport.js` with them** and are the same class as every other
+  `Please try again.` in this file — they need Airtable to fail.
 
 **Two are worth stating even unjudged**, because they are the shape the rest of this
 file is: `Only an Admin can generate a PO.` and `This PR isn't fully approved yet.`
@@ -195,15 +205,18 @@ the data, and all of it is reachable with the two fixture accounts.
 
 ## Coverage
 
-**84 distinct refusal strings across the twenty-one screens.** Six screens hold none
-at all; the rest are declared in eight `actions.js` files, and a file's refusals are
-attributed to every screen that imports one export from it — which is why `/pos`
-carries the signing chain's and both delivery detail screens carry the same ten.
+**87 distinct refusal strings across the twenty-one screens.** Six screens hold none
+at all; the rest are declared in eight `actions.js` files and, since #188, one `lib/`
+module, and a file's refusals are attributed to every screen that imports one export
+from it — which is why `/pos` carries the signing chain's and both delivery detail
+screens carry the same ten.
 
 **This file judges the refusals of sixteen screens and names what it did not judge
 per screen.** Every unjudged refusal belongs to one of four files:
 `app/prs/actions.js`, `app/prs/[prId]/actions.js`, `app/prs/new/actions.js` and
-`app/deliveries/[deliveryId]/actions.js`. In all four the gate is a control set —
+`app/deliveries/[deliveryId]/actions.js` — plus, since #188, the three in
+`lib/rollbackReport.js` that the second of those reaches, which are judged. In the
+four the gate is a control set —
 whose turn it is, which strip offers which row — rather than a `required` attribute
 on one input, and tracing it means reading four control sets against
 `lib/prSigning.js`'s turn rule and `lib/prWait.js`'s offering rule.

@@ -34,13 +34,82 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
   - **Why update rather than preserve.** `Field` is a singleSelect, so it holds a *copy* of the label and a rename does not reach the copy. If the copy stands in for the identity, it has to be corrected whenever the identity survives — otherwise reading a row requires knowing the rename history, that knowledge lives in exactly one place, and the cost of carrying it accumulates for every later reader. **Nothing audited is lost:** `Old Value` and `New Value` are untouched, so the recorded fact stays as written and only the pointer moves.
   - **#181's first pass argued the opposite and was wrong, and the two mistakes are recorded so the conclusion is not flipped back.** It said "an append-only log keeps the vocabulary of its own time". First, it treated those three rows as evidence when they are dummy data. Second and worse, it read `Rate` → `Unit Price` as a **replacement** when it was a **rename**, which conflates *the label was different then* with *the subject was different then* — only the latter would justify keeping an old option. The rows were re-pointed and the option deleted by hand in the UI, because the Metadata API cannot write a select's option list at all (**measured on this field: a PATCH carrying `options.choices` returns 422 while a description-only PATCH returns 200**).
 - **`typecast` is gone from `createEditLogEntry` (#181), and the two options it minted are why.** The comment defending it said auto-adding a missing choice "can't produce garbage choices" because the value is always one of a fixed set of constants. True of the names, false about the consequence: typecast gives every option it creates the same default color and nothing can recolor it, so `Unit Price` (minted when #78 landed) and `Shipping Fee` (when #69 did) sit at `blueLight2` while the original six walk a palette — visible in a schema dump and unfixable through the API. All seven labels the code can write now exist, so the write needs no help, and a label that does not exist should fail loudly rather than mint an eighth. Same posture as `createDeliveryItem` on `Unit`, and the same hazard `DRUM` demonstrated on PR Items. **Both halves measured on the live base:** a registered label still writes with no typecast, and `"Quotation"` is refused with `INVALID_MULTIPLE_CHOICE_OPTIONS: Insufficient permissions to create new select option ""Quotation""` — the same refusal `Materials` gives for `Unit: ""` — with the option list identical before and after.
-- **THE BLAST RADIUS OF THAT REFUSAL IS THE WHOLE TURN, not a log line, and it is worth knowing before adding a label.** Both call sites sit inside `editAndContinueAction`'s `try`, and its `catch` reverts every touched item, the Shipping Fee, the Quotations created that turn and the signer's own status, then returns *"Something went wrong saving your changes. Please try again."* — advice that would be wrong **forever** for this cause, since no retry can succeed until the choice exists in the Airtable UI. Two of those reverts are `.catch(() => {})`, so a failed revert is silent too.
+- **THE BLAST RADIUS OF THAT REFUSAL IS THE WHOLE TURN, not a log line, and it is worth knowing before adding a label.** Both call sites sit inside `editAndContinueAction`'s `try`, and its `catch` reverts every touched item, the Shipping Fee, the Quotations created that turn and the signer's own status, then returned *"Something went wrong saving your changes. Please try again."* — advice that would be wrong **forever** for this cause, since no retry can succeed until the choice exists in the Airtable UI. **This said two of those reverts were `.catch(() => {})`; there were five silent reverts, not two** — three by that shape and two more by a `Promise.allSettled` whose results were discarded, which is the same silence spelled differently. Corrected per #181 by #188, which is also where the sentence went: a rollback that does not finish now says so and names what it left. The retry sentence still stands where the rollback DID finish, and for this cause it is still wrong forever.
 - **Deliberately NOT made best-effort outside that rollback**, which is `lib/materialsCache.js`'s shape for stopping a derived artifact from undoing what produced it. The asymmetry is re-derivability: a materials cache rebuilds from `PO Items` and a PO PDF regenerates from its PO, but an Edit Log row records the **old value**, which stops existing the moment `updateItem` lands. Best-effort would apply a price change and lose the only record of what it changed — a hole in the evidence trail this table exists to be. **A refused turn beats an unlogged edit**, so the rollback stays and the fix is for the label set never to drift.
 - **BOTH HALVES OF THE LABEL/CHOICE PAIR NOW EXIST, and `Unit` is the precedent for why one is not enough** — `offline/unit-options.mjs` proves the files agree, `verify-unit-options-18.mjs` proves the fields do, and a hand-added option passes the first while failing the second. Edit Log is the same pair:
   - `scripts/tests/offline/edit-log-fields.mjs` (CI, every push) enumerates every label the code can send and fails when one is ADDED, with the remedy in the assertion text — create the Airtable choice first, since the Metadata API cannot (422 on `options.choices`) and shipping the label without it blocks the edit turn. It also pins `typecast` at zero, and asserts on the AST that no call site passes a string literal, which is what keeps the enumeration complete. Since #181 moved the labels to `lib/editLogFields.js` it imports them rather than parsing the Server Action as text; what it still reads as source is the call-site SHAPE. Verified by mutation: an added label and a restored `typecast` each fail it.
   - `scripts/tests/verify-edit-log-fields-181.mjs` (credentialed, by hand) compares that module against the live option list, and is the only thing that can see a choice DELETED in Airtable. **It reads the rows as well as the schema, because whether an unwritable choice is legitimate is decidable rather than a judgment:** held by at least one row it is history this table is entitled to keep (a field deleted and replaced leaves rows pointing at an identity that is gone), held by none it is `DRUM`'s exact shape — a hand edit or a half-finished rename — and fails. That is a deliberate divergence from `verify-unit-options-18.mjs`, which fails on any extra option, and the reason is that for Units there is no legitimate case. Verified by mutation on all three branches, without touching Airtable, by mutating the module instead.
   - **The one-off measurement is now a standing assertion.** #181 counted seven labels against seven choices by hand; the script asserts the equality, the order, and that no row has an empty `Field`. It creates nothing, so there is no fixture to clean up, and it prints the commit and whether the tree was dirty (#172's header).
 - **THE BLIND SPOT THAT MOTIVATED THE SECOND HALF WAS DEMONSTRATED, NOT IMAGINED:** #181 deleted the `Rate` choice by hand, because no API can, and every file-only check stayed green through it. That is why the credentialed half exists rather than being deferred. What remains uncovered is narrower and worth naming: no check watches this table's APPEND path, so "a row was written when one should have been" is still only observable by using the app. (This used to cite `test-updates.js` as naming Edit Log in prose; #174 deleted that script.)
+
+### A rollback that does not finish (#188)
+
+Four rollbacks in `app/prs/[prId]/actions.js` put a turn back when something in it
+throws. None of them could say it had failed, so the base was left in a state
+neither outcome describes and the screen described the other one.
+
+- **THE COUNT IN THE ISSUE BODY WAS TWO AND THE COUNT IS FIVE, which is worth
+  keeping because the second shape is the one that reads as handled.**
+  `.catch(() => {})` at least looks like a decision; `Promise.allSettled` looks like
+  care taken, and it is the same silence — the results were built and thrown away.
+  Three sites of the first, two of the second in `editAndContinueAction`, and two
+  more of the first in `finishTurn`, which runs inside the same turn. Ten sites
+  across the file once `approveAction` and `returnForCorrectionAction` are counted.
+- **`Please try again.` DOES NOT MERELY MISDESCRIBE THE STATE, IT COMPLETES IT, and
+  this is the half of the issue its body did not carry.** Traced through the code
+  rather than reasoned about: the form still holds the submitted values, and a
+  second submit re-reads the items — which, when their restore failed, now hold the
+  edited values. `changes` comes out empty, so no `Edit Log` row is written, and the
+  turn commits. The edit is applied and its log is gone, permanently, which is
+  exactly the outcome the issue exists to prevent. The Shipping Fee case is the same
+  shape; a failed destroy instead leaves the retry writing a second set of history
+  entries or a second Quotation.
+- **SO THE REPORT IS NAMES, NOT A COUNT.** One failed restore and three leave
+  different states in different places, and which promise rejected is already known
+  at the moment it rejects — a count would say how bad and never where, sending the
+  reader to open all eight. The INSTRUCTION is single, because what the person must
+  do is the same in every case; only the list varies.
+- **THE WORDS FOLLOW `SEND_REFUSAL.recordFailed` (#281) BECAUSE IT IS THE SAME CLASS
+  OF NEWS** — a write that partly landed, where the reader's instinct is the wrong
+  move. What happened, do not repeat it and why, ask for the record to be corrected
+  in Airtable. The negative imperative was checked against the app's other refusals
+  before being written: the house mood is imperative (`Add at least one item.`,
+  `Reload the form and try again.`) and #179's split puts this on the instruction
+  side rather than the state side, so the strength did not have to be traded away.
+- **#206's SHAPE APPLIES BY HALVES, AND THE HALF THAT DOES NOT IS THE INSTRUCTIVE
+  ONE.** Its first half — the settled results are read rather than discarded — is
+  this fix. Its second — a failed child throws before the parent goes — is wrong
+  here: what fails is the ROLLBACK, so there is nothing after it to abort, and a
+  throw would replace the sentence with the framework's error page, taking from the
+  reader the only account of what happened. `deleteDeliveryAsUser` can throw because
+  its operation stays retryable; this one is reported precisely because it does not.
+  The destroys also stay concurrent, since the ids are independent rows with no
+  parent among them.
+- **ONE PLACE WHERE #206's PRECONDITION DOES APPLY: a Quotation an unrestored item
+  still points at is kept.** Airtable clears a link when its target is destroyed, so
+  destroying it would take that item's `Quotation` to empty — and unlike every other
+  failure in that catch, that one is unreportable, because the record the reader
+  would be sent to look at is the record that went. Keeping it leaves a quotation on
+  the request, visible on the page and named in the sentence. Its Blob object is kept
+  with it for free: #140's cleanup is scheduled below the catch and a rolled-back turn
+  never reaches it.
+- **THE REPORT NEVER REACHES AIRTABLE.** Recording a failed Airtable write into
+  Airtable is not a report but a second failure, and `Edit Log."Field"` is a closed
+  list only a hand edit can extend (#181), so the row could not be written even on a
+  healthy base. Screen and server log, and the two carry different things: the screen
+  names what is left, the log adds the record ids, because the person relaying the
+  sentence is not the person who will open the base.
+- **WHY ALL FOUR ROLLBACKS AND NOT THE ONE THE ISSUE NAMES.** `finishTurn` re-throws
+  into the edit turn's own catch, so its two silent restores are that turn's; and it
+  is shared with `approveAction`, which would then report its callee's failures and
+  not its own. `returnForCorrectionAction` is forced by nothing and was taken anyway,
+  because leaving it is the second mutant this work guards against — the catch fixed
+  in one place while another site goes on swallowing, in the same file.
+- **WHAT IS STILL SILENT, and it is deliberate rather than missed:**
+  `lib/poGeneration.js` has the identical shape and is `backlog.md`'s own entry
+  (#296), and five creation rollbacks elsewhere discard settled destroys. Those leave
+  an unreferenced record rather than a half-applied edit, which is a different
+  judgment about what to say.
 
 ### Quotations
 
