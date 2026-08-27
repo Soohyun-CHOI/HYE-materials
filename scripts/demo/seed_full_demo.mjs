@@ -947,8 +947,8 @@ await scenario("HAND_ATTACH", "a delivery and an invoice the computed rule will 
     ids.handAttachInvoice = inv.invoiceId;
 });
 
-// --- VAR_PRICE — a charge the order did not agree --------------------------
-await scenario("VAR_PRICE", "a charge at a price the order did not agree", async () => {
+// --- VAR_PRICE — an item the order did not agree ---------------------------
+await scenario("VAR_PRICE", "an item at a price the order did not agree", async () => {
     const order = await makeOrder({
         scenarioName: "VAR_PRICE",
         notes: "Pressure gauges for the test package.",
@@ -990,7 +990,7 @@ await scenario("VAR_TOTAL", "stated total ≠ computed total, and already paid",
         // BOTH VARIANCE KINDS ON ONE INVOICE, WHICH IS WHAT MAKES THE ORDER'S OWN PAGE
         // DEMONSTRABLE. `/pos/[poId]` is the one screen in the app that can show the
         // pair at once — `⚠ Check the total` on the invoice's row and `⚠ Order
-        // variance` on the charge beneath it — and it is the whole reason #179 made
+        // variance` on the item beneath it — and it is the whole reason #179 made
         // them two different words. A first pass gave this invoice only the header
         // variance, so no order anywhere carried both and the distinction had nothing
         // to stand on. 39 against the 33 the order agreed is the item-level half.
@@ -1124,7 +1124,7 @@ await scenario("MULTI_ORDER", "one invoice charging two orders, item sets differ
 // --- SHORTFALL — a pre-made invoice charging more than its delivery brought ---
 //
 // THIS IS WHAT IS LEFT OF `FREETEXT`, AND SPLITTING IT OUT IS THE POINT (#278). That
-// scenario carried two charges: one ordinary one short against its delivery, and one
+// scenario carried two invoice items: one ordinary one short against its delivery, and one
 // free-text row with no ordered item behind it. It existed for the SECOND, so that
 // the invoice detail could show a gray entry beside an amber one — and #278 removed
 // the free-text charge, which took the whole invoice with it when the scenario was
@@ -1176,7 +1176,7 @@ await scenario("SHORTFALL", "an invoice charging 200 against a delivery of 150",
 });
 
 // TWO SCENARIOS STOOD BESIDE IT AND ARE GONE (#278): FREETEXT's free-text half, and
-// FREETEXT_ONLY, an invoice every charge of which was free text. Both were
+// FREETEXT_ONLY, an invoice every item of which was free text. Both were
 // hand-written because the form could not offer them, and both were what the header
 // above listed as the first of four such states.
 //

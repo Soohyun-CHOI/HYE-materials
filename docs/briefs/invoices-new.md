@@ -6,10 +6,10 @@ Who reaches it: Admin only. Recording a vendor's invoice is office work.
 ## What it answers
 
 Nothing about existing data — it is a create form. Its job is to get a vendor's
-paper invoice into the system **charge by charge against the orders it names**, which
+paper invoice into the system **item by item against the orders it names**, which
 is the reconciliation the whole app exists to make possible. This is the most
 complex form in the app by a wide margin, and almost all of that complexity is one
-thing: an invoice can charge more than one order, and each of its charges has to be
+thing: an invoice can charge more than one order, and each of its items has to be
 matched to a specific ordered item.
 
 The reader is holding the vendor's document. Everything on the form is a
@@ -69,7 +69,7 @@ still uninvoiced. On, the slot gets a search box with the placeholder
 `Search all POs by number...`, which can reach any order including fully invoiced
 ones.
 
-**action — `Items`.** One row per charge: the ordered item chosen from a dropdown
+**action — `Items`.** One row per invoice item: the ordered item chosen from a dropdown
 scoped to the slots' orders, then quantity, unit price, and a remark. The ordered
 item dropdown is sorted so that items with something still uninvoiced come first,
 and **each option carries that quantity** — the item's name, its size, and
@@ -200,7 +200,7 @@ per-row affordance a design has to place.
 amber line under the row naming both figures and saying it is not blocked but
 worth a note. A caution rather than a refusal.
 
-**When a charge differs from what its order agreed:** the remark field is where
+**When an item differs from what its order agreed:** the remark field is where
 the reader says why, and its placeholder says so — `Remark — why this differs from
 the PO`. The field appears when the price lock is open or the quantity exceeds
 what is uninvoiced; the placeholder is what names its purpose.
@@ -211,26 +211,31 @@ design was told the option existed and was merely hidden; the flag, the path and
 every branch that described the result are gone. Only a purchase request takes
 typed items. **A second box survived that removal and went in #272**: the one a
 row showed before its own order was picked, which the header reaches whenever it
-holds two orders. **Nothing on this screen types an item name.** Every charge
-takes its name from the ordered item it is matched to, and a row that cannot be
-matched yet says which choice is missing instead of offering a box.
+holds two orders. **Nothing on this screen types an item name.** Every invoice
+item takes its name from the ordered item it is matched to, and a row that cannot
+be matched yet says which choice is missing instead of offering a box.
 
-**When a charge's purchase order has no ordered item left to pick:** the row says
-so in amber — every item on that order is already on another charge of this
-invoice — and names the two ways out, a different order or removing the charge.
-One ordered item belongs to one charge of one invoice (#91), so a second charge
-on an exhausted order has nothing to choose, and this is where a reader is told
-rather than refused on submit.
+**When a row's purchase order has no ordered item left to pick:** the row says so
+in amber, in two sentences — `This invoice already charges every ordered item on
+this purchase order.` and then the two ways out, a different order or removing the
+row. One ordered item belongs to one item of one invoice (#91), so a second row on
+an exhausted order has nothing to choose, and this is where a reader is told
+rather than refused on submit. **The two sentences are two on purpose (#303):**
+each names one kind of item row, which is what lets the second say `this item`
+without a reader having to work out which table it means.
 
-**The refusal behind it is `Every item needs an ordered item from its PO.`, and it
-is the only one of this action's fourteen submit refusals a reader can reach.**
+**The refusal behind it is `Every invoice item needs an ordered item from its PO.`,
+and it is the only one of this action's fourteen submit refusals a reader can
+reach.** It carries both modifiers because it names a row of two tables in one
+sentence, which no restructuring avoids — the fact it states IS the relation
+between them (#303).
 Every other is pre-empted by a `required` control or by the submit button being
 disabled, so the words a reader meets on a bad submit are the browser's rather
 than this app's. A design should not lay out room for that error list; the
 exceptions are this one and the whole-number pair below.
 
 **When a row has no purchase order of its own yet:** its item control is a
-disabled dropdown reading `Pick this charge's PO first`, and `Select a PO above`
+disabled dropdown reading `Pick this item's PO first`, and `Select a PO above`
 while the whole section is still waiting for one. The words are short because
 the long form of the same fact is the section's own message above the rows.
 
@@ -256,10 +261,10 @@ when the modal opens, not when the page loads, so its select reads
 `Couldn't load the jobs — close this and try again`, exists in the code and
 **cannot be reached through this screen** without forcing that request to fail.
 
-**When a charge's quantity is not a whole number, or its unit price not a whole
+**When an item's quantity is not a whole number, or its unit price not a whole
 number of cents:** the form is refused on submit with
-`Every charge's quantity has to be a whole number.` or
-`Every charge's unit price has to be a whole number of cents.` These sit with the
+`Every item's quantity has to be a whole number.` or
+`Every item's unit price has to be a whole number of cents.` These sit with the
 form's other submit-time refusals, above the tabs, and they are the only place the
 app states this rule to a reader — no control marks either figure as it is typed.
 
@@ -287,7 +292,7 @@ before saving, **at the same threshold since #254**, and does not block on it. T
 two sentences differ in tense on purpose and only in tense: this one addresses the
 person still typing, and the stored one has no such reader.
 
-**A charge's quantity is a whole number and its unit price a whole number of
+**An item's quantity is a whole number and its unit price a whole number of
 cents**, which is what makes that shared threshold half a cent rather than
 something looser. **Nothing about the controls enforces it** — the browser marks
 neither a fractional quantity nor a sub-cent price invalid on this form — so the

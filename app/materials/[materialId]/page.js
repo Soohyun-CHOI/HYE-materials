@@ -67,8 +67,15 @@ async function renderMaterialHistoryPage({ params }) {
             </p>
 
             {rows.length === 0 ? (
+                /* Issue #303 — `material`, matching the sentence above it. This screen
+                   names an ordered item in the line directly overhead, so a bare
+                   `item` for the `Materials` row it is about stood one sentence away
+                   from the same word meaning a `PO Items` row. `/materials` keeps
+                   `item` throughout, where nothing else on the screen competes for
+                   it; what a `Materials` row should be called in general is left
+                   open — see docs/notes/naming.md. */
                 <p className="mt-6 text-sm text-zinc-600">
-                    No purchase orders recorded for this item yet.
+                    No purchase orders recorded for this material yet.
                 </p>
             ) : (
                 <div className="mt-4 overflow-x-auto">

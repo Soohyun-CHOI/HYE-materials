@@ -193,12 +193,12 @@ export function run({ check, log, assert }) {
 
     // --- the freight rule is GONE (#278) ----------------------------------
     log("");
-    log("nothing here judges a charge with no ordered item any more:");
+    log("nothing here judges an invoice item with no ordered item any more:");
     // `countsTowardStatus` and five assertions about it stood here. It excluded a
     // charge with no `PO Item`, which #96 had hidden behind a flag and #278 removed —
     // together with the second path that reached the same state without the flag. What
     // the state cannot come back through is asserted in
-    // `offline/no-free-text-charge.mjs`, on the writers rather than on this judgment;
+    // `offline/no-free-text-item.mjs`, on the writers rather than on this judgment;
     // what is asserted here is only that the judgment no longer exists.
     assert("the predicate is gone from the module", !("countsTowardStatus" in deliveryStatus));
     assert("  and so is the verdict it fed", !("not-compared" in STATUS_COPY.detail.verdict));
@@ -284,7 +284,7 @@ export function run({ check, log, assert }) {
     );
     // An invoice with no item statuses at all still has an answer, which is why the
     // dash became unreachable rather than merely unwanted. #278 removed the
-    // `excludedCount` these two passed: the only thing it ever counted was a charge
+    // `excludedCount` these two passed: the only thing it ever counted was an item
     // with no ordered item, so it was 0 on every invoice this app can write.
     check(
         "no statuses, a delivery matched, still reads Delivered",
@@ -517,8 +517,8 @@ export function run({ check, log, assert }) {
         }).verdict?.tone,
         "exception"
     );
-    // An `unjudged` assertion stood here for a charge with no ordered item, with a
-    // second one holding the two tones apart. Both went with the charge (#278).
+    // An `unjudged` assertion stood here for an invoice item with no ordered item,
+    // with a second one holding the two tones apart. Both went with that item (#278).
     assert(
         "every verdict this module can produce is an exception now",
         Object.values(STATUS_COPY.detail.verdict).every(
@@ -1071,7 +1071,7 @@ export function run({ check, log, assert }) {
         "delivered"
     );
     // The excess is not lost by that: it is a per-ordered-item fact, marked `(over)`
-    // beside `Invoiced` and flagged as #179's `Order variance` on the charge.
+    // beside `Invoiced` and flagged as #179's `Order variance` on the item.
     check("a partly-invoiced order with one over-billed item stays partly invoiced",
         invoicing([orderedItemInvoice(10, 13), orderedItemInvoice(5, 0)]), "partly-invoiced");
 

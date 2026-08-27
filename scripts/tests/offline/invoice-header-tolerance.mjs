@@ -33,7 +33,7 @@
 // step validation does not fire on this form, so a typed `2.5` submits.
 //
 // WHICH IS WHY THE PREMISE IS ASSERTED AT TWO LEVELS. Both invoice actions refuse
-// it with `CHARGE_PRECISION_COPY` and both service writers throw. Dropping the
+// it with `ITEM_PRECISION_COPY` and both service writers throw. Dropping the
 // action half is the mutant that matters here: the guard still holds, the premise
 // still holds, and a reader who typed a fractional quantity gets
 // `Something went wrong creating the invoice. Please try again.` on an input they
@@ -51,7 +51,7 @@
 
 import { readFileSync } from "node:fs";
 import {
-    CHARGE_PRECISION_COPY,
+    ITEM_PRECISION_COPY,
     checkHeaderVariance,
     checkUnitPriceVariance,
     isWholeCentPrice,
@@ -277,7 +277,7 @@ export function run({ check, assert, log }) {
         const names = namesIn(fn);
         check(`  ${handler} asks isWholeQty`, names.has("isWholeQty"), true);
         check(`  ${handler} asks isWholeCentPrice`, names.has("isWholeCentPrice"), true);
-        check(`  ${handler} returns the reader's own words`, names.has("CHARGE_PRECISION_COPY"), true);
+        check(`  ${handler} returns the reader's own words`, names.has("ITEM_PRECISION_COPY"), true);
         // ANTI-VACUITY: the walk has to be inside this handler's body rather than
         // its wrapper, which is `invoice-money-terms.mjs`'s own lesson on these two
         // exports. `shippingFee` is read in both bodies and nowhere else.
@@ -287,18 +287,23 @@ export function run({ check, assert, log }) {
     // points a reader at the wrong control.
     assert(
         "the two refusals are two",
-        CHARGE_PRECISION_COPY.qty !== CHARGE_PRECISION_COPY.unitPrice
+        ITEM_PRECISION_COPY.qty !== ITEM_PRECISION_COPY.unitPrice
     );
     assert(
         "  each naming the figure it is about",
-        /quantity/i.test(CHARGE_PRECISION_COPY.qty) &&
-            /unit price/i.test(CHARGE_PRECISION_COPY.unitPrice) &&
-            !/unit price/i.test(CHARGE_PRECISION_COPY.qty)
+        /quantity/i.test(ITEM_PRECISION_COPY.qty) &&
+            /unit price/i.test(ITEM_PRECISION_COPY.unitPrice) &&
+            !/unit price/i.test(ITEM_PRECISION_COPY.qty)
     );
-    // The word for an `Invoice Items` row, per the vocabulary.
+    // The word for an `Invoice Items` row (#303). It was `charge` here until then,
+    // pinned on a `naming.md` row that had settled the noun on #274's authority
+    // when #274 weighed only the verb. `item` unmodified, because neither sentence
+    // names a second kind of item row.
     assert(
-        "  and both say charge",
-        [CHARGE_PRECISION_COPY.qty, CHARGE_PRECISION_COPY.unitPrice].every((s) => /charge/i.test(s))
+        "  and both say item, not charge",
+        [ITEM_PRECISION_COPY.qty, ITEM_PRECISION_COPY.unitPrice].every(
+            (s) => /\bitem\b/i.test(s) && !/charge/i.test(s)
+        )
     );
 
     // -----------------------------------------------------------------------

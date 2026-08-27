@@ -52,7 +52,7 @@
 // exactly what a real failed match looks like, so anyone later working on the invoice
 // axis would read their own code as broken against data the matcher had never been
 // asked about. **Nothing here writes that link by hand** — the three steps run in the
-// order the action runs them, right after the charges land and before the correction,
+// order the action runs them, right after the items land and before the correction,
 // which is also the order the office works in. Whatever the matcher answers is the
 // fixture's state: A matches its delivery, B has no delivery at all and answers `none`,
 // and both answers are printed by the run.

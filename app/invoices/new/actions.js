@@ -22,7 +22,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
 import { getDeliveriesForInvoice } from "@/lib/deliveryInvoiceCandidates";
 import { PAIRING, matchDeliveryToInvoice } from "@/lib/deliveryInvoiceMatch";
 import {
-    CHARGE_PRECISION_COPY,
+    ITEM_PRECISION_COPY,
     checkHeaderVariance,
     checkUnitPriceVariance,
     isWholeCentPrice,
@@ -86,14 +86,22 @@ async function createInvoiceHandler(prevState, formData) {
                 return { error: "Every item needs a PO — pick one at the top or per item." };
             }
             // Issue #278 — THE SAME REFUSAL ONE LEVEL DOWN, and the one that makes
-            // "every charge names an ordered item" a property rather than a habit.
-            // `PO Item` was optional here because #96 left a hidden free-text option
-            // and its backend path; #278 removed both, and this is what keeps the
-            // state closed after them. The form says why a row has nothing to pick
-            // before a reader types into it — this is the boundary rather than the
-            // message, the same division the PO refusal above already has.
+            // "every invoice item names an ordered item" a property rather than a
+            // habit. `PO Item` was optional here because #96 left a hidden free-text
+            // option and its backend path; #278 removed both, and this is what keeps
+            // the state closed after them. The form says why a row has nothing to
+            // pick before a reader types into it — this is the boundary rather than
+            // the message, the same division the PO refusal above already has.
+            //
+            // Issue #303 — BOTH NOUNS CARRY A MODIFIER, and this sentence is why the
+            // rule needed stating: it names a row of two tables and said `item` for
+            // one of them, so the same word stood for two things two words apart. It
+            // is the one refusal on this screen a reader can actually reach (the
+            // ordered-item select carries no `required`), so it is also the one that
+            // was read that way. The three neighbours above name one kind each and
+            // keep the bare word.
             if (!item.poItemRecordId) {
-                return { error: "Every item needs an ordered item from its PO." };
+                return { error: "Every invoice item needs an ordered item from its PO." };
             }
             // Issue #254 — the premise `HEADER_TOLERANCE` is derived from, refused
             // where the reader can fix it. `createInvoiceItem` throws on the same
@@ -103,10 +111,10 @@ async function createInvoiceHandler(prevState, formData) {
             // rollback block reaches a reader as `Something went wrong`, on an
             // input they could correct.
             if (!isWholeQty(parseFloat(item.qty))) {
-                return { error: CHARGE_PRECISION_COPY.qty };
+                return { error: ITEM_PRECISION_COPY.qty };
             }
             if (!isWholeCentPrice(parseFloat(item.unitPrice))) {
-                return { error: CHARGE_PRECISION_COPY.unitPrice };
+                return { error: ITEM_PRECISION_COPY.unitPrice };
             }
         }
 

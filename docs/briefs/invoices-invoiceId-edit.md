@@ -79,8 +79,8 @@ is currently how this one says it.
 
 **A charge's quantity has to be a whole number and its unit price a whole number
 of cents**, and this screen edits both freely, so it is refused on submit with
-`Every charge's quantity has to be a whole number.` or
-`Every charge's unit price has to be a whole number of cents.` The same rule holds
+`Every item's quantity has to be a whole number.` or
+`Every item's unit price has to be a whole number of cents.` The same rule holds
 on the new-invoice form; no control marks either figure as it is typed. What rests
 on it is the half-cent threshold behind the box below.
 

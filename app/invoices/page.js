@@ -327,7 +327,7 @@ async function renderInvoiceListPage() {
                                     different reasons. `beyond order` (invoiced >
                                     ordered) is one of the two things
                                     `Invoice Items.Variance Flag` is set for, and the
-                                    invoice detail marks it per charge —
+                                    invoice detail marks it per item —
                                     `⚠ Order variance` since #179 — so a tag here
                                     would be one fact on two screens. `over-delivery`
                                     (delivered > ordered) is not a fact about THIS
@@ -372,7 +372,7 @@ async function renderInvoiceListPage() {
                                     invoiced-against-ordered; it never was, and the kind
                                     an employee is on this page to catch has no mark in
                                     this list at all — it is on the invoice's own page,
-                                    per charge, where the order it disagrees with is
+                                    per item, where the order it disagrees with is
                                     one click away.
 
                                     THE BADGE STACKS UNDER THE PAYMENT WORD rather than

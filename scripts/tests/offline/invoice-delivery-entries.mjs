@@ -30,8 +30,8 @@
 // WHAT THIS TIER CANNOT SEE is the rendering, so whether the section reads as an
 // exception list is a browser finding and is in the pull request. One state was pinned
 // only here because the base held no invoice in it — a covered invoice carrying one row
-// with no ordered item, where a single gray entry said why one charge was left out of
-// the comparison. #278 removed that charge, and the gray entry with it, so this file
+// with no ordered item, where a single gray entry said why one item was left out of
+// the comparison. #278 removed that item, and the gray entry with it, so this file
 // pins nothing the base cannot also show.
 
 import { foldInvoiceItems } from "../../../lib/invoiceItemFold.js";
@@ -105,7 +105,7 @@ function invoice(items, rows) {
     return { folded: foldInvoiceItems(items), rows };
 }
 
-// A correction split one charge of 13 across two orders at one price, and the
+// A correction split one invoice item of 13 across two orders at one price, and the
 // delivery brought both slices. Two rows, one folded item, nothing to say.
 const SPLIT_COVERED = invoice(
     [item({ id: "rec1", qty: 10 }), item({ id: "rec2", qty: 3 })],
@@ -165,13 +165,13 @@ const ONE_SHORT = invoice(
 
 // A `COVERED_PLUS_FREE_TEXT` fixture stood here — a covered invoice carrying one
 // charge with no ordered item behind it, which #241 could not find on the base and
-// pinned here instead. #278 removed the charge, so the fixture describes nothing and
+// pinned here instead. #278 removed that item, so the fixture describes nothing and
 // its four assertions went with it. `judged: false` left the row builder in the same
 // edit: a row the walk cannot judge is no longer built at all.
 
 // Two charges against ONE ordered item, folded by price into one entry. #91's
 // dropdown exclusion keeps the form from making this; hand-entered data can.
-const TWO_CHARGES_ONE_ORDERED_ITEM = invoice(
+const TWO_ITEMS_ONE_ORDERED_ITEM = invoice(
     [item({ id: "rec1", qty: 5 }), item({ id: "rec2", qty: 5 })],
     [
         row({ id: "rec1", poItemId: "poA", invoiced: 5, delivered: 6, invoicedBeyondOrder: 4 }),
@@ -194,7 +194,7 @@ const ALL_FIXTURES = [
     ["the crossed split", SPLIT_CROSSED],
     ["an ordinary covered invoice", COVERED],
     ["one material short", ONE_SHORT],
-    ["two charges on one ordered item", TWO_CHARGES_ONE_ORDERED_ITEM],
+    ["two invoice items on one ordered item", TWO_ITEMS_ONE_ORDERED_ITEM],
     ["a split exceeding both ordered items", SPLIT_BOTH_BEYOND],
 ];
 
@@ -296,17 +296,17 @@ export function run({ check, assert, log }) {
     log("");
     log("the two beyond-order terms add over DISTINCT ordered items:");
     check(
-        "two charges on one ordered item state its excess once",
-        entriesOf(TWO_CHARGES_ONE_ORDERED_ITEM)[0]?.copy.againstOrder?.text,
+        "two invoice items on one ordered item state its excess once",
+        entriesOf(TWO_ITEMS_ONE_ORDERED_ITEM)[0]?.copy.againstOrder?.text,
         "Against the ordered item: 4 EA more invoiced"
     );
-    const perMember = TWO_CHARGES_ONE_ORDERED_ITEM.rows.reduce(
+    const perMember = TWO_ITEMS_ONE_ORDERED_ITEM.rows.reduce(
         (sum, r) => sum + (r.status?.invoicedBeyondOrder || 0),
         0
     );
     assert(
         "  where adding per member would print it twice (8, not 4)",
-        perMember === 8 && foldedEntryShare(TWO_CHARGES_ONE_ORDERED_ITEM.rows).invoicedBeyondOrder === 4
+        perMember === 8 && foldedEntryShare(TWO_ITEMS_ONE_ORDERED_ITEM.rows).invoicedBeyondOrder === 4
     );
     check(
         "two ordered items each exceeding are added, and the subject agrees in number",
@@ -376,7 +376,7 @@ export function run({ check, assert, log }) {
         entriesOf(SPLIT_SHORT)[0].copy.verdict.tone
     );
     // An `unjudged` entry was asserted here and held apart from a shortfall's color.
-    // #278 removed the charge that produced it, so this list has one tone; what is
+    // #278 removed the item that produced it, so this list has one tone; what is
     // asserted instead is that every entry any fixture produces wears it.
     assert(
         "every entry on every fixture is an exception",
@@ -384,7 +384,7 @@ export function run({ check, assert, log }) {
     );
     // The order-scoped aside alone can put an entry in the list: no verdict to read a
     // tone off, and something exceeding an ordered item is why it is there.
-    const asideOnly = entriesOf(TWO_CHARGES_ONE_ORDERED_ITEM)[0];
+    const asideOnly = entriesOf(TWO_ITEMS_ONE_ORDERED_ITEM)[0];
     check("an entry the aside alone admitted has no verdict", asideOnly.copy.verdict, null);
     check("  and is an exception all the same", asideOnly.tone, "exception");
     assert(

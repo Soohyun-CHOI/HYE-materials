@@ -411,7 +411,7 @@ try {
         check("and the quantities match, so no marker", s.mismatch, false);
         check("one ordered item judged", s.judged, 1);
         // An `excludedCount` of 1 was asserted here for the freight item that stood
-        // beside it. Both are gone (#278); every charge is judged now, so `judged`
+        // beside it. Both are gone (#278); every invoice item is judged now, so `judged`
         // above is the whole count.
         check("the chip says so", describeInvoiceColumn(s).text, "Delivered");
 
@@ -460,7 +460,7 @@ try {
         // `a row for every invoice item, judged or not` and asserted a second row
         // carrying `not-compared` — the free-text charge's own box. The charge is
         // gone, so the walk returns one row and every row has a status.
-        check("a row for the charge", recon.rows.length, 1);
+        check("a row for the invoice item", recon.rows.length, 1);
         const judgedRow = recon.rows[0];
         check("which is judged", Boolean(judgedRow.status), true);
         check("and nothing came back unjudged", recon.rows.filter((r) => !r.status).length, 0);

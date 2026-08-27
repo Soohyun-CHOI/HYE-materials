@@ -48,7 +48,7 @@ import {
     AWAITING_DELIVERY_COPY,
     orderedItemStatus,
 } from "../../../lib/deliveryStatus.js";
-import { CHARGE_PRECISION_COPY, VARIANCE_COPY } from "../../../lib/variance.js";
+import { ITEM_PRECISION_COPY, VARIANCE_COPY } from "../../../lib/variance.js";
 import { AWAITING_PO_COPY, AWAITING_SEND_COPY, EMPTY_COPY } from "../../../lib/poListView.js";
 import { CONFIRM_COPY } from "../../../lib/authTokenState.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
@@ -186,8 +186,17 @@ const PINNED = [
     // quote them verbatim, and they are the only place the app states the rule to a
     // reader, so a rewording that left a brief behind would be telling a designer
     // about a message the app no longer sends.
-    "Every charge's quantity has to be a whole number.",
-    "Every charge's unit price has to be a whole number of cents.",
+    //
+    // #303 — THEY SAID `charge` AND THIS PIN IS WHY THE BRIEFS FOLLOWED. The noun
+    // moved to `item` when an `Invoice Items` row took its own table's name; both
+    // briefs quote these two, and the pin is what turned a copy edit into a failing
+    // check until they did.
+    "Every item's quantity has to be a whole number.",
+    "Every item's unit price has to be a whole number of cents.",
+    // #303 — the invoice-level prompt, whose noun moved with them. `_shared.md`
+    // called it a locked word and quoted it nowhere, so it was the pair's third
+    // string and the only one a rewording could have taken silently.
+    "⚠ An item on this invoice differs from what its order agreed",
     // #274 — THE THREE `_shared.md` CALLS TIER 1 AND NOTHING PINNED. Its status
     // section quotes four sentences from `lib/deliveryStatus.js` as locked words;
     // only `Not compared — no ordered item` above was ever pinned, so the other
@@ -405,7 +414,7 @@ export function run({ check, assert, log }) {
     log("every word the shared brief quotes is still what the constant holds:");
     const loadable = [
         ...stringsFrom(VARIANCE_COPY),
-        ...stringsFrom(CHARGE_PRECISION_COPY),
+        ...stringsFrom(ITEM_PRECISION_COPY),
         ...stringsFrom(EMPTY_COPY),
         ...stringsFrom(CONFIRM_COPY),
         ...stringsFrom(PO_DOCUMENTS_COPY),

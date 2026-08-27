@@ -11,7 +11,7 @@ import {
 import { getItemsByInvoice, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
 import {
-    CHARGE_PRECISION_COPY,
+    ITEM_PRECISION_COPY,
     checkHeaderVariance,
     checkUnitPriceVariance,
     isWholeCentPrice,
@@ -106,10 +106,10 @@ async function updateInvoiceHandler(prevState, formData) {
             // screen needs it more: both figures are freely editable here, where the
             // create form at least freezes the price to the ordered item.
             if (!isWholeQty(parseFloat(item.qty))) {
-                return { error: CHARGE_PRECISION_COPY.qty };
+                return { error: ITEM_PRECISION_COPY.qty };
             }
             if (!isWholeCentPrice(parseFloat(item.unitPrice))) {
-                return { error: CHARGE_PRECISION_COPY.unitPrice };
+                return { error: ITEM_PRECISION_COPY.unitPrice };
             }
         }
 

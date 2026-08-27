@@ -10,8 +10,8 @@ Admin.
 
 Should this invoice be paid? That decomposes into three questions the screen
 answers in order — does the vendor's stated total match what the items add up
-to, does any single charge differ from what its order agreed, and did the
-material it charges for was actually delivered. A reader who can answer all three
+to, does any single item differ from what its order agreed, and was the material
+it charges for actually delivered. A reader who can answer all three
 without scrolling twice has what they came for.
 
 This is the densest screen in the app and the one where a redesign can do the
@@ -104,8 +104,8 @@ a duty prints with the goods it is charged on, a tax prints last before the tota
 **So the footer is three, four or five rows**, and the absent rows are absent
 rather than blank or zeroed: a missing tariff means "no duty line on this
 invoice", not "$0.00 of duty", and the same for tax. A footer drawn at a fixed
-five rows would make every ordinary invoice assert two charges the vendor never
-made. A term stated as zero is different again and does get its row, because "this
+five rows would make every ordinary invoice assert two amounts the vendor never
+charged. A term stated as zero is different again and does get its row, because "this
 document says no tax was charged" is a true claim worth printing.
 
 **When the reader has just arrived from an action:** a green confirmation line
@@ -128,11 +128,11 @@ it**. The stored flag fires on either a price difference or a quantity invoiced
 beyond the order, so any explanation naming a cause would be false whenever the
 other one fired. What it was compared against lives on the order's own page.
 
-**When at least one charge carries that flag:** an amber prompt near the foot of
-the page asking someone to check the charge against the order, or take it up
+**When at least one item carries that flag:** an amber prompt near the foot of
+the page asking someone to check the item against the order, or take it up
 with the vendor, before the invoice is paid. It is deliberately outside the
 payment gate — an employee who cannot see whether the vendor was paid is exactly
-the reader who is here to catch a wrong charge, and naming payment as a deadline
+the reader who is here to catch a wrong item, and naming payment as a deadline
 discloses nothing about this vendor.
 
 **When the invoice's own total does not match its computed total** — past half a
