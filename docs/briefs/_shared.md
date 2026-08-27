@@ -388,7 +388,7 @@ dialog becomes, that voice is the point of it.
 
 `Purchase Requests`, `Purchase Orders`, `Invoices`, `Deliveries`, `Material
 prices`, `New Purchase Request`, `New Invoice`, `Record a delivery`, `New Job`,
-`New Line`, `New Vendor`, `Check your email`, `Delivery not found`, and
+`New Discipline`, `New Vendor`, `Check your email`, `Delivery not found`, and
 `Edit {document ID}`. The four document detail screens have no heading word at
 all — their heading is the document ID.
 

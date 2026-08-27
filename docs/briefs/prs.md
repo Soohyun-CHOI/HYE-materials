@@ -27,9 +27,10 @@ takes several jobs at once, a `Raised by me` checkbox, and a status dropdown who
 first option is `All`. The active filters are mirrored into the URL, so a refresh,
 a shared link and the back button all restore the view.
 
-**evidence — the table, six columns.** PR ID, Requester, Vendor, `Job / Line`,
-Total, Status. The ID is a link; Total is right-aligned currency. `Job / Line`
-is one cell from two fields, the job code and the line name joined by a middle
+**evidence — the table, six columns.** PR ID, Requester, Vendor,
+`Job / Discipline`, Total, Status. The ID is a link; Total is right-aligned
+currency. `Job / Discipline` is one cell from two fields, the job code and the
+discipline name joined by a middle
 dot, and it reads as an em dash when there is no job.
 
 **verdict — the Status column.** One of `Draft`, `In Review`, `Approved`,
@@ -161,8 +162,8 @@ alongside them so the two cannot say different things.
 same component, so both screens name the invoice, the unit price and the file the
 quotation will come from. Neither offers a bare button.
 
-**`Job / Line` is two fields and `Line` is reserved** — a `Lines` row under a
-job, never a row of an items table.
+**`Job / Discipline` is two fields**, the job code and the name of a
+`Disciplines` row under it. `line` names neither, and no row of any table (#280).
 
 **Dimming means ended, here and on the purchase order list and the signing
 chain.** Three places, one meaning.

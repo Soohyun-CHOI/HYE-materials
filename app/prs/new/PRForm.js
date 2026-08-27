@@ -28,7 +28,7 @@ const fieldClass =
 function formStateFromDraft(d) {
     return {
         jobId: d.jobId || "",
-        lineId: d.lineId || "",
+        disciplineId: d.disciplineId || "",
         vendorId: d.vendorId || "",
         shippingFee: d.shippingFee === "" || d.shippingFee == null ? "" : String(d.shippingFee),
         notes: d.notes || "",
@@ -69,7 +69,7 @@ function formStateFromDraft(d) {
 export default function PRForm({
     myJobs,
     otherJobs,
-    lines,
+    disciplines,
     vendors,
     users,
     initialDraft = null,
@@ -94,7 +94,7 @@ export default function PRForm({
     const [draftRecordId, setDraftRecordId] = useState(seed?.draftRecordId ?? "");
 
     const [jobId, setJobId] = useState(seed?.jobId ?? "");
-    const [lineId, setLineId] = useState(seed?.lineId ?? "");
+    const [disciplineId, setDisciplineId] = useState(seed?.disciplineId ?? "");
     const [vendorId, setVendorId] = useState(seed?.vendorId ?? "");
     const [items, setItems] = useState(seed?.items ?? [{ ...EMPTY_ITEM }]);
     const [signers, setSigners] = useState(seed?.signers ?? []);
@@ -169,7 +169,7 @@ export default function PRForm({
     function resumeDraft() {
         const s = formStateFromDraft(initialDraft);
         setJobId(s.jobId);
-        setLineId(s.lineId);
+        setDisciplineId(s.disciplineId);
         setVendorId(s.vendorId);
         setShippingFee(s.shippingFee);
         setNotes(s.notes);
@@ -270,14 +270,14 @@ export default function PRForm({
         }
     }
 
-    const linesForJob = useMemo(
-        () => lines.filter((l) => l.jobId === jobId),
-        [lines, jobId]
+    const disciplinesForJob = useMemo(
+        () => disciplines.filter((d) => d.jobId === jobId),
+        [disciplines, jobId]
     );
 
     function handleJobChange(e) {
         setJobId(e.target.value);
-        setLineId(""); // a Line from the previous Job no longer applies
+        setDisciplineId(""); // one from the previous Job no longer applies
     }
 
     function addItem() {
@@ -342,9 +342,9 @@ export default function PRForm({
                                     minute: "2-digit",
                                 })}
                             </p>
-                            {(draftLabel.lineLabel || draftLabel.vendorName) && (
+                            {(draftLabel.disciplineLabel || draftLabel.vendorName) && (
                                 <p className="text-zinc-500">
-                                    {draftLabel.lineLabel || "—"}
+                                    {draftLabel.disciplineLabel || "—"}
                                     {draftLabel.vendorName ? ` · ${draftLabel.vendorName}` : ""}
                                 </p>
                             )}
@@ -462,9 +462,9 @@ export default function PRForm({
                                                             minute: "2-digit",
                                                         })}
                                                     </p>
-                                                    {(d.lineLabel || d.vendorName) && (
+                                                    {(d.disciplineLabel || d.vendorName) && (
                                                         <p className="text-zinc-500">
-                                                            {d.lineLabel || "—"}
+                                                            {d.disciplineLabel || "—"}
                                                             {d.vendorName ? ` · ${d.vendorName}` : ""}
                                                         </p>
                                                     )}
@@ -588,24 +588,24 @@ export default function PRForm({
                 </div>
 
                 <div>
-                    <label htmlFor="lineId" className="block text-sm font-medium">
-                        Line
+                    <label htmlFor="disciplineId" className="block text-sm font-medium">
+                        Discipline
                     </label>
                     <select
-                        id="lineId"
-                        name="lineId"
-                        value={lineId}
-                        onChange={(e) => setLineId(e.target.value)}
+                        id="disciplineId"
+                        name="disciplineId"
+                        value={disciplineId}
+                        onChange={(e) => setDisciplineId(e.target.value)}
                         required
                         disabled={!jobId}
                         className={fieldClass}
                     >
                         <option value="" disabled>
-                            {jobId ? "Select a Line" : "Select a Job first"}
+                            {jobId ? "Select a Discipline" : "Select a Job first"}
                         </option>
-                        {linesForJob.map((l) => (
-                            <option key={l.id} value={l.id}>
-                                {l.lineName}
+                        {disciplinesForJob.map((d) => (
+                            <option key={d.id} value={d.id}>
+                                {d.disciplineName}
                             </option>
                         ))}
                     </select>
@@ -886,7 +886,7 @@ export default function PRForm({
                 {showDuplicateWarning && (
                     <div className="space-y-3 rounded border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-900">
                         <p>
-                            A matching PR already exists for this Line —{" "}
+                            A matching PR already exists for this Discipline —{" "}
                             <strong>{submitState.duplicateWarning.priorPrId}</strong>, submitted by{" "}
                             {submitState.duplicateWarning.priorRequesterName} on{" "}
                             {new Date(submitState.duplicateWarning.priorDate).toLocaleDateString()}.

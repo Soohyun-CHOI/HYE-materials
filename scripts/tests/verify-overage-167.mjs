@@ -58,7 +58,7 @@ import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoice
 import { getQuotationsByPR } from "../../lib/airtable/quotations.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { getOverageBannerFacts, getOverageBannerFactsForPO, getOverageContext, createOverageDraft } from "../../lib/overagePR.js";
 import { OVERAGE_BLOCKED, describeOverageBanner, isOverageApplied, resolveOriginalPOItem } from "../../lib/overage.js";
@@ -254,25 +254,25 @@ try {
         }
     }
 
-    const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
+    const [users, vendors, disciplines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllDisciplines()]);
     const requester = users[0];
     const signer = users[1] ?? users[0];
     const vendor = vendors[0];
-    const line = lines.find((l) => l.jobId);
-    if (!requester || !vendor || !line) {
+    const discipline = disciplines.find((l) => l.jobId);
+    if (!requester || !vendor || !discipline) {
         incomplete = "need one active User, one Vendor and one Line attached to a Job";
         console.log(`\n  SKIP  ${incomplete}`);
         throw new Error("__skip__");
     }
     console.log(
-        `\nFixture context: vendor "${vendor.vendorName}", line "${line.lineLabel}" (both reused, not modified)`
+        `\nFixture context: vendor "${vendor.vendorName}", discipline "${discipline.disciplineLabel}" (both reused, not modified)`
     );
 
     /** One PR + one item -> approve -> PO. Returns the PO and its one ordered item. */
     async function makeOrder({ itemName, qty, unitPrice = 12 }) {
         const pr = await createPR({
             requesterId: requester.id,
-            lineId: line.id,
+            disciplineId: discipline.id,
             vendorId: vendor.id,
             notes: `${TAG} fixture`,
         });
@@ -307,7 +307,7 @@ try {
     /** One delivery whose rows the caller describes, over-delivery included. */
     async function deliver({ rows, receivedDate }) {
         const delivery = await createDelivery({
-            jobRecordId: line.jobId,
+            jobRecordId: discipline.jobId,
             vendorRecordId: vendor.id,
             packingListPORecordId: null,
             receivedDate,

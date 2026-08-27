@@ -90,7 +90,7 @@ import { put } from "@vercel/blob";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { resolveDemoRecords, pick } from "./_demo_ids.mjs";
-import { createPR, updatePR, getPRByRecordId, getPRsByLine } from "../../lib/airtable/purchaseRequests.js";
+import { createPR, updatePR, getPRByRecordId, getPRsByDiscipline } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { createSigner } from "../../lib/airtable/prSigners.js";
 import { createCorrectionRequest } from "../../lib/airtable/correctionRequests.js";
@@ -113,7 +113,7 @@ import {
 } from "../../lib/airtable/invoiceItems.js";
 import { getInvoicedQtyForPOItem } from "../../lib/airtable/poItems.js";
 import { checkUnitPriceVariance, checkHeaderVariance } from "../../lib/variance.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllVendors, createVendor } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { mergeIdenticalItems } from "../../lib/prItemMerge.js";
@@ -156,10 +156,10 @@ console.log("=".repeat(72));
 // find. Import-not-sync, so on a base that already has them this costs three reads.
 await ensureDemoFixtures();
 
-const [lines, vendors, users] = await Promise.all([getAllLines(), getAllVendors(), getActiveUsers()]);
+const [disciplines, vendors, users] = await Promise.all([getAllDisciplines(), getAllVendors(), getActiveUsers()]);
 
-const line = lines.find((l) => (l.lineLabel || "").startsWith(JOB_CODE));
-if (!line) throw new Error(`no Line on ${JOB_CODE} — ensureDemoFixtures() should have made one`);
+const discipline = disciplines.find((l) => (l.disciplineLabel || "").startsWith(JOB_CODE));
+if (!discipline) throw new Error(`no Discipline on ${JOB_CODE} — ensureDemoFixtures() should have made one`);
 const vendor = vendors.find((v) => v.vendorName === VENDOR_NAME);
 if (!vendor) throw new Error(`no vendor "${VENDOR_NAME}" — ensureDemoFixtures() should have made one`);
 
@@ -188,18 +188,18 @@ if (chainable.length < 2) {
 // The three accounts the demo actually signs in as. `scoped-fixture@` is already
 // assigned by `ensureDemoFixtures`; these two are not, and both need the Job picker.
 for (const account of [requester, president].filter(Boolean)) {
-    await addAssignedJob(account.id, line.jobId);
+    await addAssignedJob(account.id, discipline.jobId);
 }
 
 console.log(`job        ${JOB_CODE}`);
-console.log(`line       ${line.lineLabel}`);
+console.log(`discipline   ${discipline.disciplineLabel}`);
 console.log(`vendor     ${vendor.vendorName}`);
 console.log(`requester  ${requester.userName} <${requester.email}>`);
 console.log(`signers    ${signerA.userName}, ${signerB.userName}`);
 console.log(`president  ${president ? president.userName : "(none — signed orders will be skipped)"}`);
 
 /** Every PR already on the demo Line, read once and reused by every skip check. */
-const existingPRs = await getPRsByLine(line.id);
+const existingPRs = await getPRsByDiscipline(discipline.id);
 const seeded = new Set(
     existingPRs.flatMap((pr) => [...String(pr.notes || "").matchAll(/\[DEMO26:([A-Z_]+)\]/g)].map((m) => m[1]))
 );
@@ -272,7 +272,7 @@ async function makeOrder({ scenarioName, subTag = null, items, shippingFee = nul
     // guide can ask for `DETECT_WITHDRAWN` by name.
     const pr = await createPR({
         requesterId: requester.id,
-        lineId: line.id,
+        disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: `${notes} ${tagOf(scenarioName)}${subTag ? tagOf(subTag) : ""}`.trim(),
     });
@@ -321,7 +321,7 @@ async function makeOrder({ scenarioName, subTag = null, items, shippingFee = nul
 /** Record a delivery. `rows` is `{ poItem, qty, over }` per allocated slice. */
 async function deliver({ scenarioName, rows, receivedDate, packingListPO = null, notes = "" }) {
     const delivery = await createDelivery({
-        jobRecordId: line.jobId,
+        jobRecordId: discipline.jobId,
         vendorRecordId: vendor.id,
         packingListPORecordId: packingListPO,
         receivedDate,
@@ -636,7 +636,7 @@ await scenario("DUP", "the request the live duplicate warning names", async () =
 
     const pr = await createPR({
         requesterId: requester.id,
-        lineId: line.id,
+        disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: noteFor("DUP", "Gate valves for the pump house."),
     });
@@ -658,7 +658,7 @@ await scenario("DUP", "the request the live duplicate warning names", async () =
 await scenario("CHAIN", "four step states: done, current, paused, not reached", async () => {
     const pr = await createPR({
         requesterId: requester.id,
-        lineId: line.id,
+        disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: noteFor("CHAIN", "Anchor bolts for the equipment pads."),
     });
@@ -707,7 +707,7 @@ await scenario("CHAIN", "four step states: done, current, paused, not reached", 
 await scenario("WITHDRAWN_PR", "withdrawn request, chain frozen where it got to", async () => {
     const pr = await createPR({
         requesterId: requester.id,
-        lineId: line.id,
+        disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: noteFor("WITHDRAWN_PR", "Scaffold planks — site is hiring these instead."),
     });
@@ -746,7 +746,7 @@ await scenario("PO_WAIT", "2 approved requests whose order generation failed", a
     ]) {
         const pr = await createPR({
             requesterId: requester.id,
-            lineId: line.id,
+            disciplineId: discipline.id,
             vendorId: vendor.id,
             notes: noteFor("PO_WAIT", n === 1 ? "Welding rod for the pipe crew." : "Grinding discs, monthly restock."),
         });
@@ -1528,7 +1528,7 @@ await scenario("PRICES", "one material, three vendors, Lowest and both caveats",
     for (const [i, v] of others.entries()) {
         const pr = await createPR({
             requesterId: requester.id,
-            lineId: line.id,
+            disciplineId: discipline.id,
             vendorId: v.id,
             notes: noteFor("PRICES", "Copper tube — quoting the same item from a second supplier."),
         });

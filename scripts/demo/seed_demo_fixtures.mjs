@@ -25,7 +25,7 @@
 import { pathToFileURL } from "node:url";
 import { createAddress } from "../../lib/airtable/addresses.js";
 import { createJob, getJobByCode } from "../../lib/airtable/jobs.js";
-import { createLine } from "../../lib/airtable/lines.js";
+import { createDiscipline } from "../../lib/airtable/disciplines.js";
 import { createVendor, getVendorByName } from "../../lib/airtable/vendors.js";
 import { addAssignedJob, createUser, getUserByEmail } from "../../lib/airtable/users.js";
 
@@ -44,7 +44,7 @@ const DEMO_PIC_EMAIL = process.env.DEMO_PIC_EMAIL || "soohyun.c@hanyangengusa.co
 const JOB_CODE = "26-DEMO-01"; // deliberately off the real "##-USA-@@" pattern, so it's never confused with a real Job
 const JOB_NAME = "Round Rock Compressor Station";
 const BUSINESS_UNIT = "HT";
-const LINE_NAME = "Unit 2 Piping";
+const DISCIPLINE_NAME = "Unit 2 Piping";
 const VENDOR_NAME = "Lone Star Pipe & Supply";
 
 // THE SECOND PERMANENT FIXTURE ACCOUNT (#205), beside
@@ -109,8 +109,8 @@ export async function ensureDemoFixtures() {
         });
         console.log(`[CREATE] Job ${job.jobCode} (${job.id})`);
 
-        const line = await createLine({ jobRecordId: job.id, lineName: LINE_NAME });
-        console.log(`[CREATE] Line "${line.lineLabel}" (${line.id})`);
+        const discipline = await createDiscipline({ jobRecordId: job.id, disciplineName: DISCIPLINE_NAME });
+        console.log(`[CREATE] Discipline "${discipline.disciplineLabel}" (${discipline.id})`);
         jobRecordId = job.id;
     }
 
@@ -160,13 +160,13 @@ export async function ensureDemoFixtures() {
     );
 
     console.log("\nDemo fixtures ready:");
-    console.log(`  Job "${JOB_CODE}" / Line "${LINE_NAME}"`);
+    console.log(`  Job "${JOB_CODE}" / Discipline "${DISCIPLINE_NAME}"`);
     console.log(`  Vendor "${VENDOR_NAME}"`);
     console.log("  Fixture accounts:");
     console.log("    authz-fixture@hanyangengusa.com  - no Jobs, refused everywhere");
     console.log(`    ${SCOPED_FIXTURE_EMAIL} - assigned ${JOB_CODE}, admitted by row scope`);
 
-    return { jobRecordId, jobCode: JOB_CODE, lineName: LINE_NAME, vendorName: VENDOR_NAME };
+    return { jobRecordId, jobCode: JOB_CODE, disciplineName: DISCIPLINE_NAME, vendorName: VENDOR_NAME };
 }
 
 // Run only when this file IS the entry point, so an importer pays nothing. Compared

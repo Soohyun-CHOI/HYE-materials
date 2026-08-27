@@ -22,11 +22,11 @@ records.
 
 **identity.** The heading `New Purchase Request`.
 
-**action — the request's context, three linked dropdowns.** Job, Line, Vendor,
+**action — the request's context, three linked dropdowns.** Job, Discipline, Vendor,
 all required. Job groups its options under `My Jobs` and `All Jobs` when the
-reader has assigned jobs, and offers just `Jobs` otherwise. Line is dependent:
+reader has assigned jobs, and offers just `Jobs` otherwise. Discipline is dependent:
 until a job is chosen its placeholder reads `Select a Job first`, and changing the
-job clears it, because a line from the previous job no longer applies.
+job clears it, because one from the previous job no longer applies.
 
 **action — Quotations,** a section with its own heading and the line
 `A Vendor can send more than one quotation — add one entry per quotation
@@ -82,7 +82,7 @@ quantities added.` It is a **preview of what saving will do**, not an error and 
 a blocker — the merge happens on save either way, and this is the form telling the
 reader in advance.
 
-**When a matching request already exists for this line:** a yellow box after
+**When a matching request already exists for this discipline:** a yellow box after
 submitting, naming the earlier request's ID, who submitted it and when, and asking
 `Submit this one anyway?` with two controls — dismiss, or `Submit anyway`. This is
 a confirm-then-resubmit, so the reader's first Submit does not go through. A
@@ -105,8 +105,9 @@ identical.
 both show.** A reader fills in Item / Size / Unit / Qty / Unit Price here, reads
 them back on the detail, and sees them frozen on the order.
 
-**`Line` is a `Lines` row under a job**, the same word as on the request detail
-and the list's `Job / Line` column. The dependent dropdown is the clearest
+**`Discipline` is a `Disciplines` row under a job**, the same word as on the
+request detail and the list's `Job / Discipline` column. The dependent dropdown is
+the clearest
 statement of that relationship anywhere in the app.
 
 **`Approval` and `Agreement` are two names for two things**, and the signing
@@ -124,7 +125,8 @@ drafts are unsaved local state would contradict where they actually live.
 over-delivery strip on the request list opens one carrying the excess as its
 single item, and the direct-purchase strip opens one carrying the vendor and the
 vendor's own invoice as its quotation — and nothing else, because what is missing
-is exactly what only the requester knows: the items, the line, and the signers.
+is exactly what only the requester knows: the items, the discipline, and the
+signers.
 Both land here through the ordinary draft-resume path, so this form is what
 finishes them. A reader who arrives that way did not fill in what is already
 there, and the form should not read as though they did.

@@ -38,7 +38,7 @@ import { updatePO } from "../../lib/airtable/purchaseOrders.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers, getUserByEmail } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
 
@@ -186,18 +186,18 @@ const track = fixtures.track;
 console.log("\nPart A — fixtures: two vendors, one material, plus a withdrawn PO");
 
 let complete = false;
-const [users, vendors, lines, fixtureUser] = await Promise.all([
+const [users, vendors, disciplines, fixtureUser] = await Promise.all([
     getActiveUsers(),
     getAllVendors(),
-    getAllLines(),
+    getAllDisciplines(),
     getUserByEmail(FIXTURE_EMAIL),
 ]);
 
 const admin = users.find((u) => u.isAdmin === true);
 const [vendorA, vendorB] = vendors;
-const line = lines[0];
+const discipline = disciplines[0];
 
-if (!admin || !vendorA || !vendorB || !line) {
+if (!admin || !vendorA || !vendorB || !discipline) {
     incomplete = "need an Admin user, TWO Vendors and one Line in the base";
 } else if (!fixtureUser) {
     incomplete = `${FIXTURE_EMAIL} is missing — it is the permanent non-Admin fixture this check needs`;
@@ -224,10 +224,10 @@ if (incomplete) {
     check("the fixture user is not an Admin", fixtureUser.isAdmin === true, false);
     check("and not a President", fixtureUser.role, "Employee");
     const fixtureJobs = fixtureUser.assignedJobs || [];
-    const lineJob = line.job?.[0];
+    const discipdisciplineJob = discipline.job?.[0];
     assert(
         `and not assigned to the fixture Line's Job (assigned to ${fixtureJobs.length})`,
-        !lineJob || !fixtureJobs.includes(lineJob)
+        !disciplineJob || !fixtureJobs.includes(disciplineJob)
     );
     assert("the requester is someone else", admin.id !== fixtureUser.id);
 
@@ -236,7 +236,7 @@ if (incomplete) {
 
     async function makePO({ vendorId, qty, unitPrice, extraItem }) {
         const pr = await createPR({
-            requesterId: admin.id, lineId: line.id, vendorId,
+            requesterId: admin.id, disciplineId: discipline.id, vendorId,
             notes: `${TAG} fixture`,
         });
         track("prs", pr.id);

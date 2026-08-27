@@ -35,7 +35,7 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors, createVendor, getVendorByName } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 
 // A third vendor, so the comparison screen has something to compare. Named
 // "Demo ..." on purpose: a realistic supplier name sitting in Vendors could
@@ -106,17 +106,17 @@ const isoDate = (daysAgo) => {
 
 async function main() {
     // --- preconditions -----------------------------------------------------
-    const [users, lines] = await Promise.all([getActiveUsers(), getAllLines()]);
+    const [users, disciplines] = await Promise.all([getActiveUsers(), getAllDisciplines()]);
     const requester = users.find((u) => u.isAdmin) || users[0];
-    const line = lines.find((l) => (l.lineLabel || "").includes("DEMO")) || lines[0];
+    const discipline = disciplines.find((l) => (l.disciplineLabel || "").includes("DEMO")) || disciplines[0];
 
-    if (!requester || !line) {
+    if (!requester || !discipline) {
         console.error("Need at least one active User and one Line. Run seed_demo_fixtures.mjs first.");
         process.exitCode = 1;
         return;
     }
     console.log(`Requester: ${requester.email}`);
-    console.log(`Line:      ${line.lineLabel}\n`);
+    console.log(`Discipline: ${discipline.disciplineLabel}\n`);
 
     // --- the third vendor, skip-if-exists ----------------------------------
     const existingExtra = await getVendorByName(EXTRA_VENDOR);
@@ -163,7 +163,7 @@ async function main() {
             continue;
         }
 
-        const pr = await createPR({ requesterId: requester.id, lineId: line.id, vendorId: vendor.id });
+        const pr = await createPR({ requesterId: requester.id, disciplineId: discipline.id, vendorId: vendor.id });
         for (const item of order.items) {
             await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", ...item });
         }

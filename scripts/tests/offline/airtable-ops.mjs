@@ -211,7 +211,7 @@ export async function run({ check, assert, log }) {
             ["Users", "find", 3],
             ["Purchase Requests", "list", 1],
             ["Jobs", "list", 1],
-            ["Lines", "list", 1],
+            ["Disciplines", "list", 1],
             ["Vendors", "list", 1],
         ])
     );
@@ -226,7 +226,7 @@ export async function run({ check, assert, log }) {
             ["Purchase Requests", "find", 5],
             ["Users", "find", 2],
             ["Vendors", "list", 1],
-            ["Lines", "list", 1],
+            ["Disciplines", "list", 1],
             ["Jobs", "list", 1],
             ["PR Signers", "find", 1],
             ["PR Items", "find", 1],

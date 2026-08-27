@@ -54,12 +54,12 @@ function AwaitingPORow({ row, isAdmin }) {
             <Link href={`/prs/${row.prId}`} className="shrink-0 font-medium underline">
                 {row.prId}
             </Link>
-            {/* Job / Line as one cell with the same separator the list's first
+            {/* Job / Discipline as one cell with the same separator the list's first
                 column uses, so a reader locating work reads the same pair in the
                 same shape whether it is above the table or in it. */}
             <span className="min-w-0 flex-1 truncate text-zinc-700">
                 {row.jobCode || "—"}
-                {row.lineName ? ` / ${row.lineName}` : ""}
+                {row.disciplineName ? ` / ${row.disciplineName}` : ""}
                 {" · "}
                 {row.vendorName || "—"}
             </span>

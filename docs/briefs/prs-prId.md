@@ -22,8 +22,8 @@ loses the record of who agreed to what.
 ## What it always carries
 
 **identity.** The PR ID as the page heading, then a block of small lines: the
-status in bold, the job, the line, the vendor, and the requester. `Line` here
-means a `Lines` row under a job and nothing else — it is not a row of the items
+status in bold, the job, the discipline, the vendor, and the requester.
+`Discipline` here means a `Disciplines` row under a job — it is not a row of the items
 table, and the word is reserved. **A mark sits beside the heading when this is
 not an ordinary request** — `Overage` or `Direct purchase`, the same two words
 the request list uses.
@@ -159,9 +159,10 @@ together.
 **The purchase order this generated is a link both ways.** That screen names this
 request; this one names that order.
 
-**`Line` is reserved.** It names a `Lines` row under a job here and on the request
-list's `Job / Line` column, and never a row of an items table. A redesign that
-labels a table row a "line" collides with a real link field on this very screen.
+**`Discipline` names a `Disciplines` row under a job**, here and on the request
+list's `Job / Discipline` column. **`line` names no row of any table (#280)** — it
+was this table's word until then, and a redesign that labels a table row a "line"
+now reaches for a word the app has stopped using rather than one it has spent.
 
 **A row of THIS table is a `PR Items` row, and the word for it is `item` (#303).**
 This brief said such a row was an *ordered item* "in prose and screen copy

@@ -35,7 +35,7 @@ import { createSigner } from "../../lib/airtable/prSigners.js";
 import { createCorrectionRequest, resolveCorrectionRequest } from "../../lib/airtable/correctionRequests.js";
 import { getUserByEmail, getUserByRecordId, getActiveUsers } from "../../lib/airtable/users.js";
 import { createAuthToken } from "../../lib/airtable/authTokens.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
 
@@ -101,7 +101,7 @@ try {
     if (!fixture) throw new Error(`${FIXTURE_EMAIL} not found — it is a permanent fixture, see CLAUDE.md`);
     const owner = (await getActiveUsers()).find((u) => u.id !== fixture.id);
     if (!owner) throw new Error("Need a second active user to own the fixture PR.");
-    const line = (await getAllLines())[0];
+    const discipline = (await getAllDisciplines())[0];
 
     console.log(`Fixture user: ${fixture.userName} [${fixture.id}] role=${fixture.role} isAdmin=${fixture.isAdmin}`);
     console.log(`PR owner:     ${owner.userName} [${owner.id}]`);
@@ -111,7 +111,7 @@ try {
     check("fixture user is a non-Admin Employee", fixture.role === "Employee" && !fixture.isAdmin, true);
 
     const created = await createPR({
-        requesterId: owner.id, lineId: line.id,
+        requesterId: owner.id, disciplineId: discipline.id,
         notes: `${TAG} verification — safe to delete`,
     });
     track("prs", created.id);

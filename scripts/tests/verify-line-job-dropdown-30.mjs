@@ -5,18 +5,18 @@
 // pick still creates a Line — independent of the UI, which the browser can't
 // be scripted here to drive.
 //
-// createLineAction can't be called directly (requireAdmin needs a live
+// createDisciplineAction can't be called directly (requireAdmin needs a live
 // session, redirect() throws outside the render pipeline), so this mirrors
 // its job-resolution guard VERBATIM and calls the same lib functions. The
 // requireAdmin gate itself is unchanged in the action (still the first thing
 // it does) — verified by inspection, not here.
 //
-// From app/admin/lines/new/actions.js createLineAction, mirrored 1:1:
+// From app/admin/disciplines/new/actions.js createDisciplineAction, mirrored 1:1:
 //     const jobId = formData.get("jobId");
 //     let job = null;
 //     try { job = jobId ? await getJobByRecordId(jobId) : null; } catch { job = null; }
 //     if (!job) return { error: "That Job doesn't exist. Pick one from the list." };
-//     const { lineLabel } = await createLine({ jobRecordId: job.id, lineName });
+//     const { disciplineLabel } = await createDiscipline({ jobRecordId: job.id, disciplineName });
 //
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-line-job-dropdown-30.mjs
@@ -24,7 +24,7 @@
 // Creates one throwaway Line for the happy path and deletes it afterward.
 
 import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
-import { createLine } from "../../lib/airtable/lines.js";
+import { createDiscipline } from "../../lib/airtable/disciplines.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { base, TABLES } from "../../lib/airtable/client.js";
 
@@ -49,14 +49,14 @@ const fixtures = createFixtures({
     tag: "V30",
     buckets: [
         // Tagged, under the rule's second clause (#171): this script calls
-        // createLine, so the tag goes in the name it was already choosing. It was
+        // createDiscipline, so the tag goes in the name it was already choosing. It was
         // the fixed "__verify-30-delete-me", the shape a run tag must not have.
-        { name: "lines", table: TABLES.LINES, label: "Line", tagField: "Line Name" },
+        { name: "disciplines", table: TABLES.DISCIPLINES, label: "Discipline", tagField: "Discipline Name" },
     ],
 });
 const TAG = fixtures.TAG;
 
-let createdLineId = null;
+let createdDisciplineId = null;
 let complete = false;
 
 async function run() {
@@ -91,14 +91,14 @@ async function run() {
 
     // Happy path end-to-end: a valid pick actually creates a Line.
     console.log("Case 5: Valid pick creates a Line (end-to-end)");
-    const { id, lineLabel } = await createLine({
+    const { id, disciplineLabel } = await createDiscipline({
         jobRecordId: real.id,
-        lineName: `${TAG} delete me`,
+        disciplineName: `${TAG} delete me`,
     });
-    createdLineId = fixtures.track("lines", id);
-    const created = Boolean(id && lineLabel);
+    createdDisciplineId = fixtures.track("disciplines", id);
+    const created = Boolean(id && disciplineLabel);
     if (!created) allPass = false;
-    console.log(`   created: ${created ? `Line "${lineLabel}" [${id}]` : "FAILED"}`);
+    console.log(`   created: ${created ? `Line "${disciplineLabel}" [${id}]` : "FAILED"}`);
     console.log(`   => ${created ? "PASS" : "FAIL"}`);
     console.log("");
 

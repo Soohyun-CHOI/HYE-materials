@@ -15,8 +15,24 @@
 // leaving the verb. Four words, four different treatments, one reason — the table
 // name wins. The assertions below hold as much of that as a check can.
 //
-// #274 THEN TOOK THE VERB, AND THE FOURTH WORD IS NOW LIKE THE OTHER THREE. What
-// #227 left standing was `bill` as what an invoice DOES, on the ground that
+// #280 THEN RENAMED THE TABLE THIS FILE'S FIRST WORD LOST TO, WHICH IS THE ONE
+// EVENT `BEATEN_BY_TABLE` WAS BUILT TO SURVIVE. `Lines` is `Disciplines`, so a
+// `Lines` row no longer exists and `line` no longer loses to a table. The bars stay
+// and the PREMISE MOVED: what keeps `PO lines?` and `line items?` off a screen is
+// #303's rule that each item table's row takes its own table's name, so `line` sits
+// in `BEATEN_BY_RULE` below and is held to a sentence in CLAUDE.md rather than to a
+// table in `TABLES`. Dropping the bars instead was the alternative and it was
+// rejected on evidence: #278 shipped `already on another line of this invoice`, and
+// the phrase list is the only thing that catches that shape returning.
+//
+// AND THE SWEEP'S OWN PROOF IS ASSERTION 5. Every identifier that meant a `Lines`
+// row is gone — 21 of them — and the 21 `discipline*` names that replaced them are
+// in the inventory below for the reason `polyline` is: `discipline` CONTAINS the
+// letters and carries none of the word. `STEM_RE` is unanchored on purpose, so this
+// is the class the inventory has always absorbed rather than a new kind of entry.
+//
+// #274 TOOK THE VERB, AND THE FOURTH WORD IS NOW LIKE THE OTHER THREE. What
+// What #227 left standing was `bill` as what an invoice DOES, on the ground that
 // `Invoices` gives no verb — but the derivations already built on that table's name
 // were the choice, not free ground: `Invoiced Qty` and `Uninvoiced Items` on the
 // base, `uninvoicedQty` in lib/poItemQty.js, and the chip #235 moved from `Billed`
@@ -28,8 +44,8 @@
 // boundary us-english.mjs, product-name.mjs and formula-escaping.mjs draw, and it
 // does the same second job: it is what lets this check have NO EXEMPTION LIST. The
 // legitimate uses of the word that #227 left standing are lines of rendered text and
-// `Lines` rows, and they are what the phrase list is shaped to miss rather than
-// excuse. `docs/notes/` and `scripts/` stay out for the reason measured below; this
+// `Addresses."Line 1"`, and they are what the phrase list is shaped to miss rather
+// than excuse. A `Lines` row was the third until #280 renamed the table. `docs/notes/` and `scripts/` stay out for the reason measured below; this
 // file is under `scripts/`, so it does not scan itself.
 //
 // THE BRIEFS ARE IN BECAUSE THEY ARE WHERE A DESIGNER READS THE WORDS. A screen
@@ -55,7 +71,9 @@
 //      below names a child row and can mean nothing else.
 //
 //   3, 4. THE RULE'S PREMISES rather than its words (#269) — each barred word
-//      still loses to a live table, and no ban entry is a bare word.
+//      still loses to something that still exists, and no ban entry is a bare word.
+//      Three lose to a live table; since #280 `line` loses to a rule instead, and
+//      the rule is checked by reading CLAUDE.md for the sentence that states it.
 //
 //   5. IDENTIFIERS take a COMPLETE INVENTORY (#227), which is the assertion the
 //      other four could not be. See `SURVIVING_IDENTIFIERS`.
@@ -169,7 +187,7 @@ import { fileURLToPath } from "node:url";
 import * as acorn from "acorn";
 // Aliased: this file already has a `walk` for directories, and the AST helper's is
 // a different traversal over a different thing.
-import { parseFile, walk as walkAst } from "./_ast.mjs";
+import { parseFile, repoPath, walk as walkAst } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
@@ -241,8 +259,31 @@ const BEATEN_BY_TABLE = {
     // which is the property that assertion exists for.
     shipment: "Deliveries",
     arrival: "Deliveries",
-    line: "Lines",
     bill: "Invoices",
+};
+
+/**
+ * The barred word whose premise is a RULE rather than a table (#280).
+ *
+ * THIS ENTRY EXISTS BECAUSE THE PREMISE ABOVE LAPSED EXACTLY AS ITS OWN DOCSTRING
+ * SAID IT COULD. `line` lost to `Lines`; #280 renamed that table to `Disciplines`,
+ * so the word is no longer spent by a table and `BEATEN_BY_TABLE` could not hold it
+ * without claiming something false — `Disciplines` does not beat `line`, and
+ * a `Disciplines` row is a discipline.
+ *
+ * WHAT BARS IT NOW IS #303's RULE: each of the four item tables' rows takes its own
+ * table's name in the singular, so an ordered item is not a line and neither is an
+ * invoice item, a requested item or a delivery item. That is a positive rule rather
+ * than a table, and it is why the phrase list below survives the rename intact.
+ *
+ * THE VALUE IS THE SENTENCE TO LOOK FOR IN CLAUDE.md, so this premise can lapse the
+ * way the other three can. If that rule is ever dropped or reworded out of the file
+ * every session reads, assertion 3 says so instead of going quiet — which is the
+ * whole property `BEATEN_BY_TABLE` was built for and the reason this is a second map
+ * rather than an exemption.
+ */
+const BEATEN_BY_RULE = {
+    line: "ROW TAKES ITS OWN TABLE'S NAME IN THE SINGULAR",
 };
 
 /**
@@ -322,36 +363,43 @@ export function isQualified(entry) {
  * excused one by one.
  */
 const SURVIVING_IDENTIFIERS = {
-    // A `Lines` row under a Job, or the table itself.
-    LINES: "the Lines table in TABLES",
-    Line: "the `Line` link field on Purchase Requests",
-    LineForm: "the component that creates a Lines row",
-    NewLinePage: "the page that renders it",
-    renderNewLinePage: "its labeled inner render",
-    createLine: "writes a Lines row",
-    createLineAction: "the Server Action that calls it",
-    getAllLines: "reads Lines rows",
-    getPRsByLine: "PRs under one Lines row",
-    line: "a Lines row (PR paths), or a line of text in poPdf.js",
-    lines: "Lines rows, or lines of text in airtableOps.js",
-    lineId: "a Lines record id on the PR paths",
-    lineIds: "Lines record ids, from a Job's own link array",
-    lineRecords: "the Lines rows those ids resolve to",
-    lineRecordId: "one Lines record id",
-    lineLabel: "the Lines primary field",
-    lineName: "the Lines human-entered field",
-    lineById: "Lines rows keyed by record id",
-    linesById: "the same, plural",
-    linesByPO: "the Lines row behind each PO",
-    linesForJob: "the Lines rows of one Job",
-    jobByLineId: "Job record id per Lines row",
-    setLineId: "the form state setter for the picked Lines row",
     // A line of rendered or written text.
+    line: "the `<line>` SVG element, or a line of text in poPdf.js",
+    lines: "lines of text in airtableOps.js",
     termLine: "a line of text in the PO PDF's terms block",
     lineHeight: "the CSS property",
     formatScopeLine: "one line of the ops log",
     formatRepeatedLine: "the same, for a repeated scope",
     // Words that merely contain the letters.
+    //
+    // THE `discipline*` FAMILY IS THIS CLASS AND NOT A NEW ONE (#280). `STEM_RE` is
+    // unanchored so it can see inside a token, which is what catches `lineStatus`
+    // and equally what catches `disciPLINE` — the letters are there and the word is
+    // not, exactly as in `polyline`. Twenty-one entries because the inventory is
+    // asked in both directions and a shape cannot answer either; they replaced the
+    // twenty-one that meant a `Lines` row, and NONE of those is left, which is this
+    // file's proof that the sweep finished.
+    DISCIPLINES: "the Disciplines table in TABLES",
+    Discipline: "the `Discipline` link field on Purchase Requests",
+    discipline: "a PR's own link array, from recordToPR",
+    disciplines: "the rows getAllDisciplines returns",
+    getAllDisciplines: "reads Disciplines rows",
+    createDiscipline: "writes one",
+    createDisciplineAction: "the Server Action that calls it",
+    getPRsByDiscipline: "PRs under one Disciplines row",
+    DisciplineForm: "the component that creates one",
+    NewDisciplinePage: "the page that renders it",
+    renderNewDisciplinePage: "its labeled inner render",
+    disciplineId: "a Disciplines record id on the PR paths",
+    disciplineIds: "those ids, from a Job's own link array",
+    disciplineRecords: "the rows those ids resolve to",
+    disciplineRecordId: "one such record id",
+    disciplineLabel: "the Disciplines primary field",
+    disciplineName: "the human-entered field",
+    disciplineById: "rows keyed by record id",
+    disciplinesForJob: "the rows of one Job",
+    jobByDisciplineId: "Job record id per Disciplines row",
+    setDisciplineId: "the form state setter for the picked row",
     line1: "the Addresses field `Line 1`",
     line2: "the Addresses field `Line 2`",
     polyline: "the SVG element",
@@ -660,7 +708,7 @@ export function run({ check, assert, log }) {
     // #269. Prose cannot be pinned; the fact it rests on can. Each word barred
     // above loses to a table's name, and this asserts that table is still there.
     log("");
-    log("every barred word loses to a table that still exists:");
+    log("every barred word loses to something that still exists:");
     const tables = tableNamesFromSource();
     // ANTI-VACUITY, and it needs both halves: an empty parse and a clean base read
     // the same way, and a parse that returned every string literal in the file would
@@ -668,7 +716,10 @@ export function run({ check, assert, log }) {
     assert(`parsed ${tables.length} names out of TABLES without importing it`, tables.length >= 20);
     assert(
         "the parse resolves real names and not any string it passed",
-        tables.includes("Deliveries") && tables.includes("Lines") && !tables.includes("Shipments")
+        tables.includes("Deliveries") &&
+            tables.includes("Disciplines") &&
+            !tables.includes("Lines") &&
+            !tables.includes("Shipments")
     );
     const orphaned = Object.entries(BEATEN_BY_TABLE)
         .filter(([, table]) => !tables.includes(table))
@@ -678,12 +729,47 @@ export function run({ check, assert, log }) {
         orphaned.length === 0 ? "none" : orphaned.join(", "),
         "none"
     );
-    // And the map has to cover what is actually barred, or a word could be added to
-    // a matcher above and never acquire a premise here.
+
+    // #280 — THE SECOND PREMISE, READ OUT OF CLAUDE.md. `line` lost to `Lines` until
+    // that table was renamed; what bars it now is #303's rule, which lives in the
+    // file every session reads. Asking whether the sentence is still there is the
+    // same question the table lookup above asks, one level up: a premise that can
+    // lapse, checked rather than assumed.
+    // Line endings normalized, the move `notes-index.mjs` and `screen-briefs.mjs`
+    // both make on this file: a checkout can be CRLF and the sentence is matched
+    // whole, so a wrap inside it would otherwise decide the answer.
+    const claudeMd = readFileSync(repoPath("CLAUDE.md"), "utf8").replace(/\r\n/g, "\n");
+    assert("CLAUDE.md was read", claudeMd.length > 10000);
+    const ruleless = Object.entries(BEATEN_BY_RULE)
+        .filter(([, sentence]) => !claudeMd.includes(sentence))
+        .map(([word, sentence]) => `${word} → ${sentence}`);
+    check(
+        `no barred word whose rule is gone from CLAUDE.md${
+            ruleless.length ? ` (${ruleless.join(", ")})` : ""
+        }`,
+        ruleless.length === 0 ? "none" : ruleless.join(", "),
+        "none"
+    );
+    // ANTI-VACUITY for that lookup: it has to be seen to say no, or a typo'd
+    // sentence would pass as "present" against a file this large.
+    assert(
+        "  and a rule CLAUDE.md does not state is reported",
+        !claudeMd.includes("ROW TAKES WHATEVER NAME IS HANDY")
+    );
+
+    // And the two maps together have to cover what is actually barred, or a word
+    // could be added to a matcher above and never acquire a premise at all.
     check(
         "every matcher's word carries a premise",
-        Object.keys(BEATEN_BY_TABLE).sort().join(),
+        [...Object.keys(BEATEN_BY_TABLE), ...Object.keys(BEATEN_BY_RULE)].sort().join(),
         "arrival,bill,line,shipment"
+    );
+    // Neither map may claim a word the other holds — one premise per word, or a
+    // lapse on one side would be masked by the other.
+    check(
+        "no word carries two premises",
+        Object.keys(BEATEN_BY_RULE).filter((w) => w in BEATEN_BY_TABLE).join(),
+        ""
     );
 
     // ── 4: the prose list stays qualified ───────────────────────────────────
@@ -721,8 +807,17 @@ export function run({ check, assert, log }) {
     // see one this sweep RENAMED (so it is reading the new tree), and it has to
     // reject a name that was never there.
     assert(`walked ${found.size} distinct stem-carrying identifier names`, found.size > 20);
-    assert("  including one the sweep left standing", found.has("getAllLines"));
-    assert("  and one the sweep renamed is gone", !found.has("lineStatus") && !found.has("poLine"));
+    assert("  including one the sweep left standing", found.has("termLine"));
+    // #280 — BOTH DIRECTIONS OF ITS OWN SWEEP, named rather than left to the two
+    // checks below: the table's new word is seen, and no identifier that meant a
+    // `Lines` row survives. `getAllLines` stood here until then, which is what a
+    // renamed anti-vacuity anchor looks like.
+    assert("  and the table's new word", found.has("getAllDisciplines"));
+    assert(
+        "  and nothing still names a Lines row",
+        !found.has("getAllLines") && !found.has("lineId") && !found.has("lineName")
+    );
+    assert("  and one #227 renamed is gone", !found.has("lineStatus") && !found.has("poLine"));
     assert("  and a name nobody ever wrote is absent", !found.has("shipmentStatus"));
     assert(
         "the stem matcher sees inside a token, which is what assertion 2 cannot",

@@ -32,12 +32,12 @@ navigating away.
 ## What must agree elsewhere
 
 **`Job Code` and `Job Name` are the two halves of the `{code} — {name}` pair** that
-every other screen renders as one cell — the request list's `Job / Line` column, the
+every other screen renders as one cell — the request list's `Job / Discipline` column, the
 delivery detail's job line, the purchase order detail's. This form is where that
 pair is authored, so both halves have to be worth showing.
 
 **A job's lines are created on their own screen**, not here, and a request cannot
-name a job without a line. So creating a job is step one of two and nothing on this
+name a job without a discipline. So creating a job is step one of two and nothing on this
 screen says that — worth knowing if a redesign considers joining them.
 
 **`Business Unit`'s three values are a closed set** and are not editable from the

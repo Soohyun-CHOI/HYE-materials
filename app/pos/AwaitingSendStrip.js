@@ -53,12 +53,12 @@ export default function AwaitingSendStrip({ rows }) {
                             {row.signedDate || "no date"}
                             {row.daysWaiting != null && ` · ${row.daysWaiting}d`}
                         </span>
-                        {/* Job / Line and the vendor, in the pair and separator the
+                        {/* Job / Discipline and the vendor, in the pair and separator the
                             list's own first column uses, so a reader locating work
                             reads one shape above the table and in it. */}
                         <span className="min-w-0 flex-1 truncate text-zinc-700">
                             {row.jobCode || "—"}
-                            {row.lineName ? ` / ${row.lineName}` : ""}
+                            {row.disciplineName ? ` / ${row.disciplineName}` : ""}
                             {" · "}
                             {row.vendorName || "—"}
                         </span>

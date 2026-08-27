@@ -129,7 +129,7 @@ export default function POListClient({
                         base's 2-digit convention), and `HYE-PO-20260805-02` rendered
                         at 141px, so 38 of 40 rows wrapped to two lines. Content
                         widths at 14px/20px Arial, plus the 8px `pr-2` every column
-                        but the last carries: Job / Line 184, PO ID 149, Vendor 124,
+                        but the last carries: Job / Discipline 184, PO ID 149, Vendor 124,
                         Status 117, Total 79 — 653px of the 832px a `max-w-4xl` page
                         minus `p-8` has.
 
@@ -149,7 +149,7 @@ export default function POListClient({
                         Delivery chip is a closed set whose widest value is
                         `Awaiting delivery`, measured at 102px at 12px/500 with the
                         chip's own 6px side padding; it sits LAST so it needs no
-                        `pr-2`. The width came from Vendor (-44), Job / Line (-44),
+                        `pr-2`. The width came from Vendor (-44), Job / Discipline (-44),
                         Total (-14) and PO ID (-4), leaving every column clear of
                         its measured content: PO ID 7px spare, Vendor 24, Job /
                         Line 20, Total 11, Status 3, Delivery 4. Delivery was cut
@@ -194,7 +194,7 @@ export default function POListClient({
                             <tr className="text-left text-zinc-500">
                                 <th className="pr-2">PO ID</th>
                                 <th className="pr-2">Vendor</th>
-                                <th className="pr-2">Job / Line</th>
+                                <th className="pr-2">Job / Discipline</th>
                                 <th className="pr-2 text-right">Total</th>
                                 <th className="pr-2">Status</th>
                                 {/* Same header as /invoices carries for the same
@@ -248,7 +248,9 @@ export default function POListClient({
                                             middot — /prs's own shape for the pair. */}
                                         <td className="py-1 pr-2">
                                             {row.jobCode || "—"}
-                                            {row.lineName ? ` · ${row.lineName}` : ""}
+                                            {row.disciplineName
+                                                ? ` · ${row.disciplineName}`
+                                                : ""}
                                         </td>
                                         <td className="py-1 pr-2 text-right">{formatUSD(row.total)}</td>
                                         <td className="py-1 pr-2">{row.statusText}</td>

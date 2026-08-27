@@ -20,7 +20,7 @@ see the shared brief's note on where the app disagrees with itself.
 **action — a filter bar:** a multi-job picker, a `Raised by me` checkbox, a
 status dropdown. Mirrored into the URL like the request list's.
 
-**evidence — the table, seven columns.** PO ID, Vendor, `Job / Line`, Total,
+**evidence — the table, seven columns.** PO ID, Vendor, `Job / Discipline`, Total,
 Status, Delivery, Invoice. The last two hold chips rather than text.
 
 **verdict — two chips per row, one per axis.** Under `Delivery`, one of
@@ -74,7 +74,7 @@ the first, with a counted heading — `N signed orders have not been sent to the
 vendor` — and one line for everyone: `Longest wait first. The vendor has not
 received these, and sending one to the vendor is what places the order.` Each row
 is the order's ID as a link, the day it was signed with a day count beside it,
-and Job / Line · Vendor.
+and Job / Discipline · Vendor.
 
 **One voice and no control, and both follow from the same thing.** Sending
 happens on the order's own page, where the vendor's address sits above the button

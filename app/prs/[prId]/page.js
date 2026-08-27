@@ -9,7 +9,7 @@ import { getEditLogByPR } from "@/lib/airtable/editLog";
 import { getQuotationsByPR } from "@/lib/airtable/quotations";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { getAllVendors } from "@/lib/airtable/vendors";
-import { getAllLines } from "@/lib/airtable/lines";
+import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
@@ -79,7 +79,7 @@ async function renderPRDetailPage({ params, searchParams }) {
     // recordToPR exposes all five arrays for exactly this (#143 put two of them
     // there for canViewPR; #193 added the rest), and each level is then one
     // query rather than one find per row.
-    const [signers, items, quotations, correctionRequests, editLog, vendors, lines, jobs] =
+    const [signers, items, quotations, correctionRequests, editLog, vendors, disciplines, jobs] =
         await Promise.all([
             getSignersByPR(pr.id, { rowIds: pr.signerRowIds }),
             getItemsByPR(pr.id, { rowIds: pr.itemRowIds }),
@@ -87,7 +87,7 @@ async function renderPRDetailPage({ params, searchParams }) {
             getCorrectionRequestsByPR(pr.id, { rowIds: pr.correctionRowIds }),
             getEditLogByPR(pr.id, { rowIds: pr.editLogRowIds }),
             getAllVendors(),
-            getAllLines(),
+            getAllDisciplines(),
             getAllJobs(),
         ]);
 
@@ -124,7 +124,7 @@ async function renderPRDetailPage({ params, searchParams }) {
     const usersById = Object.fromEntries(userList.map((u) => [u.id, u]));
 
     const vendorsById = Object.fromEntries(vendors.map((v) => [v.id, v]));
-    const linesById = Object.fromEntries(lines.map((l) => [l.id, l]));
+    const disciplineById = Object.fromEntries(disciplines.map((d) => [d.id, d]));
     const jobsById = Object.fromEntries(jobs.map((j) => [j.id, j]));
 
     // Issue #67 — same fallback labeling as the creation form: the
@@ -145,10 +145,10 @@ async function renderPRDetailPage({ params, searchParams }) {
     const isAdmin = user.isAdmin === true;
 
     const vendorName = vendorsById[pr.vendor?.[0]]?.vendorName || "—";
-    const lineLabel = linesById[pr.line?.[0]]?.lineLabel || "—";
-    // Job is a Lookup through Line -> Lines.Job (itself a link field), so
-    // pr.job is a raw Job record ID, not display text — resolve it the
-    // same way as Vendor/Line above.
+    const disciplineLabel = disciplineById[pr.discipline?.[0]]?.disciplineLabel || "—";
+    // Job is a Lookup through Discipline -> Disciplines.Job (itself a link field),
+    // so pr.job is a raw Job record ID, not display text — resolve it the
+    // same way as Vendor/Discipline above.
     const job = jobsById[pr.job?.[0]];
     const jobDisplay = job ? `${job.jobCode} — ${job.jobName}` : "—";
     const requesterName = usersById[pr.requester?.[0]]?.userName || "—";
@@ -304,7 +304,7 @@ async function renderPRDetailPage({ params, searchParams }) {
                     Status: <strong>{pr.status}</strong>
                 </p>
                 <p>Job: {jobDisplay}</p>
-                <p>Line: {lineLabel}</p>
+                <p>Discipline: {disciplineLabel}</p>
                 <p>Vendor: {vendorName}</p>
                 <p>Requester: {requesterName}</p>
                 {pr.notes && <p>Notes: {pr.notes}</p>}

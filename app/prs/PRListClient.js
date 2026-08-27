@@ -131,7 +131,7 @@ export default function PRListClient({
                             <th className="pr-2">PR ID</th>
                             <th className="pr-2">Requester</th>
                             <th className="pr-2">Vendor</th>
-                            <th className="pr-2">Job / Line</th>
+                            <th className="pr-2">Job / Discipline</th>
                             <th className="pr-2 text-right">Total</th>
                             <th className="pr-2">Status</th>
                         </tr>
@@ -176,7 +176,7 @@ export default function PRListClient({
                                     <td className="py-1 pr-2">{r.vendorName}</td>
                                     <td className="py-1 pr-2">
                                         {r.jobCode || "—"}
-                                        {r.lineName ? ` · ${r.lineName}` : ""}
+                                        {r.disciplineName ? ` · ${r.disciplineName}` : ""}
                                     </td>
                                     <td className="py-1 pr-2 text-right">{formatUSD(r.total)}</td>
                                     <td className="py-1 pr-2">{r.status}</td>

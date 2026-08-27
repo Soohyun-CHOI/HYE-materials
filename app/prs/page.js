@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getSubmittedPRs } from "@/lib/airtable/purchaseRequests";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAllLines } from "@/lib/airtable/lines";
+import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
@@ -39,15 +39,15 @@ async function renderPRListPage({ searchParams }) {
     const sp = await searchParams;
     const isPrivileged = user.role === "President" || user.isAdmin === true;
 
-    const [allPRs, jobs, lines, vendors] = await Promise.all([
+    const [allPRs, jobs, disciplines, vendors] = await Promise.all([
         getSubmittedPRs(),
         getAllJobs(),
-        getAllLines(),
+        getAllDisciplines(),
         getAllVendors(),
     ]);
 
     const jobsById = Object.fromEntries(jobs.map((j) => [j.id, j]));
-    const linesById = Object.fromEntries(lines.map((l) => [l.id, l]));
+    const disciplineById = Object.fromEntries(disciplines.map((d) => [d.id, d]));
     const vendorsById = Object.fromEntries(vendors.map((v) => [v.id, v.vendorName]));
 
     // SERVER-SIDE VISIBILITY GATE (#119) — the security boundary, never moved
@@ -105,7 +105,7 @@ async function renderPRListPage({ searchParams }) {
         vendorName: vendorsById[pr.vendor?.[0]] || "—",
         jobId: pr.job?.[0] ?? null,
         jobCode: jobsById[pr.job?.[0]]?.jobCode || null,
-        lineName: linesById[pr.line?.[0]]?.lineName || null,
+        disciplineName: disciplineById[pr.discipline?.[0]]?.disciplineName || null,
         total: pr.totalAmount ?? pr.itemsSubtotal ?? 0,
         // Issue #272 — FREE, and that is why it is here rather than in the client:
         // both reverse-links the kind is read from are already on the record

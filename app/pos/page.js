@@ -4,7 +4,7 @@ import { getAllPOs } from "@/lib/airtable/purchaseOrders";
 import { getApprovedPRs, getPRsByRecordIds } from "@/lib/airtable/purchaseRequests";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAllLines } from "@/lib/airtable/lines";
+import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { canViewPR } from "@/lib/prVisibility";
 import { selectPOsAwaitingSend, selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
@@ -71,20 +71,20 @@ async function renderPOListPage({ searchParams }) {
     // 5 and 6. getLinkedRecords is deliberately not used anywhere here: it re-finds
     // the parent on every call, which is why /prs/[prId] reads one PR five times.
     //
-    // Lines buys one thing: the Line NAME. A PR's `line` is a link and gives a
-    // record id, exactly as `job` does, so the column cannot be built without it —
-    // the same reason /prs fetches Lines for the same column.
+    // Disciplines buys one thing: the Discipline NAME. A PR's `discipline` is a
+    // link and gives a record id, exactly as `job` does, so the column cannot be
+    // built without it — the same reason /prs fetches them for the same column.
     //
     // getApprovedPRs is #176's and is the seventh. It cannot be derived from the
     // six above: the strip's subject is approved requests that produced NO order,
     // so every one of them is absent from `pos` by definition. It is one select
     // filtered on `Status`, so it grows one query per 100 approved requests and
     // never with the number of rows the strip draws.
-    const [pos, vendors, jobs, lines, approvedPRs] = await Promise.all([
+    const [pos, vendors, jobs, disciplines, approvedPRs] = await Promise.all([
         getAllPOs(),
         getAllVendors(),
         getAllJobs(),
-        getAllLines(),
+        getAllDisciplines(),
         getApprovedPRs(),
     ]);
     const parentPrIds = [...new Set(pos.map((po) => po.pr?.[0]).filter(Boolean))];
@@ -93,7 +93,7 @@ async function renderPOListPage({ searchParams }) {
     const prById = new Map(prs.map((pr) => [pr.id, pr]));
     const vendorNameById = new Map(vendors.map((v) => [v.id, v.vendorName]));
     const jobById = new Map(jobs.map((j) => [j.id, j]));
-    const lineById = new Map(lines.map((l) => [l.id, l]));
+    const disciplineById = new Map(disciplines.map((d) => [d.id, d]));
 
     // THE GATE. A PO with no parent PR is refused rather than shown: every PO in
     // this app is generated from one (strict 1:1), so a missing parent is a broken
@@ -118,12 +118,17 @@ async function renderPOListPage({ searchParams }) {
     const poItemRecordIds = visible.flatMap((po) => po.poItems || []);
     const poItems = await getPOItemsByRecordIds(poItemRecordIds);
 
-    const linesByPO = new Map();
+    // #280 — `orderedItemsByPO`, WHICH IS WHAT IT HAS ALWAYS HELD. It was
+    // `linesByPO`, and `offline/line-vocabulary.mjs` recorded the reason as "the
+    // Lines row behind each PO" — false: the loop below reads `poItems`. #227 swept
+    // `line` off the child rows and missed this one; the entry could not be restated
+    // truthfully once `Lines` was gone, so the name moved with it.
+    const orderedItemsByPO = new Map();
     for (const item of poItems) {
         const poRecordId = item.po?.[0];
         if (!poRecordId) continue;
-        if (!linesByPO.has(poRecordId)) linesByPO.set(poRecordId, []);
-        linesByPO.get(poRecordId).push({
+        if (!orderedItemsByPO.has(poRecordId)) orderedItemsByPO.set(poRecordId, []);
+        orderedItemsByPO.get(poRecordId).push({
             orderedQty: item.qty,
             deliveredQty: item.deliveredQty,
             // #235 — the invoicing chip's own quantity. Free: this reader already
@@ -145,7 +150,7 @@ async function renderPOListPage({ searchParams }) {
             vendorName: vendorNameById.get(po.vendor?.[0]) || "—",
             jobId,
             jobCode: jobById.get(jobId)?.jobCode || null,
-            lineName: lineById.get(pr?.line?.[0])?.lineName || null,
+            disciplineName: disciplineById.get(pr?.discipline?.[0])?.disciplineName || null,
             total: po.totalAmount ?? po.itemsSubtotal ?? 0,
             // The raw value drives the filter; the rendered text is the column.
             status: po.status || "",
@@ -160,7 +165,7 @@ async function renderPOListPage({ searchParams }) {
             // detail page had the `Delivered` column and no chip, so the function
             // had one caller. That page calls it now, beside its `Deliveries`
             // heading.
-            deliveryChip: describePOColumn(summarizePODeliveryStatus(linesByPO.get(po.id) || [])),
+            deliveryChip: describePOColumn(summarizePODeliveryStatus(orderedItemsByPO.get(po.id) || [])),
             // #235 — the invoicing axis's own chip, resolved here for the reason the
             // delivery one is: the copy lives in lib/deliveryStatus.js and the client
             // component never sees a quantity. Every viewer of a row reads it, which
@@ -168,7 +173,7 @@ async function renderPOListPage({ searchParams }) {
             // is not, and what a vendor invoiced is readable by whoever may read the
             // order behind it (#211).
             invoicingChip: describePOInvoicingColumn(
-                summarizePOInvoicingStatus(linesByPO.get(po.id) || [])
+                summarizePOInvoicingStatus(orderedItemsByPO.get(po.id) || [])
             ),
             // A PO carries no requester of its own — it is the parent PR's
             // (#138). Resolved here so the requester's identity never reaches
@@ -198,21 +203,23 @@ async function renderPOListPage({ searchParams }) {
     // which is the same answer they get for the table's rows and for the same
     // reason: a refused row is absent rather than announced.
     //
-    // Job, Line and Vendor come out of the three maps the table already built, so
+    // Job, Discipline and Vendor come out of the three maps the table already built,
+    // so
     // the strip adds no read of its own beyond the one select above.
     const awaitingPO = selectPRsAwaitingPO(approvedPRs.filter((pr) => canViewPR(user, pr)));
     const awaitingPORows = awaitingPO.map((pr) => ({
         id: pr.id,
         prId: pr.prId,
         jobCode: jobById.get(pr.job?.[0])?.jobCode || null,
-        lineName: lineById.get(pr.line?.[0])?.lineName || null,
+        disciplineName: disciplineById.get(pr.discipline?.[0])?.disciplineName || null,
         vendorName: vendorNameById.get(pr.vendor?.[0]) || null,
     }));
 
     // #295 — SIGNED ORDERS NOBODY HAS SENT, AND NOT ONE NEW READ. The orders are
     // `visible`, so the strip inherits the table's gate rather than applying a second
     // one; `Sent At`, `President Signed At` and `President Signed` all ride on
-    // recordToPO already (#281 put the first there), and Job, Line and Vendor come out
+    // recordToPO already (#281 put the first there), and Job, Discipline and Vendor
+    // come out
     // of the three maps the table built. `Sent By` is deliberately absent: the send
     // writes it in the same operation as `Sent At`, so every row here has none, and a
     // column naming the person would cost a Users read per row to name nobody.
@@ -238,7 +245,7 @@ async function renderPOListPage({ searchParams }) {
                 // The tie-break, sort-only: nothing renders it.
                 createdKey: po.poId || "",
                 jobCode: jobById.get(jobId)?.jobCode || null,
-                lineName: lineById.get(pr?.line?.[0])?.lineName || null,
+                disciplineName: disciplineById.get(pr?.discipline?.[0])?.disciplineName || null,
                 vendorName: vendorNameById.get(po.vendor?.[0]) || null,
                 daysWaiting: daysWaiting(signedDate, today),
             };
