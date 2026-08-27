@@ -141,10 +141,11 @@ single word mean a chip on one screen and a text color on another.
 | `exception` | A discrepancy a person has to act on. | amber text |
 
 **This group held two until #278, and the second is worth knowing about even
-though it is gone.** `unjudged` was gray text for a charge with no ordered item
+though it is gone.** `unjudged` was gray text for an invoice item with no ordered
+item
 behind it — "nothing was measured here", not a problem but the absence of one —
 and the pair made a distinction the invoice detail drew on purpose: gray said
-nothing was compared, amber said something is wrong. #278 removed the charge
+nothing was compared, amber said something is wrong. #278 removed that item
 itself, so the gray half has no producer and every entry in that list is now an
 exception. A design does not have to draw the distinction; it should know the
 list was once two things and is now one, because reintroducing a second grade
@@ -200,7 +201,7 @@ scopes appear on one screen, which one a figure belongs to has to be
 recoverable without counting.
 
 **A document's own arithmetic against a cross-document variance.** #179 named
-these two apart after they had shared one word: `⚠ Order variance` is a charge
+these two apart after they had shared one word: `⚠ Order variance` is an item
 that differs from what its order agreed, and `⚠ Check the total` is one
 document's stated total not matching its own computed total. Two different
 facts, two different remedies, and they can both be on one invoice at once.
@@ -299,11 +300,18 @@ one `PO Items` row's quantity, not the order's total.
 
 ### Variance (tier 1, `lib/variance.js`)
 
-`⚠ Order variance` — an item-level charge against what its order agreed.
+`⚠ Order variance` — one item against what its order agreed.
 `⚠ Check the total` — a document's stated total against its own computed total.
 The pair is #179's and is pinned by `offline/variance-copy.mjs` as well.
 `Mismatch` is barred here: it belongs to the delivery axis, and one word on two
 axes of one page is exactly the defect #179 removed.
+
+The badge has a third string behind it, the invoice-level prompt, and this
+document named it as locked without quoting it until #303:
+`⚠ An item on this invoice differs from what its order agreed — check it against
+the order, or take it up with the vendor, before this invoice is paid.` The two
+refusals that hold the whole-number premise are the same constant's neighbours and
+are quoted on `invoices-new.md` and `invoices-invoiceId-edit.md`.
 
 ### The order's documents (tier 1, `lib/poDocuments.js`)
 

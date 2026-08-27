@@ -56,6 +56,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { listJsFiles, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./tests/offline/_ast.mjs";
 import { isPageFile, routeTemplate } from "./tests/offline/_entrypoints.mjs";
+import { isMain } from "./tests/offline/_harness.mjs";
 
 const INVENTORY_DIR = "docs/briefs/strings";
 
@@ -616,21 +617,28 @@ function runCheck(routes) {
     return 1;
 }
 
-const args = process.argv.slice(2);
-const check = args.includes("--check");
-const named = args.filter((a) => a.startsWith("/"));
-const routes = named.length ? named : listRoutes();
+// BEHIND A MAIN GUARD SINCE #303, so an offline check can import the collection
+// rather than write a second one. Without it, `import`ing this file ran the census
+// as a side effect and printed twenty-one lines into another check's output — which
+// is the same "an import is an execution" hazard CLAUDE.md records for the client
+// bundle, one tier down. `offline/item-row-nouns.mjs` is the caller.
+if (isMain(import.meta.url)) {
+    const args = process.argv.slice(2);
+    const check = args.includes("--check");
+    const named = args.filter((a) => a.startsWith("/"));
+    const routes = named.length ? named : listRoutes();
 
-if (check) process.exit(runCheck(routes));
-else if (named.length) process.exit(named.reduce((code, r) => Math.max(code, reportRoute(r)), 0));
-else {
-    let total = 0;
-    for (const route of routes) {
-        const { files, strings } = stringsForRoute(route);
-        total += strings.length;
-        console.log(`${String(strings.length).padStart(4)}  ${route}  (${files.length} files)`);
+    if (check) process.exit(runCheck(routes));
+    else if (named.length) process.exit(named.reduce((code, r) => Math.max(code, reportRoute(r)), 0));
+    else {
+        let total = 0;
+        for (const route of routes) {
+            const { files, strings } = stringsForRoute(route);
+            total += strings.length;
+            console.log(`${String(strings.length).padStart(4)}  ${route}  (${files.length} files)`);
+        }
+        // The census is recomputed rather than written down, which is
+        // `airtable-ops.mjs`'s move: a number in a document goes stale unread.
+        console.log(`\n${total} strings across ${routes.length} screens`);
     }
-    // The census is recomputed rather than written down, which is `airtable-ops.mjs`'s
-    // move: a number in a document goes stale unread.
-    console.log(`\n${total} strings across ${routes.length} screens`);
 }

@@ -671,11 +671,11 @@ async function renderPODetailPage({ params, searchParams }) {
                                 </p>
                                 {/* ONE ROW PER ORDERED ITEM AND PRICE (#266), the
                                     delivery list's fold with the unit price joined to
-                                    the key — so two charges at different prices
+                                    the key — so two invoice items at different prices
                                     stay two facts and a folded one's `@ price` is
                                     exact rather than a choice between two.
 
-                                    NOTHING IN THE APP PRODUCES TWO CHARGES ON ONE
+                                    NOTHING IN THE APP PRODUCES TWO INVOICE ITEMS ON ONE
                                     ORDERED ITEM, which is worth saying because the
                                     issue reached for #167's split and that is not the
                                     producer: the split re-points the excess onto the

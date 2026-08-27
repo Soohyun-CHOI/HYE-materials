@@ -1,7 +1,7 @@
 // Every optional money term reaches the total (#283).
 //
 // WHAT THIS FILE IS FOR IS THE SILENT MUTANT OF AN ADDITION, which is
-// `no-free-text-charge.mjs` pointed the other way: that file guards the empty
+// `no-free-text-item.mjs` pointed the other way: that file guards the empty
 // space a removal leaves, this one guards the seam an addition opens. A new
 // currency term on `Invoices` has to be picked up in six places, and a term that
 // reaches five of them breaks nothing. The field exists, the form accepts a
@@ -74,7 +74,7 @@ const TERMS = [
  * Both the old label and the new one are element CHILDREN — `Calculated total:`
  * followed by an expression — so neither is a `Literal` and a walk without this
  * branch reported the retired term list as absent from a file that had been
- * carrying it all along. `no-free-text-charge.mjs` records the same hole, found
+ * carrying it all along. `no-free-text-item.mjs` records the same hole, found
  * the same way; the lesson is worth having twice.
  */
 function literalsIn(node) {

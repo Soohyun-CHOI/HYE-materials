@@ -159,10 +159,20 @@ together.
 **The purchase order this generated is a link both ways.** That screen names this
 request; this one names that order.
 
-**`Line` is reserved.** It names a `Lines` row under a job here and on the
-request list's `Job / Line` column, and a row of the items table is an **ordered
-item** in prose and screen copy everywhere in the app. A redesign that labels a
-table row a "line" collides with a real link field on this very screen.
+**`Line` is reserved.** It names a `Lines` row under a job here and on the request
+list's `Job / Line` column, and never a row of an items table. A redesign that
+labels a table row a "line" collides with a real link field on this very screen.
+
+**A row of THIS table is a `PR Items` row, and the word for it is `item` (#303).**
+This brief said such a row was an *ordered item* "in prose and screen copy
+everywhere in the app", and it was wrong twice. Nothing is ordered here — a
+purchase request is what a requester raises before any order exists, and `ordered
+item` is the word for a `PO Items` row, which is the frozen snapshot the purchase
+order page shows. And no screen says `ordered item` for a row of any items table:
+this one, the purchase order's and the invoice's all head the section `Items` and
+the column `Item`, which is correct because only one kind of item row appears in
+each. A row takes its own table's name in the singular, and the modifier drops
+where nothing else on the screen competes for the word.
 
 **The items table is the same seven columns as the purchase order's first
 seven**, because the order is generated from it. What differs is that these are

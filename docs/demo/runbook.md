@@ -381,7 +381,7 @@ a different thing from having one to open.
 **Two steps stood here and #278 removed both**, with the seeded rows they read.
 Step 3 was `grey against amber` — this same entry beside a second one reading
 *Not compared — no ordered item* in grey — and step 4 was
-`/invoices/HYE-INV-260819-12`, an invoice every charge of which was free text and
+`/invoices/HYE-INV-260819-12`, an invoice every item of which was free text and
 whose order list therefore read `None linked.` Neither is a state this app can
 produce. The shortfall was seeded on the same invoice as the grey entry and came
 back on its own as `SHORTFALL`, which is why the id above is newer than its
@@ -603,5 +603,5 @@ distinction is the one worth keeping:
 **Two more stood at the head of this list and #278 removed them**, because the
 states they were about are not states this app has: `Not compared — no ordered
 item` rendering nothing, and `None linked.` being unreachable from the same
-invoice. Both were about a charge with no ordered item behind it, and the work of
+invoice. Both were about an invoice item with no ordered item behind it, and the work of
 getting the seed to show them is what made it worth asking whether it should.

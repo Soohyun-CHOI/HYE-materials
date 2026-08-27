@@ -1,4 +1,4 @@
-// Every charge names an ordered item (#278) — the writers, not the judgment.
+// Every invoice item names an ordered item (#278) — the writers, not the judgment.
 //
 // WHAT THIS FILE IS FOR IS THE SILENT MUTANT OF A REMOVAL. #278 deleted twenty-six
 // branches, six pieces of copy and a tone; deleting them leaves EMPTY SPACE, and
@@ -36,12 +36,16 @@
 // here even though its words do not.
 //
 // SCOPE: three files, named rather than swept. A sweep would ask "does any file
-// mention a free-text charge", which is a question about comments.
+// mention a free-text item", which is a question about comments.
+//
+// THE FILE WAS `no-free-text-charge.mjs` UNTIL #303, which made an `Invoice Items`
+// row an `invoice item`. A name is the same drift one level up (`naming.md`), and
+// this one had the noun in the subject position of its own title sentence.
 
 import { callsTo, parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Every charge names an ordered item — the writers (#278)";
+export const title = "Every invoice item names an ordered item — the writers (#278)";
 
 const ACTION = "app/invoices/new/actions.js";
 const WRITER = "lib/airtable/invoiceItems.js";
@@ -104,7 +108,7 @@ function refusesOnMissingOrderedItem(relPath) {
 
 export function run({ check, assert, log }) {
     // ── the two writers ─────────────────────────────────────────────────────
-    log("both writers refuse a charge with no ordered item:");
+    log("both writers refuse an invoice item with no ordered item:");
     check(`${ACTION} refuses before writing`, refusesOnMissingOrderedItem(ACTION), true);
     check(`${WRITER} throws rather than coercing`, refusesOnMissingOrderedItem(WRITER), true);
 

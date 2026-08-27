@@ -31,12 +31,12 @@ import { VARIANCE_COPY, checkHeaderVariance } from "@/lib/variance";
 // `applyDefaultsAcrossItems` idempotent. unitPriceEditing: whether the Unit
 // Price lock (#57) is currently open for a linked PO Item.
 //
-// `poItemRecordId: ""` IS A STATE OF THE FORM AND NOT OF A SAVED CHARGE (#278).
+// `poItemRecordId: ""` IS A STATE OF THE FORM AND NOT OF A SAVED ITEM (#278).
 // A row holds it before its PO is picked, while that PO's items load, and when
 // #91 leaves it nothing to claim — none of which may be submitted, which
 // `createInvoiceAction` refuses and the row itself explains. THE ROW REALLY DOES
 // EXPLAIN ALL THREE SINCE #272: the first two still offered a free-text
-// `Item Name` box, which is the half of the free-text charge #278 did not reach.
+// `Item Name` box, which is the half of the free-text item #278 did not reach.
 // Nothing but the ordered item writes `itemName` now.
 const EMPTY_ITEM = {
     itemName: "",
@@ -185,8 +185,8 @@ const confirmChangeMessage = (subject) =>
 // the backend path standing and said flipping it back was the whole of
 // re-exposing the option. #278 decided the option is not a feature: only a
 // purchase request takes typed items, a `PO Items` row is a snapshot of one, and
-// an `Invoice Items` row is chosen from those — so a charge with no ordered item
-// behind it is not a state this app has, and the twenty-two branches that
+// an `Invoice Items` row is chosen from those — so an invoice item with no ordered
+// item behind it is not a state this app has, and the twenty-two branches that
 // described one went with the flag.
 //
 // REMOVING THE FLAG WAS NOT THE WHOLE OF CLOSING IT, WHICH IS WHY THIS NOTE IS
@@ -461,7 +461,7 @@ export default function InvoiceForm({ vendors, pos }) {
             // fetched, so this is just reading a flag already on each
             // confirmed entry.
             // Non-blocking — an unusual but legitimate scenario (e.g. a
-            // correction or late add-on charge) — so it only ever changes
+            // correction or a late add-on) — so it only ever changes
             // the message's tone (level: "warning"), never what auto-fills.
             const closedPos = confirmed.filter((c) => c.isOpen === false);
             // Only spells out which PO IDs when there's more than one
@@ -994,7 +994,7 @@ export default function InvoiceForm({ vendors, pos }) {
     //
     // THE SUM STAYS THIS FORM'S OWN and has to: there is no rollup in a browser,
     // and the backend's figure is Airtable's `Calculated Total` re-read after the
-    // charges are linked. The two cannot always see the same number, so passing
+    // items are linked. The two cannot always see the same number, so passing
     // this form's own two figures to the shared predicate is the whole of what
     // one rule can mean here — `calculatedTotal` above is the same binding the
     // label renders, so the warning and the preview cannot come apart.
@@ -1426,8 +1426,8 @@ export default function InvoiceForm({ vendors, pos }) {
                         const availablePoItemOptions = poItemOptions.filter(
                             (poItem) => poItem.id === item.poItemRecordId || !usedElsewhere.has(poItem.id)
                         );
-                        // Issue #278 — THE SECOND PATH TO A CHARGE WITH NO ORDERED
-                        // ITEM, and the one removing `SHOW_OTHER_ITEM_OPTION` does
+                        // Issue #278 — THE SECOND PATH TO AN INVOICE ITEM WITH NO
+                        // ORDERED ITEM, and the one removing `SHOW_OTHER_ITEM_OPTION` does
                         // not close. #91 keeps one ordered item to one row of one
                         // invoice, so a row pointed at a PO whose every ordered item
                         // a sibling row has already claimed has nothing left to
@@ -1452,7 +1452,7 @@ export default function InvoiceForm({ vendors, pos }) {
                         const noOrderedItemLeft =
                             !locked && Boolean(item.poRecordId) && availablePoItemOptions.length === 0;
                         // Issue #57 — only meaningful once a real PO Item is linked,
-                        // and since #278 that is every saved charge.
+                        // and since #278 that is every saved item.
                         const linkedPoItem = item.poItemRecordId
                             ? poItemOptions.find((p) => p.id === item.poItemRecordId)
                             : null;
@@ -1517,11 +1517,23 @@ export default function InvoiceForm({ vendors, pos }) {
                                                 the option above, and the only way to reach it now
                                                 is the exhausted-PO state, which says what happened
                                                 instead. */}
+                                            {/* Issue #303 — RESTRUCTURED SO NEITHER SENTENCE NAMES
+                                                TWO KINDS OF ITEM ROW, which is what let the modifier
+                                                drop from the second one. It read `Every item on this
+                                                purchase order is already on another charge of this
+                                                invoice.` — an ordered item called `item` and an
+                                                invoice item called `charge`, one sentence, two
+                                                tables, and the bare word on the side the reader was
+                                                not looking at. Making the invoice the subject moves
+                                                the whole ordered-item half into the first sentence
+                                                and leaves the second one about this row alone; it
+                                                also puts #274's transitive verb where the sentence
+                                                was already reaching for it. */}
                                             {noOrderedItemLeft && (
                                                 <p className="text-xs text-amber-700">
-                                                    Every item on this purchase order is already on
-                                                    another charge of this invoice. Pick a different
-                                                    purchase order for this charge, or remove it.
+                                                    This invoice already charges every ordered item on
+                                                    this purchase order. Pick a different purchase
+                                                    order for this item, or remove it.
                                                 </p>
                                             )}
                                         </div>
@@ -1550,7 +1562,7 @@ export default function InvoiceForm({ vendors, pos }) {
                                             className={inputClass + " w-full"}
                                         >
                                             <option value="">
-                                                {locked ? "Select a PO above" : "Pick this charge's PO first"}
+                                                {locked ? "Select a PO above" : "Pick this item's PO first"}
                                             </option>
                                         </select>
                                     )}
@@ -1817,7 +1829,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     (Vendor's Stated Total) is still what gets stored and
                     submitted regardless of whether it agrees with this
                     preview. Catches a vendor's own arithmetic error or a
-                    missed charge — the calculation alone can't.
+                    missed item — the calculation alone can't.
 
                     #283 — THE TERM LIST IS GONE FROM THE LABEL, and the reason is
                     that a list with optional members has only two states and both

@@ -10,9 +10,18 @@ of the three with a real interaction in it.
 
 A line is a subdivision of a job, and it is what a purchase request actually names.
 The word is reserved across the whole app: **`line` means a row of this table and
-nothing else** — never a row of an items table, which is an *ordered item* in prose
-and screen copy everywhere. This screen is where the reserved thing is created, so
-it is the clearest place to see what the word means.
+nothing else** — never a row of an items table. This screen is where the reserved
+thing is created, so it is the clearest place to see what the word means.
+
+This paragraph said such a row was an *ordered item* "in prose and screen copy
+everywhere", which was wrong twice and is corrected per #303. **Each of the four
+item tables takes its own table's name in the singular** — a `PR Items` row, a
+`PO Items` row (`ordered item`, the one that is not its table's name spelled out),
+an `Invoice Items` row and a `Delivery Items` row — so there is no single word for
+"a row of an items table". And no screen says `ordered item` for one: each items
+table is headed `Items` with an `Item` column, which is right because only one kind
+of item row appears on each of those screens. What `line` is reserved AGAINST is
+all four of them, which is the claim this paragraph was reaching for.
 
 ## What it always carries
 

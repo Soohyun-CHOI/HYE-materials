@@ -84,7 +84,7 @@ it.** One recorded delivery is one row per allocated slice, and an over-delivery
 writes two against the same ordered item — the part inside the order and the
 excess — so what a reader would otherwise meet is one material listed twice under
 one delivery. It is one line, with the quantities added. The invoice side folds on
-the same principle, with the unit price joined to it: two charges at two
+the same principle, with the unit price joined to it: two invoice items at two
 different prices are two facts and stay two lines, so a folded row's price is
 always exactly what was invoiced.
 
@@ -147,7 +147,7 @@ which one they are looking at.
 **When an invoice's own total does not match its computed total:** a
 `⚠ Check the total` badge on that invoice's row.
 
-**When one charge on an invoice differs from what this order agreed:** an
+**When one item on an invoice differs from what this order agreed:** an
 `⚠ Order variance` badge on that child row, inside the indented list. This is
 the one screen in the app that can show both variance kinds at once, which is
 why they must keep two different words.

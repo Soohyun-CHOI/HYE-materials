@@ -98,6 +98,20 @@ invisible.
 `lib/airtable/`, so no offline check can load them either. The briefs already call
 their words tier 2 for that reason.
 
+**THE FIRST VOCABULARY SWEEP TO READ THIS GROUP BY HAND FOUND IT ALREADY RIGHT, and
+that is the more useful result (#303).** That issue settled what a row of each of the
+four item tables is called, so every one of these constants was a candidate. Six say
+`ordered item` and none says a bare `item` for a `PO Items` row: `DELETE_COPY`'s three
+deletion voices, all ten of `PAIRING_COPY`'s sentences, and `RESTORE.items`, which is
+`the items you edited` about `PR Items` on a request's own page and correct with the
+modifier dropped. The two defects the sweep did fix were both in strings the extractor
+produces — one written straight into JSX and one an `error:` property — so a sweep
+standing on the tool alone would have found them both. **What it would have missed is
+the EVIDENCE**: `ordered item` being what the app's least visible, most recently
+argued copy already says is half the reason the noun went the way it did, and none of
+it is in the extractor's output. Read this file for what a decision rests on, not only
+for what a sweep has to edit.
+
 ## B — A string literal returned directly by a `lib/` function
 
 `lib/materialPriceView.js:statusTag` returns `PO unsigned`, `PO withdrawn` and

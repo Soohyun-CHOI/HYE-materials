@@ -188,8 +188,8 @@ export function run({ check, assert, log }) {
     check("  so the document carries no mark either", noExcess[0]?.overDelivered, false);
 
     // THE INVOICE AXIS, and the unit price is what makes the pair a pair. The same
-    // ordered item at the same price is one charge; at two prices it is two facts, and
-    // that is what settles what a folded charge says about a price that differs — it
+    // ordered item at the same price is one entry; at two prices it is two facts, and
+    // that is what settles what a folded entry says about a price that differs — it
     // never has to, because the price is part of the key.
     const oneCharge = foldInvoicesOnOrder({
         orderedItems: ORDERED,
@@ -199,11 +199,11 @@ export function run({ check, assert, log }) {
         ],
         invoices: [invoice()],
     });
-    check("two charges on one ordered item at ONE price — ONE charge", oneCharge[0]?.charges.length, 1);
+    check("two invoice items on one ordered item at ONE price fold to one", oneCharge[0]?.charges.length, 1);
     check("  the quantity is added", oneCharge[0]?.charges[0]?.qty, 13);
     check("  the price survives the fold, since it is the key", oneCharge[0]?.charges[0]?.unitPrice, 13.49);
     check(
-        "  and one flagged member flags the folded charge",
+        "  and one flagged member flags the folded entry",
         oneCharge[0]?.charges[0]?.varianceFlag,
         true
     );
@@ -215,7 +215,7 @@ export function run({ check, assert, log }) {
         ],
         invoices: [invoice()],
     });
-    check("  two charges at TWO prices stay two", twoPrices[0]?.charges.length, 2);
+    check("  two invoice items at TWO prices stay two", twoPrices[0]?.charges.length, 2);
     assert("  keyed apart by the price alone", keysAreUnique(twoPrices[0]?.charges));
     check(
         "  each keeping its own price rather than one winning",
@@ -223,7 +223,7 @@ export function run({ check, assert, log }) {
         "13.49,14"
     );
     // A missing price is not a price of 0, the normalization lib/invoiceItemFold.js
-    // states — so these are two charges and neither is `$0.00`.
+    // states — so these are two invoice items and neither is `$0.00`.
     check(
         "  and a missing price is not a price of zero",
         foldInvoicesOnOrder({
@@ -273,7 +273,7 @@ export function run({ check, assert, log }) {
         twoInvoicesOneItem.length,
         2
     );
-    check("  the folded entry kept both charges rather than one", oneInvoiceTwoItems[0]?.charges.length, 2);
+    check("  the folded entry kept both items rather than one", oneInvoiceTwoItems[0]?.charges.length, 2);
     check("  and each unfolded entry carries exactly its own", twoInvoicesOneItem[0]?.charges.length, 1);
 
     // The same pair on the delivery axis.
@@ -305,7 +305,7 @@ export function run({ check, assert, log }) {
     // THE HEADER FACTS ARE WHAT THE FOLD EXISTS TO SAY ONCE. Before #233 they were
     // rendered once per row an invoice charged; the entry holds one copy.
     log("");
-    log("a header fact appears once per document, not once per charge:");
+    log("a header fact appears once per document, not once per item:");
     const paidTwice = foldInvoicesOnOrder({
         orderedItems: ORDERED,
         invoiceItems: [
@@ -511,7 +511,7 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
-    log("a charge names what it charged, with the figures beside it:");
+    log("an entry names what its invoice charged, with the figures beside it:");
     const charge = PO_DOCUMENTS_COPY.invoices.charge({
         itemName: "Item A",
         size: '1/2"',
@@ -522,7 +522,7 @@ export function run({ check, assert, log }) {
     assert(`  ${charge}`, charge.includes("Item A") && charge.includes("230"));
     // MONEY IS FORMATTED, WHICH IS THE ONE THING THAT MAKES THIS PAGE AGREE WITH
     // ITSELF. The table above it and the invoice detail's items table both go
-    // through `formatUSD`; this charge printed the raw number until #233. Pinned on
+    // through `formatUSD`; this entry printed the raw number until #233. Pinned on
     // the `$` and the separator rather than on the whole string, so a locale
     // formatter's spacing is not what a check fails on.
     assert(`  the price is formatted, not raw`, charge.includes("$13.49") && !/@ 13\.49/.test(charge));
@@ -536,7 +536,7 @@ export function run({ check, assert, log }) {
     // A charge with no price says nothing about price rather than `$0.00`, which
     // would be a figure the invoice item does not carry.
     assert(
-        "  a charge with no unit price prints no money at all",
+        "  an entry with no unit price prints no money at all",
         !PO_DOCUMENTS_COPY.invoices.charge({ itemName: "Item A", qty: 5 }).text.includes("$")
     );
     const brought = PO_DOCUMENTS_COPY.deliveries.brought({

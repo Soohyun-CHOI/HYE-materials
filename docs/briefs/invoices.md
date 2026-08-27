@@ -59,8 +59,8 @@ This badge is **not** the kind of variance an employee is on this screen to
 catch. It is the header flag — the vendor's stated total against what its items
 add up to — which means the entry missed something, and it is the office's to
 check and the office's to fix since only an Admin can edit an invoice.
-The kind an employee cares about, a charge differing from what its order agreed,
-has **no mark in this list at all**: it is on the invoice's own page, per charge,
+The kind an employee cares about, an item differing from what its order agreed,
+has **no mark in this list at all**: it is on the invoice's own page, per item,
 where the order it disagrees with is one click away.
 
 **When there are no rows:** one of two sentences. `No invoices yet.` when the base

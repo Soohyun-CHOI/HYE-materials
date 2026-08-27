@@ -44,7 +44,7 @@ export function run({ check, assert, log }) {
         !VARIANCE_COPY.item.includes(VARIANCE_COPY.header) &&
             !VARIANCE_COPY.header.includes(VARIANCE_COPY.item)
     );
-    check("the charge kind names what it was compared against", VARIANCE_COPY.item, "⚠ Order variance");
+    check("the item kind names what it was compared against", VARIANCE_COPY.item, "⚠ Order variance");
     check("the document kind asks for the check it is", VARIANCE_COPY.header, "⚠ Check the total");
 
     // -----------------------------------------------------------------------
@@ -58,7 +58,7 @@ export function run({ check, assert, log }) {
         /^⚠ (Check|Recheck|Double-check)\b/.test(VARIANCE_COPY.header)
     );
     assert(
-        "the charge kind reads as a state, not an instruction",
+        "the item kind reads as a state, not an instruction",
         !/^⚠ (Check|Recheck|Double-check|Review|Look)\b/.test(VARIANCE_COPY.item)
     );
     // Both predicates compare an ABSOLUTE difference, so neither word may claim a

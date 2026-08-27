@@ -42,7 +42,8 @@ const DONE_MESSAGES = {
 // a sentence to the background of a chip that means something else.
 //
 // `unjudged: "text-zinc-500"` STOOD BESIDE IT AND IS GONE (#278). It was the color of
-// an entry nothing was measured against, and its only producer was a charge with no
+// an entry nothing was measured against, and its only producer was an invoice item
+// with no
 // ordered item behind it. A one-entry map is kept rather than inlined for the reason
 // the tone itself is: a second value re-entering finds a slot.
 const ENTRY_TONE_CLASS = {
@@ -369,7 +370,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                                 <td className="py-1 pr-2">
                                     {it.itemName}
                                     {/* #179 — `Order variance`, which says which of
-                                        the two kinds this is: a charge against what
+                                        the two kinds this is: an item against what
                                         the order agreed. NO SENTENCE BESIDE IT: the
                                         stored flag is one checkbox set by a price
                                         difference OR a quantity invoiced beyond the
@@ -489,7 +490,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 THE TONE IS THE VERDICT'S, and since #278 there is one of them. It
                 said `Not compared — no ordered item` was gray in both halves,
                 because an invoice item nothing was measured against is not a
-                problem; that entry is gone with the charge behind it, so every
+                problem; that entry is gone with the invoice item behind it, so every
                 entry in this list is amber. An entry the order-scoped aside alone
                 put in the list has no verdict and is amber too: something exceeding
                 an ordered item is why it is here. The aside itself stays uncolored,
@@ -659,7 +660,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
             {/* HOISTED OUT OF THE PAYMENT SECTION BY #211, because it is a fact
                 about the invoice and that section is now President-or-Admin. It has
                 to outlive the gate: this prompt is the only thing that raises an
-                invoice-item variance to invoice level, and a charge invoiced at other
+                invoice-item variance to invoice level, and an item invoiced at other
                 than what the order agreed is exactly what the employee reading this
                 page is here to catch. Copy that mentions payment does not disclose
                 whether THIS vendor was paid, which is where the line actually runs.

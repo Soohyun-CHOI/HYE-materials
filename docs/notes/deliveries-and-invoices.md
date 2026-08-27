@@ -136,13 +136,13 @@ Whether what a vendor invoiced for was delivered, and what was delivered with no
   - **Inference is needed in exactly one shape:** two or more invoices on the ordered item AND a delivered quantity covering some but not all of them. Then it is filled **oldest invoice first** — `Issue Date` ascending, tie-broken by `Invoice ID` — because that is the order the invoices were raised in. `Issue Date` is human-entered and backdatable, the property #164 learned the hard way; tolerable here because the consequence is a coin-flip landing the other way on a cell already marked, not a corrupted record. An undated invoice sorts LAST, the same call `sortCandidates` makes.
   - **THE CONTAINMENT PREMISE WAS A STATEMENT ABOUT PRACTICE, NOT A MEASURED FACT (`CONTAINMENT_PREMISE`) — AND #210 MADE IT A FIELD.** #166: one invoice is contained entirely within one delivery, a vendor does not charge for half a delivery, and **nothing in the data enforces it** — no delivery-to-invoice link, no field recording the pairing, no write path checking it. What it bought was that 80 invoiced across two invoices with 40 delivered satisfies ONE of them completely rather than half of each, which made "this one has not been delivered" a one-in-two chance of naming the right invoice rather than a middle value in the data nowhere. If it broke, the inference did not degrade into "roughly right": it became wrong in a different way, handing a whole invoice a coverage that belonged to part of two. **The premise is now the SHAPE of `Invoices."Delivery"`** — single on the invoice side, plural on the delivery's — so it is stated where the data can hold it, checked on write, and the constant is gone rather than kept as a comment in a string.
   - One uncertain invoice item makes the invoice's answer uncertain — it does not average out across invoice items. **The shape survived its cause:** one SHORT invoice item now makes the whole invoice carry the mismatch marker, for the same reason — the reader has to open the invoice either way.
-- **THE INVOICE'S VERDICT HAS FOUR OUTCOMES, AND TWO WERE DELETED RATHER THAN DOCUMENTED.** A share's delivered quantity is CLAMPED at what its own invoice invoiced, so `delivered > invoiced` cannot occur at invoice scope: `arrived-more` had no reader on the invoice path at all, and `nothing-invoiced` collapsed into "nothing delivered" for the same reason. This repo has been burned repeatedly by things with no caller — `upsertMaterial` carried three defects from Phase 0 to #18 — so an unreachable state is removed, not left standing with a comment. What `arrived-more` used to say is now said **on the order's own terms** (delivered > ordered) by the `Against the order:` line, which gives one fact one reader. The four were `All invoiced material delivered` / `N EA more invoiced than delivered` / `Nothing delivered yet` / `Not compared — no ordered item`; **#278 applied this bullet's own test to the fourth** and removed it with the charge it described, so the judgment has three.
+- **THE INVOICE'S VERDICT HAS FOUR OUTCOMES, AND TWO WERE DELETED RATHER THAN DOCUMENTED.** A share's delivered quantity is CLAMPED at what its own invoice invoiced, so `delivered > invoiced` cannot occur at invoice scope: `arrived-more` had no reader on the invoice path at all, and `nothing-invoiced` collapsed into "nothing delivered" for the same reason. This repo has been burned repeatedly by things with no caller — `upsertMaterial` carried three defects from Phase 0 to #18 — so an unreachable state is removed, not left standing with a comment. What `arrived-more` used to say is now said **on the order's own terms** (delivered > ordered) by the `Against the order:` line, which gives one fact one reader. The four were `All invoiced material delivered` / `N EA more invoiced than delivered` / `Nothing delivered yet` / `Not compared — no ordered item`; **#278 applied this bullet's own test to the fourth** and removed it with the invoice item it described, so the judgment has three.
 - **An invoice summarizes by INVOICE ITEM COUNT, not by quantity**, and that is forced rather than chosen: its invoice items carry different Units, so adding their quantities produces a number of nothing. The count no longer reaches the screen — it decides the chip — but it is still what the chip is decided by. **#210: the count decides nothing at all now.** The chip comes from the link; the count is reported for the detail and the constraint that forced it still holds for anything that would add quantities across invoice items.
 - **"No invoice item complete" and "nothing delivered" are different claims, and the chip kept them apart.** `awaiting-delivery` was reserved for no quantity having been delivered at all; an incomplete invoice item was `Partly delivered`. The first version keyed that on the completed-line count alone, so a one-line invoice invoicing 13 with 10 delivered read as nothing delivered. **Caught by reading seeded demo data rather than by a check**, which is why the seed exists and why `summarizeInvoiceStatus` carried `anyArrived`. **#210 dissolved the distinction rather than fixing it again:** both claims were about how much of an invoice had been delivered, and neither is what the chip answers now — `awaiting-delivery` means no delivery is NAMED, and every quantity question is the marker's or the detail's. `anyArrived` is gone with `Partly delivered`.
 - **WHAT #278 TOOK WITH IT, counted here rather than in CLAUDE.md's Data model.** #96's hidden free-text option is gone, and so are the twenty-six branches that described what it would produce. The rule that replaced it stays on the `Invoice Items` entry there, because `PO Item` being required by this app rather than by the schema is a fact anyone writing such a row needs and its two enforcers are named with it; the count of what was deleted is this file's. Moved in the routing pass after #263.
 - **An invoice item with no `PO Item` was excluded from the judgment, and #278 removed the state instead.** The rule was right and its premise expired. A vendor's freight arrives on `Invoices."Shipping Fee"`, a header field, and item rows are for material only — so the app created no such row, the option being hidden behind `SHOW_OTHER_ITEM_OPTION` (#96); what kept the rule alive was that #96 left the backend path open, making the flag the whole of re-exposing it. #278 decided the option is not a feature and closed the path: the action refuses an item with no ordered item, `createInvoiceItem` throws on one, and `countsTowardStatus`, `excludedCount`, the `not-compared` verdict and the `unjudged` tone are gone with it. **The flag was not the only door**, which is the finding that made the issue bigger than it looked — see the sub-bullet below.
   - **A SECOND PATH REACHED THE SAME STATE WITH THE FLAG UNTOUCHED.** #91 keeps one ordered item to one row of one invoice, so a second row pointed at a PO whose every ordered item a sibling row had already claimed had nothing left to pick: `defaultedItem` returned it with an empty `poItemRecordId`, the select rendered zero options, and the free-text Item Name box beside it — the same box #99's comment says it removed, for a different cause it did fix — accepted a typed name that the action then saved with a null link. Removing the flag would have left that open. It is closed by a refusal in `createInvoiceAction` and by the row saying why it has nothing to offer, in that order: this repo names what a reader cannot do where they would try it (#232) rather than accepting input and rejecting it on submit.
-  - **What a hand-emptied `Invoice Items."PO Item"` does now.** The reconciliation walk drops the row instead of giving it a row of its own, so the delivery section is silent about a charge the items table above still shows — the same silence `lib/poDocuments.js` keeps on the other axis, and the same split #165's bullet above now carries: survive it, do not describe it.
+  - **What a hand-emptied `Invoice Items."PO Item"` does now.** The reconciliation walk drops the row instead of giving it a row of its own, so the delivery section is silent about an invoice item the items table above still shows — the same silence `lib/poDocuments.js` keeps on the other axis, and the same split #165's bullet above now carries: survive it, do not describe it.
 - **`invoicedQty` comes from the `Invoiced Qty` rollup — the ordered item's total across every invoice — and never from summing the invoice in hand.** An ordered item can carry two invoices; summing only one would report material as uninvoiced when it is invoiced twice over. `verify-delivery-status-166.mjs` Part D creates exactly that case: 16 invoiced on the ordered item, 6 on the invoice being read, 10 delivered.
 - **The delivered side reads `Delivery Items`, not the rollup**, because `Delivered Qty` sums within-order and beyond-order into one number and only the rows carry `Over Delivered`. This is the reader that made that distinction load-bearing rather than theoretical.
 - **The query budget was 5 operations on the invoice axis and 3 on the delivery axis, measured, and never grew with row count.** Two of the five existed because the answer is attributed: deciding whether THIS invoice was covered meant reading every OTHER invoice on the same ordered item and its `Issue Date`, which the caller never asked about. Refusing to attribute cost 3 and could not answer the question — `verify-delivery-status-166.mjs` Part E counts them with the same `_selectRecords` / `_findRecordById` instrument `verify-material-price-19.mjs` Part E uses, comparing one row against several (measured 5 for one invoice against 4 for three). The invoice detail was 5 too, adding the Deliveries themselves for their dates. **These are CEILINGS rather than fixed numbers:** an empty level costs no query at all, since `findByRecordIds` returns early on an empty id list. So the property to assert is "never more", not "exactly equal", and the two measurements have to be shape-matched. Recorded because the first version of the check read both asymmetries as per-row growth.
@@ -1014,7 +1014,7 @@ that stays the order's says so by name.
   `describeInvoiceLine` returns a null verdict for a judged box; `hasDelivery` comes
   from the caller because a share with `delivered: 0` cannot tell the two apart. A
   `not-compared` box kept its verdict either way, being a fact about the invoice item
-  rather than about any delivery — **#278 removed that box** with the charge behind
+  rather than about any delivery — **#278 removed that box** with the invoice item behind
   it, so nothing speaks without a matched delivery now and the exception is gone. On
   `HYE-INV-260804-02` both shapes were once on one page: a judged box with no verdict
   beside a free-text box that had one.
@@ -1219,7 +1219,7 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   fact the table above cannot hold**: its `Qty` is the folded total, and the split is
   what the reader came for.
 - **ONE GRAMMAR WITH `/pos/[poId]`, AND THE PRICE'S ABSENCE IS PART OF IT RATHER THAN AN
-  EXCEPTION TO IT.** #233 nests a charge under the invoice that made it; this nests an
+  EXCEPTION TO IT.** #233 nests an invoice item under the invoice that made it; this nests an
   item under the order it was invoiced against — parent row for the document's identity
   and its own facts, child list at `pl-4` in smaller gray text for the pair facts. The
   line's syntax is `PO_DOCUMENTS_COPY.deliveries.brought`'s (`Item Size — qty UNIT`)
@@ -1291,7 +1291,7 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   the items arrive in one list read: they do not. `getLinkedRecords` is 1 + N — one
   `.find()` per child, said out loud in its own header — so `getItemsByInvoice` pays a
   find per invoice item, and the section pays one `getPOByRecordId` per distinct order.
-  Retiring one charge that was also the only one naming its order took
+  Retiring one invoice item that was also the only one naming its order took
   `HYE-INV-260817-02` from 11 to 9, with `Invoice Items` finds 3 -> 2 and
   `Purchase Orders` finds 3 -> 2: one each, exactly. What misled the first reading was
   `HYE-INV-260804-03` also totalling 11 on 2 items and 2 orders — two fewer finds there
@@ -1300,7 +1300,7 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
 ### Reading one material as one entry (#241)
 
 The delivery section listed one entry per `Invoice Items` row while the items table
-above it folded, so an invoice whose charge an overage split divided showed one
+above it folded, so an invoice whose item an overage split divided showed one
 material twice under the delivery and once in the table. Folded on the key
 `lib/invoiceItemFold.js` already uses, with the shares added rather than re-derived,
 and an entry that agrees no longer rendered at all. The rule is
@@ -1337,7 +1337,7 @@ and an entry that agrees no longer rendered at all. The rule is
   mean handing the raw delivery down, which is itself part of the answer.
 - **THE TWO BEYOND-ORDER TERMS ARE THE EXCEPTION AND ADD OVER DISTINCT ORDERED ITEMS.**
   `invoicedBeyondOrder` and `deliveredBeyondOrder` belong to a `PO Items` row rather than to
-  an invoice, so two charges reaching one ordered item carry the same figure and adding both
+  an invoice, so two invoice items reaching one ordered item carry the same figure and adding both
   would print one excess twice. The invoice form cannot make that shape — #91 excludes
   an ordered item a sibling invoice item already claimed — so the dedupe is defensive
   against hand-entered data and is pinned offline, the way #237's exclusion is.
@@ -1371,7 +1371,7 @@ and an entry that agrees no longer rendered at all. The rule is
   pinned only in the offline tier — a COVERED invoice carrying such a row, the chip
   reading `Delivered` and a single gray `Not compared — no ordered item` under it — and
   no invoice on this base ever both matched a delivery and held a free-text row, so it
-  was never seen on a screen. **#278 removed the charge, the entry, the gray tone and
+  was never seen on a screen. **#278 removed that item, the entry, the gray tone and
   that fixture**, and applied the test this file states two bullets up: an unreachable
   state is removed rather than documented. `foldKey`'s fallback stays as a crash guard
   on a hand-emptied link.
@@ -1414,7 +1414,7 @@ and an entry that agrees no longer rendered at all. The rule is
   is which tone, not whether the page can reach the aside with it.
 - **THE GRAY ENTRY WAS NEVER SEEN ON A SCREEN AND IS NOW GONE (#278)**, for the same
   reason the state it belonged to was not: no invoice on this base both matched a
-  delivery and carried a charge with no ordered item. `offline/invoice-delivery-entries.mjs`
+  delivery and carried an invoice item with no ordered item. `offline/invoice-delivery-entries.mjs`
   pinned it with an assertion that the two tones differ; what stands there now is that
   every entry on every fixture is an `exception`, which is the same claim with one
   value instead of two.
@@ -1436,7 +1436,7 @@ together, with the excess stated as a figure rather than a tag. The rule is
   10 + 5 against `-02`, so the last two fold and the first does not.
 - **A DIFFERENT KEY FROM #241's, AND THE REASONS ARE OPPOSITE.** That issue folds an
   invoice's items on `Material` + UNIT PRICE and excludes the order deliberately,
-  because a charge split across two orders is one vendor charge and the order is what
+  because an invoice item split across two orders is one vendor charge and the order is what
   the folded row cannot name. This folds on `Material` + ORDER, because a folded row
   here must still name the order the correction acts on. Same question — when does a
   screen read one material as one line — and the frame decides the answer. Do not
@@ -1511,7 +1511,7 @@ together, with the excess stated as a figure rather than a tag. The rule is
 An invoice carries two flags that both read `Variance` on screen and are not the
 same kind of fact. `Invoices."Variance Flag"` compares the total the vendor wrote
 against the sum of the items somebody typed in from the same page;
-`Invoice Items."Variance Flag"` compares a charge against what the order agreed. The
+`Invoice Items."Variance Flag"` compares an item against what the order agreed. The
 list said `⚠ Variance` for the first and the detail's items table said it for the
 second. The words are `lib/variance.js:VARIANCE_COPY` now, beside the predicates that
 set them.
@@ -1525,7 +1525,7 @@ set them.
   direction, and that is measured rather than stylistic**: `checkHeaderVariance` and
   `checkUnitPriceVariance` both compare an absolute difference, so each fires when the
   figure is under as readily as over. `Over-billed` was the issue's first choice for
-  the charge one and would have been false half the time it appeared.
+  the item one and would have been false half the time it appeared.
 - **`Mismatch` WAS THE ISSUE'S FIRST CHOICE FOR THE OTHER ONE AND IS NOT AVAILABLE.**
   #232 made it a chip value on the delivery axis of these same two screens, so taking
   it here would put one word on two axes of one page — this issue's own defect, pointed
@@ -1551,7 +1551,7 @@ set them.
   recorded as an open copy decision in `backlog.md`; that line is deleted and this is
   where it was settled. **The action changed for the same reason #211 created**: it
   said `review before confirming payment` to readers who cannot pay, and now asks for
-  something anyone can do — check the charge against the order, or take it up with the
+  something anyone can do — check the item against the order, or take it up with the
   vendor — with payment as the deadline rather than the act, which is #232's grammar in
   the amber box further up the same page.
 - **THE LIST'S BADGE AND ITS COLUMN ARE THE OFFICE'S NOW, AND #211's REASON FOR
@@ -1560,7 +1560,7 @@ set them.
   page at all". It is not: the list badge reads `Invoices."Variance Flag"`, the header
   kind, which is an arithmetic check only an Admin can act on since only an Admin can
   edit an invoice. The kind an employee is here to catch has no mark in this list for
-  anyone — it is on the invoice's own page, per charge, next to the order it disagrees
+  anyone — it is on the invoice's own page, per item, next to the order it disagrees
   with. So the column goes with the payment state it shares a cell with, and an
   employee reads six columns.
 - **THE BADGE STACKS UNDER THE PAYMENT WORD, WHICH IS WHAT A RE-CUT WOULD HAVE COST.**
@@ -1620,12 +1620,12 @@ than as the app having decided it was small enough to ignore. One rule decides i
   paper. Two transcriptions of one document are not measurements, so the noise #17's
   comment names — `normal rounding accumulation and minor line-item aggregation noise` —
   can only come from the vendor rounding its own printed amounts while we recompute
-  `{Qty} * {Unit Price}`. That is at most half a cent per charge, so the accumulation is
+  `{Qty} * {Unit Price}`. That is at most half a cent per item, so the accumulation is
   `N × $0.005`: five cents at ten charges, ten at twenty, and **five dollars at a
   thousand charges all rounding the same direction**. Measured on this base the largest
   invoice carries three charges and the median carries one, and the count is structurally
   bounded by the ordered items of the orders an invoice charges, since #91 gives one
-  ordered item to one charge. The floor was three orders of magnitude away from its own
+  ordered item to one invoice item. The floor was three orders of magnitude away from its own
   mechanism.
 - **AND THERE IS NO PER-CHARGE ROUNDING ON OUR SIDE AT ALL**, which takes the bound
   further down than the table above. A whole quantity at a whole-cent price is exact to
@@ -1645,8 +1645,8 @@ than as the app having decided it was small enough to ignore. One rule decides i
   fifty-thousand-dollar invoice is five hundred dollars, so a missing four-hundred-dollar
   charge was silent — the larger the invoice, the larger the error that hid, which is the
   wrong direction for a mark whose whole purpose is to be acted on. And the mechanism it
-  claimed to absorb scales with how many charges there are, not with what they come to: a
-  fifty-thousand-dollar invoice can be one charge.
+  claimed to absorb scales with how many items there are, not with what they come to: a
+  fifty-thousand-dollar invoice can be one item.
 - **#283 IS THE COUNTEREXAMPLE TO ANY DOLLAR FLOOR, and it is sharper than a floor
   hiding small errors.** A term the app has no column for makes `Calculated Total` short
   by exactly that term's value, which is unbounded downward — a small freight surcharge,
@@ -1659,7 +1659,7 @@ than as the app having decided it was small enough to ignore. One rule decides i
   INPUTS.** The form computes `calculatedTotal` from what was typed and always will:
   there is no rollup in a browser, and `offline/invoice-money-terms.mjs` asserts on that
   declaration by name because a term missing from it reads low. The backend re-reads
-  Airtable's `Calculated Total` after the charges are linked. The two cannot always see
+  Airtable's `Calculated Total` after the items are linked. The two cannot always see
   the same number — a coercion maps a typed `0` to null, and a rollup is not a
   client-side reduce — so the form asserts only that **the two figures on the screen
   right now disagree by more than the rule allows**, and never that the saved record will
@@ -1689,17 +1689,17 @@ than as the app having decided it was small enough to ignore. One rule decides i
   them as `Something went wrong creating the invoice. Please try again.`, on an input
   they could have corrected and would have retried unchanged — which is the shape #232
   and #278 both argue against, a reader refused where they cannot see why. So both
-  invoice actions ask the predicate and return `CHARGE_PRECISION_COPY`, and
+  invoice actions ask the predicate and return `ITEM_PRECISION_COPY`, and
   `lib/airtable/invoiceItems.js` keeps the throw as the last line for a request that
   never went through a control. **The lesson is not about `step`**: it is that a claim
   about what a form cannot produce is a measurement, and this one was written as an
   inference.
 - **`PO Items` AND `PR Items` ARE NOT GUARDED, AND THE CHAIN IS WORTH NAMING BECAUSE
-  ONE HALF OF IT REALLY DOES FLOW IN.** `PO Items."Unit Price"` is copied into a charge
+  ONE HALF OF IT REALLY DOES FLOW IN.** `PO Items."Unit Price"` is copied into an invoice item
   in three places on the form — `defaultedItem`, `updatePoItemSelection` and
   `handleCancelUnitPriceEdit` — and the PR form's own `step="0.01"` is behind the same
   hidden-JSON submit, so `PR Items` → `PO Items` → `Invoice Items` is open for a price
-  the whole way. `Qty` is not copied at all; a charge's quantity is typed. The guard is
+  the whole way. `Qty` is not copied at all; an item's quantity is typed. The guard is
   still a funnel because it sits DOWNSTREAM of the copy: a price that arrives from an
   ordered item still passes through it. What changes is only the failure mode, from a
   silent wrong mark on a stored record to a refusal at creation — which is the trade
@@ -1736,7 +1736,7 @@ than as the app having decided it was small enough to ignore. One rule decides i
   threshold's own premise is asserted.
 - **NOT MEASURED AS A COST, BECAUSE THERE IS NONE:** the form judges with two figures it
   already holds in state, and the backend uses the `getInvoiceByRecordId` it already
-  calls after linking the charges. No screen gained or lost an Airtable operation.
+  calls after linking the items. No screen gained or lost an Airtable operation.
 - **THE COUNT THAT IS SAFETY RATHER THAN JUSTIFICATION.** Of the 23 invoices on this
   base, exactly one has a non-zero difference (90.00) and the other 22 are exactly zero,
   because `seed_full_demo.mjs` writes `amountDue: amountDue ?? computed` — the same
@@ -1990,10 +1990,10 @@ side folded with it, on the ordered item AND the unit price. The rule is
   to the two table cells', which is the assertion no file-only check can make.
 - **THE INVOICE SIDE FOLDS ON THE ORDERED ITEM AND THE UNIT PRICE**, which is
   `lib/invoiceItemFold.js`'s key at this scope with the ordered item where that module
-  has `Material` — for the reason above, and because a charge here is listed under an
-  ordered item. The price stays in the key, so two charges at two prices are
-  two facts and a folded charge's `@ price` is exact by construction. **That is the
-  whole of what a folded charge says about a price that differs: nothing, because a
+  has `Material` — for the reason above, and because an invoice item here is listed
+  under an ordered item. The price stays in the key, so two of them at two prices are
+  two facts and a folded one's `@ price` is exact by construction. **That is the
+  whole of what a folded item says about a price that differs: nothing, because a
   differing price is never folded.** A missing price is not a price of zero, the
   normalization that module already states.
 - **THE ISSUE NAMED #167's SPLIT AS THE PRODUCER AND IT IS NOT ONE.**
@@ -2206,7 +2206,7 @@ this screen.
   messages are all conditional.
 - **IT DOES NOT OVERLAP #278's AMBER LINE, and the two were checked against each
   other.** That one fires when every ordered item on a row's order is already
-  claimed by another charge of the same invoice (#91), and its remedy is a
+  claimed by another item of the same invoice (#91), and its remedy is a
   different order or one fewer charge — a real fix, on a row whose order exists.
   This is the case where no order holds the material at all, and there is nothing
   to pick. Different cause, different remedy, separate words.
