@@ -62,6 +62,27 @@ chunks, so a concatenated sentence counts more than once.
 | `LINK_COPY` | `lib/deliveryInvoiceLink.js` | `availableInvoiceOptions` | `/deliveries/new` | 11 |
 | `WITHDRAW_COPY` | `lib/poWithdraw.js` | `getWithdrawCopy` | `/pos/[poId]` | 5 |
 | `AWAITING_PO_COPY` | `lib/poListView.js` | `awaitingPOCopy` | `/pos`, `/prs/[prId]` | 4 |
+| `ROLLBACK_COPY` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 15 |
+| `RESTORE` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 8 |
+
+**#188's two are the group's first entries that were VISIBLE before the issue moved
+them.** Three of `ROLLBACK_COPY`'s fifteen pieces are the sentences the three signing
+actions used to hold inline, where the extractor read them off the `error:` property.
+They went behind a builder because the failed-rollback voice they now pair with is
+reachable only when an Airtable write fails inside a rollback — so a check that
+cannot CALL it cannot see it at all, which is the worse blindness of the two. Four of
+the words are pinned by `offline/screen-briefs.mjs` in exchange, which is more than
+this group's other entries have.
+
+**AND THE MOVE PRODUCED A FALSE ENTRY BEFORE IT PRODUCED A MISSING ONE, which is the
+part worth carrying.** `rollbackMessage("returnForCorrection", …)` is the value of an
+`error:` property, so the extractor read the ACT KEY as a string the screen renders
+and put that word into `/prs/[prId]`'s inventory as copy. A missing string is a gap a
+reader can be warned about; a fabricated one is believed. The fix is that no builder
+called in that position takes a bare string — `ROLLBACK_ACT` exists for it and
+`offline/rollback-report.mjs` pins it — and the general form is the entry below: the
+`error:` and `label:` rules read a position, so what sits in that position had better
+be prose.
 
 **Three of `STATUS_COPY`'s seventeen are words `_shared.md` locks as tier 1**, and
 they are the reason this group leads the file. `Delivered`, `Mismatch` and

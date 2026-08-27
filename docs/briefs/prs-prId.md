@@ -89,6 +89,20 @@ earlier for correction, with the list of people it may be returned to. For anyon
 else at that status: one sentence, `Waiting on {name} to act.` The panel is the
 largest thing on the page when it is there and absent entirely when it is not.
 
+**When a turn failed and putting it back failed too:** a red line where the
+ordinary failure message goes, one per control — `Do not save again`,
+`Do not approve again`, `Do not send it back again` — and then what is still on
+the request, by name: the items, the Shipping Fee, this turn's history entries,
+the quotation it added, the reader's own signing status. It closes with
+`Ask for these to be corrected in Airtable`, which is the only place this app
+sends a reader off it.
+
+**The distinction a redesign may not lose is between the two failures, not
+between the three controls.** The ordinary one asks for a retry and is right to.
+This one is the state where a retry commits the edit and destroys the record of
+it, so the two must never read as one message with a different tail. Nobody
+reaches either without an Airtable write failing.
+
 **When the status is `In Review` and the reader is the requester:** a withdrawal
 control at the foot, behind a top border. It sits outside the turn gate on
 purpose — a requester may withdraw their own request whatever whose turn it is.

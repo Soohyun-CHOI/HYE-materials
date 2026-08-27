@@ -20,12 +20,27 @@ import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSignin
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
 import { withOpsLabel } from "@/lib/airtableOps";
+import {
+    RESTORE_KEY,
+    ROLLBACK_ACT,
+    createRollbackLog,
+    rollbackLogText,
+    rollbackMessage,
+} from "@/lib/rollbackReport";
 
 // #181 — the diffed keys and the labels they log under moved to lib/, so both
 // check tiers can read them: a `"use server"` module cannot be imported by a
 // plain `node` script, which had forced the offline check to parse this file as
 // text and had made the credentialed half unwritable. Nothing here may pass
 // createEditLogEntry a string literal, or that enumeration stops being complete.
+//
+// #188 — EVERY RESTORE IN THIS FILE GOES THROUGH THE ROLLBACK LOG, and neither
+// `.catch(() => {})` nor `Promise.allSettled` may appear here again: those were the
+// two ways a failed restore went quiet, three sites by the first and four by the
+// second. The rollback still cannot be made transactional, so what changed is that it
+// reports — see lib/rollbackReport.js for why the report is words rather than a
+// count, and why it never reaches Airtable. Nothing here may pass a restore key as a
+// string literal, for the same reason the Edit Log labels may not.
 
 async function loadPRContext(prId) {
     const pr = await getPRById(prId);
@@ -50,8 +65,13 @@ async function loadPRContext(prId) {
  * Returns { nextStep, prApproved } so the caller can notify whoever the
  * chain now points at (see notifyCurrentTurn calls below) — nextStep is
  * null when prApproved is true, since there's no next signer to notify.
+ *
+ * #188 — `rollback` is the CALLER'S log, not one of this function's own. Its own
+ * rollback runs inside the caller's turn and then re-throws into the caller's catch,
+ * so a restore that fails here is one of that turn's failures: a log of its own would
+ * report two thirds of a turn and call it the whole of it.
  */
-async function finishTurn({ pr, turn, signers, correctionRequests }) {
+async function finishTurn({ pr, turn, signers, correctionRequests, rollback }) {
     const { resolveCorrectionId, nextStep, prApproved } = computeAdvance({
         turn,
         signers,
@@ -80,12 +100,17 @@ async function finishTurn({ pr, turn, signers, correctionRequests }) {
         await updatePR(pr.id, prApproved ? { status: "Approved" } : { currentSignerStep: nextStep });
     } catch (err) {
         if (resumedSignerId) {
-            await updateSigner(resumedSignerId, { status: "Returned" }).catch(() => {});
+            await rollback.attempt(RESTORE_KEY.resumedSigner, resumedSignerId, () =>
+                updateSigner(resumedSignerId, { status: "Returned" })
+            );
         }
         if (resolvedCorrectionId) {
-            await base(TABLES.CORRECTION_REQUESTS)
-                .update(resolvedCorrectionId, { Status: "Pending", "Resolved At": null })
-                .catch(() => {});
+            await rollback.attempt(RESTORE_KEY.correctionResolved, resolvedCorrectionId, () =>
+                base(TABLES.CORRECTION_REQUESTS).update(resolvedCorrectionId, {
+                    Status: "Pending",
+                    "Resolved At": null,
+                })
+            );
         }
         throw err;
     }
@@ -121,6 +146,7 @@ export async function approveAction(prevState, formData) {
         }
 
         const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
+        const rollback = createRollbackLog();
         let advance;
 
         try {
@@ -129,15 +155,20 @@ export async function approveAction(prevState, formData) {
                 signedAt: new Date().toISOString(),
             });
 
-            advance = await finishTurn({ pr, turn, signers, correctionRequests });
+            advance = await finishTurn({ pr, turn, signers, correctionRequests, rollback });
         } catch (err) {
-            await updateSigner(turn.prSignerRecordId, {
-                status: signerBefore.status,
-                signedAt: signerBefore.signedAt || null,
-            }).catch(() => {});
+            await rollback.attempt(RESTORE_KEY.signer, turn.prSignerRecordId, () =>
+                updateSigner(turn.prSignerRecordId, {
+                    status: signerBefore.status,
+                    signedAt: signerBefore.signedAt || null,
+                })
+            );
 
-            console.error("approveAction failed, rolled back", err);
-            return { error: "Something went wrong recording your approval. Please try again." };
+            // #188 — this action's own restore is one write and finishTurn's are two,
+            // so a report covering only the callee's would leave the commonest of the
+            // three silent. See lib/rollbackReport.js.
+            console.error(rollbackLogText("approveAction", pr.prId, rollback), err);
+            return { error: rollbackMessage(ROLLBACK_ACT.approve, rollback) };
         }
 
         // Best-effort — see lib/notifications.js. No notification when the PR
@@ -230,6 +261,7 @@ export async function editAndContinueAction(prevState, formData) {
         const createdQuotationIds = [];
         // Issue #140 — Blob objects ingested by this turn's new Quotations.
         const blobCleanups = [];
+        const rollback = createRollbackLog();
 
         try {
             // Newly-added Quotations are created before resolving item links
@@ -246,8 +278,9 @@ export async function editAndContinueAction(prevState, formData) {
                 });
                 createdQuotationIds.push(created.id);
                 // Issue #140 — collected now, cleaned up after this action's last
-                // write (below the catch): the rollback destroys these Quotations,
-                // and the signer's retry re-submits the same URLs.
+                // write (below the catch): the rollback destroys these Quotations —
+                // all but one an unrestored item still links to (#188) — and the
+                // signer's retry re-submits the same URLs.
                 if (isOurBlobUrl(q.url)) {
                     blobCleanups.push({
                         table: TABLES.QUOTATIONS,
@@ -342,40 +375,85 @@ export async function editAndContinueAction(prevState, formData) {
                 });
             }
 
-            advance = await finishTurn({ pr, turn, signers, correctionRequests });
+            advance = await finishTurn({ pr, turn, signers, correctionRequests, rollback });
         } catch (err) {
+            // The items go back before the Quotations they may point at are
+            // destroyed — an unlink has to precede its target going.
+            //
+            // EVERY FIELD COALESCES, AND A BLANK ORIGINAL IS THE REASON (#188). An
+            // Airtable field with nothing in it comes back from `record.get` as
+            // `undefined`, and `updateItem` skips an `undefined` field by design — so
+            // `remark: original.remark` asked it to restore a blank and it wrote
+            // nothing, leaving the EDIT standing while the rollback reported success
+            // and destroyed its `Edit Log` row. That is this issue's own end state
+            // reached with nothing failing, which is worse than the silence this
+            // issue removes: the report would say the turn rolled back cleanly and be
+            // wrong. Found by forcing the failure in a browser rather than by
+            // reading, and the neighbors were already written this way —
+            // `pr.shippingFee ?? null` below, `signerBefore.notes || ""` under it.
             for (const itemId of touchedItemIds) {
                 const original = originalById[itemId];
-                await updateItem(itemId, {
-                    itemName: original.itemName,
-                    size: original.size,
-                    unit: original.unit,
-                    qty: original.qty,
-                    unitPrice: original.unitPrice,
-                    remark: original.remark,
-                    quotationRecordId: original.quotation?.[0] || null,
-                }).catch(() => {});
+                await rollback.attempt(RESTORE_KEY.items, itemId, () =>
+                    updateItem(itemId, {
+                        itemName: original.itemName ?? "",
+                        size: original.size ?? "",
+                        unit: original.unit ?? null,
+                        qty: original.qty ?? null,
+                        unitPrice: original.unitPrice ?? null,
+                        remark: original.remark ?? "",
+                        quotationRecordId: original.quotation?.[0] || null,
+                    })
+                );
             }
             if (shippingFeeChanged) {
-                await updatePR(pr.id, { shippingFee: pr.shippingFee ?? null }).catch(() => {});
+                await rollback.attempt(RESTORE_KEY.shippingFee, pr.id, () =>
+                    updatePR(pr.id, { shippingFee: pr.shippingFee ?? null })
+                );
             }
-            await Promise.allSettled(
-                createdEditLogIds.map((id) => base(TABLES.EDIT_LOG).destroy(id))
+            await rollback.attemptAll(RESTORE_KEY.history, createdEditLogIds, (id) =>
+                base(TABLES.EDIT_LOG).destroy(id)
             );
-            await Promise.allSettled(
-                createdQuotationIds.map((id) => base(TABLES.QUOTATIONS).destroy(id))
+
+            // #188 — A QUOTATION AN UNRESTORED ITEM STILL POINTS AT IS KEPT, and this
+            // is the one place #206's precondition shape does apply. Airtable clears a
+            // link when its target is destroyed, so destroying it here would take that
+            // item's Quotation to empty — and unlike every other failure in this
+            // catch, that one is unreportable: the record the reader would be sent to
+            // look at is the record that went. Keeping it leaves a quotation on the
+            // request, which is visible on the page, nameable in the sentence below
+            // and deletable by hand.
+            const strandedQuotationIds = new Set(
+                rollback
+                    .failed(RESTORE_KEY.items)
+                    .map((itemId) => quotationLinkChanges.get(itemId)?.newQuotationId)
+                    .filter((id) => createdQuotationIds.includes(id))
             );
+            for (const id of strandedQuotationIds) {
+                rollback.keep(
+                    RESTORE_KEY.quotation,
+                    id,
+                    "an item whose restore failed still links to it"
+                );
+            }
+            await rollback.attemptAll(
+                RESTORE_KEY.quotation,
+                createdQuotationIds.filter((id) => !strandedQuotationIds.has(id)),
+                (id) => base(TABLES.QUOTATIONS).destroy(id)
+            );
+
             if (turn.type === "signer") {
                 const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
-                await updateSigner(turn.prSignerRecordId, {
-                    status: signerBefore.status,
-                    signedAt: signerBefore.signedAt || null,
-                    notes: signerBefore.notes || "",
-                }).catch(() => {});
+                await rollback.attempt(RESTORE_KEY.signer, turn.prSignerRecordId, () =>
+                    updateSigner(turn.prSignerRecordId, {
+                        status: signerBefore.status,
+                        signedAt: signerBefore.signedAt || null,
+                        notes: signerBefore.notes || "",
+                    })
+                );
             }
 
-            console.error("editAndContinueAction failed, rolled back", err);
-            return { error: "Something went wrong saving your changes. Please try again." };
+            console.error(rollbackLogText("editAndContinueAction", pr.prId, rollback), err);
+            return { error: rollbackMessage(ROLLBACK_ACT.edit, rollback) };
         }
 
         // Issue #140 — every rollback-able write of this turn has landed, so the
@@ -445,6 +523,7 @@ export async function returnForCorrectionAction(prevState, formData) {
         const targetStep = target.type === "requester" ? 0 : target.sequenceOrder;
 
         let createdCorrectionId = null;
+        const rollback = createRollbackLog();
 
         try {
             const correction = await createCorrectionRequest({
@@ -460,16 +539,20 @@ export async function returnForCorrectionAction(prevState, formData) {
             await updatePR(pr.id, { currentSignerStep: targetStep });
         } catch (err) {
             if (createdCorrectionId) {
-                await base(TABLES.CORRECTION_REQUESTS).destroy(createdCorrectionId).catch(() => {});
+                await rollback.attempt(RESTORE_KEY.correctionCreated, createdCorrectionId, () =>
+                    base(TABLES.CORRECTION_REQUESTS).destroy(createdCorrectionId)
+                );
             }
-            await updateSigner(turn.prSignerRecordId, {
-                status: signerBefore.status,
-                signedAt: signerBefore.signedAt || null,
-                notes: signerBefore.notes || "",
-            }).catch(() => {});
+            await rollback.attempt(RESTORE_KEY.signer, turn.prSignerRecordId, () =>
+                updateSigner(turn.prSignerRecordId, {
+                    status: signerBefore.status,
+                    signedAt: signerBefore.signedAt || null,
+                    notes: signerBefore.notes || "",
+                })
+            );
 
-            console.error("returnForCorrectionAction failed, rolled back", err);
-            return { error: "Something went wrong sending this back for correction. Please try again." };
+            console.error(rollbackLogText("returnForCorrectionAction", pr.prId, rollback), err);
+            return { error: rollbackMessage(ROLLBACK_ACT.returnForCorrection, rollback) };
         }
 
         // Best-effort — see lib/notifications.js.
