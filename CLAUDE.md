@@ -40,6 +40,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 - A new **field** → the Data model list: name, type, link topology. Its rationale goes to the area notes file.
 - A new **module** → one line in Service layer pattern, `path — what it owns`.
 - **What a screen carries, the distinctions it must show, and a word locked on it** → `docs/briefs/`, one file per page (#260). A page added, removed or given new content updates its brief in the SAME COMMIT; `offline/screen-briefs.mjs` fails on a page with no brief and on a tone the shared brief does not list.
+- **Every string a screen can render** → nowhere. `scripts/screen-strings.mjs` produces the list on demand (#288), and `docs/briefs/strings/` records only what it CANNOT produce and what no reader can reach. A file per screen was built, measured and dropped; the README there carries the figures and how a naming decision is made from the tool instead.
 - If no area file fits, add one and an index row above it, in the same commit.
 - **The audience test decides ties.** A rule whose readers are wider than any one glob stays here; a rule only its own area's editor needs goes to that area's file. That is why "records in this base are not removed as tidying-up" is here rather than in `verification.md`.
 

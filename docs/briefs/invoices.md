@@ -32,6 +32,11 @@ further is coming.
 **The column head is `Delivery`**, the same word the purchase order list carries
 over the same chip set. One word, two subjects, and the row supplies which.
 
+**A row the app could compute no summary for at all carries an em dash instead of
+a chip**, which is a different fact from `Awaiting delivery`: that one is a
+measurement, and this one is the absence of one. It is text with no color rather
+than a fourth chip value, for the reason `_shared.md` gives about `absent`.
+
 ## What it carries only sometimes
 
 **When the reader is an Admin:** a control to record a new invoice. Everyone else

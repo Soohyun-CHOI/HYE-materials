@@ -20,6 +20,15 @@ orders it refers to.
 
 **identity.** The heading `New Invoice`, and a link to the invoice list.
 
+**The form is two tabs, `PDF Upload` and `Manual Entry`, and both are always
+present.** The tab changes nothing but the order of four blocks — the file
+section, the header fields, `Items`, and the totals — so every field exists under
+either and switching never loses what is typed. `PDF Upload` leads with the file
+and whatever it auto-fills below; `Manual Entry` leads with the fields to fill in
+by hand and puts the still-required file last. **This is the outermost structure
+on the screen**, and a design that draws one sequence of blocks has drawn one of
+the two.
+
 **action — the vendor,** a required dropdown, first because it narrows everything
 below it.
 
@@ -31,7 +40,9 @@ generates its own ID separately.
 **action — issue date and due date.**
 
 **action — `Invoice File`,** its own section. Required: the submit button cannot
-be pressed without it, and says so — see below.
+be pressed without it, and says so — see below. A line under the heading says why:
+`The vendor's original invoice document — required, every received invoice is kept
+on file.`
 
 **action — one or more order slots.** Each slot is labeled `PO` and holds one
 order, chosen from a dropdown. A `+ Add another PO` control appends a slot; each
@@ -60,7 +71,15 @@ ones.
 
 **action — `Items`.** One row per charge: the ordered item chosen from a dropdown
 scoped to the slots' orders, then quantity, unit price, and a remark. The ordered
-item dropdown is sorted so that items with something still uninvoiced come first.
+item dropdown is sorted so that items with something still uninvoiced come first,
+and **each option carries that quantity** — the item's name, its size, and
+`(Uninvoiced: N)`.
+
+**The rows are a growable list.** A `+ Add item` control appends one, and every
+row carries a `Remove` once there are two or more. Each row states its own
+`Amount (preview):` and the section foot states `Items total (preview):`, both
+computed from what is typed; `preview` is the word the edit screen uses for the
+same thing.
 
 **Size and Unit are not editable anywhere on this form.** They are frozen copies
 taken from the ordered item, shown for reference. A mismatch there means the wrong
@@ -103,6 +122,10 @@ while saving. It is disabled in every state but the last.
 
 ## What it carries only sometimes
 
+**When the reader is not an Admin:** the form does not exist. The page is one
+centered line, `Not authorized. This page is Admin-only.`, and nothing on it
+suggests what would otherwise be here.
+
 **When a file is attached, the app tries to read the order numbers off it.**
 Detection runs on any upload and is best-effort, so it always produces a message,
 and the message has several distinct voices at two levels — informational, or a
@@ -118,6 +141,18 @@ warning. They must stay distinguishable from each other:
   order. The wording is the app's shared unsigned-order copy, not this form's.
 - an order found with nothing left uninvoiced.
 - several orders found: one item row is scaffolded per order.
+- **orders found belonging to two different vendors** — a warning, because
+  nothing can be auto-applied and the reader has to pick.
+- **a PO-shaped string found that matches no order** — a warning naming what was
+  read, and worded to be tellable apart from finding nothing at all.
+- **an order found and deliberately not applied**, because a PO or an item was
+  already entered. Detection never overwrites work in progress; it names what it
+  found and says to pick manually.
+
+**Before a vendor is chosen:** every order slot's dropdown is disabled and its
+one option reads `Select a Vendor first`. Once a vendor is chosen the same option
+reads `Select a PO...` and the dropdown fills. The order picker is unusable until
+the field above it is answered, and it says which field.
 
 **When an order in a dropdown is unsigned:** the option's own label carries the
 word `unsigned`, lowercase, appended. So the state is visible at the moment of
@@ -155,9 +190,20 @@ reader actually states, which is why both terms are hidden by default here and
 both are always visible on the edit screen. The two conventions differ on
 purpose; neither is drifting toward the other.
 
-**When a charge differs from what its order agreed:** the remark field is where the
-reader says why, and its placeholder says so — `Remark — why this differs from the
-PO`. The field is always present; the placeholder is what names its purpose.
+**When a row has an ordered item matched to it:** its unit price is **locked** to
+the ordered item's own figure, with an `Edit` control beside the field that opens
+it and a `Cancel` that reverts it and clears whatever remark was written for the
+edit. A price is not freely typed on a matched row, and the two controls are a
+per-row affordance a design has to place.
+
+**When a row's quantity exceeds what its ordered item has left uninvoiced:** an
+amber line under the row naming both figures and saying it is not blocked but
+worth a note. A caution rather than a refusal.
+
+**When a charge differs from what its order agreed:** the remark field is where
+the reader says why, and its placeholder says so — `Remark — why this differs from
+the PO`. The field appears when the price lock is open or the quantity exceeds
+what is uninvoiced; the placeholder is what names its purpose.
 
 **A free-text item, with no ordered item behind it, does not exist (#278).** It
 was hidden behind a flag in this file with its backend path left open, so a
@@ -176,10 +222,24 @@ One ordered item belongs to one charge of one invoice (#91), so a second charge
 on an exhausted order has nothing to choose, and this is where a reader is told
 rather than refused on submit.
 
+**The refusal behind it is `Every item needs an ordered item from its PO.`, and it
+is the only one of this action's fourteen submit refusals a reader can reach.**
+Every other is pre-empted by a `required` control or by the submit button being
+disabled, so the words a reader meets on a bad submit are the browser's rather
+than this app's. A design should not lay out room for that error list; the
+exceptions are this one and the whole-number pair below.
+
 **When a row has no purchase order of its own yet:** its item control is a
 disabled dropdown reading `Pick this charge's PO first`, and `Select a PO above`
 while the whole section is still waiting for one. The words are short because
 the long form of the same fact is the section's own message above the rows.
+
+**When the vendor is changed, or an order already chosen is replaced:** a modal
+asking `Changing the {Vendor|PO} will clear the items you've entered so far.
+Continue?`, with `Continue` and `Cancel`. It appears **only once the rows have
+diverged from what the app auto-inserted**, so an untouched form swaps silently
+and a reader is interrupted only when there is something to lose. Confirming
+clears every row.
 
 **When the direct-purchase control is used:** a modal headed
 `Record a direct purchase`, over the form rather than replacing it. It states
@@ -191,7 +251,10 @@ order signed. It asks for two things the document cannot supply: the **Job**, re
 which is what puts the record in front of a site and which the office learns by
 telephone; and a free-text **note**, which is the only thing the site's list can
 say about what was bought, since no items are recorded. The job list is fetched
-when the modal opens, not when the page loads.
+when the modal opens, not when the page loads, so its select reads
+`Loading jobs...` and then `Select a Job`. A third reading,
+`Couldn't load the jobs — close this and try again`, exists in the code and
+**cannot be reached through this screen** without forcing that request to fail.
 
 **When a charge's quantity is not a whole number, or its unit price not a whole
 number of cents:** the form is refused on submit with

@@ -70,6 +70,13 @@ no reserved space.
 button at the foot of the page behind a top border. For everyone else neither
 exists, and no disabled control marks where they were.
 
+**When the delete button is pressed:** a confirmation, headed
+`Delete this invoice?`, naming the invoice and saying that it and its invoice
+items go, that the linked orders do not, and that it cannot be undone. Two
+buttons, and the confirming one reads `Deleting...` while the action runs. **The
+deletion is behind a confirmation and not immediate** — a fact about this
+screen's structure rather than about its words.
+
 **When the reader is President or Admin:** a whole `Payment` section, heading
 included. The heading is inside the gate on purpose — a heading with nothing
 under it would tell an employee that a payment fact exists here and refuse to
@@ -77,6 +84,14 @@ say it, which is worse than not raising the subject. Admins get a control that
 toggles paid state; the President gets the same fact as a sentence,
 `Paid on {date}` or `Not paid yet.` For everyone else the section does not
 exist. And when it does not, nothing on the page hints that it might.
+
+**The Admin's control is a form with its own submit**, a checkbox and a date
+beside it, saved by a button rather than toggled in place — so the page has a
+second submit on it, below the totals. Checking the box without a date is refused
+with `Paid Date is required when marking as Paid.`, and **that is the one refusal
+on this screen a reader can reach**: the date control carries no `required`, and
+every other refusal here is behind an Admin-only control or needs Airtable to
+fail.
 
 **When a tariff was entered:** one extra row in the totals footer, between
 Shipping Fee and Calculated Total.

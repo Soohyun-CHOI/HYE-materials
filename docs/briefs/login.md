@@ -20,6 +20,9 @@ nothing on the screen distinguishes the two cases.
 inside a sentence, from the app's single naming constant. The same line is the
 subject of the magic-link email, so the screen and the mail agree by construction.
 
+**evidence.** One line under the heading, `Use your company email address.`,
+which is the only place the domain restriction is stated before a reader hits it.
+
 **action.** One email field with the placeholder `you@company.com`, and one
 full-width filled button, `Send sign-in link`.
 

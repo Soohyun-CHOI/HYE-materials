@@ -60,6 +60,23 @@ Every page gets a file. There is no exemption list, and length follows what the
 screen carries — the three admin create forms are short because a brief saying
 "one form, no distinctions, nothing conditional" is complete for them.
 
+## What a screen SAYS, beside what it carries
+
+`strings/` is not a second set of briefs. `scripts/screen-strings.mjs` produces
+every string each screen renders on demand, and `strings/` holds only the two
+things a re-run cannot give: what the tool cannot see, grouped by the shape that
+hides it, and what no reader can reach (#288). `strings/README.md` says why an
+inventory per screen was built, measured and dropped.
+
+A brief says what a screen *carries* — which facts, at what level, which
+distinctions a redesign may not lose — and it is what a designer reads. A list of
+strings is what a vocabulary sweep reads, and it is better re-run than stored.
+
+**Reading the screens that closely did read back on these files.** It found a
+completeness claim in `login.md` that was false — the screen carries a line the
+brief did not list — and it moved 28 facts into four briefs that none of them
+carried, including that `/invoices/new` is two tabs.
+
 ## Keeping them true
 
 `scripts/tests/offline/screen-briefs.mjs` runs in CI and checks four things: that
