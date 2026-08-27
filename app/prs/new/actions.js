@@ -9,7 +9,7 @@ import {
     updatePR,
     getPRById,
     getPRByRecordId,
-    getPRsByLine,
+    getPRsByDiscipline,
 } from "@/lib/airtable/purchaseRequests";
 import { createItem, getItemsByPR } from "@/lib/airtable/prItems";
 import { createSigner, getSignersByPR } from "@/lib/airtable/prSigners";
@@ -37,12 +37,12 @@ function itemKey(item) {
 // and multiplicity insensitive). Checked against every prior PR on the Line
 // regardless of Status, since even one already PO Signed is still a
 // forgotten-resubmission candidate.
-async function findDuplicatePR(lineId, items, excludeRecordId = null) {
+async function findDuplicatePR(disciplineId, items, excludeRecordId = null) {
     const submittedKey = items.map(itemKey).sort().join(",");
 
-    const priorPRs = await getPRsByLine(lineId);
+    const priorPRs = await getPRsByDiscipline(disciplineId);
     for (const priorPr of priorPRs) {
-        // Issue #72 — a resumed Draft is itself a PR on this Line with these
+        // Issue #72 — a resumed Draft is itself a PR on this Discipline with these
         // same items, so skip it or it would always match itself on submit.
         if (excludeRecordId && priorPr.id === excludeRecordId) continue;
         const priorItems = await getItemsByPR(priorPr.id);
@@ -80,7 +80,7 @@ async function findDuplicatePR(lineId, items, excludeRecordId = null) {
 function parseFormState(formData) {
     const shippingFeeRaw = formData.get("shippingFee");
     return {
-        lineId: formData.get("lineId") || "",
+        disciplineId: formData.get("disciplineId") || "",
         vendorId: formData.get("vendorId") || "",
         notes: formData.get("notes") || "",
         shippingFeeRaw,
@@ -152,7 +152,16 @@ async function destroyChildren({ itemIds = [], signerIds = [], quotationIds = []
 // attachment that never changed: such an entry keeps its existing Quotation
 // record, and only a genuinely new upload creates one.
 async function persistPRFromForm({ userId, state }) {
-    const { existingDraftRecordId, lineId, vendorId, notes, shippingFee, items, signers, quotations } =
+    const {
+        existingDraftRecordId,
+        disciplineId,
+        vendorId,
+        notes,
+        shippingFee,
+        items,
+        signers,
+        quotations,
+    } =
         state;
 
     let pr;
@@ -163,9 +172,9 @@ async function persistPRFromForm({ userId, state }) {
         if (!existing) throw new Error("Draft record not found");
         pr = { id: existing.id, prId: existing.prId };
         oldChildIds = await collectChildIds(existing.id);
-        await updatePR(existing.id, { lineId, vendorId, notes, shippingFee });
+        await updatePR(existing.id, { disciplineId, vendorId, notes, shippingFee });
     } else {
-        pr = await createPR({ requesterId: userId, lineId, vendorId, notes, shippingFee });
+        pr = await createPR({ requesterId: userId, disciplineId, vendorId, notes, shippingFee });
     }
 
     const createdQuotationIds = [];
@@ -399,15 +408,24 @@ export async function deleteDraftAction(prId) {
 
 // Bound to useActionState (see PRForm.js): takes (prevState, formData),
 // returns { error }/{ duplicateWarning } on a validation/write failure
-// instead of throwing — same reasoning as app/admin/lines/new/actions.js.
+// instead of throwing — same reasoning as app/admin/disciplines/new/actions.js.
 export async function createPRAction(prevState, formData) {
     return withOpsLabel("createPRAction", async () => {
         const user = await requireUser();
         const state = parseFormState(formData);
-        const { lineId, vendorId, items, signers, quotations, shippingFee, shippingFeeRaw, confirmed } =
+        const {
+            disciplineId,
+            vendorId,
+            items,
+            signers,
+            quotations,
+            shippingFee,
+            shippingFeeRaw,
+            confirmed,
+        } =
             state;
 
-        if (!lineId) return { error: "Select a Line." };
+        if (!disciplineId) return { error: "Select a Discipline." };
         if (!vendorId) return { error: "Select a Vendor." };
         if (items.length === 0) {
             return { error: "Add at least one item." };
@@ -441,7 +459,11 @@ export async function createPRAction(prevState, formData) {
         // Submit-time check, skipped once the Requester has confirmed past a
         // previously-shown warning.
         if (!confirmed) {
-            const duplicate = await findDuplicatePR(lineId, items, state.existingDraftRecordId);
+            const duplicate = await findDuplicatePR(
+                disciplineId,
+                items,
+                state.existingDraftRecordId
+            );
             if (duplicate) {
                 return { duplicateWarning: duplicate };
             }

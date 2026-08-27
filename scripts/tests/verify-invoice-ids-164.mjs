@@ -68,7 +68,7 @@ import { createPO } from "../../lib/airtable/purchaseOrders.js";
 import { createDelivery } from "../../lib/airtable/deliveries.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllJobs } from "../../lib/airtable/jobs.js";
 import { base, TABLES, findByRecordIds } from "../../lib/airtable/client.js";
 import { prefixMatch } from "../../lib/airtableFormula.js";
@@ -371,16 +371,16 @@ try {
     // -----------------------------------------------------------------------
     console.log("\nPart D — the other three generators share the rule now:");
     const users = await getActiveUsers();
-    const lines = await getAllLines();
+    const disciplines = await getAllDisciplines();
     const jobs = await getAllJobs();
-    if (users.length === 0 || lines.length === 0 || jobs.length === 0) {
+    if (users.length === 0 || disciplines.length === 0 || jobs.length === 0) {
         throw new Error("need one active User, one Line and one Job for the PR/PO/Delivery fixtures");
     }
     const user = users[0];
 
-    const prA = await createPR({ requesterId: user.id, lineId: lines[0].id, vendorId: vendor.id, notes: `${TAG} A` });
+    const prA = await createPR({ requesterId: user.id, disciplineId: disciplines[0].id, vendorId: vendor.id, notes: `${TAG} A` });
     track("prs", prA.id);
-    const prB = await createPR({ requesterId: user.id, lineId: lines[0].id, vendorId: vendor.id, notes: `${TAG} B` });
+    const prB = await createPR({ requesterId: user.id, disciplineId: disciplines[0].id, vendorId: vendor.id, notes: `${TAG} B` });
     track("prs", prB.id);
     assert(`PR IDs differ (${prA.prId} vs ${prB.prId})`, prA.prId !== prB.prId);
     check("consecutive", seqOf(prB.prId), seqOf(prA.prId) + 1);
@@ -516,7 +516,7 @@ try {
     // counted the parent's link array, and a child is deleted by an ordinary Draft
     // re-save rather than by anyone choosing to.
     console.log("\nPart G — a child whose middle sibling was deleted:");
-    const prC = await createPR({ requesterId: user.id, lineId: lines[0].id, vendorId: vendor.id, notes: `${TAG} C` });
+    const prC = await createPR({ requesterId: user.id, disciplineId: disciplines[0].id, vendorId: vendor.id, notes: `${TAG} C` });
     track("prs", prC.id);
 
     const mkItem = (n) =>
@@ -615,7 +615,7 @@ try {
     // read after a child is created. That is the guarantee the choice rests on, so
     // it is re-measured rather than cited.
     console.log("\nPart I — the parent's link array on the first read after a child is created:");
-    const prD = await createPR({ requesterId: user.id, lineId: lines[0].id, vendorId: vendor.id, notes: `${TAG} D` });
+    const prD = await createPR({ requesterId: user.id, disciplineId: disciplines[0].id, vendorId: vendor.id, notes: `${TAG} D` });
     track("prs", prD.id);
     const fresh = await createItem({
         prRecordId: prD.id,

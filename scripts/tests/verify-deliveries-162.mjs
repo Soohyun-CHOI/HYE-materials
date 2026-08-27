@@ -70,7 +70,7 @@ import { canAccessJobDeliveries } from "../../lib/deliveryAccess.js";
 import { canDeleteDelivery, deleteDeliveryAsUser, resolveDeleteCopy } from "../../lib/deliveryDelete.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { CANONICAL_UNITS } from "../../lib/units.js";
@@ -218,10 +218,10 @@ const track = fixtures.track;
  * saying so. Finding them by tag does not depend on that lookup working, and the
  * census then reports how many it found either way.
  */
-async function makeOrder({ requester, vendor, line, itemName, size, unit, qty, unitPrice }) {
+async function makeOrder({ requester, vendor, discipline, itemName, size, unit, qty, unitPrice }) {
     const pr = await createPR({
         requesterId: requester.id,
-        lineId: line.id,
+        disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: `${TAG} fixture`,
     });
@@ -280,15 +280,15 @@ console.log("\nPart A — the schema is there and wired as the code assumes:");
 }
 
 // ---------------------------------------------------------------------------
-const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
+const [users, vendors, disciplines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllDisciplines()]);
 const requester = users[0];
 const [vendorA, vendorB] = vendors;
-const line = lines.find((l) => l.jobId);
+const discipline = disciplines.find((l) => l.jobId);
 
 let complete = false;
 if (incomplete && incomplete.startsWith("the Deliveries")) {
     // Nothing below can run without the tables.
-} else if (!requester || !vendorA || !vendorB || !line) {
+} else if (!requester || !vendorA || !vendorB || !discipline) {
     incomplete = "need one active User, TWO Vendors and one Line attached to a Job in the base";
     console.log(`\n  SKIP  ${incomplete}`);
 } else {
@@ -299,18 +299,18 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
   // was always survivable — check()/assert() only set `pass` — but a THROW was
   // not, and the cleanup sits outside this block precisely so it always runs.
   try {
-    const job = await getJobByRecordId(line.jobId);
+    const job = await getJobByRecordId(discipline.jobId);
     console.log(
-        `\nFixture context: job "${job.jobCode}", vendors "${vendorA.vendorName}" / "${vendorB.vendorName}", line "${line.lineLabel}" (all reused, not modified)`
+        `\nFixture context: job "${job.jobCode}", vendors "${vendorA.vendorName}" / "${vendorB.vendorName}", discipline "${discipline.disciplineLabel}" (all reused, not modified)`
     );
 
     const itemName = `${TAG} Pipe`;
     const po1 = await makeOrder({
-        requester, vendor: vendorA, line,
+        requester, vendor: vendorA, discipline,
         itemName, size: '2"', unit: "EA", qty: 10, unitPrice: 30,
     });
     const po2 = await makeOrder({
-        requester, vendor: vendorA, line,
+        requester, vendor: vendorA, discipline,
         itemName, size: '2"', unit: "EA", qty: 10, unitPrice: 32,
     });
 
@@ -516,7 +516,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // -----------------------------------------------------------------------
     console.log("\nPart E — a withdrawn PO's ordered item stops being a candidate:");
     const po3 = await makeOrder({
-        requester, vendor: vendorB, line,
+        requester, vendor: vendorB, discipline,
         itemName: `${TAG} Valve`, size: "", unit: "PCS", qty: 8, unitPrice: 12,
     });
     const beforeWithdraw = await getDeliveryCandidates([job]);
@@ -593,7 +593,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // the same ordered item, then read back and collapsed to items again.
     const multiItemName = `${TAG} Bolt`;
     const po4 = await makeOrder({
-        requester, vendor: vendorA, line,
+        requester, vendor: vendorA, discipline,
         itemName: multiItemName, size: "M12", unit: "EA", qty: 50, unitPrice: 1.2,
     });
     const forMulti = await getDeliveryCandidates([job]);

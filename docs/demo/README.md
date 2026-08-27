@@ -117,7 +117,7 @@ authorization checks and Act VI both need.
 The 36 real company jobs are deleted and come back from
 `scripts/import/import_jobs.py --folder ./data`, which reads the six Excel files
 in the repo. It writes Job Code, Job Name and Business Unit only — no PIC, no
-manager, no address, no Lines — and it skips any code off the `##-USA-@@`
+manager, no address, no Disciplines — and it skips any code off the `##-USA-@@`
 pattern, which is why it never touches the demo Job.
 
 ## Verified

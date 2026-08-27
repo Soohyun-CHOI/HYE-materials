@@ -48,7 +48,7 @@ import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
 import { uninvoicedQty, hasUninvoicedItems } from "../../lib/poItemQty.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES, _debugLockKeys } from "../../lib/airtable/client.js";
 import { formulaString } from "../../lib/airtableFormula.js";
 import { createFixtures } from "./_fixtures.mjs";
@@ -228,12 +228,12 @@ console.log("\nPart 0 — collectMaterialsCacheEntries (grouping + skips, no DB)
 
 let complete = false;
 // ---------------------------------------------------------------------------
-const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
+const [users, vendors, disciplines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllDisciplines()]);
 const requester = users[0];
 const [vendorA, vendorB] = vendors;
-const line = lines[0];
+const discipline = disciplines[0];
 
-if (!requester || !vendorA || !vendorB || !line) {
+if (!requester || !vendorA || !vendorB || !discipline) {
     incomplete = "need one active User, TWO Vendors and one Line in the base";
     console.log(`\n  SKIP  ${incomplete}`);
 } else {
@@ -248,7 +248,7 @@ if (!requester || !vendorA || !vendorB || !line) {
   // lower `pass`; a THROW was not. The cleanup sits outside this block precisely
   // so it always runs.
   try {
-    console.log(`\nFixture context: vendors "${vendorA.vendorName}" / "${vendorB.vendorName}", line "${line.lineLabel}" (reused, not modified)`);
+    console.log(`\nFixture context: vendors "${vendorA.vendorName}" / "${vendorB.vendorName}", discipline "${discipline.disciplineLabel}" (reused, not modified)`);
 
     // -----------------------------------------------------------------------
     console.log("\nPart A — Materials identity: one natural key, one row:");
@@ -342,7 +342,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     // Vendor A. Item X twice (dedupe + both linked), one unit-less ordered item
     // (skipped), one other material.
     const pr1 = await createPR({
-        requesterId: requester.id, lineId: line.id, vendorId: vendorA.id,
+        requesterId: requester.id, disciplineId: discipline.id, vendorId: vendorA.id,
         notes: `${TAG} vendor A`,
     });
     track("prs", pr1.id);
@@ -389,7 +389,7 @@ if (!requester || !vendorA || !vendorB || !line) {
 
     // Vendor B buys the same material: one identity, a second price.
     const pr2 = await createPR({
-        requesterId: requester.id, lineId: line.id, vendorId: vendorB.id,
+        requesterId: requester.id, disciplineId: discipline.id, vendorId: vendorB.id,
         notes: `${TAG} vendor B`,
     });
     track("prs", pr2.id);
@@ -414,7 +414,7 @@ if (!requester || !vendorA || !vendorB || !line) {
     await updatePO(gen2.poRecordId, { status: "Signed", presidentSigned: true, presidentSignedAt: new Date().toISOString() });
 
     const pr3 = await createPR({
-        requesterId: requester.id, lineId: line.id, vendorId: vendorA.id,
+        requesterId: requester.id, disciplineId: discipline.id, vendorId: vendorA.id,
         notes: `${TAG} withdrawn`,
     });
     track("prs", pr3.id);

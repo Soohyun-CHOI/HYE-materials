@@ -68,7 +68,7 @@ import {
 import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import {
     getDeliveryInvoicing,
@@ -257,23 +257,23 @@ const track = fixtures.track;
 
 let complete = false;
 try {
-    const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
+    const [users, vendors, disciplines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllDisciplines()]);
     const requester = users[0];
     const vendor = vendors[0];
-    const line = lines.find((l) => l.jobId);
-    if (!requester || !vendor || !line) {
+    const discipline = disciplines.find((l) => l.jobId);
+    if (!requester || !vendor || !discipline) {
         incomplete = "need one active User, one Vendor and one Line attached to a Job";
         console.log(`\n  SKIP  ${incomplete}`);
     } else {
         console.log(
-            `\nFixture context: vendor "${vendor.vendorName}", line "${line.lineLabel}" (both reused, not modified)`
+            `\nFixture context: vendor "${vendor.vendorName}", discipline "${discipline.disciplineLabel}" (both reused, not modified)`
         );
 
         /** One PR + item -> approve -> PO. Returns the PO's single ordered item. */
         async function makeOrder({ itemName, qty, unitPrice = 10 }) {
             const pr = await createPR({
                 requesterId: requester.id,
-                lineId: line.id,
+                disciplineId: discipline.id,
                 vendorId: vendor.id,
                 notes: `${TAG} fixture`,
             });
@@ -298,7 +298,7 @@ try {
 
         async function deliver({ orderedItem, qty, over = false, receivedDate }) {
             const d = await createDelivery({
-                jobRecordId: line.jobId,
+                jobRecordId: discipline.jobId,
                 vendorRecordId: vendor.id,
                 packingListPORecordId: null,
                 receivedDate,

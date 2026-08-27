@@ -2,8 +2,8 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
-// Issue #30 (follow-up) — searchable Job picker for the Line creation form.
-// Office staff create Lines but have no assigned Jobs to group/shorten the
+// Issue #30 (follow-up) — searchable Job picker for the Discipline creation form.
+// Office staff create Disciplines but have no assigned Jobs to group/shorten the
 // list by (unlike PRForm's picker), so the whole Job list needs type-to-
 // narrow search. Deliberately local to this form: NOT shared with PRForm
 // (different requirements) and NOT built on the PR-list JobFilterDropdown
@@ -14,7 +14,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 // submit until a Job is chosen), and this renders the hidden
 // <input name="jobId"> that actually submits — so the form contract is
 // unchanged (still a Job record id, still re-verified server-side in
-// createLineAction). The visible text box carries no name and never submits.
+// createDisciplineAction). The visible text box carries no name and never submits.
 //
 // Native <select> gave keyboard access, focus handling, and form submission
 // for free; this reimplements them as an ARIA combobox: role=combobox input

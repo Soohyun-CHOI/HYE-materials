@@ -133,22 +133,24 @@ rendered only in the state its refusal excludes.
   all**, and it is here because the extractor attributes a whole file: no reader can
   see it in any state.
 
-## `/admin/jobs/new`, `/admin/vendors/new`, `/admin/lines/new`
+## `/admin/jobs/new`, `/admin/vendors/new`, `/admin/disciplines/new`
 
 - **`Not authorized`** — one string, all three screens. Each page refuses a non-Admin
   before its form exists, and the refusal is **thrown** rather than returned, so even
   a direct call surfaces as a framework error page rather than as the form's own
-  message. The three actions keep the throw deliberately; `/admin/lines/new`'s own
+  message. The three actions keep the throw deliberately; `/admin/disciplines/new`'s own
   note records that its validation failures return `{ error }` for exactly the
   opposite reason.
-- **`That Job doesn't exist. Pick one from the list.`** — `/admin/lines/new` only.
+- **`That Job doesn't exist. Pick one from the list.`** — `/admin/disciplines/new`
+  only.
   The submit is disabled until a Job is chosen from the combobox, and the value is
   that Job's record id, so a nonexistent one needs a forged submit.
 
 ## `/prs/new`
 
 Fifteen refusals; **eleven judged unreachable, four not judged.** The form carries
-`required` on the job, the line, the vendor and every item field, and the submit is
+`required` on the job, the discipline, the vendor and every item field, and the
+submit is
 disabled until a quotation file has uploaded — which answers the eleven. The four not
 judged are the draft-management refusals, whose controls are per-draft and whose
 gating was not traced.

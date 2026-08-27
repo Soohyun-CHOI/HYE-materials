@@ -19,9 +19,10 @@
 //   Jobs           scripts/import/import_jobs.py --folder ./data restores the 36 real
 //                  company jobs from the six Excel files in the repo. It writes Job
 //                  Code, Job Name and Business Unit ONLY — no PIC, no manager, no
-//                  address, no Lines — and it skips any code off the `##-USA-@@`
+//                  address, no Disciplines — and it skips any code off the `##-USA-@@`
 //                  pattern, which is why it can never make the demo Job.
-//   Jobs/Lines/    scripts/demo/seed_demo_fixtures.mjs makes the demo Job, its Line,
+//   Jobs/Disciplines/  scripts/demo/seed_demo_fixtures.mjs makes the demo Job, its
+//                  Discipline,
 //   Vendors/       "Lone Star Pipe & Supply" and both. seed_full_demo.mjs calls it,
 //   Addresses      so seeding on an empty base is one command.
 //   everything     scripts/demo/seed_full_demo.mjs, plus the three older per-issue
@@ -86,8 +87,8 @@ const ORDER = [
     TABLES.PR_SIGNERS,
     TABLES.PR_ITEMS,
     TABLES.PURCHASE_REQUESTS,
-    // Reference data. Lines before Jobs, since a Line is a child of a Job.
-    TABLES.LINES,
+    // Reference data. Disciplines before Jobs, since one is a child of a Job.
+    TABLES.DISCIPLINES,
     TABLES.JOBS,
     TABLES.VENDORS,
     TABLES.ADDRESSES,

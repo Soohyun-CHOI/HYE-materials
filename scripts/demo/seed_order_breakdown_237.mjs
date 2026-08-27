@@ -102,7 +102,7 @@ import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Lone Star Pipe & Supply";
@@ -128,9 +128,9 @@ console.log("=".repeat(72));
 console.log("seed_order_breakdown_237 — the two shapes #237's list turns on");
 console.log("=".repeat(72));
 
-const [users, vendors, lines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllLines()]);
-const line = lines.find((l) => (l.lineLabel || "").startsWith(JOB_CODE));
-if (!line) throw new Error(`no Line on ${JOB_CODE} — run seed_demo_fixtures.mjs first`);
+const [users, vendors, disciplines] = await Promise.all([getActiveUsers(), getAllVendors(), getAllDisciplines()]);
+const discipline = disciplines.find((l) => (l.disciplineLabel || "").startsWith(JOB_CODE));
+if (!discipline) throw new Error(`no Discipline on ${JOB_CODE} — run seed_demo_fixtures.mjs first`);
 const vendor = vendors.find((v) => v.vendorName === VENDOR_NAME);
 if (!vendor) throw new Error(`no vendor "${VENDOR_NAME}" — run seed_demo_fixtures.mjs first`);
 const requester = users[0];
@@ -138,7 +138,7 @@ const signer = users[1] ?? users[0];
 if (!requester) throw new Error("no active user to raise the PRs as");
 
 console.log(`job      ${JOB_CODE}`);
-console.log(`line     ${line.lineLabel}`);
+console.log(`discipline ${discipline.disciplineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
 console.log(`as       ${requester.userName} <${requester.email}>`);
 
@@ -204,7 +204,7 @@ function invoicePdfBytes(label) {
 async function makeOrder({ itemName, qty }) {
     const pr = await createPR({
         requesterId: requester.id,
-        lineId: line.id,
+        disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: "237-DEMO order",
     });
@@ -238,7 +238,7 @@ async function makeOrder({ itemName, qty }) {
 /** A delivery that brings more than was ordered, in the app's own two-row shape. */
 async function overDeliver({ orderedItem, within, over, receivedDate }) {
     const delivery = await createDelivery({
-        jobRecordId: line.jobId,
+        jobRecordId: discipline.jobId,
         vendorRecordId: vendor.id,
         packingListPORecordId: null,
         receivedDate,

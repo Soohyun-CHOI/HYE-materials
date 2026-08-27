@@ -43,7 +43,7 @@ import { getDeliveryCandidates } from "../../lib/deliveryCandidates.js";
 import { planDelivery } from "../../lib/deliveryAllocation.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
-import { getAllLines } from "../../lib/airtable/lines.js";
+import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
@@ -59,24 +59,24 @@ console.log("seed_over_delivery_165 — browsable orders for #165");
 console.log("=".repeat(72));
 
 // --- context, all reused -----------------------------------------------------
-const [jobs, lines, vendors, users] = await Promise.all([
+const [jobs, disciplines, vendors, users] = await Promise.all([
     getAllJobs(),
-    getAllLines(),
+    getAllDisciplines(),
     getAllVendors(),
     getActiveUsers(),
 ]);
 
 const job = jobs.find((j) => j.jobCode === JOB_CODE);
 if (!job) throw new Error(`no job ${JOB_CODE} — run scripts/demo/seed_demo_fixtures.mjs first`);
-const line = lines.find((l) => l.jobId === job.id);
-if (!line) throw new Error(`job ${JOB_CODE} has no Line — run seed_demo_fixtures.mjs first`);
+const discipline = disciplines.find((l) => l.jobId === job.id);
+if (!discipline) throw new Error(`job ${JOB_CODE} has no Discipline — run seed_demo_fixtures.mjs first`);
 const vendor = vendors.find((v) => v.vendorName === VENDOR_NAME);
 if (!vendor) throw new Error(`no vendor "${VENDOR_NAME}" — run seed_demo_fixtures.mjs first`);
 const requester = users[0];
 if (!requester) throw new Error("no active user to raise the PRs as");
 
 console.log(`job      ${job.jobCode} (${job.jobName ?? ""})`);
-console.log(`line     ${line.lineLabel}`);
+console.log(`discipline ${discipline.disciplineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
 console.log(`as       ${requester.userName} <${requester.email}>`);
 
@@ -93,7 +93,7 @@ if (already) {
 async function makeOrder({ item, qty, unitPrice, remark }) {
     const pr = await createPR({
         requesterId: requester.id,
-        lineId: line.id,
+        disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: "165-DEMO fixture — orders for looking at over-delivery attachment",
     });

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAllLines } from "@/lib/airtable/lines";
+import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getActiveUsers } from "@/lib/airtable/users";
 import { getDraftsByRequester } from "@/lib/airtable/purchaseRequests";
@@ -21,9 +21,9 @@ export default async function NewPRPage(props) {
 async function renderNewPRPage({ searchParams }) {
     const user = await requireUser();
 
-    const [jobs, lines, vendors, users] = await Promise.all([
+    const [jobs, disciplines, vendors, users] = await Promise.all([
         getAllJobs(),
-        getAllLines(),
+        getAllDisciplines(),
         getAllVendors(),
         getActiveUsers(),
     ]);
@@ -42,7 +42,8 @@ async function renderNewPRPage({ searchParams }) {
     const draftList = drafts.map((d) => ({
         prId: d.prId,
         createdAt: d.createdAt,
-        lineLabel: lines.find((l) => l.id === d.line?.[0])?.lineLabel || null,
+        disciplineLabel:
+            disciplines.find((x) => x.id === d.discipline?.[0])?.disciplineLabel || null,
         vendorName: vendors.find((v) => v.id === d.vendor?.[0])?.vendorName || null,
         total: d.totalAmount ?? d.itemsSubtotal ?? 0,
     }));
@@ -68,7 +69,9 @@ async function renderNewPRPage({ searchParams }) {
         ? {
               prId: initialDraft.prId,
               createdAt: chosenDraft.createdAt,
-              lineLabel: lines.find((l) => l.id === initialDraft.lineId)?.lineLabel || null,
+              disciplineLabel:
+                  disciplines.find((x) => x.id === initialDraft.disciplineId)
+                      ?.disciplineLabel || null,
               vendorName: vendors.find((v) => v.id === initialDraft.vendorId)?.vendorName || null,
               itemCount: initialDraft.items.length,
           }
@@ -99,7 +102,7 @@ async function renderNewPRPage({ searchParams }) {
                 key={autoResume ? `draft-${chosenDraft.prId}` : "new"}
                 myJobs={myJobs}
                 otherJobs={otherJobs}
-                lines={lines}
+                disciplines={disciplines}
                 vendors={vendors}
                 users={users}
                 initialDraft={initialDraft}

@@ -47,8 +47,13 @@ stale in the same pass that used it: the strings change, the line numbers move, 
 alone was 134 `poLine` uses and about 400 bare ones, and of `shipment`'s 322 uses
 exactly **two** were strings a reader sees. #269 changed no screen, no constant and no
 identifier: what was missing was a rule. #274's trigger was a false premise in #227's
-own reasoning, and the evidence against it was on the Airtable base. #280 is a table
-rename whose whole screen surface is **11 strings**, all of which this tool finds.
+own reasoning, and the evidence against it was on the Airtable base. #280 was a table
+rename whose whole screen surface was **11 strings**, all of which this tool found —
+**and that prediction was checked when the sweep ran**: eleven, exactly, once the
+filter was read on the extracted TEXT rather than on the line the tool prints. A
+filter over the whole output line counts 22, because the route `/admin/lines/new`
+and the paths under it carried the word too; #303's pull request records 22 for that
+reason and is wrong.
 Only #254's `item`-against-`charge` finding wanted a list of strings — and it wanted
 109 of them, not 6,000 lines.
 
@@ -58,10 +63,16 @@ Only #254's `item`-against-`charge` finding wanted a list of strings — and it 
 stale.**
 
 Run the extractor over every screen and keep the strings carrying the word in
-question. Today that is 109 strings for `item` / `charge` / `line`, of which 81 say
-`item`, 21 say `charge` and 11 say `line`; the four that say both `item` and `charge`
-in one sentence are on `/invoices/new` and `/prs`, and they are where the decision
-actually bites.
+question. **Filter on the extracted TEXT, not on the line the tool prints** — the
+line carries the route and the file path, so a screen at `/admin/lines/new` matches
+a filter for `line` on every string it renders. That is how #303 came to report 22
+for a word with eleven uses.
+
+The counts move as the sweeps land: at #288 it was 109 strings for `item` /
+`charge` / `line`, of which 81 said `item`, 21 said `charge` and 11 said `line`.
+#303 took the `charge` noun and #280 took the last eleven, so the words those two
+settled now read one way each. What does not move is the shape of the work: filter,
+judge which table each noun points at, sweep, re-filter.
 
 ```
 node scripts/screen-strings.mjs > /tmp/all.txt          # the census, 21 screens

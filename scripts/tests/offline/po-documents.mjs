@@ -488,7 +488,7 @@ export function run({ check, assert, log }) {
         );
     }
     assert(
-        "  nothing says `line`, which names a Job's Lines row",
+        "  nothing says `line`, which names no row of any table (#280)",
         !words.some((w) => /\bline\b/i.test(w))
     );
     assert("  the two empty states end in a full stop", sentences.slice(0, 2).every((t) => t.endsWith(".")));
