@@ -6,6 +6,8 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
+import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
+import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import { canViewPR } from "@/lib/prVisibility";
 import { selectPOsAwaitingSend, selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
 import { PO_SENT_STATUS } from "@/lib/poSend";
@@ -13,9 +15,11 @@ import {
     daysWaiting,
     describePOColumn,
     describePOInvoicingColumn,
+    describePOPaymentColumn,
     sortLongestWaitingFirst,
     summarizePODeliveryStatus,
     summarizePOInvoicingStatus,
+    summarizePOPaymentStatus,
 } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import POListClient from "./POListClient";
@@ -139,6 +143,59 @@ async function renderPOListPage({ searchParams }) {
         });
     }
 
+    // THE PAYMENT LEVEL, IN TWO READS FOR THE WHOLE PAGE (#311), and the shape is
+    // the delivery level's one step further down: each is a whole level keyed on ids
+    // the level above already returned, at one query per 50, so the page steps with
+    // the number of INVOICE ITEMS and INVOICES rather than with the number of rows.
+    // Both return early on an empty id list, so a set of orders nothing has charged
+    // pays for neither. `/pos/[poId]` reads exactly these two levels in exactly this
+    // shape (#235), which is what lets the two screens fold one judgment.
+    //
+    // TWO LEVELS AND NOT ONE, because `Paid` is on `Invoices` and nothing reaches it
+    // from an ordered item — the invoicing chip beside this one rides on the
+    // `Invoiced Qty` rollup and cost no read at all, and there is no rollup here to
+    // ride. An Airtable lookup-plus-rollup would have made it free and was rejected
+    // for a reason that is not cost: the ORDER'S OWN PAGE has to read the invoice
+    // records anyway, because it lists them with a badge each, so a list judging
+    // from a rollup would be the two screens computing one fact two ways — which is
+    // the divergence this issue exists to prevent, built in by construction.
+    //
+    // GATHERED THROUGH `poItems`, WHICH IS THE GATED SET AND THE ONLY REASON THIS IS
+    // SAFE. Those ids came from `visible` rather than from `pos` (see above), so
+    // every ordered item in hand belongs to an order this reader may see and the
+    // invoice level inherits that gate instead of applying a second one. It matters
+    // more here than it did one level up: an invoice can charge two orders, so
+    // walking a refused row's ordered items would pull a document nobody may see
+    // into this fold. Widen line one and all three levels leak at once, which is
+    // what `offline/po-payment-column.mjs` holds.
+    const invoiceItems = await getInvoiceItemsByRecordIds([
+        ...new Set(poItems.flatMap((item) => item.invoiceItems || [])),
+    ]);
+    const invoices = await getInvoicesByRecordIds([
+        ...new Set(invoiceItems.map((item) => item.invoice?.[0]).filter(Boolean)),
+    ]);
+
+    // One entry per (order, invoice) pair, deduplicated: an invoice charging two
+    // ordered items of one order is ONE document, and counting it twice would make
+    // `paid === charging` an accident of how the vendor itemized. That is #233's
+    // fold, one level up — the order page folds those rows into one entry per
+    // document for the same reason.
+    const invoiceById = new Map(invoices.map((invoice) => [invoice.id, invoice]));
+    const orderedItemToPO = new Map(poItems.map((item) => [item.id, item.po?.[0] ?? null]));
+    const invoicesByPO = new Map();
+    for (const item of invoiceItems) {
+        const poRecordId = orderedItemToPO.get(item.poItem?.[0]) ?? item.po?.[0] ?? null;
+        const invoice = invoiceById.get(item.invoice?.[0]);
+        if (!poRecordId || !invoice) continue;
+        if (!invoicesByPO.has(poRecordId)) invoicesByPO.set(poRecordId, new Map());
+        invoicesByPO.get(poRecordId).set(invoice.id, invoice);
+    }
+
+    // The server's day, taken once so every row is judged against the same one. The
+    // strip below takes it too; `daysWaiting` documents what a server day does and
+    // does not promise, and `invoicePayment` inherits both properties.
+    const today = new Date().toISOString().slice(0, 10);
+
     // Already in PO ID descending order — Airtable sorted it in getAllPOs, the way
     // /invoices sorts by Invoice ID. Nothing re-sorts here, so `map` preserves it.
     const rows = visible.map((po) => {
@@ -174,6 +231,16 @@ async function renderPOListPage({ searchParams }) {
             // order behind it (#211).
             invoicingChip: describePOInvoicingColumn(
                 summarizePOInvoicingStatus(orderedItemsByPO.get(po.id) || [])
+            ),
+            // #311 — the third axis, and the row hands over BOTH slots the describer
+            // returns. This page never names a payment field: the invoice records go
+            // to the judgment whole, so what an order's payment state IS lives in one
+            // function that `/pos/[poId]` calls over the same set. A rule written
+            // here instead is the divergence nothing would catch — the list would say
+            // paid and the order's own page would show an unpaid invoice, each
+            // looking right on its own.
+            payment: describePOPaymentColumn(
+                summarizePOPaymentStatus([...(invoicesByPO.get(po.id)?.values() || [])], today)
             ),
             // A PO carries no requester of its own — it is the parent PR's
             // (#138). Resolved here so the requester's identity never reaches
@@ -224,10 +291,9 @@ async function renderPOListPage({ searchParams }) {
     // writes it in the same operation as `Sent At`, so every row here has none, and a
     // column naming the person would cost a Users read per row to name nobody.
     //
-    // The server's day, taken once so every row is measured against the same one —
-    // app/invoices/page.js's shape, and `daysWaiting` documents what it does and does
-    // not promise.
-    const today = new Date().toISOString().slice(0, 10);
+    // `today` IS TAKEN ONCE FOR THE WHOLE PAGE, above — #311 moved it up when the
+    // payment column needed the same day the strip counts against. Two `new Date()`
+    // calls would let one row be judged on a different day from the row above it.
     const awaitingSendRows = sortLongestWaitingFirst(
         selectPOsAwaitingSend(visible).map((po) => {
             const pr = prById.get(po.pr?.[0]);

@@ -32,8 +32,10 @@ import {
     isNotFullyInvoiced,
     orderedItemStatus,
     orderedItemDelivery,
+    describePOPaymentColumn,
     summarizePODeliveryStatus,
     summarizePOInvoicingStatus,
+    summarizePOPaymentStatus,
     describePOInvoicingColumn,
     orderedItemInvoicing,
     sortLongestWaitingFirst,
@@ -44,6 +46,10 @@ import {
 // deleted one export and #210 deleted four more, and "it is gone" is not a claim a
 // named import can make.
 import * as deliveryStatus from "../../../lib/deliveryStatus.js";
+// #311 — the order detail's badge word, imported so the payment chip's third value is
+// asserted to AGREE with it rather than pinned as a second literal. `lib/poDocuments.js`
+// is pure and offline-loadable, which is what makes the agreement checkable at all.
+import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -1140,6 +1146,177 @@ export function run({ check, log, assert }) {
         const sum = summarizePOInvoicingStatus(orderedItems);
         assert(`describePOInvoicingColumn resolves "${sum.key}"`, Boolean(describePOInvoicingColumn(sum)?.text));
     }
+
+    // ── #311: THE PAYMENT AXIS ──────────────────────────────────────────────
+    //
+    // THE THIRD ORDER-SCOPE SUMMARY, AND THE ONE FOLDING DOCUMENTS RATHER THAN
+    // ORDERED ITEMS. `paid` is not a fact an order holds — an order is charged by
+    // several invoices and an invoice charges several orders — so what this states is
+    // a fact about the DOCUMENTS, and the whole table is here because a reader of the
+    // list and a reader of the order's own page must be told the same thing.
+    log("");
+    log("summarizePOPaymentStatus — folds invoices, never quantities (#311):");
+    const TODAY = "2026-08-28";
+    const inv = (paid, dueDate = "2026-09-30") => ({ paid, dueDate });
+    const payment = (invoices, today = TODAY) => summarizePOPaymentStatus(invoices, today).key;
+
+    const everyPaymentState = [
+        ["paid", [inv(true), inv(true)]],
+        ["partly-paid", [inv(true), inv(false)]],
+        ["not-paid", [inv(false), inv(false)]],
+        ["nothing-invoiced", []],
+    ];
+    for (const [expected, invoices] of everyPaymentState) {
+        check(`  ${expected}`, payment(invoices), expected);
+    }
+    // ANTI-VACUITY, the shape its two siblings use: a constant verdict has to
+    // disagree with the table on all but one row, or the four inputs collapse.
+    assert(
+        "  so a constant verdict disagrees on three of the four",
+        everyPaymentState.filter(([, invoices]) => payment(invoices) !== "not-paid").length === 3
+    );
+
+    // THE EMPTY SET IS THE ONE THAT COULD HAVE GONE EITHER WAY. "every invoice is
+    // paid" and "none is paid" are both vacuously true of no invoices, so an order
+    // nothing has charged would read as whichever the arithmetic reached first. It
+    // asserts no debt instead.
+    check("an order nothing charges says nothing", payment([]), "nothing-invoiced");
+    check("  and that is the dash, not a chip", STATUS_COPY.column.poPayment["nothing-invoiced"]().text, "—");
+    check("  wearing the tone its two siblings give an unmeasured state", STATUS_COPY.column.poPayment["nothing-invoiced"]().tone, "absent");
+
+    log("");
+    log("lateness is a second fact from the same call, not a fifth value:");
+    // THE CASE THAT DECIDED THE SHAPE. One paid invoice and one late one: a closed
+    // set has to pick a single value and either pick throws away something the reader
+    // came for. Both survive because the badge composes.
+    const mixed = summarizePOPaymentStatus([inv(true), inv(false, "2026-08-21")], TODAY);
+    check("one paid and one late is still `partly-paid`", mixed.key, "partly-paid");
+    assert("  and it is overdue as well", mixed.overdue);
+    assert(
+        "  so the two facts are carried together rather than one chosen",
+        mixed.key === "partly-paid" && mixed.overdue === true
+    );
+    // A PAID SET CANNOT BE LATE, which is what makes the badge composable with two
+    // chips and not three.
+    assert(
+        "a paid invoice past its due date is not overdue",
+        !summarizePOPaymentStatus([inv(true, "2026-01-01")], TODAY).overdue
+    );
+    check("  and the chip it would compose with does not arise", payment([inv(true, "2026-01-01")]), "paid");
+
+    log("");
+    log("the boundary, and what has no boundary to cross:");
+    // `dueDate < today`, so the due day itself still has time — the direction
+    // lib/authTokenState.js takes with `expiresAt < now`.
+    assert("the day before today is overdue", summarizePOPaymentStatus([inv(false, "2026-08-27")], TODAY).overdue);
+    assert("  today itself is not", !summarizePOPaymentStatus([inv(false, "2026-08-28")], TODAY).overdue);
+    assert("  and tomorrow is not", !summarizePOPaymentStatus([inv(false, "2026-08-29")], TODAY).overdue);
+    // A BLANK `Due Date` IS NOT LATE — there is nothing to have passed. Reachable:
+    // the field is optional on both invoice write paths, so this is an ordinary
+    // record rather than a hand edit. #263's call on a null wait, one field across.
+    assert("an unpaid invoice with no due date is not overdue", !summarizePOPaymentStatus([inv(false, null)], TODAY).overdue);
+    assert("  nor with an empty one", !summarizePOPaymentStatus([inv(false, "")], TODAY).overdue);
+    check("  and it still counts as an unpaid invoice", payment([inv(false, null)]), "not-paid");
+
+    log("");
+    log("the chip — one stem, and the word this app already had:");
+    check("paid", STATUS_COPY.column.poPayment.paid().text, "Paid");
+    check("partly paid", STATUS_COPY.column.poPayment["partly-paid"]().text, "Partly paid");
+    // `Not paid` RATHER THAN A THIRD WORD. The app had two names for one fact before
+    // #311 — `Unpaid` on the invoice list and `Not paid` on the order detail's badge
+    // — and this axis converged them instead of coining `Awaiting payment` to match
+    // its two siblings' third value. So the assertion is agreement with the badge,
+    // not a literal: a rewording of either has to move both.
+    check("not paid", STATUS_COPY.column.poPayment["not-paid"]().text, PO_DOCUMENTS_COPY.badge.notPaid);
+    check("  which is the word, spelled out once here", STATUS_COPY.column.poPayment["not-paid"]().text, "Not paid");
+    assert(
+        "every word in the set is built on `paid`",
+        Object.values(STATUS_COPY.column.poPayment)
+            .map((f) => f().text)
+            .filter((t) => t !== "—")
+            .every((t) => /paid/i.test(t))
+    );
+    assert(
+        "  and none of them says `unpaid`",
+        !Object.values(STATUS_COPY.column.poPayment).some((f) => /unpaid/i.test(f().text))
+    );
+    // `partly`, never `partially` — the rule the delivery axis set and the invoicing
+    // axis followed.
+    check(
+        "the middle word reads like its two siblings",
+        STATUS_COPY.column.poPayment["partly-paid"]().text.split(" ")[0],
+        STATUS_COPY.column.poInvoicing["partly-invoiced"]().text.split(" ")[0]
+    );
+    // The tones are the delivery axis's, so a reader crossing three chips on one row
+    // meets one palette.
+    for (const [ours, theirs] of [
+        ["paid", "delivered"],
+        ["partly-paid", "partly-delivered"],
+        ["not-paid", "awaiting-delivery"],
+        ["nothing-invoiced", "nothing-ordered"],
+    ]) {
+        check(
+            `"${ours}" wears the tone "${theirs}" wears`,
+            STATUS_COPY.column.poPayment[ours]().tone,
+            STATUS_COPY.column.po[theirs]().tone
+        );
+    }
+
+    log("");
+    log("the badge, and the figures it deliberately does not carry:");
+    check("its word", STATUS_COPY.column.poPaymentOverdue.text, "⚠ Overdue");
+    assert(
+        "it carries no tone, because it is not a value of the set",
+        STATUS_COPY.column.poPaymentOverdue.tone === undefined
+    );
+    // NO COUNT AND NO DAY FIGURE. A day count belongs to one invoice while the badge
+    // is about a set, and #233's rule bars money outright.
+    assert("and no digit at all", !/\d/.test(STATUS_COPY.column.poPaymentOverdue.text));
+    assert("  nor a currency mark", !/[$]/.test(STATUS_COPY.column.poPaymentOverdue.text));
+    assert(
+        "  and no chip on this axis carries one either",
+        !Object.values(STATUS_COPY.column.poPayment).some((f) => /[\d$]/.test(f().text))
+    );
+    // It wears the same glyph as the app's other look-at-this badge, and there are
+    // only the two.
+    assert(
+        "it is the same glyph the variance badge wears",
+        STATUS_COPY.column.poPaymentOverdue.text.startsWith("⚠")
+    );
+
+    log("");
+    log("describePOPaymentColumn hands over both slots, never one:");
+    for (const invoices of [[inv(true)], [inv(false)], [inv(true), inv(false)], []]) {
+        const sum = summarizePOPaymentStatus(invoices, TODAY);
+        const described = describePOPaymentColumn(sum);
+        assert(`  "${sum.key}" resolves a chip`, Boolean(described.chip?.text));
+        assert(`  "${sum.key}" carries an overdue slot`, "overdue" in described);
+    }
+    // The slot is NULL where the badge cannot compose, so a screen renders what it is
+    // given rather than re-deciding when lateness applies — `describeInvoiceLine`'s
+    // named-slot rule, one axis along.
+    assert(
+        "the slot is null on a chip the badge cannot compose with",
+        describePOPaymentColumn(summarizePOPaymentStatus([inv(true)], TODAY)).overdue === null
+    );
+    assert(
+        "  and filled where it can",
+        describePOPaymentColumn(summarizePOPaymentStatus([inv(false, "2026-08-21")], TODAY)).overdue?.text ===
+            "⚠ Overdue"
+    );
+
+    log("");
+    log("it is the two other order-scope summaries' pair, field for field:");
+    // The same claim the invoicing axis makes of the delivery one, and the same
+    // instrument. This one folds documents rather than ordered items, so the counted
+    // field is named for what it counts.
+    check(
+        "same result shape, with `charging` where the others count ordered items",
+        shapeOf(summarizePOPaymentStatus([inv(true)], TODAY)),
+        shapeOf({ key: 0, charging: 0, paid: 0, overdue: 0 })
+    );
+    check("charging counts the documents", summarizePOPaymentStatus([inv(true), inv(false)], TODAY).charging, 2);
+    check("  and paid counts the ones that are", summarizePOPaymentStatus([inv(true), inv(false)], TODAY).paid, 1);
 
     // ── #210: THE INFERENCE IS GONE, ON THE AST ─────────────────────────────
     //

@@ -28,8 +28,10 @@ import { ALLOCATION_COPY, undeliveredQty } from "@/lib/deliveryAllocation";
 import {
     describePOColumn,
     describePOInvoicingColumn,
+    describePOPaymentColumn,
     summarizePODeliveryStatus,
     summarizePOInvoicingStatus,
+    summarizePOPaymentStatus,
 } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
@@ -258,6 +260,23 @@ async function renderPODetailPage({ params, searchParams }) {
             }))
         )
     );
+
+    // The server's day, the same one `/pos` judges its rows against — see
+    // `daysWaiting` for what a server day does and does not promise.
+    const today = new Date().toISOString().slice(0, 10);
+    // #311 — the payment chip, from the same function `/pos` folds its cell with and
+    // over the same set: the invoices already read above, deduplicated by
+    // `getInvoicesByRecordIds`' own id set. **THIS PAGE IS THE MUTANT'S OTHER HALF.**
+    // If the list judged with a rule of its own, a reader could meet `Paid` on a row,
+    // open it, and find an unpaid invoice in the list below — two answers to one
+    // question, each right on its own screen, and nothing failing. So the chip here
+    // is not a courtesy: it is what makes the list's rule checkable, because the
+    // badges under it are the per-document facts the chip folds.
+    //
+    // COSTS NO READ. The two levels were already fetched for the list of invoices
+    // this section renders (#235), which is also why the fold and the chip cannot
+    // disagree about which documents they are about.
+    const paymentColumn = describePOPaymentColumn(summarizePOPaymentStatus(invoices, today));
 
     // Issue #167 — the overage banner, from whichever side this order is on: its own
     // PR is the correction, or one of its ordered items is where an excess came from.
@@ -636,6 +655,16 @@ async function renderPODetailPage({ params, searchParams }) {
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.invoices.heading}</h2>
                     <StatusChip chip={invoicingChip} />
+                    {/* #311 — the payment axis, beside the invoicing one, both from
+                        the functions `/pos` folds its two cells with. The badge is
+                        the same red span the variance one wears and is null on a
+                        chip it cannot compose with. */}
+                    <StatusChip chip={paymentColumn.chip} />
+                    {paymentColumn.overdue && (
+                        <span className="rounded bg-red-100 px-1 text-xs text-red-700">
+                            {paymentColumn.overdue.text}
+                        </span>
+                    )}
                 </div>
                 {invoicesOnOrder.length === 0 ? (
                     <p className="mt-1 text-sm text-zinc-600">

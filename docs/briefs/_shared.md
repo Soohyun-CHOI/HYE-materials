@@ -273,7 +273,7 @@ paragraph exists to name.
 
 ### The status vocabulary (tier 1, `lib/deliveryStatus.js`)
 
-Four axes. Within an axis the words are a closed set; across axes the same word
+Five axes. Within an axis the words are a closed set; across axes the same word
 is deliberately the same word, because the predicate is the same and only the
 denominator differs — the row supplies that, never the chip.
 
@@ -283,11 +283,27 @@ denominator differs — the row supplies that, never the chip.
 | A delivery against its invoices | `Invoiced`, `Partly invoiced`, `Awaiting invoice`, `—` |
 | An order against its deliveries | `Delivered`, `Partly delivered`, `Awaiting delivery`, `—` |
 | An order against its invoices | `Invoiced`, `Partly invoiced`, `Awaiting invoice`, `—` |
+| An order against its invoices' payment | `Paid`, `Partly paid`, `Not paid`, `—` |
 
 `partly`, never `partially`. One stem across a set: `Invoiced` / `Partly
 invoiced` / `Awaiting invoice`, never `Billed` / `Partly billed` alongside them.
 `Delivered` and `delivery`, never `arrived` or `arrival` — #166 swept that and
 the sweep is the reason the words agree at all.
+
+**The fifth axis breaks the third-value pattern on purpose.** The others end
+`Awaiting delivery` / `Awaiting invoice`, so the parallel would be `Awaiting
+payment` — and it is not taken, because the app already had TWO words for an unpaid
+invoice (`Unpaid` on the invoice list, `Not paid` on the order detail's badge) and a
+third would be a third name for one fact. They converged on `Not paid`, which is the
+participle `Paid` negated rather than a second lexeme, and it is now the word at all
+three places. Each other axis coined the only word its axis had; this one was
+choosing among words that existed.
+
+**One mark composes with a chip rather than joining a set: `⚠ Overdue`**, on the
+payment axis, when an invoice charging the order is past its due date and still
+unpaid. It is not a fifth value because an order can be `Partly paid` AND overdue at
+once, and a closed set would have to throw one of the two away. It carries no day
+count and no date.
 
 **The word for what an invoice does, in two forms and no third (#274).** As a
 participle or a quantity it is `invoiced`, which is what the base already says

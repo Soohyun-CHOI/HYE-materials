@@ -189,6 +189,19 @@ export default function POListClient({
                                 input. Nothing is truncated: a cell that does not fit
                                 wraps. */}
                             <col style={{ width: "6.625rem" }} />
+                            {/* #311 — AN EIGHTH, AND THE BUDGET IS NOT RE-CUT FOR IT
+                                EITHER, which is #235's call above applied a second
+                                time rather than re-argued. The seven already sum past
+                                the 52rem this page has; the table sits in an
+                                `overflow-x-auto`, so what widens is the scroll inside
+                                that container and nothing is truncated. Same width as
+                                its two siblings: the badge STACKS under the chip
+                                rather than sitting beside it, so the cell needs the
+                                wider of the two rather than their sum — `/invoices`'
+                                shape for a badge under a payment word, and there for
+                                a measured reason where here it is simply what keeps
+                                the three chip columns one width. */}
+                            <col style={{ width: "6.625rem" }} />
                         </colgroup>
                         <thead>
                             <tr className="text-left text-zinc-500">
@@ -214,7 +227,18 @@ export default function POListClient({
                                     names the axis whose chip is in the cells. Two
                                     heads, two subjects — the pair `Delivery` here and
                                     `Delivered` there already draws. */}
-                                <th>Invoice</th>
+                                <th className="pr-2">Invoice</th>
+                                {/* #311 — a noun, like the two before it, and the
+                                    third step of the chain the row already reads
+                                    left to right: what was delivered, what was
+                                    invoiced, what has been paid.
+
+                                    `Payment` RATHER THAN `Paid`, because the head
+                                    names the axis and the cell carries the state —
+                                    the distinction `Invoice` / `Invoiced` already
+                                    draws between this table and the order's own
+                                    page. */}
+                                <th>Payment</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -260,8 +284,26 @@ export default function POListClient({
                                         <td className="py-1 pr-2">
                                             <StatusChip chip={row.deliveryChip} />
                                         </td>
-                                        <td className="py-1">
+                                        <td className="py-1 pr-2">
                                             <StatusChip chip={row.invoicingChip} />
+                                        </td>
+                                        {/* #311 — BOTH SLOTS THE DESCRIBER RETURNED,
+                                            and the badge is null on a chip it cannot
+                                            compose with, so this renders what it was
+                                            given rather than deciding when lateness
+                                            applies. The red span is the one
+                                            `⚠ Check the total` already wears at its
+                                            three sites; it is not a chip and must not
+                                            look like one, since a chip is a value
+                                            from a closed set and this composes with
+                                            any of them. */}
+                                        <td className="py-1">
+                                            <StatusChip chip={row.payment.chip} />
+                                            {row.payment.overdue && (
+                                                <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
+                                                    {row.payment.overdue.text}
+                                                </span>
+                                            )}
                                         </td>
                                     </tr>
                                 );
