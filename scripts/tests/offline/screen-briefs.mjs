@@ -59,6 +59,7 @@ import { DIRECT_PURCHASE_COPY } from "../../../lib/directPurchase.js";
 import { WAIT_COPY } from "../../../lib/prWait.js";
 import { PR_KIND_COPY } from "../../../lib/prKind.js";
 import { RESTORE, ROLLBACK_COPY } from "../../../lib/rollbackReport.js";
+import { MAX_UPLOAD_BYTES, UPLOAD_LIMIT_COPY } from "../../../lib/uploadLimit.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -289,6 +290,13 @@ const PINNED = [
     "Do not approve again",
     "Do not send it back again",
     "Ask for these to be corrected in Airtable",
+    // #146 — the one refusal five screens share, pinned WITHOUT either figure for the
+    // reason the threshold sentence above is: the briefs write where the sizes go, and
+    // both of them are meant to move. The file's size moves per file; the limit moves
+    // the day somebody raises it, which `lib/uploadLimit.js` exists to make possible.
+    // What a redesign may not change is the wording, and this is the one string in the
+    // app that five briefs quote at once.
+    "This file is larger than the upload limit",
 ];
 
 export function run({ check, assert, log }) {
@@ -435,6 +443,10 @@ export function run({ check, assert, log }) {
         // `loadable` and its pin would fail for the wrong reason.
         ...Object.values(ROLLBACK_COPY).map((v) => v.clean),
         ...Object.values(ROLLBACK_COPY).map((v) => v.incomplete([RESTORE.items])),
+        // #146 — called with real byte counts for the same reason: the builder takes
+        // two numbers, and `stringsFrom`'s probe shapes would render the figures as
+        // `NaN` rather than throw, which is the quieter of the two failures.
+        UPLOAD_LIMIT_COPY.tooLarge({ bytes: 25_480_000, limitBytes: MAX_UPLOAD_BYTES }),
     ];
     assert("the copy constants yielded strings", loadable.length > 20);
     // AND NO `STATUS_COPY` SENTENCE RENDERED `undefined`, WHICH IS WHAT A STALE INPUT

@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
+import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { createInvoiceAction, createDirectPurchaseAction } from "./actions";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
@@ -348,6 +349,7 @@ export default function InvoiceForm({ vendors, pos }) {
         setInvoiceFile({ status: "uploading", filename: file.name });
         setPoDetection(null);
         try {
+            refuseOversizeUpload(file);
             const blob = await upload(file.name, file, {
                 access: "public",
                 handleUploadUrl: "/api/invoices/upload",

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { upload } from "@vercel/blob/client";
+import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { editAndContinueAction } from "./actions";
 import { CANONICAL_UNITS } from "@/lib/units";
 
@@ -79,6 +80,7 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
             prev.map((q, i) => (i === index ? { ...q, file: { status: "uploading", filename: file.name } } : q))
         );
         try {
+            refuseOversizeUpload(file);
             const blob = await upload(file.name, file, {
                 access: "public",
                 handleUploadUrl: "/api/quotations/upload",

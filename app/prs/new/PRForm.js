@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
+import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { createPRAction, saveDraftAction, deleteDraftAction } from "./actions";
 import { PR_ITEM_MERGE_COPY, describeMerge } from "@/lib/prItemMerge";
 import SignerList from "./SignerList";
@@ -252,6 +253,7 @@ export default function PRForm({
             prev.map((q, i) => (i === index ? { ...q, file: { status: "uploading", filename: file.name } } : q))
         );
         try {
+            refuseOversizeUpload(file);
             const blob = await upload(file.name, file, {
                 access: "public",
                 handleUploadUrl: "/api/quotations/upload",

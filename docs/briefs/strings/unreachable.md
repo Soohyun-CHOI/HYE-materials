@@ -65,9 +65,13 @@ select carries no `required`.
 - **`Search failed — try again.`**, **`Couldn't load this PO's items — try
   re-selecting the PO.`**, **`Couldn't load the jobs — close this and try again`** —
   each needs its own fetch to fail.
-- **`Upload failed: {error}. …`** — needs a rejected upload; the 20MB cap or a
-  content type outside PDF/JPEG/PNG would do it, so this one is reachable with
-  effort and is listed for the interpolated message rather than the sentence.
+- **`Upload failed: {error}. …`** — needs a rejected upload, and it is listed for
+  the interpolated message rather than the sentence. **The "with effort" this entry
+  used to claim is gone (#146):** picking a file over the size limit produces it
+  immediately, with no upload attempted and no network involved, so it is now among
+  the most easily reached lines on this screen. A content type outside PDF/JPEG/PNG
+  still reaches it too. Both are one file-picker away, which is what took the
+  qualifier off.
 
 ## `/invoices/[invoiceId]/edit`
 
