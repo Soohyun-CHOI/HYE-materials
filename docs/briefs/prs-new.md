@@ -72,6 +72,14 @@ detaches from that record rather than silently re-targeting a new one.
 entry — a filename, a spinner, or the error. A file is required per entry before
 the request can be submitted.
 
+**When a picked file is over the size limit:** the same red line as a failed
+upload, but immediately and before anything is sent —
+`This file is larger than the upload limit`, then the file's own size against the
+limit. It needs no room of its own: it reuses the entry's error line. One limit
+covers every upload in the app, so this sentence is word for word what
+`/invoices/new`, `/deliveries/new`, `/deliveries/[deliveryId]/edit` and
+`/prs/[prId]` show.
+
 **When two or more quotations exist:** an extra `Quotation` column on every item
 row, so each item can name which quotation its price came from. With zero or one
 there is no choice to make and the column is absent.

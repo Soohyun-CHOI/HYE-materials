@@ -64,6 +64,20 @@ chunks, so a concatenated sentence counts more than once.
 | `AWAITING_PO_COPY` | `lib/poListView.js` | `awaitingPOCopy` | `/pos`, `/prs/[prId]` | 4 |
 | `ROLLBACK_COPY` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 15 |
 | `RESTORE` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 8 |
+| `UPLOAD_LIMIT_COPY` | `lib/uploadLimit.js` | `refuseOversizeUpload`, `uploadLimitRefusal` | `/prs/new`, `/prs/[prId]`, `/invoices/new`, `/deliveries/new`, `/deliveries/[deliveryId]/edit` | 3 |
+
+**#146's entry reaches more screens than any other row and is the smallest**, which
+is the pairing to notice. One sentence in three template pieces is shown on five
+screens, because five upload forms call one guard — so a rewording that a sweep
+standing on the extractor would miss entirely would miss it in five places at once.
+It is also the group's first entry whose invisibility is caused by a THROW rather
+than a return: `refuseOversizeUpload` throws the sentence into the form's existing
+catch, and the extractor does still collect a client throw (see the narrowing at the
+bottom of this file) — but it collects one written IN the screen's own files, and
+this one is written a module away. **Five briefs quote it and
+`offline/screen-briefs.mjs` pins it**, which is more cover than any other row here
+has, and it is deliberate: a string this invisible and this widely rendered had to
+be held somewhere.
 
 **#188's two are the group's first entries that were VISIBLE before the issue moved
 them.** Three of `ROLLBACK_COPY`'s fifteen pieces are the sentences the three signing

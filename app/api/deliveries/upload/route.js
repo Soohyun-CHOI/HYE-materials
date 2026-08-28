@@ -2,6 +2,7 @@ import { handleUpload } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { getActiveUser } from "@/lib/authz";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { MAX_UPLOAD_BYTES, refuseMultipartUpload } from "@/lib/uploadLimit";
 
 // Client-upload token endpoint for packing list photos (issue #162) — same
 // pattern as app/api/quotations/upload/route.js and
@@ -29,11 +30,15 @@ export async function POST(request) {
             const jsonResponse = await handleUpload({
                 body,
                 request,
-                onBeforeGenerateToken: async () => {
+                onBeforeGenerateToken: async (pathname, clientPayload, multipart) => {
                     const user = await getActiveUser();
                     if (!user) {
                         throw new Error("Not authenticated");
                     }
+                    // Issue #146 — see lib/uploadLimit.js: the signed ceiling below
+                    // does not bind a multipart upload, measured, so a caller who
+                    // asks for one is refused instead. No form asks.
+                    refuseMultipartUpload(multipart);
 
                     return {
                         // A packing list is photographed on a phone or scanned, so
@@ -45,10 +50,12 @@ export async function POST(request) {
                         allowedContentTypes: ["application/pdf", "image/jpeg", "image/png"],
                         addRandomSuffix: true,
                         access: "public",
-                        // A ceiling from the start, unlike /api/quotations/upload,
-                        // which has none (#146). Generous for a phone photo — a
-                        // sanity bound, not a real expected size.
-                        maximumSizeInBytes: 20 * 1024 * 1024,
+                        // Issue #146 — this route had a ceiling from the start and
+                        // its comment cited this issue while copying the invoice
+                        // route's literal, which is precisely the second literal
+                        // #146 was open to prevent. The figure lives in
+                        // lib/uploadLimit.js now, for all three routes.
+                        maximumSizeInBytes: MAX_UPLOAD_BYTES,
                     };
                 },
                 // Not relied on — see CLAUDE.md's File uploads section for why.

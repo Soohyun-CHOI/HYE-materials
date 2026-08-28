@@ -38,6 +38,12 @@ on its own, and the buttons are secondary-weight rather than one primary.
 
 ## What it carries only sometimes
 
+**When a picked photo is over the size limit:** a red line under the photo input,
+immediately and before anything is sent — `This file is larger than the upload
+limit`, then the photo's own size against the limit. It reuses the line a failed
+upload already uses and needs no room of its own; the limit is one number for
+every upload in the app.
+
 **When the vendor has invoices that could be attached:** a dropdown with the
 placeholder `Select an invoice…` and an `Attach invoice` button, disabled until one
 is picked. Invoices already attached to another delivery are **listed but not

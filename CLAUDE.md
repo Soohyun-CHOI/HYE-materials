@@ -107,6 +107,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poUnsigned.js` — `isPOUnsigned` and the signal wherever an order is offered for an invoice (#198): the picker's option label and `UNSIGNED_COPY`. `AWAITING_SIGNATURE_COPY` (#292) is the mail asking the President to sign. **A mail's money figure is rendered by its copy builder and never by the caller** — so a mail carrying one is a pure builder, which is also the only shape a check can call.
 - `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242): `PO_ORIGIN`, the searched-order claim rule, the one-slot-one-order exclusion, and detection's claim over an entry the search put there.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
+- `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, where that figure came from, the refusal's words, and the guard all five upload forms open their try with.
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/directPurchase.js` — the way out of an invoice with no order (#272): `directPurchaseBlocked`, the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
 - `lib/directPurchaseClaim.js` — the strip's rows and the Draft a site raises from one. Credentialed.
@@ -244,7 +245,7 @@ Every file — quotation files, invoice files, generated PO PDFs, packing list p
 - Cleanup is best-effort: a failed `del()` is logged and nothing more.
 - **Airtable's own attachment URLs are short-lived (~2h), so nothing durable may store one** — re-read the record instead. Rendering a stale one is a recoverable annoyance; **re-submitting one as an attachment is data loss.**
 - **An attachment that did not change is not rewritten.** `Quotations.File` has exactly one writer, `createQuotation`; `Deliveries."Packing List File"` has exactly two, and the second refuses any url that is not a fresh Blob upload. Enforced by `offline/source-shape.mjs`.
-- Size limits are uneven: `/api/invoices/upload` caps at 20MB, `/api/quotations/upload` sets none. Both restrict content type to PDF/JPEG/PNG.
+- **One size ceiling for every user upload, and it is minted into the token, never compared after the bytes land** (#146) — a refusal that measures late leaves an object to clean up. **A multipart request is refused outright, because the signed ceiling does not bind one.** All three routes restrict content type to PDF/JPEG/PNG.
 
 Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persistPRFromForm`.
 

@@ -2,6 +2,7 @@
 
 import { useActionState, useMemo, useState } from "react";
 import { upload } from "@vercel/blob/client";
+import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { createDeliveryAction } from "./actions";
 import {
     availableItemOptions,
@@ -284,6 +285,7 @@ export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceO
         if (!file) return;
         setPhoto({ status: "uploading", filename: file.name });
         try {
+            refuseOversizeUpload(file);
             const blob = await upload(file.name, file, {
                 access: "public",
                 handleUploadUrl: "/api/deliveries/upload",

@@ -83,6 +83,12 @@ each one as a link to its file, with the vendor's own quotation code in
 parentheses when there is one. A request cannot be submitted without one, so this
 is absent only on a Draft.
 
+**When a quotation file picked while editing and continuing is over the size
+limit:** a red line on that entry, immediately and before anything is sent —
+`This file is larger than the upload limit`, then the file's own size against the
+limit. It reuses the entry's failed-upload line and needs no room of its own; the
+limit is one number for every upload in the app.
+
 **When the status is `In Review` and it is the reader's turn:** the signing
 panel — the controls to approve, to edit and continue, or to return it to someone
 earlier for correction, with the list of people it may be returned to. For anyone

@@ -111,6 +111,12 @@ case where the document disagrees.
 **When the photo is uploading, attached or failed:** `Uploading {filename}…` in
 gray, `{filename} attached` in green, or `Upload failed: {error}` in red.
 
+**When a picked photo is over the size limit:** that same red line, but
+immediately and before anything is sent — `This file is larger than the upload
+limit`, then the photo's own size against the limit. It reuses the failed-upload
+line and needs no room of its own. The limit is one number for the whole app, so
+a phone photo is held to what a quotation and an invoice are.
+
 **When the save fails:** the error in red above the button.
 
 ## What must agree elsewhere

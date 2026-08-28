@@ -163,6 +163,12 @@ file section — a gray `Uploading {filename}...`, a green confirmation, or a re
 `Upload failed: {error}. Pick a different file to continue`. And `No file attached
 yet.` before any of them.
 
+**When a picked file is over the size limit:** the same red line, but immediately
+and before anything is sent — `This file is larger than the upload limit`, then
+the file's own size against the limit. It reuses the failed-upload line and needs
+no room of its own. One limit covers every upload in the app, so the sentence is
+word for word what the request form and both delivery forms show.
+
 **When a slot's search is running or fails:** `Searching...`, `Search failed — try
 again.`, or `No matching POs.` inside the dropdown.
 
