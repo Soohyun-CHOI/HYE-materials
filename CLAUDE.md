@@ -23,6 +23,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `scripts/**` | `docs/notes/verification.md` |
 | renaming a field, a screen word or an identifier | `docs/notes/naming.md` |
 | what a screen carries, or adding or removing a page | `docs/briefs/README.md` |
+| changing a screen word before the design pass is finished | `docs/notes/design-copy-findings.md` |
 
 `docs/notes/backlog.md` is the open-work list and is not tied to a path — see the last section.
 
