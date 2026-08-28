@@ -88,12 +88,21 @@ export default async function PODetailPage(props) {
 // this order and the invoicing chip above them are open to every viewer who can
 // see the order. `Paid` did not move, and it is on its own flag now.
 //
-// SO THERE ARE TWO FLAGS AND THEY ARE EQUAL TODAY. `seesPayment` is
-// President-or-Admin and gates the payment badge alone. `isOffice` is the same
-// people and gates what has nothing to do with invoicing: the internal
-// `Delivery Address Used` field (#132) and the sign/regenerate write controls.
-// Naming them apart is the whole of the fix #233 asked for — the next issue that
-// widens one of them cannot take the other along without saying so.
+// AND THE SPLIT PAID OFF IN #309, WHICH IS WHY THERE IS ONE FLAG AGAIN. #235 wrote
+// here that `seesPayment` and `isOffice` were two flags with the same value and
+// separate names, so that the next issue widening one could not take the other along
+// without saying so. That issue arrived: payment is readable by anyone who reaches
+// the invoice, so `seesPayment` is gone and the badge is ungated, while `isOffice`
+// keeps the internal `Delivery Address Used` field (#132) — which is not an invoice
+// fact and did not move. The separate name is what made that a deletion rather than
+// a judgment call, and the pattern is worth reaching for again rather than the pair
+// being read as clutter that resolved itself.
+//
+// WHY THE BADGE NEEDS NO GATE OF ITS OWN, STRUCTURALLY. Every invoice in that
+// section charges THIS order, and a reader is on this page only because `canViewPR`
+// admitted the request behind it — which is the clause `getVisibleInvoiceIds` reaches
+// for an invoice. So there is no invoice here whose payment state the reader could
+// not read on the invoice's own page.
 //
 // `Delivered` WAS NEVER IN THAT SET (#169): delivery-derived, so every viewer who
 // can see the order sees it — and since #233 so are the deliveries that filled
@@ -101,14 +110,16 @@ export default async function PODetailPage(props) {
 // `Delivered/Undelivered` until that issue removed the second column.
 async function renderPODetailPage({ params, searchParams }) {
     const user = await requireUser();
-    // Two names, one predicate — see this file's header on why they are separate.
     const isOffice = user.role === "President" || user.isAdmin === true;
-    const seesPayment = user.role === "President" || user.isAdmin === true;
-    // Issue #281 — `isOffice` stays for the two READ-side narrowings (the internal
-    // address line and payment), which really are President-or-Admin. The write
-    // controls each match their own action's gate instead, which is what this page was
-    // getting wrong: signing is the President's, and the two document controls are
-    // `canSendPOToVendor`'s, resolved below once the PR is loaded.
+    // Issue #281 — `isOffice` stays for the READ-side narrowing that really is
+    // President-or-Admin. The write controls each match their own action's gate
+    // instead, which is what this page was getting wrong: signing is the President's,
+    // and the two document controls are `canSendPOToVendor`'s, resolved below once
+    // the PR is loaded.
+    //
+    // #309 — ONE READ-SIDE NARROWING LEFT, the internal address line. `seesPayment`
+    // stood beside this line holding the same expression and is gone with the payment
+    // gate; see this file's header for what its separate name bought.
     const isPresident = user.role === "President";
     const { poId } = await params;
     const { done } = await searchParams;
@@ -373,8 +384,13 @@ async function renderPODetailPage({ params, searchParams }) {
                                 the order sees this — the same category as the
                                 `Material` link and #167's provenance reverse-link,
                                 and the reason recordToPOItem now carries
-                                `Delivered Qty`. It sits before the invoice one so
-                                a non-privileged viewer's columns stay contiguous.
+                                `Delivered Qty`. It sat before the invoice one so a
+                                non-privileged viewer's columns stayed contiguous;
+                                #235 left this table ONE column set for every reader,
+                                so that reason is spent and the order is kept because
+                                moving it would redraw a layout nothing asked about.
+                                Corrected per #181 by #309, which read this page for
+                                its payment gate.
 
                                 #233 TOOK `Undelivered` AND `Uninvoiced` OUT. Each
                                 was its row's own `Qty` minus the column beside it,
@@ -514,12 +530,13 @@ async function renderPODetailPage({ params, searchParams }) {
                 behind it (#211), so this section now renders for every viewer who
                 reaches this page, exactly as those columns now do.
 
-                WHAT SURVIVES OF IT SITS ONE LEVEL DOWN, on the payment badge inside
-                this section: a viewer without `seesPayment` reads neither `Paid` nor
-                `Not paid`, because there the absence of a badge really is the answer
-                to a question they are not being shown. The principle was sound and
-                only its subject was wrong, which is why it moved rather than went.
-                Corrected here per #181 by #260, in the branch that found it. */}
+                WHAT SURVIVED OF IT SAT ONE LEVEL DOWN, on the payment badge inside
+                this section, and #309 took that too: a viewer without `seesPayment`
+                read neither `Paid` nor `Not paid`, because there the absence of a
+                badge really was the answer to a question they were not being shown.
+                The principle was sound and only its subject was wrong, which is why
+                it moved rather than went — and then the subject went. Corrected here
+                per #181 by #260, in the branch that found it. */}
             <div className="mt-6">
                 {/* THE CHIP FOLDS THE TABLE ABOVE, NOT THE LIST BELOW IT, which is
                     the one thing about this placement that could be misread.
@@ -609,11 +626,12 @@ async function renderPODetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {/* #235 — NO LONGER GATED. What a vendor invoiced is readable by anyone who
-                may read the order behind it (#211); `Paid` inside is the one thing
-                that kept its own line, on `seesPayment`. The chip beside the heading
-                is this order's invoicing state, in the placement #233 gave the
-                delivery one. */}
+            {/* #235 — NO LONGER GATED, and since #309 nothing inside it is either.
+                What a vendor invoiced is readable by anyone who may read the order
+                behind it (#211); `Paid` was the one thing that kept its own line, on
+                `seesPayment`, and that line is gone. The chip beside the heading is
+                this order's invoicing state, in the placement #233 gave the delivery
+                one. */}
             <div className="mt-6">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-semibold">{PO_DOCUMENTS_COPY.invoices.heading}</h2>
@@ -647,27 +665,29 @@ async function renderPODetailPage({ params, searchParams }) {
                                             {VARIANCE_COPY.header}
                                         </span>
                                     )}
-                                    {/* Payment is President-or-Admin (#211), and it
-                                        is the ONLY thing in this section that is.
-                                        The gate above widened in #235 and this
-                                        badge did not go with it — which is exactly
-                                        what this file's header warned would have
-                                        to be prevented, so `seesPayment` is its
-                                        own flag now. A viewer without it reads
-                                        neither word: not `Paid`, not `Not paid`,
-                                        since the absence of a payment badge is
-                                        itself the answer to a question they are
-                                        not being shown. */}
-                                    {seesPayment &&
-                                        (inv.paid ? (
-                                            <span className="rounded bg-green-100 px-1 text-xs text-green-700">
-                                                {PO_DOCUMENTS_COPY.badge.paid(inv)}
-                                            </span>
-                                        ) : (
-                                            <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-500">
-                                                {PO_DOCUMENTS_COPY.badge.notPaid}
-                                            </span>
-                                        ))}
+                                    {/* NOTHING IN THIS SECTION IS GATED ANY MORE
+                                        (#309). Payment was the last thing that was
+                                        — President-or-Admin under #211, on its own
+                                        flag since #235 so that it could move alone,
+                                        which is what it has now done. A reader of
+                                        this page reaches every invoice listed here
+                                        by construction (see this file's header), so
+                                        the badge discloses nothing the invoice's own
+                                        page would not.
+
+                                        BOTH WORDS OR NEITHER, and now always both:
+                                        the absence of a payment badge used to be
+                                        the answer to a question the reader was not
+                                        being shown, and there is no such reader. */}
+                                    {inv.paid ? (
+                                        <span className="rounded bg-green-100 px-1 text-xs text-green-700">
+                                            {PO_DOCUMENTS_COPY.badge.paid}
+                                        </span>
+                                    ) : (
+                                        <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-500">
+                                            {PO_DOCUMENTS_COPY.badge.notPaid}
+                                        </span>
+                                    )}
                                 </p>
                                 {/* ONE ROW PER ORDERED ITEM AND PRICE (#266), the
                                     delivery list's fold with the unit price joined to

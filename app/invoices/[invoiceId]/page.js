@@ -10,7 +10,10 @@ import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMark
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
 import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "@/lib/invoiceOrderBreakdown";
-import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
+// #309 — the WALK only. This page loads the invoice items it renders anyway, so it
+// never had a use for `seesEveryInvoice`'s cost shortcut; it imported the helper to
+// gate the Payment section, and payment no longer has a gate.
+import { getVisibleInvoiceIds } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
 import { formatUSD } from "@/lib/format";
@@ -62,10 +65,13 @@ const ENTRY_TONE_CLASS = {
 // A REFUSAL RENDERS THE NOT-FOUND TEXT, never a refusal that confirms the record
 // exists — the same posture the PR list, the PR detail and the PO detail all take.
 //
-// MARKING PAID STAYS ADMIN-ONLY (actions.js) and READING payment status is now
-// President-or-Admin: whether the vendor has been paid is the one fact here a
-// recorder has no use for and a vendor's own staff might ask about on site. That is
-// #211's own line, not one inherited from the route gate it replaced.
+// MARKING PAID STAYS ADMIN-ONLY (actions.js) AND READING PAYMENT IS OPEN TO EVERY
+// READER OF THE ROW (#309). #211 made reading it President-or-Admin, on the ground
+// that a vendor's own staff might ask about it on site; the office asked for the
+// opposite. That issue had no need to tell reading and writing apart, because one
+// answer stood behind both — and this page is where they split: the section is
+// ungated and the FORM inside it is `user.isAdmin`, which is what `updatePaidAction`
+// is wrapped with. The two conditions are deliberately not one expression.
 //
 // LABELED IN #232, THE WAY `/pos/[poId]` AND `/prs/[prId]` ARE. An outer wrapper, so
 // the page body keeps its indentation, and the route TEMPLATE, so repeated loads
@@ -80,7 +86,6 @@ export default async function InvoiceDetailPage(props) {
 
 async function renderInvoiceDetailPage({ params, searchParams }) {
     const user = await requireUser();
-    const privileged = seesEveryInvoice(user);
     const { invoiceId } = await params;
     const { done, paired, tied } = await searchParams;
     // #231 — a key, never a sentence. An unknown or absent value words nothing,
@@ -657,19 +662,24 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 )}
             </div>
 
-            {/* HOISTED OUT OF THE PAYMENT SECTION BY #211, because it is a fact
-                about the invoice and that section is now President-or-Admin. It has
-                to outlive the gate: this prompt is the only thing that raises an
+            {/* HOISTED OUT OF THE PAYMENT SECTION BY #211, and it stays out (#309).
+                The gate it had to outlive is gone, so the hoist is no longer load
+                bearing for access — but the placement is still right, and for the
+                reason it was made: this prompt is the only thing that raises an
                 invoice-item variance to invoice level, and an item invoiced at other
                 than what the order agreed is exactly what the employee reading this
-                page is here to catch. Copy that mentions payment does not disclose
-                whether THIS vendor was paid, which is where the line actually runs.
+                page is here to catch, which is not a payment fact. #211's own
+                distinction survives its line: copy that MENTIONS payment never
+                disclosed whether THIS vendor was paid.
 
                 #179 NARROWED IT TO THE ITEM KIND AND REWORDED IT. It said
                 `variance flags`, one word for two kinds, and fired on either — but
                 the header kind already has a sentence on this page, in the red box
-                under the totals, which states both figures and sits outside the
+                under the totals, which states both figures and sat outside the
                 Payment gate. Firing on both printed one fact twice on one screen.
+                **That box being ungated is what #309 read back**: the list's badge
+                for the same fact was behind the payment gate, so #179 was standing on
+                an openness it did not extend to the mark pointing at it.
                 And `review before confirming payment` named an action most of this
                 prompt's readers cannot take, which is what #211 created and this
                 issue's comment records; the action is now one anybody can take and
@@ -681,25 +691,39 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 </p>
             )}
 
-            {/* PRESIDENT-OR-ADMIN (#211) — the whole section, heading included. A
-                heading with nothing under it would tell an employee there is a
-                payment fact here and refuse to say it, which is worse than not
-                raising the subject. The Admin-only toggle inside is unchanged;
-                what moved is who may READ the answer. */}
-            {privileged && (
-                <div className="mt-8">
-                    <h2 className="text-lg font-semibold">Payment</h2>
-                    {user.isAdmin ? (
-                        <div className="mt-2">
-                            <PaidForm invoiceId={invoice.invoiceId} paid={invoice.paid} paidDate={invoice.paidDate} />
-                        </div>
-                    ) : (
-                        <p className="mt-2 text-sm">
-                            {invoice.paid ? `Paid on ${invoice.paidDate || "—"}` : "Not paid yet."}
-                        </p>
-                    )}
-                </div>
-            )}
+            {/* UNGATED SINCE #309 — the whole section, heading included. #211 made it
+                President-or-Admin and put the heading inside the gate deliberately,
+                because a heading with nothing under it tells a reader a payment fact
+                exists here and refuses to say it. That reasoning was sound and its
+                subject is gone: there is nothing to withhold, so there is nothing for
+                the heading to announce and hide.
+
+                THE ONE CONDITION LEFT IS THE WRITE'S, AND IT IS `user.isAdmin`
+                RATHER THAN A PRIVILEGE FLAG. `updatePaidAction` is `withAdminAction`,
+                so this is #185's pair rule read straight off the action's own gate.
+                It was already this shape under #211's outer gate — which is why this
+                issue changes no write path — and the two conditions must stay
+                separate expressions: nested behind one answer, opening the read would
+                have opened the control with it, and every check in the tier would
+                still pass.
+
+                PAYMENT IS ON BOTH SIDES OF THAT CONDITION, which is the property
+                offline/invoice-visibility.mjs holds: a reader who cannot record it
+                still reads it, as a sentence. Before #309 that sentence was reachable
+                only by a President who is not an Admin, and this base has none — so
+                it rendered for nobody and is now the ordinary case. */}
+            <div className="mt-8">
+                <h2 className="text-lg font-semibold">Payment</h2>
+                {user.isAdmin ? (
+                    <div className="mt-2">
+                        <PaidForm invoiceId={invoice.invoiceId} paid={invoice.paid} paidDate={invoice.paidDate} />
+                    </div>
+                ) : (
+                    <p className="mt-2 text-sm">
+                        {invoice.paid ? `Paid on ${invoice.paidDate || "—"}` : "Not paid yet."}
+                    </p>
+                )}
+            </div>
 
             {user.isAdmin && (
                 <div className="mt-8 border-t border-zinc-200 pt-6">

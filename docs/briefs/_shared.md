@@ -327,7 +327,9 @@ are quoted on `invoices-new.md` and `invoices-invoiceId-edit.md`.
 
 Headings `Invoices` and `Deliveries`. Empty states `No invoice charges this
 order yet.` and `Nothing has been delivered against this order yet.` Badges
-`✓ Paid`, `Not paid`, `Over-delivered`.
+`✓ Paid`, `Not paid`, `Over-delivered`. **`✓ Paid` is a whole string and not a
+template** — it carried the payment date until #309, which made a badge mark the fact
+and left the date to the sentence on the invoice's own page.
 
 ### Purchase orders (tier 1, `lib/poListView.js`, `lib/poUnsigned.js`)
 
@@ -386,7 +388,9 @@ voices (`Withdrawn — the requester ended the plan to order before this PO was
 signed. It can't be signed or invoiced.` and the signed variant) and the three
 deletion voices, which differ by whether the delivery's ordered items are
 uninvoiced, invoiced, or on a paid invoice. All three end `This cannot be
-undone.`
+undone.` **All three reach whoever may delete (#309)** — the third used to be
+withheld from a site recorder, which is the one place payment was disclosed inside a
+modal.
 
 The three deletion bodies are the app's clearest example of copy doing work a
 visual cannot: they are not warnings but accurate accounts of what becomes
@@ -452,12 +456,25 @@ President or Admin; then the requester; then anyone assigned to the PR's Job;
 then a signer on the chain; then the recipient of a correction request.
 
 **Two things the design has to accommodate because of this.** A screen can
-render *differently* for two readers, not merely show fewer rows — a whole
-column can be absent. The invoice list's `Status` column, which carries the
-payment word and the total-mismatch badge stacked under it, exists only for a
-President or an Admin; for everyone else the table is one column narrower and no
-heading marks where it was. So a table's column count is not a constant, and a
-layout that assumes it is will break for one of its two readers.
+render *differently* for two readers, not merely show fewer rows.
+
+**NO TABLE IN THIS APP DROPS A COLUMN BY READER, AND THAT IS NOW A FACT RATHER THAN AN
+ABSENCE.** Two did. The invoice list's `Status` column — the payment word with the
+total-mismatch badge stacked under it — existed only for a President or an Admin, and
+the purchase order detail's items table had two column sets. #235 gave that table one
+set and #309 opened that column, so a table's column count IS a constant now, and both
+tables sum their declared widths to exactly the page width on the assumption that it
+stays one. **A design that reintroduces a reader-dependent column is re-cutting a
+budget in two directions at once, which is what both of those did and what both of
+them then had to undo** — the freed width had been handed to a neighbor each time, so
+opening the column took it back off that neighbor.
+
+**What survives is smaller than a column and still real.** A single LINE can be
+absent: the purchase order detail's `Delivery Address Used` is office-only, and the
+invoice list's `New invoice` control is Admin-only. And one SECTION renders two ways
+rather than two sizes: the invoice detail's `Payment` is a form for an Admin and the
+same fact as a sentence for everybody else. That last shape is the one to copy where a
+reader may not act — the fact is not what varies.
 
 And the same screen can be reached by a reader who sees no rows at all, which is
 why the empty states are worded three ways rather than one: nothing exists yet,

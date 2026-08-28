@@ -2,8 +2,8 @@
 
 Route: `/pos/[poId]`
 Who reaches it: row-scoped — anyone signed in, then only orders whose purchase
-request they can see, through `canViewPR`. Two facts are narrower: one internal
-address field is office-only, and payment badges are President-or-Admin.
+request they can see, through `canViewPR`. One fact is narrower: an internal
+address field is office-only. **Payment badges were too, until #309.**
 **Each write control has its own reader**: signing is the President's; making the
 order document and sending it to the vendor belong to the requester who raised the
 request **or** the office; and withdrawing is the requester's. Sending the order
@@ -115,11 +115,18 @@ Everything here is absent in the normal case unless the entry says otherwise.
 `Delivery Address Used`, which is Primary or Alternate. It is internal tracking
 and no other reader sees it.
 
-**When the reader is President or Admin:** a payment badge on each invoice in
-the invoice list — `✓ Paid` or `Not paid`. Everyone else reads **neither** word.
-The absence of the badge is deliberate rather than a gap: showing `Not paid` to
-a reader who is not allowed to know about payment would answer a question they
-are not being shown. This is the only thing left in that section that is gated.
+**Nothing in the invoice list is gated (#309).** Each invoice carries a payment badge
+— `✓ Paid` or `Not paid`, always one of the two, for every reader. **No date on the
+badge**: it marks that the vendor was paid, and when is on the invoice's own page. It
+read `✓ Paid {date}` when the invoice had one and `✓ Paid` when it did not, so one
+badge said two things and the shorter reading looked like missing data.
+
+Until #309 both words were withheld from a non-office reader, on the ground that
+showing `Not paid` answers a question they are not being shown. What retired that is
+structural rather than a change of mind: every invoice listed here charges THIS order,
+and a reader is on this page only because the request behind it is visible to them —
+which is the same clause that admits them to the invoice's own page. There was never
+an invoice here whose payment they could not have read one click away.
 
 **When a delivered or invoiced quantity exceeds what was ordered:** that cell
 turns red and gains ` (over)` after the figure. The two columns are treated
