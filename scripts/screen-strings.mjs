@@ -240,6 +240,17 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
     } catch (err) {
         return { strings: [], error: err.message };
     }
+    // A `"use server"` file's THROWN messages are not strings a screen renders
+    // (#185). Measured there: this app has no `error.js` and no `global-error.js`
+    // anywhere under `app/`, so nothing in it renders a thrown Server Action
+    // message — it reaches the framework's own default and never becomes copy. The
+    // rule stayed unscoped until #185 and produced nine such strings, `PR not
+    // found` and `attachment fetch` among them, one of which `unreachable.md`
+    // already had to excuse by hand as "not a screen string at all". The signal is
+    // the directive rather than a list of files, so a new Server Action inherits it.
+    // A CLIENT throw is still collected: `/login` catches its own and renders
+    // `err.message`, which makes that one real copy.
+    const serverOnly = /^\s*["']use server["']/.test(source);
     const out = [];
     const add = (text, node, shape, cls = "read") => {
         const value = collapse(text);
@@ -339,7 +350,8 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
                     break;
                 }
                 case "NewExpression":
-                    if (n.callee?.name === "Error") inExpression(n.arguments?.[0], "thrown message");
+                    if (n.callee?.name === "Error" && !serverOnly)
+                        inExpression(n.arguments?.[0], "thrown message");
                     break;
                 case "Property":
                     // A refusal a Server Action hands back, `metadata.title`, and a

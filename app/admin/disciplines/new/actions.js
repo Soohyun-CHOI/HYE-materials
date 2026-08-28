@@ -20,10 +20,16 @@ import { withOpsLabel } from "@/lib/airtableOps";
 // *bad Job Code* should do to a form with no client JS, not about an
 // unauthorized caller, who has no form open to render into. Aligning the two
 // would change what a user sees and is its own decision.
+// Issue #185 — RETURNED, BECAUSE THE CALL SITE BINDS THE RETURN. `DisciplineForm.js`
+// reads this action through `useActionState`, so its refusal lands in `state` and the
+// form's own red box renders it — the same box the two validation refusals below
+// already use, which is why this conversion adds no place for a design to draw. It
+// threw until then, which made one action refuse two ways: authorization off the
+// screen and validation on it. `/admin/jobs/new` and `/admin/vendors/new` keep the
+// throw for the opposite reason, and it is a real one — their pages hand the action
+// straight to `<form action={…}>`, which discards whatever it returns.
 export const createDisciplineAction = withAdminAction(
-    () => {
-        throw new Error("Not authorized");
-    },
+    () => ({ error: "Not authorized." }),
     async (prevState, formData) => {
         return withOpsLabel("createDisciplineAction", async () => {
             // Issue #30 — the form now submits a Job record id chosen from a

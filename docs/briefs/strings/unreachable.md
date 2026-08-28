@@ -19,6 +19,17 @@ control renders at all. Two were checked in a browser instead, and say so. **Whe
 screen's refusals were not all judged, the count says so** — a silence here would be
 the same false completeness the inventory this replaces was written to avoid.
 
+**A THROWN SERVER-ACTION MESSAGE IS NOT THIS FILE'S SUBJECT (#185).** The heading
+says *renders in principle*, and one does not: `app/` has no `error.js` and no
+`global-error.js`, so nothing in this repository renders a message thrown inside a
+`"use server"` file. `scripts/screen-strings.mjs` stopped collecting them on that
+ground and nine strings left its census, so the entries for them left this file too —
+`attachment fetch` was already excused by hand as "not a screen string at all", and
+that hand-excusing was the symptom. The counts below are per screen and moved with
+them. **If an error boundary is ever added they all become screen text at once**,
+which `offline/action-refusal-shape.mjs` asserts the absence of for exactly this
+reason.
+
 ## `/login`
 
 - **`Email is required`** — `app/api/auth/request/route.js:10`. The email input
@@ -76,14 +87,24 @@ controls' `step` validation does not fire).
 
 ## `/invoices/[invoiceId]`
 
-Seven refusals; **six unreachable, one reachable** — `Paid Date is required when
-marking as Paid.`, because the date control carries no `required`.
+Six refusals; **all six unreachable.** Seven until #185, which took `Invoice not
+found` out as a thrown message rather than screen text.
+
+**AND THE ONE THIS FILE CALLED REACHABLE IS NOT (#185).** The entry said
+`Paid Date is required when marking as Paid.` could be produced "because the date
+control carries no `required`". It carries one: `PaidForm.js` renders the date input
+only while Paid is checked, and that input is `required`, so the browser refuses the
+submit and the action never runs. **Checked in a browser** — with Paid checked and
+the date cleared, `form.checkValidity()` is `false` and `requestSubmit` does nothing.
+Read wrongly the first time, which is the failure mode this file's own "how each was
+judged" note warns about: the control was read, and the wrong attribute was seen.
 
 - **`Only an Admin can update payment status.`**, **`Only an Admin can delete
-  invoices.`** — both controls render for an Admin only, and the first is **thrown**
-  rather than returned, so it would reach a reader as a framework error page.
-- **`Invoice not found`** — thrown, and without the full stop its two namesakes on
-  the edit screen carry.
+  invoices.`** — both controls render for an Admin only. **The first was thrown until
+  #185** and is returned now, so a refusal would land in the Payment section's own red
+  box rather than on an error page.
+- **`Paid Date is required when marking as Paid.`** — the date input is `required`
+  whenever it renders, so the browser answers first. See the note above.
 - **`Something went wrong updating payment status. Please try again.`**,
   **`Couldn't delete the invoice. Please try again.`** — need Airtable to fail.
 - **`Invoice File`** — not a refusal but the same class: the link's fallback text,
@@ -114,11 +135,12 @@ the quantities.`
 
 ## `/pos/[poId]`
 
-Eight refusals; **all eight unreachable.** This is the clearest case in the app of an
+Six refusals; **all six unreachable.** Eight until #185 took the two thrown ones
+out — `PO not found` and `attachment fetch`, the second of which this file had
+already had to excuse by hand. This is the clearest case in the app of an
 action stating refusals its own screen cannot produce, because every control here is
 rendered only in the state its refusal excludes.
 
-- **`PO not found`** — thrown.
 - **`This PO was withdrawn and can no longer be signed.`**, **`This PO has already
   been signed.`** — the signing control is not offered in either state; the page's
   own comment says the action refuses it too and the control simply does not offer
@@ -129,18 +151,19 @@ rendered only in the state its refusal excludes.
 - **`Something went wrong recording your signature. Please try again.`**,
   **`Something went wrong generating the PDF. Please try again.`** — need Airtable to
   fail.
-- **`attachment fetch`** — thrown and caught internally. **Not a screen string at
-  all**, and it is here because the extractor attributes a whole file: no reader can
-  see it in any state.
 
 ## `/admin/jobs/new`, `/admin/vendors/new`, `/admin/disciplines/new`
 
-- **`Not authorized`** — one string, all three screens. Each page refuses a non-Admin
-  before its form exists, and the refusal is **thrown** rather than returned, so even
-  a direct call surfaces as a framework error page rather than as the form's own
-  message. The three actions keep the throw deliberately; `/admin/disciplines/new`'s own
-  note records that its validation failures return `{ error }` for exactly the
-  opposite reason.
+- **`Not authorized.`** — `/admin/disciplines/new` only, and **returned since #185**:
+  its form goes through `useActionState`, so the refusal lands in the same red box its
+  two validation failures use. Unreachable all the same, because the page refuses a
+  non-Admin before the form exists.
+- **The other two screens' refusal is not a string here at all.** `/admin/jobs/new`
+  and `/admin/vendors/new` still throw, because each page is a Server Component
+  handing the action to `<form action={…}>`, a binding that discards a return — so
+  there is no `state` for a message to reach and no error slot on either screen. A
+  thrown message renders nowhere in this app, so it is developer-facing text and out
+  of this file's subject (see the note at the top).
 - **`That Job doesn't exist. Pick one from the list.`** — `/admin/disciplines/new`
   only.
   The submit is disabled until a Job is chosen from the combobox, and the value is

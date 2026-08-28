@@ -88,10 +88,15 @@ exist. And when it does not, nothing on the page hints that it might.
 **The Admin's control is a form with its own submit**, a checkbox and a date
 beside it, saved by a button rather than toggled in place — so the page has a
 second submit on it, below the totals. Checking the box without a date is refused
-with `Paid Date is required when marking as Paid.`, and **that is the one refusal
-on this screen a reader can reach**: the date control carries no `required`, and
-every other refusal here is behind an Admin-only control or needs Airtable to
-fail.
+with `Paid Date is required when marking as Paid.` — though the date input is
+`required` whenever it renders, so the browser answers before the app does and that
+sentence never appears. **No refusal on this screen is reachable**: the rest are
+behind an Admin-only control or need Airtable to fail. **A redesign should still draw
+the box, and once.** It is where every refusal the section can produce arrives,
+including the authorization one since #185, which reached an error page before that.
+The slot is real and empty by construction — which is a thing to know rather than a
+reason to drop it, because what fills it is a direct call or an Admin demoted between
+load and submit.
 
 **When a tariff was entered:** one extra row in the totals footer, between
 Shipping Fee and Calculated Total.

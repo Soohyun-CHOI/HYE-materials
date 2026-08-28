@@ -43,8 +43,20 @@ screen says that — worth knowing if a redesign considers joining them.
 **`Business Unit`'s three values are a closed set** and are not editable from the
 app.
 
+**THIS SCREEN HAS NO ERROR SLOT, AND THAT IS STRUCTURAL RATHER THAN AN OMISSION
+(#185).** The page is a Server Component that hands its action straight to
+`<form action={…}>`, a binding that discards whatever the action returns — so there
+is no value for a refusal to arrive in and nothing to render. The action refuses by
+throwing instead, and a thrown message reaches no boundary this app owns, so it is
+developer-facing text rather than copy. The form has no validation refusal of its own
+either: the fields are `required` and the handler creates and redirects. **So a
+redesign should not draw room for an error here.** `/admin/disciplines/new` is the
+sibling that does have one, because its form goes through `useActionState`; if this
+screen ever needs a message, the change is that binding rather than the wording.
+
 **The three admin create screens are one pattern:** narrow centered column, a
 heading of the form `New {thing}`, required fields, a submit, and a green
 `Created {thing} {name}.` line on success that leaves the form ready for another.
 They should stay one pattern — and if a design gives them a shared shell, this
-sameness is the argument for it.
+sameness is the argument for it. **The shell has to allow for one difference**: the
+Disciplines form carries an error box and these two cannot.
