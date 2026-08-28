@@ -43,7 +43,9 @@ Items are added by hand as the design pass catches them, one at a time. The shap
 - **direction** — the resolution, or `undecided` and what would settle it
 ```
 
-Four rules for filling it in.
+The heading is `A` against `B` where the item is two words for one thing, and says what the item is about where it is not — items 2 and 6 are the two that are not. The six fields do not vary.
+
+Five rules for filling it in.
 
 **Every location is confirmed with `node scripts/screen-strings.mjs <route>`, never read off a grep.** A grep for a screen cannot see a string its copy constant reaches through a builder, and a grep for a constant cannot see one written straight into JSX. Where the extractor cannot produce the string at all, say so — `docs/briefs/strings/unfindable.md` is the list of those, and five of item 5's eight strings are on it. The extractor reports a JSX text node's opening line; the line recorded here is the line the words are on, which is the line an editor changes.
 
@@ -53,11 +55,13 @@ Four rules for filling it in.
 
 **`direction` carries only a decision that was actually made.** An item nobody has settled says `undecided` and carries the measurement that would inform it, not a preference.
 
+**A new item edits the earlier items it supersedes, in the same commit.** This list is written over weeks and read once, so an item that settles what an earlier one left open, or that promotes something an earlier one called adjacent, leaves that earlier entry false — and a sweeper reading top to bottom acts on the false one first. Items 6 and 7 did this to items 2 and 3. The rule that follows from it: **one fact, one place.** Where a later item carries the authoritative list, the earlier one points at it rather than repeating it, so the two cannot drift apart between now and the sweep.
+
 ---
 
 ## The findings
 
-Five so far. Items 1, 3 and 4 resolve by the rule already settled: **a nav label or a button label is the name of the screen it opens, so where a link and its destination's heading differ, the heading wins** — a link that disagrees with the heading turns one screen into two. Item 2 is that rule applied to a case where it changes nothing, and says what is left. Item 5 is undecided.
+Seven so far, and more will arrive while the `/invoices` screens are being designed. Items 1, 3, 4 and 7 resolve by the rule already settled: **a nav label or a button label is the name of the screen it opens, so where a link and its destination's heading differ, the heading wins** — a link that disagrees with the heading turns one screen into two. Item 2 is that rule applied to a case where it changes nothing, and item 6 settles what it left over. Item 5 is undecided.
 
 ### 1. `Purchase orders` against `Purchase Orders`
 
@@ -76,8 +80,8 @@ Five so far. Items 1, 3 and 4 resolve by the rule already settled: **a nav label
 - **What is inconsistent is one level up, and `docs/briefs/_shared.md:442` already records it:** `Material prices` is the only sentence-case heading among the list screens. `Purchase Requests`, `Purchase Orders`, `Invoices` and `Deliveries` are Title Case. The app has one heading convention with one exception, and every surface pointing at that screen copies the exception faithfully — which is why the mismatch reads like a link problem and is not one.
 - **brief** — `docs/briefs/materials.md:1` (title) and `:21` (identity); `docs/briefs/root.md:37` and `:46`; `docs/briefs/_shared.md:442`.
 - **pinned** — none.
-- **moves with it** — nothing, under the heading rule. Under the other question, five code places (`app/page.js:37`, `app/materials/page.js:11` and `:55`, `app/materials/[materialId]/page.js:50` and `:204`) and five doc places (`materials.md:1` and `:21`, `root.md:37` and `:46`, `_shared.md:442`). Nothing under `scripts/` reads the string in either casing.
-- **direction** — **the heading rule applies and yields no change. The residual question was not among the four settled and is left undecided here:** whether `/materials`' own heading joins the app's Title Case convention. It is a different decision from item 1 — that one is a link disagreeing with a heading, this one is a heading disagreeing with every other heading — which is why it is not folded in. One argument is already available to it and is recorded rather than acted on: `Material Prices` is the name of the Airtable table whose rows this screen shows, and CLAUDE.md's rule is that a concept with a table behind it takes that table's name.
+- **moves with it** — nothing, under the heading rule. The residual question moves five code places and five doc places, listed once under item 6 rather than twice.
+- **direction** — **the heading rule applies and yields no change, and the item stands as the record of that** — a sweeper who reads the finding as reported will otherwise change the link. The residual question, whether `/materials`' own heading joins the app's Title Case convention, was not among the four settled when this was written and **is now settled as item 6**. It is a different decision from item 1 — that one is a link disagreeing with a heading, this one is a heading disagreeing with every other heading — which is why it is its own item rather than folded in here.
 
 ### 3. `New PR` against `New Purchase Request`
 
@@ -85,7 +89,7 @@ Five so far. Items 1, 3 and 4 resolve by the rule already settled: **a nav label
 - **screens** — the button beside the heading on `/prs`, the only filled button on that screen. The heading and tab title on `/prs/new`. The primary button on `/`.
 - **brief** — `docs/briefs/prs.md:22` quotes `New PR`; `docs/briefs/prs-new.md:23` quotes the heading; `docs/briefs/root.md:36` quotes the root button and `:50-52` records the split in these terms — three surfaces, two words for one screen.
 - **pinned** — none.
-- **moves with it** — `app/prs/page.js:144`; `docs/briefs/prs.md:22`; `docs/briefs/root.md:50-52`. `docs/briefs/prs.md:1`'s title is `# Purchase requests`, sentence case against that screen's own `Purchase Requests` heading — the same shape as item 1's brief title and not this item's string. **Not an item and adjacent to this one:** `/prs/new` carries `View all PRs` at `app/prs/new/page.js:93` while `/invoices/new` carries `View all invoices` at `app/invoices/new/page.js:78`, the same control with one abbreviated and one not. A sweep resolving the abbreviation on the button will be looking straight at it.
+- **moves with it** — `app/prs/page.js:144`; `docs/briefs/prs.md:22`; `docs/briefs/root.md:50-52`. `docs/briefs/prs.md:1`'s title is `# Purchase requests`, sentence case against that screen's own `Purchase Requests` heading — the same shape as item 1's brief title and not this item's string. The other abbreviation on the same axis — `View all PRs` against `View all invoices`, recorded as adjacent to this item when it was written — **is now item 7**, because it is the same kind of decision rather than a consequence of this one.
 - **direction** — the heading wins. `New PR` becomes `New Purchase Request`, which is what the root screen's button already says.
 
 ### 4. `New invoice` against `New Invoice`
@@ -121,3 +125,35 @@ Five so far. Items 1, 3 and 4 resolve by the rule already settled: **a nav label
 - **the extractor cannot see five of the eight modal strings.** `DELETE_COPY` and `WITHDRAW_COPY` are reached through `resolveDeleteCopy` and `getWithdrawCopy`, so `screen-strings.mjs` produces neither — `docs/briefs/strings/unfindable.md:61` and `:63` list them at 22 and 5 pieces. Both modules also import `lib/airtable/`, which is why no offline check can load them and why `screen-briefs.mjs` falls back to the weaker `TIER_TWO` test. Those five were located by reading the two modules.
 - **moves with it** — `docs/briefs/_shared.md:403-407` and `:445-446`; `docs/briefs/invoices-invoiceId.md:74-75` if the paraphrase is held to the string; `offline/screen-briefs.mjs:517` if the answer is `can't`.
 - **direction** — **undecided.** Two measurements for whoever settles it. Thirty-five of the app's screen strings carry an `n't` contraction, so on volume the app's register is contracted and `cannot` is the local exception. Against that, a destructive confirmation might drop the contraction deliberately to slow the reader down — but `lib/deliveryDelete.js`'s own header argues the opposite about these three bodies, that what the copy owes a reader is "not a warning but an accurate account of what becomes inconsistent", which removes the one reason for them to read more formally than the rest of the app.
+
+### 6. `Material prices` becomes `Material Prices`
+
+The decision item 2 left over, taken. Item 2 stays as the record that the link never disagreed with its heading; this is what actually changes.
+
+- **strings** — `Material prices` at `app/materials/page.js:55` (the `h1`) and `app/materials/page.js:11` (`metadata.title`); the root link at `app/page.js:37`; the two back links at `app/materials/[materialId]/page.js:50` and `:204`. Five places, one word, and every one of them is the heading verbatim or the heading with an arrow in front of it.
+- **screens** — the heading and tab title on `/materials`, one of three outlined links on `/`, and both `← Material prices` links on `/materials/[materialId]`, one above the item name and one at the foot of the history table.
+- **brief** — `docs/briefs/materials.md:1` (the brief's own title) and `:21` (identity); `docs/briefs/root.md:37` and `:46`; `docs/briefs/_shared.md:442`.
+- **pinned** — none. Nothing under `scripts/` reads the string in either casing, so nothing fails when it moves and nothing would have caught it drifting either.
+- **moves with it** — the five code places above; `docs/briefs/materials.md:1` and `:21`; `docs/briefs/root.md:37`. Two doc lines need reading rather than substituting. `docs/briefs/root.md:46` claims `Material prices` and `Deliveries` match their destinations exactly — still true afterward, so the quotation changes and the claim stands. `docs/briefs/_shared.md:442` is the tail of the paragraph item 1 also edits: `Every other list heading is Title Case except Material prices, which is sentence case` becomes false here and its opening sentence becomes false under item 1, so whichever lands second deletes the paragraph and the `Two places the app disagrees with itself` heading above it. `docs/notes/materials.md`'s title names an area of the reasoning rather than the screen and is not a screen string.
+- **direction** — up to `Material Prices`, and the root link and both back links follow it. The screen shows rows of the `Material Prices` table, and CLAUDE.md's rule is that a concept with a table behind it takes that table's name and nothing else may borrow the word. It also removes the app's only sentence-case list heading, so four Title Case headings become five with no exception left to explain.
+
+### 7. `View all PRs` against `View all invoices`
+
+- **strings** — `View all PRs` at `app/prs/new/page.js:93`; `View all invoices` at `app/invoices/new/page.js:78`.
+- **screens** — the same control in the same place on both create forms: a small underlined link on the heading row, opposite the `h1`, pointing at that document's list.
+- **twelve links in the app name a list screen, and only the three pointing at `/prs` abbreviate.**
+
+  | Destination | Labels |
+  |---|---|
+  | `/prs` | `View all PRs`, `← All PRs`, `Go to PR list` |
+  | `/invoices` | `View all invoices`, `← All invoices` |
+  | `/deliveries` | `← All deliveries` in three places, `All deliveries` in two |
+  | `/materials` | `← Material prices` in two places |
+
+  So this is not one label out of step with its sibling. It is the whole `/prs` family out of step with the other nine, which is what makes the direction cheap to state and the count worth having.
+
+- **brief** — **neither string is quoted anywhere, and this is the one item of the seven no brief records in any form.** `docs/briefs/invoices-new.md:21` mentions the control without its words — `The heading New Invoice, and a link to the invoice list` — and `docs/briefs/prs-new.md:23` names only the heading and does not mention the link at all.
+- **pinned** — none. Neither string appears anywhere under `scripts/`.
+- **moves with it** — `app/prs/new/page.js:93`, and `← All PRs` at `app/prs/[prId]/page.js:232`, which is the same abbreviation for the same destination in the same kind of control and so is the same decision rather than a neighboring one. `Go to PR list` at `app/prs/new/PRForm.js:533` is a third link to that screen: its abbreviation resolves here too, but its phrasing does not — `{X} list` is not the shape any of the other eleven uses, and choosing between it and the screen's name is a question this item does not ask. No brief and no check moves.
+- **direction** — the heading wins, so `View all PRs` becomes `View all purchase requests` and `← All PRs` becomes `← All purchase requests`. The rule settles the abbreviation outright: `PRs` is not a word the destination's heading uses and `Purchase Requests` is. It does not settle the casing inside the phrase, and the nine unabbreviated links already do — each carries the destination's word lowercased mid-phrase, the exception being `← Material prices`, which is capitalized because it is the heading verbatim rather than a phrase containing it. **One consequence for the design pass:** the label goes from 12 characters to 26, on a heading row that already carries an `h1`.
+- **and this does not settle `PR` as a screen word.** Twenty-nine screen strings use a standalone `PR` or `PRs`; items 3 and 7 between them reach four — `New PR`, `View all PRs`, `← All PRs`, and `Go to PR list` on the abbreviation but not the phrasing. The rest sit inside sentences and on form controls — `Submit PR`, `Withdraw this PR?`, `No PRs match these filters.`, `It's not your turn to act on this PR.` — and ask a different question: whether the abbreviation is acceptable in prose a reader is already inside, as against as the name of a place they are being sent to. `PR ID` is outside it either way, being the field's own name.
