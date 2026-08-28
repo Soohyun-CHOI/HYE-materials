@@ -54,7 +54,7 @@ chunks, so a concatenated sentence counts more than once.
 
 | Constant | Module | Reached through | Screens | Pieces |
 |---|---|---|---|---|
-| `STATUS_COPY` | `lib/deliveryStatus.js` | `describeInvoiceColumn`, `describeDeliveryColumn`, `describePOColumn`, `describePOInvoicingColumn` | `/invoices`, `/deliveries`, `/pos`, `/pos/[poId]` | 17 |
+| `STATUS_COPY` | `lib/deliveryStatus.js` | `describeInvoiceColumn`, `describeDeliveryColumn`, `describePOColumn`, `describePOInvoicingColumn`, `describePOPaymentColumn` | `/invoices`, `/deliveries`, `/pos`, `/pos/[poId]` | 22 |
 | `OVERAGE_COPY` | `lib/overage.js` | `describeOveragePreview`, `describeOverageBanner`, `tieBreakLabel` | `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/pos/[poId]`, `/prs/[prId]` | 94 |
 | `PAIRING_COPY` | `lib/deliveryInvoiceMatch.js` | `describePairing`, `describeTieBreak`, `planPairings` | `/invoices/[invoiceId]`, `/deliveries/new` | 31 |
 | `ALLOCATION_COPY` | `lib/deliveryAllocation.js` | `describePlan`, `itemOptionLabel` | `/deliveries/new` | 38 |
@@ -97,6 +97,13 @@ called in that position takes a bare string — `ROLLBACK_ACT` exists for it and
 `offline/rollback-report.mjs` pins it — and the general form is the entry below: the
 `error:` and `label:` rules read a position, so what sits in that position had better
 be prose.
+
+**#311 ADDED FIVE PIECES TO THE ROW ABOVE AND A FIFTH DESCRIBER**, which is worth
+saying because the piece count is exactly the kind of figure `backlog.md` warns goes
+stale: the payment axis is four chip values plus the `⚠ Overdue` badge, all reached
+through `describePOPaymentColumn`, and all invisible to the extractor for the reason
+this whole group exists. The badge is the second string in the app carrying a `⚠` and
+neither is findable.
 
 **Three of `STATUS_COPY`'s seventeen are words `_shared.md` locks as tier 1**, and
 they are the reason this group leads the file. `Delivered`, `Mismatch` and

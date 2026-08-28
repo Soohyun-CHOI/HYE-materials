@@ -115,6 +115,18 @@ Everything here is absent in the normal case unless the entry says otherwise.
 `Delivery Address Used`, which is Primary or Alternate. It is internal tracking
 and no other reader sees it.
 
+**Beside the `Invoices` heading, two chips rather than one.** The invoicing state was
+there already; the payment one joined it — `Paid` / `Partly paid` / `Not paid` / `—`,
+with a red `⚠ Overdue` badge beside it when an invoice charging this order is past its
+due date and still unpaid. Both are the chips the order list shows on this order's
+row, from the same functions.
+
+**The payment chip is a fold of the badges under it, and that is why it is here.**
+The list says an order's invoices are paid; this screen names those invoices and
+marks each one. A reader who meets `Paid` on a row and opens it has to find the same
+answer spelled out, so the chip and the badges cannot be two rules — the chip is
+literally the fold of what the list below shows.
+
 **Nothing in the invoice list is gated (#309).** Each invoice carries a payment badge
 — `✓ Paid` or `Not paid`, always one of the two, for every reader. **No date on the
 badge**: it marks that the vendor was paid, and when is on the invoice's own page. It

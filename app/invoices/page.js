@@ -419,8 +419,19 @@ async function renderInvoiceListPage() {
                                             vendor was paid; WHEN is the `Paid on`
                                             sentence's on the invoice's own page, which
                                             is the one place that fact is stated rather
-                                            than marked. `Unpaid` never carried one. */}
-                                        {inv.paid ? "Paid" : "Unpaid"}
+                                            than marked. The negation never carried one.
+
+                                            `Not paid` SINCE #311, AND IT WAS `Unpaid`.
+                                            The app had two words for one fact — this
+                                            cell and `/pos/[poId]`'s badge — and that
+                                            issue put a third surface on the same axis,
+                                            so it converged them instead of adding one.
+                                            `Paid` is the participle the field is named
+                                            for (`naming.md`), so the negation is built
+                                            by negating it rather than by coining a
+                                            second lexeme; this was the cheaper side to
+                                            move, at one string against two. */}
+                                        {inv.paid ? "Paid" : "Not paid"}
                                     </span>
                                     {inv.varianceFlag && (
                                         <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">

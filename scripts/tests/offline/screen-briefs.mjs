@@ -241,6 +241,18 @@ const PINNED = [
     "✓ Paid",
     "Not paid",
     "Over-delivered",
+    // #311 — THE PAYMENT AXIS, AND TWO OF ITS FIVE STRINGS ARE PINNABLE. `Not paid`
+    // is already above and now carries this axis too, which is the convergence this
+    // issue made: the invoice list said `Unpaid`, the order detail's badge said
+    // `Not paid`, and a third surface would have made three words for one fact.
+    //
+    // `Paid` IS DELIBERATELY NOT PINNED, AND THE REASON IS THE MATCHER. A pin passes
+    // when the string appears anywhere in a loadable constant and anywhere in a
+    // brief, and `Paid` is a substring of `✓ Paid` two lines up — so pinning it would
+    // assert nothing that entry does not already assert, while reading as coverage.
+    // The dash is out for the same reason it always is: `absent` is not a word.
+    "Partly paid",
+    "⚠ Overdue",
     // #272 — THE STRIP ABOVE `/prs` WAS QUOTED IN A BRIEF AND PINNED NOWHERE, and
     // this issue is what found it: the vocabulary sweep reworded the heading, the
     // explanation and the block heading on the delivery detail, and every check

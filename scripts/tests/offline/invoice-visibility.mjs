@@ -67,7 +67,22 @@ const PAID_READERS = {
     "lib/airtable/invoices.js": "the mapper — where the field is read off the record",
     "lib/deliveryDelete.js":
         "the third voice of the delete confirmation, offered to whoever may delete (#309)",
+    "lib/deliveryStatus.js":
+        "the order's payment judgment and the copy keyed by its verdict — #311's, and nothing else in the file",
 };
+
+/**
+ * `lib/deliveryStatus.js` MAY NAME PAYMENT IN THREE PLACES AND NOWHERE ELSE (#311).
+ *
+ * #211 took this file OFF the payment surface and this file asserted the absence by
+ * name, because "absent" is also what a broken scan reports. #311 puts it back — the
+ * order's payment state is a judgment and judgments live here beside their two
+ * siblings — so the named absence would have to be deleted, and deleting an assertion
+ * is how a property stops being held. This replaces it with the narrower one that is
+ * actually true: the file is on the surface for one axis, and a payment read anywhere
+ * outside these three containers is a second answer starting.
+ */
+const PAYMENT_CONTAINERS = ["invoicePayment", "summarizePOPaymentStatus", "poPayment"];
 
 export async function run({ check, log, assert }) {
     // --- 1: the rule is canViewPR, not a copy of it -----------------------
@@ -359,10 +374,38 @@ export async function run({ check, log, assert }) {
     const stale = Object.keys(PAID_READERS).filter((f) => !found.includes(f));
     check("no stale entry", stale.length === 0 ? "none" : stale.join(", "), "none");
 
-    // The two files #211 took OFF this surface. Named rather than merely absent,
-    // because "absent" is also what a broken scan reports.
+    // The file #211 took OFF this surface. Named rather than merely absent, because
+    // "absent" is also what a broken scan reports.
     assert("lib/overagePR.js reads no payment field", !found.includes("lib/overagePR.js"));
-    assert("lib/deliveryStatus.js reads none either", !found.includes("lib/deliveryStatus.js"));
+
+    // ITS PAIR WAS `lib/deliveryStatus.js` AND #311 PUT THAT FILE BACK ON, so the
+    // named absence is replaced rather than dropped — see PAYMENT_CONTAINERS.
+    log("");
+    log("lib/deliveryStatus.js names payment only in #311's judgment and its copy:");
+    const statusFile = parseFile("lib/deliveryStatus.js");
+    const total = countPaymentReads(statusFile.ast);
+    const inside = namedContainers(statusFile.ast, PAYMENT_CONTAINERS).reduce(
+        (n, node) => n + countPaymentReads(node),
+        0
+    );
+    assert("  the file reads payment at all", total > 0);
+    check("  and every one of them is inside a payment container", total - inside, 0);
+    check("  all three containers were found", namedContainers(statusFile.ast, PAYMENT_CONTAINERS).length, 3);
+    // NO `paidDate` ANYWHERE IN IT, which is #311's no-figure rule as source shape:
+    // the badge says a set is late and never how late, because a day count belongs to
+    // one invoice while the badge is about a set.
+    let namesPaidDate = false;
+    walk(statusFile.ast, (node) => {
+        if (node.type === "Identifier" && node.name === "paidDate") namesPaidDate = true;
+        if (node.type === "Literal" && node.value === "Paid Date") namesPaidDate = true;
+    });
+    assert("  and it names no payment DATE, so the badge can carry no figure", !namesPaidDate);
+    // ANTI-VACUITY: the container finder has to be seen missing one it is not given.
+    check(
+        "  the container finder returns nothing for a name that is not there",
+        namedContainers(statusFile.ast, ["noSuchContainer"]).length,
+        0
+    );
 
     // --- 5: the delete confirmation asks nobody's privilege (#309) ----------
     //
@@ -422,7 +465,8 @@ export async function run({ check, log, assert }) {
     assert("  and identifiers, so an absence above is a real absence", sawKnownIdentifier);
 }
 
-// The four shapes payment reaches code in. `.paid` alone was the first version of
+// The shapes payment reaches code in — five since #309 added the JSX prop, and
+// `isPaymentNode` below is where they are read. `.paid` alone was the first version of
 // this scan and it MISSED TWO REGISTERED FILES — the Airtable mapper, where the
 // field arrives as `record.get("Paid")`, and the toggle form, where it arrives as a
 // destructured prop. The anti-vacuity assertion below is what caught that, which is
@@ -478,38 +522,70 @@ function readsPayment(node) {
     if (!node) return false;
     let reads = false;
     walk(node, (n) => {
-        if (reads) return;
-        switch (n.type) {
-            // invoice.paid, parentInvoice?.paidDate
-            case "MemberExpression":
-                if (!n.computed && PAID_NAMES.has(n.property?.name)) reads = true;
-                return;
-            // { paid, paidDate } in a signature, `paid:` in an object,
-            // and `"Paid":` in an Airtable field map.
-            case "Property":
-                if (PAID_NAMES.has(n.key?.name)) reads = true;
-                else if (PAID_LITERALS.has(n.key?.value)) reads = true;
-                return;
-            // record.get("Paid"), fields["Paid Date"]
-            case "Literal":
-                if (PAID_LITERALS.has(n.value)) reads = true;
-                return;
-            // a bare `paid` local, which is how the write action holds it
-            case "Identifier":
-                if (PAID_NAMES.has(n.name)) reads = true;
-                return;
-            // `paid={invoice.paid}` on a component — the write control's own prop,
-            // which is the one shape the four above miss: a JSXAttribute is not a
-            // Property. Without it, collapsing the read and the write into one
-            // condition would leave `<PaidForm paid={…}/>` looking payment-free.
-            case "JSXAttribute":
-                if (PAID_NAMES.has(n.name?.name)) reads = true;
-                return;
-            default:
-                return;
-        }
+        if (!reads && isPaymentNode(n)) reads = true;
     });
     return reads;
+}
+
+/**
+ * Is THIS ONE NODE a payment read? The five shapes payment reaches code in.
+ *
+ * Split out of `readsPayment` by #311, which needed to COUNT them per node rather
+ * than ask whether a subtree holds one. One definition, two walkers — a second copy
+ * of the shapes would let "does this file read payment" and "where in it" disagree,
+ * and the second question is the one that replaced a deleted assertion.
+ */
+function isPaymentNode(n) {
+    switch (n.type) {
+        // invoice.paid, parentInvoice?.paidDate
+        case "MemberExpression":
+            return !n.computed && PAID_NAMES.has(n.property?.name);
+        // { paid, paidDate } in a signature, `paid:` in an object,
+        // and `"Paid":` in an Airtable field map.
+        case "Property":
+            return PAID_NAMES.has(n.key?.name) || PAID_LITERALS.has(n.key?.value);
+        // record.get("Paid"), fields["Paid Date"]
+        case "Literal":
+            return PAID_LITERALS.has(n.value);
+        // a bare `paid` local, which is how the write action holds it
+        case "Identifier":
+            return PAID_NAMES.has(n.name);
+        // `paid={invoice.paid}` on a component — the write control's own prop,
+        // which is the one shape the four above miss: a JSXAttribute is not a
+        // Property. Without it, collapsing the read and the write into one
+        // condition would leave `<PaidForm paid={…}/>` looking payment-free.
+        case "JSXAttribute":
+            return PAID_NAMES.has(n.name?.name);
+        default:
+            return false;
+    }
+}
+
+/** How many payment reads a subtree holds, counting each NODE once (#311). */
+function countPaymentReads(node) {
+    let n = 0;
+    walk(node, (candidate) => {
+        if (isPaymentNode(candidate)) n += 1;
+    });
+    return n;
+}
+
+/**
+ * The function declarations, arrow assignments and object properties in this file
+ * whose name is one of `names` — the containers a payment read is allowed inside.
+ */
+function namedContainers(ast, names) {
+    const out = [];
+    walk(ast, (node) => {
+        if (node.type === "FunctionDeclaration" && names.includes(node.id?.name)) out.push(node);
+        if (node.type === "VariableDeclarator" && names.includes(node.id?.name) && node.init) {
+            out.push(node.init);
+        }
+        if (node.type === "Property" && names.includes(node.key?.name ?? node.key?.value)) {
+            out.push(node.value);
+        }
+    });
+    return out;
 }
 
 /** Every function name this subtree calls. */

@@ -21,11 +21,17 @@ vendor has charged against their jobs.
 Invoice ID, Vendor, Issue Date, Due Date, Amount Due, Delivery, Status. Amount Due is
 right-aligned currency and is the vendor's stated total, never a computed one.
 
-**verdict — the payment word, in the `Status` column.** `Paid` in green or `Unpaid` in
-gray, and **no date beside either**: a list marks that the vendor was paid, and when
-is stated on the invoice's own page. It read `Paid 2026-08-14` until #309, which also
-opened the column — it was President-or-Admin from #211 and gone entirely for
+**verdict — the payment word, in the `Status` column.** `Paid` in green or `Not paid`
+in gray, and **no date beside either**: a list marks that the vendor was paid, and
+when is stated on the invoice's own page. It read `Paid 2026-08-14` until #309, which
+also opened the column — it was President-or-Admin from #211 and gone entirely for
 everyone else from #179.
+
+**`Not paid` was `Unpaid` until the order list grew a payment column of its own.**
+The app had two words for one fact — this cell and the order detail's badge — and a
+third surface would have made three, so they converged on the negation of `Paid`,
+which is the participle the field is named for. The same word now reads at three
+places, about one invoice here and about a set of them on the order list.
 
 **verdict — the Delivery chip.** One of `Delivered` / `Mismatch` /
 `Awaiting delivery`. This is the same chip the invoice detail shows beside its own
