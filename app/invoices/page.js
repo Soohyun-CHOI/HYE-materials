@@ -41,11 +41,13 @@ export const metadata = { title: "Invoices" };
 // column, so what the company agreed to pay was fully in view while what the
 // vendor charged was not.
 //
-// PAYMENT IS THE ONE THING STILL WITHHELD, and that line is #211's own rather than
-// inherited: whether a vendor has been paid is the fact a vendor's own staff might
-// ask about on site, and the only one on this screen a recorder has no use for. It
-// is withheld by not rendering it — this is a Server Component that hands nothing
-// to a Client Component, so an unrendered field is not in the payload either.
+// NOTHING ON THIS SCREEN IS WITHHELD FROM A READER WHO REACHES THE ROW (#309).
+// Payment was, on #211's own ground that a vendor's own staff might ask about it on
+// site; the office asked for the opposite, so the gate deciding whether a document
+// is visible is now the only gate on reading it. What that costs is the second
+// column budget — see the colgroup — and what it does NOT touch is the write:
+// recording payment is `/invoices/[invoiceId]`'s Admin-only form and this list has
+// never offered it.
 // Labeled for #190 by #216, and for the reason #224 exists: this page had no
 // label, so its cost had never been measured and #216 could not have shown what
 // its own strip added. The strip also removed a duplicate read inside
@@ -58,7 +60,6 @@ export default async function InvoiceListPage() {
 
 async function renderInvoiceListPage() {
     const user = await requireUser();
-    const privileged = seesEveryInvoice(user);
 
     const [allInvoices, vendors] = await Promise.all([getAllInvoices(), getAllVendors()]);
     const vendorNameById = Object.fromEntries(vendors.map((v) => [v.id, v.vendorName]));
@@ -67,7 +68,11 @@ async function renderInvoiceListPage() {
     // a President or an Admin sees every invoice, so their answer needs no lines,
     // no orders and no requests. For everyone else this is one batched read here
     // plus the two inside getVisibleInvoiceIds — constant in the number of rows.
-    const invoiceItems = privileged
+    //
+    // ASKED INLINE SINCE #309, which is the whole of what is left of that question
+    // on this screen: the answer is a COST decision and nothing renders behind it.
+    // A local named for the privilege is what let the payment column ride on it.
+    const invoiceItems = seesEveryInvoice(user)
         ? []
         : await getInvoiceItemsByRecordIds(allInvoices.flatMap((inv) => inv.invoiceItems || []));
     const visibleIds = await getVisibleInvoiceIds(user, allInvoices, invoiceItems);
@@ -252,28 +257,43 @@ async function renderInvoiceListPage() {
                     also the one column where wrapping would be least harmful if a
                     longer supplier is ever added.
 
-                    SIX COLUMNS FOR AN EMPLOYEE SINCE #179, seven for the office.
-                    #211 gave this table two budgets because the last column held two
-                    unrelated things — payment, which is President-or-Admin, and a
-                    variance badge, which it took for the invoiced-against-ordered kind
-                    and kept for every viewer. It is the HEADER kind: an arithmetic
-                    check on one document that only an Admin can act on, since only an
-                    Admin can edit an invoice. So the column goes with payment and an
-                    employee reads six columns. THE 11rem THAT FREES GOES TO VENDOR,
-                    which is the column this very comment records as having none:
-                    19rem clears the longest name on this base many times over, and
-                    handing it to the one column that can grow is #211's own move.
-                    Both rows still sum to exactly 52rem; a column is never appended
-                    and the budget is re-cut (#166). */}
+                    SEVEN COLUMNS FOR EVERY READER AGAIN, AND ONE BUDGET (#309). #179
+                    gave this table a second budget by taking the last column away
+                    from an employee: it held payment, which was President-or-Admin,
+                    and the HEADER variance badge, which #211 had kept for every
+                    viewer on the mistaken ground that it was the
+                    invoiced-against-ordered kind. Payment is now readable by anyone
+                    who reaches the row, so the column comes back — and the badge
+                    comes back with it, because the fact it marks is already ungated
+                    one click away, stated with both figures in the red box on the
+                    invoice's own page. #179 relied on that box being outside the
+                    payment gate when it narrowed the amber prompt; a mark on the row
+                    a reader clicks and no mark on the page they land on was the
+                    inconsistency, not the fix.
+
+                    SO THE 11rem COMES BACK OFF VENDOR, which returns to 8rem — the
+                    width every measurement in this comment was taken against, and
+                    the width the office row has always had. The 19rem an employee
+                    read was #211's redistribution of a column that no longer leaves.
+                    One row, summing to exactly 52rem; a column is never appended and
+                    the budget is re-cut (#166).
+
+                    THE 176px WAS SIZED FOR A DATE THIS COLUMN NO LONGER PRINTS.
+                    #309 took the date off the badge — `Paid 2026-08-14` is `Paid` —
+                    so the widest thing in the cell is now `⚠ Check the total` at
+                    102px rather than the 104px payment word it used to stack under.
+                    NOT RE-CUT HERE: a width is the design work's to decide and this
+                    issue is a visibility change, so the column keeps its 176px and
+                    the slack is recorded rather than spent. */}
                 <table className="w-full min-w-[52rem] table-fixed text-sm">
                     <colgroup>
                         <col style={{ width: "8.5rem" }} />
-                        <col style={{ width: privileged ? "8rem" : "19rem" }} />
+                        <col style={{ width: "8rem" }} />
                         <col style={{ width: "5.5rem" }} />
                         <col style={{ width: "5.5rem" }} />
                         <col style={{ width: "5.5rem" }} />
                         <col style={{ width: "8rem" }} />
-                        {privileged && <col style={{ width: "11rem" }} />}
+                        <col style={{ width: "11rem" }} />
                     </colgroup>
                     <thead>
                         <tr className="text-left text-zinc-500">
@@ -283,17 +303,14 @@ async function renderInvoiceListPage() {
                             <th className="pr-2">Due Date</th>
                             <th className="pr-2 text-right">Amount Due</th>
                             <th className="pr-2">Delivery</th>
-                            {/* PRIVILEGED ONLY SINCE #179. `Status` over a cell that
-                                carried only a variance badge would head a column whose
-                                subject is missing — which is what this comment said
-                                when the badge was the employee's to read. It is not:
-                                the badge is the HEADER flag, an arithmetic check on
-                                one document that the office performs and the office
-                                fixes, and #211 kept it for every viewer on the stated
-                                ground that it was invoiced-against-ordered, which it
-                                never was. So the column goes with the payment state
-                                it shares a cell with. */}
-                            {privileged && <th className="pr-2">Status</th>}
+                            {/* UNGATED SINCE #309, and `Status` heads its own subject
+                                again: the payment word, which every reader of the row
+                                now gets. #179 took the heading away with the column
+                                because a `Status` over a variance badge alone heads a
+                                column whose subject is missing — that reasoning was
+                                right about the state it described and the state is
+                                gone. */}
+                            <th className="pr-2">Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -361,50 +378,56 @@ async function renderInvoiceListPage() {
                                     room the column no longer needs — kept because the
                                     reason it was dropped is unchanged: there is still
                                     nothing to its right. */}
-                                {/* PAYMENT IS PRESIDENT-OR-ADMIN (#211), AND SINCE
-                                    #179 SO IS THE WHOLE CELL. The badge here is the
-                                    HEADER flag — the vendor's stated total against
-                                    what its items add up to — which in practice means
-                                    the entry missed something. That is the office's
-                                    check to make and the office's to fix, since only
-                                    an Admin can edit an invoice. #211 kept it for
-                                    every viewer on the ground that it was
-                                    invoiced-against-ordered; it never was, and the kind
-                                    an employee is on this page to catch has no mark in
-                                    this list at all — it is on the invoice's own page,
-                                    per item, where the order it disagrees with is
-                                    one click away.
+                                {/* NEITHER HALF OF THIS CELL IS GATED (#309). Payment
+                                    was President-or-Admin (#211) and #179 sent the
+                                    HEADER variance badge behind the same flag, on the
+                                    ground that an arithmetic check on one document is
+                                    the office's to make and the office's to fix. Both
+                                    are open now, and the badge's reason went with
+                                    payment's for a reason of its own: the fact it
+                                    marks is stated ungated on the invoice's own page,
+                                    in the red box under the totals, with both figures
+                                    — which is what #179 itself relied on when it
+                                    narrowed the amber prompt. A mark on the row a
+                                    reader clicks and no mark on the page they land on
+                                    is the state that hid a figure on one screen and
+                                    showed it on another.
+
+                                    THE ITEM KIND STILL HAS NO MARK IN THIS LIST, and
+                                    that is #179's and unchanged: an item differing
+                                    from what its order agreed is on the invoice's own
+                                    page, per item, where the order it disagrees with
+                                    is one click away.
 
                                     THE BADGE STACKS UNDER THE PAYMENT WORD rather than
-                                    sitting beside it, and that is measured: this
-                                    column is 176px, `Paid 2026-07-27` is 104px, and
-                                    `⚠ Check the total` is 102px, so the pair needs 210
-                                    on one line. Every other column in this table is
-                                    declared from its own widest content and has 8px or
-                                    less to give (Invoice ID has none), so borrowing
-                                    34px would be re-cutting the budget against today's
-                                    data rather than the worst case #166 sized it for —
-                                    the first 17-character vendor name would then wrap.
-                                    Stacking costs a second line on the rare invoice
-                                    that is both paid and flagged, and nothing else. */}
-                                {privileged && (
-                                    <td className="py-1">
-                                        <span
-                                            className={
-                                                inv.paid
-                                                    ? "text-green-700"
-                                                    : "text-zinc-500"
-                                            }
-                                        >
-                                            {inv.paid ? `Paid${inv.paidDate ? ` ${inv.paidDate}` : ""}` : "Unpaid"}
+                                    sitting beside it. That was measured when the word
+                                    was `Paid 2026-07-27` at 104px against a 176px
+                                    column, with `⚠ Check the total` at 102px, so the
+                                    pair needed 210px on one line. #309 took the date
+                                    off, so `Paid` is far narrower and the pair would
+                                    now fit — the stack is KEPT because the column's
+                                    width is the design work's to re-cut and a
+                                    visibility change is not the place to spend slack
+                                    it happens to create. */}
+                                <td className="py-1">
+                                    <span
+                                        className={
+                                            inv.paid ? "text-green-700" : "text-zinc-500"
+                                        }
+                                    >
+                                        {/* THE DATE IS GONE (#309). A badge says the
+                                            vendor was paid; WHEN is the `Paid on`
+                                            sentence's on the invoice's own page, which
+                                            is the one place that fact is stated rather
+                                            than marked. `Unpaid` never carried one. */}
+                                        {inv.paid ? "Paid" : "Unpaid"}
+                                    </span>
+                                    {inv.varianceFlag && (
+                                        <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
+                                            {VARIANCE_COPY.header}
                                         </span>
-                                        {inv.varianceFlag && (
-                                            <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
-                                                {VARIANCE_COPY.header}
-                                            </span>
-                                        )}
-                                    </td>
-                                )}
+                                    )}
+                                </td>
                             </tr>
                         ))}
                     </tbody>

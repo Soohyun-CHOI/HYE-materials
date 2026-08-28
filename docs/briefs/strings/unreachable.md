@@ -230,8 +230,25 @@ are the overage claim's guards and the strip's own offering rule decides them.
 ## Screens with nothing here
 
 `/`, `/login/confirm`, `/materials`, `/materials/[materialId]`, `/invoices` and
-`/deliveries` hold no refusal at all. Every state on those six is a consequence of
-the data, and all of it is reachable with the two fixture accounts.
+`/deliveries` hold no refusal at all. Every state on those six is a consequence of the
+data or of who is reading, and all of it is reachable **between the two fixture
+accounts and `soo@`** — which is what the sentence here should always have said. It
+said "with the two fixture accounts", and both of those are non-Admin, so on
+`/invoices` it was false twice: of the `New invoice` control, which only an Admin is
+offered, and — until #309 — of the whole `Status` column with the payment word in
+it. **The column is open now and the control is not**, so what the two fixture
+accounts cannot reach on these six screens is exactly two strings: `New invoice`, and
+`, Admin` on `/`. Corrected per #181 by #309, which needed to know what those accounts
+could see.
+
+**And one string on `/invoices/[invoiceId]` was unreachable and is not listed above,
+which #309 found and did not add.** `Paid on {date}` / `Not paid yet.` — the
+read-only payment sentence — rendered only for a President who is not an Admin, and
+this base has no such account, so it reached nobody. #309 made it the ordinary case for
+every non-Admin reader, so an entry would have been added and removed in one commit.
+Recorded here as the finding rather than as an entry, because the omission is the thing
+worth knowing: **a string can become unreachable through the INTERSECTION of two role
+flags, and reading one control at a time does not find that.**
 
 ## Coverage
 

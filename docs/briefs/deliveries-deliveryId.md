@@ -142,9 +142,11 @@ app admits an upload is still in flight.
 **When the reader may delete this delivery:** a delete control at the foot,
 behind a top border. Its confirmation has **three voices**, chosen by the
 strongest true statement — whether the delivery's ordered items are uninvoiced,
-invoiced, or on an invoice that has already been paid. The third is
-President-or-Admin, so a site recorder deleting their own delivery is never told
-in a modal that the vendor was paid. The voices are not warnings but accounts of
+invoiced, or on an invoice that has already been paid. **All three reach whoever may
+delete (#309)** — the third was President-or-Admin, so a site recorder deleting their
+own delivery was never told in a modal that the vendor was paid, and payment is no
+longer withheld from a reader who can reach the invoice. The voices are not warnings
+but accounts of
 what becomes inconsistent in the meantime, because deletion here is the only
 correction mechanism there is and a recorder fixing a typo is doing the expected
 thing.

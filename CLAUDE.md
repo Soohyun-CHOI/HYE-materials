@@ -128,7 +128,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders they charge (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.
 - `lib/invoiceDeliveryEntries.js` — the invoice detail's delivery entries (#241): one per folded item, its members' shares added rather than re-clamped, and no entry where nothing disagrees.
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
-- `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed.
+- `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate, and a payment read behind a privilege test fails a check.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling.
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.

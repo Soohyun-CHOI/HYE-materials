@@ -2,9 +2,9 @@
 
 Route: `/invoices/[invoiceId]`
 Who reaches it: row-scoped — anyone signed in, then only invoices whose orders
-they can see, reached through `canViewPR` (#211). Two facts on the page are
-narrower still: payment is President-or-Admin, and editing and deleting are
-Admin.
+they can see, reached through `canViewPR` (#211). **Every fact on the page is
+readable by every reader who gets in** — payment was President-or-Admin until #309.
+What is narrower is the WRITING: editing, deleting and recording payment are Admin.
 
 ## What it answers
 
@@ -77,13 +77,21 @@ buttons, and the confirming one reads `Deleting...` while the action runs. **The
 deletion is behind a confirmation and not immediate** — a fact about this
 screen's structure rather than about its words.
 
-**When the reader is President or Admin:** a whole `Payment` section, heading
-included. The heading is inside the gate on purpose — a heading with nothing
-under it would tell an employee that a payment fact exists here and refuse to
-say it, which is worse than not raising the subject. Admins get a control that
-toggles paid state; the President gets the same fact as a sentence,
-`Paid on {date}` or `Not paid yet.` For everyone else the section does not
-exist. And when it does not, nothing on the page hints that it might.
+**A `Payment` section, always, and it is the one place on this screen where two
+readers get two different things.** An Admin gets a control that toggles paid state;
+every other reader gets the same fact as a sentence, `Paid on {date}` or
+`Not paid yet.` Nobody is shown less than the fact.
+
+**That split is the point and a redesign must keep it as a split.** The section was
+President-or-Admin until #309 and the heading was inside the gate on purpose, because
+a heading with nothing under it tells a reader a payment fact exists here and refuses
+to say it. Opening the read left one condition on the page, and it is the WRITE's:
+recording payment is Admin work and the control is what an Admin has instead of the
+sentence, not in addition to it. **Drawing the sentence and the control behind one
+condition is the failure mode** — the read would follow whatever the control's
+condition became. Worth knowing that until #309 the sentence rendered for nobody at
+all: it was reached only by a President who is not an Admin, and there is no such
+account.
 
 **The Admin's control is a form with its own submit**, a checkbox and a date
 beside it, saved by a button rather than toggled in place — so the page has a
@@ -135,9 +143,9 @@ other one fired. What it was compared against lives on the order's own page.
 
 **When at least one item carries that flag:** an amber prompt near the foot of
 the page asking someone to check the item against the order, or take it up
-with the vendor, before the invoice is paid. It is deliberately outside the
-payment gate — an employee who cannot see whether the vendor was paid is exactly
-the reader who is here to catch a wrong item, and naming payment as a deadline
+with the vendor, before the invoice is paid. It sits outside the `Payment` section
+deliberately — the reader here to catch a wrong item is not the reader who records
+payment, and naming payment as a deadline
 discloses nothing about this vendor.
 
 **When the invoice's own total does not match its computed total** — past half a

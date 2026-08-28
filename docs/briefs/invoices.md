@@ -2,8 +2,10 @@
 
 Route: `/invoices`
 Who reaches it: anyone signed in, then row-scoped — an invoice is visible when it
-charges a purchase order the reader can see. Creating one is Admin only. One whole
-column is President-or-Admin.
+charges a purchase order the reader can see. Creating one is Admin only. **Every
+column is readable by every reader who reaches the row** — that was not true until
+#309, which opened the payment column, and it is the only reader-dependent thing this
+screen has ever had.
 
 ## What it answers
 
@@ -15,9 +17,15 @@ vendor has charged against their jobs.
 
 **identity.** The heading `Invoices`.
 
-**evidence — the table, six columns, and a seventh for a President or an Admin.**
-Invoice ID, Vendor, Issue Date, Due Date, Amount Due, Delivery. Amount Due is
+**evidence — the table, seven columns, the same seven for every reader.**
+Invoice ID, Vendor, Issue Date, Due Date, Amount Due, Delivery, Status. Amount Due is
 right-aligned currency and is the vendor's stated total, never a computed one.
+
+**verdict — the payment word, in the `Status` column.** `Paid` in green or `Unpaid` in
+gray, and **no date beside either**: a list marks that the vendor was paid, and when
+is stated on the invoice's own page. It read `Paid 2026-08-14` until #309, which also
+opened the column — it was President-or-Admin from #211 and gone entirely for
+everyone else from #179.
 
 **verdict — the Delivery chip.** One of `Delivered` / `Mismatch` /
 `Awaiting delivery`. This is the same chip the invoice detail shows beside its own
@@ -42,26 +50,32 @@ than a fourth chip value, for the reason `_shared.md` gives about `absent`.
 **When the reader is an Admin:** a control to record a new invoice. Everyone else
 reaches this list but cannot add to it, because invoicing is office work.
 
-**When the reader is President or Admin:** a seventh column, headed `Status`. For
-everyone else **the column does not exist** — the table is one column narrower and
-nothing marks where it was. Inside it, the payment word: `Paid` with its date in
-green, or `Unpaid` in gray.
-
-**When that reader's invoice also fails its own arithmetic:** a red
-`⚠ Check the total` badge **stacked underneath** the payment word rather than
-beside it. The stacking is measured rather than chosen: the column is 176px, the
-payment word runs to 104px and the badge to 102px, so the pair needs 210px on one
-line, and every other column in the table is declared from its own widest content
-with 8px or less to give. Stacking costs a second line on an invoice that is both
-paid and flagged, and nothing else.
+**When the invoice fails its own arithmetic:** a red `⚠ Check the total` badge
+**stacked underneath** the payment word rather than beside it, in the same cell.
 
 This badge is **not** the kind of variance an employee is on this screen to
 catch. It is the header flag — the vendor's stated total against what its items
 add up to — which means the entry missed something, and it is the office's to
-check and the office's to fix since only an Admin can edit an invoice.
+check and the office's to fix since only an Admin can edit an invoice. **It is
+readable by every reader anyway**, and the reason is worth carrying into a redesign:
+the same fact is stated on the invoice's own page, ungated, in a red box under the
+totals with both figures in it. A mark on the row a reader clicks and no mark on the
+page they land on is the state #309 ended.
 The kind an employee cares about, an item differing from what its order agreed,
 has **no mark in this list at all**: it is on the invoice's own page, per item,
 where the order it disagrees with is one click away.
+
+**What the column's width assumes, because a redesign will want to re-cut it.** The
+`Status` column is declared at 176px and the stack is what that figure was chosen
+against: the payment word measured 104px as `Paid 2026-08-14` and the badge measures
+102px, so the pair needed 210px on one line and would not fit. **#309 took the date
+off the word, so the widest thing in the cell is now the badge at 102px** and the pair
+would fit on one line — the stack is kept and the slack is unspent, because a width
+is the design work's to decide rather than a visibility change's. Every other column
+in this table is declared from its own widest content with 8px or less to give, the
+seven sum to exactly the 832px the page has, and Vendor at 8rem holds this base's
+longest name at 16 characters with nothing to spare. **A column is never appended
+here; the budget is re-cut.**
 
 **When there are no rows:** one of two sentences. `No invoices yet.` when the base
 has none, and `No invoices to show. You see an invoice when it charges a purchase

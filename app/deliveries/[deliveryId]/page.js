@@ -16,7 +16,6 @@ import {
 } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
 import { canDeleteDelivery, resolveDeleteCopy } from "@/lib/deliveryDelete";
-import { seesEveryInvoice } from "@/lib/invoiceVisibility";
 import { describeOveragePreview, tieBreakLabel } from "@/lib/overage";
 import { getOverageContext } from "@/lib/overagePR";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
@@ -54,6 +53,11 @@ const DONE_MESSAGES = {
  * to a PR's Job — so a viewer who passes canAccessJobDeliveries here would pass
  * canViewPR for every PR behind every row. A second gate would re-derive the same
  * answer and could drift from it.
+ *
+ * #309 RESTS ON THAT PARAGRAPH. `getVisibleInvoiceIds` admits an invoice through the
+ * request behind an order it charges, which is the clause above, so every invoice
+ * reachable from this delivery's rows is one this viewer may read — which is why the
+ * delete confirmation's paid voice needs no flag of its own any more.
  */
 // Labeled for #190 by #224, the sweep across every entry point that opened no
 // scope. An outer wrapper, so the page's own logic keeps its indentation, and
@@ -168,13 +172,12 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
         });
 
     const mayDelete = canDeleteDelivery(user, delivery);
-    // #211 — the third voice of the confirmation names the vendor as already paid,
-    // and payment is President-or-Admin. Deletion is author-or-Admin on a
-    // Job-scoped record, so without this flag a site recorder was reading the one
-    // invoice fact this app keeps from them, inside a modal.
-    const deleteCopy = mayDelete
-        ? await resolveDeleteCopy(delivery, items, { seesPayment: seesEveryInvoice(user) })
-        : null;
+    // #309 — the third voice names the vendor as already paid, and it is offered to
+    // whoever may delete. It rode on `seesEveryInvoice(user)` while payment was
+    // President-or-Admin (#211); with that line reversed the flag would be a gate on
+    // payment of payment's own. The reader reaches those invoices anyway — this
+    // page's own header records why — so nothing here needs to ask.
+    const deleteCopy = mayDelete ? await resolveDeleteCopy(delivery, items) : null;
     const photo = delivery.packingListFile?.[0] ?? null;
 
     // The headline is what was delivered, in the same shape the list uses — one summary

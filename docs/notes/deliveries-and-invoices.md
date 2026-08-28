@@ -166,6 +166,7 @@ Whether what a vendor invoiced for was delivered, and what was delivered with no
 - **BOTH LIST TABLES ARE `table-fixed` WITH A DECLARED `colgroup` SUMMING TO EXACTLY 52rem**, which is what a `max-w-4xl` page minus `p-8` has (832px). A column is never appended; the budget is re-cut. Measured against each base's widest real cells, with every row one line, no wrap and no horizontal scrollbar.
   - `/deliveries` (6 columns): `8.5 + 8 + 5.5 + 17.5 + 6.75 + 5.75`. The chip is far narrower than the sentence it replaced, so **Invoiced gave room back to Delivered** — the column that needed it and the only one that was wrapping, since it carries an item label, a `+N` count and an `Over-delivered` tag on one line (measured 270px for `165-DEMO Elbow 3" 3 PCS` beside the tag). **That measurement has since stopped covering the base's widest cell:** #167's seed added `167-DEMO Coupling 2"`, and #210 measured 1 of 15 rows wrapping to 63px on it. Neither the column set nor its widths changed in #210, so this is the #166 budget going stale as demo data grew rather than a regression — reported as a finding rather than fixed there, since re-cutting a 52rem budget is that comment's own work.
   - `/invoices` (7 columns) got a `colgroup` it never had: an auto-layout table sized the Delivery column from the longest phrase in it, so every other column moved when one invoice's status changed. **This table has almost no slack — seven columns need 832px against 832px.** Six of the seven are bounded by construction and cannot grow: an Invoice ID is a fixed format (128px), a date is ten characters (80px), the Delivery column is a closed set plus a marker (120px — **unchanged by #210**, which took the set from three chips to two: the one that left was not the widest, `Awaiting delivery` still is, and re-measured at 832px with rows at 28.5–29px and no horizontal scrollbar), `Amount Due` is bound by its own header (78px), and Status by `Paid 2026-07-27` beside a `⚠ Variance` badge (176px — which is why **the last column drops its right padding**, there being nothing to its right to separate it from). So **Vendor is where the slack isn't**: 8rem holds this base's longest name at 16 characters with nothing to spare, and it is also the column where wrapping would be least harmful if a longer supplier is ever added. The worst case was verified by injecting it into a rendered row, the way #19 injected a full-length PO ID. **#211 gave this table a SECOND budget rather than a seventh column**, the way `/pos/[poId]` carries two column counts: for a non-privileged viewer the last column holds the variance badge alone and needs 5rem instead of 11rem, and **the 6rem that frees goes to Vendor** — the column this paragraph records as having none, which then clears the longest name by 6rem instead of by nothing. Both rows still sum to exactly 52rem; measured at 832px with every row 29px and no horizontal scrollbar on both.
+  - **BACK TO ONE BUDGET IN #309**, and Vendor back to 8rem — the width every measurement in that paragraph was taken against. Payment is readable by anyone who reaches the row, so the last column exists for every reader, and #179's badge came back inside it, so there is no second column count left to cut a second budget for. **Neither redistribution survived its own reason:** #211 gave Vendor 6rem because the column held the badge alone, #179 gave it 11rem because the column left entirely, and both were spending room a reader-dependent column freed. `/pos/[poId]`, the precedent both cited, stopped carrying two column counts in #235 — so **no table in this app now drops a column by reader**, which is worth knowing before the next one is drawn that way. What #309 also did is take the DATE off the payment word, so the widest thing in that 176px column is `⚠ Check the total` at 102px rather than `Paid 2026-07-27` at 104px: the column has slack it did not have, the stack under the word is kept, and re-cutting is the design work's rather than a visibility change's.
 - **Not in this issue:** nothing is written anywhere, no `Invoices.Delivery` link, no new screen, and no correction of an overage — that is #167. The existing invoice visibility rules are unchanged: the invoice list and detail stay President-or-Admin, editing stays Admin, deliveries stay Job-scoped. **Two of those have since been done rather than reconsidered:** #210 added the link and the writes that fill it, and #211 made the invoice list and detail row-scoped instead of President-or-Admin.
 
 ### Overage corrections (#167)
@@ -1563,6 +1564,22 @@ set them.
   anyone — it is on the invoice's own page, per item, next to the order it disagrees
   with. So the column goes with the payment state it shares a cell with, and an
   employee reads six columns.
+  - **BOTH HALVES OF THAT CELL ARE OPEN AGAIN (#309), AND THE BADGE'S OWN REASON DID
+    NOT SURVIVE THIS FILE.** Payment opening forced the decision rather than inviting
+    it: the badge shares the cell, so the column cannot render for an employee with
+    the badge still hidden unless a new privilege flag is introduced for it. Two
+    things settled it against keeping one. **First, the same fact is already ungated
+    one click away** — the red box under the invoice's totals, stating both figures,
+    which the bullet above this one relies on when it narrows the amber prompt
+    ("nothing is lost by narrowing"). #179 wanted one kind, one word, on the row a
+    reader clicks and the page they land on, and its own gate is what broke that: a
+    mark on the row and none on the page is #211's "hides a figure on one screen and
+    shows it on another". **Second, "only an Admin can act on it" is not this app's
+    test for who may READ a variance** — the item kind is open to every reader under
+    the identical constraint, and #179 reworded the amber prompt precisely so that it
+    asks for something anybody can do. The alternative cost a fourth inline copy of
+    `President || isAdmin` in `app/`, or an extraction of that predicate, neither of
+    which #309 authorizes.
 - **THE BADGE STACKS UNDER THE PAYMENT WORD, WHICH IS WHAT A RE-CUT WOULD HAVE COST.**
   Measured at 832px before the change: the column is 176px, `Paid 2026-07-27` is 104px
   and `⚠ Variance` was 68px — the pair fitting exactly, which is what the dropped right
@@ -1574,6 +1591,11 @@ set them.
   against 30px) and nothing else. **The employee row's freed 11rem goes to Vendor**,
   which is #211's own move for the 6rem it freed; both rows still sum to exactly 52rem.
   Re-measured after: 832px, no horizontal scrollbar, every unflagged row one line.
+  **#309 EMPTIED THE ARITHMETIC THAT FORCED THE STACK** by taking the date off the
+  payment word — `Paid` beside `⚠ Check the total` fits on one line at 176px — and the
+  stack is kept anyway, because the reason to unstack it would be to spend width, and
+  the width is the design work's to decide. The measurement stands as the record of why
+  the pair was ever stacked.
 - **THE COPY LIVES WITH THE PREDICATES, AND `PO_DOCUMENTS_COPY` GAVE UP ITS TWO.**
   `lib/variance.js` owns the judgment, so it owns the words — the shape
   `deliveryStatus.js` and `deliveryAllocation.js` already have — and that gets them out

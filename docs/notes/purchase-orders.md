@@ -489,6 +489,21 @@ the delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
   what stops the next widening from carrying payment along silently. The projection
   branch went with it: one `getInvoicingStatusByPO` for both audiences, so the page
   cannot judge its chip from two field sets.
+  - **THE NEXT WIDENING ARRIVED AND THE SEPARATE NAME DID ITS JOB (#309).** Payment is
+    readable by anyone who reaches the invoice, so `seesPayment` is deleted and the
+    badge is ungated; `isOffice` keeps the internal address line, which is not an
+    invoice fact and did not move. Because the two were named apart, that was a
+    deletion rather than a judgment about which half of one flag was meant — the pair
+    is worth reaching for again rather than being read in hindsight as clutter that
+    resolved itself. **Why the badge needs no gate of its own, structurally:** every
+    invoice in that section charges THIS order, and a reader is here only because
+    `canViewPR` admitted the request behind it, which is the clause
+    `getVisibleInvoiceIds` reaches for an invoice. The badge also lost its date in the
+    same issue and `PO_DOCUMENTS_COPY.badge.paid` is a plain string now — see
+    `naming.md`. One more line on this page went stale unnoticed: the `Delivered`
+    column's comment said it sits before `Invoiced` so a non-privileged viewer's
+    columns stay contiguous, which #235 emptied by leaving one column set for every
+    reader; corrected per #181 in the same branch.
 - **`Invoiced Qty` JOINED TWO MAPPERS, and that is a policy change rather than a cost
   one.** `recordToPOItem` and `getPOItemsByRecordIds` both excluded it under #132's
   line; both pass no `fields`, so the record was already in hand and the field is
@@ -539,4 +554,8 @@ the delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
   path was read as `scoped-fixture@`, whose `Invoices` section renders the chip and the
   charges and contains neither `Paid` nor `Not paid` — checked against the section's
   own DOM rather than the page's, since that is the only evidence `seesPayment` is
-  doing anything.
+  doing anything. **That last clause is #235's measurement and is no longer the
+  expected reading**: since #309 the same section rendered for `scoped-fixture@`
+  carries `✓ Paid` or `Not paid` on every invoice, which is what the browser pass on
+  that branch checked instead. The measurement stands as what was true under
+  `seesPayment`.

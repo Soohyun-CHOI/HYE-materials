@@ -64,7 +64,6 @@ const invoice = ({
     issueDate = "2026-07-16",
     variance = false,
     paid = false,
-    paidDate = "",
 } = {}) => ({
     id,
     invoiceId,
@@ -72,7 +71,6 @@ const invoice = ({
     issueDate,
     varianceFlag: variance,
     paid,
-    paidDate,
 });
 
 const invoiceItem = ({ id = "recII1", inv = "recINV1", ordered = "recPOI_A", qty = 230, unitPrice = 13.49, variance = false } = {}) => ({
@@ -313,7 +311,7 @@ export function run({ check, assert, log }) {
             invoiceItem({ id: "recII2", ordered: "recPOI_B" }),
             invoiceItem({ id: "recII3", ordered: "recPOI_C" }),
         ],
-        invoices: [invoice({ paid: true, paidDate: "2026-07-27", variance: true })],
+        invoices: [invoice({ paid: true, variance: true })],
     });
     check("three charges, one entry", paidTwice.length, 1);
     check("  carrying one `paid`", [paidTwice[0]?.paid].filter(Boolean).length, 1);
@@ -471,7 +469,7 @@ export function run({ check, assert, log }) {
         ...sentences,
         PO_DOCUMENTS_COPY.invoices.heading,
         PO_DOCUMENTS_COPY.deliveries.heading,
-        PO_DOCUMENTS_COPY.badge.paid({ paidDate: "2026-07-27" }),
+        PO_DOCUMENTS_COPY.badge.paid,
         PO_DOCUMENTS_COPY.badge.notPaid,
         PO_DOCUMENTS_COPY.badge.overDelivered,
     ];
@@ -503,10 +501,18 @@ export function run({ check, assert, log }) {
         PO_DOCUMENTS_COPY.badge.headerVariance === undefined &&
             PO_DOCUMENTS_COPY.badge.itemVariance === undefined
     );
-    check(
-        "a paid badge with no date still reads",
-        PO_DOCUMENTS_COPY.badge.paid({}),
-        "✓ Paid"
+    // #309 — A STRING, NOT A BUILDER, and that is the assertion rather than a detail
+    // of it. This read `badge.paid({})` and pinned that a paid badge with no date
+    // still says `✓ Paid`, which was the whole hazard: one badge with two readings,
+    // the shorter of which looked like missing data. The date is stated on the
+    // invoice's own page and marked nowhere, so there is no argument left to pass.
+    check("the paid badge is one word for one fact", PO_DOCUMENTS_COPY.badge.paid, "✓ Paid");
+    assert("  and it is a string rather than a builder", typeof PO_DOCUMENTS_COPY.badge.paid === "string");
+    // ANTI-VACUITY: the two badges this pair is read beside are still builders'
+    // neighbours in the same object, so `typeof` has to be seen telling them apart.
+    assert(
+        "  while the entry builders around it are still functions",
+        typeof PO_DOCUMENTS_COPY.invoices.charge === "function"
     );
 
     // -----------------------------------------------------------------------
