@@ -36,10 +36,13 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * with no date is a weak record); unchecking always clears Paid Date too,
  * so a stale date never lingers if it's checked again later.
  */
+// Issue #185 — RETURNED, for the reason the two below already were: `PaidForm.js`
+// binds this through `useActionState`, so the refusal reaches `state.error` and the
+// section's own red box shows it. The box is not new and not theoretical — it is
+// where `Paid Date is required when marking as Paid.` lands, which is one of the two
+// refusals on this screen a reader can actually produce.
 export const updatePaidAction = withAdminAction(
-    () => {
-        throw new Error("Only an Admin can update payment status.");
-    },
+    () => ({ error: "Only an Admin can update payment status." }),
     updatePaidHandler
 );
 

@@ -183,6 +183,16 @@ Five more, each of which the app currently makes visible by wording or
 placement rather than by color. A design that collapses any of them produces a
 screen that lies.
 
+**A refusal slot is not a thing every form has, and #185 is what decides.** A
+Server Action's refusal comes back as a value the form renders, or it throws and
+reaches nothing this app owns — and which one depends on how the call site binds
+the action, not on how important the refusal is. So `/admin/disciplines/new` has a
+red box above its fields and `/admin/jobs/new` and `/admin/vendors/new` have
+nowhere at all to put a sentence; their briefs say so and say why. **Where a slot
+exists, draw it once**: every refusal that screen can produce arrives in the same
+one. **Where none exists, do not invent one** — nothing can fill it, and the fix
+would be the binding rather than the design.
+
 **Frozen against live.** `PO Items` is a snapshot taken when the purchase order
 was generated and never recomputed; `PR Items` and `Invoice Items` carry live
 formulas. A purchase order showing a stale price is correct — that is the price

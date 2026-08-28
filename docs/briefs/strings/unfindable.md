@@ -213,8 +213,9 @@ vocabulary.
 
 ## What was closed, and what it cost
 
-Five shapes went during the pass that wrote this file. Each is a rule in
-`scripts/screen-strings.mjs` and each has its reason in that file's header.
+Five shapes went during the pass that wrote this file, and #185 NARROWED a sixth
+rather than closing one. Each is a rule in `scripts/screen-strings.mjs` and each has
+its reason in that file's header.
 
 | Closed | Rule | Yield | Cost |
 |---|---|---|---|
@@ -223,11 +224,27 @@ Five shapes went during the pass that wrote this file. Each is a rule in
 | a string map read through a JSX child container | the signal is the container, not the name | 3 strings | none — `className` is an attribute, so a CSS map cannot enter |
 | a string SET read the same way | the array case of the rule above | 2 strings | none found |
 | a bare string const the screen imports by name | the signal is the import, not the spelling | 1 string | none — an object or a number cannot enter |
+| **narrowed:** a thrown message, when the file is `"use server"` (#185) | the directive, not a list of files | **−9 strings** | a client throw is still collected, and two of the three left are console-only |
 
 **Twelve shapes were met; five closed; seven are above.** The count of strings the
 extractor cannot produce on the five screens that had a full hand inventory went
 **42 → 26** across the first three fixes, and the last two took the remaining sets
 off `/prs/new`, `/pos` and `/prs` before they were ever written down.
+
+**THE NARROWING IS THE OTHER DIRECTION AND IT MATTERS MORE THAN ITS SIZE.** Every row
+above added strings the tool could not see; #185's took away nine it should never
+have produced, and this file's own warning is why that is the worse defect: *a
+missing string is a gap a reader can be warned about; a fabricated one is believed.*
+The rule collected `new Error(...)` anywhere, so `PR not found`, `attachment fetch`
+and seven more were counted as text a screen renders. **Nothing in this app renders
+them** — `app/` has no `error.js` and no `global-error.js`, so a thrown Server Action
+message reaches the framework's own default and never becomes copy. The signal is the
+`"use server"` directive rather than a list of files, so a new Server Action inherits
+it; `unreachable.md` had already had to excuse one of the nine by hand, which is what
+a false entry looks like before anyone names the class. A CLIENT throw is still
+collected, and correctly: `/login` catches its own and renders `err.message`. Of the
+three left, that one is real copy and two are console-only — an over-reach named
+here rather than filtered by a list, which is this file's standing trade.
 
 **And the rate is the thing to watch.** Three of the seven above were found on
 screens that had already been read twice, and the array case was found on a screen

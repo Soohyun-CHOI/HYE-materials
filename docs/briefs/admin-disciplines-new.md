@@ -38,6 +38,16 @@ Narrow centered column, like its two siblings.
 
 ## What it carries only sometimes
 
+**When the form is refused:** a red box above the fields, carrying one sentence.
+Two can land there — `That Job doesn't exist. Pick one from the list.` and, since
+#185, the authorization refusal `Not authorized.` **One box, whatever the reason**, so
+a redesign draws the slot once and needs no second treatment for a refused role: the
+action hands every refusal back the same way and the form renders whichever arrived.
+**Neither is reachable by an ordinary reader** — the first needs a forged submit and
+the second a direct call or an Admin demoted mid-form — so the box is real and empty
+by construction. Draw it anyway; before #185 the authorization one bypassed it for a
+framework error page, and having somewhere for it to go is the whole of that change.
+
 **When nothing matches the search:** `No matching Jobs.` inside the dropdown.
 
 **When a discipline has just been created:** a green `Created discipline {label}.`
@@ -62,4 +72,9 @@ because the table was called `Lines`. Those have gone with it: no identifier und
 `offline/line-vocabulary.mjs` asserts both halves of that.
 
 **The three admin creates are one pattern**, and this one's combobox is the only
-place they differ.
+place they differ **on screen**. They differ once more underneath, and a designer
+needs it: this form has an error slot and the other two have none. Its action is
+bound through `useActionState`, so a refusal comes back as a value the form renders;
+theirs are handed straight to `<form action={…}>`, which discards a return, so their
+refusals throw and reach no slot at all (#185). **Do not draw an error box on the
+Jobs or Vendors form** — nothing can put a sentence in it.

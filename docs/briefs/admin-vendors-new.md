@@ -47,4 +47,16 @@ way sign-in does. A design should not make them look like invitations.
 first needs one — so a missing vendor means leaving the form and coming back. Worth
 knowing if a redesign considers an inline create.
 
-**The three admin creates are one pattern.**
+**THIS SCREEN HAS NO ERROR SLOT, AND THAT IS STRUCTURAL RATHER THAN AN OMISSION
+(#185).** The page is a Server Component that hands its action straight to
+`<form action={…}>`, a binding that discards whatever the action returns — so there
+is no value for a refusal to arrive in and nothing to render. The action refuses by
+throwing instead, and a thrown message reaches no boundary this app owns, so it is
+developer-facing text rather than copy. The form has no validation refusal of its own
+either: the fields are `required` and the handler creates and redirects. **So a
+redesign should not draw room for an error here.** `/admin/disciplines/new` is the
+sibling that does have one, because its form goes through `useActionState`; if this
+screen ever needs a message, the change is that binding rather than the wording.
+
+**The three admin creates are one pattern**, with the one difference above: the
+Disciplines form has an error box and this one has nowhere to put a message.
