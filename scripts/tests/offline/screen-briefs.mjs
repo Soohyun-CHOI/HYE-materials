@@ -253,6 +253,15 @@ const PINNED = [
     // The dash is out for the same reason it always is: `absent` is not a word.
     "Partly paid",
     "⚠ Overdue",
+    // #316 — THE SAME BADGE ONE SCOPE DOWN, AND BOTH PINS ARE WORDING WITHOUT A
+    // FIGURE, as the four above are. `⚠ Overdue` is already pinned and now carries two
+    // scopes: the order list's whole badge, and the first word of the invoice list's,
+    // which opens with it so one fact does not become two names across three screens.
+    // What this adds is the part that is only the invoice's — the separator before the
+    // day count, and the clause the sentence states it against. Neither carries the
+    // number, which is the one thing in both strings meant to change per row.
+    "⚠ Overdue ·",
+    "past its due date",
     // #272 — THE STRIP ABOVE `/prs` WAS QUOTED IN A BRIEF AND PINNED NOWHERE, and
     // this issue is what found it: the vocabulary sweep reworded the heading, the
     // explanation and the block heading on the delivery detail, and every check

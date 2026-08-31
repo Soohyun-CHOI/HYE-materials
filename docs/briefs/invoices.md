@@ -78,6 +78,34 @@ than a fourth chip value, for the reason `_shared.md` gives about `absent`.
 **When the reader is an Admin:** a control to record a new invoice. Everyone else
 reaches this list but cannot add to it, because invoicing is office work.
 
+**When an unpaid invoice is past its due date:** a red `⚠ Overdue · 10d` badge, in
+the same cell, **directly under the payment word and above the variance badge**. The
+order in the stack is what each mark qualifies: this one qualifies the payment, so it
+sits with it; the variance badge is about the invoice's own arithmetic and sits below
+both. It carries **how many days**, written `· Nd` — the same day count the two strips
+above this table render, in the same notation.
+
+**The order list shows the same badge and deliberately carries no figure.** There
+`⚠ Overdue` is about the set of invoices charging one order, and an order with two
+late invoices has no rule for which number to print. A row here is one invoice, so the
+figure has one candidate. **Both open with the same two words**, which is what keeps
+one fact from becoming two marks across the two lists.
+
+**Two states look like lateness and are not, and a redesign must not collapse them.**
+An invoice whose due date is **today** is not late — the due day itself still has time
+— and an invoice with **no due date at all** is not late either, because there is
+nothing to have passed. A blank due date is an ordinary record: the field is optional
+on both write paths. Both render the payment word alone, with the `Due Date` column
+showing the date or an em dash.
+
+**The badge fits the column as it stands.** Measured at 832px: the `Status` column is
+106px, `⚠ Overdue · 10d` is 98px and `⚠ Overdue · 1d` is 92px, against
+`⚠ Check the total` at 102px — so the new mark is narrower than the widest thing the
+cell already held and no other column gave anything up. Each extra digit is about 7px,
+so a three-digit count is the last that fits. **It also costs no row height today**,
+and only because Vendor is already wrapping every row to two lines; give that column
+its width back and this cell becomes the tallest thing in the row.
+
 **When the invoice fails its own arithmetic:** a red `⚠ Check the total` badge
 **stacked underneath** the payment word rather than beside it, in the same cell.
 
@@ -202,6 +230,18 @@ keep two words.
 **`⚠ Check the total` is one of a pair.** The other is `⚠ Order variance`, which
 appears on the invoice detail and on the purchase order detail. The purchase order
 detail is the one screen showing both at once. They change together or not at all.
+
+**`⚠ Overdue` is one word at three places** — this cell, the order list's payment
+cell, and the order detail's `Invoices` heading — and here it carries a day count the
+other two may not. A redesign may restyle the mark; what it may not do is give the
+invoice scope a different word from the order scope, which is the state #311 spent a
+whole issue undoing on this same axis when `Unpaid` met `Not paid`.
+
+**The `Due Date` column is what the badge is a reading of, and both stay.** The date is
+the fact and the mark is the reading that makes the list scannable — the same pairing
+the two strips above the table use, where each row prints its date beside its `Nd`. A
+redesign that keeps the mark and drops the column leaves a reader no way to check it;
+one that states lateness in the `Due Date` column as well would say one thing twice.
 
 **An over-delivery tag is deliberately absent from this list**, though the
 deliveries list carries one. The difference is whose fact it is: an over-delivery

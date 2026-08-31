@@ -250,6 +250,14 @@ Recorded here as the finding rather than as an entry, because the omission is th
 worth knowing: **a string can become unreachable through the INTERSECTION of two role
 flags, and reading one control at a time does not find that.**
 
+**#316 IS THAT FINDING USED RATHER THAN RE-DISCOVERED, WHICH IS WHY IT ADDS NO ENTRY
+HERE.** Its overdue sentence goes in the same `Payment` section, and the section's
+`isAdmin` split is what would have hidden it: put in the alternate it reaches no Admin,
+put in the consequent it reaches nobody else. It sits after the branch instead, and
+both halves were read with a real session — `soo@` (Admin) and `scoped-fixture@`
+(Employee) each saw it on `HYE-INV-260821-02`. The invoice list's badge is on the
+`Status` column, which the paragraph above records as open to every reader since #309.
+
 ## Coverage
 
 **87 distinct refusal strings across the twenty-one screens.** Six screens hold none

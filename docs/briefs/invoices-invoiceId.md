@@ -80,7 +80,9 @@ screen's structure rather than about its words.
 **A `Payment` section, always, and it is the one place on this screen where two
 readers get two different things.** An Admin gets a control that toggles paid state;
 every other reader gets the same fact as a sentence, `Paid on {date}` or
-`Not paid yet.` Nobody is shown less than the fact.
+`Not paid yet.` Nobody is shown less than the fact. **The split covers the payment
+state and nothing else** — since #316 the section can carry a second line, below both,
+that every reader gets identically; see the overdue entry under the next heading.
 
 **That split is the point and a redesign must keep it as a split.** The section was
 President-or-Admin until #309 and the heading was inside the gate on purpose, because
@@ -92,6 +94,23 @@ condition is the failure mode** — the read would follow whatever the control's
 condition became. Worth knowing that until #309 the sentence rendered for nobody at
 all: it was reached only by a President who is not an Admin, and there is no such
 account.
+
+**When an unpaid invoice is past its due date:** a red sentence at the foot of that
+same `Payment` section — `⚠ Overdue — this invoice is 10 days past its due date.` —
+**after the split rather than inside either half of it**, so the Admin reading the
+control and everyone else reading the sentence both get it. One day reads `1 day`.
+
+**That placement is forced and a redesign must not tidy it away.** The obvious home is
+beside `Not paid yet.`, and that line is what an Admin gets *instead of* the control —
+so a mark put there is invisible to the office, and one put in the control's half is
+invisible to everyone else. Lateness is a payment fact of the same grade as the
+payment word, and #309's rule is that every reader who reaches the row reads it.
+
+**It says the same thing the list's badge says, from the same judgment**, at the other
+density: the list has a cell and prints `⚠ Overdue · 10d`, this has a section and says
+what the count is counted against. Both open with `⚠ Overdue`. **An invoice due today
+is not late, and one with no due date is not late** — the section then holds only its
+payment line, and the due date in the identity block above is the date or an em dash.
 
 **The Admin's control is a form with its own submit**, a checkbox and a date
 beside it, saved by a button rather than toggled in place — so the page has a
@@ -215,6 +234,16 @@ variance**, which is the mirror of the rule above.
 detail answers it in its `Qty` column, one click away, and since #233 that page
 names this invoice. A redesign that adds an ordered quantity here re-opens a
 question two issues closed.
+
+**The overdue sentence is the invoice list's badge**, produced by the same judgment
+from the same call, so the row a reader clicked and the page they land on cannot
+disagree about whether this invoice is late. The list carries `⚠ Overdue · 10d` and
+this carries the sentence; both open with `⚠ Overdue`, which is also the order list's
+whole mark. Three screens, one word.
+
+**The due date in the identity block is what that sentence reads**, and both stay.
+Dropping the date would leave the reader a claim with nothing to check it against;
+restating lateness beside the date would say one thing twice on one screen.
 
 **The amber box and the red box are two grades and must stay two.** Both mean a
 person has to look before money moves; red states a discrepancy between two

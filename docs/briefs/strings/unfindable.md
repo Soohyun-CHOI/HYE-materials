@@ -54,7 +54,7 @@ chunks, so a concatenated sentence counts more than once.
 
 | Constant | Module | Reached through | Screens | Pieces |
 |---|---|---|---|---|
-| `STATUS_COPY` | `lib/deliveryStatus.js` | `describeInvoiceColumn`, `describeDeliveryColumn`, `describePOColumn`, `describePOInvoicingColumn`, `describePOPaymentColumn` | `/invoices`, `/deliveries`, `/pos`, `/pos/[poId]` | 22 |
+| `STATUS_COPY` | `lib/deliveryStatus.js` | `describeInvoiceColumn`, `describeDeliveryColumn`, `describePOColumn`, `describePOInvoicingColumn`, `describePOPaymentColumn`, `describeInvoiceOverdue` | `/invoices`, `/deliveries`, `/pos`, `/pos/[poId]` | 28 |
 | `OVERAGE_COPY` | `lib/overage.js` | `describeOveragePreview`, `describeOverageBanner`, `tieBreakLabel` | `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/pos/[poId]`, `/prs/[prId]` | 94 |
 | `PAIRING_COPY` | `lib/deliveryInvoiceMatch.js` | `describePairing`, `describeTieBreak`, `planPairings` | `/invoices/[invoiceId]`, `/deliveries/new` | 31 |
 | `ALLOCATION_COPY` | `lib/deliveryAllocation.js` | `describePlan`, `itemOptionLabel` | `/deliveries/new` | 38 |
@@ -104,6 +104,24 @@ stale: the payment axis is four chip values plus the `⚠ Overdue` badge, all re
 through `describePOPaymentColumn`, and all invisible to the extractor for the reason
 this whole group exists. The badge is the second string in the app carrying a `⚠` and
 neither is findable.
+
+**#316 ADDED SIX MORE AND A SIXTH DESCRIBER, AND THE TWO SCREENS IT TOUCHED SPLIT ON
+THIS FILE'S OWN TEST.** The same badge one scope down (`⚠ Overdue · Nd`, two chunks)
+and the sentence its detail density states (four, counting the singular and plural
+halves), both reached through `describeInvoiceOverdue`. On `/invoices` neither is
+findable — that screen imports describers and never names the constant, which is this
+group exactly. On `/invoices/[invoiceId]` **both are**, because that page already
+imports `STATUS_COPY` by name for `detail.mismatch`, and a screen that names a string
+has called it. So the row's `Screens` column is unchanged while its `Pieces` count
+moves: one issue, one constant, two screens, and only one of them blind.
+
+**MEASURED RATHER THAN COUNTED BY HAND, which is how the 22 became 28.** Running the
+extractor over `/invoices/[invoiceId]` — the screen that names the constant, so the
+one whose output the pieces are visible in — gives 20 `STATUS_COPY` strings before the
+change and 26 after. The row's figure is that delta applied to the figure already
+there. **A count of this kind is reproducible for the constants a screen NAMES and is
+hand work for the rest**, which is the sharper form of the staleness warning above:
+where the shape is open, so is the arithmetic.
 
 **Three of `STATUS_COPY`'s seventeen are words `_shared.md` locks as tier 1**, and
 they are the reason this group leads the file. `Delivered`, `Mismatch` and
