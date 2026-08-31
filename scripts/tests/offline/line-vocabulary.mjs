@@ -384,6 +384,8 @@ const SURVIVING_IDENTIFIERS = {
     discipline: "a PR's own link array, from recordToPR",
     disciplines: "the rows getAllDisciplines returns",
     getAllDisciplines: "reads Disciplines rows",
+    getDisciplineByRecordId: "reads one, by record id",
+    recordToDiscipline: "the mapper both readers share",
     createDiscipline: "writes one",
     createDisciplineAction: "the Server Action that calls it",
     getPRsByDiscipline: "PRs under one Disciplines row",

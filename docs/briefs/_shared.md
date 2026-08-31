@@ -78,6 +78,15 @@ takes them away. They are not a layout to preserve.
    question to ask rather than to infer from this document.
 4. **Color never carries a meaning by itself** — see "Constraints that already
    exist".
+5. **One fact reads one way across the four document lists.** `/prs`, `/pos`,
+   `/invoices` and `/deliveries` list the four kinds of document, and where they
+   carry the same fact they must carry it identically. `Job` is the worked case
+   (#314): three of them said it three ways — two headed `Job / Discipline`, one
+   headed `Job`, and the invoice list carried neither — and a reader holding the
+   four briefs side by side is the only person who could see that, which is why it
+   went unnoticed for six milestones. All four head `Job` and carry a job code, at
+   the same 5.75rem where a width is declared. Position and styling are open like
+   everything else; **the word and what is under it are not.**
 
 ## The four levels
 

@@ -10,7 +10,8 @@ import {
     getInvoiceDeliveryStatus,
     getOrderedItemsWithDelivery,
 } from "@/lib/deliveryReconciliation";
-import { getVisibleInvoiceIds, seesEveryInvoice } from "@/lib/invoiceVisibility";
+import { resolveInvoiceScope } from "@/lib/invoiceVisibility";
+import { jobForInvoices } from "@/lib/invoiceJob";
 import { accessibleJobs } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
 import {
@@ -48,6 +49,16 @@ export const metadata = { title: "Invoices" };
 // column budget — see the colgroup — and what it does NOT touch is the write:
 // recording payment is `/invoices/[invoiceId]`'s Admin-only form and this list has
 // never offered it.
+//
+// AND SINCE #314 THE PAGE ASKS NO PRIVILEGE QUESTION AT ALL. The last one was a cost
+// decision — whether to fetch the invoice items the gate walks from — and the `Job`
+// column needs that walk's records whoever is reading, so the branch is gone and the
+// two readers run one path. **That is the property, not a side effect:** the office
+// and a site employee now spend the same operations on this screen and read the same
+// eight columns, and a rendered fact derived on one side of a privilege test is the
+// mutant #309 removed from the payment cell and this issue must not reintroduce one
+// column along. `offline/job-column.mjs` holds it.
+//
 // Labeled for #190 by #216, and for the reason #224 exists: this page had no
 // label, so its cost had never been measured and #216 could not have shown what
 // its own strip added. The strip also removed a duplicate read inside
@@ -61,28 +72,52 @@ export default async function InvoiceListPage() {
 async function renderInvoiceListPage() {
     const user = await requireUser();
 
-    const [allInvoices, vendors] = await Promise.all([getAllInvoices(), getAllVendors()]);
+    // Jobs join the first batch since #314 — the strip below has always needed them
+    // and the `Job` column needs the same read, so the column costs this page no
+    // query of its own. `allJobs` and the narrowed `deliveryJobs` are two locals on
+    // purpose; see the column's own note.
+    const [allInvoices, vendors, allJobs] = await Promise.all([
+        getAllInvoices(),
+        getAllVendors(),
+        getAllJobs(),
+    ]);
     const vendorNameById = Object.fromEntries(vendors.map((v) => [v.id, v.vendorName]));
+    const jobById = new Map(allJobs.map((j) => [j.id, j]));
 
-    // The gate's own walk, and NOT PAID FOR BY THE AUDIENCE THAT DOES NOT NEED IT:
-    // a President or an Admin sees every invoice, so their answer needs no lines,
-    // no orders and no requests. For everyone else this is one batched read here
-    // plus the two inside getVisibleInvoiceIds — constant in the number of rows.
+    // THE GATE'S WALK, RUN FOR EVERY READER SINCE #314 — and the privilege question
+    // this page used to ask is gone with it. `seesEveryInvoice` decided whether to
+    // fetch the items at all, because the walk was only ever for the gate and a
+    // President or an Admin needs no gate. The `Job` column needs what that walk
+    // RESOLVES rather than what it decides: an invoice holds no job, so the only way
+    // to one is through the order to the request behind it, and that is the walk.
     //
-    // ASKED INLINE SINCE #309, which is the whole of what is left of that question
-    // on this screen: the answer is a COST decision and nothing renders behind it.
-    // A local named for the privilege is what let the payment column ride on it.
-    const invoiceItems = seesEveryInvoice(user)
-        ? []
-        : await getInvoiceItemsByRecordIds(allInvoices.flatMap((inv) => inv.invoiceItems || []));
-    const visibleIds = await getVisibleInvoiceIds(user, allInvoices, invoiceItems);
+    // SO THE COST DECISION BECAME A CORRECTNESS ONE AND LEFT THIS FILE. Resolving the
+    // job from a walk one reader skips is a rendered fact derived two ways, which is
+    // the shape #309 spent a whole issue removing from this very table. The judgment
+    // is `lib/invoiceJob.js` and takes no reader; what varies by reader is which rows
+    // survive `visible`, which is the only thing that ever should.
+    const invoiceItems = await getInvoiceItemsByRecordIds(
+        allInvoices.flatMap((inv) => inv.invoiceItems || [])
+    );
+    const { visible: visibleIds, poById, prById } = await resolveInvoiceScope(
+        user,
+        allInvoices,
+        invoiceItems
+    );
     const invoices = allInvoices.filter((inv) => visibleIds.has(inv.id));
 
-    // Issue #166 — whether what each invoice invoiced for has been delivered. THREE
+    // #314 — the job each invoice charges for, from the records the walk above already
+    // resolved. No query: the orders and the requests are in hand, and a request
+    // carries `Job` as a lookup through its discipline.
+    const jobByInvoice = jobForInvoices({ invoiceItems, poById, prById });
+
+    // Issue #166 — whether what each invoice invoiced for has been delivered. TWO
     // operations for a page of any size, down from five: #210 stores the pairing on
     // `Invoices."Delivery"`, so the two levels that existed only to attribute an
     // answer — every OTHER invoice on the same ordered item, and those invoices' parents
-    // for their `Issue Date` — are nobody's business any more. The per-row
+    // for their `Issue Date` — are nobody's business any more. It read THREE until
+    // #314, whose third was the `Invoice Items` level this page now holds and hands
+    // over; the read did not get cheaper, it stopped happening twice. The per-row
     // alternative is what #143 ruled out and #162 measured at over 200 calls. The
     // rule itself is lib/deliveryStatus.js.
     //
@@ -91,8 +126,16 @@ async function renderInvoiceListPage() {
     // canViewPR already admitted.
     // #256 — `orderedItemsByInvoice` is the level this call already read and used to
     // discard, so the second strip's selection costs no query for it.
-    const { byInvoice: statusByInvoice, orderedItemsByInvoice } =
-        await getInvoiceDeliveryStatus(invoices);
+    //
+    // #314 — AND THE LEVEL IT USED TO READ IS HANDED OVER, FILTERED TO THE GATED ROWS.
+    // The filter is the gather rule, not an optimization: `orderedItemsByInvoice`
+    // feeds a `PO Items` read below, so passing every invoice's items would put a
+    // refused row's ordered items on the wire. Same line #169 draws on `/pos` and
+    // `offline/po-payment-column.mjs` holds there.
+    const { byInvoice: statusByInvoice, orderedItemsByInvoice } = await getInvoiceDeliveryStatus(
+        invoices,
+        invoiceItems.filter((item) => visibleIds.has(item.invoice?.[0]))
+    );
 
     // #216 — THE STRIP'S ROWS ARE DELIVERIES, SO THEY ARE GATED AS DELIVERIES.
     // That is the one thing this strip does not inherit from #176, where the
@@ -107,7 +150,14 @@ async function renderInvoiceListPage() {
     // Reading each accessible Job's `Deliveries` reverse-link is the same shape
     // /deliveries uses, and for its reason: it degrades with how many jobs a
     // viewer is on rather than with how large the table grows.
-    const deliveryJobs = accessibleJobs(user, await getAllJobs());
+    //
+    // #314 — NARROWED FROM `allJobs`, AND THE TWO LOCALS MUST NOT BE FOLDED. This one
+    // is the jobs the reader may act on for DELIVERIES; the `Job` column reads
+    // `jobById`, built from every job, because the column names the job an invoice
+    // charges for and that judgment takes no reader. Feeding the column from this
+    // narrowed list would blank the cell for a job outside the reader's delivery
+    // scope, which is a reader-dependent column arriving by the back door.
+    const deliveryJobs = accessibleJobs(user, allJobs);
     const jobDeliveries = await getDeliveriesByRecordIds(
         deliveryJobs.flatMap((j) => j.deliveries || [])
     );
@@ -246,16 +296,24 @@ async function renderInvoiceListPage() {
                     seven columns need 832px against the 832px the page has. Six of
                     the seven are bounded by construction and cannot grow — an
                     Invoice ID is a fixed format (128px), a date is 10 characters
-                    (80px), the Delivery column is a closed set of TWO chips plus a
-                    marker since #210 and its widest is `Awaiting delivery` (120px,
+                    (72px), the Delivery column is a closed set of TWO chips plus a
+                    marker since #210 and its widest is `Awaiting delivery` (102px,
                     unchanged: the state that left was not the widest one), Amount
-                    Due is bound by its own header (78px),
+                    Due is bound by its own header (84px),
                     and Status by the payment word above its badge (176px, and the
                     reason the last column drops its right padding).
-                    So VENDOR IS WHERE THE SLACK ISN'T: 8rem holds the longest name
-                    on this base at 16 characters with nothing to spare, and it is
-                    also the one column where wrapping would be least harmful if a
-                    longer supplier is ever added.
+                    So VENDOR IS WHERE THE SLACK ISN'T: 8rem is 33px short of the
+                    longest name on this base, and it is
+                    also the one column where wrapping is least harmful.
+
+                    THREE OF THOSE FIGURES WERE STALE AND #314 RE-MEASURED THEM
+                    (#181). The date was 80px and is 72; `Awaiting delivery` was 120px
+                    and is 102; Amount Due's own header was 78px and is 84. And the
+                    Vendor sentence said 8rem held the longest name "at 16 characters
+                    with nothing to spare" — see the re-measured table below for what
+                    it actually holds and what has been wrapping since. The paragraph
+                    is corrected rather than deleted because its ARGUMENT is unchanged
+                    and is the one this table is still budgeted by.
 
                     SEVEN COLUMNS FOR EVERY READER AGAIN, AND ONE BUDGET (#309). #179
                     gave this table a second budget by taking the last column away
@@ -282,23 +340,98 @@ async function renderInvoiceListPage() {
                     #309 took the date off the badge — `Paid 2026-08-14` is `Paid` —
                     so the widest thing in the cell is now `⚠ Check the total` at
                     102px rather than the 104px payment word it used to stack under.
-                    NOT RE-CUT HERE: a width is the design work's to decide and this
-                    issue is a visibility change, so the column keeps its 176px and
-                    the slack is recorded rather than spent. */}
+                    It was not re-cut there, on the ground that a width is the design
+                    work's to decide and a visibility change is not the place to spend
+                    slack it happens to create — so the 74px was recorded and left.
+
+                    EIGHT COLUMNS SINCE #314, AND THE 74px IS WHAT PAYS FOR MOST OF THE
+                    NEW ONE. `Job` is 5.75rem, which is the width `/deliveries` already
+                    declares for a job code — one fact, one way, down to the column it
+                    sits in. The budget is RE-CUT rather than appended to, which is this
+                    table's own standing rule (#166) and the point on which it diverges
+                    from `/pos`: that list let its seventh and eighth columns push it
+                    past the page and scroll, because its widths are a pixel judgment
+                    the design pass will redo. This table sums to the page and has done
+                    since #166, and a table that both scrolls and declares to the page
+                    width states two intentions.
+
+                    RE-MEASURED IN A BROWSER, AND EVERY FIGURE ABOVE THIS LINE IS A
+                    CONTENT WIDTH THAT DOES NOT COUNT THE 8px `pr-2`. That is what made
+                    the first cut of this column wrong: an Invoice ID needs 128px and
+                    the column was declared at 8.5rem, so it had not 8px spare but ZERO,
+                    and taking 4px wrapped 23 rows. What a column needs is
+                    `max(content, its own header) + 8`, and the last column's `+ 0`.
+                    Measured at 14px/20px Arial on this base, requirement against what
+                    was declared before this issue:
+
+                      Invoice ID    136  = 128 + 8      declared 136   flush
+                      Vendor        161  = 153 + 8      declared 128   short by 33
+                      Job            91  =  83 + 8      declared   —
+                      Issue Date     80  =  72 + 8      declared 88     8 spare
+                      Due Date       80  =  72 + 8      declared 88     8 spare
+                      Amount Due     92  =  84 + 8      declared 88    short by 4
+                      Delivery      110  = 102 + 8      declared 128   18 spare
+                      Status        102  = 102 + 0      declared 176   74 spare
+
+                    TWO OF THOSE ROWS ARE PRE-EXISTING AND ARE CORRECTED HERE RATHER
+                    THAN INHERITED (#181). This comment said 8rem holds Vendor's longest
+                    name "at 16 characters with nothing to spare" — the base's longest
+                    is `Lone Star Pipe & Supply` at 23, which needs 161px, so that
+                    column has been wrapping to two lines on every row since the vendor
+                    was seeded and the figure was stale rather than tight. And Amount
+                    Due is bound by its own HEADER at 84px, not the 78px recorded, so
+                    its 88rem was 4px short of the word above the figures. Neither is
+                    made worse here and neither is fixed here: Vendor keeps 8rem, which
+                    is what every other measurement was taken against, and giving it the
+                    161px it wants is a re-cut this page cannot afford and the design
+                    pass can.
+
+                    SO THE 92px COMES FROM THE TWO COLUMNS THAT REALLY HAD IT, and each
+                    keeps 4px on top of its requirement — #169's rule for a chip, which
+                    is what both of these hold: Status −70 (176 to 106, against 102),
+                    Delivery −14 (128 to 114, against 110). The last 8px come from the
+                    two dates, −4 each (88 to 84, against 80), which had 8 apiece. Job
+                    lands at 5.75rem, the width `/deliveries` already declares for the
+                    same value, and clears its 91px by 1.
+
+                    THE CONTENT FIGURES ARE THIS BASE'S SEEDED ROWS, and `/pos`'s own
+                    comment records what that is worth: a two-or-three-character margin
+                    on a human-entered column is a fact about seed strings. `Job` is not
+                    human-entered free text — a job code is `26-DEMO-01`, ten characters
+                    of a house format — so it is the one new column whose width is
+                    bounded by construction, and its 1px is a real margin where Vendor's
+                    would not have been. Vendor is still where to give width back
+                    first. */}
                 <table className="w-full min-w-[52rem] table-fixed text-sm">
                     <colgroup>
                         <col style={{ width: "8.5rem" }} />
                         <col style={{ width: "8rem" }} />
+                        {/* #314 — the same 5.75rem `/deliveries` declares. */}
+                        <col style={{ width: "5.75rem" }} />
+                        <col style={{ width: "5.25rem" }} />
+                        <col style={{ width: "5.25rem" }} />
                         <col style={{ width: "5.5rem" }} />
-                        <col style={{ width: "5.5rem" }} />
-                        <col style={{ width: "5.5rem" }} />
-                        <col style={{ width: "8rem" }} />
-                        <col style={{ width: "11rem" }} />
+                        <col style={{ width: "7.125rem" }} />
+                        <col style={{ width: "6.625rem" }} />
                     </colgroup>
                     <thead>
                         <tr className="text-left text-zinc-500">
                             <th className="pr-2">Invoice ID</th>
                             <th className="pr-2">Vendor</th>
+                            {/* #314 — THE FOURTH DOCUMENT LIST TO CARRY IT, and the
+                                first to have had nothing. `/prs` and `/pos` headed a
+                                column `Job / Discipline`, `/deliveries` headed `Job`,
+                                and this list headed neither — so the office, which
+                                #211 gave every invoice on the base, read it with no
+                                way to tell which site the material was for. One word
+                                on all four now, and a discipline is on the request
+                                that holds one.
+
+                                AFTER `Vendor`, which is where the other two put it.
+                                The position is the design pass's to move like every
+                                other placement; what this issue settles is that the
+                                column is here and what it says. */}
+                            <th className="pr-2">Job</th>
                             <th className="pr-2">Issue Date</th>
                             <th className="pr-2">Due Date</th>
                             <th className="pr-2 text-right">Amount Due</th>
@@ -322,6 +455,15 @@ async function renderInvoiceListPage() {
                                     </Link>
                                 </td>
                                 <td className="py-1 pr-2">{vendorNameById[inv.vendor?.[0]] || "—"}</td>
+                                {/* #314 — the SERVER resolved which job, through the
+                                    walk that gated this row; the cell renders a code.
+                                    The em dash is the same one the other three lists
+                                    render for a row with no job, and here it also
+                                    covers the judgment declining to name one — see
+                                    lib/invoiceJob.js, which never picks. */}
+                                <td className="py-1 pr-2">
+                                    {jobById.get(jobByInvoice.get(inv.id))?.jobCode || "—"}
+                                </td>
                                 <td className="py-1 pr-2">{inv.issueDate || "—"}</td>
                                 <td className="py-1 pr-2">{inv.dueDate || "—"}</td>
                                 <td className="py-1 pr-2 text-right">{formatUSD(inv.amountDue)}</td>

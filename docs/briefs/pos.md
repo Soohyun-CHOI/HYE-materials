@@ -20,8 +20,15 @@ see the shared brief's note on where the app disagrees with itself.
 **action — a filter bar:** a multi-job picker, a `Raised by me` checkbox, a
 status dropdown. Mirrored into the URL like the request list's.
 
-**evidence — the table, eight columns.** PO ID, Vendor, `Job / Discipline`, Total,
+**evidence — the table, eight columns.** PO ID, Vendor, `Job`, Total,
 Status, Delivery, Invoice, Payment. The last three hold chips rather than text.
+
+**`Job` headed `Job / Discipline` until #314**, one cell from two fields, both
+reached through the parent request. Every document list carries `Job` and only
+`Job` now; an order's discipline is on the request behind it, which this row links
+to one page along. The column narrowed from 12.75rem to 5.75rem with it — a job
+code is a house format of about ten characters, so this column stopped being one of
+the two whose content nobody controls and Vendor is now the only one.
 
 **verdict — three chips per row, one per axis, and they read left to right as the
 chain the document goes through.** Under `Delivery`, one of `Delivered` / `Partly
@@ -118,7 +125,9 @@ the first, with a counted heading — `N signed orders have not been sent to the
 vendor` — and one line for everyone: `Longest wait first. The vendor has not
 received these, and sending one to the vendor is what places the order.` Each row
 is the order's ID as a link, the day it was signed with a day count beside it,
-and Job / Discipline · Vendor.
+and Job · Vendor. **Both strips on this screen carried Job / Discipline until
+#314** — a strip row is a row a reader scans, so they follow the column's rule
+rather than keeping a word the table below them has dropped.
 
 **One voice and no control, and both follow from the same thing.** Sending
 happens on the order's own page, where the vendor's address sits above the button
@@ -176,15 +185,32 @@ a strip belongs where the people who can act on it already are.
 
 **Dimming means ended**, as on the request list and the signing chain.
 
+**`Job` is one column on four lists** — this one, the request list, the invoice
+list and the deliveries list — and it carries a job code and nothing else, at the
+same 5.75rem on all three that declare a width. A redesign may move it or restyle
+it; what it may not do is let one of the four say something different from the
+others, which is the state #314 ended.
+
+**An order's discipline is on the order's own detail screen**, which #314 added
+there for this reason: before it, `/pos`'s column was the only place an order's
+discipline appeared anywhere in the app, so taking the word off this list without
+a home for it would have been a loss rather than a tidying-up.
+
 ## What the widths assume
 
 **The table is wider than the page and has been since the seventh column.** The
-declared columns sum to 65.25rem (1044px) against the 832px a `max-w-4xl` page minus
+declared columns sum to 58.25rem (932px) against the 832px a `max-w-4xl` page minus
 its padding has, so the table scrolls inside its own container; nothing is truncated
 and the page itself does not scroll sideways. The sixth column took its width out of
 the other five; the seventh and eighth did not, deliberately — these hand-declared
 rem widths are what the design pass will take out, and re-cutting them now would be
 a pixel judgment made twice.
+
+**It was 65.25rem until #314**, which narrowed `Job / Discipline` to `Job` and gave
+the 7rem back to nobody. That is the same call the seventh and eighth columns made
+in the other direction: a column that carries one value takes one value's width, and
+handing the difference to a neighbor is the pixel judgment those two declined to
+make twice.
 
 **The three chip columns are one width, 6.625rem (106px), and the payment cell fits
 inside it with the badge.** Measured at 1280px: the chip runs to 57px and the badge

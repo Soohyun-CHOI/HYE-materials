@@ -14,6 +14,7 @@ import {
 } from "@/lib/poDocuments";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
+import { getDisciplineByRecordId } from "@/lib/airtable/disciplines";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { formatUSD } from "@/lib/format";
@@ -162,8 +163,26 @@ async function renderPODetailPage({ params, searchParams }) {
     // happening anyway rather than a read of its own. The vendor is in the same
     // batch, which is why the send control can show the address it would use for
     // nothing: this page has resolved the vendor since #10.
-    const [job, vendor, ourPic, ourManager, sentBy] = await Promise.all([
+    // #314 — THE DISCIPLINE JOINS THE SAME BATCH, AND IT IS ONE OPERATION RATHER THAN
+    // NONE. That issue took the word off `/pos`, whose `Job / Discipline` column was
+    // the ONLY place an order's discipline appeared anywhere in the app — so removing
+    // it there without a home here would have been a loss rather than a tidying-up,
+    // and this is the home. A request's `Job` and its `Discipline` are the same kind
+    // of value on the same record, both record ids reached through the parent request
+    // this page has already loaded for the gate, and both cost one find to turn into a
+    // name; the job's has been in this batch since #10.
+    //
+    // MEASURED RATHER THAN ASSUMED FREE: `Purchase Requests."Job"` is a LOOKUP that
+    // Airtable resolves through the discipline, so it arrives as a record id and the
+    // Jobs row still has to be read; `Discipline` is a plain link and behaves the
+    // same. Neither is a name until it is fetched, so this page goes 11 operations to
+    // 12. The one shape that would make it free is a `Discipline Label` lookup on
+    // `Purchase Requests`, exactly as `Job` is — a schema change that would also give
+    // the app a second source for a discipline's name while `/prs/[prId]` reads the
+    // table, which is the divergence #314 exists to close rather than open.
+    const [job, discipline, vendor, ourPic, ourManager, sentBy] = await Promise.all([
         pr.job?.[0] ? getJobByRecordId(pr.job[0]) : null,
+        pr.discipline?.[0] ? getDisciplineByRecordId(pr.discipline[0]) : null,
         pr.vendor?.[0] ? getVendorByRecordId(pr.vendor[0]) : null,
         po.ourPic?.[0] ? getUserByRecordId(po.ourPic[0]) : null,
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
@@ -380,6 +399,15 @@ async function renderPODetailPage({ params, searchParams }) {
                     </Link>
                 </p>
                 <p>Job: {job ? `${job.jobCode} — ${job.jobName}` : "—"}</p>
+                {/* #314 — under `Job` and above `Vendor`, which is the order
+                    `/prs/[prId]` already lists the same three in, and it is the
+                    `Discipline Label` there too rather than the bare name: that is the
+                    `Disciplines` primary field, so it is what NAMES a row of that
+                    table. The label repeats the job code it is prefixed with, which is
+                    a fact about the formula and is the same repetition the request's
+                    own screen has always shown — two screens naming one thing one way
+                    is the whole point of moving the word here. */}
+                <p>Discipline: {discipline?.disciplineLabel || "—"}</p>
                 <p>Vendor: {vendor?.vendorName || "—"}</p>
                 <p>Our PIC: {ourPic?.userName || "—"}</p>
                 <p>Our Manager: {ourManager?.userName || "—"}</p>
