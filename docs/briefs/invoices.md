@@ -25,7 +25,14 @@ Due is right-aligned currency and is the vendor's stated total, never a computed
 document lists all did — `/prs` and `/pos` headed `Job / Discipline` and
 `/deliveries` headed `Job` — so the office, which #211 gave every invoice on the
 base, read this one with no way to tell which site the material was for. It is the
-job code alone, and an em dash where the app cannot name one.
+job code alone, and an em dash where the app cannot name one. **No discipline
+appears here or on any of the four:** a discipline is how a request is filed, so it
+stays on the two screens that hold one.
+
+**A job code is not a value a person composes, and that changes what the column is
+for.** Its shape is fixed, so the cell is matched and looked up rather than read as
+words — which is why it can be narrow, and why it is a poor column to scan for a
+row. A design that treats it as a name will give it width it cannot use.
 
 **An invoice holds no job, which is why this is the only one of the four that needed
 a judgment behind it.** A delivery holds a `Job` link and a request reaches one
@@ -113,6 +120,15 @@ spare" described a shorter vendor than the base now has. And `Amount Due` is bou
 its own header at 84px against 88px declared, 4px short. Neither is made worse and
 neither is fixed: giving Vendor the 161px it wants is a re-cut this page cannot
 afford and the design pass can. **Vendor is where to give width back first.**
+
+**And every string length behind those figures is a dummy, so none of them can
+ground a width.** The base carries seeded records only — its job codes are `26-A`
+and `26-B`, which are not even the shape a real one has — so `Lone Star Pipe &
+Supply` is the longest vendor name *that was typed into a fixture*, not the longest
+this company buys from. What the measurements above establish is the method and the
+direction of the error, and that Vendor is the column starved; the numbers move the
+day real data arrives. **A width settled against this base is settled against
+nothing**, which is the one thing a redesign should not inherit from these figures.
 
 **When there are no rows:** one of two sentences. `No invoices yet.` when the base
 has none, and `No invoices to show. You see an invoice when it charges a purchase
@@ -213,9 +229,12 @@ distinction between "none exists" and "none for you" is the one that has to
 survive.
 
 **`Job` is one column on four lists** — this one, the request list, the purchase
-order list and the deliveries list — and it carries a job code and nothing else, at
-the same 5.75rem on all four. A redesign may move it or restyle it; what it may not
-do is let one of the four say something different from the others, which is the state
-#314 ended.
+order list and the deliveries list. **The decision is stated once, in the shared
+brief's `One fact reads one way across the four document lists`**, and the other
+three briefs each carry it from their own side; it is not restated here, because five
+copies of one rule is five things to keep in step. What this list adds is only what
+is particular to it: the column is the one of the four with a judgment behind it,
+for the reason above. Its width is declared here and on two of the other three —
+`/prs` declares none at all.
 
 **The strip shares its shape with every other strip in the app.**
