@@ -27,11 +27,15 @@ takes several jobs at once, a `Raised by me` checkbox, and a status dropdown who
 first option is `All`. The active filters are mirrored into the URL, so a refresh,
 a shared link and the back button all restore the view.
 
-**evidence — the table, six columns.** PR ID, Requester, Vendor,
-`Job / Discipline`, Total, Status. The ID is a link; Total is right-aligned
-currency. `Job / Discipline` is one cell from two fields, the job code and the
-discipline name joined by a middle
-dot, and it reads as an em dash when there is no job.
+**evidence — the table, six columns.** PR ID, Requester, Vendor, `Job`, Total,
+Status. The ID is a link; Total is right-aligned currency. `Job` is the job code
+alone and reads as an em dash when there is no job.
+
+**It headed `Job / Discipline` until #314**, one cell from two fields joined by a
+middle dot. All four document lists carry `Job` and only `Job` now — a discipline
+is how a request is filed rather than where the material went, so it belongs to
+the documents that hold one and not to the row a reader scans. It is on this
+request's own screen, beside its job.
 
 **verdict — the Status column.** One of `Draft`, `In Review`, `Approved`,
 `PO Signed`, `Withdrawn`. Plain text rather than a chip, and it is the only
@@ -162,8 +166,15 @@ alongside them so the two cannot say different things.
 same component, so both screens name the invoice, the unit price and the file the
 quotation will come from. Neither offers a bare button.
 
-**`Job / Discipline` is two fields**, the job code and the name of a
-`Disciplines` row under it. `line` names neither, and no row of any table (#280).
+**`Job` is one column on four lists** — this one, the purchase order list, the
+invoice list and the deliveries list — and it carries a job code and nothing
+else. It is the same 5.75rem width on the three that declare one. A redesign may
+move it or restyle it; what it may not do is let one of the four say something
+different from the others, which is the state #314 ended.
+
+**A discipline is a `Disciplines` row under a job**, and it is on the request's
+own screen rather than in this list. `line` names neither, and no row of any
+table (#280).
 
 **Dimming means ended, here and on the purchase order list and the signing
 chain.** Three places, one meaning.

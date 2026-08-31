@@ -6,6 +6,17 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 
 ### Purchase Requests
 
+- **The `/prs` list heads `Job` and carries no discipline (#314).** It headed
+  `Job / Discipline` from #119 to that issue, one cell from two fields joined by a
+  middot, and that pairing was never argued: #119's issue body listed `job/line` among
+  the row's fields and #168 copied the shape to `/pos` as "the same shape as the other
+  two". So the four document lists carried one fact three ways, which is what the
+  design pass saw by reading their briefs side by side. The removal loses nothing here
+  — `/prs/[prId]` names both the job and the discipline and always has — and it takes
+  `getAllDisciplines()` off the page with the column, measured at 15 operations against
+  16. The order list's half of the same change cost more and is in
+  `purchase-orders.md`. **A discipline is how a request is FILED**, which is why it
+  belongs to a request's own screen rather than to a row a reader scans.
 - **`Created At` was `Created Date` and was date-only until #105.** The migration is
   provenance rather than a rule — the rule is the `*At` convention itself, which
   CLAUDE.md's ID-generation section states for every table — so it sits here after the
@@ -213,8 +224,10 @@ cannot raise the request either — so the office records what the invoice says 
 new table, `Direct Purchases`, and the site raises the request from it.
 
 - **IT IS A TABLE FOR A STRUCTURAL REASON, NOT A PREFERENCE, and the reason is one
-  field.** `Purchase Requests."Job"` is a Lookup THROUGH `Line`. The office learns
-  the Job by telephone and cannot learn the Line — #19's boundary, that a decision
+  field.** `Purchase Requests."Job"` is a Lookup THROUGH `Discipline` — the two words
+  in this bullet said `Line`, which #280 renamed the table out of and this sweep
+  missed; corrected per #181 by #314. The office learns
+  the Job by telephone and cannot learn the discipline — #19's boundary, that a decision
   made before a request exists cannot be helped by a form inside one — so a request
   record physically cannot carry the one value that decides which site sees the row.
   Two further reasons stand behind that one and would each need an exception of its

@@ -67,6 +67,33 @@ writing code cannot produce one.
   unreachable through the app's own writes and reachable through hand-entered data —
   `HYE-INV-260804-03` was that row when this was written, kept deliberately as the
   only way to see the branch on a screen.
+- **ONE INVOICE CHARGES ORDERS ON ONE JOB, AND THAT IS THIS PREMISE RATHER THAN A
+  SECOND ONE (#314).** A `Deliveries` row holds a single `Job`, and an invoice is
+  answered by one delivery or by none — so an invoice spanning two jobs is an invoice
+  split across two deliveries, which is the case above. That corollary is what lets
+  `/invoices` head a column `Job` and assert one.
+  - **NOTHING ON THE WRITE SIDE ENFORCES IT, AND THAT WAS CHECKED RATHER THAN
+    ASSUMED.** `createInvoiceAction` gathers the distinct orders an invoice charges and
+    tests one thing about them, that none is withdrawn; `lib/poPickerOptions.js`
+    narrows the dropdown by VENDOR and carries no job clause; `/api/pos/search` and
+    detect-po the same. One vendor supplying two sites is ordinary, so the state is
+    reachable — by the form, not merely by a hand edit, which is the one place this
+    corollary is weaker than the premise it comes from. **Making the app refuse it is
+    out of #314's scope** and is not filed as work; what that issue owed was a column
+    that cannot lie while it stands.
+  - **SO THE JUDGMENT NAMES NO JOB WHERE IT FINDS TWO.** `lib/invoiceJob.js` counts the
+    distinct jobs its walk resolves and returns one or nothing; the cell renders the em
+    dash it already renders for a row with no job, which `invoices.md` distinguishes
+    from a measurement as "the absence of one". Two ORDERS on one job is not that case
+    and is the ordinary reason an invoice carries two — a correction that split every
+    item across an order and its overage order — which is why the test is the job count
+    and never the order count. The direction is `getVisibleInvoiceIds`': refuse rather
+    than guess.
+  - **AND IT IS THE ARGUMENT FOR REFUSING THE STATE, WHENEVER SOMEBODY WANTS ONE.** The
+    column is honest either way, so the reason to enforce it is not the column: it is
+    that a multi-job invoice is also an invoice the pairing rule can answer for at most
+    half of, which is the entry below.
+
 - **IF THE PREMISE BREAKS IN REALITY, THE INVOICE AXIS HAS NO EXIT.** A vendor invoicing
   one invoice and shipping the material in two deliveries is not a shape this app can
   record its way out of: both deliveries can be entered normally, and each will contain
@@ -2255,3 +2282,18 @@ this screen.
   there are none. Nothing reminds the office when the request they are waiting on
   is approved; `/pos` shows the new order like any other, and the awaiting-invoice
   strip is keyed on deliveries rather than orders, so it will not list it.
+
+### Naming the job an invoice charges for (#314)
+
+- **THE FINDING CAME FROM THE DESIGN PASS, NOT FROM A CHECK, AND THAT IS WHY IT STOOD SO LONG.** `docs/briefs/` goes to a tool that does not read this repository, one screen at a time, and a reader holding several briefs at once sees what no single screen shows: `/prs` and `/pos` headed `Job / Discipline`, `/deliveries` headed `Job`, and `/invoices` headed neither — one fact, three ways, across four lists of the four document kinds. Nothing in the code says those four columns are about the same thing, so no check could have asked. The removal half is in `purchase-orders.md`; this section is the column this list did not have.
+- **AN INVOICE HOLDS NO JOB, WHICH IS WHY IT IS THE ONLY ONE OF THE FOUR THAT NEEDED A JUDGMENT.** A delivery has a `Job` link; a request has `Job` as a lookup through its discipline; an order borrows its parent request's. An invoice reaches one only by walking `Invoice Items` → `Purchase Orders` → `Purchase Requests`, which is **exactly the walk `getVisibleInvoiceIds` already makes** to reach `canViewPR`. So the column added no level: `lib/invoiceVisibility.js:resolveInvoiceScope` hands back the orders and requests that walk resolved and used to drop, which is #216's rule on this file's neighbor — a function that reads something and does not hand it back forces the next caller to read it again.
+- **THE ALTERNATIVES WERE MEASURED AND BOTH LOST FOR THE SAME REASON.** `Invoices` → `Delivery` → `Deliveries."Job"` is free for a paired invoice and silent for every other, and an unpaired invoice is the ORDINARY state on this axis (the vendor emails at shipment) — but the disqualifying half is that it is a SECOND path, so a paired invoice and an unpaired one would answer from different sources. An Airtable lookup chain (`PR.Job` → `PO` → `Invoice Items` → a rollup on `Invoices`) is free for every reader and loses on the ground #311 already recorded when it refused the same shape for the payment column: a screen judging from a rollup while another screen walks is two answers to one question, and rollups are outside CI entirely.
+- **THE JUDGMENT TAKES NO READER, AND THAT IS THE POINT RATHER THAN AN ECONOMY.** #211 split this screen into a reader who walks and a reader who skips the walk, so a job resolved on each side of that split is a rendered fact that can differ by reader on one row, with both halves looking right and nothing failing. `lib/invoiceJob.js` is pure and has no `user` parameter and no privilege term, which is the shape #309 left `resolveDeleteCopy` in and the property `offline/job-column.mjs` reads off the signature — stronger than any assertion about call sites, because a function with no reader cannot differ by reader. `_shared.md` carries the standing form: no table in this app drops a column by reader, and the fact is not what varies.
+- **SO THE COLUMN IS NOT NARROWED TO THE ORDERS THAT ADMITTED THE INVOICE**, and under the premise that costs nothing: an invoice charges orders on one job, so a reader who may see the invoice may see an order on that job. Narrowing it would buy protection in a state the app has decided does not happen, and buy it by making a reader-dependent cell permanent. The residual — a multi-job invoice naming a job outside the reader's scope — cannot arise, because the judgment names no job there at all.
+- **AND THE SCREEN STOPPED ASKING A PRIVILEGE QUESTION ALTOGETHER.** The last one was `seesEveryInvoice` deciding whether to fetch the invoice items the gate walks from — a pure cost decision while the walk was only ever the gate's. The column needs those records whoever is reading, so the branch is gone. `authorization.md` records what that leaves the helper doing; `offline/invoice-visibility.mjs`'s assertion is INVERTED rather than deleted, and now holds that neither invoice route asks who the reader is.
+- **THE BUDGET, MEASURED IN A BROWSER WITH BOTH FIXTURE ACCOUNTS: 14 FOR EVERYONE, FROM 12 AND 15.** The office pays two more (the walk it used to skip); a site employee pays one FEWER, and that is a duplicate this issue had to close rather than inherit. `/invoices` fetched every invoice's items for the gate and `getInvoiceDeliveryStatus` fetched the gated subset's again, so a site reader's page load read `Invoice Items` three times — the third being `getDeliveryInvoicing` on the other axis. Making the office walk too would have made it three for every reader, so the level moved to the caller and that function maps rather than fetches. **The breakdown is identical table for table between the two readers**, which is a stronger statement than the equal total: one path, not two paths that happen to cost the same.
+- **THE ITEMS ARE FILTERED TO THE GATED ROWS BEFORE THEY ARE HANDED OVER.** Not an optimization — `orderedItemsByInvoice` feeds a `PO Items` read, so passing every invoice's items would put a refused row's ordered items on the wire. Same line #169 draws on `/pos` and `offline/po-payment-column.mjs` holds there.
+- **THE TABLE RE-CUT ITS 52rem RATHER THAN APPENDING**, which is this table's own rule since #166 and the point on which it diverges from `/pos`: that list lets its extra columns push it past the page and scroll. `Job` is 5.75rem, the width `/deliveries` already declares for a job code, and it came out of `Status` (−70px, which #309 had measured as slack and left) and `Delivery` (−14), each still clear of its content by 4px, plus 4px from each date column.
+  - **TWO FIGURES IN THAT COMMENT WERE STALE AND WERE RE-MEASURED (#181).** A column needs `max(content, its own header) + 8px` of `pr-2`, and the first cut of this column got it wrong by ignoring the padding: an Invoice ID needs 128px against a 136px declaration, so it had ZERO spare rather than 8, and taking 4px wrapped 23 rows. Measured at 14px/20px Arial: **Vendor at 8rem is 33px short of `Lone Star Pipe & Supply`** and has been wrapping to two lines on every row — the comment claimed it held the longest name "at 16 characters with nothing to spare", which described a shorter vendor than this base now has — and **`Amount Due` is bound by its own header at 84px against 88px declared**, 4px short. Neither is made worse and neither is fixed here: giving Vendor its 161px is a re-cut this page cannot afford and the design pass can.
+- **`/pos/[poId]` GAINED `Discipline` AND IT COSTS ONE OPERATION, NOT NONE.** The discipline is a record id on the parent request this page already loads for the gate, and so is the job — but neither is a NAME until its row is read, so the page goes 12 to 13 and the log itemizes the difference as `Disciplines: find 1`. Measured on one order both ways. The one shape that would make it free is a `Discipline Label` lookup on `Purchase Requests`, exactly as `Job` is; it was refused because it would give the app a second source for a discipline's name while `/prs/[prId]` reads the table, which is the divergence this issue exists to close rather than open.
+- **Not in this issue:** no list gained a job FILTER. The issue names one as the obvious next thing these lists want and as the argument for the column — a filter taking effect on `/invoices` had nothing on screen to show it — but wanting one is not the same as adding four. Nor does anything refuse a multi-job invoice; see the one-delivery premise for why the column is honest without it.

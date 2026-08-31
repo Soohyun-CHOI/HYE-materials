@@ -88,3 +88,11 @@ here should know it is adding, not restoring.
 awaiting-invoice strip on the invoice list is ordered longest-wait-first instead,
 and says so in its own line. Two lists of the same records, two orderings, both
 declared.
+
+**`Job` is one column on four lists** — this one, the request list, the purchase
+order list and the invoice list. This screen is the one that already had it right:
+#314 took `Job / Discipline` off the two request-side lists and gave the invoice list
+the column it had never had, and it took this list's word and this list's 5.75rem as
+the shape the other three follow. Nothing here changed. A redesign may move it or
+restyle it; what it may not do is let one of the four say something different from
+the others.

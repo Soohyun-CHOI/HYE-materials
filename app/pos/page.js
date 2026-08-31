@@ -4,7 +4,6 @@ import { getAllPOs } from "@/lib/airtable/purchaseOrders";
 import { getApprovedPRs, getPRsByRecordIds } from "@/lib/airtable/purchaseRequests";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
@@ -66,29 +65,31 @@ async function renderPOListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
 
-    // SEVEN OPERATIONS, AND NONE OF THEM IS PER ROW. Each fetches a whole level
+    // SIX OPERATIONS, AND NONE OF THEM IS PER ROW. Each fetches a whole level
     // keyed on ids from the level above, which is the property #143 established
     // and #190 measured /prs failing — that page resolves one requester at a time,
-    // so three of its seven operations are `Users: find`. getPRsByRecordIds is the
+    // so three of its operations are `Users: find`. getPRsByRecordIds is the
     // batched reader (findByRecordIds under it) and it maps through recordToPR, so
     // the rows carry the signerRowIds/correctionRowIds canViewPR needs for clauses
     // 5 and 6. getLinkedRecords is deliberately not used anywhere here: it re-finds
     // the parent on every call, which is why /prs/[prId] reads one PR five times.
     //
-    // Disciplines buys one thing: the Discipline NAME. A PR's `discipline` is a
-    // link and gives a record id, exactly as `job` does, so the column cannot be
-    // built without it — the same reason /prs fetches them for the same column.
+    // SEVEN UNTIL #314, THE SEVENTH BEING `getAllDisciplines()`. It bought one thing,
+    // the Discipline NAME, for a column headed `Job / Discipline` and for the two
+    // strips that copied its shape. Every document list heads `Job` now and carries
+    // only a job, so nothing on this screen reads a discipline and this page does not
+    // fetch the level. An order's discipline is on the request behind it, which this
+    // list's rows link to one page along.
     //
-    // getApprovedPRs is #176's and is the seventh. It cannot be derived from the
-    // six above: the strip's subject is approved requests that produced NO order,
+    // getApprovedPRs is #176's and is the sixth. It cannot be derived from the
+    // five above: the strip's subject is approved requests that produced NO order,
     // so every one of them is absent from `pos` by definition. It is one select
     // filtered on `Status`, so it grows one query per 100 approved requests and
     // never with the number of rows the strip draws.
-    const [pos, vendors, jobs, disciplines, approvedPRs] = await Promise.all([
+    const [pos, vendors, jobs, approvedPRs] = await Promise.all([
         getAllPOs(),
         getAllVendors(),
         getAllJobs(),
-        getAllDisciplines(),
         getApprovedPRs(),
     ]);
     const parentPrIds = [...new Set(pos.map((po) => po.pr?.[0]).filter(Boolean))];
@@ -97,7 +98,6 @@ async function renderPOListPage({ searchParams }) {
     const prById = new Map(prs.map((pr) => [pr.id, pr]));
     const vendorNameById = new Map(vendors.map((v) => [v.id, v.vendorName]));
     const jobById = new Map(jobs.map((j) => [j.id, j]));
-    const disciplineById = new Map(disciplines.map((d) => [d.id, d]));
 
     // THE GATE. A PO with no parent PR is refused rather than shown: every PO in
     // this app is generated from one (strict 1:1), so a missing parent is a broken
@@ -207,7 +207,6 @@ async function renderPOListPage({ searchParams }) {
             vendorName: vendorNameById.get(po.vendor?.[0]) || "—",
             jobId,
             jobCode: jobById.get(jobId)?.jobCode || null,
-            disciplineName: disciplineById.get(pr?.discipline?.[0])?.disciplineName || null,
             total: po.totalAmount ?? po.itemsSubtotal ?? 0,
             // The raw value drives the filter; the rendered text is the column.
             status: po.status || "",
@@ -270,24 +269,25 @@ async function renderPOListPage({ searchParams }) {
     // which is the same answer they get for the table's rows and for the same
     // reason: a refused row is absent rather than announced.
     //
-    // Job, Discipline and Vendor come out of the three maps the table already built,
-    // so
-    // the strip adds no read of its own beyond the one select above.
+    // Job and Vendor come out of the two maps the table already built, so
+    // the strip adds no read of its own beyond the one select above. It carried a
+    // Discipline until #314 and no longer does: a strip row is a row a reader scans,
+    // so the rule the column follows is the strip's too, and a strip disagreeing with
+    // the table above it would be this issue's own finding on one screen.
     const awaitingPO = selectPRsAwaitingPO(approvedPRs.filter((pr) => canViewPR(user, pr)));
     const awaitingPORows = awaitingPO.map((pr) => ({
         id: pr.id,
         prId: pr.prId,
         jobCode: jobById.get(pr.job?.[0])?.jobCode || null,
-        disciplineName: disciplineById.get(pr.discipline?.[0])?.disciplineName || null,
         vendorName: vendorNameById.get(pr.vendor?.[0]) || null,
     }));
 
     // #295 — SIGNED ORDERS NOBODY HAS SENT, AND NOT ONE NEW READ. The orders are
     // `visible`, so the strip inherits the table's gate rather than applying a second
     // one; `Sent At`, `President Signed At` and `President Signed` all ride on
-    // recordToPO already (#281 put the first there), and Job, Discipline and Vendor
-    // come out
-    // of the three maps the table built. `Sent By` is deliberately absent: the send
+    // recordToPO already (#281 put the first there), and Job and Vendor come out
+    // of the two maps the table built — a Discipline came out of a third until #314
+    // took the word off every list. `Sent By` is deliberately absent: the send
     // writes it in the same operation as `Sent At`, so every row here has none, and a
     // column naming the person would cost a Users read per row to name nobody.
     //
@@ -311,7 +311,6 @@ async function renderPOListPage({ searchParams }) {
                 // The tie-break, sort-only: nothing renders it.
                 createdKey: po.poId || "",
                 jobCode: jobById.get(jobId)?.jobCode || null,
-                disciplineName: disciplineById.get(pr?.discipline?.[0])?.disciplineName || null,
                 vendorName: vendorNameById.get(po.vendor?.[0]) || null,
                 daysWaiting: daysWaiting(signedDate, today),
             };

@@ -131,7 +131,12 @@ export default function PRListClient({
                             <th className="pr-2">PR ID</th>
                             <th className="pr-2">Requester</th>
                             <th className="pr-2">Vendor</th>
-                            <th className="pr-2">Job / Discipline</th>
+                            {/* #314 — `Job / Discipline` until this issue, and one
+                                cell from two fields. Every document list in the app
+                                heads this column `Job` and carries only a job; the
+                                discipline is on the request's own screen, which is
+                                the document that holds one. */}
+                            <th className="pr-2">Job</th>
                             <th className="pr-2 text-right">Total</th>
                             <th className="pr-2">Status</th>
                         </tr>
@@ -174,10 +179,7 @@ export default function PRListClient({
                                     </td>
                                     <td className="py-1 pr-2">{r.requesterName}</td>
                                     <td className="py-1 pr-2">{r.vendorName}</td>
-                                    <td className="py-1 pr-2">
-                                        {r.jobCode || "—"}
-                                        {r.disciplineName ? ` · ${r.disciplineName}` : ""}
-                                    </td>
+                                    <td className="py-1 pr-2">{r.jobCode || "—"}</td>
                                     <td className="py-1 pr-2 text-right">{formatUSD(r.total)}</td>
                                     <td className="py-1 pr-2">{r.status}</td>
                                 </tr>

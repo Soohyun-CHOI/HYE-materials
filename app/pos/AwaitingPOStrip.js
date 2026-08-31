@@ -54,12 +54,13 @@ function AwaitingPORow({ row, isAdmin }) {
             <Link href={`/prs/${row.prId}`} className="shrink-0 font-medium underline">
                 {row.prId}
             </Link>
-            {/* Job / Discipline as one cell with the same separator the list's first
-                column uses, so a reader locating work reads the same pair in the
-                same shape whether it is above the table or in it. */}
+            {/* Job and vendor, the same values the list's own columns carry, so a
+                reader locating work reads one shape above the table and in it. It
+                carried a Discipline until #314 — a strip row is a row a reader scans,
+                so it follows the column's rule rather than keeping a word the table
+                below it has dropped. */}
             <span className="min-w-0 flex-1 truncate text-zinc-700">
                 {row.jobCode || "—"}
-                {row.disciplineName ? ` / ${row.disciplineName}` : ""}
                 {" · "}
                 {row.vendorName || "—"}
             </span>
