@@ -91,7 +91,7 @@ Five rules for filling either in.
 
 ## The findings
 
-Nine so far — eight words and one structure — and more will arrive while the `/invoices` screens are being designed.
+Nine so far — eight words and one structure — and more will arrive for as long as the design pass runs. Items 1 to 9 came out of the root screen, the four document lists and the `/invoices` screens, which are the ones designed first.
 
 Among the word items, 1, 3, 4 and 7 resolve by the rule already settled: **a nav label or a button label is the name of the screen it opens, so where a link and its destination's heading differ, the heading wins** — a link that disagrees with the heading turns one screen into two. Item 2 is that rule applied to a case where it changes nothing, and item 6 settles what it left over. Item 5 is undecided.
 
@@ -196,7 +196,7 @@ The first structural item. The design draws every list screen's row as a single 
 
 - **what it is now.** Five lists, five identical shapes: the first cell holds a `<Link className="underline">` around the document ID and nothing else in the row is clickable.
 
-  **The coordinate is the anchor's own text, and the line is only a hint.** Item 8 cites eleven files and three of them moved when #314 landed — `app/invoices/page.js` by 133 lines — so a line number recorded here rots while this branch stays open. That is `backlog.md`'s own rule applied: where a figure is not the claim, name what to look for instead of counting.
+  **The coordinate is the anchor's own text, and the line is only a hint.** Item 8 cites eleven files and three of them moved when #314 landed — `app/invoices/page.js` by 133 lines — so a line number recorded here rots as `main` moves under it, and this file outlives several issues by design. That is `backlog.md`'s own rule applied: where a figure is not the claim, name what to look for instead of counting.
 
   | Screen | File | Find | Line today | Goes to |
   |---|---|---|---|---|
