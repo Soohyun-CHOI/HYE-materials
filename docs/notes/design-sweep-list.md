@@ -1,22 +1,20 @@
 # What the design pass is finding — the sweep list
 
-Governs no path and is read by nobody editing one. **It is a queue with a termination condition**, which is the whole of what separates it from `backlog.md`, and the argument is below rather than assumed.
+Bound to an activity rather than to a path, and its items name paths without governing them. **It is a queue with a termination condition**, which is the whole of what separates it from `backlog.md`, and the argument is below rather than assumed.
 
 ## What it holds
 
-Two kinds of item, and one sweep consumes both. What they share is the reason they are here rather than in the code: neither can be acted on while `docs/briefs/` is the design's only input.
+**One kind of item: a place where the current code disagrees with something already settled, which one piece of work will close.** Every entry has a consumer and leaves the file when that consumer implements it. That is the whole membership test, and it is what separates this file from `design-decisions.md`, which holds what has no consumer and therefore never leaves.
 
-**A word disagreement** — a place where two screens use different words for one thing, or one screen uses a word another has already settled. The strings exist in the code, in two files, and nothing in either says they are two names for one thing. Items 1 to 7 are these.
+It comes in two shapes and the shape decides the template, not the membership. **A word** — two screens using different words for one thing, or one screen using a word another has already settled; the strings exist in the code, in two files, and nothing in either says they are two names for one thing. **A structure** — a way a screen is built that the design has decided and the code does not do. Item 8 is the only structural one so far and is the wider of the two in what it touches: eleven files, five code comments, five briefs.
 
-**A structural decision** — a decision the design has taken about how a screen is built that the current code does not implement. It arrives already decided, because deciding it is the design pass's job; what this list carries is where the current code disagrees, what has to move with it, and the shape the implementation has to take. Item 8 is the first.
-
-The second kind is wider than the first in what it touches — item 8 reaches eleven files, five code comments and five briefs — and narrower in what it argues, since the decision itself is not up for re-derivation here. Both are still just a list one sweep reads.
+**A rule or a prohibition is not an item here.** It has nothing to sweep, nobody consumes it, and it would still be true after this file is deleted — so it goes to `design-decisions.md`. Somebody working the sweep reads this file from top to bottom and that is all of it.
 
 ## Why this file exists
 
 `docs/briefs/` is the design work's only input, and the repository is deliberately not connected to the tool reading it — a design that could see the current styling would be pulled toward it, and there is nothing there worth preserving. The briefs are handed over one screen at a time.
 
-**A reader holding several briefs at once sees what no single screen shows.** Every word item is of that shape: the code contains both strings, in two files, and says nowhere that they are one screen's name. A structural decision arrives the same way and for the same reason — a design that has drawn every list in the app sees one row shape where the code has eleven separate pieces of markup, and no check reads across screens like that. So both kinds arrive from the design pass rather than from the repository, and the finder's viewpoint cannot be reconstructed later from the code.
+**A reader holding several briefs at once sees what no single screen shows.** Every word item is of that shape: the code contains both strings, in two files, and says nowhere that they are one screen's name. A structural item arrives the same way and for the same reason — a design that has drawn every list in the app sees one row shape where the code has eleven separate pieces of markup, and no check reads across screens like that. So items arrive from the design pass rather than from the repository, and the finder's viewpoint cannot be reconstructed later from the code.
 
 **And nothing can be acted on as it is found.** A brief is the design's only input, so changing a string or a screen's structure makes a brief that has already been handed over stale, and the design then draws what the app does not do. `offline/screen-briefs.mjs` is what normally catches a brief going stale; it cannot help here, because the stale brief would be sitting in another tool where no check reaches it. So nothing moves and the findings accumulate.
 
@@ -26,7 +24,9 @@ The second kind is wider than the first in what it touches — item 8 reaches el
 
 Nothing is left behind — no record of what was closed and by what. That is `backlog.md`'s convention (its `Closed since, and by what` section) and it is the wrong one here: the residue that convention exists to leave is exactly what a finished sweep should not have. This file records only the unresolved state.
 
-Where a resolution is worth keeping it is kept somewhere that governs a path, which is the same routing CLAUDE.md already states. A naming decision goes to `naming.md`'s screen-word table. A structural decision goes to the brief for the screens it changed — that is what `docs/briefs/` is for — and its reasoning, where it has any beyond the design's own, to the `docs/notes/` file for the area. The brief moves in the same commit either way, under `docs/briefs/README.md`'s rule.
+**That single deletion rule is why nothing without a consumer may be filed here.** An entry that would still be true after the sweep does not get closed by it — it gets deleted by it, in a commit whose author had no reason to look at that line. `design-decisions.md` exists so that never has to be managed.
+
+Where a resolution is worth keeping it is kept somewhere that governs a path, which is the same routing CLAUDE.md already states. A naming decision goes to `naming.md`'s screen-word table. A structural resolution goes to the brief for the screens it changed — that is what `docs/briefs/` is for — and its reasoning, where it has any beyond the design's own, to the `docs/notes/` file for the area. A rule the resolution leaves behind, wider than the one screen that produced it, goes to `design-decisions.md`. The brief moves in the same commit in every case, under `docs/briefs/README.md`'s rule.
 
 ## Why not one entry in `backlog.md`
 
@@ -73,6 +73,8 @@ A structural item keeps the last three fields and replaces the first three, beca
 
 **`where it is refused` is the field that earns the item.** A design draws one row shape; the app has screens the shape does not fit, and finding them is the work a decision cannot do for itself. Item 8 has two, and both are the kind that would be discovered halfway through the sweep otherwise.
 
+**Every field is required, and that is the membership test rather than a formatting rule.** An item that cannot say where it is refused has no code to refuse it; one that cannot say what it is now has nothing to sweep; one whose `moves with it` is empty moves nothing. Each of those is a decision with no consumer, which belongs in `design-decisions.md`. Making a field optional to admit such an item would take away the two fields that carry this file's value and leave a list of rules wearing a queue's shape.
+
 Five rules for filling either in.
 
 **Every string location is confirmed with `node scripts/screen-strings.mjs <route>`, never read off a grep.** A grep for a screen cannot see a string its copy constant reaches through a builder, and a grep for a constant cannot see one written straight into JSX. Where the extractor cannot produce the string at all, say so — `docs/briefs/strings/unfindable.md` is the list of those, and five of item 5's eight strings are on it. The extractor reports a JSX text node's opening line; the line recorded here is the line the words are on, which is the line an editor changes. **A structural item's locations are markup, which the extractor does not produce at all** — those are read out of the JSX, and read at the branch's own revision rather than the working tree's, because another branch may be editing the same rows.
@@ -89,7 +91,7 @@ Five rules for filling either in.
 
 ## The findings
 
-Eight so far — seven word disagreements and one structural decision — and more will arrive while the `/invoices` screens are being designed.
+Nine so far — eight words and one structure — and more will arrive while the `/invoices` screens are being designed.
 
 Among the word items, 1, 3, 4 and 7 resolve by the rule already settled: **a nav label or a button label is the name of the screen it opens, so where a link and its destination's heading differ, the heading wins** — a link that disagrees with the heading turns one screen into two. Item 2 is that rule applied to a case where it changes nothing, and item 6 settles what it left over. Item 5 is undecided.
 
@@ -194,24 +196,30 @@ The first structural item. The design draws every list screen's row as a single 
 
 - **what it is now.** Five lists, five identical shapes: the first cell holds a `<Link className="underline">` around the document ID and nothing else in the row is clickable.
 
-  | Screen | Row opens at | The one link | Goes to |
-  |---|---|---|---|
-  | `/invoices` | `app/invoices/page.js:318` | `:320` | `/invoices/{invoiceId}` |
-  | `/pos` | `app/pos/POListClient.js:258` | `:266` | `/pos/{poId}` |
-  | `/prs` | `app/prs/PRListClient.js:151` | `:166` | `/prs/{prId}` |
-  | `/deliveries` | `app/deliveries/DeliveriesListClient.js:127` | `:132` | `/deliveries/{deliveryId}` |
-  | `/materials` | `app/materials/page.js:177` | `:224` | `/pos/{poId}` — not a material |
+  **The coordinate is the anchor's own text, and the line is only a hint.** Item 8 cites eleven files and three of them moved when #314 landed — `app/invoices/page.js` by 133 lines — so a line number recorded here rots while this branch stays open. That is `backlog.md`'s own rule applied: where a figure is not the claim, name what to look for instead of counting.
+
+  | Screen | File | Find | Line today | Goes to |
+  |---|---|---|---|---|
+  | `/invoices` | `app/invoices/page.js` | `href={\`/invoices/${inv.invoiceId}\`}` | 453 | `/invoices/{invoiceId}` |
+  | `/pos` | `app/pos/POListClient.js` | `href={\`/pos/${row.poId}\`}` | 288 | `/pos/{poId}` |
+  | `/prs` | `app/prs/PRListClient.js` | `href={\`/prs/${r.prId}\`}` | 171 | `/prs/{prId}` |
+  | `/deliveries` | `app/deliveries/DeliveriesListClient.js` | `href={\`/deliveries/${encodeURIComponent(row.deliveryId)}\`}` | 132 | `/deliveries/{deliveryId}` |
+  | `/materials` | `app/materials/page.js` | `href={\`/pos/${row.identifiers.poId}\`}` | 224 | `/pos/{poId}` — not a material |
+
+  Each row's own `<tr>` opens a few lines above its anchor: 451, 280, 156, 127 and 177 in the same order.
 
   And six strips, two each above `/invoices`, `/pos` and `/prs`, each a `<ul>` of `<li>` with one anchor per item. The design drew these as tables with whole-row targets too, so the structure and the comment that argues for it both move.
 
-  | Strip | On | `NOT A TABLE` | `ul` / `li` | Anchor goes to |
-  |---|---|---|---|---|
-  | `app/invoices/AwaitingInvoiceStrip.js` | `/invoices` | `:14` | `:69` / `:71` | `/deliveries/{id}` at `:72` |
-  | `app/invoices/AwaitingDeliveryStrip.js` | `/invoices` | `:13` | `:76` / `:78` | `/invoices/{id}` at `:79` |
-  | `app/pos/AwaitingPOStrip.js` | `/pos` | `:20` | `:42` / `:53` | `/prs/{id}` at `:54` |
-  | `app/pos/AwaitingSendStrip.js` | `/pos` | `:23` | `:36` / `:38` | `/pos/{id}` at `:41` |
-  | `app/prs/OverageStrip.js` | `/prs` | `:29` | `:62` / `:64` | `/deliveries/{id}` at `:65` |
-  | `app/prs/DirectPurchaseStrip.js` | `/prs` | none | `:41` / `:43` | `row.fileUrl`, external, at `:52` |
+  | Strip | On | `NOT A TABLE` | `ul` / `li` | Anchor goes to | Control in the row |
+  |---|---|---|---|---|---|
+  | `app/invoices/AwaitingInvoiceStrip.js` | `/invoices` | 14 | 69 / 71 | `/deliveries/{id}` at 72 | none |
+  | `app/invoices/AwaitingDeliveryStrip.js` | `/invoices` | 13 | 76 / 78 | `/invoices/{id}` at 79 | none |
+  | `app/pos/AwaitingPOStrip.js` | `/pos` | 20 | 42 / 53 | `/prs/{id}` at 54 | `GeneratePOButton` at 67 |
+  | `app/pos/AwaitingSendStrip.js` | `/pos` | 23 | 36 / 38 | `/pos/{id}` at 42 | none |
+  | `app/prs/OverageStrip.js` | `/prs` | 29 | 62 / 64 | `/deliveries/{id}` at 65 | `OverageButton` at 91 |
+  | `app/prs/DirectPurchaseStrip.js` | `/prs` | none | 41 / 43 | `row.fileUrl`, external, at 52 | `DirectPurchaseButton` at 62 |
+
+  Every cell here is found by its own text — the comment by `NOT A TABLE`, the anchor by its `href`, the control by its component name — so the lines are today's reading and not the coordinate.
 
   **The `NOT A TABLE` comments are five, not six** — `DirectPurchaseStrip.js` never carried one. `AwaitingDeliveryStrip.js:13` argues it one way, `A strip is not a column, so it re-cuts no column budget`; the other four open `NOT A TABLE, AND OUTSIDE THE TABLE'S WIDTH BUDGET` and go on to name the width the list below is bound by. **The argument survives becoming a table and the sentence does not:** a strip with its own widths is still outside the list's budget, so these are rewritten rather than deleted, and deleting them would lose the reason the strips were never columns in the first place.
 
@@ -225,9 +233,21 @@ The first structural item. The design draws every list screen's row as a single 
 
   **The document ID drops its link color.** It is `className="underline"` at all five sites today. Once the whole row is the target, an underline on one cell says that cell is the only thing you can click, which is now the wrong signal — so it goes to body color.
 
-  **Three of the six strips carry a control inside the row, and an anchor may not contain one.** `AwaitingPOStrip.js:66` renders a `GeneratePOButton` for an Admin, `OverageStrip.js:91` an `OverageButton`, and `DirectPurchaseStrip.js` a `DirectPurchaseButton` or the `heldBy` chip in its place. A row-wide anchor would nest a button inside a link and swallow its click, so the stretched area has to stop short of that cell. None of the five table rows has this problem — every judgment they render was resolved on the server, so a row holds text and chips only.
+  **Three of the six strips carry a control inside the row, and an anchor may not contain one** — the last column of the strip table above names which, and `DirectPurchaseStrip.js` renders the `heldBy` chip where its button would otherwise be. A row-wide anchor would nest a button inside a link and swallow its click, so the stretched area has to stop short of that cell. None of the five table rows has this problem: every judgment they render was resolved on the server, so a row holds text and chips only.
 
 - **brief** — **four of the five lists say nothing about what is clickable, so the sweep ADDS the statement rather than editing it.** `invoices.md:20`, `pos.md:23` and `deliveries.md:25` name their columns and no link; `materials.md:29` describes the section heading as a link, which is outside the table and stays true. `prs.md` is the only one that describes it, twice, and both become false: `:31` says `The ID is a link; Total is right-aligned currency.` and `:57` says `The ID link inherits the muted color and stays clickable.` **The phrase to build on is already there** — `pos.md:96` and `prs.md:53` both say the whole row dims when a document is withdrawn, so `the whole row` is already the briefs' unit for a row-wide state.
 - **pinned** — no check reads a row's markup, an `underline` class or a strip's element structure. One check reads a strip file's call shape and survives a careful conversion: `offline/awaiting-delivery.mjs:469-483` parses `AwaitingDeliveryStrip.js` and asserts it calls neither `sort` nor `filter`, and `:492-502` asserts the heading counts `rows.length` while the list maps `rows` itself. Keeping `rows.map(...)` as the mapped call and adding no inline filtering keeps it green; reaching for either while restructuring fails it, which is the check working.
 - **moves with it** — the five row sites and their anchors; the six strips' `li` structure; the five `NOT A TABLE` comments; `prs.md:31` and `:57`; and a new row-level statement in `invoices.md`, `pos.md`, `deliveries.md` and `materials.md`. **Nothing under `lib/`** — every judgment these rows render is already resolved server-side, so this is markup, comments and briefs.
 - **direction** — **as drawn: the row is the click target and it opens that row's document, built as a real anchor with a stretched hit area, and the document ID drops its link color.** Two things about it are open, both from `where it is refused`: what a `/materials` price row points at and what becomes of a row the identifier gate has emptied, and whether a `Direct Purchases` row gets a destination or that one strip keeps a cell-level link.
+
+### 9. `Status` against `Payment` for the payment axis
+
+- **strings** — `Status` at `app/invoices/page.js:446`, heading the payment column; `Payment` at `app/pos/POListClient.js:263`, heading the same axis. And `Status` again at `app/pos/POListClient.js:234`, heading something else entirely — the order's own lifecycle stage, one of `Awaiting Signature` / `Signed` / `Sent to Vendor` / `Withdrawn`.
+- **screens** — the last column of the table on `/invoices`; the fifth and the eighth column of the table on `/pos`. A reader moves between the two lists constantly: `/pos` is the office's worklist and `/invoices` is its payment queue.
+- **so one word points at two predicates.** On `/invoices`, `Status` heads whether the vendor has been paid. On `/pos`, `Status` heads how far the order itself has got and `Payment` heads whether the vendor has been paid. Nothing on either screen says which reading is in force, and the two are side by side in the same reader's week.
+- **the ground is already settled, on the `/pos` side, by #311.** `app/pos/POListClient.js:258-262` states it: `` `Payment` RATHER THAN `Paid`, because the head names the axis and the cell carries the state — the distinction `Invoice` / `Invoiced` already draws between this table and the order's own page. `` `docs/briefs/pos.md:44` states it again as a locked word. **So this item applies an existing decision rather than making a new one**, which is what makes its direction cheap: a head names an axis, and the payment axis is named `Payment`.
+- **why `/invoices` reads `Status` at all, which is not an oversight.** `app/invoices/page.js:439-445` explains it: #179 took the heading away with the column, `because a Status over a variance badge alone heads a column whose subject is missing`, and #309 gave the payment word back to every reader so `Status heads its own subject again`. That reasoning was right about the state it described. What it did not do is ask what the head should be once the subject returned — it restored the old word rather than choosing one, and #311 then chose on the other screen.
+- **brief** — `docs/briefs/invoices.md:20` lists `Status` as the eighth column and `:95-105` reasons about its width under that name. `docs/briefs/pos.md:44` holds `Payment` as a locked word with #311's argument. So the two briefs already disagree in the same way the two screens do.
+- **pinned** — neither heading is in `PINNED` or `TIER_TWO`. `Paid`, `Not paid`, `Partly paid` and `⚠ Overdue` — the cell's values — are pinned; the head above them is not, which is the gap that let two words stand.
+- **moves with it** — `app/invoices/page.js:446` and the comment at `:439-445`, whose last clause becomes false once the head is chosen rather than restored; `docs/briefs/invoices.md:20` and its width paragraph at `:95-105`, which names the column `Status` throughout. Nothing on `/pos` moves: that screen is already right.
+- **direction** — `/invoices` heads the column `Payment`. **The cell keeps whatever it holds** — today the payment word with the total-check badge stacked under it — and whether that badge stays in this column is the design's call, which the width paragraph at `:95-105` is already the record of. The head is `Payment` either way, because it names the axis and not the contents.

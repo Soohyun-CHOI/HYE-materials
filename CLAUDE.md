@@ -24,6 +24,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | renaming a field, a screen word or an identifier | `docs/notes/naming.md` |
 | what a screen carries, or adding or removing a page | `docs/briefs/README.md` |
 | changing a screen word, or a list screen's structure, before the design pass is finished | `docs/notes/design-sweep-list.md` |
+| a screen's layout, spacing, color, typography or interaction shape | `docs/notes/design-decisions.md` |
 
 `docs/notes/backlog.md` is the open-work list and is not tied to a path — see the last section.
 
