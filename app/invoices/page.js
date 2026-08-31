@@ -17,6 +17,8 @@ import { summarizeDelivery } from "@/lib/deliveryAllocation";
 import {
     daysWaiting,
     describeInvoiceColumn,
+    describeInvoiceOverdue,
+    invoicePayment,
     isNotFullyInvoiced,
     selectInvoicesAwaitingDelivery,
     sortLongestWaitingFirst,
@@ -550,7 +552,30 @@ async function renderInvoiceListPage() {
                                     now fit — the stack is KEPT because the column's
                                     width is the design work's to re-cut and a
                                     visibility change is not the place to spend slack
-                                    it happens to create. */}
+                                    it happens to create.
+
+                                    THREE THINGS SINCE #316, AND THE COLUMN STILL FITS
+                                    WITHOUT A RE-CUT. Measured in a browser at 832px:
+                                    the column is 106px with no right padding,
+                                    `⚠ Overdue · 10d` is 98px and `· 1d` is 92px,
+                                    against `⚠ Check the total` at 102px — so the new
+                                    badge is NARROWER than the widest thing the cell
+                                    already held and nothing was taken from another
+                                    column. The bound is the digit count: each one is
+                                    about 7px, so a three-digit count lands at ~105px
+                                    and a four-digit one would not fit. That is an
+                                    invoice 2.7 years past its due date, which is a
+                                    bound worth writing down rather than a risk worth
+                                    spending width on.
+
+                                    AND IT COSTS NO ROW HEIGHT TODAY, which is a fact
+                                    about a defect rather than about this badge: every
+                                    row is already two lines because Vendor at 8rem is
+                                    33px short of this base's longest name (#314's
+                                    measurement, unfixed on purpose). A row carrying
+                                    the badge measured 48.5px, the same as a plain one.
+                                    Give Vendor its width back and this cell becomes
+                                    the tallest thing in the row. */}
                                 <td className="py-1">
                                     <span
                                         className={
@@ -575,6 +600,37 @@ async function renderInvoiceListPage() {
                                             move, at one string against two. */}
                                         {inv.paid ? "Paid" : "Not paid"}
                                     </span>
+                                    {/* #316 — THE BADGE QUALIFIES THE WORD ABOVE IT,
+                                        so it sits directly under it and above the
+                                        variance badge, which qualifies the invoice
+                                        rather than its payment. `/pos` stacks the same
+                                        badge under the same axis's chip; this row is
+                                        one invoice rather than a set, so it carries
+                                        how many days as well — the reason that badge
+                                        omits a figure is a rule about which of two
+                                        late invoices to print, and a row with one
+                                        candidate has no such choice to make.
+
+                                        THE JUDGMENT IS `invoicePayment`'s AND THE
+                                        FIGURE COMES OUT OF THE SAME CALL. Nothing here
+                                        compares `Due Date` to anything: a comparison
+                                        written into this cell would be a second rule
+                                        beside the one the order screens fold, agreeing
+                                        on every row until the boundary — which is
+                                        #311's own mutant one scope down. `today` is
+                                        the page's, taken once above so every row is
+                                        judged against one day. */}
+                                    {(() => {
+                                        const { badge } = describeInvoiceOverdue(
+                                            invoicePayment(inv, today)
+                                        );
+                                        if (!badge) return null;
+                                        return (
+                                            <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
+                                                {badge.text}
+                                            </span>
+                                        );
+                                    })()}
                                     {inv.varianceFlag && (
                                         <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
                                             {VARIANCE_COPY.header}

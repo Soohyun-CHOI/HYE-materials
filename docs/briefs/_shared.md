@@ -311,8 +311,23 @@ choosing among words that existed.
 **One mark composes with a chip rather than joining a set: `⚠ Overdue`**, on the
 payment axis, when an invoice charging the order is past its due date and still
 unpaid. It is not a fifth value because an order can be `Partly paid` AND overdue at
-once, and a closed set would have to throw one of the two away. It carries no day
-count and no date.
+once, and a closed set would have to throw one of the two away.
+
+**It reads at two scopes and only the invoice's carries a figure (#316).** At ORDER
+scope — the order list's payment cell, the order detail's `Invoices` heading — it is
+`⚠ Overdue` and nothing else: the mark is about a SET of invoices, and an order with
+two late ones has no rule for which number to print. At INVOICE scope — the invoice
+list's `Status` cell, and as a sentence in the invoice detail's `Payment` section — the
+figure has one candidate, so the cell reads `⚠ Overdue · 10d` and the sentence reads
+`⚠ Overdue — this invoice is 10 days past its due date.` **All three open with the same
+two words.** Never a date at either scope: the date is in the `Due Date` column beside
+the mark, which is what the mark is a reading of.
+
+**Two states are not lateness and must not be drawn as a lesser one.** An invoice due
+today is not late — the boundary day belongs to the side that still has time, the same
+direction the sign-in link's expiry takes — and an invoice with no due date is not
+late, there being nothing to have passed. Both are ordinary: the field is optional on
+both invoice write paths.
 
 **The word for what an invoice does, in two forms and no third (#274).** As a
 participle or a quantity it is `invoiced`, which is what the base already says

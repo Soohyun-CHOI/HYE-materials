@@ -3,7 +3,12 @@ import { requireUser } from "@/lib/authz";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
-import { STATUS_COPY, describeInvoiceColumn } from "@/lib/deliveryStatus";
+import {
+    STATUS_COPY,
+    describeInvoiceColumn,
+    describeInvoiceOverdue,
+    invoicePayment,
+} from "@/lib/deliveryStatus";
 import { linkedDelivery } from "@/lib/deliveryInvoiceLink";
 import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoiceMatch";
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
@@ -174,6 +179,13 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // condition here, which printed the header fact twice on one page.
     const hasItemVariance = items.some((it) => it.varianceFlag);
     const file = invoice.file?.[0];
+
+    // #316 — the server's day, for the one judgment on this page that needs one.
+    // `/invoices` and `/pos` take it the same way and for the same reason; `daysWaiting`
+    // documents what a server day does and does not promise, and `invoicePayment`
+    // inherits both properties. Costs no Airtable operation: `Paid` and `Due Date` are
+    // already on the record this page loaded, so today is the only new input.
+    const today = new Date().toISOString().slice(0, 10);
 
     // Summary rows in the same invoice-style shape as PR/PO (#102), with
     // invoice's own figures. Shipping Fee always renders (as $0.00 when
@@ -723,6 +735,31 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                         {invoice.paid ? `Paid on ${invoice.paidDate || "—"}` : "Not paid yet."}
                     </p>
                 )}
+                {/* #316 — OUTSIDE THE BRANCH ABOVE, AND THAT PLACEMENT IS THE WHOLE
+                    DECISION. The obvious home was beside `Not paid yet.`, and that
+                    sentence is the ALTERNATE of an `isAdmin` test — an Admin gets the
+                    control instead of it and would never see a word put there. The
+                    consequent is no better, one reader the other way. So the fact
+                    stands after the branch, where both readers reach it: #309 opened
+                    reading payment to everyone who reaches the row, and lateness is a
+                    payment fact of exactly that grade.
+
+                    `offline/invoice-visibility.mjs` DOES NOT HOLD THIS ONE, which is
+                    why `offline/invoice-overdue.mjs` exists. That file's rule is that
+                    a payment READ may not sit on one side of a privilege test, and it
+                    finds a read by the five shapes `.paid` arrives in — this line
+                    hands the record to `invoicePayment` and names no payment field, so
+                    moving it inside the ternary would fail nothing there.
+
+                    THE SAME JUDGMENT AND THE SAME WORDS AS THE LIST, at the other
+                    density: `describeInvoiceOverdue` hands over the badge and the
+                    sentence together, so the row a reader clicked and the page they
+                    land on cannot disagree about whether this invoice is late. */}
+                {(() => {
+                    const { sentence } = describeInvoiceOverdue(invoicePayment(invoice, today));
+                    if (!sentence) return null;
+                    return <p className="mt-2 text-sm text-red-700">{sentence.text}</p>;
+                })()}
             </div>
 
             {user.isAdmin && (

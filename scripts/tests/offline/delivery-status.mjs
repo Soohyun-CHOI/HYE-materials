@@ -26,6 +26,8 @@ import {
     describeDeliveryColumn,
     describeInvoiceColumn,
     describeInvoiceItem,
+    describeInvoiceOverdue,
+    invoicePayment,
     describePOColumn,
     invoiceShareStatus,
     invoiceVerdictKey,
@@ -1219,6 +1221,85 @@ export function run({ check, log, assert }) {
     check("  and it still counts as an unpaid invoice", payment([inv(false, null)]), "not-paid");
 
     log("");
+    log("invoicePayment carries the verdict and its figure out of one expression (#316):");
+    // ON THE FUNCTION ITSELF RATHER THAN THROUGH THE FOLD, which is what this issue
+    // added to the table above. Every assertion up to here reaches `invoicePayment`
+    // through `summarizePOPaymentStatus`, which reads `overdue` and drops the rest —
+    // so the figure the two invoice screens render was outside this table entirely.
+    const judge = (paid, dueDate, today = TODAY) => invoicePayment({ paid, dueDate }, today);
+    check(
+        "it returns three fields, the third being the figure",
+        shapeOf(judge(false, "2026-08-21")),
+        shapeOf({ paid: 0, overdue: 0, daysOverdue: 0 })
+    );
+    check("a day past the due date is one day overdue", judge(false, "2026-08-27").daysOverdue, 1);
+    check("  and ten days past is ten", judge(false, "2026-08-18").daysOverdue, 10);
+
+    // THE DERIVATION ITSELF, WHICH IS THE POINT OF THE SHAPE. `overdue` is computed
+    // FROM the count rather than beside it, so the two cannot disagree at the
+    // boundary — the failure this would otherwise have is a cell reading `0d` while
+    // claiming lateness. Asserted as an equivalence over the whole spread rather than
+    // row by row, because what is being held is that one implication is the other.
+    const spread = [
+        [false, "2026-08-18"],
+        [false, "2026-08-27"],
+        [false, "2026-08-28"],
+        [false, "2026-08-29"],
+        [false, "2026-12-31"],
+        [false, null],
+        [false, ""],
+        [true, "2026-01-01"],
+        [true, "2026-08-27"],
+    ];
+    assert(
+        "overdue is true exactly where the count is a day or more",
+        spread.every(([paid, due]) => {
+            const p = judge(paid, due);
+            return p.overdue === (typeof p.daysOverdue === "number" && p.daysOverdue >= 1);
+        })
+    );
+    // ANTI-VACUITY: an equivalence is also satisfied by a spread that is all one
+    // answer, so both sides have to occur in it.
+    assert(
+        "  and the spread reaches both answers",
+        spread.some(([p, d]) => judge(p, d).overdue) && spread.some(([p, d]) => !judge(p, d).overdue)
+    );
+
+    // NULL WHERE THE BADGE DOES NOT STAND, NEVER 0. A figure exists exactly where
+    // there is something to state, so no copy branch can render `0d` and no caller
+    // has to test the number as well as the verdict.
+    for (const [label, paid, due] of [
+        ["the due day itself", false, "2026-08-28"],
+        ["a due date still ahead", false, "2026-12-31"],
+        ["a blank due date", false, null],
+        ["an empty one", false, ""],
+        ["a paid invoice long past its due date", true, "2026-01-01"],
+    ]) {
+        check(`  ${label} carries no figure`, judge(paid, due).daysOverdue, null);
+    }
+
+    // THE CONTRACT THIS ISSUE CHANGED, PINNED SO IT IS A DECISION RATHER THAN A
+    // SIDE EFFECT. `dueDate < today` was a STRING comparison, so an unparseable due
+    // date was judged by lexical order; the count is `daysWaiting`'s now, which
+    // returns null for one, and a null count is not late. `summarizePOPaymentStatus`
+    // folds this function, so `/pos` and `/pos/[poId]` took the new judgment too —
+    // unobserved on this base, where all 23 invoices carry a parseable date.
+    const UNPARSEABLE = "2026-00-15";
+    assert("an unparseable due date is not late", !judge(false, UNPARSEABLE).overdue);
+    check("  and carries no figure either", judge(false, UNPARSEABLE).daysOverdue, null);
+    // The rule this replaced, run rather than described: it was a string comparison,
+    // and this string sorts before today, so it used to read as overdue.
+    assert("  where the string comparison it replaced said late", UNPARSEABLE < TODAY);
+    assert("  and the date really is unparseable", daysWaiting(UNPARSEABLE, TODAY) === null);
+    // A date that ROLLS OVER is a different case and is deliberately not one of these:
+    // `Date.parse` accepts `2026-02-30` as March 2, so the two rules agree on it and
+    // only a month or a day outside its range reaches the divergence above.
+    assert("  while a date that rolls over is judged, not refused", judge(false, "2026-02-30").overdue);
+    // The other missing input, which `summarizePOPaymentStatus` cannot produce and a
+    // direct caller can. `daysWaiting` refuses it, so this needs no guard of its own.
+    assert("a missing `today` judges nothing", !invoicePayment({ paid: false, dueDate: "2026-01-01" }).overdue);
+
+    log("");
     log("the chip — one stem, and the word this app already had:");
     check("paid", STATUS_COPY.column.poPayment.paid().text, "Paid");
     check("partly paid", STATUS_COPY.column.poPayment["partly-paid"]().text, "Partly paid");
@@ -1282,6 +1363,66 @@ export function run({ check, log, assert }) {
     assert(
         "it is the same glyph the variance badge wears",
         STATUS_COPY.column.poPaymentOverdue.text.startsWith("⚠")
+    );
+
+    log("");
+    log("the same badge one scope down, where the figure has one candidate (#316):");
+    const late = (days) => describeInvoiceOverdue({ overdue: true, daysOverdue: days });
+    check("its word carries the count", late(10).badge.text, "⚠ Overdue · 10d");
+    // THE FIRST WORD IS THE ORDER LIST'S WHOLE BADGE, which is what stops one fact
+    // becoming two names across three screens — #311's own convergence, held as a
+    // prefix rather than as two literals that happen to agree.
+    assert(
+        "and it opens with the order list's badge, whole",
+        late(10).badge.text.startsWith(STATUS_COPY.column.poPaymentOverdue.text)
+    );
+    assert(
+        "  so the two are one word plus a figure, not two wordings",
+        late(10).badge.text.replace(STATUS_COPY.column.poPaymentOverdue.text, "").trim() === "· 10d"
+    );
+    assert("it carries no tone either, being a badge and not a chip", late(10).badge.tone === undefined);
+    // THE FIGURE IS WHAT THE SCOPE BUYS, so this is the one place on this axis where a
+    // digit is correct — the assertion above that no order-scope string carries one
+    // still stands, and these two are what it is being told apart from.
+    assert("it carries a digit, which the order-scope badge may not", /\d/.test(late(10).badge.text));
+    assert("  and still no currency mark", !/[$]/.test(late(10).badge.text));
+
+    log("");
+    log("and as a sentence, for the invoice's own page:");
+    check(
+        "it states the figure against what it counts from",
+        late(10).sentence.text,
+        "⚠ Overdue — this invoice is 10 days past its due date."
+    );
+    check("one day is singular", late(1).sentence.text, "⚠ Overdue — this invoice is 1 day past its due date.");
+    assert("  and two are not", /2 days/.test(late(2).sentence.text));
+    assert(
+        "the sentence leads with the badge's own word, as the variance pair does",
+        late(10).sentence.text.startsWith(STATUS_COPY.column.poPaymentOverdue.text)
+    );
+    assert("it names its subject, which a cell cannot afford", /this invoice/.test(late(10).sentence.text));
+    // ONE CONDITION FOR TWO SCREENS. The slots are null together, so neither the list
+    // nor the invoice's own page can decide for itself when the mark applies — which
+    // is #311's divergence one scope down, and the reason this is one describer.
+    for (const notLate of [
+        invoicePayment({ paid: false, dueDate: "2026-08-28" }, TODAY),
+        invoicePayment({ paid: false, dueDate: null }, TODAY),
+        invoicePayment({ paid: true, dueDate: "2026-01-01" }, TODAY),
+        undefined,
+    ]) {
+        const described = describeInvoiceOverdue(notLate);
+        assert("  both slots are null where the mark does not stand", described.badge === null && described.sentence === null);
+    }
+    assert(
+        "  and both are filled where it does",
+        Boolean(late(1).badge?.text) && Boolean(late(1).sentence?.text)
+    );
+    // The judgment is handed in, so this function has nothing to derive from — a
+    // record passed instead would give the judgment a second home.
+    check(
+        "the describer reads the judgment and never a record",
+        describeInvoiceOverdue({ paid: false, dueDate: "2026-01-01" }).badge,
+        null
     );
 
     log("");
