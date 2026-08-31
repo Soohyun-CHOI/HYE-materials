@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getSubmittedPRs } from "@/lib/airtable/purchaseRequests";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
@@ -39,15 +38,21 @@ async function renderPRListPage({ searchParams }) {
     const sp = await searchParams;
     const isPrivileged = user.role === "President" || user.isAdmin === true;
 
-    const [allPRs, jobs, disciplines, vendors] = await Promise.all([
+    // #314 — `getAllDisciplines()` WAS THE FOURTH AND IS GONE WITH THE COLUMN. It
+    // bought one thing, the Discipline NAME for the `Job / Discipline` cell, and this
+    // list heads `Job` now: a discipline is how a request is FILED rather than where
+    // the material went, so it belongs to the documents that hold one and not to the
+    // row a reader scans. It is on this request's own screen, beside its job.
+    // Removing the render and leaving the read would have cost this page an operation
+    // for nothing and broken nothing — `offline/job-column.mjs` is what asserts the
+    // read went with it.
+    const [allPRs, jobs, vendors] = await Promise.all([
         getSubmittedPRs(),
         getAllJobs(),
-        getAllDisciplines(),
         getAllVendors(),
     ]);
 
     const jobsById = Object.fromEntries(jobs.map((j) => [j.id, j]));
-    const disciplineById = Object.fromEntries(disciplines.map((d) => [d.id, d]));
     const vendorsById = Object.fromEntries(vendors.map((v) => [v.id, v.vendorName]));
 
     // SERVER-SIDE VISIBILITY GATE (#119) — the security boundary, never moved
@@ -105,7 +110,6 @@ async function renderPRListPage({ searchParams }) {
         vendorName: vendorsById[pr.vendor?.[0]] || "—",
         jobId: pr.job?.[0] ?? null,
         jobCode: jobsById[pr.job?.[0]]?.jobCode || null,
-        disciplineName: disciplineById[pr.discipline?.[0]]?.disciplineName || null,
         total: pr.totalAmount ?? pr.itemsSubtotal ?? 0,
         // Issue #272 — FREE, and that is why it is here rather than in the client:
         // both reverse-links the kind is read from are already on the record

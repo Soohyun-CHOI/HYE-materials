@@ -215,12 +215,21 @@ export async function run({ check, log, assert }) {
     // The old gate was an inline `user.role === "President" || user.isAdmin === true`
     // that refused the WHOLE page. The same expression is legitimate elsewhere as a
     // privilege question, so what is asserted is that neither of these files asks it
-    // inline. **The two files then diverge, and #309 is why.** The list still asks
-    // `seesEveryInvoice`, for the one thing it is now for: skipping the walk's reads.
+    // inline. **The two files then diverge, and #309 was why.** The list still asked
+    // `seesEveryInvoice`, for the one thing it was then for: skipping the walk's reads.
     // The detail page loads the invoice items it renders anyway, so it never had that
     // shortcut to take — it imported the helper to gate the Payment section, and
-    // payment has no gate, so the call and the import are both gone. Asserting the
-    // call on BOTH would have made this file demand the shape it is here to forbid.
+    // payment has no gate, so the call and the import are both gone.
+    //
+    // **#314 CONVERGED THEM AGAIN, AND THIS ASSERTION IS INVERTED RATHER THAN DELETED.**
+    // The list needs the walk's RECORDS for its `Job` column — an invoice holds no job,
+    // so the only route to one is the order and the request behind it — and it needs
+    // them whoever is reading. So the cost shortcut is gone from the page and with it
+    // the last privilege question on the screen. Deleting the assertion would have left
+    // that unheld, and what replaces it is the stronger claim in the same place: NEITHER
+    // invoice route asks who the reader is, at all. A call reappearing on this page is
+    // a cost decision being made where a rendered fact is derived, which is the mutant
+    // `offline/job-column.mjs` exists for and this line is its first tripwire.
     for (const relPath of ["app/invoices/page.js", "app/invoices/[invoiceId]/page.js"]) {
         const parsed = parseFile(relPath);
         let inlineRoleTest = false;
@@ -228,18 +237,22 @@ export async function run({ check, log, assert }) {
             if (node.type === "Literal" && node.value === "President") inlineRoleTest = true;
         });
         assert(`${relPath} does not test the role string inline`, !inlineRoleTest);
+        assert(
+            `  and asks seesEveryInvoice nowhere either (#314)`,
+            !callsNamed(parsed.ast).has("seesEveryInvoice")
+        );
     }
-    assert(
-        "the list asks seesEveryInvoice — for the walk it skips, and nothing else",
-        callsNamed(parseFile("app/invoices/page.js").ast).has("seesEveryInvoice")
-    );
-    assert(
-        "  and the detail page asks it nowhere, having no walk to skip (#309)",
-        !callsNamed(parseFile("app/invoices/[invoiceId]/page.js").ast).has("seesEveryInvoice")
-    );
+    // ANTI-VACUITY for the pair above: "nobody calls it" is also what a broken call
+    // finder reports, so the finder is shown finding it where it really is. Both live
+    // sites are in the module this file is about, which is where the question belongs.
+    const helperCalls = callsNamed(parseFile("lib/invoiceVisibility.js").ast);
+    assert("  the call finder still finds seesEveryInvoice in the module that owns it", helperCalls.has("seesEveryInvoice"));
 
-    // The detail page must GATE, not merely ask — the helper alone would answer
-    // "may this viewer see every invoice", which is not the row question.
+    // Each page must GATE, not merely ask — the helper alone would answer "may this
+    // viewer see every invoice", which is not the row question. The two take different
+    // exports of one walk since #314: the detail wants the verdict and nothing else,
+    // the list wants the records the walk resolved. Both reach `canViewPR` through the
+    // same code, which is what keeps them one gate rather than two.
     const detail = parseFile("app/invoices/[invoiceId]/page.js");
     let detailWalks = false;
     walk(detail.ast, (node) => {
@@ -252,11 +265,11 @@ export async function run({ check, log, assert }) {
     const list = parseFile("app/invoices/page.js");
     let listWalks = false;
     walk(list.ast, (node) => {
-        if (node.type === "CallExpression" && node.callee?.name === "getVisibleInvoiceIds") {
+        if (node.type === "CallExpression" && node.callee?.name === "resolveInvoiceScope") {
             listWalks = true;
         }
     });
-    assert("and so does the list", listWalks);
+    assert("and so does the list, through the shape that hands the records back", listWalks);
 
     // --- 3: the read and the write ask different questions (#309) ----------
     //

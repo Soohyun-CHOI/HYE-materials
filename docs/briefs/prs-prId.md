@@ -165,8 +165,10 @@ together.
 **The purchase order this generated is a link both ways.** That screen names this
 request; this one names that order.
 
-**`Discipline` names a `Disciplines` row under a job**, here and on the request
-list's `Job / Discipline` column. **`line` names no row of any table (#280)** — it
+**`Discipline` names a `Disciplines` row under a job**, here and on the purchase
+order detail, which #314 gave the same line for the same reason: the word left
+every list in that issue, so the two documents that hold a discipline are the two
+that name one. **`line` names no row of any table (#280)** — it
 was this table's word until then, and a redesign that labels a table row a "line"
 now reaches for a word the app has stopped using rather than one it has spent.
 

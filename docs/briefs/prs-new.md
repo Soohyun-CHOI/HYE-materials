@@ -114,8 +114,9 @@ both show.** A reader fills in Item / Size / Unit / Qty / Unit Price here, reads
 them back on the detail, and sees them frozen on the order.
 
 **`Discipline` is a `Disciplines` row under a job**, the same word as on the
-request detail and the list's `Job / Discipline` column. The dependent dropdown is
-the clearest
+request detail and the purchase order detail. **It is on no list** — #314 took it
+off the two that carried it, because a discipline is how a request is filed rather
+than where the material went. The dependent dropdown here is the clearest
 statement of that relationship anywhere in the app.
 
 **`Approval` and `Agreement` are two names for two things**, and the signing

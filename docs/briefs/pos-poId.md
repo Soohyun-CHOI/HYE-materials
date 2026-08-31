@@ -29,9 +29,18 @@ this screen may suggest the figures are live.
 ## What it always carries
 
 **identity.** The PO ID as the page heading. Then a block of small lines: the
-status in bold, the purchase request's ID, the job as code and name, the vendor,
-and the two internal contacts, `Our PIC` and `Our Manager`. Any of them may be
-missing and renders as an em dash.
+status in bold, the purchase request's ID, the job as code and name, the
+discipline, the vendor, and the two internal contacts, `Our PIC` and
+`Our Manager`. Any of them may be missing and renders as an em dash.
+
+**`Discipline` arrived in #314 and the reason is a removal elsewhere.** That issue
+took the word off the purchase order list, whose `Job / Discipline` column was the
+only place an order's discipline appeared anywhere in the app — so without a home
+here the removal would have been a loss rather than a tidying-up. It is the
+`Discipline Label`, the same value and the same wording the request's own detail
+screen carries, which means it repeats the job code as a prefix (`26-DEMO-01_Unit 2
+Piping`) directly under the `Job` line. That repetition is a fact about the Airtable
+formula and is deliberate here: two screens naming one thing one way is the point.
 
 **The request's ID is a link to that request, and it carries no condition of its
 own.** It is the only way into the request from here, and it works for every

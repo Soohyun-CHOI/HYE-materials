@@ -139,10 +139,23 @@ export default function POListClient({
                         and Total is a currency figure (104px still clears
                         `$999,999.00`).
 
-                        THE REMAINING SLACK GOES TO THE TWO NOBODY CONTROLS.
-                        Vendor and Line are both human-entered, so it is split
-                        between them rather than banked on one, the larger share
-                        going to the cell that carries two values and a separator.
+                        THE SLACK USED TO GO TO THE TWO NOBODY CONTROLS — Vendor and
+                        the Job / Discipline cell, both human-entered, the larger share
+                        going to the one carrying two values and a separator. **#314
+                        TOOK THE SECOND OF THOSE OUT OF THAT CLASS.** The column heads
+                        `Job` and carries a job code, which is a house format of about
+                        ten characters and bounded by construction like the PO ID
+                        beside it — so it drops from 12.75rem to the 5.75rem
+                        `/deliveries` already declares for the same value, and Vendor
+                        is now the only column here whose content nobody controls.
+
+                        NOTHING IS REDISTRIBUTED, WHICH IS THE SAME CALL #235 AND #311
+                        MADE IN THE OTHER DIRECTION. Those two appended a column each
+                        and left the budget alone; this one narrows a column and leaves
+                        it alone again, because handing 7rem to a neighbor is the pixel
+                        judgment those issues declined to make twice. The row is 58.25rem
+                        against the page's 52 — it still scrolls inside its own
+                        container, 7rem less far.
 
                         #169 RE-CUT THE BUDGET FOR A SIXTH COLUMN rather than
                         appending one, which is the other half of #166's rule. The
@@ -152,14 +165,15 @@ export default function POListClient({
                         `pr-2`. The width came from Vendor (-44), Job / Discipline (-44),
                         Total (-14) and PO ID (-4), leaving every column clear of
                         its measured content: PO ID 7px spare, Vendor 24, Job /
-                        Line 20, Total 11, Status 3, Delivery 4. Delivery was cut
+                        Discipline 20, Total 11, Status 3, Delivery 4. Delivery was cut
                         to exactly its content first and given 4px back — a chip
                         flush with its column would overflow on any machine whose
                         font metrics differ by a pixel from the ones measured here.
 
                         THOSE CONTENT WIDTHS ARE DUMMY DATA, AND THE WHOLE RE-CUT
-                        RESTS ON THEM. Vendor's 124px is `TESTQA Vendor A` and Job /
-                        Line's 184px is `26-DEMO-01 · Demo Line A`, both from the 40
+                        RESTS ON THEM. Vendor's 124px is `TESTQA Vendor A` and the Job /
+                        Discipline cell's 184px was `26-DEMO-01 · Demo Line A`, both
+                        from the 40
                         seeded rows on a base with no real orders on it. So the
                         spare listed above is two or three characters of a string
                         nobody has typed yet, not a margin measured against real
@@ -170,7 +184,9 @@ export default function POListClient({
                         <colgroup>
                             <col style={{ width: "9.75rem" }} />
                             <col style={{ width: "9.25rem" }} />
-                            <col style={{ width: "12.75rem" }} />
+                            {/* #314 — the same 5.75rem `/deliveries` and `/invoices`
+                                declare for a job code. */}
+                            <col style={{ width: "5.75rem" }} />
                             <col style={{ width: "5.625rem" }} />
                             <col style={{ width: "8rem" }} />
                             <col style={{ width: "6.625rem" }} />
@@ -207,7 +223,13 @@ export default function POListClient({
                             <tr className="text-left text-zinc-500">
                                 <th className="pr-2">PO ID</th>
                                 <th className="pr-2">Vendor</th>
-                                <th className="pr-2">Job / Discipline</th>
+                                {/* #314 — `Job / Discipline` until this issue, one
+                                    cell from two fields, both reached through the
+                                    parent request. Every document list in the app
+                                    heads `Job` and carries only a job now; an order's
+                                    discipline is on the request behind it, one page
+                                    along from this row. */}
+                                <th className="pr-2">Job</th>
                                 <th className="pr-2 text-right">Total</th>
                                 <th className="pr-2">Status</th>
                                 {/* Same header as /invoices carries for the same
@@ -268,14 +290,7 @@ export default function POListClient({
                                             </Link>
                                         </td>
                                         <td className="py-1 pr-2">{row.vendorName}</td>
-                                        {/* Job and Line in one cell, separated by a
-                                            middot — /prs's own shape for the pair. */}
-                                        <td className="py-1 pr-2">
-                                            {row.jobCode || "—"}
-                                            {row.disciplineName
-                                                ? ` · ${row.disciplineName}`
-                                                : ""}
-                                        </td>
+                                        <td className="py-1 pr-2">{row.jobCode || "—"}</td>
                                         <td className="py-1 pr-2 text-right">{formatUSD(row.total)}</td>
                                         <td className="py-1 pr-2">{row.statusText}</td>
                                         {/* The server resolved the chip (#169) —

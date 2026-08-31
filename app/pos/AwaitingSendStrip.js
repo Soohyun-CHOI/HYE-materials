@@ -53,12 +53,12 @@ export default function AwaitingSendStrip({ rows }) {
                             {row.signedDate || "no date"}
                             {row.daysWaiting != null && ` · ${row.daysWaiting}d`}
                         </span>
-                        {/* Job / Discipline and the vendor, in the pair and separator the
-                            list's own first column uses, so a reader locating work
-                            reads one shape above the table and in it. */}
+                        {/* Job and the vendor, the same values the list's own columns
+                            carry, so a reader locating work reads one shape above the
+                            table and in it. It carried a Discipline until #314, as the
+                            strip above it did and for the same reason. */}
                         <span className="min-w-0 flex-1 truncate text-zinc-700">
                             {row.jobCode || "—"}
-                            {row.disciplineName ? ` / ${row.disciplineName}` : ""}
                             {" · "}
                             {row.vendorName || "—"}
                         </span>

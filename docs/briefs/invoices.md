@@ -17,9 +17,31 @@ vendor has charged against their jobs.
 
 **identity.** The heading `Invoices`.
 
-**evidence — the table, seven columns, the same seven for every reader.**
-Invoice ID, Vendor, Issue Date, Due Date, Amount Due, Delivery, Status. Amount Due is
-right-aligned currency and is the vendor's stated total, never a computed one.
+**evidence — the table, eight columns, the same eight for every reader.**
+Invoice ID, Vendor, `Job`, Issue Date, Due Date, Amount Due, Delivery, Status. Amount
+Due is right-aligned currency and is the vendor's stated total, never a computed one.
+
+**`Job` arrived in #314 and this list had carried nothing like it.** The other three
+document lists all did — `/prs` and `/pos` headed `Job / Discipline` and
+`/deliveries` headed `Job` — so the office, which #211 gave every invoice on the
+base, read this one with no way to tell which site the material was for. It is the
+job code alone, and an em dash where the app cannot name one.
+
+**An invoice holds no job, which is why this is the only one of the four that needed
+a judgment behind it.** A delivery holds a `Job` link and a request reaches one
+through its discipline; an invoice reaches one only by walking to the order it
+charges and the request behind that. **It is the same walk this screen's row gate
+already makes**, so the column costs no query of its own — and it is resolved by one
+function that takes no reader, which is the whole of what keeps two readers from
+seeing two values on one row. Measured: the office and a site employee spend the
+same 14 operations on this screen and the breakdown is identical table for table.
+
+**One invoice charges orders on one job**, which follows from the app's
+one-delivery premise rather than from a field: a delivery holds a single job, and an
+invoice is answered by one delivery or none. Nothing on the write side enforces it,
+so where the walk finds two the column names neither rather than picking — the em
+dash again. A redesign should know the cell has that third state and that no reader
+has ever seen it.
 
 **verdict — the payment word, in the `Status` column.** `Paid` in green or `Not paid`
 in gray, and **no date beside either**: a list marks that the vendor was paid, and
@@ -72,16 +94,25 @@ has **no mark in this list at all**: it is on the invoice's own page, per item,
 where the order it disagrees with is one click away.
 
 **What the column's width assumes, because a redesign will want to re-cut it.** The
-`Status` column is declared at 176px and the stack is what that figure was chosen
+`Status` column was declared at 176px and the stack is what that figure was chosen
 against: the payment word measured 104px as `Paid 2026-08-14` and the badge measures
 102px, so the pair needed 210px on one line and would not fit. **#309 took the date
-off the word, so the widest thing in the cell is now the badge at 102px** and the pair
-would fit on one line — the stack is kept and the slack is unspent, because a width
-is the design work's to decide rather than a visibility change's. Every other column
-in this table is declared from its own widest content with 8px or less to give, the
-seven sum to exactly the 832px the page has, and Vendor at 8rem holds this base's
-longest name at 16 characters with nothing to spare. **A column is never appended
-here; the budget is re-cut.**
+off the word, so the widest thing in the cell is the badge at 102px** and the pair
+would fit on one line — the stack is kept, because a width is the design work's to
+decide rather than a visibility change's. The eight columns sum to exactly the 832px
+the page has. **A column is never appended here; the budget is re-cut** — which #314
+did, taking `Job`'s 92px out of `Status` (−70) and `Delivery` (−14), each of which
+keeps 4px on top of what it needs, plus 4px each from the two date columns.
+
+**Two figures this brief carried were stale and #314 re-measured them in a browser.**
+Every column here needs `max(its content, its own header) + 8px` of cell padding, and
+on that basis: Vendor at 8rem is **33px short** of this base's longest name,
+`Lone Star Pipe & Supply`, so that column has been wrapping to two lines on every row
+— the old claim that it held the longest name "at 16 characters with nothing to
+spare" described a shorter vendor than the base now has. And `Amount Due` is bound by
+its own header at 84px against 88px declared, 4px short. Neither is made worse and
+neither is fixed: giving Vendor the 161px it wants is a re-cut this page cannot
+afford and the design pass can. **Vendor is where to give width back first.**
 
 **When there are no rows:** one of two sentences. `No invoices yet.` when the base
 has none, and `No invoices to show. You see an invoice when it charges a purchase
@@ -180,5 +211,11 @@ the invoice.
 **The two empty states are a set** with the purchase order list's three — the
 distinction between "none exists" and "none for you" is the one that has to
 survive.
+
+**`Job` is one column on four lists** — this one, the request list, the purchase
+order list and the deliveries list — and it carries a job code and nothing else, at
+the same 5.75rem on all four. A redesign may move it or restyle it; what it may not
+do is let one of the four say something different from the others, which is the state
+#314 ended.
 
 **The strip shares its shape with every other strip in the app.**
