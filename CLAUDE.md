@@ -18,13 +18,11 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
-| `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/api/**` | `docs/notes/authorization.md` |
+| `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/api/**` | `docs/notes/authorization.md` |
 | `lib/blobIngest.js`, `lib/prDraft.js`, `app/prs/new/**` | `docs/notes/uploads-and-drafts.md` |
 | `scripts/**` | `docs/notes/verification.md` |
 | renaming a field, a screen word or an identifier | `docs/notes/naming.md` |
 | what a screen carries, or adding or removing a page | `docs/briefs/README.md` |
-| changing a screen word, or a list screen's structure, before the design pass is finished | `docs/notes/design-sweep-list.md` |
-| a screen's layout, spacing, color, typography or interaction shape | `docs/notes/design-decisions.md` |
 
 `docs/notes/backlog.md` is the open-work list and is not tied to a path — see the last section.
 
@@ -133,7 +131,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate, and a payment read behind a privilege test fails a check.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
-- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318).**
+- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318).** **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener. #232 retired a marker on the same ground.**
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
 
@@ -204,6 +202,7 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 
 - **A CONCEPT WITH A TABLE BEHIND IT TAKES THAT TABLE'S NAME, AND NOTHING ELSE MAY BORROW THE WORD.** `Deliveries` → a delivery, never a shipment or an arrival; `Invoices` → an invoice, never a bill; `Disciplines` → a Job's discipline (`Lines` until #280, which freed `line` from every table and left it naming no row at all); `Correction Requests` → a correction is what a signer sends back, so what #167 raises for an excess is an **overage request** (#272). Where no table owns the word, `naming.md` records the one that wins — which is why it is `ordered item` and not `PO item` — and a deliberate divergence is a row in the same table with its reason. Where the participle will not carry a transitive sentence the verb is `charges` — `No invoice charges this order yet.` — never `invoices`, and `charges` is a verb ONLY: an `Invoice Items` row is an **invoice item**, never a charge (#303). **Identifiers are bound and were swept in #227**, and `offline/line-vocabulary.mjs` inventories the ones that legitimately keep a barred stem, with a reason each. What no check can hold is prose, which is why the rule is here.
 - **EVERY DOCUMENT LIST HEADS ONE COLUMN `Job` AND CARRIES NO DISCIPLINE (#314)** — a discipline is how a request is filed, so it stays on the two screens that hold one. Held by `offline/job-column.mjs`.
+- **A WORD THE DESIGN CHANGES IS SWEPT IN THE SAME COMMIT.** Screens are implemented one at a time, so the string left on another screen leaves the app half in the old word, and a check under `scripts/tests/offline/` holding it by value guards a word the app no longer says while passing. `scripts/screen-strings.mjs` finds the screens; a grep of that directory finds the checks.
 - **EACH ITEM TABLE'S ROW TAKES ITS OWN TABLE'S NAME IN THE SINGULAR (#303)**; the modifier drops where no second kind of item row is in the string, and **a sentence naming two carries both**. A label takes its screen's subject, so every items table stays headed `Items`. Held by `offline/item-row-nouns.mjs`.
 - **AN ACTION SAYS WHAT IT DID BY ARRIVING, AND NO SCREEN READS A CONFIRMATION OFF THE URL (#321)** — a parameter saying so outlives the sentence and shows a stranger a confirmation for an act they did not take. Four screens keep a line because their action lands on no document. `offline/url-parameters.mjs` inventories every parameter and holds both directions.
 
