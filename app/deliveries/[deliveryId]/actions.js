@@ -68,7 +68,7 @@ export async function updateDeliveryAction(prevState, formData) {
             return { error: "Something went wrong saving this delivery. Please try again." };
         }
 
-        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=updated`);
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}`);
     });
 }
 
@@ -123,7 +123,7 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
             ])
         );
 
-        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=photo-replaced`);
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}`);
     });
 }
 
@@ -164,7 +164,7 @@ export async function attachDeliveryInvoiceAction(prevState, formData) {
         });
         if (result.error) return result;
 
-        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-attached`);
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}`);
     });
 }
 
@@ -194,7 +194,7 @@ export async function detachDeliveryInvoiceAction(prevState, formData) {
         });
         if (result.error) return result;
 
-        redirect(`/deliveries/${encodeURIComponent(deliveryId)}?done=invoice-detached`);
+        redirect(`/deliveries/${encodeURIComponent(deliveryId)}`);
     });
 }
 
@@ -223,7 +223,7 @@ export async function deleteDeliveryAction(prevState, formData) {
         const result = await deleteDeliveryAsUser({ deliveryRecordId: delivery.id, actingUser: user });
         if (result.error) return result;
 
-        redirect("/deliveries?done=deleted");
+        redirect("/deliveries");
     });
 }
 

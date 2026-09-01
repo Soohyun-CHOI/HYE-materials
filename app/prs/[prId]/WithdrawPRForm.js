@@ -19,7 +19,7 @@ import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // modal supplies its own max-w-md width.
 //
 // Only the confirmation UI is a modal — withdrawAction, its requester +
-// In-Review re-validation, and the ?done=withdrawn redirect are unchanged;
+// In-Review re-validation, and its redirect back to the request are unchanged;
 // the confirm button still submits the same form (useActionState +
 // formData with a hidden prId). No reason field: withdraw ends the request,
 // it isn't a correction dialogue.

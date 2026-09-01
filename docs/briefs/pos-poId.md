@@ -200,16 +200,20 @@ none will be generated now. An already-generated PDF stays downloadable, because
 the order did exist and was signed and that document is audit trail.
 
 **When an over-delivery on this order is covered by an overage request:**
-one or more amber banners at the very top, above everything including the
-confirmation line. Every word of them is derived rather than stored, so
+one or more amber banners at the very top, above everything else on the
+page. Every word of them is derived rather than stored, so
 withdrawing the request reopens the situation on its own. They stay visible
 after signature on purpose: an overage order read on its own looks like a
 duplicate with no quotation, and the invoice attached to it also charges the
 original order — so a payment against that invoice matches neither order's total
 alone, and whoever reconciles it needs telling exactly once, here.
 
-**When the reader has just arrived from an action:** a green confirmation line.
-It comes off the query string and is gone on reload.
+**Four actions land here and none of them says so.** Signing, generating a
+missing document, sending to the vendor and withdrawing all finish on this
+screen, and each one changes what the screen shows: the signature block, the
+download link where the control was, the sent line under it, the withdrawal
+banner. This carried a green line for each until #321 — see `_shared.md`, "The
+arrival is the confirmation".
 
 **When the order is unsigned and the reader is office staff:** the signing
 control. For any other reader, the sentence that it has not been signed yet.

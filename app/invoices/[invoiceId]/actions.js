@@ -72,7 +72,7 @@ async function updatePaidHandler(prevState, formData) {
             return { error: "Something went wrong updating payment status. Please try again." };
         }
 
-        redirect(`/invoices/${invoiceId}?done=paid-updated`);
+        redirect(`/invoices/${invoiceId}`);
     });
 }
 
@@ -136,7 +136,7 @@ async function updateInvoiceHandler(prevState, formData) {
                 salesTax: salesTax ? parseFloat(salesTax) : null,
             });
 
-            // Apply line-value edits, but only to items that actually belong to
+            // Apply item-value edits, but only to items that actually belong to
             // this invoice — a submitted id for some other invoice's item (or a
             // forged one) is ignored, never blindly written.
             const existing = await getItemsByInvoice(invoice.id);
@@ -194,7 +194,7 @@ async function updateInvoiceHandler(prevState, formData) {
             return { error: "Something went wrong updating the invoice. Please try again." };
         }
 
-        redirect(`/invoices/${invoiceId}?done=updated`);
+        redirect(`/invoices/${invoiceId}`);
     });
 }
 

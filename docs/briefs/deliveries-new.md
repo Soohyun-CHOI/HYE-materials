@@ -80,7 +80,7 @@ packing list is the fact and the app records it.
 **When the app can plan the allocation:** a preview under the first row for each
 material, separated by a rule, listing one line per order the quantity will be
 split across — the order's ID, or `Not against any order` — with an amber
-`over-delivered` beside any line that exceeds. This is the app showing its work
+`over-delivered` beside any row that exceeds. This is the app showing its work
 before the reader commits.
 
 **When nothing on the job orders that item from that vendor:** the refusal

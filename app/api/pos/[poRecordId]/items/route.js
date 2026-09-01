@@ -3,7 +3,7 @@ import { withAdminApi } from "@/lib/authz";
 import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
 import { withOpsLabel } from "@/lib/airtableOps";
 
-// Issue #51, extended by #57. Backs the per-invoice-line PO Item dropdown
+// Issue #51, extended by #57. Backs the per-invoice-item PO Item dropdown
 // in InvoiceForm.js. Admin-only (#134): re-checked here to match the
 // Admin-only invoice form (its only consumer) and to close the #132 PO
 // row-gate read bypass — a Route Handler is directly callable. Issue #147:

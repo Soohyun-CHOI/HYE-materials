@@ -192,7 +192,7 @@ export async function approveAction(prevState, formData) {
             }
         }
 
-        redirect(`/prs/${pr.prId}?done=approved`);
+        redirect(`/prs/${pr.prId}`);
     });
 }
 
@@ -483,7 +483,7 @@ export async function editAndContinueAction(prevState, formData) {
             }
         }
 
-        redirect(`/prs/${pr.prId}?done=edited`);
+        redirect(`/prs/${pr.prId}`);
     });
 }
 
@@ -562,7 +562,7 @@ export async function returnForCorrectionAction(prevState, formData) {
             context: `Returned for correction: ${notes}`,
         });
 
-        redirect(`/prs/${pr.prId}?done=returned`);
+        redirect(`/prs/${pr.prId}`);
     });
 }
 
@@ -624,7 +624,7 @@ export async function withdrawAction(prevState, formData) {
             return { error: "Something went wrong withdrawing this PR. Please try again." };
         }
 
-        redirect(`/prs/${pr.prId}?done=withdrawn`);
+        redirect(`/prs/${pr.prId}`);
     });
 }
 
@@ -674,6 +674,6 @@ async function generatePOHandler(prevState, formData) {
             await notifyPOAwaitingSignature({ poRecordId: result.poRecordId, pr });
         }
 
-        redirect(`/prs/${pr.prId}?done=po-generated`);
+        redirect(`/prs/${pr.prId}`);
     });
 }

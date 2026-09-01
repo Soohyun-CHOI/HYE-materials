@@ -43,8 +43,13 @@ It is kept here, unlike on the invoice list, because an over-delivery is a fact
 about *this* delivery, so it sits on the delivery's own row without changing
 frame.
 
-**When the reader has just deleted a delivery:** a green `Delivery deleted.` line
-under the heading.
+**A deleted delivery lands here and this screen says nothing about it.** Deleting
+is the one act with no document to return to, so it returns to the list — and
+what it did was said before it happened, by the confirmation the delete control
+opens, which names the delivery and what becomes inconsistent. This screen
+carried a green `Delivery deleted.` line until #321; the invoice list, where the
+same act lands from the invoice detail, never carried one. See `_shared.md`, "The
+arrival is the confirmation".
 
 **When the filter is on and nothing matches:** `No delivery matches these
 filters.`

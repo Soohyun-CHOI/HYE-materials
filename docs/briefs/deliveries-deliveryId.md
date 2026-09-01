@@ -137,7 +137,12 @@ diverge.
 saying to reload in a moment if it was just uploaded. This is the one place the
 app admits an upload is still in flight.
 
-**When the reader has just arrived from an action:** a green confirmation line.
+**Five actions land here and none of them says so.** Recording the delivery,
+editing it, replacing the packing list photo, attaching an invoice and detaching
+one all finish on this screen, and each one is visible on it: the record, the
+edited facts, the new photo, the invoice appearing in or leaving the `Invoices`
+block. This carried a green line for each until #321 — see `_shared.md`, "The
+arrival is the confirmation".
 
 **When the reader may delete this delivery:** a delete control at the foot,
 behind a top border. Its confirmation has **three voices**, chosen by the

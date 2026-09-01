@@ -146,12 +146,6 @@ async function renderDeliveriesListPage({ searchParams }) {
                 </Link>
             </div>
 
-            {sp?.done === "deleted" && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800">
-                    Delivery deleted.
-                </p>
-            )}
-
             {jobs.length === 0 ? (
                 <p className="mt-6 text-sm text-zinc-600">
                     You are not assigned to any job yet, so there are no deliveries to show. An Admin

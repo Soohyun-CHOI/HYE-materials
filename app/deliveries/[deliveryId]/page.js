@@ -30,14 +30,6 @@ export async function generateMetadata({ params }) {
     return { title: deliveryId };
 }
 
-const DONE_MESSAGES = {
-    recorded: "Delivery recorded.",
-    updated: "Delivery updated.",
-    "photo-replaced": "Packing list photo replaced.",
-    "invoice-attached": "Invoice attached.",
-    "invoice-detached": "Invoice detached.",
-};
-
 /**
  * One recorded delivery (#162).
  *
@@ -66,10 +58,9 @@ export default async function DeliveryDetailPage(props) {
     return withOpsLabel("/deliveries/[deliveryId]", () => renderDeliveryDetailPage(props));
 }
 
-async function renderDeliveryDetailPage({ params, searchParams }) {
+async function renderDeliveryDetailPage({ params }) {
     const user = await requireUser();
     const { deliveryId } = await params;
-    const sp = await searchParams;
 
     const delivery = await getDeliveryById(decodeURIComponent(deliveryId));
 
@@ -215,12 +206,6 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                     </Link>
                 </div>
             </div>
-
-            {sp?.done && DONE_MESSAGES[sp.done] && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    {DONE_MESSAGES[sp.done]}
-                </p>
-            )}
 
             <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">
@@ -471,7 +456,8 @@ async function renderDeliveryDetailPage({ params, searchParams }) {
                 </div>
                 {/* `these lines` stood here until #219 and was the rule #227 swept
                     for, surviving because that check reads *_COPY constants and this
-                    is rendered text. A `Line` on this base is a child of a Job. */}
+                    is rendered text. Since #280 `line` names no row of any table, and
+                    #303's rule is what keeps it off an item row. */}
                 <p className="mt-2 text-xs text-zinc-500">
                     The app allocated these rows — oldest order first, skipping ones already
                     fully delivered. The item, the quantity, the vendor and the PO cannot be

@@ -53,7 +53,16 @@ export default function DeleteInvoiceButton({ invoiceId }) {
                     >
                         <h2 className="text-lg font-semibold">Delete this invoice?</h2>
                         <p className="mt-2 text-sm text-zinc-600">
-                            {invoiceId} and its invoice items will be permanently deleted. The linked
+                            {/* THE SPACE IS EXPLICIT BECAUSE JSX EATS IT. A text node
+                                that starts a new line loses its leading whitespace, so
+                                `{invoiceId}` at the end of one line and ` and its…` on
+                                the next rendered as `HYE-INV-260901-01and its invoice
+                                items`. Read in a browser during #321, which needed this
+                                modal to be the thing that names the invoice before it
+                                goes — deleting an invoice lands on the list and says
+                                nothing there. */}
+                            {invoiceId}{" "}
+                            and its invoice items will be permanently deleted. The linked
                             purchase order(s) are not affected. This can&apos;t be undone.
                         </p>
                         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}

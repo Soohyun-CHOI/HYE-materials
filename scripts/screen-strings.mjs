@@ -403,15 +403,23 @@ export function stringsInFile(relPath, allowed = "*", members = new Map()) {
      * A MODULE-LEVEL STRING MAP READ THROUGH A JSX CHILD CONTAINER is copy, whatever
      * it is called.
      *
-     * `DONE_MESSAGES` holds the invoice detail's three confirmation banners and was
-     * invisible to every rule here, because it is not named `*_COPY` and its member is
-     * computed. Widening the name test would have fixed that one map and left the next
-     * differently-named one invisible — the same weakness `offline/mail-money.mjs`
+     * `DONE_MESSAGES` HELD THE FOUR DETAIL SCREENS' CONFIRMATION BANNERS and was
+     * invisible to every rule here, because it was not named `*_COPY` and its member
+     * was computed. Widening the name test would have fixed that one map and left the
+     * next differently-named one invisible — the same weakness `offline/mail-money.mjs`
      * records about itself — so the signal is structural instead: the identifier has to
      * be read inside a container in CHILD position, which `skip` already separates from
      * an attribute's. That is what keeps `ENTRY_TONE_CLASS` and `MODAL_BACKDROP` out:
      * both are read into `className`, and a className is the one string this file
      * exists to exclude. Module level only, so a local object cannot be swept in.
+     *
+     * **#321 DELETED ALL FOUR MAPS AND THIS RULE NOW MATCHES NOTHING**, which is worth
+     * saying rather than leaving to be rediscovered: the census fell 1,343 → 1,317 and
+     * every one of those 26 came out of this shape. The rule stays because it is what
+     * would see the shape return, and because it is not a check — nothing here claims
+     * coverage it no longer has, and a rule matching nothing costs one walk. Whoever
+     * next finds a string this file cannot see should suspect a DIFFERENT shape than
+     * this one, since this one is now unexercised and therefore untested by use.
      */
     const readByJsx = new Set();
     if (allowed === "*")

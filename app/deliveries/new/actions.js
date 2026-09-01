@@ -277,6 +277,6 @@ export async function createDeliveryAction(prevState, formData) {
             ])
         );
 
-        redirect(`/deliveries/${encodeURIComponent(delivery.deliveryId)}?done=recorded`);
+        redirect(`/deliveries/${encodeURIComponent(delivery.deliveryId)}`);
     });
 }
