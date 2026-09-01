@@ -133,7 +133,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate, and a payment read behind a privilege test fails a check.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
-- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling.
+- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318).**
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
 
@@ -272,6 +272,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - `requireUser()` / `requireRole(role)` / `requireAdmin()` / `requirePresident()` are for Server Components and Actions. All redirect to `/login` with no session. On insufficient permission `requireRole`/`requireAdmin` return `{ authorized: false }` for the caller to render; `requirePresident()` throws. Route Handlers cannot use these — they call `getActiveUser()` or `requireAdminApi()`, which return the user or a 401/403 `Response`.
 - **Gate a new endpoint with a wrapper**, not a bare call: `withAdminApi`, `withAdminAction`, `withPresidentAction`. A wrapped export cannot run its body unauthorized, because the body is an argument the wrapper decides whether to call.
 - **A `withAdminAction` refusal follows the call site (#185):** an action whose every call site BINDS the return returns `{ error }`, and one any call site invokes without binding throws — `useActionState` and an awaited call observe a return, a bare `<form action>` discards it. It is a conjunction, so a non-binding caller is the thing to change. Held by `offline/action-refusal-shape.mjs`.
+- **A READ STATE IS NEVER REPLACED BY THE CONTROL THAT EDITS IT (#318).** A control may be absent for a reader who may not act, or closed for one who may; the fact it edits is stated either way and never twice.
 - **Caller obligation for the flag helpers:** `requireAdmin()` only *reports* the decision. A caller that does not act on `{ authorized }` protects nothing.
 - **Re-authorization rule:** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI. A page being the only caller is not a substitute — Route Handlers and Server Actions are reachable directly.
 - Any route that fetches a caller-supplied URL also restricts it to our Vercel Blob host, independent of auth.

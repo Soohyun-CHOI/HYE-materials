@@ -66,9 +66,11 @@ Everything in this section is absent in the normal case. Where the entry does
 not say what stands in its place, nothing does — no empty box, no placeholder,
 no reserved space.
 
-**When the reader is an Admin:** an `Edit` link beside the heading, and a delete
-button at the foot of the page behind a top border. For everyone else neither
-exists, and no disabled control marks where they were.
+**When the reader is an Admin:** an `Edit` link beside the heading, an `Edit payment`
+control in the `Payment` section, and a delete button at the foot of the page behind a
+top border. For everyone else none of the three exists, and no disabled control marks
+where they were. **Three controls, three places, and only the middle one edits in
+place** — the other two open another screen and a confirmation.
 
 **When the delete button is pressed:** a confirmation, headed
 `Delete this invoice?`, naming the invoice and saying that it and its invoice
@@ -77,34 +79,46 @@ buttons, and the confirming one reads `Deleting...` while the action runs. **The
 deletion is behind a confirmation and not immediate** — a fact about this
 screen's structure rather than about its words.
 
-**A `Payment` section, always, and it is the one place on this screen where two
-readers get two different things.** An Admin gets a control that toggles paid state;
-every other reader gets the same fact as a sentence, `Paid on {date}` or
-`Not paid yet.` Nobody is shown less than the fact. **The split covers the payment
-state and nothing else** — since #316 the section can carry a second line, below both,
-that every reader gets identically; see the overdue entry under the next heading.
+**A `Payment` section, always, and it reads the same for every reader.** One
+sentence, `Paid on {date}` or `Not paid yet.`, and nothing about it varies by who is
+looking. **This was the one place on the screen where two readers got two different
+things until #318**: an Admin got the control and everybody else got the sentence, so
+the fact and the control for it were alternatives rather than a fact with a control
+beside it.
 
-**That split is the point and a redesign must keep it as a split.** The section was
-President-or-Admin until #309 and the heading was inside the gate on purpose, because
-a heading with nothing under it tells a reader a payment fact exists here and refuses
-to say it. Opening the read left one condition on the page, and it is the WRITE's:
-recording payment is Admin work and the control is what an Admin has instead of the
-sentence, not in addition to it. **Drawing the sentence and the control behind one
-condition is the failure mode** — the read would follow whatever the control's
-condition became. Worth knowing that until #309 the sentence rendered for nobody at
-all: it was reached only by a President who is not an Admin, and there is no such
-account.
+**What an Admin has in addition is a control, and `beside` is the whole of the
+change.** A small `Edit payment` control sits next to the sentence; for every other
+reader it is simply absent, and no disabled affordance marks where it was. **A
+redesign may move or restyle it and may not make it replace the sentence** — the
+failure mode is drawing the fact and the control behind one condition, because the
+read then follows whatever the control's condition becomes. That is what the section
+did for two issues, and it is why #316 had to place its own sentence outside the
+branch to reach both readers at all.
 
-**When an unpaid invoice is past its due date:** a red sentence at the foot of that
-same `Payment` section — `⚠ Overdue — this invoice is 10 days past its due date.` —
-**after the split rather than inside either half of it**, so the Admin reading the
-control and everyone else reading the sentence both get it. One day reads `1 day`.
+**Worth knowing about the shape it replaced**, because the reasoning still applies to
+this section's heading: it was President-or-Admin until #309 and the heading was
+inside the gate on purpose, since a heading with nothing under it tells a reader a
+payment fact exists here and refuses to say it. And until #309 the read-only sentence
+rendered for nobody at all — it was reached only by a President who is not an Admin,
+and there is no such account. Since #318 it is what everybody reads, an Admin
+included.
 
-**That placement is forced and a redesign must not tidy it away.** The obvious home is
-beside `Not paid yet.`, and that line is what an Admin gets *instead of* the control —
-so a mark put there is invisible to the office, and one put in the control's half is
-invisible to everyone else. Lateness is a payment fact of the same grade as the
-payment word, and #309's rule is that every reader who reaches the row reads it.
+**When an unpaid invoice is past its due date:** a red sentence in that same
+`Payment` section, **directly under the payment sentence it qualifies** —
+`⚠ Overdue — this invoice is 10 days past its due date.` One day reads `1 day`.
+
+**It sits with the state rather than at the foot, and #316's own rule on the invoice
+list decides that.** There the lateness badge stacks under the payment word because it
+qualifies the payment; here the same relation puts the sentence under the same fact.
+#316 placed it after the section's Admin/reader branch instead, which was the only
+place that reached both readers while the branch existed; the branch is gone, so what
+the sentence is ABOUT decides where it goes. Only an unpaid invoice can be late, so it
+never appears beside `Paid on {date}`.
+
+**Both readers get it in both states, and a redesign may not hide it while the control
+is open.** It is a payment fact of the same grade as the payment word, and #309's rule
+is that every reader who reaches the row reads it — which does not stop applying
+because somebody is editing.
 
 **It says the same thing the list's badge says, from the same judgment**, at the other
 density: the list has a cell and prints `⚠ Overdue · 10d`, this has a section and says
@@ -112,9 +126,35 @@ what the count is counted against. Both open with `⚠ Overdue`. **An invoice du
 is not late, and one with no due date is not late** — the section then holds only its
 payment line, and the due date in the identity block above is the date or an em dash.
 
-**The Admin's control is a form with its own submit**, a checkbox and a date
-beside it, saved by a button rather than toggled in place — so the page has a
-second submit on it, below the totals. Checking the box without a date is refused
+**When an Admin presses `Edit payment`:** the checkbox and the date open **where the
+sentence sits**, with `Save` and `Cancel` under them, and `Edit payment` goes while
+they are open. Not a dialog: this app's modals are for the actions it cannot undo, and
+recording payment can be recorded again. It is the shape `/invoices/new` already uses
+to unlock a locked unit price on a row — a small text control that opens the field in
+place, and a `Cancel` beside it that puts the value back.
+
+**The sentence stays while they are open, and it keeps stating what is RECORDED.** So
+a reader who has ticked the box still sees `Not paid yet.` above it until they save.
+That is not redundancy: one is the record and the other is what is about to be
+written, and it is what gives `Cancel` something visible to return to. **This is where
+the shape diverges from `/invoices/new`**, and knowingly — there the field and its
+read display are one element, so the stored value is not visible while it is being
+edited. That form is composing a new document; this section is amending a record whose
+current value is what the page exists to state.
+
+**`Cancel` puts the fields back to the record and closes**, re-derived from the record
+rather than from a copy taken when the control opened — `/invoices/new`'s own rule for
+the same act. **`Save` closes the section too**, and the sentence then states the new
+value; a save that changed nothing closes it just the same.
+
+**The control's label is `Edit payment` and not `Edit`, because this screen already
+has an `Edit`** — the Admin-only link beside the heading that opens the invoice for
+editing. Two `Edit`s visible at once to exactly the reader who can press either is one
+word for two acts.
+
+**It is a form with its own submit**, a checkbox and a date beside it, saved by a
+button rather than toggled in place — so the page has a second submit on it, below the
+totals. Checking the box without a date is refused
 with `Paid Date is required when marking as Paid.` — though the date input is
 `required` whenever it renders, so the browser answers before the app does and that
 sentence never appears. **No refusal on this screen is reachable**: the rest are
@@ -244,6 +284,16 @@ whole mark. Three screens, one word.
 **The due date in the identity block is what that sentence reads**, and both stay.
 Dropping the date would leave the reader a claim with nothing to check it against;
 restating lateness beside the date would say one thing twice on one screen.
+
+**The payment sentence and the invoice list's payment word are one axis.** The list
+marks `Paid` or `Not paid` in a cell; this states it as a sentence with the date. A
+redesign may not give them different vocabularies, and may not put the date back in
+the list — #309 took it off the cell precisely so that WHEN is stated here and marked
+there.
+
+**Nothing on this screen is drawn twice for two readers.** The `Payment` section was
+the app's only one and #318 ended it; `_shared.md` carries the standing form. A design
+that reintroduces the shape here is reintroducing it for the whole app.
 
 **The amber box and the red box are two grades and must stay two.** Both mean a
 person has to look before money moves; red states a discrepancy between two

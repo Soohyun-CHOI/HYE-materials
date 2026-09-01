@@ -96,9 +96,9 @@ found` out as a thrown message rather than screen text.
 
 **AND THE ONE THIS FILE CALLED REACHABLE IS NOT (#185).** The entry said
 `Paid Date is required when marking as Paid.` could be produced "because the date
-control carries no `required`". It carries one: `PaidForm.js` renders the date input
-only while Paid is checked, and that input is `required`, so the browser refuses the
-submit and the action never runs. **Checked in a browser** — with Paid checked and
+control carries no `required`". It carries one: `PaymentSection.js` — `PaidForm.js`
+until #318 — renders the date input only while Paid is checked, and that input is
+`required`, so the browser refuses the submit and the action never runs. **Checked in a browser** — with Paid checked and
 the date cleared, `form.checkValidity()` is `false` and `requestSubmit` does nothing.
 Read wrongly the first time, which is the failure mode this file's own "how each was
 judged" note warns about: the control was read, and the wrong attribute was seen.
@@ -106,7 +106,9 @@ judged" note warns about: the control was read, and the wrong attribute was seen
 - **`Only an Admin can update payment status.`**, **`Only an Admin can delete
   invoices.`** — both controls render for an Admin only. **The first was thrown until
   #185** and is returned now, so a refusal would land in the Payment section's own red
-  box rather than on an error page.
+  box rather than on an error page. **#318 put that control behind `Edit payment` as
+  well**, so the form and its box render only once an Admin has opened them — which
+  narrows the same refusal further and changes nothing about why it is unreachable.
 - **`Paid Date is required when marking as Paid.`** — the date input is `required`
   whenever it renders, so the browser answers first. See the note above.
 - **`Something went wrong updating payment status. Please try again.`**,
@@ -249,6 +251,15 @@ every non-Admin reader, so an entry would have been added and removed in one com
 Recorded here as the finding rather than as an entry, because the omission is the thing
 worth knowing: **a string can become unreachable through the INTERSECTION of two role
 flags, and reading one control at a time does not find that.**
+
+**#318 MADE THAT SENTENCE EVERY READER'S, WHICH IS THE SECOND HALF OF THE SAME
+FINDING.** #309 made `Paid on {date}` / `Not paid yet.` the ordinary case for a
+non-Admin; an Admin still never saw it, because it was the alternate of a branch whose
+consequent was the form. So the string was reachable by some readers and unreachable by
+the office throughout — a reachability that varied by role rather than by data, which
+this file has no shape for. The section reads the same for everybody now, and the
+sentence was read with both fixture sessions on `HYE-INV-260821-02` and on
+`HYE-INV-260819-08`, the base's one paid invoice.
 
 **#316 IS THAT FINDING USED RATHER THAN RE-DISCOVERED, WHICH IS WHY IT ADDS NO ENTRY
 HERE.** Its overdue sentence goes in the same `Payment` section, and the section's
