@@ -37,7 +37,7 @@ async function renderNewPRPage({ searchParams }) {
     const drafts = await getDraftsByRequester(user.id);
 
     // Issue #74 — lightweight row labels for the list modal, built entirely
-    // from getDraftsByRequester's fields (Line/Vendor names resolved from the
+    // from getDraftsByRequester's fields (Discipline/Vendor names resolved from the
     // already-loaded lists) so listing costs no extra per-draft fetches.
     const draftList = drafts.map((d) => ({
         prId: d.prId,
@@ -77,10 +77,9 @@ async function renderNewPRPage({ searchParams }) {
           }
         : null;
 
-    // Phase 1 requirement: default-sort the Job/Line picker toward the
-    // Requester's Assigned Jobs, without ever hiding the rest — see
-    // CLAUDE.md's "Phase 1 requirement: Line picker defaults to the
-    // Requester's Assigned Jobs".
+    // Default-sort the Job/Discipline picker toward the Requester's Assigned
+    // Jobs, without ever hiding the rest. This cited a "Phase 1 requirement"
+    // sentence in CLAUDE.md that is no longer there, in the word #280 retired.
     const assignedJobIds = new Set(user.assignedJobs || []);
     const myJobs = jobs.filter((j) => assignedJobIds.has(j.id));
     const otherJobs = jobs.filter((j) => !assignedJobIds.has(j.id));

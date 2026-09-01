@@ -68,8 +68,8 @@ export async function claimDirectPurchaseAction(prevState, formData) {
         after(() => confirmIngestThenDelete(result.blobCleanups));
 
         // Straight into the existing Draft resume path (#72), which loadPRDraft
-        // hydrates — here that means the vendor and the quotation, with the line, the
-        // items and the signers left for the requester.
+        // hydrates — here that means the vendor and the quotation, with the discipline,
+        // the items and the signers left for the requester.
         redirect(`/prs/new?draft=${encodeURIComponent(result.pr.prId)}`);
     });
 }

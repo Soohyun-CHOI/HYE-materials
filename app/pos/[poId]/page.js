@@ -56,16 +56,6 @@ export async function generateMetadata({ params }) {
     return { title: poId };
 }
 
-const DONE_MESSAGES = {
-    signed: "Signed the PO.",
-    "pdf-regenerated": "Regenerated the PDF.",
-    withdrawn: "Withdrew this PO.",
-    // Issue #281 — the send's own confirmation. Names the vendor rather than the
-    // address: the address is on the record right below it, and this line is gone on
-    // reload while that one stays.
-    sent: "Sent this PO to the vendor.",
-};
-
 // Labeled for #190, the way #200 labeled /pos and app/prs/page.js labels /prs.
 // An outer wrapper, so the page's own body keeps its indentation, and the route
 // TEMPLATE, so repeated loads aggregate into one row rather than forty. #169
@@ -111,7 +101,7 @@ export default async function PODetailPage(props) {
 // can see the order sees it — and since #233 so are the deliveries that filled
 // the order and the chip above them, on the same line. This said
 // `Delivered/Undelivered` until that issue removed the second column.
-async function renderPODetailPage({ params, searchParams }) {
+async function renderPODetailPage({ params }) {
     const user = await requireUser();
     const isOffice = user.role === "President" || user.isAdmin === true;
     // Issue #281 — `isOffice` stays for the READ-side narrowing that really is
@@ -125,7 +115,6 @@ async function renderPODetailPage({ params, searchParams }) {
     // gate; see this file's header for what its separate name bought.
     const isPresident = user.role === "President";
     const { poId } = await params;
-    const { done } = await searchParams;
 
     const po = await getPOById(poId);
     if (!po) {
@@ -342,12 +331,6 @@ async function renderPODetailPage({ params, searchParams }) {
                         </p>
                     )
                 )
-            )}
-
-            {done && DONE_MESSAGES[done] && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    {DONE_MESSAGES[done]}
-                </p>
             )}
 
             {/* Issue #138 — the terminal state, stated to whoever opens the

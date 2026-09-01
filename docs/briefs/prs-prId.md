@@ -144,12 +144,16 @@ what the shared slot exists to avoid, so the two kinds differ only in what fills
 it.
 
 **When this request covers an over-delivery, or one covers its own:** one or more
-amber banners at the very top, above the confirmation line and the money. Every
-word is derived rather than stored, so withdrawing the request reopens the
-situation by itself. They stay after signature, because an overage request read
-on its own looks like a duplicate with no quotation of its own.
+amber banners at the very top, above the money. Every word is derived rather than
+stored, so withdrawing the request reopens the situation by itself. They stay
+after signature, because an overage request read on its own looks like a
+duplicate with no quotation of its own.
 
-**When the reader has just arrived from an action:** a green confirmation line.
+**Six actions land here and none of them says so.** Submitting, approving,
+editing, returning for correction, generating the order and withdrawing all
+finish on this screen, and what each one did is on the screen: the status word,
+the signing chain, the correction, the link to the order. This carried a green
+line for each until #321 — see `_shared.md`, "The arrival is the confirmation".
 
 ## What must agree elsewhere
 

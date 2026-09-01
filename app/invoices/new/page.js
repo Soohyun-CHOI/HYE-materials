@@ -21,7 +21,7 @@ export default async function NewInvoicePage(props) {
 }
 
 // Admin-only (issue #14) — manual invoice entry is back-office data entry,
-// same category as the Job/Vendor/Line admin forms, not a floor-level
+// same category as the Job/Vendor/Discipline admin forms, not a floor-level
 // action like PR creation (requireUser()).
 async function renderNewInvoicePage({ searchParams } = {}) {
     const { authorized } = await requireAdmin();

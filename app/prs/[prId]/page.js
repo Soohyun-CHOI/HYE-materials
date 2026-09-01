@@ -32,15 +32,6 @@ export async function generateMetadata({ params }) {
     return { title: prId };
 }
 
-const DONE_MESSAGES = {
-    submitted: "Submitted for review.",
-    approved: "Recorded your approval.",
-    edited: "Saved your changes.",
-    returned: "Sent back for correction.",
-    "po-generated": "Generated the Purchase Order.",
-    withdrawn: "Withdrew this PR.",
-};
-
 // Labeled for #190 — see the note in app/prs/page.js. This page reads five child
 // levels, and the label is what showed it was paying five parent re-finds and one
 // find per child row and per person to do it (#193). It reads the ids off the
@@ -49,10 +40,9 @@ export default async function PRDetailPage(props) {
     return withOpsLabel("/prs/[prId]", () => renderPRDetailPage(props));
 }
 
-async function renderPRDetailPage({ params, searchParams }) {
+async function renderPRDetailPage({ params }) {
     const user = await requireUser();
     const { prId } = await params;
-    const { done } = await searchParams;
 
     const pr = await getPRById(prId);
     if (!pr) {
@@ -283,12 +273,6 @@ async function renderPRDetailPage({ params, searchParams }) {
                             vendorInvoiceCode: quotations[0]?.vendorQuotationCode || "",
                         }).text
                     }
-                </p>
-            )}
-
-            {done && DONE_MESSAGES[done] && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    {DONE_MESSAGES[done]}
                 </p>
             )}
 

@@ -36,12 +36,6 @@ export async function generateMetadata({ params }) {
     return { title: invoiceId };
 }
 
-const DONE_MESSAGES = {
-    created: "Invoice created.",
-    updated: "Invoice updated.",
-    "paid-updated": "Payment status updated.",
-};
-
 // The tone a delivery entry can wear (#241), as a color. The DECISION is
 // lib/deliveryStatus.js's and only which amber is settled here, the same split
 // app/components/DeliveryStatusMarks.js states for the chips. Not in that file
@@ -94,7 +88,7 @@ export default async function InvoiceDetailPage(props) {
 async function renderInvoiceDetailPage({ params, searchParams }) {
     const user = await requireUser();
     const { invoiceId } = await params;
-    const { done, paired, tied } = await searchParams;
+    const { paired, tied } = await searchParams;
     // #231 — a key, never a sentence. An unknown or absent value words nothing,
     // which is also what makes `none` need no entry: describePairing returns null
     // for anything it has no voice for. `tied` is the qualifier and is read the
@@ -246,18 +240,23 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 </div>
             </div>
 
-            {done && DONE_MESSAGES[done] && (
-                <p className="mt-4 rounded border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
-                    {DONE_MESSAGES[done]}
-                </p>
-            )}
+            {/* #231 — what the app worked out about this invoice's delivery, said only
+                on the way in from creation. It is not part of the record, so it lives
+                on the query string rather than being re-derived on every load: a
+                reader who reaches this page any other way sees the delivery section
+                below, which is the standing answer. `none` sends no parameter, so
+                there is no voice here for it.
 
-            {/* #231 — what the app worked out about this invoice's delivery, said once
-                and only on the way in from creation. It is not part of the record,
-                so it lives on the query string rather than being re-derived on
-                every load: a reader returning to this page sees the delivery
-                section below, which is the standing answer. `none` sends no
-                parameter, so there is no voice here for it. */}
+                THE ONE PARAMETER #321 LEFT, AND IT SURVIVES BECAUSE IT IS NOT A
+                CONFIRMATION. That issue took the green line off five screens on the
+                ground that the arrival already said what it said; this box says what
+                nothing else on the page says — which delivery was picked, and whether
+                a tie-break picked it. It keeps the defect the same issue names, and
+                said so: a reload repeats it, and the URL copied to somebody else
+                shows them a judgment made about somebody else's creation. That is a
+                cost of carrying a one-time account on the query string at all, not a
+                second thing to fix here. This comment said `said once` until #321
+                read it in a browser. */}
             {pairingMessage && (
                 <div
                     className={`mt-4 rounded border px-3 py-2 text-sm ${

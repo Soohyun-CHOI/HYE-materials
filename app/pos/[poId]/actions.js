@@ -104,7 +104,7 @@ async function signPOHandler(prevState, formData) {
 
         await syncPRStatusToPOSigned(po);
 
-        redirect(`/pos/${po.poId}?done=signed`);
+        redirect(`/pos/${po.poId}`);
     });
 }
 
@@ -184,7 +184,7 @@ export async function regeneratePDFAction(prevState, formData) {
             return { error: "Something went wrong generating the PDF. Please try again." };
         }
 
-        redirect(`/pos/${po.poId}?done=pdf-regenerated`);
+        redirect(`/pos/${po.poId}`);
     });
 }
 
@@ -314,7 +314,7 @@ export async function sendPOToVendorAction(prevState, formData) {
             return { error: SEND_COPY.recordFailed };
         }
 
-        redirect(`/pos/${po.poId}?done=sent`);
+        redirect(`/pos/${po.poId}`);
     });
 }
 
@@ -342,6 +342,6 @@ export async function withdrawPOAction(prevState, formData) {
         // Errors come back to the open modal; only success falls through.
         if (result.error) return result;
 
-        redirect(`/pos/${result.poId}?done=withdrawn`);
+        redirect(`/pos/${result.poId}`);
     });
 }

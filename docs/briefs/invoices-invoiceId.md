@@ -222,9 +222,11 @@ five rows would make every ordinary invoice assert two amounts the vendor never
 charged. A term stated as zero is different again and does get its row, because "this
 document says no tax was charged" is a true claim worth printing.
 
-**When the reader has just arrived from an action:** a green confirmation line
-under the heading. It comes off the query string, so it appears once and is gone
-on reload.
+**Three actions land here and none of them says so.** Creating the invoice,
+editing it and recording a payment all finish on this screen, and each one is
+visible on it: the record itself, the edited figures, the payment sentence with
+its control closed again. This carried a green line for each until #321 — see
+`_shared.md`, "The arrival is the confirmation".
 
 **When the reader has just arrived from creating this invoice:** a box stating
 what the app worked out about which delivery this invoice belongs to. It is gray
@@ -232,9 +234,13 @@ when a single delivery matched cleanly and amber in every other case — several
 candidates, a rival invoice charging the same ordered item, or a tie nothing
 could break. When a tie-break decided it, a second sentence in the same box says
 so, because the tie-break is *how* the match was decided rather than a second
-thing that happened. This box never appears on a reload: the standing answer is
-the delivery section further down, and this is a one-time account of a judgment
-made at creation.
+thing that happened. **This is the one thing on this screen that comes off the
+query string**, and it survived #321 because it is not a confirmation: the
+standing answer is the delivery section further down, and this says which
+delivery was picked and how, which nothing else on the page holds. It is written
+only on the way in from creation, so reaching this page any other way shows
+nothing — but a reload does repeat it, and so does the link copied to somebody
+else. This brief said the box never appeared on a reload, which was wrong.
 
 **When an individual charge differs from what its order agreed:** a small
 `⚠ Order variance` badge inside that item's name cell, and **no sentence beside

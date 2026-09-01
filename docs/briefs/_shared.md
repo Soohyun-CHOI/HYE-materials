@@ -87,6 +87,23 @@ takes them away. They are not a layout to preserve.
    went unnoticed for six milestones. All four head `Job` and carry a job code, at
    the same 5.75rem where a width is declared. Position and styling are open like
    everything else; **the word and what is under it are not.**
+6. **The arrival is the confirmation.** A create action lands on the document it
+   made and an edit action lands on the one it changed, and that arrival is the
+   whole of what the app says about the act. **No screen says it a second time**
+   — no banner, no toast, no line under the heading (#321). Five screens carried
+   one and it said what the page already said, while the parameter behind it
+   outlived the sentence: a reload repeated it and a copied link showed a
+   stranger a confirmation for something they had not done.
+
+   **The four exceptions are the places the arrival answers nothing**, and they
+   are exceptions to the placement rather than to the rule. `/invoices/new`
+   records a direct purchase and comes back to an empty form, because the
+   request it raises belongs to the site; the three admin create forms have no
+   detail screen to land on at all. Each still says what it wrote, and each
+   brief describes its own line.
+
+   A redesign that adds a success state to a document screen is undoing this,
+   which is why it is here rather than in one brief.
 
 ## The four levels
 

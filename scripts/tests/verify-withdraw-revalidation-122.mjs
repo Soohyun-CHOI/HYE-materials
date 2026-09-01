@@ -24,7 +24,7 @@
 //     if (pr.status !== "In Review")
 //         return { error: "Only a PR that's still in review can be withdrawn." };
 //     await updatePR(pr.id, { status: "Withdrawn", withdrawnAt: <now> });
-//     redirect(`/prs/${pr.prId}?done=withdrawn`);
+//     redirect(`/prs/${pr.prId}`);
 //
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-withdraw-revalidation-122.mjs
@@ -55,7 +55,7 @@ async function simulateWithdraw(callerUserId, prId) {
         status: "Withdrawn",
         withdrawnAt: new Date().toISOString(),
     });
-    return { redirect: `/prs/${pr.prId}?done=withdrawn` };
+    return { redirect: `/prs/${pr.prId}` };
 }
 
 async function statusOf(recordId) {

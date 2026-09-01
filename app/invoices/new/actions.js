@@ -361,9 +361,17 @@ async function createInvoiceHandler(prevState, formData) {
         // how it was decided. A bare flag, not a count — the objection to sending a
         // count was that the reader cannot act on two differently from three, and
         // this is a fact they act on by opening the delivery.
-        const paired = pairing.key === PAIRING.none ? "" : `&paired=${pairing.key}`;
-        const tied = pairing.tieBreak ? "&tied=1" : "";
-        redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}?done=created${paired}${tied}`);
+        //
+        // #321 — THE QUERY STRING IS NOW THIS AND NOTHING ELSE. It opened
+        // `?done=created`, and the two below hung off that as `&…`; the confirmation
+        // is gone, so `paired` leads and the separator moved with it. A `none`
+        // pairing on an invoice that needs no tie-break leaves no query string at
+        // all, which is the ordinary case.
+        const query = new URLSearchParams();
+        if (pairing.key !== PAIRING.none) query.set("paired", pairing.key);
+        if (pairing.tieBreak) query.set("tied", "1");
+        const qs = query.toString();
+        redirect(`/invoices/${encodeURIComponent(invoice.invoiceId)}${qs ? `?${qs}` : ""}`);
     });
 }
 

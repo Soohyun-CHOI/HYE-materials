@@ -33,8 +33,8 @@ function itemKey(item) {
 }
 
 // Issue #61 — flags a PR as a likely re-submission when some prior PR on
-// the same Line has the exact same set of items (Name/Qty/Unit Price, order
-// and multiplicity insensitive). Checked against every prior PR on the Line
+// the same Discipline has the exact same set of items (Name/Qty/Unit Price, order
+// and multiplicity insensitive). Checked against every prior PR on the Discipline
 // regardless of Status, since even one already PO Signed is still a
 // forgotten-resubmission candidate.
 async function findDuplicatePR(disciplineId, items, excludeRecordId = null) {
@@ -339,7 +339,7 @@ async function persistPRFromForm({ userId, state }) {
 }
 
 // Issue #72 — persist the in-progress PR as a Draft. Deliberately skips the
-// full submit-time validation (Line/Vendor/items/signers/quotations may all
+// full submit-time validation (Discipline/Vendor/items/signers/quotations may all
 // be incomplete or empty) and the duplicate-PR check. Bound to useActionState
 // in PRForm.js; returns { savedDraft } or { error } rather than redirecting,
 // so the Requester stays on the form and can keep editing.
@@ -506,6 +506,6 @@ export async function createPRAction(prevState, formData) {
         // Issue #121 — land on the submitted PR's detail page (matching the
         // invoice flow, #115), whether this was a fresh submit or a promoted
         // Draft: both end as the same In Review PR, so both go to its detail.
-        redirect(`/prs/${encodeURIComponent(pr.prId)}?done=submitted`);
+        redirect(`/prs/${encodeURIComponent(pr.prId)}`);
     });
 }
