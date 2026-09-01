@@ -84,6 +84,14 @@ that is the one judgment no tool makes, and it is made against the strings in fr
 of you rather than read out of a file somebody wrote weeks earlier. Rewrite, and run
 the same filter again: it comes back empty or it does not.
 
+**A screen's output holds each STRING once, not each SITE (#318).** The extractor
+dedupes by text per screen and keeps the first file it met, so two files on one screen
+rendering the same word produce one row pointing at one of them. `Cancel` on
+`/invoices/[invoiceId]` is the worked example: the delete confirmation and the payment
+control both render it and the output names only the first. A sweeper filtering for a
+word and editing what the rows point at would move one of two sites. Grep the screen's
+files for the word once the filter has told you it is there.
+
 **Read `unfindable.md` before trusting the filter.** Three of the words
 `docs/briefs/_shared.md` locks as tier 1 — `Delivered`, `Mismatch`,
 `Awaiting delivery` — reach `/invoices` through a constant that screen never names,

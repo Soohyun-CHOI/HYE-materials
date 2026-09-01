@@ -22,6 +22,13 @@
 //      one expression again, so opening the read opens the control, and every other
 //      check in the tier still passes. Assertion 3 is the answer — a privilege-tested
 //      branch may not carry the payment fact on ONE side only.
+//   2b THE FACT DOES NOT DISAPPEAR WHEN THE CONTROL OPENS (#318). That issue took the
+//      privilege branch off this section — the body reads the same for every reader and
+//      only the control is Admin's — and put a client open/closed state where it was.
+//      The identical mutant can be written with `editing` instead of `user.isAdmin`,
+//      and assertion 3 cannot see it, because `editing` asks no privilege question. So
+//      the same rule runs a second time over branches on `useState` locals.
+//
 //   3  THE PAYMENT SURFACE IS ENUMERABLE. A reader of `.paid` is one grep away from
 //      being found and zero warnings away from being added, so the set of files
 //      allowed to read it is listed here and a new one fails until it is registered.
@@ -31,6 +38,9 @@
 //      what `/pos/[poId]` was, holding an inline `seesPayment` that no sweep over
 //      `seesEveryInvoice` call sites would have reached. Assertion 3 runs per payment
 //      READ rather than per file, which is what finds it.
+//
+// The body's own section numbers are not these: this is a summary of what the file
+// holds, and 2b above is `--- 3b` below, beside the rule it extends.
 //
 // WHAT A PASS DOES NOT PROVE. That a refusal actually refuses. Source shape is not
 // execution — a gate inside `if (false)` satisfies every assertion below. Whether a
@@ -55,9 +65,9 @@ const PAID_READERS = {
     "app/invoices/page.js":
         "the Status column — the payment word and the header variance badge, both open (#309)",
     "app/invoices/[invoiceId]/page.js":
-        "the Payment section, open, with the Admin form and the read-only sentence inside it",
-    "app/invoices/[invoiceId]/PaidForm.js":
-        "the Admin-only toggle itself — the one WRITE control, rendered on user.isAdmin",
+        "the Payment section's props — the fact and `canEdit`, handed over unconditionally (#318)",
+    "app/invoices/[invoiceId]/PaymentSection.js":
+        "the section body: the fact for every reader, and the Admin-only control that edits it",
     "app/invoices/[invoiceId]/actions.js":
         "updatePaidAction, the WRITE — withAdminAction, the gate that form is paired with",
     "app/pos/[poId]/page.js":
@@ -83,6 +93,10 @@ const PAID_READERS = {
  * outside these three containers is a second answer starting.
  */
 const PAYMENT_CONTAINERS = ["invoicePayment", "summarizePOPaymentStatus", "poPayment"];
+
+/** The section this screen's payment fact and its control both live in (#318). */
+const SECTION = "app/invoices/[invoiceId]/PaymentSection.js";
+const SECTION_COMPONENT = "PaymentSection";
 
 export async function run({ check, log, assert }) {
     // --- 1: the rule is canViewPR, not a copy of it -----------------------
@@ -276,9 +290,16 @@ export async function run({ check, log, assert }) {
     // THE RULE, IN ONE SENTENCE: a branch whose test asks a PRIVILEGE question may
     // not have the payment fact on one side only. So `{privileged && <Payment/>}`
     // fails — the payment is in the consequent and there is no alternate — while
-    // `user.isAdmin ? <PaidForm paid={…}/> : <p>{invoice.paid …}</p>` passes, because
-    // a reader who cannot record it still reads it. The write control is allowed to
-    // branch; the fact is not allowed to disappear with it.
+    // a ternary stating the fact on both sides passes, because a reader who cannot
+    // record it still reads it. The write control is allowed to branch; the fact is not
+    // allowed to disappear with it.
+    //
+    // **THIS SCREEN NO LONGER HAS SUCH A BRANCH (#318)** and the rule is unchanged by
+    // that. The section states the fact unconditionally and hands the privilege answer
+    // to its Client Component as `canEdit`, so there is nothing here for this rule to
+    // collect — which is why the mutant moved rather than went, and why 3b below picks
+    // it up with `editing` in place of `user.isAdmin`. The rule still governs every
+    // other registered file, and the planted mutant below is what keeps it honest.
     //
     // WHY PER READ AND NOT PER FILE. The inventory below is files, and a file-level
     // rule cannot see one screen left gated while the others open — which is the
@@ -306,16 +327,160 @@ export async function run({ check, log, assert }) {
     );
 
     // AND THE WRITE CONTROL IS STILL GATED, which is the other half: the rule above is
-    // equally satisfied by rendering `PaidForm` to everybody. Its condition has to be
+    // equally satisfied by rendering the control to everybody. Its condition has to be
     // the one `updatePaidAction` is wrapped with — #185's pair rule, read off the
     // control rather than off the action.
+    //
+    // **INVERTED BY #318 RATHER THAN DELETED.** This asserted that every `<PaidForm>`
+    // on the page sat inside a test on `isAdmin`, which was true while the section
+    // branched: an Admin got the form and everybody else got a sentence. That branch is
+    // gone — the section reads the same for every reader and only the CONTROL is
+    // Admin's — and with it went the element this counted. Deleting the assertion would
+    // have left #185's pair rule unheld on the one screen that splits reading from
+    // writing, so it is re-founded on where the answer went: the page reads
+    // `user.isAdmin` once into `canEdit`, and the section puts every control behind it.
+    // Two halves, because either alone is satisfied by the other going wrong.
     const detailAst = parseFile("app/invoices/[invoiceId]/page.js").ast;
-    const formTotal = countJsxElements(detailAst, "PaidForm");
-    const formGated = privilegeBranches(detailAst, privilegeLocals(detailAst))
-        .filter((b) => adminTest(b.test))
-        .reduce((n, b) => n + countJsxElements(b.consequent, "PaidForm"), 0);
-    assert("the detail page renders PaidForm at all", formTotal > 0);
-    check("and every PaidForm sits inside a test on isAdmin", formGated, formTotal);
+    const canEdit = jsxAttributeValue(detailAst, SECTION_COMPONENT, "canEdit");
+    assert(`the page hands <${SECTION_COMPONENT}> a canEdit`, Boolean(canEdit));
+    assert(
+        "  and its value is the privilege question itself, not a local or a constant",
+        canEdit?.type === "JSXExpressionContainer" &&
+            canEdit.expression?.type === "MemberExpression" &&
+            PRIVILEGE_FIELDS.has(canEdit.expression.property?.name)
+    );
+
+    const sectionAst = parseFile(SECTION).ast;
+    const controls = ["button", "form"];
+    const gatedBranches = branchesTesting(sectionAst, "canEdit");
+    for (const control of controls) {
+        const total = countJsxElements(sectionAst, control);
+        const gated = gatedBranches.reduce(
+            (n, b) => n + countJsxElements(b.consequent, control) + countJsxElements(b.alternate, control),
+            0
+        );
+        assert(`${SECTION} renders a <${control}> at all`, total > 0);
+        check(`  and every one sits behind canEdit`, gated, total);
+    }
+    // ANTI-VACUITY: a control OUTSIDE the gate has to be reported, or "every one" is
+    // what a walk finding nothing reports too. This is the mutation, planted.
+    const ungated = parseSource(
+        "export default function S({ canEdit }) {\n" +
+            "  return <div><button type=\"button\">Edit payment</button>{canEdit && <form />}</div>;\n" +
+            "}\n",
+        "<ungated>"
+    );
+    const ungatedGate = branchesTesting(ungated.ast, "canEdit");
+    assert(
+        "a control outside the canEdit gate is reported",
+        countJsxElements(ungated.ast, "button") === 1 &&
+            ungatedGate.reduce((n, b) => n + countJsxElements(b.consequent, "button"), 0) === 0
+    );
+    assert(
+        "  while one inside it is not",
+        ungatedGate.reduce((n, b) => n + countJsxElements(b.consequent, "form"), 0) === 1
+    );
+
+    // --- 3b: the payment fact does not disappear when the control OPENS (#318) ---
+    //
+    // THE SAME RULE WITH A SECOND PREDICATE, AND THE REASON IT IS A SECOND ONE. The
+    // rule above is about a PRIVILEGE test; #318 replaced this section's privilege
+    // branch with a client open/closed state, so the identical mutant — the fact on one
+    // side of a branch and not the other — can now be written with `editing` where
+    // `user.isAdmin` used to be. Nothing above sees it: `asksPrivilege` is false of
+    // `editing`, so the branch is never collected and assertion 3 stays green through
+    // it. Hiding the sentence while the fields are open is that mutant.
+    //
+    // THE STATE LOCALS ARE RESOLVED FROM `useState`, not from a name list, which is
+    // `privilegeLocals`' own move one predicate over — an exemption list under another
+    // word is what #201 records rotting.
+    //
+    // AND THE READ IS SCOPED TO JSX AND TO THE VALUE, which is two narrowings the rule
+    // above does not make and both are load-bearing. JSX, because this asks what the
+    // reader SEES rather than what reaches the client — `cancel()` re-derives from
+    // `paid` and `paidDate` inside a function and is not a rendered fact. The VALUE,
+    // because a form field's own wire name is the literal `"paidDate"`, so `name=` and
+    // `id=` and `htmlFor=` on the date input would otherwise read as the fact being
+    // stated inside the `checked` branch that renders them.
+    log("");
+    log("no payment read disappears when the control opens (#318):");
+    const openBranches = stateBranches(sectionAst, stateLocals(sectionAst));
+    const sectionDerived = paymentDerivedNames(sectionAst);
+    assert("the section has an open/closed state at all", stateLocals(sectionAst).size > 0);
+    assert("  and a branch on it", openBranches.length > 0);
+    assert("  and it derives what it states from the record", sectionDerived.size > 0);
+    const hiddenByOpening = openBranches.filter(
+        (b) =>
+            rendersPaymentValue(b.consequent, sectionDerived) !==
+            rendersPaymentValue(b.alternate, sectionDerived)
+    );
+    check(
+        `payment reads rendered on one side of an open-state branch${
+            hiddenByOpening.length ? ` (${hiddenByOpening.map((b) => lineOf(parseFile(SECTION).source, b.node.start)).join(", ")})` : ""
+        }`,
+        hiddenByOpening.length,
+        0
+    );
+    // AND THE FACT IS RENDERED AT ALL, or "none of them is hidden" is true of a section
+    // that states nothing.
+    assert(`${SECTION} renders the payment fact`, rendersPaymentValue(sectionAst, sectionDerived));
+    // ANTI-VACUITY, BOTH DIRECTIONS, and the first half is the mutant this whole
+    // section exists for: the read sentence tucked behind `!editing`.
+    const hidden = parseSource(
+        "export default function S({ paid, paidDate }) {\n" +
+            "  const [editing, setEditing] = useState(false);\n" +
+            "  return <div>{!editing && <p>{paid ? `Paid on ${paidDate}` : 'Not paid yet.'}</p>}</div>;\n" +
+            "}\n",
+        "<hidden>"
+    );
+    const hiddenFindings = stateBranches(hidden.ast, stateLocals(hidden.ast)).filter(
+        (b) => rendersPaymentValue(b.consequent) !== rendersPaymentValue(b.alternate)
+    );
+    assert("a payment read behind `!editing` is reported", hiddenFindings.length === 1);
+    const kept = parseSource(
+        "export default function S({ paid }) {\n" +
+            "  const [editing, setEditing] = useState(false);\n" +
+            "  return <div><p>{paid ? 'Paid' : 'Not paid yet.'}</p>{editing && <form />}</div>;\n" +
+            "}\n",
+        "<kept>"
+    );
+    assert(
+        "  and the same fact outside the branch is not",
+        stateBranches(kept.ast, stateLocals(kept.ast)).filter(
+            (b) => rendersPaymentValue(b.consequent) !== rendersPaymentValue(b.alternate)
+        ).length === 0
+    );
+    // The two narrowings, each shown deciding: a field's wire name is not the fact, and
+    // a payment read outside JSX is not a rendered one.
+    const wireName = parseSource(
+        "export default function S() {\n" +
+            "  const [checked, setChecked] = useState(false);\n" +
+            "  return <div>{checked && <input name=\"paidDate\" id=\"paidDate\" />}</div>;\n" +
+            "}\n",
+        "<wire-name>"
+    );
+    check(
+        "  a field named `paidDate` inside a state branch is not a rendered fact",
+        stateBranches(wireName.ast, stateLocals(wireName.ast)).filter(
+            (b) => rendersPaymentValue(b.consequent) !== rendersPaymentValue(b.alternate)
+        ).length,
+        0
+    );
+    const offScreen = parseSource(
+        "export default function S({ paid }) {\n" +
+            "  const [editing, setEditing] = useState(false);\n" +
+            "  if (editing) { const x = paid; }\n" +
+            "  return <div />;\n" +
+            "}\n",
+        "<off-screen>"
+    );
+    check(
+        "  and a payment read outside JSX is not one either",
+        stateBranches(offScreen.ast, stateLocals(offScreen.ast)).filter(
+            (b) => rendersPaymentValue(b.consequent) !== rendersPaymentValue(b.alternate)
+        ).length,
+        0
+    );
 
     // ANTI-VACUITY, BOTH DIRECTIONS. "No file has the shape" and "the detector never
     // ran" are the same result, so the detector is shown saying YES on a planted
@@ -404,15 +569,43 @@ export async function run({ check, log, assert }) {
     assert("  the file reads payment at all", total > 0);
     check("  and every one of them is inside a payment container", total - inside, 0);
     check("  all three containers were found", namedContainers(statusFile.ast, PAYMENT_CONTAINERS).length, 3);
-    // NO `paidDate` ANYWHERE IN IT, which is #311's no-figure rule as source shape:
-    // the badge says a set is late and never how late, because a day count belongs to
-    // one invoice while the badge is about a set.
-    let namesPaidDate = false;
+    // `paidDate` IN THE JUDGMENT AND NOWHERE ELSE IN THE FILE (#318), WHICH INVERTS
+    // #311's ASSERTION RATHER THAN DROPPING IT.
+    //
+    // That one read: no `paidDate` ANYWHERE in this module, as the source shape of the
+    // no-figure rule — the order badge says a set is late and never how late, because a
+    // day count belongs to one invoice while the badge is about a set. **#318 made the
+    // first half false**: `Invoices."Paid"` is gone, so `invoicePayment` reads the date
+    // to answer whether an invoice is paid at all, and a blanket absence would have had
+    // to be deleted. Deleting it would have left the no-figure rule unheld here.
+    //
+    // What replaces it is the narrower claim that is actually true and says more: the
+    // date reaches the JUDGMENT and stops there. `summarizePOPaymentStatus` folds a
+    // verdict and `poPayment` words it, and neither may name a date — which is the
+    // order scope, and the order scope is what #311's rule was about. The Airtable
+    // field name stays barred outright: this module reads no record.
+    const datesInFile = countNodes(statusFile.ast, (n) =>
+        (n.type === "Identifier" && n.name === "paidDate") ||
+        (n.type === "Property" && n.key?.name === "paidDate")
+    );
+    const datesInJudgment = namedContainers(statusFile.ast, ["invoicePayment"]).reduce(
+        (n, node) =>
+            n +
+            countNodes(node, (c) =>
+                (c.type === "Identifier" && c.name === "paidDate") ||
+                (c.type === "Property" && c.key?.name === "paidDate")
+            ),
+        0
+    );
+    assert("  the judgment names the payment date", datesInJudgment > 0);
+    check("  and nothing else in the file does", datesInFile - datesInJudgment, 0);
+    // The Airtable field name itself is barred outright — this module reads no record,
+    // so a literal here would be a second place the base is addressed from.
+    let namesTheField = false;
     walk(statusFile.ast, (node) => {
-        if (node.type === "Identifier" && node.name === "paidDate") namesPaidDate = true;
-        if (node.type === "Literal" && node.value === "Paid Date") namesPaidDate = true;
+        if (node.type === "Literal" && node.value === "Paid Date") namesTheField = true;
     });
-    assert("  and it names no payment DATE, so the badge can carry no figure", !namesPaidDate);
+    assert("  and it names the Airtable field nowhere at all", !namesTheField);
     // ANTI-VACUITY: the container finder has to be seen missing one it is not given.
     check(
         "  the container finder returns nothing for a name that is not there",
@@ -566,7 +759,7 @@ function isPaymentNode(n) {
         // `paid={invoice.paid}` on a component — the write control's own prop,
         // which is the one shape the four above miss: a JSXAttribute is not a
         // Property. Without it, collapsing the read and the write into one
-        // condition would leave `<PaidForm paid={…}/>` looking payment-free.
+        // condition would leave `<PaymentSection paid={…}/>` looking payment-free.
         case "JSXAttribute":
             return PAID_NAMES.has(n.name?.name);
         default:
@@ -723,6 +916,152 @@ function privilegeBranches(ast, locals) {
         }
     });
     return out;
+}
+
+/**
+ * The value node of `<Component attr={…}>`, or null (#318).
+ *
+ * The ATTRIBUTE rather than the identifier it happens to hold, so the assertion can
+ * ask what the page put there — a local, a constant or the privilege question itself
+ * are three different answers and only one of them is #185's pair rule.
+ */
+function jsxAttributeValue(ast, component, attr) {
+    let found = null;
+    walk(ast, (node) => {
+        if (found) return;
+        if (node.type !== "JSXOpeningElement" || node.name?.name !== component) return;
+        for (const a of node.attributes || []) {
+            if (a.type === "JSXAttribute" && a.name?.name === attr) found = a.value ?? null;
+        }
+    });
+    return found;
+}
+
+/** Every branch in this subtree whose test mentions the identifier `name` (#318). */
+function branchesTesting(ast, name) {
+    const out = [];
+    walk(ast, (node) => {
+        const test =
+            node.type === "ConditionalExpression" || node.type === "IfStatement"
+                ? node.test
+                : node.type === "LogicalExpression" && node.operator === "&&"
+                  ? node.left
+                  : null;
+        if (!test) return;
+        let mentions = false;
+        walk(test, (n) => {
+            if (n.type === "Identifier" && n.name === name) mentions = true;
+        });
+        if (!mentions) return;
+        out.push({
+            node,
+            test,
+            consequent: node.type === "LogicalExpression" ? node.right : node.consequent,
+            alternate: node.type === "LogicalExpression" ? null : (node.alternate ?? null),
+        });
+    });
+    return out;
+}
+
+/**
+ * The locals a `useState` call binds, resolved from the CALL rather than from a name
+ * list (#318) — `privilegeLocals`' own move one predicate over. `const [editing,
+ * setEditing] = useState(false)` yields `editing`.
+ */
+function stateLocals(ast) {
+    const locals = new Set();
+    walk(ast, (node) => {
+        if (node.type !== "VariableDeclarator") return;
+        if (node.id?.type !== "ArrayPattern") return;
+        if (node.init?.type !== "CallExpression" || node.init.callee?.name !== "useState") return;
+        const first = node.id.elements?.[0];
+        if (first?.type === "Identifier") locals.add(first.name);
+    });
+    return locals;
+}
+
+/** Every branch whose test asks what state the section is in (#318). */
+function stateBranches(ast, locals) {
+    const out = [];
+    for (const name of locals) out.push(...branchesTesting(ast, name));
+    return out;
+}
+
+/**
+ * Is THIS ONE NODE the payment fact as a VALUE? Narrower than `isPaymentNode` on
+ * purpose — see assertion 3b. A `Property` key, a field's wire name and an Airtable
+ * field literal are all payment reads and none of them is the fact being stated.
+ */
+function isPaymentValueNode(n) {
+    if (n.type === "MemberExpression") return !n.computed && PAID_NAMES.has(n.property?.name);
+    if (n.type === "Identifier") return PAID_NAMES.has(n.name);
+    return false;
+}
+
+/**
+ * The locals a file DERIVES from the payment fact, so that rendering one counts as
+ * rendering the fact (#318).
+ *
+ * WITHOUT THIS THE RULE WATCHES A NAME RATHER THAN A FACT. `PaymentSection.js` states
+ * the payment through `const statedDate = editing ? date : paidDate` — the draft while
+ * the control is open, the record otherwise — so the sentence renders a local and no
+ * `paidDate` appears in any JSX. The rule would then pass by looking at nothing, which
+ * is worse than failing.
+ *
+ * A `useState` INITIALIZER IS NOT A DERIVATION, and that exclusion is what keeps the
+ * rule usable rather than being a convenience. `useState(paidDate || "")` seeds a local
+ * that is thereafter the reader's own draft: it is rendered inside the form, which is
+ * inside the open-state branch by construction, so counting it would report the correct
+ * code. What carries the fact is a plain derivation; what carries a draft is state.
+ */
+function paymentDerivedNames(ast) {
+    const names = new Set();
+    walk(ast, (node) => {
+        if (node.type !== "VariableDeclarator" || node.id?.type !== "Identifier") return;
+        if (!node.init) return;
+        if (node.init.type === "CallExpression" && node.init.callee?.name === "useState") return;
+        let reads = false;
+        walk(node.init, (n) => {
+            if (isPaymentValueNode(n)) reads = true;
+        });
+        if (reads) names.add(node.id.name);
+    });
+    return names;
+}
+
+/**
+ * Does this subtree RENDER the payment fact — a value read, or a local derived from
+ * one, reached from inside JSX?
+ *
+ * Scoped to JSX because the question is what a reader sees. A payment read in a
+ * handler, an initializer or a `useState` argument is not on screen and moving one
+ * behind a state branch hides nothing.
+ */
+function rendersPaymentValue(node, derived = new Set()) {
+    if (!node) return false;
+    let found = false;
+    walk(node, (candidate) => {
+        if (found) return;
+        const isJsx =
+            candidate.type === "JSXElement" ||
+            candidate.type === "JSXFragment" ||
+            candidate.type === "JSXExpressionContainer";
+        if (!isJsx) return;
+        walk(candidate, (inner) => {
+            if (isPaymentValueNode(inner)) found = true;
+            if (inner.type === "Identifier" && derived.has(inner.name)) found = true;
+        });
+    });
+    return found;
+}
+
+/** How many nodes in this subtree satisfy `predicate` (#318). */
+function countNodes(node, predicate) {
+    let n = 0;
+    walk(node, (candidate) => {
+        if (predicate(candidate)) n += 1;
+    });
+    return n;
 }
 
 /** How many `<Name …>` elements this subtree opens. */

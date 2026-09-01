@@ -57,6 +57,16 @@ const RETIRED = {
     "Line Name": "#280 — the field is `Discipline Name`",
     "Line Label": "#280 — the field is `Discipline Label`",
     Line: "#280 — the `Purchase Requests` link is `Discipline`",
+    // #318 — THE FIRST ENTRY HERE THAT IS A DELETION RATHER THAN A RENAME, and it is
+    // the same question either way: does any reference address a name the base does
+    // not have. `Invoices."Paid"` was a checkbox beside `Paid Date`, and a date is the
+    // whole of the payment now — so a reader of the flag would judge every invoice
+    // unpaid, silently, on a base where no record disagrees today.
+    //
+    // `Paid Date` is NOT here and must never be: it is the live field this replaced
+    // the flag with, and it merely starts with the same word — the trap `Line 1` and
+    // `Line 2` already document one entry up.
+    Paid: "#318 — the fact is `Paid Date`; there is no flag",
 };
 
 /**
@@ -280,6 +290,13 @@ export function run({ check, assert, log }) {
     assert(`parsed ${tables.length} names out of TABLES without importing it`, tables.length >= 20);
     assert("  and the parse resolves real names", tables.includes("Disciplines"));
     const stillPresent = Object.keys(RETIRED).filter((n) => tables.includes(n));
+    // A FIELD ENTRY PASSES THE TABLE TEST BY NOT BEING A TABLE, so #318's says what it
+    // is instead: the successor is addressed by the tree, which is the only evidence
+    // this tier can offer that a retired field was replaced rather than dropped.
+    assert(
+        "  and the field #318 retired has its successor addressed in the tree",
+        collected.some((c) => c.value === "Paid Date")
+    );
     check(
         `retired names still in TABLES${stillPresent.length ? ` (${stillPresent.join(", ")})` : ""}`,
         stillPresent.length,

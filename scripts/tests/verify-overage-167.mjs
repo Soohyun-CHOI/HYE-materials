@@ -366,7 +366,10 @@ try {
             });
             track("invoiceItems", item.id);
         }
-        if (paid) await updateInvoice(invoice.id, { paid: true, paidDate: "2026-08-05" });
+        // #318 — A DATE IS THE PAYMENT AND THERE IS NO FLAG BESIDE IT. This wrote
+        // `{ paid: true, paidDate }`; `Invoices."Paid"` is gone from the base and
+        // `updateInvoice` no longer accepts it, so the date alone makes the fixture paid.
+        if (paid) await updateInvoice(invoice.id, { paidDate: "2026-08-05" });
         // Airtable needs a moment to fetch the attachment; the quotation path reads
         // ITS copy, so wait for the ingest rather than racing it.
         for (let i = 0; i < 40; i++) {
@@ -438,7 +441,7 @@ try {
         // shifted. This is what makes splitting a PAID invoice safe.
         const after = await getInvoiceByRecordId(invoice.id);
         check(`${label}: Amount Due unchanged`, after.amountDue, invoice.amountDue);
-        check(`${label}: Paid unchanged`, after.paid, invoice.paid);
+        check(`${label}: Paid Date unchanged`, after.paidDate ?? null, invoice.paidDate ?? null);
         check(`${label}: Calculated Total unchanged`, after.calculatedTotal, invoice.calculatedTotal);
 
         // THE OVER-DELIVERY IS RESOLVED on the original ordered item.
@@ -525,7 +528,7 @@ try {
         issueDate: "2026-07-23",
         paid: true,
     });
-    check("the invoice is paid before the correction", invoiceC.paid, true);
+    check("the invoice is paid before the correction", Boolean(invoiceC.paidDate), true);
     const overRowC = (await getItemsByDelivery(deliveryC.id)).find((r) => r.overDelivered);
     const resultC = await correct({ delivery: deliveryC, overRow: overRowC, paidNote: " (paid invoice)" });
     await assertSettled({

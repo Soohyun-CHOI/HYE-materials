@@ -57,20 +57,24 @@ const ORDERED = [
     { id: "recPOI_C", poItemId: "HYE-PO-20260716-03-003", itemName: "Item C", size: "", unit: "FT" },
 ];
 
+// #318 — THE FIXTURE CARRIES A DATE WHERE IT CARRIED A FLAG. `Invoices."Paid"` is
+// gone from the base and a `Paid Date` is the whole of the payment, so a paid invoice
+// here is one with a date. The fold derives its own `paid` from the date's presence,
+// which is what the assertions below still read.
 const invoice = ({
     id = "recINV1",
     invoiceId = "HYE-INV-260716-03",
     code = "V-118",
     issueDate = "2026-07-16",
     variance = false,
-    paid = false,
+    paidDate = null,
 } = {}) => ({
     id,
     invoiceId,
     vendorInvoiceCode: code,
     issueDate,
     varianceFlag: variance,
-    paid,
+    paidDate,
 });
 
 const invoiceItem = ({ id = "recII1", inv = "recINV1", ordered = "recPOI_A", qty = 230, unitPrice = 13.49, variance = false } = {}) => ({
@@ -311,7 +315,7 @@ export function run({ check, assert, log }) {
             invoiceItem({ id: "recII2", ordered: "recPOI_B" }),
             invoiceItem({ id: "recII3", ordered: "recPOI_C" }),
         ],
-        invoices: [invoice({ paid: true, variance: true })],
+        invoices: [invoice({ paidDate: "2026-08-14", variance: true })],
     });
     check("three charges, one entry", paidTwice.length, 1);
     check("  carrying one `paid`", [paidTwice[0]?.paid].filter(Boolean).length, 1);

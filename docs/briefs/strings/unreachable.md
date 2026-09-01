@@ -91,24 +91,27 @@ controls' `step` validation does not fire).
 
 ## `/invoices/[invoiceId]`
 
-Six refusals; **all six unreachable.** Seven until #185, which took `Invoice not
-found` out as a thrown message rather than screen text.
+Five refusals; **all five unreachable.** Seven until #185, which took `Invoice not
+found` out as a thrown message rather than screen text, and six until #318 deleted one.
 
-**AND THE ONE THIS FILE CALLED REACHABLE IS NOT (#185).** The entry said
-`Paid Date is required when marking as Paid.` could be produced "because the date
-control carries no `required`". It carries one: `PaidForm.js` renders the date input
-only while Paid is checked, and that input is `required`, so the browser refuses the
-submit and the action never runs. **Checked in a browser** — with Paid checked and
-the date cleared, `form.checkValidity()` is `false` and `requestSubmit` does nothing.
-Read wrongly the first time, which is the failure mode this file's own "how each was
-judged" note warns about: the control was read, and the wrong attribute was seen.
+**AND THE ONE #318 DELETED IS THE ONE THIS FILE ARGUED HARDEST ABOUT.**
+`Paid Date is required when marking as Paid.` was listed as REACHABLE first, "because
+the date control carries no `required`"; #185 read the control, found the attribute,
+and corrected the entry — the date input rendered only while the `Paid` box was checked
+and was `required` whenever it rendered, so the browser refused the submit and the
+action never ran. **Checked in a browser then**: with Paid checked and the date
+cleared, `form.checkValidity()` was `false` and `requestSubmit` did nothing. #318
+merged the two fields into one date, so there is no box to tick, an empty date is a
+value rather than a gap, and the refusal has no state left to describe. **The string is
+gone from the tree** — which is the one way an entry leaves this file without anybody
+deciding to remove it.
 
 - **`Only an Admin can update payment status.`**, **`Only an Admin can delete
   invoices.`** — both controls render for an Admin only. **The first was thrown until
   #185** and is returned now, so a refusal would land in the Payment section's own red
-  box rather than on an error page.
-- **`Paid Date is required when marking as Paid.`** — the date input is `required`
-  whenever it renders, so the browser answers first. See the note above.
+  box rather than on an error page. **#318 put that control behind `Edit payment` as
+  well**, so the form and its box render only once an Admin has opened them — which
+  narrows the same refusal further and changes nothing about why it is unreachable.
 - **`Something went wrong updating payment status. Please try again.`**,
   **`Couldn't delete the invoice. Please try again.`** — need Airtable to fail.
 - **`Invoice File`** — not a refusal but the same class: the link's fallback text,
@@ -250,6 +253,15 @@ Recorded here as the finding rather than as an entry, because the omission is th
 worth knowing: **a string can become unreachable through the INTERSECTION of two role
 flags, and reading one control at a time does not find that.**
 
+**#318 MADE THAT SENTENCE EVERY READER'S, WHICH IS THE SECOND HALF OF THE SAME
+FINDING.** #309 made `Paid on {date}` / `Not paid yet.` the ordinary case for a
+non-Admin; an Admin still never saw it, because it was the alternate of a branch whose
+consequent was the form. So the string was reachable by some readers and unreachable by
+the office throughout — a reachability that varied by role rather than by data, which
+this file has no shape for. The section reads the same for everybody now, and the
+sentence was read with both fixture sessions on `HYE-INV-260821-02` and on
+`HYE-INV-260819-08`, the base's one paid invoice.
+
 **#316 IS THAT FINDING USED RATHER THAN RE-DISCOVERED, WHICH IS WHY IT ADDS NO ENTRY
 HERE.** Its overdue sentence goes in the same `Payment` section, and the section's
 `isAdmin` split is what would have hidden it: put in the alternate it reaches no Admin,
@@ -260,7 +272,9 @@ both halves were read with a real session — `soo@` (Admin) and `scoped-fixture
 
 ## Coverage
 
-**87 distinct refusal strings across the twenty-one screens.** Six screens hold none
+**86 distinct refusal strings across the twenty-one screens.** It was 87 until #318
+deleted `Paid Date is required when marking as Paid.` with the checkbox that made it
+possible. Six screens hold none
 at all; the rest are declared in eight `actions.js` files and, since #188, one `lib/`
 module, and a file's refusals are attributed to every screen that imports one export
 from it — which is why `/pos` carries the signing chain's and both delivery detail

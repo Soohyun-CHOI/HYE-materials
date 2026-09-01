@@ -58,6 +58,8 @@ const LIST = "app/invoices/page.js";
 const DETAIL = "app/invoices/[invoiceId]/page.js";
 /** Where the judgment and its words live. */
 const MODULE = "lib/deliveryStatus.js";
+/** Where the detail's sentence is RENDERED, since #318 moved the section's body. */
+const SECTION = "app/invoices/[invoiceId]/PaymentSection.js";
 
 const JUDGMENT = ["invoicePayment", "describeInvoiceOverdue"];
 
@@ -188,6 +190,70 @@ export function run({ check, assert, log }) {
     check(
         "  and collects none where the test is not a privilege question",
         privilegeBranches(parseSource("const x = a ? b : c;\n", "<plain>").ast).length,
+        0
+    );
+
+    // ── 3b: and it is not hidden by the control opening either (#318) ───────
+    //
+    // RE-FOUNDED RATHER THAN DELETED, WHICH THE SHAPE OF THE PAGE FORCED. #316 put this
+    // sentence after the section's `isAdmin` ternary and asserted exactly that: outside
+    // every privilege branch. **#318 removed the ternary** — the section reads the same
+    // for every reader and only its control is Admin's — so "outside the branch" is a
+    // claim with no branch left to be outside of, and the assertion above went quietly
+    // vacuous on this page the moment the sentence moved into the section's own
+    // component. Deleting it would have left the placement unheld; what replaces it is
+    // the same claim against the two branches that now exist there.
+    //
+    // THE SECOND ONE IS THE NEW HAZARD. The sentence is rendered beside an open/closed
+    // state, so it can be hidden by `editing` exactly as it could once have been hidden
+    // by `user.isAdmin`, and no privilege-shaped rule sees that. It is the same mutant
+    // `offline/invoice-visibility.mjs`'s 3b holds for the payment fact; this file holds
+    // it for the lateness sentence, because `isPaymentNode` does not match an overdue
+    // slot and neither file's predicate should learn the other's subject.
+    log("");
+    log("nor is it hidden when the control opens (#318):");
+    const section = parseFile(SECTION);
+    const overdueReads = countSlotReads(section.ast, "text");
+    assert(`${SECTION} renders the sentence it was handed`, overdueReads > 0 && mentions(section.ast, "overdue"));
+    const hidden = [...privilegeBranches(section.ast), ...stateBranches(section.ast)].filter(
+        (b) => mentions(b.consequent, "overdue") !== mentions(b.alternate, "overdue")
+    );
+    check(
+        "no branch on privilege or on the open state carries it on one side only",
+        hidden.length,
+        0
+    );
+    // ANTI-VACUITY, BOTH DIRECTIONS. The state-branch finder has to be seen collecting
+    // on the real file, or "none of them carries it" is what an empty list reports.
+    assert("the state-branch finder found the open state", stateBranches(section.ast).length > 0);
+    const tucked318 = parseSource(
+        "export default function S({ overdue }) {\n" +
+            "  const [editing, setEditing] = useState(false);\n" +
+            "  return <div>{!editing && overdue && <p>{overdue.text}</p>}</div>;\n" +
+            "}\n",
+        "<tucked-318>"
+    );
+    // Counted as "reported at all" rather than as one finding: `!editing && overdue &&
+    // <p/>` nests two `&&`s and the finder collects both, which is the detector working
+    // rather than double-reporting a second defect.
+    assert(
+        "the sentence behind `!editing` is reported",
+        stateBranches(tucked318.ast).filter(
+            (b) => mentions(b.consequent, "overdue") !== mentions(b.alternate, "overdue")
+        ).length > 0
+    );
+    const beside = parseSource(
+        "export default function S({ overdue }) {\n" +
+            "  const [editing, setEditing] = useState(false);\n" +
+            "  return <div>{overdue && <p>{overdue.text}</p>}{editing && <form />}</div>;\n" +
+            "}\n",
+        "<beside>"
+    );
+    check(
+        "  and the same sentence beside the control is not",
+        stateBranches(beside.ast).filter(
+            (b) => mentions(b.consequent, "overdue") !== mentions(b.alternate, "overdue")
+        ).length,
         0
     );
 
@@ -342,6 +408,46 @@ function privilegeBranches(ast) {
         if (node.type === "LogicalExpression" && node.operator === "&&" && asksPrivilege(node.left)) {
             out.push({ test: node.left, consequent: node.right, alternate: null });
         }
+    });
+    return out;
+}
+
+/**
+ * Every branch whose test asks what state the section is in (#318).
+ *
+ * A SECOND COPY OF `offline/invoice-visibility.mjs`'s HELPER, DELIBERATELY, and for the
+ * reason `privilegeBranches` above is already a second copy of that file's: each file
+ * asks the question of its own subject, and a shared helper would put one file's notion
+ * of a rendered fact inside the other's rule. The locals come off `useState` rather than
+ * off a name list, which is the property that survives a rename of `editing`.
+ */
+function stateBranches(ast) {
+    const locals = new Set();
+    walk(ast, (node) => {
+        if (node.type !== "VariableDeclarator" || node.id?.type !== "ArrayPattern") return;
+        if (node.init?.type !== "CallExpression" || node.init.callee?.name !== "useState") return;
+        const first = node.id.elements?.[0];
+        if (first?.type === "Identifier") locals.add(first.name);
+    });
+    const out = [];
+    walk(ast, (node) => {
+        const test =
+            node.type === "ConditionalExpression" || node.type === "IfStatement"
+                ? node.test
+                : node.type === "LogicalExpression" && node.operator === "&&"
+                  ? node.left
+                  : null;
+        if (!test) return;
+        let asks = false;
+        walk(test, (n) => {
+            if (n.type === "Identifier" && locals.has(n.name)) asks = true;
+        });
+        if (!asks) return;
+        out.push({
+            test,
+            consequent: node.type === "LogicalExpression" ? node.right : node.consequent,
+            alternate: node.type === "LogicalExpression" ? null : (node.alternate ?? null),
+        });
     });
     return out;
 }

@@ -36,11 +36,15 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * with no date is a weak record); unchecking always clears Paid Date too,
  * so a stale date never lingers if it's checked again later.
  */
-// Issue #185 — RETURNED, for the reason the two below already were: `PaidForm.js`
-// binds this through `useActionState`, so the refusal reaches `state.error` and the
-// section's own red box shows it. The box is not new and not theoretical — it is
-// where `Paid Date is required when marking as Paid.` lands, which is one of the two
-// refusals on this screen a reader can actually produce.
+// Issue #185 — RETURNED, for the reason the two below already were:
+// `PaymentSection.js` binds this through `useActionState`, so the refusal reaches
+// `state.error` and the section's own red box shows it. The box is not new and not
+// theoretical — it was where `Paid Date is required when marking as Paid.` landed,
+// which was one of the two refusals on this screen a reader could produce. **#318
+// renamed that file with its shape, moved the box inside the control, and removed that
+// refusal with the checkbox that made it possible**: the form renders only once an
+// Admin has opened it, so the box arrives where the reader who submitted is looking,
+// and what can now arrive in it is the authorization refusal or an Airtable failure.
 export const updatePaidAction = withAdminAction(
     () => ({ error: "Only an Admin can update payment status." }),
     updatePaidHandler
@@ -49,21 +53,20 @@ export const updatePaidAction = withAdminAction(
 async function updatePaidHandler(prevState, formData) {
     return withOpsLabel("updatePaidAction", async () => {
         const invoiceId = formData.get("invoiceId");
-        const paid = formData.get("paid") === "on";
+        // #318 — ONE FIELD ARRIVES AND THERE IS NOTHING LEFT TO REFUSE. The form sent
+        // `paid` and `paidDate`, and this refused the one combination it could see —
+        // ticked with no date — while the reverse, a date on an invoice the box called
+        // unpaid, was written without complaint. `Invoices."Paid"` is gone: a date IS
+        // the payment, so an empty one is a value rather than a gap and records that
+        // the invoice is not paid. `Paid Date is required when marking as Paid.` went
+        // with the state it described.
         const paidDate = formData.get("paidDate") || null;
-
-        if (paid && !paidDate) {
-            return { error: "Paid Date is required when marking as Paid." };
-        }
 
         const invoice = await getInvoiceById(invoiceId);
         if (!invoice) throw new Error("Invoice not found");
 
         try {
-            await updateInvoice(invoice.id, {
-                paid,
-                paidDate: paid ? paidDate : null,
-            });
+            await updateInvoice(invoice.id, { paidDate });
         } catch (err) {
             console.error("updatePaidAction failed", err);
             return { error: "Something went wrong updating payment status. Please try again." };

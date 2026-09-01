@@ -93,7 +93,7 @@ const ACTIONS = {
         file: "app/invoices/[invoiceId]/actions.js",
         shape: "return",
         binding: "useActionState",
-        why: "PaidForm.js binds it; the box is where the Paid Date refusal already lands",
+        why: "PaymentSection.js binds it; the box is where the Paid Date refusal already lands",
     },
     updateInvoiceAction: {
         text: "Not authorized.",
@@ -471,9 +471,13 @@ export function run({ check, assert, log }) {
     );
     // ANTI-VACUITY, both halves: the renderer detector has to say yes on a real file
     // and no on one where the render is removed.
-    const paidForm = parseFile("app/invoices/[invoiceId]/PaidForm.js").ast;
-    assert("the detector sees a real render", renderedInJsx(paidForm, "state"));
-    assert("  and says no for a name nothing renders", !renderedInJsx(paidForm, "nothingRendersThis"));
+    // `PaidForm.js` UNTIL #318, WHICH RENAMED IT WITH ITS SHAPE — the file holds the
+    // whole `Payment` section now, and the form inside it renders only once an Admin
+    // opens it. The refusal box travels with the form, so the detector's subject is
+    // unchanged: it still asks whether the bound state reaches JSX anywhere in the file.
+    const paymentSection = parseFile("app/invoices/[invoiceId]/PaymentSection.js").ast;
+    assert("the detector sees a real render", renderedInJsx(paymentSection, "state"));
+    assert("  and says no for a name nothing renders", !renderedInJsx(paymentSection, "nothingRendersThis"));
 
     // ── 5. the premise: a thrown refusal is not copy in this app ────────────
     log("");

@@ -26,7 +26,7 @@ import { formatUSD } from "@/lib/format";
 // that set them.
 import { VARIANCE_COPY } from "@/lib/variance";
 import { withOpsLabel } from "@/lib/airtableOps";
-import PaidForm from "./PaidForm";
+import PaymentSection from "./PaymentSection";
 import DeleteInvoiceButton from "./DeleteInvoiceButton";
 
 // The route param IS the human-readable ID, so the tab names the record for
@@ -75,8 +75,10 @@ const ENTRY_TONE_CLASS = {
 // that a vendor's own staff might ask about it on site; the office asked for the
 // opposite. That issue had no need to tell reading and writing apart, because one
 // answer stood behind both — and this page is where they split: the section is
-// ungated and the FORM inside it is `user.isAdmin`, which is what `updatePaidAction`
-// is wrapped with. The two conditions are deliberately not one expression.
+// ungated and the CONTROL inside it is `user.isAdmin`, which is what
+// `updatePaidAction` is wrapped with. **SINCE #318 THAT ANSWER TRAVELS AS `canEdit`
+// RATHER THAN AS A BRANCH HERE**, and the two conditions are still deliberately not
+// one expression: the section's body is unconditional and only the control asks.
 //
 // LABELED IN #232, THE WAY `/pos/[poId]` AND `/prs/[prId]` ARE. An outer wrapper, so
 // the page body keeps its indentation, and the route TEMPLATE, so repeated loads
@@ -710,56 +712,52 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 subject is gone: there is nothing to withhold, so there is nothing for
                 the heading to announce and hide.
 
-                THE ONE CONDITION LEFT IS THE WRITE'S, AND IT IS `user.isAdmin`
-                RATHER THAN A PRIVILEGE FLAG. `updatePaidAction` is `withAdminAction`,
-                so this is #185's pair rule read straight off the action's own gate.
-                It was already this shape under #211's outer gate — which is why this
-                issue changes no write path — and the two conditions must stay
-                separate expressions: nested behind one answer, opening the read would
-                have opened the control with it, and every check in the tier would
-                still pass.
+                AND THE SECTION READS THE SAME FOR EVERY READER SINCE #318. #309 split
+                reading from writing and this screen did not follow: the body branched
+                on `user.isAdmin`, so an Admin got the form and everybody else got a
+                sentence and neither saw what the other did. The fact and the control
+                for it were alternatives — which is what forced #316 to place its own
+                sentence outside that branch to reach both readers at all. The body is
+                one thing now, and what an Admin has in addition is a control beside it.
 
-                PAYMENT IS ON BOTH SIDES OF THAT CONDITION, which is the property
-                offline/invoice-visibility.mjs holds: a reader who cannot record it
-                still reads it, as a sentence. Before #309 that sentence was reachable
-                only by a President who is not an Admin, and this base has none — so
-                it rendered for nobody and is now the ordinary case. */}
+                `canEdit` IS A PROP RATHER THAN A BRANCH HERE, AND THAT IS #185's PAIR
+                RULE UNCHANGED. `updatePaidAction` is `withAdminAction`, so the screen
+                condition is still `user.isAdmin`; what moved is where it is asked.
+                `{user.isAdmin && <PaymentSection paidDate={…}/>}` would be a privilege
+                branch carrying the payment fact on one side and nothing on the other,
+                which is the shape `offline/invoice-visibility.mjs`'s third assertion
+                reports — a false positive here, and structurally identical to the real
+                defect, so the branch goes rather than the rule. See that file and
+                `PaymentSection.js`'s own header.
+
+                NOTHING HERE CLOSES THE CONTROL AFTER A SAVE, AND THAT WAS MEASURED
+                RATHER THAN ASSUMED. This carried a `key` on the record's payment values
+                first, on the reasoning that a save changes the props and a changed key
+                remounts the section closed. It does close — and it closes with the key
+                removed too, because `updatePaidAction` REDIRECTS, and a redirect from a
+                Server Action replaces the segment rather than re-rendering it in place,
+                so the Client Component remounts whatever its key says. Read in a browser
+                both ways, including a save that changed nothing. The key went rather
+                than stay with a comment explaining a property it did not have.
+
+                ONE PROP CARRIES THE PAYMENT SINCE #318. It was `paid` and `paidDate`,
+                a flag and a date that could disagree; the flag is gone from the base
+                and the date is the whole of the fact, so the section is handed one
+                value and cannot be told two things about one invoice.
+
+                THE LATENESS SENTENCE IS RESOLVED HERE AND RENDERED THERE (#316). The
+                copy lives in `lib/deliveryStatus.js` and nothing under `app/` holds a
+                second copy of it, so the server picks the words and the Client
+                Component renders the slot it was given — `/pos` hands `POListClient` a
+                resolved chip for the same reason. */}
             <div className="mt-8">
                 <h2 className="text-lg font-semibold">Payment</h2>
-                {user.isAdmin ? (
-                    <div className="mt-2">
-                        <PaidForm invoiceId={invoice.invoiceId} paid={invoice.paid} paidDate={invoice.paidDate} />
-                    </div>
-                ) : (
-                    <p className="mt-2 text-sm">
-                        {invoice.paid ? `Paid on ${invoice.paidDate || "—"}` : "Not paid yet."}
-                    </p>
-                )}
-                {/* #316 — OUTSIDE THE BRANCH ABOVE, AND THAT PLACEMENT IS THE WHOLE
-                    DECISION. The obvious home was beside `Not paid yet.`, and that
-                    sentence is the ALTERNATE of an `isAdmin` test — an Admin gets the
-                    control instead of it and would never see a word put there. The
-                    consequent is no better, one reader the other way. So the fact
-                    stands after the branch, where both readers reach it: #309 opened
-                    reading payment to everyone who reaches the row, and lateness is a
-                    payment fact of exactly that grade.
-
-                    `offline/invoice-visibility.mjs` DOES NOT HOLD THIS ONE, which is
-                    why `offline/invoice-overdue.mjs` exists. That file's rule is that
-                    a payment READ may not sit on one side of a privilege test, and it
-                    finds a read by the five shapes `.paid` arrives in — this line
-                    hands the record to `invoicePayment` and names no payment field, so
-                    moving it inside the ternary would fail nothing there.
-
-                    THE SAME JUDGMENT AND THE SAME WORDS AS THE LIST, at the other
-                    density: `describeInvoiceOverdue` hands over the badge and the
-                    sentence together, so the row a reader clicked and the page they
-                    land on cannot disagree about whether this invoice is late. */}
-                {(() => {
-                    const { sentence } = describeInvoiceOverdue(invoicePayment(invoice, today));
-                    if (!sentence) return null;
-                    return <p className="mt-2 text-sm text-red-700">{sentence.text}</p>;
-                })()}
+                <PaymentSection
+                    invoiceId={invoice.invoiceId}
+                    paidDate={invoice.paidDate}
+                    overdue={describeInvoiceOverdue(invoicePayment(invoice, today)).sentence}
+                    canEdit={user.isAdmin}
+                />
             </div>
 
             {user.isAdmin && (

@@ -576,10 +576,22 @@ async function renderInvoiceListPage() {
                                     the badge measured 48.5px, the same as a plain one.
                                     Give Vendor its width back and this cell becomes
                                     the tallest thing in the row. */}
+                                {/* #318 — ONE CALL ANSWERS BOTH HALVES OF THIS CELL,
+                                    and the row stopped reading payment twice. The word
+                                    read `inv.paid` off the mapper while the badge below
+                                    it went through `invoicePayment`; the flag is gone
+                                    from the base, so the word reads the judgment's own
+                                    `paid` and the two halves cannot describe one
+                                    invoice differently. */}
                                 <td className="py-1">
+                                    {(() => {
+                                    const payment = invoicePayment(inv, today);
+                                    const { badge } = describeInvoiceOverdue(payment);
+                                    return (
+                                    <>
                                     <span
                                         className={
-                                            inv.paid ? "text-green-700" : "text-zinc-500"
+                                            payment.paid ? "text-green-700" : "text-zinc-500"
                                         }
                                     >
                                         {/* THE DATE IS GONE (#309). A badge says the
@@ -598,7 +610,7 @@ async function renderInvoiceListPage() {
                                             by negating it rather than by coining a
                                             second lexeme; this was the cheaper side to
                                             move, at one string against two. */}
-                                        {inv.paid ? "Paid" : "Not paid"}
+                                        {payment.paid ? "Paid" : "Not paid"}
                                     </span>
                                     {/* #316 — THE BADGE QUALIFIES THE WORD ABOVE IT,
                                         so it sits directly under it and above the
@@ -620,22 +632,19 @@ async function renderInvoiceListPage() {
                                         #311's own mutant one scope down. `today` is
                                         the page's, taken once above so every row is
                                         judged against one day. */}
-                                    {(() => {
-                                        const { badge } = describeInvoiceOverdue(
-                                            invoicePayment(inv, today)
-                                        );
-                                        if (!badge) return null;
-                                        return (
-                                            <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
-                                                {badge.text}
-                                            </span>
-                                        );
-                                    })()}
+                                    {badge && (
+                                        <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
+                                            {badge.text}
+                                        </span>
+                                    )}
                                     {inv.varianceFlag && (
                                         <span className="mt-0.5 block w-fit rounded bg-red-100 px-1 text-xs text-red-700">
                                             {VARIANCE_COPY.header}
                                         </span>
                                     )}
+                                    </>
+                                    );
+                                    })()}
                                 </td>
                             </tr>
                         ))}

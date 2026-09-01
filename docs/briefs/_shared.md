@@ -511,10 +511,23 @@ opening the column took it back off that neighbor.
 
 **What survives is smaller than a column and still real.** A single LINE can be
 absent: the purchase order detail's `Delivery Address Used` is office-only, and the
-invoice list's `New invoice` control is Admin-only. And one SECTION renders two ways
-rather than two sizes: the invoice detail's `Payment` is a form for an Admin and the
-same fact as a sentence for everybody else. That last shape is the one to copy where a
-reader may not act — the fact is not what varies.
+invoice list's `New invoice` control is Admin-only.
+
+**AND NO SECTION RENDERS TWO WAYS EITHER, SINCE #318.** One did. The invoice detail's
+`Payment` was a form for an Admin and the same fact as a sentence for everybody else —
+two shapes for one section, and this paragraph named it the shape to copy where a
+reader may not act. **What it got right is the half that survives: the fact is not what
+varies.** What it got wrong is that the fact and the control for it were ALTERNATIVES,
+so nobody saw both and the read followed whatever the control's condition became — and
+a later issue adding a sentence to that section had to place it outside the branch to
+reach anybody. **The shape to copy is what replaced it: the section reads the same for
+every reader, and a reader who may act gets a CONTROL BESIDE the fact.** A control may
+be absent; the fact may not, and it may not be drawn twice.
+
+**The same rule covers a control that is present and closed.** That `Payment` control
+opens one field where the fact sits, and the fact stays visible while it is open —
+hiding it there is the same defect with the reader's own state in place of their
+privilege.
 
 And the same screen can be reached by a reader who sees no rows at all, which is
 why the empty states are worded three ways rather than one: nothing exists yet,
