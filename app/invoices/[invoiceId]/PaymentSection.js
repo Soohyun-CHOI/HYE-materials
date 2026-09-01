@@ -18,7 +18,7 @@ import { updatePaidAction } from "./actions";
 // for an Admin, the control — which is `naming.md`'s own test for a file name.
 //
 // `canEdit` RATHER THAN A PRIVILEGE TEST ON THE PAGE, AND THE REASON IS A CHECK.
-// `{user.isAdmin && <PaidForm paid={invoice.paid} …/>}` is a privilege branch whose
+// `{user.isAdmin && <PaymentSection paidDate={…}/>}` is a privilege branch whose
 // consequent reads payment and whose alternate is nothing, which is exactly what
 // `offline/invoice-visibility.mjs`'s third assertion reports — the fact disappearing
 // with the control. It would have been a false positive here, since the sentence is
@@ -30,8 +30,15 @@ import { updatePaidAction } from "./actions";
 // this is the same question — held now by `offline/invoice-visibility.mjs` in its
 // inverted form.
 //
+// AND THE CONTROL WRITES ONE FIELD SINCE #318's SECOND HALF. A `Paid` checkbox stood
+// above the date and the date appeared only once it was ticked, so two controls wrote
+// two fields whose four combinations had two meanings — the form required a date when
+// the box was ticked and nothing refused the reverse. `Invoices."Paid"` is gone from
+// the base; a `Paid Date` IS the payment, and clearing it is how a payment is
+// un-recorded.
+//
 // THE READ STATE IS OUTSIDE THE OPEN-STATE BRANCH AND MUST STAY THERE. Hiding the
-// sentence while the fields are open puts the fact and the control back behind one
+// sentence while the field is open puts the fact and the control back behind one
 // condition, which is the shape this issue removed — with `editing` where
 // `user.isAdmin` used to be, and no privilege test for any existing check to see.
 // `offline/invoice-visibility.mjs` pins it as a second predicate on the same
@@ -41,24 +48,28 @@ import { updatePaidAction } from "./actions";
 // THE COMPONENT DOES NOT RESET ITSELF AFTER A SAVE AND DOES NOT NEED TO, WHICH IS A
 // MEASUREMENT RATHER THAN A GUESS. `updatePaidAction` ends in a `redirect` to this same
 // route, and a redirect from a Server Action replaces the segment rather than
-// re-rendering it in place — so this remounts, `editing` is false again, and the fields
-// prefill from the record the save just wrote. Read in a browser on a save that changed
+// re-rendering it in place — so this remounts, `editing` is false again, and the field
+// prefills from the record the save just wrote. Read in a browser on a save that changed
 // the record and on one that changed nothing; both come back closed. The page carried a
 // `key` on the payment values for one revision to force exactly that, and it was removed
 // once the behavior turned out not to depend on it. Which is why there is no `useEffect`
 // here and no state to keep in step with the props.
-export default function PaymentSection({ invoiceId, paid, paidDate, overdue, canEdit }) {
+export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }) {
     const [state, formAction, pending] = useActionState(updatePaidAction, null);
     const [editing, setEditing] = useState(false);
-    const [checked, setChecked] = useState(paid);
-    const [date, setDate] = useState(paidDate || todayIso());
+    // THE FIELD OPENS ON THE RECORD AND ON NOTHING ELSE (#318). It used to prefill
+    // today the moment the `Paid` box was ticked, which was a convenience while the
+    // tick was the deliberate act. With the box gone the date IS the payment, and a
+    // field that arrives holding today turns `Edit payment` → `Save` into a payment
+    // recorded by two clicks and no typing. An invoice that carries a date opens
+    // holding it, or nothing would stop opening the control and saving from moving it.
+    const [date, setDate] = useState(paidDate || "");
 
-    // `/invoices/new`'s `handleCancelUnitPriceEdit`, one screen over: the values come
+    // `/invoices/new`'s `handleCancelUnitPriceEdit`, one screen over: the value comes
     // back from the SOURCE rather than from a copy taken when the control opened. The
-    // props are the record, so there is nothing here to go stale against it.
+    // prop is the record, so there is nothing here to go stale against it.
     function cancel() {
-        setChecked(paid);
-        setDate(paidDate || todayIso());
+        setDate(paidDate || "");
         setEditing(false);
     }
 
@@ -71,7 +82,7 @@ export default function PaymentSection({ invoiceId, paid, paidDate, overdue, can
                 `Cancel` legible — it says what the fields go back to. */}
             <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="text-sm">
-                    {paid ? `Paid on ${paidDate || "—"}` : "Not paid yet."}
+                    {paidDate ? `Paid on ${paidDate}` : "Not paid yet."}
                 </p>
                 {/* `Edit payment` RATHER THAN `Edit`, AND THE COLLISION IS ON THIS
                     SCREEN. `/invoices/new` labels the same act `Edit` because nothing
@@ -111,30 +122,51 @@ export default function PaymentSection({ invoiceId, paid, paidDate, overdue, can
                         </p>
                     )}
                     <input type="hidden" name="invoiceId" value={invoiceId} />
-                    <label className="flex items-center gap-2 text-sm">
+                    {/* ONE FIELD, AND NOT `required` (#318). A `Paid` checkbox stood
+                        above this and the date appeared only once it was ticked, so two
+                        controls wrote two fields that could disagree. The date is the
+                        whole of the fact now, which means a BLANK one is a value rather
+                        than a gap — it records that the invoice is not paid — so the
+                        attribute that used to make the empty case impossible has to go
+                        with the box. `Paid Date is required when marking as Paid.` went
+                        with it: there is no longer a state for it to refuse. */}
+                    <div>
+                        <label htmlFor="paidDate" className="block text-sm font-medium">
+                            Paid Date
+                        </label>
                         <input
-                            type="checkbox"
-                            name="paid"
-                            checked={checked}
-                            onChange={(e) => setChecked(e.target.checked)}
+                            type="date"
+                            id="paidDate"
+                            name="paidDate"
+                            value={date}
+                            onChange={(e) => setDate(e.target.value)}
+                            className="rounded border border-zinc-300 px-2 py-1 text-sm"
                         />
-                        Paid
-                    </label>
-                    {checked && (
-                        <div>
-                            <label htmlFor="paidDate" className="block text-sm font-medium">
-                                Paid Date
-                            </label>
-                            <input
-                                type="date"
-                                id="paidDate"
-                                name="paidDate"
-                                required
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="rounded border border-zinc-300 px-2 py-1 text-sm"
-                            />
-                        </div>
+                    </div>
+                    {/* THE WAY BACK, NAMED WHERE A READER WOULD LOOK FOR IT, AND ONLY
+                        WHERE THERE IS SOMETHING TO CLEAR. Un-recording a payment is
+                        emptying the field rather than a second control: a control would
+                        be a second way to say one thing on a section this issue exists
+                        to reduce to one, and `Cancel` beside it already means abandon.
+                        What emptying a date input is not is discoverable, so the
+                        sentence buys that instead — #232's rule that this app names what
+                        a reader cannot do where they would try it, pointed the other
+                        way.
+
+                        IT ASKS THE FIELD RATHER THAN THE RECORD, AND A CHECK IS WHY.
+                        `{paidDate && …}` was the first shape and it reads the payment
+                        fact inside the `editing` branch, which
+                        `offline/invoice-visibility.mjs`'s 3b reports — the fact on one
+                        side of the open state. Nothing was hidden by it, the sentence
+                        above being unconditional, but the branch is the same shape as
+                        the defect. Asking `date` is also the truer question: the
+                        sentence is about the box in front of the reader, so it stands
+                        while there is something in it to clear, including a date just
+                        typed. */}
+                    {date && (
+                        <p className="text-xs text-zinc-500">
+                            Clear the date to record that this invoice is not paid.
+                        </p>
                     )}
                     <div className="flex items-center gap-3">
                         <button
@@ -160,8 +192,4 @@ export default function PaymentSection({ invoiceId, paid, paidDate, overdue, can
             )}
         </div>
     );
-}
-
-function todayIso() {
-    return new Date().toISOString().slice(0, 10);
 }

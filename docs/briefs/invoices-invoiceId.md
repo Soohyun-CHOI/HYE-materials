@@ -126,15 +126,35 @@ what the count is counted against. Both open with `⚠ Overdue`. **An invoice du
 is not late, and one with no due date is not late** — the section then holds only its
 payment line, and the due date in the identity block above is the date or an em dash.
 
-**When an Admin presses `Edit payment`:** the checkbox and the date open **where the
-sentence sits**, with `Save` and `Cancel` under them, and `Edit payment` goes while
-they are open. Not a dialog: this app's modals are for the actions it cannot undo, and
-recording payment can be recorded again. It is the shape `/invoices/new` already uses
-to unlock a locked unit price on a row — a small text control that opens the field in
-place, and a `Cancel` beside it that puts the value back.
+**When an Admin presses `Edit payment`:** one date field, labelled `Paid Date`, opens
+**where the sentence sits**, with `Save` and `Cancel` under it, and `Edit payment` goes
+while it is open. Not a dialog: this app's modals are for the actions it cannot undo,
+and recording payment can be recorded again. It is the shape `/invoices/new` already
+uses to unlock a locked unit price on a row — a small text control that opens the field
+in place, and a `Cancel` beside it that puts the value back.
 
-**The sentence stays while they are open, and it keeps stating what is RECORDED.** So
-a reader who has ticked the box still sees `Not paid yet.` above it until they save.
+**A DATE IS THE WHOLE OF THE FACT, and there is no checkbox.** An invoice with a
+`Paid Date` was paid on that day; one without was not. There was a `Paid` checkbox
+beside the date until the field merge, and the two could disagree — the form demanded a
+date when the box was ticked and nothing refused the reverse, so a record could carry a
+date for a payment it said never happened. **A redesign may not put a second control
+back on this fact**, whatever it is called: the shape is the one `Withdrawn At` and
+`Sent At` already have on the order axis.
+
+**Clearing the date is how a payment is un-recorded**, and the form says so while there
+is a date in the box: `Clear the date to record that this invoice is not paid.` There
+is deliberately no separate control for it — a second control would be a second way to
+say one thing, and `Cancel` beside it already means abandon.
+
+**The field opens holding the record's date, or empty**, and empty is the whole
+decision for an unpaid invoice. It used to prefill today the moment the box was ticked,
+which was a convenience while the tick was the deliberate act; with the box gone a
+prefilled field would make `Edit payment` → `Save` a payment recorded by two clicks and
+no typing. The office pays on one weekday, so today is usually right — that is the cost
+being paid, knowingly, to keep the date typed rather than accepted.
+
+**The sentence stays while the field is open, and it keeps stating what is RECORDED.**
+So a reader who has typed a date still sees `Not paid yet.` above it until they save.
 That is not redundancy: one is the record and the other is what is about to be
 written, and it is what gives `Cancel` something visible to return to. **This is where
 the shape diverges from `/invoices/new`**, and knowingly — there the field and its
@@ -142,7 +162,7 @@ read display are one element, so the stored value is not visible while it is bei
 edited. That form is composing a new document; this section is amending a record whose
 current value is what the page exists to state.
 
-**`Cancel` puts the fields back to the record and closes**, re-derived from the record
+**`Cancel` puts the field back to the record and closes**, re-derived from the record
 rather than from a copy taken when the control opened — `/invoices/new`'s own rule for
 the same act. **`Save` closes the section too**, and the sentence then states the new
 value; a save that changed nothing closes it just the same.
@@ -152,15 +172,16 @@ has an `Edit`** — the Admin-only link beside the heading that opens the invoic
 editing. Two `Edit`s visible at once to exactly the reader who can press either is one
 word for two acts.
 
-**It is a form with its own submit**, a checkbox and a date beside it, saved by a
-button rather than toggled in place — so the page has a second submit on it, below the
-totals. Checking the box without a date is refused
-with `Paid Date is required when marking as Paid.` — though the date input is
-`required` whenever it renders, so the browser answers before the app does and that
-sentence never appears. **No refusal on this screen is reachable**: the rest are
-behind an Admin-only control or need Airtable to fail. **A redesign should still draw
-the box, and once.** It is where every refusal the section can produce arrives,
-including the authorization one since #185, which reached an error page before that.
+**It is a form with its own submit**, saved by a button rather than toggled in place —
+so the page has a second submit on it, below the totals. **The field is not `required`
+and nothing refuses an empty one**: a blank date is a value rather than a gap, since it
+is what records that the invoice is not paid. `Paid Date is required when marking as
+Paid.` was this section's one refusal a reader could produce and it went with the
+checkbox — there is no longer a state for it to describe. **No refusal on this screen is
+reachable**: the rest are behind an Admin-only control or need Airtable to fail. **A
+redesign should still draw the box, and once.** It is where every refusal the section
+can produce arrives, including the authorization one since #185, which reached an error
+page before that.
 The slot is real and empty by construction — which is a thing to know rather than a
 reason to drop it, because what fills it is a direct call or an Admin demoted between
 load and submit.

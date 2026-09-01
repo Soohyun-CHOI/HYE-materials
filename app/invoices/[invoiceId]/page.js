@@ -723,7 +723,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 `canEdit` IS A PROP RATHER THAN A BRANCH HERE, AND THAT IS #185's PAIR
                 RULE UNCHANGED. `updatePaidAction` is `withAdminAction`, so the screen
                 condition is still `user.isAdmin`; what moved is where it is asked.
-                `{user.isAdmin && <PaymentSection paid={…}/>}` would be a privilege
+                `{user.isAdmin && <PaymentSection paidDate={…}/>}` would be a privilege
                 branch carrying the payment fact on one side and nothing on the other,
                 which is the shape `offline/invoice-visibility.mjs`'s third assertion
                 reports — a false positive here, and structurally identical to the real
@@ -740,6 +740,11 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 both ways, including a save that changed nothing. The key went rather
                 than stay with a comment explaining a property it did not have.
 
+                ONE PROP CARRIES THE PAYMENT SINCE #318. It was `paid` and `paidDate`,
+                a flag and a date that could disagree; the flag is gone from the base
+                and the date is the whole of the fact, so the section is handed one
+                value and cannot be told two things about one invoice.
+
                 THE LATENESS SENTENCE IS RESOLVED HERE AND RENDERED THERE (#316). The
                 copy lives in `lib/deliveryStatus.js` and nothing under `app/` holds a
                 second copy of it, so the server picks the words and the Client
@@ -749,7 +754,6 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 <h2 className="text-lg font-semibold">Payment</h2>
                 <PaymentSection
                     invoiceId={invoice.invoiceId}
-                    paid={invoice.paid}
                     paidDate={invoice.paidDate}
                     overdue={describeInvoiceOverdue(invoicePayment(invoice, today)).sentence}
                     canEdit={user.isAdmin}

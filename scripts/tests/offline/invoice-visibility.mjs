@@ -565,15 +565,43 @@ export async function run({ check, log, assert }) {
     assert("  the file reads payment at all", total > 0);
     check("  and every one of them is inside a payment container", total - inside, 0);
     check("  all three containers were found", namedContainers(statusFile.ast, PAYMENT_CONTAINERS).length, 3);
-    // NO `paidDate` ANYWHERE IN IT, which is #311's no-figure rule as source shape:
-    // the badge says a set is late and never how late, because a day count belongs to
-    // one invoice while the badge is about a set.
-    let namesPaidDate = false;
+    // `paidDate` IN THE JUDGMENT AND NOWHERE ELSE IN THE FILE (#318), WHICH INVERTS
+    // #311's ASSERTION RATHER THAN DROPPING IT.
+    //
+    // That one read: no `paidDate` ANYWHERE in this module, as the source shape of the
+    // no-figure rule — the order badge says a set is late and never how late, because a
+    // day count belongs to one invoice while the badge is about a set. **#318 made the
+    // first half false**: `Invoices."Paid"` is gone, so `invoicePayment` reads the date
+    // to answer whether an invoice is paid at all, and a blanket absence would have had
+    // to be deleted. Deleting it would have left the no-figure rule unheld here.
+    //
+    // What replaces it is the narrower claim that is actually true and says more: the
+    // date reaches the JUDGMENT and stops there. `summarizePOPaymentStatus` folds a
+    // verdict and `poPayment` words it, and neither may name a date — which is the
+    // order scope, and the order scope is what #311's rule was about. The Airtable
+    // field name stays barred outright: this module reads no record.
+    const datesInFile = countNodes(statusFile.ast, (n) =>
+        (n.type === "Identifier" && n.name === "paidDate") ||
+        (n.type === "Property" && n.key?.name === "paidDate")
+    );
+    const datesInJudgment = namedContainers(statusFile.ast, ["invoicePayment"]).reduce(
+        (n, node) =>
+            n +
+            countNodes(node, (c) =>
+                (c.type === "Identifier" && c.name === "paidDate") ||
+                (c.type === "Property" && c.key?.name === "paidDate")
+            ),
+        0
+    );
+    assert("  the judgment names the payment date", datesInJudgment > 0);
+    check("  and nothing else in the file does", datesInFile - datesInJudgment, 0);
+    // The Airtable field name itself is barred outright — this module reads no record,
+    // so a literal here would be a second place the base is addressed from.
+    let namesTheField = false;
     walk(statusFile.ast, (node) => {
-        if (node.type === "Identifier" && node.name === "paidDate") namesPaidDate = true;
-        if (node.type === "Literal" && node.value === "Paid Date") namesPaidDate = true;
+        if (node.type === "Literal" && node.value === "Paid Date") namesTheField = true;
     });
-    assert("  and it names no payment DATE, so the badge can carry no figure", !namesPaidDate);
+    assert("  and it names the Airtable field nowhere at all", !namesTheField);
     // ANTI-VACUITY: the container finder has to be seen missing one it is not given.
     check(
         "  the container finder returns nothing for a name that is not there",
@@ -988,6 +1016,15 @@ function rendersPaymentValue(node) {
         });
     });
     return found;
+}
+
+/** How many nodes in this subtree satisfy `predicate` (#318). */
+function countNodes(node, predicate) {
+    let n = 0;
+    walk(node, (candidate) => {
+        if (predicate(candidate)) n += 1;
+    });
+    return n;
 }
 
 /** How many `<Name …>` elements this subtree opens. */

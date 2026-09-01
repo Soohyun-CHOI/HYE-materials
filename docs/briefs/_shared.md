@@ -525,7 +525,7 @@ every reader, and a reader who may act gets a CONTROL BESIDE the fact.** A contr
 be absent; the fact may not, and it may not be drawn twice.
 
 **The same rule covers a control that is present and closed.** That `Payment` control
-opens the fields where the fact sits, and the fact stays visible while they are open —
+opens one field where the fact sits, and the fact stays visible while it is open —
 hiding it there is the same defect with the reader's own state in place of their
 privilege.
 

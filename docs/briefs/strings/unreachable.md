@@ -91,17 +91,20 @@ controls' `step` validation does not fire).
 
 ## `/invoices/[invoiceId]`
 
-Six refusals; **all six unreachable.** Seven until #185, which took `Invoice not
-found` out as a thrown message rather than screen text.
+Five refusals; **all five unreachable.** Seven until #185, which took `Invoice not
+found` out as a thrown message rather than screen text, and six until #318 deleted one.
 
-**AND THE ONE THIS FILE CALLED REACHABLE IS NOT (#185).** The entry said
-`Paid Date is required when marking as Paid.` could be produced "because the date
-control carries no `required`". It carries one: `PaymentSection.js` — `PaidForm.js`
-until #318 — renders the date input only while Paid is checked, and that input is
-`required`, so the browser refuses the submit and the action never runs. **Checked in a browser** — with Paid checked and
-the date cleared, `form.checkValidity()` is `false` and `requestSubmit` does nothing.
-Read wrongly the first time, which is the failure mode this file's own "how each was
-judged" note warns about: the control was read, and the wrong attribute was seen.
+**AND THE ONE #318 DELETED IS THE ONE THIS FILE ARGUED HARDEST ABOUT.**
+`Paid Date is required when marking as Paid.` was listed as REACHABLE first, "because
+the date control carries no `required`"; #185 read the control, found the attribute,
+and corrected the entry — the date input rendered only while the `Paid` box was checked
+and was `required` whenever it rendered, so the browser refused the submit and the
+action never ran. **Checked in a browser then**: with Paid checked and the date
+cleared, `form.checkValidity()` was `false` and `requestSubmit` did nothing. #318
+merged the two fields into one date, so there is no box to tick, an empty date is a
+value rather than a gap, and the refusal has no state left to describe. **The string is
+gone from the tree** — which is the one way an entry leaves this file without anybody
+deciding to remove it.
 
 - **`Only an Admin can update payment status.`**, **`Only an Admin can delete
   invoices.`** — both controls render for an Admin only. **The first was thrown until
@@ -109,8 +112,6 @@ judged" note warns about: the control was read, and the wrong attribute was seen
   box rather than on an error page. **#318 put that control behind `Edit payment` as
   well**, so the form and its box render only once an Admin has opened them — which
   narrows the same refusal further and changes nothing about why it is unreachable.
-- **`Paid Date is required when marking as Paid.`** — the date input is `required`
-  whenever it renders, so the browser answers first. See the note above.
 - **`Something went wrong updating payment status. Please try again.`**,
   **`Couldn't delete the invoice. Please try again.`** — need Airtable to fail.
 - **`Invoice File`** — not a refusal but the same class: the link's fallback text,
@@ -271,7 +272,9 @@ both halves were read with a real session — `soo@` (Admin) and `scoped-fixture
 
 ## Coverage
 
-**87 distinct refusal strings across the twenty-one screens.** Six screens hold none
+**86 distinct refusal strings across the twenty-one screens.** It was 87 until #318
+deleted `Paid Date is required when marking as Paid.` with the checkbox that made it
+possible. Six screens hold none
 at all; the rest are declared in eight `actions.js` files and, since #188, one `lib/`
 module, and a file's refusals are attributed to every screen that imports one export
 from it — which is why `/pos` carries the signing chain's and both delivery detail

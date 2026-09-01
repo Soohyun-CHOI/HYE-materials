@@ -1159,7 +1159,16 @@ export function run({ check, log, assert }) {
     log("");
     log("summarizePOPaymentStatus — folds invoices, never quantities (#311):");
     const TODAY = "2026-08-28";
-    const inv = (paid, dueDate = "2026-09-30") => ({ paid, dueDate });
+    // #318 — A PAID INVOICE IS ONE WITH A DATE. `Invoices."Paid"` is gone from the
+    // base, so the fixture's first argument still means "is it paid" and is now
+    // realized as the presence of a `Paid Date` rather than as a flag. Every row of
+    // the table below reads unchanged, which is the point: what moved is the field the
+    // judgment asks, not the judgment.
+    const PAID_ON = "2026-08-14";
+    const inv = (paid, dueDate = "2026-09-30") => ({
+        paidDate: paid ? PAID_ON : null,
+        dueDate,
+    });
     const payment = (invoices, today = TODAY) => summarizePOPaymentStatus(invoices, today).key;
 
     const everyPaymentState = [
@@ -1226,7 +1235,8 @@ export function run({ check, log, assert }) {
     // added to the table above. Every assertion up to here reaches `invoicePayment`
     // through `summarizePOPaymentStatus`, which reads `overdue` and drops the rest —
     // so the figure the two invoice screens render was outside this table entirely.
-    const judge = (paid, dueDate, today = TODAY) => invoicePayment({ paid, dueDate }, today);
+    const judge = (paid, dueDate, today = TODAY) =>
+        invoicePayment({ paidDate: paid ? PAID_ON : null, dueDate }, today);
     check(
         "it returns three fields, the third being the figure",
         shapeOf(judge(false, "2026-08-21")),
@@ -1284,6 +1294,41 @@ export function run({ check, log, assert }) {
     // returns null for one, and a null count is not late. `summarizePOPaymentStatus`
     // folds this function, so `/pos` and `/pos/[poId]` took the new judgment too —
     // unobserved on this base, where all 23 invoices carry a parseable date.
+    log("");
+    log("a date is the whole of the payment, and the flag is not consulted (#318):");
+    // THE CONTRACT THIS ISSUE CHANGED, PINNED THE WAY #316's IS BELOW. `Invoices."Paid"`
+    // was a checkbox beside the date; the two made four combinations of which two had a
+    // meaning, and nothing refused a date on an invoice the box called unpaid. The
+    // judgment reads the date now, so `paid` is its presence — and the two combinations
+    // that had no meaning cannot be represented at all.
+    check("an invoice with a date is paid", invoicePayment({ paidDate: PAID_ON }, TODAY).paid, true);
+    check("  and one without is not", invoicePayment({ paidDate: null }, TODAY).paid, false);
+    check("  nor is one with an empty string", invoicePayment({ paidDate: "" }, TODAY).paid, false);
+    check("  nor one with no field at all", invoicePayment({}, TODAY).paid, false);
+    // AND A FLAG IS NOT A WAY IN. A caller still handing the old shape gets the answer
+    // the RECORD would give — no date, not paid — rather than the flag's. That is the
+    // mutation this pins: restore the flag as the input and this row flips.
+    check(
+        "a `paid` flag with no date does not make an invoice paid",
+        invoicePayment({ paid: true, dueDate: "2026-09-30" }, TODAY).paid,
+        false
+    );
+    check(
+        "  and a date with the flag off still does",
+        invoicePayment({ paid: false, paidDate: PAID_ON }, TODAY).paid,
+        true
+    );
+    // THE LATENESS AXIS INHERITS IT, which is the reach this change has beyond the two
+    // invoice screens: only an unpaid invoice can be late, and `unpaid` is now `no date`.
+    assert(
+        "an invoice with a date is not late however far past its due date",
+        !invoicePayment({ paidDate: PAID_ON, dueDate: "2026-01-01" }, TODAY).overdue
+    );
+    assert(
+        "  while the same invoice with the date cleared is",
+        invoicePayment({ paidDate: null, dueDate: "2026-01-01" }, TODAY).overdue
+    );
+
     const UNPARSEABLE = "2026-00-15";
     assert("an unparseable due date is not late", !judge(false, UNPARSEABLE).overdue);
     check("  and carries no figure either", judge(false, UNPARSEABLE).daysOverdue, null);
@@ -1297,7 +1342,7 @@ export function run({ check, log, assert }) {
     assert("  while a date that rolls over is judged, not refused", judge(false, "2026-02-30").overdue);
     // The other missing input, which `summarizePOPaymentStatus` cannot produce and a
     // direct caller can. `daysWaiting` refuses it, so this needs no guard of its own.
-    assert("a missing `today` judges nothing", !invoicePayment({ paid: false, dueDate: "2026-01-01" }).overdue);
+    assert("a missing `today` judges nothing", !invoicePayment({ paidDate: null, dueDate: "2026-01-01" }).overdue);
 
     log("");
     log("the chip — one stem, and the word this app already had:");
@@ -1405,9 +1450,9 @@ export function run({ check, log, assert }) {
     // nor the invoice's own page can decide for itself when the mark applies — which
     // is #311's divergence one scope down, and the reason this is one describer.
     for (const notLate of [
-        invoicePayment({ paid: false, dueDate: "2026-08-28" }, TODAY),
-        invoicePayment({ paid: false, dueDate: null }, TODAY),
-        invoicePayment({ paid: true, dueDate: "2026-01-01" }, TODAY),
+        invoicePayment({ paidDate: null, dueDate: "2026-08-28" }, TODAY),
+        invoicePayment({ paidDate: null, dueDate: null }, TODAY),
+        invoicePayment({ paidDate: PAID_ON, dueDate: "2026-01-01" }, TODAY),
         undefined,
     ]) {
         const described = describeInvoiceOverdue(notLate);
