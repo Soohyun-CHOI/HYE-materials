@@ -65,9 +65,22 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
     // holding it, or nothing would stop opening the control and saving from moving it.
     const [date, setDate] = useState(paidDate || "");
 
+    // WHAT THE SENTENCE STATES: THE DRAFT WHILE THE CONTROL IS OPEN, THE RECORD
+    // OTHERWISE. The sentence stated the RECORD in both states for one revision, on the
+    // ground that one place should hold what is stored and another what is about to be
+    // written. Reading it that way was worse than the argument: the reader picks a date
+    // and the line above it goes on saying `Not paid yet.`, so the screen contradicts
+    // the field they are looking at and nothing says the sentence is a step behind.
+    // It previews instead — `Save payment` keeps what is shown, `Cancel` puts it back —
+    // and the fact is never absent, which is the property `offline/invoice-visibility.mjs`
+    // holds. Closed, the two are the same value: `date` is initialized from the record,
+    // `cancel` resets it there, and a save remounts this component.
+    const statedDate = editing ? date : paidDate;
+
     // `/invoices/new`'s `handleCancelUnitPriceEdit`, one screen over: the value comes
     // back from the SOURCE rather than from a copy taken when the control opened. The
-    // prop is the record, so there is nothing here to go stale against it.
+    // prop is the record, so there is nothing here to go stale against it — and with
+    // the sentence previewing the draft, this is what the reader watches it undo.
     function cancel() {
         setDate(paidDate || "");
         setEditing(false);
@@ -82,7 +95,7 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
                 `Cancel` legible — it says what the fields go back to. */}
             <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <p className="text-sm">
-                    {paidDate ? `Paid on ${paidDate}` : "Not paid yet."}
+                    {statedDate ? `Paid on ${statedDate}` : "Not paid yet."}
                 </p>
                 {/* `Edit payment` RATHER THAN `Edit`, AND THE COLLISION IS ON THIS
                     SCREEN. `/invoices/new` labels the same act `Edit` because nothing
@@ -108,8 +121,27 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
                 the sentence is about instead. #316's own stacking rule on `/invoices`
                 is the same one: the lateness mark qualifies the payment word, so it
                 goes under it. Only an unpaid invoice can be late, so this never appears
-                beside `Paid on`. */}
-            {overdue && <p className="mt-2 text-sm text-red-700">{overdue.text}</p>}
+                beside `Paid on`.
+
+                AND IT STANDS DOWN WHILE THE DRAFT SAYS PAID, which is what the sentence
+                above previewing forced. `overdue` is resolved on the server from the
+                RECORD, so a reader who types a date sees `Paid on 2026-08-27` with
+                `⚠ Overdue` under it — the screen contradicting itself about the state it
+                is showing. `!statedDate` is not a second answer to whether the invoice
+                is late: it applies the premise the badge is already built on — only an
+                unpaid invoice can be late — to the state being previewed.
+
+                THE PREVIEW IS ONE-WAY, AND THAT IS WORTH KNOWING RATHER THAN HIDDEN.
+                Clearing a paid invoice's date previews `Not paid yet.` and does NOT
+                bring a lateness sentence with it, because the server resolved `overdue`
+                as null for a record that was paid. Suppressing a contradiction is cheap;
+                producing the other half would mean handing this component `dueDate` and
+                the server's day and letting it call the judgment itself, which is a
+                bigger change than the one that made the preview necessary. The sentence
+                appears on the next load, as it did before. */}
+            {overdue && !statedDate && (
+                <p className="mt-2 text-sm text-red-700">{overdue.text}</p>
+            )}
 
             {canEdit && editing && (
                 <form action={formAction} className="mt-3 space-y-2">
@@ -134,47 +166,54 @@ export default function PaymentSection({ invoiceId, paidDate, overdue, canEdit }
                         <label htmlFor="paidDate" className="block text-sm font-medium">
                             Paid Date
                         </label>
-                        <input
-                            type="date"
-                            id="paidDate"
-                            name="paidDate"
-                            value={date}
-                            onChange={(e) => setDate(e.target.value)}
-                            className="rounded border border-zinc-300 px-2 py-1 text-sm"
-                        />
-                    </div>
-                    {/* THE WAY BACK, NAMED WHERE A READER WOULD LOOK FOR IT, AND ONLY
-                        WHERE THERE IS SOMETHING TO CLEAR. Un-recording a payment is
-                        emptying the field rather than a second control: a control would
-                        be a second way to say one thing on a section this issue exists
-                        to reduce to one, and `Cancel` beside it already means abandon.
-                        What emptying a date input is not is discoverable, so the
-                        sentence buys that instead — #232's rule that this app names what
-                        a reader cannot do where they would try it, pointed the other
-                        way.
+                        {/* `Clear` IS A CONTROL OF OUR OWN AND NOT THE PICKER'S. A
+                            `type="date"` input carries a clear affordance INSIDE the
+                            browser's own calendar popup, which is the shape #232 retired
+                            a marker over: a signal a reader has to open something else to
+                            find is a signal only some readers have. Un-recording a
+                            payment is the second thing this control does, so it is a
+                            button beside the field, in the app's own markup, reachable by
+                            keyboard and the same in every browser.
 
-                        IT ASKS THE FIELD RATHER THAN THE RECORD, AND A CHECK IS WHY.
-                        `{paidDate && …}` was the first shape and it reads the payment
-                        fact inside the `editing` branch, which
-                        `offline/invoice-visibility.mjs`'s 3b reports — the fact on one
-                        side of the open state. Nothing was hidden by it, the sentence
-                        above being unconditional, but the branch is the same shape as
-                        the defect. Asking `date` is also the truer question: the
-                        sentence is about the box in front of the reader, so it stands
-                        while there is something in it to clear, including a date just
-                        typed. */}
-                    {date && (
-                        <p className="text-xs text-zinc-500">
-                            Clear the date to record that this invoice is not paid.
-                        </p>
-                    )}
+                            IT REPLACED A SENTENCE. `Clear the date to record that this
+                            invoice is not paid.` stood here while emptying the box was
+                            the only way back — copy buying discoverability a control
+                            would have bought better. With the button visible and the
+                            sentence above previewing what clearing does, the words said
+                            what the screen already shows. */}
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                id="paidDate"
+                                name="paidDate"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="rounded border border-zinc-300 px-2 py-1 text-sm"
+                            />
+                            {date && (
+                                <button
+                                    type="button"
+                                    onClick={() => setDate("")}
+                                    disabled={pending}
+                                    className="text-sm text-zinc-500 underline disabled:opacity-50"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+                    </div>
                     <div className="flex items-center gap-3">
+                        {/* `Save payment` RATHER THAN `Save`, FOR `Edit payment`'s OWN
+                            REASON one control along: the pair opens and commits one
+                            fact on a page that has another form on it, and a lone `Save`
+                            names no subject. The two now read as one control's two
+                            ends. */}
                         <button
                             type="submit"
                             disabled={pending}
                             className="rounded bg-foreground px-4 py-2 text-sm text-background disabled:opacity-50"
                         >
-                            {pending ? "Saving..." : "Save"}
+                            {pending ? "Saving..." : "Save payment"}
                         </button>
                         {/* The same word for the same act as `/invoices/new`'s, and the
                             same shape: a text button beside the one that commits, which

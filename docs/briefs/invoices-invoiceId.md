@@ -115,10 +115,12 @@ place that reached both readers while the branch existed; the branch is gone, so
 the sentence is ABOUT decides where it goes. Only an unpaid invoice can be late, so it
 never appears beside `Paid on {date}`.
 
-**Both readers get it in both states, and a redesign may not hide it while the control
-is open.** It is a payment fact of the same grade as the payment word, and #309's rule
-is that every reader who reaches the row reads it — which does not stop applying
-because somebody is editing.
+**Both readers get it, and a redesign may not hide it BECAUSE the control is open.**
+It is a payment fact of the same grade as the payment word, and #309's rule is that
+every reader who reaches the row reads it — which does not stop applying because
+somebody is editing. What it does follow is the state being shown: a draft that says
+paid carries no lateness, since only an unpaid invoice can be late. Following the
+sentence above it is not the same thing as being hidden by the control.
 
 **It says the same thing the list's badge says, from the same judgment**, at the other
 density: the list has a cell and prints `⚠ Overdue · 10d`, this has a section and says
@@ -127,11 +129,18 @@ is not late, and one with no due date is not late** — the section then holds o
 payment line, and the due date in the identity block above is the date or an em dash.
 
 **When an Admin presses `Edit payment`:** one date field, labelled `Paid Date`, opens
-**where the sentence sits**, with `Save` and `Cancel` under it, and `Edit payment` goes
-while it is open. Not a dialog: this app's modals are for the actions it cannot undo,
-and recording payment can be recorded again. It is the shape `/invoices/new` already
-uses to unlock a locked unit price on a row — a small text control that opens the field
-in place, and a `Cancel` beside it that puts the value back.
+**where the sentence sits**, with a `Clear` beside it and `Save payment` and `Cancel`
+under it; `Edit payment` goes while it is open. Not a dialog: this app's modals are for
+the actions it cannot undo, and recording payment can be recorded again. It is the shape
+`/invoices/new` already uses to unlock a locked unit price on a row — a small text
+control that opens the field in place, and a `Cancel` beside it that puts the value back.
+
+**`Save payment` and not `Save`**, for `Edit payment`'s own reason: the page carries a
+second form and a lone `Save` names no subject, so the pair reads as one control's two
+ends. **`Clear` is the app's own control and not the date picker's** — a `type="date"`
+input hides a clear affordance inside the browser's calendar popup, which is a signal a
+reader has to open something else to find. It renders only while there is a date in the
+box.
 
 **A DATE IS THE WHOLE OF THE FACT, and there is no checkbox.** An invoice with a
 `Paid Date` was paid on that day; one without was not. There was a `Paid` checkbox
@@ -141,10 +150,11 @@ date for a payment it said never happened. **A redesign may not put a second con
 back on this fact**, whatever it is called: the shape is the one `Withdrawn At` and
 `Sent At` already have on the order axis.
 
-**Clearing the date is how a payment is un-recorded**, and the form says so while there
-is a date in the box: `Clear the date to record that this invoice is not paid.` There
-is deliberately no separate control for it — a second control would be a second way to
-say one thing, and `Cancel` beside it already means abandon.
+**Clearing the date is how a payment is un-recorded**, and `Clear` is where a reader
+looks for it. A sentence stood here instead while emptying the box by hand was the only
+way back — `Clear the date to record that this invoice is not paid.` — and it went when
+the control arrived: the button names the act and the sentence above previews what it
+does, so the words said what the screen already shows.
 
 **The field opens holding the record's date, or empty**, and empty is the whole
 decision for an unpaid invoice. It used to prefill today the moment the box was ticked,
@@ -153,19 +163,30 @@ prefilled field would make `Edit payment` → `Save` a payment recorded by two c
 no typing. The office pays on one weekday, so today is usually right — that is the cost
 being paid, knowingly, to keep the date typed rather than accepted.
 
-**The sentence stays while the field is open, and it keeps stating what is RECORDED.**
-So a reader who has typed a date still sees `Not paid yet.` above it until they save.
-That is not redundancy: one is the record and the other is what is about to be
-written, and it is what gives `Cancel` something visible to return to. **This is where
-the shape diverges from `/invoices/new`**, and knowingly — there the field and its
-read display are one element, so the stored value is not visible while it is being
-edited. That form is composing a new document; this section is amending a record whose
+**The sentence stays while the field is open, and it PREVIEWS what `Save payment` will
+record.** Type a date and it reads `Paid on {that date}` at once; press `Clear` and it
+reads `Not paid yet.` Nothing is stored until the save, and `Cancel` puts the sentence
+back to the record along with the field. **It stated the RECORD in both states for one
+revision**, on the ground that one place should hold what is stored and another what is
+about to be written; that read worse than it argued — the line above the field
+contradicted the field, with nothing to say it was a step behind.
+
+**The lateness sentence stands down while the draft says paid, and the preview is
+one-way.** A reader typing a date would otherwise see `Paid on {date}` with `⚠ Overdue`
+under it. Clearing a paid invoice's date does NOT bring a lateness sentence with it: the
+server resolved that fact from the record, and producing the other half would mean
+handing this section the due date and the server's day. It appears on the next load.
+
+**This is still where the shape diverges from `/invoices/new`**, and knowingly — there
+the field and its read display are one element, so nothing states the value in words at
+all. That form is composing a new document; this section is amending a record whose
 current value is what the page exists to state.
 
-**`Cancel` puts the field back to the record and closes**, re-derived from the record
-rather than from a copy taken when the control opened — `/invoices/new`'s own rule for
-the same act. **`Save` closes the section too**, and the sentence then states the new
-value; a save that changed nothing closes it just the same.
+**`Cancel` puts the field and the sentence back to the record and closes**, re-derived
+from the record rather than from a copy taken when the control opened — `/invoices/new`'s
+own rule for the same act. **`Save payment` closes the section too**, and the sentence
+then states the saved value rather than a draft of it; a save that changed nothing closes
+it just the same.
 
 **The control's label is `Edit payment` and not `Edit`, because this screen already
 has an `Edit`** — the Admin-only link beside the heading that opens the invoice for

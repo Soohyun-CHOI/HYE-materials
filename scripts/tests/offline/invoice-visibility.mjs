@@ -405,10 +405,14 @@ export async function run({ check, log, assert }) {
     log("");
     log("no payment read disappears when the control opens (#318):");
     const openBranches = stateBranches(sectionAst, stateLocals(sectionAst));
+    const sectionDerived = paymentDerivedNames(sectionAst);
     assert("the section has an open/closed state at all", stateLocals(sectionAst).size > 0);
     assert("  and a branch on it", openBranches.length > 0);
+    assert("  and it derives what it states from the record", sectionDerived.size > 0);
     const hiddenByOpening = openBranches.filter(
-        (b) => rendersPaymentValue(b.consequent) !== rendersPaymentValue(b.alternate)
+        (b) =>
+            rendersPaymentValue(b.consequent, sectionDerived) !==
+            rendersPaymentValue(b.alternate, sectionDerived)
     );
     check(
         `payment reads rendered on one side of an open-state branch${
@@ -419,7 +423,7 @@ export async function run({ check, log, assert }) {
     );
     // AND THE FACT IS RENDERED AT ALL, or "none of them is hidden" is true of a section
     // that states nothing.
-    assert(`${SECTION} renders the payment fact`, rendersPaymentValue(sectionAst));
+    assert(`${SECTION} renders the payment fact`, rendersPaymentValue(sectionAst, sectionDerived));
     // ANTI-VACUITY, BOTH DIRECTIONS, and the first half is the mutant this whole
     // section exists for: the read sentence tucked behind `!editing`.
     const hidden = parseSource(
@@ -995,13 +999,45 @@ function isPaymentValueNode(n) {
 }
 
 /**
- * Does this subtree RENDER the payment fact — a value read reached from inside JSX?
+ * The locals a file DERIVES from the payment fact, so that rendering one counts as
+ * rendering the fact (#318).
+ *
+ * WITHOUT THIS THE RULE WATCHES A NAME RATHER THAN A FACT. `PaymentSection.js` states
+ * the payment through `const statedDate = editing ? date : paidDate` — the draft while
+ * the control is open, the record otherwise — so the sentence renders a local and no
+ * `paidDate` appears in any JSX. The rule would then pass by looking at nothing, which
+ * is worse than failing.
+ *
+ * A `useState` INITIALIZER IS NOT A DERIVATION, and that exclusion is what keeps the
+ * rule usable rather than being a convenience. `useState(paidDate || "")` seeds a local
+ * that is thereafter the reader's own draft: it is rendered inside the form, which is
+ * inside the open-state branch by construction, so counting it would report the correct
+ * code. What carries the fact is a plain derivation; what carries a draft is state.
+ */
+function paymentDerivedNames(ast) {
+    const names = new Set();
+    walk(ast, (node) => {
+        if (node.type !== "VariableDeclarator" || node.id?.type !== "Identifier") return;
+        if (!node.init) return;
+        if (node.init.type === "CallExpression" && node.init.callee?.name === "useState") return;
+        let reads = false;
+        walk(node.init, (n) => {
+            if (isPaymentValueNode(n)) reads = true;
+        });
+        if (reads) names.add(node.id.name);
+    });
+    return names;
+}
+
+/**
+ * Does this subtree RENDER the payment fact — a value read, or a local derived from
+ * one, reached from inside JSX?
  *
  * Scoped to JSX because the question is what a reader sees. A payment read in a
  * handler, an initializer or a `useState` argument is not on screen and moving one
  * behind a state branch hides nothing.
  */
-function rendersPaymentValue(node) {
+function rendersPaymentValue(node, derived = new Set()) {
     if (!node) return false;
     let found = false;
     walk(node, (candidate) => {
@@ -1013,6 +1049,7 @@ function rendersPaymentValue(node) {
         if (!isJsx) return;
         walk(candidate, (inner) => {
             if (isPaymentValueNode(inner)) found = true;
+            if (inner.type === "Identifier" && derived.has(inner.name)) found = true;
         });
     });
     return found;
