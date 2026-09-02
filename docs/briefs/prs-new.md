@@ -72,6 +72,16 @@ detaches from that record rather than silently re-targeting a new one.
 entry — a filename, a spinner, or the error. A file is required per entry before
 the request can be submitted.
 
+**A quotation already on the draft and one picked in this session read
+differently, and that is the only screen in the app where both kinds of file link
+appear at once.** An entry hydrated from a saved draft says `Already attached` and
+opens the file over this page in the shared viewer, because there is a record to
+open. An entry whose file was picked in this session says `Uploaded` and links out
+to the uploaded copy in a new tab, because no record exists yet for the viewer to
+show. Replacing the file on a hydrated entry moves it to the second reading. The
+first said `Uploaded` too until #331, which was false on a resumed draft — nothing
+was uploaded in that session.
+
 **When a picked file is over the size limit:** the same red line as a failed
 upload, but immediately and before anything is sent —
 `This file is larger than the upload limit`, then the file's own size against the

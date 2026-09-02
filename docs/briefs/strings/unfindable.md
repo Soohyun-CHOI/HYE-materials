@@ -65,6 +65,18 @@ chunks, so a concatenated sentence counts more than once.
 | `ROLLBACK_COPY` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 15 |
 | `RESTORE` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 8 |
 | `UPLOAD_LIMIT_COPY` | `lib/uploadLimit.js` | `refuseOversizeUpload`, `uploadLimitRefusal` | `/prs/new`, `/prs/[prId]`, `/invoices/new`, `/deliveries/new`, `/deliveries/[deliveryId]/edit` | 3 |
+| `FILE_AXIS_LABEL` | `lib/fileLinks.js` | `fileViewerTitle`, and `FileViewer` given an axis token | `/prs/[prId]`, `/pos/[poId]`, `/invoices/[invoiceId]`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/prs`, `/prs/new` | 5 |
+| `FILE_VIEWER_COPY` | `lib/fileLinks.js` | `FileViewer` | the same seven | 5 |
+
+**#331's two rows are the first in this group reached through a COMPONENT rather
+than a function, and the shape is the same one level up.** A screen renders
+`<FileViewer axis={FILE_AXIS.delivery} …/>`; the words are chosen inside that
+component from a token, so the screen names neither the constant nor any string in
+it — and the test at the top of this file answers the same way it does for a
+function. The screen called a component, and reading the words means entering
+somebody else's body and deciding which member an axis token reaches. It also
+reaches more screens than any other row, #146's included, for the same reason that
+one does: one shared thing, drawn everywhere.
 
 **#146's entry reaches more screens than any other row and is the smallest**, which
 is the pairing to notice. One sentence in three template pieces is shown on five
@@ -176,11 +188,21 @@ the function returns a key, or accept that it lives only here.
 |---|---|---|
 | `Email must be a company address` | `/login` | `lib/auth.js:26`, thrown; serialized by `app/api/auth/request/route.js:18` |
 | `Email is required` | `/login` | `app/api/auth/request/route.js:10` |
+| `Not found.` | no screen | `app/api/files/[axis]/[documentId]/[filename]/route.js`, the body of its 404 |
 
 **Unclosable in principle.** The screen renders `{errorMessage}`; the words are two
 files away in a different entry point, and nothing that walks a route's own files
 will ever reach them. The second is also the clearest `unreachable` entry in the
 other file — the input is `required`, so no reader can produce it.
+
+**#331's row is unclosable for a stronger reason than the two above it: there is no
+screen to attribute it to at all.** `scripts/screen-strings.mjs` is a per-SCREEN
+extractor and does not scan `app/api/**`, and widening it would not help — a Route
+Handler has no screen, so the tool's whole output shape has no slot to put the
+string in. It stays reachable rather than unreachable, and that is the distinction
+worth keeping: a reader meets it by opening a forwarded link to a file they may not
+see, or one that no longer exists. Inside the app they never do, because the viewer
+requests the file from a frame and shows its own sentence when nothing arrives.
 
 ## D — A string SET passed as a prop, where the members are found and the set is not
 

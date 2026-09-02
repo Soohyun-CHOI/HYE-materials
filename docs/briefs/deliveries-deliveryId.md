@@ -34,7 +34,9 @@ the screen after the heading.
 **identity — a block of facts copied off the delivery.** The job as code and
 name, the vendor, the received date, `PO on packing list` as a link or the word
 `none`, the invoices paired with this delivery, who recorded it and when, and the
-packing list photo as a link. `PO on packing list` is named at that length on
+packing list photo as a control that opens it over this page in the shared viewer
+(`_shared.md`, "A file opens over the screen that named it"), titled
+`Packing list photo · {filename}`. `PO on packing list` is named at that length on
 purpose: a bare `PO` would read as the order the delivery was recorded against,
 which is a different thing living on the rows below and reached another way.
 

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
+import { FILE_AXIS } from "@/lib/fileLinks";
 import { getInvoiceById } from "@/lib/airtable/invoices";
 import { getItemsByInvoice } from "@/lib/airtable/invoiceItems";
 import { getInvoiceReconciliation } from "@/lib/deliveryReconciliation";
@@ -286,9 +288,18 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 <p>Due Date: {invoice.dueDate || "—"}</p>
                 {file && (
                     <p>
-                        <a href={file.url} target="_blank" rel="noreferrer" className="underline">
+                        {/* Issue #331 — the vendor's document opens over this page
+                            rather than in a tab that names neither it nor the way
+                            back. Our own route, re-read per request, so the href
+                            outlives the Airtable url it used to be. */}
+                        <FileViewer
+                            axis={FILE_AXIS.invoice}
+                            documentId={invoice.invoiceId}
+                            filename={file.filename}
+                            contentType={file.type}
+                        >
                             {file.filename || "Invoice File"}
-                        </a>
+                        </FileViewer>
                     </p>
                 )}
             </div>

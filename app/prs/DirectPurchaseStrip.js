@@ -1,4 +1,6 @@
+import FileViewer from "@/app/components/FileViewer";
 import { DIRECT_PURCHASE_COPY } from "@/lib/directPurchase";
+import { FILE_AXIS } from "@/lib/fileLinks";
 import DirectPurchaseButton from "./DirectPurchaseButton";
 
 // Direct purchases waiting for a request, above the list of requests (#272). One
@@ -47,15 +49,17 @@ export default function DirectPurchaseStrip({ rows }) {
                             {row.vendorInvoiceCode || DIRECT_PURCHASE_COPY.strip.noCode}
                         </span>
                         {row.notes && <span className="truncate text-zinc-600">{row.notes}</span>}
-                        {row.fileUrl && (
-                            <a
-                                href={row.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="shrink-0 underline"
-                            >
-                                {DIRECT_PURCHASE_COPY.strip.file}
-                            </a>
+                        {row.file && (
+                            <span className="shrink-0">
+                                <FileViewer
+                                    axis={FILE_AXIS.directPurchase}
+                                    documentId={row.directPurchaseId}
+                                    filename={row.file.filename}
+                                    contentType={row.file.type}
+                                >
+                                    {DIRECT_PURCHASE_COPY.strip.file}
+                                </FileViewer>
+                            </span>
                         )}
                         <span className="ml-auto shrink-0">
                             {row.offerable ? (

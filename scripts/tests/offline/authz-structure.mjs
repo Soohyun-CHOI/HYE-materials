@@ -82,6 +82,22 @@ const DELIVERY_AUTHOR_AXIS =
     "one branch of that predicate rather than the gate, so withAdminAction would refuse the author — who is " +
     "typically neither President nor Admin — and admit nobody it should.";
 
+// #331's axis, and the one exemption in this list whose weakness is named in
+// another file rather than tolerated here. Every other entry is one gate that a
+// wrapper does not fit; this one is FIVE fields behind THREE gates in one export,
+// which is precisely the shape "the helper is called somewhere inside" cannot
+// speak to.
+const FILE_ROUTE_AXIS =
+    "Session + one of three per-record gates, chosen by the axis segment, not a role. Route Handlers cannot use " +
+    "requireUser() (redirect() is for the page-render pipeline), so the session comes from getActiveUser() and " +
+    "the deciding comparison is canViewPR for a quotation and an order document, getVisibleInvoiceIds for an " +
+    "invoice file, and canAccessJobDeliveries for a packing list photo and a direct purchase's file. No wrapper " +
+    "fits: withAdminApi would refuse the site staff every one of those gates admits. " +
+    "WHAT THIS EXEMPTION CANNOT SAY, and the reason it is not the whole coverage: a pass here means getActiveUser " +
+    "is named somewhere inside GET, which one gate for all five satisfies exactly as well as five for five — no " +
+    "screen would change and nothing here would fail. offline/file-route.mjs holds that instead, by comparing " +
+    "each axis's declared gate against the gate its own opener calls.";
+
 const UPLOAD_CALLBACK_GATE =
     "the gate has to run inside handleUpload's onBeforeGenerateToken callback, which rejects by throwing rather " +
     "than by returning a Response, so wrapping the export would answer 401/403 where the client currently gets the " +
@@ -112,6 +128,12 @@ const EXEMPTIONS = [
             "POST rather than GET since #203, because a GET that consumed the token was spent by mail security " +
             "scanners before the recipient clicked. It additionally refuses a cross-origin submission, which the " +
             "token cannot answer for: the token authenticates the request but not the submitter's intent.",
+    },
+    {
+        file: "app/api/files/[axis]/[documentId]/[filename]/route.js",
+        name: "GET",
+        mustCall: "getActiveUser",
+        reason: FILE_ROUTE_AXIS,
     },
     {
         file: "app/api/invoices/upload/route.js",

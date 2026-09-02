@@ -107,11 +107,17 @@ against this order yet.` are the two sentences.
 signature's timestamp, or that the order was never signed, or that it has not
 been signed yet.
 
-**action.** The purchase order PDF, downloadable by anyone who can see the
-order — site staff place the order from it.
+**action.** The purchase order PDF, openable by anyone who can see the order —
+site staff place the order from it. It opens **over this page**, in a viewer that
+shows the document and carries a control that saves it; the reader keeps the order
+they were reading and never leaves the app. Six lines of this brief called it a
+download until #331, which is what the click never did: the response has always
+said `inline`, so it showed the file where the reader's browser could and prompted
+a save where it could not. Showing it and saving it are two acts now, and the
+viewer offers both.
 
 **evidence — whether the vendor has been sent it.** Once the order has been
-emailed to the vendor, a line beside the download says so, naming the address, the
+emailed to the vendor, a line beside that control says so, naming the address, the
 time and the person who sent it. **Every viewer who can see the order sees this**,
 not just the office: whether the vendor has the order is not office-only
 information, and it is the question the whole screen is downstream of.
@@ -196,7 +202,7 @@ page rather than to whoever acted — with the withdrawal timestamp under it. It
 sits above every figure on purpose: "this order was called off" changes how the
 rest of the page should be read. Withdrawal also removes the signing control and
 the regeneration control, and replaces the missing-PDF message with one saying
-none will be generated now. An already-generated PDF stays downloadable, because
+none will be generated now. An already-generated PDF stays openable, because
 the order did exist and was signed and that document is audit trail.
 
 **When an over-delivery on this order is covered by an overage request:**
@@ -211,8 +217,8 @@ alone, and whoever reconciles it needs telling exactly once, here.
 **Four actions land here and none of them says so.** Signing, generating a
 missing document, sending to the vendor and withdrawing all finish on this
 screen, and each one changes what the screen shows: the signature block, the
-download link where the control was, the sent line under it, the withdrawal
-banner. This carried a green line for each until #321 — see `_shared.md`, "The
+control that opens the document where the generate control was, the sent line
+under it, the withdrawal banner. This carried a green line for each until #321 — see `_shared.md`, "The
 arrival is the confirmation".
 
 **When the order is unsigned and the reader is office staff:** the signing
@@ -236,8 +242,8 @@ sign an order somebody else signed. A design must not offer a way to remake a
 document that exists.
 
 **When the order is signed, its document is on file, and it has not been sent
-yet:** for the requester or the office, a `Send to vendor` control beside the
-download, with the address it would use printed above it. **The address is on
+yet:** for the requester or the office, a `Send to vendor` control beside the one
+that opens the document, with the address it would use printed above it. **The address is on
 the screen and that is why there is no confirmation dialog** — the reader has
 already seen where it goes, so a dialog would ask the same question twice. If a
 redesign moves the address away from the button, the dialog has to come back.

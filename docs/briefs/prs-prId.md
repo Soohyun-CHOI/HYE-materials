@@ -79,8 +79,10 @@ zero or one, every item resolves to the same quotation and the column earns
 nothing. The totals footer's trailing span changes with it.
 
 **When the request has any quotation at all:** a `Quotations` section listing
-each one as a link to its file, with the vendor's own quotation code in
-parentheses when there is one. A request cannot be submitted without one, so this
+each one as a control that opens its file over this page, with the vendor's own
+quotation code in parentheses when there is one. The viewer is the same one every
+screen in this app shows a file in — `_shared.md`, "A file opens over the screen
+that named it" — titled `Quotation · {filename}`. A request cannot be submitted without one, so this
 is absent only on a Draft.
 
 **When a quotation file picked while editing and continuing is over the size

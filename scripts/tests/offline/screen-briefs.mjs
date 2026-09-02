@@ -60,6 +60,7 @@ import { WAIT_COPY } from "../../../lib/prWait.js";
 import { PR_KIND_COPY } from "../../../lib/prKind.js";
 import { RESTORE, ROLLBACK_COPY } from "../../../lib/rollbackReport.js";
 import { MAX_UPLOAD_BYTES, UPLOAD_LIMIT_COPY } from "../../../lib/uploadLimit.js";
+import { FILE_AXIS_LABEL, FILE_VIEWER_COPY } from "../../../lib/fileLinks.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -271,6 +272,24 @@ const PINNED = [
     // A PIN MUST NOT CROSS THE BRIEF'S OWN LINE WRAP, which is why the second of
     // these starts mid-sentence: the briefs wrap at 72 characters and this one
     // breaks after `A`, so the longer form matched the constant and not the brief.
+    // #331 — THE VIEWER'S WORDS, AND FOUR OF THE NINE ARE DELIBERATELY NOT HERE.
+    // `_shared.md` gained an `Uploaded files` block quoting all of them; these are
+    // the ones a pin can actually hold. `Quotation`, `Invoice file`, `Download` and
+    // `Close` are words this app uses in other constants, so a pin on one would go on
+    // passing after the viewer stopped saying it — the same matcher objection that
+    // keeps `Paid` off this list. The two labels below are distinctive enough that a
+    // rewording fails.
+    "Purchase order PDF",
+    "Packing list photo",
+    // The three sentences that stand in for a file, pinned on their distinctive
+    // clause rather than whole: the briefs wrap, and the first of these is long
+    // enough that the full sentence would match the constant and not the brief.
+    // The first one is the load-bearing one — it is not a state and cannot be, since
+    // nothing can detect that a document failed to render, so a design that turns it
+    // into a conditional is drawing something unreachable.
+    "this browser cannot show it here",
+    "This file cannot be shown here",
+    "This file could not be loaded.",
     "over-deliveries are waiting for a request",
     "row with everything it needs raises the request here",
     // The five chips the same paragraph names. `prs.md` used to say how many there
@@ -458,6 +477,10 @@ export function run({ check, assert, log }) {
         ...stringsFrom(DIRECT_PURCHASE_COPY),
         ...stringsFrom(WAIT_COPY),
         ...stringsFrom(PR_KIND_COPY),
+        // #331 — the viewer's five labels and its three stand-in sentences. Plain
+        // values, so `stringsFrom` needs no help with them.
+        ...stringsFrom(FILE_AXIS_LABEL),
+        ...stringsFrom(FILE_VIEWER_COPY),
         // #188 — CALLED WITH A REAL LIST RATHER THAN LEFT TO `stringsFrom`, whose
         // three probe shapes cannot supply one: every one of them makes the builder
         // throw, so the sentence a brief quotes would silently be absent from

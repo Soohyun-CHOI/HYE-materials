@@ -155,7 +155,7 @@ export async function regeneratePDFAction(prevState, formData) {
         // Regenerating it after a withdrawal would print a fresh formal order
         // for an order that was canceled, which is exactly the confusion
         // Withdrawn exists to prevent. The line is "no new documents, existing
-        // document preserved": an already-generated PDF stays downloadable on
+        // document preserved": an already-generated PDF stays available on
         // the PO page (the PO did exist and was signed — that's audit trail),
         // only the regeneration control goes away.
         if (isPOWithdrawn(po)) {

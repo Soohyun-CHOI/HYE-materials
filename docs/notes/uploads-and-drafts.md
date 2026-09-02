@@ -28,7 +28,59 @@ Every file — quotation files, invoice files, generated PO PDFs — is written 
 - On a *failed* attachment write the object is deleted immediately (no ingest can follow) — the two failure directions are opposite, see `generateAndAttachPOPdf`.
 - Cleanup is **best-effort**: a failed `del()` is logged and nothing more, since Airtable already holds the file and failing the user's action over housekeeping would be backwards. So an orphan is still possible; this is a convention, not an absolute invariant.
 - **The one orphan source that survives by design**: a file uploaded and then abandoned (form closed before submit). It was never ingested, so it has no ingest to outlive, there is no record to hang cleanup on, and finding it needs the store sweep #140 excludes.
-- Airtable's own attachment URLs are short-lived signed URLs (**~2h**, confirmed empirically), so nothing durable may store one — re-read the record instead. Every in-app link (PR detail Quotations, invoice detail, PO PDF) renders Airtable's URL and can go stale on a page held open past that window. Rendering a stale one is a visible, recoverable annoyance; **re-submitting one as an attachment is data loss**, which is what #142 was (see "Draft re-save" below).
+- Airtable's own attachment URLs are signed URLs that die at a fixed wall-clock instant, so nothing durable may store one — re-read the record instead. **`~2h, confirmed empirically` is what this line said until #331 and the second half was false**: nothing in this repository had measured it. The figure entered the tree in #140's issue body with no source, PR #155 then wrote `confirmed empirically` beside it, and that branch's own Testing section says what it actually did — `reproduces the loss without waiting out a URL's lifetime`, by invalidating a signature rather than by waiting. What was confirmed was the CONSEQUENCE of an unfetchable URL, never the lifetime. See "What the lifetime actually is" below for the measurement, which #331 needed because the whole issue is about how long a rendered link lives. **No in-app link renders Airtable's URL any more (#331)** — six surfaces go through this app's own route, which re-reads the record per request. Rendering a stale one was a visible, recoverable annoyance; **re-submitting one as an attachment is data loss**, which is what #142 was (see "Draft re-save" below).
+
+### Serving a file back (#331)
+
+**Six surfaces linked Airtable's own signed URL and now link `app/api/files/[axis]/[documentId]/[filename]`**, which re-reads the record on every request: the request detail's quotations, the order's PDF, the invoice's file, the packing list photo on both delivery screens, and the direct-purchase strip above `/prs`. The three PRE-SAVE previews are deliberately not among them — see the last part of this section.
+
+#### What the lifetime actually is, measured
+
+The URL carries its own expiry in a path segment: `https://v5.airtableusercontent.com/v3/u/57/57/<ms epoch>/…`.
+
+- **The stamp IS the death, to the second.** A URL captured at `15:23:39Z` carried `1788372000000` = `18:00:00Z`. Polled every five minutes it answered 200 through `17:55:11Z` and **410 `This URL has expired.` at `18:00:11Z`** — the first poll past its own stamp.
+- **It is a wall clock, not an interval from the request.** Three reads of one attachment at `15:19`, `15:23` and `15:35` all returned the same `18:00:00Z`, and a fourth at `19:31` returned `22:00:00Z`. So a page rendered late in a window gets a link good for barely two hours and one rendered early gets nearly four — which is why the old link's lifetime could not be stated as a number, and why a caution on a screen would have been wrong for half its readers.
+- Airtable's own documentation says `~2 hours` and guarantees `at least 2 hours after receiving them`, so **two hours is a floor rather than the value**. `Cache-Control: max-age=14400` on that response is four hours, matching the longest a stamp can be away.
+- A `ts` moved into the past is refused with 410 BEFORE the signature is checked (a `ts` moved into the future gives 404), which is what identifies that segment as the expiry rather than as part of the signed path.
+
+#### It streams the bytes and does not redirect
+
+**A 302 was rejected on the reader's address bar, not on cost.** Following one puts Airtable's URL in a top-level navigation, where it is a public bearer link for two to four hours with no session — trading "the link on the page expires" for "the link in the address bar admits anybody", in an app whose premise is a per-record gate. Three of the four defects #331 carries are also Airtable's headers and unreachable from a redirect: `Content-Disposition: inline; filename="HYElogo.png"` for a file named `HYE logo.png` (the space is dropped), the type deciding whether a click views or saves, and an opaque last path segment that a browser uses for the tab title and the saved name.
+
+Cost is bounded by #146's ceiling — 20 MB in and 20 MB out, worst case — and the body is piped rather than buffered. Measured against reality rather than the ceiling: the largest attachment on this base is 6,884 B, the median is 879 B, and the largest file anybody has actually uploaded through this app is 493,296 B, one forty-second of the ceiling.
+
+**`Content-Disposition: inline` is load-bearing rather than a preference**, because the viewer puts the response in a frame and `attachment` makes a browser save instead of display. What makes a download a download is the viewer's own anchor carrying `download`, which works only because the route is same-origin — the very attribute #331 records as ignored across origins. So there is no `?download=` parameter and no second route: **one response shape, and the client decides.** The condition that would add one is a screen that has to hand a reader a file rather than show it, which nothing asks for today.
+
+**No `Content-Security-Policy: sandbox` and no `X-Frame-Options`**, since sandbox breaks in-frame document rendering and we frame this ourselves. The door that closes instead is the content-type allowlist in `lib/fileLinks.js`: a hand-added Airtable attachment can claim any type, and anything outside PDF/JPEG/PNG is served as `application/octet-stream`, which `nosniff` will not let a browser reinterpret as markup. `Cache-Control: private, no-store`, so no shared cache holds gated bytes and Airtable's own `immutable` is not inherited.
+
+#### The gate is per axis, and that is the issue's weight
+
+Five fields, three gates: `canViewPR` for a quotation and an order document (both through the parent request), `getVisibleInvoiceIds` for an invoice file, `canAccessJobDeliveries` for a packing list photo and a direct purchase's file. Every one is the gate that axis's own screen already uses, so the route introduces no visibility rule of its own. **The axis token is the whole of what a caller supplies about which field** — a table name and a field name are not addressable — so there is no input the gate has to validate beyond the id, and an unknown token answers before a record is read. `Purchase Orders."Quotation File"` has no axis on purpose: it is a Lookup onto `Quotations.File` with no reader, and giving it one would make a file reachable under two gates.
+
+**Measured cost, per click, with the session read included.** `/api/files` is its own ops label, so this is read off the counter rather than derived:
+
+| Axis | Office | Site reader |
+|---|---|---|
+| `quotation` | 3 | 3 |
+| `purchase-order` | 3 | 3 |
+| `invoice` | 4 | 6 |
+| `delivery` | 2 | 2 |
+| `direct-purchase` | 2 | 2 |
+| an unknown axis | 0 | 0 |
+
+Nothing on the render side got cheaper, and that was checked rather than assumed: the attachment URL rides on the record read a detail page already makes, so the six pages cost what they cost before — 15, 14, 7, 20, 7 and 15 operations. The route's cost is entirely additive and paid only on a click. **The office's fourth operation on the invoice axis is deliberate** — `seesEveryInvoice` would let the items read be skipped when the walk is going to be skipped anyway, and it would make this the third invoice surface that asks who the reader is, which is what #314 took out of the other two.
+
+**One refusal for two states.** A missing record and a refused one both answer `404 Not found.`, which is the rule every one of these screens already follows, and it matters more here because the id in the URL is a document id whose neighbors a person can guess. No session redirects to `/login`: inside the app that state is unreachable, since the viewer's frame only exists on a screen that already rendered with one, so what lands there is a forwarded link and the front door is the useful answer.
+
+#### The three pre-save previews keep their own anchor
+
+`/prs/new`, Edit and continue and `/invoices/new` each show a file the reader picked in this session, and those keep a plain link to the uploaded copy. Neither defect above applies — the object is alive and the reader chose the file seconds ago — `rel="noreferrer"` is correct there rather than vestigial because that really is another origin, and the viewer could not serve them anyway: **Vercel Blob's own `Content-Disposition` carries the random suffix** (`254-step-probe-94AZgm8VD4xrnIUtnUgxet4nvWKqDl.pdf`, measured), so the download control would save one of them under a name nobody chose. Routing them through it would give one control two behaviors.
+
+**`/prs/new` is therefore the one screen where both kinds of link appear**, and the two are told apart by whether the form entry's `file` object carries a `quotationId`. That placement is load-bearing: `quotationId` and `fileType` sit ON the file rather than beside it, so picking a new file replaces the object and takes them with it — #142's "replaced" signal read one level down. On the entry they would survive a replacement and point a viewer at the record's previous document. The wording moved with it, because `Uploaded` was false on a resumed draft.
+
+#### What #140 said about names, and which name it was about
+
+#140's issue body says a Blob object's name "carries a random suffix", and #331 had to settle which side of the ingest that describes, because it decides what a reader's browser saves. It is the **Blob object**: the client uploads with `upload(file.name, …)` against a token route that sets `addRandomSuffix: true`, so the object's URL reads `…/INV_593685_%2806-11%29_%28Jun%29_Swagelok%20TX-mtkxKWqqlbYjSo470P98dCxHwHKgHz.pdf`. **Airtable's attachment keeps the human's original name**, because every write passes `filename` from the form separately — `HYE logo.png` is on this base with its space intact, on both a `Quotations.File` and a `Deliveries."Packing List File"` row. So the route's `Content-Disposition` is the original name and the viewer's `download` attribute is too, which is also the first time that space survives a download: Airtable's own header dropped it.
 
 ### The upload size limit (#146)
 

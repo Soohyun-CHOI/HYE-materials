@@ -23,7 +23,10 @@ placeholder as the create form — `Damage, a partial pallet, who signed for it�
 and its own `Save` button.
 
 **action — the photo form:** `Replace the packing list photo`, a file input, and
-its own `Replace photo` button, disabled until an upload has completed.
+its own `Replace photo` button, disabled until an upload has completed. Above it,
+the photo currently on the record, as a control that opens it over this page in the
+shared viewer — the reader is about to replace it and this is where they check
+which one they are replacing.
 
 **action — the `Invoices` section,** with the standing sentence
 `One invoice belongs to one delivery, so one already attached elsewhere is

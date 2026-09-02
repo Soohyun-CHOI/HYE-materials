@@ -1,5 +1,7 @@
 import Link from "next/link";
+import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
+import { FILE_AXIS } from "@/lib/fileLinks";
 import { getDeliveryById } from "@/lib/airtable/deliveries";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
@@ -99,9 +101,14 @@ async function renderEditDeliveryPage({ params }) {
                 <p>
                     <span className="text-zinc-500">Current packing list:</span>{" "}
                     {photo ? (
-                        <a href={photo.url} target="_blank" rel="noreferrer" className="underline">
+                        <FileViewer
+                            axis={FILE_AXIS.delivery}
+                            documentId={delivery.deliveryId}
+                            filename={photo.filename}
+                            contentType={photo.type}
+                        >
                             {photo.filename || "Open"}
-                        </a>
+                        </FileViewer>
                     ) : (
                         "not attached"
                     )}
