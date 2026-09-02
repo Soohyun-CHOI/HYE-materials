@@ -1,5 +1,7 @@
 import Link from "next/link";
+import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
+import { FILE_AXIS } from "@/lib/fileLinks";
 import { canViewPR } from "@/lib/prVisibility";
 import { getPRById } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR } from "@/lib/airtable/prSigners";
@@ -345,20 +347,24 @@ async function renderPRDetailPage({ params }) {
                     <h2 className="text-lg font-semibold">Quotations</h2>
                     <ul className="mt-2 space-y-1 text-sm">
                         {quotations.map((q) => {
-                            // Airtable's own copy of the file — the URL it
-                            // returns is a short-lived signed URL (~2
-                            // hours, confirmed empirically), not the
-                            // original Vercel Blob URL from upload time.
-                            // See CLAUDE.md's "Quotation file upload"
-                            // section for why this link can go stale on a
-                            // page loaded from a bookmark/old tab.
+                            // Issue #331 — the file opens over this page through our
+                            // own route, which re-reads the record per request. It
+                            // used to be Airtable's own signed url, which dies at a
+                            // wall-clock instant stamped when the page rendered, so a
+                            // bookmark or an old tab landed on a white page outside
+                            // the app.
                             const file = q.file?.[0];
                             return (
                                 <li key={q.id}>
                                     {file ? (
-                                        <a href={file.url} target="_blank" rel="noreferrer" className="underline">
+                                        <FileViewer
+                                            axis={FILE_AXIS.quotation}
+                                            documentId={q.quotationId}
+                                            filename={file.filename}
+                                            contentType={file.type}
+                                        >
                                             {file.filename || q.quotationId}
-                                        </a>
+                                        </FileViewer>
                                     ) : (
                                         q.quotationId
                                     )}

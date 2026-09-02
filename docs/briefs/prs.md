@@ -106,7 +106,10 @@ second amber strip, under the first. Heading
 office recorded these from a vendor's invoice; whoever bought the material raises
 the request here.`, and one row per case: the vendor, the job code, the vendor's
 own invoice number or `no invoice number`, the note the office left, a
-`View invoice` link that opens the document they attached, and either a
+`View invoice` control that opens the document they attached over this page in the
+shared viewer (`_shared.md`, "A file opens over the screen that named it") — this
+is the one row in the app whose viewer is labeled by the act rather than by the
+filename, because the strip has no room for a filename — and either a
 `Raise the request` control or the same `draft with …` chip.
 
 **This is the only strip whose rows were put there by a person.** Every other

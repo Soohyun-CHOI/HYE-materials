@@ -107,6 +107,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poUnsigned.js` — `isPOUnsigned` and the signal wherever an order is offered for an invoice (#198): the picker's option label and `UNSIGNED_COPY`. `AWAITING_SIGNATURE_COPY` (#292) is the mail asking the President to sign. **A mail's money figure is rendered by its copy builder and never by the caller** — so a mail carrying one is a pure builder, which is also the only shape a check can call.
 - `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242): `PO_ORIGIN`, the searched-order claim rule, the one-slot-one-order exclusion, and detection's claim over an entry the search put there.
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
+- `lib/fileLinks.js` — where an uploaded file is reached (#331): the five axis tokens, the href screens build, the viewer's words. Pure — five `"use client"` files import it.
 - `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, where that figure came from, the refusal's words, and the guard all five upload forms open their try with.
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/directPurchase.js` — the way out of an invoice with no order (#272): `directPurchaseBlocked`, the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
@@ -131,7 +132,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate, and a payment read behind a privilege test fails a check.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
-- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318).** **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener. #232 retired a marker on the same ground.**
+- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener. #232 retired a marker on the same ground.**
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
 
@@ -247,7 +248,7 @@ Every file — quotation files, invoice files, generated PO PDFs, packing list p
 - **Confirmation signal**: the attachment no longer carries the URL we submitted. An empty field counts as NOT ingested — an attachment write pointing at a URL Airtable cannot fetch returns success and silently leaves the field empty.
 - Poll every 300 ms with a 10 s ceiling; targets are confirmed one at a time. **A timeout keeps the object** and logs it: one orphan beats an empty attachment. On a *failed* attachment write the object is deleted immediately.
 - Cleanup is best-effort: a failed `del()` is logged and nothing more.
-- **Airtable's own attachment URLs are short-lived (~2h), so nothing durable may store one** — re-read the record instead. Rendering a stale one is a recoverable annoyance; **re-submitting one as an attachment is data loss.**
+- **Airtable's own attachment URLs die at a wall-clock instant stamped when they are read, so nothing durable may store one** — re-read the record instead. **No screen renders one (#331)**: a file is served by `/api/files`, which re-reads per request. **Re-submitting one as an attachment is data loss.**
 - **An attachment that did not change is not rewritten.** `Quotations.File` has exactly one writer, `createQuotation`; `Deliveries."Packing List File"` has exactly two, and the second refuses any url that is not a fresh Blob upload. Enforced by `offline/source-shape.mjs`.
 - **One size ceiling for every user upload, and it is minted into the token, never compared after the bytes land** (#146) — a refusal that measures late leaves an object to clean up. **A multipart request is refused outright, because the signed ceiling does not bind one.** All three routes restrict content type to PDF/JPEG/PNG.
 

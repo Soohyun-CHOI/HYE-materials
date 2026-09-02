@@ -4,6 +4,8 @@ import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
+import FileViewer from "@/app/components/FileViewer";
+import { FILE_AXIS } from "@/lib/fileLinks";
 import { createPRAction, saveDraftAction, deleteDraftAction } from "./actions";
 import { PR_ITEM_MERGE_COPY, describeMerge } from "@/lib/prItemMerge";
 import SignerList from "./SignerList";
@@ -57,8 +59,21 @@ function formStateFromDraft(d) {
                   // replaces `file` and leaves recordId, which is exactly the
                   // "replaced" signal.
                   recordId: q.recordId || "",
+                  // #331 — `quotationId` and `fileType` sit ON THE FILE rather than
+                  // beside it, and that placement is the whole of what tells the two
+                  // states apart. They describe the file Airtable holds, so picking a
+                  // new one replaces this object and takes them with it — which is
+                  // exactly #142's "replaced" signal, read one level down. Were they
+                  // on the entry, a replaced file would still render a viewer pointed
+                  // at the record's previous document.
                   file: q.url
-                      ? { status: "done", url: q.url, filename: q.filename }
+                      ? {
+                            status: "done",
+                            url: q.url,
+                            filename: q.filename,
+                            quotationId: q.quotationId,
+                            fileType: q.fileType,
+                        }
                       : { status: "idle" },
                   vendorQuotationCode: q.vendorQuotationCode || "",
               }))
@@ -667,14 +682,47 @@ export default function PRForm({
                                 {q.file.status === "uploading" && (
                                     <p className="text-sm text-zinc-500">Uploading {q.file.filename}...</p>
                                 )}
-                                {q.file.status === "done" && (
-                                    <p className="text-sm text-green-700">
-                                        Uploaded{" "}
-                                        <a href={q.file.url} target="_blank" rel="noreferrer" className="underline">
-                                            {q.file.filename}
-                                        </a>
-                                    </p>
-                                )}
+                                {/* #331 — THE ONE PLACE IN THE APP WHERE BOTH KINDS OF
+                                    FILE LINK LIVE ON ONE SCREEN, and the two are not
+                                    the same thing. A file already on the draft is a
+                                    record, so it opens over the page through our own
+                                    route. A file picked in this session exists only as
+                                    a Blob object nobody has ingested — there is no
+                                    record for the route to gate on, and the viewer's
+                                    download control would save it under the random
+                                    suffix Blob puts in its own filename, so routing it
+                                    here would give one control two behaviors. It keeps
+                                    the anchor it always had, where `rel="noreferrer"`
+                                    is correct rather than vestigial because that
+                                    really is another origin. The wording is what makes
+                                    the difference visible: `Uploaded` was false on a
+                                    resumed draft, where nothing was uploaded. */}
+                                {q.file.status === "done" &&
+                                    (q.file.quotationId ? (
+                                        <p className="text-sm text-green-700">
+                                            Already attached{" "}
+                                            <FileViewer
+                                                axis={FILE_AXIS.quotation}
+                                                documentId={q.file.quotationId}
+                                                filename={q.file.filename}
+                                                contentType={q.file.fileType}
+                                            >
+                                                {q.file.filename}
+                                            </FileViewer>
+                                        </p>
+                                    ) : (
+                                        <p className="text-sm text-green-700">
+                                            Uploaded{" "}
+                                            <a
+                                                href={q.file.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="underline"
+                                            >
+                                                {q.file.filename}
+                                            </a>
+                                        </p>
+                                    ))}
                                 {q.file.status === "error" && (
                                     <p className="text-sm text-red-600">
                                         Upload failed: {q.file.error}. Try a different file

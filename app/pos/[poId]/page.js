@@ -1,5 +1,7 @@
 import Link from "next/link";
+import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
+import { FILE_AXIS } from "@/lib/fileLinks";
 import { canViewPR } from "@/lib/prVisibility";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
@@ -773,8 +775,13 @@ async function renderPODetailPage({ params }) {
                 placing the order, which is the act #138 gave the requester the
                 withdrawal control for; that module carries the argument. The PO PDF
                 itself is visible to everyone who can see the PO (#132) — site staff
-                place the order from it — so the download link stays outside every
-                gate. */}
+                place the order from it — so the control that opens it stays outside
+                every gate. **IT OPENS THE DOCUMENT AND DOES NOT DOWNLOAD IT**, which
+                this comment and six lines of `pos-poId.md` said the other way round
+                until #331: the response has always carried `Content-Disposition:
+                inline`, so a click viewed the file wherever the reader's browser could
+                and prompted a save where it could not. Saving it is the control inside
+                the viewer now, which is a second act rather than the same one. */}
             <div className="mt-8">
                 {po.presidentSigned ? (
                     <div className="space-y-2 text-sm">
@@ -782,7 +789,7 @@ async function renderPODetailPage({ params }) {
                             Signed at {po.presidentSignedAt ? new Date(po.presidentSignedAt).toLocaleString() : "—"}
                         </p>
                         {/* Issue #138 — an already-generated PDF stays
-                            downloadable on a withdrawn PO: the PO did exist
+                            available on a withdrawn PO: the PO did exist
                             and was signed, so that document is audit trail.
                             Only *new* documents are refused — the
                             regeneration control disappears (and
@@ -790,13 +797,18 @@ async function renderPODetailPage({ params }) {
                             renders here). */}
                         {pdfFile ? (
                             <div className="space-y-3">
-                                <a href={pdfFile.url} target="_blank" rel="noreferrer" className="underline">
+                                <FileViewer
+                                    axis={FILE_AXIS.purchaseOrder}
+                                    documentId={po.poId}
+                                    filename={pdfFile.filename}
+                                    contentType={pdfFile.type}
+                                >
                                     {pdfFile.filename || "PO PDF"}
-                                </a>
-                                {/* Issue #281 — the send sits beside the download
-                                    because they are two things to do with one
-                                    document, and the reader who mails it is the one
-                                    who was downloading it to mail it by hand. Once
+                                </FileViewer>
+                                {/* Issue #281 — the send sits beside the control that
+                                    opens the document, because they are two things to
+                                    do with one document, and the reader who mails it
+                                    is the one who was mailing it by hand. Once
                                     sent, the record replaces the control: a second
                                     send is refused, so there is no button to show and
                                     the three facts of the send go in its place.

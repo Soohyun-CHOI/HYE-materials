@@ -1,5 +1,7 @@
 import Link from "next/link";
+import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
+import { FILE_AXIS } from "@/lib/fileLinks";
 import { getDeliveryById } from "@/lib/airtable/deliveries";
 import { getItemsByDelivery } from "@/lib/airtable/deliveryItems";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
@@ -348,9 +350,14 @@ async function renderDeliveryDetailPage({ params }) {
                 <p>
                     <span className="text-zinc-500">Packing list:</span>{" "}
                     {photo ? (
-                        <a href={photo.url} target="_blank" rel="noreferrer" className="underline">
+                        <FileViewer
+                            axis={FILE_AXIS.delivery}
+                            documentId={delivery.deliveryId}
+                            filename={photo.filename}
+                            contentType={photo.type}
+                        >
                             {photo.filename || "Open"}
-                        </a>
+                        </FileViewer>
                     ) : (
                         <span className="text-amber-700">
                             not attached — if it was just uploaded, reload in a moment

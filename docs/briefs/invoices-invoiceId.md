@@ -25,7 +25,9 @@ every clean invoice looks like a problem and the screen stops working.
 **identity.** The Invoice ID, which is the page heading. Below it, in a plain
 block of small lines: the vendor's name, the vendor's own invoice number, the
 issue date, the due date. Any of the last three may be missing and renders as an
-em dash. The uploaded invoice file is a link on the same block, by filename.
+em dash. The uploaded invoice file is on the same block, by filename, as a control
+that opens it over this page in the shared viewer (`_shared.md`, "A file opens over
+the screen that named it"), titled `Invoice file · {filename}`.
 
 **evidence — `Amount Due (vendor's stated total)`.** The figure everything else
 on the screen judges, and the one number a reader must be able to find without

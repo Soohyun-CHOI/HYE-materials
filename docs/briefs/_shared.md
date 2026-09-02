@@ -205,9 +205,15 @@ distinction most worth keeping legible under a new palette: a redesign in which
 
 ### Distinctions that are not tones
 
-Five more, each of which the app currently makes visible by wording or
+The entries below, each of which the app currently makes visible by wording or
 placement rather than by color. A design that collapses any of them produces a
 screen that lies.
+
+**This said `Five more` and there were eight before this issue added two**, which
+is `backlog.md`'s rule about a figure being the first thing here to go stale,
+happening in a document rather than in an entry: nothing kept the number current
+while the list grew under it. Where a count is not the claim, name what to count —
+so it names the list.
 
 **A refusal slot is not a thing every form has, and #185 is what decides.** A
 Server Action's refusal comes back as a value the form renders, or it throws and
@@ -218,6 +224,30 @@ nowhere at all to put a sentence; their briefs say so and say why. **Where a slo
 exists, draw it once**: every refusal that screen can produce arrives in the same
 one. **Where none exists, do not invent one** — nothing can fill it, and the fix
 would be the binding rather than the design.
+
+**A file opens over the screen that named it (#331).** Six surfaces link an
+uploaded file — a request's quotations, an order's PDF, an invoice's file, a
+delivery's packing list photo on both of its screens, and the direct-purchase strip
+above the request list. All six open the same viewer over the page they were on,
+titled `{what it is} · {filename}`, with the document shown in it and a control
+that saves it. Two things follow for a design. **The file is never a way out of the
+app**: it used to be a link to the storage provider, which landed the reader in a
+tab naming neither the document it belongs to nor a way back, and the page behind
+the viewer is now what answers both. **And showing it and saving it are two acts**,
+so a design may not merge them: what a click did used to depend on the reader's
+browser, and one of the two controls is now each. The one exception is a file
+picked in the current session and not yet saved, on `/prs/new`, `/invoices/new` and
+Edit and continue — there is no record to open, so those keep a plain link out, and
+`/prs/new`'s brief says how the two read differently side by side.
+
+**And a file link does not go stale, which removes a caution a design might
+otherwise have drawn.** The viewer asks this app for the file and this app re-reads
+the record on every request, so a page held open overnight, a bookmark and a link
+sent to somebody else all still work. Before #331 they did not: the link carried a
+fixed expiry stamped when the page rendered — observed dying at the wall-clock
+instant its own address named, two and a half hours after a render — and ended at a
+blank page outside the app reading `This URL has expired.` Nothing on any screen
+needs to warn about that any more, and nothing should.
 
 **Frozen against live.** `PO Items` is a snapshot taken when the purchase order
 was generated and never recomputed; `PR Items` and `Invoice Items` carry live
@@ -431,6 +461,36 @@ PDF, not on a screen. The five token states:
 `This sign-in link is not valid.` (twice, deliberately — a missing token and an
 unknown one say the same thing) / `This sign-in link has already been used.` /
 `This sign-in link has expired. Sign-in links last 15 minutes.`
+
+### Uploaded files (tier 1, `lib/fileLinks.js`)
+
+What the viewer calls each of the five files it can show, over the filename:
+`Quotation` / `Purchase order PDF` / `Invoice file` / `Packing list photo`, and
+`Invoice file` again for the document on a direct-purchase row — the same words
+the screens carrying those files already used. Its two controls are `Download`
+and `Close`.
+
+Three sentences stand in for the file when it cannot be shown, and they are split
+by whether the failure can be detected at all. Under a document, always:
+`If nothing appears above, this browser cannot show it here` — then
+`download it to open it.` For a type the viewer will not frame:
+`This file cannot be shown here` — then `download it to open it.` And for an image
+that reported an error, the one failure with a real signal:
+`This file could not be loaded.`
+
+**The first of those three is not a state and a design may not treat it as one.**
+Nothing can tell whether a document rendered: `navigator.pdfViewerEnabled`
+returned `true` in a browser that displayed nothing, and an `object` element's
+fallback children stayed hidden while its box sat empty. So the sentence is always
+there, and the control that saves the file is always beside it. A design that hides
+either behind a detected failure is drawing a state the app cannot reach.
+
+**Two of the labels are pinned and four strings are not, which is a fact about the
+matcher rather than about their standing.** `Purchase order PDF` and
+`Packing list photo` are distinctive enough that a pin fails on a rewording;
+`Quotation`, `Invoice file`, `Download` and `Close` are words this app uses in
+other constants, so a pin on one would go on passing after the viewer stopped
+saying it — the reason `Paid` is not pinned either.
 
 ### Items (tier 1, `lib/prItemMerge.js`, `lib/invoiceOrderBreakdown.js`)
 
