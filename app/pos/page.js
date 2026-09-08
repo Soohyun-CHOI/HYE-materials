@@ -70,7 +70,7 @@ async function renderPOListPage({ searchParams }) {
     // and #190 measured /prs failing — that page resolves one requester at a time,
     // so three of its operations are `Users: find`. getPRsByRecordIds is the
     // batched reader (findByRecordIds under it) and it maps through recordToPR, so
-    // the rows carry the signerRowIds/correctionRowIds canViewPR needs for clauses
+    // the rows carry the signerRowIds/editRequestRowIds canViewPR needs for clauses
     // 5 and 6. getLinkedRecords is deliberately not used anywhere here: it re-finds
     // the parent on every call, which is why /prs/[prId] reads one PR five times.
     //

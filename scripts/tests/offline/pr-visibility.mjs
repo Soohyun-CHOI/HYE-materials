@@ -8,7 +8,7 @@
 // Worth pinning tightly because the failure directions are asymmetric. Too
 // permissive leaks someone else's PR — a Draft especially, which nobody but its
 // author should see. Too restrictive cuts the signing chain: a signer or
-// correction recipient who cannot open the PR cannot take their turn, and the
+// edit-request recipient who cannot open the PR cannot take their turn, and the
 // chain stops with no error to explain it.
 
 import { canViewPR } from "../../../lib/prVisibility.js";
@@ -21,7 +21,7 @@ export const title = "Row visibility — canViewPR (#119/#132/#143)";
 // Every user carries the two link arrays, because recordToUser always does —
 // a fixture without them would be testing a shape production cannot produce,
 // and canViewPR now throws on it (see the tripwire cases at the bottom).
-const asUser = (over) => ({ signerRowIds: [], correctionRowIds: [], ...over });
+const asUser = (over) => ({ signerRowIds: [], editRequestRowIds: [], ...over });
 const president = asUser({ id: "recPres", role: "President", isAdmin: false, assignedJobs: [] });
 const admin = asUser({ id: "recAdmin", role: "Employee", isAdmin: true, assignedJobs: [] });
 const employee = asUser({ id: "recEmp", role: "Employee", isAdmin: false, assignedJobs: ["recJobA"] });
@@ -32,7 +32,7 @@ const submitted = (over = {}) => ({
     requester: ["recOther"],
     job: ["recJobZ"],
     signerRowIds: [],
-    correctionRowIds: [],
+    editRequestRowIds: [],
     ...over,
 });
 
@@ -91,21 +91,21 @@ export function run({ check }) {
         false
     );
 
-    // --- #143 clause 6: recipient of a correction request on this PR -------
-    const prWithCorrections = submitted({ correctionRowIds: ["recCR1"] });
+    // --- #143 clause 6: recipient of an edit request on this PR ------------
+    const prWithEditRequests = submitted({ editRequestRowIds: ["recER1"] });
     check(
-        "correction recipient off the PR's Job can open it",
-        canViewPR({ ...outsider, correctionRowIds: ["recCR1"] }, prWithCorrections),
+        "edit-request recipient off the PR's Job can open it",
+        canViewPR({ ...outsider, editRequestRowIds: ["recER1"] }, prWithEditRequests),
         true
     );
     check(
-        "recipient of a correction on a different PR is refused",
-        canViewPR({ ...outsider, correctionRowIds: ["recCROther"] }, prWithCorrections),
+        "recipient of an edit request on a different PR is refused",
+        canViewPR({ ...outsider, editRequestRowIds: ["recEROther"] }, prWithEditRequests),
         false
     );
 
     // Status-agnostic by design: nothing in the rule reads a child's Status,
-    // so a resolved correction and a signer who already acted keep access.
+    // so a resolved edit request and a signer who already acted keep access.
     // These two assert the *shape* that makes that true — access depends only
     // on membership, so no status value can change the answer.
     check(
@@ -114,8 +114,8 @@ export function run({ check }) {
         true
     );
     check(
-        "membership alone decides — a correction recipient keeps access once resolved",
-        canViewPR({ ...outsider, correctionRowIds: ["recCR1"] }, prWithCorrections),
+        "membership alone decides — an edit-request recipient keeps access once resolved",
+        canViewPR({ ...outsider, editRequestRowIds: ["recER1"] }, prWithEditRequests),
         true
     );
 
@@ -164,7 +164,7 @@ export function run({ check }) {
     // --- shape robustness --------------------------------------------------
     check(
         "an argument-shaped user with no claims refuses",
-        canViewPR({ id: "x", role: "Employee", isAdmin: false, signerRowIds: [], correctionRowIds: [] }, submitted()),
+        canViewPR({ id: "x", role: "Employee", isAdmin: false, signerRowIds: [], editRequestRowIds: [] }, submitted()),
         false
     );
 
@@ -183,9 +183,9 @@ export function run({ check }) {
         check(`throws rather than refusing: ${label}`, threw, true);
     };
     throwsFor("user.signerRowIds", { ...outsider, signerRowIds: undefined }, submitted());
-    throwsFor("user.correctionRowIds", { ...outsider, correctionRowIds: undefined }, submitted());
+    throwsFor("user.editRequestRowIds", { ...outsider, editRequestRowIds: undefined }, submitted());
     throwsFor("pr.signerRowIds", outsider, submitted({ signerRowIds: undefined }));
-    throwsFor("pr.correctionRowIds", outsider, submitted({ correctionRowIds: undefined }));
+    throwsFor("pr.editRequestRowIds", outsider, submitted({ editRequestRowIds: undefined }));
 
     // But only when the answer actually depends on them: a decision already
     // reached by clauses 1-4 never needed the arrays, so those paths must not

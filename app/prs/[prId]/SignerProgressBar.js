@@ -77,11 +77,11 @@ function Connector({ solid }) {
     );
 }
 
-export default function SignerProgressBar({ pr, signers, correctionRequests, po, usersById }) {
-    const { steps, arcs, withdrawn } = getSignerChainProgress(pr, signers, correctionRequests);
+export default function SignerProgressBar({ pr, signers, editRequests, po, usersById }) {
+    const { steps, arcs, withdrawn } = getSignerChainProgress(pr, signers, editRequests);
 
     // PO Signed is a distinct final step this module doesn't know about
-    // (driven by the PO record, not PR Signers/Correction Requests) —
+    // (driven by the PO record, not PR Signers/PR Edit Requests) —
     // appended here rather than in lib/prSigning.js's pure chain logic.
     const poCategory =
         pr.status === "PO Signed" ? "done" : pr.status === "Approved" ? "current" : "not-reached";
@@ -145,7 +145,7 @@ export default function SignerProgressBar({ pr, signers, correctionRequests, po,
                                     const midX = (fromX + toX) / 2;
                                     return (
                                         <path
-                                            key={arc.correctionRequestId}
+                                            key={arc.editRequestId}
                                             d={`M ${fromX} ${baseY} Q ${midX} ${peakY} ${toX} ${baseY}`}
                                             fill="none"
                                             strokeWidth="2"

@@ -7,13 +7,17 @@ import OverageButton from "@/app/deliveries/[deliveryId]/OverageButton";
 // the ordering and every word are lib/overage.js's and lib/overagePR.js's, so this
 // file is the rendering and nothing else.
 //
-// THE WORD IS `overage`, NOT `correction` (#272). `Correction Requests` is the
-// signing chain's own table — the return-for-correction one — so the word was
-// naming two things at once, and this strip is where they would have met: an
-// `Overage` chip on a request in the list below, over a strip telling the reader to
-// raise a correction. What a record is corrected INTO keeps the word (deleting and
-// re-entering a delivery is a correction to the record); what is raised as a request
-// does not.
+// THE WORD IS `overage`, NOT `correction` (#272), AND #333 CHANGED THE GROUND
+// UNDER THAT WITHOUT CHANGING IT. This said `Correction Requests` is the signing
+// chain's own table, so the word was naming two things at once — and that table
+// is `PR Edit Requests` now, so a table no longer claims `correction` at all.
+// What survives is the collision itself: the screen still calls a signer's
+// send-back `Return for correction`, so a strip here telling the reader to raise
+// a correction would still be a second request under one word, which is where
+// the two would have met — an `Overage` chip on a request in the list below,
+// over that strip. What a record is corrected INTO keeps the word (deleting and
+// re-entering a delivery is a correction to the record); what is raised as a
+// request does not.
 //
 // IT IS ON `/prs`, AND WHO CAN ACT IS WHY — the mirror of #176's argument for
 // putting its own strip on `/pos`. An overage request IS a purchase request, and the

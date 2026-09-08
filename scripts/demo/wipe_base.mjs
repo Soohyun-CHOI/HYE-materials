@@ -81,8 +81,8 @@ const ORDER = [
     // materials above.
     TABLES.DIRECT_PURCHASES,
     // The request side and its history.
-    TABLES.EDIT_LOG,
-    TABLES.CORRECTION_REQUESTS,
+    TABLES.PR_EDIT_LOG,
+    TABLES.PR_EDIT_REQUESTS,
     TABLES.QUOTATIONS,
     TABLES.PR_SIGNERS,
     TABLES.PR_ITEMS,

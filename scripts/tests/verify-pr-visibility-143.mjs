@@ -19,7 +19,7 @@
 // fixture (see CLAUDE.md). Its Assigned Jobs is read and asserted empty-of-this
 // -Job, so "off the Job" is a fact here rather than an assumption.
 //
-// Fixtures: one throwaway PR plus one signer row and one correction request,
+// Fixtures: one throwaway PR plus one signer row and one edit request,
 // all deleted at the end.
 //
 // Run with (from the repo root):
@@ -32,7 +32,7 @@
 import { canViewPR } from "../../lib/prVisibility.js";
 import { createPR, getPRByRecordId, getPRById, updatePR } from "../../lib/airtable/purchaseRequests.js";
 import { createSigner } from "../../lib/airtable/prSigners.js";
-import { createCorrectionRequest, resolveCorrectionRequest } from "../../lib/airtable/correctionRequests.js";
+import { createEditRequest, resolveEditRequest } from "../../lib/airtable/prEditRequests.js";
 import { getUserByEmail, getUserByRecordId, getActiveUsers } from "../../lib/airtable/users.js";
 import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
@@ -63,9 +63,9 @@ const BASE_URL = process.env.PR_VIS_BASE_URL || "http://localhost:3000";
 // reach the verdict. There was no residue measurement either, so "found 0" was
 // never even attempted.
 //
-// PR Signers and Correction Requests are DISCOVERED CHILDREN rather than tracked
+// PR Signers and PR Edit Requests are DISCOVERED CHILDREN rather than tracked
 // buckets, and that is a choice rather than a limit: both `createSigner` and
-// `createCorrectionRequest` take `notes`, so the tag could reach them. The reason
+// `createEditRequest` take `notes`, so the tag could reach them. The reason
 // against is that this test DELETES those rows mid-run as part of what it measures
 // — dropping a claim to see the refusal — so tracking them would mean two
 // `untrack` calls to keep the ledger honest, while reading the parent's link at
@@ -87,7 +87,7 @@ const fixtures = createFixtures({
             children: [
                 { link: "PR Items", table: TABLES.PR_ITEMS, label: "PR Item" },
                 { link: "PR Signers", table: TABLES.PR_SIGNERS, label: "PR Signer" },
-                { link: "Correction Requests", table: TABLES.CORRECTION_REQUESTS, label: "Correction Request" },
+                { link: "PR Edit Requests", table: TABLES.PR_EDIT_REQUESTS, label: "PR Edit Request" },
             ],
         },
     ],
@@ -148,14 +148,14 @@ try {
     check("still refused if the PR's signer rows are emptied",
         canViewPR(fixtureFresh, { ...pr, signerRowIds: [] }), false);
 
-    console.log("\nPart C — clause 6: the recipient of a correction request can open it:");
+    console.log("\nPart C — clause 6: the recipient of an edit request can open it:");
     // Remove the signer claim so clause 6 is what is being measured.
     await base(TABLES.PR_SIGNERS).destroy(signer.id);
     pr = await getPRByRecordId(pr.id);
     fixtureFresh = await getUserByRecordId(fixture.id);
     check("signer claim is gone, so the user is refused again", canViewPR(fixtureFresh, pr), false);
 
-    const correction = await createCorrectionRequest({
+    const editRequest = await createEditRequest({
         prRecordId: pr.id,
         prId: pr.prId,
         initiatedById: owner.id,
@@ -164,16 +164,16 @@ try {
     });
     pr = await getPRByRecordId(pr.id);
     fixtureFresh = await getUserByRecordId(fixture.id);
-    check("PR record lists the correction row", (pr.correctionRowIds || []).includes(correction.id), true);
-    check("User record lists it as sent to them", (fixtureFresh.correctionRowIds || []).includes(correction.id), true);
+    check("PR record lists the edit-request row", (pr.editRequestRowIds || []).includes(editRequest.id), true);
+    check("User record lists it as sent to them", (fixtureFresh.editRequestRowIds || []).includes(editRequest.id), true);
     check("canViewPR admits the recipient", canViewPR(fixtureFresh, pr), true);
 
     console.log("\n  and it survives resolution (status-agnostic by design):");
-    await resolveCorrectionRequest(correction.id);
+    await resolveEditRequest(editRequest.id);
     pr = await getPRByRecordId(pr.id);
     fixtureFresh = await getUserByRecordId(fixture.id);
-    const resolved = (await base(TABLES.CORRECTION_REQUESTS).find(correction.id)).get("Status");
-    check("the correction really is Resolved", resolved, "Resolved");
+    const resolved = (await base(TABLES.PR_EDIT_REQUESTS).find(editRequest.id)).get("Status");
+    check("the edit request really is Resolved", resolved, "Resolved");
     check("the recipient can still open the PR", canViewPR(fixtureFresh, pr), true);
 
     console.log("\nPart D — a Draft is the author's alone, on a real record:");
@@ -181,7 +181,7 @@ try {
     pr = await getPRByRecordId(pr.id);
     check("PR is now a Draft", pr.status, "Draft");
     check("its Requester can open it", canViewPR(await getUserByRecordId(owner.id), pr), true);
-    check("the correction recipient can NOT (Draft beats chain membership)", canViewPR(fixtureFresh, pr), false);
+    check("the edit-request recipient can NOT (Draft beats chain membership)", canViewPR(fixtureFresh, pr), false);
     // Deliberately an Admin who is neither the author nor the fixture, so the
     // clause-1-beats-role case is actually exercised rather than skipped.
     const otherAdmin = (await getActiveUsers()).find(
@@ -234,9 +234,9 @@ try {
 
         const fixtureCookie = await cookieFor(FIXTURE_EMAIL);
 
-        // Correction claim still stands from Part C, so the fixture user should
+        // The edit-request claim still stands from Part C, so the fixture user should
         // be admitted. Drop it first to see the refusal.
-        await base(TABLES.CORRECTION_REQUESTS).destroy(correction.id);
+        await base(TABLES.PR_EDIT_REQUESTS).destroy(editRequest.id);
         const refused = await pageSays(fixtureCookie);
         check("with no chain role, the page answers not-found", refused.notFound, true);
 
