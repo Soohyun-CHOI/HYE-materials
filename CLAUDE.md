@@ -98,7 +98,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170): the six-field key, `isEmptyItemRow`, and `PR_ITEM_MERGE_COPY`. Applied in `parseFormState`, previewed by the form.
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188): the restore names, both voices of the copy, and the recorder all four rollbacks write into. **A restore that fails is named on screen and logged with its record id, never swallowed** — and never written to Airtable, which is what just failed.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
-- `lib/toolStatus.js` — the tools track's two closed vocabularies (#334): the five statuses, the eight events, and the status each event leaves behind. **`Job Changed` leaves it alone, which is why `Tool Items."Status"` is written by this app and not by an Airtable formula** — a mapping is not a copy. No call site passes `createToolLogEntry` a string literal.
+- `lib/toolStatus.js` — the tools track's two closed vocabularies (#334, narrowed in #335): three statuses, four events, and the status each event leaves behind. **`Tool Items."Status"` and `Tool Items."Job"` are both caches of the last `Tool Log` row, written by this app and never by an Airtable formula.** No call site passes `createToolLogEntry` a string literal.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
@@ -190,9 +190,9 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Tools**: the KIND a tool is bought as (#334) — first table of the tools track, which shares this base, this login and these people with everything above it. `Tool Name` (primary, human-entered, app-enforced unique; no minted ID, as `Vendors` and `Materials` have none), `Tool Items` (reverse-link).
 
-**Tool Items**: one physical tool, the thing a QR label is stuck to (#334). `Tool Item ID` (HYE-TL-YYMMDD-###, primary — the value PRINTED on the label, width in #335), `Tool` (link, single), `Status` (In Stock/Out/In Repair/Lost/Retired — **written by this app as a cache of the last `Tool Log` row, never an Airtable formula**), `Job` (link → Jobs, single, **required and app-enforced; no state leaves it empty**), `Tool Log` (reverse-link). No `Created At`, deliberately.
+**Tool Items**: one physical tool, the thing a QR label is stuck to (#334). `Tool Item ID` (HYE-TL-YYMMDD-###, primary — PRINTED on the label, 3-digit sequence), `Tool` (link, single), `Status` (In Stock/Out/Retired), `Job` (link → Jobs, single, **required and app-enforced**), `Tool Log` (reverse-link). **`Status` and `Job` are both caches of the last `Tool Log` row, written by this app and never by an Airtable formula.** No `Created At`: the `Registered` log row holds it.
 
-**Tool Log**: what has happened to one tool item, append-only (#334). `Tool Log ID` ({Tool Item ID}-{seq}, 3 digits), `Tool Item` (link, single), `Event` (select — Checked Out/Checked In/Sent to Repair/Returned from Repair/Lost/Found/Retired/Job Changed), `Job` (link → Jobs, single, **on every row and never blank** — its own copy, of the job held AFTER the event; the absence of blanks is what makes the previous row the previous job, so **no `Former Job` is stored**), `Recorded By` (link → Users, single), `Event At` (datetime, UTC), `Notes` (optional).
+**Tool Log**: what has happened to one tool item, append-only (#334). `Tool Log ID` ({Tool Item ID}-{seq}, 3 digits), `Tool Item` (link, single), `Event` (select — Registered/Checked Out/Checked In/Retired), `Job` (link → Jobs, single, **on every row and never blank** — the job the event happened on, **taken from the actor's `Users."Assigned Jobs"` and stored at that moment, never looked up later**; the absence of blanks is what makes the previous row the previous job, so **no `Former Job` is stored**), `Recorded By` (link → Users, single), `Event At` (datetime, UTC), `Notes` (optional).
 
 **Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
@@ -218,7 +218,7 @@ One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PC
 
 ## ID generation (lib/ids.js)
 
-1. Top-level IDs (PR/PO/Invoice/Delivery/Direct Purchase): daily-reset counters sharing one rule. PO uses a 4-digit year; the rest use 2-digit.
+1. Top-level IDs (PR/PO/Invoice/Delivery/Direct Purchase/Tool Item): daily-reset counters sharing one rule. PO uses a 4-digit year; the rest use 2-digit. **The sequence pads to 2 unless the family declares otherwise — Tool Item is the only one that does (3), because one registration creates many (#335)** — and it WIDENS past its pad rather than wrapping. `mintDailyIds` mints a whole batch under one lock and one query; `mintDailyId` is that with a count of 1.
 2. Child-table IDs: `{Parent ID}-{seq}`, resetting per parent, same **max + 1** rule.
 3. Vendor-issued codes (Vendor Quotation Code, Vendor Invoice Code): human-entered, scoped by Vendor.
 

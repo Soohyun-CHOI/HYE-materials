@@ -22,7 +22,7 @@ The company buys drills, grinders and the like, hands them out to sites, and get
 
 **`Tools` takes no minted ID, the way `Vendors` and `Materials` take none.** Nothing prints a kind and nobody quotes one, so the name a person types is the identity. The cost is a uniqueness rule the schema cannot hold, since Airtable has no unique constraint: #338 refuses a second kind with the same name through `getToolByName`, and that lookup is case-insensitive because Airtable's `=` on a text field is — `Impact Driver` and `impact driver` are one kind whose count must not split.
 
-**`Tool Items.Tool Item ID` is different in kind from every other minted ID on this base**, and it is worth saying why once. A PR ID is read on a screen; a PO ID is read on a document. This one is encoded into a QR code, glued to a drill and carried onto a site. Two rows sharing it means two tools wearing the same label, and the repair is reprinting both. #335 owns the format and the width.
+**`Tool Items.Tool Item ID` is different in kind from every other minted ID on this base**, and it is worth saying why once. A PR ID is read on a screen; a PO ID is read on a document. This one is encoded into a QR code, glued to a drill and carried onto a site. Two rows sharing it means two tools wearing the same label, and the repair is reprinting both — see the ID section below for the width and how a batch stays contiguous.
 
 **`Tool Log` exists because a status field answers where a tool is now and nothing about the project that just ended.** The question a site asks when a job closes is which tools went out on it — a question about the past, which the current status cannot answer once the tool has moved on. It is append-only in the shape `PR Edit Log` already has: a row records what was true at a moment, a moment does not change, so there is no update function and correcting a mistaken scan is another row.
 
@@ -34,58 +34,97 @@ The company buys drills, grinders and the like, hands them out to sites, and get
 
 ## Status is written by this app, not computed by Airtable
 
-`Tool Items."Status"` is a cache of the last `Tool Log` row. It is nonetheless written by `lib/toolStatus.js`'s mapping in the same operation as the row that moved it, and that is a decision rather than a limitation worked around. Three grounds, and the first is the one that settles it.
+`Tool Items."Status"` is a cache of the last `Tool Log` row, written by `lib/toolStatus.js`'s mapping in the same operation as the row that moved it. That is a decision rather than a limitation worked around, and **#335 removed one of the three grounds it rested on — the conclusion survives on the other two.** The removal is recorded rather than quietly dropped, so nobody re-derives the argument from a premise that is gone.
 
-**A LAST ROW IS NOT A STATUS.** The two vocabularies are different sizes — five statuses against eight events — and `Job Changed` is a last row that leaves the status alone. Reading the last row's `Event` into `Status` would write `Job Changed` into a field whose option list does not contain it. So turning an event into a status is a MAPPING, and a mapping is workflow logic, which CLAUDE.md keeps out of Airtable formulas. `STATUS_AFTER_EVENT` is that mapping and `Job Changed` is its only `null`; `offline/tool-status.mjs` pins that it stays the only one, because if a second appears the argument on this page needs re-making.
+**THE GROUND THAT DIED.** #334's first and strongest reason was that a last row is not a status: the vocabularies were different sizes and `Job Changed` was a last row that left the status alone, so reading the last row's `Event` into `Status` would have written a value the option list did not contain. #335 removed that event, `STATUS_AFTER_EVENT` has no `null` entry any more, and every event now moves the status. A formula that copied the latest event's status would, on today's vocabulary, be correct.
 
-**Airtable has no argmax.** A rollup's `MAX` is numeric, and there is no aggregation that returns the value of the field on the row where another field is highest. The workaround is to lean on rollup ordering — the link cell's order — which is not a documented guarantee, so a history that reordered for any reason would silently rewrite every tool's status.
+**Airtable has no argmax.** A rollup's `MAX` is numeric, and there is no aggregation that returns the value of a field on the row where another field is highest. "The status implied by the row with the latest `Event At`" is not expressible. The workaround is to lean on rollup ordering — the link cell's order — which is not a documented guarantee, so a history that reordered for any reason would silently rewrite every tool's status.
 
-**A formula field cannot be a singleSelect**, so the closed option list, the colors and the filterability all go, and #339's count per status would be over free text.
+**A formula field cannot be a `singleSelect`.** The closed option list goes, the colors go, and #339's count per status would be computed over free text. `Tool Items."Job"` has the same problem one step worse: a formula cannot be a link either, so the job cache could not exist at all on that route.
 
-## The job is on the tool item AND on every log row
+Neither of the two is checkable in this repository — both are facts about Airtable — which is why this paragraph is prose and `offline/tool-status.mjs` says so in the assertion that replaced #334's.
 
-`Tool Items."Job"` is required and app-enforced — Airtable cannot make a link field required, the same limit `Invoice Items."PO Item"` lives with (#278). **There is no state it would be empty in**: the tool belongs to a job from the moment a site person registers it, `In Stock` means at rest ON its job rather than belonging to nobody, and a tool in repair, lost or retired still has the job it last belonged to. It is changeable (#341) because a tool outlives the project it was bought for.
+## Why the vocabulary is four events and three statuses
 
-That last sentence is exactly why `Tool Log` carries its own `Job`: the current job says nothing about where the tool was in March, and where it was in March is the question. The log's copy is the job the tool item belongs to immediately AFTER the event.
+**Statuses: `In Stock`, `Out`, `Retired`. Events: `Registered`, `Checked Out`, `Checked In`, `Retired`.** #334 shipped five and eight; #335 cut them to this before a single row existed, which is the only reason it was affordable — an existing select's option list cannot be PATCHed at all, so the repair was deleting two tables and running the creation script again.
+
+**`In Repair`, `Lost` and `Found` are gone because those things do not happen here.** A tool that breaks is thrown away and replaced rather than repaired, and nobody reports an individual tool item missing. The cost of modelling them anyway is not neutral: a status nobody will ever designate is a permanent blank in the per-status count, a dead option in the list filter, and an entry in `STATUS_AFTER_EVENT` that no code path reaches. If repair ever starts, adding an option is a hand edit in the Airtable UI — known, and cheaper than carrying three dead values until then.
+
+**`Retired` stays because without a terminal status the count goes wrong.** A discarded tool would sit `In Stock` for good, and the only other way to correct that is deleting the record, which takes its whole log with it. It covers a tool found missing at a stock check as well as one thrown away, because on this axis those are one fact — the company no longer holds it — and which of the two it was goes in `Tool Log."Notes"`.
+
+**`Job Changed` is gone for a different reason: the fact it recorded is already in the log.** A manager scans out their own job's tools to workers; a worker may carry one to another site; whoever manages the site it reaches scans it back in. So a tool moving between jobs shows up as a check-out on one job and the next check-in on another, and a separate event adds nothing those two rows do not already carry. **That is what makes `Tool Items."Job"` a cache rather than an attribute** — see below.
+
+**`Registered` was added, and the deciding reason is a field that is not there.** #334 left `Created At` off `Tool Items` on the ground that the log's first row holds the instant. Without an event naming registration there is nowhere at all that answers when a tool item came into existence, and `Created At` would have to come back. `Checked In` was the alternative and reads wrong: it means a tool came back into stock, and one being registered has never been out. It is also not a fiction — the label still has to be printed and stuck on, so the `In Stock` it leaves behind describes a real tool sitting on a bench.
+
+**The naming shapes.** A transition a person designates is named for the state it leaves the tool in, so the event and the status are the same string: `Retired`, the only one of that kind left. A transition that happens by scanning carries an action name, because the person is performing an act rather than declaring a state: `Checked Out`, `Checked In`. `Registered` is a third case — an act with no status of its own name — which is why `STATUS_AFTER_EVENT` is a map rather than something derivable from the two lists.
+
+**What the check can and cannot hold.** `offline/tool-status.mjs` asserts that every status is produced by at least one event, which catches a dead option. It is **not** the rule applied above: what was removed were statuses nobody would ever DESIGNATE, and `In Repair` was perfectly reachable from `Sent to Repair` right up until it was deleted. The assertion would have passed on the old vocabulary and passes on the new one. Whether an event describes something that happens on a site is not a property of this source tree, and a green run is not evidence that the vocabulary is justified.
+
+## The job is a cache on the tool item and a fact on every log row
+
+`Tool Log."Job"` is filled on every row and never blank. It holds the job the event happened on, which is where the tool item is immediately after it.
+
+**`Tool Items."Job"` IS A CACHE OF THAT COLUMN ON THE LATEST ROW — the same kind of value as `Status`, from the same row.** #334's description called it the job the tool belongs to, a durable attribute, and #335 corrected that: a tool does not belong to a job, it was last scanned on one. Nothing in the flow ever reassigns a tool; it moves because somebody carries it and somebody else scans it in.
+
+It is still REQUIRED and still app-enforced, since Airtable cannot make a link field required (the limit `Invoice Items."PO Item"` lives with, #278). Never empty, because every event carries a job and registration is an event.
+
+### Where the job comes from
+
+**Registration, check-out and check-in all take it from the `Users."Assigned Jobs"` of whoever performs the action.** One assigned job and it is used without asking; several and it is a dropdown; there is no path anywhere that types a job.
+
+**IT IS STORED ON THE LOG ROW AT THAT MOMENT AND NEVER LOOKED UP AFTERWARDS.** `Assigned Jobs` changes when a person moves site, so a log row that referenced the session or the user's current assignment would make an old check-out describe today's posting. That is the precise thing the per-row copy exists to prevent, and referencing it at read time would undo the whole reason `Tool Log` carries a job of its own. The screens are #338 and later; the rule is here because it constrains all of them.
 
 ### `Former Job` was considered and refused
 
-#341 says the job change writes a row naming BOTH jobs, which reads like a `Job` plus a `Former Job`. It is not, because **`Tool Log."Job"` is filled on every row and never blank** — so the PREVIOUS row's `Job` is unambiguously the previous job, and a `Job Changed` row names where the tool went while the row before it names where it came from. Storing the pair would be one fact in two places, derivable from an ordering the log already has, and #340 renders the whole history at once so it holds both rows anyway.
+With no blanks, the PREVIOUS row's `Job` is unambiguously the previous job — a check-in on a different job than the check-out before it IS the record of a tool changing site. Storing the pair would be one fact in two places, derivable from an ordering the log already has, and #340 renders the whole history at once so it holds both rows.
 
 The counter-precedent is `Delivery Items."Former PO Item"` (#167), which IS stored — and the difference is the reason: there is no log on that axis, so the re-attachment destroys the only record of where the row came from. Here the log is the record.
 
-## Why the event vocabulary is shaped the way it is
-
-Eight values, in two naming shapes, and the split is which transitions a person designates.
-
-- A transition somebody chooses on a screen is named for the state it leaves the tool in, so the event and the status are **the same string**: `Lost`, `Retired`.
-- A transition that happens by SCANNING carries an action name of its own, because the person scanning is performing an act rather than declaring a state: `Checked Out`, `Checked In`.
-
-**`Lost` is not `Marked Lost`.** `Retired` already stands as one string on both axes, so prefixing only the other one would be an exception dressed as consistency. Nothing is lost by the collision — an event and a status are different fields on different tables, and `STATUS_AFTER_EVENT` is where the two meet, in code, unambiguously.
-
-The three repair-and-recovery events keep names of their own because none of them is its own status: `Sent to Repair` leaves the tool `In Repair`, and `Returned from Repair` and `Found` both leave it `In Stock`.
-
-**`Found → In Stock` is the one resulting status that is a judgment** rather than a reading of the event's own name. A tool that turns up is accounted for again but is not thereby back at work; if it is in fact on a site, the scan that puts it there is a `Checked Out` and says so. Restoring whatever status preceded the `Lost` was the alternative and is refused because it needs the log walked backwards, which is the work the cached field exists to avoid.
-
-**Title case with lowercase particles is the base's convention rather than a choice made here** — `Purchase Orders."Status"` spells `Sent to Vendor` and `Awaiting Signature`. A preposition is lowercase unless it is the first or last word. This matters more than usual because **an existing select's option list cannot be written through the Metadata API at all** (422, measured; see `airtable-access.md`), so a casing slip is a hand edit in the UI plus a rewrite of every row carrying the old string. `offline/tool-status.mjs` holds the casing rule by value for that reason.
-
 ## Open — decided, not yet enforceable
 
-**`Notes` IS REQUIRED ON A `Lost` AND ON A `Retired` EVENT, AND NOTHING ENFORCES IT YET.** The two have different reasons and both are strong enough to make the field conditional. `Lost` is a record that asks who was responsible, so a row saying only that a tool is gone is the half of the record that costs nothing to write and answers nothing. `Retired` cannot be undone — it is the one terminal status — so the reason has to survive the decision.
+**`Notes` IS REQUIRED ON A `Retired` EVENT, AND NOTHING ENFORCES IT YET.** That event cannot be undone, and it covers two different real happenings — a tool thrown away, and a tool found missing at a stock check. With no reason written down the row does not say which, and the distinction is the only place that information can live now that `Lost` is not a status.
 
-It is unimplemented because **this issue creates the tables and writes no row at all**; the screens that set those two statuses are downstream of #338 and none of #335–341 covers them. So it is recorded here rather than filed: the requirement has no issue, which is what this section is for.
+#334 recorded this rule against `Lost` and `Retired` both, with a second reason for `Lost` — that it is a record asking who was responsible. #335 removed that event, so the rule narrows to one event and one reason.
 
-Two constraints on whoever implements it. **Airtable cannot make a field conditionally required** — it cannot make one required at all — so this is an app rule in the shape `Tool Items."Job"` already takes, refused at the action rather than by the schema. And it is a rule about the EVENT rather than about the field, so it belongs beside `STATUS_AFTER_EVENT` in `lib/toolStatus.js`, where the two events are already named, rather than in whichever form happens to write them first.
+It is unenforceable here because **this issue writes no `Tool Log` row at all**; the screen that retires a tool is downstream of #338 and none of #335–341 covers it. So it is recorded rather than filed: the requirement has no issue, which is what this section is for.
+
+Two constraints on whoever implements it. **Airtable cannot make a field conditionally required** — it cannot make one required at all — so this is an app rule in the shape `Tool Items."Job"` already takes, refused at the action rather than by the schema. And it is a rule about the EVENT rather than about the field, so it belongs beside `STATUS_AFTER_EVENT` in `lib/toolStatus.js`, where the event is already named.
 
 `Tool Log."Notes"` says so in its own Airtable description, so a person reading the base meets the pending rule where the field is.
 
 ## What the schema deliberately does NOT carry
 
-- **No `Created At` on `Tool Items`.** The `Tool Item ID` carries the day and the log's first row carries the instant; a third copy is the shape this base keeps having to remove.
+- **No `Created At` on `Tool Items`.** The `Tool Item ID` carries the day and the log's first row carries the instant; a third copy is the shape this base keeps having to remove. **That omission is what forced the `Registered` event** — with no such row there would be nowhere left holding the instant, and the field would have to come back. The two decisions hold each other up, so neither can be undone alone.
 - **No `Created At` on `Tools`.** `Vendors` and `Materials`, the two tables it is modelled on, have none, and `/tools` orders by name. An Airtable `createdTime` can be added in one field CREATE if #339 wants a tiebreak.
 - **No per-status rollup on `Tools`.** #339 needs a count per status and can have it from the `Tool Items` link array `getAllTools` already returns for free. The measurable condition for changing that: if `/tools` measures above roughly ten operations because of the tool item walk, the count moves into a rollup and `Purchase Orders."Uninvoiced Items"` (#244) is the worked example of the move. Five rollups nothing reads would be five fields to keep in step for nothing.
 - **No `{Parent} Record ID` lookup on either child table.** After #334 deleted the seven that existed, `Material Prices` holds the only two left on the base, and those are CLAUDE.md's stated exception — a price row is keyed by two links and has no parent whose reverse-link would do. See below.
 - **No `Unit` field anywhere.** A tool item is one object, not a quantity, so `add_unit_options.py` stays a five-table script — the same note `create_direct_purchases_272.py` makes for its own table.
+
+## The tool item ID: width, and how a batch stays contiguous (#335)
+
+`HYE-TL-YYMMDD-###`, minted by `lib/ids.js:generateNextToolItemIds`. Same daily-reset shape as every other document in the system, counting the rows whose ID carries the same prefix and never a date field (#164) — the rule that matters more here than anywhere else, because a duplicate is two labels already stuck to two tools and the repair is reprinting both.
+
+**THE WIDTH IS 3 AND IT IS THE FIRST PER-FAMILY WIDTH ON THIS BASE.** Every other family takes `SEQ_PAD_LENGTH`, which is 2 and stays 2: `formatSequentialId` reads `padLength` through a default, so `ID_KINDS.TOOL_ITEM` declaring one leaves the other five untouched. That mechanism is not new — `CHILD_KINDS` already carries a width per relation — and it is the reason widening this sequence changed no document ID.
+
+Three, because one registration creates many. Every other family is a document somebody raises one at a time and none has ever needed more than a handful in a day; a tool registration takes a quantity, and the first day of use is a warehouse's whole stock arriving at once. It is also not a new number — seven of the nine child relations already pad to 3.
+
+**IT IS NOT A CEILING, WHICH IS WHY THE CHOICE IS CHEAP.** `padStart` does not truncate and `nextSequence` parses the whole tail, so the 1000th tool item of one day is `-1000` rather than a collision. The width is a statement about how the common case reads.
+
+**A BATCH IS ONE LOCK, ONE QUERY AND N CONTIGUOUS IDS.** `mintDailyIds` holds the critical section across the whole registration; `mintDailyId` is that function with a count of 1. Minting one at a time would be wrong twice: a lock acquisition and a full day-prefix query PER tool item, which grows with the day, and — worse — two people registering at once would interleave, so one registration's tool items would come back with another's numbers scattered through them.
+
+The direction of the delegation is forced rather than chosen: `offline/id-sequence.mjs` asserts `lib/ids.js` builds exactly one `filterByFormula` and that it is a bare `prefixMatch` call, so a batch helper with a query of its own fails CI. Two queries for one rule is how the two drift.
+
+**AN ISSUANCE HELPER NARROWER THAN A WRITER IS NOT AVAILABLE**, and it is worth knowing before someone tries. `mintDailyIds` calls its callback INSIDE the lock, because reading the highest sequence and writing the rows that claim it must be one critical section — a helper that returned ids would hand them out with the lock already released. So `createToolItems` mints and creates in one function, exactly as `createToolLogEntry` does one level down, and for the same reason.
+
+**WHAT THE LOCK DOES NOT COVER** is `withKeyLock`'s standing residual: it serializes within one process or invocation only, so two concurrent Vercel invocations can still read the same highest sequence and both create. Every family has lived with that window; what differs here is the repair. No distributed lock is built — that is new machinery against a risk this base has never been observed to hit — and the frontend disable-on-click guard remains the other half. The module header says so where a reader of the code will meet it.
+
+**A DELETED TOOL ITEM FREES ITS NUMBER IF IT WAS THE HIGHEST OF ITS DAY, WHICH IS THE ONE HAZARD ON THIS AXIS WORTH KNOWING.** `nextSequence` is MAX + 1 over the live rows, so deleting the top row lowers MAX and the next mint re-issues that number — measured, not reasoned: with `HYE-TL-260908-001..009` on the base, destroying `-009` and minting again produced `-009`. That is MAX + 1 working as specified, and for an invoice it is the accepted behavior #164 settled; here the number is on a sticker, so the same behavior would put one label on two tools with nothing to notice.
+
+**WHAT CLOSES IT IS THE VOCABULARY, NOT THE GENERATOR.** The app offers no way to delete a tool item and must not: `Retired` exists so a tool can leave the count while its row and its whole log stay, which is the same argument that kept `Retired` when `In Repair` and `Lost` went. The only remaining exposure is a hand deletion in Airtable, which this base already forbids — nothing here is removed as tidying-up. A high-water mark in place of MAX + 1 would remove the hazard outright and is refused in `id-generation.md`, with the trade written down.
+
+**NOTHING ROLLS BACK A PARTIAL REGISTRATION.** `createToolItems` returns what it created and what it did not, and a failed create simply stops the rest. Undoing the rows before it would free ids the counter has already spent, and a later registration would re-issue them; `nextSequence` is MAX + 1, so the gap costs nothing while a reused number costs two labels on two tools. What the submission says about a short count is #338's.
+
+**#313 IS OPEN AND THIS FAMILY DOES NOT TOUCH IT.** That issue moves `Purchase Orders`' four-digit year onto the two-digit form everything else writes; the tool item family took the two-digit form from the start, so it adds nothing to that work. `offline/id-sequence.mjs` pins the split — five families on two digits, `PO` the one that is not — so the claim stays checkable rather than remembered.
 
 ## The reverse links needed no disambiguation, and that is worth recording
 

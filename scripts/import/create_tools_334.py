@@ -13,12 +13,23 @@ stuck to and carries the printed ID, and `Tool Log` holds what has
 happened to one -- because a status field answers where a tool is now and
 nothing about the project that just ended.
 
-RUN THIS ONCE. It is idempotent -- an existing table is reported and its
-missing fields are added, an existing field is left alone -- but the
-tables it creates CANNOT be removed through any API: `DELETE` on a table
-is a 404 with no endpoint behind it (measured, docs/notes/airtable-
-access.md). The names have to be right the first time, and seven later
-issues read them.
+RUN THIS ONCE -- OR TWICE, WHICH IS WHAT ACTUALLY HAPPENED. It is
+idempotent: an existing table is reported and its missing fields are
+added, an existing field is left alone. A table CANNOT be removed through
+any API (`DELETE` is a 404 with no endpoint behind it, measured), so
+narrowing the two select option lists in #335 meant deleting `Tool Items`
+and `Tool Log` BY HAND in the Airtable UI and running this again -- an
+existing select's option list cannot be PATCHed at all, so there was no
+cheaper repair. It was affordable only because no row existed yet.
+
+WHAT THAT SECOND RUN TAUGHT, and the preflight below is the result:
+DELETING A TABLE DOES NOT REMOVE THE INVERSE FIELDS IT CREATED ON OTHER
+TABLES. They survive with their names, converted to `singleLineText` --
+so `linkedTableId` is gone and no dangling-link scan finds them, while
+the NAME a new inverse needs is occupied. Measured: deleting the two
+tables left four of them (`Tools."Tool Items"`, `Jobs."Tool Items"`,
+`Jobs."Tool Log"`, `Users."Tool Log"`), all empty on every row. Creating
+over one is how a base ends up with `Tool Items 2`.
 
 ORDER MATTERS AND IS NOT ALPHABETICAL. A link field's options take the
 target table's ID, so `Tools` is created first (it links to nothing),
@@ -38,10 +49,11 @@ which is how two `Edit Log` options sat off the palette for two issues
 `lib/toolStatus.js` so the two cannot drift.
 
 THE COLOR RULE, stated so it can be checked rather than admired: walk
-Airtable's light palette in declaration order skipping red and gray, then
-give the negative value red and the terminal value gray. That is what
-`Purchase Orders."Status"` already does (blue, cyan, teal, then red for
-`Withdrawn`).
+Airtable's light palette in declaration order, and give the terminal
+value gray. `Purchase Orders."Status"` does the same (blue, cyan, teal,
+then red for `Withdrawn`) -- the difference is that it HAS a negative
+value to spend red on and this vocabulary has none since #335, so red
+being absent here is part of the rule rather than an omission.
 
 NO `Unit` FIELD, AND THAT IS NOT AN OVERSIGHT. A tool item is one object,
 not a quantity, so nothing here needs the canonical 19-value list and
@@ -120,20 +132,14 @@ DATETIME_OPTIONS = {
 TOOL_STATUS_CHOICES = [
     {"name": "In Stock", "color": "blueLight2"},
     {"name": "Out", "color": "cyanLight2"},
-    {"name": "In Repair", "color": "tealLight2"},
-    {"name": "Lost", "color": "redLight2"},
     {"name": "Retired", "color": "grayLight2"},
 ]
 
 TOOL_EVENT_CHOICES = [
-    {"name": "Checked Out", "color": "blueLight2"},
-    {"name": "Checked In", "color": "cyanLight2"},
-    {"name": "Sent to Repair", "color": "tealLight2"},
-    {"name": "Returned from Repair", "color": "greenLight2"},
-    {"name": "Lost", "color": "redLight2"},
-    {"name": "Found", "color": "yellowLight2"},
+    {"name": "Registered", "color": "blueLight2"},
+    {"name": "Checked Out", "color": "cyanLight2"},
+    {"name": "Checked In", "color": "tealLight2"},
     {"name": "Retired", "color": "grayLight2"},
-    {"name": "Job Changed", "color": "orangeLight2"},
 ]
 
 # ----------------------------------------------------------------------------
@@ -174,16 +180,18 @@ TOOLS = {
 def tool_items(tools_table_id):
     return {
         "name": "Tool Items",
-        # Created by Airtable when Tool Log."Tool Item" is made, not sent by us —
+        # Created by Airtable when Tool Log."Tool Item" is made, not sent by us --
         # and load-bearing: it is the array getToolLogByToolItem walks.
         "auto_inverses": ["Tool Log"],
         "description": (
             "Issue #334 -- one physical tool, the thing a QR label is stuck to. "
-            "Status is one axis with five values and is a CACHE of the last Tool "
-            "Log row, written by the app and never by an Airtable formula: the two "
-            "vocabularies differ (five statuses, eight events) and Job Changed is a "
-            "last row that leaves the status alone, so turning an event into a "
-            "status is a mapping rather than a copy. lib/toolStatus.js holds it."
+            "BOTH Status AND Job ARE CACHES OF THE LAST Tool Log ROW, written by the "
+            "app in the same operation as that row and never by an Airtable formula. "
+            "They are the same kind of value and they come from the same row: the "
+            "status that event left behind, and the job it happened on. "
+            "lib/toolStatus.js:STATUS_AFTER_EVENT holds the first mapping -- four "
+            "events against three statuses, so it is a mapping rather than a copy -- "
+            "and the job is carried straight across."
         ),
         "fields": [
             {
@@ -219,25 +227,35 @@ def tool_items(tools_table_id):
                 "type": "singleSelect",
                 "options": {"choices": TOOL_STATUS_CHOICES},
                 "description": (
-                    "Issue #334 -- where this tool is now. In Stock and Out are the "
-                    "pair a scan moves between; In Repair, Lost and Retired are set "
-                    "from a screen. Lost is NOT terminal (a lost tool turns up -- "
-                    "that is the Found event) and Retired is the only end.\n\n"
+                    "Issue #334, narrowed in #335 -- where this tool is now. In Stock "
+                    "and Out are the pair a scan moves between; Retired is designated "
+                    "from a screen and is the only end.\n\n"
+                    "THREE VALUES, AND THE ONES THAT ARE NOT HERE WERE REMOVED ON "
+                    "PURPOSE. In Repair and Lost are absent because those things do "
+                    "not happen here: a broken tool is thrown away and replaced rather "
+                    "than repaired, and nobody reports an individual tool item "
+                    "missing. A status nobody would ever designate is a permanent "
+                    "blank in the per-status count and a dead option in the filter.\n\n"
+                    "Retired COVERS BOTH DISPOSAL AND A TOOL FOUND MISSING AT A STOCK "
+                    "CHECK, because on this axis they are one fact -- the company no "
+                    "longer holds it -- and which of the two it was goes in "
+                    "Tool Log.Notes. Without it a discarded tool sits In Stock forever "
+                    "and the count is wrong, and the only other correction is deleting "
+                    "the record, which takes its whole log with it.\n\n"
                     "A DERIVED CACHE OF Tool Log, WRITTEN BY THE APP -- DO NOT EDIT "
                     "IT BY HAND IN THIS UI. It is set in the same operation as the "
                     "Tool Log row that moved it, so a value typed here records no "
                     "event, names nobody, and is silently contradicted by the next "
                     "scan. Where a status really needs changing, the act is the "
-                    "event: In Repair comes from Sent to Repair, Lost from Lost, "
-                    "Retired from Retired.\n\n"
+                    "event: Retired comes from the Retired event.\n\n"
                     "NOT AN AIRTABLE FORMULA, and that is a design decision rather "
-                    "than a limitation worked around. The event vocabulary is eight "
-                    "values against this field's five and Job Changed is a last row "
-                    "that leaves the status alone, so deriving one from the other is "
-                    "a MAPPING and not a copy -- which is workflow logic, which this "
-                    "project keeps out of Airtable formulas. "
-                    "lib/toolStatus.js:STATUS_AFTER_EVENT holds it; "
-                    "docs/notes/tools.md has the two platform reasons underneath."
+                    "than a limitation worked around -- #335 narrowed the reason "
+                    "rather than removing it. A rollup has no argmax, so nothing can "
+                    "select the value on the row with the latest timestamp; and a "
+                    "formula field cannot be a singleSelect, so the closed option list "
+                    "and the per-status count would both go. "
+                    "lib/toolStatus.js:STATUS_AFTER_EVENT holds the mapping; "
+                    "docs/notes/tools.md has the argument."
                 ),
             },
             {
@@ -245,19 +263,24 @@ def tool_items(tools_table_id):
                 "type": "multipleRecordLinks",
                 "options": {"linkedTableId": TBL_JOBS},
                 "description": (
-                    "Issue #334 -- the job this tool belongs to. REQUIRED, and by "
-                    "the app rather than by the schema: Airtable cannot make a link "
-                    "field required, the same limit Invoice Items.\"PO Item\" lives "
-                    "with (#278).\n\n"
-                    "THERE IS NO STATE THIS IS EMPTY IN, which is why nothing reads "
-                    "it as optional. A tool on this track never passes through the "
-                    "office -- a site person buys it, registers it and keeps it -- "
-                    "so the row belongs to a job from the moment it exists. In Stock "
-                    "means at rest ON its job, not belonging to nobody, and a tool "
-                    "in repair, lost or retired still has the job it last belonged "
-                    "to. It is changeable (#341), because a tool outlives the "
-                    "project it was bought for, which is why Tool Log carries its "
-                    "own copy per event.\n\n"
+                    "Issue #334, corrected in #335 -- WHERE THIS TOOL WAS LAST "
+                    "SCANNED, cached from the last Tool Log row. NOT a durable "
+                    "attribute saying which job owns the tool, which is what this "
+                    "description used to claim.\n\n"
+                    "THE SAME KIND OF VALUE AS Status, FROM THE SAME ROW. A manager "
+                    "scans out their own job's tools to workers; a worker may carry "
+                    "one to another site; whoever manages the site it reaches scans "
+                    "it back in. So a tool moving between jobs is already recorded, "
+                    "as a check-out on one job and the next check-in on another -- "
+                    "which is why #335 removed the Job Changed event, as it added no "
+                    "fact that pair does not already carry.\n\n"
+                    "REQUIRED, and by the app rather than by the schema: Airtable "
+                    "cannot make a link field required, the same limit "
+                    "Invoice Items.\"PO Item\" lives with (#278). Never empty, "
+                    "because every event carries a job and registration is an event. "
+                    "The job comes from the Users.\"Assigned Jobs\" of whoever "
+                    "performs the scan -- automatically when they have one, from a "
+                    "dropdown when they have several, and typed nowhere.\n\n"
                     "Single-record, app-enforced (422 on prefersSingleRecordLink)."
                 ),
             },
@@ -319,19 +342,34 @@ def tool_log(tool_items_table_id):
                 "type": "singleSelect",
                 "options": {"choices": TOOL_EVENT_CHOICES},
                 "description": (
-                    "Issue #334 -- what happened. Eight values against Status's "
-                    "five, which is why Tool Items.Status is a mapping of this "
-                    "rather than a copy.\n\n"
+                    "Issue #334, narrowed in #335 -- what happened. Four values "
+                    "against Status's three, which is why Tool Items.Status is a "
+                    "mapping of this rather than a copy of it.\n\n"
+                    "Registered IS THE FIRST ROW OF EVERY TOOL ITEM'S HISTORY, and it "
+                    "exists because Tool Items carries no Created At. That field was "
+                    "left off on the ground that this log's first row holds the "
+                    "instant, so without an event naming registration there would be "
+                    "nowhere at all answering when a tool item came into existence. "
+                    "Checked In was the alternative and reads wrong: it means a tool "
+                    "came back into stock, and one being registered has never been "
+                    "out. It is not a fiction either -- the label still has to be "
+                    "printed and stuck on, so the In Stock it leaves behind describes "
+                    "a real tool sitting on a bench.\n\n"
                     "TWO NAMING SHAPES. A transition a person designates on a screen "
-                    "is named for the state it leaves the tool in, so the event and the "
-                    "status are the same string: Lost, Retired. A transition that "
-                    "happens by SCANNING carries an action name, because the person "
-                    "is performing an act rather than declaring a state: Checked "
-                    "Out, Checked In. Lost is not 'Marked Lost' because Retired "
-                    "already stands as one string on both axes, so prefixing only "
-                    "the other one would be an exception dressed as consistency.\n\n"
+                    "is named for the state it leaves the tool in, so the event and "
+                    "the status are the same string: Retired, the only one of that "
+                    "kind left. A transition that happens by SCANNING carries an "
+                    "action name, because the person is performing an act rather than "
+                    "declaring a state: Checked Out, Checked In. Registered is a "
+                    "third case -- an act with no status of its own name.\n\n"
+                    "WHAT #335 REMOVED: Sent to Repair, Returned from Repair, Lost "
+                    "and Found, because a broken tool here is thrown away rather than "
+                    "repaired and nobody reports one missing; and Job Changed, "
+                    "because a tool moving site is already two rows, a check-out on "
+                    "one job and the next check-in on another, so a separate event "
+                    "added no fact.\n\n"
                     "Written with NO typecast, so a value outside this list fails "
-                    "the write rather than minting a ninth choice off the palette. "
+                    "the write rather than minting a fifth choice off the palette. "
                     "The list cannot be repaired through the API afterwards (422, "
                     "measured), which is what makes failing loudly the only recovery "
                     "there is. lib/toolStatus.js:TOOL_EVENT is the source of truth "
@@ -343,19 +381,27 @@ def tool_log(tool_items_table_id):
                 "type": "multipleRecordLinks",
                 "options": {"linkedTableId": TBL_JOBS},
                 "description": (
-                    "Issue #334 -- the job this tool item belongs to immediately "
-                    "AFTER this event. Filled on every row and never blank, which is "
-                    "the property the whole history rests on.\n\n"
+                    "Issue #334 -- the job this event happened on, which is where "
+                    "the tool item is immediately after it. Filled on every row and "
+                    "never blank; that is the property the whole history rests on.\n\n"
+                    "IT COMES FROM THE ACTOR, NOT FROM THE TOOL. Registration, "
+                    'check-out and check-in all take it from the Users."Assigned '
+                    'Jobs" of whoever performs the scan -- automatically when they '
+                    "have one, from a dropdown when they have several, typed nowhere. "
+                    "STORED AT THAT MOMENT AND NEVER LOOKED UP LATER: Assigned Jobs "
+                    "changes when a person moves site, so a log that referenced it "
+                    "would make an old check-out describe today's assignment, which "
+                    "is the exact thing this copy exists to prevent.\n\n"
                     'ITS OWN COPY, NOT A LOOKUP THROUGH Tool Items."Job". That field '
-                    "moves when a tool is reassigned (#341), so it says nothing "
-                    "about where the tool was in March -- and the question a site "
-                    "asks when a project closes is exactly that.\n\n"
+                    "is itself a cache of THIS column on the latest row, so a lookup "
+                    "would make every row of the history say where the tool is "
+                    "now.\n\n"
                     "NO 'Former Job' FIELD, DELIBERATELY. Because there are no "
                     "blanks, the PREVIOUS row's Job is unambiguously the previous "
-                    "job: a Job Changed row names where the tool went and the row "
-                    "before it names where it came from. Storing the pair would be "
+                    "job: a check-in on a different job than the check-out before it "
+                    "IS the record of a tool changing site. Storing the pair would be "
                     "one fact in two places, derivable from an ordering the log "
-                    "already has. #340 renders the whole history at once and so "
+                    "already has, and #340 renders the whole history at once so it "
                     "holds both rows. Single-record, app-enforced."
                 ),
             },
@@ -388,15 +434,16 @@ def tool_log(tool_items_table_id):
                 "name": "Notes",
                 "type": "multilineText",
                 "description": (
-                    "Issue #334 -- why, for the events a person types rather than "
-                    "scans: what broke on a Sent to Repair, where a Lost tool was "
-                    "last seen. Plural Notes and Long text follow the header-record "
+                    "Issue #334 -- why, for the one event a person designates "
+                    "rather than scans: what happened to a tool being Retired. "
+                    "Plural Notes and Long text follow the header-record "
                     "convention (Purchase Requests, Deliveries, Direct Purchases, "
                     "PR Edit Requests).\n\n"
-                    "OPTIONAL TODAY, AND REQUIRED ON TWO EVENTS ONCE A SCREEN WRITES "
-                    "THEM. Lost and Retired are both to demand a reason: Lost is a "
-                    "record that asks who was responsible, and Retired cannot be "
-                    "undone. Neither screen exists yet -- #334 creates the tables "
+                    "OPTIONAL TODAY, AND REQUIRED ON Retired ONCE A SCREEN WRITES "
+                    "IT. That event cannot be undone, and it covers two different "
+                    "real happenings -- a tool thrown away, and a tool found missing "
+                    "at a stock check -- so with no reason the row does not say "
+                    "which. That screen does not exist yet -- #334 creates the tables "
                     "and nothing here writes a row -- so the rule is recorded rather "
                     "than enforced, and it is enforced by the app rather than by "
                     "this field, since Airtable cannot make a field conditionally "
@@ -405,6 +452,37 @@ def tool_log(tool_items_table_id):
             },
         ],
     }
+
+
+# The inverse names this run will need on far tables it does not own. If one is
+# already taken by a field that is NOT a link, the create would collide -- see
+# the header. Checked before anything is written, because a table cannot be
+# deleted through the API and a half-made schema is not recoverable here.
+INVERSE_NAMES_NEEDED = [
+    ("Tools", "Tool Items"),
+    ("Jobs", "Tool Items"),
+    ("Jobs", "Tool Log"),
+    ("Tool Items", "Tool Log"),
+    ("Users", "Tool Log"),
+]
+
+
+def preflight(tables):
+    """Names a new inverse needs that a leftover field is sitting on.
+
+    Returns a list of (table, field, type) to be deleted by hand. A
+    `multipleRecordLinks` with the right name is fine -- that is a
+    re-run finding its own previous inverse.
+    """
+    blocked = []
+    for table_name, field_name in INVERSE_NAMES_NEEDED:
+        table = find_table(tables, table_name)
+        if table is None:
+            continue
+        field = find_field(table, field_name)
+        if field is not None and field["type"] != "multipleRecordLinks":
+            blocked.append((table_name, field_name, field["type"]))
+    return blocked
 
 
 # What a human still has to do afterwards, printed at the end of every real
@@ -470,11 +548,28 @@ class AirtableSchemaClient:
         leave behind is a table with missing fields that no API can
         delete. Either this returns a complete table or it returns an
         error and the base is untouched.
+
+        THE PAYLOAD IS BUILT FROM THREE NAMED KEYS RATHER THAN BEING THE
+        SPEC ITSELF, and that is a repair rather than a style. The spec
+        dicts here also carry `auto_inverses`, which is ours -- it tells
+        the verify step which fields Airtable creates on our own tables
+        so they are not reported as unexpected. It was added after #334's
+        run, so the first create that saw it was #335's, and Airtable
+        answered the unknown top-level key with `422
+        INVALID_REQUEST_UNKNOWN: parameter validation failed`, naming
+        nothing. A local structure doubling as a wire payload will leak
+        every field anybody ever adds to it; listing the three keys is
+        what stops the next one.
         """
+        payload = {
+            "name": spec["name"],
+            "description": spec["description"],
+            "fields": spec["fields"],
+        }
         resp = requests.post(
             f"{AIRTABLE_META_ROOT}/bases/{self.base_id}/tables",
             headers=self.headers,
-            json=spec,
+            json=payload,
         )
         resp.raise_for_status()
         return resp.json()
@@ -739,6 +834,26 @@ def main():
     tables = client.fetch_tables()
     print(f"  {len(tables)} tables")
     print()
+
+    # PREFLIGHT BEFORE ANYTHING IS WRITTEN, because a table cannot be deleted
+    # through any API and a schema half-built over a name collision is not
+    # recoverable here. See the header for what this catches and how it was found.
+    blocked = preflight(tables)
+    if blocked:
+        print("0/2  BLOCKED — a name a new inverse needs is taken by a leftover field")
+        print()
+        for table_name, field_name, field_type in blocked:
+            print(f'    {table_name}."{field_name}"   {field_type}')
+        print()
+        print("  These are what a deleted table leaves behind: the inverse fields it")
+        print("  created on other tables survive, keeping their names and losing their")
+        print("  link type. Creating over one produces a second field with a suffixed")
+        print("  name, which nothing in this repository would then find.")
+        print()
+        print("  The Metadata API offers create and update for a field and no delete,")
+        print("  so DELETE EACH OF THESE BY HAND in the Airtable UI, then re-run.")
+        print("  All of them are empty; check before deleting anyway.")
+        return 1
 
     existing_tools = find_table(tables, "Tools")
     existing_items = find_table(tables, "Tool Items")
