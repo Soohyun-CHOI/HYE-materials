@@ -287,7 +287,7 @@ export function run({ check, log, assert }) {
 
     log("");
     log("the child registry:");
-    check("all eight child relations are registered", Object.keys(CHILD_KINDS).length, 8);
+    check("all nine child relations are registered", Object.keys(CHILD_KINDS).length, 9);
     check("Quotations is the only labeled sequence",
         Object.values(CHILD_KINDS).filter((k) => k.seqPrefix).length, 1);
     check("and the only one padded to 2", Object.values(CHILD_KINDS).filter((k) => k.padLength === 2).length, 1);

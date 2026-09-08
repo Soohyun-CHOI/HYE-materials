@@ -94,6 +94,30 @@ const RETIRED = {
     "Correction Requests (Initiated)": "#333 — the `Users` link is `PR Edit Requests (Initiated)`",
     "Edit Log": "#333 — the table is `PR Edit Log`",
     "Edit Log ID": "#333 — the field is `PR Edit Log ID`",
+    // #334 — THE FIRST ENTRIES WITH NO SUCCESSOR NAME AT ALL, which is a third kind
+    // after a rename (#280, #333) and a replaced field (#318's `Paid` → `Paid Date`).
+    // Seven `{Parent} Record ID` lookups were deleted from the base and nothing
+    // replaces them: what replaces the QUERY is a method — read the parent's
+    // reverse-link, which is what `getLinkedRecords` has always done and what
+    // CLAUDE.md's parent/child rule has always said. So the successor assertions
+    // below have nothing to check for these three, and that is stated rather than
+    // worked around.
+    //
+    // WHY THEY WENT: the lookups existed only to support filtering a child table by
+    // its parent's record id, which this repository forbids — the lookup is computed
+    // asynchronously and undercounts siblings created right after the parent,
+    // reproduced for PO Items (`lib/ids.js:generateChildId`). No code read any of the
+    // seven, and `PO Items."PO Record ID"` was additionally MISCONFIGURED for as long
+    // as it existed (see docs/notes/purchase-orders.md). Deleting them makes the
+    // banned query unwritable rather than merely forbidden.
+    //
+    // `Material Record ID` and `Vendor Record ID` are NOT here and must never be:
+    // they are live on `Material Prices`, read by `getMaterialPrice`, and are
+    // CLAUDE.md's stated exception — a price row is keyed by two links and has no
+    // parent whose reverse-link would do. Same substring trap as `Line 1` at the top.
+    "PR Record ID": "#334 — the lookup is gone; read `Purchase Requests`' reverse-link",
+    "Invoice Record ID": "#334 — the lookup is gone; read `Invoices`' reverse-link",
+    "PO Record ID": "#334 — the lookup is gone; read `Purchase Orders`' reverse-link",
 };
 
 /**

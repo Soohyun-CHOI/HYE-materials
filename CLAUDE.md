@@ -16,6 +16,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/pos/**`, `lib/po*.js` | `docs/notes/purchase-orders.md` |
 | `app/prs/**`, `lib/prSigning.js`, `lib/prDraft.js` | `docs/notes/purchase-requests.md` |
 | `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |
+| `lib/tool*.js` | `docs/notes/tools.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/api/**` | `docs/notes/authorization.md` |
@@ -97,6 +98,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170): the six-field key, `isEmptyItemRow`, and `PR_ITEM_MERGE_COPY`. Applied in `parseFormState`, previewed by the form.
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188): the restore names, both voices of the copy, and the recorder all four rollbacks write into. **A restore that fails is named on screen and logged with its record id, never swallowed** — and never written to Airtable, which is what just failed.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
+- `lib/toolStatus.js` — the tools track's two closed vocabularies (#334): the five statuses, the eight events, and the status each event leaves behind. **`Job Changed` leaves it alone, which is why `Tool Items."Status"` is written by this app and not by an Airtable formula** — a mapping is not a copy. No call site passes `createToolLogEntry` a string literal.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
@@ -140,7 +142,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 
 Two implementations of one judgment diverge, and catching the divergence then needs a third thing. A duplication is not closed by "leave it as two for now": if there is a real reason to keep two, that reason has to be a **measurable condition**, and the path to merging when it lifts has to be written down.
 
-## Data model (22 tables)
+## Data model (25 tables)
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index above.
 
@@ -185,6 +187,12 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 **Delivery Items**: one allocated slice of a delivery (#162). `Delivery Item ID` ({Delivery ID}-{seq}, 3 digits), `Delivery` (link, single), `PO Item` (link, single, **optional**), `Material` (link, single), `Item Name` / `Size` / `Unit` (frozen reference copies), `Qty`, `Over Delivered` (checkbox, backend-set).
 
 **Direct Purchases**: material a site bought with no order behind it (#272). `Direct Purchase ID` (HYE-DP-YYMMDD-##), `Vendor` / `Job` (links, single; Job required, and app-enforced), `Vendor Invoice Code`, `Issue Date` (calendar), `File` (attachment, required at creation), `Notes`, `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Purchase Request` (link, single, optional). No items, no total and no status — what a row is waiting for is read from that last link and the request's own `Status`. **The request's KIND is read from the same link and stored nowhere else**.
+
+**Tools**: the KIND a tool is bought as (#334) — first table of the tools track, which shares this base, this login and these people with everything above it. `Tool Name` (primary, human-entered, app-enforced unique; no minted ID, as `Vendors` and `Materials` have none), `Tool Items` (reverse-link).
+
+**Tool Items**: one physical tool, the thing a QR label is stuck to (#334). `Tool Item ID` (HYE-TL-YYMMDD-###, primary — the value PRINTED on the label, width in #335), `Tool` (link, single), `Status` (In Stock/Out/In Repair/Lost/Retired — **written by this app as a cache of the last `Tool Log` row, never an Airtable formula**), `Job` (link → Jobs, single, **required and app-enforced; no state leaves it empty**), `Tool Log` (reverse-link). No `Created At`, deliberately.
+
+**Tool Log**: what has happened to one tool item, append-only (#334). `Tool Log ID` ({Tool Item ID}-{seq}, 3 digits), `Tool Item` (link, single), `Event` (select — Checked Out/Checked In/Sent to Repair/Returned from Repair/Lost/Found/Retired/Job Changed), `Job` (link → Jobs, single, **on every row and never blank** — its own copy, of the job held AFTER the event; the absence of blanks is what makes the previous row the previous job, so **no `Former Job` is stored**), `Recorded By` (link → Users, single), `Event At` (datetime, UTC), `Notes` (optional).
 
 **Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
@@ -299,23 +307,12 @@ scripts/
   wrap-72.mjs          the 72-char wrap rule, executable — spans stay whole, --check verifies
 ```
 
-- `scripts/tests/offline/` — the standing tier: plain `node`, no env vars, no Airtable, no dev server, creates nothing. `npm test` runs all of it and CI runs `npm test` on every push. The runner SCANS the directory, so a new check is in CI automatically. Files beginning with `_` are shared helpers.
-- `npx eslint .` runs in CI as its own `lint` job and stays clean; a rule this repo deliberately breaks gets a scoped disable with its reason, never a tolerated error (#187).
-- `scripts/tests/verify-*.mjs` — the credentialed tier: needs `.env.local`, writes throwaway fixtures to the shared base, human-initiated and deliberately not in CI. **Do not run these casually** — one run costs hundreds of Airtable operations.
-- `scripts/import/` — reusable one-time backfills (Python). `scripts/demo/` — seed scripts, kept in the repo and NOT deleted from Airtable.
-- **Where a new check goes is not a judgment call:** importing `lib/airtable/client.js`, or anything that imports it, puts a check in the credentialed tier, because that module throws at load without credentials.
-- **Exit codes are mandatory for anything that computes a verdict:** 0 all clear, 1 something failed, 2 no failures but a part could not run. **A leak is 1, not 2** — a run that left rows on the shared base needs a hand.
-- **A credentialed script's fixtures are deleted within the run that created them**, through `scripts/tests/_fixtures.mjs`. Its run tag must be unique per run (`V###-msosjxto`); a fixed prefix silently becomes a base sweep. Pinned by `offline/fixture-cleanup.mjs`.
-- **Airtable formulas, rollups and lookups are outside CI entirely.** They are not in the repo and no file-only check can see them, so when a judgment rule lives on the Airtable side, a credentialed check must read the live schema or the live values and compare. The Metadata API does not expose a rollup's aggregation function at all.
-- **What a green CI run does NOT mean:** that authorization is enforced. Source shape is not execution — a gate inside `if (false)` satisfies a structural check. Green means nothing cheap regressed.
+- `npm test` runs the whole offline tier and CI runs it on every push; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187).
+- **Do not run a `verify-*.mjs` casually** — one run costs hundreds of Airtable operations.
 - **Dummy records already in the base are deliberate, not leftovers.** Nothing in this base is to be removed as tidying-up.
-- **Two permanent fixture accounts, a pair — do not delete either or change their flags.** `authz-fixture@` proves a refusal, `scoped-fixture@` proves that a row-scoped surface admits, and `soo@` is Admin and assigned; `verification.md` has the flags and what each is for.
-- A session for any of them is minted with `createAuthToken` plus a form POST to `/api/auth/verify`.
+- **What a green CI run does NOT mean:** that authorization is enforced, or that anything rendered. Source shape is not execution — a gate inside `if (false)` satisfies a structural check — and this tier never opens a page, so a column that does not appear, a width that wraps and a field that reaches the browser are all invisible to it. Those are checked in a browser with the two fixture accounts and the finding written into the PR. Green means nothing cheap regressed.
 
-- **A new offline check needs an anti-vacuity assertion in the same file** — something that proves the check can see what it is looking for. "X is absent" and "the traversal found nothing" are the same result, and a check that cannot fail is worse than no check because it reads as coverage.
-- **The offline tier cannot see rendering.** It reads source and pure functions; it never renders a page, so a column that does not appear, a width that wraps and a field that reaches the browser are all invisible to it. Those are checked in a browser with the two fixture accounts and the finding written into the PR.
-
-Read `docs/notes/verification.md` before adding a check, a script or a seed.
+Read `docs/notes/verification.md` before adding a check, a script or a seed — it holds the tier boundary and where a new check goes, the exit codes, the fixture-cleanup contract and its run tag, the two permanent fixture accounts, the anti-vacuity rule, and why an Airtable formula or rollup is outside CI entirely.
 
 ## Git workflow rules
 
