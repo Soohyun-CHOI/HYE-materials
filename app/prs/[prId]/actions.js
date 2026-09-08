@@ -8,11 +8,11 @@ import { getPRById, updatePR } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR, updateSigner } from "@/lib/airtable/prSigners";
 import { getItemsByPR, updateItem } from "@/lib/airtable/prItems";
 import {
-    getCorrectionRequestsByPR,
-    createCorrectionRequest,
-    resolveCorrectionRequest,
-} from "@/lib/airtable/correctionRequests";
-import { createEditLogEntry } from "@/lib/airtable/editLog";
+    getEditRequestsByPR,
+    createEditRequest,
+    resolveEditRequest,
+} from "@/lib/airtable/prEditRequests";
+import { createEditLogEntry } from "@/lib/airtable/prEditLog";
 import { ITEM_FIELDS, ITEM_FIELD_LABELS, SHIPPING_FEE_LABEL } from "@/lib/editLogFields";
 import { createQuotation } from "@/lib/airtable/quotations";
 import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
@@ -40,24 +40,24 @@ import {
 // second. The rollback still cannot be made transactional, so what changed is that it
 // reports — see lib/rollbackReport.js for why the report is words rather than a
 // count, and why it never reaches Airtable. Nothing here may pass a restore key as a
-// string literal, for the same reason the Edit Log labels may not.
+// string literal, for the same reason the PR Edit Log labels may not.
 
 async function loadPRContext(prId) {
     const pr = await getPRById(prId);
     if (!pr) throw new Error("PR not found");
 
-    const [signers, correctionRequests] = await Promise.all([
+    const [signers, editRequests] = await Promise.all([
         getSignersByPR(pr.id),
-        getCorrectionRequestsByPR(pr.id),
+        getEditRequestsByPR(pr.id),
     ]);
 
-    return { pr, signers, correctionRequests };
+    return { pr, signers, editRequests };
 }
 
 /**
  * Shared by approveAction and editAndContinueAction: both "finish" a turn
  * the same way once the actor's own record is updated — resolve a pending
- * Correction Request and resume to its initiator if the actor was
+ * edit request and resume to its initiator if the actor was
  * resuming from a return, otherwise advance normally (see
  * lib/prSigning.js:computeAdvance). Rolls back everything it wrote on
  * failure, using the pre-write snapshots the caller already has.
@@ -71,20 +71,20 @@ async function loadPRContext(prId) {
  * so a restore that fails here is one of that turn's failures: a log of its own would
  * report two thirds of a turn and call it the whole of it.
  */
-async function finishTurn({ pr, turn, signers, correctionRequests, rollback }) {
-    const { resolveCorrectionId, nextStep, prApproved } = computeAdvance({
+async function finishTurn({ pr, turn, signers, editRequests, rollback }) {
+    const { resolveEditRequestId, nextStep, prApproved } = computeAdvance({
         turn,
         signers,
-        correctionRequests,
+        editRequests,
     });
 
-    let resolvedCorrectionId = null;
+    let resolvedEditRequestId = null;
     let resumedSignerId = null;
 
     try {
-        if (resolveCorrectionId) {
-            await resolveCorrectionRequest(resolveCorrectionId);
-            resolvedCorrectionId = resolveCorrectionId;
+        if (resolveEditRequestId) {
+            await resolveEditRequest(resolveEditRequestId);
+            resolvedEditRequestId = resolveEditRequestId;
 
             // The person we're resuming to had their PR Signer status set
             // to "Returned" when they delegated the correction — flip it
@@ -104,9 +104,9 @@ async function finishTurn({ pr, turn, signers, correctionRequests, rollback }) {
                 updateSigner(resumedSignerId, { status: "Returned" })
             );
         }
-        if (resolvedCorrectionId) {
-            await rollback.attempt(RESTORE_KEY.correctionResolved, resolvedCorrectionId, () =>
-                base(TABLES.CORRECTION_REQUESTS).update(resolvedCorrectionId, {
+        if (resolvedEditRequestId) {
+            await rollback.attempt(RESTORE_KEY.correctionResolved, resolvedEditRequestId, () =>
+                base(TABLES.PR_EDIT_REQUESTS).update(resolvedEditRequestId, {
                     Status: "Pending",
                     "Resolved At": null,
                 })
@@ -135,7 +135,7 @@ export async function approveAction(prevState, formData) {
         const user = await requireUser();
         const prId = formData.get("prId");
 
-        const { pr, signers, correctionRequests } = await loadPRContext(prId);
+        const { pr, signers, editRequests } = await loadPRContext(prId);
         const turn = getCurrentTurn(pr, signers);
 
         if (!turn || turn.type !== "signer" || turn.userId !== user.id) {
@@ -155,7 +155,7 @@ export async function approveAction(prevState, formData) {
                 signedAt: new Date().toISOString(),
             });
 
-            advance = await finishTurn({ pr, turn, signers, correctionRequests, rollback });
+            advance = await finishTurn({ pr, turn, signers, editRequests, rollback });
         } catch (err) {
             await rollback.attempt(RESTORE_KEY.signer, turn.prSignerRecordId, () =>
                 updateSigner(turn.prSignerRecordId, {
@@ -218,7 +218,7 @@ export async function editAndContinueAction(prevState, formData) {
             return { error: "Shipping Fee must be a number." };
         }
 
-        const { pr, signers, correctionRequests } = await loadPRContext(prId);
+        const { pr, signers, editRequests } = await loadPRContext(prId);
         const turn = getCurrentTurn(pr, signers);
 
         if (!turn || turn.userId !== user.id) {
@@ -317,8 +317,8 @@ export async function editAndContinueAction(prevState, formData) {
             }
 
             // One updateItem call per item (batching its changed fields, plus
-            // any Quotation link change), but one Edit Log entry per changed
-            // field — Quotation link changes aren't logged (Edit Log's `Field`
+            // any Quotation link change), but one PR Edit Log entry per changed
+            // field — Quotation link changes aren't logged (its `Field`
             // is a fixed select without a Quotation option, and this is a
             // linking correction, not a value edit the way Item Name/Qty/
             // etc. are). Since #181 that select has no `typecast` behind it, so
@@ -375,7 +375,7 @@ export async function editAndContinueAction(prevState, formData) {
                 });
             }
 
-            advance = await finishTurn({ pr, turn, signers, correctionRequests, rollback });
+            advance = await finishTurn({ pr, turn, signers, editRequests, rollback });
         } catch (err) {
             // The items go back before the Quotations they may point at are
             // destroyed — an unlink has to precede its target going.
@@ -411,7 +411,7 @@ export async function editAndContinueAction(prevState, formData) {
                 );
             }
             await rollback.attemptAll(RESTORE_KEY.history, createdEditLogIds, (id) =>
-                base(TABLES.EDIT_LOG).destroy(id)
+                base(TABLES.PR_EDIT_LOG).destroy(id)
             );
 
             // #188 — A QUOTATION AN UNRESTORED ITEM STILL POINTS AT IS KEPT, and this
@@ -498,7 +498,7 @@ export async function returnForCorrectionAction(prevState, formData) {
             return { error: "Explain what needs to be corrected." };
         }
 
-        const { pr, signers, correctionRequests } = await loadPRContext(prId);
+        const { pr, signers, editRequests } = await loadPRContext(prId);
         const turn = getCurrentTurn(pr, signers);
 
         if (!turn || turn.type !== "signer" || turn.userId !== user.id) {
@@ -522,25 +522,25 @@ export async function returnForCorrectionAction(prevState, formData) {
         const signerBefore = signers.find((s) => s.id === turn.prSignerRecordId);
         const targetStep = target.type === "requester" ? 0 : target.sequenceOrder;
 
-        let createdCorrectionId = null;
+        let createdEditRequestId = null;
         const rollback = createRollbackLog();
 
         try {
-            const correction = await createCorrectionRequest({
+            const editRequest = await createEditRequest({
                 prRecordId: pr.id,
                 prId: pr.prId,
                 initiatedById: user.id,
                 sentToId: target.userId,
                 notes,
             });
-            createdCorrectionId = correction.id;
+            createdEditRequestId = editRequest.id;
 
             await updateSigner(turn.prSignerRecordId, { status: "Returned" });
             await updatePR(pr.id, { currentSignerStep: targetStep });
         } catch (err) {
-            if (createdCorrectionId) {
-                await rollback.attempt(RESTORE_KEY.correctionCreated, createdCorrectionId, () =>
-                    base(TABLES.CORRECTION_REQUESTS).destroy(createdCorrectionId)
+            if (createdEditRequestId) {
+                await rollback.attempt(RESTORE_KEY.correctionCreated, createdEditRequestId, () =>
+                    base(TABLES.PR_EDIT_REQUESTS).destroy(createdEditRequestId)
                 );
             }
             await rollback.attempt(RESTORE_KEY.signer, turn.prSignerRecordId, () =>
@@ -570,7 +570,7 @@ export async function returnForCorrectionAction(prevState, formData) {
  * Issue #122 — a Requester withdraws their own still-in-review PR
  * (circumstances changed, or it was submitted in error). This is a state
  * transition to a new terminal Status "Withdrawn", NOT a delete: the PR,
- * its signer chain, correction history, and Edit Log all stay on record so
+ * its signer chain, its edit-request history, and the PR Edit Log stay on record so
  * the request remains distinguishable and auditable (contrast the Draft
  * *delete* path in app/prs/new/actions.js — Drafts are deleted, submitted
  * PRs are withdrawn).
@@ -592,7 +592,7 @@ export async function returnForCorrectionAction(prevState, formData) {
  * approve/edit/return actions above) is gated behind Status === "In
  * Review", so flipping Status to "Withdrawn" is the single master switch
  * that makes the whole chain non-actionable. Pending PR Signers rows, any
- * open Correction Requests, and Current Signer Step are deliberately left
+ * open edit requests, and Current Signer Step are deliberately left
  * untouched — overwriting them would corrupt the audit trail ("this signer
  * never actually acted" is the truth worth preserving); the signer
  * progress bar reads Withdrawn as ended via lib/prSigning.js instead.

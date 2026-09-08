@@ -93,7 +93,7 @@ import { resolveDemoRecords, pick } from "./_demo_ids.mjs";
 import { createPR, updatePR, getPRByRecordId, getPRsByDiscipline } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { createSigner } from "../../lib/airtable/prSigners.js";
-import { createCorrectionRequest } from "../../lib/airtable/correctionRequests.js";
+import { createEditRequest } from "../../lib/airtable/prEditRequests.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId, updatePO } from "../../lib/airtable/purchaseOrders.js";
 import { getItemsByPO, getPOItemByRecordId } from "../../lib/airtable/poItems.js";
@@ -528,8 +528,8 @@ if (CLEANUP) {
         ["Deliveries", TABLES.DELIVERIES, deliveryIds],
         ["PO Items", TABLES.PO_ITEMS, poItemRecordIds],
         ["Purchase Orders", TABLES.PURCHASE_ORDERS, poRecordIds],
-        ["Edit Log", TABLES.EDIT_LOG, mine.flatMap((pr) => pr.editLogRowIds || [])],
-        ["Correction Requests", TABLES.CORRECTION_REQUESTS, mine.flatMap((pr) => pr.correctionRowIds || [])],
+        ["PR Edit Log", TABLES.PR_EDIT_LOG, mine.flatMap((pr) => pr.editLogRowIds || [])],
+        ["PR Edit Requests", TABLES.PR_EDIT_REQUESTS, mine.flatMap((pr) => pr.editRequestRowIds || [])],
         ["Quotations", TABLES.QUOTATIONS, mine.flatMap((pr) => pr.quotationRowIds || [])],
         ["PR Signers", TABLES.PR_SIGNERS, mine.flatMap((pr) => pr.signerRowIds || [])],
         ["PR Items", TABLES.PR_ITEMS, mine.flatMap((pr) => pr.itemRowIds || [])],
@@ -692,7 +692,7 @@ await scenario("CHAIN", "four step states: done, current, paused, not reached", 
     // is `paused`, signer 1 back at Pending while the step points at it is `current`,
     // and signer 3 untouched is `not-reached`.
     await base(TABLES.PR_SIGNERS).update(created[1].id, { Status: "Returned" });
-    await createCorrectionRequest({
+    await createEditRequest({
         prRecordId: pr.id,
         prId: pr.prId,
         initiatedById: signerB.id,

@@ -1,4 +1,4 @@
-// The labels createEditLogEntry can write must all exist as `Edit Log."Field"`
+// The labels createEditLogEntry can write must all exist as `PR Edit Log."Field"`
 // choices — this is the half that can be checked without credentials (#181).
 //
 // WHAT #181 CHANGED AND WHY THIS EXISTS. createEditLogEntry used to write with
@@ -20,7 +20,7 @@
 // SO WHY NOT MAKE THE LOG BEST-EFFORT, the shape lib/materialsCache.js uses to
 // keep a derived artifact from undoing the thing that produced it? Because that
 // artifact is re-derivable and this one is not. A materials cache can be rebuilt
-// from PO Items and a PO PDF regenerated from its PO, but an Edit Log entry
+// from PO Items and a PO PDF regenerated from its PO, but a PR Edit Log entry
 // records the OLD value, which stops existing the moment updateItem lands.
 // Best-effort here would apply a price change and lose the only record of what
 // it changed — a hole in the evidence trail this table exists to be. Failing the
@@ -49,10 +49,10 @@ import {
     SHIPPING_FEE_LABEL,
 } from "../../../lib/editLogFields.js";
 
-export const title = "Edit Log labels — every one must be an existing `Field` choice (#181)";
+export const title = "PR Edit Log labels — every one must be an existing `Field` choice (#181)";
 
 const ACTIONS = "app/prs/[prId]/actions.js";
-const SERVICE = "lib/airtable/editLog.js";
+const SERVICE = "lib/airtable/prEditLog.js";
 
 // EVERY LABEL THE CODE CAN WRITE. A DELIBERATE SECOND COPY of what
 // lib/editLogFields.js exports, and it has to stay one: comparing that module to
@@ -150,7 +150,7 @@ export function run({ check, log }) {
     // Pinned so it cannot come back quietly. Restoring it would trade a blocked
     // turn for an unrecolorable option and a canonical list that rots — the
     // trade #181 measured and rejected.
-    check("lib/airtable/editLog.js passes no typecast", typecasts, 0);
+    check(`${SERVICE} passes no typecast`, typecasts, 0);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

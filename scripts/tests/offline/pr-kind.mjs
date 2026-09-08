@@ -79,6 +79,15 @@ export function run({ check, assert, log }) {
     assert("and neither is empty", chips.every((c) => c.trim().length > 0));
     // #227/#269's vocabulary, on a set that is new: neither word may borrow a noun a
     // table already owns, and `correction` is barred outright (#272's own sweep).
+    //
+    // #333 REMOVED THAT SWEEP'S PREMISE AND NOT ITS CONCLUSION, so this assertion
+    // stands on a different ground than the one it was written on. #272 barred the
+    // word because `Correction Requests` was a table and a table owns its noun; that
+    // table is `PR Edit Requests` now and no table claims `correction` at all. What
+    // still bars it here is the collision itself: the screen calls a signer's
+    // send-back `Return for correction`, so a chip saying `correction` would name a
+    // second kind of request with the first one's word — which is exactly what #272
+    // measured, one authority down.
     assert(
         "no chip says correction",
         chips.every((c) => !/correct/i.test(c))

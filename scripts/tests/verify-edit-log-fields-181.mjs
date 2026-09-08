@@ -1,4 +1,4 @@
-// `Edit Log."Field"` choices in Airtable vs lib/editLogFields.js — credentialed
+// `PR Edit Log."Field"` choices in Airtable vs lib/editLogFields.js — credentialed
 // tier (#181).
 //
 // The companion to scripts/tests/offline/edit-log-fields.mjs, and the half that
@@ -54,7 +54,7 @@
 // import for the sake of one string this script otherwise never touches.
 //
 // BE HONEST ABOUT WHAT THAT COSTS: the name here is a SECOND COPY of what
-// TABLES.EDIT_LOG holds, and nothing checks that the two agree. Renaming the
+// TABLES.PR_EDIT_LOG holds, and nothing checks that the two agree. Renaming the
 // table in Airtable and updating client.js would leave this script pointing at
 // a name the base no longer has. The trade is acceptable only because the
 // failure is loud and immediate — "table not found" fails the run, and a run
@@ -62,13 +62,17 @@
 // rename is far rarer than the field-level drift this exists to catch. If a
 // third script wants the same string, import TABLES and take the loader.
 //
+// THAT RENAME HAPPENED IN #333 — the table is `PR Edit Log` — and the trade held:
+// both copies moved in the same commit, so the loud failure was never reached. It
+// is recorded here because the paragraph above was a prediction until then.
+//
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete (could not
 // reach the base).
 
 import { execSync } from "child_process";
 import { EDIT_LOG_FIELD_LABELS } from "../../lib/editLogFields.js";
 
-const TABLE = "Edit Log";
+const TABLE = "PR Edit Log";
 const FIELD = "Field";
 
 let pass = true;
@@ -153,7 +157,7 @@ try {
         } else if (!field) {
             // Renaming this field without updating the code is the other way the
             // pair drifts, and it is a real problem rather than an incomplete run.
-            fail(`${TABLE}."${FIELD}" not found — renamed without updating lib/airtable/editLog.js?`);
+            fail(`${TABLE}."${FIELD}" not found — renamed without updating lib/airtable/prEditLog.js?`);
         } else {
             check(`${TABLE}."${FIELD}" is a singleSelect`, field.type, "singleSelect");
 

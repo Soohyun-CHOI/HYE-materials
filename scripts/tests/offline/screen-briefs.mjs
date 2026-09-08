@@ -67,8 +67,18 @@ export const title = "The screen briefs describe the screens that exist (#260)";
 
 const BRIEFS_DIR = "docs/briefs";
 
-/** The shared brief, and the README. Neither is a screen. */
-const NON_SCREEN = new Set(["_shared.md", "README.md"]);
+/**
+ * The shared brief, the README, and the design-copy findings. None is a screen.
+ *
+ * `design-copy-findings.md` (#333) is a list ADDRESSED to the design work rather
+ * than a brief handed over as one: every screen word this repository has left
+ * standing for a design decision, with the identifiers that would move with it. It
+ * lives here because `docs/briefs/` is what the design work reads, and it has to be
+ * excused by name — the set is an explicit list, so an underscore would not exempt
+ * it and the both-directions rule below would read it as a brief for a page that
+ * does not exist.
+ */
+const NON_SCREEN = new Set(["_shared.md", "README.md", "design-copy-findings.md"]);
 
 /**
  * A route template's brief filename. The one hand-held case is "/", which has no
@@ -576,7 +586,7 @@ export function run({ check, assert, log }) {
     assert("a fabricated sentence is in no constant", !loadable.some((s) => s.includes("Everything is fine here")));
     assert("  and a pinned one is", loadable.some((s) => s.includes("⚠ Check the total")));
     assert("the brief set is the size the app is", screenFiles.length === byName.page);
-    assert("both non-screen files are present", NON_SCREEN.size === onDisk.length - screenFiles.length);
+    assert("every non-screen file is present", NON_SCREEN.size === onDisk.length - screenFiles.length);
     // The repo walk is real: this file is under scripts/ and so must NOT be in it.
     assert("the app/lib walk excludes this tier", !toPosix(REPO_ROOT + "/scripts").includes("/app/"));
 }

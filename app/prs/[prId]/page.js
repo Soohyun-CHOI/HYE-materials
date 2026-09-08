@@ -6,8 +6,8 @@ import { canViewPR } from "@/lib/prVisibility";
 import { getPRById } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR } from "@/lib/airtable/prSigners";
 import { getItemsByPR } from "@/lib/airtable/prItems";
-import { getCorrectionRequestsByPR } from "@/lib/airtable/correctionRequests";
-import { getEditLogByPR } from "@/lib/airtable/editLog";
+import { getEditRequestsByPR } from "@/lib/airtable/prEditRequests";
+import { getEditLogByPR } from "@/lib/airtable/prEditLog";
 import { getQuotationsByPR } from "@/lib/airtable/quotations";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { getAllVendors } from "@/lib/airtable/vendors";
@@ -71,12 +71,12 @@ async function renderPRDetailPage({ params }) {
     // recordToPR exposes all five arrays for exactly this (#143 put two of them
     // there for canViewPR; #193 added the rest), and each level is then one
     // query rather than one find per row.
-    const [signers, items, quotations, correctionRequests, editLog, vendors, disciplines, jobs] =
+    const [signers, items, quotations, editRequests, editLog, vendors, disciplines, jobs] =
         await Promise.all([
             getSignersByPR(pr.id, { rowIds: pr.signerRowIds }),
             getItemsByPR(pr.id, { rowIds: pr.itemRowIds }),
             getQuotationsByPR(pr.id, { rowIds: pr.quotationRowIds }),
-            getCorrectionRequestsByPR(pr.id, { rowIds: pr.correctionRowIds }),
+            getEditRequestsByPR(pr.id, { rowIds: pr.editRequestRowIds }),
             getEditLogByPR(pr.id, { rowIds: pr.editLogRowIds }),
             getAllVendors(),
             getAllDisciplines(),
@@ -104,7 +104,7 @@ async function renderPRDetailPage({ params }) {
         [
             pr.requester?.[0],
             ...signers.map((s) => s.signer?.[0]),
-            ...correctionRequests.flatMap((c) => [c.initiatedBy?.[0], c.sentTo?.[0]]),
+            ...editRequests.flatMap((c) => [c.initiatedBy?.[0], c.sentTo?.[0]]),
             ...editLog.map((e) => e.changedBy?.[0]),
         ].filter(Boolean)
     );
@@ -146,11 +146,11 @@ async function renderPRDetailPage({ params }) {
     const requesterName = usersById[pr.requester?.[0]]?.userName || "—";
 
     // Read-only trail of the full signing chain (issue #9): every source
-    // table already existed (PR Signers.Signed At, Correction Requests,
-    // Edit Log) — this just merges them into one chronological timeline
+    // table already existed (PR Signers.Signed At, PR Edit Requests,
+    // PR Edit Log) — this just merges them into one chronological timeline
     // instead of leaving them as three disconnected lists a reader would
     // have to cross-reference by hand. "Resolved by" isn't a field on
-    // Correction Requests, but is always the Sent To person (resolving
+    // PR Edit Requests, but is always the Sent To person (resolving
     // only ever happens as a side effect of that person's own turn), so
     // that's inferred rather than stored.
     const historyEntries = [
@@ -174,7 +174,7 @@ async function renderPRDetailPage({ params }) {
                           : "approved";
                 return { at: s.signedAt, text: `${name} ${verb} (step ${s.sequenceOrder})` };
             }),
-        ...correctionRequests.flatMap((c) => {
+        ...editRequests.flatMap((c) => {
             const initiator = usersById[c.initiatedBy?.[0]]?.userName || "Unknown";
             const target = usersById[c.sentTo?.[0]]?.userName || "Unknown";
             const entries = [
@@ -382,7 +382,7 @@ async function renderPRDetailPage({ params }) {
                     <SignerProgressBar
                         pr={pr}
                         signers={signers}
-                        correctionRequests={correctionRequests}
+                        editRequests={editRequests}
                         po={po}
                         usersById={usersById}
                     />

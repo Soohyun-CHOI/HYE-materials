@@ -36,12 +36,21 @@
 // the tree, which is exactly why the check is possible at all. Each entry carries
 // the issue that retired it.
 //
+// #333 ADDED A SECOND RULE, AND IT IS ABOUT THE CONSTANT RATHER THAN THE NAME. Every
+// `TABLES` key is the SCREAMING_SNAKE of its own value, 22 of 22, and a table rename
+// is precisely when that stops being true: `EDIT_LOG: "PR Edit Log"` addresses the
+// right table, resolves, and passes everything above while telling every reader of
+// `TABLES.EDIT_LOG` that the base has a table called `Edit Log`. The key is derived
+// from the value here rather than listed, so the rule is applied and not restated.
+// It cannot ask the thing #333 actually decided — that a child table is named for
+// its parent — because nothing in the tree says which table is whose child.
+//
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
 import { listJsFiles, parseFile, parseSource, repoPath, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "No reference names a retired table or field (#280)";
+export const title = "No reference names a retired table or field (#280, #333)";
 
 /** Where a string reaches Airtable, and nothing else, over `app/` + `lib/`. */
 const SCANNED_DIRS = ["app", "lib"];
@@ -67,6 +76,24 @@ const RETIRED = {
     // the flag with, and it merely starts with the same word — the trap `Line 1` and
     // `Line 2` already document one entry up.
     Paid: "#318 — the fact is `Paid Date`; there is no flag",
+    // #333 — TWO TABLES AND SEVEN NAMES, WHICH IS WHAT A CHILD-TABLE RENAME COSTS.
+    // A table's own name is one entry; what travels with it is its primary field and
+    // every reverse link naming it, and those live on OTHER tables — two on
+    // `Purchase Requests`, three on `Users` — which is exactly the set a sweep that
+    // greps only the renamed table's own file would miss. One of the five, `Users."PR
+    // Edit Requests (Sent To)"`, is read by `recordToUser` and feeds `canViewPR`
+    // clause 6, so missing it would have refused a signer their own request.
+    //
+    // `PR Edit Requests`, `PR Edit Log` and their `… ID` fields are NOT here and must
+    // never be: they are the live successors, and `Edit Log` is the substring trap
+    // `Line 1` documents at the top — a reference to `PR Edit Log` contains it, which
+    // is why every entry here is matched whole rather than by prefix.
+    "Correction Requests": "#333 — the table is `PR Edit Requests`",
+    "Correction Request ID": "#333 — the field is `PR Edit Request ID`",
+    "Correction Requests (Sent To)": "#333 — the `Users` link is `PR Edit Requests (Sent To)`",
+    "Correction Requests (Initiated)": "#333 — the `Users` link is `PR Edit Requests (Initiated)`",
+    "Edit Log": "#333 — the table is `PR Edit Log`",
+    "Edit Log ID": "#333 — the field is `PR Edit Log ID`",
 };
 
 /**
@@ -76,23 +103,77 @@ const RETIRED = {
  * module load without credentials.
  */
 export function tableNamesFromSource(relPath = "lib/airtable/client.js") {
-    const names = [];
+    return tableEntriesFromSource(relPath).map((e) => e.value);
+}
+
+/**
+ * The same literal, as `{ key, value }` pairs — what the key rule below needs.
+ *
+ * Split out rather than inlined because a name and its constant are two questions:
+ * everything above asks whether a NAME is live, and the rule at the bottom asks
+ * whether the KEY still spells it.
+ */
+export function tableEntriesFromSource(relPath = "lib/airtable/client.js") {
+    const entries = [];
     let ast;
     try {
         ({ ast } = parseFile(relPath));
     } catch {
-        return names;
+        return entries;
     }
     walk(ast, (node) => {
         if (node.type !== "VariableDeclarator") return;
         if (node.id?.name !== "TABLES" || node.init?.type !== "ObjectExpression") return;
         for (const prop of node.init.properties) {
+            const key = prop.key?.name ?? prop.key?.value;
             if (prop.value?.type === "Literal" && typeof prop.value.value === "string") {
-                names.push(prop.value.value);
+                entries.push({ key, value: prop.value.value });
             }
         }
     });
-    return names;
+    return entries;
+}
+
+/** `PR Edit Requests` → `PR_EDIT_REQUESTS`. The whole of the key convention. */
+export function keyForTableName(name) {
+    return name.toUpperCase().replace(/[^A-Z0-9]+/g, "_");
+}
+
+/**
+ * Every `TABLES.<KEY>` a file names, with its line.
+ *
+ * THIS EXISTS BECAUSE THE POSITIONS ABOVE CANNOT SEE A TABLE THIS REPOSITORY
+ * ADDRESSES CORRECTLY (#333). `base(TABLES.X)` is the shape every call site in this
+ * repo uses — the anti-vacuity below asserts there is no literal table argument
+ * anywhere — so the collector that catches a retired NAME never reads a table
+ * reference at all. What it misses is the same defect one indirection up: a rename
+ * moves the `TABLES` key, and a call site left on the old key is `base(undefined)`.
+ *
+ * IT WAS A LIVE DEFECT IN #333's OWN BRANCH, which is why the check is here rather
+ * than proposed. `TABLES.EDIT_LOG` survived in `editAndContinueAction`'s rollback,
+ * where the whole offline tier passed 3469 of 3469 over it: `npm test` never
+ * evaluates `TABLES`, `client-import-safety.mjs` only walks imports, and the
+ * `TABLES.X` resolution in `id-sequence.mjs` covers `generateChildId` call sites
+ * only. The path it sat on is a rollback, so it would have run first on a failed
+ * Edit-and-continue turn — the branch that exists to keep an edit's evidence — and
+ * `base(undefined)` throws inside a catch.
+ */
+export function tableConstantRefs(relPath) {
+    const out = [];
+    let ast, source;
+    try {
+        ({ ast, source } = parseFile(relPath));
+    } catch {
+        return out;
+    }
+    const lineOf = (offset) => source.slice(0, offset).split("\n").length;
+    walk(ast, (node) => {
+        if (node.type !== "MemberExpression") return;
+        if (node.object?.type !== "Identifier" || node.object.name !== "TABLES") return;
+        const key = node.property?.name;
+        if (key) out.push({ key, line: lineOf(node.start) });
+    });
+    return out;
 }
 
 /**
@@ -297,10 +378,89 @@ export function run({ check, assert, log }) {
         "  and the field #318 retired has its successor addressed in the tree",
         collected.some((c) => c.value === "Paid Date")
     );
+    // #333's five field entries, the same way. FOUR OF THE FIVE, AND THE FIFTH IS THE
+    // HONEST PART: `Users."PR Edit Requests (Initiated)"` is read by nothing in this
+    // repository — it was renamed so the pair on `Users` says one word, not to keep
+    // anything working — so requiring it here would be requiring a reference that
+    // should not exist. Naming that rather than quietly dropping it is the point.
+    for (const successor of [
+        "PR Edit Request ID",
+        "PR Edit Log ID",
+        "PR Edit Requests",
+        "PR Edit Requests (Sent To)",
+        "PR Edit Log",
+    ]) {
+        assert(
+            `  and #333's successor ${JSON.stringify(successor)} is addressed in the tree`,
+            collected.some((c) => c.value === successor)
+        );
+    }
+    assert(
+        "  while the one nothing reads is deliberately not required",
+        !collected.some((c) => c.value === "PR Edit Requests (Initiated)")
+    );
     check(
         `retired names still in TABLES${stillPresent.length ? ` (${stillPresent.join(", ")})` : ""}`,
         stillPresent.length,
         0
+    );
+
+    // ── the TABLES key spells its own value ─────────────────────────────────
+    // #333's rule made mechanical. A child table is named for its parent, which no
+    // check can ask; that its CONSTANT still names the table is the half that can be,
+    // and it is the half a rename actually gets wrong — `EDIT_LOG: "PR Edit Log"`
+    // compiles, resolves, and passes every other check in this tier while telling
+    // every reader of `TABLES.EDIT_LOG` that the base has a table called `Edit Log`.
+    // True 22 of 22 before this issue, so the convention is being pinned rather than
+    // introduced.
+    log("");
+    log("every TABLES key is the SCREAMING_SNAKE of its own value:");
+    const entries = tableEntriesFromSource();
+    assert(`parsed ${entries.length} key/value pairs`, entries.length >= 20);
+    const mismatched = entries.filter((e) => e.key !== keyForTableName(e.value));
+    for (const e of mismatched) {
+        log(`  ${e.key}: ${JSON.stringify(e.value)} — expected ${keyForTableName(e.value)}`);
+    }
+    check("keys that do not spell their value", mismatched.length, 0);
+    // The derivation has to be seen to say NO, or the pass above is a pass of an empty
+    // predicate — and it has to say YES on the two shapes that are not plain words.
+    assert(
+        "  a key left behind by a rename is caught",
+        keyForTableName("PR Edit Log") !== "EDIT_LOG"
+    );
+    assert(
+        "  a hyphen and a two-word name both derive correctly",
+        keyForTableName("Invoice-PO Link") === "INVOICE_PO_LINK" &&
+            keyForTableName("PR Edit Requests") === "PR_EDIT_REQUESTS"
+    );
+
+    // ── every TABLES.<KEY> a call site names actually exists ────────────────
+    // The other half of a table rename, and the one that got past #333's own sweep.
+    // See tableConstantRefs' docstring for what the tier could not see and why the
+    // path it survived on was the worst available.
+    log("");
+    log("every TABLES.<KEY> a call site names is a key TABLES has:");
+    const keys = new Set(entries.map((e) => e.key));
+    const refs = [];
+    for (const abs of files) {
+        const relPath = abs.slice(abs.lastIndexOf("/app/") >= 0 ? abs.lastIndexOf("/app/") + 1 : 0);
+        const path = relPath.includes("/lib/")
+            ? relPath.slice(relPath.lastIndexOf("/lib/") + 1)
+            : relPath;
+        for (const r of tableConstantRefs(path)) refs.push({ ...r, file: path });
+    }
+    assert(`read ${refs.length} TABLES.<KEY> references`, refs.length > 50);
+    assert("  and the reader resolves live keys", refs.some((r) => keys.has(r.key)));
+    const dangling = refs.filter((r) => !keys.has(r.key));
+    for (const d of dangling) log(`  ${d.file}:${d.line}  TABLES.${d.key} — no such key`);
+    check("references to a key TABLES does not have", dangling.length, 0);
+    // Planted, because "none dangling" and "none read" are the same result: the key a
+    // rename leaves behind is what a regression looks like, and it must be seen. This
+    // is #333's actual defect, spelled as the data the predicate is given.
+    assert(
+        "  a reference left behind by a rename is caught",
+        [{ key: "EDIT_LOG" }, { key: "CORRECTION_REQUESTS" }].filter((r) => !keys.has(r.key))
+            .length === 2
     );
 
     log("");

@@ -48,7 +48,7 @@ the CHOICE COLORS come out right:
      that isn't yet a choice auto-creates it (same trick as
      import_jobs.py's Business Unit field). A select field holds one value
      per record, so this costs one sequential write per missing choice.
-     lib/airtable/editLog.js's `Field` select used to be a third example
+     lib/airtable/prEditLog.js's `Field` select used to be a third example
      and is no longer one: #181 removed the typecast, because the two
      options it had silently minted (`Unit Price`, `Shipping Fee`) came out
      off-palette and nothing can recolor them. That is this file's own

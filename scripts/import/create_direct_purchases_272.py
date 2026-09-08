@@ -220,7 +220,7 @@ FIELDS = [
             "the strip row can say what was bought, since this table carries no items — "
             "the requester types those into the request from the invoice attached here. "
             "Plural \"Notes\" and Long text follow the header-record convention "
-            "(Purchase Requests, Deliveries, Correction Requests)."
+            "(Purchase Requests, Deliveries, PR Edit Requests)."
         ),
     },
     {

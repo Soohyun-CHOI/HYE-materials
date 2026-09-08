@@ -123,7 +123,22 @@ export async function run({ check, log, assert }) {
     // A predicate of its own would not fail anything for as long as it agreed with
     // canViewPR, which is the whole hazard. These are the fields canViewPR decides
     // on; touching one here means a second implementation has started.
-    const OWN_RULE_FIELDS = ["assignedJobs", "signerRowIds", "correctionRowIds", "requester"];
+    //
+    // THIS LIST NAMES A FIELD AS AN INPUT KEY, WHICH IS A SHAPE THAT FAILS SILENTLY
+    // (#333). `correctionRowIds` became `editRequestRowIds` with the table rename, and
+    // a list left behind watches a property nothing has: every assertion below still
+    // passes, and a second implementation reading the NEW name goes uncaught. That is
+    // `naming.md`'s #274 finding — a fixture naming a field as an input key — met a
+    // second time, so the answer is the same one: the names are checked against the
+    // module that decides them instead of being trusted.
+    const OWN_RULE_FIELDS = ["assignedJobs", "signerRowIds", "editRequestRowIds", "requester"];
+    const ruleSource = parseFile("lib/prVisibility.js").source;
+    const unknown = OWN_RULE_FIELDS.filter((f) => !ruleSource.includes(f));
+    check(
+        "every field named here is one canViewPR actually reads",
+        unknown.length === 0 ? "all four" : `not read: ${unknown.join(",")}`,
+        "all four"
+    );
     const restated = [];
     walk(ast, (node) => {
         if (node.type !== "MemberExpression") return;
@@ -151,7 +166,7 @@ export async function run({ check, log, assert }) {
     // order on the viewer's jobs, so "an invoice invoicing one of those orders" costs
     // nothing — and it is a SECOND answer to the visibility question that would
     // disagree with the first, since canViewPR also admits a requester, a signer and
-    // the recipient of a correction request, none of whom need a Job assignment.
+    // the recipient of an edit request, none of whom need a Job assignment.
     log("");
     log("#210's invoice dropdown gates through the same walk, not a copy of it:");
     const candidates = parseFile("lib/deliveryInvoiceCandidates.js");
