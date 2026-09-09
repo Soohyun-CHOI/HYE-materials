@@ -61,6 +61,7 @@ import { PR_KIND_COPY } from "../../../lib/prKind.js";
 import { RESTORE, ROLLBACK_COPY } from "../../../lib/rollbackReport.js";
 import { MAX_UPLOAD_BYTES, UPLOAD_LIMIT_COPY } from "../../../lib/uploadLimit.js";
 import { FILE_AXIS_LABEL, FILE_VIEWER_COPY } from "../../../lib/fileLinks.js";
+import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -340,6 +341,17 @@ const PINNED = [
     "Do not approve again",
     "Do not send it back again",
     "Ask for these to be corrected in Airtable",
+    // #340 — the two sentences the tool item's own page owns, and neither is a word
+    // this app uses elsewhere, so a pin on either fails on a rewording. The first
+    // is the state #338 can leave behind — a tool item written whose first log row
+    // was not — and its brief quotes it as reachable rather than as an error, which
+    // is the reading a redesign is most likely to lose.
+    // Pinned on a clause that fits inside a brief's own 72-character wrap, which
+    // is the constraint the #272 note above records the hard way, and on a clause
+    // unique to THIS constant rather than on `came into existence`, which
+    // `lib/toolRegistration.js` also says.
+    "Nothing has been recorded against this tool item",
+    "Tool item not found",
     // #146 — the one refusal five screens share, pinned WITHOUT either figure for the
     // reason the threshold sentence above is: the briefs write where the sizes go, and
     // both of them are meant to move. The file's size moves per file; the limit moves
@@ -491,6 +503,9 @@ export function run({ check, assert, log }) {
         // values, so `stringsFrom` needs no help with them.
         ...stringsFrom(FILE_AXIS_LABEL),
         ...stringsFrom(FILE_VIEWER_COPY),
+        // #340 — plain values, and the only two of them a pin can hold: the rest
+        // are single words this app says in other constants.
+        ...stringsFrom(TOOL_ITEM_COPY),
         // #188 — CALLED WITH A REAL LIST RATHER THAN LEFT TO `stringsFrom`, whose
         // three probe shapes cannot supply one: every one of them makes the builder
         // throw, so the sentence a brief quotes would silently be absent from

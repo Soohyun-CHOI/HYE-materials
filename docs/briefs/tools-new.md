@@ -69,6 +69,10 @@ names the tool the items landed under and the job they were filed against. The
 account arrives as the submission's own answer, not through the URL: a reload
 does not repeat it and a copied link shows a stranger nothing.
 
+**Each of those ids opens the tool item it names (#340).** Until #339 lists
+them, this is the only way into a tool item's own screen without typing its
+address — so the account is a way onward and not only a record.
+
 **When fewer were written than were asked for:** the account additionally says
 how many of how many, that what was written stays, and that the remainder can
 be registered again — which lands them under the same tool. **The rows already

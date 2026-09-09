@@ -60,11 +60,11 @@ agreement is worth keeping — `Purchase orders` and `Purchase Orders` are the
 pair on the same screen that does not have it, and the shared brief records the
 disagreement.
 
-**`/tools/[toolItemId]` is reserved and is not free to move.** A tool item's own
-screen (#340) sits one level under `/tools`, flat, because that address is what
-the QR code on the sticker carries and its length decides the symbol's version —
-a longer address means thinner modules on a label of the same size. So the flat
-position belongs to the tool item, and the list of tools this screen will hold
+**`/tools/[toolItemId]` is taken and is not free to move.** A tool item's own
+screen sits one level under `/tools`, flat, because that address is what the QR
+code on the sticker carries and its length decides the symbol's version — a
+longer address means thinner modules on a label of the same size. #336 reserved
+the segment and #340 occupies it. So the list of tools this screen will hold
 either goes a level deeper or names its tool in a query parameter (#339). **A
 tool's name therefore never appears as a path segment**, which is also what keeps
 a tool somebody names `new` from colliding with the registration form.
