@@ -95,12 +95,22 @@ takes them away. They are not a layout to preserve.
    outlived the sentence: a reload repeated it and a copied link showed a
    stranger a confirmation for something they had not done.
 
-   **The four exceptions are the places the arrival answers nothing**, and they
+   **The five exceptions are the places the arrival answers nothing**, and they
    are exceptions to the placement rather than to the rule. `/invoices/new`
    records a direct purchase and comes back to an empty form, because the
    request it raises belongs to the site; the three admin create forms have no
    detail screen to land on at all. Each still says what it wrote, and each
    brief describes its own line.
+
+   **The fifth does it without a parameter, and that is the shape to copy
+   (#338).** `/tools/new` writes as many tool items as were bought and has
+   nothing to land on either — #339's list does not exist yet — so it states
+   what it wrote where the reader is. What is different is HOW: the other four
+   redirect to themselves carrying the value in the URL, and this one renders
+   the submission's own answer. So a reload repeats nothing and a copied link
+   shows a stranger nothing, which is the objection the removed lines were
+   removed for. It also could not use a parameter if it wanted to — what it has
+   to say is a list of minted ids rather than one value.
 
    A redesign that adds a success state to a document screen is undoing this,
    which is why it is here rather than in one brief.
@@ -566,6 +576,7 @@ office. Invoicing is Admin because invoicing is office work.
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
 | `/tools` | anyone signed in, with no Role and no Job scoping (#337) |
+| `/tools/new` | anyone signed in to reach; only somebody assigned to a job can use it (#338) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
 `canViewPR`, in order, first match wins: a Draft is visible **only** to its

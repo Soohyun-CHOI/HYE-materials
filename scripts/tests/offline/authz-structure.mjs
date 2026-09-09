@@ -66,6 +66,18 @@ const DELIVERY_JOB_AXIS =
     "record in the body — an axis no role helper covers, since a site employee assigned to the Job must pass and " +
     "an Admin on no job must too. Same shape as withdrawPOAction (#138).";
 
+// #338's axis, and the fourth of this mixed shape. It is the tools track's first
+// endpoint, and the comparison it makes is narrower than every one above it: the
+// job is not something the caller may name, it is read off the ACTOR.
+const TOOL_JOB_AXIS =
+    "Session + the submitted job being one the actor's own Users.\"Assigned Jobs\" names, not a role. " +
+    "requireUser() already cannot be dropped (it redirects), and the deciding comparison is " +
+    "assignedJobsFor (lib/toolRegistration.js) against the loaded job list in the body. No role helper " +
+    "covers it, and DELIBERATELY NOT canAccessJobDeliveries either: that predicate admits President and " +
+    "Admin to every job, and the tools track does not pass through the office — a site person buys, " +
+    "registers and keeps the tool, and Tool Log.\"Job\" is the job the event HAPPENED on. So an Admin " +
+    "assigned to no job is refused, which is the point rather than an oversight.";
+
 // #281's axis, and the third of this mixed shape after the two delivery ones.
 const PO_DOCUMENT_AXIS =
     "Session + either the requester of the order's purchase request or the office, not a role. " +
@@ -180,6 +192,7 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
+    { file: "app/tools/new/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
