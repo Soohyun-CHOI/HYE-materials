@@ -45,6 +45,7 @@
 
 import {
     CHILD_KINDS,
+    formatSequentialIds,
     ID_KINDS,
     SEQ_PAD_LENGTH,
     childKeyFor,
@@ -109,6 +110,7 @@ export function run({ check, log, assert }) {
     check("PO is 15", dailyIdPrefix(ID_KINDS.PO, AUG_3).length, 15);
     check("Delivery is 13", dailyIdPrefix(ID_KINDS.DELIVERY, AUG_3).length, 13);
     check("Direct purchase is 13", dailyIdPrefix(ID_KINDS.DIRECT_PURCHASE, AUG_3).length, 13);
+    check("Tool item is 13", dailyIdPrefix(ID_KINDS.TOOL_ITEM, AUG_3).length, 13);
 
     log("");
     log("the ID field each family counts — never a date field:");
@@ -120,6 +122,9 @@ export function run({ check, log, assert }) {
     // own record: `Issue Date` is copied off the vendor's document and is routinely
     // months old, so counting it would be #164 with a worse input.
     check("Direct purchase", ID_KINDS.DIRECT_PURCHASE.idField, "Direct Purchase ID");
+    // #335 — the sixth family, and the only one whose ID is PRINTED and stuck to a
+    // physical object. Two rows sharing it is two labels on two tools.
+    check("Tool item", ID_KINDS.TOOL_ITEM.idField, "Tool Item ID");
     // The defect as a property rather than as four equalities: whatever a kind
     // names, it must not be one of the fields a date lives in.
     const kinds = Object.entries(ID_KINDS);
@@ -127,12 +132,77 @@ export function run({ check, log, assert }) {
         "no kind names a date field (the #164 defect, as a property)",
         kinds.every(([, kind]) => !DATE_FIELD_NAMES.includes(kind.idField))
     );
-    assert("every family is registered", kinds.length === 5);
+    assert("every family is registered", kinds.length === 6);
+    // Every prefix distinct, as a property rather than six equalities: two families
+    // sharing a token would share a daily namespace and mint colliding sequences.
+    const tokens = kinds.map(([, kind]) => kind.token);
+    check("no two families share a token", new Set(tokens).size, tokens.length);
+    check("the tool item token", ID_KINDS.TOOL_ITEM.token, "HYE-TL");
+    // #313 is the open issue about PO's four-digit year. Pinned here because the
+    // tool item family was added while that was open and took the majority form,
+    // so a reader can see it did not add to the problem.
+    check("families on the settled two-digit year",
+        kinds.filter(([, k]) => k.yearDigits === 2).length, 5);
+    check("and the one that is not, which is #313's subject",
+        kinds.filter(([, k]) => k.yearDigits === 4).map(([name]) => name).join(""), "PO");
 
     log("");
     log("assembling an ID:");
     check("padded to two digits", formatSequentialId("HYE-INV-260803", 2), "HYE-INV-260803-02");
     check("and the pad width is the shared constant", SEQ_PAD_LENGTH, 2);
+
+    // ── the width is per family, and only one family declares one (#335) ────
+    // The mechanism this rests on: `formatSequentialId` reads `padLength` through a
+    // DEFAULT, so a family that declares none is untouched by the option existing.
+    // That is what let the tool item sequence widen without a line changing for the
+    // other five, and it is worth a check because the failure would be silent —
+    // every document ID in the system quietly gaining a digit.
+    log("");
+    log("the sequence width is per family, and five families do not have one:");
+    check("only one family declares a padLength",
+        kinds.filter(([, k]) => k.padLength !== undefined).length, 1);
+    check("and it is the tool item", ID_KINDS.TOOL_ITEM.padLength, 3);
+    for (const [name, kind] of kinds) {
+        if (kind.padLength !== undefined) continue;
+        check(`  ${name} still pads to two`,
+            formatSequentialId(dailyIdPrefix(kind, AUG_3), 7, { padLength: kind.padLength })
+                .slice(-3), "-07");
+    }
+    check("the tool item pads to three",
+        formatSequentialId(dailyIdPrefix(ID_KINDS.TOOL_ITEM, AUG_3), 7,
+            { padLength: ID_KINDS.TOOL_ITEM.padLength }), "HYE-TL-260803-007");
+    check("and widens rather than wrapping past its pad",
+        formatSequentialId("HYE-TL-260803", 1000, { padLength: 3 }), "HYE-TL-260803-1000");
+
+    // ── a batch of consecutive ids (#335) ───────────────────────────────────
+    // One registration creates many tool items, so the ids have to run from the
+    // sequence the query found without a gap and without overlapping the next
+    // batch. The off-by-one is the whole content of formatSequentialIds and this is
+    // where it is pinned.
+    log("");
+    log("a batch is contiguous from the sequence the query found:");
+    const batch = formatSequentialIds("HYE-TL-260803", 4, 3, { padLength: 3 });
+    check("three ids", batch.join(" "), "HYE-TL-260803-004 HYE-TL-260803-005 HYE-TL-260803-006");
+    check("a batch of one is the singular shape",
+        formatSequentialIds("HYE-TL-260803", 1, 1, { padLength: 3 }).join(""), "HYE-TL-260803-001");
+    // THE ROUND TRIP IS THE PROPERTY, not the literals above: what a batch writes,
+    // the next batch's nextSequence must read back as the number after it. That is
+    // "no gap and no overlap" stated once rather than as two separate claims.
+    const nextAfterBatch = nextSequence(batch, "HYE-TL-260803");
+    check("and the next batch starts after it", nextAfterBatch, 7);
+    const second = formatSequentialIds("HYE-TL-260803", nextAfterBatch, 2, { padLength: 3 });
+    check("which does not overlap the first",
+        batch.filter((id) => second.includes(id)).length, 0);
+    check("nor leave a gap", second[0], "HYE-TL-260803-007");
+    // A count of zero is a quantity computed wrong, and returning [] would let a
+    // registration report success having created nothing.
+    let batchThrew = false;
+    try {
+        formatSequentialIds("HYE-TL-260803", 1, 0, { padLength: 3 });
+    } catch {
+        batchThrew = true;
+    }
+    assert("a count of zero is refused rather than returning nothing", batchThrew);
     // Widening rather than wrapping or colliding. padStart does not truncate.
     check("past 99 the sequence widens, it does not wrap", formatSequentialId("HYE-INV-260803", 100), "HYE-INV-260803-100");
 
@@ -393,18 +463,23 @@ export function run({ check, log, assert }) {
 
     // The four generators must go through the shared helper, or "one rule" is a
     // comment rather than a fact. Each body is one return of mintDailyId(...).
+    // #335 ADDED A PLURAL HELPER AND THE SINGULAR NOW DELEGATES TO IT, so this
+    // accepts either — but only either. `mintDailyIds` owns the lock and the one
+    // query; `mintDailyId` is `mintDailyIds(..., 1, ...)`. A generator reaching past
+    // both to build its own is what this is here to catch.
     const GENERATORS = [
         "generateNextPRId",
         "generateNextPOId",
         "generateNextInvoiceId",
         "generateNextDeliveryId",
         "generateNextDirectPurchaseId",
+        "generateNextToolItemIds",
     ];
     const delegating = [];
     walk(ids.ast, (node) => {
         if (node.type !== "FunctionDeclaration" || !GENERATORS.includes(node.id?.name)) return;
         const body = ids.source.slice(node.body.start, node.body.end);
-        if (/\breturn mintDailyId\(/.test(body)) delegating.push(node.id.name);
+        if (/\breturn mintDailyIds?\(/.test(body)) delegating.push(node.id.name);
     });
     check("every generator delegates to the one helper", delegating.length, GENERATORS.length);
     for (const name of GENERATORS) {

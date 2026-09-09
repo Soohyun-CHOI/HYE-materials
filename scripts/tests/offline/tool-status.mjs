@@ -13,10 +13,11 @@
 //
 // It also pins the mapping, which is the load-bearing part of the design. The
 // status is described as a cache of the last `Tool Log` row, and the reason that
-// cannot be an Airtable formula is one entry: `Job Changed` is a last row that
-// leaves the status alone. If that entry ever stops being the only `null`, the
-// argument for writing the field from the app has changed and somebody should
-// have to say so.
+// cannot be an Airtable formula was one entry: `Job Changed`, a last row that
+// left the status alone. #335 removed that event, so that reason is gone and the
+// conclusion now stands on two facts about Airtable instead — see
+// docs/notes/tools.md. What this file pins in its place is that no status is a
+// dead option, and the assertion says at length what that does NOT prove.
 //
 // Offline-safe: lib/toolStatus.js imports nothing, and the Python side is read as
 // TEXT and parsed, never executed.
@@ -67,17 +68,16 @@ export function run({ check, log, assert }) {
     // Spelled out rather than derived from the module: this is the pin, and a pin
     // that reads its subject asserts nothing. These are the strings printed into
     // Airtable's option lists, and after field CREATE no API can change them.
-    log("the five statuses, in order:");
-    check("TOOL_STATUS_VALUES", TOOL_STATUS_VALUES.join(" | "),
-        "In Stock | Out | In Repair | Lost | Retired");
-    check("five and no more", TOOL_STATUS_VALUES.length, 5);
+    log("the three statuses, in order:");
+    check("TOOL_STATUS_VALUES", TOOL_STATUS_VALUES.join(" | "), "In Stock | Out | Retired");
+    check("three and no more", TOOL_STATUS_VALUES.length, 3);
     assert("no duplicates", new Set(TOOL_STATUS_VALUES).size === TOOL_STATUS_VALUES.length);
 
     log("");
-    log("the eight events, in order:");
+    log("the four events, in order:");
     check("TOOL_EVENT_VALUES", TOOL_EVENT_VALUES.join(" | "),
-        "Checked Out | Checked In | Sent to Repair | Returned from Repair | Lost | Found | Retired | Job Changed");
-    check("eight and no more", TOOL_EVENT_VALUES.length, 8);
+        "Registered | Checked Out | Checked In | Retired");
+    check("four and no more", TOOL_EVENT_VALUES.length, 4);
     assert("no duplicates", new Set(TOOL_EVENT_VALUES).size === TOOL_EVENT_VALUES.length);
 
     // ── title case with lowercase particles ─────────────────────────────────
@@ -108,7 +108,7 @@ export function run({ check, log, assert }) {
 
     // ── the mapping ─────────────────────────────────────────────────────────
     log("");
-    log("every event maps into the status vocabulary, or to null:");
+    log("every event maps into the status vocabulary:");
     const statuses = new Set(TOOL_STATUS_VALUES);
     const unmapped = TOOL_EVENT_VALUES.filter(
         (e) => !Object.prototype.hasOwnProperty.call(STATUS_AFTER_EVENT, e)
@@ -119,52 +119,93 @@ export function run({ check, log, assert }) {
     const stray = Object.keys(STATUS_AFTER_EVENT).filter((e) => !TOOL_EVENT_VALUES.includes(e));
     check("entries naming an event that does not exist", stray.length, 0);
 
-    const badTarget = Object.entries(STATUS_AFTER_EVENT).filter(
-        ([, s]) => s !== null && !statuses.has(s)
-    );
+    // NO `null` IS ALLOWED ANY MORE. #334 had one — `Job Changed`, an event that
+    // moved the job and left the status alone — and #335 removed the event and the
+    // escape value with it. An entry that is null now is an event nobody decided
+    // the meaning of.
+    const badTarget = Object.entries(STATUS_AFTER_EVENT).filter(([, s]) => !statuses.has(s));
     check("entries pointing outside the status vocabulary", badTarget.length, 0);
     for (const [e, s] of badTarget) log(`    ${e} -> ${JSON.stringify(s)}`);
 
-    // THE ENTRY THE WHOLE DESIGN RESTS ON. `Tool Items."Status"` is written by this
-    // app rather than computed by Airtable because turning an event into a status is
-    // a mapping and not a copy — and this is the case that proves it: a last row
-    // whose own name is not a status at all. A second null, or this one moving,
-    // means the claim in lib/toolStatus.js's header needs re-arguing.
+    // ── every status is produced by some event ──────────────────────────────
+    // THE REPLACEMENT FOR AN ASSERTION #335 DELETED, and what it does and does not
+    // hold is worth being exact about, because the two are easy to confuse.
+    //
+    // WHAT IT HOLDS: a status no event can produce is a dead option. It stands in
+    // the select, it takes a slot in a per-status count that is always zero, it
+    // offers a list filter that returns nothing, and no code path can ever set it.
+    // That is checkable and this checks it.
+    //
+    // WHAT IT DOES NOT HOLD, AND THIS IS THE PART TO READ BEFORE TRUSTING A PASS:
+    // it is NOT the rule #335 applied. What that issue removed was statuses nobody
+    // would ever DESIGNATE — a tool here is thrown away rather than repaired, and
+    // nobody reports one lost — and `In Repair` was perfectly reachable, from
+    // `Sent to Repair`, right up until it was deleted. So this assertion would have
+    // passed on the old vocabulary and passes on the new one, and it cannot tell
+    // which of the two is right. Whether an event describes something that actually
+    // happens on a site is not a property of this source tree; it is a question for
+    // a person who has watched the work. **A green run here is not evidence that
+    // the vocabulary is justified**, and the next person to add a status should not
+    // read it as one — the justification is in docs/notes/tools.md, in prose,
+    // because that is the only form it has.
+    //
+    // The assertion it replaced is gone with its subject: #334 asserted that exactly
+    // one event mapped to `null` and that it was `Job Changed`, which was the first
+    // of three reasons the app writes `Tool Items."Status"` itself. #335 removed the
+    // event, so the null went, so the assertion had nothing left to be about. The
+    // conclusion survives on the other two reasons, neither of which is checkable
+    // here either — both are facts about Airtable.
     log("");
-    log("exactly one event leaves the status alone, and it is the job change:");
-    const nulls = Object.entries(STATUS_AFTER_EVENT).filter(([, s]) => s === null).map(([e]) => e);
-    check("events mapping to null", nulls.join(", "), TOOL_EVENT.JOB_CHANGED);
-    check("and there is only one", nulls.length, 1);
+    log("every status is produced by at least one event (no dead option):");
+    const produced = new Set(Object.values(STATUS_AFTER_EVENT));
+    for (const status of TOOL_STATUS_VALUES) {
+        const by = Object.entries(STATUS_AFTER_EVENT)
+            .filter(([, s]) => s === status)
+            .map(([e]) => e);
+        assert(`  ${status} <- ${by.join(", ") || "NOTHING"}`, by.length > 0);
+    }
+    check("statuses no event produces", TOOL_STATUS_VALUES.filter((s) => !produced.has(s)).length, 0);
+    // Anti-vacuity: the reachability set has to be seen saying NO, or "every status
+    // is produced" is the vacuous truth of an empty vocabulary.
+    assert(
+        "  and the reachability set rejects a status that is not in the map",
+        !produced.has("In Repair") && produced.size > 0
+    );
+
+    // ── the one string both vocabularies share ──────────────────────────────
+    // Worth pinning now that it is 1 of 4 rather than 2 of 8: an event and a status
+    // spelling the same word is a deliberate coincidence, not drift. `Retired` is a
+    // transition a person designates, so it is named for the state it arrives at;
+    // everything else is either a scan (named for the act) or `Registered` (named
+    // for an act with no status of its own).
+    log("");
+    log("`Retired` is the one string both vocabularies carry:");
+    const shared = TOOL_EVENT_VALUES.filter((e) => TOOL_STATUS_VALUES.includes(e));
+    check("shared strings", shared.join(", "), TOOL_STATUS.RETIRED);
+    check("and there is exactly one", shared.length, 1);
 
     log("");
-    log("statusAfterEvent applies it:");
-    check("a job change keeps the status it found",
-        statusAfterEvent(TOOL_EVENT.JOB_CHANGED, TOOL_STATUS.OUT), TOOL_STATUS.OUT);
-    check("  including when the tool is retired",
-        statusAfterEvent(TOOL_EVENT.JOB_CHANGED, TOOL_STATUS.RETIRED), TOOL_STATUS.RETIRED);
+    log("statusAfterEvent applies the map:");
+    check("registration puts it in stock",
+        statusAfterEvent(TOOL_EVENT.REGISTERED), TOOL_STATUS.IN_STOCK);
     check("a check-out sends it out",
-        statusAfterEvent(TOOL_EVENT.CHECKED_OUT, TOOL_STATUS.IN_STOCK), TOOL_STATUS.OUT);
+        statusAfterEvent(TOOL_EVENT.CHECKED_OUT), TOOL_STATUS.OUT);
     check("a check-in brings it back",
-        statusAfterEvent(TOOL_EVENT.CHECKED_IN, TOOL_STATUS.OUT), TOOL_STATUS.IN_STOCK);
-    check("repair is its own state",
-        statusAfterEvent(TOOL_EVENT.SENT_TO_REPAIR, TOOL_STATUS.OUT), TOOL_STATUS.IN_REPAIR);
-    check("and returning from it is stock",
-        statusAfterEvent(TOOL_EVENT.RETURNED_FROM_REPAIR, TOOL_STATUS.IN_REPAIR), TOOL_STATUS.IN_STOCK);
-    // Lost is not terminal, which is the issue's own words and is the whole reason
-    // `Found` exists as an event.
-    check("lost is a state, not an end",
-        statusAfterEvent(TOOL_EVENT.LOST, TOOL_STATUS.OUT), TOOL_STATUS.LOST);
-    check("and a found tool is accounted for again",
-        statusAfterEvent(TOOL_EVENT.FOUND, TOOL_STATUS.LOST), TOOL_STATUS.IN_STOCK);
-    check("retired is the only end",
-        statusAfterEvent(TOOL_EVENT.RETIRED, TOOL_STATUS.IN_STOCK), TOOL_STATUS.RETIRED);
+        statusAfterEvent(TOOL_EVENT.CHECKED_IN), TOOL_STATUS.IN_STOCK);
+    check("retiring is the only end",
+        statusAfterEvent(TOOL_EVENT.RETIRED), TOOL_STATUS.RETIRED);
+    // The signature took a second argument until #335 — the current status, so a
+    // null entry could leave the field alone. With no null entry nothing reads it.
+    check("it takes one argument", statusAfterEvent.length, 1);
 
     let threw = null;
     try {
-        statusAfterEvent("Marked Lost", TOOL_STATUS.OUT);
+        statusAfterEvent("Job Changed");
     } catch (err) {
         threw = err.message;
     }
+    // `Job Changed` on purpose: it was a real event until #335 and is exactly the
+    // shape of the mistake — a call site left behind by a narrowed vocabulary.
     assert("an event outside the vocabulary throws rather than no-opping", Boolean(threw));
     assert("  and the throw names the module to edit", (threw || "").includes("lib/toolStatus.js"));
 
@@ -184,8 +225,8 @@ export function run({ check, log, assert }) {
     // before anything is compared with it.
     assert("the parser found TOOL_STATUS_CHOICES in the Python source", Array.isArray(pyStatus));
     assert("the parser found TOOL_EVENT_CHOICES in the Python source", Array.isArray(pyEvent));
-    check("  status choices parsed", (pyStatus || []).length, 5);
-    check("  event choices parsed", (pyEvent || []).length, 8);
+    check("  status choices parsed", (pyStatus || []).length, 3);
+    check("  event choices parsed", (pyEvent || []).length, 4);
     assert(
         "  and the parser is seen to say NO on a name that is not there",
         pythonChoiceList(py, "TOOL_NOT_A_CONSTANT") === null
@@ -207,21 +248,29 @@ export function run({ check, log, assert }) {
     // it creates the same default color and nothing can recolor it afterwards, which
     // is how two `Edit Log` options sat off the palette until somebody fixed them by
     // hand (#181).
+    // THE COLOR RULE LOST ITS RED IN #335. It was "walk the palette skipping red and
+    // gray, red for the negative value, gray for the terminal one" — and with
+    // `In Repair` and `Lost` gone there is no negative value on either axis. What is
+    // left is the walk plus gray for the end, and red being ABSENT is now part of
+    // the rule rather than an accident: a red option would claim a meaning this
+    // vocabulary does not have.
     const paletteRule = [
-        ["In Stock", "blueLight2"], ["Out", "cyanLight2"], ["In Repair", "tealLight2"],
-        ["Lost", "redLight2"], ["Retired", "grayLight2"],
+        ["In Stock", "blueLight2"], ["Out", "cyanLight2"], ["Retired", "grayLight2"],
     ];
     check(
-        "status colors walk the palette, red for the negative and gray for the end",
+        "status colors walk the palette, gray for the end",
         JSON.stringify(pyStatus), JSON.stringify(paletteRule)
     );
-    const eventColors = Object.fromEntries(pyEvent || []);
-    check("  the event list uses the same red", eventColors["Lost"], "redLight2");
-    check("  and the same gray", eventColors["Retired"], "grayLight2");
-    assert(
-        "  and no other event borrows either",
-        (pyEvent || []).filter(([, c]) => c === "redLight2" || c === "grayLight2").length === 2
-    );
+    const eventRule = [
+        ["Registered", "blueLight2"], ["Checked Out", "cyanLight2"],
+        ["Checked In", "tealLight2"], ["Retired", "grayLight2"],
+    ];
+    check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));
+    check("  gray marks the terminal value and nothing else",
+        [...(pyStatus || []), ...(pyEvent || [])]
+            .filter(([n, c]) => c === "grayLight2" && n !== "Retired").length, 0);
+    check("  and no option is red any more",
+        [...(pyStatus || []), ...(pyEvent || [])].filter(([, c]) => c === "redLight2").length, 0);
 
     log("");
     log(`  ${TOOL_STATUS_VALUES.length} statuses and ${TOOL_EVENT_VALUES.length} events, pinned in two files`);
