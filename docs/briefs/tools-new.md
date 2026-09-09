@@ -69,9 +69,8 @@ names the tool the items landed under and the job they were filed against. The
 account arrives as the submission's own answer, not through the URL: a reload
 does not repeat it and a copied link shows a stranger nothing.
 
-**Each of those ids opens the tool item it names (#340).** Until #339 lists
-them, this is the only way into a tool item's own screen without typing its
-address — so the account is a way onward and not only a record.
+**Each of those ids opens the tool item it names (#340)**, so the account is a
+way onward and not only a record.
 
 **When fewer were written than were asked for:** the account additionally says
 how many of how many, that what was written stays, and that the remainder can
@@ -94,8 +93,8 @@ the reader's. **Draw the slot once.**
 ## What must agree elsewhere
 
 **`Tools` and `Tool Items` are two tables and the screen words follow them.**
-A tool, a tool item. The same pair governs `/tools`, #339's list and #340's tool
-item screen, so a word chosen here is chosen for all of them.
+A tool, a tool item. The same pair governs `/tools`, the tool's own screen and
+the tool item's, so a word chosen here is chosen for all of them.
 
 **The heading is also the word on the control that opens this screen.** `/tools`
 carries it, and the two come from one constant so they cannot drift.
@@ -105,11 +104,12 @@ from what one server invocation can write — three Airtable operations per tool
 item — and the refusal tells the reader to repeat the form. A design that reads
 it as a limit on how many of a kind the company may own would be wrong.
 
-**Until #339 lists them, this screen's answer is the only place inside the app
-those ids appear.** Leaving the page loses them; they are on the base and
-nowhere else in the app. That is accepted rather than overlooked — printing
-labels is a later phase, and there is no need to see an id again before then —
-and it is the reason the account names every id instead of counting.
+**This screen's answer is the only place those ids appear together.** Leaving
+the page loses the list; each row is still reachable, since #339 the tool list
+opens the tool these landed under and that screen lists every tool item under
+it. What does not survive is which of them this submission wrote, and that is
+accepted rather than overlooked — printing labels is a later phase. It is also
+the reason the account names every id instead of counting.
 
 **A tool item's id is printed and glued to a tool.** Two rows sharing one id
 means two tools wearing one label, which is why nothing in the app deletes a

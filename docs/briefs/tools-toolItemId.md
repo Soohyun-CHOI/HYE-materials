@@ -84,9 +84,9 @@ blanks is what makes the previous entry's job readable as the previous job,
 which is why nothing stores a former job — collapsing the repetition would take
 that away.
 
-**The status shown here is the same value the tool list shows.** It is
+**The status shown here is the same value the tool list counts.** It is
 maintained by the app rather than computed on this screen, so this page and
-#339's list cannot disagree about where a tool item is.
+the two list screens cannot disagree about where a tool item is.
 
 **`Tool` and `tool item` are the two nouns, and they are not interchangeable.**
 A `Tools` row is a tool — the kind, the name somebody typed once. A `Tool Items`
@@ -94,6 +94,8 @@ row is a tool item — this object, with this printed id. Six of one drill is on
 tool and six tool items. Never a bare `item`: four other tables on this base
 hold item rows.
 
-**Until #339 lists them, the registration form's answer is the only way in.**
-Each id it names links here. A reader who has lost that page reaches this screen
-only by typing the address.
+**There are three ways in and only one of them survives a reload.** The QR code
+is the first; the registration form's answer is the second, and each id it names
+links here, but that list is gone once the page is; the third is the tool list,
+where a tool opens its own screen and that screen lists every tool item under it
+with a link to this one (#339).

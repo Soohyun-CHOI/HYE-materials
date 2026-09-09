@@ -1,35 +1,46 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
+import { getAllTools } from "@/lib/airtable/tools";
+import { getToolItemsByRecordIds } from "@/lib/airtable/toolItems";
+import { TOOL_LIST_COPY as COPY, summarizeTools, toolPagePath } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
 
-export const metadata = { title: "Tools" };
+// The constant rather than a second spelling of the word: the tab and the
+// heading are both the table's name and must not drift apart.
+export const metadata = { title: COPY.heading };
 
 /**
- * The tools axis's first screen (#336), a heading and the control that opens the
- * registration form (#338).
+ * Every tool the company owns, with a count per status (#339).
  *
- * WHAT IT IS FOR IS THE LAYOUT UNDER IT rather than the content on it. #334 and
- * #335 delivered three tables and an ID and no screen at all, so nothing showed
- * that a tools page stands; a layout with no page beneath it renders nothing,
- * which is why this issue leaves one behind.
+ * WHAT IT ANSWERS IS A QUESTION ABOUT THE FLEET rather than about any one tool:
+ * how many of each kind of tool there are, and how many of them are out. That is
+ * why the row carries three counts and no total — see `summarizeTools` for why a
+ * single figure cannot be written without deciding whether a retired tool is
+ * still owned.
  *
- * IT READS NO TOOL TABLE, DELIBERATELY. `getAllTools` names this route in its own
- * docstring as the list of kinds, and #339 is the issue that puts that list here
- * — what this screen carries is that issue's to decide, and a list invented ahead
- * of it would be a shape #339 has to argue its way out of. The one operation this
- * page makes is the session's user read.
+ * THREE OPERATIONS, AND THE THIRD IS THE ONE THAT GROWS. The session find,
+ * `getAllTools` — the whole table in one query, bounded by what the company has
+ * bought — and then every tool item those tools name, read in one batch of 50 at
+ * a time. `getAllTools` already returns each tool's `Tool Items` link array, so
+ * finding the units costs no query per tool (#193), and `getToolItemsByRecordIds`
+ * was written for exactly this call.
  *
- * The heading is the table's name, which is the standing rule for a concept with
- * a table behind it, and the same rule `Purchase Requests`, `Invoices` and
- * `Deliveries` already follow. It carries no styling for the reason the layout's
- * container carries none.
+ * NO PER-STATUS ROLLUP ON `Tools`, WHICH IS A DECISION WITH A MEASURED TRIGGER.
+ * The walk is `ceil(total tool items / 50)`, so this page passes ten operations
+ * at 401 tool items; at that point the count moves into a rollup and
+ * `Purchase Orders."Uninvoiced Items"` (#244) is the worked example of the move.
+ * Five rollups nothing reads today would be five fields to keep in step for
+ * nothing. docs/notes/tools.md carries the arithmetic.
  *
- * THE CONTROL IS HERE BECAUSE A ROUTE NOTHING LINKS TO IS REACHABLE ONLY BY
- * TYPING ITS URL (#338), which is the same reason `/` carries five links. Every
- * other list screen in this app already opens its own create form this way —
- * `/invoices` and `/prs` both do — so this is that pattern rather than a new one,
- * and its word is the form's own heading from the form's own copy constant.
+ * ONE EMPTY STATE, NOT THREE. The shared brief's three empties tell "nothing
+ * exists yet" from "nothing you can see" and "nothing matching your filters";
+ * nothing on this axis is scoped by role or job (#337) and this list has no
+ * filters, so only the first has a producer here.
+ *
+ * NO WIDTH, NO COLOR, NO SPACING, AND NO TEXT IN THE MARKUP — #336 put this
+ * axis's only container in the layout and left it empty, and every string here
+ * comes from a constant so a vocabulary sweep can reach it.
  */
 // Labeled for #190 by #224's rule that every entry point opens a scope. An outer
 // wrapper and the route template, so repeated loads aggregate into one row.
@@ -43,10 +54,44 @@ export default async function ToolsPage() {
 async function renderToolsPage() {
     await requireUser();
 
+    const tools = await getAllTools();
+    // The link arrays the tools already carry, flattened into one batched read.
+    const toolItems = await getToolItemsByRecordIds(tools.flatMap((tool) => tool.toolItems));
+    const rows = summarizeTools(tools, toolItems);
+
     return (
         <div>
-            <h1>Tools</h1>
+            <h1>{COPY.heading}</h1>
+
+            {/* The control that opens the registration form, carrying that
+                form's own heading so the two cannot drift (#338). It is above
+                the list rather than inside it because a reader with no tools yet
+                needs it most. */}
             <Link href="/tools/new">{TOOL_REGISTRATION_COPY.heading}</Link>
+
+            {rows.length === 0 ? (
+                <p>{COPY.noTools}</p>
+            ) : (
+                <ul>
+                    {rows.map((row) => (
+                        <li key={row.id}>
+                            <Link href={toolPagePath(row.id, 1)}>{row.toolName}</Link>
+                            {/* All three statuses on every row, a zero included:
+                                an absent one would read as "not known" where a
+                                `0` reads as "none". The word is the label, so the
+                                count is never carried by color alone. */}
+                            <dl>
+                                {row.counts.map((entry) => (
+                                    <div key={entry.status}>
+                                        <dt>{entry.status}</dt>
+                                        <dd>{entry.count}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </li>
+                    ))}
+                </ul>
+            )}
         </div>
     );
 }

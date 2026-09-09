@@ -63,12 +63,19 @@ export const title = "Every URL parameter is read by the screen it lands on, and
  * `router.replace`, or a link inside an email — none of which a redirect scan sees. So
  * the read side is held to a list, and the list is what says which of those it is.
  *
- * THE THREE GROUPS ARE THREE DIFFERENT ANSWERS TO "what happens on a reload", which is
+ * THE FOUR GROUPS ARE FOUR DIFFERENT ANSWERS TO "what happens on a reload", which is
  * the question #321 was about. A FILTER re-renders the same rows, which is correct and
  * is why it is in the URL at all. A NAVIGATION re-opens the same form on the same
- * draft or token. A ONE-TIME ACCOUNT repeats itself, which is the defect the
+ * draft or token. A SLICE re-renders the same page of the same long list. A ONE-TIME
+ * ACCOUNT repeats itself, which is the defect the
  * confirmation line was removed for — these four are the places where saying nothing
  * would be worse, and each one's entry says why it is not a confirmation.
+ *
+ * THE SLICE GROUP HAS ONE MEMBER AND IS THE APP'S FIRST PAGING (#339). It is its own
+ * group rather than a filter because a filter narrows which rows a reader asked for
+ * and a page divides rows nobody asked to lose — put another way, a filter is a
+ * question and a page is an answer too long to hand over at once. #326 is what gives
+ * the document lists one, and whether they share this size is that issue's to decide.
  *
  * `job` IS TWO PARAMETERS WITH ONE NAME AND THAT IS DELIBERATE ENOUGH TO RECORD. On
  * `/prs` it is a Job RECORD ID and repeats; on `/invoices/new` it is a Job CODE and
@@ -93,6 +100,13 @@ const CARRIED = [
     // ── navigation: which record the form opens on ──────────────────────────
     { route: "/prs/new", param: "draft", note: "the saved Draft to resume (#72/#74); written by a Link on the drafts list and by both actions that raise one" },
     { route: "/login/confirm", param: "token", note: "the magic-link token; written by lib/auth.js into the mail and by the verify route on every refusal" },
+
+    // ── a slice: which page of a list too long to render at once ────────────
+    {
+        route: "/tools/tool/[toolRecordId]",
+        param: "page",
+        note: "#339 — which page of this tool's tool items, 1-based. Written by the two steps at the foot of the list and by `toolPagePath`; a value that is not a page resolves to one rather than rendering nothing",
+    },
 
     // ── a one-time account of something the screen does not otherwise say ───
     {

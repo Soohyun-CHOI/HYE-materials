@@ -103,9 +103,9 @@ takes them away. They are not a layout to preserve.
    brief describes its own line.
 
    **The fifth does it without a parameter, and that is the shape to copy
-   (#338).** `/tools/new` writes as many tool items as were bought and has
-   nothing to land on either — #339's list does not exist yet — so it states
-   what it wrote where the reader is. What is different is HOW: the other four
+   (#338).** `/tools/new` writes as many tool items as were bought and has no
+   one document to land on — a registration makes many — so it states what it
+   wrote where the reader is. What is different is HOW: the other four
    redirect to themselves carrying the value in the URL, and this one renders
    the submission's own answer. So a reload repeats nothing and a copied link
    shows a stranger nothing, which is the objection the removed lines were
@@ -577,6 +577,7 @@ office. Invoicing is Admin because invoicing is office work.
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
 | `/tools` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/tools/new` | anyone signed in to reach; only somebody assigned to a job can use it (#338) |
+| `/tools/tool/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/tools/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
