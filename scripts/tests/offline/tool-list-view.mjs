@@ -19,7 +19,7 @@
 //   AND NO TOOLS SCREEN PUTS TEXT IN ITS MARKUP. #338 and #340 both state that
 //   arrangement in prose — every string a tools screen renders is in a constant,
 //   so a vocabulary sweep and scripts/screen-strings.mjs can reach it — and until
-//   this file nothing held it. It is asserted over the whole of app/tools/ rather
+//   this file nothing held it. It is asserted over the whole of app/(tools)/ rather
 //   than over the two screens this issue adds, because the rule is the axis's and
 //   the next screen is the one that will forget it. `/tools` was in fact carrying
 //   one, `<h1>Tools</h1>`, from #336 until this issue moved it into the constant.
@@ -39,7 +39,6 @@ import {
     TOOL_PAGE_SIZE,
     pageOfToolItems,
     summarizeTools,
-    toolPagePath,
 } from "../../../lib/toolListView.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -126,10 +125,10 @@ function markupText(ast) {
     return found;
 }
 
-/** Every `.js` under app/tools/, repo-relative and posix-separated. */
+/** Every `.js` under app/(tools)/, repo-relative and posix-separated. */
 function toolsFiles() {
     const out = [];
-    listJsFiles(repoPath("app/tools"), out);
+    listJsFiles(repoPath("app/(tools)"), out);
     return out.map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
 }
 
@@ -235,14 +234,11 @@ export function run({ check, assert, log }) {
     check("an empty tool has one page, not none", pageOfToolItems([], 1).pageCount, 1);
     check("  and that page is empty", pageOfToolItems([], 1).ids.length, 0);
 
-    // ── 3: the address of a page ────────────────────────────────────────────
-    log("");
-    log("the first page is the bare address and the rest carry a parameter:");
-    check("page 1 carries none", toolPagePath("recAbc", 1), "/tools/tool/recAbc");
-    check("  page 2 carries `page`", toolPagePath("recAbc", 2), "/tools/tool/recAbc?page=2");
-    assert("  and the record id is encoded", toolPagePath("rec/A b", 1).includes("rec%2FA%20b"));
+    // The address a page of this list lives at moved to lib/toolRoutes.js in
+    // #348, with every other address on the axis; `offline/tool-routes.mjs`
+    // holds it now.
 
-    // ── 4: the words ────────────────────────────────────────────────────────
+    // ── 3: the words ────────────────────────────────────────────────────────
     log("");
     log("every word both screens say is in the constant:");
     const strings = copyStrings();
@@ -286,9 +282,9 @@ export function run({ check, assert, log }) {
     assert("the copy scanner finds a planted bare `item`", bareItemWords("Every item on this tool.").length === 1);
     assert("  and does not flag `tool item` or `tool items`", bareItemWords("This tool item and those tool items.").length === 0);
 
-    // ── 5: no tools screen writes text into its markup ──────────────────────
+    // ── 4: no tools screen writes text into its markup ──────────────────────
     log("");
-    log("no screen under app/tools/ puts a word in its markup:");
+    log("no screen under app/(tools)/ puts a word in its markup:");
     const files = toolsFiles();
     assert(`${files.length} files scanned`, files.length >= 4);
     const offenders = [];

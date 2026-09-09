@@ -595,6 +595,17 @@ export function run({ check, assert, log }) {
     assert("  a nested dynamic route", briefFileName("/invoices/[invoiceId]/edit") === "invoices-invoiceId-edit.md");
     assert("  and the one hand-held case", briefFileName("/") === "root.md");
     assert("the deriver does NOT collapse two routes to one name", briefFileName("/prs/new") !== briefFileName("/prs"));
+    // A ROUTE GROUP REACHES A BRIEF NAME THROUGH `routeTemplate` AND MUST NOT
+    // SURVIVE THE TRIP (#348). The name is derived from the URL, so the parentheses
+    // Next.js reads as "give these a shared layout" are not in it — a brief called
+    // `tools-tools-toolRecordId.md` would fail the both-directions check above by
+    // naming a page that does not exist, which is loud, but a reader handed the
+    // wrong filename is the failure this pair actually prevents.
+    assert(
+        "  and reads a route group out of the path before naming a brief",
+        briefFileName(routeTemplate("app/(tools)/tool-items/[toolItemId]/page.js")) ===
+            "tool-items-toolItemId.md"
+    );
     assert("the tone walk found a chip tone", tonesInStatusCopy().has("complete"));
     assert("  and a verdict tone", tonesInStatusCopy().has("exception"));
     assert("  and rejects one nobody defines", !tonesInStatusCopy().has("catastrophe"));

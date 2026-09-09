@@ -7,6 +7,7 @@ import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { getToolLogByToolItem } from "@/lib/airtable/toolLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
+import { TOOLS_PATH, toolItemPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // The param and no lookup, which is what all four document detail screens do and
@@ -22,29 +23,33 @@ export async function generateMetadata({ params }) {
 /**
  * One tool item and everything that has happened to it (#340).
  *
- * THIS IS THE ADDRESS A LABEL POINTS AT, which is what makes it different in
- * kind from every other detail screen on this base. The others are reached from
- * a list; this one is reached by a phone camera reading a sticker glued to a
- * drill. What a QR carries is the whole address, host included, and the symbol
- * steps up a version as that string grows — printing finer modules on the same
- * sticker, which reads less well through oil and wear. So the address is a budget
- * spent once: moving it means reprinting every label already on a tool. #336
- * reserved this flat segment and #339's tool list takes another shape rather
- * than this page taking another place.
+ * A SCAN ARRIVES HERE AND THE LABEL DOES NOT CARRY THIS ADDRESS (#348). It used
+ * to: the page stood at `/tools/[toolItemId]` because a QR encodes the whole URL
+ * and every character pushes the symbol toward a finer grid, so the shortest slot
+ * on the axis was spent on it. `/t/[toolItemId]` carries that budget now and
+ * redirects here, which frees this page to take the name its collection gives it
+ * and frees the flat slot under `/tools` for one tool. Nothing had been printed,
+ * so the move cost code and no reprinting; from Phase 2 onward it would cost both.
+ * The reader is unchanged — a phone camera reading a sticker glued to a drill,
+ * which is what makes this different in kind from every other detail screen here.
  *
- * IT REDIRECTS A NON-CANONICAL ID, AND NO OTHER PAGE IN THIS APP REDIRECTS AT
- * ALL. Every `redirect()` in `app/` today is in a Server Action or a Route
- * Handler; the mechanism does reach a page render, but only through
- * `requireUser()` sending a reader with no session to `/login`. What is new here
- * is a page deciding its OWN address needs to change, and the reason is the
- * second way to reach it: the label prints the id in readable characters beside
- * the QR code, for a symbol that has been scratched or painted over, so somebody
- * types it by hand. The lookup is case-insensitive for that, and this redirect is
- * what stops the concession from turning one printed address into several.
- * `permanentRedirect` rather than `redirect`, because the mapping is stable
- * forever: a `Tool Item ID` is minted once and printed, the app offers no
- * deletion, and `Retired` is what takes a tool out of the count while keeping its
- * row — so nothing reassigns the string a cached redirect names.
+ * IT REDIRECTS A NON-CANONICAL ID, and the reason is the second way in: the label
+ * prints the id in readable characters beside the QR code, for a symbol that has
+ * been scratched or painted over, so somebody types it by hand. The lookup is
+ * case-insensitive for that, and this redirect is what stops the concession from
+ * turning one printed address into several. `permanentRedirect` rather than
+ * `redirect`, because the mapping is stable forever: a `Tool Item ID` is minted
+ * once and printed, the app offers no deletion, and `Retired` is what takes a tool
+ * out of the count while keeping its row — so nothing reassigns the string a
+ * cached redirect names. **`/t/` uses the plain `redirect` and the difference is
+ * not an oversight**: this one maps a variant of an address onto that address, and
+ * that one maps a printed entry point onto a screen whose address the app may
+ * move.
+ *
+ * A REDIRECT FROM `/t/` NEVER LANDS ON THIS ONE. That route canonicalizes the
+ * case before it hands the id over, so a scan and a typed label both reach this
+ * page already spelled the way the base spells it, and the printed path costs one
+ * hop rather than two. This redirect answers direct traffic.
  *
  * FIVE OPERATIONS PLUS ONE PER 50 LOG ROWS, and the shape matters because this
  * will be the most frequently rendered screen on the axis once a scan opens it.
@@ -68,7 +73,7 @@ export async function generateMetadata({ params }) {
  * class that would scroll them is a value this axis does not carry.
  */
 export default async function ToolItemPage(props) {
-    return withOpsLabel("/tools/[toolItemId]", () => renderToolItemPage(props));
+    return withOpsLabel("/tool-items/[toolItemId]", () => renderToolItemPage(props));
 }
 
 async function renderToolItemPage({ params }) {
@@ -81,7 +86,7 @@ async function renderToolItemPage({ params }) {
         return (
             <div>
                 <h1>{COPY.notFoundHeading}</h1>
-                <Link href="/tools">{COPY.backToTools}</Link>
+                <Link href={TOOLS_PATH}>{COPY.backToTools}</Link>
             </div>
         );
     }
@@ -90,7 +95,7 @@ async function renderToolItemPage({ params }) {
     // After requireUser, so a reader with no session learns nothing about which
     // strings resolve.
     if (toolItem.toolItemId !== asked) {
-        permanentRedirect(`/tools/${encodeURIComponent(toolItem.toolItemId)}`);
+        permanentRedirect(toolItemPath(toolItem.toolItemId));
     }
 
     // The link array is already on the record, so the log costs ceil(N/50) and

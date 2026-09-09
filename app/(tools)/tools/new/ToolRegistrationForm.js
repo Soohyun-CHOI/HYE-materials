@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { toolItemPath } from "@/lib/toolRoutes";
 import { useActionState, useState } from "react";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
@@ -163,13 +164,13 @@ export default function ToolRegistrationForm({ tools, jobs }) {
                         the issue that created that page — the same rule by which
                         #336 put a `/tools` link on the root screen and #338 put
                         this form's control on `/tools`: the issue that opens a
-                        route is the one that makes it reachable. Until #339
-                        lists them, this is the only way into a tool item without
-                        typing its address. */}
+                        route is the one that makes it reachable. The address is
+                        built rather than spelled, so #348's move of that page
+                        reached this link without anyone grepping for it. */}
                     <ul>
                         {registered.map((toolItemId) => (
                             <li key={toolItemId}>
-                                <Link href={`/tools/${encodeURIComponent(toolItemId)}`}>
+                                <Link href={toolItemPath(toolItemId)}>
                                     {toolItemId}
                                 </Link>
                             </li>

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllTools } from "@/lib/airtable/tools";
 import { getToolItemsByRecordIds } from "@/lib/airtable/toolItems";
-import { TOOL_LIST_COPY as COPY, summarizeTools, toolPagePath } from "@/lib/toolListView";
+import { TOOL_LIST_COPY as COPY, summarizeTools } from "@/lib/toolListView";
+import { REGISTER_PATH, toolPath } from "@/lib/toolRoutes";
 import { TOOL_REGISTRATION_COPY } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -67,7 +68,7 @@ async function renderToolsPage() {
                 form's own heading so the two cannot drift (#338). It is above
                 the list rather than inside it because a reader with no tools yet
                 needs it most. */}
-            <Link href="/tools/new">{TOOL_REGISTRATION_COPY.heading}</Link>
+            <Link href={REGISTER_PATH}>{TOOL_REGISTRATION_COPY.heading}</Link>
 
             {rows.length === 0 ? (
                 <p>{COPY.noTools}</p>
@@ -75,7 +76,7 @@ async function renderToolsPage() {
                 <ul>
                     {rows.map((row) => (
                         <li key={row.id}>
-                            <Link href={toolPagePath(row.id, 1)}>{row.toolName}</Link>
+                            <Link href={toolPath(row.id)}>{row.toolName}</Link>
                             {/* All three statuses on every row, a zero included:
                                 an absent one would read as "not known" where a
                                 `0` reads as "none". The word is the label, so the

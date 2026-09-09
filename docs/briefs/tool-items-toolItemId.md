@@ -1,7 +1,9 @@
 # Tool item detail
 
-Route: `/tools/[toolItemId]`
+Route: `/tool-items/[toolItemId]`
 Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
+Which width comes first: **phone**. Both widths must work; this one is
+drawn first and the desktop is what it opens out into.
 
 ## What it answers
 
@@ -16,14 +18,16 @@ from a list — and two things follow for a design.
 looking at a drill and at a phone. They already know which tool they scanned;
 what they came for is where it is supposed to be and what has happened to it.
 
-**The address is printed and cannot move.** The id in the URL is the id on the
-label. A design may do anything with this page except make it live somewhere
-else — that would mean reprinting every sticker already on a tool.
+**The label does not carry this address, and that is what lets this one be
+readable.** A QR encodes the whole URL, so the printed address is a short route
+of its own, `/t/[toolItemId]`, which redirects here and has a brief of its own.
+This page took the name its collection gives it once that separation existed
+(#348). The printed address is what may not move; this one may.
 
 **The id is also printed in characters a person can read**, for a symbol that
 has been scratched or painted over, so the second way here is somebody typing
 it. Case does not matter when they do; the page then moves itself to the
-canonical form of the address, so what a sticker carries stays the one address.
+canonical form of the address, so one tool item keeps one address.
 
 ## What it always carries
 
@@ -94,8 +98,9 @@ row is a tool item — this object, with this printed id. Six of one drill is on
 tool and six tool items. Never a bare `item`: four other tables on this base
 hold item rows.
 
-**There are three ways in and only one of them survives a reload.** The QR code
-is the first; the registration form's answer is the second, and each id it names
-links here, but that list is gone once the page is; the third is the tool list,
-where a tool opens its own screen and that screen lists every tool item under it
-with a link to this one (#339).
+**There are three ways in and only one of them survives a reload.** A scan of the
+label is the first, arriving through the short route that redirects here; the
+registration form's answer is the second, and each id it names links here, but
+that list is gone once the page is; the third is the tool list, where a tool
+opens its own screen and that screen lists every tool item under it with a link
+to this one (#339).

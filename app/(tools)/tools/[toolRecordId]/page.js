@@ -3,7 +3,8 @@ import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemsByTool } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
-import { TOOL_LIST_COPY as COPY, pageOfToolItems, toolPagePath } from "@/lib/toolListView";
+import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
+import { TOOLS_PATH, toolItemPath, toolPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Static, the way `/materials/[materialId]` is and for the same reason: the
@@ -27,14 +28,16 @@ export const metadata = { title: "Tool" };
  * a name a reader would search the base for and not find is what
  * docs/notes/naming.md exists to prevent.
  *
- * AND IT STANDS A LEVEL DEEPER BECAUSE THE FLAT SLOT IS SPENT. `/tools/[toolItemId]`
- * is the address a QR code carries, and the symbol's version grows with the
- * string — thinner modules on a sticker of the same size, read through oil and
- * wear — so #336 reserved that segment and #340 occupies it. A tool therefore
- * says its own name in the path. The alternative was naming the tool in a query
- * parameter on `/tools`, which would make one route render two different tables:
- * every parameter this app carries narrows which rows appear or opens a form on a
- * record, and none of them changes what the page is a list of.
+ * IT STOOD AT `/tools/tool/[toolRecordId]` UNTIL #348, AND THE HALF THAT SURVIVES
+ * THE MOVE IS THE HALF WORTH KNOWING. What forced the extra segment was that the
+ * flat slot under `/tools` held the tool item, because a QR code encodes the whole
+ * address and the symbol's version grows with it. `/t/[toolItemId]` carries the
+ * printed address now, so the slot came free and this page took it. **What did not
+ * change is why this is a route at all rather than `/tools?tool=rec…`**: every
+ * parameter this app carries narrows which rows appear, opens a form on a record
+ * or accounts for something the arrival does not say, and none of them changes
+ * what the page is a list of — a route rendering two different tables is a shape
+ * the brief system, one file per page, cannot describe.
  *
  * FOUR OPERATIONS, WHATEVER THE TOOL'S SIZE. The session find, the tool, the one
  * batched read of this page's tool items, and the job list. The page is chosen
@@ -49,13 +52,14 @@ export const metadata = { title: "Tool" };
  * already states for the list.
  *
  * NO WIDTH, NO COLOR, NO SPACING, AND NO TEXT IN THE MARKUP — see the layout
- * (#336) and lib/toolListView.js.
+ * (#336), lib/toolListView.js for the rules and lib/toolRoutes.js for the
+ * addresses.
  */
 // Labeled for #190 by #224's rule that every entry point opens a scope. An outer
 // wrapper and the route template, so every page of every tool aggregates into one
 // row rather than one per record.
 export default async function ToolPage(props) {
-    return withOpsLabel("/tools/tool/[toolRecordId]", () => renderToolPage(props));
+    return withOpsLabel("/tools/[toolRecordId]", () => renderToolPage(props));
 }
 
 // Every signed-in user, with no Role and no Job scoping (#337) — the same reader
@@ -73,7 +77,7 @@ async function renderToolPage({ params, searchParams }) {
         return (
             <div>
                 <h1>{COPY.notFoundHeading}</h1>
-                <Link href="/tools">{COPY.backToTools}</Link>
+                <Link href={TOOLS_PATH}>{COPY.backToTools}</Link>
             </div>
         );
     }
@@ -94,7 +98,7 @@ async function renderToolPage({ params, searchParams }) {
             {/* The tool's name is the heading and there is no heading word, which
                 is the shape the tool item's page takes with its printed id. */}
             <h1>{tool.toolName}</h1>
-            <Link href="/tools">{COPY.backToTools}</Link>
+            <Link href={TOOLS_PATH}>{COPY.backToTools}</Link>
 
             {page.total === 0 ? (
                 <p>{COPY.noToolItems}</p>
@@ -113,7 +117,7 @@ async function renderToolPage({ params, searchParams }) {
                                         <dt>{COPY.toolItemLabel}</dt>
                                         <dd>
                                             <Link
-                                                href={`/tools/${encodeURIComponent(toolItem.toolItemId)}`}
+                                                href={toolItemPath(toolItem.toolItemId)}
                                             >
                                                 {toolItem.toolItemId}
                                             </Link>
@@ -140,10 +144,10 @@ async function renderToolPage({ params, searchParams }) {
                         steps are absent at the ends rather than drawn dead. */}
                     <p>{COPY.pagePosition(page)}</p>
                     {page.page > 1 && (
-                        <Link href={toolPagePath(tool.id, page.page - 1)}>{COPY.previous}</Link>
+                        <Link href={toolPath(tool.id, page.page - 1)}>{COPY.previous}</Link>
                     )}
                     {page.page < page.pageCount && (
-                        <Link href={toolPagePath(tool.id, page.page + 1)}>{COPY.next}</Link>
+                        <Link href={toolPath(tool.id, page.page + 1)}>{COPY.next}</Link>
                     )}
                 </>
             )}

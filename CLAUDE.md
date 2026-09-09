@@ -16,7 +16,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/pos/**`, `lib/po*.js` | `docs/notes/purchase-orders.md` |
 | `app/prs/**`, `lib/prSigning.js`, `lib/prDraft.js` | `docs/notes/purchase-requests.md` |
 | `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |
-| `app/tools/**`, `lib/tool*.js` | `docs/notes/tools.md` |
+| `app/(tools)/**`, `lib/tool*.js` | `docs/notes/tools.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/api/**` | `docs/notes/authorization.md` |
@@ -101,6 +101,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/toolStatus.js` — the tools track's two closed vocabularies (#334, narrowed in #335): three statuses, four events, and the status each event leaves behind. No call site passes `createToolLogEntry` a string literal.
 - `lib/toolRegistration.js` — registering tool items (#338): the key two typed names share to be one tool, the per-submission ceiling, the actor's-own-jobs rule, and every word the screen says. Applied by the action, previewed by the form.
 - `lib/toolItemView.js` — what one tool item's page shows (#340): which of a `Tool Log` row's five facts appear, and every word the screen says.
+- `lib/toolRoutes.js` — every address on the tools axis (#348): the short path a label prints, the tool item's screen, one tool's screen and its page parameter, and the canonical form of a printed id.
 - `lib/toolListView.js` — the two tools list screens (#339): the count per status, the ordering, the page size and its arithmetic, and every word they say. **The app's first paging, and the only one that can divide the READ** — nothing gates a tool item per row, which is what #326 says a document list's page cannot do.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
@@ -239,7 +240,7 @@ Naming: auto-generated → `X ID`. Human-typed → `X Label` / plain name. Calen
 
 **Every Airtable operation is counted** (`lib/airtableOps.js`); only one inside a `withOpsLabel` scope is attributed. An unlabeled screen has no before and after. Printed when `AIRTABLE_OPS_LOG` is set: counting is always on, printing is gated. The count is a FLOOR — retries and raw `fetch()` to the Metadata API are invisible to it.
 
-**EVERY ENTRY POINT OPENS A SCOPE, and a new page, Server Action export or Route Handler method that opens none is a failing check** (#224). The label is derived from the path and the export name rather than chosen — `withOpsLabel`'s own doc has the four forms — and `offline/airtable-ops.mjs` fails a mismatch, so a typo cannot become a bucket. The unit is the EXPORT, never the file.
+**EVERY ENTRY POINT OPENS A SCOPE, and a new page, Server Action export or Route Handler method that opens none is a failing check** (#224). The label is derived from the ROUTE and the export name rather than chosen — `withOpsLabel`'s own doc has the four forms — and `offline/airtable-ops.mjs` fails a mismatch, so a typo cannot become a bucket. The unit is the EXPORT, never the file.
 
 Read `docs/notes/airtable-access.md` before changing any of the three.
 
