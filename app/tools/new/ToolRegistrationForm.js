@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
@@ -158,9 +159,20 @@ export default function ToolRegistrationForm({ tools, jobs }) {
                         </p>
                     )}
                     <p>{COPY.ids}</p>
+                    {/* Each id links to the tool item it names (#340), which is
+                        the issue that created that page — the same rule by which
+                        #336 put a `/tools` link on the root screen and #338 put
+                        this form's control on `/tools`: the issue that opens a
+                        route is the one that makes it reachable. Until #339
+                        lists them, this is the only way into a tool item without
+                        typing its address. */}
                     <ul>
                         {registered.map((toolItemId) => (
-                            <li key={toolItemId}>{toolItemId}</li>
+                            <li key={toolItemId}>
+                                <Link href={`/tools/${encodeURIComponent(toolItemId)}`}>
+                                    {toolItemId}
+                                </Link>
+                            </li>
                         ))}
                     </ul>
                     {state.unloggedToolItemIds.length > 0 && (

@@ -577,6 +577,7 @@ office. Invoicing is Admin because invoicing is office work.
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
 | `/tools` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/tools/new` | anyone signed in to reach; only somebody assigned to a job can use it (#338) |
+| `/tools/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
 `canViewPR`, in order, first match wins: a Draft is visible **only** to its
