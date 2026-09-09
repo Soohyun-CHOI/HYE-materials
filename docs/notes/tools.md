@@ -1,8 +1,8 @@
 # Tools — the reasoning
 
-Governs `lib/tool*.js`, and `app/tools/**` once #336 creates it. **Read this before editing there** — CLAUDE.md carries only the rules that bind code outside this area; the derivation, the evidence and the alternatives weighed are here.
+Governs `lib/tool*.js` and `app/tools/**`. **Read this before editing there** — CLAUDE.md carries only the rules that bind code outside this area; the derivation, the evidence and the alternatives weighed are here.
 
-The index row names only `lib/tool*.js` today, because `offline/notes-index.mjs` fails a glob matching nothing and there is no `app/tools/` yet. #336 widens the row in the commit that creates the route group.
+The index row named only `lib/tool*.js` until #336, because `offline/notes-index.mjs` fails a glob that matches nothing and there was no `app/tools/` for one to match. #336 created the directory and widened the row in the same commit.
 
 `lib/airtable/tool*.js` is additionally governed by `airtable-access.md` and `naming.md`, as all of `lib/airtable/**` is.
 
@@ -13,6 +13,26 @@ The company buys drills, grinders and the like, hands them out to sites, and get
 **It is not a second product.** Same app, same domain, same Airtable base, same login, same `Users` and `Jobs` as everything on the materials axis. One difference, and it is a real one: a scan happens on a phone, on site, possibly by someone wearing gloves, so the tools screens assume a mobile width while every screen above them assumes a desk (#336).
 
 **IT DOES NOT PASS THROUGH THE OFFICE, AND THAT IS THE FACT MOST OF THIS SCHEMA FOLLOWS FROM.** A site person buys the tool, registers it, keeps it and scans it. There is no purchase request, no approval chain and no invoice; nothing here is Admin-gated, and everyone who scans needs an account only because the scan records who performed it (#337). The materials axis is the opposite shape — an order the office places and reconciles — which is why almost nothing is shared between the two beyond people and jobs.
+
+## Where the screens stand, and the one place a width is decided (#336)
+
+`app/tools/layout.js` wraps the whole axis; `app/tools/page.js` is the first screen on it.
+
+**NOTHING ABOVE THE TOOLS TRACK MOVED, BECAUSE THERE WAS NOTHING TO MOVE.** The screens on the materials axis share no layout file at all — `app/layout.js` was the only one in the tree — and each declares its own container inside its own page instead: eighteen of those twenty-one pages carry an `mx-auto w-full max-w-* p-8`, twenty-two declarations in all, four pages carrying two. So "the layout the materials screens share" was a repeated habit rather than a file, and giving the tools screens one of their own displaced nothing and needed no rearrangement of the axis above.
+
+**WHAT THE TOOLS AXIS DOES DIFFERENTLY IS HOLD THAT CONTAINER ONCE.** A width settled above lands in as many places as there are pages, which is why #258 has to visit each of them; a width settled here lands in one file. That is the single structural claim this issue makes, and the layout's own header is where a reader editing a tools page meets it — a page that declares a width of its own puts the axis back to two containers, and nothing fails when it does.
+
+**THE CONTAINER IS EMPTY, AND THE EMPTINESS IS THE POINT RATHER THAN AN UNFINISHED EDGE.** #336 decides where a width is decided and decides no value: no width, no padding, no color, no type. The reason is `docs/briefs/_shared.md`'s opening claim — nothing about this app's appearance was designed, and there is no version of it to preserve — so a value chosen here to make the first screen look finished would become the baseline a design has to justify departing from, which is the one outcome the whole design milestone is arranged to avoid. #258 fills it. The visible consequence is recorded rather than smoothed over: the first tools screen renders with no styling at all, at a phone width and at a monitor width both.
+
+**THE ROOT LAYOUT GAVE NOTHING UP.** Everything it holds is needed by both axes — the document shell, the two font variables, `globals.css` with its `color-scheme: light`, and the `title` template that lets every page state only its own name. **And the one thing that would have had to come down is not there:** this app has no navigation shell, so there was no nav to split into a desk shape and a phone shape. The links on `/` are that page's own content, added one at a time by the issue that added the screen behind each, and #336's is the fifth by the same precedent.
+
+**THE TOOL ITEM DETAIL STANDS ONE LEVEL UNDER `/tools`, FLAT, AND THE QR LABEL IS WHY.** `/tools/[toolItemId]` is the address a scan opens, and it is the string the code on the sticker carries. How many characters that string has decides the symbol's version, and each version step adds four modules to every side — so at the size a sticker is printed, a longer address is a symbol whose modules are thinner, and thinner modules are a worse scan in a gloved hand on a site. A segment between `/tools` and the id would show a reader nothing and cost exactly that. **#339 inherits a consequence rather than a free choice:** the flat position under `/tools` is the tool item's, so the list of kinds either goes a level deeper or names its kind in a query parameter — which of the two is that issue's to settle.
+
+**THE FIRST SCREEN IS ONE HEADING, AND IT READS NO TOOL TABLE.** `getAllTools` names `/tools` in its own docstring as the list of kinds, and #339 is what puts that list there; a list invented ahead of it would be a shape that issue has to argue its way out of. So the page carries the heading its table's name gives it and nothing else, and the one operation it makes is the session's user read. What it does prove is the thing #334 and #335 could not: a tools screen renders, at both widths, inside a layout of its own.
+
+**WHO REACHES IT IS #337'S DECISION APPLIED HERE, NOT A SECOND ONE.** `requireUser()`, which is every signed-in user with no Role and no Job scoping — that issue's body states it as a fact about the axis, and a page has to name a reader before its brief can. What stays with #337 is how the person holding the phone arrives and the signal for a scan on a job the scanner is not assigned to.
+
+**THE CHANGE OF PREMISE IS RECORDED IN `docs/briefs/_shared.md` RATHER THAN HERE**, as a fifth entry in its constraints. That file is the design work's only input and it runs in a tool that does not read this repository, so a premise recorded only here would have to be inferred from a screen brief nobody has written yet. The half that belongs in this file is the derivation above; the half that constrains a drawing — that breakpoints, touch targets and a spacing scale are being chosen with a phone case beside them rather than widened into one afterwards — belongs where the design meets it.
 
 ## Three tables, and what each is for
 

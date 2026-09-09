@@ -16,7 +16,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/pos/**`, `lib/po*.js` | `docs/notes/purchase-orders.md` |
 | `app/prs/**`, `lib/prSigning.js`, `lib/prDraft.js` | `docs/notes/purchase-requests.md` |
 | `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |
-| `lib/tool*.js` | `docs/notes/tools.md` |
+| `app/tools/**`, `lib/tool*.js` | `docs/notes/tools.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/api/**` | `docs/notes/authorization.md` |

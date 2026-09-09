@@ -33,8 +33,8 @@ on whether there is a session.
   are an Admin. This is the only place in the app that states the reader's own role
   back to them, which matters because almost every screen behaves differently by
   role and nothing else says which one you are.
-- **action** — `New Purchase Request` as the filled primary button, then three
-  outlined links: `Material prices`, `Deliveries`, `Purchase orders`.
+- **action** — `New Purchase Request` as the filled primary button, then four
+  outlined links: `Material prices`, `Deliveries`, `Purchase orders`, `Tools`.
 - **action** — a sign-out control.
 
 **When not signed in:** the line `Not signed in.` and a single `Sign in` button.
@@ -43,9 +43,9 @@ on whether there is a session.
 
 **The link labels are screen names and one of them disagrees with its
 destination.** `Purchase orders` here, `Purchase Orders` as that screen's own
-heading. `Material prices` and `Deliveries` match theirs exactly. Whatever a
-redesign does with navigation, these labels and the headings they point at should
-be settled together — see the shared brief.
+heading. `Material prices`, `Deliveries` and `Tools` match theirs exactly.
+Whatever a redesign does with navigation, these labels and the headings they
+point at should be settled together — see the shared brief.
 
 **`New Purchase Request` is the same label as that form's own heading**, and the
 request list's button says `New PR` for the same destination. Three surfaces, two

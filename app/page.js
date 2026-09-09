@@ -51,6 +51,17 @@ async function renderHome() {
                     >
                         Purchase orders
                     </Link>
+                    {/* Issue #336 — same reasoning again, and the entry point is
+                        that issue's own decision rather than something inherited:
+                        a route nothing links to is reachable only by typing its
+                        URL, which is a poor thing to ask of the person holding
+                        the phone. How that person gets here from a scan is #337. */}
+                    <Link
+                        href="/tools"
+                        className="rounded border border-zinc-300 px-4 py-2"
+                    >
+                        Tools
+                    </Link>
                     <form action="/api/auth/logout" method="POST">
                         <button
                             type="submit"

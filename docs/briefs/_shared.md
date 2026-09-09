@@ -3,7 +3,7 @@
 Read this once before any screen brief. It carries what is true across the whole
 app: the levels every screen brief tags its facts with, the distinctions the app
 has to make visible, the words that are already settled, who reads which screen,
-and the four constraints that already exist. Each screen brief then says what
+and the five constraints that already exist. Each screen brief then says what
 that one screen carries and cites this document's vocabulary rather than
 restating it.
 
@@ -565,6 +565,7 @@ office. Invoicing is Admin because invoicing is office work.
 | `/prs/new` | anyone signed in |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
+| `/tools` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
 `canViewPR`, in order, first match wins: a Draft is visible **only** to its
@@ -615,7 +616,7 @@ scope.
 
 ## Constraints that already exist
 
-Four, and they are the only design rules the codebase has today. Three are
+Five, and they are the only design rules the codebase has today. Four are
 recorded decisions; the first is this document's own.
 
 **Color never carries a meaning by itself.** Every status must be readable with
@@ -650,7 +651,39 @@ way, and that file's own header says to **delete it** when dark mode returns
 rather than widen it or add an exemption. A second appearance is not forbidden;
 it is deferred until there is a token layer to own it, which is #258.
 
-**There is no navigation shell.** The root screen carries four links because a
+**Every screen but the tools screens is used at a monitor. The tools screens
+are used at a phone width as well.** A tool is entered and its labels printed
+at a desk; a tool item is scanned on site, on a phone, possibly by someone
+wearing gloves. So the screens under `/tools` have to work at both widths, and
+every other screen in this document assumes the monitor (#336). **That
+premise was decided rather than drifted into, and this is the constraint with
+the most bearing on #258**: breakpoints, touch targets and a spacing scale drawn
+for a monitor and widened for a phone afterwards are decided twice, and drawn
+with the phone case beside them are decided once. Both cases are on the table
+now, which is why the tools layout landed before the tokens rather than after.
+
+**The two axes also differ in how many places a width lands, and #336 is why.**
+Every screen outside the tools axis declares its own container inside its own
+page — eighteen of those twenty-one pages do, twenty-two declarations in all —
+so a width settled there is an edit per page. The tools screens hold one
+container in the layout they share, so a width settled for that axis is one
+edit.
+
+**The two shapes are an inconsistency rather than a distinction worth keeping,
+and the direction is the tools one.** Repeating a container per page is what
+makes a width a search instead of an edit, and it costs more than the count
+suggests: the same class string appears twice in four of those pages, once per
+return path, so two branches of one screen can disagree about a width or a
+branch can be given none. Gathering them into a layout is the natural move when
+the values are named, and #336 did not do it — eighteen pages is a refactor
+rather than a layout — so it is #258's to make.
+
+**The tools container is deliberately empty**: those screens carry no width, no
+padding and no type of their own, so nothing there is a shape to depart from.
+The first of them renders unstyled at both widths today, and that is the honest
+state rather than a draft to match.
+
+**There is no navigation shell.** The root screen carries five links because a
 new route is otherwise reachable only by typing its URL. Every "back" affordance
 in the app is a per-page link written by whoever added the page. This is an
 absence rather than a decision, and it is the largest single gap a design will
