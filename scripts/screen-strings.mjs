@@ -92,7 +92,23 @@ export function listRoutes() {
         .sort();
 }
 
-const routeDir = (route) => "app" + (route === "/" ? "" : route);
+/**
+ * The directory one route's page lives in.
+ *
+ * MAPPED BACK THROUGH THE FILES RATHER THAN REBUILT FROM THE ROUTE (#348). This
+ * was `"app" + route`, which is exact only while every directory is a URL
+ * segment — and a route group is a directory that is not. `app/(tools)/tools`
+ * serves `/tools`, so the old form pointed at `app/tools`, which does not exist,
+ * and every tools screen would have reported no strings at all. Deriving both
+ * directions from the same file list is what stops them disagreeing.
+ */
+function routeDir(route) {
+    for (const abs of listJsFiles(repoPath("app"))) {
+        const rel = toPosix(abs).slice(toPosix(REPO_ROOT).length + 1);
+        if (isPageFile(rel) && routeTemplate(rel) === route) return dirname(rel);
+    }
+    return "app" + (route === "/" ? "" : route);
+}
 
 /**
  * Resolve one import specifier to a repo-relative path, or null when it points

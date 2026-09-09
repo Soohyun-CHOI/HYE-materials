@@ -103,9 +103,9 @@ const CARRIED = [
 
     // ── a slice: which page of a list too long to render at once ────────────
     {
-        route: "/tools/tool/[toolRecordId]",
+        route: "/tools/[toolRecordId]",
         param: "page",
-        note: "#339 — which page of this tool's tool items, 1-based. Written by the two steps at the foot of the list and by `toolPagePath`; a value that is not a page resolves to one rather than rendering nothing",
+        note: "#339 — which page of this tool's tool items, 1-based. Written by the two steps at the foot of the list and by `toolPath`; a value that is not a page resolves to one rather than rendering nothing",
     },
 
     // ── a one-time account of something the screen does not otherwise say ───
@@ -177,11 +177,22 @@ function routeOfFile(rel) {
     return existsSync(repoPath("app/page.js")) && dir === "app" ? "/" : null;
 }
 
-/** Module-level `const NAME = "...";` string values, for a path assembled from one. */
+/**
+ * Module-level `const NAME = "...";` string values, for a path assembled from one.
+ *
+ * AN EXPORTED ONE COUNTS, AND IT DID NOT UNTIL #348. This walked `ast.body` for a
+ * bare `VariableDeclaration`, so `export const TOOLS_PATH = "/tools"` was invisible
+ * and every path built from it starred out to `*` — which made the key beside it
+ * unattributable and reported as read by no screen. The shape only appeared when
+ * the tools axis put its addresses in a module of their own; a path constant is
+ * exported precisely because more than one screen builds on it, so this is the
+ * shape to expect rather than the exception.
+ */
 function moduleStrings(ast) {
     const out = new Map();
-    for (const node of ast.body) {
-        if (node.type !== "VariableDeclaration") continue;
+    for (const top of ast.body) {
+        const node = top.type === "ExportNamedDeclaration" ? top.declaration : top;
+        if (node?.type !== "VariableDeclaration") continue;
         for (const d of node.declarations) {
             if (d.id.type === "Identifier" && d.init?.type === "Literal" && typeof d.init.value === "string")
                 out.set(d.id.name, d.init.value);
@@ -498,6 +509,23 @@ export function run({ check, assert, log }) {
         ["recorded", "a key in a plain string"],
     ])
         assert(`  the detector reads ${why}`, shapeWrites.some((w) => w.param === param));
+    // The fourth shape, and the one #348 added: a path assembled from an EXPORTED
+    // module constant. Starred out, the key beside it has no route and reads as
+    // written by nothing — which is a failure that names the wrong thing.
+    const viaExportedConst = parseSource(
+        'export const TOOLS_PATH = "/tools";\n' +
+            "export function toolPath(id, page) {\n" +
+            "  const base = `${TOOLS_PATH}/${encodeURIComponent(id)}`;\n" +
+            "  return page > 1 ? `${base}?page=${page}` : base;\n" +
+            "}\n",
+        "<exported-const>"
+    );
+    assert(
+        "  and resolves an exported path constant, so its key lands on a route",
+        writtenParameters("lib/toolRoutes.js", viaExportedConst.ast, routes).some(
+            (w) => w.param === "page" && w.route === "/tools/[toolRecordId]"
+        )
+    );
 
     // ── 2: nothing is read that nothing writes ──────────────────────────────
     log("");

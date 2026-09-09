@@ -577,8 +577,9 @@ office. Invoicing is Admin because invoicing is office work.
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
 | `/tools` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/tools/new` | anyone signed in to reach; only somebody assigned to a job can use it (#338) |
-| `/tools/tool/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337) |
-| `/tools/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337) |
+| `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337) |
+| `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337) |
+| `/t/[toolItemId]` | anyone, signed in or not — it draws nothing and redirects (#348) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
 `canViewPR`, in order, first match wins: a Draft is visible **only** to its
@@ -667,8 +668,18 @@ it is deferred until there is a token layer to own it, which is #258.
 **Every screen but the tools screens is used at a monitor. The tools screens
 are used at a phone width as well.** A tool is entered and its labels printed
 at a desk; a tool item is scanned on site, on a phone, possibly by someone
-wearing gloves. So the screens under `/tools` have to work at both widths, and
-every other screen in this document assumes the monitor (#336). **That
+wearing gloves. So the tools screens have to work at both widths, and
+every other screen in this document assumes the monitor (#336).
+
+**Both widths does not mean both first, and each tools brief now says which
+one it is drawn for (#348).** `/tools`, `/tools/new` and
+`/tools/[toolRecordId]` are DESKTOP first: a site has laptops and monitors
+too, entering a name and a quantity is typing, and printing the labels that
+follow happens at whatever machine the printer is attached to.
+`/tool-items/[toolItemId]` is PHONE first, because a scan is what arrives
+there. The other width still has to work in both directions — the priority
+says which one is drawn first and how the other folds out of it, not which
+one is supported. **That
 premise was decided rather than drifted into, and this is the constraint with
 the most bearing on #258**: breakpoints, touch targets and a spacing scale drawn
 for a monitor and widened for a phone afterwards are decided twice, and drawn

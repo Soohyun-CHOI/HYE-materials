@@ -192,7 +192,7 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
-    { file: "app/tools/new/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
+    { file: "app/(tools)/tools/new/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },

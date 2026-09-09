@@ -1,7 +1,9 @@
 # Tool detail
 
-Route: `/tools/tool/[toolRecordId]`
+Route: `/tools/[toolRecordId]`
 Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
+Which width comes first: **desktop**. Both widths must work; this one is
+drawn first and the phone is what it folds into.
 
 ## What it answers
 
@@ -64,6 +66,9 @@ appears only once a list is long leaves the short case saying nothing.
 **A step to the previous page**, when this is not the first one, and **a
 step to the next**, when this is not the last. Each is absent at its own
 end rather than drawn and dead, so a tool with one page carries neither.
+**A second page is the rare case and the controls should be drawn as
+minor:** one purchase is at most fifty tools and usually a single digit,
+so most tools have one page and the list is short.
 
 **When the tool has no tool items at all:** one sentence in place of the
 entries, `Nothing is recorded under this tool.` and then why that can
@@ -116,11 +121,13 @@ other tables on this base hold item rows, so a bare `item` names four
 things; `Status` and `Job` name one field each and are the words the tool
 item's own screen already uses for them.
 
-**Every id here links to `/tools/[toolItemId]`, and so does the
+**Every id here links to `/tool-items/[toolItemId]`, and so does the
 registration form's answer.** Both point at the same screen; the
 difference is that this list survives a reload, which is what the
 registration form's list of minted ids does not.
 
 **A tool's name never appears as a path segment**, here or anywhere. The
-flat slot under `/tools` belongs to the tool item because a QR code
-carries that address, so this screen went a level deeper instead.
+segment is Airtable's record id: `Tools` mints none, a typed name can hold
+any character, and a rename would move the address. This screen stood one
+level deeper until #348, when the tool item's own address moved off the
+axis and freed the slot.

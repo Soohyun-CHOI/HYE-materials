@@ -36,9 +36,28 @@ export const isPageFile = (rel) => /^app\/(.*\/)?page\.js$/.test(rel);
  * The route TEMPLATE a page or route file serves, which is the label a page
  * takes and half the label a Route Handler takes. Derived from the path rather
  * than typed, so a label cannot disagree with where its file lives.
+ *
+ * A ROUTE GROUP IS A DIRECTORY AND NOT A SEGMENT, WHICH THIS HAD TO LEARN (#348).
+ * `app/(tools)/tools/page.js` serves `/tools`: Next.js reads a parenthesized
+ * directory as a way to give a set of routes a shared layout without putting a
+ * segment in the URL. Until the tools axis needed one there was none in the tree,
+ * so stripping the `app` prefix was the whole derivation — and four readers take
+ * this function's word for what a route is. The label a page opens its ops scope
+ * with, the filename of its brief, the route a URL parameter is attributed to and
+ * the directory `scripts/screen-strings.mjs` reads a screen out of would each have
+ * gained a `(tools)` nobody types.
+ *
+ * THE INVERSE IS NOT AVAILABLE AND `screen-strings.mjs` STOPPED ASSUMING IT WAS.
+ * That script used to rebuild a directory as `"app" + route`, which is exact only
+ * while every directory is a segment; it maps a route back through the page files
+ * now, so the two directions cannot disagree. `docs/notes/verification.md` carries
+ * what each of the four wanted.
  */
 export function routeTemplate(rel) {
-    const p = rel.replace(/^app/, "").replace(/\/(page|route)\.js$/, "");
+    const p = rel
+        .replace(/^app/, "")
+        .replace(/\/\([^/]+\)/g, "")
+        .replace(/\/(page|route)\.js$/, "");
     return p === "" ? "/" : p;
 }
 

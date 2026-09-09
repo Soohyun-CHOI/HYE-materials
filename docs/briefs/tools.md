@@ -2,6 +2,8 @@
 
 Route: `/tools`
 Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
+Which width comes first: **desktop**. Both widths must work; this one is
+drawn first and the phone is what it folds into.
 
 ## What it answers
 
@@ -91,7 +93,7 @@ and the shared brief records the disagreement.
 
 **The three counts read the same status the tool item's own screen
 shows.** `Tool Items."Status"` is maintained by the app, not computed on
-either screen, so this list and `/tools/[toolItemId]` cannot disagree
+either screen, so this list and `/tool-items/[toolItemId]` cannot disagree
 about where a tool item is.
 
 **`In Stock`, `Out` and `Retired` are the three statuses this axis has,
@@ -107,14 +109,19 @@ log row yet — registration is the only event that exists — so the only
 count with a figure in it today is `In Stock`. That is a fact about how
 far the app has got, not about the screen: all three are drawn.
 
-**`/tools/[toolItemId]` is taken and is not free to move.** A tool item's
-own screen sits one level under `/tools`, flat, because that address is
-what the QR code on the sticker carries and its length decides the
-symbol's version — a longer address means thinner modules on a label of
-the same size. So one tool's own screen went a level deeper instead, at
-`/tools/tool/[toolRecordId]`, and **a tool's name never appears as a path
-segment** — which is also what keeps a tool somebody names `new` from
+**One tool's own screen is `/tools/[toolRecordId]`, one level under this
+one.** It held the tool ITEM until #348, because a QR code encodes the
+whole address and its length decides the symbol's version; a route of its
+own carries that now, so the flat slot came free and one tool took it.
+**A tool's name never appears as a path segment** — the segment is
+Airtable's record id, since `Tools` mints none and a typed name is not a
+path — which is also what keeps a tool somebody names `new` from
 colliding with the registration form.
+
+**A tool item's screen is `/tool-items/[toolItemId]`, off this axis's own
+collection**, and the label prints a third address again. None of this
+reaches a reader: what they see is a name on this list and a printed id on
+the next screen.
 
 **A tool item is never a bare `item` on any tools screen.** Four other
 tables on this base have items of their own — a request's, an order's, an

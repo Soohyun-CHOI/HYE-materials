@@ -3,6 +3,8 @@
 Route: `/tools/new`
 Who reaches it: anyone signed in, with no Role and no Job scoping (#337) — but
 only somebody assigned to a job can use it.
+Which width comes first: **desktop**. Both widths must work; this one is
+drawn first and the phone is what it folds into.
 
 ## What it answers
 
