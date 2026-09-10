@@ -149,7 +149,15 @@ comes out. **How the narrow case reads is open** — scaled down, scrolled, or t
 sheet withheld below some width — and it is the one place on this screen where
 the phone behavior is a design question rather than a dimension.
 
-**Nothing on the paper is a screen affordance.** The picker, the position control,
-the print button and all three sentences about the run are hidden at print. What a
-reader sees on screen and what comes out of the printer are deliberately not the
-same thing, which is the one place in this app where that is true.
+**Nothing on the paper is a screen affordance.** The heading, the picker, the
+position control, the print button and every sentence about the run are hidden at
+print. What a reader sees on screen and what comes out of the printer are
+deliberately not the same thing, which is the one place in this app where that is
+true.
+
+**And that list has to be exhaustive rather than nearly so, because a sheet is
+exactly one page.** The page box has no margin, so any ink above the first sheet
+takes a page of its own and pushes every sheet down by one. **This is not a
+hypothetical**: the heading was left out of the print rule and the first print
+put it alone on page one. A design adding anything to this screen — a caption, a
+back link, a count — has to put it on the screen side of that line.

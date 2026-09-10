@@ -54,13 +54,17 @@ import {
     readStartPosition,
     symbolBox,
 } from "../../../lib/toolLabelSheet.js";
-import { listJsFiles, parseFile, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
+import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The sheet a tool label is printed on, by value (#353)";
 
 /** The symbol's side in modules, quiet zone included — #351's figure today. */
 const SIDE_MODULES_TODAY = 33;
+
+/** The route's two files, which several sections below read off the AST. */
+const SHEET_SOURCE = "app/(tools)/tool-items/labels/LabelSheet.js";
+const PAGE_SOURCE = "app/(tools)/tool-items/labels/page.js";
 
 export function run({ check, assert, log }) {
     // ── 1: the stock, transcribed and added back up ──────────────────────────
@@ -221,13 +225,100 @@ export function run({ check, assert, log }) {
     const css = readFileSync(repoPath("app/(tools)/tool-items/labels/labels.css"), "utf8");
     assert(`the page box names \`${LABEL_STOCK.page}\``, new RegExp(`size:\\s*${LABEL_STOCK.page}\\s*;`).test(css));
     assert("  and takes no margin, so the stock's own margins mean something", /@page[^}]*margin:\s*0\s*;/s.test(css));
-    assert("the picker is hidden at print", /@media print[\s\S]*\.label-controls[\s\S]*display:\s*none/.test(css));
+    assert("everything not a label is hidden at print", /@media print[\s\S]*\.label-screen-only\s*\{[^}]*display:\s*none/.test(css));
     assert("and a second sheet starts a second page", /\.label-sheet \+ \.label-sheet[\s\S]*break-before:\s*page/.test(css));
     // NO PHYSICAL DIMENSION MAY BE WRITTEN HERE. Every millimeter is an inline style
     // computed from LABEL_STOCK; one in the stylesheet is the figure that would not
     // move when the stock does.
     const millimeters = css.replace(/\/\*[\s\S]*?\*\//g, "").match(/\d+(?:\.\d+)?mm/g) || [];
     check(`no millimeter figure in the stylesheet${millimeters.length ? ` (${millimeters.join(", ")})` : ""}`, millimeters.length, 0);
+
+    // ── 6b: nothing but a sheet reaches the paper ───────────────────────────
+    log("");
+    log("every heading, sentence and link is inside the screen-only wrapper:");
+    // THE BUG THIS CATCHES SHIPPED AND WAS REPORTED FROM A REAL PRINT. The print
+    // rule hid `.label-controls`, which is the sheet component's picker — and the
+    // `<h1>` is rendered by the PAGE, so it printed. A sheet is exactly one page
+    // tall against a page box with no margin, so 24px of heading took page one and
+    // pushed every sheet down by a page. Nothing in this tier renders and the
+    // browser pane cannot reach a print preview, so the only defense is structural:
+    // on the route's two files, no text-bearing element may sit outside the class
+    // the stylesheet hides.
+    const SCREEN_ONLY = "label-screen-only";
+    const TEXT_TAGS = new Set(["h1", "h2", "p", "ul", "ol", "li", "button", "label", "Link", "input"]);
+
+    /** Every text-bearing element in a file, with whether a screen-only ancestor covers it. */
+    function textElements(rel) {
+        const out = [];
+        const visit = (node, covered) => {
+            if (!node || typeof node !== "object") return;
+            if (Array.isArray(node)) {
+                for (const child of node) visit(child, covered);
+                return;
+            }
+            let nowCovered = covered;
+            if (node.type === "JSXElement") {
+                const name = node.openingElement?.name?.name;
+                const className = node.openingElement?.attributes?.find(
+                    (attr) => attr.type === "JSXAttribute" && attr.name?.name === "className"
+                );
+                const classText =
+                    className?.value?.type === "Literal" ? String(className.value.value) : "";
+                if (classText.split(/\s+/).includes(SCREEN_ONLY)) nowCovered = true;
+                if (TEXT_TAGS.has(name)) out.push({ name, covered: nowCovered });
+            }
+            for (const [key, value] of Object.entries(node)) {
+                if (key === "type" || key === "start" || key === "end" || key === "loc") continue;
+                visit(value, nowCovered);
+            }
+        };
+        visit(parseFile(rel).ast, false);
+        return out;
+    }
+
+    for (const rel of [PAGE_SOURCE, SHEET_SOURCE]) {
+        const elements = textElements(rel);
+        const bare = elements.filter((element) => !element.covered).map((element) => element.name);
+        assert(`  ${rel.split("/").pop()} has text-bearing elements at all`, elements.length > 3);
+        check(
+            `  none of its ${elements.length} sits outside \`${SCREEN_ONLY}\`${bare.length ? ` (${[...new Set(bare)].join(", ")})` : ""}`,
+            bare.length,
+            0
+        );
+    }
+    // ANTI-VACUITY: the walker is shown finding an UNCOVERED one, so the zeros above
+    // are a fact about those files rather than about a visitor that marks everything
+    // covered or never descends.
+    const planted = [];
+    {
+        const visit = (node, covered) => {
+            if (!node || typeof node !== "object") return;
+            if (Array.isArray(node)) return node.forEach((c) => visit(c, covered));
+            let nowCovered = covered;
+            if (node.type === "JSXElement") {
+                const name = node.openingElement?.name?.name;
+                const cls = node.openingElement?.attributes?.find(
+                    (a) => a.type === "JSXAttribute" && a.name?.name === "className"
+                );
+                const text = cls?.value?.type === "Literal" ? String(cls.value.value) : "";
+                if (text.split(/\s+/).includes(SCREEN_ONLY)) nowCovered = true;
+                if (TEXT_TAGS.has(name)) planted.push({ name, covered: nowCovered });
+            }
+            for (const [k, v] of Object.entries(node)) {
+                if (k === "type" || k === "start" || k === "end" || k === "loc") continue;
+                visit(v, nowCovered);
+            }
+        };
+        visit(
+            parseSource(
+                'const a = <main><h1>x</h1><div className="label-screen-only"><p>y</p></div></main>;\n',
+                "<planted-bare-heading>"
+            ).ast,
+            false
+        );
+    }
+    check("  a bare heading beside a wrapped one is seen as bare", planted.filter((e) => !e.covered).length, 1);
+    check("  and the wrapped one is not", planted.filter((e) => e.covered).length, 1);
 
     // ── 7: the symbol is sized by its SIDE and never by its symbol proper ───
     log("");
@@ -237,8 +328,8 @@ export function run({ check, assert, log }) {
     // and renders a symbol a camera has to separate from the ink beside it. Read off
     // the AST rather than the text, so a comment naming the wrong constant is not a
     // violation.
-    const sheetSource = "app/(tools)/tool-items/labels/LabelSheet.js";
-    const pageSource = "app/(tools)/tool-items/labels/page.js";
+
+
     const identifiers = (rel) => {
         const names = [];
         walk(parseFile(rel).ast, (n) => {
@@ -246,14 +337,14 @@ export function run({ check, assert, log }) {
         });
         return names;
     };
-    const pageNames = identifiers(pageSource);
+    const pageNames = identifiers(PAGE_SOURCE);
     assert("the page reads QR_SIDE_MODULES", pageNames.includes("QR_SIDE_MODULES"));
     check(
         "  and names QR_SYMBOL_MODULES nowhere",
         pageNames.filter((name) => name === "QR_SYMBOL_MODULES").length,
         0
     );
-    const sheetNames = identifiers(sheetSource);
+    const sheetNames = identifiers(SHEET_SOURCE);
     check(
         "the sheet component names neither, taking the count as a prop",
         sheetNames.filter((name) => name === "QR_SIDE_MODULES" || name === "QR_SYMBOL_MODULES").length,
@@ -298,7 +389,7 @@ export function run({ check, assert, log }) {
     );
     // ANTI-VACUITY: the same matcher is shown finding the import a client file DOES
     // make, so the zero is not a matcher that never fires.
-    const sheetFile = clientFiles.find((file) => file.rel === sheetSource);
+    const sheetFile = clientFiles.find((file) => file.rel === SHEET_SOURCE);
     assert("  and the sheet component is one of them", Boolean(sheetFile));
     assert(
         "  importing lib/toolLabelSheet.js, which the matcher can see",

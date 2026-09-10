@@ -79,9 +79,23 @@
 }
 
 @media print {
-    /* The paper carries labels and nothing else: no picker, no heading, no
-       navigation, and none of the sentences that exist to be read on a screen. */
-    .label-controls {
+    /*
+     * The paper carries labels and nothing else. ONE CLASS DOES IT, AND THE
+     * REASON IT IS NOT `.label-controls` IS A BUG THIS COMMENT USED TO DESCRIBE
+     * AWAY: it claimed to hide the heading and the navigation while the rule only
+     * reached the picker, so the `<h1>` — 24px of it, rendered by the page rather
+     * than by the sheet's own component — printed above the first sheet. A sheet
+     * is exactly one page tall against a page box with no margin, so that
+     * heading took page one and every sheet moved down by a page. Reported from
+     * a real print, which is the one place it is visible: no check in this
+     * repository renders, and the browser pane cannot reach a print preview.
+     *
+     * So the class names the PROPERTY — this is for the screen — and both the
+     * page and the sheet's component put everything that is not a label inside
+     * it. `offline/tool-label-sheet.mjs` requires that of every heading,
+     * sentence and link on the route.
+     */
+    .label-screen-only {
         display: none;
     }
 

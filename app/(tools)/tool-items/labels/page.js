@@ -67,9 +67,11 @@ export default async function ToolLabelSheetPage({ searchParams }) {
         if (printing.length === 0) {
             return (
                 <main>
-                    <h1>{COPY.heading}</h1>
-                    <p>{COPY.noneRequested}</p>
-                    <Link href={TOOLS_PATH}>{TOOL_LIST_COPY.backToTools}</Link>
+                    <div className="label-screen-only">
+                        <h1>{COPY.heading}</h1>
+                        <p>{COPY.noneRequested}</p>
+                        <Link href={TOOLS_PATH}>{TOOL_LIST_COPY.backToTools}</Link>
+                    </div>
                 </main>
             );
         }
@@ -103,19 +105,29 @@ export default async function ToolLabelSheetPage({ searchParams }) {
             });
         }
 
+        // EVERYTHING THAT IS NOT A SHEET SITS INSIDE ONE SCREEN-ONLY WRAPPER, and
+        // that is a print requirement rather than tidiness. A sheet is exactly one
+        // page tall against a page box with no margin, so ANY ink above the first
+        // one takes a page of its own and pushes every sheet down by one — which is
+        // what the heading did until it was wrapped. `labels.css` hides this class
+        // at print, and `offline/tool-label-sheet.mjs` requires every heading,
+        // sentence and link in this file to be inside it.
         return (
             <main>
-                <h1>{COPY.heading}</h1>
-                {requested.length > printing.length && (
-                    <p>{COPY.overCap({ requested: requested.length, cap: MAX_LABELS_PER_REQUEST })}</p>
-                )}
-                {missing.length > 0 && <p>{COPY.missing({ toolItemIds: missing })}</p>}
-                {labels.length === 0 ? (
-                    <>
-                        <p>{COPY.noneFound}</p>
-                        <Link href={TOOLS_PATH}>{TOOL_LIST_COPY.backToTools}</Link>
-                    </>
-                ) : (
+                <div className="label-screen-only">
+                    <h1>{COPY.heading}</h1>
+                    {requested.length > printing.length && (
+                        <p>{COPY.overCap({ requested: requested.length, cap: MAX_LABELS_PER_REQUEST })}</p>
+                    )}
+                    {missing.length > 0 && <p>{COPY.missing({ toolItemIds: missing })}</p>}
+                    {labels.length === 0 && (
+                        <>
+                            <p>{COPY.noneFound}</p>
+                            <Link href={TOOLS_PATH}>{TOOL_LIST_COPY.backToTools}</Link>
+                        </>
+                    )}
+                </div>
+                {labels.length > 0 && (
                     <LabelSheet labels={labels} origin={origin} sideModules={QR_SIDE_MODULES} />
                 )}
             </main>

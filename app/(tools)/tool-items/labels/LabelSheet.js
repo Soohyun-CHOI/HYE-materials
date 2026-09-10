@@ -87,7 +87,7 @@ export default function LabelSheet({ labels, origin, sideModules }) {
 
     return (
         <>
-            <div className="label-controls">
+            <div className="label-screen-only label-controls">
                 <p>
                     {COPY.hostLabel} <span className="label-host">{origin}</span>
                 </p>
