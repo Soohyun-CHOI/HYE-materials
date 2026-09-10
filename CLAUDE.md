@@ -88,7 +88,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, plus the whole-formula builders `orByRecordId` / `orByField` / `andSearchAll` / `prefixMatch`.
 - `lib/ids.js` — all ID generation: the lock, the query and the create.
-- `lib/idSequence.js` — the pure half: the daily ID families, the eight child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
+- `lib/idSequence.js` — the pure half: the daily ID families, the nine child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
 - `lib/productName.js` — `PRODUCT_NAME` and `SIGN_IN_TITLE`. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/authTokenState.js` — whether a magic-link token can still be used: the five states, their copy, `TOKEN_TTL_MINUTES`.
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
@@ -145,6 +145,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener. #232 retired a marker on the same ground.**
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
+
+A service-layer function with no caller is verified by nothing — `upsertMaterial` sat unused from Phase 0 to #18 carrying three defects.
 
 ### One rule, one implementation
 
@@ -223,11 +225,7 @@ One shared 19-value single select, source of truth `lib/units.js:CANONICAL_UNITS
 
 ## ID generation (lib/ids.js)
 
-1. Top-level IDs (PR/PO/Invoice/Delivery/Direct Purchase/Tool Item): daily-reset counters sharing one rule. PO uses a 4-digit year; the rest use 2-digit. **The sequence pads to 2 unless the family declares otherwise — Tool Item is the only one that does (3), because one registration creates many (#335)** — and it WIDENS past its pad rather than wrapping. `mintDailyIds` mints a whole batch under one lock and one query; `mintDailyId` is that with a count of 1.
-2. Child-table IDs: `{Parent ID}-{seq}`, resetting per parent, same **max + 1** rule.
-3. Vendor-issued codes (Vendor Quotation Code, Vendor Invoice Code): human-entered, scoped by Vendor.
-
-**The counter counts the ID prefix and never a date field**, and the sequence is **max + 1**, never count + 1. Both rules and the eight child relations are in `lib/idSequence.js`; `lib/ids.js` owns the lock, the query and the create, and no counting reaches a call site. Read `docs/notes/id-generation.md` before touching either.
+`lib/ids.js` owns the lock, the query and the create; `lib/idSequence.js` is the pure half. Read `docs/notes/id-generation.md` before touching either — it holds the counter rule, the six daily families and the nine child relations.
 
 Naming: auto-generated → `X ID`. Human-typed → `X Label` / plain name. Calendar-only → `X Date`. Time-meaningful → `X At`.
 
@@ -247,26 +245,16 @@ Read `docs/notes/airtable-access.md` before changing any of the three.
 
 ## Concurrency: withKeyLock()
 
-`generateChildId`, `upsertMaterial` and `upsertMaterialPrice` wrap read-then-write in `withKeyLock()`. It serializes only within one process or invocation, so double-submit still needs frontend disable-on-click guards.
-
-**The two material locks use different keys on purpose:** identity locks on the normalized `Item Name + Size + Unit` triple, price on `material + vendor`. Two vendors' prices for one material are two rows and must not serialize against each other; two ordered items of one material from one vendor must. `lib/materialsCache.js` takes them in sequence, never nested.
-
-A service-layer function with no caller is verified by nothing — `upsertMaterial` sat unused from Phase 0 to #18 carrying three defects.
+`withKeyLock()` serializes a read-then-write within one process or invocation ONLY, so a double-submit still needs a frontend disable-on-click guard. **Two locks are never nested** — a writer needing a second one takes them in sequence, as `lib/materialsCache.js` does. Which call sites take it, and why the two material locks use different keys, are in `airtable-access.md`.
 
 ## File uploads (Vercel Blob -> Airtable)
 
-Every file — quotation files, invoice files, generated PO PDFs, packing list photos — is written to Vercel Blob first and then handed to Airtable as an attachment URL, which Airtable fetches to keep its own copy. **Airtable's copy is the copy of record.**
+Every user file is written to Vercel Blob first and then handed to Airtable as an attachment URL, which Airtable fetches to keep its own copy. **Airtable's copy is the copy of record.** `lib/blobIngest.js:confirmIngestThenDelete` owns the sequence.
 
-- `lib/blobIngest.js:confirmIngestThenDelete` owns the sequence. Call sites pass `{ table, recordId, field, blobUrl, attachmentId }` and never restate it.
-- **Cleanup is scheduled at the END of the enclosing action, never straight after the attachment write**, and with `after()` rather than awaited. Every one of these actions rolls back on failure and the user's retry re-submits the same Blob URL, so no Blob object may outlive its ingest *and the action that ingested it*.
-- **Confirmation signal**: the attachment no longer carries the URL we submitted. An empty field counts as NOT ingested — an attachment write pointing at a URL Airtable cannot fetch returns success and silently leaves the field empty.
-- Poll every 300 ms with a 10 s ceiling; targets are confirmed one at a time. **A timeout keeps the object** and logs it: one orphan beats an empty attachment. On a *failed* attachment write the object is deleted immediately.
-- Cleanup is best-effort: a failed `del()` is logged and nothing more.
-- **Airtable's own attachment URLs die at a wall-clock instant stamped when they are read, so nothing durable may store one** — re-read the record instead. **No screen renders one (#331)**: a file is served by `/api/files`, which re-reads per request. **Re-submitting one as an attachment is data loss.**
-- **An attachment that did not change is not rewritten.** `Quotations.File` has exactly one writer, `createQuotation`; `Deliveries."Packing List File"` has exactly two, and the second refuses any url that is not a fresh Blob upload. Enforced by `offline/source-shape.mjs`.
-- **One size ceiling for every user upload, and it is minted into the token, never compared after the bytes land** (#146) — a refusal that measures late leaves an object to clean up. **A multipart request is refused outright, because the signed ceiling does not bind one.** All three routes restrict content type to PDF/JPEG/PNG.
+- **Airtable's own attachment URLs die at a wall-clock instant, so nothing durable may store one and NO SCREEN RENDERS ONE (#331)** — a file is served by `/api/files`, which re-reads per request. **Re-submitting one as an attachment is data loss.**
+- **One size ceiling for every user upload, minted into the token and never compared after the bytes land** (#146) — a refusal that measures late leaves an object to clean up, and a multipart request is refused outright because the signed ceiling does not bind one.
 
-Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persistPRFromForm`.
+Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persistPRFromForm` — it holds the ingest sequence, the confirmation signal, the poll figures and the writer counts.
 
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
