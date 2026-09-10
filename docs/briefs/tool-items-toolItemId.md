@@ -42,6 +42,28 @@ confirm they scanned the right thing.
 **evidence.** The tool it is one of, and the job it is on. Both are single
 values, never lists — a tool item is one unit of one tool and sits on one job.
 
+**evidence.** The QR symbol this tool item's label carries, **drawn at the size it
+prints at**, with a line saying so.
+
+**Why it is here decides how big it is.** It is here so a reader can SEE what a
+replacement sticker will carry and match it against the one in their hand — not to
+be scanned off the screen. Somebody who typed the id because the sticker had worn
+through has already arrived, so a scan of the screen would do nothing they need;
+the scan that does work is a later phase's. **So the symbol has no legibility
+floor of its own** and no size was invented for it: it is drawn at the printed
+size because that is a fact worth carrying, not a style.
+
+**That equality is a distinction rather than a look.** Drawn larger it stops being
+a preview of the physical object, which is the whole reason it is on this screen.
+A design may change how it is presented and where it sits; if it changes the size,
+the line saying it is printed size has to go with it.
+
+**action.** A control that reprints this label. It leads to the label sheet
+screen carrying this one tool item, rather than printing from here — that screen
+owns the sheet layout and the position on the sheet to start at, and **a reprint
+is the archetypal part-used sheet**, so printing from here would mean either
+losing that control or building a second one.
+
 **evidence.** A history section, one entry per `Tool Log` row, **oldest first**.
 Each entry carries four facts that are always there — the event, when it
 happened, the job it happened on, and who recorded it — and a fifth, notes, that
@@ -73,7 +95,17 @@ would state a time that is not when the tool item was created.
 **When no tool item carries the id in the address:** the screen is the heading
 `Tool item not found` and a way back to `/tools`. Nothing on this axis is scoped
 by role or job, so unlike the request, order and invoice screens this refusal
-answers one state — no such tool item — rather than standing in for two.
+answers one state — no such tool item — rather than standing in for two. **The
+symbol and the reprint control are absent here rather than empty**, and there is
+no state in between: a symbol is a pure function of the id, so every tool item
+that exists has one.
+
+**There is no such thing as a tool item whose label is missing**, which is worth
+saying because it looks like a state and is not. What can be missing is a printed
+sticker on the object, and the app does not record whether one was ever printed or
+stuck on — so the screen cannot say "no label yet" and must not imply it. Every
+tool item's symbol is always available; whether it is on the drill is what the
+person holding it can see.
 
 ## What must agree elsewhere
 
@@ -97,6 +129,17 @@ A `Tools` row is a tool — the kind, the name somebody typed once. A `Tool Item
 row is a tool item — this object, with this printed id. Six of one drill is one
 tool and six tool items. Never a bare `item`: four other tables on this base
 hold item rows.
+
+**The symbol here and a symbol on the sheet are the same object at the same size,
+and that is measured rather than intended.** Both screens read one module size
+derived from the label stock and multiply it by the side count that symbol
+actually came out at, so a longer address makes a bigger symbol on both rather
+than a denser one on either. A design that pins this one to a box in pixels
+breaks the equality, and nothing on screen would show it.
+
+**This screen prints nothing itself.** Its reprint control is a link. That is what
+keeps a replacement the same physical object as the original by construction —
+there is no second layout to drift from the sheet's.
 
 **There are three ways in and only one of them survives a reload.** A scan of the
 label is the first, arriving through the short route that redirects here; the

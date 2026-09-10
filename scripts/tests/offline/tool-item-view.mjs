@@ -25,7 +25,11 @@
 
 import { TOOL_EVENT } from "../../../lib/toolStatus.js";
 import { TOOL_ITEM_COPY, logRowFacts } from "../../../lib/toolItemView.js";
+import { parseFile, parseSource, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+
+/** The screen this file is about, read off the AST for section 5. */
+const PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
 
 export const title = "What one tool item's page shows (#340)";
 
@@ -135,9 +139,124 @@ export function run({ check, assert, log }) {
     // `Tool Items` and names no row, so it may not reach a screen (#338).
     check("no string says `kind`", strings.filter((s) => /\bkinds?\b/i.test(s)).length, 0);
 
+    // ── 5: the symbol, and the two things this page must NOT do (#352) ─────
+    log("");
+    log("the symbol is built here and printed elsewhere:");
+    const page = parseFile(PAGE);
+    const imports = [];
+    walk(page.ast, (n) => {
+        if (n.type === "ImportDeclaration") imports.push(n.source.value);
+    });
+    const names = [];
+    walk(page.ast, (n) => {
+        if (n.type === "Identifier") names.push(n.name);
+    });
+    // CALLED, NOT MERELY NAMED. An identifier list is satisfied by the import line
+    // on its own — measured: deleting the reprint link's call left
+    // `toolItemLabelsPath` in `names` and the assertion passed. So anything this
+    // page must DO is asserted as a call site.
+    const called = new Set();
+    walk(page.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.type === "Identifier") called.add(n.callee.name);
+    });
+
+    // BUILT, NOT FETCHED. #351's endpoint spent two operations — the session and
+    // this record — and the page has both in hand before the symbol exists, so the
+    // import is the whole decision. A regression to an image would be silent: the
+    // symbol looks identical and the page just costs two more operations.
+    assert("the page imports the builder", imports.some((from) => from.endsWith("toolLabelQR")));
+    assert("  and calls it", called.has("buildToolItemQR"));
+    check(
+        "  naming no fetched address, since that route is gone",
+        names.filter((name) => name === "toolItemQRPath" || name === "QR_ROUTE").length,
+        0
+    );
+
+    // SIZED BY THIS SYMBOL'S OWN SIDE COUNT, which is #353's measured defect one
+    // screen over: the module size is derived once for the stock, and passing the
+    // constant to the BOX scales a larger version into today's box and thins its
+    // modules.
+    //
+    // THE ARGUMENT IS READ, NOT THE NAME. Asserting that `symbolBox`, `labelBudget`
+    // and `QR_SIDE_MODULES` all APPEAR would pass with the two arguments swapped,
+    // which is the defect — a check that names what it is looking for and then
+    // cannot tell the two apart is the trap #351 and #353 each fell into once. So
+    // the `sideModules` each call receives is read off the call site.
+    const sideModulesArgOf = (fn) => {
+        let found = null;
+        walk(page.ast, (n) => {
+            if (n.type !== "CallExpression" || n.callee?.name !== fn) return;
+            const arg = n.arguments?.[0];
+            if (arg?.type !== "ObjectExpression") return;
+            const prop = arg.properties.find((p) => p.key?.name === "sideModules");
+            if (!prop) return;
+            found =
+                prop.value.type === "Identifier"
+                    ? prop.value.name
+                    : prop.value.type === "MemberExpression"
+                      ? `${prop.value.object?.name}.${prop.value.property?.name}`
+                      : prop.value.type;
+        });
+        return found;
+    };
+    check("the module size is derived from the constant", sideModulesArgOf("labelBudget"), "QR_SIDE_MODULES");
+    check("  and the box from this symbol's own count", sideModulesArgOf("symbolBox"), "symbol.sideModules");
+    // ANTI-VACUITY: the reader is shown telling the two apart on a planted swap, so
+    // the two checks above are a fact about the call sites rather than about a
+    // reader that returns the same thing whatever it is given.
+    {
+        const planted = parseSource(
+            "const a = labelBudget({ sideModules: symbol.sideModules });\n" +
+                "const b = symbolBox({ sideModules: QR_SIDE_MODULES, moduleMm });\n",
+            "<planted-swap>"
+        );
+        const read = (fn) => {
+            let got = null;
+            walk(planted.ast, (n) => {
+                if (n.type !== "CallExpression" || n.callee?.name !== fn) return;
+                const prop = n.arguments[0].properties.find((p) => p.key?.name === "sideModules");
+                got = prop.value.type === "Identifier" ? prop.value.name : `${prop.value.object?.name}.${prop.value.property?.name}`;
+            });
+            return got;
+        };
+        check("  a swapped pair reads as swapped", `${read("labelBudget")}|${read("symbolBox")}`, "symbol.sideModules|QR_SIDE_MODULES");
+    }
+
+    // PRINTS NOTHING ITSELF, which is what keeps "the same physical object as the
+    // original" true by construction rather than by comparison: the reprint is the
+    // sheet screen, so there is no second layout to drift. A print path here would
+    // also be a reprint without a start position, and a reprint is the archetypal
+    // part-used sheet.
+    assert("it links to the sheet screen", called.has("toolItemLabelsPath"));
+    check(
+        "  and implements no print path of its own",
+        [
+            imports.some((from) => from.endsWith(".css")) ? "a stylesheet" : "",
+            names.includes("print") ? "a print call" : "",
+            page.source.includes("@page") ? "a page box" : "",
+            page.source.includes("window.print") ? "window.print" : "",
+        ].filter(Boolean).join(", "),
+        ""
+    );
+
+    // The words, and the one that is a VISIBLE ATTRIBUTE so it may not be a literal
+    // in the JSX — `offline/tool-list-view.mjs` fails an `alt` on this axis, and it
+    // doubles as what a reader sees when a symbol cannot load.
+    assert("the section names the label", TOOL_ITEM_COPY.labelHeading === "Label");
+    assert("the alt names the thing rather than the picture", TOOL_ITEM_COPY.symbolAlt.includes("tool item"));
+    assert("and the printed-size note says so", TOOL_ITEM_COPY.printedSizeNote.includes("prints"));
+
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");
     log("anti-vacuity — this check is seen to be able to fail:");
+    // The page reader is shown finding something it would have to miss for the
+    // three zeros above to be vacuous, and the print detector is shown firing on a
+    // planted print path.
+    assert("the page reader really read the page", called.has("logRowFacts") && imports.length > 5);
+    assert(
+        "  and the print detector sees a planted one",
+        parseSource('const a = 1; window.print();\n', "<planted-print>").source.includes("window.print")
+    );
     // Assertions 2 and 3 are counts, and a function returning a fixed list would
     // satisfy one of them however it was broken. So the two directions are proved
     // against each other on the same input.

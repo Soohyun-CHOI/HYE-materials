@@ -30,14 +30,12 @@ import { readFileSync } from "node:fs";
 import { ID_KINDS, dailyIdPrefix, formatSequentialId } from "../../../lib/idSequence.js";
 import {
     LABEL_REWRITE,
-    QR_ROUTE,
     REGISTER_PATH,
     TOOLS_PATH,
     TOOLS_ROUTES,
     canonicalToolItemId,
     labelPath,
     toolItemPath,
-    toolItemQRPath,
     toolPath,
 } from "../../../lib/toolRoutes.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
@@ -201,33 +199,27 @@ export function run({ check, assert, log }) {
         planted.some((t) => RETIRED.some((gone) => t.includes(gone)))
     );
 
-    // ── 6: the axis's one Route Handler address (#351) ──────────────────────
-    // NOT IN `TOOLS_ROUTES`, because that list is compared against page files and
-    // this answers no page. Held in the same two directions against its own
-    // `route.js` — a builder pointing at an address nothing serves is a broken
-    // `<img>`, which renders as a missing image rather than as an error.
+    // ── 6: the axis serves no Route Handler at all (#352) ───────────────────
+    // THIS SECTION HELD #351's QR ENDPOINT IN BOTH DIRECTIONS AND NOW HOLDS ITS
+    // ABSENCE. That address had no caller once the tool item's page rendered its
+    // symbol inline — the page had already read the record the endpoint would read
+    // again — so it went, and the assertion inverts rather than disappearing: an
+    // address deleted for having no caller is one a later pass could reintroduce by
+    // habit, and the axis's whole point is that every address it has is declared in
+    // `lib/toolRoutes.js`.
     log("");
-    log("the QR endpoint's address is the route its handler serves:");
-    check("the builder lands on the route", toolItemQRPath("HYE-TL-260909-004"), "/api/tool-items/HYE-TL-260909-004/qr");
-    assert("  and it encodes its segment", toolItemQRPath("HYE/A b").includes("%2F"));
-    check("the template the module declares", QR_ROUTE, "/api/tool-items/[toolItemId]/qr");
+    log("the tools axis serves pages only:");
+    const toolsHandlers = appFiles()
+        .filter(isRouteFile)
+        .filter((rel) => rel.includes("tool-item") || rel.includes("tools"));
     check(
-        "  is derived from the handler's own path",
-        routeTemplate("app/api/tool-items/[toolItemId]/qr/route.js"),
-        QR_ROUTE
+        `no Route Handler under app/api/ answers for this axis${toolsHandlers.length ? ` (${toolsHandlers.join(", ")})` : ""}`,
+        toolsHandlers.length,
+        0
     );
-    const qrHandlers = appFiles().filter(isRouteFile).filter((rel) => routeTemplate(rel) === QR_ROUTE);
-    check(`${QR_ROUTE} is served by exactly one route.js`, qrHandlers.length, 1);
-    // The builder and the template cannot disagree: substituting the segment into
-    // the template has to produce what the builder built.
-    check(
-        "  and the builder is that template with the segment filled in",
-        toolItemQRPath("HYE-TL-260909-004"),
-        QR_ROUTE.replace("[toolItemId]", "HYE-TL-260909-004")
-    );
-    // ANTI-VACUITY: the enumeration is seen finding OTHER Route Handlers, so the
-    // one above is a hit rather than the only thing the filter can match.
-    assert("  the route enumeration sees the rest of app/api/ too", appFiles().filter(isRouteFile).length > 5);
+    // ANTI-VACUITY: the enumeration finds the OTHER axes' handlers, so the zero is a
+    // fact about this axis rather than about a filter that matches nothing.
+    assert("  while the rest of app/api/ is still enumerated", appFiles().filter(isRouteFile).length > 5);
 }
 
 /** Every `.js` under lib/, repo-relative and posix-separated. */

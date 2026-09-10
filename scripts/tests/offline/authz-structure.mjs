@@ -110,22 +110,16 @@ const FILE_ROUTE_AXIS =
     "screen would change and nothing here would fail. offline/file-route.mjs holds that instead, by comparing " +
     "each axis's declared gate against the gate its own opener calls.";
 
-// #351's endpoint, and the entry worth reading beside FILE_ROUTE_AXIS above: same
-// axis segment shape, same getActiveUser, and the opposite conclusion about whether
-// "the helper is named inside" is enough. One gate and no field to choose is what
-// makes the difference, and saying so is what stops the next author from copying the
-// wrong half of the precedent.
-const TOOL_LABEL_QR_GATE =
-    "Session and nothing else, which is #337's decision for the whole tools axis rather than a second one: no " +
-    "Role and no Job scoping, so nothing gates a tool item per row. Route Handlers cannot use requireUser() " +
-    "(redirect() is for the page-render pipeline), so the session comes from getActiveUser(). No wrapper fits: " +
-    "withAdminApi would refuse the site staff this axis exists for. " +
-    "WHY AN EXEMPTION IS THE WHOLE COVERAGE HERE, unlike /api/files: that route has five fields behind three " +
-    "gates in one export, so one gate for all five satisfies this check exactly as well as five for five and " +
-    "offline/file-route.mjs had to hold the difference. This export has ONE gate and no field to select, so " +
-    "\"getActiveUser is called somewhere inside GET\" is the entire gate and there is nothing left for a second " +
-    "check to compare. The response also carries nothing the requester did not supply — the symbol encodes the " +
-    "id in the path — so what the session buys is the precedent rather than secrecy.";
+// #351's tool-label QR endpoint had an entry here and both went in #352, which is
+// worth a note rather than a silent deletion: it was the one exemption in this list
+// whose reasoning was a CONTRAST with FILE_ROUTE_AXIS above, and that contrast is
+// the reusable part. **One gate and no field to select is what makes an exemption
+// the whole coverage** — "the named helper is called somewhere inside the export"
+// says everything there is to say — where `/api/files` has five fields behind three
+// gates in one export, so the same sentence says almost nothing and
+// `offline/file-route.mjs` had to hold the difference. Keep that test when the next
+// exemption is weighed; the route it was written about is gone because its symbol is
+// rendered inline by the page that had already read the record.
 
 const UPLOAD_CALLBACK_GATE =
     "the gate has to run inside handleUpload's onBeforeGenerateToken callback, which rejects by throwing rather " +
@@ -163,12 +157,6 @@ const EXEMPTIONS = [
         name: "GET",
         mustCall: "getActiveUser",
         reason: FILE_ROUTE_AXIS,
-    },
-    {
-        file: "app/api/tool-items/[toolItemId]/qr/route.js",
-        name: "GET",
-        mustCall: "getActiveUser",
-        reason: TOOL_LABEL_QR_GATE,
     },
     {
         file: "app/api/invoices/upload/route.js",
