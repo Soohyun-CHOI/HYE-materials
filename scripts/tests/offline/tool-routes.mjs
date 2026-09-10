@@ -30,16 +30,18 @@ import { readFileSync } from "node:fs";
 import { ID_KINDS, dailyIdPrefix, formatSequentialId } from "../../../lib/idSequence.js";
 import {
     LABEL_REWRITE,
+    QR_ROUTE,
     REGISTER_PATH,
     TOOLS_PATH,
     TOOLS_ROUTES,
     canonicalToolItemId,
     labelPath,
     toolItemPath,
+    toolItemQRPath,
     toolPath,
 } from "../../../lib/toolRoutes.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
-import { isPageFile, routeTemplate } from "./_entrypoints.mjs";
+import { isPageFile, isRouteFile, routeTemplate } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Every address on the tools axis, and the label's own (#348)";
@@ -198,6 +200,34 @@ export function run({ check, assert, log }) {
         "  the detector sees a planted one",
         planted.some((t) => RETIRED.some((gone) => t.includes(gone)))
     );
+
+    // ── 6: the axis's one Route Handler address (#351) ──────────────────────
+    // NOT IN `TOOLS_ROUTES`, because that list is compared against page files and
+    // this answers no page. Held in the same two directions against its own
+    // `route.js` — a builder pointing at an address nothing serves is a broken
+    // `<img>`, which renders as a missing image rather than as an error.
+    log("");
+    log("the QR endpoint's address is the route its handler serves:");
+    check("the builder lands on the route", toolItemQRPath("HYE-TL-260909-004"), "/api/tool-items/HYE-TL-260909-004/qr");
+    assert("  and it encodes its segment", toolItemQRPath("HYE/A b").includes("%2F"));
+    check("the template the module declares", QR_ROUTE, "/api/tool-items/[toolItemId]/qr");
+    check(
+        "  is derived from the handler's own path",
+        routeTemplate("app/api/tool-items/[toolItemId]/qr/route.js"),
+        QR_ROUTE
+    );
+    const qrHandlers = appFiles().filter(isRouteFile).filter((rel) => routeTemplate(rel) === QR_ROUTE);
+    check(`${QR_ROUTE} is served by exactly one route.js`, qrHandlers.length, 1);
+    // The builder and the template cannot disagree: substituting the segment into
+    // the template has to produce what the builder built.
+    check(
+        "  and the builder is that template with the segment filled in",
+        toolItemQRPath("HYE-TL-260909-004"),
+        QR_ROUTE.replace("[toolItemId]", "HYE-TL-260909-004")
+    );
+    // ANTI-VACUITY: the enumeration is seen finding OTHER Route Handlers, so the
+    // one above is a hit rather than the only thing the filter can match.
+    assert("  the route enumeration sees the rest of app/api/ too", appFiles().filter(isRouteFile).length > 5);
 }
 
 /** Every `.js` under lib/, repo-relative and posix-separated. */
