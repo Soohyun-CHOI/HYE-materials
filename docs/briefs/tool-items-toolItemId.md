@@ -77,6 +77,19 @@ else it likes with them and may not undo either of those** — in particular it
 may not make the retire control a one-press submit, and it may not put the two
 at a size and prominence that says they are the same kind of act.
 
+**WHERE THE TWO SIT RELATIVE TO EACH OTHER IS THE DESIGN'S, AND THIS IS THE
+INPUT IT NEEDS TO DECIDE THAT.** This brief does not place them; it says what
+placement is for. A mis-press on the retire control is already caught: it opens
+a dialog instead of acting, and the dialog states what becomes true before
+anything happens. **So placement is the second guard and not the only one**,
+and that cuts both ways. A design does not have to bury the control, put it
+behind a disclosure, or add a further confirmation in order to make it safe —
+the safety is already there, and paying for it twice costs a control that a
+person on a site cannot find. Nor may it treat the two sitting close together
+as harmless, because the first guard only helps somebody who stops and reads.
+What placement is actually for is making the mis-press less likely in the first
+place, and that is worth doing on its own terms rather than as a rescue.
+
 **What the dialog carries**, in this order: the heading `Retire this tool
 item?`, an account of what becomes true, and the two ways out. The account is
 three facts and an ending — the tool item stops counting as something the
