@@ -1,5 +1,5 @@
-// The tools track's two closed vocabularies, and the one mapping between them
-// (#334).
+// The tools track's two closed vocabularies, and the two mappings between them
+// (#334; the second added by #362).
 //
 // WHAT THIS GUARDS AND WHY IT IS WORTH A CHECK. `Tool Items."Status"` and
 // `Tool Log."Event"` are singleSelect fields, and an existing select's option
@@ -19,6 +19,13 @@
 // docs/notes/tools.md. What this file pins in its place is that no status is a
 // dead option, and the assertion says at length what that does NOT prove.
 //
+// #362 ADDED THE OTHER DIRECTION AND IT IS PINNED HERE RATHER THAN BESIDE THE
+// SCREEN THAT READS IT. `EVENT_OFFERED_BY_STATUS` is vocabulary — total over the
+// statuses, closed over the events — so a fourth status has to visit both maps,
+// and a check living next to the transition screen would leave the pair half
+// guarded. What is NOT here is anything about that screen: which words it says
+// and which refusals it produces are offline/tool-transition.mjs's.
+//
 // Offline-safe: lib/toolStatus.js imports nothing, and the Python side is read as
 // TEXT and parsed, never executed.
 //
@@ -31,16 +38,18 @@ import { readFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import {
+    EVENT_OFFERED_BY_STATUS,
     STATUS_AFTER_EVENT,
     TOOL_EVENT,
     TOOL_EVENT_VALUES,
     TOOL_STATUS,
     TOOL_STATUS_VALUES,
+    eventOfferedBy,
     statusAfterEvent,
 } from "../../../lib/toolStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Tool status and event vocabularies, and the map between them (#334)";
+export const title = "Tool status and event vocabularies, and the maps between them (#334, #362)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/create_tools_334.py");
@@ -208,6 +217,100 @@ export function run({ check, log, assert }) {
     // shape of the mistake — a call site left behind by a narrowed vocabulary.
     assert("an event outside the vocabulary throws rather than no-opping", Boolean(threw));
     assert("  and the throw names the module to edit", (threw || "").includes("lib/toolStatus.js"));
+
+    // ── the other direction: what a status offers next (#362) ───────────────
+    // PINNED BY VALUE, WHICH IS #351's AND #353's LESSON APPLIED BEFORE IT COULD BE
+    // REPEATED A THIRD TIME. Writing this as `EVENT_OFFERED_BY_STATUS[TOOL_STATUS
+    // .IN_STOCK] === TOOL_EVENT.CHECKED_OUT` is an expression over the very
+    // constants under test: rename both halves and all of it passes. The literals
+    // are a second path, so a rename has to reach this file in the same commit.
+    log("");
+    log("what each status offers next, by value:");
+    check("In Stock offers", EVENT_OFFERED_BY_STATUS["In Stock"], "Checked Out");
+    check("Out offers", EVENT_OFFERED_BY_STATUS["Out"], "Checked In");
+    check("Retired offers", EVENT_OFFERED_BY_STATUS["Retired"], null);
+    check("three entries and no more", Object.keys(EVENT_OFFERED_BY_STATUS).length, 3);
+
+    // TOTAL OVER THE STATUS VOCABULARY. A fourth status with no entry is what this
+    // catches, and it is the whole reason `Retired`'s `null` is written out rather
+    // than left absent: without it, "has an entry" and "offers nothing" would be
+    // one state and a new status would inherit the terminal answer in silence.
+    log("");
+    log("and the map is total over the status vocabulary:");
+    const unofferedStatuses = TOOL_STATUS_VALUES.filter(
+        (s) => !Object.prototype.hasOwnProperty.call(EVENT_OFFERED_BY_STATUS, s)
+    );
+    check("statuses with no entry", unofferedStatuses.length, 0);
+    const strayStatuses = Object.keys(EVENT_OFFERED_BY_STATUS).filter(
+        (s) => !TOOL_STATUS_VALUES.includes(s)
+    );
+    check("entries naming a status that does not exist", strayStatuses.length, 0);
+    const badOffer = Object.values(EVENT_OFFERED_BY_STATUS).filter(
+        (e) => e !== null && !TOOL_EVENT_VALUES.includes(e)
+    );
+    check("entries offering an event that does not exist", badOffer.length, 0);
+
+    // THE TWO MAPS ARE NOT INVERSES, WHICH IS WHY BOTH EXIST. Two events land on
+    // `In Stock`, so inverting `STATUS_AFTER_EVENT` is not a function; and
+    // `Registered` is offered by no status, because registration creates the row
+    // rather than moving one. A later pass tempted to derive one map from the other
+    // fails here rather than shipping a screen that offers `Registered`.
+    log("");
+    log("the two maps are not each other's inverse:");
+    const intoInStock = Object.entries(STATUS_AFTER_EVENT)
+        .filter(([, s]) => s === TOOL_STATUS.IN_STOCK)
+        .map(([e]) => e);
+    check("events landing on In Stock", intoInStock.length, 2);
+    const offered = new Set(Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean));
+    assert("  so no status can offer both of them", offered.size === 2);
+    assert("`Registered` is offered by no status", !offered.has(TOOL_EVENT.REGISTERED));
+
+    // AND EVERY OFFER MOVES THE TOOL ITEM. An offer whose event leaves the status
+    // where it was is a control that does nothing and a log row that records a
+    // non-event — reachable by one wrong entry in either map, and invisible to
+    // every assertion above, which only ask that the values exist.
+    log("");
+    log("every offer lands somewhere else:");
+    for (const [status, event] of Object.entries(EVENT_OFFERED_BY_STATUS)) {
+        if (!event) continue;
+        assert(`  ${status} -> ${event} -> ${statusAfterEvent(event)}`, statusAfterEvent(event) !== status);
+    }
+    // The pair is a round trip rather than two one-way streets: what a check-out
+    // leaves offers the check-in that undoes it. That is what makes the transition
+    // correctable, which is the whole reason it is one press and not a modal.
+    check(
+        "the pair is a round trip",
+        eventOfferedBy(statusAfterEvent(eventOfferedBy(TOOL_STATUS.IN_STOCK))),
+        TOOL_EVENT.CHECKED_IN
+    );
+    check(
+        "  in both directions",
+        statusAfterEvent(eventOfferedBy(statusAfterEvent(eventOfferedBy(TOOL_STATUS.IN_STOCK)))),
+        TOOL_STATUS.IN_STOCK
+    );
+
+    log("");
+    log("eventOfferedBy applies the map:");
+    check("it takes one argument", eventOfferedBy.length, 1);
+    check("a stocked tool item is checked out", eventOfferedBy(TOOL_STATUS.IN_STOCK), TOOL_EVENT.CHECKED_OUT);
+    check("one that is out is checked in", eventOfferedBy(TOOL_STATUS.OUT), TOOL_EVENT.CHECKED_IN);
+    check("and a retired one offers nothing", eventOfferedBy(TOOL_STATUS.RETIRED), null);
+
+    let statusThrew = null;
+    try {
+        eventOfferedBy("In Repair");
+    } catch (err) {
+        statusThrew = err.message;
+    }
+    // `In Repair` on purpose: it was a real status until #335 and is exactly the
+    // shape of the mistake this guards — a value left behind by a narrowed
+    // vocabulary, or a fourth one added to the base by hand.
+    assert("a status outside the vocabulary throws rather than offering nothing", Boolean(statusThrew));
+    assert("  and the throw names the module to edit", (statusThrew || "").includes("lib/toolStatus.js"));
+    // ANTI-VACUITY FOR THE `null`: "offers nothing" and "is not a status" have to be
+    // two answers, or the throw above is indistinguishable from `Retired`'s entry
+    // and the totality assertion is checking nothing.
+    assert("  so a null answer is not how an unknown status is reported", eventOfferedBy("Retired") === null);
 
     // ── the Python creation payload says the same thing ─────────────────────
     // The half that cannot be fixed after the fact. `create_tools_334.py` sends

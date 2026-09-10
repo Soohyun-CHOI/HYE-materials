@@ -7,7 +7,14 @@ drawn first and the desktop is what it opens out into.
 
 ## What it answers
 
-Which tool is this one, where is it, and what has happened to it?
+Which tool is this one, where is it, what has happened to it — and, since
+#362, **can I take it out or bring it back, right now?**
+
+**That last one is why anybody opens this screen twice a day.** A project
+starts with somebody scanning their job's tools out one at a time and ends
+with them scanning back what returned, so the visit is: confirm the id
+against the sticker, read the status, press once, and open the camera for
+the next tool. Everything else on the page is read when that goes wrong.
 
 **This is the only screen in the app a machine opens.** A QR code on a sticker
 glued to the tool carries this address, and a phone camera is what will follow
@@ -41,6 +48,40 @@ confirm they scanned the right thing.
 
 **evidence.** The tool it is one of, and the job it is on. Both are single
 values, never lists — a tool item is one unit of one tool and sits on one job.
+
+**action.** The one transition the status allows — `Check out` from `In Stock`,
+`Check in` from `Out` — and the job the event will be recorded on. There is
+never a choice of transition: the status decides which one, and the control is
+the only one on the page that changes anything.
+
+**The confirmation is that arriving does not act.** A scan opens the page, the
+page states the id and the status, and one press is the transition. There is no
+dialog and there must not be one: this happens dozens of times a day, and every
+confirmation in this app that IS a dialog is for something that cannot be undone
+— a withdrawal, a deletion. A check-out is undone by the check-in the same
+control offers a moment later. Retiring a tool item, which is a later screen,
+cannot be undone and carries the weight instead.
+
+**The job is stated when the person has one and chosen when they have several,
+and it is the same control either way.** Nobody types a job anywhere on this
+axis. A person on one assignment must not be shown a picker, and the two cases
+must not become two layouts.
+
+**The section has no heading.** The two below it name things — `Label`,
+`History` — and a heading here would have to name the act in the abstract, which
+is a word the app does not say. The control names itself.
+
+**THE TOUCH TARGET IS NOT DECIDED HERE, AND IT IS THE FIRST ONE IN THE APP THAT
+IS FUNCTIONAL RATHER THAN AESTHETIC.** Every other control in this app is
+clicked with a mouse at a desk. This one is pressed on a phone, on a site, by
+somebody who may be wearing gloves — so a minimum tappable area and a minimum
+gap between it and anything else tappable are things this screen genuinely
+depends on, in the way the label's readable id depends on a minimum size because
+it is the fallback from a worn symbol. **This screen sets neither value**: the
+tools screens carry no size, spacing or type of their own, and the token layer
+is where both are chosen. What the design needs to know is that a target too
+small to hit in gloves is not an inelegance — it is a transition somebody writes
+on paper instead, and the app then holds nothing.
 
 **evidence.** The QR symbol this tool item's label carries, **drawn at the size it
 prints at**, with a line saying so.
@@ -92,6 +133,36 @@ assume the reader's own zone**; that is not what these strings are.
 
 ## What it carries only sometimes
 
+**A line saying the transition moves the tool item to another job.** It appears
+only when the job the event will be recorded on is not the job the tool item was
+last scanned on — which is a tool that has been carried to another site, and is
+recorded as it happened rather than refused. **This is the one place two `Job`
+values sit on the page with different values under one word**, and the line is
+what stops that reading as a mistake. With a picker it appears and disappears as
+the choice changes. The rest of the time nothing stands there.
+
+**A refusal, in one slot, where every refusal this screen can produce arrives.**
+Four reach it: the page is out of date because somebody else moved the tool item
+since it was opened; the job submitted is not one of the reader's; the tool item
+carries no such id; and the event was recorded but the tool item's own status was
+not updated. The last is the only one that means something was written, and its
+sentence says so — the reader is told the event is safe, what everybody else will
+read until it is fixed, and that pressing again fixes it. Ordinarily the slot is
+empty.
+
+**A sentence where the control would be, rather than beside it.** Two states
+produce one: a status that offers no transition, and a reader assigned to no job.
+In both the control is absent, not disabled — a control the action would refuse
+is a promise the screen cannot keep. **The status, the job and the history are
+still shown to that reader**: what varies is whether they can act, never what
+they can read.
+
+**A tool item whose status offers no transition** says so instead of offering
+one. `Retired` is the only such status and nothing sets it yet, so this sentence
+has no reader until the screen that retires a tool item exists. The sentence
+names the status rather than the word `Retired`, because what it is about is a
+status offering nothing.
+
 **A note on a history entry.** Absent in the ordinary case: a registration
 carries none. It is omitted rather than drawn empty, so a design must not
 reserve room for one on every entry.
@@ -109,9 +180,9 @@ would state a time that is not when the tool item was created.
 `Tool item not found` and a way back to `/tools`. Nothing on this axis is scoped
 by role or job, so unlike the request, order and invoice screens this refusal
 answers one state — no such tool item — rather than standing in for two. **The
-symbol and the print control are absent here rather than empty**, and there is
-no state in between: a symbol is a pure function of the id, so every tool item
-that exists has one.
+transition, the symbol and the print control are all absent here rather than
+empty**, and there is no state in between: a symbol is a pure function of the
+id, so every tool item that exists has one.
 
 **There is no such thing as a tool item whose label is missing**, which is worth
 saying because it looks like a state and is not. What can be missing is a printed
@@ -136,6 +207,24 @@ that away.
 **The status shown here is the same value the tool list counts.** It is
 maintained by the app rather than computed on this screen, so this page and
 the two list screens cannot disagree about where a tool item is.
+
+**And it is the value this screen's control moves.** A transition here changes
+what `/tools` counts and what the tool's own screen shows in its `Status`
+column — the first non-zero `Out` either of them has ever rendered came from
+this control. The verdict and the action are about one fact, which is why the
+control sits with the status rather than with the history.
+
+**A history entry appears the moment a transition is confirmed, and that
+arrival is the whole confirmation.** No banner, no toast, no line under the
+heading, and nothing in the address: the status has flipped, an entry is at
+the foot of the history, and the control now reads the other way. **A design
+that adds a success message here is undoing a decision**, the same one the
+shared brief records for every other create and edit in the app.
+
+**The job on a history entry is the actor's, not the tool item's.** It is taken
+from whoever pressed the control, at that moment, and never looked up again — so
+a check-in on a different job from the check-out above it is a true record of a
+tool changing site rather than a discrepancy to reconcile.
 
 **`Tool` and `tool item` are the two nouns, and they are not interchangeable.**
 A `Tools` row is a tool — the kind, the name somebody typed once. A `Tool Items`

@@ -68,15 +68,20 @@ const DELIVERY_JOB_AXIS =
 
 // #338's axis, and the fourth of this mixed shape. It is the tools track's first
 // endpoint, and the comparison it makes is narrower than every one above it: the
-// job is not something the caller may name, it is read off the ACTOR.
+// job is not something the caller may name, it is read off the ACTOR. #362 is the
+// second export on it and shares the constant rather than restating it — one axis
+// with two writers, the way the two delivery ones already work.
 const TOOL_JOB_AXIS =
     "Session + the submitted job being one the actor's own Users.\"Assigned Jobs\" names, not a role. " +
     "requireUser() already cannot be dropped (it redirects), and the deciding comparison is " +
-    "assignedJobsFor (lib/toolRegistration.js) against the loaded job list in the body. No role helper " +
+    "assignedJobsFor (lib/toolRegistration.js) against the loaded job list in the body — directly in " +
+    "#338's registration, through planTransition (lib/toolTransition.js) in #362's check-out and " +
+    "check-in. No role helper " +
     "covers it, and DELIBERATELY NOT canAccessJobDeliveries either: that predicate admits President and " +
     "Admin to every job, and the tools track does not pass through the office — a site person buys, " +
     "registers and keeps the tool, and Tool Log.\"Job\" is the job the event HAPPENED on. So an Admin " +
-    "assigned to no job is refused, which is the point rather than an oversight.";
+    "assigned to no job is refused, which is the point rather than an oversight. Nothing on this axis is " +
+    "scoped per tool item (#337), so the job is the only per-record comparison there is.";
 
 // #281's axis, and the third of this mixed shape after the two delivery ones.
 const PO_DOCUMENT_AXIS =
@@ -204,6 +209,12 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/(tools)/tools/new/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
+    {
+        file: "app/(tools)/tool-items/[toolItemId]/actions.js",
+        name: "recordToolItemEventAction",
+        mustCall: "requireUser",
+        reason: TOOL_JOB_AXIS,
+    },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
