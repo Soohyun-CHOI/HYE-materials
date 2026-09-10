@@ -27,7 +27,14 @@ import { retireToolItemAction } from "./actions";
  * grounds — a record of who was responsible, and irreversibility. #335 deleted
  * the `Lost` event and the first ground with it; this modal is the second. With
  * neither left, `Tool Log."Notes"` had nothing to hold — no code reads it as of
- * this commit and it comes off the base by hand.
+ * this commit and it came off the base by hand.
+ *
+ * IT ASKS FOR NO JOB EITHER, WHICH #363 REVERSED AFTER SHIPPING IT ONCE. A
+ * picker here put the same question to a person twice on one screen, and the two
+ * answers were free to disagree — which one of them did, on the base, before the
+ * branch merged. A retirement inherits the tool item's own job instead, because
+ * retiring does not move a tool. So this modal takes no input at all: it is a
+ * sentence and two ways out.
  *
  * THE SECOND OVERLAY IN THIS APP THAT HONORS CLAUDE.md's KEYBOARD RULE —
  * `Escape` as well as the opener closes it, and focus goes back to the control
@@ -49,7 +56,7 @@ import { retireToolItemAction } from "./actions";
  * `offline/tool-list-view.mjs` holds by failing on any JSX text under
  * app/(tools)/.
  */
-export default function RetireToolItemForm({ toolItemId, jobs }) {
+export default function RetireToolItemForm({ toolItemId }) {
     const [state, formAction, pending] = useActionState(retireToolItemAction, null);
     const [open, setOpen] = useState(false);
     const openerRef = useRef(null);
@@ -107,36 +114,19 @@ export default function RetireToolItemForm({ toolItemId, jobs }) {
 
                         {state?.error && <p role="alert">{state.error}</p>}
 
-                        {/* The picker is here rather than on the page behind it:
-                            a retirement happens on a site like every other event,
-                            so `Tool Log."Job"` is filled the same way. Its id
-                            differs from the transition form's because both can be
-                            in the document at once. */}
-                        <div>
-                            <label htmlFor="retireJobId">{COPY.jobLabel}</label>
-                            {jobs.length === 1 ? (
-                                <>
-                                    <input type="hidden" name="jobId" value={jobs[0].id} />
-                                    <span id="retireJobId">{jobs[0].jobCode}</span>
-                                </>
-                            ) : (
-                                <select id="retireJobId" name="jobId" required defaultValue="">
-                                    <option value="" disabled>
-                                        {COPY.jobUnchosen}
-                                    </option>
-                                    {jobs.map((job) => (
-                                        <option key={job.id} value={job.id}>
-                                            {job.jobCode}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
-                        </div>
-
-                        {/* NO JOB-MOVE LINE HERE, unlike the transition form. That
-                            sentence says the tool item moves to another site, and
-                            a retirement is not a move — the job on the row is
-                            simply where it happened. */}
+                        {/* NO JOB CONTROL, AND NO JOB LINE EITHER. The row
+                            inherits the tool item's own job, because retiring
+                            does not move a tool — `readRetirement` carries the
+                            argument. So there is nothing to ask, which is also
+                            what stops this screen putting one question to a
+                            person twice: the transition form behind it asks it
+                            once, and while both asked they were free to
+                            disagree. The inherited value is not restated here
+                            either — the page's header says it and this does not
+                            change it, so a second statement would be one fact
+                            twice (#318). The job-move line is the transition's
+                            alone, since that sentence says the tool has gone
+                            somewhere. */}
                         <button type="submit" disabled={pending}>
                             {COPY.retireSubmit}
                         </button>

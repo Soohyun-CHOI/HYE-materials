@@ -76,7 +76,12 @@ const TOOL_JOB_AXIS =
     "requireUser() already cannot be dropped (it redirects), and the deciding comparison is " +
     "assignedJobsFor (lib/toolJob.js) against the loaded job list in the body — directly in " +
     "#338's registration, through planTransition (lib/toolTransition.js) in #362's check-out and " +
-    "check-in and in #363's retirement. No role helper " +
+    "check-in and in #363's retirement. TWO SHAPES OF THAT ONE COMPARISON, and the difference is " +
+    "worth stating: the first three admit a SUBMITTED job only if it is one of the actor's, while " +
+    "the retirement submits none at all — it inherits the tool item's own job (#363) — so what is " +
+    "left there is that the actor holds at least one assignment. That is a smaller surface rather " +
+    "than a weaker gate: the forgery the comparison refused existed only because the value was " +
+    "submitted. No role helper " +
     "covers it, and DELIBERATELY NOT canAccessJobDeliveries either: that predicate admits President and " +
     "Admin to every job, and the tools track does not pass through the office — a site person buys, " +
     "registers and keeps the tool, and Tool Log.\"Job\" is the job the event HAPPENED on. So an Admin " +

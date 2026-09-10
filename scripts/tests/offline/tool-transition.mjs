@@ -345,6 +345,30 @@ export function run({ check, assert, log }) {
     check("the cache takes the map's answer", cached, "statusAfterEvent(event)");
     assert("  rather than a spelled status", !/^["']/.test(String(cached)));
 
+    // AND THE WRITER REFUSES A BLANK, WHICH IS WHERE THE NEVER-BLANK INVARIANT IS
+    // ACTUALLY HELD (#363). `createToolLogEntry` wrote `Job: []` for a missing
+    // value, which nothing could reach while every caller resolved a job out of
+    // the actor's own assignments; a retirement inherits `Tool Items."Job"`, a
+    // field the schema lets be empty, so the hole became reachable. It throws
+    // now, the way `createToolItems` does. Read off that module's source, since
+    // it imports `lib/airtable/client.js` and this tier cannot load it.
+    const writer = parseFile("lib/airtable/toolLog.js");
+    for (const [what, guard] of [
+        ["a job", 'if (!jobRecordId) throw new Error("createToolLogEntry: a Job is required");'],
+        ["a recorder", 'if (!recordedByUserId) throw new Error("createToolLogEntry: a Recorded By is required");'],
+    ])
+        assert(`the writer throws on a missing ${what}`, writer.source.includes(guard));
+    check(
+        "  and writes both links unconditionally",
+        [/Job: \[jobRecordId\]/, /"Recorded By": \[recordedByUserId\]/].filter((re) => !re.test(writer.source)).length,
+        0
+    );
+    check(
+        "  with no conditional left to write an empty one",
+        (writer.source.match(/\?\s*\[\w+\]\s*:\s*\[\]/g) || []).length,
+        0
+    );
+
     // THE LOG GOES FIRST. A cache written with no row behind it loses the event
     // with nowhere else holding it; a row with a stale cache is recoverable and is
     // reported. Source order, which is this tier's limit and is stated as such.
@@ -399,14 +423,23 @@ export function run({ check, assert, log }) {
         assert("  with a return between them, so a failure never reaches it", returnsBetween > 0);
     }
 
-    // NO EVENT CROSSES THE WIRE FOR A RETIREMENT. There is one direction, so
-    // there is nothing a stale page could have named wrongly and nothing to
-    // compare — and a form field for it would be a value the action then had to
-    // decide whether to trust.
+    // NOTHING BUT THE TOOL ITEM'S ID CROSSES THE WIRE FOR A RETIREMENT. One
+    // direction means nothing a stale page could have named wrongly; and the job
+    // is the tool item's own, so a form field for either would be a value the
+    // action then had to decide whether to trust.
     const retireFn = resolveFunction(action.ast, "retireToolItemAction");
     const retireSource = action.source.slice(retireFn.start, retireFn.end);
-    check("the retirement reads no event off the form", (retireSource.match(/formData\.get\("event"\)/g) || []).length, 0);
-    assert("  and reads a job off it", /formData\.get\("jobId"\)/.test(retireSource));
+    const read = [...retireSource.matchAll(/formData\.get\("([^"]+)"\)/g)].map((m) => m[1]);
+    check(`the retirement reads only the tool item id off the form (${read.join()})`, read.join(), "toolItemId");
+    // AND ITS JOB IS THE TOOL ITEM'S, READ OFF THE CALL SITE. This is the
+    // argument-and-not-the-name assertion for #363's reversal: `plan.jobs[0].id`
+    // and a form value are both "an argument to readRetirement", and only the
+    // argument's own source tells them from the cached link.
+    check(
+        "the retirement's job is the tool item's own",
+        argumentSource({ ast: retireFn, source: action.source }, "readRetirement", "currentJobRecordId"),
+        "toolItem.job?.[0]"
+    );
 
     // ── 7: the page offers and refuses in one place ────────────────────────
     log("");
@@ -470,21 +503,48 @@ export function run({ check, assert, log }) {
     check("  and somebody on no job may not retire at all", noJob.mayRetire, false);
 
     log("");
-    log("what a retirement submission has to satisfy:");
-    const goodRetire = readRetirement(inStock, { jobId: JOB_A.id });
-    check("the actor's own job passes", goodRetire.refusal, null);
-    check("  and the job is resolved from the plan's list", goodRetire.job.jobCode, "26-DEMO-01");
-    check("a job the actor is not on is refused", readRetirement(inStock, { jobId: JOB_B.id }).refusal, TOOL_JOB_COPY.notYours);
-    check("  as is no job at all", readRetirement(inStock, { jobId: "" }).refusal, TOOL_JOB_COPY.notYours);
-    // A refused plan refuses whatever is submitted, which is also how a stale page
+    log("and where a retirement's job comes from, which is not the actor:");
+    // THE ROW INHERITS THE TOOL ITEM'S OWN JOB. Taking the actor's would write a
+    // site the tool had never been on — measured on this base before the branch
+    // merged, where `HYE-TL-260909-004` was checked in on one job and retired on
+    // another. `Recorded By` is what answers who did it.
+    const goodRetire = readRetirement(inStock, { currentJobRecordId: JOB_B.id });
+    check("it passes", goodRetire.refusal, null);
+    check("  and hands back the tool item's own job", goodRetire.jobRecordId, JOB_B.id);
+    // THE ACTOR'S ASSIGNMENTS DO NOT REACH IT, which is the assertion with teeth:
+    // the plan above was built for somebody on JOB_A only, and the answer is
+    // JOB_B because that is where the tool item was.
+    assert("  even when the actor is not assigned to it", !inStock.jobs.some((j) => j.id === JOB_B.id));
+    check(
+        "  so a tool item on the actor's own job reads that instead",
+        readRetirement(inStock, { currentJobRecordId: JOB_A.id }).jobRecordId,
+        JOB_A.id
+    );
+
+    // A refused plan refuses whatever it is handed, which is also how a stale page
     // is answered: somebody who retired this first makes the fresh plan terminal.
-    check("a retired tool item refuses a forged submission", readRetirement(retired, { jobId: JOB_A.id }).job, null);
-    check("  in the plan's own words", readRetirement(retired, { jobId: JOB_A.id }).refusal, retired.refusal);
-    check("and somebody on no job is refused too", readRetirement(noJob, { jobId: JOB_A.id }).refusal, TOOL_TRANSITION_COPY.noJob);
-    // NO EVENT IS TAKEN OR COMPARED, which is the one place this parts from
-    // `readSubmission`: one direction means nothing a stale page could have named
-    // wrongly. The returned shape says so — there is no event in it.
-    assert("the answer carries a job and a refusal and no event", !("event" in goodRetire));
+    check("a retired tool item refuses", readRetirement(retired, { currentJobRecordId: JOB_A.id }).jobRecordId, null);
+    check("  in the plan's own words", readRetirement(retired, { currentJobRecordId: JOB_A.id }).refusal, retired.refusal);
+    check("and somebody on no job is refused too", readRetirement(noJob, { currentJobRecordId: JOB_A.id }).refusal, TOOL_TRANSITION_COPY.noJob);
+    // NEITHER AN EVENT NOR A JOB IS TAKEN OR COMPARED, which is where this parts
+    // from `readSubmission` twice over. The returned shape says so: no event,
+    // and a record id rather than a job the caller could have named.
+    assert("the answer carries a job record id and a refusal and no event", !("event" in goodRetire));
+    assert("  and no job object, since none was chosen", !("job" in goodRetire));
+
+    // THE TERMINAL GUARD IS UNREACHABLE ON TODAY'S VOCABULARY AND IS ASSERTED ON
+    // THE SOURCE FOR EXACTLY THAT REASON. A status is un-retirable only when it
+    // is terminal, and a terminal status has already produced `plan.refusal`, so
+    // the second guard never fires — measured by mutation, which passed 153 of
+    // 153 with it deleted. What it protects is a directly-callable Server Action
+    // against a FOURTH status that offers a scan and forbids a retirement, which
+    // is the one shape that would reach it. An unasserted guard for an
+    // unreachable state is one a later pass deletes as dead, so it is held here
+    // rather than left to a behavior no input can produce.
+    assert(
+        "the terminal guard is in the source even though no input reaches it",
+        /if \(!plan\.mayRetire\)/.test(module_.source)
+    );
 
     // ── 9: the words the modal says ────────────────────────────────────────
     log("");
@@ -556,12 +616,22 @@ export function run({ check, assert, log }) {
     // Never yanked out from under a submit, which is WithdrawPOForm's rule and
     // reaches `Escape` here as well as `Cancel`.
     assert("it refuses to close while a submit is in flight", /if \(pending\) return;/.test(modal.source));
-    // Its ids may not collide with the transition form's, since both can be in
-    // the document at once.
-    assert("the modal's job control has an id of its own", /id="retireJobId"/.test(modal.source));
-    assert("  which the transition form does not use", !/retireJobId/.test(formSource));
+    // IT TAKES NO INPUT AT ALL, which is two decisions rather than one. No reason
+    // — the rule requiring one was retired with its field. And no job — the row
+    // inherits the tool item's own, so the page asks that question once instead
+    // of twice, which is the defect that found the rule.
     assert("it asks for no reason field", !/textarea/i.test(modal.source));
+    assert("  and offers no job picker", !/<select/.test(modal.source));
+    assert("  nor a hidden job", !/name="jobId"/.test(modal.source));
+    assert("  nor a label for one", !/COPY\.jobLabel|COPY\.jobUnchosen/.test(modal.source));
     assert("  and shows no job-move line, which is the transition's", callsTo(modal.ast, "jobMoveNotice").length === 0);
+    // The only thing it posts is which tool item, so the action has nothing to
+    // trust but the id it looks up.
+    const posted = [...modal.source.matchAll(/name="([^"]+)"/g)].map((m) => m[1]);
+    check(`the form posts only the tool item id (${posted.join()})`, posted.join(), "toolItemId");
+    // AND THE TRANSITION FORM STILL ASKS, because a scan is the actor handling
+    // the tool. One picker on the screen rather than none is the point.
+    assert("the transition form keeps its picker", /<select/.test(formSource));
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");

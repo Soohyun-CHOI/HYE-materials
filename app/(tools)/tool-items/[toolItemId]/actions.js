@@ -107,7 +107,8 @@ export async function recordToolItemEventAction(prevState, formData) {
         });
         if (refusal) return { error: refusal };
 
-        const failed = await writeEvent({ toolItem, event, job, user, from: plan.status });
+        // The actor's own job, because a scan is the actor handling the tool.
+        const failed = await writeEvent({ toolItem, event, jobRecordId: job.id, user, from: plan.status });
         if (failed) return failed;
 
         redirect(toolItemPath(toolItem.toolItemId));
@@ -137,9 +138,17 @@ export async function recordToolItemEventAction(prevState, formData) {
  * plus the submitted job being one the actor's own `Users."Assigned Jobs"`
  * names. Nothing on this axis is scoped per tool item (#337).
  *
- * NO EVENT CROSSES THE WIRE. There is one direction, so the action writes
- * `TOOL_EVENT.RETIRED` from the vocabulary and the form sends only a job — see
- * `readRetirement` for why a comparison would have nothing to compare.
+ * NOTHING CROSSES THE WIRE BUT THE TOOL ITEM'S ID. There is one direction, so
+ * the event is `TOOL_EVENT.RETIRED` from the vocabulary; and the job is the tool
+ * item's own, because retiring does not move a tool and the person designating
+ * need not be near it. `readRetirement` carries both arguments, including the
+ * row on this base that proved the second one.
+ *
+ * WHICH LEAVES THE GATE AS `planTransition`'s: the actor must hold at least one
+ * assigned job. There is no submitted job left to compare, and that is a smaller
+ * surface rather than a weaker one — the forgery it used to refuse existed only
+ * because the value was submitted. The exemption's reason says which of the two
+ * shapes each export takes.
  *
  * SEVEN OPERATIONS, the same seven the action above spends, for the same
  * reasons and in the same order.
@@ -159,15 +168,18 @@ export async function retireToolItemAction(prevState, formData) {
             jobs: await getAllJobs(),
             status: toolItem.status,
         });
-        const { job, refusal } = readRetirement(plan, {
-            jobId: String(formData.get("jobId") ?? ""),
+        // THE JOB IS THE TOOL ITEM'S OWN AND THE FORM SENDS NONE. Retiring does
+        // not move a tool, so the row records where it was; `readRetirement`
+        // carries the argument and the row on this base that proved it.
+        const { jobRecordId, refusal } = readRetirement(plan, {
+            currentJobRecordId: toolItem.job?.[0],
         });
         if (refusal) return { error: refusal };
 
         const failed = await writeEvent({
             toolItem,
             event: TOOL_EVENT.RETIRED,
-            job,
+            jobRecordId,
             user,
             from: plan.status,
         });
@@ -208,13 +220,20 @@ export async function retireToolItemAction(prevState, formData) {
  * `from` IS THE STATUS THE TOOL ITEM STILL READS — the one the plan was built
  * on — because that is what the sentence has to tell them, not the one the event
  * was meant to leave behind.
+ *
+ * IT TAKES A JOB RECORD ID RATHER THAN A JOB, BECAUSE THE TWO CALLERS FIND ONE
+ * DIFFERENTLY. A scan resolves a job object out of the actor's own assignments;
+ * a retirement reads the tool item's cached link and never sees a job object at
+ * all. Narrowing the parameter to the thing both actually have keeps this
+ * function ignorant of which kind of event it is writing, which is what lets it
+ * be one implementation.
  */
-async function writeEvent({ toolItem, event, job, user, from }) {
+async function writeEvent({ toolItem, event, jobRecordId, user, from }) {
     await createToolLogEntry({
         toolItemRecordId: toolItem.id,
         toolItemId: toolItem.toolItemId,
         event,
-        jobRecordId: job.id,
+        jobRecordId,
         recordedByUserId: user.id,
     });
 
@@ -222,7 +241,7 @@ async function writeEvent({ toolItem, event, job, user, from }) {
         await updateToolItemCache({
             toolItemRecordId: toolItem.id,
             status: statusAfterEvent(event),
-            jobRecordId: job.id,
+            jobRecordId,
         });
     } catch (error) {
         console.error(

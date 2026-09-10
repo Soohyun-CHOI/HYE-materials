@@ -314,6 +314,10 @@ The tool item's page offers a second control beside the transition, and confirmi
 
 **NO REASON MEANS NO SECOND WORD FOR ONE FIELD, WHICH WAS THE OTHER THING THAT WENT.** A modal asking for a `Reason` while the history rendered `Notes` would have been one field under two screen words on one screen, and the divergence would have needed a row in `naming.md`. Both disappeared with the field.
 
+**THE RETIREMENT ASKED FOR A JOB AND NO LONGER DOES, WHICH IS THE ONE DECISION THIS ISSUE MADE TWICE.** The first shape followed the enumerated rule — registration, check-out and check-in take the actor's job, so the retirement did too — and put a picker in the modal beside the transition form's. That is two pickers on one screen asking one question, free to disagree, which is how the defect was found; and the disagreement is what showed the rule was wrong rather than merely repeated. The section above carries the corrected rule and the row that proved it. What changed here: the modal takes no input at all, the page asks the question once, and `readRetirement` hands back the tool item's own job rather than validating a submitted one.
+
+**AND THE ROW THE DEFECT WROTE WAS REPAIRED RATHER THAN LEFT, WHICH IS WORTH THE PARAGRAPH BECAUSE `Tool Log` IS APPEND-ONLY.** `HYE-TL-260909-004-006` carried `26-DEMO-01` where the tool item had last been scanned into `26-DEMO-02`, and `Tool Items."Job"` carried the same wrong value. Two record PATCHes set both to `26-DEMO-02` and touched nothing else. **The append-only rule bars rewriting what was true at a moment, and what was true at that moment is `26-DEMO-02`** — `26-DEMO-01` is what the defect wrote, so repairing it is not editing history. A compensating row was not available either: `Retired` is terminal by the very rule this issue adds, so nothing may be appended after it. The row was written while verifying an unmerged branch and no screen had shown it to anybody. **The general shape, for the next time:** a value a defect wrote may be corrected in the same commit that fixes the defect; an event somebody really performed may not.
+
 **`assignedJobsFor` MOVED, AND THE CONDITION #362 WROTE DOWN IS WHAT MOVED IT.** That issue left it in `lib/toolRegistration.js` under a name narrower than its contents and recorded the trigger: a third caller. The retirement is the third — every `Tool Log` row carries a job from the actor — so it and the picker's two words are `lib/toolJob.js` now, with `offline/tool-job.mjs` holding them and the deliberate disagreement with `canAccessJobDeliveries`. `canRegisterToolItems` stayed behind, because its name and its screen really are registration's. **That is `countsAsOrdered`'s path exactly**, which sat in `lib/materialPriceView.js` with the same condition written down until #169 fired it — the mechanism working twice rather than a coincidence.
 
 **THE WRITE IS ONE FUNCTION FOR BOTH ACTIONS.** `writeEvent` holds the ordering, the try boundary and the report of a cache that did not move; the two actions differ only in which event they arrive with and how they got there. #362 had it inline and #363 would have copied thirty lines, which is the duplication CLAUDE.md's own section refuses to leave as two. It is not exported, so it is not a Server Action and not an entry point.
@@ -321,6 +325,8 @@ The tool item's page offers a second control beside the transition, and confirmi
 **THE FIGURES, MEASURED THE SAME WAY.** The page is **6 operations and unchanged again** — the session and the job list are already read, so the second offer costs nothing. `retireToolItemAction` is **7**, the same seven the scan action spends and for the same reasons: the session, the tool item, the job list, three for the log row and one for the cache.
 
 **AND THE TWO LIST SCREENS HAVE NOW SEEN THE LAST STATE THEY HAD NEVER SEEN.** #339 recorded that `Out` and `Retired` had never been rendered with a figure in them; #362 showed the first and this shows the second. The `Notes` pair, which `logRowFacts` carried since #340 and which no row ever filled, is the one thing on this axis that was never rendered and now never will be.
+
+**THE BASE CARRIES NO `Out` TOOL ITEM ANY MORE, AND THAT WAS SPENT DELIBERATELY.** `HYE-TL-260909-016` was the only one, and it was the only tool item whose job differed from the fixture account's — so retiring it as `scoped-fixture@`, who is assigned to `26-DEMO-01` alone, is the one run that could show the row taking `26-DEMO-02` from the tool item rather than `26-DEMO-01` from the actor. It did. Proving the write that this issue changed was worth more than keeping a count #362 had already rendered and recorded, and the alternative — checking another tool item out to keep one — would have recorded a scan that never happened.
 
 ## Three tables, and what each is for
 
@@ -376,7 +382,7 @@ Neither of the two is checkable in this repository — both are facts about Airt
 
 ## The job is a cache on the tool item and a fact on every log row
 
-`Tool Log."Job"` is filled on every row and never blank. It holds the job the event happened on, which is where the tool item is immediately after it.
+`Tool Log."Job"` is filled on every row and never blank. It holds **the job the tool item was on at that event** — for a scan, where it is immediately after; for the one designated event, where it was.
 
 **`Tool Items."Job"` IS A CACHE OF THAT COLUMN ON THE LATEST ROW — the same kind of value as `Status`, from the same row.** #334's description called it the job the tool belongs to, a durable attribute, and #335 corrected that: a tool does not belong to a job, it was last scanned on one. Nothing in the flow ever reassigns a tool; it moves because somebody carries it and somebody else scans it in.
 
@@ -384,13 +390,25 @@ It is still REQUIRED and still app-enforced, since Airtable cannot make a link f
 
 ### Where the job comes from
 
-**Registration, check-out and check-in all take it from the `Users."Assigned Jobs"` of whoever performs the action.** One assigned job and it is used without asking; several and it is a dropdown; there is no path anywhere that types a job.
+**THE INVARIANT AND THE MECHANISM ARE TWO THINGS, AND THIS SECTION FUSED THEM UNTIL #363.** It read "Registration, check-out and check-in all take it from the `Users."Assigned Jobs"` of whoever performs the action" — which is a sentence about a MECHANISM, enumerating three events because three existed. Stated as a rule it invited a fourth event to join the list, and #363 did join it, and the base showed within a day that the fourth does not belong there. What is universal is the sentence above: **the job is where the tool item was at that event.** The actor's assignment is how three events learn it.
 
-**IT IS STORED ON THE LOG ROW AT THAT MOMENT AND NEVER LOOKED UP AFTERWARDS.** `Assigned Jobs` changes when a person moves site, so a log row that referenced the session or the user's current assignment would make an old check-out describe today's posting. That is the precise thing the per-row copy exists to prevent, and referencing it at read time would undo the whole reason `Tool Log` carries a job of its own. The screens are #338 and later; the rule is here because it constrains all of them.
+**A SCANNED EVENT TAKES IT FROM THE ACTOR, and that is sound because the actor is holding the tool.** Registration, check-out and check-in all read `Users."Assigned Jobs"`: one assigned job is used without asking, several are chosen from, and there is no path anywhere that types a job. In all three the person and the tool are in the same place, so the actor's assignment IS the tool's location.
+
+**THE DESIGNATED EVENT TAKES IT FROM THE TOOL ITEM, because designating is not handling.** Retiring moves nothing and the person doing it need not be near the tool, so a `Retired` row inherits `Tool Items."Job"` — where it was. `TOOL_EVENT`'s own docstring already splits the vocabulary on exactly this line, scanned against designated, so the split is not new; what #363 found is that the job follows it too.
+
+**AND THE COST OF GETTING THAT WRONG IS ON THIS BASE RATHER THAN IN A HYPOTHETICAL.** `HYE-TL-260909-004` was checked out on `26-DEMO-01`, checked in on `26-DEMO-02`, and then retired on `26-DEMO-01` because #363's first shape asked the actor for a job a second time. The row and the cache it fed both claimed a site the tool had never been on, and `which tools were on 26-DEMO-02` — the question `toolLog.js`'s own header gives as this table's reason for existing — lost it. Worse in the case `Retired` exists for: a tool found missing at a stock check has the site that lost it overwritten by whoever noticed. What the actor's job buys on that row is nothing any question reads, and who did it is `Recorded By`.
+
+**FROM THE CACHE RATHER THAN FROM THE PREVIOUS ROW**, which are the same value by construction. The cache is never blank even when the history is — #338's failed log pass leaves a tool item with a job and no rows — and the action already holds the record, where reading the log would cost an operation on the screen a scan lands on.
+
+**IT IS STORED ON THE LOG ROW AT THAT MOMENT AND NEVER LOOKED UP AFTERWARDS, WHICHEVER SOURCE IT CAME FROM.** `Assigned Jobs` changes when a person moves site, so a log row that referenced the session or the user's current assignment would make an old check-out describe today's posting. That is the precise thing the per-row copy exists to prevent, and referencing it at read time would undo the whole reason `Tool Log` carries a job of its own. **Inheriting does not touch that rule**: it copies an immutable stored value at WRITE time, which is the same shape a scan's copy takes.
+
+**THE NEVER-BLANK INVARIANT IS HELD AT THE WRITER NOW.** `createToolLogEntry` wrote `[]` for a missing job, which nothing could reach while every caller resolved one out of the actor's assignments; a source that is a nullable field changes that, so it throws instead, the way `createToolItems` already does for the same limit. `Recorded By` took the same guard in the same commit, since `logRowFacts` renders both on every row on the strength of the same claim.
 
 ### `Former Job` was considered and refused
 
 With no blanks, the PREVIOUS row's `Job` is unambiguously the previous job — a check-in on a different job than the check-out before it IS the record of a tool changing site. Storing the pair would be one fact in two places, derivable from an ordering the log already has, and #340 renders the whole history at once so it holds both rows.
+
+**#363's INHERITANCE IS WHAT KEEPS THAT READING HONEST FOR THE FOURTH EVENT.** A `Retired` row carrying the actor's job would differ from the row above it whenever somebody elsewhere retired the tool, and by the rule in this section that difference reads as a move — a tool changing site on its way to being discarded, which never happened. Inheriting makes a retirement always agree with the row before it, so the only rows that disagree are the ones where the tool really moved.
 
 The counter-precedent is `Delivery Items."Former PO Item"` (#167), which IS stored — and the difference is the reason: there is no log on that axis, so the re-attachment destroys the only record of where the row came from. Here the log is the record.
 

@@ -78,13 +78,17 @@ may not make the retire control a one-press submit, and it may not put the two
 at a size and prominence that says they are the same kind of act.
 
 **What the dialog carries**, in this order: the heading `Retire this tool
-item?`, an account of what becomes true, the job the event will be recorded
-on, and the two ways out. The account is three facts and an ending — the tool
-item stops counting as something the company holds, nothing more can be
-recorded against it, its row and its whole history stay, and `This cannot be
-undone.` **That account is the point of the dialog rather than decoration**: it
-is the same voice the three deletion confirmations use, and the shared brief
-calls it copy doing work a visual cannot.
+item?`, an account of what becomes true, and the two ways out. The account is
+three facts and an ending — the tool item stops counting as something the
+company holds, nothing more can be recorded against it, its row and its whole
+history stay, and `This cannot be undone.` **That account is the point of the
+dialog rather than decoration**: it is the same voice the three deletion
+confirmations use, and the shared brief calls it copy doing work a visual
+cannot.
+
+**It takes no input of any kind — no reason, and no job.** A design must not
+add a field to it. It is a sentence and two ways out, and that is the whole of
+it.
 
 **It asks for no reason, and that is a decision rather than a gap.** A required
 reason on this event was recorded as a rule for a long time and was dropped:
@@ -92,9 +96,15 @@ one of its two grounds went when `Lost` left the status vocabulary, and the
 other — that the act cannot be undone — is what the dialog itself now bears.
 A design must not add a free-text field back; there is no field behind it.
 
-**The job control is the same one the transition uses**, inside the dialog
-rather than on the page. What it does NOT carry is the line about moving the
-tool item to another job: that sentence says the tool has gone somewhere, and a
+**THE JOB IS NOT ASKED FOR HERE, AND THE SCREEN ASKS IT ONCE.** The transition
+control has a job picker because a scan is the person handling the tool, so
+where they are is where it goes. Retiring moves nothing, so the row records
+where the tool item already was — the page's header says it and nothing
+changes it. **A design must not put a second job control on this screen**: the
+first version of this dialog had one, and one screen asking the same question
+twice let the two answers disagree. For the same reason the dialog does not
+restate the inherited job either, and it carries no line about moving the tool
+item to another job — that sentence says the tool has gone somewhere, and a
 retirement is not a move.
 
 **The job is stated when the person has one and chosen when they have several,
@@ -196,9 +206,10 @@ empty.
 stays legible, and it closes three ways — the confirm, `Cancel`, and `Escape` —
 with focus returning to the control that opened it. It does not close while a
 confirmation is in flight. **A refusal from inside the dialog appears inside
-it**, in a slot of its own, rather than on the page behind: two reach it, the
-job submitted not being the reader's and the tool item having been retired by
-somebody else since the page was opened.
+it**, in a slot of its own, rather than on the page behind. Only one reaches
+it, and it is rare: somebody else retired the tool item since this page was
+opened. There is no refusal about a job here, because the dialog asks for
+none.
 
 **A sentence where BOTH controls would be, rather than beside them.** Two
 states produce one: a status that allows nothing, and a reader assigned to no
@@ -279,10 +290,13 @@ the foot of the history, and the control now reads the other way. **A design
 that adds a success message here is undoing a decision**, the same one the
 shared brief records for every other create and edit in the app.
 
-**The job on a history entry is the actor's, not the tool item's.** It is taken
-from whoever pressed the control, at that moment, and never looked up again — so
-a check-in on a different job from the check-out above it is a true record of a
-tool changing site rather than a discrepancy to reconcile.
+**The job on a history entry is where the tool item was, and that is not always
+the actor's.** A scan takes it from whoever pressed the control, because they
+are holding the tool. A retirement takes it from the tool item, because
+retiring moves nothing. Either way it is stored at that moment and never looked
+up again — so **a check-in on a different job from the check-out above it is a
+true record of a tool changing site**, and a retirement always matching the row
+above it is what keeps that reading available.
 
 **`Tool` and `tool item` are the two nouns, and they are not interchangeable.**
 A `Tools` row is a tool — the kind, the name somebody typed once. A `Tool Items`

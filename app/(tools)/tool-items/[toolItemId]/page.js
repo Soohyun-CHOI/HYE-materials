@@ -211,11 +211,12 @@ async function renderToolItemPage({ params }) {
                             currentJobCode={jobCodeById[toolItem.job?.[0]]}
                         />
                     )}
+                    {/* No jobs are handed to this one: a retirement inherits the
+                        tool item's own job rather than asking, so the page puts
+                        the question once and the two controls cannot disagree
+                        about the answer. */}
                     {transition.mayRetire && (
-                        <RetireToolItemForm
-                            toolItemId={toolItem.toolItemId}
-                            jobs={transition.jobs}
-                        />
+                        <RetireToolItemForm toolItemId={toolItem.toolItemId} />
                     )}
                 </>
             )}
