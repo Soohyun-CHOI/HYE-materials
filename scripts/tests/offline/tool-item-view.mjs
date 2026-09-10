@@ -1,15 +1,20 @@
 // What one tool item's page shows (#340).
 //
-// WHAT THIS FILE IS FOR. `logRowFacts` states which of a `Tool Log` row's five
-// facts reach the screen, and four of them are invariants of the base rather
-// than choices: `Event` is a closed select, `Event At` is stamped by the writer,
-// `Job` is on every row and never blank — the invariant that makes the previous
-// row's job the previous job, and the reason no `Former Job` is stored — and
-// `Recorded By` is written on every path that appends. `Notes` is the one that is
-// ordinarily absent. A change that dropped one of the four, or that rendered
-// `Notes` as an empty pair, would read as a styling decision and would in fact be
-// undoing one of those; nothing else in this tier would notice, because the tier
-// cannot render a page.
+// WHAT THIS FILE IS FOR. `logRowFacts` states which of a `Tool Log` row's facts
+// reach the screen, and every one of them is an invariant of the base rather
+// than a choice: `Event` is a closed select, `Event At` is stamped by the
+// writer, `Job` is on every row and never blank — the invariant that makes the
+// previous row's job the previous job, and the reason no `Former Job` is stored
+// — and `Recorded By` is written on every path that appends. A change that
+// dropped one would read as a styling decision and would in fact be undoing one
+// of those; nothing else in this tier would notice, because the tier cannot
+// render a page.
+//
+// IT WAS FIVE FACTS UNTIL #363. `Notes` was the optional one, and that field is
+// deleted from the base along with the rule it was carried for — the reason a
+// `Retired` event was to require, which that issue weighed and dropped. Section
+// 2 asserts the opposite claim now: four is the whole list and a value handed
+// in beside them does not reach the screen.
 //
 // WHAT IT CANNOT SEE. Whether any of it reaches a browser, which is this tier's
 // standing limit, and whether the page reads the caches rather than deriving
@@ -39,7 +44,6 @@ const FULL_ROW = {
     eventAt: "2026-09-09T15:14:26.537Z",
     recordedByName: "scoped-fixture",
     jobCode: "26-DEMO-01",
-    notes: "Bought with the second batch",
 };
 
 const keysOf = (row) => logRowFacts(row).map((fact) => fact.key);
@@ -65,42 +69,42 @@ export function run({ check, assert, log }) {
     // ── 1: the order, which is the reading order of a row ───────────────────
     log("a log row's facts, in the order the screen renders them:");
     check(
-        "a full row carries five, event first",
+        "a row carries four, event first",
         keysOf(FULL_ROW).join(","),
-        "event,eventAt,job,recordedBy,notes"
+        "event,eventAt,job,recordedBy"
     );
     check(
         "the labels come from the copy constant",
         logRowFacts(FULL_ROW).map((f) => f.label).join(" / "),
-        "Event / When / Job / Recorded by / Notes"
+        "Event / When / Job / Recorded by"
     );
-    // The four that pass through untouched. The moment does not, so it is asserted
+    // The three that pass through untouched. The moment does not, so it is asserted
     // on its own below — its rendering depends on the runtime's locale and zone, and
     // a string pinned here would pass on this machine and fail in CI.
     check(
         "and the values are the ones handed in",
         logRowFacts(FULL_ROW).filter((f) => f.key !== "eventAt").map((f) => f.value).join(" / "),
-        "Registered / 26-DEMO-01 / scoped-fixture / Bought with the second batch"
+        "Registered / 26-DEMO-01 / scoped-fixture"
     );
 
-    // ── 2: `Notes` is the one that drops ───────────────────────────────────
+    // ── 2: nothing drops, and no fifth arrives ─────────────────────────────
+    // THERE WAS A FIFTH UNTIL #363 AND IT WENT WITH ITS FIELD. `Notes` was
+    // optional, absent on a `Registered` row, and omitted rather than drawn
+    // empty; `Tool Log."Notes"` is deleted from the base, so the pair, the
+    // drops-when-blank rule and the assertions holding it went together. What
+    // replaces them is the opposite claim: a row this function is handed extra
+    // keys still renders four, so a value quietly reintroduced would not reach
+    // the screen without somebody editing this module.
     log("");
-    log("`Notes` is absent in the ordinary case and is the only fact that drops:");
-    for (const [what, notes] of [
-        ["undefined", undefined],
-        ["null", null],
-        ["an empty string", ""],
-        ["only spaces", "   "],
-        ["only a tab", "\t"],
-    ])
-        check(`  ${what} drops the pair`, keysOf({ ...FULL_ROW, notes }).length, 4);
+    log("four is the whole list, and nothing a caller adds joins it:");
+    check("an extra key is not rendered", keysOf({ ...FULL_ROW, notes: "why it went" }).join(","), "event,eventAt,job,recordedBy");
+    check("  nor several", keysOf({ ...FULL_ROW, notes: "x", reason: "y" }).length, 4);
+    check("no label says `Notes`", logRowFacts({ ...FULL_ROW, notes: "x" }).filter((f) => f.label === "Notes").length, 0);
+    assert("and the copy constant carries no notes label", !("notesLabel" in TOOL_ITEM_COPY));
 
-    check("a note is trimmed rather than dropped", logRowFacts({ ...FULL_ROW, notes: "  seen  " }).at(-1).value, "seen");
-    check("  and a registration row, which carries none, is four", keysOf({ ...FULL_ROW, notes: "" }).join(","), "event,eventAt,job,recordedBy");
-
-    // ── 3: the other four never drop ───────────────────────────────────────
+    // ── 3: all four are on every row ───────────────────────────────────────
     log("");
-    log("the other four are on every row, whatever they hold:");
+    log("all four are on every row, whatever they hold:");
     // Each of the four is an invariant of the base rather than a value this
     // module may judge — a blank one is a defect upstream, and hiding it would
     // hide the defect. `Job` is the sharpest: the absence of blanks is what makes
@@ -314,12 +318,13 @@ export function run({ check, assert, log }) {
         "  and the print detector sees a planted one",
         parseSource('const a = 1; window.print();\n', "<planted-print>").source.includes("window.print")
     );
-    // Assertions 2 and 3 are counts, and a function returning a fixed list would
-    // satisfy one of them however it was broken. So the two directions are proved
-    // against each other on the same input.
-    assert("a row with a note carries five", logRowFacts(FULL_ROW).length === 5);
-    assert("  and the same row without one carries four", logRowFacts({ ...FULL_ROW, notes: "" }).length === 4);
-    assert("the fifth is the note and nothing else", logRowFacts(FULL_ROW).at(-1).key === "notes");
+    // Section 2 and 3 are counts of a fixed-length list, so the reader has to be
+    // shown following the VALUES rather than reporting a constant: two different
+    // rows must produce two different readings.
+    assert(
+        "the facts really carry the row's own values",
+        logRowFacts(FULL_ROW)[0].value !== logRowFacts({ ...FULL_ROW, event: TOOL_EVENT.RETIRED })[0].value
+    );
     // The key list has to be a real reading of the returned facts rather than a
     // constant, so a reordering must be visible to it.
     assert("the key reader follows the returned order", keysOf(FULL_ROW)[0] === "event" && keysOf(FULL_ROW)[2] === "job");

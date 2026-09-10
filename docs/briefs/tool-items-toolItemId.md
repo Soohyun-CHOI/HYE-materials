@@ -7,8 +7,10 @@ drawn first and the desktop is what it opens out into.
 
 ## What it answers
 
-Which tool is this one, where is it, what has happened to it — and, since
-#362, **can I take it out or bring it back, right now?**
+Which tool is this one, where is it, what has happened to it — and **can I take
+it out or bring it back, right now?** Since #363 it also answers the last
+question anybody asks about a tool: **this one is finished, take it off the
+books.**
 
 **That last one is why anybody opens this screen twice a day.** A project
 starts with somebody scanning their job's tools out one at a time and ends
@@ -51,16 +53,72 @@ values, never lists — a tool item is one unit of one tool and sits on one job.
 
 **action.** The one transition the status allows — `Check out` from `In Stock`,
 `Check in` from `Out` — and the job the event will be recorded on. There is
-never a choice of transition: the status decides which one, and the control is
-the only one on the page that changes anything.
+never a choice of transition: the status decides which one.
 
 **The confirmation is that arriving does not act.** A scan opens the page, the
 page states the id and the status, and one press is the transition. There is no
 dialog and there must not be one: this happens dozens of times a day, and every
 confirmation in this app that IS a dialog is for something that cannot be undone
 — a withdrawal, a deletion. A check-out is undone by the check-in the same
-control offers a moment later. Retiring a tool item, which is a later screen,
-cannot be undone and carries the weight instead.
+control offers a moment later.
+
+**action.** `Retire this tool item`, which opens a dialog and is the second and
+last control on the page. It is offered from `In Stock` and from `Out` alike —
+a tool that broke on a site is retired from there, and requiring a check-in
+first would put an event in the history that did not happen.
+
+**THE TWO CONTROLS MUST NOT READ AS THE SAME WEIGHT, AND TWO THINGS ALREADY
+STOP THEM.** One of them is pressed dozens of times a day and the other is that
+tool item's last. The first difference is structural: the transition control
+SUBMITS, so pressing it records; this one OPENS, so pressing it does nothing
+until a second press inside the dialog. The second is the wording: `Check out`
+names no object and `Retire this tool item` does. **A design may do anything
+else it likes with them and may not undo either of those** — in particular it
+may not make the retire control a one-press submit, and it may not put the two
+at a size and prominence that says they are the same kind of act.
+
+**WHERE THE TWO SIT RELATIVE TO EACH OTHER IS THE DESIGN'S, AND THIS IS THE
+INPUT IT NEEDS TO DECIDE THAT.** This brief does not place them; it says what
+placement is for. A mis-press on the retire control is already caught: it opens
+a dialog instead of acting, and the dialog states what becomes true before
+anything happens. **So placement is the second guard and not the only one**,
+and that cuts both ways. A design does not have to bury the control, put it
+behind a disclosure, or add a further confirmation in order to make it safe —
+the safety is already there, and paying for it twice costs a control that a
+person on a site cannot find. Nor may it treat the two sitting close together
+as harmless, because the first guard only helps somebody who stops and reads.
+What placement is actually for is making the mis-press less likely in the first
+place, and that is worth doing on its own terms rather than as a rescue.
+
+**What the dialog carries**, in this order: the heading `Retire this tool
+item?`, an account of what becomes true, and the two ways out. The account is
+three facts and an ending — the tool item stops counting as something the
+company holds, nothing more can be recorded against it, its row and its whole
+history stay, and `This cannot be undone.` **That account is the point of the
+dialog rather than decoration**: it is the same voice the three deletion
+confirmations use, and the shared brief calls it copy doing work a visual
+cannot.
+
+**It takes no input of any kind — no reason, and no job.** A design must not
+add a field to it. It is a sentence and two ways out, and that is the whole of
+it.
+
+**It asks for no reason, and that is a decision rather than a gap.** A required
+reason on this event was recorded as a rule for a long time and was dropped:
+one of its two grounds went when `Lost` left the status vocabulary, and the
+other — that the act cannot be undone — is what the dialog itself now bears.
+A design must not add a free-text field back; there is no field behind it.
+
+**THE JOB IS NOT ASKED FOR HERE, AND THE SCREEN ASKS IT ONCE.** The transition
+control has a job picker because a scan is the person handling the tool, so
+where they are is where it goes. Retiring moves nothing, so the row records
+where the tool item already was — the page's header says it and nothing
+changes it. **A design must not put a second job control on this screen**: the
+first version of this dialog had one, and one screen asking the same question
+twice let the two answers disagree. For the same reason the dialog does not
+restate the inherited job either, and it carries no line about moving the tool
+item to another job — that sentence says the tool has gone somewhere, and a
+retirement is not a move.
 
 **The job is stated when the person has one and chosen when they have several,
 and it is the same control either way.** Nobody types a job anywhere on this
@@ -71,17 +129,24 @@ must not become two layouts.
 `History` — and a heading here would have to name the act in the abstract, which
 is a word the app does not say. The control names itself.
 
-**THE TOUCH TARGET IS NOT DECIDED HERE, AND IT IS THE FIRST ONE IN THE APP THAT
-IS FUNCTIONAL RATHER THAN AESTHETIC.** Every other control in this app is
-clicked with a mouse at a desk. This one is pressed on a phone, on a site, by
+**THE TOUCH TARGETS ARE NOT DECIDED HERE, AND THEY ARE THE FIRST IN THE APP
+THAT ARE FUNCTIONAL RATHER THAN AESTHETIC.** Every other control in this app is
+clicked with a mouse at a desk. These are pressed on a phone, on a site, by
 somebody who may be wearing gloves — so a minimum tappable area and a minimum
-gap between it and anything else tappable are things this screen genuinely
-depends on, in the way the label's readable id depends on a minimum size because
-it is the fallback from a worn symbol. **This screen sets neither value**: the
-tools screens carry no size, spacing or type of their own, and the token layer
-is where both are chosen. What the design needs to know is that a target too
-small to hit in gloves is not an inelegance — it is a transition somebody writes
-on paper instead, and the app then holds nothing.
+gap between them are things this screen genuinely depends on, in the way the
+label's readable id depends on a minimum size because it is the fallback from a
+worn symbol. **This screen sets neither value**: the tools screens carry no
+size, spacing or type of their own, and the token layer is where both are
+chosen. Two things the design needs to know. A target too small to hit in
+gloves is not an inelegance — it is a transition somebody writes on paper
+instead, and the app then holds nothing. And the GAP matters here more than
+anywhere else in the app, because the two controls beside each other are a
+dozens-a-day act and an irreversible one.
+
+**The dialog is the exception to this screen carrying no styling, and it is a
+borrowed one.** It uses the app's single source for modal chrome, because an
+overlay with no positioning is not an unstyled dialog but an inline paragraph.
+Whatever the token layer does to the app's modals reaches this one.
 
 **evidence.** The QR symbol this tool item's label carries, **drawn at the size it
 prints at**, with a line saying so.
@@ -112,9 +177,9 @@ two readers are after the same act anyway: one whose label has worn through, and
 one printing a label for the first time.
 
 **evidence.** A history section, one entry per `Tool Log` row, **oldest first**.
-Each entry carries four facts that are always there — the event, when it
-happened, the job it happened on, and who recorded it — and a fifth, notes, that
-is usually absent.
+Each entry carries four facts and always all four — the event, when it
+happened, the job it happened on, and who recorded it. **There is no fifth and
+nothing is ever absent**, so a design does not need a shape for a missing one.
 
 **The instant renders as a date and a time to the minute**, in the same five parts
 the request detail's history uses — the only other history in the app. **This was
@@ -150,22 +215,31 @@ sentence says so — the reader is told the event is safe, what everybody else w
 read until it is fixed, and that pressing again fixes it. Ordinarily the slot is
 empty.
 
-**A sentence where the control would be, rather than beside it.** Two states
-produce one: a status that offers no transition, and a reader assigned to no job.
-In both the control is absent, not disabled — a control the action would refuse
-is a promise the screen cannot keep. **The status, the job and the history are
-still shown to that reader**: what varies is whether they can act, never what
-they can read.
+**The dialog, which is closed until its opener is pressed.** The page behind it
+stays legible, and it closes three ways — the confirm, `Cancel`, and `Escape` —
+with focus returning to the control that opened it. It does not close while a
+confirmation is in flight. **A refusal from inside the dialog appears inside
+it**, in a slot of its own, rather than on the page behind. Only one reaches
+it, and it is rare: somebody else retired the tool item since this page was
+opened. There is no refusal about a job here, because the dialog asks for
+none.
 
-**A tool item whose status offers no transition** says so instead of offering
-one. `Retired` is the only such status and nothing sets it yet, so this sentence
-has no reader until the screen that retires a tool item exists. The sentence
-names the status rather than the word `Retired`, because what it is about is a
-status offering nothing.
+**A sentence where BOTH controls would be, rather than beside them.** Two
+states produce one: a status that allows nothing, and a reader assigned to no
+job. In both, both controls are absent, not disabled — a control the action
+would refuse is a promise the screen cannot keep. **The status, the job and the
+history are still shown to that reader**: what varies is whether they can act,
+never what they can read.
 
-**A note on a history entry.** Absent in the ordinary case: a registration
-carries none. It is omitted rather than drawn empty, so a design must not
-reserve room for one on every entry.
+**A tool item whose status allows nothing** says so instead of offering
+anything. `Retired` is the only such status, and it is reachable now — the
+retire control is what puts a tool item there, so this sentence is the first
+thing the person who pressed it reads. It names the status rather than the word
+`Retired`, because what it is about is a status being the end.
+
+**Nothing on a history entry is conditional.** There used to be an optional
+note here, usually absent; the field it read is gone, so every entry is the
+same four facts and a design may lay them out as a fixed shape.
 
 **When the tool item has no history at all:** one sentence in place of the
 entries, opening
@@ -208,11 +282,19 @@ that away.
 maintained by the app rather than computed on this screen, so this page and
 the two list screens cannot disagree about where a tool item is.
 
-**And it is the value this screen's control moves.** A transition here changes
-what `/tools` counts and what the tool's own screen shows in its `Status`
-column — the first non-zero `Out` either of them has ever rendered came from
-this control. The verdict and the action are about one fact, which is why the
-control sits with the status rather than with the history.
+**And it is the value both of this screen's controls move.** A transition here
+changes what `/tools` counts and what the tool's own screen shows in its
+`Status` column — the first non-zero `Out` either of them has ever rendered
+came from the transition control, and the first non-zero `Retired` from the
+other. The verdict and the actions are about one fact, which is why they sit
+with the status rather than with the history.
+
+**This dialog closes on `Escape` and hands focus back, and most of the app's
+do not.** It is the second of about a dozen overlays to do so; the rest close
+only by their own controls. That is an inconsistency the app has rather than
+one this screen introduces, and the shared brief records it beside the
+modal-styling constraint — a design pass over modals should settle it for all
+of them rather than for this one.
 
 **A history entry appears the moment a transition is confirmed, and that
 arrival is the whole confirmation.** No banner, no toast, no line under the
@@ -221,10 +303,13 @@ the foot of the history, and the control now reads the other way. **A design
 that adds a success message here is undoing a decision**, the same one the
 shared brief records for every other create and edit in the app.
 
-**The job on a history entry is the actor's, not the tool item's.** It is taken
-from whoever pressed the control, at that moment, and never looked up again — so
-a check-in on a different job from the check-out above it is a true record of a
-tool changing site rather than a discrepancy to reconcile.
+**The job on a history entry is where the tool item was, and that is not always
+the actor's.** A scan takes it from whoever pressed the control, because they
+are holding the tool. A retirement takes it from the tool item, because
+retiring moves nothing. Either way it is stored at that moment and never looked
+up again — so **a check-in on a different job from the check-out above it is a
+true record of a tool changing site**, and a retirement always matching the row
+above it is what keeps that reading available.
 
 **`Tool` and `tool item` are the two nouns, and they are not interchangeable.**
 A `Tools` row is a tool — the kind, the name somebody typed once. A `Tool Items`

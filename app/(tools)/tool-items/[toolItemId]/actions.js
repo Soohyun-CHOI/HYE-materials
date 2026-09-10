@@ -6,8 +6,13 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemByToolItemId, updateToolItemCache } from "@/lib/airtable/toolItems";
 import { createToolLogEntry } from "@/lib/airtable/toolLog";
 import { TOOL_ITEM_COPY } from "@/lib/toolItemView";
-import { statusAfterEvent } from "@/lib/toolStatus";
-import { TOOL_TRANSITION_COPY, planTransition, readSubmission } from "@/lib/toolTransition";
+import { TOOL_EVENT, statusAfterEvent } from "@/lib/toolStatus";
+import {
+    TOOL_TRANSITION_COPY,
+    planTransition,
+    readRetirement,
+    readSubmission,
+} from "@/lib/toolTransition";
 import { toolItemPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -35,14 +40,10 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * ToolTransitionForm.js reads this through `useActionState`, so every refusal
  * lands in the one slot that form has for them.
  *
- * TWO WRITES IN SEQUENCE, THE LOG FIRST, AND NOTHING ROLLS BACK. Airtable has no
- * cross-table transaction, so the row and the cache are two writes whichever way
- * they are arranged; `createToolLogEntry`'s own header is why neither hides
- * inside the other. The log goes first because it is the RECORD and the cache is
- * derived from it: a cache written with no row behind it loses the event with
- * nowhere else holding it, while a row with a stale cache is recoverable and is
- * reported. `Tool Log` is append-only — there is no delete — so undoing the
- * first write is not available even in principle.
+ * THE TWO WRITES ARE `writeEvent`'s, SHARED WITH THE RETIREMENT BELOW SINCE
+ * #363. The ordering, the try boundary and the report of a cache that did not
+ * move are one rule and live in one place; that function's header carries the
+ * argument.
  *
  * SEVEN AIRTABLE OPERATIONS, MEASURED: the session, the tool item, the job list,
  * THREE for the log row — `generateChildId`'s parent find, the sibling read that
@@ -106,46 +107,160 @@ export async function recordToolItemEventAction(prevState, formData) {
         });
         if (refusal) return { error: refusal };
 
-        await createToolLogEntry({
-            toolItemRecordId: toolItem.id,
-            toolItemId: toolItem.toolItemId,
-            event,
-            jobRecordId: job.id,
-            recordedByUserId: user.id,
-        });
-
-        // NAMED ON SCREEN AND LOGGED WITH ITS RECORD ID, NEVER SWALLOWED — and
-        // never written back to Airtable, which is what just failed. That is
-        // CLAUDE.md's rule for a failed restore and the shape fits: the event is
-        // on the record, the tool item's own status is not, and the person who
-        // caused it is the only one who knows. Pressing again writes the same
-        // event and lands the status, so the repair is the control they are
-        // already looking at.
-        try {
-            await updateToolItemCache({
-                toolItemRecordId: toolItem.id,
-                status: statusAfterEvent(event),
-                jobRecordId: job.id,
-            });
-        } catch (error) {
-            console.error(
-                "Tool item status not updated after its Tool Log row was written (#362)",
-                {
-                    toolItemRecordId: toolItem.id,
-                    toolItemId: toolItem.toolItemId,
-                    event,
-                    error,
-                }
-            );
-            return {
-                error: TOOL_TRANSITION_COPY.statusNotUpdated({
-                    toolItemId: toolItem.toolItemId,
-                    event,
-                    status: plan.status,
-                }),
-            };
-        }
+        // The actor's own job, because a scan is the actor handling the tool.
+        const failed = await writeEvent({ toolItem, event, jobRecordId: job.id, user, from: plan.status });
+        if (failed) return failed;
 
         redirect(toolItemPath(toolItem.toolItemId));
     });
+}
+
+/**
+ * Retire one tool item (#363) — the transition with no way out.
+ *
+ * A MODAL RATHER THAN A PRESS, AND THE RULE IS THE ONE #362 READ THE OTHER WAY.
+ * CLAUDE.md: a modal is for an act that cannot be undone; an act that can is
+ * edited in place. A check-out is undone by the check-in the same control
+ * offers a moment later, so that one is one press; nothing undoes this, so the
+ * screen states what becomes true before it happens. The frequency argument
+ * points the same way — a tool item is retired once, ever, so a heavier
+ * confirmation costs nothing anybody will meet twice.
+ *
+ * NO REASON IS ASKED FOR, AND THAT IS A RULE THIS ISSUE RETIRED RATHER THAN
+ * IMPLEMENTED. A required note on this event was recorded as pending from #334,
+ * on two grounds: a record of who was responsible, and the act being
+ * irreversible. #335 deleted the `Lost` event and the first ground with it, and
+ * the modal above carries the second — so nothing was left holding the rule up.
+ * `Tool Log."Notes"` is read by nothing as of this commit and comes off the base
+ * by hand, since the Metadata API has no field DELETE.
+ *
+ * THE SAME EXEMPTION AND THE SAME AXIS as the action above: `requireUser()`
+ * plus the submitted job being one the actor's own `Users."Assigned Jobs"`
+ * names. Nothing on this axis is scoped per tool item (#337).
+ *
+ * NOTHING CROSSES THE WIRE BUT THE TOOL ITEM'S ID. There is one direction, so
+ * the event is `TOOL_EVENT.RETIRED` from the vocabulary; and the job is the tool
+ * item's own, because retiring does not move a tool and the person designating
+ * need not be near it. `readRetirement` carries both arguments, including the
+ * row on this base that proved the second one.
+ *
+ * WHICH LEAVES THE GATE AS `planTransition`'s: the actor must hold at least one
+ * assigned job. There is no submitted job left to compare, and that is a smaller
+ * surface rather than a weaker one — the forgery it used to refuse existed only
+ * because the value was submitted. The exemption's reason says which of the two
+ * shapes each export takes.
+ *
+ * SEVEN OPERATIONS, the same seven the action above spends, for the same
+ * reasons and in the same order.
+ */
+export async function retireToolItemAction(prevState, formData) {
+    return withOpsLabel("retireToolItemAction", async () => {
+        const user = await requireUser();
+
+        const toolItem = await getToolItemByToolItemId(String(formData.get("toolItemId") ?? ""));
+        if (!toolItem) return { error: TOOL_ITEM_COPY.notFoundHeading };
+
+        // The same planner on a fresh read, which is also how a stale page is
+        // answered here: somebody who retired this first makes `mayRetire` false
+        // and the refusal is the terminal sentence.
+        const plan = planTransition({
+            user,
+            jobs: await getAllJobs(),
+            status: toolItem.status,
+        });
+        // THE JOB IS THE TOOL ITEM'S OWN AND THE FORM SENDS NONE. Retiring does
+        // not move a tool, so the row records where it was; `readRetirement`
+        // carries the argument and the row on this base that proved it.
+        const { jobRecordId, refusal } = readRetirement(plan, {
+            currentJobRecordId: toolItem.job?.[0],
+        });
+        if (refusal) return { error: refusal };
+
+        const failed = await writeEvent({
+            toolItem,
+            event: TOOL_EVENT.RETIRED,
+            jobRecordId,
+            user,
+            from: plan.status,
+        });
+        if (failed) return failed;
+
+        redirect(toolItemPath(toolItem.toolItemId));
+    });
+}
+
+/**
+ * The two writes every recorded event makes, and the one that can half-fail.
+ *
+ * ONE IMPLEMENTATION FOR BOTH ACTIONS, WHICH #363 EXTRACTED RATHER THAN COPYING.
+ * The ordering, the try boundary and the report are one rule — a second copy is
+ * two places that have to stay in step, and CLAUDE.md's own section says a
+ * duplication is not closed by leaving it as two. What differs between the two
+ * callers is which event they arrive with, and that is decided above.
+ *
+ * NOT EXPORTED, so it is not a Server Action and not an entry point: only an
+ * export of a `"use server"` module is callable from a browser.
+ *
+ * THE LOG GOES FIRST AND NOTHING ROLLS BACK. Airtable has no cross-table
+ * transaction, so the row and the cache are two writes whichever way they are
+ * arranged; `createToolLogEntry`'s own header is why neither hides inside the
+ * other. The log is the RECORD and the cache is derived from it, so a cache
+ * written with no row behind it loses the event with nowhere else holding it,
+ * while a row with a stale cache is recoverable and is reported. `Tool Log` is
+ * append-only — there is no delete — so undoing the first write is not
+ * available even in principle.
+ *
+ * A FAILED CACHE WRITE IS NAMED ON SCREEN AND LOGGED WITH ITS RECORD ID, NEVER
+ * SWALLOWED — and never written back to Airtable, which is what just failed.
+ * That is CLAUDE.md's rule for a failed restore and the shape fits: the event is
+ * on the record, the tool item's own status is not, and the person who caused it
+ * is the only one who knows. Doing it again writes the same event and lands the
+ * status, so the repair is the control they are already looking at.
+ *
+ * `from` IS THE STATUS THE TOOL ITEM STILL READS — the one the plan was built
+ * on — because that is what the sentence has to tell them, not the one the event
+ * was meant to leave behind.
+ *
+ * IT TAKES A JOB RECORD ID RATHER THAN A JOB, BECAUSE THE TWO CALLERS FIND ONE
+ * DIFFERENTLY. A scan resolves a job object out of the actor's own assignments;
+ * a retirement reads the tool item's cached link and never sees a job object at
+ * all. Narrowing the parameter to the thing both actually have keeps this
+ * function ignorant of which kind of event it is writing, which is what lets it
+ * be one implementation.
+ */
+async function writeEvent({ toolItem, event, jobRecordId, user, from }) {
+    await createToolLogEntry({
+        toolItemRecordId: toolItem.id,
+        toolItemId: toolItem.toolItemId,
+        event,
+        jobRecordId,
+        recordedByUserId: user.id,
+    });
+
+    try {
+        await updateToolItemCache({
+            toolItemRecordId: toolItem.id,
+            status: statusAfterEvent(event),
+            jobRecordId,
+        });
+    } catch (error) {
+        console.error(
+            "Tool item status not updated after its Tool Log row was written (#362)",
+            {
+                toolItemRecordId: toolItem.id,
+                toolItemId: toolItem.toolItemId,
+                event,
+                error,
+            }
+        );
+        return {
+            error: TOOL_TRANSITION_COPY.statusNotUpdated({
+                toolItemId: toolItem.toolItemId,
+                event,
+                status: from,
+            }),
+        };
+    }
+
+    return null;
 }

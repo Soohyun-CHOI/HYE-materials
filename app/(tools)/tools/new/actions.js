@@ -6,11 +6,8 @@ import { upsertTool } from "@/lib/airtable/tools";
 import { createToolItems } from "@/lib/airtable/toolItems";
 import { createToolLogEntry } from "@/lib/airtable/toolLog";
 import { TOOL_EVENT } from "@/lib/toolStatus";
-import {
-    TOOL_REGISTRATION_COPY,
-    assignedJobsFor,
-    readQuantity,
-} from "@/lib/toolRegistration";
+import { assignedJobsFor } from "@/lib/toolJob";
+import { TOOL_REGISTRATION_COPY, readQuantity } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
