@@ -11,7 +11,9 @@ import { TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
 import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
 import { TOOL_LABEL_SHEET_COPY as SHEET_COPY, labelBudget, symbolBox } from "@/lib/toolLabelSheet";
 import { TOOLS_PATH, toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
+import { planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
+import ToolTransitionForm from "./ToolTransitionForm";
 
 // The param and no lookup, which is what all four document detail screens do and
 // is the reason this page's cost is what the docstring says. The consequence is
@@ -69,6 +71,17 @@ export async function generateMetadata({ params }) {
  * present even when the history is not. See `lib/toolItemView.js` for why nothing
  * here compares the two.
  *
+ * IT OFFERS THE ONE TRANSITION THAT STATUS ALLOWS (#362), AND FOR NO OPERATIONS
+ * AT ALL. The session and the whole job list are already read for the history's
+ * names, so `planTransition` decides the offer from facts in hand and the figure
+ * above is unchanged — measured. This is where a scan lands, so the read a
+ * transition adds is the read that would matter most on this axis; there is none.
+ *
+ * THE PAGE OFFERS AND THE ACTION DECIDES, WHICH IS NOT A DUPLICATION. Both call
+ * `planTransition`, and the action calls it again on a fresh read because a
+ * Server Action is reachable without this page and because the status may have
+ * moved since this render. One rule, two callers, no second implementation.
+ *
  * NO WIDTH, NO COLOR, NO SPACING, AND NO TEXT IN THE MARKUP — #336 put this
  * axis's only container in the layout and left it empty, and #338 moved every
  * string into a constant. The history is an ordered list of definition lists
@@ -80,7 +93,7 @@ export default async function ToolItemPage(props) {
 }
 
 async function renderToolItemPage({ params }) {
-    await requireUser();
+    const user = await requireUser();
     const { toolItemId } = await params;
     const asked = decodeURIComponent(toolItemId);
 
@@ -125,6 +138,16 @@ async function renderToolItemPage({ params }) {
         { key: "job", label: COPY.jobLabel, value: jobCodeById[toolItem.job?.[0]] },
     ];
 
+    // The transition costs NOTHING here (#362): the session and the whole job
+    // list are both already read above, so the offer is decided from facts in
+    // hand and this page's five operations plus one per 50 log rows are
+    // unchanged. `planTransition` returns either an event to offer or the
+    // sentence saying why not — one function for both, so the page cannot render
+    // a control without having asked the question that refuses it. The action
+    // asks the same function again, because a Server Action is reachable without
+    // this page.
+    const transition = planTransition({ user, jobs, status: toolItem.status });
+
     // The host the symbol encodes, from the public host behind Vercel's proxy —
     // the same source both label screens read, so a symbol shown here and a symbol
     // printed there encode the same string. No Airtable operation.
@@ -151,6 +174,29 @@ async function renderToolItemPage({ params }) {
                     </div>
                 ))}
             </dl>
+
+            {/* THE ONE TRANSITION THE STATUS ALLOWS (#362), directly under the
+                status it moves and with no heading over it: the two headings on
+                this page name things, and a heading here would have to name the
+                act generically — `transition` is these notes' explanatory word,
+                the way `kind` is, and #338 records how close that one came to
+                becoming a column head. The control names itself.
+
+                A REFUSAL STANDS WHERE THE CONTROL WOULD BE, never beside it.
+                Retired offers nothing to anybody and somebody on no job can
+                record nothing, and in both cases a control would be a promise
+                the action refuses. `/tools/new` renders its refusal as the
+                screen for the same reason. */}
+            {transition.refusal ? (
+                <p>{transition.refusal}</p>
+            ) : (
+                <ToolTransitionForm
+                    toolItemId={toolItem.toolItemId}
+                    event={transition.event}
+                    jobs={transition.jobs}
+                    currentJobCode={jobCodeById[toolItem.job?.[0]]}
+                />
+            )}
 
             {/* THE SYMBOL, BUILT HERE RATHER THAN FETCHED (#352). #351's endpoint
                 served one as an image and expected this page to be its caller;

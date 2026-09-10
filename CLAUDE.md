@@ -99,12 +99,13 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188): the restore names, both voices of the copy, and the recorder all four rollbacks write into. **A restore that fails is named on screen and logged with its record id, never swallowed** — and never written to Airtable, which is what just failed.
 - `lib/materialCategory.js` — the composed label a category carries (#354): the four levels, the two words that drop out, the separator, and the Airtable formula generated from all three. **Nothing here writes a label.**
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
-- `lib/toolStatus.js` — the tools track's two closed vocabularies (#334, narrowed in #335): three statuses, four events, and the status each event leaves behind. No call site passes `createToolLogEntry` a string literal.
+- `lib/toolStatus.js` — the tools track's two closed vocabularies (#334, narrowed in #335): three statuses, four events, the status each event leaves behind and the event each status offers (#362). No call site passes `createToolLogEntry` a string literal.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the actor's-own-jobs rule, and every word the screen says. Applied by the action, previewed by the form.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the canonical form of a printed id.
-- `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351): what it encodes, the error-correction level, the quiet zone, and the version measured rather than looked up.
-- `lib/toolLabelSheet.js` — the sheet a tool label prints on (#353): the stock's dimensions in one place, millimeters per module derived from them, the label's own budget, and every word the screen says.
+- `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
+- `lib/toolLabelSheet.js` — the sheet a tool label prints on (#353): the stock's dimensions in one place, and every word the screen says.
+- `lib/toolTransition.js` — checking a tool item out and back in (#362): what one press may do, the refusals, and every word it says. Applied by the action, previewed by the page.
 - `lib/toolListView.js` — the two tools list screens (#339), and every word they say. **The app's first paging, and the only one that can divide the READ** — nothing gates a tool item per row, which is what #326 says a document list's page cannot do.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
