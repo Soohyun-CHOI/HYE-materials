@@ -402,6 +402,15 @@ export function run({ check, assert, log }) {
     check("the heading", COPY.heading, "Print tool labels");
     check("the control on a registration", COPY.openFromRegistration, "Print labels for these tool items");
     check("the control on a tool", COPY.openFromTool, "Print labels for the tool items on this page");
+    check("the control on one tool item", COPY.openFromToolItem, "Print the label");
+    // IT MAY NOT SAY `REPRINT`, which is what it said until #352 was read on screen:
+    // nothing in this base records whether a sticker was ever printed, so a control
+    // promising a re-print states what the app cannot check.
+    check(
+        "  and no opener claims a re-print",
+        [COPY.openFromRegistration, COPY.openFromTool, COPY.openFromToolItem].filter((s) => /reprint/i.test(s)).length,
+        0
+    );
     check("one label counts singular", COPY.sheetCount({ sheets: 1, labels: 1 }), "1 label across 1 sheet of Avery 5160.");
     check("and several do not", COPY.sheetCount({ sheets: 2, labels: 34 }), "34 labels across 2 sheets of Avery 5160.");
     check("the stock names itself", COPY.stock({ name: LABEL_STOCK.name }), "Stock: Avery 5160");

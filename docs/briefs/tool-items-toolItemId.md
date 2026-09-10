@@ -48,8 +48,8 @@ prints at**, with a line saying so.
 **Why it is here decides how big it is.** It is here so a reader can SEE what a
 replacement sticker will carry and match it against the one in their hand — not to
 be scanned off the screen. Somebody who typed the id because the sticker had worn
-through has already arrived, so a scan of the screen would do nothing they need;
-the scan that does work is a later phase's. **So the symbol has no legibility
+through is already on this page, so a scan of the screen would return them where they
+are; the scan that does work is a later phase's. **So the symbol has no legibility
 floor of its own** and no size was invented for it: it is drawn at the printed
 size because that is a fact worth carrying, not a style.
 
@@ -58,24 +58,37 @@ a preview of the physical object, which is the whole reason it is on this screen
 A design may change how it is presented and where it sits; if it changes the size,
 the line saying it is printed size has to go with it.
 
-**action.** A control that reprints this label. It leads to the label sheet
-screen carrying this one tool item, rather than printing from here — that screen
-owns the sheet layout and the position on the sheet to start at, and **a reprint
-is the archetypal part-used sheet**, so printing from here would mean either
-losing that control or building a second one.
+**action.** A control that prints this tool item's label. It leads to the label
+sheet screen carrying this one tool item, rather than printing from here — that
+screen owns the sheet layout and the position on the sheet to start at, and
+**printing one label is the archetypal part-used sheet**, so printing from here
+would mean either losing that control or building a second one.
+
+**It does not say `reprint`, and the reason is that the screen cannot know.**
+Nothing in this base records whether a sticker was ever printed or stuck on, so a
+control promising a re-print would state something the app cannot check — and the
+two readers are after the same act anyway: one whose label has worn through, and
+one printing a label for the first time.
 
 **evidence.** A history section, one entry per `Tool Log` row, **oldest first**.
 Each entry carries four facts that are always there — the event, when it
 happened, the job it happened on, and who recorded it — and a fifth, notes, that
 is usually absent.
 
-**How the instant is rendered is open, and it is the one fact on the page with
-no rendering chosen yet.** The screen currently prints the stored value, which
-is a full UTC timestamp to the millisecond — the longest and only
-machine-shaped string here. What the entry carries is a moment; how much of it a
-reader on a site needs, and in whose timezone, is a decision this screen has not
-made. The request detail's history, the only other one in the app, renders its
-own moments as a local date and time to the minute.
+**The instant renders as a date and a time to the minute**, in the same five parts
+the request detail's history uses — the only other history in the app. **This was
+the one fact on the page with no rendering chosen, and it is chosen now.** The
+screen used to print the stored value, a UTC instant to the millisecond, which was
+the longest and most machine-shaped string here; what an entry carries is a moment
+somebody reads, and seconds are finer than the resolution a tool moves at.
+
+**Which zone it is in is not stated on the page, and that is a real gap rather
+than a detail.** The page renders on the server, so the moment resolves against
+wherever that happened — and the stored value used to carry a `Z` while this does
+not, so a reader on a site cannot tell from the string which zone they are
+reading. Closing it needs either a client boundary on the one screen this axis
+draws for a phone, or the zone said out loud beside the time. **A design may not
+assume the reader's own zone**; that is not what these strings are.
 
 ## What it carries only sometimes
 
@@ -96,7 +109,7 @@ would state a time that is not when the tool item was created.
 `Tool item not found` and a way back to `/tools`. Nothing on this axis is scoped
 by role or job, so unlike the request, order and invoice screens this refusal
 answers one state — no such tool item — rather than standing in for two. **The
-symbol and the reprint control are absent here rather than empty**, and there is
+symbol and the print control are absent here rather than empty**, and there is
 no state in between: a symbol is a pure function of the id, so every tool item
 that exists has one.
 
@@ -137,7 +150,7 @@ actually came out at, so a longer address makes a bigger symbol on both rather
 than a denser one on either. A design that pins this one to a box in pixels
 breaks the equality, and nothing on screen would show it.
 
-**This screen prints nothing itself.** Its reprint control is a link. That is what
+**This screen prints nothing itself.** Its print control is a link. That is what
 keeps a replacement the same physical object as the original by construction —
 there is no second layout to drift from the sheet's.
 

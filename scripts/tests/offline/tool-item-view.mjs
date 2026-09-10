@@ -24,7 +24,7 @@
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { TOOL_EVENT } from "../../../lib/toolStatus.js";
-import { TOOL_ITEM_COPY, logRowFacts } from "../../../lib/toolItemView.js";
+import { EVENT_AT_FORMAT, TOOL_ITEM_COPY, formatEventAt, logRowFacts } from "../../../lib/toolItemView.js";
 import { parseFile, parseSource, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -74,10 +74,13 @@ export function run({ check, assert, log }) {
         logRowFacts(FULL_ROW).map((f) => f.label).join(" / "),
         "Event / When / Job / Recorded by / Notes"
     );
+    // The four that pass through untouched. The moment does not, so it is asserted
+    // on its own below — its rendering depends on the runtime's locale and zone, and
+    // a string pinned here would pass on this machine and fail in CI.
     check(
         "and the values are the ones handed in",
-        logRowFacts(FULL_ROW).map((f) => f.value).join(" / "),
-        "Registered / 2026-09-09T15:14:26.537Z / 26-DEMO-01 / scoped-fixture / Bought with the second batch"
+        logRowFacts(FULL_ROW).filter((f) => f.key !== "eventAt").map((f) => f.value).join(" / "),
+        "Registered / 26-DEMO-01 / scoped-fixture / Bought with the second batch"
     );
 
     // ── 2: `Notes` is the one that drops ───────────────────────────────────
@@ -138,6 +141,60 @@ export function run({ check, assert, log }) {
     // `kind` is the notes' explanatory word for what separates `Tools` from
     // `Tool Items` and names no row, so it may not reach a screen (#338).
     check("no string says `kind`", strings.filter((s) => /\bkinds?\b/i.test(s)).length, 0);
+
+    // ── 4b: the moment, a date and a time and nothing finer ────────────────
+    log("");
+    log("a log entry's moment renders as a date and a time to the minute:");
+    // PINNED AS THE OPTION SET RATHER THAN AS THE STRING. `toLocaleString` resolves
+    // against the runtime's locale and timezone, so the rendered text differs
+    // between this machine and CI — asserting it by value would be a check that
+    // passes where it was written. The DECISION is which parts of the moment
+    // appear, and that is the object.
+    check("the parts that appear", JSON.stringify(EVENT_AT_FORMAT), '{"year":"numeric","month":"numeric","day":"numeric","hour":"numeric","minute":"2-digit"}');
+    assert("  no seconds", !("second" in EVENT_AT_FORMAT));
+    assert("  and no fractional seconds", !("fractionalSecondDigits" in EVENT_AT_FORMAT));
+
+    const ISO = "2026-09-09T15:14:26.537Z";
+    const shown = formatEventAt(ISO);
+    assert("the stored instant is not shown as itself", shown !== ISO);
+    assert("  the machine separator is gone", !shown.includes("T"));
+    assert("  the milliseconds are gone", !shown.includes(".537"));
+    assert("  and a time is still there", /\d:\d{2}/.test(shown));
+    // The function must honor the exported constant rather than passing its own
+    // options — the mutation this catches is a `second` added at the call site
+    // while the constant stays put.
+    check(
+        "the formatter uses that exact object",
+        shown,
+        new Date(ISO).toLocaleString(undefined, EVENT_AT_FORMAT)
+    );
+
+    // AND THE FOURTH COPY IS HELD TO THE FIRST. `/prs/[prId]`'s history writes the
+    // same five options inline and is the precedent this followed; extracting one
+    // formatter would edit another area's screens, so the duplication stays and is
+    // pinned instead. This reads that file rather than trusting the comment.
+    const prsHistory = parseFile("app/prs/[prId]/page.js");
+    let prsOptions = null;
+    walk(prsHistory.ast, (n) => {
+        if (n.type !== "CallExpression") return;
+        if (n.callee?.property?.name !== "toLocaleString") return;
+        const arg = n.arguments?.[1];
+        if (arg?.type !== "ObjectExpression") return;
+        prsOptions = Object.fromEntries(arg.properties.map((p) => [p.key?.name, p.value?.value]));
+    });
+    assert("the request history's own options were found", prsOptions !== null);
+    check(
+        "  and they are the same five",
+        JSON.stringify(prsOptions),
+        JSON.stringify(EVENT_AT_FORMAT)
+    );
+
+    // An unparseable value comes back unchanged rather than as `Invalid Date`,
+    // because a log row's four facts never drop and there is always a pair to fill.
+    check("a blank stays blank", formatEventAt(""), "");
+    check("  a string this cannot read stays itself", formatEventAt("not a date"), "not a date");
+    check("  and a missing value stays missing", formatEventAt(undefined), undefined);
+    assert("  so no pair ever says Invalid Date", !String(formatEventAt("")).includes("Invalid"));
 
     // ── 5: the symbol, and the two things this page must NOT do (#352) ─────
     log("");
