@@ -41,9 +41,13 @@ printed:
 **action.** Three controls:
 
 - **A per-label include**, one for every tool item the address named, all included
-  to begin with, plus a select-all and a select-none. Excluding one takes it out
-  of the sheet rather than leaving a blank in its place, so a run stays
-  contiguous.
+  to begin with. Excluding one takes it out of the sheet rather than leaving a
+  blank in its place, so a run stays contiguous. **There is no select-all and no
+  select-none, and their absence is a decision rather than an omission**: every
+  label starts included, so select-all named the state the screen already opens
+  in, and select-none reached only the state the screen refuses to print from. A
+  run is a handful, so unchecking one or two is the whole interaction — **a design
+  should not add a bulk control back without a reader who needs one.**
 - **The first label position on the sheet**, 1 to 30. **This is for a part-used
   sheet and it is the ordinary case rather than an edge**: a registration is
   usually a handful of tools, so printing always from the top would throw away
