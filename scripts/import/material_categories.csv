@@ -1,0 +1,778 @@
+Level 1 Code,Level 1 Category,Level 2 Code,Level 2 Category,Level 3 Code,Level 3 Category,Level 4 Code,Level 4 Category
+01,Stainless Steel (SUS),0101,Tube,0101001,SUS 304,0101001001,AP
+01,Stainless Steel (SUS),0101,Tube,0101002,SUS 316L,0101002002,AP Seamless
+01,Stainless Steel (SUS),0101,Tube,0101002,SUS 316L,0101002003,BA Seamless
+01,Stainless Steel (SUS),0101,Tube,0101002,SUS 316L,0101002004,EP Seamless
+01,Stainless Steel (SUS),0101,Tube,0101002,SUS 316L,0101002005,BA (Valex)
+01,Stainless Steel (SUS),0101,Tube,0101002,SUS 316L,0101002007,EP (Valex)
+01,Stainless Steel (SUS),0101,Tube,0101002,SUS 316L,0101002010,EP ERW
+01,Stainless Steel (SUS),0101,Tube,0101002,SUS 316L,0101002011,Coaxial (Double Containment)
+01,Stainless Steel (SUS),0101,Tube,0101003,Sanitary,0101003001,Sanitary
+01,Stainless Steel (SUS),0101,Tube,0101006,A269-TP316L,0101006001,AP
+01,Stainless Steel (SUS),0101,Tube,0101006,A269-TP316L,0101006003,EP
+01,Stainless Steel (SUS),0102,Pipe,0102001,SUS 304,0102001016,Pipe Lined
+01,Stainless Steel (SUS),0102,Pipe,0102001,SUS 304,0102001017,Machined / Fabricated
+01,Stainless Steel (SUS),0102,Pipe,0102002,A312-TP304,0102002002,ERW SCH10
+01,Stainless Steel (SUS),0102,Pipe,0102002,A312-TP304,0102002004,ERW SCH40
+01,Stainless Steel (SUS),0102,Pipe,0102002,A312-TP304,0102002007,Seamless SCH10
+01,Stainless Steel (SUS),0102,Pipe,0102002,A312-TP304,0102002021,Seamless STD
+01,Stainless Steel (SUS),0102,Pipe,0102006,Spiral,0102006001,Pipe
+01,Stainless Steel (SUS),0102,Pipe,0102010,A312-TP316L,0102010006,Seamless SCH80
+01,Stainless Steel (SUS),0102,Pipe,0102011,A312-TP304L,0102011002,ERW SCH10
+01,Stainless Steel (SUS),0102,Pipe,0102011,A312-TP304L,0102011008,Seamless SCH10
+01,Stainless Steel (SUS),0102,Pipe,0102011,A312-TP304L,0102011010,Seamless SCH40
+01,Stainless Steel (SUS),0102,Pipe,0102012,A358-TP304L,0102012001,EFW SCH10
+01,Stainless Steel (SUS),0103,Elbow (Long),0103001,SUS 304,0103001001,AP/MP
+01,Stainless Steel (SUS),0103,Elbow (Long),0103001,SUS 304,0103001002,SCH10
+01,Stainless Steel (SUS),0103,Elbow (Long),0103001,SUS 304,0103001006,Screw SCH10
+01,Stainless Steel (SUS),0103,Elbow (Long),0103001,SUS 304,0103001007,Lined
+01,Stainless Steel (SUS),0103,Elbow (Long),0103001,SUS 304,0103001009,Screw SCH40
+01,Stainless Steel (SUS),0103,Elbow (Long),0103002,A403-WP304,0103002002,Seamless SCH10
+01,Stainless Steel (SUS),0103,Elbow (Long),0103002,A403-WP304,0103002003,Seamless SCH40
+01,Stainless Steel (SUS),0103,Elbow (Long),0103002,A403-WP304,0103002008,ERW SCH10
+01,Stainless Steel (SUS),0103,Elbow (Long),0103003,A182-F304,0103003001,SW 3000LBS
+01,Stainless Steel (SUS),0103,Elbow (Long),0103004,A182-F304L,0103004002,SW 3000LBS
+01,Stainless Steel (SUS),0103,Elbow (Long),0103004,A182-F304L,0103004005,Threaded 3000LBS
+01,Stainless Steel (SUS),0103,Elbow (Long),0103005,SUS 316L,0103005012,EP
+01,Stainless Steel (SUS),0103,Elbow (Long),0103005,SUS 316L,0103005013,Coaxial (Double Containment)
+01,Stainless Steel (SUS),0103,Elbow (Long),0103006,A403-WP304L,0103006009,Seamless SCH10
+01,Stainless Steel (SUS),0103,Elbow (Long),0103012,Spiral,0103012001,Elbow
+01,Stainless Steel (SUS),0103,Elbow (Long),0103016,Structural Pipe (Tube),0103016001,Elbow
+01,Stainless Steel (SUS),0104,Tee,0104001,SUS 304,0104001001,SCH10
+01,Stainless Steel (SUS),0104,Tee,0104001,SUS 304,0104001003,AP/MP
+01,Stainless Steel (SUS),0104,Tee,0104001,SUS 304,0104001008,SCH40
+01,Stainless Steel (SUS),0104,Tee,0104001,SUS 304,0104001009,PTFE Lined
+01,Stainless Steel (SUS),0104,Tee,0104002,A403-WP304,0104002003,Seamless SCH10
+01,Stainless Steel (SUS),0104,Tee,0104002,A403-WP304,0104002004,Seamless SCH40
+01,Stainless Steel (SUS),0104,Tee,0104003,A182-F304,0104003001,SW 3000LBS
+01,Stainless Steel (SUS),0104,Tee,0104003,A182-F304,0104003005,Threaded 3000LBS
+01,Stainless Steel (SUS),0104,Tee,0104004,A182-F304L,0104004001,SW 3000LBS
+01,Stainless Steel (SUS),0104,Tee,0104007,A403-WP316,0104007004,Seamless SCH10
+01,Stainless Steel (SUS),0104,Tee,0104011,Spiral,0104011001,Tee
+01,Stainless Steel (SUS),0104,Tee,0104015,Structural Pipe (Tube),0104015001,Tee
+01,Stainless Steel (SUS),0104,Tee,0104017,SUS 316L,0104017001,BA
+01,Stainless Steel (SUS),0104,Tee,0104017,SUS 316L,0104017003,EP
+01,Stainless Steel (SUS),0104,Tee,0104018,A403-WP304L,0104018002,SCH10
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105001,SUS 304,0105001003,AP/MP
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105001,SUS 304,0105001004,SCH10
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105001,SUS 304,0105001007,PTFE Lined
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105002,A403-WP304,0105002003,ERW SCH10
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105002,A403-WP304,0105002006,Seamless SCH10
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105002,A403-WP304,0105002008,Seamless SCH40
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105003,A182-F304,0105003001,SW 3000LBS
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105005,SUS 316L,0105005002,BA
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105005,SUS 316L,0105005003,EP
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105008,A182-F316,0105008001,SW 3000LBS
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105009,A182-F316L,0105009001,SW 3000LBS
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105011,Spiral,0105011001,Reducer
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105015,Structural Pipe (Tube),0105015001,Reducer
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105017,A403-WP304L,0105017002,ERW SCH10
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105017,A403-WP304L,0105017005,Seamless SCH20
+01,Stainless Steel (SUS),0105,Concentric Reducer,0105017,A403-WP304L,0105017006,Seamless SCH10
+01,Stainless Steel (SUS),0106,Union,0106001,A182 F304,0106001002,Threaded
+01,Stainless Steel (SUS),0106,Union,0106001,A182 F304,0106001003,SW
+01,Stainless Steel (SUS),0106,Union,0106002,A182 F304L,0106002001,Socket Welding Type
+01,Stainless Steel (SUS),0106,Union,0106003,SUS 304,0106003002,Screw Type
+01,Stainless Steel (SUS),0106,Union,0106003,SUS 304,0106003003,SW Type
+01,Stainless Steel (SUS),0107,Nipple,0107007,SUS 304,0107007004,TOE Nipple
+01,Stainless Steel (SUS),0107,Nipple,0107007,SUS 304,0107007005,Hose Nipple
+01,Stainless Steel (SUS),0107,Nipple,0107007,SUS 304,0107007008,Standard
+01,Stainless Steel (SUS),0107,Nipple,0107008,A312 TP304,0107008002,ERW SCH40
+01,Stainless Steel (SUS),0107,Nipple,0107008,A312 TP304,0107008004,Seamless SCH10
+01,Stainless Steel (SUS),0107,Nipple,0107008,A312 TP304,0107008006,Seamless SCH40
+01,Stainless Steel (SUS),0107,Nipple,0107008,A312 TP304,0107008007,Seamless SCH80
+01,Stainless Steel (SUS),0107,Nipple,0107009,A312 TP304L,0107009002,SCH40
+01,Stainless Steel (SUS),0107,Nipple,0107009,A312 TP304L,0107009003,SCH80
+01,Stainless Steel (SUS),0107,Nipple,0107010,A312 TP316,0107010004,Seamless SCH40
+01,Stainless Steel (SUS),0107,Nipple,0107012,SUS 316,0107012001,TOE Nipple
+01,Stainless Steel (SUS),0107,Nipple,0107018,A182 F304,0107018001,Threaded
+01,Stainless Steel (SUS),0108,Flange,0108005,A182-F304 150#,0108005001,Slip On / RF
+01,Stainless Steel (SUS),0108,Flange,0108005,A182-F304 150#,0108005005,Welding Neck / RF
+01,Stainless Steel (SUS),0108,Flange,0108005,A182-F304 150#,0108005008,Lap Joint
+01,Stainless Steel (SUS),0108,Flange,0108005,A182-F304 150#,0108005009,Stub End
+01,Stainless Steel (SUS),0108,Flange,0108005,A182-F304 150#,0108005011,Blind / RF
+01,Stainless Steel (SUS),0108,Flange,0108005,A182-F304 150#,0108005012,Blind / FF
+01,Stainless Steel (SUS),0108,Flange,0108012,A182-F316L 150#,0108012001,Slip On / RF
+01,Stainless Steel (SUS),0108,Flange,0108012,A182-F316L 150#,0108012011,Blind / RF
+01,Stainless Steel (SUS),0108,Flange,0108020,Other,0108020001,Standard
+01,Stainless Steel (SUS),0108,Flange,0108022,SUS 316L,0108022004,EP Slip On / RF
+01,Stainless Steel (SUS),0108,Flange,0108022,SUS 316L,0108022011,Flanged Pup Piece
+01,Stainless Steel (SUS),0108,Flange,0108023,A182-F304L 150#,0108023005,Slip On / RF
+01,Stainless Steel (SUS),0108,Flange,0108023,A182-F304L 150#,0108023009,Welding Neck / RF
+01,Stainless Steel (SUS),0108,Flange,0108023,A182-F304L 150#,0108023013,Blind / RF
+01,Stainless Steel (SUS),0108,Flange,0108027,DIN 16-BAR F304,0108027001,"FF Flange / DIN-16BAR, F304"
+01,Stainless Steel (SUS),0108,Flange,0108030,PTFE Lined,0108030001,PTFE Lined
+01,Stainless Steel (SUS),0108,Flange,0108033,A182-F316 150#,0108033002,Slip On / RF
+01,Stainless Steel (SUS),0108,Flange,0108033,A182-F316 150#,0108033003,Blind / RF
+01,Stainless Steel (SUS),0108,Flange,0108034,A182-F316 300#,0108034005,Blind / RF
+01,Stainless Steel (SUS),0108,Flange,0108035,A182-F304L 300#,0108035003,Slip On / RF
+01,Stainless Steel (SUS),0108,Flange,0108040,DIN-25BAR F304,0108040001,"RF Flange / DIN-25BAR, F304"
+01,Stainless Steel (SUS),0108,Flange,0108042,"SUS 304 Plate Flange, 10K",0108042001,SORF (Slip-on/RF)
+01,Stainless Steel (SUS),0109,Ball Valve,0109002,A351 CF8 (Cast),0109002001,Flange 150LB
+01,Stainless Steel (SUS),0109,Ball Valve,0109002,A351 CF8 (Cast),0109002002,Screw 150LB
+01,Stainless Steel (SUS),0109,Ball Valve,0109003,A351 CF8M (Cast),0109003001,Flange 150LB
+01,Stainless Steel (SUS),0109,Ball Valve,0109003,A351 CF8M (Cast),0109003002,Screw 150LB
+01,Stainless Steel (SUS),0109,Ball Valve,0109006,A182 F304 (Forged),0109006006,Flange 150LBS
+01,Stainless Steel (SUS),0109,Ball Valve,0109006,A182 F304 (Forged),0109006012,Screw 600LBS
+01,Stainless Steel (SUS),0109,Ball Valve,0109006,A182 F304 (Forged),0109006013,SW 150LBS
+01,Stainless Steel (SUS),0109,Ball Valve,0109008,SUS 316L,0109008001,LOK
+01,Stainless Steel (SUS),0109,Ball Valve,0109008,SUS 316L,0109008007,SW
+01,Stainless Steel (SUS),0109,Ball Valve,0109011,Pneumatic Ball,0109011001,SCS13
+01,Stainless Steel (SUS),0109,Ball Valve,0109012,A182 F316 (Forged),0109012001,SBVF Series
+01,Stainless Steel (SUS),0109,Ball Valve,0109012,A182 F316 (Forged),0109012015,SW 600LB
+01,Stainless Steel (SUS),0109,Ball Valve,0109014,SUS 304,0109014003,BW
+01,Stainless Steel (SUS),0109,Ball Valve,0109014,SUS 304,0109014007,LOK AP (MP)
+01,Stainless Steel (SUS),0109,Ball Valve,0109020,SUS 316,0109020002,Screw
+01,Stainless Steel (SUS),0109,Ball Valve,0109020,SUS 316,0109020003,LOK
+01,Stainless Steel (SUS),0111,Check Valve,0111004,A351 CF8,0111004001,Screw 150LB
+01,Stainless Steel (SUS),0111,Check Valve,0111004,A351 CF8,0111004002,Flange 150LB
+01,Stainless Steel (SUS),0111,Check Valve,0111004,A351 CF8,0111004008,Wafer Type
+01,Stainless Steel (SUS),0111,Check Valve,0111008,SUS 316L,0111008001,LOK
+01,Stainless Steel (SUS),0111,Check Valve,0111014,A351 CF3,0111014001,Flange
+01,Stainless Steel (SUS),0111,Check Valve,0111016,SUS304,0111016001,Screw
+01,Stainless Steel (SUS),0111,Check Valve,0111016,SUS304,0111016003,Flange
+01,Stainless Steel (SUS),0113,Globe Valve,0113002,A351 CF8,0113002004,BB OS&Y 150LBS
+01,Stainless Steel (SUS),0113,Globe Valve,0113005,A351 CF8M,0113005001,BB OS&Y 150LBS
+01,Stainless Steel (SUS),0113,Globe Valve,0113016,A182 F316L,0113016001,SW
+01,Stainless Steel (SUS),0114,Butterfly Valve,0114001,Gear,0114001011,Other
+01,Stainless Steel (SUS),0114,Butterfly Valve,0114001,Gear,0114001013,150#
+01,Stainless Steel (SUS),0114,Butterfly Valve,0114002,Lever,0114002012,Class 150 Standard
+01,Stainless Steel (SUS),0114,Butterfly Valve,0114003,Lug,0114003002,150LBS
+01,Stainless Steel (SUS),0114,Butterfly Valve,0114006,Pneumatic,0114006001,XV
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116001,Connector,0116001001,Male Connector (NPT)
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116001,Connector,0116001002,Female Connector (NPT)
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116001,Connector,0116001004,Male Connector (PT)
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116001,Connector,0116001007,Female Connector (PT)
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116001,Connector,0116001009,CGA
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116002,Elbow,0116002001,Union Elbow
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116002,Elbow,0116002002,Female Elbow
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116002,Elbow,0116002004,Male Elbow
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116003,Tee,0116003001,Union Tee
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116003,Tee,0116003002,Reducing Union Tee
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116004,Union,0116004001,Union
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116004,Union,0116004002,Reducing Union
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116004,Union,0116004003,Bulkhead Union
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116004,Union,0116004005,Reducer
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116007,Weld End,0116007001,Male Pipe Weld Connector
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116022,Plug & Cap,0116022001,Plug
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116022,Plug & Cap,0116022002,Cap
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116023,Spare Part,0116023001,Nut
+01,Stainless Steel (SUS),0116,LOK Fitting (Tube Fitting),0116023,Spare Part,0116023002,Ferrule
+01,Stainless Steel (SUS),0117,Needle Valve,0117001,SUS 316L,0117001001,LOK
+01,Stainless Steel (SUS),0118,Diaphragm Valve,0118001,VCR,0118001001,Male VCR
+01,Stainless Steel (SUS),0118,Diaphragm Valve,0118001,VCR,0118001002,Female VCR
+01,Stainless Steel (SUS),0118,Diaphragm Valve,0118002,LOK,0118002001,BA
+01,Stainless Steel (SUS),0118,Diaphragm Valve,0118002,LOK,0118002002,EP
+01,Stainless Steel (SUS),0118,Diaphragm Valve,0118005,Pneumatic,0118005002,VF
+01,Stainless Steel (SUS),0118,Diaphragm Valve,0118006,Manual,0118006001,Standard
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120001,Flexible Hose,0120001001,Screw Type
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120001,Flexible Hose,0120001002,Flange Type
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120001,Flexible Hose,0120001004,LOK Type
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120004,Flexible Joint,0120004001,SUS 304
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120006,TPC,0120006003,150#
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120008,Control Rod,0120008001,Standard
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120009,Expansion Joint,0120009002,ANSI Type
+01,Stainless Steel (SUS),0120,Flexible & Bellows (Expansion Joint),0120011,PTFE Lined,0120011001,SUS 304
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005001,Gland
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005004,Gasket
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005005,Female Nut
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005006,Male Nut
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005007,Plug
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005008,Cap
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005010,Union
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005011,Connector
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121005,Metal Face Seal (VCR) Fitting,0121005013,Elbow
+01,Stainless Steel (SUS),0121,Weld Fitting (Clean Fitting),0121006,Weld Fitting,0121006001,Adapter
+01,Stainless Steel (SUS),0122,Relief Valve,0122001,Relief Valve,0122001001,Relief Valve
+01,Stainless Steel (SUS),0122,Relief Valve,0122002,Safety Valve,0122002009,A351 CF8
+01,Stainless Steel (SUS),0123,Elbow (Short),0123003,A403-WP304,0123003002,Seamless SCH10
+01,Stainless Steel (SUS),0123,Elbow (Short),0123004,A403-WP304L,0123004002,SCH10
+01,Stainless Steel (SUS),0124,45D Elbow,0124001,SUS 304,0124001001,AP/MP
+01,Stainless Steel (SUS),0124,45D Elbow,0124001,SUS 304,0124001003,SCH10
+01,Stainless Steel (SUS),0124,45D Elbow,0124001,SUS 304,0124001006,PTFE Lined
+01,Stainless Steel (SUS),0124,45D Elbow,0124001,SUS 304,0124001009,BA
+01,Stainless Steel (SUS),0124,45D Elbow,0124003,A403-WP304,0124003002,Seamless SCH10
+01,Stainless Steel (SUS),0124,45D Elbow,0124004,A403-WP304L,0124004008,Seamless SCH10
+01,Stainless Steel (SUS),0124,45D Elbow,0124005,A182-F304,0124005007,SW 3000LBS
+01,Stainless Steel (SUS),0124,45D Elbow,0124013,Structural Pipe (Tube),0124013001,45D Elbow
+01,Stainless Steel (SUS),0124,45D Elbow,0124015,Spiral,0124015001,45D Elbow
+01,Stainless Steel (SUS),0125,Reducing Tee,0125001,SUS 304,0125001001,AP/MP
+01,Stainless Steel (SUS),0125,Reducing Tee,0125001,SUS 304,0125001003,SCH10
+01,Stainless Steel (SUS),0125,Reducing Tee,0125001,SUS 304,0125001006,Lined
+01,Stainless Steel (SUS),0125,Reducing Tee,0125003,A403-WP304,0125003005,Seamless SCH10
+01,Stainless Steel (SUS),0125,Reducing Tee,0125004,A403-WP304L,0125004002,SCH10
+01,Stainless Steel (SUS),0125,Reducing Tee,0125005,A182-F304,0125005001,Socket Welding 3000LBS
+01,Stainless Steel (SUS),0125,Reducing Tee,0125008,SUS 316L,0125008002,BA
+01,Stainless Steel (SUS),0125,Reducing Tee,0125008,SUS 316L,0125008003,EP
+01,Stainless Steel (SUS),0125,Reducing Tee,0125009,A403-WP316,0125009004,Seamless SCH10
+01,Stainless Steel (SUS),0125,Reducing Tee,0125012,A182-F316L,0125012001,Socket Welding 3000LBS
+01,Stainless Steel (SUS),0125,Reducing Tee,0125015,Spiral,0125015001,R-Tee
+01,Stainless Steel (SUS),0126,Eccentric Reducer,0126003,A403-WP304,0126003004,Seamless SCH10
+01,Stainless Steel (SUS),0126,Eccentric Reducer,0126004,A403-WP304L,0126004005,Seamless SCH20
+01,Stainless Steel (SUS),0127,Cap Reducer,0127001,SUS 304,0127001001,AP/MP
+01,Stainless Steel (SUS),0128,Plug & Cap,0128001,Plug,0128001001,SUS304
+01,Stainless Steel (SUS),0128,Plug & Cap,0128001,Plug,0128001002,A182 F304
+01,Stainless Steel (SUS),0128,Plug & Cap,0128002,Cap,0128002005,SUS 304
+01,Stainless Steel (SUS),0128,Plug & Cap,0128002,Cap,0128002006,A182 F304
+01,Stainless Steel (SUS),0128,Plug & Cap,0128002,Cap,0128002007,A182 F304L
+01,Stainless Steel (SUS),0128,Plug & Cap,0128002,Cap,0128002015,SUS 316L
+01,Stainless Steel (SUS),0128,Plug & Cap,0128002,Cap,0128002018,A403-WP304 Seamless
+01,Stainless Steel (SUS),0128,Plug & Cap,0128002,Cap,0128002019,A403-WP304L Seamless
+01,Stainless Steel (SUS),0130,Socket,0130001,SUS 304,0130001001,Standard
+01,Stainless Steel (SUS),0131,Bushing & Boss,0131001,Bushing,0131001001,SUS 304
+01,Stainless Steel (SUS),0131,Bushing & Boss,0131001,Bushing,0131001002,A182 F304
+01,Stainless Steel (SUS),0131,Bushing & Boss,0131001,Bushing,0131001003,A182 F304L
+01,Stainless Steel (SUS),0131,Bushing & Boss,0131001,Bushing,0131001004,A182 F316
+01,Stainless Steel (SUS),0131,Bushing & Boss,0131002,Boss,0131002002,A182 F304L
+01,Stainless Steel (SUS),0133,Bellows Valve,0133003,316L EP,0133003003,Flange
+01,Stainless Steel (SUS),0133,Bellows Valve,0133003,316L EP,0133003005,VCR
+01,Stainless Steel (SUS),0134,Control Valve,0134002,SUS 316L,0134002001,Standard
+01,Stainless Steel (SUS),0136,Coupling,0136002,Full Coupling,0136002001,A182 F304
+01,Stainless Steel (SUS),0136,Coupling,0136002,Full Coupling,0136002002,A182 F304L
+01,Stainless Steel (SUS),0136,Coupling,0136003,Spiral,0136003001,SUS 304
+01,Stainless Steel (SUS),0136,Coupling,0136004,Quick Coupling,0136004001,SUS 304
+01,Stainless Steel (SUS),0136,Coupling,0136005,Pipe Coupling,0136005001,SUS 304
+01,Stainless Steel (SUS),0137,Reducer Insert,0137001,A182 F304,0137001001,SW 3000LBS
+01,Stainless Steel (SUS),0137,Reducer Insert,0137002,A182 F304L,0137002001,SW 3000LBS
+01,Stainless Steel (SUS),0138,Outlets,0138001,Socket Outlet,0138001001,A182 F304 3000LBS
+01,Stainless Steel (SUS),0138,Outlets,0138001,Socket Outlet,0138001002,A182 F304L 3000LBS
+01,Stainless Steel (SUS),0138,Outlets,0138001,Socket Outlet,0138001003,A182 F316 3000LBS
+01,Stainless Steel (SUS),0138,Outlets,0138001,Socket Outlet,0138001004,A182 F316L 3000LBS
+01,Stainless Steel (SUS),0138,Outlets,0138002,Welding Outlet,0138002006,A182 F304L STD
+01,Stainless Steel (SUS),0138,Outlets,0138002,Welding Outlet,0138002019,A182 F304 3000#
+01,Stainless Steel (SUS),0138,Outlets,0138003,Thread Outlet,0138003001,A182 F304 3000LBS
+01,Stainless Steel (SUS),0138,Outlets,0138003,Thread Outlet,0138003002,A182 F304L 3000LBS
+01,Stainless Steel (SUS),0138,Outlets,0138003,Thread Outlet,0138003004,A182 F316L 3000LBS
+01,Stainless Steel (SUS),0139,Camlock Coupling,0139001,C-Type (Socket),0139001001,SUS 304
+01,Stainless Steel (SUS),0139,Camlock Coupling,0139004,F-Type (Plug),0139004001,SUS 304
+01,Stainless Steel (SUS),0139,Camlock Coupling,0139006,A-Type (Plug),0139006002,SUS 316L
+01,Stainless Steel (SUS),0139,Camlock Coupling,0139007,DC-Type (Dust Cap),0139007001,SUS 304
+01,Stainless Steel (SUS),0139,Camlock Coupling,0139008,DP-Type (Dust Plug),0139008001,SUS 304
+01,Stainless Steel (SUS),0139,Camlock Coupling,0139009,Combination Type,0139009001,SUS 304
+01,Stainless Steel (SUS),0140,Strainer,0140006,A351 CF8,0140006002,Flange 150LB
+01,Stainless Steel (SUS),0140,Strainer,0140006,A351 CF8,0140006003,BB OS&Y 150LB
+01,Stainless Steel (SUS),0140,Strainer,0140007,A351 CF8M,0140007001,BB OS&Y 150LB
+01,Stainless Steel (SUS),0140,Strainer,0140009,A351 CF3,0140009001,Flange 150LBS
+01,Stainless Steel (SUS),0141,Sightglass,0141003,A351 CF8,0141003002,Lantern Type
+01,Stainless Steel (SUS),0147,Damper,0147001,For Spiral Duct,0147001001,Duct Damper
+01,Stainless Steel (SUS),0148,Valves (Misc.),0148002,Inlet Valve,0148002001,SUS 304
+01,Stainless Steel (SUS),0148,Valves (Misc.),0148005,Other,0148005001,Standard
+01,Stainless Steel (SUS),0148,Valves (Misc.),0148009,Shuttle Valve,0148009001,Screw 10K
+01,Stainless Steel (SUS),0149,Breather Valve,0149001,SCS13,0149001001,Flange 10K
+01,Stainless Steel (SUS),0150,Solenoid Valve,0150001,Standard,0150001001,Standard
+01,Stainless Steel (SUS),0152,Sleeve,0152001,Sleeve,0152001001,Sleeve
+01,Stainless Steel (SUS),0156,Other,0156002,SUS Fabricated Items,0156002002,SUS 316 Fabricated Items
+01,Stainless Steel (SUS),0156,Other,0156003,Adapter,0156003001,Pipe Adapter
+01,Stainless Steel (SUS),0156,Other,0156003,Adapter,0156003002,Hex Adapter
+01,Stainless Steel (SUS),0156,Other,0156004,Clamp,0156004001,Clamp Band
+01,Stainless Steel (SUS),0156,Other,0156005,Box,0156005001,Standard
+01,Stainless Steel (SUS),0158,Blind & Spacer Ring,0158002,Spacer Ring,0158002001,Spacer Ring
+02,Carbon Steel,0202,Pipe,0202007,SPP/SGP Standard Steel Pipe,0202007002,Galvanized SPP
+02,Carbon Steel,0202,Pipe,0202010,A53 Gr.B,0202010001,ERW STD
+02,Carbon Steel,0202,Pipe,0202010,A53 Gr.B,0202010002,ERW SCH40
+02,Carbon Steel,0202,Pipe,0202010,A53 Gr.B,0202010003,ERW X-S
+02,Carbon Steel,0202,Pipe,0202010,A53 Gr.B,0202010008,Galvanized ERW SCH40
+02,Carbon Steel,0202,Pipe,0202010,A53 Gr.B,0202010010,Galvanized ERW SCH80
+02,Carbon Steel,0202,Pipe,0202010,A53 Gr.B,0202010015,ERW SCH20
+02,Carbon Steel,0202,Pipe,0202018,Fabricated Carbon Steel Pipe,0202018002,PTFE Lined
+02,Carbon Steel,0203,90D Elbow (LR),0203001,SPPS/STPG,0203001001,"ERW, Standard"
+02,Carbon Steel,0203,90D Elbow (LR),0203001,SPPS/STPG,0203001008,"Galvanized ERW, Standard"
+02,Carbon Steel,0203,90D Elbow (LR),0203001,SPPS/STPG,0203001011,Lined
+02,Carbon Steel,0203,90D Elbow (LR),0203002,A105,0203002009,SW 3000# Galvanized
+02,Carbon Steel,0203,90D Elbow (LR),0203002,A105,0203002013,Threaded 3000# Galvanized
+02,Carbon Steel,0203,90D Elbow (LR),0203003,A234 WPB,0203003001,SML'S STD
+02,Carbon Steel,0203,90D Elbow (LR),0203004,A234 WPB Galvanized,0203004001,SML'S STD Galvanized
+02,Carbon Steel,0203,90D Elbow (LR),0203005,Threaded,0203005001,Black Threaded
+02,Carbon Steel,0204,Tee,0204001,SPPS/STPG,0204001004,"Galvanized ERW, Standard"
+02,Carbon Steel,0204,Tee,0204002,A105,0204002007,Galvanized S/W 3000#
+02,Carbon Steel,0204,Tee,0204002,A105,0204002011,Galvanized Threaded 3000#
+02,Carbon Steel,0204,Tee,0204003,A234-WPB,0204003001,Seamless STD
+02,Carbon Steel,0205,Concentric Reducer,0205003,A234-WPB,0205003001,Seamless STD
+02,Carbon Steel,0205,Concentric Reducer,0205004,A234-WPB Galvanized,0205004001,Galvanized Seamless STD
+02,Carbon Steel,0205,Concentric Reducer,0205004,A234-WPB Galvanized,0205004003,Galvanized Seamless X-S
+02,Carbon Steel,0207,Eccentric Reducer,0207003,A234-WPB,0207003001,Seamless STD
+02,Carbon Steel,0208,Cap,0208003,A234-WPB,0208003001,Seamless STD
+02,Carbon Steel,0210,Coupling,0210005,Spiral,0210005001,Galvanized
+02,Carbon Steel,0210,Coupling,0210007,Other,0210007001,Standard
+02,Carbon Steel,0211,Union,0211001,A105,0211001001,S/W 3000#
+02,Carbon Steel,0211,Union,0211002,A105 Galvanized,0211002004,Threaded 3000#
+02,Carbon Steel,0211,Union,0211003,Threaded,0211003002,Galvanized Threaded
+02,Carbon Steel,0212,Plug,0212001,Hex Head,0212001002,A105 3000#
+02,Carbon Steel,0212,Plug,0212001,Hex Head,0212001004,A105 Galvanized 3000#
+02,Carbon Steel,0213,Boss & Bushing & Socket,0213003,Hex Head Bushing,0213003001,A105 3000#
+02,Carbon Steel,0213,Boss & Bushing & Socket,0213003,Hex Head Bushing,0213003002,A105 Galvanized 3000#
+02,Carbon Steel,0213,Boss & Bushing & Socket,0213004,Threaded Bushing,0213004001,Black Threaded
+02,Carbon Steel,0213,Boss & Bushing & Socket,0213004,Threaded Bushing,0213004002,Galvanized Threaded
+02,Carbon Steel,0213,Boss & Bushing & Socket,0213005,Threaded Socket,0213005002,Galvanized Threaded
+02,Carbon Steel,0216,Reducing Insert,0216001,A105,0216001001,S/W 3000#
+02,Carbon Steel,0217,Nipple,0217003,A106 Gr.B SML'S,0217003001,SCH40S TBE
+02,Carbon Steel,0217,Nipple,0217005,A53 Gr.B ERW,0217005001,SCH40S TBE
+02,Carbon Steel,0217,Nipple,0217005,A53 Gr.B ERW,0217005003,SCH40S TE*PE
+02,Carbon Steel,0217,Nipple,0217005,A53 Gr.B ERW,0217005004,SCH80S TBE
+02,Carbon Steel,0217,Nipple,0217006,A53 Gr.B ERW Galvanized,0217006001,SCH40S TBE
+02,Carbon Steel,0217,Nipple,0217006,A53 Gr.B ERW Galvanized,0217006004,SCH80S TBE
+02,Carbon Steel,0217,Nipple,0217007,A733,0217007001,A733
+02,Carbon Steel,0217,Nipple,0217009,Other,0217009001,Straight Nipple
+02,Carbon Steel,0217,Nipple,0217009,Other,0217009002,Standard
+02,Carbon Steel,0218,Outlet,0218001,Socket Outlet (SOL),0218001001,A105 3000# S/W
+02,Carbon Steel,0218,Outlet,0218002,Welding Outlet (WOL),0218002002,A105 6000#
+02,Carbon Steel,0218,Outlet,0218002,Welding Outlet (WOL),0218002004,A105 3000# Galvanized
+02,Carbon Steel,0218,Outlet,0218002,Welding Outlet (WOL),0218002008,A105 S40
+02,Carbon Steel,0218,Outlet,0218003,Thread Outlet (TOL),0218003002,A105 3000# Threaded
+02,Carbon Steel,0218,Outlet,0218003,Thread Outlet (TOL),0218003005,A105 3000# Galvanized Threaded
+02,Carbon Steel,0221,Flange,0221005,A105 150#,0221005001,SORF
+02,Carbon Steel,0221,Flange,0221005,A105 150#,0221005005,WNRF STD
+02,Carbon Steel,0221,Flange,0221005,A105 150#,0221005006,WNRF XS
+02,Carbon Steel,0221,Flange,0221005,A105 150#,0221005013,BLRF
+02,Carbon Steel,0221,Flange,0221006,A105 150# Galvanized,0221006001,SORF
+02,Carbon Steel,0221,Flange,0221006,A105 150# Galvanized,0221006003,SWRF
+02,Carbon Steel,0221,Flange,0221006,A105 150# Galvanized,0221006005,WNRF STD
+02,Carbon Steel,0221,Flange,0221006,A105 150# Galvanized,0221006007,Threaded / RF
+02,Carbon Steel,0221,Flange,0221006,A105 150# Galvanized,0221006013,BLRF
+02,Carbon Steel,0221,Flange,0221006,A105 150# Galvanized,0221006015,WNRF XS
+02,Carbon Steel,0222,Ball Valve,0222002,A105,0222002013,SCR'D 600LBS
+02,Carbon Steel,0222,Ball Valve,0222004,A216-WCB,0222004001,Flange 150LBS
+02,Carbon Steel,0224,Swing Check Valve,0224002,A216 Gr.WCB,0224002001,Flange 150LBS
+02,Carbon Steel,0225,Lift Check Valve,0225003,A126-B,0225003001,Silent Check Valve
+02,Carbon Steel,0231,90D Elbow (SR),0231003,A234 WPB,0231003001,SML'S STD
+02,Carbon Steel,0232,45D Elbow,0232001,A234 WPB,0232001001,SML'S STD
+02,Carbon Steel,0232,45D Elbow,0232002,SPPS/STPG,0232002004,"Galvanized ERW, Standard"
+02,Carbon Steel,0232,45D Elbow,0232002,SPPS/STPG,0232002007,PTFE Lined
+02,Carbon Steel,0232,45D Elbow,0232003,A105,0232003011,Threaded 3000# Galvanized
+02,Carbon Steel,0234,Reducing Tee,0234001,SPPS/STPG,0234001004,"Galvanized ERW, Standard"
+02,Carbon Steel,0234,Reducing Tee,0234003,A234-WPB,0234003001,Seamless STD
+02,Carbon Steel,0234,Reducing Tee,0234004,A234-WPB Galvanized,0234004001,Seamless STD
+02,Carbon Steel,0235,Strainer,0235003,Y-Strainer A126-B,0235003001,Flange 150LBS
+02,Carbon Steel,0238,Air Vent,0238001,Standard,0238001001,Standard
+02,Carbon Steel,0241,Damper,0241001,For Spiral Duct,0241001004,Round Volume
+02,Carbon Steel,0244,Pressure Reducing Valve,0244004,A216 Gr.WCB,0244004001,Flange 150#
+02,Carbon Steel,0245,Flexible,0245001,Flexible Connector,0245001002,Two Ball Type
+02,Carbon Steel,0246,Pressure Regulating Valve,0246002,150#,0246002001,150#
+02,Carbon Steel,0249,Butterfly Valve,0249001,Manual Butterfly Valve,0249001001,A216 WCB
+02,Carbon Steel,0249,Butterfly Valve,0249001,Manual Butterfly Valve,0249001004,A126 B
+02,Carbon Steel,0249,Butterfly Valve,0249004,FCD450,0249004002,10K
+02,Carbon Steel,0251,Blank & Spacer,0251001,A105 105#,0251001001,RF
+02,Carbon Steel,0255,Spare Pak Joint,0255001,Spare Pak Joint,0255001001,Spare Pak Joint
+02,Carbon Steel,0256,Pilot Valve,0256001,FCD45,0256001001,Flange
+02,Carbon Steel,0261,Duct,0261002,Other,0261002001,Other
+02,Carbon Steel,0262,Blind & Spacer Ring,0262002,Spacer Ring,0262002001,Spacer Ring
+03,PFA,0302,Tube,0302001,PFA Tube (Roll),0302001001,Standard
+03,PFA,0302,Tube,0302003,LPP Tube,0302003001,Standard
+03,PFA,0302,Tube,0302004,Flexible Tube / Hose,0302004001,Standard
+03,PFA,0303,Valve,0303001,Manual Valve,0303001001,Flare Type
+03,PFA,0303,Valve,0303003,TS Valve,0303003001,Standard
+03,PFA,0303,Valve,0303005,Block Valve,0303005002,Seba
+03,PFA,0303,Valve,0303006,Check Valve,0303006001,Furon
+03,PFA,0304,Fitting,0304002,Welding Type,0304002001,Pipe Elbow
+03,PFA,0304,Fitting,0304002,Welding Type,0304002002,Pipe Flange Adapter
+03,PFA,0304,Fitting,0304003,Flare Type,0304003002,Union Flange Adapter
+03,PFA,0304,Fitting,0304003,Flare Type,0304003003,Union Reducing Tee
+03,PFA,0304,Fitting,0304003,Flare Type,0304003004,Reducing Union
+03,PFA,0304,Fitting,0304003,Flare Type,0304003005,Union Straight
+03,PFA,0304,Fitting,0304003,Flare Type,0304003006,Union Tee
+03,PFA,0304,Fitting,0304003,Flare Type,0304003011,End Cap
+03,PFA,0304,Fitting,0304003,Flare Type,0304003015,Nut
+03,PFA,0304,Fitting,0304003,Flare Type,0304003017,Male Connector
+03,PFA,0304,Fitting,0304003,Flare Type,0304003023,Sleeve
+03,PFA,0304,Fitting,0304003,Flare Type,0304003031,Union Flange
+03,PFA,0306,Accessories,0306004,Vessel & Air Separator,0306004002,Vessel
+03,PFA,0306,Accessories,0306018,Ferrule,0306018001,Standard
+03,PFA,0307,PFA Lined,0307001,Valve,0307001001,Diaphragm Valve
+03,PFA,0307,PFA Lined,0307001,Valve,0307001002,Ball Valve
+03,PFA,0307,PFA Lined,0307001,Valve,0307001005,Other Valves
+03,PFA,0309,Other,0309001,Standard,0309001001,Standard
+03,PFA,0309,Other,0309002,ECTFE,0309002001,Halar
+03,PFA,0309,Other,0309002,ECTFE,0309002002,Standard
+04,PVC,0401,Pipe,0401005,Duct,0401005001,Pipe
+04,PVC,0401,Pipe,0401006,"Standard PVC Pipe (Gray, Asung)",0401006001,"Standard PVC Pipe (Gray, Asung)"
+04,PVC,0402,Fitting,0402001,45D Elbow,0402001007,Duct
+04,PVC,0402,Fitting,0402002,90D Elbow,0402002003,TS Solvent-Weld (Water Service)
+04,PVC,0402,Fitting,0402002,90D Elbow,0402002007,Duct
+04,PVC,0402,Fitting,0402003,Cap & Cleanout,0402003001,TS Solvent-Weld (Water Service)
+04,PVC,0402,Fitting,0402004,Tee,0402004005,Duct
+04,PVC,0402,Fitting,0402005,Reducer,0402005001,TS Solvent-Weld (Water Service)
+04,PVC,0402,Fitting,0402005,Reducer,0402005003,Duct
+04,PVC,0402,Fitting,0402008,Y-Tee,0402008002,Duct
+04,PVC,0402,Fitting,0402009,Socket,0402009001,TS Solvent-Weld (Water Service)
+04,PVC,0402,Fitting,0402009,Socket,0402009004,Valve Socket
+04,PVC,0402,Fitting,0402009,Socket,0402009006,Duct
+04,PVC,0402,Fitting,0402018,Panel Mount Union,0402018001,Standard
+04,PVC,0403,Flange,0403001,Flange,0403001001,Standard
+04,PVC,0403,Flange,0403002,Blind Flange,0403002001,Standard
+04,PVC,0404,Valve,0404004,Ball Valve,0404004001,Socket Type
+04,PVC,0404,Valve,0404005,Union Ball Valve,0404005003,Socket Type
+04,PVC,0404,Valve,0404018,Check Valve,0404018001,Check Valve (PVC)
+04,PVC,0404,Valve,0404020,Other,0404020001,Standard
+04,PVC,0405,Damper,0405004,PVC Damper Socket Type,0405004001,Standard
+04,PVC,0406,Strainer,0406001,Screw Type,0406001001,Standard
+04,PVC,0407,Plug,0407001,Plug,0407001001,PVC
+04,PVC,0409,FM Approved PVC,0409001,FM Approved PVC (Fire-Rated),0409001001,FM Approved PVC (Fire-Rated)
+05,Clean PVC,0501,Pipe,0501001,Standard,0501001001,Standard
+05,Clean PVC,0502,Fitting,0502001,Elbow,0502001001,90D Elbow
+05,Clean PVC,0502,Fitting,0502003,Socket,0502003002,Faucet Socket (Female Adapter)
+05,Clean PVC,0505,Gasket & Solvent Cement,0505001,Solvent Cement (Adhesive),0505001001,PVC Solvent Cement
+06,Clear PVC,0605,Pipe,0605001,Standard,0605001001,Standard
+06,Clear PVC,0606,Fitting,0606002,Socket,0606002001,Standard
+06,Clear PVC,0609,Elbow Box,0609001,Standard,0609001001,Standard
+06,Clear PVC,0610,Tee Box,0610001,Standard,0610001001,Standard
+06,Clear PVC,0611,Valve Box,0611001,Standard,0611001001,Standard
+06,Clear PVC,0615,Union Box,0615001,Standard,0615001001,Standard
+06,Clear PVC,0616,Reducer Box,0616001,Standard,0616001001,Standard
+06,Clear PVC,0619,Loop Box,0619001,Standard,0619001001,Standard
+06,Clear PVC,0625,Other,0625001,Standard,0625001001,Standard
+07,HT PVC,0707,Valve Box,0707001,Standard,0707001001,Valve Box / HT PVC
+08,PE,0802,Fitting,0802002,Tee,0802002002,Tee
+08,PE,0804,Other,0804001,Other,0804001001,Other
+09,Structural Shapes,0901,Steel,0901001,H-Beam,0901001001,Steel
+09,Structural Shapes,0901,Steel,0901003,Angle,0901003001,Steel
+09,Structural Shapes,0902,Stainless Steel,0902004,Square & Rectangular Tube,0902004001,Square Tube
+10,Plate & Sheet,1001,Steel,1001001,Steel,1001001001,Steel Plate
+10,Plate & Sheet,1001,Steel,1001001,Steel,1001001003,Galvanized Sheet
+10,Plate & Sheet,1002,SUS,1002001,SUS,1002001001,SUS Plate
+10,Plate & Sheet,1003,PVC,1003001,Plate,1003001001,Gray
+10,Plate & Sheet,1003,PVC,1003001,Plate,1003001002,Ivory
+10,Plate & Sheet,1003,PVC,1003001,Plate,1003001003,Name Plate
+10,Plate & Sheet,1003,PVC,1003001,Plate,1003001004,Fabricated
+10,Plate & Sheet,1004,AL,1004001,Plate,1004001001,Plate
+11,Pump & Motor,1101,Volute (Centrifugal) Pump,1101003,Single-Stage Volute,1101003001,Standard
+11,Pump & Motor,1102,In-Line Pump,1102001,In-Line,1102001001,In-Line
+11,Pump & Motor,1104,Diaphragm Pump,1104001,Diaphragm Pump,1104001001,Pump
+11,Pump & Motor,1110,Standard,1110002,Standard,1110002001,Standard
+11,Pump & Motor,1111,Vacuum Pump,1111001,Standard,1111001001,Standard
+11,Pump & Motor,1112,Motor,1112001,Standard,1112001001,Standard
+11,Pump & Motor,1114,Pump Parts & Accessories,1114001,Wetted Parts,1114001001,Wetted Parts
+11,Pump & Motor,1114,Pump Parts & Accessories,1114003,Other,1114003001,Standard
+12,Compressor,1206,Other,1206003,Muffler,1206003001,Muffler
+13,Instrumentation & Measuring Equipment,1301,Pressure Gauge,1301001,Pressure Gauge,1301001001,Pressure Gauge
+13,Instrumentation & Measuring Equipment,1302,Temperature Gauge,1302001,Temperature Gauge,1302001001,Temperature Gauge
+13,Instrumentation & Measuring Equipment,1303,Flow Meter,1303001,Flow Meter,1303001001,Flow Meter
+13,Instrumentation & Measuring Equipment,1303,Flow Meter,1303001,Flow Meter,1303001004,Ultrasonic Flowmeter
+13,Instrumentation & Measuring Equipment,1305,Transmitter,1305001,Level Transmitter,1305001001,Level Transmitter
+13,Instrumentation & Measuring Equipment,1305,Transmitter,1305005,Standard Transmitter,1305005001,Transmitter
+13,Instrumentation & Measuring Equipment,1310,Sensor,1310001,Leak Sensor,1310001002,Standard
+13,Instrumentation & Measuring Equipment,1310,Sensor,1310002,Standard,1310002001,Standard
+13,Instrumentation & Measuring Equipment,1313,Switch,1313001,Standard,1313001001,Standard
+13,Instrumentation & Measuring Equipment,1314,Other,1314001,Standard,1314001001,Standard
+13,Instrumentation & Measuring Equipment,1317,Level Gauge,1317001,Level Gauge,1317001001,Level Gauge
+14,Gasket,1401,PTFE (Teflon) Gasket,1401001,10K,1401001001,RF 3.0T
+14,Gasket,1401,PTFE (Teflon) Gasket,1401003,150#,1401003001,RF 3.0T
+14,Gasket,1401,PTFE (Teflon) Gasket,1401003,150#,1401003003,Blind 3.0T
+14,Gasket,1401,PTFE (Teflon) Gasket,1401003,150#,1401003004,RF 3.2T
+14,Gasket,1401,PTFE (Teflon) Gasket,1401003,150#,1401003005,FF 3.2T
+14,Gasket,1401,PTFE (Teflon) Gasket,1401003,150#,1401003006,RF 1.6T
+14,Gasket,1401,PTFE (Teflon) Gasket,1401004,300#,1401004001,RF
+14,Gasket,1401,PTFE (Teflon) Gasket,1401008,Machining / Fabrication,1401008001,Standard
+14,Gasket,1401,PTFE (Teflon) Gasket,1401009,16K,1401009001,RF 3.0T
+14,Gasket,1402,Spiral Wound 150#,1402001,IN304/OUT304,1402001001,304/Graphite
+14,Gasket,1402,Spiral Wound 150#,1402001,IN304/OUT304,1402001003,304/PTFE
+14,Gasket,1402,Spiral Wound 150#,1402003,IN316/OUT316,1402003002,316/Graphite
+14,Gasket,1404,Rubber (EPDM) Gasket,1404001,RF,1404001003,150#
+14,Gasket,1404,Rubber (EPDM) Gasket,1404002,FF,1404002003,150#
+14,Gasket,1406,Non-Asbestos Sheet Gasket,1406001,RF,1406001003,150#
+14,Gasket,1406,Non-Asbestos Sheet Gasket,1406002,FF,1406002003,150#
+14,Gasket,1408,Graphite Gasket,1408001,150# RF,1408001001,Custom Machined
+14,Gasket,1410,Garlock Gasket,1410007,#3500 RF,1410007003,#150 3.2THK
+14,Gasket,1412,Eplon (EPDM+Teflon) Gasket,1412001,FF,1412001001,10K
+14,Gasket,1412,Eplon (EPDM+Teflon) Gasket,1412001,FF,1412001002,150#
+14,Gasket,1412,Eplon (EPDM+Teflon) Gasket,1412002,RF,1412002001,150#
+14,Gasket,1414,Spiral Wound 300#,1414001,IN304/OUT304,1414001001,304/Graphite
+14,Gasket,1416,O-Ring,1416001,EPDM,1416001001,Standard
+14,Gasket,1417,Packing,1417001,Packing,1417001001,Packing
+14,Gasket,1431,Metal,1431008,Gap Ring,1431008001,Gap Ring
+14,Gasket,1432,Machining / Fabrication,1432001,Machining / Fabrication,1432001001,Machining / Fabrication
+14,Gasket,1442,S-Viton,1442001,Standard,1442001001,For Coated Duct
+16,HVAC Equipment,1604,Cooling Equipment,1604003,Cooling Tower,1604003001,Standard
+16,HVAC Equipment,1606,Drying Equipment,1606001,Heater,1606001001,Jacket Heater
+16,HVAC Equipment,1608,Air Handling Equipment,1608005,Outside Air Handling Unit (OAU),1608005001,Makeup Air Unit (MAU)
+16,HVAC Equipment,1609,Air Moving Equipment,1609001,Blower / Fan,1609001002,Blower / Fan
+17,Plumbing Piping Materials (Supply & Drain),1701,Pipe Insulation (Pipe Covering),1701003,NBR/EPDM Elastomeric Foam Insulation,1701003001,Tube Insulation (Pipe Cover)
+17,Plumbing Piping Materials (Supply & Drain),1701,Pipe Insulation (Pipe Covering),1701003,NBR/EPDM Elastomeric Foam Insulation,1701003002,Roll / Sheet Insulation
+17,Plumbing Piping Materials (Supply & Drain),1701,Pipe Insulation (Pipe Covering),1701005,Insulation Jacketing (Finish),1701005001,Insulation Jacketing (Finish)
+17,Plumbing Piping Materials (Supply & Drain),1701,Pipe Insulation (Pipe Covering),1701006,Fiberglass Pipe Insulation,1701006001,Fiberglass Pipe Insulation
+17,Plumbing Piping Materials (Supply & Drain),1701,Pipe Insulation (Pipe Covering),1701008,Pipe Protection Cover,1701008001,Pipe Protection Cover
+17,Plumbing Piping Materials (Supply & Drain),1701,Pipe Insulation (Pipe Covering),1701009,Mineral Wool Insulation,1701009001,Mineral Wool Insulation
+17,Plumbing Piping Materials (Supply & Drain),1702,Valve,1702003,Other,1702003001,Other
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704001,Pipe Hanger,1704001003,Standard
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704001,Pipe Hanger,1704001005,Clevis Hanger
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704002,Strut Framing System,1704002001,Strut Channel
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704002,Strut Framing System,1704002002,Bracket
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704003,Pipe Saddle,1704003001,Saddle
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704004,Pipe Shoe,1704004001,Anchor Shoe (Pipe Anchor)
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704004,Pipe Shoe,1704004002,Resting Shoe
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704004,Pipe Shoe,1704004003,Pipe Clamp
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704004,Pipe Shoe,1704004004,Riser Clamp
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704004,Pipe Shoe,1704004006,Rubber-Lined Pipe Shoe
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704004,Pipe Shoe,1704004009,Other
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704005,AL Bar,1704005001,Standard
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704006,Beam Clamp,1704006002,Galvanized
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704007,Support Fabrication,1704007002,Other Fabricated Supports
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704008,Tube Clip,1704008001,SUS 304
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704009,Flat Bar / Plate,1704009002,Rubber Pad
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704009,Flat Bar / Plate,1704009005,Steel
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704010,Miscellaneous Support Materials,1704010002,Clamp
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704011,Rubber End Cap,1704011001,Standard
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704012,U-Bend,1704012001,Vibration-Isolating U-Bolt
+17,Plumbing Piping Materials (Supply & Drain),1704,Pipe Support Materials,1704013,Urethane Block,1704013001,Urethane Block
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705001,NW Flange Assemblies,1705001001,NW Clamp
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705001,NW Flange Assemblies,1705001002,NW Flange
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705002,DC Flange Assemblies,1705002001,DC Clamp
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705003,Bellows Assemblies,1705003001,NW Flange Type
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705004,Center O-Ring,1705004001,Center O-Ring
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705006,Gasket,1705006001,Teflon
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705009,House Vacuum,1705009001,House Vacuum
+17,Plumbing Piping Materials (Supply & Drain),1705,Vacuum Piping Fittings,1705011,SP Flange,1705011001,SUS+PVC
+18,PVDF,1801,Pipe,1801001,Standard,1801001001,Standard
+18,PVDF,1802,Fitting,1802001,Elbow,1802001001,90D Elbow
+18,PVDF,1802,Fitting,1802001,Elbow,1802001002,45D Elbow
+18,PVDF,1802,Fitting,1802002,Tee,1802002001,Tee
+18,PVDF,1802,Fitting,1802002,Tee,1802002002,Reducing Tee
+18,PVDF,1802,Fitting,1802003,Concentric Reducer,1802003001,Concentric Reducer
+18,PVDF,1802,Fitting,1802004,Stub End,1802004001,Standard
+18,PVDF,1802,Fitting,1802005,Union,1802005001,Standard
+18,PVDF,1802,Fitting,1802007,Adapter,1802007001,Adapter
+18,PVDF,1802,Fitting,1802008,Transition Fitting,1802008001,Standard
+18,PVDF,1802,Fitting,1802016,Bush,1802016001,Standard
+18,PVDF,1803,Flange,1803001,Flange,1803001001,Flange
+18,PVDF,1804,Valve,1804001,Check Valve,1804001002,BW
+18,PVDF,1804,Valve,1804001,Check Valve,1804001003,Flange
+18,PVDF,1804,Valve,1804002,Ball Valve,1804002002,BW
+18,PVDF,1804,Valve,1804004,Diaphragm Valve,1804004001,Union Butt Type
+19,Filter,1901,Chemical Filter,1901001,Standard,1901001001,Entegris
+19,Filter,1902,Gas Filter,1902001,Standard,1902001001,Standard
+19,Filter,1902,Gas Filter,1902002,Purifier,1902002001,SUS 316L
+19,Filter,1903,Chemical Filter Housing,1903002,SUS,1903002003,Standard
+19,Filter,1904,Chemical Filter Cartridge,1904002,PP,1904002002,Standard
+19,Filter,1906,Water Treatment Filter,1906001,Standard,1906001001,Standard
+19,Filter,1907,PCW Filter,1907002,Filter Housing,1907002001,Standard
+19,Filter,1908,Air Filter,1908001,Filter,1908001001,Filter
+20,Regulator,2001,VCR,2001001,VCR,2001001001,Male VCR
+20,Regulator,2001,VCR,2001001,VCR,2001001002,Female VCR
+20,Regulator,2002,LOK,2002001,LOK,2002001001,LOK
+20,Regulator,2003,Standard,2003001,Standard,2003001001,Standard
+22,Environmental Equipment,2202,Air Pollution Control Equipment,2202001,Scrubber / Dust Collector,2202001001,Standard
+22,Environmental Equipment,2203,Noise & Vibration Control Equipment,2203001,Noise & Vibration Control Device,2203001007,Pump Inertia Base
+23,PP,2301,Fitting,2301002,90D Elbow,2301002001,Standard
+23,PP,2301,Fitting,2301003,45D Elbow,2301003001,Standard
+23,PP,2301,Fitting,2301004,Concentric Reducer,2301004001,Standard
+23,PP,2301,Fitting,2301006,Tee,2301006001,Standard
+23,PP,2301,Fitting,2301006,Tee,2301006004,Jacketed Double Containment
+23,PP,2301,Fitting,2301009,Union,2301009001,Socket
+23,PP,2301,Fitting,2301009,Union,2301009003,Weld
+23,PP,2301,Fitting,2301010,Socket,2301010001,Standard
+23,PP,2301,Fitting,2301010,Socket,2301010003,Jacketed Double Containment
+23,PP,2301,Fitting,2301013,R-Tee,2301013001,Standard
+23,PP,2301,Fitting,2301018,Cap,2301018001,Standard
+23,PP,2301,Fitting,2301020,Adapter,2301020001,Male
+23,PP,2301,Fitting,2301020,Adapter,2301020002,Female
+23,PP,2301,Fitting,2301021,Ring,2301021001,Standard
+23,PP,2301,Fitting,2301022,Guide,2301022001,Standard
+23,PP,2301,Fitting,2301024,Lock Nut,2301024001,Standard
+23,PP,2302,Valve,2302002,Ball Valve,2302002003,Butt Weld
+23,PP,2302,Valve,2302002,Ball Valve,2302002004,Socket
+23,PP,2302,Valve,2302004,Swing Check Valve,2302004001,Swing Check Valve
+23,PP,2302,Valve,2302005,Ball Check Valve,2302005001,Standard
+23,PP,2302,Valve,2302007,Relief Valve,2302007001,Standard
+23,PP,2302,Valve,2302012,Check Valve,2302012001,Standard
+23,PP,2303,Flange,2303001,Blind Flange,2303001001,Standard
+23,PP,2303,Flange,2303002,Flange,2303002001,Standard
+23,PP,2303,Flange,2303003,Adapter,2303003001,Standard
+23,PP,2304,Pipe,2304001,PP,2304001001,Standard
+23,PP,2310,Other,2310003,Union End Connector,2310003001,Standard
+23,PP,2310,Other,2310004,Standard,2310004001,Standard
+25,Copper & Brass,2501,Fitting,2501007,Union,2501007001,Standard
+25,Copper & Brass,2501,Fitting,2501011,Bushing,2501011001,Brass
+25,Copper & Brass,2503,Pipe,2503001,Copper / Brass,2503001001,Pipe / Tube
+25,Copper & Brass,2504,Valve,2504002,Ball Valve,2504002001,Brass
+25,Copper & Brass,2504,Valve,2504002,Ball Valve,2504002002,Cast Bronze
+25,Copper & Brass,2504,Valve,2504005,Check Valve,2504005001,Bronze
+25,Copper & Brass,2504,Valve,2504006,Relief Valve,2504006001,Brass
+25,Copper & Brass,2504,Valve,2504006,Relief Valve,2504006002,Bronze
+25,Copper & Brass,2504,Valve,2504007,Safety Valve,2504007001,Safety Valve
+25,Copper & Brass,2509,Pressure Reducing Valve,2509001,Brass,2509001001,Threaded
+26,Vacuum Piping,2601,Vacuum Piping Fabrication,2601001,Vacuum Piping Fabrication,2601001001,Pipe
+26,Vacuum Piping,2601,Vacuum Piping Fabrication,2601001,Vacuum Piping Fabrication,2601001003,Elbow
+26,Vacuum Piping,2601,Vacuum Piping Fabrication,2601001,Vacuum Piping Fabrication,2601001017,Reducer
+27,PVC SCH80,2701,Pipe,2701001,Pipe,2701001001,SCH80
+27,PVC SCH80,2702,Fitting,2702001,45D Elbow,2702001001,SCH80
+27,PVC SCH80,2702,Fitting,2702002,90D Elbow,2702002001,Standard
+27,PVC SCH80,2702,Fitting,2702003,Cap,2702003001,SCH80
+27,PVC SCH80,2702,Fitting,2702004,R-Tee,2702004001,SCH80
+27,PVC SCH80,2702,Fitting,2702005,Bushing,2702005001,SCH80
+27,PVC SCH80,2702,Fitting,2702006,Tee,2702006001,Standard
+27,PVC SCH80,2702,Fitting,2702007,Union,2702007001,SCH80
+27,PVC SCH80,2702,Fitting,2702008,Socket,2702008001,Standard
+27,PVC SCH80,2702,Fitting,2702009,Reducer,2702009001,Standard
+27,PVC SCH80,2702,Fitting,2702010,Coupling,2702010001,Coupling
+27,PVC SCH80,2702,Fitting,2702011,Y-Tee,2702011001,SCH80
+27,PVC SCH80,2702,Fitting,2702013,Adapter,2702013001,SCH 80
+27,PVC SCH80,2703,Flange,2703001,Flange,2703001001,Flange
+27,PVC SCH80,2703,Flange,2703001,Flange,2703001002,Blind Flange
+27,PVC SCH80,2704,Valve,2704001,Ball Valve,2704001001,Ball Valve
+28,Nickel Alloy Steel,2818,Other,2818001,Other,2818001001,Other
+29,C PVC,2901,Pipe,2901001,Standard,2901001001,SCH80
+29,C PVC,2901,Pipe,2901001,Standard,2901001002,Standard
+29,C PVC,2902,Fitting,2902001,90D Elbow,2902001001,SCH80
+29,C PVC,2902,Fitting,2902001,90D Elbow,2902001002,Standard
+29,C PVC,2902,Fitting,2902002,45D Elbow,2902002001,SCH80
+29,C PVC,2902,Fitting,2902002,45D Elbow,2902002002,Standard
+29,C PVC,2902,Fitting,2902003,Tee,2902003001,SCH80
+29,C PVC,2902,Fitting,2902003,Tee,2902003002,Standard
+29,C PVC,2902,Fitting,2902004,Socket,2902004001,SCH80
+29,C PVC,2902,Fitting,2902005,Union,2902005001,Socket Type
+29,C PVC,2902,Fitting,2902006,Reducing Coupling,2902006001,Standard
+29,C PVC,2902,Fitting,2902006,Reducing Coupling,2902006002,SCH80
+29,C PVC,2902,Fitting,2902008,Cap,2902008001,SCH80
+29,C PVC,2902,Fitting,2902009,Adapter,2902009001,C-PVC Adapter
+29,C PVC,2902,Fitting,2902010,Coupling,2902010001,C-PVC Coupling
+29,C PVC,2902,Fitting,2902011,Bushing,2902011001,C-PVC Bushing
+29,C PVC,2902,Fitting,2902012,Plug,2902012001,SCH80
+29,C PVC,2902,Fitting,2902013,Nipple,2902013001,SCH80
+29,C PVC,2903,Flange,2903001,Flange,2903001001,SCH80
+29,C PVC,2903,Flange,2903001,Flange,2903001002,Standard
+29,C PVC,2903,Flange,2903002,Blind Flange,2903002001,SCH80
+29,C PVC,2903,Flange,2903002,Blind Flange,2903002002,Standard
+29,C PVC,2903,Flange,2903003,Cover,2903003001,Standard
+29,C PVC,2904,Valve,2904001,Ball Valve,2904001007,Union Ball Socket
+29,C PVC,2904,Valve,2904001,Ball Valve,2904001008,Ball Check
+29,C PVC,2905,Solvent Cement (Adhesive),2905001,Solvent Cement (Adhesive),2905001001,Solvent Cement (Adhesive)
+29,C PVC,2906,Other,2906003,Other,2906003001,Standard
+30,Bolts / Nuts / Washers,3001,Steel,3001001,Hex (Machine) Bolt,3001001001,Steel
+30,Bolts / Nuts / Washers,3001,Steel,3001001,Hex (Machine) Bolt,3001001002,Galvanized Hex Bolt / Nut / 2-Washer Set (Machine Bolt)
+30,Bolts / Nuts / Washers,3001,Steel,3001001,Hex (Machine) Bolt,3001001003,H.V Hex A193 B7
+30,Bolts / Nuts / Washers,3001,Steel,3001002,Stud Bolt,3001002002,A193 B7
+30,Bolts / Nuts / Washers,3001,Steel,3001003,Nut,3001003005,A194 GR 2H
+30,Bolts / Nuts / Washers,3001,Steel,3001003,Nut,3001003006,Galvanized Hex Nut
+30,Bolts / Nuts / Washers,3001,Steel,3001003,Nut,3001003007,"Steel Hex Nut (Plain, Uncoated)"
+30,Bolts / Nuts / Washers,3001,Steel,3001003,Nut,3001003008,Rod Coupling Nut (Plain)
+30,Bolts / Nuts / Washers,3001,Steel,3001003,Nut,3001003013,SS400 Lock Nut
+30,Bolts / Nuts / Washers,3001,Steel,3001003,Nut,3001003015,Other
+30,Bolts / Nuts / Washers,3001,Steel,3001004,U-Bolt,3001004002,Galvanized
+30,Bolts / Nuts / Washers,3001,Steel,3001004,U-Bolt,3001004003,Insulating (Flange Isolation Kit)
+30,Bolts / Nuts / Washers,3001,Steel,3001005,Washer,3001005001,Flat Washer (Galvanized)
+30,Bolts / Nuts / Washers,3001,Steel,3001005,Washer,3001005002,Flat Washer (Plain)
+30,Bolts / Nuts / Washers,3001,Steel,3001005,Washer,3001005003,Split Lock Washer (Galvanized)
+30,Bolts / Nuts / Washers,3001,Steel,3001005,Washer,3001005004,Split Lock Washer (Standard)
+30,Bolts / Nuts / Washers,3001,Steel,3001005,Washer,3001005006,Hardened Flat Washer
+30,Bolts / Nuts / Washers,3001,Steel,3001005,Washer,3001005008,Square Washer
+30,Bolts / Nuts / Washers,3001,Steel,3001006,Threaded Rod (All-Thread),3001006001,Galvanized
+30,Bolts / Nuts / Washers,3001,Steel,3001006,Threaded Rod (All-Thread),3001006003,Steel
+30,Bolts / Nuts / Washers,3001,Steel,3001009,Anchor Bolt,3001009001,Drop-In Anchor
+30,Bolts / Nuts / Washers,3001,Steel,3001009,Anchor Bolt,3001009002,Adhesive Anchor
+30,Bolts / Nuts / Washers,3001,Steel,3001009,Anchor Bolt,3001009005,Stud Anchor
+30,Bolts / Nuts / Washers,3001,Steel,3001009,Anchor Bolt,3001009009,Wedge Anchor
+30,Bolts / Nuts / Washers,3001,Steel,3001009,Anchor Bolt,3001009010,Hilti-Type Anchor Rod
+30,Bolts / Nuts / Washers,3001,Steel,3001013,Insulating (Flange Isolation Kit),3001013001,Standard
+30,Bolts / Nuts / Washers,3001,Steel,3001015,Socket Head Cap Screw,3001015001,Hex Socket Drive
+30,Bolts / Nuts / Washers,3001,Steel,3001016,"I-Bolt, T-Bolt",3001016001,Galvanized
+30,Bolts / Nuts / Washers,3001,Steel,3001018,Teflon Coating,3001018001,Hex (Machine) Bolt
+30,Bolts / Nuts / Washers,3001,Steel,3001018,Teflon Coating,3001018002,Stud Bolt
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002001,Hex (Machine) Bolt,3002001001,Standard
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002001,Hex (Machine) Bolt,3002001003,H.V Hex Bolt / SUS (8A)
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002002,Stud Bolt,3002002002,A193 B8
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002002,Stud Bolt,3002002004,SUS 304/316
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002003,Threaded Rod (All-Thread),3002003001,SUS304
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002004,Nut,3002004005,A194 GR 8
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002004,Nut,3002004006,304 SS Hex Nut
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002004,Nut,3002004007,"Threaded Rod Coupling Nut, SS304"
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002004,Nut,3002004011,Heavy Nut
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002005,U-Bolt,3002005001,Stainless Steel
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002006,Washer,3002006001,Flat Washer
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002006,Washer,3002006002,Split Lock Washer
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002008,Anchor Bolt,3002008004,Stud Anchor
+30,Bolts / Nuts / Washers,3002,Stainless Steel (SUS),3002008,Anchor Bolt,3002008005,Wedge Anchor (Stainless)
+30,Bolts / Nuts / Washers,3004,PVC,3004001,PVC,3004001001,Hex Bolt
+30,Bolts / Nuts / Washers,3005,Hastelloy,3005001,Hastelloy C-276 Bolt / Nut,3005001001,Hastelloy C-276 Bolt / Nut
+30,Bolts / Nuts / Washers,3005,Hastelloy,3005001,Hastelloy C-276 Bolt / Nut,3005001002,Hexagon Bolt
+30,Bolts / Nuts / Washers,3005,Hastelloy,3005001,Hastelloy C-276 Bolt / Nut,3005001003,Stud Bolt
+30,Bolts / Nuts / Washers,3008,Other,3008001,Bolts,3008001001,Bolts
+30,Bolts / Nuts / Washers,3008,Other,3008002,Anchors,3008002001,Anchors
+32,Electrical Materials,3201,Wire & Cable,3201001,Wire,3201001001,Wire
+32,Electrical Materials,3201,Wire & Cable,3201004,Signal Cable,3201004001,Standard
+32,Electrical Materials,3202,"Wiring Accessories, Conduit & Raceway",3202002,Wire & Cable Accessories,3202002001,Wire & Cable Accessories
+32,Electrical Materials,3203,Power Distribution Equipment,3203001,Earth Leakage Circuit Breaker (ELCB),3203001001,Earth Leakage Circuit Breaker (ELCB)
+32,Electrical Materials,3203,Power Distribution Equipment,3203003,Distribution Panelboard,3203003002,MCC Panel
+32,Electrical Materials,3203,Power Distribution Equipment,3203004,Circuit Protector (MCCB),3203004001,Circuit Protector (MCCB)
+32,Electrical Materials,3205,Poles & Overhead Line Materials,3205001,Portable Cord,3205001001,Portable Cord
+32,Electrical Materials,3207,Other,3207001,Solenoid Valve,3207001001,SMC
+32,Electrical Materials,3207,Other,3207005,Other,3207005001,Other
+32,Electrical Materials,3208,PLC,3208001,PLC,3208001001,PLC
+32,Electrical Materials,3209,HMI,3209001,HMI,3209001001,HMI
+40,Capital Equipment,4001,Installation Equipment,4001001,Welding Equipment,4001001006,Fusion Welding Machine
+40,Capital Equipment,4001,Installation Equipment,4001001,Welding Equipment,4001001033,Socket Fusion Welder
+40,Capital Equipment,4001,Installation Equipment,4001003,Tool,4001001018,Tube Facing Machine
+40,Capital Equipment,4001,Installation Equipment,4001003,Tool,4001001020,Tube Facing Machine Accessories
+40,Capital Equipment,4001,Installation Equipment,4001003,Tool,4001003027,Jig
+40,Capital Equipment,4004,Quality Inspection Equipment,4001005,Measuring Instruments,4001005027,Digital Caliper
+45,Aluminum,4501,Pipe,4501001,Aluminum,4501001002,6063-T5 Aluminum
+45,Aluminum,4502,Other,4502001,Standard,4502001001,Standard
+68,Machinery & Equipment,6803,Heat Exchanger,6803001,Standard,6803001001,Standard
+68,Machinery & Equipment,6804,Other,6804002,Other,6804002002,Machine Parts
+69,Tank,6901,SUS 304 Tank,6901001,Standard,6901001001,Standard
+69,Tank,6901,SUS 304 Tank,6901002,Teflon Coating,6901002001,Standard
+69,Tank,6903,Steel Tank,6903004,Standard,6903004001,Standard
+71,Field Construction - Plant Division,7101,Main Construction Work,7101007,Piping Installation,7101007002,Main Piping Installation
+71,Field Construction - Plant Division,7105,Demolition Work,7105008,Demolition / Removal,7105008001,Piping Removal
+80,Safety Supplies,8001,Personal Protective Equipment (PPE),8001001,Personal Protective Equipment (PPE),8001001004,Personal Protective Equipment (PPE)
+80,Safety Supplies,8001,Personal Protective Equipment (PPE),8001001,Personal Protective Equipment (PPE),8001001006,Respirator / Face Mask
+80,Safety Supplies,8002,Safety Supplies,8002001,Common,8002001001,Standard
+89,Temporary Works Materials,8903,Scaffold Plank,8903001,Scaffold Plank,8903001001,Work Platform Plank
+90,Building & Civil Works Materials,9004,Cement,9004002,Grout,9004002001,Non-Shrink
+95,Miscellaneous Construction Materials,1501,Fire Extinguisher,1501005,Clean Agent Fire Extinguisher,1501005001,Clean Agent Fire Extinguisher
+95,Miscellaneous Construction Materials,2404,Rope & Hose,2404002,Hose,2404002002,Braided Reinforced Hose
+95,Miscellaneous Construction Materials,2404,Rope & Hose,2404002,Hose,2404002006,Duct Hose
+95,Miscellaneous Construction Materials,2404,Rope & Hose,2404002,Hose,2404002012,Air Hose
+95,Miscellaneous Construction Materials,2404,Rope & Hose,2404002,Hose,2404002014,High-Pressure Hose
+95,Miscellaneous Construction Materials,2404,Rope & Hose,2404002,Hose,2404002017,Other
+95,Miscellaneous Construction Materials,2404,Rope & Hose,2404003,Steel Wire & Tie Wire,2404003002,Stainless Steel Wire
+95,Miscellaneous Construction Materials,2405,Equipment Rental Charges,2405007,Other,2405007001,Standard
+95,Miscellaneous Construction Materials,9501,Tools,9501001,Hand Tools,9501001001,Wrenches
+95,Miscellaneous Construction Materials,9501,Tools,9501001,Hand Tools,9501001002,Spanner Wrenches
+95,Miscellaneous Construction Materials,9501,Tools,9501001,Hand Tools,9501001005,Nippers & Pliers
+95,Miscellaneous Construction Materials,9501,Tools,9501001,Hand Tools,9501001006,Adjustable Wrench
+95,Miscellaneous Construction Materials,9501,Tools,9501001,Hand Tools,9501001015,Tool Box
+95,Miscellaneous Construction Materials,9501,Tools,9501001,Hand Tools,9501001016,Hammer
+95,Miscellaneous Construction Materials,9501,Tools,9501002,Power Tools,9501002001,Cordless Drill
+95,Miscellaneous Construction Materials,9501,Tools,9501002,Power Tools,9501002010,Other
+95,Miscellaneous Construction Materials,9501,Tools,9501004,Cutting Tools,9501004002,Cut-Off Wheel
+95,Miscellaneous Construction Materials,9501,Tools,9501004,Cutting Tools,9501004009,Cutting Blades & Wheels
+95,Miscellaneous Construction Materials,9501,Tools,9501007,Pipefitting Tools,9501007002,Pipe / Tube Cutter
+95,Miscellaneous Construction Materials,9501,Tools,9501007,Pipefitting Tools,9501007005,Tube Bender
+95,Miscellaneous Construction Materials,9501,Tools,9501010,Measuring Tools,9501010001,Standard
+95,Miscellaneous Construction Materials,9501,Tools,9501014,Carbide Cutting Tools,9501014003,End Mill
+95,Miscellaneous Construction Materials,9501,Tools,9501017,Other,9501017001,Other
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503001,Welding Rod,9503001013,PFA / PP Welding Rod
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503001,Welding Rod,9503001016,Other
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503003,Tungsten Electrode,9503003001,Tungsten Electrode
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004001,Welding Torch Nozzle
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004002,"Electrode Holders, Leads & Ground Clamps"
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004006,Collet
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004007,Inspection Mirror & Welding Filter Lens
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004008,Wire Brush
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004009,"Torch Caps, Switches & Connectors"
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004010,Welding Torch Head
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004012,Tungsten Electrode Grinder
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503004,Welding Torch Parts,9503004014,Welding Torch Gas Hose
+95,Miscellaneous Construction Materials,9503,Welding Supplies,9503013,Welder PPE,9503013001,Protective Clothing & Personal Gear
+95,Miscellaneous Construction Materials,9504,Cleanroom & Acid-Resistant Supplies,9504008,Cleanroom Supplies,9504008002,Cleanroom Wiper
+95,Miscellaneous Construction Materials,9504,Cleanroom & Acid-Resistant Supplies,9504010,Other Supplies,9504010001,Other
+95,Miscellaneous Construction Materials,9510,Stickers & Printed Labels,9510001,Stickers & Nameplates,9510001001,Sticker (Label)
+95,Miscellaneous Construction Materials,9510,Stickers & Printed Labels,9510001,Stickers & Nameplates,9510001002,Nameplates & Printing
+95,Miscellaneous Construction Materials,9510,Stickers & Printed Labels,9510002,Tag,9510002001,Tag
+95,Miscellaneous Construction Materials,9510,Stickers & Printed Labels,9510003,Label,9510003001,Label Stock & Cartridges
+95,Miscellaneous Construction Materials,9512,Tapes,9512001,Tape,9512001001,3M Tape
+95,Miscellaneous Construction Materials,9512,Tapes,9512001,Tape,9512001003,PTFE Thread Seal Tape
+95,Miscellaneous Construction Materials,9512,Tapes,9512001,Tape,9512001004,Office & General Purpose Tape
+95,Miscellaneous Construction Materials,9512,Tapes,9512001,Tape,9512001005,Heat-Shrink Tape / Sleeve
+95,Miscellaneous Construction Materials,9591,Other Consumables & Fabricated Materials,9591001,Other Consumables,9591001001,Other Consumables
+95,Miscellaneous Construction Materials,9591,Other Consumables & Fabricated Materials,9591001,Other Consumables,9591001002,"Paint, Lacquer & Red Lead Primer"
+95,Miscellaneous Construction Materials,9591,Other Consumables & Fabricated Materials,9591001,Other Consumables,9591001003,"Adhesives, Sealants & Urethane Foam"
+95,Miscellaneous Construction Materials,9591,Other Consumables & Fabricated Materials,9591001,Other Consumables,9591001004,Chemicals & Lubricants
+95,Miscellaneous Construction Materials,9593,Miscellaneous Electrical Materials,9593002,Relays & Terminals,9593002003,Terminal Lug
+95,Miscellaneous Construction Materials,9594,Locks & Lockout Devices,9594003,Master Key Lock,9594003001,"Master Key Padlock, Other"
+95,Miscellaneous Construction Materials,9595,Outsourced Fabrication,9595001,Fabricated Items / Fabrication Cost,9595001001,Standard
+95,Miscellaneous Construction Materials,9595,Outsourced Fabrication,9595001,Fabricated Items / Fabrication Cost,9595001002,Machining / Fabrication
+96,Chemicals,9603,Chemicals,9603001,Chemicals,9603001001,Chemicals
+97,Resource Category (Subcontract),9701,Piping Installation Labor,9701009,Piping (Subcontracted),9701009001,Piping
+97,Resource Category (Subcontract),9712,Equipment Installation Work,9712001,Equipment Installation Work,9712001001,Equipment Installation Work
+97,Resource Category (Subcontract),9760,Custom Fabrication & Delivery,9760002,Tank Fabrication & Installation,9760002001,Tank Fabrication & Installation
+97,Resource Category (Subcontract),9797,Subcontract Common Indirects,9797001,Bid Summary Sheet,9797001005,Safety Management Cost

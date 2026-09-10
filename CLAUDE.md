@@ -97,6 +97,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched.
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170): the six-field key, `isEmptyItemRow`, and `PR_ITEM_MERGE_COPY`. Applied in `parseFormState`, previewed by the form.
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188): the restore names, both voices of the copy, and the recorder all four rollbacks write into. **A restore that fails is named on screen and logged with its record id, never swallowed** — and never written to Airtable, which is what just failed.
+- `lib/materialCategory.js` — the composed label a category carries (#354): the four levels, the two words that drop out, the separator, and the Airtable formula generated from all three. **Nothing here writes a label.**
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies (#334, narrowed in #335): three statuses, four events, and the status each event leaves behind. No call site passes `createToolLogEntry` a string literal.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the actor's-own-jobs rule, and every word the screen says. Applied by the action, previewed by the form.
@@ -148,7 +149,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 
 Two implementations of one judgment diverge, and catching the divergence then needs a third thing. A duplication is not closed by "leave it as two for now": if there is a real reason to keep two, that reason has to be a **measurable condition**, and the path to merging when it lifts has to be written down.
 
-## Data model (25 tables)
+## Data model (26 tables)
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index above.
 
@@ -186,6 +187,8 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Materials**: **item identity** (#18). Natural key = Item Name + Size + Unit. `Unit` is the same 19-value single select as the three item tables (see Units). Writable: those three fields, and nothing else. Computed: `Material Label` (primary, formula = `Item Name` + `_Size` + `_Unit`, omitting blanks), `_Record ID`, the `Committed Qty` / `Signed Qty` / `Invoiced Qty` rollups and the `Uninvoiced Qty` formula. The `Material Prices` and `PO Items` links are both maintained from the far side. USD only.
 
+**Material Categories**: HQ's four-level tree, one row per path (#354). `Category Label` (primary, formula; the rule is `lib/materialCategory.js`), `Level 1–4 Code` / `Level 1–4 Category` (all singleLineText; **a code is text and never a number**), `Materials` (reverse-link, #356). Reference data, loaded re-runnably from a committed CSV, keyed on `Level 4 Code`.
+
 **Material Prices**: item × vendor (#18). Natural key = Material + Vendor. `Price Label` (primary, formula over the two links), `Material` / `Vendor` (links, single), `Unit Price`, `Latest Date` (calendar), `Latest PO` (link), and `Material Record ID` / `Vendor Record ID` lookups. Still a latest-value cache.
 
 **Deliveries**: one recorded delivery (#162). `Delivery ID` (HYE-DL-YYMMDD-##), `Job` / `Vendor` (links, single), `Packing List PO` (link, single, optional), `Received Date` (calendar), `Recorded By` (link → Users, single), `Created At` (datetime, UTC), `Notes` (long text, optional), `Packing List File` (attachment, required at creation), `Delivery Items` (reverse-link), `Invoices` (reverse-link, plural).
@@ -204,12 +207,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 ### Units (PR Items / PO Items / Invoice Items / Materials / Delivery Items)
 
-One single-select field, shared 19-value list: EA, FT, SET, LS, LOT, M, ROLL, PCS, SHEET, M/D, FIT, SQFT, IN, Lengths, KG, PSI, TUBES, PACK, ST.
-
-- JS source of truth is `lib/units.js:CANONICAL_UNITS`; `scripts/import/add_unit_options.py` keeps a duplicate list Python cannot import, and `offline/unit-options.mjs` asserts the two agree.
-- **Never use `typecast` on a Unit write.** It invents an option, which is how a canonical list silently gains a 20th value. Omit an empty Unit instead — `Unit: ""` is a request to create an empty option and is refused.
-- Choice colors are part of the list and only `add_unit_options.py` can set them, on field CREATE. Leave the Unit field off a new table and let the script add it.
-- **A choice added by hand in Airtable is invisible to every file-only check** — `verify-unit-options-18.mjs` is what compares the live fields against the canonical list.
+One shared 19-value single select, source of truth `lib/units.js:CANONICAL_UNITS`. **Never use `typecast` on a Unit write** — it invents an option, which is how a canonical list silently gains a 20th value; omit an empty Unit instead. **Leave the Unit field off a new table** and let `scripts/import/add_unit_options.py` create it. The derivation is in `airtable-access.md`.
 
 ### Screen words and the fields behind them
 
