@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import Link from "next/link";
 import { permanentRedirect } from "next/navigation";
 import { requireUser } from "@/lib/authz";
@@ -7,7 +8,9 @@ import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { getToolLogByToolItem } from "@/lib/airtable/toolLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
-import { TOOLS_PATH, toolItemPath } from "@/lib/toolRoutes";
+import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
+import { TOOL_LABEL_SHEET_COPY as SHEET_COPY, labelBudget, symbolBox } from "@/lib/toolLabelSheet";
+import { TOOLS_PATH, toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // The param and no lookup, which is what all four document detail screens do and
@@ -122,6 +125,20 @@ async function renderToolItemPage({ params }) {
         { key: "job", label: COPY.jobLabel, value: jobCodeById[toolItem.job?.[0]] },
     ];
 
+    // The host the symbol encodes, from the public host behind Vercel's proxy —
+    // the same source both label screens read, so a symbol shown here and a symbol
+    // printed there encode the same string. No Airtable operation.
+    const headerList = await headers();
+    const proto = headerList.get("x-forwarded-proto") ?? "http";
+    const symbol = await buildToolItemQR({
+        origin: `${proto}://${headerList.get("host") ?? ""}`,
+        toolItemId: toolItem.toolItemId,
+    });
+    // Derived against today's version plus the stock's headroom, then applied to
+    // the side count this symbol actually came out at.
+    const { moduleMm } = labelBudget({ sideModules: QR_SIDE_MODULES });
+    const { boxMm: symbolMm } = symbolBox({ sideModules: symbol.sideModules, moduleMm });
+
     return (
         <div>
             <h1>{toolItem.toolItemId}</h1>
@@ -134,6 +151,31 @@ async function renderToolItemPage({ params }) {
                     </div>
                 ))}
             </dl>
+
+            {/* THE SYMBOL, BUILT HERE RATHER THAN FETCHED (#352). #351's endpoint
+                served one as an image and expected this page to be its caller;
+                inlining costs no Airtable operation at all, because the two the
+                endpoint spent were the session and THIS RECORD — both already read
+                above — and the second existed to refuse an id with no row, which
+                the not-found return has already done. That left the endpoint with
+                no caller, so #352 deleted it.
+
+                IT IS DRAWN AT ITS PRINTED SIZE, from the same two functions the
+                sheet uses: the module size derived once for the stock, and the box
+                from THIS symbol's own side count. Passing `QR_SIDE_MODULES` to the
+                box instead would scale a larger version into today's box and thin
+                its modules, which is the defect #353 measured in a browser. */}
+            <h2>{COPY.labelHeading}</h2>
+            <div
+                style={{ width: `${symbolMm}mm`, height: `${symbolMm}mm` }}
+                dangerouslySetInnerHTML={{ __html: symbol.svg }}
+            />
+            <p>{COPY.printedSizeNote}</p>
+            <p>
+                <Link href={toolItemLabelsPath([toolItem.toolItemId])}>
+                    {SHEET_COPY.openFromToolItem}
+                </Link>
+            </p>
 
             <h2>{COPY.historyHeading}</h2>
             {log.length === 0 ? (

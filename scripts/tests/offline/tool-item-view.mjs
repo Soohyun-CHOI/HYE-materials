@@ -24,8 +24,12 @@
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { TOOL_EVENT } from "../../../lib/toolStatus.js";
-import { TOOL_ITEM_COPY, logRowFacts } from "../../../lib/toolItemView.js";
+import { EVENT_AT_FORMAT, TOOL_ITEM_COPY, formatEventAt, logRowFacts } from "../../../lib/toolItemView.js";
+import { parseFile, parseSource, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+
+/** The screen this file is about, read off the AST for section 5. */
+const PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
 
 export const title = "What one tool item's page shows (#340)";
 
@@ -70,10 +74,13 @@ export function run({ check, assert, log }) {
         logRowFacts(FULL_ROW).map((f) => f.label).join(" / "),
         "Event / When / Job / Recorded by / Notes"
     );
+    // The four that pass through untouched. The moment does not, so it is asserted
+    // on its own below — its rendering depends on the runtime's locale and zone, and
+    // a string pinned here would pass on this machine and fail in CI.
     check(
         "and the values are the ones handed in",
-        logRowFacts(FULL_ROW).map((f) => f.value).join(" / "),
-        "Registered / 2026-09-09T15:14:26.537Z / 26-DEMO-01 / scoped-fixture / Bought with the second batch"
+        logRowFacts(FULL_ROW).filter((f) => f.key !== "eventAt").map((f) => f.value).join(" / "),
+        "Registered / 26-DEMO-01 / scoped-fixture / Bought with the second batch"
     );
 
     // ── 2: `Notes` is the one that drops ───────────────────────────────────
@@ -135,9 +142,178 @@ export function run({ check, assert, log }) {
     // `Tool Items` and names no row, so it may not reach a screen (#338).
     check("no string says `kind`", strings.filter((s) => /\bkinds?\b/i.test(s)).length, 0);
 
+    // ── 4b: the moment, a date and a time and nothing finer ────────────────
+    log("");
+    log("a log entry's moment renders as a date and a time to the minute:");
+    // PINNED AS THE OPTION SET RATHER THAN AS THE STRING. `toLocaleString` resolves
+    // against the runtime's locale and timezone, so the rendered text differs
+    // between this machine and CI — asserting it by value would be a check that
+    // passes where it was written. The DECISION is which parts of the moment
+    // appear, and that is the object.
+    check("the parts that appear", JSON.stringify(EVENT_AT_FORMAT), '{"year":"numeric","month":"numeric","day":"numeric","hour":"numeric","minute":"2-digit"}');
+    assert("  no seconds", !("second" in EVENT_AT_FORMAT));
+    assert("  and no fractional seconds", !("fractionalSecondDigits" in EVENT_AT_FORMAT));
+
+    const ISO = "2026-09-09T15:14:26.537Z";
+    const shown = formatEventAt(ISO);
+    assert("the stored instant is not shown as itself", shown !== ISO);
+    assert("  the machine separator is gone", !shown.includes("T"));
+    assert("  the milliseconds are gone", !shown.includes(".537"));
+    assert("  and a time is still there", /\d:\d{2}/.test(shown));
+    // The function must honor the exported constant rather than passing its own
+    // options — the mutation this catches is a `second` added at the call site
+    // while the constant stays put.
+    check(
+        "the formatter uses that exact object",
+        shown,
+        new Date(ISO).toLocaleString(undefined, EVENT_AT_FORMAT)
+    );
+
+    // AND THE FOURTH COPY IS HELD TO THE FIRST. `/prs/[prId]`'s history writes the
+    // same five options inline and is the precedent this followed; extracting one
+    // formatter would edit another area's screens, so the duplication stays and is
+    // pinned instead. This reads that file rather than trusting the comment.
+    const prsHistory = parseFile("app/prs/[prId]/page.js");
+    let prsOptions = null;
+    walk(prsHistory.ast, (n) => {
+        if (n.type !== "CallExpression") return;
+        if (n.callee?.property?.name !== "toLocaleString") return;
+        const arg = n.arguments?.[1];
+        if (arg?.type !== "ObjectExpression") return;
+        prsOptions = Object.fromEntries(arg.properties.map((p) => [p.key?.name, p.value?.value]));
+    });
+    assert("the request history's own options were found", prsOptions !== null);
+    check(
+        "  and they are the same five",
+        JSON.stringify(prsOptions),
+        JSON.stringify(EVENT_AT_FORMAT)
+    );
+
+    // An unparseable value comes back unchanged rather than as `Invalid Date`,
+    // because a log row's four facts never drop and there is always a pair to fill.
+    check("a blank stays blank", formatEventAt(""), "");
+    check("  a string this cannot read stays itself", formatEventAt("not a date"), "not a date");
+    check("  and a missing value stays missing", formatEventAt(undefined), undefined);
+    assert("  so no pair ever says Invalid Date", !String(formatEventAt("")).includes("Invalid"));
+
+    // ── 5: the symbol, and the two things this page must NOT do (#352) ─────
+    log("");
+    log("the symbol is built here and printed elsewhere:");
+    const page = parseFile(PAGE);
+    const imports = [];
+    walk(page.ast, (n) => {
+        if (n.type === "ImportDeclaration") imports.push(n.source.value);
+    });
+    const names = [];
+    walk(page.ast, (n) => {
+        if (n.type === "Identifier") names.push(n.name);
+    });
+    // CALLED, NOT MERELY NAMED. An identifier list is satisfied by the import line
+    // on its own — measured: deleting the reprint link's call left
+    // `toolItemLabelsPath` in `names` and the assertion passed. So anything this
+    // page must DO is asserted as a call site.
+    const called = new Set();
+    walk(page.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.type === "Identifier") called.add(n.callee.name);
+    });
+
+    // BUILT, NOT FETCHED. #351's endpoint spent two operations — the session and
+    // this record — and the page has both in hand before the symbol exists, so the
+    // import is the whole decision. A regression to an image would be silent: the
+    // symbol looks identical and the page just costs two more operations.
+    assert("the page imports the builder", imports.some((from) => from.endsWith("toolLabelQR")));
+    assert("  and calls it", called.has("buildToolItemQR"));
+    check(
+        "  naming no fetched address, since that route is gone",
+        names.filter((name) => name === "toolItemQRPath" || name === "QR_ROUTE").length,
+        0
+    );
+
+    // SIZED BY THIS SYMBOL'S OWN SIDE COUNT, which is #353's measured defect one
+    // screen over: the module size is derived once for the stock, and passing the
+    // constant to the BOX scales a larger version into today's box and thins its
+    // modules.
+    //
+    // THE ARGUMENT IS READ, NOT THE NAME. Asserting that `symbolBox`, `labelBudget`
+    // and `QR_SIDE_MODULES` all APPEAR would pass with the two arguments swapped,
+    // which is the defect — a check that names what it is looking for and then
+    // cannot tell the two apart is the trap #351 and #353 each fell into once. So
+    // the `sideModules` each call receives is read off the call site.
+    const sideModulesArgOf = (fn) => {
+        let found = null;
+        walk(page.ast, (n) => {
+            if (n.type !== "CallExpression" || n.callee?.name !== fn) return;
+            const arg = n.arguments?.[0];
+            if (arg?.type !== "ObjectExpression") return;
+            const prop = arg.properties.find((p) => p.key?.name === "sideModules");
+            if (!prop) return;
+            found =
+                prop.value.type === "Identifier"
+                    ? prop.value.name
+                    : prop.value.type === "MemberExpression"
+                      ? `${prop.value.object?.name}.${prop.value.property?.name}`
+                      : prop.value.type;
+        });
+        return found;
+    };
+    check("the module size is derived from the constant", sideModulesArgOf("labelBudget"), "QR_SIDE_MODULES");
+    check("  and the box from this symbol's own count", sideModulesArgOf("symbolBox"), "symbol.sideModules");
+    // ANTI-VACUITY: the reader is shown telling the two apart on a planted swap, so
+    // the two checks above are a fact about the call sites rather than about a
+    // reader that returns the same thing whatever it is given.
+    {
+        const planted = parseSource(
+            "const a = labelBudget({ sideModules: symbol.sideModules });\n" +
+                "const b = symbolBox({ sideModules: QR_SIDE_MODULES, moduleMm });\n",
+            "<planted-swap>"
+        );
+        const read = (fn) => {
+            let got = null;
+            walk(planted.ast, (n) => {
+                if (n.type !== "CallExpression" || n.callee?.name !== fn) return;
+                const prop = n.arguments[0].properties.find((p) => p.key?.name === "sideModules");
+                got = prop.value.type === "Identifier" ? prop.value.name : `${prop.value.object?.name}.${prop.value.property?.name}`;
+            });
+            return got;
+        };
+        check("  a swapped pair reads as swapped", `${read("labelBudget")}|${read("symbolBox")}`, "symbol.sideModules|QR_SIDE_MODULES");
+    }
+
+    // PRINTS NOTHING ITSELF, which is what keeps "the same physical object as the
+    // original" true by construction rather than by comparison: the reprint is the
+    // sheet screen, so there is no second layout to drift. A print path here would
+    // also be a reprint without a start position, and a reprint is the archetypal
+    // part-used sheet.
+    assert("it links to the sheet screen", called.has("toolItemLabelsPath"));
+    check(
+        "  and implements no print path of its own",
+        [
+            imports.some((from) => from.endsWith(".css")) ? "a stylesheet" : "",
+            names.includes("print") ? "a print call" : "",
+            page.source.includes("@page") ? "a page box" : "",
+            page.source.includes("window.print") ? "window.print" : "",
+        ].filter(Boolean).join(", "),
+        ""
+    );
+
+    // The words, and the one that is a VISIBLE ATTRIBUTE so it may not be a literal
+    // in the JSX — `offline/tool-list-view.mjs` fails an `alt` on this axis, and it
+    // doubles as what a reader sees when a symbol cannot load.
+    assert("the section names the label", TOOL_ITEM_COPY.labelHeading === "Label");
+    assert("the alt names the thing rather than the picture", TOOL_ITEM_COPY.symbolAlt.includes("tool item"));
+    assert("and the printed-size note says so", TOOL_ITEM_COPY.printedSizeNote.includes("prints"));
+
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");
     log("anti-vacuity — this check is seen to be able to fail:");
+    // The page reader is shown finding something it would have to miss for the
+    // three zeros above to be vacuous, and the print detector is shown firing on a
+    // planted print path.
+    assert("the page reader really read the page", called.has("logRowFacts") && imports.length > 5);
+    assert(
+        "  and the print detector sees a planted one",
+        parseSource('const a = 1; window.print();\n', "<planted-print>").source.includes("window.print")
+    );
     // Assertions 2 and 3 are counts, and a function returning a fixed list would
     // satisfy one of them however it was broken. So the two directions are proved
     // against each other on the same input.

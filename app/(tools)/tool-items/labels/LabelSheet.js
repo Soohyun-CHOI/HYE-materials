@@ -104,18 +104,14 @@ export default function LabelSheet({ labels, origin, sideModules }) {
                     </p>
                 )}
 
+                {/* NO SELECT-ALL AND NO SELECT-NONE. Everything the address named
+                    starts included, so select-all was a control for the state the
+                    screen already opens in, and select-none put the sheet into the
+                    one state it refuses to print from. What is left is the per-label
+                    include, which is the only one of the three that reaches a state
+                    a reader wants: this run less a label or two. A run is a handful,
+                    so unchecking them one at a time is the whole interaction. */}
                 <h2>{COPY.selectionHeading}</h2>
-                <p>
-                    <button type="button" onClick={() => setExcluded(new Set())}>
-                        {COPY.selectAll}
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setExcluded(new Set(printable.map((label) => label.toolItemId)))}
-                    >
-                        {COPY.selectNone}
-                    </button>
-                </p>
                 <ul>
                     {printable.map((label) => (
                         <li key={label.toolItemId}>
