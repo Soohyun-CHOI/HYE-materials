@@ -38,6 +38,13 @@ four document detail screens take with theirs.
 **action.** A way back to `/tools`, carrying the same words the tool item's
 screen carries for the same trip.
 
+**action.** A control that prints labels for **the tool items on this page**
+(#353), and the scope is in its own words rather than left to be inferred. This
+screen reads its tool items a page at a time, so a render holds ten printed ids
+and no more; a tool with more than that is printed a page at a time. **A design
+must not offer "print all of this tool"** — that would need a read of every tool
+item under it, which is the cost the paging exists to avoid.
+
 **evidence.** How many tool items this tool has in total. #326 names this
 as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning

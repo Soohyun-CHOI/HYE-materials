@@ -74,6 +74,14 @@ does not repeat it and a copied link shows a stranger nothing.
 **Each of those ids opens the tool item it names (#340)**, so the account is a
 way onward and not only a record.
 
+**And the account carries the control that prints their labels (#353)**, which
+is the way onward that matters most: a tool item with no label is a row nothing
+can reach, so registering is not finished until the stickers exist. It carries
+every id it just listed across to the sheet. **This is the only screen that can
+offer it for THESE tool items** — the ids are in the submission's answer and
+nowhere else — which is why the control belongs beside them rather than on a
+list somebody navigates back to.
+
 **When fewer were written than were asked for:** the account additionally says
 how many of how many, that what was written stays, and that the remainder can
 be registered again — which lands them under the same tool. **The rows already
@@ -106,12 +114,14 @@ from what one server invocation can write — three Airtable operations per tool
 item — and the refusal tells the reader to repeat the form. A design that reads
 it as a limit on how many of a kind the company may own would be wrong.
 
-**This screen's answer is the only place those ids appear together.** Leaving
-the page loses the list; each row is still reachable, since #339 the tool list
-opens the tool these landed under and that screen lists every tool item under
-it. What does not survive is which of them this submission wrote, and that is
-accepted rather than overlooked — printing labels is a later phase. It is also
-the reason the account names every id instead of counting.
+**This screen's answer is the only place those ids appear together**, and since
+#353 that is what the label sheet depends on. Leaving the page loses the list;
+each row is still reachable, since #339 the tool list opens the tool these
+landed under and that screen lists every tool item under it. What does not
+survive is which of them this submission wrote — so the control that prints
+their labels has to be here, on the answer, rather than on a screen somebody
+comes back to. It is also the reason the account names every id instead of
+counting.
 
 **A tool item's id is printed and glued to a tool.** Two rows sharing one id
 means two tools wearing one label, which is why nothing in the app deletes a

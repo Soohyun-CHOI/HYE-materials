@@ -4,7 +4,8 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemsByTool } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
-import { TOOLS_PATH, toolItemPath, toolPath } from "@/lib/toolRoutes";
+import { TOOL_LABEL_SHEET_COPY as SHEET_COPY } from "@/lib/toolLabelSheet";
+import { TOOLS_PATH, toolItemLabelsPath, toolItemPath, toolPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Static, the way `/materials/[materialId]` is and for the same reason: the
@@ -105,6 +106,21 @@ async function renderToolPage({ params, searchParams }) {
             ) : (
                 <>
                     <p>{COPY.total(page.total)}</p>
+
+                    {/* The label sheet for what is on THIS page, and the scope is
+                        the paging's rather than a choice (#353). The page reads one
+                        slice of the tool's link array, so ten printed ids are what
+                        this render holds; offering the whole tool would need a read
+                        of every tool item under it, which is the cost #339 divided
+                        the read to avoid. A tool with more is printed a page at a
+                        time. Its word is the label screen's own. */}
+                    <p>
+                        <Link
+                            href={toolItemLabelsPath(toolItems.map((toolItem) => toolItem.toolItemId))}
+                        >
+                            {SHEET_COPY.openFromTool}
+                        </Link>
+                    </p>
 
                     {/* Oldest first, which is the link array's own order and so
                         ascending `Tool Item ID` — the number a person reads off a

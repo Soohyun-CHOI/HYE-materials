@@ -103,6 +103,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the canonical form of a printed id.
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351): what it encodes, the error-correction level, the quiet zone, and the version measured rather than looked up.
+- `lib/toolLabelSheet.js` — the sheet a tool label prints on (#353): the stock's dimensions in one place, millimeters per module derived from them, the label's own budget, and every word the screen says.
 - `lib/toolListView.js` — the two tools list screens (#339), and every word they say. **The app's first paging, and the only one that can divide the READ** — nothing gates a tool item per row, which is what #326 says a document list's page cannot do.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
