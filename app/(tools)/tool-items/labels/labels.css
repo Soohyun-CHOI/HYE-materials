@@ -1,0 +1,119 @@
+/*
+ * The app's first print stylesheet (#353). Nothing else in this repository has an
+ * `@page` rule, a `@media print` block or a physical unit — measured before it was
+ * written, all three at zero across `app/` and `lib/`.
+ *
+ * WHY IT IS A STYLESHEET AND NOT INLINE. Two of the three rules below cannot be
+ * expressed anywhere else: `@page` is a page-box rule with no element to attach to,
+ * and hiding the app's own chrome at print needs a selector reaching outside this
+ * component. An inline `<style>` string was the other option and is barred on this
+ * axis — `offline/tool-list-view.mjs` fails a string literal in a JSX expression
+ * container, which is exactly what one is.
+ *
+ * `@page size` IS THE ONE FIGURE SPELLED TWICE, and the reason is the language: the
+ * page box cannot read a custom property, so `letter` is a literal here while
+ * `lib/toolLabelSheet.js:LABEL_STOCK.page` is what says what it must be.
+ * `offline/tool-label-sheet.mjs` compares this file against that constant, the same
+ * arrangement `LABEL_REWRITE` has with `next.config.mjs` (#348). Every OTHER
+ * dimension arrives as an inline style computed from that object, so changing stock
+ * touches the object and this one keyword.
+ *
+ * `margin: 0` IS LOAD-BEARING RATHER THAN TIDY. A browser's default page margin is
+ * around half an inch, and it would push the whole sheet down and across by that
+ * much — every label off its die-cut by more than a label's height. The stock's own
+ * top and left margins are what position the first label, so the page box has to
+ * start at the paper's corner for them to mean anything.
+ *
+ * WHAT THIS FILE CANNOT DO ANYTHING ABOUT: the scale in the browser's print dialog.
+ * A reader who prints at `Fit to page` gets every dimension multiplied by whatever
+ * that comes to. `@page size` is what makes the default scale correct — the page box
+ * matches the paper, so there is nothing to fit — but a person can still override
+ * it, and no CSS can refuse.
+ */
+
+@page {
+    size: letter;
+    margin: 0;
+}
+
+/* One sheet: a page-sized box that labels are placed onto absolutely, because the
+   offsets belong to the die-cut rather than to a layout. A grid would distribute
+   the gaps and the gaps are already fixed. */
+.label-sheet {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+}
+
+.label-cell {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* The symbol's box is sized inline to `QR_SIDE_MODULES` worth of millimeters — the
+   count INCLUDING its four modules of quiet zone. Nothing may be drawn over it, so
+   it is a flex item that cannot shrink and the text sits beside it. */
+.label-symbol svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.label-text {
+    min-width: 0;
+    overflow: hidden;
+}
+
+/* The readable id is the fallback for a symbol somebody has scratched or painted
+   over, so it may not be cut off. Its SIZE is a floor set in
+   `lib/toolLabelSheet.js`; raising it is the design's to do. */
+.label-id {
+    white-space: nowrap;
+}
+
+.label-tool {
+    overflow: hidden;
+}
+
+@media print {
+    /*
+     * The paper carries labels and nothing else. ONE CLASS DOES IT, AND THE
+     * REASON IT IS NOT `.label-controls` IS A BUG THIS COMMENT USED TO DESCRIBE
+     * AWAY: it claimed to hide the heading and the navigation while the rule only
+     * reached the picker, so the `<h1>` — 24px of it, rendered by the page rather
+     * than by the sheet's own component — printed above the first sheet. A sheet
+     * is exactly one page tall against a page box with no margin, so that
+     * heading took page one and every sheet moved down by a page. Reported from
+     * a real print, which is the one place it is visible: no check in this
+     * repository renders, and the browser pane cannot reach a print preview.
+     *
+     * So the class names the PROPERTY — this is for the screen — and both the
+     * page and the sheet's component put everything that is not a label inside
+     * it. `offline/tool-label-sheet.mjs` requires that of every heading,
+     * sentence and link on the route.
+     */
+    .label-screen-only {
+        display: none;
+    }
+
+    .label-sheet {
+        /* Each sheet is its own page. `break-after` on the last one would leave a
+           trailing blank page, so it is `break-before` on every one but the first. */
+        break-inside: avoid;
+    }
+
+    .label-sheet + .label-sheet {
+        break-before: page;
+    }
+
+    /* A browser drops backgrounds at print by default. The symbol's own white box is
+       a painted path rather than a background, so it survives either way — this is
+       for the sheet beneath it, which has to stay white on colored stock previews. */
+    :root {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}

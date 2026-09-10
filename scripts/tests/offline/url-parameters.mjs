@@ -108,6 +108,21 @@ const CARRIED = [
         note: "#339 — which page of this tool's tool items, 1-based. Written by the two steps at the foot of the list and by `toolPath`; a value that is not a page resolves to one rather than rendering nothing",
     },
 
+    // ── a selection: which records the screen is built from ────────────────
+    // A FIFTH GROUP, AND THE FIRST PLURAL PARAMETER THE APP CARRIES (#353). It is
+    // not a filter, because there is no list it narrows — without it this screen has
+    // nothing to render at all; not a navigation, because that opens a form ON a
+    // record and this constitutes the whole page; not a slice, because it is not a
+    // part of something longer; and not an account, because it says what the next
+    // act is FOR rather than that an act happened. That last distinction is what
+    // keeps it clear of #321: a copied link is a perfectly good request to print
+    // those labels again, which is exactly what a confirmation must never be.
+    {
+        route: "/tool-items/labels",
+        param: "id",
+        note: "#353 — which tool items to print labels for; repeatable, a printed `Tool Item ID` each, canonicalized and de-duplicated then capped at the largest registration. Written by the link on a registration's own answer, where the minted ids live and nowhere else, and by the one on a tool's page",
+    },
+
     // ── a one-time account of something the screen does not otherwise say ───
     {
         route: "/invoices/[invoiceId]",

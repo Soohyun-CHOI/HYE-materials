@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { toolItemPath } from "@/lib/toolRoutes";
+import { TOOL_LABEL_SHEET_COPY as SHEET_COPY } from "@/lib/toolLabelSheet";
+import { toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
 import { useActionState, useState } from "react";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
@@ -176,6 +177,18 @@ export default function ToolRegistrationForm({ tools, jobs }) {
                             </li>
                         ))}
                     </ul>
+                    {/* And the way onward that matters most, because a tool item
+                        with no label is a row nothing can reach (#353). This
+                        account is the ONLY place these ids appear together — a
+                        reload loses it — so the link that leaves is the only way
+                        the selection can cross into the sheet. Its word is the
+                        label screen's own, the way this form's control on `/tools`
+                        takes its word from this screen's heading. */}
+                    <p>
+                        <Link href={toolItemLabelsPath(registered)}>
+                            {SHEET_COPY.openFromRegistration}
+                        </Link>
+                    </p>
                     {state.unloggedToolItemIds.length > 0 && (
                         <>
                             <p>{COPY.unlogged}</p>
