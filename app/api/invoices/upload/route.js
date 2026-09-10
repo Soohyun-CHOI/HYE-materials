@@ -47,7 +47,7 @@ export async function POST(request) {
                         maximumSizeInBytes: MAX_UPLOAD_BYTES,
                     };
                 },
-                // Not relied on — see CLAUDE.md's File uploads section for why.
+                // Not relied on — see docs/notes/uploads-and-drafts.md for why.
                 onUploadCompleted: async ({ blob }) => {
                     console.log("Invoice blob upload completed:", blob.url);
                 },

@@ -4,6 +4,7 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getActiveUsers } from "@/lib/airtable/users";
+import { getCategoryTree } from "@/lib/airtable/materialCategories";
 import { getDraftsByRequester } from "@/lib/airtable/purchaseRequests";
 import { loadPRDraft } from "@/lib/prDraft";
 import PRForm from "./PRForm";
@@ -21,11 +22,18 @@ export default async function NewPRPage(props) {
 async function renderNewPRPage({ searchParams }) {
     const user = await requireUser();
 
-    const [jobs, disciplines, vendors, users] = await Promise.all([
+    // The whole category tree, once (#355). It joins this Promise.all rather
+    // than being fetched per level: Airtable pages at 100 so 777 rows is 8 list
+    // operations, and a per-level shape cannot beat that because the first level
+    // needs 39 distinct values and Airtable has no DISTINCT — see
+    // getCategoryTree for the measurement. What the cost is bounded by is the
+    // catalog, never the number of requests this base has seen.
+    const [jobs, disciplines, vendors, users, categories] = await Promise.all([
         getAllJobs(),
         getAllDisciplines(),
         getAllVendors(),
         getActiveUsers(),
+        getCategoryTree(),
     ]);
 
     const { draft: draftParam } = await searchParams;
@@ -104,6 +112,7 @@ async function renderNewPRPage({ searchParams }) {
                 disciplines={disciplines}
                 vendors={vendors}
                 users={users}
+                categories={categories}
                 initialDraft={initialDraft}
                 draftLabel={draftLabel}
                 autoResume={autoResume}

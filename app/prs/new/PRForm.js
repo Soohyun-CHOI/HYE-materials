@@ -8,6 +8,7 @@ import FileViewer from "@/app/components/FileViewer";
 import { FILE_AXIS } from "@/lib/fileLinks";
 import { createPRAction, saveDraftAction, deleteDraftAction } from "./actions";
 import { PR_ITEM_MERGE_COPY, describeMerge } from "@/lib/prItemMerge";
+import { CATEGORY_PICKER_COPY, narrowCategories } from "@/lib/materialCategory";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
 import { formatUSD } from "@/lib/format";
@@ -16,7 +17,19 @@ import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // quotationIndex: null until the Requester picks one (issue #67) — only
 // meaningful once 2+ Quotations exist; ignored (and auto-resolved server-
 // side to the sole Quotation, if any) when there's 0 or 1.
-const EMPTY_ITEM = { itemName: "", size: "", unit: "", qty: "", unitPrice: "", remark: "", quotationIndex: null };
+// categoryCodes: the four level codes, outermost first, blank until picked
+// (#355). It replaced the typed itemName — `itemName` survives on the row only
+// to carry what a pre-catalog Draft had, and is never edited here.
+const EMPTY_ITEM = {
+    categoryCodes: ["", "", "", ""],
+    itemName: "",
+    size: "",
+    unit: "",
+    qty: "",
+    unitPrice: "",
+    remark: "",
+    quotationIndex: null,
+};
 // recordId is "" for an entry added in this session and the stored Quotation's
 // record id for one hydrated from a Draft (#142).
 const EMPTY_QUOTATION = { recordId: "", file: { status: "idle" }, vendorQuotationCode: "" };
@@ -28,7 +41,12 @@ const fieldClass =
 // Maps a loadPRDraft() result (#72 reload contract) into PRForm's client
 // state shape. Shared by the #73 "Resume" button and the #74 open-a-draft
 // path so both hydrate identically.
-function formStateFromDraft(d) {
+function formStateFromDraft(d, categories) {
+    // #355 — a stored item carries a `Category` record id and the form works in
+    // level codes, so the tree the page already fetched is what joins them. A
+    // row whose link is gone (a path deleted in Airtable) resolves to nothing
+    // and opens unpicked, which is the same state a pre-catalog row opens in.
+    const codesByRecordId = new Map((categories || []).map((c) => [c.recordId, c.codes]));
     return {
         jobId: d.jobId || "",
         disciplineId: d.disciplineId || "",
@@ -37,6 +55,8 @@ function formStateFromDraft(d) {
         notes: d.notes || "",
         items: d.items.length
             ? d.items.map((it) => ({
+                  categoryCodes:
+                      codesByRecordId.get(it.categoryRecordId)?.slice() ?? ["", "", "", ""],
                   itemName: it.itemName || "",
                   size: it.size || "",
                   unit: it.unit || "",
@@ -88,6 +108,9 @@ export default function PRForm({
     disciplines,
     vendors,
     users,
+    // The whole category tree, fetched once by the page (#355). See
+    // `getCategoryTree` for why it is one read rather than one per level.
+    categories = [],
     initialDraft = null,
     draftLabel = null,
     autoResume = false,
@@ -101,7 +124,7 @@ export default function PRForm({
     // the form straight from it. Initializing state from this avoids a
     // blank-then-fill flash and needs no resume prompt (the user already
     // chose it). The #73 "Resume" button applies the same mapping on click.
-    const seed = autoResume && initialDraft ? formStateFromDraft(initialDraft) : null;
+    const seed = autoResume && initialDraft ? formStateFromDraft(initialDraft, categories) : null;
 
     // Issue #72 — draft identity: both Save Draft and Submit re-target this
     // same record (Submit promoting Draft -> In Review) rather than creating
@@ -126,8 +149,11 @@ export default function PRForm({
     // remaining entry can't be removed (see the Remove button below),
     // only added to. Each entry's file is uploaded in the background as
     // soon as it's picked (client-side direct upload to Vercel Blob — see
-    // CLAUDE.md's "Quotation file upload" section: keeps the Server
-    // Action body under Vercel's size limit). idle -> uploading -> done |
+    // docs/notes/uploads-and-drafts.md: keeps the Server Action body under
+    // Vercel's size limit). This named a CLAUDE.md section that has never
+    // existed under that title; corrected per #181 while sweeping the
+    // citations #366 left pointing at content it had routed out.
+    // idle -> uploading -> done |
     // error — a file is required per entry before the PR can submit.
     const [quotations, setQuotations] = useState(seed?.quotations ?? [{ ...EMPTY_QUOTATION }]);
     // Controlled so a resumed Draft (#73) can populate it — was previously an
@@ -183,7 +209,7 @@ export default function PRForm({
     }
 
     function resumeDraft() {
-        const s = formStateFromDraft(initialDraft);
+        const s = formStateFromDraft(initialDraft, categories);
         setJobId(s.jobId);
         setDisciplineId(s.disciplineId);
         setVendorId(s.vendorId);
@@ -308,6 +334,30 @@ export default function PRForm({
     function updateItem(index, field, value) {
         setItems((prev) =>
             prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+        );
+    }
+
+    /**
+     * Pick one level of a row's category (#355).
+     *
+     * EVERY DEEPER LEVEL IS CLEARED, which is the whole reason this is not
+     * `updateItem`. The levels are not four independent fields: changing the
+     * second one means the third and fourth were chosen inside a branch that is
+     * no longer the one being looked at, and leaving them set would carry a
+     * choice from one branch into another. `narrowCategories` would drop them
+     * anyway — it refuses a code its level does not offer — so this keeps the
+     * state and the display saying the same thing rather than relying on the
+     * reader to re-derive it.
+     */
+    function updateItemCategory(index, level, code) {
+        setItems((prev) =>
+            prev.map((item, i) => {
+                if (i !== index) return item;
+                const codes = item.categoryCodes.slice();
+                codes[level] = code;
+                for (let deeper = level + 1; deeper < codes.length; deeper++) codes[deeper] = "";
+                return { ...item, categoryCodes: codes };
+            })
         );
     }
 
@@ -761,14 +811,57 @@ export default function PRForm({
                         const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3">
-                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                                    <input
-                                        placeholder="Item Name"
-                                        required
-                                        value={item.itemName}
-                                        onChange={(e) => updateItem(i, "itemName", e.target.value)}
-                                        className={inputClass}
-                                    />
+                                {(() => {
+                                    // The tree, narrowed to what this row has
+                                    // picked. Recomputed per render rather than
+                                    // stored: it is a pure function of the
+                                    // fetched tree and four codes, so caching it
+                                    // would be a second copy of the same answer.
+                                    const walk = narrowCategories(categories, item.categoryCodes);
+                                    const strandedName =
+                                        !walk.complete && !item.categoryCodes.some(Boolean) && item.itemName;
+                                    return (
+                                        <>
+                                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
+                                                {walk.levels.map((level, depth) => (
+                                                    <select
+                                                        key={depth}
+                                                        aria-label={CATEGORY_PICKER_COPY.levels[depth]}
+                                                        value={level.chosen}
+                                                        disabled={level.options.length === 0}
+                                                        onChange={(e) =>
+                                                            updateItemCategory(i, depth, e.target.value)
+                                                        }
+                                                        className={inputClass}
+                                                    >
+                                                        <option value="">
+                                                            {level.options.length === 0
+                                                                ? CATEGORY_PICKER_COPY.awaitingParent(depth).text
+                                                                : CATEGORY_PICKER_COPY.levels[depth]}
+                                                        </option>
+                                                        {level.options.map((option) => (
+                                                            <option key={option.code} value={option.code}>
+                                                                {option.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                ))}
+                                            </div>
+                                            {walk.complete ? (
+                                                <p className="mt-2 text-sm text-zinc-700">
+                                                    {CATEGORY_PICKER_COPY.resolved(walk.selected.label).text}
+                                                </p>
+                                            ) : null}
+                                            {strandedName ? (
+                                                <p className="mt-2 text-sm text-amber-800">
+                                                    {CATEGORY_PICKER_COPY.fromBeforeTheCatalog.text}{" "}
+                                                    {item.itemName}
+                                                </p>
+                                            ) : null}
+                                        </>
+                                    );
+                                })()}
+                                <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     <input
                                         placeholder="Size"
                                         value={item.size}

@@ -23,6 +23,8 @@ import { shouldReuseQuotation } from "@/lib/quotationReuse";
 // same answer this write path needs.
 import { isEmptyItemRow, mergeIdenticalItems } from "@/lib/prItemMerge";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
+import { CATEGORY_PICKER_COPY } from "@/lib/materialCategory";
 
 // Canonical key for an item's duplicate-match identity — Item Name
 // (case/whitespace-insensitive) + Qty + Unit Price, per issue #61. Size/Unit/
@@ -99,6 +101,38 @@ function parseFormState(formData) {
     };
 }
 
+/**
+ * Fill each item's `categoryRecordId` and `itemName` from the catalog (#355).
+ *
+ * THE FORM CARRIES CODES AND THE WRITE NEEDS A RECORD ID, and this is the one
+ * place the two meet. One query for every code the request carries, through
+ * `orByField`, so a 20-item request costs 1 operation rather than 20 — and a
+ * request whose rows are all still half-picked costs none at all.
+ *
+ * `Item Name` IS WRITTEN HERE RATHER THAN TYPED, from the category's own
+ * `Category Label`. That keeps the frozen-copy convention every item table
+ * follows — the PO snapshot copies this string, the invoice copies that — and it
+ * keeps the exact text the PO PDF prints for the vendor. Nothing normalizes it:
+ * `createItem` runs `normalizeItemText` on the way in as it always has, and a
+ * label composed by an Airtable formula from trimmed cells has nothing to
+ * collapse.
+ *
+ * A ROW WHOSE FOUR LEVELS ARE NOT SETTLED IS LEFT ALONE rather than refused
+ * here. A Draft saves without per-item validation and that is deliberate (#72);
+ * the submit path is what refuses, with a sentence about categories rather than
+ * about a lookup that returned nothing.
+ */
+async function resolveItemCategories(items) {
+    const leafCodes = items.map((item) => item.categoryCodes?.[3] || "").filter(Boolean);
+    const byCode = await getCategoriesByLeafCode(leafCodes);
+
+    return items.map((item) => {
+        const category = byCode.get(item.categoryCodes?.[3] || "");
+        if (!category) return { ...item, categoryRecordId: "" };
+        return { ...item, categoryRecordId: category.recordId, itemName: category.label };
+    });
+}
+
 // Blank numeric fields on a Draft become undefined so createItem omits them
 // rather than writing NaN into Airtable's number columns.
 function toNumberOrUndefined(value) {
@@ -146,7 +180,7 @@ async function destroyChildren({ itemIds = [], signerIds = [], quotationIds = []
 // Airtable the url the form is carrying, and for an entry that came from a
 // re-opened Draft that url is Airtable's own signed url, good for ~2h. Past
 // that window the attachment write still SUCCEEDS and silently lands empty
-// (CLAUDE.md, File uploads), so re-saving a Draft the next morning deleted the
+// (docs/notes/uploads-and-drafts.md), so re-saving a Draft the next morning deleted the
 // quotation file. The fix is not to refresh the url before re-submitting —
 // that narrows the window without closing it — but to stop rewriting an
 // attachment that never changed: such an entry keeps its existing Quotation
@@ -278,6 +312,7 @@ async function persistPRFromForm({ userId, state }) {
                 prRecordId: pr.id,
                 prId: pr.prId,
                 itemName: item.itemName,
+                categoryRecordId: item.categoryRecordId || "",
                 size: item.size,
                 unit: item.unit,
                 qty: toNumberOrUndefined(item.qty),
@@ -346,7 +381,13 @@ async function persistPRFromForm({ userId, state }) {
 export async function saveDraftAction(prevState, formData) {
     return withOpsLabel("saveDraftAction", async () => {
         const user = await requireUser();
-        const state = parseFormState(formData);
+        const parsed = parseFormState(formData);
+        // Resolved even on a Draft, so a saved row carries its link and its
+        // composed name rather than being repaired at submit — and so a Draft
+        // re-opened tomorrow shows the same item text a signer will see. Rows
+        // still half-picked come back untouched; that is the state a Draft is
+        // allowed to be in.
+        const state = { ...parsed, items: await resolveItemCategories(parsed.items) };
 
         if (state.shippingFeeRaw && Number.isNaN(state.shippingFee)) {
             return { error: "Shipping Fee must be a number." };
@@ -412,7 +453,11 @@ export async function deleteDraftAction(prId) {
 export async function createPRAction(prevState, formData) {
     return withOpsLabel("createPRAction", async () => {
         const user = await requireUser();
-        const state = parseFormState(formData);
+        const parsed = parseFormState(formData);
+        // Before the duplicate check, deliberately: #61 keys a row on its name,
+        // and a name is composed from the category now — so the incoming rows
+        // have to carry theirs before they can be compared with a stored PR's.
+        const state = { ...parsed, items: await resolveItemCategories(parsed.items) };
         const {
             disciplineId,
             vendorId,
@@ -431,8 +476,16 @@ export async function createPRAction(prevState, formData) {
             return { error: "Add at least one item." };
         }
         for (const item of items) {
-            if (!item.itemName || !item.qty || !item.unitPrice) {
-                return { error: "Every item needs a name, quantity, and unit price." };
+            // The category first, because it is the one a person can be halfway
+            // through: an unresolved row means the four levels were not settled,
+            // or were settled on a path that has since left the catalog. Naming
+            // the category rather than the name is what makes the sentence
+            // actionable — there is no name field to go and fill in.
+            if (!item.categoryRecordId) {
+                return { error: CATEGORY_PICKER_COPY.incomplete.text };
+            }
+            if (!item.qty || !item.unitPrice) {
+                return { error: "Every item needs a quantity and a unit price." };
             }
         }
         if (signers.length === 0) {

@@ -94,6 +94,22 @@ const CODE_DESCRIPTION =
     "either — 11 rows break prefix nesting — so a parent is reached through the " +
     "columns beside this one and never by slicing this string.";
 
+/**
+ * The leaf code says one more thing than the others, and it is the sentence
+ * somebody adding a row by hand needs while their cursor is in that cell — which
+ * is why it lives on the field and not only in `docs/notes/materials.md`.
+ */
+const LEAF_CODE_DESCRIPTION =
+    CODE_DESCRIPTION +
+    " ADDING A PATH BY HAND: take the parent's Level 3 Code and append a " +
+    "three-digit number from 901 up — 0101002 becomes 0101002901, then " +
+    "0101002902. HQ's own leaves never pass 033, so the 900 block tells a " +
+    "branch-made path from an HQ one on sight when HQ's tree is next compared " +
+    "against this table, and it costs nothing to follow because the code has to " +
+    "be typed anyway. Each code must be unique across the whole table: nothing " +
+    "here enforces that, and getCategoriesByLeafCode refuses a request rather " +
+    "than guessing which of two rows was meant.";
+
 const NAME_DESCRIPTION =
     "HQ's English name for this level. Korean names are not stored; the " +
     "correspondence lives in the mapping workbook.";
@@ -125,7 +141,11 @@ function tableSpec() {
     ];
 
     for (const level of CATEGORY_LEVELS) {
-        fields.push({ name: level.code, type: "singleLineText", description: CODE_DESCRIPTION });
+        fields.push({
+            name: level.code,
+            type: "singleLineText",
+            description: level.code === CATEGORY_LEAF_CODE ? LEAF_CODE_DESCRIPTION : CODE_DESCRIPTION,
+        });
         fields.push({ name: level.name, type: "singleLineText", description: NAME_DESCRIPTION });
     }
 
@@ -246,6 +266,19 @@ class Airtable {
         return this.request("POST", `${META_ROOT}/bases/${this.baseId}/tables/${tableId}/fields`, field);
     }
 
+    /**
+     * A field's description. PATCHes cleanly at 200 — measured in #283, and the
+     * reason this script can own the text rather than leaving it to whoever
+     * first typed it into the browser.
+     */
+    setDescription(tableId, fieldId, description) {
+        return this.request(
+            "PATCH",
+            `${META_ROOT}/bases/${this.baseId}/tables/${tableId}/fields/${fieldId}`,
+            { description },
+        );
+    }
+
     setFormula(tableId, fieldId, formula) {
         return this.request(
             "PATCH",
@@ -342,6 +375,22 @@ async function main() {
         }
         if (missing.length === 0) log(`  all ${spec.fields.length} fields are present`);
         if (missing.length > 0 && !dryRun) table = (await air.tables()).find((t) => t.name === TABLE_NAME);
+
+        // DESCRIPTIONS ARE SYNCED, NOT ONLY SET ON CREATE, because the base's
+        // copy is the one a person reads while typing into the cell and this
+        // script is the only thing that can keep it true. `naming.md` records
+        // the failure this closes: three field descriptions written by
+        // `create_direct_purchases_272.py` still say a word the app retired, and
+        // editing the script alone would have left the two disagreeing forever.
+        // A description PATCHes at 200 (#283), so the sync is one call per field
+        // that has drifted and none at all when nothing has.
+        for (const field of spec.fields) {
+            const live = table.fields.find((f) => f.name === field.name);
+            if (!live || live.description === field.description) continue;
+            if (dryRun) { log(`  would update ${field.name}'s description`); continue; }
+            await air.setDescription(table.id, live.id, field.description);
+            log(`  updated ${field.name}'s description`);
+        }
     }
 
     // --- the label formula ------------------------------------------------

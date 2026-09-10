@@ -59,6 +59,10 @@ const CODE_WIDTHS = [2, 4, 7, 10];
 const ROWS_WITH_A_LEADING_ZERO = 427;
 const ROWS_WHOSE_CODES_DO_NOT_NEST = 11;
 const NAMES_WITH_A_SPACED_SLASH = 28;
+/** The top of HQ's own leaf numbering, against the 901 a branch-made path starts at. */
+const HIGHEST_HQ_LEAF_TAIL = 33;
+/** Of the 11 rows breaking prefix nesting, the ones that break it at the LEAF. */
+const LEAVES_NOT_PREFIXED = 2;
 
 /** RFC 4180 enough for this file: quoted cells, embedded commas, CRLF. */
 function parseCsv(text) {
@@ -145,6 +149,37 @@ export function run({ check, log }) {
         ROWS_WHOSE_CODES_DO_NOT_NEST
     );
     log(`  the ${notNested.length} are: ${notNested.map((r) => r[CATEGORY_LEAF_CODE]).join(", ")}`);
+
+    log("");
+    log("the 900 block a branch-made path uses is free, which is the premise:");
+    // WHAT IS ASSERTED IS THE PREMISE, NOT THE PRACTICE, and the distinction is
+    // the whole judgment here. The convention — a path added by this branch takes
+    // its parent's code plus a three-digit number from 901 — is something we
+    // keep, not something the data has; asserting it against live rows would be
+    // a false claim about HQ's tree the day HQ uses the range. What IS a
+    // property of the committed file is that the range is free, and that is the
+    // only thing the convention rests on. So this fails exactly when a future
+    // import from HQ reaches into the block, which is the moment to re-decide
+    // rather than a moment to paper over.
+    const tails = rows.map((r) => Number(r[CATEGORY_LEAF_CODE].slice(-3)));
+    check("every leaf code ends in three digits", tails.every(Number.isFinite), true);
+    check(
+        "no committed leaf code uses the 900 block",
+        tails.filter((n) => n >= 900).length,
+        0
+    );
+    // Typed out rather than derived, so a tree that grows into the range moves
+    // this number in the same commit. The margin is the point: 33 against 901 is
+    // not a near miss.
+    check("the highest last-three HQ uses", Math.max(...tails), HIGHEST_HQ_LEAF_TAIL);
+    // The convention appends to the parent's code, so every path this branch
+    // adds is prefixed by its level-3 code — which makes the leaf level MORE
+    // conformant rather than adding an exception to the 11 above.
+    check(
+        "leaf codes not prefixed by their level-3 code",
+        rows.filter((r) => !r["Level 4 Code"].startsWith(r["Level 3 Code"])).length,
+        LEAVES_NOT_PREFIXED
+    );
 
     log("");
     log("the rule, on values rather than on the constants that hold it:");

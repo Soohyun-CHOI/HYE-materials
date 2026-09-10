@@ -141,12 +141,33 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                     return (
                     <div key={row.id} className="space-y-2 border-b border-zinc-200 pb-2">
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                            <input
-                                value={row.itemName}
-                                onChange={(e) => updateRow(i, "itemName", e.target.value)}
-                                placeholder="Item Name"
-                                className={inputClass}
-                            />
+                            {/*
+                              * READ-ONLY SINCE #355, AND THAT CLOSES A WINDOW
+                              * RATHER THAN TIDYING A CONTROL. `Item Name` is
+                              * composed from the item's `Category` now, so a
+                              * signer editing it here would make the two
+                              * disagree — and #356 keys the material on the
+                              * category, so the disagreement would be silent
+                              * and would reach the vendor on the purchase
+                              * order. The picker that would let a signer change
+                              * the category properly is its own issue; until
+                              * then the name is shown because a signer has to
+                              * see what they are approving, and is not offered
+                              * because there is nothing here that could change
+                              * it correctly.
+                              *
+                              * A READ STATE IS NEVER REPLACED BY THE CONTROL
+                              * THAT EDITS IT (#318) is the rule this obeys from
+                              * the other side: the fact is stated either way,
+                              * and the control is absent for an act nobody can
+                              * complete on this screen.
+                              */}
+                            <div
+                                className={`${inputClass} bg-zinc-50 text-zinc-700`}
+                                title={row.itemName}
+                            >
+                                {row.itemName}
+                            </div>
                             <input
                                 value={row.size}
                                 onChange={(e) => updateRow(i, "size", e.target.value)}
