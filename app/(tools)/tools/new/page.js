@@ -1,9 +1,9 @@
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllTools } from "@/lib/airtable/tools";
+import { assignedJobsFor } from "@/lib/toolJob";
 import {
     TOOL_REGISTRATION_COPY as COPY,
-    assignedJobsFor,
     canRegisterToolItems,
 } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";

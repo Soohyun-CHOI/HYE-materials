@@ -68,15 +68,15 @@ const DELIVERY_JOB_AXIS =
 
 // #338's axis, and the fourth of this mixed shape. It is the tools track's first
 // endpoint, and the comparison it makes is narrower than every one above it: the
-// job is not something the caller may name, it is read off the ACTOR. #362 is the
-// second export on it and shares the constant rather than restating it — one axis
-// with two writers, the way the two delivery ones already work.
+// job is not something the caller may name, it is read off the ACTOR. #362 and
+// #363 are the second and third exports on it and share the constant rather than
+// restating it — one axis with three writers, the way the delivery ones work.
 const TOOL_JOB_AXIS =
     "Session + the submitted job being one the actor's own Users.\"Assigned Jobs\" names, not a role. " +
     "requireUser() already cannot be dropped (it redirects), and the deciding comparison is " +
-    "assignedJobsFor (lib/toolRegistration.js) against the loaded job list in the body — directly in " +
+    "assignedJobsFor (lib/toolJob.js) against the loaded job list in the body — directly in " +
     "#338's registration, through planTransition (lib/toolTransition.js) in #362's check-out and " +
-    "check-in. No role helper " +
+    "check-in and in #363's retirement. No role helper " +
     "covers it, and DELIBERATELY NOT canAccessJobDeliveries either: that predicate admits President and " +
     "Admin to every job, and the tools track does not pass through the office — a site person buys, " +
     "registers and keeps the tool, and Tool Log.\"Job\" is the job the event HAPPENED on. So an Admin " +
@@ -212,6 +212,12 @@ const EXEMPTIONS = [
     {
         file: "app/(tools)/tool-items/[toolItemId]/actions.js",
         name: "recordToolItemEventAction",
+        mustCall: "requireUser",
+        reason: TOOL_JOB_AXIS,
+    },
+    {
+        file: "app/(tools)/tool-items/[toolItemId]/actions.js",
+        name: "retireToolItemAction",
         mustCall: "requireUser",
         reason: TOOL_JOB_AXIS,
     },

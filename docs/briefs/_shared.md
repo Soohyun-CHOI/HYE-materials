@@ -657,6 +657,16 @@ backdrop and the card, imported at six sites. It is the one shape in the app
 that is already a primitive rather than a per-page reassembly, and #258 is where
 the rest joins it.
 
+**BUT THE BEHAVIOR HAS TWO, AND THAT IS AN INCONSISTENCY RATHER THAN A
+DISTINCTION.** Anything opening over the page is supposed to close on `Escape`
+as well as by its opener and hand focus back to it. **Two of about a dozen
+overlays do** — the file viewer (#331) and the tool item page's retire dialog
+(#363) — and the rest close only by their own controls, so a reader who learns
+`Escape` on one meets a dead key on the next. Repairing the others was out of
+scope for both issues that got it right, so it is written down here instead of
+being discovered: **a design pass over modals should settle this for all of
+them**, and the fix is behavioral rather than visual.
+
 **The app is light-only, deliberately.** #218 removed 343 `dark:` variants and
 the `prefers-color-scheme` block, and added `color-scheme: light` so the browser
 does not decide for the chrome it paints itself — a scrollbar, a `<select>`

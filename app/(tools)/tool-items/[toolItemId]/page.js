@@ -13,6 +13,7 @@ import { TOOL_LABEL_SHEET_COPY as SHEET_COPY, labelBudget, symbolBox } from "@/l
 import { TOOLS_PATH, toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
 import { planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
+import RetireToolItemForm from "./RetireToolItemForm";
 import ToolTransitionForm from "./ToolTransitionForm";
 
 // The param and no lookup, which is what all four document detail screens do and
@@ -71,11 +72,12 @@ export async function generateMetadata({ params }) {
  * present even when the history is not. See `lib/toolItemView.js` for why nothing
  * here compares the two.
  *
- * IT OFFERS THE ONE TRANSITION THAT STATUS ALLOWS (#362), AND FOR NO OPERATIONS
- * AT ALL. The session and the whole job list are already read for the history's
- * names, so `planTransition` decides the offer from facts in hand and the figure
- * above is unchanged — measured. This is where a scan lands, so the read a
- * transition adds is the read that would matter most on this axis; there is none.
+ * IT OFFERS WHAT THAT STATUS ALLOWS (#362, #363), AND FOR NO OPERATIONS AT ALL.
+ * The session and the whole job list are already read for the history's names,
+ * so `planTransition` decides both offers from facts in hand and the figure
+ * above is unchanged — measured, before #362 and again after #363. This is where
+ * a scan lands, so a read added here is the read that would matter most on this
+ * axis; there is none.
  *
  * THE PAGE OFFERS AND THE ACTION DECIDES, WHICH IS NOT A DUPLICATION. Both call
  * `planTransition`, and the action calls it again on a fresh read because a
@@ -175,27 +177,47 @@ async function renderToolItemPage({ params }) {
                 ))}
             </dl>
 
-            {/* THE ONE TRANSITION THE STATUS ALLOWS (#362), directly under the
-                status it moves and with no heading over it: the two headings on
-                this page name things, and a heading here would have to name the
-                act generically — `transition` is these notes' explanatory word,
-                the way `kind` is, and #338 records how close that one came to
-                becoming a column head. The control names itself.
+            {/* WHAT MAY BE RECORDED AGAINST THIS TOOL ITEM (#362, #363),
+                directly under the status the two controls move and with no
+                heading over them: the two headings on this page name things, and
+                a heading here would have to name the act generically —
+                `transition` is these notes' explanatory word, the way `kind` is,
+                and #338 records how close that one came to becoming a column
+                head. Each control names itself.
 
-                A REFUSAL STANDS WHERE THE CONTROL WOULD BE, never beside it.
-                Retired offers nothing to anybody and somebody on no job can
-                record nothing, and in both cases a control would be a promise
-                the action refuses. `/tools/new` renders its refusal as the
-                screen for the same reason. */}
+                TWO CONTROLS OF DIFFERENT KINDS, WHICH IS WHERE THE WEIGHT LIVES.
+                The transition SUBMITS — one press, because the next press undoes
+                it. The retirement OPENS a modal that says what becomes true, and
+                nothing undoes that one. A design may draw them however it likes;
+                what it may not do is make one look like the other, and the two
+                shapes are what stop it happening by accident.
+
+                A REFUSAL STANDS WHERE BOTH CONTROLS WOULD BE, never beside them.
+                A retired tool item allows nothing to anybody and somebody on no
+                job can record nothing, and in either case a control would be a
+                promise the action refuses. `/tools/new` renders its refusal as
+                the screen for the same reason. Each control is then asked for
+                separately, because the two answers come from two maps and agree
+                only on today's three statuses. */}
             {transition.refusal ? (
                 <p>{transition.refusal}</p>
             ) : (
-                <ToolTransitionForm
-                    toolItemId={toolItem.toolItemId}
-                    event={transition.event}
-                    jobs={transition.jobs}
-                    currentJobCode={jobCodeById[toolItem.job?.[0]]}
-                />
+                <>
+                    {transition.event && (
+                        <ToolTransitionForm
+                            toolItemId={toolItem.toolItemId}
+                            event={transition.event}
+                            jobs={transition.jobs}
+                            currentJobCode={jobCodeById[toolItem.job?.[0]]}
+                        />
+                    )}
+                    {transition.mayRetire && (
+                        <RetireToolItemForm
+                            toolItemId={toolItem.toolItemId}
+                            jobs={transition.jobs}
+                        />
+                    )}
+                </>
             )}
 
             {/* THE SYMBOL, BUILT HERE RATHER THAN FETCHED (#352). #351's endpoint
@@ -236,7 +258,6 @@ async function renderToolItemPage({ params }) {
                                     eventAt: row.eventAt,
                                     recordedByName: nameById[row.recordedBy?.[0]],
                                     jobCode: jobCodeById[row.job?.[0]],
-                                    notes: row.notes,
                                 }).map((fact) => (
                                     <div key={fact.key}>
                                         <dt>{fact.label}</dt>

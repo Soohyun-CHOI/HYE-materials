@@ -8,15 +8,11 @@
 // fails, because the two answers are never compared at runtime. So the key is
 // one function and this file pins it.
 //
-// IT ALSO PINS THE ONE PLACE THIS AXIS DELIBERATELY DISAGREES WITH ITS
-// NEIGHBOUR. `assignedJobsFor` is not `lib/deliveryAccess.js:accessibleJobs`:
-// that predicate admits President and Admin to every job, and this one admits
-// nobody who is not assigned. An Admin on no job can record a delivery and
-// cannot register a tool item, which reads like a bug until you know that
-// `Tool Log."Job"` is the job the event HAPPENED on and the tools track does not
-// pass through the office. Assertion 4 holds the disagreement itself, so a later
-// pass that "fixes" one of them fails here rather than silently widening a write
-// path.
+// THE JOB RULE IT USED TO PIN IS `offline/tool-job.mjs`'s SINCE #363, and so is
+// the deliberate disagreement with `lib/deliveryAccess.js:accessibleJobs`.
+// `assignedJobsFor` left `lib/toolRegistration.js` when the retirement made it
+// three write paths' rule rather than this screen's. What section 4 keeps is
+// `canRegisterToolItems`, which really is this form's own question.
 //
 // WHAT IT CANNOT SEE. Whether Airtable agrees. The lookup this key stands in for
 // is `LOWER(TRIM({Tool Name})) = LOWER(TRIM(…))`, and that comparison lives in a
@@ -32,12 +28,10 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { canAccessJobDeliveries } from "../../../lib/deliveryAccess.js";
 import { normalizeItemText } from "../../../lib/itemNaming.js";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
     TOOL_REGISTRATION_COPY,
-    assignedJobsFor,
     canRegisterToolItems,
     matchExistingTool,
     readQuantity,
@@ -153,39 +147,27 @@ export function run({ check, assert, log }) {
     assert("  and the ceiling", tooMany.includes("100"));
     assert("  and that the rest land under the same tool", tooMany.includes("same tool"));
 
-    // ── 4: the job comes off the actor, with no office clause ───────────────
+    // ── 4: who may use this form at all ────────────────────────────────────
+    // THE JOB RULE ITSELF MOVED TO `offline/tool-job.mjs` IN #363, with the
+    // function it is about: three write paths read it now, so a check named for
+    // this screen was asserting about a module the other two would not think to
+    // look in. What stays here is this form's own question — whether the person
+    // in front of it may use it — which is `canRegisterToolItems` and nothing
+    // else. The disagreement with `canAccessJobDeliveries` moved with the rule.
     log("");
-    log("the job is the actor's own assignment, and this axis differs from deliveries:");
+    log("whether this person may use this form:");
     const jobs = [
         { id: "job1", jobCode: "26-DEMO-01" },
         { id: "job2", jobCode: "26-DEMO-02" },
     ];
     const onOne = { assignedJobs: ["job2"], isAdmin: false, role: "Employee" };
-    const onNone = { assignedJobs: [], isAdmin: false, role: "Employee" };
     const adminOnNone = { assignedJobs: [], isAdmin: true, role: "Employee" };
     const presidentOnNone = { assignedJobs: [], isAdmin: false, role: "President" };
-
-    check("one assignment yields one job", assignedJobsFor(onOne, jobs).map((j) => j.id).join(), "job2");
-    check("no assignment yields none", assignedJobsFor(onNone, jobs).length, 0);
-    check("a missing user yields none", assignedJobsFor(undefined, jobs).length, 0);
-    check("both assignments yield both", assignedJobsFor({ assignedJobs: ["job1", "job2"] }, jobs).length, 2);
-    check("an assignment to a job that is not in the list yields none", assignedJobsFor({ assignedJobs: ["gone"] }, jobs).length, 0);
 
     check("an Admin on no job may not register", canRegisterToolItems(adminOnNone, jobs), false);
     check("a President on no job may not either", canRegisterToolItems(presidentOnNone, jobs), false);
     check("an Employee on one job may", canRegisterToolItems(onOne, jobs), true);
-
-    // THE DISAGREEMENT ITSELF, held rather than described. These two predicates
-    // answer different questions and a later pass that aligns them would widen a
-    // write path with nothing failing.
-    assert(
-        "the delivery predicate admits an Admin on no job",
-        canAccessJobDeliveries(adminOnNone, "job1") === true
-    );
-    assert(
-        "  and this one does not, which is the whole reason there are two",
-        canRegisterToolItems(adminOnNone, jobs) === false
-    );
+    check("and neither may somebody with no user at all", canRegisterToolItems(undefined, jobs), false);
 
     // ── 5: the copy ────────────────────────────────────────────────────────
     log("");

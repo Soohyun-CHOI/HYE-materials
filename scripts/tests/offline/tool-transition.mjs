@@ -31,20 +31,22 @@
 
 import { TOOL_EVENT, TOOL_STATUS, EVENT_OFFERED_BY_STATUS } from "../../../lib/toolStatus.js";
 import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
-import { TOOL_REGISTRATION_COPY } from "../../../lib/toolRegistration.js";
+import { TOOL_JOB_COPY } from "../../../lib/toolJob.js";
 import {
     TOOL_TRANSITION_COPY,
     jobMoveNotice,
     planTransition,
+    readRetirement,
     readSubmission,
 } from "../../../lib/toolTransition.js";
 import { callsBefore, callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Checking a tool item out and back in (#362)";
+export const title = "What a person may record against a tool item (#362, #363)";
 
 const ACTION = "app/(tools)/tool-items/[toolItemId]/actions.js";
 const FORM = "app/(tools)/tool-items/[toolItemId]/ToolTransitionForm.js";
+const MODAL = "app/(tools)/tool-items/[toolItemId]/RetireToolItemForm.js";
 const PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
 
 const JOB_A = { id: "recJobA", jobCode: "26-DEMO-01" };
@@ -179,8 +181,8 @@ export function run({ check, assert, log }) {
     check("an empty event is refused", readSubmission(inStock, { event: "", jobId: JOB_A.id }).event, null);
 
     const otherJob = readSubmission(inStock, { event: TOOL_EVENT.CHECKED_OUT, jobId: JOB_B.id });
-    check("a job the actor is not on is refused", otherJob.refusal, TOOL_REGISTRATION_COPY.jobNotYours);
-    check("  as is no job at all", readSubmission(inStock, { event: TOOL_EVENT.CHECKED_OUT, jobId: "" }).refusal, TOOL_REGISTRATION_COPY.jobNotYours);
+    check("a job the actor is not on is refused", otherJob.refusal, TOOL_JOB_COPY.notYours);
+    check("  as is no job at all", readSubmission(inStock, { event: TOOL_EVENT.CHECKED_OUT, jobId: "" }).refusal, TOOL_JOB_COPY.notYours);
 
     // A refused plan is not re-litigated by a well-formed submission — which is
     // what a forged POST against a retired tool item looks like.
@@ -263,11 +265,14 @@ export function run({ check, assert, log }) {
     // first time somebody rewords one. Asserted as equality with the source rather
     // than by value, because what is being held is that they cannot drift apart.
     check("the `Job` label is the tool item page's own", TOOL_TRANSITION_COPY.jobLabel, TOOL_ITEM_COPY.jobLabel);
-    check("the unchosen option is the registration form's", TOOL_TRANSITION_COPY.jobUnchosen, TOOL_REGISTRATION_COPY.jobUnchosen);
-    check("and so is the not-your-job refusal", TOOL_TRANSITION_COPY.jobNotYours, TOOL_REGISTRATION_COPY.jobNotYours);
+    // The two picker words moved to lib/toolJob.js in #363 with the rule they
+    // belong to; `offline/tool-job.mjs` holds both screens reading them, so what
+    // stays here is only that this screen does.
+    check("the unchosen option is the shared one", TOOL_TRANSITION_COPY.jobUnchosen, TOOL_JOB_COPY.unchosen);
+    check("and so is the not-your-job refusal", TOOL_TRANSITION_COPY.jobNotYours, TOOL_JOB_COPY.notYours);
     // `noJob` is deliberately NOT shared: the sentence names the act, and
-    // registering a tool item and recording a check-out are two acts.
-    assert("but the no-job sentence is this screen's own", TOOL_TRANSITION_COPY.noJob !== TOOL_REGISTRATION_COPY.noJob);
+    // registering a tool item and recording an event against one are two acts.
+    assert("but the no-job sentence is this screen's own", TOOL_TRANSITION_COPY.noJob.includes("record this on"));
 
     // The failure sentence has to carry all three facts a person can act on.
     const half = TOOL_TRANSITION_COPY.statusNotUpdated({
@@ -280,9 +285,9 @@ export function run({ check, assert, log }) {
     assert("  says what everybody else will read", half.includes(TOOL_STATUS.IN_STOCK));
     assert("  and says pressing again fixes it", half.includes("Do it again"));
 
-    // ── 6: the action, read off its own call sites ─────────────────────────
+    // ── 6: the actions, read off their own call sites ──────────────────────
     log("");
-    log("the action derives what it writes, and never takes the form's word:");
+    log("the scan action derives what it writes, and never takes the form's word:");
     const action = parseFile(ACTION);
     const fn = resolveFunction(action.ast, "recordToolItemEventAction");
     assert("the action was found", fn !== null);
@@ -291,6 +296,8 @@ export function run({ check, assert, log }) {
         "getToolItemByToolItemId",
         "planTransition",
         "readSubmission",
+        "readRetirement",
+        "writeEvent",
         "createToolLogEntry",
         "statusAfterEvent",
         "updateToolItemCache",
@@ -311,11 +318,24 @@ export function run({ check, assert, log }) {
     const submitted = argumentSource(action, "readSubmission", "event");
     assert(`the submitted event reaches the comparison (${submitted})`, /formData/.test(String(submitted)));
 
-    // THE LOG ROW'S EVENT IS THE DERIVED ONE. This is the assertion the whole AST
-    // half exists for: `event`, `formData.get("event")` and `"Checked Out"` are all
-    // arguments to this call, and only the argument's source tells them apart.
+    // ── 6b: the two writes, in the one function both actions share ─────────
+    // THEY MOVED OUT OF THIS ACTION IN #363, which extracted `writeEvent` rather
+    // than letting the retirement copy thirty lines of ordering, try boundary and
+    // failure report. So the assertions follow them: the ordering and the try are
+    // facts about that function now, and what each ACTION owes is the argument it
+    // arrives with.
+    log("");
+    log("the two writes, and the one function both actions share:");
+    const writeFn = resolveFunction(action.ast, "writeEvent");
+    assert("the shared writer was found", writeFn !== null);
+    assert("  and it is not exported, so it is no Server Action", !/export\s+async\s+function\s+writeEvent/.test(action.source));
+
+    // THE LOG ROW'S EVENT IS THE ONE IT WAS HANDED. This is the assertion the
+    // whole AST half exists for: `event`, `formData.get("event")` and
+    // `"Checked Out"` are all arguments to this call, and only the argument's
+    // source tells them apart.
     const written = argumentSource(action, "createToolLogEntry", "event");
-    check("the log row records the derived event", written, "event");
+    check("the log row records the event it was handed", written, "event");
     assert("  not the form's", !/formData/.test(String(written)));
     assert("  and not a literal", !/^["']/.test(String(written)));
 
@@ -328,23 +348,65 @@ export function run({ check, assert, log }) {
     // THE LOG GOES FIRST. A cache written with no row behind it loses the event
     // with nowhere else holding it; a row with a stale cache is recoverable and is
     // reported. Source order, which is this tier's limit and is stated as such.
-    assert("the log row is written before the cache", callsBefore(fn, "createToolLogEntry", "updateToolItemCache"));
-    // AND THE REDIRECT STANDS AFTER THE WHOLE TRY, so a failed cache write returns
-    // the sentence instead of landing on a page that says the transition worked.
-    // POSITION RATHER THAN ANCESTRY, and the difference is a mutation this check
-    // missed on its first run: `insideTry` asks about the try BLOCK, so a redirect
-    // moved into a `finally` is not inside a try by that reading and would redirect
-    // over the failure anyway. The two are kept together because they are two
-    // derivations of one claim, which is what an anti-vacuity second path is.
-    const [redirectCall] = callsTo(fn, "redirect");
-    assert("the redirect was found", Boolean(redirectCall));
-    assert("  and is not inside the try block", !insideTry(fn, redirectCall));
-    let tryEnd = -1;
-    walk(fn, (n) => {
-        if (n.type === "TryStatement" && n.end > tryEnd) tryEnd = n.end;
-    });
-    assert("  the try that catches the cache write was found", tryEnd > 0);
-    assert("  and the redirect stands after all of it", Boolean(redirectCall) && redirectCall.start > tryEnd);
+    assert("the log row is written before the cache", callsBefore(writeFn, "createToolLogEntry", "updateToolItemCache"));
+    // AND ONLY THE CACHE WRITE IS INSIDE THE TRY. A log write inside it would be
+    // swallowed by the same catch and reported as a status that did not move,
+    // which is the opposite of what happened.
+    const [logCall] = callsTo(writeFn, "createToolLogEntry");
+    const [cacheCall] = callsTo(writeFn, "updateToolItemCache");
+    assert("the cache write is inside the try", insideTry(writeFn, cacheCall));
+    assert("  and the log write is not", !insideTry(writeFn, logCall));
+
+    // ── 6c: each action's own arguments, and what stands after the write ───
+    log("");
+    log("what each action hands the writer, and what it does with the answer:");
+    for (const [name, expectedEvent, reader] of [
+        ["recordToolItemEventAction", "event", "readSubmission"],
+        ["retireToolItemAction", "TOOL_EVENT.RETIRED", "readRetirement"],
+    ]) {
+        const own = resolveFunction(action.ast, name);
+        assert(`${name} was found`, own !== null);
+        assert(`  it reads its submission with ${reader}`, callsTo(own, reader).length === 1);
+        // THE EVENT EACH ONE WRITES, READ OFF ITS OWN CALL. The scan action hands
+        // over the identifier the plan produced; the retirement hands over the
+        // vocabulary's constant, because there is one direction and nothing to
+        // derive. A literal `"Retired"` here would mint an option off the palette
+        // the first time somebody mistyped it — which is what `createToolLogEntry`
+        // has a no-literal rule for.
+        const handed = argumentSource({ ast: own, source: action.source }, "writeEvent", "event");
+        check(`  and hands the writer ${expectedEvent}`, handed, expectedEvent);
+        assert("  never a string literal", !/^["']/.test(String(handed)));
+
+        // AND THE ANSWER IS BOUND AND RETURNED BEFORE THE REDIRECT, so a failed
+        // cache write reports instead of landing on a page that says it worked.
+        // The try lives in `writeEvent` now, so the position assertion #362 wrote
+        // against it becomes this one: a bound call, a return between the two, and
+        // the redirect last.
+        let bound = false;
+        walk(own, (n) => {
+            if (n.type !== "VariableDeclarator" || !n.init) return;
+            if (/writeEvent\(/.test(action.source.slice(n.init.start, n.init.end))) bound = true;
+        });
+        assert("  the writer's answer is bound rather than discarded", bound);
+        const [w] = callsTo(own, "writeEvent");
+        const [redirectCall] = callsTo(own, "redirect");
+        assert("  the redirect was found", Boolean(w && redirectCall));
+        assert("  and stands after the write", w.start < redirectCall.start);
+        let returnsBetween = 0;
+        walk(own, (n) => {
+            if (n.type === "ReturnStatement" && n.start > w.end && n.start < redirectCall.start) returnsBetween++;
+        });
+        assert("  with a return between them, so a failure never reaches it", returnsBetween > 0);
+    }
+
+    // NO EVENT CROSSES THE WIRE FOR A RETIREMENT. There is one direction, so
+    // there is nothing a stale page could have named wrongly and nothing to
+    // compare — and a form field for it would be a value the action then had to
+    // decide whether to trust.
+    const retireFn = resolveFunction(action.ast, "retireToolItemAction");
+    const retireSource = action.source.slice(retireFn.start, retireFn.end);
+    check("the retirement reads no event off the form", (retireSource.match(/formData\.get\("event"\)/g) || []).length, 0);
+    assert("  and reads a job off it", /formData\.get\("jobId"\)/.test(retireSource));
 
     // ── 7: the page offers and refuses in one place ────────────────────────
     log("");
@@ -360,17 +422,25 @@ export function run({ check, assert, log }) {
         argumentSource(page, "planTransition", "status"),
         "toolItem.status"
     );
-    // The form is rendered, and it is rendered under a test on the refusal — a page
-    // that rendered it unconditionally would offer a control for a retired tool
-    // item and for somebody with no job, and the action would refuse both.
+    // BOTH CONTROLS STAND IN THE BRANCH WHERE THERE IS NO REFUSAL, and neither is
+    // rendered unconditionally — a page that drew either one for a retired tool
+    // item or for somebody with no job would be promising what the action
+    // refuses. #363 put a second control in the same branch, so the assertion
+    // names both rather than the one that happened to be there.
     let guarded = false;
     walk(page.ast, (n) => {
         if (n.type !== "ConditionalExpression") return;
         const test = page.source.slice(n.test.start, n.test.end);
         const alternate = page.source.slice(n.alternate.start, n.alternate.end);
-        if (/refusal/.test(test) && /ToolTransitionForm/.test(alternate)) guarded = true;
+        if (/refusal/.test(test) && /ToolTransitionForm/.test(alternate) && /RetireToolItemForm/.test(alternate))
+            guarded = true;
     });
-    assert("the form stands in the branch where there is no refusal", guarded);
+    assert("both controls stand in the branch where there is no refusal", guarded);
+    // AND EACH IS THEN ASKED FOR SEPARATELY, because the two answers come from two
+    // maps that agree only on today's three statuses. Deriving one control's
+    // presence from the other's would be the coincidence lib/toolStatus.js records.
+    assert("the transition control is gated on the offered event", /\{transition\.event && \(/.test(page.source));
+    assert("  and the retire control on its own answer", /\{transition\.mayRetire && \(/.test(page.source));
 
     // The form takes the event the page offered rather than deciding for itself,
     // and takes the tool item's own job so it can say when the two differ.
@@ -380,6 +450,118 @@ export function run({ check, assert, log }) {
     assert("  and the tool item's current job", /currentJobCode=\{/.test(page.source));
     assert("the form names its word from the control map", /COPY\.control\[event\]/.test(formSource));
     assert("  and asks jobMoveNotice rather than comparing inline", callsTo(form.ast, "jobMoveNotice").length === 1);
+
+    // ── 8: retiring — the second answer the plan carries (#363) ────────────
+    log("");
+    log("which statuses offer a retirement, and to whom:");
+    check("a stocked tool item may be retired", inStock.mayRetire, true);
+    check("one that is out may be too", out.mayRetire, true);
+    // THE `Out` CASE IS COVERED HERE RATHER THAN IN A BROWSER, and that is a
+    // conclusion rather than a shortcut: the page renders both controls under one
+    // test on `refusal` and never reads the status, so `In Stock` and `Out` take a
+    // provably identical path. Retiring a second tool item to watch it would have
+    // recorded a check-out that never happened.
+    check(
+        "and the two are offered on identical terms",
+        `${inStock.mayRetire}|${inStock.refusal}|${out.mayRetire}|${out.refusal}`,
+        "true|null|true|null"
+    );
+    check("a retired one may not be retired again", retired.mayRetire, false);
+    check("  and somebody on no job may not retire at all", noJob.mayRetire, false);
+
+    log("");
+    log("what a retirement submission has to satisfy:");
+    const goodRetire = readRetirement(inStock, { jobId: JOB_A.id });
+    check("the actor's own job passes", goodRetire.refusal, null);
+    check("  and the job is resolved from the plan's list", goodRetire.job.jobCode, "26-DEMO-01");
+    check("a job the actor is not on is refused", readRetirement(inStock, { jobId: JOB_B.id }).refusal, TOOL_JOB_COPY.notYours);
+    check("  as is no job at all", readRetirement(inStock, { jobId: "" }).refusal, TOOL_JOB_COPY.notYours);
+    // A refused plan refuses whatever is submitted, which is also how a stale page
+    // is answered: somebody who retired this first makes the fresh plan terminal.
+    check("a retired tool item refuses a forged submission", readRetirement(retired, { jobId: JOB_A.id }).job, null);
+    check("  in the plan's own words", readRetirement(retired, { jobId: JOB_A.id }).refusal, retired.refusal);
+    check("and somebody on no job is refused too", readRetirement(noJob, { jobId: JOB_A.id }).refusal, TOOL_TRANSITION_COPY.noJob);
+    // NO EVENT IS TAKEN OR COMPARED, which is the one place this parts from
+    // `readSubmission`: one direction means nothing a stale page could have named
+    // wrongly. The returned shape says so — there is no event in it.
+    assert("the answer carries a job and a refusal and no event", !("event" in goodRetire));
+
+    // ── 9: the words the modal says ────────────────────────────────────────
+    log("");
+    log("what the modal says before it happens:");
+    check("the opener names its object", TOOL_TRANSITION_COPY.retireOpener, "Retire this tool item");
+    check("the heading repeats it as a question", TOOL_TRANSITION_COPY.retireHeading, "Retire this tool item?");
+    check("the confirm drops the modifier the heading supplied", TOOL_TRANSITION_COPY.retireSubmit, "Retire");
+    check("and the way out is the app's own word", TOOL_TRANSITION_COPY.retireCancel, "Cancel");
+    // THE OPENER AND THE TRANSITION CONTROL MAY NOT READ ALIKE, which is half of
+    // what keeps a once-ever act from looking like a dozens-a-day one. The other
+    // half is structural and is asserted on the components below.
+    assert(
+        "the opener does not read like the transition control",
+        TOOL_TRANSITION_COPY.retireOpener !== TOOL_TRANSITION_COPY.control[TOOL_EVENT.CHECKED_OUT] &&
+            TOOL_TRANSITION_COPY.retireOpener.includes("tool item")
+    );
+    // THE BODY IS AN ACCOUNT OF WHAT BECOMES TRUE, which `_shared.md` names as the
+    // point of a confirmation. Three facts and the app's one ending.
+    const body = TOOL_TRANSITION_COPY.retireBody;
+    assert("the body says it leaves the count", body.includes("stops counting"));
+    assert("  that nothing more can be recorded", body.includes("nothing more can be"));
+    assert("  that the record stays", body.includes("history stay"));
+    assert("  and ends the way every irreversible act in this app ends", body.endsWith("This cannot be undone."));
+    // IT ASKS FOR NO REASON, which is the rule #363 retired rather than
+    // implemented. A field for one would be the first thing to come back, so the
+    // absence is asserted rather than left to be noticed.
+    const retireStrings = [TOOL_TRANSITION_COPY.retireOpener, TOOL_TRANSITION_COPY.retireHeading, body];
+    check("no word of it asks for a reason", retireStrings.filter((s) => /\breasons?\b/i.test(s)).length, 0);
+    check("  and none asks for a note", retireStrings.filter((s) => /\bnotes?\b/i.test(s)).length, 0);
+
+    // THE TERMINAL SENTENCE WIDENED WITH THE SCREEN. #362 wrote it as
+    // `no check-out or check-in to record`, which enumerated two of three absent
+    // controls once a retire control stood beside them.
+    const terminal = TOOL_TRANSITION_COPY.noTransition({ status: TOOL_STATUS.RETIRED });
+    assert("the terminal sentence names the status", terminal.includes(TOOL_STATUS.RETIRED));
+    assert("  and states the end rather than listing what is missing", terminal.includes("nothing more can be recorded"));
+    check("  naming no control", terminal.match(/check-(out|in)/g)?.length ?? 0, 0);
+
+    // ── 10: the modal, and the keyboard rule this axis is the second to keep ─
+    log("");
+    log("the modal is a modal, and it closes the way CLAUDE.md requires:");
+    const modal = parseFile(MODAL);
+    const modalCalls = new Set();
+    walk(modal.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.type === "Identifier") modalCalls.add(n.callee.name);
+    });
+    // AN OVERLAY RATHER THAN A PARAGRAPH. Without the shared chrome this would be
+    // inline content, which would quietly undo the decision that it is a modal at
+    // all — and the classes come from the app's single source rather than from a
+    // value invented on an axis that carries none.
+    assert("it uses the shared backdrop", /MODAL_BACKDROP/.test(modal.source));
+    assert("  and the shared card", /MODAL_CARD/.test(modal.source));
+    assert(
+        "  imported from the one place that holds them",
+        /from "@\/app\/components\/modalStyles"/.test(modal.source)
+    );
+    // THE KEYBOARD RULE, WHICH ONLY ONE OTHER OVERLAY IN THIS APP HONORS. Escape
+    // closes it, and focus goes back to the control that opened it. Read as three
+    // separate facts, because any one of them can be dropped on its own.
+    assert("`Escape` closes it", /e\.key === "Escape"/.test(modal.source));
+    assert("  through a keydown listener that is removed again", /removeEventListener\("keydown"/.test(modal.source));
+    assert("  focus goes back to the opener", /openerRef\.current\?\.focus\(\)/.test(modal.source));
+    assert("  and the card takes focus when it opens", /cardRef\.current\?\.focus\(\)/.test(modal.source));
+    assert("it is announced as a dialog", /role="dialog"/.test(modal.source) && /aria-modal="true"/.test(modal.source));
+    // AN OPENER RATHER THAN A SUBMIT, which is the structural half of the weight
+    // difference: pressing the control on the page acts on nothing.
+    assert("the opener is a button that opens rather than submits", /type="button"\s+ref=\{openerRef\}/.test(modal.source));
+    assert("  and the confirm is the submit inside the card", /type="submit"/.test(modal.source));
+    // Never yanked out from under a submit, which is WithdrawPOForm's rule and
+    // reaches `Escape` here as well as `Cancel`.
+    assert("it refuses to close while a submit is in flight", /if \(pending\) return;/.test(modal.source));
+    // Its ids may not collide with the transition form's, since both can be in
+    // the document at once.
+    assert("the modal's job control has an id of its own", /id="retireJobId"/.test(modal.source));
+    assert("  which the transition form does not use", !/retireJobId/.test(formSource));
+    assert("it asks for no reason field", !/textarea/i.test(modal.source));
+    assert("  and shows no job-move line, which is the transition's", callsTo(modal.ast, "jobMoveNotice").length === 0);
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");

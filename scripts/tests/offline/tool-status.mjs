@@ -1,5 +1,5 @@
-// The tools track's two closed vocabularies, and the two mappings between them
-// (#334; the second added by #362).
+// The tools track's two closed vocabularies, and the three mappings over them
+// (#334; the second added by #362 and the third by #363).
 //
 // WHAT THIS GUARDS AND WHY IT IS WORTH A CHECK. `Tool Items."Status"` and
 // `Tool Log."Event"` are singleSelect fields, and an existing select's option
@@ -19,12 +19,15 @@
 // docs/notes/tools.md. What this file pins in its place is that no status is a
 // dead option, and the assertion says at length what that does NOT prove.
 //
-// #362 ADDED THE OTHER DIRECTION AND IT IS PINNED HERE RATHER THAN BESIDE THE
-// SCREEN THAT READS IT. `EVENT_OFFERED_BY_STATUS` is vocabulary — total over the
-// statuses, closed over the events — so a fourth status has to visit both maps,
-// and a check living next to the transition screen would leave the pair half
-// guarded. What is NOT here is anything about that screen: which words it says
-// and which refusals it produces are offline/tool-transition.mjs's.
+// #362 AND #363 ADDED THE OTHER TWO AND THEY ARE PINNED HERE RATHER THAN BESIDE
+// THE SCREEN THAT READS THEM. Both are vocabulary — total over the statuses,
+// closed over the events — so a fourth status has to visit all three maps, and
+// a check living next to the transition screen would leave them half guarded.
+// The two status maps agree on today's three values and the agreement is
+// asserted rather than derived, because they answer different questions and
+// would part on a fourth. What is NOT here is anything about that screen: which
+// words it says and which refusals it produces are
+// offline/tool-transition.mjs's.
 //
 // Offline-safe: lib/toolStatus.js imports nothing, and the Python side is read as
 // TEXT and parsed, never executed.
@@ -39,17 +42,19 @@ import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import {
     EVENT_OFFERED_BY_STATUS,
+    MAY_RETIRE_FROM_STATUS,
     STATUS_AFTER_EVENT,
     TOOL_EVENT,
     TOOL_EVENT_VALUES,
     TOOL_STATUS,
     TOOL_STATUS_VALUES,
     eventOfferedBy,
+    mayRetireFrom,
     statusAfterEvent,
 } from "../../../lib/toolStatus.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Tool status and event vocabularies, and the maps between them (#334, #362)";
+export const title = "Tool status and event vocabularies, and the maps between them (#334, #362, #363)";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PY_PATH = resolve(HERE, "../../import/create_tools_334.py");
@@ -311,6 +316,72 @@ export function run({ check, log, assert }) {
     // two answers, or the throw above is indistinguishable from `Retired`'s entry
     // and the totality assertion is checking nothing.
     assert("  so a null answer is not how an unknown status is reported", eventOfferedBy("Retired") === null);
+
+    // ── the third map: which statuses may be retired (#363) ────────────────
+    // BY VALUE AGAIN, for the reason two sections up: an assertion written in
+    // terms of `TOOL_STATUS` is an expression over the constant under test.
+    log("");
+    log("which statuses a person may retire from, by value:");
+    check("In Stock", MAY_RETIRE_FROM_STATUS["In Stock"], true);
+    check("Out", MAY_RETIRE_FROM_STATUS["Out"], true);
+    check("Retired", MAY_RETIRE_FROM_STATUS["Retired"], false);
+    check("three entries and no more", Object.keys(MAY_RETIRE_FROM_STATUS).length, 3);
+    const unretirable = TOOL_STATUS_VALUES.filter(
+        (s) => !Object.prototype.hasOwnProperty.call(MAY_RETIRE_FROM_STATUS, s)
+    );
+    check("statuses with no entry", unretirable.length, 0);
+    const strayRetire = Object.keys(MAY_RETIRE_FROM_STATUS).filter((s) => !TOOL_STATUS_VALUES.includes(s));
+    check("entries naming a status that does not exist", strayRetire.length, 0);
+    check(
+        "every entry is a boolean",
+        Object.values(MAY_RETIRE_FROM_STATUS).filter((v) => typeof v !== "boolean").length,
+        0
+    );
+
+    // `Out` IS RETIRABLE, WHICH IS THE ONE ENTRY WITH A REASON OUTSIDE THE
+    // VOCABULARY. A tool that broke on a site is retired from there; refusing it
+    // would force somebody to record a check-in that never happened. It is also
+    // the whole of what a browser could have shown about that path — the page
+    // renders both controls under one test on the plan's refusal and never reads
+    // the status — so the assertion below is where that case is covered.
+    assert("a tool item that is out may still be retired", mayRetireFrom(TOOL_STATUS.OUT));
+    check(
+        "and it is offered on exactly the same terms as one in stock",
+        `${mayRetireFrom(TOOL_STATUS.IN_STOCK)}|${mayRetireFrom(TOOL_STATUS.OUT)}`,
+        "true|true"
+    );
+
+    // THE TWO STATUS MAPS AGREE TODAY AND THAT IS A MEASUREMENT, NOT A
+    // DERIVATION. `eventOfferedBy` returns null for exactly the status this one
+    // refuses, so `!eventOfferedBy(s)` would answer today's question — and would
+    // be wrong for a fourth status that offers no scan and can still be retired.
+    // Asserting the agreement rather than deriving one from the other is what
+    // makes that a visible change instead of a silent one.
+    log("");
+    log("the two status maps agree on all three values, which is measured rather than assumed:");
+    for (const status of TOOL_STATUS_VALUES) {
+        check(
+            `  ${status}: offers ${eventOfferedBy(status) ?? "nothing"}, retirable ${mayRetireFrom(status)}`,
+            Boolean(eventOfferedBy(status)),
+            mayRetireFrom(status)
+        );
+    }
+    assert("  and they are two objects, so a fourth status has to answer both", EVENT_OFFERED_BY_STATUS !== MAY_RETIRE_FROM_STATUS);
+
+    // EXACTLY ONE TERMINAL STATUS, which is what the screen's single sentence in
+    // place of every control is about.
+    const terminal = TOOL_STATUS_VALUES.filter((s) => !eventOfferedBy(s) && !mayRetireFrom(s));
+    check("terminal statuses", terminal.join(","), "Retired");
+
+    let retireThrew = null;
+    try {
+        mayRetireFrom("In Repair");
+    } catch (err) {
+        retireThrew = err.message;
+    }
+    assert("a status outside the vocabulary throws rather than reading false", Boolean(retireThrew));
+    assert("  and the throw names the module to edit", (retireThrew || "").includes("lib/toolStatus.js"));
+    assert("  so false is not how an unknown status is reported", mayRetireFrom("Retired") === false);
 
     // ── the Python creation payload says the same thing ─────────────────────
     // The half that cannot be fixed after the fact. `create_tools_334.py` sends

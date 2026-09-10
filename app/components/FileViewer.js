@@ -38,7 +38,10 @@ import {
  *
  * THE FIRST OVERLAY IN THIS APP THAT HONORS CLAUDE.md's KEYBOARD RULE — closes on
  * `Escape` as well as by its opener, and hands focus back to that opener. The other
- * ten do not, which is a finding about them rather than work for this file.
+ * ten do not, which is a finding about them rather than work for this file. **The
+ * tool item page's retire dialog is the second (#363)**, so the app now has two
+ * kinds of modal; `docs/briefs/_shared.md` records that where a design pass over
+ * modals will meet it.
  */
 export default function FileViewer({ axis, documentId, filename, contentType, children }) {
     const [open, setOpen] = useState(false);
