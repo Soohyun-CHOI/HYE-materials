@@ -38,18 +38,36 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "Identical PR item rows merge on save (#170)";
 
-/** One form row, in the shape `PRForm`'s `itemsJson` carries. */
+/**
+ * One form row, in the shape `PRForm`'s `itemsJson` carries.
+ *
+ * `categoryCodes` REPLACED `itemName` ON THE KEY IN #355, and the fixture says
+ * so by taking the four codes rather than a name. A helper takes the leaf,
+ * since three of the four never vary in these cases: what identifies a category
+ * is its leaf code, and the levels above it are the path that led there.
+ */
+const codes = (leaf, prefix = ["01", "0101", "0101001"]) => [...prefix, leaf];
 const row = ({
-    itemName = "Widget",
+    categoryCodes = codes("0101001001"),
+    itemName = "Stainless Steel (SUS) > Tube > SUS 304 > AP",
     size = '1"',
     unit = "EA",
     qty = "5",
     unitPrice = "12",
     remark = "",
     quotationIndex = null,
-} = {}) => ({ itemName, size, unit, qty, unitPrice, remark, quotationIndex });
+} = {}) => ({ categoryCodes, itemName, size, unit, qty, unitPrice, remark, quotationIndex });
 
-const EMPTY = { itemName: "", size: "", unit: "", qty: "", unitPrice: "", remark: "", quotationIndex: null };
+const EMPTY = {
+    categoryCodes: ["", "", "", ""],
+    itemName: "",
+    size: "",
+    unit: "",
+    qty: "",
+    unitPrice: "",
+    remark: "",
+    quotationIndex: null,
+};
 
 export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
@@ -74,7 +92,7 @@ export function run({ check, assert, log }) {
     log("the six fields, one at a time — each difference keeps two rows:");
     const base = row();
     const cases = [
-        ["item name", row({ itemName: "Gadget" })],
+        ["category", row({ categoryCodes: codes("0101001099") })],
         ["size", row({ size: '2"' })],
         ["unit", row({ unit: "FT" })],
         ["unit price", row({ unitPrice: "13" })],
@@ -91,22 +109,37 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
-    log("normalization follows #18's lookup, and the remark deliberately does not:");
+    log("the category is exact, because it is picked rather than typed (#355):");
     check(
-        "`Pipe` and `pipe` are one item, because one Material is what they reach",
-        mergeIdenticalItems([row({ itemName: "Pipe" }), row({ itemName: "pipe" })]).length,
+        "a leaf code differing by one digit is a different item",
+        mergeIdenticalItems([row(), row({ categoryCodes: codes("0101001002") })]).length,
+        2
+    );
+    check(
+        "  and the same leaf reached by the same path is one",
+        mergeIdenticalItems([row(), row()]).length,
         1
     );
+    // The whole point of the change: two rows CANNOT disagree about the item's
+    // text any more, because neither of them carries a typed one. What used to
+    // need `normalizeItemText` plus a lower-case pass on the name is now
+    // equality on a code.
     check(
-        "  and the FIRST spelling is what gets written",
-        mergeIdenticalItems([row({ itemName: "Pipe" }), row({ itemName: "pipe" })])[0].itemName,
-        "Pipe"
+        "  a row whose four levels are not settled merges with nothing",
+        mergeIdenticalItems([
+            row({ categoryCodes: ["01", "0101", "", ""] }),
+            row({ categoryCodes: ["01", "0101", "", ""] }),
+        ]).length,
+        2
     );
     check(
-        "a trailing space is not a second item",
-        mergeIdenticalItems([row({ itemName: "Pipe" }), row({ itemName: "Pipe " })]).length,
-        1
+        "  even though every other field on it agrees",
+        mergeKey(row({ categoryCodes: ["01", "0101", "", ""] })),
+        null
     );
+
+    log("");
+    log("normalization follows #18's lookup on the one free text left, and the remark does not:");
     check(
         "  nor is a doubled internal space",
         mergeIdenticalItems([row({ size: "1/2 in" }), row({ size: "1/2  in" })]).length,
@@ -135,10 +168,12 @@ export function run({ check, assert, log }) {
         mergeKey(row({ itemName: "Pipe" })) === mergeKey(row({ itemName: "pipe" })) &&
             mergeKey(row({ remark: "A" })) !== mergeKey(row({ remark: "a" }))
     );
+    // The key opens with the leaf code now, so #18's normalizer is checked
+    // where it still runs — on `Size`, the one free text left on the key.
     assert(
         "and the text rule is #18's own function, not a copy of it",
-        mergeKey(row({ itemName: "  Pipe  x  " })).startsWith(
-            normalizeItemText("  Pipe  x  ").toLowerCase()
+        mergeKey(row({ size: "  1/2  in  " })).includes(
+            normalizeItemText("  1/2  in  ").toLowerCase()
         )
     );
 
@@ -199,11 +234,15 @@ export function run({ check, assert, log }) {
     log("");
     log("order is the requester's own:");
     const ordered = mergeIdenticalItems([
-        row({ itemName: "Widget", qty: "1" }),
-        row({ itemName: "Gadget", qty: "2" }),
-        row({ itemName: "Widget", qty: "3" }),
+        row({ categoryCodes: codes("0101001001"), qty: "1" }),
+        row({ categoryCodes: codes("0101001002"), qty: "2" }),
+        row({ categoryCodes: codes("0101001001"), qty: "3" }),
     ]);
-    check("first appearance wins", ordered.map((r) => r.itemName).join(","), "Widget,Gadget");
+    check(
+        "first appearance wins",
+        ordered.map((r) => r.categoryCodes[3]).join(","),
+        "0101001001,0101001002"
+    );
     check("  and the later row folded into the first", ordered[0].qty, 4);
 
     // -----------------------------------------------------------------------

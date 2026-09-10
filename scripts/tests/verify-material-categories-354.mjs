@@ -47,11 +47,21 @@ const TABLE = TABLES.MATERIAL_CATEGORIES;
 const LABEL_FIELD = "Category Label";
 
 /**
- * Typed out rather than counted from whatever the base happens to hold, so a
- * tree that lost rows fails instead of agreeing with itself. Same figures as
- * the offline check, from the same committed source.
+ * The committed source's figures, typed out rather than counted from whatever
+ * the base happens to hold, so a tree that LOST rows fails instead of agreeing
+ * with itself.
+ *
+ * A FLOOR RATHER THAN AN EQUALITY SINCE #355, and the premise is what changed.
+ * When this check was written the CSV was the only way a row arrived, so the
+ * base holding exactly 777 was the claim. It is not any more: a path the tree
+ * does not have is added directly in Airtable — `docs/notes/materials.md`
+ * records that as the reason `Category Label` is a formula — so the 778th path
+ * is a normal event and an equality here would fail on the day of it, on the ROW
+ * COUNT, which reads as "the tree is broken" when the tree is fine. What is
+ * still worth asserting is that the committed rows are all present and that no
+ * two rows collide; those two survive a hand-added row and an equality does not.
  */
-const ROWS = 777;
+const COMMITTED_ROWS = 777;
 const ROWS_WITH_A_LEADING_ZERO = 427;
 
 const COLUMNS = CATEGORY_LEVELS.flatMap((l) => [l.code, l.name]);
@@ -148,7 +158,11 @@ if (table) {
 }
 
 if (records) {
-    check(`  row count`, records.length, ROWS);
+    check(`  the committed rows are all still there`, records.length >= COMMITTED_ROWS, true);
+    // The figure that says hand-adding happened, stated rather than asserted:
+    // there is no right number of these and a check that guessed one would be
+    // wrong on the next path the site asks for.
+    log(`  ${records.length} rows, ${records.length - COMMITTED_ROWS} beyond the committed CSV`);
 
     const disagreements = [];
     const numeric = [];
@@ -182,14 +196,35 @@ if (records) {
     for (const line of disagreements.slice(0, 10)) log(`        ${line}`);
     if (disagreements.length > 10) log(`        ... and ${disagreements.length - 10} more`);
 
-    check(`  every label is distinct`, new Set(labels).size, ROWS);
-    check(`  every leaf code is distinct`, new Set(records.map((r) => r.get(CATEGORY_LEAF_CODE))).size, ROWS);
+    // Against the LIVE count rather than the committed one, so a hand-added
+    // path is compared with the rest instead of failing on arithmetic. These two
+    // are the claims that survive #355's premise change, and the leaf code is
+    // the load-bearing half: `getCategoriesByLeafCode` resolves the form's pick
+    // to a record id through it and throws on a collision rather than letting an
+    // arbitrary row win, so this is the check that finds one before a requester
+    // does.
+    check(`  every label is distinct`, new Set(labels).size, records.length);
+    check(
+        `  every leaf code is distinct`,
+        new Set(records.map((r) => r.get(CATEGORY_LEAF_CODE))).size,
+        records.length
+    );
 
     log("");
     log("  the leading zeros, which is what a retyped code column would cost:");
     check(`  codes that came back as something other than text`, numeric.length, 0);
     for (const line of numeric.slice(0, 10)) log(`        ${line}`);
-    check(`  rows keeping a leading zero at every level`, leadingZeros, ROWS_WITH_A_LEADING_ZERO);
+    // A floor for the same reason as the row count: a hand-added path can carry
+    // leading zeros too, so an equality would fail on a legitimate row. What
+    // actually guards against a retyped column is Part A's field type and the
+    // `not text` count above; this is corroboration, and saying so is the point
+    // of writing it down rather than leaving a weaker assertion looking strong.
+    check(
+        `  at least the committed rows keep a leading zero at every level`,
+        leadingZeros >= ROWS_WITH_A_LEADING_ZERO,
+        true
+    );
+    log(`  ${leadingZeros} rows keep one, against ${ROWS_WITH_A_LEADING_ZERO} in the committed CSV`);
 
     // Anti-vacuity. Everything above compares two computations, and two
     // computations that both do nothing agree perfectly: if the formula were
@@ -227,5 +262,5 @@ if (incomplete) {
     console.log("INCOMPLETE — no failures, but the base could not be read");
     process.exit(2);
 }
-console.log(`OK — ${ROWS} live labels match lib/materialCategory.js`);
+console.log(`OK — ${records?.length ?? 0} live labels match lib/materialCategory.js`);
 process.exit(0);

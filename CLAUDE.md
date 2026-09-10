@@ -97,7 +97,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched.
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170): the six-field key, `isEmptyItemRow`, and `PR_ITEM_MERGE_COPY`. Applied in `parseFormState`, previewed by the form.
 - `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188): the restore names, both voices of the copy, and the recorder all four rollbacks write into. **A restore that fails is named on screen and logged with its record id, never swallowed** — and never written to Airtable, which is what just failed.
-- `lib/materialCategory.js` — the composed label a category carries (#354): the four levels, the two words that drop out, the separator, and the Airtable formula generated from all three. **Nothing here writes a label.**
+- `lib/materialCategory.js` — a category's composed label (#354) and the walk that narrows to one (#355): the four levels, the two words that drop out, the separator, the Airtable formula generated from all three, and every word the picker says. **Nothing here writes a label**, and it imports nothing, which is what lets a Client Component read the same rule.
+- `lib/airtable/materialCategories.js` — the catalog's two reads (#355): the whole tree for a form that narrows it, and leaf codes resolved to record ids for the write. **A duplicate leaf code throws rather than letting a row win**, since nothing on the base keeps them unique.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies (#334, narrowed in #335): three statuses, four events, the status each event leaves behind and the event each status offers (#362). No call site passes `createToolLogEntry` a string literal.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the actor's-own-jobs rule, and every word the screen says. Applied by the action, previewed by the form.
@@ -168,7 +169,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **PR Signers** — dynamic ordered approval chain:
 
-**PR Items**: PR Item ID, PR (link), Item Name, Size, Unit (single select, canonical list — see Units), Qty, Unit Price, Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — auto-linked when only one exists, dropdown once 2+, never silently reassigned).
+**PR Items**: PR Item ID, PR (link), Category (link, single -> Material Categories, app-enforced — **the item's identity since #355; `Item Name` is written from its `Category Label` and typed nowhere**), Item Name, Size, Unit (single select, canonical list — see Units), Qty, Unit Price, Amount = live formula, Remark (free text only), Quotation (link, single -> Quotations — auto-linked when only one exists, dropdown once 2+, never silently reassigned).
 
 **PR Edit Requests**: PR Edit Request ID, PR, Initiated By, Sent To, Notes, Requested At, Resolved At, Status (Pending/Resolved). Was `Correction Requests` until #333.
 

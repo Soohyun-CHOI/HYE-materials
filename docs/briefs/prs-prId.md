@@ -97,6 +97,15 @@ earlier for correction, with the list of people it may be returned to. For anyon
 else at that status: one sentence, `Waiting on {name} to act.` The panel is the
 largest thing on the page when it is there and absent entirely when it is not.
 
+**Editing and continuing does not offer the item name (#355).** It is shown so a
+signer can see what they are approving and cannot be edited, because the name is
+composed from the item's category and a signer changing one without the other
+would make the two disagree — silently, since the material a purchase order
+generates is keyed on the category. Size, unit, quantity, unit price and remark
+are editable as before. A control that would let a signer change the CATEGORY is
+its own issue and is not here; until it exists this row's item is what the
+requester picked.
+
 **When a turn failed and putting it back failed too:** a red line where the
 ordinary failure message goes, one per control — `Do not save again`,
 `Do not approve again`, `Do not send it back again` — and then what is still on
