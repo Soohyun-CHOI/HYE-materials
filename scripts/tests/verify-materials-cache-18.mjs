@@ -36,6 +36,7 @@ import { upsertMaterialPrice, getMaterialPrice } from "../../lib/airtable/materi
 import { collectMaterialsCacheEntries } from "../../lib/materialsCache.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import {
     getItemsByPO,
     getInvoicingStatusByPO,
@@ -153,7 +154,14 @@ const fixtures = createFixtures({
             name: "materials",
             table: TABLES.MATERIALS,
             label: "Material",
-            tagField: "Item Name",
+            // #356 — `Item Name` IS THE CATEGORY'S PATH NOW, through a lookup, so
+            // no run can put its tag there. The paragraph above is about one
+            // lookup coming back empty and leaving one row untracked; this would
+            // do it to every row of every run, and `expectAtLeast` below is the
+            // only thing that would say so. `Size` is the one writable free-text
+            // field identity still has, so the tag moved to it and every fixture
+            // key below prefixes its size with the tag.
+            tagField: "Size",
             discoverByTag: true,
             // A completed run always writes at least one of these, so 0 means the
             // tag stopped reaching them rather than that none were created (#171).
@@ -163,14 +171,27 @@ const fixtures = createFixtures({
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — two categories, so a run can show both that one category is one
+// material and that two are two. Every fixture SIZE is TAG-prefixed, which is
+// what `discoverByTag` cleans up on now that `Item Name` is the catalog's.
+const [CATEGORY, EXTRA_CATEGORY] = await resolveVerifyCategories();
 const track = fixtures.track;
 
-/** Rows matching one Materials natural key — the duplicate detector. */
-async function countMaterialRows({ itemName, size, unit }) {
+/**
+ * Rows matching one Materials natural key — the duplicate detector.
+ *
+ * WRITTEN OUT HERE RATHER THAN CALLING `getMaterialByKey`, which is the whole
+ * point of it: the production reader caps at one row, and what this asks is
+ * whether there are TWO. It follows #356's key — the leaf code exactly, Size and
+ * Unit case-insensitively — so a divergence between this and the reader would be
+ * a divergence between two implementations of one rule, which is exactly what
+ * the run would then be measuring.
+ */
+async function countMaterialRows({ categoryCode, size, unit }) {
     const records = await base(TABLES.MATERIALS)
         .select({
             filterByFormula: `AND(
-                LOWER(TRIM({Item Name})) = LOWER(TRIM("${formulaString(itemName)}")),
+                {Category Code} & "" = "${formulaString(categoryCode)}",
                 LOWER(TRIM({Size})) = LOWER(TRIM("${formulaString(size)}")),
                 LOWER(TRIM({Unit})) = LOWER(TRIM("${formulaString(unit)}"))
             )`,
@@ -190,33 +211,62 @@ async function countPriceRows(materialRecordId) {
 // ---------------------------------------------------------------------------
 console.log("\nPart 0 — collectMaterialsCacheEntries (grouping + skips, no DB):");
 {
-    const grouped = collectMaterialsCacheEntries([
-        { id: "recA", poItemId: "P-001", itemName: "Pipe", size: '2"', unit: "EA", unitPrice: 10 },
-        { id: "recB", poItemId: "P-002", itemName: "Pipe", size: '2"', unit: "EA", unitPrice: 25 },
+    // #356 — the grouping key is `lib/materialIdentity.js`'s now, so an ordered
+    // item arrives with the `Category` link `lib/poGeneration.js` carried over
+    // from its request item, and the leaf codes come from the map
+    // `refreshMaterialsCacheForPO` reads in one batched query. The rule itself is
+    // `offline/material-identity.mjs`'s; what is checked here is the grouping and
+    // the skips built on top of it.
+    const cats = new Map([
+        ["catPipe", { recordId: "catPipe", label: "A > Pipe", codes: ["A", "A1", "A11", "0101001001"] }],
+        ["catElbow", { recordId: "catElbow", label: "A > Elbow", codes: ["A", "A1", "A12", "0101002001"] }],
+    ]);
+    const withCats = (rows) => collectMaterialsCacheEntries(rows, { categoryByRecordId: cats });
+
+    const grouped = withCats([
+        { id: "recA", poItemId: "P-001", itemName: "Pipe", categoryRecordId: "catPipe", size: '2"', unit: "EA", unitPrice: 10 },
+        { id: "recB", poItemId: "P-002", itemName: "Pipe", categoryRecordId: "catPipe", size: '2"', unit: "EA", unitPrice: 25 },
     ]);
     check("two lines of one material make ONE price entry", grouped.entries.length, 1);
     check("the LAST line's price is the one cached", grouped.entries[0].item.unitPrice, 25);
+    check("and the entry carries the category the key was built from", grouped.entries[0].categoryCode, "0101001001");
     // The correctness point the dedupe must not break: Materials' rollups sum
     // over Materials."PO Items", so an ordered item left unlinked is invisible on the
     // item axis. Both ordered items must be linked even though only one price wins.
     check("but BOTH lines are kept for linking", grouped.entries[0].poItemIds.join(","), "recA,recB");
 
     check(
-        "case/whitespace variants are one key",
-        collectMaterialsCacheEntries([
-            { id: "r1", itemName: " pipe  x ", size: '2"', unit: "EA", unitPrice: 1 },
-            { id: "r2", itemName: "PIPE X", size: '2"', unit: "EA", unitPrice: 2 },
+        "Size case/whitespace variants are one key",
+        withCats([
+            { id: "r1", itemName: "x", categoryRecordId: "catPipe", size: ' 2  in ', unit: "EA", unitPrice: 1 },
+            { id: "r2", itemName: "x", categoryRecordId: "catPipe", size: "2 IN", unit: "EA", unitPrice: 2 },
         ]).entries.length,
         1
     );
+    // ANTI-VACUITY for the line above: a grouping that always grouped would pass
+    // it. Two categories on one size and unit are two entries.
+    check(
+        "two categories are two keys",
+        withCats([
+            { id: "r1", itemName: "x", categoryRecordId: "catPipe", size: "2in", unit: "EA", unitPrice: 1 },
+            { id: "r2", itemName: "y", categoryRecordId: "catElbow", size: "2in", unit: "EA", unitPrice: 2 },
+        ]).entries.length,
+        2
+    );
 
-    const skips = collectMaterialsCacheEntries([
-        { id: "s1", poItemId: "P-1", itemName: "   ", unit: "EA", unitPrice: 10 },
-        { id: "s2", poItemId: "P-2", itemName: "No unit", unit: "", unitPrice: 10 },
-        { id: "s3", poItemId: "P-3", itemName: "No price", unit: "EA", unitPrice: undefined },
-        { id: "s4", poItemId: "P-4", itemName: "Zero qty is fine", unit: "EA", qty: 0, unitPrice: 5 },
+    const skips = withCats([
+        { id: "s1", poItemId: "P-1", itemName: "No category", unit: "EA", unitPrice: 10 },
+        { id: "s0", poItemId: "P-0", itemName: "Stale category", categoryRecordId: "catGone", unit: "EA", unitPrice: 10 },
+        { id: "s2", poItemId: "P-2", itemName: "No unit", categoryRecordId: "catPipe", unit: "", unitPrice: 10 },
+        { id: "s3", poItemId: "P-3", itemName: "No price", categoryRecordId: "catPipe", unit: "EA", unitPrice: undefined },
+        { id: "s4", poItemId: "P-4", itemName: "Zero qty is fine", categoryRecordId: "catPipe", unit: "EA", qty: 0, unitPrice: 5 },
     ]);
-    check("a nameless line is skipped", skips.skipped.filter((s) => s.reason === "no Item Name").length, 1);
+    // #356 replaced the `no Item Name` skip: a name is a lookup through the
+    // category now, so a row with a category and a blank frozen name is a
+    // perfectly good material and a row with a name and no category is the one
+    // with no identity to create.
+    check("a category-less line is skipped", skips.skipped.filter((s) => s.reason === "no Category").length, 1);
+    check("so is one whose category the catalog no longer has", skips.skipped.filter((s) => s.reason === "Category not in the catalog").length, 1);
     check("a UNIT-LESS line is skipped (#18)", skips.skipped.filter((s) => s.reason === "no Unit").length, 1);
     check("a priceless line is skipped", skips.skipped.filter((s) => s.reason === "no numeric Unit Price").length, 1);
     check("only the valid line remains", skips.entries.length, 1);
@@ -252,31 +302,71 @@ if (!requester || !vendorA || !vendorB || !discipline) {
 
     // -----------------------------------------------------------------------
     console.log("\nPart A — Materials identity: one natural key, one row:");
-    const keyA = { itemName: `${TAG} Pipe`, size: '2"', unit: "EA" };
+    // #356 — THE KEY IS THE CATEGORY, SIZE AND UNIT, and the case-insensitivity
+    // this part used to prove about the NAME is gone with the field: a name is
+    // not typed any more, so there are no two spellings of one to reconcile. The
+    // fold moved wholesale onto `Size`, which is still free text, and the checks
+    // below are the old ones re-aimed at it rather than new claims.
+    const keyA = {
+        categoryRecordId: CATEGORY.recordId,
+        categoryCode: CATEGORY.codes[3],
+        size: `${TAG} 2"`,
+        unit: "EA",
+    };
+    const lookupA = { categoryCode: keyA.categoryCode, size: keyA.size, unit: keyA.unit };
 
     const m1 = await upsertMaterial(keyA);
-    check("created with the name as given", m1.itemName, keyA.itemName);
-    check("Material Label is the formula's composite", m1.materialLabel, `${keyA.itemName}_2"_EA`);
-    check('a Size containing a double quote is found again by its key', (await getMaterialByKey(keyA))?.id, m1.id);
+    check("the category it was created with", m1.category?.[0], CATEGORY.recordId);
+    check('a Size containing a double quote is found again by its key', (await getMaterialByKey(lookupA))?.id, m1.id);
 
     const m2 = await upsertMaterial(keyA);
     check("a second call returns the same row", m2.id, m1.id);
-    check("exactly one row for that key", await countMaterialRows(keyA), 1);
+    check("exactly one row for that key", await countMaterialRows(lookupA), 1);
 
-    // Case-insensitive lookup, and the first spelling is NOT overwritten.
-    const m3 = await upsertMaterial({ ...keyA, itemName: keyA.itemName.toUpperCase() });
-    check("an all-caps spelling matches the same row", m3.id, m1.id);
-    check("and the stored name is still the FIRST spelling", m3.itemName, keyA.itemName);
-    check("still one row", await countMaterialRows(keyA), 1);
+    // Case-insensitive lookup on the axis that still has two spellings.
+    const m3 = await upsertMaterial({ ...keyA, size: keyA.size.toUpperCase() });
+    check("an all-caps Size matches the same row", m3.id, m1.id);
+    check("and the stored Size is still the FIRST spelling", m3.size, keyA.size);
+    check("still one row", await countMaterialRows(lookupA), 1);
 
     // Internal whitespace is normalized by upsertMaterial itself, so a sloppy
-    // legacy-shaped value cannot create a second row.
-    const m4 = await upsertMaterial({ ...keyA, itemName: `  ${keyA.itemName.replace(" ", "   ")}  ` });
-    check("a whitespace-variant spelling matches too", m4.id, m1.id);
+    // value cannot create a second row.
+    const m4 = await upsertMaterial({ ...keyA, size: `  ${keyA.size.replace(" ", "   ")}  ` });
+    check("a whitespace-variant Size matches too", m4.id, m1.id);
 
-    // Unit-less identity still works (the omit-not-"" rule, on the new schema).
-    // lib/materialsCache.js skips these, but the function stays correct.
-    const keyNoUnit = { itemName: `${TAG} No unit`, size: "", unit: "" };
+    // A DIFFERENT CATEGORY IS A DIFFERENT MATERIAL, which is the half of the key
+    // the checks above cannot show: every one of them is an equality, and a
+    // find-or-create that always found would pass all four.
+    const keyOther = { ...keyA, categoryRecordId: EXTRA_CATEGORY.recordId, categoryCode: EXTRA_CATEGORY.codes[3] };
+    const mOther = await upsertMaterial(keyOther);
+    assert("a second category on the same Size and Unit is a second row", mOther.id !== m1.id);
+    check("and the first key still finds exactly one", await countMaterialRows(lookupA), 1);
+
+    // NO CATEGORY IS A THROW, not a nameless row (#356). `Item Name` is a lookup
+    // through this link, so a row without one has no name and a `Material Label`
+    // of `_Size_Unit` — worse than not existing. lib/materialsCache.js skips such
+    // an ordered item and reports it before reaching here.
+    let noCategoryErr = null;
+    try {
+        await upsertMaterial({ size: `${TAG} orphan`, unit: "EA" });
+    } catch (err) {
+        noCategoryErr = err.message;
+    }
+    assert("upsertMaterial refuses a key with no category", Boolean(noCategoryErr));
+    assert(
+        `  and the message says what is missing — ${noCategoryErr ?? "(it did not throw)"}`,
+        Boolean(noCategoryErr?.includes("category"))
+    );
+
+    // Unit-less identity still works (the omit-not-"" rule). lib/materialsCache.js
+    // skips these, but the function stays correct.
+    const keyNoUnit = {
+        categoryRecordId: CATEGORY.recordId,
+        categoryCode: CATEGORY.codes[3],
+        size: `${TAG} No unit`,
+        unit: "",
+    };
+    const lookupNoUnit = { categoryCode: keyNoUnit.categoryCode, size: keyNoUnit.size, unit: "" };
     let noUnitErr = null;
     let mNoUnit = null;
     try {
@@ -287,9 +377,50 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     assert(`a unit-less identity row is accepted${noUnitErr ? ` — ${noUnitErr}` : ""}`, !noUnitErr);
     if (mNoUnit) {
         check("its Unit is genuinely unset, not \"\"", mNoUnit.unit ?? null, null);
-        check("and it is findable by its key", (await getMaterialByKey(keyNoUnit))?.id, mNoUnit.id);
-        check("one row for the unit-less key", await countMaterialRows(keyNoUnit), 1);
+        check("and it is findable by its key", (await getMaterialByKey(lookupNoUnit))?.id, mNoUnit.id);
+        check("one row for the unit-less key", await countMaterialRows(lookupNoUnit), 1);
     }
+
+    // -----------------------------------------------------------------------
+    // THE NAME COMES FROM THE BASE NOW, AND ONLY A CREDENTIALED RUN CAN SEE IT.
+    // `Item Name` and `Category Code` are lookups and `Material Label` a formula
+    // over one of them, so all three are Airtable's answers rather than this
+    // repository's — `docs/notes/verification.md`'s third tier exactly. The
+    // bracket check is the one that matters: a single-element lookup
+    // concatenates BARE in string context on this base (measured on
+    // `PO Items."PO Status"`, which Part E below re-measures), and if that ever
+    // stopped being true every `Material Label` would read `["…"]_2"_EA` and the
+    // formula would need ARRAYJOIN. Re-read rather than taken off the create,
+    // because a lookup is computed and the create returns before it is filled.
+    console.log("\nPart A2 — the name is the catalog's, computed by the base:");
+    const settledName = await waitFor(
+        () => getMaterialByRecordId(m1.id),
+        (m) => Boolean(m.itemName)
+    );
+    // `.value`, because waitFor returns { value, ms, reads, settled } — the shape
+    // every other call site in this file already reads. Getting it wrong made all
+    // three checks below compare `undefined`, and the bracket assertion below
+    // PASSED on it, which is the same vacuity a mutation caught one tier down.
+    const named = settledName.value;
+    check(`Item Name is the category's own label (${settleNote(settledName)})`, named.itemName, CATEGORY.label);
+    check("Category Code is its leaf code", named.categoryCode, CATEGORY.codes[3]);
+    check(
+        "Material Label composes the three",
+        named.materialLabel,
+        `${CATEGORY.label}_${keyA.size}_EA`
+    );
+    // ASSERTED ON A NON-EMPTY STRING FIRST, so "no brackets" cannot be satisfied
+    // by there being no label at all.
+    assert(
+        `and the label is a non-empty string — ${JSON.stringify(named.materialLabel)}`,
+        typeof named.materialLabel === "string" && named.materialLabel.length > 0
+    );
+    assert(
+        "  rendering the lookup bare, with no array brackets and no quotes",
+        typeof named.materialLabel === "string" &&
+            !named.materialLabel.includes("[") &&
+            !named.materialLabel.includes('"' + CATEGORY.label)
+    );
 
     // -----------------------------------------------------------------------
     console.log("\nPart B — Material Prices: one material, two vendors:");
@@ -297,7 +428,7 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     const pB = await upsertMaterialPrice({ materialRecordId: m1.id, vendorRecordId: vendorB.id, unitPrice: 41, latestDate: "2026-07-02" });
 
     assert("the two vendors get two DIFFERENT price rows", pA.id !== pB.id);
-    check("still exactly one Materials row", await countMaterialRows(keyA), 1);
+    check("still exactly one Materials row", await countMaterialRows(lookupA), 1);
     check("and two price rows for it", await countPriceRows(m1.id), 2);
     check("vendor A's price", pA.unitPrice, 30);
     check("vendor B's price", pB.unitPrice, 41);
@@ -319,12 +450,18 @@ if (!requester || !vendorA || !vendorB || !discipline) {
 
     // Identity lock: three concurrent calls on a fresh key. Without the lock
     // each reads "nothing yet" and each creates a row.
-    const keyRace = { itemName: `${TAG} Race`, size: "1/2", unit: "FT" };
+    const keyRace = {
+        categoryRecordId: CATEGORY.recordId,
+        categoryCode: CATEGORY.codes[3],
+        size: `${TAG} Race 1/2`,
+        unit: "FT",
+    };
+    const lookupRace = { categoryCode: keyRace.categoryCode, size: keyRace.size, unit: keyRace.unit };
     const racing = Promise.all([1, 2, 3].map(() => upsertMaterial(keyRace)));
     check("one lock key is queued while the three identity calls fly", _debugLockKeys().length, 1);
     const raced = await racing;
     check("all three resolved to ONE record", new Set(raced.map((r) => r.id)).size, 1);
-    check("and Airtable holds one row", await countMaterialRows(keyRace), 1);
+    check("and Airtable holds one row", await countMaterialRows(lookupRace), 1);
 
     // Price lock: same shape, different key namespace.
     const racingPrice = Promise.all(
@@ -347,11 +484,21 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     });
     track("prs", pr1.id);
     const nameX = `${TAG} Flange`;
+    const sizeX = `${TAG} 4"`;
+    // #356 — EVERY FIXTURE SIZE CARRIES THE TAG, and that is cleanup rather than
+    // style: `Item Name` is a lookup now, so `discoverByTag` matches on `Size`,
+    // and a fixture material with an untagged size is one this run cannot find
+    // to delete. The blank-Size case this list used to carry (the gasket at
+    // `size: ""`) went for exactly that reason — it is `offline/
+    // material-identity.mjs`'s claim now, where no row has to be cleaned up.
     for (const it of [
-        { itemName: nameX, size: '4"', unit: "EA", qty: 10, unitPrice: 30 },
-        { itemName: nameX, size: '4"', unit: "EA", qty: 5, unitPrice: 44 },
-        { itemName: `${TAG} Unitless`, size: "", unit: "", qty: 1, unitPrice: 9 },
-        { itemName: `${TAG} Gasket`, size: "", unit: "PCS", qty: 4, unitPrice: 2 },
+        { itemName: nameX, categoryRecordId: CATEGORY.recordId, size: sizeX, unit: "EA", qty: 10, unitPrice: 30 },
+        { itemName: nameX, categoryRecordId: CATEGORY.recordId, size: sizeX, unit: "EA", qty: 5, unitPrice: 44 },
+        // A CATEGORY BUT NO UNIT, so the skip below is about the unit and about
+        // nothing else. Without one it would be skipped for two reasons at once
+        // and the check would not say which.
+        { itemName: `${TAG} Unitless`, categoryRecordId: CATEGORY.recordId, size: `${TAG} unitless`, unit: "", qty: 1, unitPrice: 9 },
+        { itemName: `${TAG} Gasket`, categoryRecordId: EXTRA_CATEGORY.recordId, size: `${TAG} gasket`, unit: "PCS", qty: 4, unitPrice: 2 },
     ]) {
         await createItem({ prRecordId: pr1.id, prId: pr1.prId, remark: "", ...it });
     }
@@ -361,7 +508,7 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     const po1Items = await getItemsByPO(gen1.poRecordId);
     check("the PO snapshot has all four lines", po1Items.length, 4);
 
-    const keyX = { itemName: nameX, size: '4"', unit: "EA" };
+    const keyX = { categoryCode: CATEGORY.codes[3], size: sizeX, unit: "EA" };
     const matX = await getMaterialByKey(keyX);
     assert("an identity row exists for the repeated material", Boolean(matX));
     check("ONE row despite two PO lines", await countMaterialRows(keyX), 1);
@@ -378,14 +525,15 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     check("both PO lines of that material carry the Material link", xItems.filter((i) => i.material.includes(matX?.id)).length, 2);
     const unitless = po1Items.find((i) => i.itemName.endsWith("Unitless"));
     check("the unit-less line is NOT linked (skipped)", unitless.material.length, 0);
-    check("and no identity row was created for it", await countMaterialRows({ itemName: `${TAG} Unitless`, size: "", unit: "" }), 0);
+    check("and no identity row was created for it", await countMaterialRows({ categoryCode: CATEGORY.codes[3], size: `${TAG} unitless`, unit: "" }), 0);
 
     // The reverse side of the link, which is what the rollups traverse.
     const matXFresh = await getMaterialByRecordId(matX.id);
     check("Materials.PO Items shows both lines (reverse link)", matXFresh.poItems.length, 2);
 
-    const gasket = await getMaterialByKey({ itemName: `${TAG} Gasket`, size: "", unit: "PCS" });
-    assert("a blank SIZE is fine — that item got its own material", Boolean(gasket));
+    const gasket = await getMaterialByKey({ categoryCode: EXTRA_CATEGORY.codes[3], size: `${TAG} gasket`, unit: "PCS" });
+    assert("a second category on the same order gets its own material", Boolean(gasket));
+    assert("and it is a different row from the repeated one", gasket?.id !== matX?.id);
 
     // Vendor B buys the same material: one identity, a second price.
     const pr2 = await createPR({
@@ -393,7 +541,7 @@ if (!requester || !vendorA || !vendorB || !discipline) {
         notes: `${TAG} vendor B`,
     });
     track("prs", pr2.id);
-    await createItem({ prRecordId: pr2.id, prId: pr2.prId, remark: "", itemName: nameX, size: '4"', unit: "EA", qty: 7, unitPrice: 51 });
+    await createItem({ prRecordId: pr2.id, prId: pr2.prId, remark: "", itemName: nameX, categoryRecordId: CATEGORY.recordId, size: sizeX, unit: "EA", qty: 7, unitPrice: 51 });
     await updatePR(pr2.id, { status: "Approved" });
     const gen2 = await generatePOForApprovedPR(await getPRByRecordId(pr2.id));
     track("pos", gen2.poRecordId);
@@ -418,7 +566,7 @@ if (!requester || !vendorA || !vendorB || !discipline) {
         notes: `${TAG} withdrawn`,
     });
     track("prs", pr3.id);
-    await createItem({ prRecordId: pr3.id, prId: pr3.prId, remark: "", itemName: nameX, size: '4"', unit: "EA", qty: 100, unitPrice: 60 });
+    await createItem({ prRecordId: pr3.id, prId: pr3.prId, remark: "", itemName: nameX, categoryRecordId: CATEGORY.recordId, size: sizeX, unit: "EA", qty: 100, unitPrice: 60 });
     await updatePR(pr3.id, { status: "Approved" });
     const gen3 = await generatePOForApprovedPR(await getPRByRecordId(pr3.id));
     track("pos", gen3.poRecordId);
@@ -461,7 +609,7 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     const ii = await createInvoiceItem({
         invoiceRecordId: invoice.id, invoiceId: invoice.invoiceId,
         poRecordId: gen1.poRecordId, poItemRecordId: targetOrderedItem.id,
-        itemName: nameX, size: '4"', unit: "EA", qty: 3, unitPrice: 30, remark: "",
+        itemName: nameX, size: sizeX, unit: "EA", qty: 3, unitPrice: 30, remark: "",
     });
     track("invoiceItems", ii.id);
 
@@ -476,7 +624,19 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     check("getInvoicingStatusByPO reports the same figure", enriched.invoicedQty, 3);
     check("uninvoicedQty follows the shared rule", enriched.uninvoicedQty, uninvoicedQty({ qty: 10, invoicedQty: 3 }));
     check("and equals 7", enriched.uninvoicedQty, 7);
-    check("the employee path still omits invoicedQty (#132)", "invoicedQty" in (await getItemsByPO(gen1.poRecordId))[0], false);
+    // THIS ASSERTED THE OPPOSITE UNTIL #356 FOUND IT FAILING, AND IT HAD BEEN
+    // FAILING SINCE #235. The line read "the employee path still omits
+    // invoicedQty (#132)" and expected the key to be absent; #235 put
+    // `Invoiced Qty` on `recordToPOItem` deliberately, on #211's ground that
+    // what a vendor invoiced is readable by anyone who may read the order behind
+    // it, and said so in a paragraph on the field itself. So the check has
+    // contradicted the code it checks for eleven issues, in a script nobody runs
+    // without a reason — which is `docs/notes/verification.md`'s own #152
+    // precedent happening again, one tier over. Corrected per #181 rather than
+    // filed: it states what the mapper now carries.
+    const employeeItem = (await getItemsByPO(gen1.poRecordId))[0];
+    check("the employee path carries invoicedQty (#235 retired #132's rule)", "invoicedQty" in employeeItem, true);
+    check("  and still omits the Invoice Items array, which no caller of this mapper needs", "invoiceItems" in employeeItem, false);
     // #244 — was `await isPoOpen(gen1.poRecordId)`, a re-read of this PO plus a
     // walk of its ordered items. Same assertion, read off the order's own record:
     // `Uninvoiced Items` counts the items passing hasUninvoicedQty, and one of
@@ -492,7 +652,7 @@ if (!requester || !vendorA || !vendorB || !discipline) {
     const ii2 = await createInvoiceItem({
         invoiceRecordId: invoice.id, invoiceId: invoice.invoiceId,
         poRecordId: gen1.poRecordId, poItemRecordId: targetOrderedItem.id,
-        itemName: nameX, size: '4"', unit: "EA", qty: 12, unitPrice: 30, remark: "",
+        itemName: nameX, size: sizeX, unit: "EA", qty: 12, unitPrice: 30, remark: "",
     });
     track("invoiceItems", ii2.id);
     const over = await getInvoicingStatusByPO(gen1.poRecordId);

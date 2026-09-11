@@ -27,6 +27,7 @@
 
 import { createPR, updatePR } from "../../lib/airtable/purchaseRequests.js";
 import { createItem, getItemsByPR } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
@@ -85,6 +86,10 @@ const track = fixtures.track;
 console.log(`run tag: ${TAG} — every fixture below is prefixed with it`);
 
 const ITEM_NAME = `${TAG} probe`;
+// #356 — identity is Category + Size + Unit, so a fixture item carries one even
+// where this script never looks at the item axis: without it PO generation
+// reports `no Category` and the ordered item is never linked to a material.
+const CATEGORY = (await resolveVerifyCategories())[0];
 
 /**
  * Read until the batched query returns every id, or give up.
@@ -120,6 +125,7 @@ async function makePRWithItems(userId, note, n) {
             prRecordId: pr.id,
             prId: pr.prId,
             itemName: ITEM_NAME,
+            categoryRecordId: CATEGORY.recordId,
             qty: i + 1,
             unitPrice: 10,
         });
@@ -185,6 +191,7 @@ try {
             prRecordId: pr.id,
             prId: pr.prId,
             itemName: ITEM_NAME,
+            categoryRecordId: CATEGORY.recordId,
             qty: 1,
             unitPrice: 1,
         });

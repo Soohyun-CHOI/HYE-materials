@@ -63,6 +63,7 @@ import { execSync } from "child_process";
 import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createPR } from "../../lib/airtable/purchaseRequests.js";
 import { createItem, getItemsByPR } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { createQuotation } from "../../lib/airtable/quotations.js";
 import { createPO } from "../../lib/airtable/purchaseOrders.js";
 import { createDelivery } from "../../lib/airtable/deliveries.js";
@@ -150,6 +151,10 @@ const fixtures = createFixtures({
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — identity is Category + Size + Unit, so a fixture item carries one even
+// where this script never looks at the item axis: without it PO generation
+// reports `no Category` and the ordered item is never linked to a material.
+const CATEGORY = (await resolveVerifyCategories())[0];
 const track = fixtures.track;
 const untrack = fixtures.untrack;
 
@@ -524,6 +529,7 @@ try {
             prRecordId: prC.id,
             prId: prC.prId,
             itemName: `${TAG} item ${n}`,
+            categoryRecordId: CATEGORY.recordId,
             size: "",
             unit: "EA",
             qty: n,
@@ -621,6 +627,7 @@ try {
         prRecordId: prD.id,
         prId: prD.prId,
         itemName: `${TAG} freshness probe`,
+        categoryRecordId: CATEGORY.recordId,
         size: "",
         unit: "EA",
         qty: 1,

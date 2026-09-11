@@ -32,6 +32,7 @@ import {
     getDraftsByRequester,
 } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import {
     getPOsExceptWithdrawn,
@@ -87,6 +88,10 @@ const fixtures = createFixtures({
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — identity is Category + Size + Unit, so a fixture item carries one even
+// where this script never looks at the item axis: without it PO generation
+// reports `no Category` and the ordered item is never linked to a material.
+const CATEGORY = (await resolveVerifyCategories())[0];
 const track = fixtures.track;
 
 let complete = false;
@@ -109,6 +114,7 @@ try {
         prRecordId: a.id,
         prId: a.prId,
         itemName: "__verify-133",
+        categoryRecordId: CATEGORY.recordId,
         qty: 1,
         unitPrice: 1,
     });
@@ -125,6 +131,7 @@ try {
         prRecordId: b.id,
         prId: b.prId,
         itemName: "__verify-133",
+        categoryRecordId: CATEGORY.recordId,
         qty: 1,
         unitPrice: 1,
     });

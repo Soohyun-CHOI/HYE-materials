@@ -106,6 +106,7 @@ import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import {
     SEED_CATEGORIES,
     assertItemsHaveCategories,
+    materialKeyFor,
     resolveSeedCategories,
 } from "./_seed_categories.mjs";
 
@@ -153,7 +154,7 @@ console.log(`discipline ${discipline.disciplineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
 console.log(`as       ${requester.userName} <${requester.email}>`);
 
-const already = await getMaterialByKey({ itemName: FIRST_ITEM, size: SIZE, unit: UNIT }).catch(() => null);
+const already = await getMaterialByKey(materialKeyFor(CATEGORIES.get(FIRST_CODE), { size: SIZE, unit: UNIT })).catch(() => null);
 if (already) {
     console.log(`\nAlready seeded — "${FIRST_ITEM}" exists on the item axis. Nothing created.`);
     console.log("Delete the 237-DEMO Materials rows by hand if you want a clean re-seed.");

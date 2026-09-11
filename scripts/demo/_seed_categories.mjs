@@ -153,14 +153,22 @@ export async function resolveSeedCategories(leafCodes) {
  * One seed item, in the shape the seeds already pass around.
  *
  * IT KEEPS `itemName` ON PURPOSE, AND THAT IS ABOUT ORDERING RATHER THAN TASTE.
- * #358 lands before #356, so `getMaterialByKey` and `upsertMaterial` still key
+ * #358 landed before #356, so `getMaterialByKey` and `upsertMaterial` still keyed
  * the item axis on `Item Name` + `Size` + `Unit` — and a seed's skip check is
  * `getMaterialByKey(ITEM)`, which is how it knows it has run before. Filling the
- * name from the category's label keeps every one of those working unchanged
- * while the link is written beside it, so this issue does not have to reach into
- * the material axis to change how a seed detects itself. When #356 rekeys the
- * cache, the name here becomes the frozen copy it already is everywhere else and
- * nothing in these scripts moves.
+ * name from the category's label kept every one of those working unchanged
+ * while the link was written beside it, so that issue did not have to reach into
+ * the material axis to change how a seed detects itself.
+ *
+ * #356 REKEYED IT, AND WHAT IT COST IS ONE MORE KEY ON THIS OBJECT rather than
+ * the "nothing in these scripts moves" that sentence predicted. `itemName` is
+ * still the frozen copy every item table keeps, so the seeds' `createItem` calls
+ * are untouched — but the skip check now asks the base for a material by its
+ * CATEGORY, so `categoryCode` is here for `getMaterialByKey(ITEM)` to destructure
+ * and the four seeds that pass a literal instead of this object name the code
+ * themselves. The prediction was right about the name and wrong about the
+ * lookup, which is the distinction worth keeping: what a document FREEZES and
+ * what identity is KEYED ON stopped being the same string in #356.
  *
  * `unit` defaults to `EA` because most seed rows do and a missing one is skipped
  * by the cache entirely (#18) — a unit-less item never reaches `/materials`,
@@ -170,6 +178,11 @@ export function itemForCategory(category, { size = "", unit = "EA", ...rest } = 
     return {
         itemName: category.label,
         categoryRecordId: category.recordId,
+        // The leaf, which is what `Materials."Category Code"` holds and what
+        // `getMaterialByKey` matches on (#356). Beside `categoryCodes` rather
+        // than derived from it at each call site, so a seed passing this whole
+        // object to either the write path or the lookup needs no adapter.
+        categoryCode: category.codes[category.codes.length - 1],
         // BOTH REPRESENTATIONS, because a seed row stands in for a form row and
         // the two halves of the app hold a category differently: the write path
         // takes a record id, and `lib/prItemMerge.js:mergeKey` takes the four
@@ -183,6 +196,21 @@ export function itemForCategory(category, { size = "", unit = "EA", ...rest } = 
         unit,
         ...rest,
     };
+}
+
+/**
+ * The key a seed's skip check hands `getMaterialByKey` (#356).
+ *
+ * A SEED KNOWS IT HAS RUN BEFORE BY FINDING ITS OWN MATERIAL, and identity is
+ * `Category` + `Size` + `Unit` now, so the check asks by leaf code. Four seeds
+ * build the key from a category rather than from an `itemForCategory` result —
+ * they look a material up before they have an item in hand, or from a join key
+ * that is a label — and this is here so `codes[3]` is written once. A seed
+ * holding the item object passes that straight through instead; it carries the
+ * same `categoryCode`.
+ */
+export function materialKeyFor(category, { size = "", unit = "EA" } = {}) {
+    return { categoryCode: category.codes[category.codes.length - 1], size, unit };
 }
 
 /**

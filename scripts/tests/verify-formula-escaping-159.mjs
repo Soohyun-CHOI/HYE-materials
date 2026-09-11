@@ -183,7 +183,17 @@ const LOOKUPS = [
     ["getPOById", () => getPOById('" & {PO ID} & "')],
     ["getInvoiceById", () => getInvoiceById('" & {Invoice ID} & "')],
     ["getUserByEmail", () => getUserByEmail('" & {Email} & "')],
-    ["getMaterialByKey", () => getMaterialByKey({ itemName: '" & {Item Name} & "', size: "", unit: "EA" })],
+    // THE HOSTILE VALUE MOVED FROM THE NAME TO THE SIZE (#356), and that is the
+    // more honest place for it: `Item Name` is a lookup of a picked category now,
+    // so nobody types it, and `Size` is the one axis of this key a person still
+    // fills in — which makes it the one a tautology could arrive on. The
+    // `categoryCode` beside it is what the reader needs before it will query at
+    // all, since an empty code short-circuits to null rather than matching every
+    // category-less row.
+    [
+        "getMaterialByKey",
+        () => getMaterialByKey({ categoryCode: "0101001001", size: '" & {Size} & "', unit: "EA" }),
+    ],
 ];
 
 for (const [name, call] of LOOKUPS) {

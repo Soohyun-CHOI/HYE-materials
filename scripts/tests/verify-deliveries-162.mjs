@@ -52,6 +52,7 @@
 import { execSync } from "child_process";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { updatePO, PO_WITHDRAWN_STATUS } from "../../lib/airtable/purchaseOrders.js";
 import { getPOItemsByRecordIds, getDeliveredQtyForPOItem } from "../../lib/airtable/poItems.js";
@@ -190,7 +191,13 @@ const fixtures = createFixtures({
             name: "materials",
             table: TABLES.MATERIALS,
             label: "Material",
-            tagField: "Item Name",
+            // #356 — `Item Name` is a LOOKUP through `Category` now, so a run
+            // cannot put its tag there and this discovery would find nothing.
+            // The paragraph above is about a lookup that came back empty leaving
+            // a row untracked; this would do it to EVERY row, and
+            // `expectAtLeast` below is what would say so. `Size` is the one
+            // writable free-text field identity still has.
+            tagField: "Size",
             discoverByTag: true,
             // A completed run always writes at least one of these, so 0 means the
             // tag stopped reaching them rather than that none were created (#171).
@@ -200,6 +207,9 @@ const fixtures = createFixtures({
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — one category for the whole run; the TAG-prefixed size is what keeps
+// the scenarios on separate materials. See makeOrder below.
+const CATEGORY = (await resolveVerifyCategories())[0];
 const track = fixtures.track;
 
 /**
@@ -226,7 +236,22 @@ async function makeOrder({ requester, vendor, discipline, itemName, size, unit, 
         notes: `${TAG} fixture`,
     });
     track("prs", pr.id);
-    await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", itemName, size, unit, qty, unitPrice });
+    // #356 — one category for the run, so the SIZE is what separates two
+    // fixtures into two materials, and it carries the run tag because
+    // `discoverByTag` matches on it. Prefixing rather than replacing keeps every
+    // caller's own distinction: two `makeOrder` calls that passed the same
+    // itemName AND size still share a material, which Part A depends on.
+    await createItem({
+        prRecordId: pr.id,
+        prId: pr.prId,
+        remark: "",
+        itemName,
+        categoryRecordId: CATEGORY.recordId,
+        size: `${itemName} ${size}`.trim(),
+        unit,
+        qty,
+        unitPrice,
+    });
     await updatePR(pr.id, { status: "Approved" });
     const gen = await generatePOForApprovedPR(await getPRByRecordId(pr.id));
     track("pos", gen.poRecordId);
@@ -468,7 +493,10 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         const di = await createDeliveryItem({
             deliveryRecordId: delivery3.id, deliveryId: delivery3.deliveryId,
             poItemRecordId: row.orderedItem.id, materialRecordId,
-            itemName, size: '2"', unit: "EA",
+            // The frozen reference copies come from the ordered item, which is
+            // where the production path takes them and the only way they agree
+            // with the size #356 made part of the key.
+            itemName, size: row.orderedItem.size, unit: "EA",
             qty: row.qty, overDelivered: row.over,
         });
         track("deliveryItems", di.id);

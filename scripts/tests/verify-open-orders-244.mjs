@@ -24,6 +24,7 @@
 
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import {
     getOpenPOs,
@@ -95,6 +96,10 @@ const fixtures = createFixtures({
 const TAG = fixtures.TAG;
 const track = fixtures.track;
 const ITEM_NAME = `${TAG} widget`;
+// #356 — identity is Category + Size + Unit, so a fixture item carries one even
+// where this script never looks at the item axis: without it PO generation
+// reports `no Category` and the ordered item is never linked to a material.
+const CATEGORY = (await resolveVerifyCategories())[0];
 
 /** An Approved PR with `qtys.length` items, generated into a PO. */
 async function makePO(userId, note, qtys) {
@@ -105,6 +110,7 @@ async function makePO(userId, note, qtys) {
             prRecordId: pr.id,
             prId: pr.prId,
             itemName: ITEM_NAME,
+            categoryRecordId: CATEGORY.recordId,
             qty,
             unitPrice: 10,
         });
