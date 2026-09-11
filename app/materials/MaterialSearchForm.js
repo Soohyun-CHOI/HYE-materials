@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { MATERIAL_SEARCH_COPY } from "@/lib/materialPriceView";
 
 /**
  * The search box (#19).
@@ -13,6 +14,13 @@ import { useState } from "react";
  *
  * Client Component only for the controlled input and the disable-on-submit
  * guard; nothing here touches Airtable.
+ *
+ * ITS WORDS ARE IN A CONSTANT SINCE #357, and the import is safe at every depth:
+ * lib/materialPriceView.js -> lib/itemNaming.js, lib/poUnsigned.js ->
+ * lib/poSend.js -> lib/format.js and lib/materialCategory.js, none of which
+ * reach lib/airtable/ or lib/airtableOps.js. Text written straight into JSX is
+ * invisible to the vocabulary and brief checks, which is how the box went on
+ * offering `pipe 2"` as an example after that query stopped matching anything.
  */
 export default function MaterialSearchForm({ initialQuery = "" }) {
     const router = useRouter();
@@ -35,7 +43,7 @@ export default function MaterialSearchForm({ initialQuery = "" }) {
     return (
         <form onSubmit={onSubmit} className="mt-6 flex flex-wrap gap-2">
             <label htmlFor="material-q" className="sr-only">
-                Search by item name, size or unit
+                {MATERIAL_SEARCH_COPY.boxLabel}
             </label>
             <input
                 id="material-q"
@@ -43,7 +51,7 @@ export default function MaterialSearchForm({ initialQuery = "" }) {
                 type="search"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                placeholder={`e.g. pipe 2"`}
+                placeholder={MATERIAL_SEARCH_COPY.placeholder}
                 className="min-w-0 flex-1 rounded border border-zinc-300 px-3 py-2 text-sm"
             />
             <button
@@ -66,10 +74,14 @@ export default function MaterialSearchForm({ initialQuery = "" }) {
                 </button>
             )}
             {/* Words are AND-ed and order does not matter, which is not obvious
-                from an empty box. */}
+                from an empty box. The pair is in code style because they are
+                things to type; the strings themselves come from the constant,
+                where a check can ask whether they still match a real path. */}
             <p className="w-full text-xs text-zinc-500">
-                Every word must appear. Order does not matter — <code>2&quot; pipe</code> and{" "}
-                <code>pipe 2&quot;</code> find the same item.
+                {MATERIAL_SEARCH_COPY.orderNote.lead}{" "}
+                <code>{MATERIAL_SEARCH_COPY.orderNote.examples[0]}</code> and{" "}
+                <code>{MATERIAL_SEARCH_COPY.orderNote.examples[1]}</code>{" "}
+                {MATERIAL_SEARCH_COPY.orderNote.tail}
             </p>
         </form>
     );

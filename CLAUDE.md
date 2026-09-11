@@ -111,7 +111,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, the refusals, and every word it says.
 - `lib/toolListView.js` — the two tools list screens (#339), and every word they say. **The app's first paging, and the only one that can divide the READ** — nothing gates a tool item per row, which is what #326 says a document list's page cannot do.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
-- `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat.
+- `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357) — the search box's words and the two sentences a miss chooses between, since the label's words are the catalog's rather than a requester's.
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
 - `lib/poListView.js` — the PO list's ordering, Status text, three empty states, and which approved PRs have no PO with both voices of that copy (#176). `selectPOsAwaitingSend` + `AWAITING_SEND_COPY` (#295) are the second strip: **it counts `Sent At` and never the status beside it**, which is #281's rule wherever a send is judged.
 - `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, folded to one entry per document, their ordering, their empty states and `PO_DOCUMENTS_COPY`.

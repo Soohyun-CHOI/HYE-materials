@@ -17,6 +17,15 @@ the app whose heading is a human name rather than a generated ID, because a
 material has no ID a person would recognize. Under it, the size and unit joined by
 a middle dot, in small gray text, when either exists.
 
+**That name is now the item's whole category path**, joined with ` > ` and up to
+146 characters — `Stainless Steel (SUS) > Weld Fitting (Clean Fitting) > Metal
+Face Seal (VCR) Fitting > Gland`. It is one string from one field and a redesign
+may split it visually, but the ancestry is part of the identity rather than
+decoration: the last segment alone does not say what the item is, since `Cap`,
+`Union` and `Gasket` each sit under several branches. **The heading wraps to
+three lines on a phone and nothing overflows**, which is the current behavior
+rather than a decision — how a long path should be set is open.
+
 **evidence — `Purchase history`,** a table of six columns: Date, Vendor, Qty, Unit
 price, Amount, Order. One row per time this material was ordered.
 
@@ -62,5 +71,6 @@ a withdrawn order can appear here with a tag while the list screen shows its pri
 as the vendor's latest with a caveat. The two screens disagree in appearance and
 agree in fact, and that is the relationship to preserve.
 
-**A material's identity is item name, size and unit** — never the vendor. Two
-vendors' prices for one material are two rows here, not two materials.
+**A material's identity is its category, size and unit** — never the vendor, and
+never the name, which is a lookup of the category's path and is nobody's typing.
+Two vendors' prices for one material are two rows here, not two materials.

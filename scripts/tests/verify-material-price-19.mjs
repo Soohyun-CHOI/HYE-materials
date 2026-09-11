@@ -246,7 +246,9 @@ if (incomplete) {
     // reach the label through `Size` — the one writable free-text field identity
     // still has. That also makes it what `discoverByTag` cleans up on, so the
     // fixture size carries the tag whether or not a query ever uses it. Whether
-    // the SCREEN's matching should still be token-over-the-label is #357's.
+    // the SCREEN's matching should still be token-over-the-label was #357's, and
+    // the answer was yes: the rule is unchanged, the path separator is no longer
+    // a token, and the cap rose to hold a whole pasted label.
     const SIZE = `${TAG} 2in`;
     const EXTRA_SIZE = `${TAG} gasket`;
     const KEY = { categoryCode: CATEGORY.codes[3], size: SIZE, unit: "EA" };
