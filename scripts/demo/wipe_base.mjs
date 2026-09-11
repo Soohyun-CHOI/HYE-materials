@@ -87,9 +87,7 @@ const ORDER = [
     TABLES.PR_SIGNERS,
     TABLES.PR_ITEMS,
     TABLES.PURCHASE_REQUESTS,
-    // Reference data. Disciplines before Jobs, since one is a child of a Job.
-    TABLES.DISCIPLINES,
-    TABLES.JOBS,
+    // Reference data. Jobs and Disciplines left #358 — see KEPT_FOR_THEIR_LINKS.
     TABLES.VENDORS,
     TABLES.ADDRESSES,
     // Independent of everything. Single-use and 15-minute-lived, so every row here is
@@ -97,13 +95,67 @@ const ORDER = [
     TABLES.AUTH_TOKENS,
 ];
 
-const KEPT = [TABLES.USERS];
+/**
+ * Tables this script cannot reach, each for a reason that is checkable rather
+ * than remembered — the same standard the ORDER comments hold themselves to.
+ *
+ * `Users` is the original entry: an account appears as a side effect of a first
+ * magic-link sign-in and in NO other way, so a deleted one comes back only when
+ * that person signs in again.
+ *
+ * **THE OTHER FOUR WERE ADDED IN #358, AND FINDING THEM IS WHAT THAT ISSUE
+ * ACTUALLY COST.** The assertion below has failed since #334 put three tools
+ * tables into `TABLES`, so this script exited 1 without deleting anything for
+ * twenty-odd issues and nobody noticed, because nobody ran it. The guard did its
+ * job; what was missing was anything that asks the question without a person
+ * choosing to. `scripts/tests/offline/wipe-coverage.mjs` asks it in CI now.
+ */
+const KEPT = [
+    TABLES.USERS,
+    // #354's catalog: 777 rows loaded from a committed CSV, plus whatever paths
+    // have been added by hand since — and a hand-added path is in no file, so
+    // rebuilding from the CSV would drop it silently. `materials.md` records
+    // hand-adding as the normal way a path arrives, which is what makes this
+    // reference data rather than demo data. Re-running the loader after a wipe
+    // would also cost 78 write requests for rows that never changed.
+    TABLES.MATERIAL_CATEGORIES,
+    // The tools axis (#334-#362). NOTHING REBUILDS THESE: there is no tools seed
+    // in this directory, and every row was registered through the app. They also
+    // sit on no screen the document demo shows, so clearing them would cost real
+    // work to make a set of pages tidier that never render them.
+    TABLES.TOOLS,
+    TABLES.TOOL_ITEMS,
+    TABLES.TOOL_LOG,
+];
+
+/**
+ * Kept because something else keeps a link INTO them, rather than for their own
+ * sake — listed apart so the distinction survives the next reader.
+ *
+ * `Tool Items."Job"` is required and app-enforced, and `Tool Log."Job"` is on
+ * every row and never blank. Deleting Jobs while keeping tool items would leave
+ * 18 rows whose required link points at nothing, which is a worse state than
+ * either wiping both or keeping both. `Disciplines` follows its parent.
+ *
+ * Nothing in the document chain is left inconsistent by this: a request links a
+ * discipline and a delivery links a job, and both of those go, so what survives
+ * is a childless job and its childless discipline — exactly what
+ * `seed_demo_fixtures.mjs` expects to find, since it is skip-if-exists.
+ *
+ * IT ALSO SAVES A ROW NO SEED MAKES. `26-DEMO-02` was created through
+ * `/admin/jobs/new` in #338 and `seed_demo_fixtures.mjs` builds only
+ * `26-DEMO-01`; `verification.md` records the second job as the only way to
+ * exercise a picker with more than one choice. That is a consequence rather than
+ * the reason, and it is written down so nobody removes the reason and keeps the
+ * consequence by accident.
+ */
+const KEPT_FOR_THEIR_LINKS = [TABLES.JOBS, TABLES.DISCIPLINES];
 
 // A table this script has never heard of is a failure rather than a silent pass —
 // #162 added two tables at once, and a wipe that quietly skipped them would leave
 // exactly the rows it was run to remove. Compared against the production constants
 // rather than against a hand-typed list.
-const known = new Set([...ORDER, ...KEPT]);
+const known = new Set([...ORDER, ...KEPT, ...KEPT_FOR_THEIR_LINKS]);
 const missing = Object.values(TABLES).filter((t) => !known.has(t));
 if (missing.length) {
     console.error(`These tables are in TABLES but not in this script's order: ${missing.join(", ")}`);
@@ -144,7 +196,7 @@ console.log("  ----  ----  " + "-".repeat(24));
 console.log(`  ${String(totalRows).padStart(4)}        ${ORDER.length} tables`);
 
 console.log("");
-for (const table of KEPT) {
+for (const table of [...KEPT, ...KEPT_FOR_THEIR_LINKS]) {
     const kept = await base(table).select({ fields: [] }).all();
     console.log(`  ${String(kept.length).padStart(4)}        ${table}  — KEPT`);
 }

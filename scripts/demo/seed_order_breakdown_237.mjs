@@ -103,13 +103,24 @@ import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
+import {
+    SEED_CATEGORIES,
+    assertItemsHaveCategories,
+    resolveSeedCategories,
+} from "./_seed_categories.mjs";
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Lone Star Pipe & Supply";
 const SIZE = '2"';
 const UNIT = "EA";
 const PRICE = 12;
-const FIRST_ITEM = "237-DEMO Elbow";
+// A CATEGORY RATHER THAN A TYPED NAME SINCE #358 — the `237-DEMO ` prefix went
+// with the name it prefixed, and the slice this seed draws from is what keeps
+// its three materials out of the other seeds' delivery candidates.
+const CATEGORIES = await resolveSeedCategories(SEED_CATEGORIES["seed_order_breakdown_237.mjs"]);
+const [FIRST_CODE, SECOND_CODE, THIRD_CODE] = SEED_CATEGORIES["seed_order_breakdown_237.mjs"];
+const FIRST_ITEM = CATEGORIES.get(FIRST_CODE).label;
+const seededPRRecordIds = [];
 
 // Declared before the skip check because the guide reads it, and the skip path is
 // the only way to reach that check — the same temporal-dead-zone trap
@@ -201,18 +212,22 @@ function invoicePdfBytes(label) {
  * generation is what writes each ordered item's `Material` link (#18), and both the
  * fold and the overage apply step match on that link and never on `Item Name` text.
  */
-async function makeOrder({ itemName, qty }) {
+async function makeOrder({ leafCode, qty }) {
+    const category = CATEGORIES.get(leafCode);
+    const itemName = category.label;
     const pr = await createPR({
         requesterId: requester.id,
         disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: "237-DEMO order",
     });
+    seededPRRecordIds.push(pr.id);
     made("Purchase Request", pr.prId, itemName);
     await createItem({
         prRecordId: pr.id,
         prId: pr.prId,
         itemName,
+        categoryRecordId: category.recordId,
         size: SIZE,
         unit: UNIT,
         qty,
@@ -360,7 +375,7 @@ async function pairInvoice(invoice) {
 // ---------------------------------------------------------------------------
 console.log("\nA — a correction splits one invoiced item across two orders:");
 
-const a = await makeOrder({ itemName: FIRST_ITEM, qty: 10 });
+const a = await makeOrder({ leafCode: FIRST_CODE, qty: 10 });
 const aDelivery = await overDeliver({
     orderedItem: a.orderedItem,
     within: 10,
@@ -436,8 +451,8 @@ ids.aDelivery = aDelivery.deliveryId;
 // ---------------------------------------------------------------------------
 console.log("\nB — two items, one on each of two orders:");
 
-const b1 = await makeOrder({ itemName: "237-DEMO Tee", qty: 5 });
-const b2 = await makeOrder({ itemName: "237-DEMO Union", qty: 7 });
+const b1 = await makeOrder({ leafCode: SECOND_CODE, qty: 5 });
+const b2 = await makeOrder({ leafCode: THIRD_CODE, qty: 7 });
 const bInvoice = await makeInvoice({
     code: "237-DEMO-B",
     issueDate: "2026-08-12",
@@ -454,6 +469,17 @@ ids.bInvoice = bInvoice.invoiceId;
 ids.bPo1 = b1.po.poId;
 ids.bPo2 = b2.po.poId;
 console.log(`  ${bInvoice.invoiceId}: 5 on ${ids.bPo1}, 7 on ${ids.bPo2}`);
+
+// Every order this seed RAISES means to carry a category, so the number is 0
+// (#358).
+//
+// THE CORRECTIVE REQUEST IS NOT IN THIS SET, and that is the honest scope rather
+// than an oversight. Scenario A's correction is created by `createOverageDraft`,
+// which raises a request of its own and copies the ordered item's name without a
+// category — `lib/overagePR.js` gains one in #356, which owns that path. Only
+// the requests `makeOrder` raises are collected here, so this assertion says
+// what it can prove and no more.
+await assertItemsHaveCategories({ prRecordIds: seededPRRecordIds, allowMissing: 0 });
 
 printGuide();
 

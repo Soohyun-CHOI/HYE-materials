@@ -64,8 +64,16 @@ const HIGHEST_HQ_LEAF_TAIL = 33;
 /** Of the 11 rows breaking prefix nesting, the ones that break it at the LEAF. */
 const LEAVES_NOT_PREFIXED = 2;
 
-/** RFC 4180 enough for this file: quoted cells, embedded commas, CRLF. */
-function parseCsv(text) {
+/**
+ * RFC 4180 enough for this file: quoted cells, embedded commas, CRLF.
+ *
+ * EXPORTED FOR `seed-categories.mjs` RATHER THAN COPIED, and the copy is what
+ * that check tried first: a naive `split(",")` reads the leaf-code column off by
+ * however many commas the NAME columns before it contain, so `0108042001` came
+ * back as a code the catalog does not have. 28 names carry a comma or a slash.
+ * One parser, two readers.
+ */
+export function parseCsv(text) {
     const rows = [];
     let row = [];
     let cell = "";

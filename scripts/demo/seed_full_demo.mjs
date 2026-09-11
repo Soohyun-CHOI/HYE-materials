@@ -119,10 +119,92 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import { mergeIdenticalItems } from "../../lib/prItemMerge.js";
 import { ensureDemoFixtures } from "./seed_demo_fixtures.mjs";
 import { addAssignedJob } from "../../lib/airtable/users.js";
+import {
+    SEED_CATEGORIES,
+    assertItemsHaveCategories,
+    itemForCategory,
+    resolveSeedCategories,
+} from "./_seed_categories.mjs";
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Lone Star Pipe & Supply";
 const UNIT = "EA";
+
+/**
+ * The scenarios' items, as catalog leaf codes (#358).
+ *
+ * THE KEYS ARE THE SCENARIO'S OWN WORDS AND THE VALUES DECIDE WHAT IS ON SCREEN.
+ * A scenario reads `ITEM.gateValve` so the code below still says what it is
+ * about, while the item NAME comes from the catalog and is whatever HQ calls
+ * that path — the typed names these keys are made from (`Gate Valve`,
+ * `Anchor Bolt`, …) are gone from the base entirely. That split is the point:
+ * the seed's vocabulary is for whoever maintains the seed, and the screen's
+ * vocabulary belongs to the catalog.
+ *
+ * EVERY CODE IS FROM THIS SEED'S OWN BRANCH, which is what replaced the
+ * `DEMO26 ` name prefix as the scenario boundary. Two scenarios sharing a
+ * material become each other's delivery candidates (#18), and identity is
+ * `Category` + `Size` + `Unit` after #356 — so 39 distinct categories out of one
+ * level-1 branch keeps them apart, and no other seed draws from that branch.
+ * `offline/seed-categories.mjs` holds both halves.
+ */
+const ITEM_CODES = {
+    gateValve: "0101001001",
+    anchorBolt: "0101002010",
+    scaffoldPlank: "0102001017",
+    weldRod: "0102010006",
+    grindingDisc: "0103001002",
+    butterflyValve: "0103002008",
+    checkValve: "0103006009",
+    ballValve: "0104001009",
+    globeValve: "0104007004",
+    pipeSupport: "0105001003",
+    supportShim: "0105003001",
+    flangeGasket: "0105015001",
+    uBolt: "0106002001",
+    steelPipe: "0107008002",
+    elbow90: "0107010004",
+    reducingTee: "0108005009",
+    pressureGauge: "0108022004",
+    cableTray: "0108030001",
+    stainlessSheet: "0108042001",
+    emtConduit: "0109006012",
+    ballValveBody: "0109012015",
+    conduit: "0111004002",
+    conduitClip: "0113002004",
+    junctionBox: "0114003002",
+    hexNut: "0116001009",
+    coupling: "0116004001",
+    pipeClamp: "0116022002",
+    threadedRod: "0118002001",
+    springHanger: "0120001004",
+    blindFlange: "0121005001",
+    weldNeckFlange: "0121005010",
+    slipOnFlange: "0123003002",
+    insulationRoll: "0124003002",
+    structuralAngle: "0125001003",
+    basePlate: "0125008003",
+    shearStud: "0127001001",
+    groutBag: "0128002015",
+    copperTube: "0131001003",
+    siteConsumables: "0136002001",
+};
+
+/**
+ * The same map, resolved against the catalog, spread into a scenario's rows.
+ *
+ * At module scope because the scenarios below are top-level statements that
+ * spread these, so anything filled inside a function would be `undefined` by
+ * then. A code the catalog does not have throws here rather than several
+ * hundred operations into a run.
+ */
+const CATEGORIES = await resolveSeedCategories(Object.values(ITEM_CODES));
+const ITEM = Object.fromEntries(
+    Object.entries(ITEM_CODES).map(([key, code]) => [key, itemForCategory(CATEGORIES.get(code))])
+);
+
+/** Every request this seed makes, so the run can prove they all carry a category. */
+const seededPRRecordIds = [];
 
 /** The tag that marks a PR as this seed's, and the prefix every item name carries. */
 const TAG = "DEMO26";
@@ -276,11 +358,16 @@ async function makeOrder({ scenarioName, subTag = null, items, shippingFee = nul
         vendorId: vendor.id,
         notes: `${notes} ${tagOf(scenarioName)}${subTag ? tagOf(subTag) : ""}`.trim(),
     });
+    seededPRRecordIds.push(pr.id);
     for (const it of items) {
         await createItem({
             prRecordId: pr.id,
             prId: pr.prId,
             itemName: it.itemName,
+            // #358 — the link beside the name the catalog composed. Every row
+            // this seed makes has one; `assertItemsHaveCategories` at the end
+            // of the run proves it rather than trusting this line.
+            categoryRecordId: it.categoryRecordId,
             size: it.size || "",
             // `??`, NOT `||`: NO_SIZE passes an EMPTY unit on purpose, and `||` read
             // that as "unset" and substituted the default, so the material still had
@@ -536,6 +623,18 @@ if (CLEANUP) {
         ["Purchase Requests", TABLES.PURCHASE_REQUESTS, mine.map((pr) => pr.id)],
     ];
 
+    // THE ITEM AXIS IS READ BEFORE ANYTHING IS DELETED, AND #358 FOUND OUT WHY
+    // THE HARD WAY. The sweep below decides which materials go by asking whether
+    // every ordered item pointing at one is in the set going — and it used to
+    // ask AFTER the loop that destroys those ordered items, so every link array
+    // came back empty, the `pointing.length > 0` guard rejected every row, and a
+    // full `--cleanup` reported `0 Materials` while leaving them all behind.
+    // Measured on a failed partial run: 32 materials and 32 price rows survived
+    // a cleanup that said it had swept the axis. The comment on the sweep
+    // already said leaving the axis behind was a real defect; it was still
+    // leaving it behind.
+    const materialsBefore = await base(TABLES.MATERIALS).select({ fields: ["PO Items"] }).all();
+
     console.log("\nDeleting, children first:");
     let total = 0;
     for (const [label, table, recordIds] of plan) {
@@ -576,7 +675,7 @@ if (CLEANUP) {
     // marker: the previous version matched a name prefix, which put that prefix on
     // every screen in the app that names a material.
     const goingPoItems = new Set(poItemRecordIds);
-    const materials = (await base(TABLES.MATERIALS).select({ fields: ["PO Items"] }).all()).filter((r) => {
+    const materials = materialsBefore.filter((r) => {
         const pointing = r.get("PO Items") || [];
         return pointing.length > 0 && pointing.every((id) => goingPoItems.has(id));
     });
@@ -616,8 +715,8 @@ console.log("\nSeeding:");
 // scenario, and it is checked here rather than discovered in front of the room.
 await scenario("DUP", "the request the live duplicate warning names", async () => {
     const LIVE_ROWS = [
-        { itemName: "Gate Valve", size: '4"', unit: UNIT, qty: 5, unitPrice: 45 },
-        { itemName: "Gate Valve", size: '4"', unit: UNIT, qty: 5, unitPrice: 45 },
+        { ...ITEM.gateValve, size: '4"', unit: UNIT, qty: 5, unitPrice: 45 },
+        { ...ITEM.gateValve, size: '4"', unit: UNIT, qty: 5, unitPrice: 45 },
     ];
     const merged = mergeIdenticalItems(LIVE_ROWS);
     const key = (its) =>
@@ -626,7 +725,7 @@ await scenario("DUP", "the request the live duplicate warning names", async () =
             .sort()
             .join(",");
 
-    const SEEDED_ROWS = [{ itemName: "Gate Valve", size: '4"', unit: UNIT, qty: 10, unitPrice: 45 }];
+    const SEEDED_ROWS = [{ ...ITEM.gateValve, size: '4"', unit: UNIT, qty: 10, unitPrice: 45 }];
     if (key(merged) !== key(SEEDED_ROWS)) {
         throw new Error(
             `the duplicate key would not match: typing two rows of 5 merges to "${key(merged)}" ` +
@@ -665,7 +764,7 @@ await scenario("CHAIN", "four step states: done, current, paused, not reached", 
     await createItem({
         prRecordId: pr.id,
         prId: pr.prId,
-        itemName: "Anchor Bolt",
+        ...ITEM.anchorBolt,
         size: 'M16 x 200',
         unit: UNIT,
         qty: 60,
@@ -714,7 +813,7 @@ await scenario("WITHDRAWN_PR", "withdrawn request, chain frozen where it got to"
     await createItem({
         prRecordId: pr.id,
         prId: pr.prId,
-        itemName: "Scaffold Plank",
+        ...ITEM.scaffoldPlank,
         size: '3m',
         unit: UNIT,
         qty: 24,
@@ -741,8 +840,8 @@ await scenario("WITHDRAWN_PR", "withdrawn request, chain frozen where it got to"
 // itself rather than a shortcut to it.
 await scenario("PO_WAIT", "2 approved requests whose order generation failed", async () => {
     for (const [n, item] of [
-        [1, { itemName: "Weld Rod", size: "3.2mm", qty: 40, unitPrice: 6.5 }],
-        [2, { itemName: "Grinding Disc", size: '7"', qty: 80, unitPrice: 2.75 }],
+        [1, { ...ITEM.weldRod, size: "3.2mm", qty: 40, unitPrice: 6.5 }],
+        [2, { ...ITEM.grindingDisc, size: '7"', qty: 80, unitPrice: 2.75 }],
     ]) {
         const pr = await createPR({
             requesterId: requester.id,
@@ -770,7 +869,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
         scenarioName: "CHIP_SET",
         subTag: "CHIP_INVOICED",
         notes: "Butterfly valves for the pump skid.",
-        items: [{ itemName: "Butterfly Valve", size: '6"', qty: 8, unitPrice: 120 }],
+        items: [{ ...ITEM.butterflyValve, size: '6"', qty: 8, unitPrice: 120 }],
         sign: true,
     });
     await invoice({
@@ -785,7 +884,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
         scenarioName: "CHIP_SET",
         subTag: "CHIP_PARTLY",
         notes: "Check valves — vendor is shipping these in two batches.",
-        items: [{ itemName: "Check Valve", size: '3"', qty: 10, unitPrice: 88 }],
+        items: [{ ...ITEM.checkValve, size: '3"', qty: 10, unitPrice: 88 }],
         sign: true,
     });
     await invoice({
@@ -800,7 +899,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
         scenarioName: "CHIP_SET",
         subTag: "CHIP_AWAITING",
         notes: "Ball valves for the header run.",
-        items: [{ itemName: "Ball Valve", size: '2"', qty: 12, unitPrice: 54 }],
+        items: [{ ...ITEM.ballValve, size: '2"', qty: 12, unitPrice: 54 }],
         sign: true,
     });
     ids.chipAwaiting = none.po.poId;
@@ -810,7 +909,7 @@ await scenario("CHIP_SET", "Invoiced, Partly invoiced, Awaiting invoice, and the
         scenarioName: "CHIP_SET",
         subTag: "CHIP_DASH",
         notes: "Globe valves — design changed, we no longer need these.",
-        items: [{ itemName: "Globe Valve", size: '4"', qty: 6, unitPrice: 96 }],
+        items: [{ ...ITEM.globeValve, size: '4"', qty: 6, unitPrice: 96 }],
     });
     await updatePO(gone.po.id, { status: "Withdrawn", withdrawnAt: new Date().toISOString() });
     ids.chipDash = gone.po.poId;
@@ -832,8 +931,8 @@ await scenario("DL_WAIT", "a delivery waiting for an invoice — strip 1's row",
         scenarioName: "DL_WAIT",
         notes: "Pipe supports and clamps for level 2.",
         items: [
-            { itemName: "Pipe Support", size: '4"', qty: 30, unitPrice: 22 },
-            { itemName: "Support Shim", size: '3mm', qty: 90, unitPrice: 1.4 },
+            { ...ITEM.pipeSupport, size: '4"', qty: 30, unitPrice: 22 },
+            { ...ITEM.supportShim, size: '3mm', qty: 90, unitPrice: 1.4 },
         ],
         sign: true,
     });
@@ -856,7 +955,7 @@ await scenario("INV_WAIT_A", "an invoice with nothing delivered — strip 2, fir
     const order = await makeOrder({
         scenarioName: "INV_WAIT_A",
         notes: "Flange gaskets, full set for the tie-in.",
-        items: [{ itemName: "Flange Gasket", size: '8"', qty: 50, unitPrice: 9 }],
+        items: [{ ...ITEM.flangeGasket, size: '8"', qty: 50, unitPrice: 9 }],
         sign: true,
     });
     const inv = await invoice({
@@ -873,7 +972,7 @@ await scenario("INV_WAIT_B", "delivered but unmatched — strip 2, second word",
     const order = await makeOrder({
         scenarioName: "INV_WAIT_B",
         notes: "U-bolts for the rack.",
-        items: [{ itemName: "U-Bolt", size: 'M12', qty: 100, unitPrice: 1.8 }],
+        items: [{ ...ITEM.uBolt, size: 'M12', qty: 100, unitPrice: 1.8 }],
         sign: true,
     });
     await deliver({
@@ -900,7 +999,7 @@ await scenario("MISMATCH_START", "an invoice of 10 waiting for the live delivery
     const order = await makeOrder({
         scenarioName: "MISMATCH_START",
         notes: "Steel pipe for the main run.",
-        items: [{ itemName: "Steel Pipe", size: '2" SCH40', qty: 10, unitPrice: 210 }],
+        items: [{ ...ITEM.steelPipe, size: '2" SCH40', qty: 10, unitPrice: 210 }],
         sign: true,
     });
     const inv = await invoice({
@@ -924,13 +1023,13 @@ await scenario("HAND_ATTACH", "a delivery and an invoice the computed rule will 
     const brought = await makeOrder({
         scenarioName: "HAND_ATTACH",
         notes: "Elbows for the riser.",
-        items: [{ itemName: "Elbow 90", size: '3"', qty: 20, unitPrice: 17 }],
+        items: [{ ...ITEM.elbow90, size: '3"', qty: 20, unitPrice: 17 }],
         sign: true,
     });
     const charged = await makeOrder({
         scenarioName: "HAND_ATTACH",
         notes: "Reducing tees — still waiting on these.",
-        items: [{ itemName: "Reducing Tee", size: '3x2"', qty: 7, unitPrice: 41 }],
+        items: [{ ...ITEM.reducingTee, size: '3x2"', qty: 7, unitPrice: 41 }],
         sign: true,
     });
     const delivery = await deliver({
@@ -952,7 +1051,7 @@ await scenario("VAR_PRICE", "an item at a price the order did not agree", async 
     const order = await makeOrder({
         scenarioName: "VAR_PRICE",
         notes: "Pressure gauges for the test package.",
-        items: [{ itemName: "Pressure Gauge", size: '0-300 PSI', qty: 6, unitPrice: 75 }],
+        items: [{ ...ITEM.pressureGauge, size: '0-300 PSI', qty: 6, unitPrice: 75 }],
         sign: true,
     });
     const inv = await invoice({
@@ -981,7 +1080,7 @@ await scenario("VAR_TOTAL", "stated total ≠ computed total, and already paid",
     const order = await makeOrder({
         scenarioName: "VAR_TOTAL",
         notes: "Cable tray for the east wall.",
-        items: [{ itemName: "Cable Tray", size: '300mm', qty: 40, unitPrice: 33 }],
+        items: [{ ...ITEM.cableTray, size: '300mm', qty: 40, unitPrice: 33 }],
         shippingFee: 150,
         sign: true,
     });
@@ -1018,7 +1117,7 @@ await scenario("TARIFF", "an invoice carrying a tariff", async () => {
     const order = await makeOrder({
         scenarioName: "TARIFF",
         notes: "Stainless sheet, imported — expect duty on the invoice.",
-        items: [{ itemName: "Stainless Sheet", size: '1.2mm', qty: 15, unitPrice: 190 }],
+        items: [{ ...ITEM.stainlessSheet, size: '1.2mm', qty: 15, unitPrice: 190 }],
         shippingFee: 220,
         sign: true,
     });
@@ -1052,7 +1151,7 @@ await scenario("SALES_TAX", "sales tax alone, and sales tax beside a tariff", as
     const order = await makeOrder({
         scenarioName: "SALES_TAX",
         notes: "Conduit and fittings, bought in state — expect tax on the invoice.",
-        items: [{ itemName: "EMT Conduit", size: '3/4"', qty: 40, unitPrice: 18.5 }],
+        items: [{ ...ITEM.emtConduit, size: '3/4"', qty: 40, unitPrice: 18.5 }],
         shippingFee: 65,
         sign: true,
     });
@@ -1072,7 +1171,7 @@ await scenario("SALES_TAX", "sales tax alone, and sales tax beside a tariff", as
     const dutied = await makeOrder({
         scenarioName: "SALES_TAX",
         notes: "Imported valve body, bought in state — expect duty AND tax.",
-        items: [{ itemName: "Ball Valve Body", size: '2"', qty: 6, unitPrice: 240 }],
+        items: [{ ...ITEM.ballValveBody, size: '2"', qty: 6, unitPrice: 240 }],
         shippingFee: 120,
         sign: true,
     });
@@ -1097,15 +1196,15 @@ await scenario("MULTI_ORDER", "one invoice charging two orders, item sets differ
         scenarioName: "MULTI_ORDER",
         notes: "Conduit and clips for the lighting circuit.",
         items: [
-            { itemName: "Conduit", size: '25mm', qty: 60, unitPrice: 11 },
-            { itemName: "Conduit Clip", size: '25mm', qty: 120, unitPrice: 0.9 },
+            { ...ITEM.conduit, size: '25mm', qty: 60, unitPrice: 11 },
+            { ...ITEM.conduitClip, size: '25mm', qty: 120, unitPrice: 0.9 },
         ],
         sign: true,
     });
     const second = await makeOrder({
         scenarioName: "MULTI_ORDER",
         notes: "Junction boxes, same lighting circuit.",
-        items: [{ itemName: "Junction Box", size: '4x4"', qty: 25, unitPrice: 14 }],
+        items: [{ ...ITEM.junctionBox, size: '4x4"', qty: 25, unitPrice: 14 }],
         sign: true,
     });
     const inv = await invoice({
@@ -1140,7 +1239,7 @@ await scenario("SHORTFALL", "an invoice charging 200 against a delivery of 150",
     const order = await makeOrder({
         scenarioName: "SHORTFALL",
         notes: "One charge, short against the delivery matched to it.",
-        items: [{ itemName: "Hex Nut", size: "M20", qty: 200, unitPrice: 0.6 }],
+        items: [{ ...ITEM.hexNut, size: "M20", qty: 200, unitPrice: 0.6 }],
         sign: true,
     });
     const delivery = await deliver({
@@ -1191,7 +1290,7 @@ await scenario("OVER", "12 delivered against 10 ordered, invoiced 12, invoice ha
     const order = await makeOrder({
         scenarioName: "OVER",
         notes: "Couplings for the branch lines.",
-        items: [{ itemName: "Coupling", size: '2"', qty: 10, unitPrice: 26 }],
+        items: [{ ...ITEM.coupling, size: '2"', qty: 10, unitPrice: 26 }],
         sign: true,
     });
     const delivery = await deliver({
@@ -1221,7 +1320,7 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
     const a = await makeOrder({
         scenarioName: "OVER_BLOCKED",
         notes: "Four extra clamps, and no invoice for them yet.",
-        items: [{ itemName: "Pipe Clamp", size: '3"', qty: 15, unitPrice: 8 }],
+        items: [{ ...ITEM.pipeClamp, size: '3"', qty: 15, unitPrice: 8 }],
         sign: true,
     });
     ids.blockedNoInvoice = (
@@ -1248,7 +1347,7 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
     const b = await makeOrder({
         scenarioName: "OVER_BLOCKED",
         notes: "Two invoices on this delivery, and the excess is bigger than either.",
-        items: [{ itemName: "Threaded Rod", size: 'M16 x 1m', qty: 10, unitPrice: 12 }],
+        items: [{ ...ITEM.threadedRod, size: 'M16 x 1m', qty: 10, unitPrice: 12 }],
         sign: true,
     });
     const bDelivery = await deliver({
@@ -1281,7 +1380,7 @@ await scenario("OVER_BLOCKED", "3 over-deliveries blocked for 3 different reason
     const c = await makeOrder({
         scenarioName: "OVER_BLOCKED",
         notes: "Three extra hangers. The vendor emailed the invoice with no attachment.",
-        items: [{ itemName: "Spring Hanger", size: '2"', qty: 12, unitPrice: 34 }],
+        items: [{ ...ITEM.springHanger, size: '2"', qty: 12, unitPrice: 34 }],
         sign: true,
     });
     const cDelivery = await deliver({
@@ -1314,7 +1413,7 @@ await scenario("OVER_INFER", "eligible, with the app labelling its guess", async
     const order = await makeOrder({
         scenarioName: "OVER_INFER",
         notes: "One invoice, and nobody paired it — so which invoice carries the excess is inferred.",
-        items: [{ itemName: "Blind Flange", size: '6"', qty: 10, unitPrice: 68 }],
+        items: [{ ...ITEM.blindFlange, size: '6"', qty: 10, unitPrice: 68 }],
         sign: true,
     });
     const delivery = await deliver({
@@ -1343,7 +1442,7 @@ await scenario("OVER_UNPAIRED", "blocked: two invoices and neither names this de
     const order = await makeOrder({
         scenarioName: "OVER_UNPAIRED",
         notes: "Two invoices, neither attached, so nothing records which one covers this delivery.",
-        items: [{ itemName: "Weld Neck Flange", size: '4"', qty: 10, unitPrice: 72 }],
+        items: [{ ...ITEM.weldNeckFlange, size: '4"', qty: 10, unitPrice: 72 }],
         sign: true,
     });
     const delivery = await deliver({
@@ -1374,7 +1473,7 @@ await scenario("OVER_EXCEEDS", "blocked: the one invoice does not cover the exce
     const order = await makeOrder({
         scenarioName: "OVER_EXCEEDS",
         notes: "The invoice attached to this delivery covers less than the excess.",
-        items: [{ itemName: "Slip-on Flange", size: '5"', qty: 10, unitPrice: 64 }],
+        items: [{ ...ITEM.slipOnFlange, size: '5"', qty: 10, unitPrice: 64 }],
         sign: true,
     });
     const delivery = await deliver({
@@ -1417,7 +1516,7 @@ await scenario("UNATTRIB", "an excess the app could not attribute to one order",
     const order = await makeOrder({
         scenarioName: "UNATTRIB",
         notes: "Insulation for the steam line.",
-        items: [{ itemName: "Insulation Roll", size: '50mm', qty: 8, unitPrice: 145 }],
+        items: [{ ...ITEM.insulationRoll, size: '50mm', qty: 8, unitPrice: 145 }],
         sign: true,
     });
     const delivery = await deliver({
@@ -1443,14 +1542,14 @@ await scenario("DETECT", "5 PDFs, one per detection voice", async () => {
         scenarioName: "DETECT",
         subTag: "DETECT_OPEN",
         notes: "Structural angle for the platform.",
-        items: [{ itemName: "Structural Angle", size: '75x75x6', qty: 30, unitPrice: 42 }],
+        items: [{ ...ITEM.structuralAngle, size: '75x75x6', qty: 30, unitPrice: 42 }],
         sign: true,
     });
     const withdrawn = await makeOrder({
         scenarioName: "DETECT",
         subTag: "DETECT_WITHDRAWN",
         notes: "Base plates — cancelled, the fabricator is supplying these.",
-        items: [{ itemName: "Base Plate", size: '200x200', qty: 10, unitPrice: 58 }],
+        items: [{ ...ITEM.basePlate, size: '200x200', qty: 10, unitPrice: 58 }],
         sign: true,
     });
     await updatePO(withdrawn.po.id, { status: "Withdrawn", withdrawnAt: new Date().toISOString() });
@@ -1458,13 +1557,13 @@ await scenario("DETECT", "5 PDFs, one per detection voice", async () => {
         scenarioName: "DETECT",
         subTag: "DETECT_UNSIGNED",
         notes: "Shear studs for the deck.",
-        items: [{ itemName: "Shear Stud", size: '19mm', qty: 200, unitPrice: 1.1 }],
+        items: [{ ...ITEM.shearStud, size: '19mm', qty: 200, unitPrice: 1.1 }],
     });
     const closed = await makeOrder({
         scenarioName: "DETECT",
         subTag: "DETECT_CLOSED",
         notes: "Grout for the base plates.",
-        items: [{ itemName: "Grout Bag", size: '25kg', qty: 20, unitPrice: 19 }],
+        items: [{ ...ITEM.groutBag, size: '25kg', qty: 20, unitPrice: 19 }],
         sign: true,
     });
     await invoice({
@@ -1498,7 +1597,9 @@ await scenario("DETECT", "5 PDFs, one per detection voice", async () => {
 // material at three prices and three QUANTITIES: the differing quantities are what
 // puts the caveat under the table, and the caveat is what makes `Lowest` honest.
 await scenario("PRICES", "one material, three vendors, Lowest and both caveats", async () => {
-    const ITEM = { itemName: "Copper Tube", size: '15mm', unit: UNIT };
+    // `priced` rather than `ITEM`, which is the module-level map since #358 — a
+    // local of that name shadows it and the spread then reads itself.
+    const priced = { ...ITEM.copperTube, size: '15mm', unit: UNIT };
     // DEMO-NAMED VENDORS ONLY, AND A THIRD IS CREATED IF THERE IS NOT ONE. A first
     // pass took the first two vendors that were not the primary, which on this base
     // put `TESTQA Vendor A` on the price-comparison screen — somebody's test row,
@@ -1520,7 +1621,7 @@ await scenario("PRICES", "one material, three vendors, Lowest and both caveats",
     const a = await makeOrder({
         scenarioName: "PRICES",
         notes: "Copper tube for the instrument air line.",
-        items: [{ ...ITEM, qty: 20, unitPrice: 14.5 }],
+        items: [{ ...priced, qty: 20, unitPrice: 14.5 }],
         sign: true,
     });
     ids.pricesPo = a.po.poId;
@@ -1535,7 +1636,7 @@ await scenario("PRICES", "one material, three vendors, Lowest and both caveats",
         await createItem({
             prRecordId: pr.id,
             prId: pr.prId,
-            ...ITEM,
+            ...priced,
             // Different quantities on purpose — this is what the caveat reports.
             qty: [200, 60][i],
             unitPrice: [11.2, 13.4][i],
@@ -1571,13 +1672,21 @@ await scenario("NO_SIZE", "a material with no size (a unit-less one cannot exist
         // app argues should not exist — recorded as unreachable instead, beside
         // `PO: {status}` and `priceUnknown`. What is reachable, and what this seeds,
         // is a material with no SIZE: the subtitle renders the unit alone.
-        items: [{ itemName: "Site Consumables", size: "", qty: 1, unitPrice: 480 }],
+        items: [{ ...ITEM.siteConsumables, size: "", qty: 1, unitPrice: 480 }],
         sign: true,
     });
     ids.noSize = order.po.poId;
 });
 
 // ---------------------------------------------------------------------------
+
+// VERIFICATION IS PART OF THE RUN (#358), the shape the import scripts already
+// use. `createItem` accepts a row with no category and must — a Draft saves
+// half-picked — so nothing in the service layer can catch a scenario that forgot
+// one, and after #356 keys the material cache on the category such a row
+// generates a material with no identity. Every scenario here means to have one,
+// so the number is 0 and reads as a claim rather than a waiver.
+await assertItemsHaveCategories({ prRecordIds: seededPRRecordIds, allowMissing: 0 });
 
 await printGuide();
 

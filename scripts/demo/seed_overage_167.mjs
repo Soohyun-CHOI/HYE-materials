@@ -39,12 +39,25 @@ import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
+import {
+    SEED_CATEGORIES,
+    assertItemsHaveCategories,
+    resolveSeedCategories,
+} from "./_seed_categories.mjs";
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Lone Star Pipe & Supply";
 const SIZE = '2"';
 const UNIT = "EA";
-const FIRST_ITEM = "167-DEMO Flange";
+// A CATEGORY RATHER THAN A TYPED NAME SINCE #358. The `167-DEMO ` prefix went
+// with the name it prefixed — the item name is composed from the catalog now, so
+// a marker here would sit on every screen that shows the material. This seed's
+// rows stay out of the others' delivery candidates because its codes come from a
+// level-1 branch no other seed draws from.
+const CATEGORIES = await resolveSeedCategories(SEED_CATEGORIES["seed_overage_167.mjs"]);
+const [FIRST_CODE, SECOND_CODE] = SEED_CATEGORIES["seed_overage_167.mjs"];
+const FIRST_ITEM = CATEGORIES.get(FIRST_CODE).label;
+const seededPRRecordIds = [];
 
 // Declared before the skip check because the guide reads it, and the skip path is
 // the only way to reach that check — the same temporal-dead-zone trap
@@ -86,14 +99,26 @@ function invoicePdfBytes(label) {
     return Buffer.from(`%PDF-1.4\n% ${label}\n${body}trailer<</Root 1 0 R>>\n%%EOF\n`, "utf8");
 }
 
-async function makeOrder({ itemName, qty, unitPrice = 15 }) {
+async function makeOrder({ leafCode, qty, unitPrice = 15 }) {
+    const category = CATEGORIES.get(leafCode);
     const pr = await createPR({
         requesterId: requester.id,
         disciplineId: discipline.id,
         vendorId: vendor.id,
         notes: "167-DEMO order",
     });
-    await createItem({ prRecordId: pr.id, prId: pr.prId, itemName, size: SIZE, unit: UNIT, qty, unitPrice, remark: "" });
+    seededPRRecordIds.push(pr.id);
+    await createItem({
+        prRecordId: pr.id,
+        prId: pr.prId,
+        itemName: category.label,
+        categoryRecordId: category.recordId,
+        size: SIZE,
+        unit: UNIT,
+        qty,
+        unitPrice,
+        remark: "",
+    });
     await createSigner({
         prRecordId: pr.id,
         prId: pr.prId,
@@ -174,7 +199,7 @@ async function invoice({ po, orderedItem, qty, issueDate, paid }) {
 console.log("\nSeeding two scenarios:");
 
 // --- A: eligible, unpaid ----------------------------------------------------
-const a = await makeOrder({ itemName: FIRST_ITEM, qty: 10 });
+const a = await makeOrder({ leafCode: FIRST_CODE, qty: 10 });
 const aDelivery = await deliver({ orderedItem: a.orderedItem, within: 10, over: 2, receivedDate: "2026-08-01" });
 const aInvoice = await invoice({ po: a.po, orderedItem: a.orderedItem, qty: 12, issueDate: "2026-08-02", paid: false });
 ids.aDelivery = aDelivery.deliveryId;
@@ -183,7 +208,7 @@ ids.aPo = a.po.poId;
 console.log(`  A  ${ids.aDelivery}  2 EA over on ${ids.aPo}, invoiced by ${ids.aInvoice} — button ELIGIBLE`);
 
 // --- B: eligible, and the invoice is already paid ---------------------------
-const b = await makeOrder({ itemName: "167-DEMO Coupling", qty: 8 });
+const b = await makeOrder({ leafCode: SECOND_CODE, qty: 8 });
 const bDelivery = await deliver({ orderedItem: b.orderedItem, within: 8, over: 3, receivedDate: "2026-08-02" });
 const bInvoice = await invoice({ po: b.po, orderedItem: b.orderedItem, qty: 11, issueDate: "2026-08-03", paid: true });
 ids.bDelivery = bDelivery.deliveryId;
@@ -193,6 +218,9 @@ console.log(`  B  ${ids.bDelivery}  3 EA over on ${ids.bPo}, invoiced by PAID ${
 
 const aOver = (await getItemsByDelivery(aDelivery.id)).find((r) => r.overDelivered);
 ids.aRow = aOver?.deliveryItemId;
+
+// Both orders mean to carry a category, so the number is 0 (#358).
+await assertItemsHaveCategories({ prRecordIds: seededPRRecordIds, allowMissing: 0 });
 
 printGuide();
 
