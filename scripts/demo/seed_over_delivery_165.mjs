@@ -47,12 +47,26 @@ import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import {
+    SEED_CATEGORIES,
+    assertItemsHaveCategories,
+    itemForCategory,
+    resolveSeedCategories,
+} from "./_seed_categories.mjs";
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Gulf Coast Valve & Fitting";
 
-const PIPE = { itemName: "165-DEMO Pipe", size: '2"', unit: "EA" };
-const ELBOW = { itemName: "165-DEMO Elbow", size: '3"', unit: "PCS" };
+// A CATEGORY RATHER THAN A TYPED NAME SINCE #358, and the `165-DEMO ` prefix went
+// with the name it prefixed. This seed's codes come from a level-1 branch no other
+// seed draws from, which is what now keeps its two materials out of the other
+// seeds' delivery candidates — the job the prefix used to do, without putting a
+// marker on any screen.
+const CATEGORIES = await resolveSeedCategories(SEED_CATEGORIES["seed_over_delivery_165.mjs"]);
+const [PIPE_CODE, ELBOW_CODE] = SEED_CATEGORIES["seed_over_delivery_165.mjs"];
+const PIPE = itemForCategory(CATEGORIES.get(PIPE_CODE), { size: '2"', unit: "EA" });
+const ELBOW = itemForCategory(CATEGORIES.get(ELBOW_CODE), { size: '3"', unit: "PCS" });
+const seededPRRecordIds = [];
 
 console.log("=".repeat(72));
 console.log("seed_over_delivery_165 — browsable orders for #165");
@@ -97,10 +111,12 @@ async function makeOrder({ item, qty, unitPrice, remark }) {
         vendorId: vendor.id,
         notes: "165-DEMO fixture — orders for looking at over-delivery attachment",
     });
+    seededPRRecordIds.push(pr.id);
     await createItem({
         prRecordId: pr.id,
         prId: pr.prId,
         itemName: item.itemName,
+        categoryRecordId: item.categoryRecordId,
         size: item.size,
         unit: item.unit,
         qty,
@@ -180,6 +196,9 @@ for (const row of fillPlan.rows) {
 }
 console.log(`  delivery ${delivery.deliveryId}`);
 
+// Both scenarios mean to carry a category, so the number is 0 (#358).
+await assertItemsHaveCategories({ prRecordIds: seededPRRecordIds, allowMissing: 0 });
+
 printGuide({ ...ids, deliveryId: delivery.deliveryId });
 
 /** Re-read the seeded PO IDs on a skipped run, so the guide is still printable. */
@@ -207,7 +226,7 @@ Start the dev server (npm run dev) and open  /deliveries/new
 Pick job "${JOB_CODE}" and vendor "${VENDOR_NAME}" for all three.
 
 A. OVER-DELIVERY ACROSS TWO ORDERS — the case #165 is about
-   Item "165-DEMO Pipe 2" (EA)", quantity 25. Leave the PO number blank.
+   Item "${PIPE.itemName} ${PIPE.size} (${PIPE.unit})", quantity 25. Leave the PO number blank.
    Two orders of 10 are open (${o.poA1}, ${o.poA2}), so 20 is absorbed and
    5 is excess. Expect two messages:
      - spans 2 purchase orders, recorded as 2 rows
@@ -220,7 +239,7 @@ A. OVER-DELIVERY ACROSS TWO ORDERS — the case #165 is about
    Exceeding the ordered quantity is the intended shape, not a defect.
 
 B. NOTHING OUTSTANDING — the second branch of the rule
-   Item "165-DEMO Elbow 3" (PCS)", quantity 3. PO number blank.
+   Item "${ELBOW.itemName} ${ELBOW.size} (${ELBOW.unit})", quantity 3. PO number blank.
    Both Elbow orders (${o.poB1}, ${o.poB2}) are already fully delivered,
    so nothing can absorb it. Expect:
      - everything ordered is already recorded as delivered, so all 3 PCS
@@ -236,13 +255,13 @@ C. BLOCKED — reachable at SUBMIT only, and it takes two tabs
 
    What IS reachable is the withdrawal race the action exists for:
      1. Tab 1 — /deliveries/new. Tick the PO box, type ${o.poA2}, pick
-        "165-DEMO Pipe 2" (EA)", quantity 5, attach a photo. Do not submit.
+        "${PIPE.itemName} ${PIPE.size} (${PIPE.unit})", quantity 5, attach a photo. Do not submit.
      2. Tab 2 — /pos/${o.poA2}. Withdraw it. (You are the requester on
         its PR, which is who may withdraw.)
      3. Back in tab 1, submit. The action re-reads, the withdrawn PO's
         ordered item stops counting as ordered, and nothing is left to attach to.
         Expect a form-level error, not a row preview:
-          - Nothing on this job orders 165-DEMO Pipe 2" (EA) from this
+          - Nothing on this job orders ${PIPE.itemName} ${PIPE.size} (${PIPE.unit}) from this
             vendor, so there is no order to record it against.
    Before #165 that submit wrote a row with no PO Item link and blank
    item name — invisible on the invoice axis, which is the whole issue.

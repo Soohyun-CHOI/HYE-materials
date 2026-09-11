@@ -36,6 +36,12 @@ import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors, createVendor, getVendorByName } from "../../lib/airtable/vendors.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
+import {
+    SEED_CATEGORIES,
+    assertItemsHaveCategories,
+    itemForCategory,
+    resolveSeedCategories,
+} from "./_seed_categories.mjs";
 
 // A third vendor, so the comparison screen has something to compare. Named
 // "Demo ..." on purpose: a realistic supplier name sitting in Vendors could
@@ -43,9 +49,25 @@ import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 const EXTRA_VENDOR = "Gulf Coast Valve & Fitting";
 
 // The three items are chosen to make each of the screen's behaviors visible.
-const PIPE = { itemName: "SCH 40 PVC Pipe", size: '4"', unit: "FT" };
-const VALVE = { itemName: "Ball Valve", size: '2"', unit: "EA" };
-const HANGER = { itemName: "Pipe Hanger", size: "", unit: "EA" };
+//
+// A CATEGORY RATHER THAN A TYPED NAME SINCE #358, and the names these used to
+// carry (`SCH 40 PVC Pipe`, `Ball Valve`, `Pipe Hanger`) are gone rather than
+// moved: the name is composed from the category now, so writing one here would
+// be a second source for a string the catalog already owns. The codes come from
+// this seed's own slice in `_seed_categories.mjs` — Copper & Brass, a branch no
+// other seed draws from, which is what keeps two seeds' scenarios out of each
+// other's delivery candidates.
+const [PIPE_CODE, VALVE_CODE, HANGER_CODE] = SEED_CATEGORIES["seed_material_prices.mjs"];
+
+// RESOLVED AT MODULE SCOPE because `ORDERS` below spreads these into its rows
+// when the module is evaluated, and a `let` filled inside main() would be
+// `undefined` by then. Top-level await is what the shape already wanted; the
+// alternative was turning `ORDERS` into a function of three arguments, which
+// would move every reader of it for no gain.
+const CATEGORIES = await resolveSeedCategories(SEED_CATEGORIES["seed_material_prices.mjs"]);
+const PIPE = itemForCategory(CATEGORIES.get(PIPE_CODE), { size: '4"', unit: "FT" });
+const VALVE = itemForCategory(CATEGORIES.get(VALVE_CODE), { size: '2"', unit: "EA" });
+const HANGER = itemForCategory(CATEGORIES.get(HANGER_CODE), { size: "", unit: "EA" });
 
 /**
  * One PR -> approved -> PO per entry, then the status it should end in.
@@ -156,6 +178,7 @@ async function main() {
     // first version of this script produced: five POs sharing one PO ID.
     console.log("");
     const generated = [];
+    const prRecordIds = [];
     for (const order of ORDERS) {
         const vendor = vendorByName.get(order.vendor);
         if (!vendor) {
@@ -164,6 +187,7 @@ async function main() {
         }
 
         const pr = await createPR({ requesterId: requester.id, disciplineId: discipline.id, vendorId: vendor.id });
+        prRecordIds.push(pr.id);
         for (const item of order.items) {
             await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", ...item });
         }
@@ -173,6 +197,11 @@ async function main() {
         const gen = await generatePOForApprovedPR(await getPRByRecordId(pr.id));
         generated.push({ order, gen });
     }
+
+    // Every request item this seed made carries the category it was given
+    // (#358). None is deliberately without one, so the number is 0 and reads as
+    // a claim rather than a waiver.
+    await assertItemsHaveCategories({ prRecordIds, allowMissing: 0 });
 
     // The guard that would have caught the bug above. A duplicate PO ID makes
     // /pos/[poId] ambiguous, so this must fail rather than seed bad data.

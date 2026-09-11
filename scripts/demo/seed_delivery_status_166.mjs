@@ -53,12 +53,32 @@ import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
+import {
+    SEED_CATEGORIES,
+    assertItemsHaveCategories,
+    resolveSeedCategories,
+} from "./_seed_categories.mjs";
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Lone Star Pipe & Supply";
 const SIZE = '3"';
 const UNIT = "EA";
-const FIRST_ITEM = "166-DEMO Flange";
+// A CATEGORY RATHER THAN A TYPED NAME SINCE #358, and this seed is the one where
+// the name was doing a SECOND job: `makeOrder` and `deliver` join on it, and
+// `deliver` looks a material up by it. So the names stay the join key and only
+// their VALUES move — each is now a catalog label rather than a `166-DEMO `
+// string, and `CATEGORY_BY_NAME` is what lets `makeOrder` find the link to write.
+// The prefix is gone because the label is on screen wherever this material is.
+const CATEGORIES = await resolveSeedCategories(SEED_CATEGORIES["seed_delivery_status_166.mjs"]);
+const CODES = SEED_CATEGORIES["seed_delivery_status_166.mjs"];
+const NAME = Object.fromEntries(
+    ["flange", "gasket", "elbow", "tee", "coupling", "nipple", "union", "bushing", "cap", "plug"].map(
+        (key, i) => [key, CATEGORIES.get(CODES[i]).label]
+    )
+);
+const CATEGORY_BY_NAME = new Map([...CATEGORIES.values()].map((c) => [c.label, c]));
+const FIRST_ITEM = NAME.flange;
+const seededPRRecordIds = [];
 
 console.log("=".repeat(72));
 console.log("seed_delivery_status_166 — browsable states for #166");
@@ -96,7 +116,10 @@ const ids = {};
 const already = await getMaterialByKey({ itemName: FIRST_ITEM, size: SIZE, unit: UNIT }).catch(() => null);
 if (already) {
     console.log(`\nAlready seeded — "${FIRST_ITEM}" exists on the item axis. Nothing created.`);
-    console.log("Delete the 166-DEMO Materials rows by hand if you want a clean re-seed.");
+    // The `166-DEMO ` prefix these rows used to carry went with the typed name
+    // (#358), so they are found by their category labels now rather than by a
+    // marker — the ten this seed uses are printed by the guide below.
+    console.log("Delete this seed's Materials rows by hand if you want a clean re-seed.");
     printGuide();
     process.exit(0);
 }
@@ -109,10 +132,14 @@ async function makeOrder({ itemName, qty, unitPrice = 10 }) {
         vendorId: vendor.id,
         notes: "166-DEMO fixture — delivery status states",
     });
+    seededPRRecordIds.push(pr.id);
     await createItem({
         prRecordId: pr.id,
         prId: pr.prId,
         itemName,
+        // The name IS the catalog label here, so the link is a lookup on it
+        // rather than a second parameter through every call site (#358).
+        categoryRecordId: CATEGORY_BY_NAME.get(itemName)?.recordId,
         size: SIZE,
         unit: UNIT,
         qty,
@@ -243,7 +270,7 @@ ids.a = (await invoice({ items: [{ ...a, qty: 20 }], issueDate: "2026-07-19", no
 console.log(`  A  ${ids.a}  Delivered   (${ids.aDelivery} quotes ${ids.aPO} on its packing list)`);
 
 // --- B: invoiced, nothing delivered, plus an invoice item with no ordered item ---
-const b = await makeOrder({ itemName: "166-DEMO Gasket", qty: 15 });
+const b = await makeOrder({ itemName: NAME.gasket, qty: 15 });
 ids.b = (await invoice({
     items: [{ ...b, qty: 15 }],
     issueDate: "2026-07-20",
@@ -252,9 +279,9 @@ ids.b = (await invoice({
 console.log(`  B  ${ids.b}  Awaiting delivery`);
 
 // --- C: one invoice over two ordered items, one arrived ----------------------
-const c1 = await makeOrder({ itemName: "166-DEMO Elbow", qty: 5 });
-const c2 = await makeOrder({ itemName: "166-DEMO Tee", qty: 7 });
-await deliver({ wants: [{ itemName: "166-DEMO Elbow", qty: 5 }], receivedDate: "2026-07-21", notes: "C, one of two" });
+const c1 = await makeOrder({ itemName: NAME.elbow, qty: 5 });
+const c2 = await makeOrder({ itemName: NAME.tee, qty: 7 });
+await deliver({ wants: [{ itemName: NAME.elbow, qty: 5 }], receivedDate: "2026-07-21", notes: "C, one of two" });
 ids.c = (await invoice({
     items: [{ ...c1, qty: 5 }, { ...c2, qty: 7 }],
     issueDate: "2026-07-22",
@@ -263,16 +290,16 @@ ids.c = (await invoice({
 console.log(`  C  ${ids.c}  Partly delivered (1 of 2 ordered items)`);
 
 // --- D: TWO invoices on one ordered item, delivery covers one -> ESTIMATED -------
-const d = await makeOrder({ itemName: "166-DEMO Coupling", qty: 30 });
-await deliver({ wants: [{ itemName: "166-DEMO Coupling", qty: 15 }], receivedDate: "2026-07-23", notes: "D, half" });
+const d = await makeOrder({ itemName: NAME.coupling, qty: 30 });
+await deliver({ wants: [{ itemName: NAME.coupling, qty: 15 }], receivedDate: "2026-07-23", notes: "D, half" });
 ids.dOld = (await invoice({ items: [{ ...d, qty: 15 }], issueDate: "2026-07-05", note: "D older invoice" })).invoiceId;
 ids.dNew = (await invoice({ items: [{ ...d, qty: 15 }], issueDate: "2026-07-25", note: "D newer invoice" })).invoiceId;
 console.log(`  D  ${ids.dOld} (older) + ${ids.dNew} (newer)  both INFERRED`);
 
 // --- E: delivered beyond the order --------------------------------------------
-const e = await makeOrder({ itemName: "166-DEMO Nipple", qty: 10 });
+const e = await makeOrder({ itemName: NAME.nipple, qty: 10 });
 const eDel = await deliver({
-    wants: [{ itemName: "166-DEMO Nipple", qty: 12 }],
+    wants: [{ itemName: NAME.nipple, qty: 12 }],
     receivedDate: "2026-07-24",
     notes: "E, 2 beyond the order",
 });
@@ -280,15 +307,15 @@ ids.e = (await invoice({ items: [{ ...e, qty: 10 }], issueDate: "2026-07-26", no
 console.log(`  E  ${ids.e}  Delivered, and 2 beyond the order  [${eDel.written.join(", ")}]`);
 
 // --- F: invoiced beyond the order --------------------------------------------
-const f = await makeOrder({ itemName: "166-DEMO Union", qty: 10 });
-await deliver({ wants: [{ itemName: "166-DEMO Union", qty: 10 }], receivedDate: "2026-07-25", notes: "F, exact" });
+const f = await makeOrder({ itemName: NAME.union, qty: 10 });
+await deliver({ wants: [{ itemName: NAME.union, qty: 10 }], receivedDate: "2026-07-25", notes: "F, exact" });
 ids.f = (await invoice({ items: [{ ...f, qty: 13 }], issueDate: "2026-07-27", note: "F over-billed" })).invoiceId;
 console.log(`  F  ${ids.f}  Partly delivered — 3 more invoiced than delivered`);
 
 // --- G: arrived with no invoice at all — the vendor-chasing worklist --------
-await makeOrder({ itemName: "166-DEMO Bushing", qty: 8 });
+await makeOrder({ itemName: NAME.bushing, qty: 8 });
 const g = await deliver({
-    wants: [{ itemName: "166-DEMO Bushing", qty: 8 }],
+    wants: [{ itemName: NAME.bushing, qty: 8 }],
     // Deliberately the OLDEST received date here, so it tops the oldest-first
     // filter rather than merely appearing in it.
     receivedDate: "2026-06-30",
@@ -298,16 +325,19 @@ ids.g = g.delivery.deliveryId;
 console.log(`  G  ${ids.g}  Awaiting invoice (oldest received date)`);
 
 // --- I: one delivery over two ordered items, only one of them invoiced -------
-const i1 = await makeOrder({ itemName: "166-DEMO Cap", qty: 4 });
-await makeOrder({ itemName: "166-DEMO Plug", qty: 6 });
+const i1 = await makeOrder({ itemName: NAME.cap, qty: 4 });
+await makeOrder({ itemName: NAME.plug, qty: 6 });
 const iDel = await deliver({
-    wants: [{ itemName: "166-DEMO Cap", qty: 4 }, { itemName: "166-DEMO Plug", qty: 6 }],
+    wants: [{ itemName: NAME.cap, qty: 4 }, { itemName: NAME.plug, qty: 6 }],
     receivedDate: "2026-07-26",
     notes: "I, two materials, one invoiced",
 });
 ids.i = iDel.delivery.deliveryId;
 ids.iInvoice = (await invoice({ items: [{ ...i1, qty: 4 }], issueDate: "2026-07-28", note: "I one item only" })).invoiceId;
 console.log(`  I  ${ids.i}  Partly invoiced  (its invoice is ${ids.iInvoice})`);
+
+// Every scenario means to carry a category, so the number is 0 (#358).
+await assertItemsHaveCategories({ prRecordIds: seededPRRecordIds, allowMissing: 0 });
 
 printGuide();
 

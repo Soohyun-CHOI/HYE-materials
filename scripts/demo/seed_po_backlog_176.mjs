@@ -44,6 +44,12 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import { createPR, updatePR, getApprovedPRs } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { selectPRsAwaitingPO } from "../../lib/poListView.js";
+import {
+    SEED_CATEGORIES,
+    assertItemsHaveCategories,
+    itemForCategory,
+    resolveSeedCategories,
+} from "./_seed_categories.mjs";
 
 const JOB_CODE = "26-DEMO-01";
 const VENDOR_NAME = "Lone Star Pipe & Supply";
@@ -55,9 +61,16 @@ const UNIT = "EA";
 // that the order is ascending by PR ID, which a single row cannot show either
 // way. Both are raised the same day, so their IDs differ only in the sequence
 // and the ascending order is visible as -01 above -02.
+// A CATEGORY RATHER THAN A TYPED NAME SINCE #358, and the `176-DEMO ` prefix is
+// gone with the name it prefixed: the item name is composed from the catalog
+// now, so a marker here would put one on every screen that shows this material.
+// What keeps this seed's rows out of the other seeds' delivery candidates is the
+// slice instead — a level-1 branch nothing else draws from.
+const CATEGORIES = await resolveSeedCategories(SEED_CATEGORIES["seed_po_backlog_176.mjs"]);
+const [FIRST_CODE, SECOND_CODE] = SEED_CATEGORIES["seed_po_backlog_176.mjs"];
 const ORDERS = [
-    { itemName: "176-DEMO Gate Valve", qty: 4, unitPrice: 125 },
-    { itemName: "176-DEMO Check Valve", qty: 2, unitPrice: 240 },
+    { ...itemForCategory(CATEGORIES.get(FIRST_CODE), { size: SIZE, unit: UNIT }), qty: 4, unitPrice: 125 },
+    { ...itemForCategory(CATEGORIES.get(SECOND_CODE), { size: SIZE, unit: UNIT }), qty: 2, unitPrice: 240 },
 ];
 
 console.log("=".repeat(72));
@@ -99,6 +112,7 @@ if (already.length > 0) {
     process.exit(0);
 }
 
+const seededPRRecordIds = [];
 for (const order of ORDERS) {
     const pr = await createPR({
         requesterId: requester.id,
@@ -106,10 +120,12 @@ for (const order of ORDERS) {
         vendorId: vendor.id,
         notes: "176-DEMO fixture — approved, PO generation failed",
     });
+    seededPRRecordIds.push(pr.id);
     await createItem({
         prRecordId: pr.id,
         prId: pr.prId,
         itemName: order.itemName,
+        categoryRecordId: order.categoryRecordId,
         size: SIZE,
         unit: UNIT,
         qty: order.qty,
@@ -123,6 +139,9 @@ for (const order of ORDERS) {
     created.push(pr.prId);
     console.log(`  raised and approved ${pr.prId} — ${order.itemName}, no PO`);
 }
+
+// Both rows mean to carry a category, so the number is 0 (#358).
+await assertItemsHaveCategories({ prRecordIds: seededPRRecordIds, allowMissing: 0 });
 
 printGuide();
 
