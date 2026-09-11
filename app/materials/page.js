@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { countMaterials } from "@/lib/airtable/materials";
+import { anyCategoryMatches } from "@/lib/airtable/materialCategories";
 import { searchMaterialPrices } from "@/lib/materialHistory";
-import { lowestPriceRowIds, qtyDiffersAcross, statusTag } from "@/lib/materialPriceView";
+import {
+    MATERIAL_SEARCH_COPY,
+    lowestPriceRowIds,
+    qtyDiffersAcross,
+    statusTag,
+} from "@/lib/materialPriceView";
 import { isPOSigned } from "@/lib/poUnsigned";
 import { formatUSD } from "@/lib/format";
 import MaterialSearchForm from "./MaterialSearchForm";
@@ -49,6 +55,13 @@ async function renderMaterialPricesPage({ searchParams }) {
     ]);
 
     const searched = tokens.length > 0;
+    const missed = searched && materials.length === 0;
+
+    // Issue #357 — one operation, and only on a miss. The catalog is what tells
+    // "no category carries those words" apart from "a category does and nothing
+    // has been bought under it", which the label could not say while it held the
+    // words a requester typed. A query that found something asks nothing.
+    const inCatalog = missed ? await anyCategoryMatches(tokens) : false;
 
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
@@ -60,12 +73,20 @@ async function renderMaterialPricesPage({ searchParams }) {
             <MaterialSearchForm initialQuery={q} />
 
             {/* Nothing typed is a BROWSE — the whole list is below — so there is
-                no prompt here. That leaves two empties, and they must not read
-                alike: nothing matched what was typed, and nothing indexed at all. */}
-            {searched && materials.length === 0 && (
-                <p className="mt-6 text-sm text-zinc-600">
-                    No items match “{q}”.
-                </p>
+                no prompt here. A miss says WHY since #357: the words reach the
+                catalog's vocabulary rather than any requester's, so the screen
+                can tell a reader which of two things is true instead of leaving
+                them to guess. The third empty, an index with nothing on it at
+                all, is the box below and must not read like either. */}
+            {missed && (
+                <div className="mt-6 text-sm text-zinc-600">
+                    <p>{MATERIAL_SEARCH_COPY.noMatch(q)}</p>
+                    <p className="mt-1">
+                        {inCatalog
+                            ? MATERIAL_SEARCH_COPY.inCatalog
+                            : MATERIAL_SEARCH_COPY.notInCatalog}
+                    </p>
+                </div>
             )}
 
             {!searched && materials.length > 0 && (
@@ -79,8 +100,14 @@ async function renderMaterialPricesPage({ searchParams }) {
             {/* Shown only while the index is genuinely empty, so it disappears
                 on its own rather than becoming a permanent caveat. It matters
                 because an empty result here does NOT mean the item was never
-                bought — it means no purchase order has put it on this list yet. */}
-            {indexedCount === 0 && (
+                bought — it means no purchase order has put it on this list yet.
+
+                AND NOT UNDER A MISS SINCE #357, which is the same fact said
+                twice. On an empty index every miss is the in-catalog branch or
+                the other one, and both sentences carry the reason for the query
+                the reader actually typed; this box carries it for the base as a
+                whole. The specific one wins where they would both render. */}
+            {indexedCount === 0 && !missed && (
                 <div className="mt-4 rounded border border-zinc-200 p-4 text-sm text-zinc-600">
                     <p className="font-medium text-zinc-800">
                         No items are indexed yet.
@@ -95,8 +122,7 @@ async function renderMaterialPricesPage({ searchParams }) {
 
             {truncated && searched && (
                 <p className="mt-4 text-sm text-amber-700">
-                    Showing the first {materials.length} matches. Add another word to narrow the
-                    search.
+                    {MATERIAL_SEARCH_COPY.truncated(materials.length)}
                 </p>
             )}
 

@@ -62,6 +62,7 @@ import { RESTORE, ROLLBACK_COPY } from "../../../lib/rollbackReport.js";
 import { MAX_UPLOAD_BYTES, UPLOAD_LIMIT_COPY } from "../../../lib/uploadLimit.js";
 import { FILE_AXIS_LABEL, FILE_VIEWER_COPY } from "../../../lib/fileLinks.js";
 import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
+import { MATERIAL_SEARCH_COPY } from "../../../lib/materialPriceView.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -359,6 +360,21 @@ const PINNED = [
     // What a redesign may not change is the wording, and this is the one string in the
     // app that five briefs quote at once.
     "This file is larger than the upload limit",
+    // #357 — the search box's hidden label and the two sentences a miss chooses
+    // between. The label is pinned because it is the one place the screen states
+    // what the box actually matches, and it said `item name` until the name
+    // stopped being anybody's typing. The two sentences are pinned because the
+    // brief's whole point about them is that they must not read alike, and a
+    // rewording that collapsed them would leave the brief describing a
+    // distinction the screen no longer makes. Clauses rather than whole
+    // sentences, so a brief's own 72-character wrap cannot break a pin.
+    "Search by category, size or unit",
+    "no purchase order has put an item under it yet",
+    "No category in the catalog carries all of those words",
+    // The truncation line, pinned on the half a redesign would drop: the brief
+    // says it is load-bearing for keeping substring matching, and it is the only
+    // sentence telling a reader how to recover from a word that matched too much.
+    "Add another word to narrow the search",
 ];
 
 export function run({ check, assert, log }) {
@@ -506,6 +522,9 @@ export function run({ check, assert, log }) {
         // #340 — plain values, and the only two of them a pin can hold: the rest
         // are single words this app says in other constants.
         ...stringsFrom(TOOL_ITEM_COPY),
+        // #357 — the search box's words and its two misses. `truncated` is a
+        // builder that takes a count, which `stringsFrom`'s `[1]` probe supplies.
+        ...stringsFrom(MATERIAL_SEARCH_COPY),
         // #188 — CALLED WITH A REAL LIST RATHER THAN LEFT TO `stringsFrom`, whose
         // three probe shapes cannot supply one: every one of them makes the builder
         // throw, so the sentence a brief quotes would silently be absent from
