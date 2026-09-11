@@ -43,6 +43,7 @@ import { execSync } from "child_process";
 import { put } from "@vercel/blob";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { createSigner } from "../../lib/airtable/prSigners.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
@@ -166,13 +167,20 @@ const fixtures = createFixtures({
             name: "materials",
             table: TABLES.MATERIALS,
             label: "Material",
-            tagField: "Item Name",
+            // #356 — `Item Name` is a LOOKUP through `Category` now, so a run
+            // cannot put its tag there and this discovery would find nothing,
+            // leaking every fixture material onto a shared base. `Size` is the
+            // one writable free-text field identity still has.
+            tagField: "Size",
             discoverByTag: true,
             children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
         },
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — one category for the whole run; the TAG-prefixed size is what keeps
+// the scenarios on separate materials. See makeOrder below.
+const CATEGORY = (await resolveVerifyCategories())[0];
 const track = fixtures.track;
 
 /** A one-page PDF, enough for Airtable to ingest and for the flow to re-upload. */
@@ -281,7 +289,15 @@ try {
             prRecordId: pr.id,
             prId: pr.prId,
             itemName,
-            size: '2"',
+            categoryRecordId: CATEGORY.recordId,
+            // #356 — identity is Category + Size + Unit, so with one category
+            // for the run the SIZE is what keeps two fixtures on two materials.
+            // `applyOverageToPO` matches the overage order's ordered item on the
+            // `Material` link, so two scenarios sharing one would let it settle
+            // an excess against the wrong order. The item name did this before
+            // and the size takes it over, run tag included — which is also what
+            // `discoverByTag` matches on now.
+            size: `${itemName} 2"`,
             unit: "EA",
             qty,
             unitPrice,

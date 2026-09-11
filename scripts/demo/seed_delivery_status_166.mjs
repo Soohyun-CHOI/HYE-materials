@@ -56,6 +56,7 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import {
     SEED_CATEGORIES,
     assertItemsHaveCategories,
+    materialKeyFor,
     resolveSeedCategories,
 } from "./_seed_categories.mjs";
 
@@ -113,7 +114,7 @@ console.log(`as       ${requester.userName} <${requester.email}>`);
 // base but not their ids in hand.
 const ids = {};
 
-const already = await getMaterialByKey({ itemName: FIRST_ITEM, size: SIZE, unit: UNIT }).catch(() => null);
+const already = await getMaterialByKey(materialKeyFor(CATEGORY_BY_NAME.get(FIRST_ITEM), { size: SIZE, unit: UNIT })).catch(() => null);
 if (already) {
     console.log(`\nAlready seeded — "${FIRST_ITEM}" exists on the item axis. Nothing created.`);
     // The `166-DEMO ` prefix these rows used to carry went with the typed name
@@ -187,7 +188,7 @@ async function deliver({ wants, receivedDate, notes, packingListPO = null }) {
 
     const written = [];
     for (const want of wants) {
-        const material = await getMaterialByKey({ itemName: want.itemName, size: SIZE, unit: UNIT });
+        const material = await getMaterialByKey(materialKeyFor(CATEGORY_BY_NAME.get(want.itemName), { size: SIZE, unit: UNIT }));
         const plan = planDelivery({
             orderedItems: candidates.orderedItems,
             vendorRecordId: vendor.id,

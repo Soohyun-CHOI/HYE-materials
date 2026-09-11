@@ -37,6 +37,7 @@ export const title = "A demo seed picks its categories and proves it (#358)";
 
 const CSV = "scripts/import/material_categories.csv";
 const HELPER = "scripts/demo/_seed_categories.mjs";
+const VERIFY_HELPER = "scripts/tests/_categories.mjs";
 const VERIFIER = "assertItemsHaveCategories";
 
 /**
@@ -73,6 +74,30 @@ function seedCategoriesFromSource() {
         }
     });
     return { entries: out, found };
+}
+
+/**
+ * `VERIFY_CATEGORY_CODES` out of the credentialed tier's own helper, parsed for
+ * the same reason as the object above: `scripts/tests/_categories.mjs` reaches
+ * `lib/airtable/client.js`, which throws without credentials.
+ *
+ * IT IS CHECKED HERE RATHER THAN IN A FILE OF ITS OWN because the question is
+ * the same question — is every code real, and does any two claim one path — and
+ * the answer has to be computed over BOTH lists at once or the disjointness
+ * clause is only about the demo half (#356).
+ */
+function verifyCategoriesFromSource() {
+    const { ast } = parseFile(VERIFY_HELPER);
+    let codes = null;
+    walk(ast, (node) => {
+        if (node.type !== "VariableDeclarator" || node.id?.name !== "VERIFY_CATEGORY_CODES") return;
+        const list = node.init?.type === "CallExpression" ? node.init.arguments[0] : node.init;
+        if (list?.type !== "ArrayExpression") return;
+        codes = list.elements
+            .filter((e) => e?.type === "Literal" && typeof e.value === "string")
+            .map((e) => e.value);
+    });
+    return codes;
 }
 
 /**
@@ -133,10 +158,20 @@ export function run({ check, assert, log }) {
 
     log("");
     log("the lists are disjoint and every code is real:");
+    // THE VERIFY TIER'S SLICE IS IN THE SAME COMPARISON, NOT BESIDE IT (#356).
+    // A verification run deletes the fixtures it made, and `upsertMaterial`
+    // finds-or-creates — so a verify script naming a demo seed's category would
+    // upsert onto the seed's own permanent `Materials` row and then delete it,
+    // with nothing to say it had gone. Disjointness across the boundary is the
+    // thing that prevents it, and it can only be asked over both lists at once.
+    const verifyCodes = verifyCategoriesFromSource();
+    assert("VERIFY_CATEGORY_CODES was parsed out of the credentialed helper", Array.isArray(verifyCodes));
+    const allLists = { ...SEED_CATEGORIES, [VERIFY_HELPER]: verifyCodes ?? [] };
+
     const seen = new Map();
     let duplicated = [];
     let unknown = [];
-    for (const [file, list] of Object.entries(SEED_CATEGORIES)) {
+    for (const [file, list] of Object.entries(allLists)) {
         for (const code of list) {
             if (seen.has(code)) duplicated.push(`${code} (${seen.get(code)} and ${file})`);
             else seen.set(code, file);
@@ -153,14 +188,15 @@ export function run({ check, assert, log }) {
         unknown.length === 0 ? "none" : unknown.join(", "),
         "none"
     );
-    check("  codes allocated in total", seen.size, 83);
+    check("  codes allocated in total", seen.size, 95);
+    check("  of which the credentialed tier's", verifyCodes?.length ?? 0, 12);
 
     // Sharing a category is what makes two scenarios each other's delivery
     // candidates (#18), so a seed with fewer categories than scenarios would
     // have to reuse one. The floor is per seed rather than global.
     log("");
-    log("each seed has enough categories to keep its scenarios apart:");
-    for (const [file, list] of Object.entries(SEED_CATEGORIES)) {
+    log("each list has enough categories to keep its scenarios apart:");
+    for (const [file, list] of Object.entries(allLists)) {
         check(`  ${file}`, list.length > 0, true);
     }
 }

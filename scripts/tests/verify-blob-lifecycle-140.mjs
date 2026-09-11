@@ -38,6 +38,7 @@ import {
 } from "../../lib/blobIngest.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { updatePO } from "../../lib/airtable/purchaseOrders.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
@@ -126,6 +127,10 @@ const fixtures = createFixtures({
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — identity is Category + Size + Unit, so a fixture item carries one even
+// where this script never looks at the item axis: without it PO generation
+// reports `no Category` and the ordered item is never linked to a material.
+const CATEGORY = (await resolveVerifyCategories())[0];
 const track = fixtures.track;
 const trackBlob = fixtures.trackBlob;
 
@@ -142,6 +147,7 @@ try {
         prRecordId: pr.id,
         prId: pr.prId,
         itemName: "#140 fixture item",
+        categoryRecordId: CATEGORY.recordId,
         size: "",
         unit: "EA",
         qty: 1,

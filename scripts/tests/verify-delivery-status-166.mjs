@@ -55,6 +55,7 @@
 import { execSync } from "child_process";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
 import { getItemsByPO, getPOItemsForReconciliation } from "../../lib/airtable/poItems.js";
@@ -246,13 +247,21 @@ const fixtures = createFixtures({
             name: "materials",
             table: TABLES.MATERIALS,
             label: "Material",
-            tagField: "Item Name",
+            // #356 — `Item Name` is a LOOKUP through `Category` now, so a run
+            // cannot put its tag there and `discoverByTag` would find nothing:
+            // the fixtures would leak onto a shared base with nothing saying so.
+            // `Size` is the one writable free-text field identity still has, so
+            // the tag goes there and every fixture item prefixes its size.
+            tagField: "Size",
             discoverByTag: true,
             children: [{ link: "Material Prices", table: TABLES.MATERIAL_PRICES, label: "Material Price" }],
         },
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — one category for the whole run; the TAG-prefixed size is what keeps
+// the scenarios on separate materials. See makeOrder below.
+const CATEGORY = (await resolveVerifyCategories())[0];
 const track = fixtures.track;
 
 let complete = false;
@@ -282,7 +291,17 @@ try {
                 prRecordId: pr.id,
                 prId: pr.prId,
                 itemName,
-                size: '2"',
+                categoryRecordId: CATEGORY.recordId,
+                // #356 — the SIZE is what keeps these scenarios on separate
+                // materials now. Identity is Category + Size + Unit, and one
+                // category for the whole run means every scenario would share a
+                // material if the size were the same literal for all of them —
+                // which makes them each other's delivery candidates (#18) and
+                // scrambles the allocation each one exists to show. The item
+                // name already carried the run tag and did this job; the size
+                // takes it over, tag included, which is also what `discoverByTag`
+                // now matches on.
+                size: `${itemName} 2"`,
                 unit: "EA",
                 qty,
                 unitPrice,

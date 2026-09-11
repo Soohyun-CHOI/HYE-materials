@@ -34,6 +34,7 @@ import { countsAsOrdered, lowestPriceRowIds, qtyDiffersAcross } from "../../lib/
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
+import { resolveVerifyCategories } from "./_categories.mjs";
 import { updatePO } from "../../lib/airtable/purchaseOrders.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers, getUserByEmail } from "../../lib/airtable/users.js";
@@ -180,6 +181,13 @@ const fixtures = createFixtures({
     ],
 });
 const TAG = fixtures.TAG;
+// #356 — two categories, because this fixture's whole point is two materials
+// side by side on the screen. The narrow query names the run tag and a word from
+// the SIZE, which is the only part of `Material Label` a fixture can still
+// choose: `ball valve` used to be in the name and the name is the catalog's now.
+// `2in` separates it from the gasket, whose size carries the tag as well.
+const [CATEGORY, EXTRA_CATEGORY] = await resolveVerifyCategories();
+const NARROW_QUERY = `${TAG} 2in`;
 const track = fixtures.track;
 
 // ---------------------------------------------------------------------------
@@ -232,7 +240,16 @@ if (incomplete) {
     assert("the requester is someone else", admin.id !== fixtureUser.id);
 
     const NAME = `${TAG} Ball Valve`;
-    const KEY = { itemName: NAME, size: '2"', unit: "EA" };
+    // #356 — THE SEARCHABLE WORDS MOVED FROM THE NAME TO THE SIZE, which is what
+    // this script has to follow. `Material Label` is `Item Name_Size_Unit` and
+    // `Item Name` is a LOOKUP of the category's path now, so the run tag can only
+    // reach the label through `Size` — the one writable free-text field identity
+    // still has. That also makes it what `discoverByTag` cleans up on, so the
+    // fixture size carries the tag whether or not a query ever uses it. Whether
+    // the SCREEN's matching should still be token-over-the-label is #357's.
+    const SIZE = `${TAG} 2in`;
+    const EXTRA_SIZE = `${TAG} gasket`;
+    const KEY = { categoryCode: CATEGORY.codes[3], size: SIZE, unit: "EA" };
 
     async function makePO({ vendorId, qty, unitPrice, extraItem }) {
         const pr = await createPR({
@@ -240,7 +257,11 @@ if (incomplete) {
             notes: `${TAG} fixture`,
         });
         track("prs", pr.id);
-        await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", itemName: NAME, size: '2"', unit: "EA", qty, unitPrice });
+        await createItem({
+            prRecordId: pr.id, prId: pr.prId, remark: "",
+            itemName: NAME, categoryRecordId: CATEGORY.recordId,
+            size: SIZE, unit: "EA", qty, unitPrice,
+        });
         if (extraItem) {
             await createItem({ prRecordId: pr.id, prId: pr.prId, remark: "", ...extraItem });
         }
@@ -258,7 +279,16 @@ if (incomplete) {
         vendorId: vendorB.id,
         qty: 10,
         unitPrice: 30,
-        extraItem: { itemName: `${TAG} Gasket`, size: "", unit: "PCS", qty: 5, unitPrice: 2 },
+        // A SECOND material on the same order, and its own category since #356:
+        // identity is Category + Size + Unit, so sharing the run's one category
+        // and differing only in size would still make two rows — but this one
+        // exists to be a genuinely different item on the screen, and a second
+        // category is what that means now.
+        extraItem: {
+            itemName: `${TAG} Gasket`,
+            categoryRecordId: EXTRA_CATEGORY.recordId,
+            size: EXTRA_SIZE, unit: "PCS", qty: 5, unitPrice: 2,
+        },
     });
     // A third PO for the same material, then withdrawn: its ordered item must appear in
     // the history, marked, and must not count as ordered.
@@ -271,7 +301,7 @@ if (incomplete) {
     if (material) {
         // -------------------------------------------------------------------
         console.log("\nPart B — search as an Admin (identifiers expected)");
-        const adminSearch = await searchMaterialPrices({ user: admin, query: `${TAG} ball valve` });
+        const adminSearch = await searchMaterialPrices({ user: admin, query: NARROW_QUERY });
         check("the query matches one material", adminSearch.materials.length, 1);
 
         const group = adminSearch.materials[0];
@@ -339,7 +369,7 @@ if (incomplete) {
 
         // -------------------------------------------------------------------
         console.log("\nPart C — the same search as the non-Admin fixture user");
-        const fixtureSearch = await searchMaterialPrices({ user: fixtureUser, query: `${TAG} ball valve` });
+        const fixtureSearch = await searchMaterialPrices({ user: fixtureUser, query: NARROW_QUERY });
         check("the material is still found", fixtureSearch.materials.length, 1);
         const fixtureGroup = fixtureSearch.materials[0];
         check("both vendor rows are still shown", fixtureGroup.rows.length, 2);
@@ -394,7 +424,7 @@ if (incomplete) {
         console.log("\nPart E — the query budget does not grow with the rows");
         // One material vs two: if anything were per-row, the second would cost
         // more queries. TAG matches both fixtures' materials.
-        const one = await countOps(() => searchMaterialPrices({ user: admin, query: `${TAG} ball valve` }));
+        const one = await countOps(() => searchMaterialPrices({ user: admin, query: NARROW_QUERY }));
         const two = await countOps(() => searchMaterialPrices({ user: admin, query: TAG }));
         const oneRows = one.result.materials.reduce((n, g) => n + g.rows.length, 0);
         const twoRows = two.result.materials.reduce((n, g) => n + g.rows.length, 0);
