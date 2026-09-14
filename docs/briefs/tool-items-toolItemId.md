@@ -55,6 +55,41 @@ values, never lists — a tool item is one unit of one tool and sits on one job.
 `Check in` from `Out` — and the job the event will be recorded on. There is
 never a choice of transition: the status decides which one.
 
+**A CHECK-OUT ALSO ASKS WHO THE TOOL IS GOING TO, AND A CHECK-IN DOES NOT.**
+The field sits above the control that records it and carries no separate
+label: its placeholder is the label, and the words are `Checked out to`. The
+people it names have no account here, so it is free text rather than a
+picker over a list of users. **A check-out cannot be recorded without one** —
+pressing with the field empty produces `Checking out needs a name.` where
+every other refusal on this screen appears, and nothing is written. A field
+of nothing but spaces is the same refusal.
+
+**Touching the field opens a sheet**, titled with the same words, with the
+system keyboard up. A name can be typed there or picked from the list below
+it, and both are the same value as the field behind. It closes by picking, by
+its own `Done`, by `Escape` and on the backdrop, and focus returns to the
+field. **Opening it is a press rather than a focus** — returning focus to the
+field would otherwise reopen it — and the keyboard opens it with `Enter` or
+`ArrowDown`. **Whether it rises from the bottom with the keyboard or sits
+somewhere else is the design's**; the app supplies the structure and the
+app's shared modal chrome, and nothing here places it.
+
+**The list under it is headed `Recently at this job`** and holds the people
+that job has recently handed tools to, most recent first. **One entry per
+person however their name was typed** — `Mike R` and `mike r` are one, shown
+in the most recent spelling — and **it is the chosen job's list, not the
+reader's**: a person with two assignments sees it change as the picker moves.
+Typing narrows it, matching anywhere inside a name and ignoring case and
+spacing. **A few are shown before anybody types and the number is a display
+choice over the whole list**, so a design may set it: a name below the cut is
+one keystroke away rather than absent.
+
+**When that job has handed out nothing yet:** one sentence in place of the
+entries, `No tools have gone out on this job yet.` **This is the first
+handout of a project rather than an error**, and it is the one screen that
+fills it. **Before a job is chosen the list is absent rather than empty** —
+heading and all — because it is about a job and there is not one yet.
+
 **The confirmation is that arriving does not act.** A scan opens the page, the
 page states the id and the status, and one press is the transition. There is no
 dialog and there must not be one: this happens dozens of times a day, and every
@@ -258,9 +293,20 @@ retire control is what puts a tool item there, so this sentence is the first
 thing the person who pressed it reads. It names the status rather than the word
 `Retired`, because what it is about is a status being the end.
 
-**Nothing on a history entry is conditional.** There used to be an optional
-note here, usually absent; the field it read is gone, so every entry is the
-same four facts and a design may lay them out as a fixed shape.
+**A history entry is four facts, and a `Checked Out` entry is five.** The
+fifth is who the tool went to, last, labeled with the same words the control
+that wrote it says. **It is decided by the event and not by whether a value
+is there**: every `Checked Out` entry carries the pair and no other entry
+does, so a design may lay out two fixed shapes and must not treat the fifth
+as an optional extra on all of them. There used to be a genuinely optional
+note here, usually absent; the field it read is gone, and this is not it
+returning.
+
+**A `Checked Out` entry written before the app asked for a name shows the
+label with nothing under it.** Those entries exist on this base and are not
+repaired — writing a name onto them now would state something nobody
+recorded. A blank in any of the five reads the same way: a defect upstream,
+shown rather than hidden.
 
 **When the tool item has no history at all:** one sentence in place of the
 entries, opening
@@ -288,10 +334,11 @@ person holding it can see.
 
 ## What must agree elsewhere
 
-**The four facts on a history entry are invariants of the base, not choices.**
+**The facts on a history entry are invariants of the base, not choices.**
 The event is one of a closed set of four; the job is on every row and is never
-blank; who recorded it is written on every path that appends a row. A design
-that hides one is hiding a defect upstream rather than simplifying a row.
+blank; who recorded it is written on every path that appends a row; and who a
+tool went to is on every `Checked Out` row and on no other. A design that
+hides one is hiding a defect upstream rather than simplifying a row.
 
 **A repeated job down the history is the normal reading.** A tool item that has
 never left its job carries the same job on every entry. That the column has no

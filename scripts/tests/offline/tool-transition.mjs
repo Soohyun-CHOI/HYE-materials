@@ -42,11 +42,14 @@ import { TOOL_EVENT, TOOL_STATUS, EVENT_OFFERED_BY_STATUS } from "../../../lib/t
 import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
 import { TOOL_JOB_COPY } from "../../../lib/toolJob.js";
 import {
+    RECENT_NAMES_SHOWN,
     TOOL_TRANSITION_COPY,
     jobMoveNotice,
+    narrowNames,
     planTransition,
     readRetirement,
     readSubmission,
+    recentNamesFor,
 } from "../../../lib/toolTransition.js";
 import { callsBefore, callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -64,6 +67,23 @@ const ALL_JOBS = [JOB_A, JOB_B];
 
 /** An actor assigned to the jobs named. */
 const actor = (...jobs) => ({ id: "recUser", assignedJobs: jobs.map((j) => j.id) });
+
+/**
+ * A complete check-out submission, minus the job (#376).
+ *
+ * The name is spread into every case below rather than typed per call, so the
+ * assertions about the EVENT and the JOB stay about those and are not quietly
+ * testing the name as well. The cases that are about the name supply their own.
+ */
+const CHECKING_OUT = { event: TOOL_EVENT.CHECKED_OUT, checkedOutTo: "Dana K" };
+
+/** One `Checked Out` row as `recentNamesFor` reads them. */
+const checkOut = (checkedOutTo, jobCode, eventAt) => ({
+    event: TOOL_EVENT.CHECKED_OUT,
+    jobCode,
+    eventAt,
+    checkedOutTo,
+});
 
 /** Every string the copy constant can produce, builders called with plausible input. */
 function copyStrings() {
@@ -200,12 +220,12 @@ export function run({ check, assert, log }) {
     // ── 3: the submission is compared, never taken ─────────────────────────
     log("");
     log("what a submission has to match:");
-    const good = readSubmission(inStock, { event: TOOL_EVENT.CHECKED_OUT, jobId: JOB_A.id });
+    const good = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_A.id });
     check("the offered event and the actor's own job pass", good.refusal, null);
     check("  and what comes back is the PLAN's event", good.event, TOOL_EVENT.CHECKED_OUT);
     check("  with the job resolved from the plan's list", good.job.jobCode, "26-DEMO-01");
 
-    const stale = readSubmission(inStock, { event: TOOL_EVENT.CHECKED_IN, jobId: JOB_A.id });
+    const stale = readSubmission(inStock, { ...CHECKING_OUT, event: TOOL_EVENT.CHECKED_IN, jobId: JOB_A.id });
     check("a submission naming the other event is refused", stale.event, null);
     // THE SENTENCE CARRIES WHAT A FRESHLY RENDERED PAGE CANNOT SAY (#378), and the
     // three assertions are the three halves of that. A refused press and a
@@ -225,16 +245,130 @@ export function run({ check, assert, log }) {
     // record the opposite of what the button said.
     check("  never falling through to the derived event", stale.job, null);
 
-    check("an event the vocabulary does not hold is refused", readSubmission(inStock, { event: "Job Changed", jobId: JOB_A.id }).event, null);
-    check("an empty event is refused", readSubmission(inStock, { event: "", jobId: JOB_A.id }).event, null);
+    check("an event the vocabulary does not hold is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "Job Changed", jobId: JOB_A.id }).event, null);
+    check("an empty event is refused", readSubmission(inStock, { ...CHECKING_OUT, event: "", jobId: JOB_A.id }).event, null);
 
-    const otherJob = readSubmission(inStock, { event: TOOL_EVENT.CHECKED_OUT, jobId: JOB_B.id });
+    const otherJob = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id });
     check("a job the actor is not on is refused", otherJob.refusal, TOOL_JOB_COPY.notYours);
-    check("  as is no job at all", readSubmission(inStock, { event: TOOL_EVENT.CHECKED_OUT, jobId: "" }).refusal, TOOL_JOB_COPY.notYours);
+    check("  as is no job at all", readSubmission(inStock, { ...CHECKING_OUT, jobId: "" }).refusal, TOOL_JOB_COPY.notYours);
+
+    // ── 3b: a check-out cannot be recorded without a name (#376) ───────────
+    log("");
+    log("who the tool went to, which only a check-out carries:");
+    const noName = readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "", jobId: JOB_A.id });
+    check("a check-out with no name is refused", noName.refusal, TOOL_TRANSITION_COPY.nameRequired);
+    check("  and writes nothing", `${noName.event}|${noName.checkedOutTo}`, "null|null");
+    // WHITESPACE IS NOT A NAME. The value is normalized before it is judged, so the
+    // field a person tabbed through and the field they put two spaces in reach the
+    // same sentence — without this the second would write a blank-looking row that
+    // every screen renders as an empty pair.
+    check(
+        "  as is a name of nothing but whitespace",
+        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "   ", jobId: JOB_A.id }).refusal,
+        TOOL_TRANSITION_COPY.nameRequired
+    );
+    // THE STORED VALUE IS NORMALIZED AND ITS CASE IS KEPT, which is #18's split
+    // exactly: whitespace is fixed in what is written because a formula cannot
+    // collapse an internal run, and case is folded only where two names are
+    // compared. The name on a purchase order is not ours to retype and neither is
+    // a person's.
+    check(
+        "  a name is trimmed and its inner runs collapsed",
+        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "  Mike   R  ", jobId: JOB_A.id }).checkedOutTo,
+        "Mike R"
+    );
+    check(
+        "  and its case is left alone",
+        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "mIKE r", jobId: JOB_A.id }).checkedOutTo,
+        "mIKE r"
+    );
+
+    // A CHECK-IN CARRIES NOBODY, AND A NAME SUBMITTED WITH ONE IS DROPPED RATHER
+    // THAN REFUSED — the treatment the submitted EVENT already gets, and the only
+    // one that cannot be turned into a way of writing a recipient onto a row that
+    // must not have one. A refusal would have been the other option and is worse:
+    // it would answer a forged field with a sentence about it.
+    const checkingIn = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: TOOL_STATUS.OUT });
+    const forgedName = readSubmission(checkingIn, {
+        event: TOOL_EVENT.CHECKED_IN,
+        jobId: JOB_A.id,
+        checkedOutTo: "Dana K",
+    });
+    check("a check-in passes with a name attached", forgedName.refusal, null);
+    check("  and the name does not survive it", forgedName.checkedOutTo, null);
+    check(
+        "  while a check-in with none is unaffected",
+        readSubmission(checkingIn, { event: TOOL_EVENT.CHECKED_IN, jobId: JOB_A.id }).refusal,
+        null
+    );
+
+    // THE ORDER OF THE REFUSALS, WHICH IS `planTransition`'s: what the app knows
+    // before what the person typed. A submission that is BOTH stale and nameless
+    // hears about the page, not about the name — otherwise somebody fixes the name
+    // and presses again into the same refusal.
+    check(
+        "a stale page is answered before a missing name",
+        readSubmission(inStock, { event: TOOL_EVENT.CHECKED_IN, jobId: JOB_A.id, checkedOutTo: "" }).refusal,
+        TOOL_TRANSITION_COPY.moved
+    );
+    check(
+        "  and so is a job that is not the actor's",
+        readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "", jobId: JOB_B.id }).refusal,
+        TOOL_JOB_COPY.notYours
+    );
+
+    // ── 3c: the names a job offers, folded and narrowed (#376) ─────────────
+    log("");
+    log("the names this job has recently handed tools to:");
+    const ROWS = [
+        checkOut("Dana K", JOB_A.jobCode, "2026-09-14T10:00:00.000Z"),
+        checkOut("Mike R", JOB_A.jobCode, "2026-09-12T10:00:00.000Z"),
+        checkOut("mike  r", JOB_A.jobCode, "2026-09-13T10:00:00.000Z"),
+        checkOut("Pat T", JOB_A.jobCode, "2026-09-11T10:00:00.000Z"),
+        checkOut("Sam B", JOB_B.jobCode, "2026-09-15T10:00:00.000Z"),
+        { event: TOOL_EVENT.CHECKED_IN, jobCode: JOB_A.jobCode, eventAt: "2026-09-16T10:00:00.000Z" },
+        { event: TOOL_EVENT.RETIRED, jobCode: JOB_A.jobCode, eventAt: "2026-09-17T10:00:00.000Z", checkedOutTo: "Ghost G" },
+    ];
+    const names = recentNamesFor(ROWS, { jobCode: JOB_A.jobCode });
+    check("most recent first", names.join(" | "), "Dana K | mike r | Pat T");
+    // ONE ENTRY PER PERSON, ON THE KEY THE WHOLE APP TYPES AGAINST. `Mike R` and
+    // `mike  r` are one person; without the fold the sheet offers both and the list
+    // argues with itself. The SPELLING is the most recent one, which is why the
+    // answer above is `mike r` and not `Mike R`.
+    assert("  one entry per person however it was typed", names.length === 3);
+    check("  and the spelling is the most recent", names[1], "mike r");
+    check("  with its inner run collapsed", names.filter((n) => n.includes("  ")).length, 0);
+    // ONLY THIS JOB, AND ONLY `Checked Out` ROWS. The other job's name is in the
+    // same list the page loaded, because a picker can move between them; a row of
+    // another event with a name is a defect upstream and is ignored rather than
+    // shown.
+    assert("  nobody from the other job", !names.includes("Sam B"));
+    assert("  and nothing off a row that is not a check-out", !names.includes("Ghost G"));
+    check(
+        "the other job answers with its own",
+        recentNamesFor(ROWS, { jobCode: JOB_B.jobCode }).join(" | "),
+        "Sam B"
+    );
+    check("no job chosen yet offers nobody", recentNamesFor(ROWS, { jobCode: undefined }).length, 0);
+    check("and a job nothing has gone out on is empty", recentNamesFor(ROWS, { jobCode: "26-DEMO-09" }).length, 0);
+
+    log("");
+    log("and what typing narrows them to:");
+    check("nothing typed is the whole list", narrowNames(names, "").join(" | "), "Dana K | mike r | Pat T");
+    check("  as is whitespace", narrowNames(names, "  ").length, 3);
+    check("a fragment matches inside a name", narrowNames(names, "r").join(" | "), "mike r");
+    check("  ignoring case", narrowNames(names, "MIKE").join(" | "), "mike r");
+    check("  and spacing", narrowNames(names, "mike  r").join(" | "), "mike r");
+    check("a fragment nobody carries matches nobody", narrowNames(names, "zz").length, 0);
+    // THE SHOWN COUNT IS A DISPLAY CHOICE OVER THE WHOLE LIST, which is what lets
+    // the brief hand the number to Design: a name below the cut is one keystroke
+    // away rather than absent, so the cut costs nothing that typing does not undo.
+    assert("the sheet shows a few before anybody types", RECENT_NAMES_SHOWN > 0);
+    assert("  fewer than a job will accumulate", RECENT_NAMES_SHOWN < 10);
 
     // A refused plan is not re-litigated by a well-formed submission — which is
     // what a forged POST against a retired tool item looks like.
-    const forged = readSubmission(retired, { event: TOOL_EVENT.CHECKED_OUT, jobId: JOB_A.id });
+    const forged = readSubmission(retired, { ...CHECKING_OUT, jobId: JOB_A.id });
     check("a refused plan refuses whatever is submitted", forged.event, null);
     check("  in the plan's own words", forged.refusal, retired.refusal);
 
@@ -566,6 +700,64 @@ export function run({ check, assert, log }) {
         plantedCalls.some((c) => !(c.start > plantedRefuse.start && c.end < plantedRefuse.end))
     );
 
+    // ── 6e: the name reaches the row from the reader, not the form (#376) ──
+    //
+    // THE SAME TRAP THIS FILE'S AST HALF EXISTS FOR, one argument along.
+    // `checkedOutTo`, `formData.get("checkedOutTo")` and a literal are all "an
+    // argument to createToolLogEntry", and only the argument's own source tells
+    // them apart. The reader is what normalizes the value and what drops it on a
+    // check-in, so a form value reaching the writer directly would write an
+    // untrimmed name and would put one on a row that must not carry one.
+    log("");
+    log("who the tool went to reaches the row through the reader:");
+    const submittedName = argumentSource(action, "readSubmission", "checkedOutTo");
+    assert(`the form's name reaches the reader (${submittedName})`, /formData/.test(String(submittedName)));
+    const handedName = argumentSource(action, "writeEvent", "checkedOutTo");
+    check("  and the reader's answer reaches the writer", handedName, "checkedOutTo");
+    assert("  never the form's", !/formData/.test(String(handedName)));
+    const writtenName = argumentSource(action, "createToolLogEntry", "checkedOutTo");
+    check("  which is what the log row records", writtenName, "checkedOutTo");
+    // THE RETIREMENT HANDS OVER NOTHING, which is the same claim from the other
+    // side: one direction, no recipient, and no field for a forged submission to
+    // fill. Asserted as an absence on ITS OWN call rather than on the module, since
+    // the scan action's call is in the same file.
+    const retireOwn = resolveFunction(action.ast, "retireToolItemAction");
+    check(
+        "  and a retirement hands the writer no name at all",
+        argumentSource({ ast: retireOwn, source: action.source }, "writeEvent", "checkedOutTo"),
+        null
+    );
+
+    // BOTH DIRECTIONS ARE HELD AT THE WRITER, which is where a never-blank
+    // invariant is actually kept — `Job` is the precedent two guards up, and #363
+    // is what taught it: that one was unreachable until a caller stopped resolving
+    // the value itself.
+    for (const [what, guard] of [
+        ["a check-out with no name", 'if (isCheckOut && !checkedOutTo) {'],
+        ["a name on any other event", 'if (!isCheckOut && checkedOutTo) {'],
+    ])
+        assert(`the writer refuses ${what}`, writer.source.includes(guard));
+    // AND IT OMITS THE FIELD RATHER THAN WRITING IT EMPTY, so a blank cell means
+    // the row was never given a name — the distinction the mapper preserves and
+    // the one a `Checked Out To: ""` would destroy.
+    assert(
+        "  and omits the field on an event that carries none",
+        /\.\.\.\(isCheckOut \? \{ "Checked Out To": checkedOutTo \} : \{\}\)/.test(writer.source)
+    );
+
+    // THE READER'S OWN SHAPE. The filter has to name the event and the jobs, the
+    // ordering is the rule `recentNamesFor` re-applies, and the cap is what makes
+    // it one operation — asserted here because none of the three is visible to a
+    // behavioral test without credentials.
+    const reader = resolveFunction(writer.ast, "getRecentCheckOuts");
+    assert("the recent-names reader was found", reader !== null);
+    const readerSource = writer.source.slice(reader.start, reader.end);
+    assert("  it narrows to the jobs it was given", /orByField\("Job", codes\)/.test(readerSource));
+    assert("  and to check-outs alone", /\{Event\} = "\$\{formulaString\(TOOL_EVENT\.CHECKED_OUT\)\}"/.test(readerSource));
+    assert("  skipping rows that carry no name", /\{Checked Out To\} != ""/.test(readerSource));
+    assert("  newest first", /direction: "desc"/.test(readerSource));
+    assert("  and capped, which is what keeps it one operation", /maxRecords: RECENT_CHECK_OUT_ROWS/.test(readerSource));
+
     // ── 7: the page offers and refuses in one place ────────────────────────
     log("");
     log("the page renders the refusal where the control would be:");
@@ -608,6 +800,34 @@ export function run({ check, assert, log }) {
     assert("  and the tool item's current job", /currentJobCode=\{/.test(page.source));
     assert("the form names its word from the control map", /COPY\.control\[event\]/.test(formSource));
     assert("  and asks jobMoveNotice rather than comparing inline", callsTo(form.ast, "jobMoveNotice").length === 1);
+
+    // THE FORM REFUSES WITH THE APP'S SENTENCE RATHER THAN THE BROWSER'S. A
+    // `required` attribute would hand the refusal to a bubble this app does not
+    // word and Design cannot style, and the sentence would then exist only for a
+    // submission the screen did not produce.
+    // ASKED OF THE GUARD AND NOT OF THE FILE. A count over the whole component
+    // passed until the sheet's own key handler needed one too, which is the shape
+    // this file's header warns about one level down: an assertion phrased as a
+    // total is an assertion about whatever else the file happens to contain.
+    let guardFn = null;
+    walk(form.ast, (n) => {
+        if (n.type === "VariableDeclarator" && n.id?.name === "guard") guardFn = n.init;
+    });
+    assert("the form's guard was found", guardFn !== null);
+    assert("  and it cancels the submit", callsTo(guardFn, "preventDefault").length === 1);
+    assert("  which is what the form's action runs through", /onSubmit=\{guard\}/.test(formSource));
+    assert("  and says so in the app's own words", /COPY\.nameRequired/.test(formSource));
+    assert(
+        "  with no `required` attribute doing it instead",
+        !/name="checkedOutTo"[\s\S]{0,200}?required/.test(formSource)
+    );
+    // AND THE CONTROL IS ONLY THERE FOR THE EVENT THAT CARRIES A NAME, which is the
+    // page's own arrangement one level down: a check-in asks nobody.
+    assert("the control is gated on the event", /askingForName && \(/.test(formSource));
+    assert(
+        "  which is the check-out",
+        /const askingForName = event === TOOL_EVENT\.CHECKED_OUT;/.test(formSource)
+    );
 
     // ── 8: retiring — the second answer the plan carries (#363) ────────────
     log("");

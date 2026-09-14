@@ -102,6 +102,55 @@ export function run({ check, assert, log }) {
     check("no label says `Notes`", logRowFacts({ ...FULL_ROW, notes: "x" }).filter((f) => f.label === "Notes").length, 0);
     assert("and the copy constant carries no notes label", !("notesLabel" in TOOL_ITEM_COPY));
 
+    // ── 2b: the fifth, which belongs to one event (#376) ───────────────────
+    //
+    // NOT `Notes` COMING BACK, AND THE DIFFERENCE IS WHAT MAKES THIS CHECKABLE AT
+    // ALL. That field was optional on every event and no row ever filled it, so
+    // there was no rule to assert — only the absence above. `Checked Out To` is a
+    // function of the event: present on exactly one of the four and absent on the
+    // other three, held in both directions by `createToolLogEntry`. So this asks
+    // over the WHOLE vocabulary rather than about the one row it was added for,
+    // and a fifth event cannot arrive without this failing until somebody decides
+    // which side it is on.
+    log("");
+    log("and a fifth on a check-out, on no other event:");
+    const withName = (event) => keysOf({ ...FULL_ROW, event, checkedOutTo: "Dana K" });
+    check(
+        "a check-out carries it last",
+        withName(TOOL_EVENT.CHECKED_OUT).join(","),
+        "event,eventAt,job,recordedBy,checkedOutTo"
+    );
+    check(
+        "  labeled with the words the control that wrote it says",
+        logRowFacts({ ...FULL_ROW, event: TOOL_EVENT.CHECKED_OUT, checkedOutTo: "Dana K" }).at(-1).label,
+        TOOL_ITEM_COPY.checkedOutToLabel
+    );
+    check(
+        "  and holding the name",
+        logRowFacts({ ...FULL_ROW, event: TOOL_EVENT.CHECKED_OUT, checkedOutTo: "Dana K" }).at(-1).value,
+        "Dana K"
+    );
+    const others = Object.values(TOOL_EVENT).filter((e) => e !== TOOL_EVENT.CHECKED_OUT);
+    assert(`  and the other ${others.length} events do not, even handed one`, others.length === 3);
+    for (const event of others)
+        check(`  ${event} carries four`, withName(event).join(","), "event,eventAt,job,recordedBy");
+    // THE EVENT DECIDES, NOT THE VALUE. A check-out with no name renders the pair
+    // empty rather than dropping it — the same treatment the four above get, and
+    // the reason is theirs: a missing one is a defect upstream and hiding it would
+    // take the defect with it.
+    check(
+        "a check-out with no name still carries the pair",
+        keysOf({ ...FULL_ROW, event: TOOL_EVENT.CHECKED_OUT }).join(","),
+        "event,eventAt,job,recordedBy,checkedOutTo"
+    );
+    // ANTI-VACUITY FOR THE LOOP ABOVE: the vocabulary really is what it is read
+    // from, so a check that iterated an empty list would fail here rather than
+    // reporting three silent passes.
+    assert(
+        "the vocabulary this is asked over is the real one",
+        Object.values(TOOL_EVENT).length === 4 && Object.values(TOOL_EVENT).includes(TOOL_EVENT.CHECKED_OUT)
+    );
+
     // ── 3: all four are on every row ───────────────────────────────────────
     log("");
     log("all four are on every row, whatever they hold:");

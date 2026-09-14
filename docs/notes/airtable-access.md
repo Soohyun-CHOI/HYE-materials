@@ -118,6 +118,23 @@ What injection actually is, measured read-only against this base (#18 on `getVen
 
 **A RAW CONTROL CHARACTER IN A SOURCE FILE MAKES RIPGREP SKIP IT, WHICH IS A GENERAL HAZARD AND WAS A REAL ONE HERE.** The counter keys its store on `table` + `kind` joined by NUL — a space would split wrongly on `Purchase Requests` — and the first version wrote that separator as a **literal NUL byte** in the source. Git still diffed the file as text, so nothing looked wrong, but ripgrep classifies a file containing a NUL as binary and **skips it silently**: `grep` over `lib/` returned nothing from this module. That is the one failure mode the field-rename procedure cannot survive, since its whole safety argument is "grep the old name and fix every hit". Written as the escape sequence `"\u0000"` now — same value at runtime, and six visible characters in the source instead of one invisible byte. **This paragraph deliberately spells the escape rather than containing the character**, which is the same reason it belongs in the module too: a document warning about a grep-invisible file must not become one.
 
+### A link field CAN be filtered on, by its text (#376)
+
+**`filterByFormula` cannot compare a link field to a RECORD ID, and that is not the same as not being able to filter on one at all.** The rule as CLAUDE.md states it is about a record id and is unchanged: `Material Prices` carries `Material Record ID` / `Vendor Record ID` and `Materials` carries `Category Code` because of it. What none of them says is what a link renders AS in a formula, which is its linked records' PRIMARY values as text.
+
+**Measured on this base, against `Tool Log."Job"` → `Jobs` (primary `Job Code`), 31 rows:**
+
+| Formula | Rows |
+|---|---|
+| `{Job} = "26-DEMO-01"` | 24 |
+| `{Job} & "" = "26-DEMO-01"` | 24 |
+| `{Job} & "" = "26-DEMO-02"` | 7 |
+| `AND({Job} & "" = "26-DEMO-01", {Event} = "Checked Out")` | 3 |
+
+- **THE EQUALITY IS RIGHT ONLY BECAUSE THIS LINK HOLDS EXACTLY ONE RECORD, and copying it to one that holds several would silently match nothing.** A multi-record link renders as a joined list, so `=` against one name is false for every row carrying two; `FIND()` is the shape that question needs, and it is a different question — it cannot tell a name from a name that contains it. `Tool Log."Job"` is single because the app writes one, which is the same app-enforced single-record invariant `prefersSingleRecordLink` being unwritable already leaves on the DATA elsewhere in this file.
+- **WHAT IT BOUGHT #376, stated because the alternatives are what make it worth recording.** The tool item's page needed the names recently checked out on a reader's jobs. The reverse-link walk from `Jobs."Tool Log"` would have read every event on the job — registrations and check-ins included — at `1 + ceil(N/50)`, growing without bound on the screen a scan lands on. A `Job Code` LOOKUP on `Tool Log` would have matched the `Materials."Category Code"` precedent and cost a field plus a line in CLAUDE.md's data model, which was 117 bytes from its ceiling. The text filter is one operation, capped by `maxRecords` at one page, and needed neither.
+- **THE PRIMARY IS READ LIVE, WHICH IS THE HALF THAT MAKES THIS SAFER THAN A STORED COPY.** A renamed `Job Code` renders the new value on every existing row, so the filter keeps matching; a copied code on the child row would not. That is the same property as a rename carrying every formula with it, one layer up.
+
 ### Serializing a read-then-write — `withKeyLock` (#18, #164)
 
 **Moved out of CLAUDE.md when the file hit its ceiling.** Two sentences stayed there rather than coming here, and the reason is that file's own audience test rather than convenience: the rule that a lock serializes within one process only and that **two locks are never nested** is read by the tools code, the tools notes and the materials code, which is wider than any one glob. Three sites cite CLAUDE.md by name for it (`docs/notes/tools.md` twice, `app/(tools)/tools/new/actions.js` once); those citations are evidence that the audience is wide, not the reason the sentences stay.
