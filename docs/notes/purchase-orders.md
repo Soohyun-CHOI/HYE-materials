@@ -580,3 +580,48 @@ the delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
   carries `✓ Paid` or `Not paid` on every invoice, which is what the browser pass on
   that branch checked instead. The measurement stands as what was true under
   `seesPayment`.
+
+### The one time a document names its zone (#374)
+
+Every screen in the app draws a stored instant in the reader's own zone and
+therefore names no zone at all. The order document is the one surface with no
+reader to resolve against, so it is the one that names one — and it is also the
+only vendor-facing thing this issue changes.
+
+- **IT WAS ALREADY WRONG, WHICH IS WHY A DOCUMENT CHANGE IS IN SCOPE AT ALL.**
+  `Signed {President Signed At}` went through a bare `toLocaleString()`, so the
+  hour came out in whatever zone the renderer happened to be in — UTC on Vercel —
+  with nothing on the paper saying so. A vendor comparing that line against the
+  hour the President pressed the button saw a document five or six hours out, and
+  had no way to tell whether the difference was a zone or an error.
+- **THE COMPANY'S ZONE RATHER THAN UTC, AND THE BUYER'S ADDRESS IS THE
+  ARGUMENT.** `HYE_BUYER_ADDRESS` puts the buyer in Cedar Park, Texas, and the
+  vendors are US suppliers, so `3:51 PM CDT` is a time the reader converts
+  nothing to read. `UTC` would have been correct and unambiguous and still
+  arithmetic somebody has to do — which is the same objection the screens' own
+  change is about, moved onto paper.
+- **A ZONE NAME AND NEVER AN OFFSET, WHICH IS WHAT DAYLIGHT SAVING DECIDES.**
+  `America/Chicago` is `CDT` for part of the year and `CST` for the rest, so a
+  stored `-05:00` would be right for half of it and wrong in the half nobody
+  checks. Measured: the same instant renders `9/14/2026, 3:51 PM CDT` in
+  September and `1/14/2026, 2:51 PM CST` in January, from the one constant.
+  `offline/instant-rendering.mjs` holds the shape of the value rather than the
+  constant's name, so an offset typed into it is a failing check.
+- **A CONSTANT AND NOT AN ENVIRONMENT VARIABLE.** A zone is not a secret and not
+  a per-deployment fact, and the three variables this app reads are all one or
+  the other. What settles it is the failure mode: a variable missing on one
+  deployment changes what a vendor's document says, silently, and no check in
+  this repository can read an environment. It sits beside `HYE_BUYER_NAME` for
+  the reason that constant sits there — the company's own facts, as a vendor
+  reads them on the order.
+- **AND THE LOCALE IS PINNED IN THE SAME LINE, WHICH WAS A SECOND SILENT
+  DEPENDENCE ON THE RENDERER.** The call passed no locale, so the day and month
+  came out in whatever order the runtime preferred. `formatUSD` already fixes
+  `en-US` because a vendor reads the figure; the same reasoning reaches the date,
+  and the two now travel together at one call site.
+- **WHAT IS NOT PROVED HERE, and it is the half that needs a base write.**
+  Nothing generated a PDF: doing so writes a Blob object and an Airtable
+  attachment. What was measured is the formatter's output for both halves of the
+  year, at the node level, from the constants the document uses. The line in the
+  document is that string inside a `<Text>`, and nothing else stands between the
+  two.

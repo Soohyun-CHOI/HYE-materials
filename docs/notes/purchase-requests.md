@@ -125,6 +125,35 @@ neither outcome describes and the screen described the other one.
   an unreferenced record rather than a half-applied edit, which is a different
   judgment about what to say.
 
+### The three moments on the request form were already the reader's (#374)
+
+Every screen that draws a stored instant had it resolving against the server;
+this form was the exception, and the exception carried a different defect.
+`PRForm.js` is a Client Component, so its two draft labels and its duplicate
+warning called `toLocaleString` in the browser and got the reader's zone right.
+
+- **AND GOT IT RIGHT TWICE, WHICH IS THE PROBLEM.** A Client Component is
+  server-rendered first, so the same call ran once on the server and once on the
+  browser — different zones, same node, which is a hydration mismatch. The resume
+  prompt is the reachable one: `showResumePrompt` is `useState(Boolean(initialDraft)
+  && !autoResume)`, so it is true during the server render whenever the requester
+  has a draft, and the timestamp inside it is in the first paint.
+- **IT IS INVISIBLE ON ONE MACHINE, WHICH IS WHY IT SURVIVED.** In development the
+  server and the browser are the same computer in the same zone, so the two renders
+  agree and nothing warns. It separates on Vercel, where the server is UTC — the
+  same split that made the Server Components wrong, reaching this file by another
+  route.
+- **NOT DEMONSTRATED ON THIS BASE, AND THE REASON IS A WRITE.** The prompt needs a
+  `Draft` purchase request and there are none; raising one is a base write this
+  issue did not take. What WAS demonstrated is the mechanism, on the component this
+  issue adds: telling its server render it was the browser reproduced
+  `Hydration failed because the server rendered text …` on `/prs/[prId]` with the
+  dev server in UTC, and the shipped shape produces no such message on any of the
+  four screens.
+- **SO THE FIX IS THE SAME COMPONENT THE SERVER-RENDERED SCREENS TAKE**, rather
+  than a second arrangement for a form that was already half right. Nothing is
+  formatted until the render is the browser's, so the markup and the render that
+  hydrates it are identical by construction.
 ### Picking a category on the signer's edit form (#367)
 
 #355 locked `Item Name` on Edit and continue because the name is composed from

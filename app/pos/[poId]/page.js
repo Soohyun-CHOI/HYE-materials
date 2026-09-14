@@ -50,6 +50,8 @@ import SignForm from "./SignForm";
 import RegeneratePDFForm from "./RegeneratePDFForm";
 import WithdrawPOForm from "./WithdrawPOForm";
 import SendToVendorForm from "./SendToVendorForm";
+import SentRecord from "./SentRecord";
+import Instant from "@/app/components/Instant";
 
 // The route param IS the human-readable ID, so the tab names the record for
 // ZERO Airtable operations (#201) — this reads the URL and nothing else.
@@ -346,7 +348,7 @@ async function renderPODetailPage({ params }) {
                     <p>{withdrawCopy.banner}</p>
                     {po.withdrawnAt && (
                         <p className="mt-1 text-xs">
-                            Withdrawn at {new Date(po.withdrawnAt).toLocaleString()}
+                            Withdrawn at <Instant at={po.withdrawnAt} />
                         </p>
                     )}
                 </div>
@@ -786,7 +788,7 @@ async function renderPODetailPage({ params }) {
                 {po.presidentSigned ? (
                     <div className="space-y-2 text-sm">
                         <p>
-                            Signed at {po.presidentSignedAt ? new Date(po.presidentSignedAt).toLocaleString() : "—"}
+                            Signed at {po.presidentSignedAt ? <Instant at={po.presidentSignedAt} /> : "—"}
                         </p>
                         {/* Issue #138 — an already-generated PDF stays
                             available on a withdrawn PO: the PO did exist
@@ -815,13 +817,16 @@ async function renderPODetailPage({ params }) {
                                     Everyone who can see the order sees that record —
                                     whether the vendor has it is not office-only. */}
                                 {po.sentAt ? (
-                                    <p className="text-zinc-600">
-                                        {SEND_COPY.sent({
-                                            address: po.sentTo || "—",
-                                            when: new Date(po.sentAt).toLocaleString(),
-                                            by: sentByName,
-                                        })}
-                                    </p>
+                                    /* #374 — the moment is INSIDE the sentence, so the
+                                       sentence is what crosses the client boundary
+                                       rather than the time alone. `lib/poSend.js`
+                                       imports nothing but `./format.js`, so the
+                                       builder travels into the bundle with it. */
+                                    <SentRecord
+                                        address={po.sentTo || "—"}
+                                        at={po.sentAt}
+                                        by={sentByName}
+                                    />
                                 ) : canSend ? (
                                     sendEligibility.eligible ? (
                                         <SendToVendorForm poId={po.poId} address={vendor?.picEmail} />
