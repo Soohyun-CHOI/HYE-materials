@@ -388,11 +388,15 @@ anybody pressed the button.
   somebody has a draft, nobody has been asked to approve it, and the row says so
   with their name on it. The row leaves when the request reaches `In Review`,
   which is the moment `/prs` itself starts carrying the fact under `canViewPR`.
-- **THE NAME IN THE CHIP IS `Users."User Name"`,** which is what every other
-  screen prints for a person. It is the email's local part today (`chkim`),
-  because a Users row is created by a first magic-link sign-in and nothing else
-  sets it; a real display name is one edit per row in Airtable and improves every
-  screen at once. Naming people a second way here would be the mistake.
+- **THE NAME IN THE CHIP COMES FROM `lib/userName.js`,** which is what every
+  other screen that prints a person reads. It is their FIRST name (#381) — this
+  chip reports somebody rather than asking the reader to pick them, and the
+  pickers and the two vendor-facing surfaces are the places that print both
+  names. **This paragraph named `Users."User Name"` and said the value was the
+  email's local part because nothing else set it**; that field is `First Name`
+  now, typed by its owner at their first sign-in, and the local part survives
+  only as a fallback for a row nobody has named yet. Naming people a second way
+  here would still be the mistake.
 - **THE TWO CLAUSES ARE ORDERED IN `overageStillWaiting`, and the case that forces
   it is #167's own:** a withdrawn overage ORDER reopens a row whose request says
   `PO Signed`, so `overagePRState` is asked first and only a row nothing offers

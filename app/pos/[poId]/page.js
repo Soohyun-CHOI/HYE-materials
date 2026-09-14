@@ -52,6 +52,7 @@ import WithdrawPOForm from "./WithdrawPOForm";
 import SendToVendorForm from "./SendToVendorForm";
 import SentRecord from "./SentRecord";
 import Instant from "@/app/components/Instant";
+import { userName } from "@/lib/userName";
 
 // The route param IS the human-readable ID, so the tab names the record for
 // ZERO Airtable operations (#201) — this reads the URL and nothing else.
@@ -181,7 +182,7 @@ async function renderPODetailPage({ params }) {
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
         po.sentBy?.[0] ? getUserByRecordId(po.sentBy[0]) : null,
     ]);
-    const sentByName = sentBy?.userName || null;
+    const sentByName = userName(sentBy) || null;
 
     // Issue #281 — resolved once here, for the same reason the withdrawal pair is:
     // the control and its refusal read one answer. The address comes from the vendor
@@ -396,8 +397,8 @@ async function renderPODetailPage({ params }) {
                     is the whole point of moving the word here. */}
                 <p>Discipline: {discipline?.disciplineLabel || "—"}</p>
                 <p>Vendor: {vendor?.vendorName || "—"}</p>
-                <p>Our PIC: {ourPic?.userName || "—"}</p>
-                <p>Our Manager: {ourManager?.userName || "—"}</p>
+                <p>Our PIC: {userName(ourPic) || "—"}</p>
+                <p>Our Manager: {userName(ourManager) || "—"}</p>
                 {/* Internal-only field (CLAUDE.md) — Primary/Alternate tracking,
                     not shown to non-privileged viewers (#132). */}
                 {isOffice && <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>}

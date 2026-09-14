@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
+import { askForNameIfMissing } from "@/lib/authz";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Labeled for #190 — see the note in app/prs/page.js for why the label is an
@@ -11,6 +12,13 @@ export default async function Home() {
 
 async function renderHome() {
     const user = await getCurrentUser();
+    // THE ONE PAGE THAT ASKS FOR A NAME WITHOUT `requireUser()` (#381), because it
+    // is the one page that draws a signed-out state of its own — a helper that
+    // redirected on a missing session would delete the branch below. This is also
+    // the screen a first sign-in with no destination lands on, so skipping it
+    // would mean a new colleague is asked only when they next click something.
+    // `offline/user-name.mjs` holds the pair.
+    await askForNameIfMissing(user);
 
     return (
         <div className="flex flex-1 flex-col items-center justify-center gap-4 bg-zinc-50 p-8">

@@ -115,6 +115,17 @@ const RETIRED = {
     // they are live on `Material Prices`, read by `getMaterialPrice`, and are
     // CLAUDE.md's stated exception — a price row is keyed by two links and has no
     // parent whose reverse-link would do. Same substring trap as `Line 1` at the top.
+    // #381 — A PRIMARY FIELD RENAMED AND SPLIT IN TWO, which is the first entry
+    // here about the field every link to a person RENDERS. The rename kept the
+    // field id, so the 14 link fields pointing at a `Users` row were untouched
+    // and nothing needed fixing on the Airtable side — but `record.get("User
+    // Name")` would now return `undefined`, which the mappers turn into nothing
+    // and which no screen would report: the quiet symptom this file's header
+    // describes, one table over.
+    //
+    // `First Name` and `Last Name` are NOT here and must never be: they are the
+    // live successors. The old name is barred whole, so neither contains it.
+    "User Name": "#381 — the fields are `First Name` and `Last Name`",
     "PR Record ID": "#334 — the lookup is gone; read `Purchase Requests`' reverse-link",
     "Invoice Record ID": "#334 — the lookup is gone; read `Invoices`' reverse-link",
     "PO Record ID": "#334 — the lookup is gone; read `Purchase Orders`' reverse-link",
@@ -423,6 +434,16 @@ export function run({ check, assert, log }) {
         "  while the one nothing reads is deliberately not required",
         !collected.some((c) => c.value === "PR Edit Requests (Initiated)")
     );
+    // #381's two successors, and BOTH are required — unlike #333's fifth, which is
+    // read by nothing. These are read by `recordToUser` and written by
+    // `setUserName`, so a sweep that renamed the field and missed either would
+    // leave a screen naming nobody.
+    for (const successor of ["First Name", "Last Name"]) {
+        assert(
+            `  and #381's successor ${JSON.stringify(successor)} is addressed in the tree`,
+            collected.some((c) => c.value === successor)
+        );
+    }
     check(
         `retired names still in TABLES${stillPresent.length ? ` (${stillPresent.join(", ")})` : ""}`,
         stillPresent.length,

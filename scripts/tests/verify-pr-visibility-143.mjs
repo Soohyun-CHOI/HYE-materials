@@ -38,6 +38,7 @@ import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { userName } from "../../lib/userName.js";
 
 let pass = true;
 let incomplete = false;
@@ -103,8 +104,8 @@ try {
     if (!owner) throw new Error("Need a second active user to own the fixture PR.");
     const discipline = (await getAllDisciplines())[0];
 
-    console.log(`Fixture user: ${fixture.userName} [${fixture.id}] role=${fixture.role} isAdmin=${fixture.isAdmin}`);
-    console.log(`PR owner:     ${owner.userName} [${owner.id}]`);
+    console.log(`Fixture user: ${userName(fixture)} [${fixture.id}] role=${fixture.role} isAdmin=${fixture.isAdmin}`);
+    console.log(`PR owner:     ${userName(owner)} [${owner.id}]`);
 
     // The whole point of clauses 5 and 6 is a participant with no claim on the
     // Job, so assert that rather than assume it.
@@ -188,7 +189,7 @@ try {
         (u) => u.isAdmin === true && u.id !== owner.id && u.id !== fixture.id
     );
     if (otherAdmin) {
-        console.log(`  (using Admin ${otherAdmin.userName} [${otherAdmin.id}], not the author)`);
+        console.log(`  (using Admin ${userName(otherAdmin)} [${otherAdmin.id}], not the author)`);
         check("an Admin who is not its author can NOT open it", canViewPR(otherAdmin, pr), false);
     } else {
         incomplete = true;

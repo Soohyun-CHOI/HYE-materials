@@ -111,14 +111,26 @@ export function run({ check, assert, log }) {
     // assertion naming `page.js`. What must not carry a literal is the SCREEN, so
     // every file it is made of is searched, and the confirmation below it is
     // excluded because it is a different screen with its own row in this check.
-    const signInScreen = [...sources.entries()].filter(
-        ([rel]) => rel.startsWith("app/login/") && !rel.startsWith("app/login/confirm/")
-    );
-    assert(`the sign-in screen is ${signInScreen.length} files`, signInScreen.length > 1);
-    assert(
-        "/login's heading reads SIGN_IN_TITLE rather than a literal",
-        signInScreen.some(([, src]) => /<h1[^>]*>\{SIGN_IN_TITLE\}<\/h1>/.test(src))
-    );
+    //
+    // AND #381 ADDED A THIRD SCREEN UNDER THE SAME PREFIX, so the partition has
+    // to name it. `app/login/name/` is the name step and has a brief of its own;
+    // leaving it inside the sign-in screen's file set would let this assertion
+    // pass on the wrong `<h1>` — three screens share this heading on purpose,
+    // and each one is asserted to carry it rather than any one of them standing
+    // in for the others.
+    const SCREENS_UNDER_LOGIN = [
+        ["/login", (rel) => rel.startsWith("app/login/") && !/^app\/login\/(confirm|name)\//.test(rel)],
+        ["/login/confirm", (rel) => rel.startsWith("app/login/confirm/")],
+        ["/login/name", (rel) => rel.startsWith("app/login/name/")],
+    ];
+    for (const [route, belongs] of SCREENS_UNDER_LOGIN) {
+        const screen = [...sources.entries()].filter(([rel]) => belongs(rel));
+        assert(`${route} is ${screen.length} file(s)`, screen.length >= 1);
+        assert(
+            `  its heading reads SIGN_IN_TITLE rather than a literal`,
+            screen.some(([, src]) => /<h1[^>]*>\{SIGN_IN_TITLE\}<\/h1>/.test(src))
+        );
+    }
 
     // ── the legal name is not this constant ─────────────────────────────────
     // The product name and the company's legal name have different owners and

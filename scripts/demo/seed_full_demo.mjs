@@ -119,6 +119,7 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import { mergeIdenticalItems } from "../../lib/prItemMerge.js";
 import { ensureDemoFixtures } from "./seed_demo_fixtures.mjs";
 import { addAssignedJob } from "../../lib/airtable/users.js";
+import { userName } from "../../lib/userName.js";
 import {
     SEED_CATEGORIES,
     assertItemsHaveCategories,
@@ -276,9 +277,9 @@ for (const account of [requester, president].filter(Boolean)) {
 console.log(`job        ${JOB_CODE}`);
 console.log(`discipline   ${discipline.disciplineLabel}`);
 console.log(`vendor     ${vendor.vendorName}`);
-console.log(`requester  ${requester.userName} <${requester.email}>`);
-console.log(`signers    ${signerA.userName}, ${signerB.userName}`);
-console.log(`president  ${president ? president.userName : "(none — signed orders will be skipped)"}`);
+console.log(`requester  ${userName(requester)} <${requester.email}>`);
+console.log(`signers    ${userName(signerA)}, ${userName(signerB)}`);
+console.log(`president  ${president ? userName(president) : "(none — signed orders will be skipped)"}`);
 
 /** Every PR already on the demo Line, read once and reused by every skip check. */
 const existingPRs = await getPRsByDiscipline(discipline.id);

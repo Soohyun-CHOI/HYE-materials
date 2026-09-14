@@ -25,6 +25,7 @@ import { isEmptyItemRow, mergeIdenticalItems } from "@/lib/prItemMerge";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
 import { CATEGORY_PICKER_COPY, categoryItemFields } from "@/lib/materialCategory";
+import { userName } from "@/lib/userName";
 
 // Canonical key for an item's duplicate-match identity — Item Name
 // (case/whitespace-insensitive) + Qty + Unit Price, per issue #61. Size/Unit/
@@ -60,7 +61,7 @@ async function findDuplicatePR(disciplineId, items, excludeRecordId = null) {
             // Issue #105 — now a full ISO timestamp (Created At); PRForm
             // formats it to a readable date in the browser's locale.
             priorDate: priorPr.createdAt,
-            priorRequesterName: requester?.userName || "Unknown",
+            priorRequesterName: userName(requester) || "Unknown",
         };
     }
 

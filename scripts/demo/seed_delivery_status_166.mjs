@@ -53,6 +53,7 @@ import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
+import { userName } from "../../lib/userName.js";
 import {
     SEED_CATEGORIES,
     assertItemsHaveCategories,
@@ -104,7 +105,7 @@ if (!requester) throw new Error("no active user to raise the PRs as");
 console.log(`job      ${job.jobCode}`);
 console.log(`discipline ${discipline.disciplineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
-console.log(`as       ${requester.userName} <${requester.email}>`);
+console.log(`as       ${userName(requester)} <${requester.email}>`);
 
 // DECLARED BEFORE THE SKIP CHECK, because the skip path prints the guide too and
 // the guide reads it. `printGuide` is a hoisted function declaration but `ids` is

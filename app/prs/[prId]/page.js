@@ -28,6 +28,7 @@ import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
 import WithdrawPRForm from "./WithdrawPRForm";
+import { userName } from "@/lib/userName";
 
 // The route param IS the human-readable ID, so the tab names the record for
 // ZERO Airtable operations (#201) — this reads the URL and nothing else.
@@ -164,7 +165,7 @@ async function renderPRDetailPage({ params }) {
     // same way as Vendor/Discipline above.
     const job = jobsById[pr.job?.[0]];
     const jobDisplay = job ? `${job.jobCode} — ${job.jobName}` : "—";
-    const requesterName = usersById[pr.requester?.[0]]?.userName || "—";
+    const requesterName = userName(usersById[pr.requester?.[0]]) || "—";
 
     // Read-only trail of the full signing chain (issue #9): every source
     // table already existed (PR Signers.Signed At, PR Edit Requests,
@@ -182,7 +183,7 @@ async function renderPRDetailPage({ params }) {
         ...signers
             .filter((s) => s.signedAt)
             .map((s) => {
-                const name = usersById[s.signer?.[0]]?.userName || "Unknown";
+                const name = userName(usersById[s.signer?.[0]]) || "Unknown";
                 // "Edited" isn't an Approval or Agreement itself (issue
                 // #66), so it keeps its own label regardless of
                 // confirmationType — only a genuine "Approved" status
@@ -196,8 +197,8 @@ async function renderPRDetailPage({ params }) {
                 return { at: s.signedAt, text: `${name} ${verb} (step ${s.sequenceOrder})` };
             }),
         ...editRequests.flatMap((c) => {
-            const initiator = usersById[c.initiatedBy?.[0]]?.userName || "Unknown";
-            const target = usersById[c.sentTo?.[0]]?.userName || "Unknown";
+            const initiator = userName(usersById[c.initiatedBy?.[0]]) || "Unknown";
+            const target = userName(usersById[c.sentTo?.[0]]) || "Unknown";
             const entries = [
                 {
                     at: c.requestedAt,
@@ -210,7 +211,7 @@ async function renderPRDetailPage({ params }) {
             return entries;
         }),
         ...editLog.map((e) => {
-            const name = usersById[e.changedBy?.[0]]?.userName || "Unknown";
+            const name = userName(usersById[e.changedBy?.[0]]) || "Unknown";
             return {
                 at: e.changedAt,
                 text: `${name} changed ${e.field}: "${e.oldValue}" → "${e.newValue}"${
@@ -483,7 +484,7 @@ async function renderPRDetailPage({ params }) {
                         />
                     ) : (
                         <p className="text-sm text-zinc-600">
-                            Waiting on {turn ? usersById[turn.userId]?.userName || "someone" : "someone"} to
+                            Waiting on {turn ? userName(usersById[turn.userId]) || "someone" : "someone"} to
                             act.
                         </p>
                     )}

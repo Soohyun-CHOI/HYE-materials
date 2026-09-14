@@ -36,6 +36,7 @@ import { createPR, updatePR, getPRById } from "../../lib/airtable/purchaseReques
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { userName } from "../../lib/userName.js";
 
 // Verbatim mirror of withdrawAction's guard + write sequence. callerUserId
 // stands in for requireUser().id — the only input the real action derives
@@ -101,8 +102,8 @@ async function run() {
     }
     const owner = users[0]; // the PRs' requester
     const other = users[1]; // a different signed-in user (case 1)
-    console.log(`Owner (requester):  ${owner.userName} [${owner.id}]`);
-    console.log(`Other (impostor):   ${other.userName} [${other.id}]`);
+    console.log(`Owner (requester):  ${userName(owner)} [${owner.id}]`);
+    console.log(`Other (impostor):   ${userName(other)} [${other.id}]`);
     console.log("");
 
     // Fixtures — one PR per case, all owned by `owner`.

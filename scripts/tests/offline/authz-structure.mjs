@@ -210,6 +210,17 @@ const EXEMPTIONS = [
     { file: "app/prs/[prId]/actions.js", name: "editAndContinueAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/[prId]/actions.js", name: "returnForCorrectionAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/[prId]/actions.js", name: "withdrawAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
+    {
+        file: "app/login/name/actions.js",
+        name: "setUserNameAction",
+        mustCall: "requireUser",
+        reason:
+            "#381 — session, and an ownership that is STRUCTURAL rather than compared: the only record this can " +
+            "reach is the caller's own session's row, because the record id comes from requireUser()'s return and " +
+            "from nothing the submission carries. So there is no per-record comparison to write and no role that " +
+            "would fit — a name is not an Admin decision. The narrowest of the requireUser axis, and the one " +
+            "place in it where a wrapper would cover everything and still be wrong.",
+    },
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },

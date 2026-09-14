@@ -12,6 +12,7 @@ import { isPOWithdrawn, withdrawPOAsRequester } from "@/lib/poWithdraw";
 import { canSendPOToVendor, getPOSendEligibility, PO_SENT_STATUS, SEND_COPY } from "@/lib/poSend";
 import { sendPOToVendorEmail } from "@/lib/email";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { fullUserName, userName } from "@/lib/userName";
 
 // Issue #63 — the linked PR's Status only ever reaches "Approved" (see
 // app/prs/[prId]/actions.js's finishTurn): PO creation happens
@@ -261,7 +262,7 @@ export async function sendPOToVendorAction(prevState, formData) {
                 notice: {
                     address: po.sentTo || "—",
                     at: po.sentAt,
-                    by: already?.userName || null,
+                    by: userName(already) || null,
                 },
             };
         }
@@ -295,7 +296,7 @@ export async function sendPOToVendorAction(prevState, formData) {
                     vendorName: vendor.vendorName || "—",
                     // The field, not a rendering of it (#292) — the builder formats.
                     totalAmount: po.totalAmount,
-                    senderName: sender.userName || sender.email,
+                    senderName: fullUserName(sender) || sender.email,
                 }),
                 attachment: {
                     filename: pdf.filename || SEND_COPY.mail.fallbackFilename(po.poId),

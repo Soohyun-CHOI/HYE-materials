@@ -17,6 +17,7 @@ import {
     arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { fullUserName } from "@/lib/userName";
 
 const CONFIRMATION_TYPES = ["Approval", "Agreement"];
 
@@ -74,7 +75,10 @@ function SortableSignerRow({ id, user, index, confirmationType, onConfirmationTy
             </button>
             <span className="w-6 text-sm text-zinc-500">{index + 1}.</span>
             <span className="flex-1">
-                {user ? `${user.userName} (${user.role})` : "Unknown user"}
+                {/* FULL NAME — a chosen person (#381). The chain this row
+                    describes was picked from the dropdown below, which names
+                    them the same way. */}
+                {user ? `${fullUserName(user)} (${user.role})` : "Unknown user"}
             </span>
             <ConfirmationTypeToggle value={confirmationType} onChange={onConfirmationTypeChange} />
             <button type="button" onClick={onRemove} className="text-sm text-red-600">
@@ -169,7 +173,7 @@ export default function SignerList({ users, signers, onChange }) {
                     <option value="">Select a person to add...</option>
                     {availableUsers.map((u) => (
                         <option key={u.id} value={u.id}>
-                            {u.userName} ({u.role})
+                            {fullUserName(u)} ({u.role})
                         </option>
                     ))}
                 </select>

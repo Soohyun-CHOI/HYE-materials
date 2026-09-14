@@ -19,7 +19,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/(tools)/**`, `lib/tool*.js` | `docs/notes/tools.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
-| `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/api/**` | `docs/notes/authorization.md` |
+| `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
 | `lib/blobIngest.js`, `lib/prDraft.js`, `app/prs/new/**` | `docs/notes/uploads-and-drafts.md` |
 | `scripts/**` | `docs/notes/verification.md` |
 | renaming a field, a screen word or an identifier | `docs/notes/naming.md` |
@@ -71,9 +71,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 **The schema is editable by either of us, and a schema change ships in the SAME COMMIT as the code that reads it.** No production data exists yet, so the moment to fix a name or a shape is now.
 
-**Renaming a field is safe.** Airtable resolves a field by id, not by text, so a rename carries every formula, rollup, lookup and view filter with it. The only thing it breaks is a string literal in this repo, and those are enumerable: `record.get("...")`, a `filterByFormula` fragment, a `fields:` projection, a `parentLinkFieldName`. Rename the field, grep the old name across `lib/`, `app/` and `scripts/`, fix every hit, and commit both halves together. **Grep after the change, not before** — what matters is that nothing survives.
-
-**A grep coming back empty is not the last step**: a blanket substitution also hits an identifier that happens to share the old name, and nothing warns — not a type error, not a lint error, not a failing check. `airtable-access.md` has the rule and the near-miss it was measured on.
+**Renaming a field is safe and the procedure is mechanical**: a rename carries every formula, rollup and view filter with it, so the only thing it breaks is a string literal here — and a grep coming back empty does not finish it. `airtable-access.md` has the mechanism, the read-every-hunk step and the near-miss behind them.
 
 **A schema edit may not be assumed scriptable.** The Metadata API cannot write everything, and what it refuses is measured rather than read off the documentation — `docs/notes/airtable-access.md` has the figures, including which of the refusals force an invariant onto the DATA instead.
 
@@ -90,6 +88,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/ids.js` — all ID generation: the lock, the query and the create.
 - `lib/idSequence.js` — the pure half: the daily ID families, the nine child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
 - `lib/productName.js` — `PRODUCT_NAME` and `SIGN_IN_TITLE`. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
+- `lib/userName.js` — the name a screen prints for a user (#381): the first name, the full name the pickers and the two vendor-facing surfaces take, and the local-part fallback while none is stored. **A name field is read nowhere else.**
 - `lib/authTokenState.js` — whether a magic-link token can still be used: the five states, their copy, `TOKEN_TTL_MINUTES`.
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373): the parameter, the one predicate that judges it, and the two paths that carry it.
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
@@ -162,7 +161,7 @@ Two implementations of one judgment diverge, and catching the divergence then ne
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index above.
 
-**Users**: User Name (primary), Email, Phone, Role (Employee/President), Is Admin, Status (Active/Inactive), Created At, Assigned Jobs (link -> Jobs, multiple, optional).
+**Users**: First Name (primary, typed at the first sign-in, blank until then), Last Name, Email, Phone, Role (Employee/President), Is Admin, Status (Active/Inactive), Created At, Assigned Jobs (link -> Jobs, multiple, optional).
 
 **Jobs**: Job Code (primary), Job Name, Business Unit, PIC/Manager (link -> Users) + Phone/Email (Lookups), Delivery/Alternate Address (link -> Addresses, single), Disciplines/Users (reverse-links).
 
@@ -264,13 +263,10 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
-- Magic link only, restricted to the company email domain. `requestMagicLink()` domain-checks then emails a link; `consumeAuthToken` spends the token under `withKeyLock`. New signups always land as plain Employee (`Is Admin: false`); promotion is a manual Airtable edit.
-- **THE LINK POINTS AT A PAGE, AND OPENING IT CONSUMES NOTHING.** `/login/confirm?token=…` reads the row and offers a button; `POST /api/auth/verify` is the only thing that spends the token. Mail security scanners open links before the recipient does, and a `GET` that consumed spent the token first. TTL is 15 minutes and single-use.
-- The validity rule is `lib/authTokenState.js`, so the page reaches the same verdict without consuming. An unreadable `Expires At` counts as EXPIRED.
+- Magic link only, restricted to the company email domain. `requestMagicLink()` domain-checks then emails a link; `consumeAuthToken` spends the token under `withKeyLock`. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
 - **The POST refuses a cross-origin submission** — the token authenticates the request but not the submitter's intent, and login CSRF would let a victim author under another identity. `Origin` is compared against `Host`, and absence fails open.
 - `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out.
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too.
-- **Resend's domain is verified, so mail delivers to any address.**
 - **There is no user-creation screen.** A Users record appears as a side effect of a first magic-link sign-in and in no other way. `lib/airtable/users.js:addAssignedJob` is the only writer of `Assigned Jobs` and is additive.
 - The product is named in one place, `lib/productName.js`. `offline/product-name.mjs` fails on any superseded name under `app/` or `lib/`, and on `PRODUCT_NAME`'s value appearing as a literal outside its own module.
 
