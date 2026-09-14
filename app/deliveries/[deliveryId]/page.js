@@ -25,6 +25,7 @@ import DeleteDeliveryButton from "./DeleteDeliveryButton";
 import OverageButton from "./OverageButton";
 import Instant from "@/app/components/Instant";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { userName } from "@/lib/userName";
 
 // The route param IS the human-readable ID, so the tab names the record for
 // ZERO Airtable operations (#201) — this reads the URL and nothing else.
@@ -341,7 +342,7 @@ async function renderDeliveryDetailPage({ params }) {
                     )}
                 </p>
                 <p>
-                    <span className="text-zinc-500">Recorded by:</span> {recorder?.userName ?? "—"}{" "}
+                    <span className="text-zinc-500">Recorded by:</span> {userName(recorder) || "—"}{" "}
                     {delivery.createdAt && (
                         <span className="text-zinc-500">
                             on <Instant at={delivery.createdAt} />

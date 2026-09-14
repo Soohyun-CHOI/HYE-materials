@@ -47,6 +47,7 @@ import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { userName } from "../../lib/userName.js";
 import {
     SEED_CATEGORIES,
     assertItemsHaveCategories,
@@ -92,7 +93,7 @@ if (!requester) throw new Error("no active user to raise the PRs as");
 console.log(`job      ${job.jobCode} (${job.jobName ?? ""})`);
 console.log(`discipline ${discipline.disciplineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
-console.log(`as       ${requester.userName} <${requester.email}>`);
+console.log(`as       ${userName(requester)} <${requester.email}>`);
 
 // --- skip if already seeded --------------------------------------------------
 const already = await getMaterialByKey(PIPE).catch(() => null);

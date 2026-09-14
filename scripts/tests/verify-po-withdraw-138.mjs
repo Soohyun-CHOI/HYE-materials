@@ -64,6 +64,7 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { userName } from "../../lib/userName.js";
 
 let pass = true;
 // Set when the Airtable schema prerequisites aren't in place yet: the
@@ -247,8 +248,8 @@ try {
     }
     const owner = users[0]; // the fixtures' requester
     const other = users[1]; // a different signed-in user
-    console.log(`\nOwner (requester):  ${owner.userName} [${owner.id}]`);
-    console.log(`Other (impostor):   ${other.userName} [${other.id}]`);
+    console.log(`\nOwner (requester):  ${userName(owner)} [${owner.id}]`);
+    console.log(`Other (impostor):   ${userName(other)} [${other.id}]`);
 
     console.log("\nPart B2 — direct calls to the production write path:");
 

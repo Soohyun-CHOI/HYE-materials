@@ -1,4 +1,5 @@
 import { getSignerChainProgress } from "@/lib/prSigning";
+import { userName } from "@/lib/userName";
 
 // Issue #81 — linear progress bar replacing the old plain-text Signers
 // list: Requester -> each Signer (in order) -> PO Signed. Shows only
@@ -163,7 +164,7 @@ export default function SignerProgressBar({ pr, signers, editRequests, po, users
                             const isPO = step.type === "po";
                             const user = !isPO ? usersById[step.userId] : null;
                             const label = isRequester ? "R" : isPO ? "PO" : String(step.sequenceOrder);
-                            const name = isPO ? "PO Signed" : user?.userName || "Unknown";
+                            const name = isPO ? "PO Signed" : userName(user) || "Unknown";
                             const statusWord =
                                 step.category === "current"
                                     ? "current turn"

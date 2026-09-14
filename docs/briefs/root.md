@@ -39,6 +39,13 @@ on whether there is a session.
 
 **When not signed in:** the line `Not signed in.` and a single `Sign in` button.
 
+**When signed in and not yet named:** neither state — the reader is sent to
+`/login/name` and comes back here once they have answered. That is the last step
+of a first sign-in rather than anything this screen draws, and it is why this page
+is worth knowing about: a sign-in with nowhere else to go lands here, so this is
+the screen a brand-new colleague sees first and the only one that has to ask
+before it renders.
+
 ## What must agree elsewhere
 
 **The link labels are screen names and one of them disagrees with its
@@ -59,4 +66,12 @@ reader sees their own.
 **There is no user-administration screen**, so nothing here leads to one. A Users
 record appears as a side effect of a first sign-in and in no other way, and
 promotion to Admin is a manual edit in Airtable. A design that adds a "manage
-users" affordance would be promising something that does not exist.
+users" affordance would be promising something that does not exist. **The one
+thing a person tells the app about themselves is their name**, asked once at
+`/login/name`, and there is no way back to that screen — editing a name is an
+Airtable edit like the other two.
+
+**This line states the reader's address rather than their name**, which is
+deliberate: every other screen in the app names a person by their first name, and
+this is the one place a reader is identifying THEMSELVES — where the address is
+the unambiguous answer and a first name is not.

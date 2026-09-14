@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { returnForCorrectionAction } from "./actions";
+import { fullUserName } from "@/lib/userName";
 
 // Defaults to "Requester" — per product decision, returning a PR for
 // correction to the person who originally filled it out is by far the
@@ -35,9 +36,13 @@ export default function ReturnForCorrectionForm({ prId, targets, usersById, onCa
                 >
                     {targets.map((t) => (
                         <option key={t.value} value={t.value}>
+                            {/* FULL NAME, because this is a place a person is
+                                CHOSEN (#381) — sending a request back to the
+                                wrong signer is expensive to undo, and two
+                                people can share a first name. */}
                             {t.type === "requester"
-                                ? `Requester (${usersById[t.userId]?.userName || "?"})`
-                                : `${t.sequenceOrder}. ${usersById[t.userId]?.userName || "?"}`}
+                                ? `Requester (${fullUserName(usersById[t.userId]) || "?"})`
+                                : `${t.sequenceOrder}. ${fullUserName(usersById[t.userId]) || "?"}`}
                         </option>
                     ))}
                 </select>

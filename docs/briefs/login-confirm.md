@@ -78,7 +78,14 @@ way forward.
 
 ## What must agree elsewhere
 
-**The heading is the sign-in screen's**, so the two halves of one flow read as one.
+**The heading is the sign-in screen's and the name step's**, so the steps of one
+flow read as one.
+
+**Pressing the button does not always land the reader on their destination.**
+Somebody whose `Users` row has no name yet — every first-time signer — is shown
+`/login/name` first, and lands on the destination after answering it. Nothing on
+this screen says so, for the same reason nothing names the destination: a
+returning reader never meets that step.
 
 **`Confirm sign-in` is the exact phrase the sign-in screen promises**, in
 `Open it and press Confirm sign-in`. The two are one instruction split across an

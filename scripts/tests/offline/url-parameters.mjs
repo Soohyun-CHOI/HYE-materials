@@ -120,6 +120,11 @@ const CARRIED = [
         note: "#373 — the address a reader with no session had asked for, written by requireUser() through `signInPath` and by the confirmation's `Request a new sign-in link`. Judged by one predicate wherever it is accepted; a value that fails it is dropped, and the screen then reads exactly as it does for a reader who arrived with none",
     },
     {
+        route: "/login/name",
+        param: "destination",
+        note: "#381 — the same address, one step further on. The name step is the last thing between a first sign-in and the page the reader asked for, so it carries the destination for the same reason the two screens before it do, and hands it to `setUserNameAction` as a hidden field. Judged by the same predicate on the page, in the builder and again in the action",
+    },
+    {
         route: "/login/confirm",
         param: "destination",
         note: "#373 — the same address, carried across the mail round trip beside the token and handed to `POST /api/auth/verify` as a hidden field. This is the hop that leaves the app: it is in the recipient's mailbox, which `lib/loginDestination.js` records as the cost of the parameter being here rather than on the `Auth Tokens` row",

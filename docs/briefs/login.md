@@ -13,7 +13,9 @@ sees, so it carries more of the product's first impression than any other.
 
 There is no sign-up. A user record appears as a side effect of a first successful
 sign-in, so the same one field serves a new colleague and a returning one, and
-nothing on the screen distinguishes the two cases.
+nothing on the screen distinguishes the two cases. A new colleague is asked their
+name later, on a third screen after the link has been confirmed — never here,
+where nobody has yet shown they own the address they typed.
 **A reader often did not choose to come here.** Following any address in the app
 while signed out lands them on this screen. The most demanding case is a QR label
 on a tool, scanned on site: that person is holding a phone in front of the tool,
@@ -60,8 +62,13 @@ when there is none. A domain that is not the company's is refused here.
 
 ## What must agree elsewhere
 
-**The heading is shared with the confirm screen**, which uses the identical line, so
-the two steps of one flow read as one flow.
+**The heading is shared with the confirm screen and the name step**, all three
+using the identical line, so the steps of one flow read as one flow.
+
+**There is a third screen after the confirm screen for somebody signing in for
+the first time** — `/login/name`, which asks what to call them. Nothing here
+mentions it, and that is right: a returning reader never sees it, and promising
+it would be wrong for almost everyone who reads this screen.
 
 **`Confirm sign-in` is named here and is the button's actual label on the confirm
 screen.** If a redesign renames that button, this sentence is telling the reader to

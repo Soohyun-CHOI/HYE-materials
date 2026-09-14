@@ -17,6 +17,7 @@ import { planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
 import RetireToolItemForm from "./RetireToolItemForm";
 import ToolTransitionForm from "./ToolTransitionForm";
+import { userName } from "@/lib/userName";
 
 // The param and no lookup, which is what all four document detail screens do and
 // is the reason this page's cost is what the docstring says. The consequence is
@@ -140,7 +141,7 @@ async function renderToolItemPage({ params }) {
     const recordedByIds = [...new Set(log.map((row) => row.recordedBy?.[0]).filter(Boolean))];
     const people = await getUsersByRecordIds(recordedByIds);
 
-    const nameById = Object.fromEntries(people.map((person) => [person.id, person.userName]));
+    const nameById = Object.fromEntries(people.map((person) => [person.id, userName(person)]));
     const jobCodeById = Object.fromEntries(jobs.map((job) => [job.id, job.jobCode]));
 
     const headerFacts = [

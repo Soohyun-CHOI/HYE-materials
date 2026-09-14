@@ -13,6 +13,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
 import PRListClient from "./PRListClient";
 import OverageStrip from "./OverageStrip";
 import DirectPurchaseStrip from "./DirectPurchaseStrip";
+import { userName } from "@/lib/userName";
 
 export const metadata = { title: "Purchase Requests" };
 
@@ -95,7 +96,7 @@ async function renderPRListPage({ searchParams }) {
         getDirectPurchasesAwaitingRequest(jobsFor(user, jobs), vendors),
     ]);
     const userNameById = Object.fromEntries(
-        requesterRecords.filter(Boolean).map((u) => [u.id, u.userName])
+        requesterRecords.filter(Boolean).map((u) => [u.id, userName(u)])
     );
 
     // Pre-shape each visible PR into a plain, display-ready row. jobId /

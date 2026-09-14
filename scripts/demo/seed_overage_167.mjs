@@ -39,6 +39,7 @@ import { getMaterialByKey } from "../../lib/airtable/materials.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
+import { userName } from "../../lib/userName.js";
 import {
     SEED_CATEGORIES,
     assertItemsHaveCategories,
@@ -81,7 +82,7 @@ if (!requester) throw new Error("no active user to raise the PRs as");
 console.log(`job      ${JOB_CODE}`);
 console.log(`discipline ${discipline.disciplineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
-console.log(`as       ${requester.userName} <${requester.email}>`);
+console.log(`as       ${userName(requester)} <${requester.email}>`);
 
 const already = await getMaterialByKey(materialKeyFor(CATEGORIES.get(FIRST_CODE), { size: SIZE, unit: UNIT })).catch(() => null);
 if (already) {

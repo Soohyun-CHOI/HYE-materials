@@ -27,7 +27,8 @@ import { createAddress } from "../../lib/airtable/addresses.js";
 import { createJob, getJobByCode } from "../../lib/airtable/jobs.js";
 import { createDiscipline } from "../../lib/airtable/disciplines.js";
 import { createVendor, getVendorByName } from "../../lib/airtable/vendors.js";
-import { addAssignedJob, createUser, getUserByEmail } from "../../lib/airtable/users.js";
+import { addAssignedJob, createUser, getUserByEmail, setUserName } from "../../lib/airtable/users.js";
+import { userName } from "../../lib/userName.js";
 
 // One account plays every Requester/Signer/President role during a live demo,
 // which is a convenience rather than a constraint — the clause here used to say
@@ -61,6 +62,8 @@ const VENDOR_NAME = "Lone Star Pipe & Supply";
 // and belongs to the fixture set, so a clean seed has to produce it or the pair
 // is incomplete at the moment somebody reaches for it.
 const SCOPED_FIXTURE_EMAIL = "scoped-fixture@hanyangengusa.com";
+/** #381 — what this fixture is called, so it never meets the name step. */
+const SCOPED_FIXTURE_NAME = { firstName: "Scoped", lastName: "Fixture" };
 
 const JOB_DELIVERY_ADDRESS = {
     addressLabel: "Round Rock Compressor Station - Site",
@@ -87,7 +90,7 @@ export async function ensureDemoFixtures() {
             `No User found for ${DEMO_PIC_EMAIL} -- set DEMO_PIC_EMAIL, or make sure that account has signed in at least once already.`
         );
     }
-    console.log(`Using ${user.userName} (${DEMO_PIC_EMAIL}) as the demo Job's PIC/Manager.\n`);
+    console.log(`Using ${userName(user)} (${DEMO_PIC_EMAIL}) as the demo Job's PIC/Manager.\n`);
 
     // Job + Line: skipped as one unit if the Job Code already exists.
     let jobRecordId;
@@ -143,13 +146,21 @@ export async function ensureDemoFixtures() {
         // createUser is the app's own path — the single function verifyMagicLink
         // calls on a first sign-in, and the only thing that writes Role, Is Admin
         // and Status. So this record is the one a real first-time signer gets
-        // rather than something assembled by hand in Airtable, and the userName
-        // is derived exactly as lib/auth.js derives it, for the same reason.
-        scoped = await createUser({
-            userName: SCOPED_FIXTURE_EMAIL.split("@")[0],
-            email: SCOPED_FIXTURE_EMAIL,
-        });
+        // rather than something assembled by hand in Airtable.
+        scoped = await createUser({ email: SCOPED_FIXTURE_EMAIL });
         console.log(`[CREATE] User ${SCOPED_FIXTURE_EMAIL} (${scoped.id}) - Employee, non-Admin, Active`);
+    }
+
+    // AND IT IS NAMED, WHICH A REAL SIGNER IS NOT (#381). `createUser` writes no
+    // name, so its owner is asked for one on the first page they reach — and a
+    // fixture asked that question is a fixture every credentialed script then
+    // measures on the wrong screen, since `verify-authz.mjs` mints a session for
+    // one of these and immediately requests pages. Naming it here is what keeps
+    // a clean seed producing a usable fixture with no hand step left over, which
+    // is the same reason `addAssignedJob` exists at all.
+    if (!scoped.firstName) {
+        scoped = await setUserName(scoped.id, SCOPED_FIXTURE_NAME);
+        console.log(`[CREATE] Named ${SCOPED_FIXTURE_EMAIL} "${SCOPED_FIXTURE_NAME.firstName} ${SCOPED_FIXTURE_NAME.lastName}"`);
     }
 
     const assignment = await addAssignedJob(scoped.id, jobRecordId);

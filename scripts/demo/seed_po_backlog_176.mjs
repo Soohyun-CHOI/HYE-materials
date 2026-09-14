@@ -44,6 +44,7 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import { createPR, updatePR, getApprovedPRs } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { selectPRsAwaitingPO } from "../../lib/poListView.js";
+import { userName } from "../../lib/userName.js";
 import {
     SEED_CATEGORIES,
     assertItemsHaveCategories,
@@ -96,7 +97,7 @@ if (!requester) throw new Error("no active user to raise the PRs as");
 console.log(`job      ${job.jobCode}`);
 console.log(`discipline ${discipline.disciplineLabel}`);
 console.log(`vendor   ${vendor.vendorName}`);
-console.log(`as       ${requester.userName} <${requester.email}>`);
+console.log(`as       ${userName(requester)} <${requester.email}>`);
 
 // Declared before the skip check, because the skip path prints the guide too —
 // the temporal-dead-zone trap seed_delivery_status_166.mjs's header records.

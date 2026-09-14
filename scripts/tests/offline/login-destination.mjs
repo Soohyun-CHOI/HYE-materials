@@ -291,24 +291,49 @@ export function run({ check, assert, log }) {
     const requireUser = resolveFunction(authz.ast, "requireUser");
     assert("requireUser resolves", Boolean(requireUser));
 
-    const reads = memberCalls(requireUser, "get").filter(
-        (call) => call.arguments[0]?.type === "Identifier" && authzOwned.has(call.arguments[0].name)
-    );
-    check("it reads the header by the imported identifier", reads.length, 1);
+    // TWO WAYS OUT SINCE #381, IN TWO FUNCTIONS. `requireUser()` sends a reader
+    // with no session to the sign-in screen; `askForNameIfMissing()` sends a
+    // signed-in reader with no name to the name step. The second is exported
+    // because the root screen draws its own signed-out state and so cannot call
+    // `requireUser()` — one implementation, two call sites — and each carries the
+    // destination or the flow loses it at that hop. Both read `headers()` inside
+    // their own branch, which is what keeps it off the path of a call that
+    // resolves to a named user.
+    const nameOwned = importedFrom(authz.ast, "userName");
+    const askForName = resolveFunction(authz.ast, "askForNameIfMissing");
+    assert("askForNameIfMissing resolves", Boolean(askForName));
 
-    const redirects = callsTo(requireUser, "redirect");
-    check("and redirects exactly once", redirects.length, 1);
-    const target = redirects[0]?.arguments[0];
+    for (const [fn, builder, owned, what] of [
+        [requireUser, "signInPath", authzOwned, "the sign-in screen"],
+        [askForName, "namePath", nameOwned, "the name step"],
+    ]) {
+        const reads = memberCalls(fn, "get").filter(
+            (call) => call.arguments[0]?.type === "Identifier" && authzOwned.has(call.arguments[0].name)
+        );
+        check(`  ${what}: the header is read by the imported identifier`, reads.length, 1);
+
+        const redirects = callsTo(fn, "redirect");
+        check(`  ${what}: it redirects exactly once`, redirects.length, 1);
+        const target = redirects[0]?.arguments[0];
+        assert(
+            `    through \`${builder}\`, imported rather than spelled`,
+            target?.type === "CallExpression" &&
+                target.callee?.name === builder &&
+                owned.has(builder)
+        );
+        // Optional all the way down: a mutant that redirects to a literal has no
+        // arguments to read, and a crash is a worse failure than a reported one —
+        // measured, on the mutation that put `redirect("/login")` back.
+        assert(`    built from the header it just read`, reaches(fn, target?.arguments?.[0], "get"));
+    }
+    // THE LOOP GUARD, WHICH IS THE ONE THING THE TWO DO NOT SHARE. The name step
+    // is a page and reaches this gate itself, so it has to recognize its own
+    // address — and it must do that through the predicate `lib/userName.js` owns,
+    // for this file's own reason: an assertion naming a string both sides import
+    // moves with a rename and says nothing.
     assert(
-        "  to a path the destination builder made",
-        target?.type === "CallExpression" && target.callee?.name === "signInPath" && authzOwned.has("signInPath")
-    );
-    // Optional all the way down: a mutant that redirects to a literal has no
-    // arguments to read, and a crash is a worse failure than a reported one —
-    // measured, on the mutation that put `redirect("/login")` back.
-    assert(
-        "  built from the header it just read",
-        reaches(requireUser, target?.arguments?.[0], "get")
+        "  and the name step excludes itself by the imported predicate",
+        callsTo(askForName, "isNameStep").length === 1 && nameOwned.has("isNameStep")
     );
 
     // ── 5: the endpoint that turns a destination into a redirect ────────────
