@@ -35,11 +35,13 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 
 ### PR Items
 
-- **`Item Name` IS NO LONGER TYPED (#355).** A row picks a `Category` — four ordered levels narrowed from the catalog — and the name is written from that category's `Category Label` at save time. It stays a field on this table and stays a frozen copy, exactly as `PO Items` then copies it and `Invoice Items` copies that; what changed is where the string comes from. **The two are not allowed to disagree**, which is why no screen offers the name as free text any more: `/prs/new` has no name input, and Edit and continue shows it read-only because a signer changing it without the category would be silent — #356 keys the material on the category. The bullet below still governs the string's SHAPE, since `createItem` normalizes on the way in as it always has; it simply has nothing left to collapse in a label an Airtable formula composed from trimmed cells.
+- **`Item Name` IS NO LONGER TYPED (#355).** A row picks a `Category` — four ordered levels narrowed from the catalog — and the name is written from that category's `Category Label` at save time. It stays a field on this table and stays a frozen copy, exactly as `PO Items` then copies it and `Invoice Items` copies that; what changed is where the string comes from. **The two are not allowed to disagree**, which is why no screen offers the name as free text any more: `/prs/new` has no name input, and Edit and continue picks a category too since #367 — it showed the name read-only in between, because a signer changing it without the category would be silent and #356 keys the material on the category. **The pair is `lib/materialCategory.js:categoryItemFields` since #367**, one expression at both call sites, so the guarantee is the code's rather than each screen's. The bullet below still governs the string's SHAPE, since `createItem` normalizes on the way in as it always has; it simply has nothing left to collapse in a label an Airtable formula composed from trimmed cells.
 - **`Item Name` and `Size` are normalized on save (#18)** — trimmed, internal whitespace runs collapsed, **case left exactly as typed** (`lib/itemNaming.js`). Applied in `prItems.js` create/update, i.e. the service layer, so the PR form and Edit and continue cannot drift apart on it. This is the origin of the whole chain — PO Items copy these values and Invoice Items copy those — so normalizing once here covers every table downstream. **`Materials` was keyed on them too until #356**, which moved identity to `Category` + `Size` + `Unit`; `Size` is still normalized by this rule and is where the remaining duplication lives, and the name axis has nothing left to reconcile because nobody types one. Case is deliberately untouched because this exact string is printed on the PO PDF the vendor receives, where `SCH 40 PVC` / `304SS` / `NPT` are correct as written and the stored value is the only copy; case-insensitivity is the *lookup's* job instead (`LOWER(TRIM(...))` in `getMaterialByKey`), which is reversible. **No stored match-key field**, deliberately: a second field is one more thing that can fall out of step with the write path meant to fill it. Rows created before #18 are not normalized, which is why `upsertMaterial` normalizes again on its way in.
 
 ### PR Edit Log
 
+- **`Item Name` LEFT THE WRITABLE SET AND `Category` TOOK ITS PLACE (#367), AND THE AIRTABLE SIDE WAS A RENAME.** What a signer can change is the category; the name is composed from it and written in the same update, so a turn that changed an item writes ONE row whose subject is the item rather than two rows about a string. Its `Old Value` is the item's stored `Item Name` — the frozen copy of the old label, so the row states what the document actually said and costs no read — and its `New Value` is the new label. **The choice was renamed in the Airtable UI rather than added beside the old one, and the measurement is what allowed that:** `PR Edit Log` held **0 rows** at the time (counted twice, and after #358's seed run, which cannot produce one — no seed calls `createEditLogEntry`, and the only path that does is a signing turn in a browser). A rename with no rows re-points no history, so #181's field-identity rule has nothing to bite on, and the option kept its place in the list and its color off the palette `typecast` cannot reproduce. **Had one row held it, the answer would have been the other one** — keep `Item Name` as history and add `Category` — and `verify-edit-log-fields-181.mjs` is what says which case you are in.
+- **THE FIRST BROWSER RUN OF #367 FAILED ON THIS, WHICH IS THE BLAST RADIUS BELOW REPRODUCED RATHER THAN RECALLED.** The code shipped the label before the choice existed, and the edit turn died with `INVALID_MULTIPLE_CHOICE_OPTIONS: Insufficient permissions to create new select option ""Category""`, 422 — the whole turn rolled back, the screen said `Something went wrong saving your changes. Please try again.`, and no retry could ever have succeeded. Worth keeping because it is the cheapest possible demonstration that the Airtable hand step is not optional: every offline check was green at the time.
 - **`Field`, not `Field Name` (#181).** `X Name` on this base is a human-entered display name (`Item Name`, `Vendor Name`, `PIC Name`); this is one option from a closed list, and that family takes no `Name` (`Status`, `Role`, `Unit`, `PO Status`). Beside its own siblings it is also the better word — `Field` / `Old Value` / `New Value` is subject, before, after. `Edited Field` was rejected as a modifier doing no work, since `Changed By` and `Changed At` already say every row is an edit. The mapper key and the create parameter followed it to `field`, which also stops colliding with this repo's other `fieldName` — an Airtable field's name in the schema sense (`lib/airtableFormula.js`, `client.js:findByFieldValues`).
 - **`Field` POINTS AT A COLUMN'S IDENTITY, NOT AT THE LABEL THAT HAPPENED TO BE IN USE — so a renamed field takes its log rows with it.** #78 renamed the PR Item field `Rate` → `Unit Price`; the three rows that still read `Rate` now read `Unit Price` and the `Rate` option is gone, so the option list is exactly the seven labels the code can write. Where a field is **deleted** and a different one takes over its job, old rows keep their old option instead: there is no identity left to follow.
   - **The test is objective — does the Airtable field id survive.** A rename preserves it, a delete-and-recreate breaks it, so the same fact that makes renaming safe at all (#167: the name is a rendering, the id is the storage) is what discriminates the two cases. This is not a judgment call about how much history to keep.
@@ -122,6 +124,79 @@ neither outcome describes and the screen described the other one.
   (#296), and five creation rollbacks elsewhere discard settled destroys. Those leave
   an unreferenced record rather than a half-applied edit, which is a different
   judgment about what to say.
+
+### Picking a category on the signer's edit form (#367)
+
+#355 locked `Item Name` on Edit and continue because the name is composed from
+the category and a signer changing one without the other would reach the vendor
+on a purchase order. The lock closed that window and took a signer's ability to
+change the item with it, so a wrong item cost a return to the requester. This
+gives the signer the same four-level picker the requester used.
+
+- **THE LOCK WAS THE SCREEN'S AND NOT THE CODE'S, WHICH IS THE PART #355 DID NOT
+  KNOW.** `editAndContinueAction` went on diffing `itemName` out of `itemsJson`
+  and writing whatever the submission carried; a Server Action is directly
+  callable, so the read-only input constrained a browser and nothing else. The
+  window #355 believed it had closed was open the whole time. It closes here by
+  REMOVING the key from `ITEM_FIELD_LABELS` rather than by leaving it unused —
+  the diff walks `Object.keys` of that map, so a key that stays is a write that
+  stays. The only thing this action can now put in `Item Name` is the label of a
+  category that was picked.
+- **THE ROLLBACK RESTORES THE CATEGORY BESIDE THE NAME, AND THE BROWSER RUN
+  PROVED IT RATHER THAN THE READING.** The turn's restore list gained
+  `categoryRecordId`; without it a failed turn would put the old NAME back over
+  the new CATEGORY and report the rollback as clean — this issue's own defect,
+  reached through its own error path. It was exercised by accident and for real:
+  the 422 above rolled a live turn back, and the record came back holding
+  `Stainless Steel (SUS) > Tube > SUS 316L > EP ERW` in both fields.
+  `offline/rollback-report.mjs`'s field count moved 7 → 8 for it, which is that
+  assertion doing its job.
+- **THE REFUSAL IS ABOUT THE PICK, NOT ABOUT THE ROW, and that is where this
+  screen parts from `createPRAction`.** Submitting a request refuses any item
+  without a category, because that is the moment every row has to be complete. An
+  edit turn is later than that moment: a signer who cannot settle a row somebody
+  else raised would be unable to EDIT a request they can still APPROVE outright,
+  since approving touches no item. So a row that arrived without a category and
+  was left alone passes, a half-picked one is refused, and **clearing a stored
+  category is refused too** — without that clause an empty picker would silently
+  save the stored category back, a screen disagreeing with its own write. The
+  rule is `lib/materialCategory.js:refuseUnsettledCategory` and the four states
+  are pinned in `offline/category-picker.mjs`.
+- **THE TREE IS READ ONLY WHEN IT IS THE READER'S TURN, AND THAT IS WHERE #355's
+  MEASUREMENT DOES NOT CARRY OVER.** `/prs/new` pays `getCategoryTree`'s 8 list
+  operations on every load because everyone there is entering items. This page is
+  a reading surface for everyone `canViewPR` admits and an acting surface for one
+  of them, so the cost follows the turn. **Measured 2026-09-14 on
+  `HYE-PR-260911-01`, both figures on the same record and the same commit:** as
+  the current signer `16 ops, 8 tables, 8 repeats (list 15, find 1)` with
+  `Material Categories ×8 (list 8)`; as an Admin who is not up, `8 ops, 7 tables,
+  1 repeats (list 7, find 1)` with no `Material Categories` row at all. So a
+  reader pays nothing and the actor pays 8, all of them `list` on one table,
+  which is this file's paging reading rather than a 1 + N.
+  - **THE 8 IS LOWER THAN #193's RECORDED 11 AND THE RECORD IS NOT WRONG.** This
+    request carries no quotation, no edit request and no edit log row, and
+    `findChildRecords` on an empty link array costs zero — so three of the page's
+    child levels were free on the record measured. The figure to carry forward is
+    the DELTA, which is the tree and is the same on any record.
+- **WHAT THE BROWSER RUN COULD NOT REACH, stated rather than implied.** The
+  successful write — the pair landing on the record and the `Category` row
+  appearing in the History — needs the Airtable choice, and the run happened
+  before the hand step. What it did reach: the picker opening on the stored path,
+  a deeper level clearing when its parent changes, the refusal sentence on a
+  half-picked row with nothing written, and the rollback above.
+- **EVERY `<select>` IN THIS APP RESETS AFTER A SERVER ACTION RETURNS, AND IT IS
+  NOT THIS ISSUE'S DOING.** Measured with a `data-probe` attribute on the render:
+  after a refusal React had rendered `value="01"` on the first level while the DOM
+  read `""` and `selectedIndex` 0 — React 19 resets the form when an action
+  settles, and a controlled `<select>` carries no `selected` ATTRIBUTE for
+  `form.reset()` to fall back to, so it lands on the placeholder. **The Unit
+  select on the same form does it too**, which is what dates the behavior to
+  before this branch and scopes it beyond this screen: `/prs/new`'s Job,
+  Discipline, Vendor and Unit controls share the shape. Component state survives
+  intact — the hidden `itemsJson` still held the picked codes — so nothing is
+  written wrongly; what the reader sees after a refusal is emptier than what the
+  form holds. Left alone here deliberately: the fix belongs once, wherever the
+  form action is bound, rather than inside one picker.
 
 ### Quotations
 

@@ -8,7 +8,7 @@ import FileViewer from "@/app/components/FileViewer";
 import { FILE_AXIS } from "@/lib/fileLinks";
 import { createPRAction, saveDraftAction, deleteDraftAction } from "./actions";
 import { PR_ITEM_MERGE_COPY, describeMerge } from "@/lib/prItemMerge";
-import { CATEGORY_PICKER_COPY, narrowCategories } from "@/lib/materialCategory";
+import CategoryPicker from "@/app/components/CategoryPicker";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
 import { formatUSD } from "@/lib/format";
@@ -22,6 +22,10 @@ import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // to carry what a pre-catalog Draft had, and is never edited here.
 const EMPTY_ITEM = {
     categoryCodes: ["", "", "", ""],
+    // Whether this row OPENED with a category picked (#367) — so clearing the
+    // first level can be told from a row that never had one. Display only: the
+    // save paths read the stored record rather than anything the browser sends.
+    hadCategory: false,
     itemName: "",
     size: "",
     unit: "",
@@ -57,6 +61,7 @@ function formStateFromDraft(d, categories) {
             ? d.items.map((it) => ({
                   categoryCodes:
                       codesByRecordId.get(it.categoryRecordId)?.slice() ?? ["", "", "", ""],
+                  hadCategory: Boolean(codesByRecordId.get(it.categoryRecordId)),
                   itemName: it.itemName || "",
                   size: it.size || "",
                   unit: it.unit || "",
@@ -334,30 +339,6 @@ export default function PRForm({
     function updateItem(index, field, value) {
         setItems((prev) =>
             prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
-        );
-    }
-
-    /**
-     * Pick one level of a row's category (#355).
-     *
-     * EVERY DEEPER LEVEL IS CLEARED, which is the whole reason this is not
-     * `updateItem`. The levels are not four independent fields: changing the
-     * second one means the third and fourth were chosen inside a branch that is
-     * no longer the one being looked at, and leaving them set would carry a
-     * choice from one branch into another. `narrowCategories` would drop them
-     * anyway — it refuses a code its level does not offer — so this keeps the
-     * state and the display saying the same thing rather than relying on the
-     * reader to re-derive it.
-     */
-    function updateItemCategory(index, level, code) {
-        setItems((prev) =>
-            prev.map((item, i) => {
-                if (i !== index) return item;
-                const codes = item.categoryCodes.slice();
-                codes[level] = code;
-                for (let deeper = level + 1; deeper < codes.length; deeper++) codes[deeper] = "";
-                return { ...item, categoryCodes: codes };
-            })
         );
     }
 
@@ -811,56 +792,17 @@ export default function PRForm({
                         const amount = (parseFloat(item.qty) || 0) * (parseFloat(item.unitPrice) || 0);
                         return (
                             <div key={i} className="rounded border border-zinc-300 p-3">
-                                {(() => {
-                                    // The tree, narrowed to what this row has
-                                    // picked. Recomputed per render rather than
-                                    // stored: it is a pure function of the
-                                    // fetched tree and four codes, so caching it
-                                    // would be a second copy of the same answer.
-                                    const walk = narrowCategories(categories, item.categoryCodes);
-                                    const strandedName =
-                                        !walk.complete && !item.categoryCodes.some(Boolean) && item.itemName;
-                                    return (
-                                        <>
-                                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-                                                {walk.levels.map((level, depth) => (
-                                                    <select
-                                                        key={depth}
-                                                        aria-label={CATEGORY_PICKER_COPY.levels[depth]}
-                                                        value={level.chosen}
-                                                        disabled={level.options.length === 0}
-                                                        onChange={(e) =>
-                                                            updateItemCategory(i, depth, e.target.value)
-                                                        }
-                                                        className={inputClass}
-                                                    >
-                                                        <option value="">
-                                                            {level.options.length === 0
-                                                                ? CATEGORY_PICKER_COPY.awaitingParent(depth).text
-                                                                : CATEGORY_PICKER_COPY.levels[depth]}
-                                                        </option>
-                                                        {level.options.map((option) => (
-                                                            <option key={option.code} value={option.code}>
-                                                                {option.name}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                ))}
-                                            </div>
-                                            {walk.complete ? (
-                                                <p className="mt-2 text-sm text-zinc-700">
-                                                    {CATEGORY_PICKER_COPY.resolved(walk.selected.label).text}
-                                                </p>
-                                            ) : null}
-                                            {strandedName ? (
-                                                <p className="mt-2 text-sm text-amber-800">
-                                                    {CATEGORY_PICKER_COPY.fromBeforeTheCatalog.text}{" "}
-                                                    {item.itemName}
-                                                </p>
-                                            ) : null}
-                                        </>
-                                    );
-                                })()}
+                                {/* #355's four levels, shared with the signer's
+                                    edit form since #367 — see
+                                    app/components/CategoryPicker.js for why the
+                                    JSX moved rather than being copied. */}
+                                <CategoryPicker
+                                    categories={categories}
+                                    codes={item.categoryCodes}
+                                    itemName={item.itemName}
+                                    hadCategory={item.hadCategory}
+                                    onChange={(codes) => updateItem(i, "categoryCodes", codes)}
+                                />
                                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                                     <input
                                         placeholder="Size"

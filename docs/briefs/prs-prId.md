@@ -97,14 +97,37 @@ earlier for correction, with the list of people it may be returned to. For anyon
 else at that status: one sentence, `Waiting on {name} to act.` The panel is the
 largest thing on the page when it is there and absent entirely when it is not.
 
-**Editing and continuing does not offer the item name (#355).** It is shown so a
-signer can see what they are approving and cannot be edited, because the name is
-composed from the item's category and a signer changing one without the other
-would make the two disagree — silently, since the material a purchase order
-generates is keyed on the category. Size, unit, quantity, unit price and remark
-are editable as before. A control that would let a signer change the CATEGORY is
-its own issue and is not here; until it exists this row's item is what the
-requester picked.
+**Editing and continuing offers the item as four ordered levels, not as a name
+(#367).** The same category picker the request form carries, opened on the path
+the row already holds: four dropdowns, each narrowing the next, with the composed
+path stated under them. It is the same control on both screens deliberately — a
+signer reaches an item the way the requester did — so everything `/prs/new`'s
+brief says about the picker (39 choices at the top, a branch whose fourth level
+holds one option and another that holds dozens, the composed path being shorter
+than four segments 27% of the time) is true here too. Size, unit, quantity, unit
+price and remark are editable as before.
+
+**The name is never offered as text, and that is the rule rather than a
+restriction on this screen (#355).** `Item Name` is composed from the category,
+so a signer changing one without the other would make the two disagree —
+silently, since the material a purchase order generates is keyed on the category.
+Between #355 and #367 the name was shown read-only and nothing here could change
+the item at all, which made a wrong item cost a return to the requester.
+
+**When a row's four levels are not all settled:** the turn is refused and nothing
+is saved —
+`Pick all four levels of an item's category before saving.` **A row that arrived
+without a category and was not touched is left alone**, which is where this
+screen's rule parts from the request form's: a request is already in review by
+the time a signer sees it, and refusing the turn over a row somebody else raised
+would stop a signer editing a request they can still approve outright. Clearing a
+category counts as touching it.
+
+**When a row has no category to show:** the four dropdowns open empty. A row
+saved before the catalog existed says so and shows the name it was saved with; a
+row whose category the reader cleared in this session says what the item WAS
+instead, since the pickers are then the only copy of it left on screen and there
+is no undo.
 
 **When a turn failed and putting it back failed too:** a red line where the
 ordinary failure message goes, one per control — `Do not save again`,

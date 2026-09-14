@@ -1,15 +1,50 @@
 "use client";
 
+/**
+ * EVERY `<select>` ON THIS FORM RESETS TO ITS PLACEHOLDER WHEN THE ACTION
+ * RETURNS A REFUSAL, AND THE CAUSE IS WRITTEN DOWN HERE BECAUSE FINDING IT
+ * TOOK PROBING THE DOM. React 19 resets a form once the action bound to it
+ * settles; a controlled `<select>` has its selection set as a property and
+ * carries no `selected` ATTRIBUTE, so `form.reset()` has nothing to fall back
+ * to and lands on the first option. Measured rather than reasoned about — with a
+ * `data-probe` attribute rendered beside `value`, React had rendered `value="01"`
+ * on the first category level while the DOM read `""` and `selectedIndex` 0. **It
+ * is not this form's doing and not the category picker's:** the `Unit` select
+ * here does it too, and it predates #367 by a year of issues, as do the Job,
+ * Discipline, Vendor and Unit controls on `app/prs/new/PRForm.js`, which binds
+ * its actions the same way. **Nothing is written wrongly, which is why it is
+ * recorded rather than fixed:** the submission carries this component's state
+ * through `itemsJson`, not the DOM's, so a second press of Save sends the values
+ * the reader picked even while the controls look empty — what the refusal costs
+ * is a screen emptier than the form it describes. #367 made that path ordinary by
+ * adding a refusal a signer can reach by half-picking a category, which is why
+ * the paragraph rides on that branch. **If it is fixed, the fix belongs where the
+ * action is bound to the form — here and in `PRForm.js` — and not inside
+ * `app/components/CategoryPicker.js`**, which renders one row's control and can
+ * see neither the action nor the reset.
+ */
+
 import { useActionState, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { editAndContinueAction } from "./actions";
 import { CANONICAL_UNITS } from "@/lib/units";
+import CategoryPicker from "@/app/components/CategoryPicker";
 
 const inputClass = "rounded border border-zinc-300 px-2 py-1";
 const EMPTY_NEW_QUOTATION = { file: { status: "idle" }, vendorQuotationCode: "" };
 
-export default function EditAndContinueForm({ prId, items, quotations, shippingFee, onCancel }) {
+export default function EditAndContinueForm({
+    prId,
+    items,
+    quotations,
+    shippingFee,
+    // The whole category tree, fetched by the page only when it is this
+    // reader's turn (#367). See app/prs/[prId]/page.js for why the read is
+    // gated there rather than joining the render's other levels.
+    categories = [],
+    onCancel,
+}) {
     const [state, formAction, pending] = useActionState(editAndContinueAction, null);
     // Issue #67 — quotationChoice encodes either an existing Quotation
     // ("existing:<recordId>") or one being added in this same session
@@ -19,9 +54,22 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
     // auto-linked to it at creation time (issue #67's first-quotation
     // path), so this reflects real state, not a UI-invented default;
     // going from 1 Quotation to 2 here must never silently change it.
-    const [rows, setRows] = useState(
-        items.map((it) => ({
+    // #367 — a stored item carries a `Category` record id and the picker works
+    // in level codes, so the tree the page already fetched is what joins them.
+    // Exactly `PRForm.js:formStateFromDraft`'s mapping, for the same reason: a
+    // row whose link is gone resolves to nothing and opens unpicked.
+    //
+    // LAZY, because the tree is 777 entries and this component re-renders on
+    // every keystroke. The map is wanted once, when the rows are seeded.
+    const [rows, setRows] = useState(() => {
+        const codesByRecordId = new Map((categories || []).map((c) => [c.recordId, c.codes]));
+        return items.map((it) => ({
             id: it.id,
+            categoryCodes: codesByRecordId.get(it.category?.[0])?.slice() ?? ["", "", "", ""],
+            // Whether this row opened with a category. Display only — the action
+            // reads the stored record, never this, to tell a cleared category
+            // from one that was never there.
+            hadCategory: Boolean(codesByRecordId.get(it.category?.[0])),
             itemName: it.itemName || "",
             size: it.size || "",
             unit: it.unit || "",
@@ -29,8 +77,8 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
             unitPrice: it.unitPrice ?? "",
             remark: it.remark || "",
             quotationChoice: it.quotation?.[0] ? `existing:${it.quotation[0]}` : "",
-        }))
-    );
+        }));
+    });
     // New Quotations being added in this edit session — same shape/upload
     // flow as the creation form's list (see app/prs/new/PRForm.js).
     const [newQuotations, setNewQuotations] = useState([]);
@@ -140,34 +188,34 @@ export default function EditAndContinueForm({ prId, items, quotations, shippingF
                             : CANONICAL_UNITS;
                     return (
                     <div key={row.id} className="space-y-2 border-b border-zinc-200 pb-2">
+                        {/*
+                          * #355 LOCKED THE NAME AND #367 GAVE BACK THE ITEM.
+                          * `Item Name` is composed from the item's `Category`,
+                          * so offering it as free text here let a signer say
+                          * something the category does not — silently, since
+                          * #356 keys the material on the category and the name
+                          * is what the vendor reads on the purchase order. The
+                          * lock closed that and took a signer's ability to
+                          * change what is being bought with it, leaving a
+                          * return to the requester as the only answer to a
+                          * wrong item. The four levels are that ability back,
+                          * and the same control the requester used: the name
+                          * follows the category rather than being typed beside
+                          * it, so the two cannot disagree by construction.
+                          *
+                          * A READ STATE IS NEVER REPLACED BY THE CONTROL THAT
+                          * EDITS IT (#318) still holds, one line down: the
+                          * composed path under the pickers is the name, stated
+                          * whether or not the signer touches a level.
+                          */}
+                        <CategoryPicker
+                            categories={categories}
+                            codes={row.categoryCodes}
+                            itemName={row.itemName}
+                            hadCategory={row.hadCategory}
+                            onChange={(codes) => updateRow(i, "categoryCodes", codes)}
+                        />
                         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                            {/*
-                              * READ-ONLY SINCE #355, AND THAT CLOSES A WINDOW
-                              * RATHER THAN TIDYING A CONTROL. `Item Name` is
-                              * composed from the item's `Category` now, so a
-                              * signer editing it here would make the two
-                              * disagree — and #356 keys the material on the
-                              * category, so the disagreement would be silent
-                              * and would reach the vendor on the purchase
-                              * order. The picker that would let a signer change
-                              * the category properly is its own issue; until
-                              * then the name is shown because a signer has to
-                              * see what they are approving, and is not offered
-                              * because there is nothing here that could change
-                              * it correctly.
-                              *
-                              * A READ STATE IS NEVER REPLACED BY THE CONTROL
-                              * THAT EDITS IT (#318) is the rule this obeys from
-                              * the other side: the fact is stated either way,
-                              * and the control is absent for an act nobody can
-                              * complete on this screen.
-                              */}
-                            <div
-                                className={`${inputClass} bg-zinc-50 text-zinc-700`}
-                                title={row.itemName}
-                            >
-                                {row.itemName}
-                            </div>
                             <input
                                 value={row.size}
                                 onChange={(e) => updateRow(i, "size", e.target.value)}
