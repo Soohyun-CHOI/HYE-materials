@@ -1,5 +1,29 @@
 "use client";
 
+/**
+ * EVERY `<select>` ON THIS FORM RESETS TO ITS PLACEHOLDER WHEN THE ACTION
+ * RETURNS A REFUSAL, AND THE CAUSE IS WRITTEN DOWN HERE BECAUSE FINDING IT
+ * TOOK PROBING THE DOM. React 19 resets a form once the action bound to it
+ * settles; a controlled `<select>` has its selection set as a property and
+ * carries no `selected` ATTRIBUTE, so `form.reset()` has nothing to fall back
+ * to and lands on the first option. Measured rather than reasoned about — with a
+ * `data-probe` attribute rendered beside `value`, React had rendered `value="01"`
+ * on the first category level while the DOM read `""` and `selectedIndex` 0. **It
+ * is not this form's doing and not the category picker's:** the `Unit` select
+ * here does it too, and it predates #367 by a year of issues, as do the Job,
+ * Discipline, Vendor and Unit controls on `app/prs/new/PRForm.js`, which binds
+ * its actions the same way. **Nothing is written wrongly, which is why it is
+ * recorded rather than fixed:** the submission carries this component's state
+ * through `itemsJson`, not the DOM's, so a second press of Save sends the values
+ * the reader picked even while the controls look empty — what the refusal costs
+ * is a screen emptier than the form it describes. #367 made that path ordinary by
+ * adding a refusal a signer can reach by half-picking a category, which is why
+ * the paragraph rides on that branch. **If it is fixed, the fix belongs where the
+ * action is bound to the form — here and in `PRForm.js` — and not inside
+ * `app/components/CategoryPicker.js`**, which renders one row's control and can
+ * see neither the action nor the reset.
+ */
+
 import { useActionState, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
