@@ -64,8 +64,15 @@ const SERVICE = "lib/airtable/prEditLog.js";
 //
 // The credentialed script compares the same module against the live field, so it
 // needs no copy; this one is the CI tripwire, which is why it keeps one.
+//
+// `Item Name` BECAME `Category` IN #367, and the Airtable side of that is a
+// RENAME rather than an add — the swap is what this copy records. The choice
+// held no rows (measured: `PR Edit Log` was empty), so renaming it in the UI
+// re-pointed no history and kept the option's place and color; the alternative,
+// leaving `Item Name` standing, would have been a choice writable by nothing and
+// held by nothing, which verify-edit-log-fields-181.mjs fails on purpose.
 const EXPECTED_LABELS = [
-    "Item Name",
+    "Category",
     "Size",
     "Unit",
     "Qty",

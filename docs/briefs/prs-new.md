@@ -98,8 +98,17 @@ on purpose; a draft is allowed to be half-finished.
 
 **When a draft row was saved before the catalog existed:** it opens with nothing
 picked and shows the name it was saved with, so the person can find the matching
-path. Nothing repairs it automatically and nothing is lost by re-picking. One such
-row is on this base today.
+path. Nothing repairs it automatically and nothing is lost by re-picking. This
+brief said one such row was on this base; #367 counted and there are none — every
+one of the 41 `PR Items` rows carries a category. The state stays reachable, both
+here and on the request detail, because a category deleted in Airtable empties the
+link on the rows that pointed at it.
+
+**When the reader clears a row's category:** the same empty pickers, and a
+different line — what the item WAS, rather than the claim that it predates the
+catalog, which is false for a row picked minutes earlier. The two states shared
+one sentence until #367 gave the signer's form the same picker and made clearing
+a level an ordinary move.
 
 **A quotation already on the draft and one picked in this session read
 differently, and that is the only screen in the app where both kinds of file link
@@ -155,9 +164,13 @@ the office and the path is added to the catalog directly, so this screen offers 
 `can't find it?` control and nothing here builds one. A screen for adding a path
 is its own issue.
 
-**The composed path is the one string a signer and the vendor both read.** Edit
-and continue shows it and does not let a signer change it — the name is composed
-from the category, so nothing on that screen could change it correctly.
+**The composed path is the one string a signer and the vendor both read, and
+since #367 both screens pick it the same way.** Edit and continue carries this
+picker, not a copy of it: the levels, the words, the clearing of deeper levels and
+the composed path are one implementation, so a change to the control here changes
+it there. What differs is the rule around it — that screen lets an untouched
+category-less row through, and this one lets nothing be submitted without all four
+levels.
 
 **The items table is the shape the request detail and the purchase order detail
 both show.** A reader fills in Item / Size / Unit / Qty / Unit Price here, reads

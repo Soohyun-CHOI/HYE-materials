@@ -250,7 +250,13 @@ export async function run({ check, assert, log }) {
             restored.push([n.key?.name, n.value?.type]);
         }
     });
-    check("  fields written by the restore", restored.length, 7);
+    // SEVEN UNTIL #367 GAVE THE SIGNER A CATEGORY TO CHANGE, and the count moving
+    // is this assertion working rather than a figure to keep in step. A category
+    // and the name composed from it are written in one update, so a restore that
+    // put back the name and not the link would leave the two describing different
+    // things — the state the picker exists to make unreachable — and would report
+    // the turn as cleanly rolled back.
+    check("  fields written by the restore", restored.length, 8);
     check(
         "  of those, fields that would skip a blank instead of clearing it",
         restored.filter(([, type]) => type !== "LogicalExpression").map(([name]) => name).join(", "),

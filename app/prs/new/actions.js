@@ -24,7 +24,7 @@ import { shouldReuseQuotation } from "@/lib/quotationReuse";
 import { isEmptyItemRow, mergeIdenticalItems } from "@/lib/prItemMerge";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
-import { CATEGORY_PICKER_COPY } from "@/lib/materialCategory";
+import { CATEGORY_PICKER_COPY, categoryItemFields } from "@/lib/materialCategory";
 
 // Canonical key for an item's duplicate-match identity — Item Name
 // (case/whitespace-insensitive) + Qty + Unit Price, per issue #61. Size/Unit/
@@ -112,7 +112,10 @@ function parseFormState(formData) {
  * `Item Name` IS WRITTEN HERE RATHER THAN TYPED, from the category's own
  * `Category Label`. That keeps the frozen-copy convention every item table
  * follows — the PO snapshot copies this string, the invoice copies that — and it
- * keeps the exact text the PO PDF prints for the vendor. Nothing normalizes it:
+ * keeps the exact text the PO PDF prints for the vendor. **The pair comes from
+ * `categoryItemFields` since #367**, which is the one expression that writes the
+ * two together — this path and the signing chain's edit turn are its two callers,
+ * and neither may spell the assignment for itself. Nothing normalizes it:
  * `createItem` runs `normalizeItemText` on the way in as it always has, and a
  * label composed by an Airtable formula from trimmed cells has nothing to
  * collapse.
@@ -129,7 +132,7 @@ async function resolveItemCategories(items) {
     return items.map((item) => {
         const category = byCode.get(item.categoryCodes?.[3] || "");
         if (!category) return { ...item, categoryRecordId: "" };
-        return { ...item, categoryRecordId: category.recordId, itemName: category.label };
+        return { ...item, ...categoryItemFields(category) };
     });
 }
 
