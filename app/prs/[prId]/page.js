@@ -14,6 +14,7 @@ import { getAllVendors } from "@/lib/airtable/vendors";
 import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
+import { getCategoryTree } from "@/lib/airtable/materialCategories";
 import { getCurrentTurn, getReturnTargets } from "@/lib/prSigning";
 import { describeOverageBanner } from "@/lib/overage";
 import { PR_KIND, PR_KIND_COPY, prKind } from "@/lib/prKind";
@@ -101,6 +102,12 @@ async function renderPRDetailPage({ params }) {
             facts: { ...banner.facts, thisPoId: banner.facts.overagePoId },
         })) ?? [];
 
+    // Whose turn it is, computed here rather than below the reads because the
+    // category tree's cost hangs off it (#367). Pure — `pr` and `signers` are
+    // both in hand, and `getCurrentTurn` reaches nothing.
+    const turn = pr.status === "In Review" ? getCurrentTurn(pr, signers) : null;
+    const isMyTurn = !!turn && turn.userId === user.id;
+
     const userIds = new Set(
         [
             pr.requester?.[0],
@@ -113,7 +120,22 @@ async function renderPRDetailPage({ params }) {
     // The Set above is already the deduplicated id list, so this is the batched
     // reader's exact shape. The body of #193 names this fan-out only for the PR
     // LIST; it is on this page too, over four sources instead of one.
-    const userList = await getUsersByRecordIds([...userIds]);
+    //
+    // #367 — THE CATEGORY TREE IS READ ONLY FOR THE READER WHO CAN EDIT, AND
+    // THAT IS WHERE THIS PAGE'S MEASUREMENT PARTS FROM `/prs/new`'s. There the
+    // 8 list operations (777 rows at Airtable's 100-record page) are paid by
+    // every visitor, because everyone on that screen is there to enter items.
+    // This page is a READING surface that everyone passing `canViewPR` opens —
+    // the requester checking status, the office, anyone on the job, the signers
+    // who are not up — and exactly one of them can open the edit form. So the
+    // cost follows the turn: a reader pays nothing and the actor pays 8. It
+    // joins this await rather than the levels above because `isMyTurn` needs
+    // `signers`, which those levels are what fetch; the round trip is the one
+    // that was already here.
+    const [userList, categories] = await Promise.all([
+        getUsersByRecordIds([...userIds]),
+        isMyTurn ? getCategoryTree() : Promise.resolve([]),
+    ]);
     const usersById = Object.fromEntries(userList.map((u) => [u.id, u]));
 
     const vendorsById = Object.fromEntries(vendors.map((v) => [v.id, v]));
@@ -130,8 +152,6 @@ async function renderPRDetailPage({ params }) {
         quotations.map((q, i) => [q.id, quotationLabel(q, i)])
     );
 
-    const turn = pr.status === "In Review" ? getCurrentTurn(pr, signers) : null;
-    const isMyTurn = !!turn && turn.userId === user.id;
     // Issue #134 — the PO-generation retry is Admin-only (generatePOAction),
     // so its control renders only for Admins; otherwise the action and its UI
     // would sit at different levels.
@@ -450,6 +470,7 @@ async function renderPRDetailPage({ params }) {
                             items={items}
                             quotations={quotations}
                             shippingFee={pr.shippingFee}
+                            categories={categories}
                             returnTargets={
                                 turn.type === "signer" ? getReturnTargets(pr, signers, turn.sequenceOrder) : []
                             }

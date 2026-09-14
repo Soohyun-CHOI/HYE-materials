@@ -94,3 +94,39 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 - **A SIZE ALWAYS LANDS ON THE NO-CATEGORY SENTENCE, AND THE COPY SAYS WHAT TO DO ABOUT IT.** The tree names no dimension — 0 of the 777 paths carry `2"` or `3/4"` — so `pipe 2"` reaches that sentence even though 70 paths carry `Pipe`. **Narrowing the probe to the tokens that are category words was weighed and rejected**: nothing distinguishes a size from a word the tree simply does not use, so it would send `cable tray` to the in-catalog sentence, which is the one case the two states exist to keep apart. The sentence therefore tells the reader to try fewer words without a size, which is true whichever of the two put them there.
 - **THE CATEGORY TREE IS NOT OFFERED AS A FILTER HERE, AND THE CONDITION FOR ADDING ONE IS RECORDED RATHER THAN LEFT TO TASTE.** `Materials` is 34 rows and every one of them is under `Stainless Steel (SUS)`, so a level-1 filter would offer exactly one option; the tree holds 777 paths of which at most the bought ones would return a row, so most options would lead to an empty result and teach the reader not to use the control; and `getCategoryTree` costs 8 operations against this screen's 7, paid on every load whether or not anyone narrows. **The condition is that `Materials` carries rows under more than one level-1 branch. When it does, the filter's options come from the materials already fetched and not from the tree** — that costs nothing, and it cannot offer a branch with no rows behind it.
 - **WHAT NO OFFLINE CHECK CAN ASK, and the first version of the check pretended it could.** Whether an example query finds a ROW is a fact about the base: `pipe 2"` was the search box's example and matched nothing the moment the label became a path — not because `Pipe` is missing from the tree but because nothing at that size had been bought. The first draft of `offline/material-price-view.mjs` appended a synthetic `_2"_EA` to every committed path so a size token would have somewhere to land, which handed it a match for free and passed on the very example it was written to catch. What is offline is whether an example is made of the catalog's words and spans the size segment; the rest belongs to the browser.
+
+### One picker on two screens (#367)
+
+#355 built the four-level control inline in `app/prs/new/PRForm.js`, which was
+right while one screen picked a category. #367 gives the signer's edit form the
+same control, and the issue's requirement is that the signer reach an item the way
+the requester did — so the JSX moved to `app/components/CategoryPicker.js` and both
+forms render it.
+
+- **THE SHAPE #355 CHOSE HOLDS, AND WHAT IT LACKED WAS A PLACE FOR THE MARKUP.**
+  The narrowing stayed in `lib/materialCategory.js` because that file imports
+  nothing and is therefore readable from a Client Component; the readers stayed in
+  `lib/airtable/materialCategories.js`. Both survive a second screen untouched —
+  `getCategoryTree` and `getCategoriesByLeafCode` each simply gain a second caller,
+  which is the arrival-with-a-caller rule that module's own header states. The only
+  thing with nowhere to live was forty lines of JSX, and a component is that place.
+- **THE CLEARING RULE MOVED WITH IT AND THE COMPONENT HOLDS NO STATE.**
+  `updateItemCategory` cleared every deeper level and its own comment called that
+  the reason it was not `updateItem`; a rule spelled once in a form is a rule
+  spelled twice the moment a second form needs it, so it is
+  `pickCategoryLevel` now. Keeping it in the pure module rather than in the
+  component is what lets `offline/category-picker.mjs` call it — the tier runs
+  under plain `node` and cannot load a `"use client"` file at all. The component
+  takes `codes` and emits the next four, so neither form knows how a level clears.
+- **TWO REFUSAL SENTENCES, BECAUSE THE TWO SCREENS ENFORCE DIFFERENT RULES.**
+  `incomplete` is the request form's — every item needs a category at submit;
+  `unsettled` is the edit turn's — finish the pick you started. Reusing one string
+  would have made it false on whichever screen it was not written for, and the
+  difference is argued in `purchase-requests.md` where the edit turn lives.
+- **AND A THIRD SENTENCE THAT FIXES A LINE THAT WAS ALREADY FALSE.**
+  `fromBeforeTheCatalog` fired whenever nothing was picked and a name survived,
+  which includes a row whose category the reader had just CLEARED — telling them a
+  row picked minutes ago predated the catalog. Reachable on `/prs/new` today by
+  clearing the first level of a hydrated draft, and the ordinary way to change an
+  item on the signer's form. `cleared` names what the item was instead, which is
+  also the only copy of it left on screen once the pickers are empty.

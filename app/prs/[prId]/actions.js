@@ -15,6 +15,8 @@ import {
 import { createEditLogEntry } from "@/lib/airtable/prEditLog";
 import { ITEM_FIELDS, ITEM_FIELD_LABELS, SHIPPING_FEE_LABEL } from "@/lib/editLogFields";
 import { createQuotation } from "@/lib/airtable/quotations";
+import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
+import { categoryItemFields, refuseUnsettledCategory } from "@/lib/materialCategory";
 import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
@@ -233,15 +235,64 @@ export async function editAndContinueAction(prevState, formData) {
         const originalItems = await getItemsByPR(pr.id);
         const originalById = Object.fromEntries(originalItems.map((it) => [it.id, it]));
 
+        // #367 — the four levels every row picked, resolved to category records
+        // in ONE query for the whole submission rather than one per item, the
+        // same shape and the same builder `createPRAction` uses. A turn that
+        // touched no category still costs it; a turn on a request whose rows are
+        // all category-less costs nothing, since the builder short-circuits an
+        // empty list before it reaches the base.
+        const categoriesByCode = await getCategoriesByLeafCode(
+            editedItems.map((it) => it.categoryCodes?.[3] || "")
+        );
+
         // Diff submitted values against what's actually on record — only
         // fields that really changed get an Edit Log entry and a write,
         // matching Edit Log's per-field granularity (CLAUDE.md).
         const changes = []; // { itemId, field, oldValue, newValue }
+        // itemId -> the `Category` + `Item Name` pair to write with it, for the
+        // rows whose pick actually moved. Built by `categoryItemFields` so the
+        // two values come from one expression and cannot be written apart.
+        const categoryWrites = new Map();
         for (const submitted of editedItems) {
             const original = originalById[submitted.id];
             if (!original) continue;
 
+            const chosen = submitted.categoryCodes || [];
+            const resolved = categoriesByCode.get(chosen[3] || "") ?? null;
+            const storedCategoryId = original.category?.[0] ?? null;
+            // Refused BEFORE the try, with nothing written yet — a half-picked
+            // category is not a category, and a cleared one is not "leave it as
+            // it was". `lib/materialCategory.js` carries why this rule is not
+            // `createPRAction`'s stricter one.
+            const refusal = refuseUnsettledCategory({
+                chosen,
+                hadCategory: Boolean(storedCategoryId),
+                resolved,
+            });
+            if (refusal) return { error: refusal.text };
+
+            const categoryChanged = Boolean(resolved) && resolved.recordId !== storedCategoryId;
+            if (categoryChanged) categoryWrites.set(submitted.id, categoryItemFields(resolved));
+
             for (const field of ITEM_FIELDS) {
+                if (field === "category") {
+                    // THE VALUES ARE THE TWO NAMES, NOT THE TWO CODES. `Field`
+                    // names what changed and the values are what a reader knows
+                    // the item by — and the old one is `Item Name` precisely
+                    // because it is the frozen copy of the old label, so this
+                    // costs no read and states what the document actually said.
+                    // A row that predates the catalog carries a typed name
+                    // there, which is still the honest answer to "what was it".
+                    if (categoryChanged) {
+                        changes.push({
+                            itemId: submitted.id,
+                            field,
+                            oldValue: original.itemName,
+                            newValue: resolved.label,
+                        });
+                    }
+                    continue;
+                }
                 const oldValue = original[field];
                 const newValue = field === "qty" || field === "unitPrice" ? parseFloat(submitted[field]) : submitted[field];
                 if (String(oldValue ?? "") !== String(newValue ?? "")) {
@@ -320,12 +371,22 @@ export async function editAndContinueAction(prevState, formData) {
             // any Quotation link change), but one PR Edit Log entry per changed
             // field — Quotation link changes aren't logged (its `Field`
             // is a fixed select without a Quotation option, and this is a
-            // linking correction, not a value edit the way Item Name/Qty/
+            // linking correction, not a value edit the way Category/Qty/
             // etc. are). Since #181 that select has no `typecast` behind it, so
             // logging one would now fail the write rather than mint an option.
+            //
+            // #367 — THE CATEGORY IS THE ONE CHANGE WHOSE FIELD IS NOT ITS OWN
+            // VALUE. Its log row carries the two names; what the record takes is
+            // the link AND the name composed from it, which is why it is spliced
+            // in from `categoryWrites` rather than read off the change. Both land
+            // in this one update, so no write of this turn can leave `Category`
+            // and `Item Name` describing different things.
             for (const itemId of touchedItemIds) {
                 const itemChanges = changes.filter((c) => c.itemId === itemId);
-                const fields = Object.fromEntries(itemChanges.map((c) => [c.field, c.newValue]));
+                const fields = Object.fromEntries(
+                    itemChanges.filter((c) => c.field !== "category").map((c) => [c.field, c.newValue])
+                );
+                if (categoryWrites.has(itemId)) Object.assign(fields, categoryWrites.get(itemId));
                 if (quotationLinkChanges.has(itemId)) {
                     fields.quotationRecordId = quotationLinkChanges.get(itemId).newQuotationId;
                 }
@@ -402,6 +463,15 @@ export async function editAndContinueAction(prevState, formData) {
                         unitPrice: original.unitPrice ?? null,
                         remark: original.remark ?? "",
                         quotationRecordId: original.quotation?.[0] || null,
+                        // #367 — RESTORED BESIDE THE NAME BECAUSE THEY WENT IN
+                        // TOGETHER. Leaving it out would put back the item's old
+                        // name over the new category, which is exactly the
+                        // disagreement this issue exists to make impossible —
+                        // and the rollback would report success. `|| null`
+                        // rather than `?? ""` for the same reason as the
+                        // quotation above: a row that had no category is cleared
+                        // back to none rather than left holding this turn's.
+                        categoryRecordId: original.category?.[0] || null,
                     })
                 );
             }
