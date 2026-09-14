@@ -17,10 +17,19 @@
 // createToolLogEntry", and only reading the ARGUMENT tells them apart. So the
 // call sites are parsed and the argument's own source text is compared.
 //
+// AND #378 ADDED A THIRD THING IN THE SAME FAMILY: a refusal that returns and no
+// more leaves every server-rendered fact on the screen as it was, so the sentence
+// is true and everything around it is not. That one is held as a return's SHAPE —
+// no `{ error }` built outside the one helper — because the name half of it passes
+// with four calls to the helper standing beside a fifth branch doing it by hand.
+//
 // WHAT IT CANNOT SEE. Whether any of it reaches a browser, which is this tier's
-// standing limit; whether the two Airtable writes actually land; and source
-// order is not execution order, so "the log row is written before the cache" is
-// a fact about the file rather than about the request.
+// standing limit; whether the two Airtable writes actually land; source order is
+// not execution order, so "the log row is written before the cache" is a fact
+// about the file rather than about the request; and — the one #378 leans on
+// hardest — whether `refresh()` re-renders anything at all. That the framework
+// does what its own source says it does was measured in a browser and recorded in
+// the pull request, not here.
 //
 // AND WHAT IS NOT HERE BY DESIGN: the status and event vocabularies and the two
 // maps between them. Those are offline/tool-status.mjs's, because they are
@@ -64,7 +73,6 @@ function copyStrings() {
         else if (typeof value === "object" && value) out.push(...Object.values(value));
     }
     out.push(TOOL_TRANSITION_COPY.noTransition({ status: TOOL_STATUS.RETIRED }));
-    out.push(TOOL_TRANSITION_COPY.moved({ status: TOOL_STATUS.OUT }));
     out.push(TOOL_TRANSITION_COPY.movesJob({ from: JOB_B.jobCode, to: JOB_A.jobCode }));
     out.push(
         TOOL_TRANSITION_COPY.statusNotUpdated({
@@ -106,6 +114,35 @@ function argumentSource({ ast, source }, fnName, propName) {
             if (prop) found = source.slice(prop.value.start, prop.value.end);
         }
     }
+    return found;
+}
+
+/** Where a named import comes from, or null if the module does not import it. */
+function importedFrom({ ast }, name) {
+    let from = null;
+    for (const node of ast.body) {
+        if (node.type !== "ImportDeclaration") continue;
+        if (node.specifiers.some((s) => s.local?.name === name)) from = node.source.value;
+    }
+    return from;
+}
+
+/**
+ * Every `return { error: … }` that builds its object where it stands.
+ *
+ * THE SHAPE AND NOT THE NAME, which is this file's own rule applied one level
+ * along. A refusal that goes through `refuse` is a call; one that slips past it is
+ * an object literal in a return, and what tells them apart is what the returned
+ * expression IS. An assertion that `refuse` is called somewhere passes with four
+ * call sites standing beside a fifth branch that does it by hand — and that fifth
+ * branch is a sentence on a page nothing re-rendered, which is #378 exactly.
+ */
+function inlineErrorReturns({ ast }) {
+    const found = [];
+    walk(ast, (n) => {
+        if (n.type !== "ReturnStatement" || n.argument?.type !== "ObjectExpression") return;
+        if (n.argument.properties.some((p) => p.key?.name === "error")) found.push(n);
+    });
     return found;
 }
 
@@ -170,8 +207,19 @@ export function run({ check, assert, log }) {
 
     const stale = readSubmission(inStock, { event: TOOL_EVENT.CHECKED_IN, jobId: JOB_A.id });
     check("a submission naming the other event is refused", stale.event, null);
-    assert("  and the refusal names the status the base holds", stale.refusal.includes(TOOL_STATUS.IN_STOCK));
-    assert("  telling the reader to open the page again", stale.refusal.includes("Open it again"));
+    // THE SENTENCE CARRIES WHAT A FRESHLY RENDERED PAGE CANNOT SAY (#378), and the
+    // three assertions are the three halves of that. A refused press and a
+    // successful one both end on a flipped control and one more history entry, so
+    // the first two are what tell them apart; the third is this issue's own point,
+    // and without it the instruction could come back with nothing failing. The
+    // status is deliberately NOT named — the header above it says so, freshly.
+    assert("  saying that nothing was recorded", /nothing was recorded/i.test(stale.refusal));
+    assert("  and that the change on screen is somebody else's", /somebody else/i.test(stale.refusal));
+    assert(
+        "  and asking for no reload, because the action refreshes as it refuses",
+        !/(reload|refresh|open it again|out of date)/i.test(stale.refusal)
+    );
+    assert("  and naming no status, which the page states directly above it", !stale.refusal.includes(TOOL_STATUS.IN_STOCK));
     // THE POINT OF THAT REFUSAL, stated as an assertion rather than only in prose:
     // without it the action would derive `Checked In` from the stored status and
     // record the opposite of what the button said.
@@ -439,6 +487,83 @@ export function run({ check, assert, log }) {
         "the retirement's job is the tool item's own",
         argumentSource({ ast: retireFn, source: action.source }, "readRetirement", "currentJobRecordId"),
         "toolItem.job?.[0]"
+    );
+
+    // ── 6d: a refusal refreshes as it refuses (#378) ───────────────────────
+    //
+    // WHAT THIS CATCHES THAT NOTHING ELSE CAN. A Server Action that only returns
+    // re-renders nothing, so a refusal written straight into a branch is a true
+    // sentence standing on a page that contradicts it — the status, the control's
+    // direction and the history all still reading what they did before the press.
+    // Nothing fails: not a type check, not a render, and not one assertion above.
+    // So the shape is held here, and held as a SHAPE: what is asserted is that no
+    // return outside the helper builds `{ error }` itself, which is the one move a
+    // new refusal could make to slip past it.
+    log("");
+    log("every refusal goes through one place, and that place re-renders the page:");
+    check("`refresh` comes from next/cache", importedFrom(action, "refresh"), "next/cache");
+    const refuseFn = resolveFunction(action.ast, "refuse");
+    assert("the refusal helper was found", refuseFn !== null);
+    assert(
+        "  and is not exported, so it is no Server Action",
+        !/export\s+(async\s+)?function\s+refuse/.test(action.source)
+    );
+    check("  it refreshes", callsTo(refuseFn, "refresh").length, 1);
+
+    const inside = (node) => node.start > refuseFn.start && node.end < refuseFn.end;
+    const inline = inlineErrorReturns(action).filter((n) => !inside(n));
+    check(
+        `nothing outside it builds \`{ error }\` on the spot${inline.length ? ` (${inline.length})` : ""}`,
+        inline.length,
+        0
+    );
+    for (const name of ["recordToolItemEventAction", "retireToolItemAction", "writeEvent"])
+        assert(`  ${name} refuses through it`, callsTo(resolveFunction(action.ast, name), "refuse").length > 0);
+
+    // AND THE SUCCESS PATH IS UNTOUCHED, WHICH IS THE SAME CLAIM FROM THE OTHER
+    // SIDE. A redirect is a navigation and discards the client state it leaves, so
+    // it is right where there is nothing to keep; after a refusal there is exactly
+    // one thing to keep, and it is the sentence. An action refreshing on its way to
+    // a redirect would be re-rendering a page it is about to leave. `calleeName`
+    // reads a method call too, so a `router.refresh()` anywhere here is counted.
+    const refreshCalls = callsTo(action.ast, "refresh");
+    check("the module refreshes in exactly one place", refreshCalls.length, 1);
+    // The count is re-asserted rather than assumed: with the call removed
+    // altogether there is no node to ask about, and a check that throws there
+    // reports as a broken file rather than as a failing claim.
+    assert(
+        "  and that place is the helper, never a path that redirects",
+        refreshCalls.length === 1 && inside(refreshCalls[0])
+    );
+
+    // ANTI-VACUITY: the three detectors, each shown finding what it is asserted not
+    // to find. An absence and a walk that sees nothing are the same result.
+    const planted = parseSource(
+        'import { refresh } from "next/dist/server/web/spec-extension/revalidate";\n' +
+            "export async function act() {\n" +
+            "  if (stale) return { error: COPY.moved };\n" +
+            "  refresh();\n" +
+            "  redirect(path);\n" +
+            "}\n",
+        "<refusal-built-by-hand>"
+    );
+    check(
+        "  the import detector reads the source it was given",
+        importedFrom(planted, "refresh"),
+        "next/dist/server/web/spec-extension/revalidate"
+    );
+    check("  the return detector sees a hand-built refusal", inlineErrorReturns(planted).length, 1);
+    const onSuccess = parseSource(
+        "function refuse(error) { refresh(); return { error }; }\n" +
+            "export async function act() { refresh(); redirect(path); }\n",
+        "<refresh-on-the-success-path>"
+    );
+    const plantedRefuse = resolveFunction(onSuccess.ast, "refuse");
+    const plantedCalls = callsTo(onSuccess.ast, "refresh");
+    check("  a refresh on the success path is counted", plantedCalls.length, 2);
+    assert(
+        "  and is seen to stand outside the helper",
+        plantedCalls.some((c) => !(c.start > plantedRefuse.start && c.end < plantedRefuse.end))
     );
 
     // ── 7: the page offers and refuses in one place ────────────────────────

@@ -207,22 +207,37 @@ what stops that reading as a mistake. With a picker it appears and disappears as
 the choice changes. The rest of the time nothing stands there.
 
 **A refusal, in one slot, where every refusal this screen can produce arrives.**
-Four reach it: the page is out of date because somebody else moved the tool item
-since it was opened; the job submitted is not one of the reader's; the tool item
+Those that reach it: somebody else has already recorded something, so the press
+recorded nothing; the job submitted is not one of the reader's; the tool item
 carries no such id; and the event was recorded but the tool item's own status was
 not updated. The last is the only one that means something was written, and its
 sentence says so — the reader is told the event is safe, what everybody else will
 read until it is fixed, and that pressing again fixes it. Ordinarily the slot is
 empty.
 
+**EVERY REFUSAL ARRIVES ON A FRESHLY RENDERED PAGE, AND THAT IS WHAT THE FIRST
+SENTENCE IS WRITTEN AGAINST.** The status, the control's direction and the
+history are all re-read and re-drawn in the same moment the sentence appears,
+so the screen under a refusal is never the screen the reader pressed on. It
+also means a refused press and a successful one leave the SAME screen — a
+flipped control, a moved status, one more history entry — and the only visible
+difference is whose entry it is, at the foot of the page. So the sentence
+carries what that screen cannot: `Nothing was recorded. Somebody else scanned
+this first.` **A design may not treat this slot as an aside.** It is the one
+thing distinguishing two outcomes that otherwise look alike, it is read on a
+phone in one hand, and it names no status because the status is stated directly
+above it and was just refreshed.
+
 **The dialog, which is closed until its opener is pressed.** The page behind it
 stays legible, and it closes three ways — the confirm, `Cancel`, and `Escape` —
 with focus returning to the control that opened it. It does not close while a
-confirmation is in flight. **A refusal from inside the dialog appears inside
-it**, in a slot of its own, rather than on the page behind. Only one reaches
-it, and it is rare: somebody else retired the tool item since this page was
-opened. There is no refusal about a job here, because the dialog asks for
-none.
+confirmation is in flight. It carries a refusal slot of its own, in case a
+refusal ever lands while it is open. **What happens today when somebody else
+retires the tool item first is that the dialog goes** — the refusal re-renders
+the page, the page has no controls to offer a retired tool item, and the dialog
+disappears with them; what the reader is left looking at is the sentence saying
+the status is the end. There is no refusal about a job here, because the dialog
+asks for none.
 
 **A sentence where BOTH controls would be, rather than beside them.** Two
 states produce one: a status that allows nothing, and a reader assigned to no

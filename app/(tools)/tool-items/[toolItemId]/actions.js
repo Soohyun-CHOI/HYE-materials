@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
@@ -38,7 +39,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  *
  * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
  * ToolTransitionForm.js reads this through `useActionState`, so every refusal
- * lands in the one slot that form has for them.
+ * lands in the one slot that form has for them. **It goes through `refuse`, which
+ * re-renders the page as it answers (#378)** — a returned sentence on a page
+ * nothing re-rendered is true beside a screen that contradicts it.
  *
  * THE TWO WRITES ARE `writeEvent`'s, SHARED WITH THE RETIREMENT BELOW SINCE
  * #363. The ordering, the try boundary and the report of a cache that did not
@@ -76,7 +79,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * ON SUCCESS IT REDIRECTS TO THE PAGE IT CAME FROM AND SAYS NOTHING (#321). The
  * status flips, a history entry appears and the control now reads the other way
  * — that IS the confirmation, and a banner would say what the page already says
- * while standing between the reader and the next scan.
+ * while standing between the reader and the next scan. **A refusal reaches the
+ * same fresh page by the other mechanism and keeps its sentence**; `refuse`
+ * carries why the two differ.
  */
 export async function recordToolItemEventAction(prevState, formData) {
     return withOpsLabel("recordToolItemEventAction", async () => {
@@ -90,7 +95,7 @@ export async function recordToolItemEventAction(prevState, formData) {
         // renders under a tool item the page has already found, and this app
         // offers no way to delete one. It answers in the page's own words rather
         // than coining a refusal of its own for a state with no screen behind it.
-        if (!toolItem) return { error: TOOL_ITEM_COPY.notFoundHeading };
+        if (!toolItem) return refuse(TOOL_ITEM_COPY.notFoundHeading);
 
         // THE PLAN IS BUILT FROM THE STORED STATUS, NOT THE SUBMITTED ONE, so the
         // offer this compares against is a fact about the base. The job list is
@@ -105,7 +110,7 @@ export async function recordToolItemEventAction(prevState, formData) {
             event: String(formData.get("event") ?? ""),
             jobId: String(formData.get("jobId") ?? ""),
         });
-        if (refusal) return { error: refusal };
+        if (refusal) return refuse(refusal);
 
         // The actor's own job, because a scan is the actor handling the tool.
         const failed = await writeEvent({ toolItem, event, jobRecordId: job.id, user, from: plan.status });
@@ -158,7 +163,7 @@ export async function retireToolItemAction(prevState, formData) {
         const user = await requireUser();
 
         const toolItem = await getToolItemByToolItemId(String(formData.get("toolItemId") ?? ""));
-        if (!toolItem) return { error: TOOL_ITEM_COPY.notFoundHeading };
+        if (!toolItem) return refuse(TOOL_ITEM_COPY.notFoundHeading);
 
         // The same planner on a fresh read, which is also how a stale page is
         // answered here: somebody who retired this first makes `mayRetire` false
@@ -174,7 +179,7 @@ export async function retireToolItemAction(prevState, formData) {
         const { jobRecordId, refusal } = readRetirement(plan, {
             currentJobRecordId: toolItem.job?.[0],
         });
-        if (refusal) return { error: refusal };
+        if (refusal) return refuse(refusal);
 
         const failed = await writeEvent({
             toolItem,
@@ -187,6 +192,50 @@ export async function retireToolItemAction(prevState, formData) {
 
         redirect(toolItemPath(toolItem.toolItemId));
     });
+}
+
+/**
+ * The one shape a refusal takes here, and the re-render that goes with it (#378).
+ *
+ * EVERY REFUSAL THESE TWO ACTIONS RETURN SAYS THE PAGE IS OUT OF DATE, WHICH IS
+ * WHY THIS IS ONE PLACE RATHER THAN A JUDGMENT PER REFUSAL. Both reach their
+ * verdict through `planTransition` on a status just read from the base, and the
+ * page reaches its own from the same function — so an action that refuses is one
+ * whose caller is looking at something the base no longer says. Returning and no
+ * more leaves every one of those facts on screen as it was: the status, the
+ * control's direction and the history all still read what they did before the
+ * press, and the refusal is the one true line on a page contradicting it.
+ *
+ * `refresh()` IS WHAT SENDS THE SENTENCE AND A FRESH RENDER TOGETHER, and the
+ * mechanism is exact rather than hopeful. Measured against the installed 16.2.10
+ * rather than read off the documentation: `server/app-render/action-handler.js`
+ * skips rendering the page unless `workStore.pathWasRevalidated` says otherwise,
+ * and `refresh()` does nothing but set it. So one response carries the return
+ * value AND the page, and `useActionState` keeps the sentence while the tree
+ * under it moves.
+ *
+ * NOT `revalidatePath`, WHICH WOULD DO NOTHING HERE. A dynamic route passed to it
+ * with no `type` warns and has no effect, and there is no cached data on this axis
+ * to purge in any case — what wants re-rendering is one page, not a cache. NOT
+ * `router.refresh()` either: a second round trip, and the rule would live in the
+ * two forms rather than at the one place that decides to refuse.
+ *
+ * THE SUCCESS PATH KEEPS ITS REDIRECT, AND THE TWO MECHANISMS ARE TWO ACTS. A
+ * redirect is a navigation and throws away the client state it leaves — the
+ * scroll, an open modal, the chosen job, the slot this sentence lives in — and
+ * that is right when there is nothing to keep. After a refusal there is exactly
+ * one thing to keep. So a success navigates and a refusal re-renders in place.
+ *
+ * IT WORKS ONLY INSIDE A SERVER ACTION, since `refresh()` throws anywhere else.
+ * That is a constraint on this function rather than a hazard: its callers are the
+ * two exported actions and the writer they share.
+ *
+ * NOT EXPORTED, for `writeEvent`'s reason — an export of a `"use server"` module
+ * is an entry point callable from a browser.
+ */
+function refuse(error) {
+    refresh();
+    return { error };
 }
 
 /**
@@ -216,6 +265,13 @@ export async function retireToolItemAction(prevState, formData) {
  * on the record, the tool item's own status is not, and the person who caused it
  * is the only one who knows. Doing it again writes the same event and lands the
  * status, so the repair is the control they are already looking at.
+ *
+ * **AND IT REPORTS THROUGH `refuse`, WHICH IS THE CASE THAT MOST NEEDED IT
+ * (#378).** This is the one answer here that means something was written, and
+ * until this issue it stood on a page where the row it says is safe was nowhere
+ * to be seen. Re-rendering puts the new entry at the foot of the history and
+ * leaves the status where the sentence says it is, so the screen and the sentence
+ * agree for the first time.
  *
  * `from` IS THE STATUS THE TOOL ITEM STILL READS — the one the plan was built
  * on — because that is what the sentence has to tell them, not the one the event
@@ -253,13 +309,13 @@ async function writeEvent({ toolItem, event, jobRecordId, user, from }) {
                 error,
             }
         );
-        return {
-            error: TOOL_TRANSITION_COPY.statusNotUpdated({
+        return refuse(
+            TOOL_TRANSITION_COPY.statusNotUpdated({
                 toolItemId: toolItem.toolItemId,
                 event,
                 status: from,
-            }),
-        };
+            })
+        );
     }
 
     return null;
