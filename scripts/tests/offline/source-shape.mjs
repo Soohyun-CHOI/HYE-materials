@@ -50,6 +50,11 @@ export const title =
 
 const CLEANUP = "confirmIngestThenDelete";
 
+// The two values `Users."Role"` takes. Used only to assert that requireAdmin
+// names NEITHER of them (#196) — the Admin gate and the role gate must not
+// quietly converge on one predicate.
+const ROLES = new Set(["President", "Employee"]);
+
 // Blob cleanup call sites (#140). One row per production function, so adding a
 // fifth upload path means adding a row rather than editing assertions.
 //   cleansUp           — calls the shared helper at all
@@ -189,6 +194,28 @@ function memberCalls(node, objName, propName) {
         }
     });
     return found.sort((a, b) => a.start - b.start);
+}
+
+/**
+ * The property names read off a binding called `objName`, as one sorted string
+ * (#196). Returned as a VALUE rather than a set so a call site compares it with
+ * `check` and states the whole answer: a walk that collected nothing reports ""
+ * and fails, where an "does not read X" assertion passes for free.
+ */
+function propsReadOff(node, objName) {
+    const names = new Set();
+    walk(node, (n) => {
+        if (
+            n.type === "MemberExpression" &&
+            !n.computed &&
+            n.object?.type === "Identifier" &&
+            n.object.name === objName &&
+            n.property?.type === "Identifier"
+        ) {
+            names.add(n.property.name);
+        }
+    });
+    return [...names].sort().join(",");
 }
 
 /**
@@ -457,6 +484,41 @@ export function run(reporter) {
         );
     }
 
+    // ── a submitted Job is resolved before a Discipline is created (#196) ─────
+    //
+    // #29's guarantee, kept on #30's record id: the dropdown can only offer real
+    // Jobs, so what this defends against is a forged or stale direct call, and the
+    // property is the ORDER — resolve, refuse, and only then create.
+    //
+    // IT REPLACED verify-line-job-dropdown-30.mjs, whose header said in as many
+    // words that it mirrored this guard 1:1. Its resolveJobGuard re-typed the
+    // try/catch into the script and ran four cases against the copy, which says
+    // nothing about the action: the copy answers the same way whether or not the
+    // action still resolves anything. The Admin gate that script explicitly did NOT
+    // claim ("verified by inspection, not here") is authz-structure.mjs's, which
+    // proves the export is withAdminAction with the wrapper's own arity.
+    //
+    // EXERCISING THE REAL ACTION WAS AVAILABLE AND IS DELIBERATELY LEFT ALONE.
+    // verify-invoice-pairing-231.mjs reaches a Server Action over HTTP, and soo@ is
+    // both Admin and named, so this one is reachable today. #250 owns settling that
+    // harness against the heaviest write there is; a second one grown here for an
+    // input check would be the duplication that issue exists to avoid.
+    log("");
+    log("A submitted Job is resolved before a Discipline is created (#196/#30):");
+    const disciplineActions = "app/admin/disciplines/new/actions.js";
+    const disciplineFn = bodyOf(fileOf(disciplineActions), "createDisciplineAction", disciplineActions, reporter);
+    if (disciplineFn) {
+        assert(
+            "  createDisciplineAction resolves the submitted Job before creating anything",
+            callsBefore(disciplineFn, "getJobByRecordId", "createDiscipline")
+        );
+        // ANTI-VACUITY: callsBefore is false when EITHER call is absent, so the
+        // clause above is also what a renamed creator reports. Naming both halves
+        // makes a rename fail as a rename rather than as an ordering violation.
+        check("  and calls getJobByRecordId at all", callsFunction(disciplineFn, "getJobByRecordId"), true);
+        check("  and calls createDiscipline at all", callsFunction(disciplineFn, "createDiscipline"), true);
+    }
+
     // ── each write control's render condition matches its action's gate (#281) ──
     log("");
     log("PO controls render on exactly their own action's gate (#281):");
@@ -525,6 +587,72 @@ export function run(reporter) {
             ? /po\.poPdfFile\?\.\[0\]/.test(poActionsSrc.slice(regenFn.start, regenFn.end))
             : false
     );
+
+    // ── the role gates compare what their names say (#196) ────────────────────
+    //
+    // THIS REPLACED A MIRROR RATHER THAN JOINING ONE. verify-po-visibility-132.mjs
+    // reproduced requirePresident()'s gate as a local ["President"].includes(role)
+    // and asserted against that copy, so it answered the same way whether or not the
+    // real gate agreed — and #171 found its Admin case had been passing "Employee"
+    // under a label reading Admin for weeks. Two thirds of what it claimed were
+    // already held, by three checks with three different scopes: authz-structure.mjs
+    // proves signPOAction is gated AT ALL, the table above proves the gate is the
+    // PRESIDENT one, and authz-wrappers.mjs proves a throwing gate never runs the
+    // body. What NOTHING held is the third — that an Admin is not a President —
+    // which is exactly the clause the mirror got wrong.
+    //
+    // THAT FIRST SCOPE IS NARROWER THAN IT READS, AND IT WAS MEASURED HERE RATHER
+    // THAN ASSUMED. Rewriting signPOAction as withAdminAction leaves
+    // authz-structure.mjs green — `wrapped by withAdminAction, 2 arg(s)` is a pass,
+    // because that check asks whether an export is wrapped by one of the three and
+    // never which one an endpoint should have. The table above is what fails it.
+    //
+    // AND A CREDENTIALED RUN CANNOT HOLD IT EITHER, measured on the base rather than
+    // reasoned about: all five accounts there that are Admin and not President have
+    // no name, so since #381 requireUser() sends them to /login/name, and what comes
+    // back from a forged sign call is the name step rather than the gate — the PO
+    // stays unsigned for the wrong reason, which is the shape #171 was raised about.
+    // Naming one of those rows would be writing a colleague's name on their behalf.
+    // So the cheap check here covers precisely what the expensive one cannot.
+    //
+    // WHAT IT CANNOT SEE is whether `user.role` holds what Airtable holds. It reads
+    // the comparison, never the value arriving at it.
+    log("");
+    log("Role gates compare what their names say (#196):");
+    const authzFile = fileOf("lib/authz.js");
+    const presidentFn = bodyOf(authzFile, "requirePresident", "lib/authz.js", reporter);
+    if (presidentFn) {
+        const roleCalls = callsTo(presidentFn, "requireRole");
+        check("  requirePresident asks requireRole exactly once", roleCalls.length, 1);
+        const args = roleCalls[0]?.arguments;
+        check("  with exactly one argument", args?.length, 1);
+        // A LITERAL IS THE CLAUSE THAT MATTERS. requireRole accepts an array, so
+        // ["President", "Admin"] is still one argument — reading the node type is
+        // what refuses it, where an `includes("President")` test would not.
+        check(
+            "  and that argument is the string President",
+            args?.[0]?.type === "Literal" ? args[0].value : `<${args?.[0]?.type}>`,
+            "President"
+        );
+    }
+
+    // POSITIVE EQUALITIES RATHER THAN ABSENCES, which is the anti-vacuity: a walk
+    // that collected nothing reports "" and fails these, where "requireRole does not
+    // read isAdmin" would pass for free. Each gate is pinned from its own side, so
+    // the two cannot converge on one predicate without one of them failing.
+    const roleFn = bodyOf(authzFile, "requireRole", "lib/authz.js", reporter);
+    if (roleFn) {
+        check("  requireRole reads exactly this off the user", propsReadOff(roleFn, "user"), "role");
+    }
+    const adminFn = bodyOf(authzFile, "requireAdmin", "lib/authz.js", reporter);
+    if (adminFn) {
+        check("  requireAdmin reads exactly this off the user", propsReadOff(adminFn, "user"), "isAdmin");
+        check(
+            "  and names no role at all",
+            firstPositionOf(adminFn, (n) => n.type === "Literal" && ROLES.has(n.value)),
+            -1
+        );
+    }
 
     // The PO page must consume the shared predicate rather than re-deriving the
     // rule from status literals.

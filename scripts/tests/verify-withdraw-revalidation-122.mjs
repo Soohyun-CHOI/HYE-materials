@@ -1,7 +1,30 @@
-// Ad hoc verification for issue #122 — proves that withdrawAction's
-// SERVER-SIDE re-validation (requester + status) actually blocks
-// forged/bypassed calls, independent of the client UI (the detail page
-// only *hides* the control; this checks the server rejects regardless).
+// Ad hoc verification for issue #122 — withdrawAction's SERVER-SIDE
+// re-validation (requester + status), independent of the client UI (the detail
+// page only *hides* the control).
+//
+// ── THIS FILE MIRRORS A PRODUCTION GUARD AND IS THE LAST ONE THAT DOES (#196) ──
+//
+// `simulateWithdraw` below is a hand copy of withdrawAction's guard sequence, so
+// what the cases exercise is the copy: it answers the same way whether or not the
+// action still agrees with it, and a green run is therefore not evidence about
+// withdrawAction. #196 deleted the other two of this family
+// (verify-po-visibility-132.mjs, verify-line-job-dropdown-30.mjs) and left this one
+// standing, for a reason rather than by omission.
+//
+// WHAT MAKES IT DIFFERENT FROM THOSE TWO. Their mirrored claims were already held
+// structurally — offline/authz-structure.mjs, offline/authz-wrappers.mjs and
+// offline/source-shape.mjs between them — so deleting them lost nothing. This one's
+// subject is the requireUser per-record axis, which authz-structure.mjs states in
+// its own exemption that it does NOT cover: "a wrapper here would cover the half
+// that was never at risk and leave the deciding half uncovered". Deleting this
+// would remove the only thing standing where that half is, fake as it is. And
+// unlike 132's mirror, this one WRITES — the no-write assertions are about a real
+// Airtable path rather than about a pure function that could not have written.
+//
+// SO IT IS WAITING ON #250, which owns reaching a Server Action from a script and
+// settling that harness against the heaviest write. Replace `simulateWithdraw`
+// with a POST to the real action there; until then read this file's verdict as a
+// statement about getPRById/updatePR, not about withdrawAction's guard.
 //
 // The real withdrawAction is a Next.js Server Action: it resolves the
 // caller via requireUser() (iron-session, needs a live request/cookie
@@ -78,10 +101,11 @@ async function makePR(requesterId, targetStatus) {
 }
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. One bucket, no children:
-// these PRs are created bare. Same shape as verify-line-job-dropdown-30.mjs — the
-// cleanup already survived a throw and already reported a failed delete, but
-// `process.exitCode` is set inside run() before the finally, so that report could
-// never reach a verdict; and residue was never measured.
+// these PRs are created bare. The cleanup already survived a throw and already
+// reported a failed delete, but `process.exitCode` is set inside run() before the
+// finally, so that report could never reach a verdict; and residue was never
+// measured. (verify-line-job-dropdown-30.mjs was named here as the same shape and
+// was deleted by #196 — see the header.)
 const fixtures = createFixtures({
     tag: "V122",
     buckets: [

@@ -17,6 +17,14 @@
 // comes first" is structural — there is no ordering left for this check to
 // verify, and none for an author to get wrong.
 //
+// IT DOES NOT SAY WHICH GATE, and #196 measured that rather than inferring it:
+// rewriting signPOAction as withAdminAction leaves this check green, because
+// `wrapped by withAdminAction, 2 arg(s)` is a pass. The question of whether an
+// endpoint has the gate it should have is not asked here at all — for the three
+// PO controls it is offline/source-shape.mjs's PO_CONTROL_GATES, which pairs each
+// action's wrapper with the flag its control renders on. Nothing asks it for the
+// rest of the inventory.
+//
 // For an EXEMPT export: only that the named helper is called somewhere inside
 // the exported function. ORDER IS NOT CHECKED. The old substring check compared
 // gateIdx < workIdx; nothing here replaces that comparison, so an exempt route

@@ -17,9 +17,15 @@
 // offline/source-shape.mjs asserts that sort instead.
 //
 // What this cannot see is the page around it: the canViewPR gate is
-// offline/pr-visibility.mjs's (33 checks) and is exercised against real records by
-// verify-po-visibility-132.mjs, and the query budget is a property of
+// offline/pr-visibility.mjs's (33 checks), and the query budget is a property of
 // app/pos/page.js that #190's counter measures rather than this file.
+//
+// THIS NAMED verify-po-visibility-132.mjs AS EXERCISING THAT GATE AGAINST REAL
+// RECORDS, AND THAT SCRIPT NEVER DID (#196). Its decision table moved to
+// offline/pr-visibility.mjs in #152 and what stayed behind was a field-shape check
+// and a mirror of the President gate — neither of them canViewPR. The file is
+// gone; the gate is exercised against real records in a browser with
+// scoped-fixture@, which is where #205 put it.
 
 import { readFileSync } from "node:fs";
 import { isMain, standalone } from "./_harness.mjs";
