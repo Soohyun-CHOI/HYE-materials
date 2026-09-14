@@ -5,6 +5,7 @@ import { sendPOToVendorAction } from "./actions";
 // Issue #281 — pure and safe for a client bundle: `lib/poSend.js` imports nothing,
 // so the words the button and its failures use are the same object the action reads.
 import { SEND_COPY } from "@/lib/poSend";
+import { useReaderInstant } from "@/app/components/Instant";
 
 /**
  * Issue #281 — the control that mails the signed order to the vendor.
@@ -19,6 +20,11 @@ import { SEND_COPY } from "@/lib/poSend";
  */
 export default function SendToVendorForm({ poId, address }) {
     const [state, formAction, pending] = useActionState(sendPOToVendorAction, null);
+    // #374 — the action hands back the three facts of the send and this builds the
+    // sentence, so the moment resolves against the reader rather than the server.
+    // `null` until the browser can say what zone that is, which is the same wait
+    // `SentRecord` makes one section up for the same sentence's sibling.
+    const sentWhen = useReaderInstant(state?.notice?.at);
 
     return (
         <form action={formAction} className="space-y-2">
@@ -31,9 +37,9 @@ export default function SendToVendorForm({ poId, address }) {
                 send, so the second presser's answer is "the vendor already has it",
                 which is what they wanted rather than a failure. Red would tell them
                 something went wrong when nothing did. */}
-            {state?.notice && (
+            {state?.notice && sentWhen !== null && (
                 <p className="rounded border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-                    {state.notice}
+                    {SEND_COPY.alreadySent({ ...state.notice, when: sentWhen })}
                 </p>
             )}
             <p className="text-xs text-zinc-500">{address}</p>

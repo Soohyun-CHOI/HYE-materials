@@ -188,13 +188,19 @@ screen used to print the stored value, a UTC instant to the millisecond, which w
 the longest and most machine-shaped string here; what an entry carries is a moment
 somebody reads, and seconds are finer than the resolution a tool moves at.
 
-**Which zone it is in is not stated on the page, and that is a real gap rather
-than a detail.** The page renders on the server, so the moment resolves against
-wherever that happened — and the stored value used to carry a `Z` while this does
-not, so a reader on a site cannot tell from the string which zone they are
-reading. Closing it needs either a client boundary on the one screen this axis
-draws for a phone, or the zone said out loud beside the time. **A design may not
-assume the reader's own zone**; that is not what these strings are.
+**It is the reader's own zone, and that is why no zone is named (#374).** The
+moment resolves against the phone in the reader's hand rather than against the
+server, so there is nothing to convert and nothing to label — the same reason a
+phone's own clock carries no zone. **A design may assume the reader's zone here**,
+which is the opposite of what this brief said while the page rendered the
+server's; closing that took a client boundary on this screen, which is what the
+gap entry named as one of its two options.
+
+**It appears a moment after the rest of the entry**, because only the browser can
+say what zone the reader is in and it cannot say so until the page is
+interactive. Until then the entry's other three facts are there and this one is
+blank. A design may not reserve a placeholder that reads as a value, and it may
+not assume the four facts arrive together.
 
 ## What it carries only sometimes
 

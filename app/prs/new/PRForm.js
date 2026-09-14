@@ -11,7 +11,13 @@ import { PR_ITEM_MERGE_COPY, describeMerge } from "@/lib/prItemMerge";
 import { CATEGORY_PICKER_COPY, narrowCategories } from "@/lib/materialCategory";
 import SignerList from "./SignerList";
 import { CANONICAL_UNITS } from "@/lib/units";
-import { formatUSD } from "@/lib/format";
+import { DAY_FORMAT, formatUSD } from "@/lib/format";
+// #374 — this form is a Client Component and its three moments were already
+// resolving against the reader on the CLIENT, and against the server in the
+// markup they hydrate. The resume prompt renders on the first paint, so those
+// two disagreed whenever the two zones did. The component waits for the mount,
+// which is what makes the two renders identical.
+import Instant from "@/app/components/Instant";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 
 // quotationIndex: null until the Requester picks one (issue #67) — only
@@ -401,13 +407,7 @@ export default function PRForm({
                             <p className="font-medium">{draftLabel.prId}</p>
                             <p className="text-zinc-500">
                                 Saved{" "}
-                                {new Date(draftLabel.createdAt).toLocaleString(undefined, {
-                                    year: "numeric",
-                                    month: "numeric",
-                                    day: "numeric",
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                })}
+                                <Instant at={draftLabel.createdAt} />
                             </p>
                             {(draftLabel.disciplineLabel || draftLabel.vendorName) && (
                                 <p className="text-zinc-500">
@@ -521,13 +521,7 @@ export default function PRForm({
                                                     </div>
                                                     <p className="text-zinc-500">
                                                         Saved{" "}
-                                                        {new Date(d.createdAt).toLocaleString(undefined, {
-                                                            year: "numeric",
-                                                            month: "numeric",
-                                                            day: "numeric",
-                                                            hour: "numeric",
-                                                            minute: "2-digit",
-                                                        })}
+                                                        <Instant at={d.createdAt} />
                                                     </p>
                                                     {(d.disciplineLabel || d.vendorName) && (
                                                         <p className="text-zinc-500">
@@ -1032,7 +1026,7 @@ export default function PRForm({
                             A matching PR already exists for this Discipline —{" "}
                             <strong>{submitState.duplicateWarning.priorPrId}</strong>, submitted by{" "}
                             {submitState.duplicateWarning.priorRequesterName} on{" "}
-                            {new Date(submitState.duplicateWarning.priorDate).toLocaleDateString()}.
+                            <Instant at={submitState.duplicateWarning.priorDate} format={DAY_FORMAT} />.
                             Submit this one anyway?
                         </p>
                         <div className="flex gap-2">

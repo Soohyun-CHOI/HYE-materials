@@ -7,7 +7,8 @@ import { getToolItemByToolItemId } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { getToolLogByToolItem } from "@/lib/airtable/toolLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
-import { TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
+import { FACT_KIND, TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
+import Instant from "@/app/components/Instant";
 import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
 import { TOOL_LABEL_SHEET_COPY as SHEET_COPY, labelBudget, symbolBox } from "@/lib/toolLabelSheet";
 import { TOOLS_PATH, toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
@@ -262,7 +263,17 @@ async function renderToolItemPage({ params }) {
                                 }).map((fact) => (
                                     <div key={fact.key}>
                                         <dt>{fact.label}</dt>
-                                        <dd>{fact.value}</dd>
+                                        {/* #374 — a moment is drawn rather than
+                                            printed: this page is a Server
+                                            Component and only the browser knows
+                                            the reader's zone. */}
+                                        <dd>
+                                            {fact.kind === FACT_KIND.instant ? (
+                                                <Instant at={fact.value} />
+                                            ) : (
+                                                fact.value
+                                            )}
+                                        </dd>
                                     </div>
                                 ))}
                             </dl>

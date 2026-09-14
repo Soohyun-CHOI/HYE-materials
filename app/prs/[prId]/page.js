@@ -22,6 +22,7 @@ import { getOverageBannerFacts } from "@/lib/overagePR";
 import { formatUSD } from "@/lib/format";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ItemsSummaryRows from "@/app/components/ItemsSummaryRows";
+import Instant from "@/app/components/Instant";
 import SigningPanel from "./SigningPanel";
 import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
@@ -395,13 +396,7 @@ async function renderPRDetailPage({ params }) {
                     {historyEntries.map((entry, i) => (
                         <li key={i}>
                             <span className="text-zinc-400">
-                                {new Date(entry.at).toLocaleString(undefined, {
-                                    year: "numeric",
-                                    month: "numeric",
-                                    day: "numeric",
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                })}
+                                <Instant at={entry.at} />
                             </span>{" "}
                             — {entry.text}
                         </li>

@@ -73,7 +73,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 **Renaming a field is safe.** Airtable resolves a field by id, not by text, so a rename carries every formula, rollup, lookup and view filter with it. The only thing it breaks is a string literal in this repo, and those are enumerable: `record.get("...")`, a `filterByFormula` fragment, a `fields:` projection, a `parentLinkFieldName`. Rename the field, grep the old name across `lib/`, `app/` and `scripts/`, fix every hit, and commit both halves together. **Grep after the change, not before** — what matters is that nothing survives.
 
-**THE GREP COMING BACK EMPTY IS NOT THE LAST STEP — READ EVERY HUNK.** A blanket substitution also hits *a different identifier that happens to share the old name*, and nothing warns about it: not a type error, not a lint error, not a failing check. Ask of each renamed identifier whether it is the one the field is named after. Where the renamed thing is pure, call it both ways and compare.
+**A grep coming back empty is not the last step**: a blanket substitution also hits an identifier that happens to share the old name, and nothing warns — not a type error, not a lint error, not a failing check. `airtable-access.md` has the rule and the near-miss it was measured on.
 
 **A schema edit may not be assumed scriptable.** The Metadata API cannot write everything, and what it refuses is measured rather than read off the documentation — `docs/notes/airtable-access.md` has the figures, including which of the refusals force an invariant onto the DATA instead.
 
@@ -147,6 +147,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate, and a payment read behind a privilege test fails a check.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener. #232 retired a marker on the same ground.**
+- `app/components/Instant.js` — a stored instant, drawn in the reader's own zone (#374). **A time renders in the reader's zone and names none; the one surface with no reader — the order document — names the zone it used.** Nothing is drawn until the browser can say what that zone is, so no Server Component may format one.
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
 

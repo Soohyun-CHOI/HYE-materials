@@ -114,6 +114,24 @@ takes them away. They are not a layout to preserve.
 
    A redesign that adds a success state to a document screen is undoing this,
    which is why it is here rather than in one brief.
+7. **Every stored moment is in the reader's own zone, and no screen names a
+   zone.** A time the reader does not have to convert needs no label, which is
+   why none of them carries one; a label would be the app explaining a
+   conversion nobody has to make. **The times on every screen are therefore the
+   reader's own clock**, and a design that adds `UTC`, an offset or a zone
+   abbreviation beside one is describing something that is no longer true.
+
+   **They appear a moment after the page does, and that is structural rather
+   than a loading style.** Only the browser knows the reader's zone, so a time
+   is blank until the page is interactive while the sentence or the row around
+   it is already there. A design may not reserve a placeholder that reads as a
+   value, and may not assume a row's facts all arrive together.
+
+   **The one exception has no reader to ask**: the purchase order document a
+   vendor receives states the company's own zone and names it, because a printed
+   page cannot be asked where it is being read. That is the rule's other half
+   rather than a break in it — a time in a zone the reader did not choose must
+   say which zone it is.
 
 ## The four levels
 

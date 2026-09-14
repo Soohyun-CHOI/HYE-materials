@@ -250,12 +250,19 @@ export async function sendPOToVendorAction(prevState, formData) {
             // not the send. Worth it because "already sent" without who is the answer
             // that makes somebody go and ask.
             const already = po.sentBy?.[0] ? await getUserByRecordId(po.sentBy[0]) : null;
+            // #374 — THE PARTS, NOT THE SENTENCE. This action has no reader's zone
+            // to resolve `Sent At` against: it runs on the server, while the person
+            // who pressed the button is in a browser that knows theirs. Building the
+            // sentence here would put one moment in the server's zone directly
+            // beside `SentRecord`'s, which renders the same fact in the reader's — one
+            // screen, one act, two hours. So the form builds it from the same
+            // builder, and the shape stays `{ notice }` for the form's own branch.
             return {
-                notice: SEND_COPY.alreadySent({
+                notice: {
                     address: po.sentTo || "—",
-                    when: new Date(po.sentAt).toLocaleString(),
+                    at: po.sentAt,
                     by: already?.userName || null,
-                }),
+                },
             };
         }
         if (!eligibility.eligible) {

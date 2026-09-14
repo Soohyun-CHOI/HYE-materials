@@ -23,6 +23,7 @@ import { getOverageContext } from "@/lib/overagePR";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import DeleteDeliveryButton from "./DeleteDeliveryButton";
 import OverageButton from "./OverageButton";
+import Instant from "@/app/components/Instant";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // The route param IS the human-readable ID, so the tab names the record for
@@ -343,7 +344,7 @@ async function renderDeliveryDetailPage({ params }) {
                     <span className="text-zinc-500">Recorded by:</span> {recorder?.userName ?? "—"}{" "}
                     {delivery.createdAt && (
                         <span className="text-zinc-500">
-                            on {new Date(delivery.createdAt).toLocaleString()}
+                            on <Instant at={delivery.createdAt} />
                         </span>
                     )}
                 </p>
