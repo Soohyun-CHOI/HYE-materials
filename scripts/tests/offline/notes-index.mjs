@@ -13,19 +13,27 @@
 // split is undone in twenty-six issues. `Where new writing goes` states the
 // routing rule, and this asserts the outcome.
 //
-// HOW BYTES ARE COUNTED: the file's size on disk, `statSync().size`, which is what
-// `wc -c` reports and what a session actually loads. That includes CRLF line
-// endings — this repo's working tree uses them, so a count that normalized to LF
-// would read ~300 bytes lighter than the real file and the two numbers would drift
-// apart. No normalization, no stripping.
+// HOW BYTES ARE COUNTED: the content with every line ending normalized to `\n`.
+//
+// IT WAS `statSync().size` UNTIL #376, ON A PREMISE THAT WAS FALSE ABOUT HALF THE
+// PLACES THIS RUNS. The note here said the working tree uses CRLF, so normalizing
+// would read light — but `core.autocrlf` is what decides that, and it is true on a
+// Windows checkout and absent on the Linux runner. So one commit measured 55,231
+// bytes in a worktree and 54,883 in CI: the same content, a failing check on one
+// machine and a passing one on the other, with nothing in the file to explain it.
+// Measured, not reasoned about — the size ceiling exists to bound what a session
+// loads, and a rule whose verdict depends on which machine asked is not a bound.
+//
+// NORMALIZED RATHER THAN STRIPPED. A newline is content and is counted; what is
+// not counted is the second byte some checkouts spell it with.
 
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { REPO_ROOT, repoPath, toPosix } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "CLAUDE.md index and the docs/notes split";
 
-/** The ceiling, in bytes on disk. Raising this is not the fix — see the module note. */
+/** The ceiling, in normalized bytes. Raising this is not the fix — see the module note. */
 const CLAUDE_MAX_BYTES = 55000;
 
 /** Turn one index glob into a matcher. Only `**` and `*` are used in the index. */
@@ -78,12 +86,25 @@ export async function run({ check, log, assert }) {
     const claude = readFileSync(claudeAbs, "utf8");
 
     // --- the ceiling ------------------------------------------------------
-    log("the size ceiling, counted as bytes on disk:");
-    const bytes = statSync(claudeAbs).size;
+    log("the size ceiling, counted with line endings normalized:");
+    const bytes = Buffer.byteLength(claude.replace(/\r\n/g, "\n"), "utf8");
     log(`  CLAUDE.md is ${bytes} bytes; the ceiling is ${CLAUDE_MAX_BYTES}`);
     assert(
         `CLAUDE.md is at or under ${CLAUDE_MAX_BYTES} bytes — if this fails, MOVE A SECTION to docs/notes/ rather than raising the number`,
         bytes <= CLAUDE_MAX_BYTES
+    );
+    // ANTI-VACUITY FOR THE NORMALIZATION ITSELF (#376), which is otherwise invisible
+    // on a checkout that has no CRLF in it at all: the same content spelled both ways
+    // has to measure the same, and a byte of real content has to still count.
+    const crlf = "a\r\nb\r\n";
+    assert(
+        "  the count is the same whichever way a checkout spells a newline",
+        Buffer.byteLength(crlf.replace(/\r\n/g, "\n"), "utf8") ===
+            Buffer.byteLength("a\nb\n".replace(/\r\n/g, "\n"), "utf8")
+    );
+    assert(
+        "  and a newline is still content",
+        Buffer.byteLength("a\nb".replace(/\r\n/g, "\n"), "utf8") > Buffer.byteLength("ab", "utf8")
     );
 
     // --- the index parses -------------------------------------------------

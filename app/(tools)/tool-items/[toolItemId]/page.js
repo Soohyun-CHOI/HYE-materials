@@ -5,13 +5,14 @@ import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemByToolItemId } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
-import { getToolLogByToolItem } from "@/lib/airtable/toolLog";
+import { getRecentCheckOuts, getToolLogByToolItem } from "@/lib/airtable/toolLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { FACT_KIND, TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
 import Instant from "@/app/components/Instant";
 import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
 import { TOOL_LABEL_SHEET_COPY as SHEET_COPY, labelBudget, symbolBox } from "@/lib/toolLabelSheet";
 import { TOOLS_PATH, toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
+import { TOOL_EVENT } from "@/lib/toolStatus";
 import { planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
 import RetireToolItemForm from "./RetireToolItemForm";
@@ -72,6 +73,13 @@ export async function generateMetadata({ params }) {
  * because they are what every other tools surface shows and because they are
  * present even when the history is not. See `lib/toolItemView.js` for why nothing
  * here compares the two.
+ *
+ * AND ONE MORE WHEN THE OFFER IS A CHECK-OUT (#376), which is the first read this
+ * page has added since #340 and is why the figure above is now two figures. The
+ * names a check-out offers are other tool items' history on the reader's own jobs,
+ * so nothing already in hand can answer it; `getRecentCheckOuts` is one operation
+ * and stays one whatever a job's history grows to. Every other path — a check-in,
+ * a retired tool item, a reader with no job — asks nothing and pays nothing.
  *
  * IT OFFERS WHAT THAT STATUS ALLOWS (#362, #363), AND FOR NO OPERATIONS AT ALL.
  * The session and the whole job list are already read for the history's names,
@@ -151,6 +159,26 @@ async function renderToolItemPage({ params }) {
     // this page.
     const transition = planTransition({ user, jobs, status: toolItem.status });
 
+    // #376 — THE ONE READ THIS PAGE ADDED, AND ONLY WHERE IT IS USED. A check-out
+    // asks who the tool is going to and offers the names the reader's own jobs have
+    // recently handed tools to; a check-in returns one to stock and asks nobody, a
+    // retired tool item offers neither control, and a reader with no job is refused
+    // before either. So the query runs only when the offered event is the one that
+    // carries a name, which leaves this page at its recorded figure on every other
+    // path. One operation when it does run — see `getRecentCheckOuts` for why it is
+    // one and stays one.
+    const recentRows =
+        transition.event === TOOL_EVENT.CHECKED_OUT
+            ? await getRecentCheckOuts({ jobCodes: transition.jobs.map((job) => job.jobCode) })
+            : [];
+    // The reader hands back link arrays; the pure rule takes a job CODE, because
+    // the form narrows by the code its picker carries. Mapped from the job list
+    // already in hand, so this costs nothing.
+    const recentCheckOuts = recentRows.map((row) => ({
+        ...row,
+        jobCode: jobCodeById[row.job?.[0]],
+    }));
+
     // The host the symbol encodes, from the public host behind Vercel's proxy —
     // the same source both label screens read, so a symbol shown here and a symbol
     // printed there encode the same string. No Airtable operation.
@@ -210,6 +238,7 @@ async function renderToolItemPage({ params }) {
                             event={transition.event}
                             jobs={transition.jobs}
                             currentJobCode={jobCodeById[toolItem.job?.[0]]}
+                            recentCheckOuts={recentCheckOuts}
                         />
                     )}
                     {/* No jobs are handed to this one: a retirement inherits the
@@ -260,6 +289,7 @@ async function renderToolItemPage({ params }) {
                                     eventAt: row.eventAt,
                                     recordedByName: nameById[row.recordedBy?.[0]],
                                     jobCode: jobCodeById[row.job?.[0]],
+                                    checkedOutTo: row.checkedOutTo,
                                 }).map((fact) => (
                                     <div key={fact.key}>
                                         <dt>{fact.label}</dt>

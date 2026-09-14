@@ -106,14 +106,24 @@ export async function recordToolItemEventAction(prevState, formData) {
             jobs: await getAllJobs(),
             status: toolItem.status,
         });
-        const { event, job, refusal } = readSubmission(plan, {
+        const { event, job, checkedOutTo, refusal } = readSubmission(plan, {
             event: String(formData.get("event") ?? ""),
             jobId: String(formData.get("jobId") ?? ""),
+            checkedOutTo: String(formData.get("checkedOutTo") ?? ""),
         });
         if (refusal) return refuse(refusal);
 
-        // The actor's own job, because a scan is the actor handling the tool.
-        const failed = await writeEvent({ toolItem, event, jobRecordId: job.id, user, from: plan.status });
+        // The actor's own job, because a scan is the actor handling the tool. The
+        // name is the reader's answer rather than the form's (#376) — normalized,
+        // and null on a check-in whatever the form sent.
+        const failed = await writeEvent({
+            toolItem,
+            event,
+            jobRecordId: job.id,
+            checkedOutTo,
+            user,
+            from: plan.status,
+        });
         if (failed) return failed;
 
         redirect(toolItemPath(toolItem.toolItemId));
@@ -284,13 +294,17 @@ function refuse(error) {
  * function ignorant of which kind of event it is writing, which is what lets it
  * be one implementation.
  */
-async function writeEvent({ toolItem, event, jobRecordId, user, from }) {
+async function writeEvent({ toolItem, event, jobRecordId, checkedOutTo, user, from }) {
     await createToolLogEntry({
         toolItemRecordId: toolItem.id,
         toolItemId: toolItem.toolItemId,
         event,
         jobRecordId,
         recordedByUserId: user.id,
+        // Present on a check-out and absent on every other event (#376). The
+        // retirement below passes nothing, which is the same statement from the
+        // other side; `createToolLogEntry` refuses either half being wrong.
+        checkedOutTo,
     });
 
     try {
