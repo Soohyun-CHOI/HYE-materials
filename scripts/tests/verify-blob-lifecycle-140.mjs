@@ -256,7 +256,9 @@ try {
     complete = true;
 } catch (err) {
     // A `catch` where a bare `finally` used to be — see the same note on
-    // verify-po-visibility-132.mjs, and the run that measured it on 133.
+    // verify-po-awaiting-signature-133.mjs, which is where the shape was measured.
+    // This named verify-po-visibility-132.mjs as the third of that set; #196
+    // deleted that file for mirroring a production guard, so 133 carries the note.
     pass = false;
     console.error(`\n  ABORTED — ${err.message}`);
     console.error(err.stack);
