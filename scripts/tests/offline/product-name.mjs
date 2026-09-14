@@ -104,9 +104,20 @@ export function run({ check, assert, log }) {
         "the email subject reads SIGN_IN_TITLE rather than a literal",
         /subject:\s*SIGN_IN_TITLE\b/.test(sources.get("lib/email.js") ?? "")
     );
+    // THE HEADING MOVED FILE IN #373 AND THIS FOLLOWS THE SCREEN RATHER THAN THE
+    // FILE. `/login` became a Server Component so it could read the destination
+    // off the URL, which put its `<h1>` in the Client Component beside the page —
+    // a move that changed nothing about the sentence and would have failed an
+    // assertion naming `page.js`. What must not carry a literal is the SCREEN, so
+    // every file it is made of is searched, and the confirmation below it is
+    // excluded because it is a different screen with its own row in this check.
+    const signInScreen = [...sources.entries()].filter(
+        ([rel]) => rel.startsWith("app/login/") && !rel.startsWith("app/login/confirm/")
+    );
+    assert(`the sign-in screen is ${signInScreen.length} files`, signInScreen.length > 1);
     assert(
         "/login's heading reads SIGN_IN_TITLE rather than a literal",
-        /<h1[^>]*>\{SIGN_IN_TITLE\}<\/h1>/.test(sources.get("app/login/page.js") ?? "")
+        signInScreen.some(([, src]) => /<h1[^>]*>\{SIGN_IN_TITLE\}<\/h1>/.test(src))
     );
 
     // ── the legal name is not this constant ─────────────────────────────────

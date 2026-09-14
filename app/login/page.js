@@ -1,103 +1,43 @@
-"use client";
+import { safeDestination } from "@/lib/loginDestination";
+import { withOpsLabel } from "@/lib/airtableOps";
+import LoginForm from "./LoginForm";
 
-import { useState } from "react";
-import { SIGN_IN_TITLE } from "@/lib/productName";
-import { TOKEN_TTL_MINUTES } from "@/lib/authTokenState";
-
-// The `?error=` messages that used to live here are gone (#203). Their only two
-// producers were the redirects in app/api/auth/verify/route.js, and both went
-// when that route stopped answering GET — a refused sign-in now returns to
-// /login/confirm, which re-reads the row and names the actual reason. With no
-// producer left, the messages could not be reached, and neither could the
-// `useSearchParams` call that read them or the Suspense boundary that call
-// required.
-function LoginForm() {
-    const [email, setEmail] = useState("");
-    const [status, setStatus] = useState("idle"); // idle | submitting | sent | error
-    const [errorMessage, setErrorMessage] = useState("");
-
-    async function handleSubmit(e) {
-        e.preventDefault();
-        if (status === "submitting") return; // double-click / double-submit guard
-
-        setStatus("submitting");
-        setErrorMessage("");
-
-        try {
-            const res = await fetch("/api/auth/request", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email }),
-            });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || "Something went wrong");
-            }
-
-            setStatus("sent");
-        } catch (err) {
-            setStatus("error");
-            setErrorMessage(err.message);
-        }
-    }
-
-    if (status === "sent") {
-        return (
-            <div className="w-full max-w-sm text-center">
-                <h1 className="text-2xl font-semibold">Check your email</h1>
-                <p className="mt-2 text-zinc-600">
-                    We sent a sign-in link to {email}. Open it and press Confirm
-                    sign-in. It expires in {TOKEN_TTL_MINUTES} minutes.
-                </p>
-            </div>
-        );
-    }
-
-    return (
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-            <div>
-                {/* The same line the magic-link email's subject carries, from
-                    the same constant (#201) — this is the screen that email
-                    lands on, so reading the sentence it was sent under is what
-                    says the link arrived where it claimed, and distinguishes
-                    this app from the group's other portals. */}
-                <h1 className="text-2xl font-semibold">{SIGN_IN_TITLE}</h1>
-                <p className="mt-1 text-zinc-600">
-                    Use your company email address.
-                </p>
-            </div>
-
-            <input
-                type="email"
-                required
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@company.com"
-                disabled={status === "submitting"}
-                className="w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50"
-            />
-
-            {status === "error" && (
-                <p className="text-sm text-red-600">{errorMessage}</p>
-            )}
-
-            <button
-                type="submit"
-                disabled={status === "submitting"}
-                className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
-            >
-                {status === "submitting" ? "Sending..." : "Send sign-in link"}
-            </button>
-        </form>
-    );
+/**
+ * The sign-in screen, and the destination it holds on to (#373).
+ *
+ * IT BECAME A SERVER COMPONENT IN THIS ISSUE AND THE ALTERNATIVE IS WHY. The
+ * screen now carries where the reader was going, which arrives as a URL
+ * parameter; reading one from a Client Component means `useSearchParams()`, and
+ * that needs a `Suspense` boundary — the exact pair #203 removed when the
+ * `?error=` messages left. So the page reads the parameter on the server, judges
+ * it once, and hands the form a value it can only pass along. The form itself is
+ * unchanged and still a Client Component, in `LoginForm.js` beside this file.
+ *
+ * WHICH MEANS THIS PAGE OPENS AN OPS SCOPE AND ITS EXEMPTION IS GONE. It was the
+ * one entry point in the app excused from #224's rule, on the ground that it was
+ * the only Client Component page and `lib/airtableOps.js` is a forbidden root for
+ * the browser bundle. That ground no longer exists, so the exemption was deleted
+ * rather than left standing with a reason that had become false. The page still
+ * makes no Airtable call — the scope opens anyway, which is `/t/[toolItemId]`'s
+ * precedent: `withOpsLabel` logs in a `finally`, so a read added here later is
+ * counted without anyone remembering to.
+ *
+ * NOTHING ON THE SCREEN SAYS WHERE THE READER WAS GOING, and that is a decision
+ * rather than an omission: a refused destination and no destination at all are
+ * one outcome (`lib/loginDestination.js`), so there is no second case to word,
+ * and `/login` is reachable by anyone — a shared link naming somebody else's
+ * destination would show it to whoever opened it.
+ */
+export default async function LoginPage(props) {
+    return withOpsLabel("/login", () => renderLoginPage(props));
 }
 
-export default function LoginPage() {
+async function renderLoginPage({ searchParams }) {
+    const { destination } = await searchParams;
+
     return (
         <div className="flex flex-1 items-center justify-center p-8">
-            <LoginForm />
+            <LoginForm destination={safeDestination(destination) ?? ""} />
         </div>
     );
 }

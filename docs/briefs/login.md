@@ -1,7 +1,8 @@
 # Sign in
 
 Route: `/login`
-Who reaches it: anyone. It is also where every gate sends a reader with no session.
+Who reaches it: anyone. It is also where every gate sends a reader with no session,
+and it is handed the address that reader was trying to reach.
 
 ## What it answers
 
@@ -13,6 +14,11 @@ sees, so it carries more of the product's first impression than any other.
 There is no sign-up. A user record appears as a side effect of a first successful
 sign-in, so the same one field serves a new colleague and a returning one, and
 nothing on the screen distinguishes the two cases.
+**A reader often did not choose to come here.** Following any address in the app
+while signed out lands them on this screen. The most demanding case is a QR label
+on a tool, scanned on site: that person is holding a phone in front of the tool,
+and this screen is a step in a scan rather than something they opened.
+
 
 ## What it always carries
 
@@ -29,6 +35,11 @@ full-width filled button, `Send sign-in link`.
 That is the whole screen. It is centered in the viewport rather than laid out down
 the page, and it is one of only two screens in the app with no navigation of any
 kind.
+
+**It also carries one thing it never shows.** Where the reader was going travels
+with them from here — into the email, onto the confirm screen, and into the
+address they land on once they are signed in. It is in the URL and in a hidden
+field, never in a sentence.
 
 ## What it carries only sometimes
 
@@ -66,3 +77,14 @@ order PDF, which is what a vendor reads — never here.
 **Restricted to the company email domain**, which is why the placeholder shows a
 company-shaped address. There is no "sign in with Google", no password, and no
 recovery flow, because there is nothing to recover.
+**Nothing here announces where the reader was going, and that is a decision rather
+than an omission.** Someone who arrived from a tool label, someone who typed
+`/login` themselves, and someone whose destination was refused for pointing
+outside the app all see exactly the same screen. A line like `Sign in to continue
+to …` would be a sentence the app has no copy for, and on a screen anyone can
+open it would show whoever follows a shared link where somebody else was going.
+
+**This screen is used at a phone width as well as at a monitor**, because a scan
+that arrives signed out comes through it. It is the only screen outside the tools
+track of which that is true, along with the confirm screen after it.
+

@@ -500,20 +500,21 @@ const EXPECTED_LABEL = {
     "inline action": (e) => e.name,
 };
 
-// The one entry point that cannot open a scope, rather than one that was missed.
-const SCOPE_EXEMPTIONS = [
-    {
-        file: "app/login/page.js",
-        name: "default",
-        reason:
-            "The only Client Component page. lib/airtableOps.js is a FORBIDDEN ROOT for the " +
-            "browser bundle (offline/client-import-safety.mjs, #190) because of its " +
-            "node:async_hooks import, so labeling this page would make the two checks " +
-            "contradict each other — and an import is an execution, so the crash would be " +
-            "real rather than theoretical. It also reads nothing: the sign-in form posts to " +
-            "/api/auth/request, which carries its own label.",
-    },
-];
+// Entry points that cannot open a scope, rather than ones that were missed.
+//
+// THE LIST IS EMPTY AND THAT IS A FACT WORTH KEEPING RATHER THAN A LINE TO DELETE.
+// It held one entry for the life of #224's rule: `app/login/page.js`, the only
+// Client Component page in the app, which could not be labeled because
+// `lib/airtableOps.js` is a forbidden root for the browser bundle (#190) — so
+// labeling it would have made two checks contradict each other, and an import is
+// an execution, so the crash would have been real.
+//
+// **#373 removed the ground rather than the rule.** That page reads a destination
+// off the URL now, which made it a Server Component with the form beside it, so it
+// opens `withOpsLabel("/login")` like every other page and the exemption would
+// have been a reason that had stopped being true — the shape this check fails a
+// stale exemption for. Every entry point in the app is scoped.
+const SCOPE_EXEMPTIONS = [];
 
 /** Does this function's subtree open a scope, and with what literal? */
 function scopeLabelIn(fn) {
