@@ -3,6 +3,10 @@
 Route: `/login/confirm`
 Who reaches it: anyone holding a sign-in link. It is opened from an email client,
 so it is the one screen in the app that is regularly reached from outside it.
+It is also the second half of a scan that arrived signed out, so it is used at a
+phone width as well as at a monitor — the only screen outside the tools track of
+which that is true, along with the sign-in screen before it.
+
 
 ## What it answers
 
@@ -41,6 +45,12 @@ Everything else depends on the token's state.
 script, no action identifier. So it still works where scripts are blocked, and its
 behavior is reproducible in a single request. A redesign that makes it a
 script-driven control loses both properties.
+**The form also carries where the reader was going**, as a second hidden field
+beside the token, and pressing the button lands them there instead of on the root
+screen. Nothing on this screen names that address: like the sign-in screen before
+it, a reader who arrived with a destination and one who arrived without see the
+same words.
+
 
 **When the link is not valid — four states, each one sentence and no button:**
 
@@ -59,7 +69,9 @@ Only the expired case explains itself, because only it has a cause the reader ca
 act on — request another and use it sooner.
 
 **In all four:** a link reading `Request a new sign-in link`, going back to the
-sign-in screen. There is always exactly one way forward.
+sign-in screen — carrying the destination with it, so a reader whose link expired
+does not lose where they were going at the last step. There is always exactly one
+way forward.
 
 **A token whose expiry cannot be read counts as expired.** The state machine has no
 "unknown", so there is no sixth voice to design.

@@ -91,6 +91,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/idSequence.js` — the pure half: the daily ID families, the nine child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
 - `lib/productName.js` — `PRODUCT_NAME` and `SIGN_IN_TITLE`. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/authTokenState.js` — whether a magic-link token can still be used: the five states, their copy, `TOKEN_TTL_MINUTES`.
+- `lib/loginDestination.js` — where a signed-out reader was headed (#373): the parameter, the one predicate that judges it, and the two paths that carry it.
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
 - `lib/variance.js` — invoice/PO variance checks, and `VARIANCE_COPY`: the two kinds named apart (#179).
@@ -276,6 +277,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 **Operating convention:** office staff run with `Is Admin: true`; a non-Admin Employee is site staff. Gating an endpoint to Admin scopes it to the office, not to a higher trust tier.
 
 - `requireUser()` / `requireRole(role)` / `requireAdmin()` / `requirePresident()` are for Server Components and Actions. All redirect to `/login` with no session. On insufficient permission `requireRole`/`requireAdmin` return `{ authorized: false }` for the caller to render; `requirePresident()` throws. Route Handlers cannot use these — they call `getActiveUser()` or `requireAdminApi()`, which return the user or a 401/403 `Response`.
+- **A SIGNED-OUT READER RETURNS TO WHERE THEY WERE (#373).** `requireUser()` carries the address into `/login`, and the sign-in flow hands it back. `proxy.js` stamps that address and **gates nothing** — authorization stays in the page.
 - **Gate a new endpoint with a wrapper**, not a bare call: `withAdminApi`, `withAdminAction`, `withPresidentAction`. A wrapped export cannot run its body unauthorized, because the body is an argument the wrapper decides whether to call.
 - **A `withAdminAction` refusal follows the call site (#185):** an action whose every call site BINDS the return returns `{ error }`, and one any call site invokes without binding throws — `useActionState` and an awaited call observe a return, a bare `<form action>` discards it. It is a conjunction, so a non-binding caller is the thing to change. Held by `offline/action-refusal-shape.mjs`.
 - **A READ STATE IS NEVER REPLACED BY THE CONTROL THAT EDITS IT (#318).** A control may be absent for a reader who may not act, or closed for one who may; the fact it edits is stated either way and never twice.

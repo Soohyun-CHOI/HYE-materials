@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { verifyMagicLink } from "@/lib/auth";
+import {
+    confirmPath,
+    DEFAULT_DESTINATION,
+    DESTINATION_PARAM,
+    safeDestination,
+} from "@/lib/loginDestination";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
@@ -14,9 +20,13 @@ import { withOpsLabel } from "@/lib/airtableOps";
  *
  * Reached by a plain HTML form, so the body is form-encoded rather than JSON and
  * every response is a redirect a browser can follow with no script involved.
+ *
+ * IT IS ALSO THE ONE PLACE A DESTINATION TURNS INTO A REDIRECT (#373), which is
+ * what makes `safeDestination` below the call that actually protects anything:
+ * this endpoint is reachable without the page that renders the form, so a value
+ * judged only there would be judged nowhere. A value it refuses lands on
+ * `DEFAULT_DESTINATION`, exactly as a submission carrying none does.
  */
-
-const CONFIRM_PATH = "/login/confirm";
 
 /**
  * Reject a cross-origin submission.
@@ -60,6 +70,7 @@ export async function POST(request) {
 
         const form = await request.formData();
         const token = form.get("token");
+        const destination = safeDestination(form.get(DESTINATION_PARAM));
 
         // 303, not the 307 NextResponse.redirect defaults to: 307 preserves the
         // method, which would re-POST to the destination. 303 is what turns a POST
@@ -70,17 +81,19 @@ export async function POST(request) {
         // so the page re-reads the row and names the actual reason — already used,
         // expired, or never valid. A second POST of a consumed token therefore lands
         // on "already used" rather than on a generic error, and so does the back
-        // button after a successful sign-in.
+        // button after a successful sign-in. Since #373 each refusal carries the
+        // destination back as well, so a reader who has to request another link
+        // does not lose where they were going.
         if (typeof token !== "string" || !token) {
-            return seeOther(CONFIRM_PATH);
+            return seeOther(confirmPath({ destination }));
         }
 
         try {
             await verifyMagicLink(token);
         } catch {
-            return seeOther(`${CONFIRM_PATH}?token=${encodeURIComponent(token)}`);
+            return seeOther(confirmPath({ token, destination }));
         }
 
-        return seeOther("/");
+        return seeOther(destination ?? DEFAULT_DESTINATION);
     });
 }

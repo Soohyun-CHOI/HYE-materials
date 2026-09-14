@@ -71,6 +71,18 @@ export const title = "Every URL parameter is read by the screen it lands on, and
  * confirmation line was removed for — these four are the places where saying nothing
  * would be worse, and each one's entry says why it is not a confirmation.
  *
+ * THE SIXTH GROUP IS A DESTINATION AND IT IS THE FIRST PARAMETER THAT IS NOT ABOUT
+ * THE SCREEN CARRYING IT (#373). Every other entry here says something about the
+ * page it lands on — which rows, which record, which slice, what just happened. A
+ * destination says where the reader was going BEFORE the app interrupted them, so
+ * the screen holding it renders the same with it and without it. Run it through the
+ * reload test the four groups above are sorted by and it is idempotent: reopening
+ * `/login?destination=…` offers the same sign-in for the same address. It is clear
+ * of #321 on the same distinction `/tool-items/labels?id=` is — it says what the
+ * next act is FOR rather than that an act happened, so a copied link is a good
+ * request to sign in and go there, never somebody else's confirmation. And nothing
+ * on either screen says a word about it, which is why no sentence can outlive it.
+ *
  * THE SLICE GROUP HAS ONE MEMBER AND IS THE APP'S FIRST PAGING (#339). It is its own
  * group rather than a filter because a filter narrows which rows a reader asked for
  * and a page divides rows nobody asked to lose — put another way, a filter is a
@@ -99,7 +111,19 @@ const CARRIED = [
 
     // ── navigation: which record the form opens on ──────────────────────────
     { route: "/prs/new", param: "draft", note: "the saved Draft to resume (#72/#74); written by a Link on the drafts list and by both actions that raise one" },
-    { route: "/login/confirm", param: "token", note: "the magic-link token; written by lib/auth.js into the mail and by the verify route on every refusal" },
+    { route: "/login/confirm", param: "token", note: "the magic-link token; written by lib/loginDestination.js:confirmPath, which builds both the mail's link and every refusal the verify route returns to" },
+
+    // ── a destination: where the reader was going before being asked to sign in ──
+    {
+        route: "/login",
+        param: "destination",
+        note: "#373 — the address a reader with no session had asked for, written by requireUser() through `signInPath` and by the confirmation's `Request a new sign-in link`. Judged by one predicate wherever it is accepted; a value that fails it is dropped, and the screen then reads exactly as it does for a reader who arrived with none",
+    },
+    {
+        route: "/login/confirm",
+        param: "destination",
+        note: "#373 — the same address, carried across the mail round trip beside the token and handed to `POST /api/auth/verify` as a hidden field. This is the hop that leaves the app: it is in the recipient's mailbox, which `lib/loginDestination.js` records as the cost of the parameter being here rather than on the `Auth Tokens` row",
+    },
 
     // ── a slice: which page of a list too long to render at once ────────────
     {
@@ -220,9 +244,12 @@ function moduleStrings(ast) {
  * The static text of a string or template, with each interpolation replaced by `*`.
  *
  * A module const standing where a path should be is RESOLVED rather than starred —
- * `app/api/auth/verify/route.js` builds every one of its refusals as
- * `` `${CONFIRM_PATH}?token=…` ``, so starring it would lose the only route that
- * writer names.
+ * `lib/loginDestination.js` builds the mail's link and every refusal the verify
+ * route returns to as `` `${CONFIRM_PATH}?token=…` ``, so starring it would lose
+ * the only route those writers name. **That const moved out of
+ * `app/api/auth/verify/route.js` in #373**, which is where this sentence used to
+ * point: the two sign-in paths are built in one module now, because the
+ * destination parameter must be spelled in exactly one place.
  */
 function staticText(node, consts) {
     if (node?.type === "Literal" && typeof node.value === "string") return node.value;

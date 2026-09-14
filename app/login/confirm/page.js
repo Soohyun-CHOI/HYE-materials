@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getAuthTokenRecord } from "@/lib/airtable/authTokens";
 import { CONFIRM_COPY, describeToken, REQUEST_NEW_LINK, TOKEN_STATES } from "@/lib/authTokenState";
+import { DESTINATION_PARAM, safeDestination, signInPath } from "@/lib/loginDestination";
 import { SIGN_IN_TITLE } from "@/lib/productName";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -36,9 +37,21 @@ export default async function ConfirmSignInPage(props) {
  * press. Showing it is what makes a login-CSRF attempt visible to its victim —
  * being asked to sign in as somebody else is the one thing that reads as wrong.
  * It is also useful on its own, since one person can hold two addresses here.
+ *
+ * IT ALSO CARRIES A DESTINATION THROUGH (#373) AND SHOWS NOTHING OF IT. The
+ * address the reader was trying to reach when the app asked them to sign in
+ * arrives beside the token, rides the form as a hidden field, and is where
+ * `POST /api/auth/verify` lands them. It is judged here so a refused value never
+ * reaches the form, and judged again there, which is the call that protects
+ * anything — that endpoint is reachable without this page.
+ *
+ * AND THE WAY BACK CARRIES IT TOO. A reader whose link expired presses
+ * `Request a new sign-in link`, and that link holds the destination rather than
+ * dropping it at the last step of a flow that exists to preserve it.
  */
 async function renderConfirmSignInPage({ searchParams }) {
-    const { token } = await searchParams;
+    const { token, destination: asked } = await searchParams;
+    const destination = safeDestination(asked);
     const record = typeof token === "string" && token ? await getAuthTokenRecord(token) : null;
 
     const state = describeToken({
@@ -68,6 +81,9 @@ async function renderConfirmSignInPage({ searchParams }) {
                             reproducible with one request in a check. */}
                         <form method="POST" action="/api/auth/verify" className="mt-6">
                             <input type="hidden" name="token" value={token} />
+                            {destination && (
+                                <input type="hidden" name={DESTINATION_PARAM} value={destination} />
+                            )}
                             <button
                                 type="submit"
                                 className="w-full rounded bg-foreground px-3 py-2 text-background"
@@ -79,7 +95,10 @@ async function renderConfirmSignInPage({ searchParams }) {
                 ) : (
                     <>
                         <p className="mt-2 text-zinc-600">{copy.body}</p>
-                        <Link href="/login" className="mt-6 inline-block text-sm underline">
+                        <Link
+                            href={signInPath(destination)}
+                            className="mt-6 inline-block text-sm underline"
+                        >
                             {REQUEST_NEW_LINK}
                         </Link>
                     </>

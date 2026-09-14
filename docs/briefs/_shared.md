@@ -675,11 +675,22 @@ way, and that file's own header says to **delete it** when dark mode returns
 rather than widen it or add an exemption. A second appearance is not forbidden;
 it is deferred until there is a token layer to own it, which is #258.
 
-**Every screen but the tools screens is used at a monitor. The tools screens
-are used at a phone width as well.** A tool is entered and its labels printed
-at a desk; a tool item is scanned on site, on a phone, possibly by someone
-wearing gloves. So the tools screens have to work at both widths, and
-every other screen in this document assumes the monitor (#336).
+**The tools screens and the two sign-in screens are used at a phone width as
+well as at a monitor. Every other screen is used at a monitor.** A tool is
+entered and its labels printed at a desk; a tool item is scanned on site, on a
+phone, possibly by someone wearing gloves (#336). **`/login` and
+`/login/confirm` joined that set in #373**, which is a consequence of the same
+scan rather than a second premise: a label followed while signed out lands on
+the sign-in screen, so both steps of signing in happen on the phone before the
+tool item is ever drawn.
+
+**Those two name no width priority, and that is decided rather than left
+open.** Each tools brief says which width it is drawn for; these two say
+neither, because each is one field and one button with nothing to fold — there
+is no layout for a priority to decide today. It becomes a real question when
+#258 gives them a scale, and both cases are on the table when it does. What is
+measured rather than assumed: at 375px both screens render with no horizontal
+overflow, the form 311px inside the page's padding.
 
 **Both widths does not mean both first, and each tools brief now says which
 one it is drawn for (#348).** `/tools`, `/tools/new` and
