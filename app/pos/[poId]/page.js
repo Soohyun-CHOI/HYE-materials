@@ -96,6 +96,16 @@ export default async function PODetailPage(props) {
 // a judgment call, and the pattern is worth reaching for again rather than the pair
 // being read as clutter that resolved itself.
 //
+// AND #384 TOOK THE LAST ONE, SO THERE IS NO READ-SIDE FLAG ON THIS PAGE AT ALL.
+// The paragraph above ends "while `isOffice` keeps the internal `Delivery Address
+// Used` field", and that line is gone: with `Jobs."Alternate Delivery Address"`
+// removed, a Primary/Alternate select names a choice the base cannot express.
+// `isOffice` was declared for that one narrowing and nothing else read it, so it
+// went with the line — every fact this page renders is now readable by every
+// viewer who can see the order, and only the write controls are gated, each on its
+// own action's gate (#281). #386 puts the address itself back in the identity
+// block, ungated, because where an order was sent is not office-only information.
+//
 // WHY THE BADGE NEEDS NO GATE OF ITS OWN, STRUCTURALLY. Every invoice in that
 // section charges THIS order, and a reader is on this page only because `canViewPR`
 // admitted the request behind it — which is the clause `getVisibleInvoiceIds` reaches
@@ -108,16 +118,14 @@ export default async function PODetailPage(props) {
 // `Delivered/Undelivered` until that issue removed the second column.
 async function renderPODetailPage({ params }) {
     const user = await requireUser();
-    const isOffice = user.role === "President" || user.isAdmin === true;
-    // Issue #281 — `isOffice` stays for the READ-side narrowing that really is
-    // President-or-Admin. The write controls each match their own action's gate
-    // instead, which is what this page was getting wrong: signing is the President's,
-    // and the two document controls are `canSendPOToVendor`'s, resolved below once
-    // the PR is loaded.
+    // #281 — the write controls each match their own action's gate, which is what
+    // this page was getting wrong: signing is the President's, and the two document
+    // controls are `canSendPOToVendor`'s, resolved below once the PR is loaded.
     //
-    // #309 — ONE READ-SIDE NARROWING LEFT, the internal address line. `seesPayment`
-    // stood beside this line holding the same expression and is gone with the payment
-    // gate; see this file's header for what its separate name bought.
+    // #309 LEFT ONE READ-SIDE NARROWING AND #384 REMOVED IT, so `isOffice` is gone
+    // from here as well as `seesPayment`. Nothing this page renders is withheld by
+    // role any more; see this file's header for why the pair of separate names is
+    // what made each removal a deletion rather than a judgment call.
     const isPresident = user.role === "President";
     const { poId } = await params;
 
@@ -399,9 +407,19 @@ async function renderPODetailPage({ params }) {
                 <p>Vendor: {vendor?.vendorName || "—"}</p>
                 <p>Our PIC: {userName(ourPic) || "—"}</p>
                 <p>Our Manager: {userName(ourManager) || "—"}</p>
-                {/* Internal-only field (CLAUDE.md) — Primary/Alternate tracking,
-                    not shown to non-privileged viewers (#132). */}
-                {isOffice && <p>Delivery Address Used: {po.deliveryAddressUsed || "—"}</p>}
+                {/* #384 — THE `Delivery Address Used` LINE WAS HERE AND SAID
+                    NOTHING BY THE END. It rendered `Purchase Orders."Delivery
+                    Address Used"` to the office alone (#132), a Primary/Alternate
+                    select naming which of a job's two addresses the order used.
+                    Every one of the 34 orders on this base holds `Primary`, no
+                    code path has ever written the other value, and #384 removed
+                    `Jobs."Alternate Delivery Address"` — so the word named a
+                    choice the base can no longer express. The field and its values
+                    stay for #386, which makes it a link to `Addresses` copied off
+                    the request at generation; the address itself comes back to this
+                    block there, for every reader rather than the office alone,
+                    because where an order was sent is not office-only information.
+                    `isOffice` still gates the sign and regenerate controls. */}
             </div>
 
             <div className="mt-6">

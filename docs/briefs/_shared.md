@@ -620,8 +620,11 @@ them then had to undo** — the freed width had been handed to a neighbor each t
 opening the column took it back off that neighbor.
 
 **What survives is smaller than a column and still real.** A single LINE can be
-absent: the purchase order detail's `Delivery Address Used` is office-only, and the
-invoice list's `New invoice` control is Admin-only.
+absent: the invoice list's `New invoice` control is Admin-only. **The other example
+this named is gone** — the purchase order detail's office-only `Delivery Address
+Used` went in #384 with the field it read, which leaves that screen with no
+reader-dependent READ at all, only write controls that each match their own
+action's gate.
 
 **AND NO SECTION RENDERS TWO WAYS EITHER, SINCE #318.** One did. The invoice detail's
 `Payment` was a form for an Admin and the same fact as a sentence for everybody else —

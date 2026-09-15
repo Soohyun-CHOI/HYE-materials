@@ -96,6 +96,22 @@ const TOOL_JOB_AXIS =
     "assigned to no job is refused, which is the point rather than an oversight. Nothing on this axis is " +
     "scoped per tool item (#337), so the job is the only per-record comparison there is.";
 
+// #384's, AND IT IS THE ONE ENTRY ON THIS LIST WITH NO PER-RECORD COMPARISON
+// BEHIND IT — which is why it is a constant of its own rather than a fifth reader
+// of REQUIRE_USER_AXIS. That reason claims "the actual authorization is the
+// record-by-record comparison in the body", and borrowing it here would state
+// something untrue about this export and make the list's shortest entry read as
+// its strongest. An exemption is a precedent a future author copies, so the one
+// case where a session really is the whole gate has to say so.
+const SESSION_ONLY_AXIS =
+    "Session and nothing else, which is the whole gate rather than half of one. An `Addresses` row carries no " +
+    "owner, no money and no authorization — nothing on it is anybody's to be refused against — so there is no " +
+    "per-record comparison to make and none is implied. What decides that a session is enough is the operating " +
+    "convention rather than a predicate: `Is Admin` scopes an endpoint to the OFFICE (CLAUDE.md), and where " +
+    "material has to be delivered is the site's fact, so withAdminAction would refuse the requester this screen " +
+    "exists for — #385 sends one here from the request form when the address they need has no row yet. Compare " +
+    "/api/quotations/upload, which is any-active-user on the same reading.";
+
 // #281's axis, and the third of this mixed shape after the two delivery ones.
 const PO_DOCUMENT_AXIS =
     "Session + either the requester of the order's purchase request or the office, not a role. " +
@@ -228,6 +244,12 @@ const EXEMPTIONS = [
             "from nothing the submission carries. So there is no per-record comparison to write and no role that " +
             "would fit — a name is not an Admin decision. The narrowest of the requireUser axis, and the one " +
             "place in it where a wrapper would cover everything and still be wrong.",
+    },
+    {
+        file: "app/addresses/new/actions.js",
+        name: "createAddressAction",
+        mustCall: "requireUser",
+        reason: SESSION_ONLY_AXIS,
     },
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },

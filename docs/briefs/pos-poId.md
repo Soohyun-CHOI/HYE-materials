@@ -126,9 +126,12 @@ information, and it is the question the whole screen is downstream of.
 
 Everything here is absent in the normal case unless the entry says otherwise.
 
-**When the reader is office staff:** one more line in the identity block,
-`Delivery Address Used`, which is Primary or Alternate. It is internal tracking
-and no other reader sees it.
+**Nothing here varies by the reader's ROLE any more.** One line did — an internal
+`Delivery Address Used`, Primary or Alternate, in the identity block for office
+staff only — and it went in #384 with the second address slot it named: a job has
+one default address now, so the word named a choice the data cannot express. **A
+redesign should not draw room for a reader-dependent line in that block.** Where
+an order was sent comes back to it in a later issue, for every reader.
 
 **Beside the `Invoices` heading, two chips rather than one.** The invoicing state was
 there already; the payment one joined it — `Paid` / `Partly paid` / `Not paid` / `—`,

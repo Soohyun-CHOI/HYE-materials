@@ -112,6 +112,11 @@ const CARRIED = [
     // ── navigation: which record the form opens on ──────────────────────────
     { route: "/prs/new", param: "draft", note: "the saved Draft to resume (#72/#74); written by a Link on the drafts list and by both actions that raise one" },
     { route: "/login/confirm", param: "token", note: "the magic-link token; written by lib/loginDestination.js:confirmPath, which builds both the mail's link and every refusal the verify route returns to" },
+    {
+        route: "/addresses/new",
+        param: "job",
+        note: "#384 — the Job CODE the address is being recorded for, which preselects the picker and lists the addresses that job already uses. A CODE and not a record id, because the code is the identifier every document list prints and a record id in a URL is the defect docs/notes/naming.md records against /tools/[toolRecordId]. NOTHING IN THIS REPOSITORY WRITES IT YET: #385's request form is the writer, since that is the screen that knows the job and finds the address missing. An unknown or absent code preselects nothing rather than refusing — the job is a convenience here and not the screen's subject",
+    },
 
     // ── a destination: where the reader was going before being asked to sign in ──
     {
