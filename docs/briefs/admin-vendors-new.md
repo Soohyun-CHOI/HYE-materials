@@ -12,7 +12,11 @@ What it is worth knowing about a vendor record: **vendors have no account and ne
 touch this app.** Every one of these fields is a note the office keeps about someone
 outside the company, and the contact details are plain text rather than links to any
 user record for exactly that reason. The vendor never sees a screen; they receive a
-purchase order PDF by email, sent by hand, outside the app.
+purchase order PDF by email, **sent from inside the app** since #281 — to the
+`PIC Email` authored on this form, which is what makes that field the one here with
+a consequence beyond reference. This brief said the mail was sent by hand outside
+the app, which was true when it was written and stopped being true at #281;
+corrected per #181 by #384.
 
 ## What it always carries
 

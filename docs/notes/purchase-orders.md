@@ -89,6 +89,41 @@ The detail page counted what was delivered and what was invoiced without naming 
   - **The gap #168 opened, deliberately and not fixed there:** an unsigned PO reached the invoice picker with **nothing marking it as unsigned**, so office staff could pick an order the President had not approved. #198 closed it with a signal rather than a filter — see its own section below.
 - **Withdrawn (#138)** is the PO-side counterpart to PR Withdrawn: the requester decided not to order after all. Set by the **parent PR's Requester** (a PO carries no requester of its own, and needs none — nor an actor field on the withdrawal), confirmation modal, no reason capture, terminal (no revive). Eligibility is ONE shared predicate, `lib/poWithdraw.js:getPOWithdrawEligibility` — Status in {Awaiting Signature, Signed} AND no linked invoice (Invoice-PO Link join rows; the Invoice Items reverse-link is a safety net for a row stranded by a best-effort rollback). Status is tested first on purpose: a PO that fails the status test *and* has invoices must not be told to ask an Admin to unlink, since unlinking wouldn't make it withdrawable either. The two statuses are an allowlist, not an exclusion list — anything outside them is refused by default, including an option added to the field later without a matching code change. A linked invoice is evidence the order did go out, so the UI *explains* that an Admin has to unlink first rather than disabling the control. Modal copy (second person, to the actor) and page-banner copy (third person, to any viewer) sit as one pair in that same module and branch on the single condition `President Signed`. Terminal is enforced, not just labeled: `signPOAction` refuses a Withdrawn PO (without it, signing would write Status back to Signed and `syncPRStatusToPOSigned` would advance the PR), `regeneratePDFAction` refuses it — the PO PDF is the document sent to the vendor, so the line is "no new documents, existing document preserved": an already-generated PDF stays downloadable as audit trail — and `createInvoiceAction` refuses to link an invoice to one. A Withdrawn PO drops out of `getPOsExceptWithdrawn`/`searchPOs` (the invoice picker and /api/pos/search) and out of `/api/invoices/detect-po`'s candidates, where it is reported in its own `withdrawn` bucket instead: a vendor invoice quoting a withdrawn PO number means the vendor shipped anyway or the withdrawal was a mistake, which is the only place that contradiction surfaces, so it must never read as a failed detection. Partial closure of a partly invoiced PO is out of scope (there the order went out and was partly fulfilled — a different thing).
 
+### What the address chain took off this axis (#384)
+
+`docs/notes/addresses.md` owns that issue. Three things it did land here, and each
+is a thing somebody editing this area will otherwise re-derive.
+
+- **THE ORDER DOCUMENT HAS ONE DELIVERY ADDRESS BLOCK AND ITS TITLE LOST A
+  QUALIFIER.** It read `*Deliver To (Heavy Load)` over `Jobs."Delivery Address"`
+  and `*Alternate Delivery Address (Fedex, UPS etc..)` over the second slot when
+  the job had one. That slot is gone, so `(Heavy Load)` — which only ever meant
+  "not the parcel address" — names a distinction the document no longer draws, and
+  the title is `*Deliver To`. **A vendor reads this line**, which is why it is
+  recorded rather than folded in with the code change. The local is
+  `deliveryAddress` and not `primaryAddress` for the same reason, on `naming.md`'s
+  test: `primary` was named after the select value below and claims a contrast the
+  base cannot express. One `getAddressByRecordId` fewer per generation.
+  **Neither block has ever rendered an address on this base** — no job holds one,
+  so `fmtAddress(null)` has printed `—` since #13.
+- **`Delivery Address Used` IS READ BY NOTHING AND ITS 34 VALUES STAY.** All 34 are
+  `Primary`, `lib/poGeneration.js` writes that literal and nothing updates it, and
+  with no alternate the select names a choice the base cannot express. It is not
+  deleted: the Metadata API has no field DELETE, and #386 converts it to a link
+  copied off the request — starting from those values. `/pos/[poId]` stopped
+  rendering it, because a screen must not state a distinction the data no longer
+  has.
+- **AND THAT TOOK THIS PAGE'S LAST READ-SIDE PRIVILEGE FLAG.** `isOffice` guarded
+  that one line and nothing else once #309 deleted `seesPayment`, so it went with
+  the line. **Every fact `/pos/[poId]` renders is now readable by every viewer who
+  can see the order**, and the only gated things are the write controls, each on
+  its own action's gate (#281). `offline/source-shape.mjs` chose between three flag
+  names for those controls and chooses between two, with an assertion that
+  `isOffice` stays gone — a re-appearance is either that line returning without its
+  issue or a control being re-gated on the office. #386 puts an address back in the
+  identity block **ungated**, on #211's and #309's reading: where an order was sent
+  is not office-only information.
+
 ### Sending the order to the vendor (#281)
 
 The order document was generated, attached and offered for download, after which somebody opened their own mail client, looked up the vendor and attached it by hand. A control beside that download now sends it, with the PDF attached, to `Vendors."PIC Email"`. This is the **first mail this app sends outside the company** — the four sends in `lib/email.js` before it all go to staff.

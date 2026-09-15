@@ -539,7 +539,15 @@ export function run(reporter) {
         check(`  ${g.form} renders on ${g.pageFlag}`, rendered, true);
         // And no OTHER flag guards it, which is the half that caught #281's defect:
         // the page said isOffice and the action said President.
-        for (const other of ["isOffice", "isPresident", "canSend"]) {
+        //
+        // `isOffice` LEFT THIS SET IN #384, WITH THE PAGE'S LAST READ-SIDE
+        // NARROWING. That flag guarded one line, the internal `Delivery Address
+        // Used` field, and #384 removed the line — so the page declares two flags
+        // now and a third name here would make every `and not on isOffice` clause
+        // pass for free, which is exactly what the binding assertion below exists
+        // to stop. The historical sentence above is unchanged: it records what
+        // #281 found, not what the page says today.
+        for (const other of ["isPresident", "canSend"]) {
             if (other === g.pageFlag) continue;
             const wrong = new RegExp(`${other}\\s*(\\?|&&)[\\s\\S]{0,200}?<${g.form}\\b`).test(poPageSrc);
             check(`    and not on ${other}`, wrong, false);
@@ -567,9 +575,18 @@ export function run(reporter) {
     );
     // And the flags it is choosing between must all be defined on the page, or a
     // renamed one would make every "not on X" clause pass for free.
-    for (const flag of ["isOffice", "isPresident", "canSend"]) {
+    for (const flag of ["isPresident", "canSend"]) {
         assert(`  ${flag} is a real binding on the page`, new RegExp(`const ${flag} =`).test(poPageSrc));
     }
+    // AND THE FLAG THAT LEFT MUST STAY GONE (#384), which is the same assertion
+    // read the other way: `isOffice` was declared for one read-side narrowing and
+    // nothing else, so a re-appearance is either that line coming back without its
+    // issue or a write control being re-gated on the office. #386 puts the address
+    // back in the identity block for EVERY reader, so it needs no flag.
+    assert(
+        "  isOffice is not declared on the page — its one read-side narrowing went in #384",
+        !/const isOffice =/.test(poPageSrc)
+    );
     // #281 — the document control's contract matches what the page offers: it refuses
     // an order that already has one. The page renders it only inside the `!pdfFile`
     // branch, so the overwrite the old docstring promised was never reachable, and the

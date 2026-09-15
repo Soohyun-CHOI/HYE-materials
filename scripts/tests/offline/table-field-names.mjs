@@ -129,6 +129,17 @@ const RETIRED = {
     "PR Record ID": "#334 — the lookup is gone; read `Purchase Requests`' reverse-link",
     "Invoice Record ID": "#334 — the lookup is gone; read `Invoices`' reverse-link",
     "PO Record ID": "#334 — the lookup is gone; read `Purchase Orders`' reverse-link",
+    // #384 — A SECOND SLOT REMOVED RATHER THAN RENAMED, which is #318's `Paid`
+    // shape: the fact survives under another field, not under another name.
+    // `Jobs` held `Delivery Address` and `Alternate Delivery Address` and could
+    // therefore hold exactly two, so a third place to ship to meant a third field.
+    // The second slot is gone and `Addresses."Jobs"` carries as many as a job
+    // uses, with `Delivery Address` naming the default among them.
+    //
+    // `Delivery Address` is NOT here and must never be: it is the live field this
+    // one sat beside, and it is a SUBSTRING of the retired name — the `Line 1`
+    // trap at the top of this map, which is why every entry is matched whole.
+    "Alternate Delivery Address": "#384 — a job's other addresses are `Addresses.\"Jobs\"`",
 };
 
 /**
