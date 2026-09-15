@@ -63,6 +63,7 @@ import { MAX_UPLOAD_BYTES, UPLOAD_LIMIT_COPY } from "../../../lib/uploadLimit.js
 import { FILE_AXIS_LABEL, FILE_VIEWER_COPY } from "../../../lib/fileLinks.js";
 import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
 import { MATERIAL_SEARCH_COPY } from "../../../lib/materialPriceView.js";
+import { PO_ADDRESS_COPY } from "../../../lib/poDeliveryAddress.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -293,6 +294,16 @@ const PINNED = [
     // rewording fails.
     "Purchase order PDF",
     "Packing list photo",
+    // #386 — THE SENTENCE FOR AN ORDER THAT FROZE NO ADDRESS, in two clauses for
+    // the wrap reason three entries up rather than as one string: `pos-poId.md`
+    // wraps at 72 and the whole sentence does not fit a line. Each clause is
+    // distinctive on its own, which is what the `Paid` objection asks of a pin.
+    // `PO_ADDRESS_COPY.label` is NOT here: `Delivery address` is a word `/prs/new`
+    // also says, so a pin on it would go on passing after this screen stopped —
+    // and the two are already held together by value in
+    // `offline/po-delivery-address.mjs`, which is the stronger assertion anyway.
+    "shows no delivery address either",
+    "Give the vendor the address separately",
     // The three sentences that stand in for a file, pinned on their distinctive
     // clause rather than whole: the briefs wrap, and the first of these is long
     // enough that the full sentence would match the constant and not the brief.
@@ -525,6 +536,10 @@ export function run({ check, assert, log }) {
         // #357 — the search box's words and its two misses. `truncated` is a
         // builder that takes a count, which `stringsFrom`'s `[1]` probe supplies.
         ...stringsFrom(MATERIAL_SEARCH_COPY),
+        // #386 — two plain values, of which one is pinnable: `label` is a single
+        // word this app also says on `/prs/new`, which is the substring trap the
+        // `Paid` note below describes, so only the sentence is pinned.
+        ...stringsFrom(PO_ADDRESS_COPY),
         // #188 — CALLED WITH A REAL LIST RATHER THAN LEFT TO `stringsFrom`, whose
         // three probe shapes cannot supply one: every one of them makes the builder
         // throw, so the sentence a brief quotes would silently be absent from

@@ -30,8 +30,18 @@ this screen may suggest the figures are live.
 
 **identity.** The PO ID as the page heading. Then a block of small lines: the
 status in bold, the purchase request's ID, the job as code and name, the
-discipline, the vendor, and the two internal contacts, `Our PIC` and
-`Our Manager`. Any of them may be missing and renders as an em dash.
+discipline, the vendor, the two internal contacts, `Our PIC` and `Our Manager`,
+and where the order goes. Any of them may be missing and renders as an em dash.
+
+**`Delivery address` is the place, and it is the order's own rather than the
+job's.** The requester picked it on the request and the order froze it at
+generation, so it is what the purchase order PDF told the vendor and it does not
+move when the job's usual address changes later. The line shows the address's own
+label — the human-typed name of the place, like `Leander Yard - Gate 3`, and the
+same value the request's detail screen shows — rather than the street; the street
+is what the PDF prints, because a vendor needs the address and not our name for
+it. **Every reader of this page sees it**, on the same reading as the send record
+below: where an order was sent is not office-only information.
 
 **`Discipline` arrived in #314 and the reason is a removal elsewhere.** That issue
 took the word off the purchase order list, whose `Job / Discipline` column was the
@@ -130,8 +140,18 @@ Everything here is absent in the normal case unless the entry says otherwise.
 `Delivery Address Used`, Primary or Alternate, in the identity block for office
 staff only — and it went in #384 with the second address slot it named: a job has
 one default address now, so the word named a choice the data cannot express. **A
-redesign should not draw room for a reader-dependent line in that block.** Where
-an order was sent comes back to it in a later issue, for every reader.
+redesign should not draw room for a reader-dependent line in that block.** #386
+put the place itself back there, for every reader, which is the line above.
+
+**When the order froze no delivery address:** the value reads as an em dash, and
+under it a short amber line says the purchase order PDF
+`shows no delivery address either` and to
+`Give the vendor the address separately`. **It says only what the dash cannot** —
+the dash already means "no address", so the sentence carries the consequence and
+the instruction and nothing else. The reader it is for is the one about to send
+the order, which is done from this page. This is the ordinary state for every
+order generated before the request carried an address at all, so on a base of old
+orders it is on most of them rather than on an exceptional few.
 
 **Beside the `Invoices` heading, two chips rather than one.** The invoicing state was
 there already; the payment one joined it — `Paid` / `Partly paid` / `Not paid` / `—`,

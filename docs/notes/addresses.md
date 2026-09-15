@@ -365,3 +365,42 @@ two numbers for one screen with no account beside them is the thing a later
 reader cannot resolve.
 
 ---
+
+### Freezing it onto the order (#386)
+
+Third of the four. `docs/notes/purchase-orders.md` owns the issue — the field, why
+the select was replaced rather than retyped, what an order with no address does,
+and the figures. Two things belong here, because they are about the CHAIN rather
+than about the order axis.
+
+**THE JOB STOPPED BEING READ FOR AN ADDRESS ANYWHERE, AND THAT WAS THE POINT OF
+THE CHAIN.** #384 removed the second slot, #385 put the question on the request,
+and this issue removed the last live read: `lib/poPdf.js` resolved
+`job.deliveryAddress` on every render, so a job edit moved a ship-to on a document
+a vendor had already been emailed. Nothing in the app now reads a job's default
+address except the form that offers it as a choice — which is what
+`lib/addressChoice.js:jobDefaultAddressId` is for and its only remaining purpose.
+**`Jobs."Delivery Address"` is therefore a form default and nothing else**, which
+is worth knowing before #387 or a job-address editor reaches for it.
+
+- **`lib/addressChoice.js` WAS READ AND DELIBERATELY NOT USED.** The obvious hop
+  is that an order needs the module that knows about addresses; it does not. That
+  module is the rule for PICKING one — two branches, a grouped list, a resumed
+  draft's derivation — and an order picks nothing, so importing it would make a
+  screen about a frozen copy depend on a form's module. What the two screens do
+  share is one word, and `PO_ADDRESS_COPY.label` is pinned to
+  `ADDRESS_CHOICE_COPY.label` BY VALUE in `offline/po-delivery-address.mjs`, which
+  fails if either is reworded alone. Same shape `offline/address-creation.mjs`
+  already uses to pin `/addresses/new`'s three group labels against `PRForm.js`.
+
+**THE 39-REQUEST FIGURE ABOVE IS 40 NOW, AND ONE OF THEM CARRIES AN ADDRESS.**
+#385's own section says thirty are `PO Signed`, one `Withdrawn` and six `Approved`;
+`HYE-PR-260915-01` was raised through the new form afterwards and holds
+`Leander Yard - Gate 3`. It is the first and only request on this base with one,
+which makes the order generated from it **the first order on this base that
+carries a delivery address at all** — and the only row either #386 or #387 can be
+looked at against. The six-`Approved` sentence is still right about the status and
+wrong about what follows from it; the correction is in `purchase-orders.md`, where
+the generation path is.
+
+---

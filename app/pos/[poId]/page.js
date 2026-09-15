@@ -18,7 +18,13 @@ import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { getDisciplineByRecordId } from "@/lib/airtable/disciplines";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
+import { getAddressByRecordId } from "@/lib/airtable/addresses";
 import { getUserByRecordId } from "@/lib/airtable/users";
+// #386 — where this order's material goes, and the sentence for an order that
+// froze no address. The word is pinned to `/prs/new`'s rather than imported from
+// it; see that module for why a screen about a frozen copy does not depend on the
+// form's picking rule.
+import { PO_ADDRESS_COPY } from "@/lib/poDeliveryAddress";
 import { formatUSD } from "@/lib/format";
 // #179 — the two variance kinds, named where the predicates that set them live.
 import { VARIANCE_COPY } from "@/lib/variance";
@@ -103,8 +109,10 @@ export default async function PODetailPage(props) {
 // `isOffice` was declared for that one narrowing and nothing else read it, so it
 // went with the line — every fact this page renders is now readable by every
 // viewer who can see the order, and only the write controls are gated, each on its
-// own action's gate (#281). #386 puts the address itself back in the identity
-// block, ungated, because where an order was sent is not office-only information.
+// own action's gate (#281). #386 PUT THE ADDRESS ITSELF BACK IN THAT BLOCK and it
+// is ungated, because where an order was sent is not office-only information — so
+// the flag did not come back with the line, which is the thing that paragraph was
+// predicting and the reason it is worth reading as settled rather than pending.
 //
 // WHY THE BADGE NEEDS NO GATE OF ITS OWN, STRUCTURALLY. Every invoice in that
 // section charges THIS order, and a reader is on this page only because `canViewPR`
@@ -182,13 +190,21 @@ async function renderPODetailPage({ params }) {
     // `Purchase Requests`, exactly as `Job` is — a schema change that would also give
     // the app a second source for a discipline's name while `/prs/[prId]` reads the
     // table, which is the divergence #314 exists to close rather than open.
-    const [job, discipline, vendor, ourPic, ourManager, sentBy] = await Promise.all([
+    //
+    // #386 — THE DELIVERY ADDRESS JOINS THE SAME BATCH AND COSTS ONE OPERATION,
+    // measured rather than hoped for: `Purchase Orders."Delivery Address"` is a
+    // link, so it arrives as a record id and the `Addresses` row still has to be
+    // read for its label — the same shape the paragraph above measured for the
+    // discipline. An order that froze no address reads nothing at all, so the two
+    // requests on this base with no address cost the page nothing.
+    const [job, discipline, vendor, ourPic, ourManager, sentBy, deliveryAddress] = await Promise.all([
         pr.job?.[0] ? getJobByRecordId(pr.job[0]) : null,
         pr.discipline?.[0] ? getDisciplineByRecordId(pr.discipline[0]) : null,
         pr.vendor?.[0] ? getVendorByRecordId(pr.vendor[0]) : null,
         po.ourPic?.[0] ? getUserByRecordId(po.ourPic[0]) : null,
         po.ourManager?.[0] ? getUserByRecordId(po.ourManager[0]) : null,
         po.sentBy?.[0] ? getUserByRecordId(po.sentBy[0]) : null,
+        po.deliveryAddress?.[0] ? getAddressByRecordId(po.deliveryAddress[0]) : null,
     ]);
     const sentByName = userName(sentBy) || null;
 
@@ -407,19 +423,36 @@ async function renderPODetailPage({ params }) {
                 <p>Vendor: {vendor?.vendorName || "—"}</p>
                 <p>Our PIC: {userName(ourPic) || "—"}</p>
                 <p>Our Manager: {userName(ourManager) || "—"}</p>
-                {/* #384 — THE `Delivery Address Used` LINE WAS HERE AND SAID
-                    NOTHING BY THE END. It rendered `Purchase Orders."Delivery
-                    Address Used"` to the office alone (#132), a Primary/Alternate
-                    select naming which of a job's two addresses the order used.
-                    Every one of the 34 orders on this base holds `Primary`, no
-                    code path has ever written the other value, and #384 removed
-                    `Jobs."Alternate Delivery Address"` — so the word named a
-                    choice the base can no longer express. The field and its values
-                    stay for #386, which makes it a link to `Addresses` copied off
-                    the request at generation; the address itself comes back to this
-                    block there, for every reader rather than the office alone,
-                    because where an order was sent is not office-only information.
-                    `isOffice` still gates the sign and regenerate controls. */}
+                {/* #386 — AND THE ADDRESS ITSELF IS BACK, FOR EVERY READER. The
+                    line here until #384 was `Purchase Orders."Delivery Address
+                    Used"`, a Primary/Alternate select rendered to the office alone
+                    (#132) that named which of a job's two addresses the order used
+                    — a choice the base stopped being able to express when that
+                    issue removed `Jobs."Alternate Delivery Address"`, so the line
+                    went and took this page's last read-side privilege flag with it.
+                    What replaces it is the place rather than the word for a choice,
+                    UNGATED on #211's and #309's reading: where an order was sent is
+                    not office-only information. `isPresident` and `canSend` still
+                    gate the write controls, each on its own action's gate.
+
+                    IT IS THE LABEL AND NOT THE FORMATTED ADDRESS, which is what
+                    `/prs/[prId]` renders for the same link — two screens naming one
+                    thing one way, and the identity block is one-line facts. The
+                    purchase order PDF prints `Formatted Address`, because a vendor
+                    needs the street and not our name for the place. */}
+                <p>
+                    {PO_ADDRESS_COPY.label}: {deliveryAddress?.addressLabel || "—"}
+                </p>
+                {/* The em dash above is the whole of "there is no address", so this
+                    says only what it cannot: that the document a vendor reads has no
+                    ship-to either, and what to do instead. Placed here rather than
+                    beside the send control because it is a fact about the order, and
+                    #318's rule is that the fact does not move to wherever the act
+                    is — but the reader it is for is the one about to send, which is
+                    why it is a sentence and not a dash alone. */}
+                {!deliveryAddress && (
+                    <p className="text-xs text-amber-700">{PO_ADDRESS_COPY.none}</p>
+                )}
             </div>
 
             <div className="mt-6">

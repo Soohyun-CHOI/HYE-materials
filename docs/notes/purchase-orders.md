@@ -124,6 +124,103 @@ is a thing somebody editing this area will otherwise re-derive.
   identity block **ungated**, on #211's and #309's reading: where an order was sent
   is not office-only information.
 
+### Freezing the delivery address onto the order (#386)
+
+The order document prints a ship-to and a vendor is emailed it, and until this
+issue `lib/poPdf.js` read that address off the JOB every time it rendered — so
+editing a job's default address silently changed what an already-sent document
+said. `Purchase Orders` gains a `Delivery Address` link, copied off the request at
+generation like every other value the order snapshots, and the document reads
+that. Third of the four addresses chain; `docs/notes/addresses.md` owns the chain.
+
+- **THE SELECT WAS NOT RETYPED, AND #356's ORDERING IS WHY RATHER THAN WHY NOT.**
+  The obvious reading of this issue is to convert `Delivery Address Used` from a
+  `singleSelect` to a link — the Metadata API refuses a type change (422), so a
+  hand conversion in the UI, with the code taking both shapes across the window.
+  **What made #356's window zero is that its committed code STOPPED WRITING the
+  retyped field**, which `materials.md` states outright: the additive fields went
+  first, the commit read them, the retype came last, and in between the code was
+  already correct because it wrote nothing to the field being retyped. **This
+  issue's code has to START writing.** Whichever half lands first, the other is
+  putting the wrong shape into `createPO` — an address record id into a select, or
+  `"Primary"` into a link — and both come back `Insufficient permissions to create
+  new select option`, the refusal #334 and #181 already measured. The create fails,
+  the rollback runs, and **PO generation is down for the length of one hand edit**.
+  There is no ordering that avoids it, so the window is not zero and the procedure
+  does not transfer.
+  - **SO IT IS AN ADDITIVE CREATE PLUS A DEFERRED HAND DELETION, WHICH IS #363's
+    SHAPE.** A `multipleRecordLinks` field creates cleanly through the Metadata
+    API; old code ignores a field it does not name and new code writes it, so the
+    window really is zero. The select is inert from this commit on, and
+    `airtable-access.md` already records that as what makes a removal safe to
+    defer: the Metadata API has no field DELETE (404, re-measured in #363), so it
+    waits for the UI either way. **It is a `singleSelect` and not a link, so
+    deleting it leaves nothing behind** — #384's named-but-typeless survivor is a
+    property of link fields, and saying so is what stops somebody hunting for an
+    orphan that cannot exist.
+  - **AND THE NAME HAD TO CHANGE ANYWAY, WHICH IS WHAT MAKES THE NEW FIELD FREE.**
+    `Delivery Address Used` names WHICH OF TWO was used; as a link it names a
+    place, so the name would make a claim its contents contradict — `naming.md`'s
+    test, the one #384 applied to `primaryAddress` one file over. The name is
+    `Delivery Address`, matching `Jobs` and `Purchase Requests`: one concept, three
+    tables, one word, which is the frozen-copy convention `Shipping Fee` and every
+    `PO Items` value already follow. A retype would have needed a rename beside it.
+- **THE 34 EXISTING ORDERS ARE LEFT EMPTY, AND A BACKFILL WAS AVAILABLE.** All 34
+  hold `Delivery Address Used: Primary`, all 34 are on `26-DEMO-01`, and that job
+  now has a default address — so `Primary` resolves and the write is one PATCH per
+  row. **It was rejected on the timing.** Those orders were created 2026-09-11;
+  `add_pr_delivery_address_385.mjs` gave the job its default on 2026-09-15, and the
+  `Addresses` row it points at was created that same day. Writing it onto them
+  would not restore what was true when they were generated — the address did not
+  exist yet — it would apply today's value to past documents, **which is the exact
+  thing a frozen copy exists to prevent**. Their attached PDFs print the em dash,
+  so an empty link is also what the documents already say; a backfill would have
+  put the data and the document into disagreement to make a demo look tidier.
+  - **WHAT THE SCRIPT DOES INSTEAD IS EARN THE DELETION.** It asserts that every
+    row holds that one value and fails hard on any that does not, which is the
+    narrow claim that makes dropping the field lossless: one value, one meaning,
+    nothing the new link would have to represent. That is what "starting from those
+    values" is worth once the backfill is refused. It makes **no record write at
+    all**, and its PAT scope list says so rather than the header alone.
+- **AN ORDER FROM A REQUEST WITH NO ADDRESS FREEZES NOTHING AND THE ORDER'S PAGE
+  SAYS SO.** #385 required the link at submit and backfilled nothing, so a request
+  raised before it has none. Refusing generation was weighed: full approval is what
+  generates the order, inside `approveAction` as the last signer signs, so a
+  refusal would strand a fully approved request with no order and no way forward —
+  an Admin retry refuses identically — which is a dead end built out of a field its
+  requester was never asked for. CLAUDE.md's own reading, that a decision made
+  before a request exists cannot be helped by a form inside one. A warning at
+  generation has nobody to read it either: the screen at that moment is the
+  request's. The page that names it is `/pos/[poId]`, because sending the order is
+  done from there, so the reader who needs to know the document has no ship-to is
+  the one about to email it.
+  - **THE ISSUE'S OWN COMMENT SAYS SIX REQUESTS AND THE NUMBER WAS TWO.** Six are
+    `Approved`; four of them (`HYE-PR-260911-09`, `-34`, `-37`, `-38`) already
+    carried an order — two withdrawn, two awaiting signature — and both
+    `generatePOForApprovedPR` and #176's `selectApprovedPRsWithoutPO` read the raw
+    `purchaseOrders` link without a status clause, so those four cannot reach the
+    create path at all. `-04` and `-05` could, and **this issue's browser walk
+    spent `-04`**: `HYE-PO-20260915-02` came from it, froze nothing, and is what
+    the no-address rendering and the dash on the document were read off. `-05` is
+    the one left, which is worth knowing because it is the only request on this
+    base that can exercise that path again.
+  - **AND "NOTHING REGRESSES" WAS TRUE OF THE BASE #384 MEASURED AND IS NOT TRUE
+    NOW.** That claim rests on the job holding no address either, so the document
+    prints the same dash whichever source it reads. `26-DEMO-01` has held one since
+    2026-09-15, so those two requests' orders would print an address today and
+    print a dash after this issue. It is a real regression on two demo requests and
+    it is the right trade: reading the job live is precisely the behavior this
+    issue exists to remove, and a request that said nothing has nothing to keep.
+- **THE COST IS ONE OPERATION ON ONE SCREEN AND ZERO ANYWHERE ELSE.** Generation
+  pays nothing: the address id is already on `pr.deliveryAddress`, which
+  `recordToPR` has carried since #385, and `createPO` sends one more key in a
+  create it was making anyway. The document pays nothing: `generateAndAttachPOPdf`
+  resolved one delivery address before and resolves one now, and the check asserts
+  the count so a second read has to declare itself. `/pos/[poId]` goes **12 to
+  13** — a link arrives as a record id and the `Addresses` row still has to be read
+  for its label, the same measurement #314 made for the discipline one line up, and
+  an order with no address reads nothing at all.
+
 ### Sending the order to the vendor (#281)
 
 The order document was generated, attached and offered for download, after which somebody opened their own mail client, looked up the vendor and attached it by hand. A control beside that download now sends it, with the PDF attached, to `Vendors."PIC Email"`. This is the **first mail this app sends outside the company** — the four sends in `lib/email.js` before it all go to staff.
