@@ -2,6 +2,8 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { ADDRESS_RETURN_COPY } from "@/lib/addressChoice";
 import { createAddressAction } from "./actions";
 import {
     ADDRESS_CREATION_COPY as COPY,
@@ -43,7 +45,7 @@ import {
  * preview does not immediately fire on the address just written, which is
  * correct and reads as an objection directly under a line saying it worked.
  */
-export default function AddressForm({ myJobs, otherJobs, addresses, initialJobId }) {
+export default function AddressForm({ myJobs, otherJobs, addresses, initialJobId, fromPrId }) {
     const [state, formAction, pending] = useActionState(createAddressAction, null);
     const [addressLabel, setAddressLabel] = useState("");
     const [jobId, setJobId] = useState(initialJobId || "");
@@ -73,6 +75,24 @@ export default function AddressForm({ myJobs, otherJobs, addresses, initialJobId
     const onJob = useMemo(() => addressesOnJob(job, addresses), [job, addresses]);
 
     return (
+        <>
+            {/* #385 — THE REQUEST THAT SENT THE READER HERE, AND THE WAY BACK.
+                Both are always on screen while `?from=` is set rather than only
+                after a create: somebody who finds the address already exists came
+                for nothing and still has to get back. The draft was saved before
+                they left, so `?draft=` returns them to everything they typed. */}
+            {fromPrId && (
+                <p className="mt-4 rounded border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+                    <span className="text-zinc-600">{ADDRESS_RETURN_COPY.came(fromPrId)}</span>{" "}
+                    <Link
+                        href={`/prs/new?draft=${encodeURIComponent(fromPrId)}`}
+                        className="underline"
+                    >
+                        {ADDRESS_RETURN_COPY.back(fromPrId)}
+                    </Link>
+                </p>
+            )}
+
         <form
             ref={formRef}
             action={formAction}
@@ -272,5 +292,6 @@ export default function AddressForm({ myJobs, otherJobs, addresses, initialJobId
                 {COPY.submit}
             </button>
         </form>
+        </>
     );
 }

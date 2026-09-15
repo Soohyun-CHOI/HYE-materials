@@ -57,6 +57,27 @@ before the order is placed, and this is the only place the vendor's version of i
 is visible. **It runs from 2 to 146 characters** — the long ones are real and must
 not be truncated to something a reader would mistake for the whole path.
 
+**action — `Delivery address`, where this request's material goes (#385).** It
+sat on the job until now, so a request that had to ship somewhere else could not
+say so and the requester was the only person who knew. The control has two
+shapes and which one appears depends on the JOB, not on the reader:
+
+- **The job has a default:** two choices.
+  `Use this job's default address — {label}`, which NAMES the place rather than
+  referring to it, and `A different address`. The first is chosen to begin with.
+  The picker below appears only under the second.
+- **The job has none:** no choice to make, so the picker is shown with
+  `This job has no default address, so pick where this request goes.` above it.
+  **This is the ordinary state today** — no job on the base holds a default and
+  no screen in this app sets one — so a redesign should treat it as the normal
+  case rather than an edge.
+
+The picker offers **every address on the base**, in two groups:
+`Addresses on this job` first, then `All addresses`. It is grouped and never
+filtered — borrowing a place another job already uses is the case this whole
+chain of work started from. A vendor's own address is in the second group and is
+deliberately not hidden.
+
 **action — `Shipping Fee (optional)`.** Labeled optional in the field name
 itself.
 
@@ -82,7 +103,17 @@ already populated, and the draft's row is marked as being edited.
 **When the reader opens the draft list:** a modal listing their saved drafts, each
 with a delete control.
 
-**When a draft has just been saved:** a `Draft saved` modal.
+**When a draft has just been saved:** a `Draft saved` modal — **except when the
+save was the first half of leaving to create an address**, where the reader is
+carried straight on and the modal would interrupt the one act they asked for.
+
+**Under the address picker, always while it is open:** a control reading
+`Save draft and add an address`, with
+`Your draft is saved first, so you come back to everything you have typed.`
+under it. **The label is load-bearing rather than descriptive**: it saves before
+it navigates and a failed save does not navigate at all, which is what stops a
+requester sent away for an address from losing a half-filled form. A redesign may
+move it but must not turn it into a plain link.
 
 **When the draft currently open in the form is deleted:** a notice, and the form
 detaches from that record rather than silently re-targeting a new one.
@@ -152,6 +183,20 @@ warning is open, so the reader cannot bypass the question by clicking behind it.
 
 **The unit dropdown is the canonical 19-value list** shared by five tables. It is
 not free text anywhere in the app and must not become free text here.
+
+**The delivery address is required to SUBMIT and not to save** — every required
+field on this form has that shape, and a draft is allowed to be half-finished.
+The refusal is `Pick a delivery address.`
+
+**The request stores an address, not a choice.** The two branches are a way of
+picking; what the record keeps is one address either way, which is why a resumed
+draft opens on whichever branch displays its stored address truthfully rather
+than on the one the requester originally used. A redesign may replace the branch
+entirely without changing anything stored.
+
+**The address picker and the address screen's own job list are one rule.** Both
+ask which addresses a job already uses, and that answer is a union of two links —
+a second implementation of it would go wrong silently.
 
 **The merge note's wording is shared with the rule that performs the merge** —
 one sentence, authored beside the six-field key that decides what counts as

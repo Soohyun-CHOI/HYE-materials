@@ -22,7 +22,13 @@ loses the record of who agreed to what.
 ## What it always carries
 
 **identity.** The PR ID as the page heading, then a block of small lines: the
-status in bold, the job, the discipline, the vendor, and the requester.
+status in bold, the job, the discipline, the vendor, the **delivery address**
+(#385) and the requester. The address is where this request's material goes, and
+it is on the screen every signer reads before approving — until #385 it was read
+off the job and appeared nowhere, so a signer could not tell a request shipping
+to the usual place from one shipping somewhere else. It is ungated like every
+other line here. **A request raised before the field existed shows a dash**, and
+the 39 on this base all do: nothing was backfilled.
 `Discipline` here means a `Disciplines` row under a job — it is not a row of the items
 table, and the word is reserved. **A mark sits beside the heading when this is
 not an ordinary request** — `Overage` or `Direct purchase`, the same two words

@@ -87,8 +87,15 @@ shares the address never shows a stranger a confirmation for an act they did not
 take.
 
 **The screen can also be opened with a job already chosen**, by a link carrying
-`?job={code}`. Nothing in the app writes that link yet; the request form is what
-will.
+`?job={code}` — which the request form writes when a requester leaves it to add
+an address.
+
+**When a request sent the reader here (`?from={prId}`):** a line above the form,
+`{prId} is waiting for this address.`, with `Back to {prId}` beside it as a link.
+**Both are on screen the whole time rather than only after a create**: somebody
+who arrives and finds the address already exists came for nothing and still has
+to get back. The request form saved its draft before letting them go, so the way
+back returns them to everything they had typed.
 
 ## What must agree elsewhere
 

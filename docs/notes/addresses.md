@@ -226,6 +226,8 @@ no longer has.
   not office-only information, which is the same reading #211 applied to what a
   vendor invoiced and #309 applied to payment.
 
+---
+
 #### One false comment, corrected on sight
 
 `lib/poGeneration.js` said the President could change `Delivery Address Used` on
@@ -247,3 +249,119 @@ in this issue's own commit rather than filed.
   under concurrency and whether `Addresses."Jobs"` is still named that on the
   base. Both are the standing limits `verification.md` records for this tier
   rather than gaps this issue opened.
+
+---
+
+### Putting the address on the request (#385)
+
+The address was read off the job wherever anybody needed it, so a request that
+had to ship somewhere other than the job's usual place could not say so — and the
+requester is the only person who knows. `Purchase Requests` gains a
+`Delivery Address` link, the form asks for it, and #386 freezes it onto the order.
+
+#### The form asks in two branches, and the branch is not stored
+
+**`Purchase Requests."Delivery Address"` is one link whether the requester took
+the job's default or picked another**, so the two branches are a way of PICKING
+rather than a distinction the base keeps. Three things follow, and they are the
+whole design: the form submits one address id, a resumed draft has to DERIVE
+which branch displays it truthfully, and the action validates an id instead of
+re-deciding a branch.
+
+- **THE BRANCH EXISTS BECAUSE THE COMMON CASE DESERVES ONE GLANCE.** One picker
+  preselected to the job's default would store the same link and make every
+  requester scan a list to confirm the answer they already wanted. It is also
+  what answers "what narrows the list": a requester on the default never opens
+  it.
+- **AND IT COLLAPSES WHERE THERE IS NOTHING TO DEFAULT TO, WHICH IS THE ORDINARY
+  STATE ON THIS BASE.** No job holds a `Delivery Address` and no screen in this
+  app sets one, so a two-way question whose first answer is unreachable would be
+  a screen drawing a distinction its data cannot make — #384's reading of
+  `Delivery Address Used`, one screen over. With no default the picker is shown
+  and the copy says why, naming the JOB rather than the requester: they have done
+  nothing wrong.
+- **THE ACTION RE-DERIVES NOTHING, AND THAT IS A DECISION.** What arrives is an
+  address id; what the action owes is a refusal when it is missing and a check
+  that it names a row. Re-deriving the default would make the write depend on the
+  job's default as it stands at SUBMIT rather than as the requester saw it, which
+  is `Purchase Orders."Sent To"`'s reading — a record of what the app did beats a
+  re-read of terms that may have moved.
+
+#### The picker offers every address, and grouping is the narrowing
+
+The issue body says "the addresses already on the base" and that is right.
+Offering only `addressesOnJob` would leave a requester who needs a place another
+job already uses recording a second row for it — **#384's own defect, one screen
+over**, and borrowing a place is the case this whole chain started from.
+
+So the list is every address, the job's own first, in `/prs/new`'s own
+`My Jobs` / `All Jobs` shape and #384's. `addressesOnJob` is CALLED rather than
+copied, which makes it that function's second caller; the move condition is
+written beside it now rather than left to be re-derived.
+
+- **THE VENDOR'S OWN ADDRESS IS IN THE SECOND GROUP AND IS NOT FILTERED OUT.**
+  `Addresses` holds two kinds of place — somewhere we ship TO and somewhere a
+  vendor IS — and `Lone Star Pipe & Supply - Main` is the second. Hiding it needs
+  a rule no screen in this app states, and it would remove an answer a requester
+  may want: collecting from a supplier's counter is ordinary here. Nothing is
+  hidden and the grouping does the work.
+- **THE CONDITION FOR A SEARCHABLE CONTROL IS MEASURABLE**, which is what keeps
+  this from being a judgment somebody re-opens: when the second group no longer
+  fits a screen — about twenty rows — the shape is
+  `app/admin/disciplines/new/JobCombobox.js`. Three addresses today.
+
+#### The way out saves the draft first
+
+A requester whose address has no row yet has to leave a half-filled form. The
+control is `Save draft and add an address` and the label is the whole of what
+makes it honest: **it saves before it navigates, and a failed save does not
+navigate at all.** A plain link there would discard items, quotations, signers
+and notes — the one thing somebody sent away to create an address must not lose.
+
+Nothing new was built for it. `saveDraftAction` already RETURNS
+`{ savedDraft: { prId, recordId } }` rather than redirecting, `?draft=` already
+re-opens a saved draft (#74), and `/addresses/new?job=` already takes a job
+(#384). What this issue adds is `?from=`, the request waiting for the address,
+which puts a line and a way back on that screen.
+
+- **`?from=` IS JUDGED BY NOTHING, AND THAT IS THE POINT.** It is a `PR ID` and
+  not an address, so there is no destination for `lib/loginDestination.js`'s
+  predicate to judge — the way back is `/prs/new?draft=<it>`, which this app
+  builds. That screen resolves the id against the READER'S OWN drafts, so a
+  forged one matches nothing and the form opens empty.
+- **THE `Draft saved` MODAL STANDS DOWN ON THAT PATH.** The save is identical;
+  what differs is what it was for, and a modal offering the PR list would
+  interrupt the one act the requester asked for.
+- **A NEW TAB WAS THE ALTERNATIVE AND IS WORSE.** It needs no draft save, and the
+  returning tab's address list is the one loaded before the address existed — so
+  the requester reloads and loses the form anyway.
+
+#### Required at submit, not at save
+
+Every required field on this form has that shape: a draft saves half-finished
+(#72) and `createPRAction` is what refuses. An optional address would leave the
+order document printing a dash where a vendor reads the ship-to, which is the
+state this chain exists to end, and would hand #386 and #387 a nullable link to
+build on.
+
+**The 39 requests on this base are not backfilled**, which is #170's sentence one
+field over: "no request carries an address" is not a property of the base. Thirty
+are `PO Signed` and one is `Withdrawn`; **six are `Approved` and can still
+generate an order**, so #386 will meet an empty link on those — the same empty it
+would read off the job today, and that issue's to carry rather than this one's.
+
+#### One measurement, and a second figure for one screen
+
+`/prs/new` costs **14 operations before and 15 after**, measured as
+`scoped-fixture@`. The address control adds exactly one `list`: `getAllAddresses`
+is the whole table in one query and the job's own default rides free on
+`getAllJobs`, which has carried `deliveryAddress` since #384.
+
+**That 14 is not `airtable-access.md`'s 22 gone stale.** This page costs what the
+READER's own request history costs, because `getDraftsByRequester` walks every
+request its requester ever raised; the 22 was an Admin with 27 of them and this
+is a requester with none. Recorded in that file beside its own figure, because
+two numbers for one screen with no account beside them is the thing a later
+reader cannot resolve.
+
+---

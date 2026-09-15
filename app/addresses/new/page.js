@@ -29,6 +29,14 @@ export const metadata = { title: COPY.heading };
  * a job already ships to without a second question. `getAllJobs` is the one-query
  * shape `/deliveries/new` and `/tools/new` both use.
  *
+ * `?from=` IS A REQUEST WAITING FOR THIS ADDRESS (#385), AND IT IS JUDGED BY
+ * NOTHING HERE ON PURPOSE. It is a `PR ID` rather than an address, so there is no
+ * destination for a predicate to judge — the way back is `/prs/new?draft=<it>`,
+ * which this app builds, and that screen resolves the id against the READER'S OWN
+ * drafts, so a forged one simply matches nothing and the form opens empty. That
+ * is `lib/loginDestination.js`'s problem avoided rather than solved again: nothing
+ * arrives that could become a way out of the app.
+ *
  * EVERY JOB, NOT THE READER'S OWN, WHICH IS `/prs/new`'s CALL AND NOT A NEW ONE.
  * That screen offers every job to every requester — its own comment says the
  * assigned ones sort first "without ever hiding the rest" — so a job's identity is
@@ -44,7 +52,7 @@ export default async function NewAddressPage(props) {
 async function renderNewAddressPage({ searchParams }) {
     const user = await requireUser();
 
-    const { job: jobCode } = await searchParams;
+    const { job: jobCode, from: fromPrId } = await searchParams;
     const [jobs, addresses] = await Promise.all([getAllJobs(), getAllAddresses()]);
 
     // GROUPED TOWARD THE READER'S OWN ASSIGNMENTS AND HIDING NONE, which is
@@ -78,6 +86,7 @@ async function renderNewAddressPage({ searchParams }) {
                 otherJobs={otherJobs}
                 addresses={addresses}
                 initialJobId={initialJobId}
+                fromPrId={typeof fromPrId === "string" ? fromPrId : ""}
             />
         </div>
     );
