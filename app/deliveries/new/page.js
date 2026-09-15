@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
+import { getAllAddresses } from "@/lib/airtable/addresses";
 import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
 import { getInvoiceLinkCandidates } from "@/lib/deliveryInvoiceCandidates";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
@@ -60,7 +61,17 @@ async function renderNewDeliveryPage() {
         );
     }
 
-    const { orderedItems, vendorNameById } = await getDeliveryCandidates(jobs);
+    // #387 — ONE `list` FOR BOTH HALVES OF THE ADDRESS CONTROL: the label the
+    // default renders under, and every option the picker offers. The whole table in
+    // one query is `getAllAddresses`'s own shape — the places a company ships to are
+    // bounded by its sites and its suppliers, four rows today — and it is what
+    // `/prs/new` already pays for the same control. The DEFAULT itself costs
+    // nothing: each candidate ordered item carries its order's address id already
+    // (lib/deliveryCandidates.js), so what this buys is the words, not the answer.
+    const [{ orderedItems, vendorNameById }, addresses] = await Promise.all([
+        getDeliveryCandidates(jobs),
+        getAllAddresses(),
+    ]);
 
     // #210 — the invoices this viewer may pair a delivery with, narrowed up front to
     // the vendors that actually supplied these jobs so the batched reads stay small.
@@ -82,8 +93,17 @@ async function renderNewDeliveryPage() {
             </p>
 
             <DeliveryForm
-                jobs={jobs.map((j) => ({ id: j.id, jobCode: j.jobCode, jobName: j.jobName }))}
+                // #387 — `deliveryAddress` rides along, because `addressOptions`
+                // groups by the addresses a JOB uses and that is a union of
+                // `Addresses."Jobs"` and the job's own default link.
+                jobs={jobs.map((j) => ({
+                    id: j.id,
+                    jobCode: j.jobCode,
+                    jobName: j.jobName,
+                    deliveryAddress: j.deliveryAddress || [],
+                }))}
                 orderedItems={orderedItems}
+                addresses={addresses}
                 // A Map cannot cross the server/client boundary; a plain object can.
                 vendorNames={Object.fromEntries(vendorNameById)}
                 invoiceOptions={invoiceOptions}

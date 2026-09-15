@@ -7,6 +7,10 @@ import { getItemsByDelivery } from "@/lib/airtable/deliveryItems";
 import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { getPOsByRecordIds } from "@/lib/airtable/purchaseOrders";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
+import { getAddressByRecordId } from "@/lib/airtable/addresses";
+// #387 — the word for this fact is `/prs/new`'s, so the three screens that print
+// an address link name it identically. Pure module; nothing credentialed here.
+import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import {
@@ -93,7 +97,12 @@ async function renderDeliveryDetailPage({ params }) {
     const pos = await getPOsByRecordIds(poItems.flatMap((pi) => pi.po));
     const poById = new Map(pos.map((po) => [po.id, po]));
 
-    const [job, vendor, recorder, packingListPO, invoices] = await Promise.all([
+    // #387 — THE ADDRESS JOINS THE BATCH AND COSTS ONE OPERATION, not none: the
+    // field is a link, so it arrives as a record id and the `Addresses` row still
+    // has to be read for its label — the same measurement #314 made for a
+    // discipline and #386 for an order's. A delivery recorded before the field
+    // existed reads nothing at all, so the 12 rows on this base pay for none of it.
+    const [job, vendor, recorder, packingListPO, invoices, deliveryAddress] = await Promise.all([
         delivery.job?.[0] ? getJobByRecordId(delivery.job[0]) : null,
         delivery.vendor?.[0] ? getVendorByRecordId(delivery.vendor[0]) : null,
         delivery.recordedBy?.[0] ? getUserByRecordId(delivery.recordedBy[0]) : null,
@@ -106,6 +115,9 @@ async function renderDeliveryDetailPage({ params }) {
         // number whose invoice is outside their scope still leads to the ordinary
         // not-found text, which is what the link is allowed to do.
         getInvoicesByRecordIds(delivery.invoices || []),
+        delivery.deliveryAddress?.[0]
+            ? getAddressByRecordId(delivery.deliveryAddress[0])
+            : null,
     ]);
 
     const rows = items.map((item) => {
@@ -301,6 +313,18 @@ async function renderDeliveryDetailPage({ params }) {
                 <p>
                     <span className="text-zinc-500">Received Date:</span>{" "}
                     {delivery.receivedDate || "—"}
+                </p>
+                {/* #387 — WHERE IT ARRIVED, WHICH IS NOT WHERE IT WAS ORDERED TO.
+                    The order's own address is on `/pos/[poId]` and says where the
+                    material was meant to go; this says where it turned up, and the
+                    two are allowed to differ. It is the address LABEL, which is what
+                    `/prs/[prId]` and `/pos/[poId]` both render for the same link —
+                    the street belongs to the purchase order document, where a vendor
+                    reads it. An em dash on the 12 deliveries recorded before the
+                    field existed, which were deliberately not backfilled. */}
+                <p>
+                    <span className="text-zinc-500">{ADDRESS_CHOICE_COPY.label}:</span>{" "}
+                    {deliveryAddress?.addressLabel || "—"}
                 </p>
                 <p>
                     <span className="text-zinc-500">PO on packing list:</span>{" "}

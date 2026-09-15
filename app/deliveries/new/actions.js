@@ -14,6 +14,8 @@ import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
+import { getAllAddresses } from "@/lib/airtable/addresses";
+import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { getJobByRecordId } from "@/lib/airtable/jobs";
 import { describePlan, itemOptionLabel, planDelivery } from "@/lib/deliveryAllocation";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
@@ -65,6 +67,7 @@ export async function createDeliveryAction(prevState, formData) {
         const receivedDate = formData.get("receivedDate");
         const notes = formData.get("notes") || "";
         const poIdTyped = (formData.get("poId") || "").trim();
+        const deliveryAddressId = formData.get("deliveryAddressId") || "";
         const fileUrl = formData.get("packingListUrl");
         const fileName = formData.get("packingListFilename");
 
@@ -76,6 +79,15 @@ export async function createDeliveryAction(prevState, formData) {
         }
         if (!vendorRecordId) return { error: "Select the vendor who delivered." };
         if (!receivedDate) return { error: "Received Date is required." };
+        // #387 — REQUIRED, AND THIS ACTION RE-DERIVES NOTHING. What arrives is an
+        // address id; what is owed is a refusal when it is missing and a check that
+        // it names a real row — `createPRAction`'s posture (#385), and for the same
+        // reason: re-computing the default here would record where the ORDERS say
+        // the material should have gone rather than where the recorder said it
+        // arrived, which is the distinction this field exists to draw. The two
+        // refusals are `ADDRESS_CHOICE_COPY`'s own, because one fact gets one
+        // sentence however many forms ask the question.
+        if (!deliveryAddressId) return { error: ADDRESS_CHOICE_COPY.required };
         if (submittedItems.length === 0) return { error: "Add at least one item." };
 
         for (const row of submittedItems) {
@@ -124,6 +136,13 @@ export async function createDeliveryAction(prevState, formData) {
         const job = await getJobByRecordId(jobRecordId).catch(() => null);
         if (!job) return { error: "That job no longer exists." };
         const candidates = await getDeliveryCandidates([job]);
+
+        // #387 — the id has to name a row, checked against the same whole-table read
+        // the form's picker was built from. Unreachable from the screen and a Server
+        // Action is directly callable, which is the whole of why it is here.
+        if (!(await getAllAddresses()).some((a) => a.id === deliveryAddressId)) {
+            return { error: ADDRESS_CHOICE_COPY.unknown };
+        }
 
         // #231 — the invoices this vendor could have sent, gated per record through the
         // same walk the page used to render the picker. Read here rather than trusted
@@ -181,6 +200,10 @@ export async function createDeliveryAction(prevState, formData) {
                 // The PO the packing list named, recorded even when allocation could
                 // attribute nothing to it: it is a fact about the document.
                 packingListPORecordId: po?.id ?? null,
+                // #387 — where it actually arrived, as the recorder left it. The
+                // form defaulted this from the orders the plan attaches to; what is
+                // stored is what they submitted.
+                deliveryAddressRecordId: deliveryAddressId,
                 receivedDate,
                 recordedByUserId: user.id,
                 notes,
