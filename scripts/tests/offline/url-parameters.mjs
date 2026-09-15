@@ -115,7 +115,12 @@ const CARRIED = [
     {
         route: "/addresses/new",
         param: "job",
-        note: "#384 — the Job CODE the address is being recorded for, which preselects the picker and lists the addresses that job already uses. A CODE and not a record id, because the code is the identifier every document list prints and a record id in a URL is the defect docs/notes/naming.md records against /tools/[toolRecordId]. NOTHING IN THIS REPOSITORY WRITES IT YET: #385's request form is the writer, since that is the screen that knows the job and finds the address missing. An unknown or absent code preselects nothing rather than refusing — the job is a convenience here and not the screen's subject",
+        note: "#384 — the Job CODE the address is being recorded for, which preselects the picker and lists the addresses that job already uses. A CODE and not a record id, because the code is the identifier every document list prints and a record id in a URL is the defect docs/notes/naming.md records against /tools/[toolRecordId]. Written by #385's request form, which is the screen that knows the job and finds the address missing. An unknown or absent code preselects nothing rather than refusing — the job is a convenience here and not the screen's subject",
+    },
+    {
+        route: "/addresses/new",
+        param: "from",
+        note: "#385 — the PR ID of the request that sent the reader here, which puts a line and a way back on the screen. Written by the request form's `Save draft and add an address`, which saves the draft BEFORE navigating so the id names a record that exists. JUDGED BY NOTHING, and that is the point rather than an omission: it is an identifier and not an address, so the way back is /prs/new?draft=<it>, which this app builds — and that screen resolves the id against the READER'S OWN drafts, so a forged one matches nothing and the form opens empty. There is no destination here for lib/loginDestination.js's predicate to judge",
     },
 
     // ── a destination: where the reader was going before being asked to sign in ──

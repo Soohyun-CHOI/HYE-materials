@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import FileViewer from "@/app/components/FileViewer";
@@ -18,6 +19,16 @@ import { DAY_FORMAT, formatUSD } from "@/lib/format";
 // two disagreed whenever the two zones did. The component waits for the mount,
 // which is what makes the two renders identical.
 import Instant from "@/app/components/Instant";
+// #385 — the delivery address control: which addresses it offers, which branch a
+// stored one came back as, and every word it says. Pure, so this Client
+// Component may import it (#162: an import is an execution).
+import {
+    ADDRESS_CHOICE_COPY as ADDRESS_COPY,
+    addressChoiceFromStored,
+    addressOptions,
+    chosenAddressId,
+    jobDefaultAddressId,
+} from "@/lib/addressChoice";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 
 // quotationIndex: null until the Requester picks one (issue #67) — only
@@ -61,6 +72,10 @@ function formStateFromDraft(d, categories) {
         jobId: d.jobId || "",
         disciplineId: d.disciplineId || "",
         vendorId: d.vendorId || "",
+        // #385 — the stored link. Which branch of the address control wrote it is
+        // derived against the job's own default, in the component, because that is
+        // where the job list is.
+        deliveryAddressId: d.deliveryAddressId || "",
         shippingFee: d.shippingFee === "" || d.shippingFee == null ? "" : String(d.shippingFee),
         notes: d.notes || "",
         items: d.items.length
@@ -122,6 +137,9 @@ export default function PRForm({
     // The whole category tree, fetched once by the page (#355). See
     // `getCategoryTree` for why it is one read rather than one per level.
     categories = [],
+    // #385 — every address on the base, fetched once by the page. The picker's
+    // two groups and the duplicate-free list both come out of this.
+    addresses = [],
     initialDraft = null,
     draftLabel = null,
     autoResume = false,
@@ -143,7 +161,26 @@ export default function PRForm({
     // resumeDraft() or after the first successful Save.
     const [draftRecordId, setDraftRecordId] = useState(seed?.draftRecordId ?? "");
 
+    const router = useRouter();
+
+    // #385 — the two job groups flattened, so a job id resolves to its record
+    // wherever it was listed. The page owns the grouping; this is the lookup.
+    const allJobs = useMemo(() => [...(myJobs || []), ...(otherJobs || [])], [myJobs, otherJobs]);
+    const seedChoice = addressChoiceFromStored({
+        storedAddressId: seed?.deliveryAddressId ?? "",
+        defaultAddressId: jobDefaultAddressId(allJobs.find((j) => j.id === (seed?.jobId ?? ""))),
+    });
+
     const [jobId, setJobId] = useState(seed?.jobId ?? "");
+    // #385 — which branch of the address control is open, and what the picker
+    // holds. Neither is stored: the request keeps ONE address link either way,
+    // so these two exist only to produce the id the hidden input submits.
+    const [useJobDefault, setUseJobDefault] = useState(seedChoice.useJobDefault);
+    const [pickedAddressId, setPickedAddressId] = useState(seedChoice.pickedAddressId);
+    // Set by the way out to `/addresses/new`, read by the draft-save effect
+    // below: the same successful save either confirms and offers the PR list, or
+    // carries the requester on to create the address they came for.
+    const [leavingForAddress, setLeavingForAddress] = useState(false);
     const [disciplineId, setDisciplineId] = useState(seed?.disciplineId ?? "");
     const [vendorId, setVendorId] = useState(seed?.vendorId ?? "");
     const [items, setItems] = useState(seed?.items ?? [{ ...EMPTY_ITEM }]);
@@ -224,6 +261,14 @@ export default function PRForm({
         setJobId(s.jobId);
         setDisciplineId(s.disciplineId);
         setVendorId(s.vendorId);
+        // #385 — the same derivation the seed makes, against the job this draft
+        // carries rather than the one on screen.
+        const resumed = addressChoiceFromStored({
+            storedAddressId: s.deliveryAddressId,
+            defaultAddressId: jobDefaultAddressId(allJobs.find((j) => j.id === s.jobId)),
+        });
+        setUseJobDefault(resumed.useJobDefault);
+        setPickedAddressId(resumed.pickedAddressId);
         setShippingFee(s.shippingFee);
         setNotes(s.notes);
         setItems(s.items);
@@ -262,13 +307,27 @@ export default function PRForm({
     // so subsequent Save Draft / Submit target the same record. Also track
     // its PR ID (#109) as the currently-open draft, and clear any stale
     // "deleted draft" notice now that a fresh copy has been saved.
+    //
+    // #385 — AND IT IS WHERE THE WAY OUT TO `/addresses/new` LANDS. The requester
+    // pressed a control that says it saves the draft first, so the navigation
+    // waits for the save to have SUCCEEDED: a failed save leaves them on the form
+    // with its own error and nothing lost, which is the whole reason the control
+    // is not a plain link. The address screen is told which job (so it can list
+    // what that job already ships to) and which request is waiting, and the way
+    // back is `?draft=`, the resume path #74 already built.
     useEffect(() => {
         if (draftState?.savedDraft?.recordId) {
             setDraftRecordId(draftState.savedDraft.recordId);
             setOpenDraftPrId(draftState.savedDraft.prId);
             setDeletedOpenDraftNotice(false);
+            if (leavingForAddress) {
+                const job = allJobs.find((j) => j.id === jobId);
+                const query = new URLSearchParams({ from: draftState.savedDraft.prId });
+                if (job?.jobCode) query.set("job", job.jobCode);
+                router.push(`/addresses/new?${query.toString()}`);
+            }
         }
-    }, [draftState]);
+    }, [draftState, leavingForAddress, allJobs, jobId, router]);
 
     function addQuotation() {
         setQuotations((prev) => [...prev, { ...EMPTY_QUOTATION }]);
@@ -329,9 +388,34 @@ export default function PRForm({
         [disciplines, jobId]
     );
 
+    // #385 — the address control's derived values. All four come out of two
+    // lists the page already fetched, so none of this costs a request.
+    const pickedJob = allJobs.find((j) => j.id === jobId) ?? null;
+    const defaultAddressId = jobDefaultAddressId(pickedJob);
+    const defaultAddress = addresses.find((a) => a.id === defaultAddressId) ?? null;
+    const { onJob: addressesHere, others: addressesElsewhere } = useMemo(
+        () => addressOptions(pickedJob, addresses),
+        [pickedJob, addresses]
+    );
+    const deliveryAddressId = chosenAddressId({ useJobDefault, defaultAddressId, pickedAddressId });
+
     function handleJobChange(e) {
-        setJobId(e.target.value);
+        const nextJobId = e.target.value;
+        setJobId(nextJobId);
         setDisciplineId(""); // one from the previous Job no longer applies
+        // #385 — and neither does the address. A default belongs to the job that
+        // had it, so carrying the branch across would leave the control saying
+        // "use this job's default" about a job that may have none. A specific
+        // pick is dropped with it: an address is not job-scoped and could have
+        // survived, but re-picking is one click and a control that sometimes
+        // keeps its value and sometimes does not is the worse screen. Same call
+        // the discipline above already makes.
+        const next = addressChoiceFromStored({
+            storedAddressId: "",
+            defaultAddressId: jobDefaultAddressId(allJobs.find((j) => j.id === nextJobId)),
+        });
+        setUseJobDefault(next.useJobDefault);
+        setPickedAddressId(next.pickedAddressId);
     }
 
     function addItem() {
@@ -556,7 +640,13 @@ export default function PRForm({
                 resumable via the resume prompt (#73) / drafts list (#74). No
                 "new PR" action here — starting another PR right after setting
                 one aside is the rare case. */}
-            {draftState?.savedDraft && (
+            {/* #385 — NOT WHEN THE SAVE WAS THE FIRST HALF OF LEAVING. A
+                requester who pressed `Save draft and add an address` is being
+                carried to the address screen, so a modal offering them the PR
+                list would interrupt the one act they asked for with an answer to
+                a question they did not ask. The save itself is identical; what
+                differs is what it was for. */}
+            {draftState?.savedDraft && !leavingForAddress && (
                 <div className={MODAL_BACKDROP}>
                     <div className={`${MODAL_CARD} max-w-md`}>
                         <h2 className="text-lg font-semibold">Draft saved</h2>
@@ -675,6 +765,99 @@ export default function PRForm({
                         ))}
                     </select>
                 </div>
+            </div>
+
+            {/* #385 — WHERE THIS REQUEST'S MATERIAL GOES. It sat on the job until
+                now, so a request that had to ship somewhere else could not say
+                so and the requester was the only person who knew. Two branches
+                where the job has a default and a plain picker where it has none
+                — which is the ordinary state on this base, since no screen in
+                this app sets a job's default address. Every word is
+                lib/addressChoice.js's; nothing here is written into the markup. */}
+            <div>
+                <label htmlFor="pickedAddressId" className="block text-sm font-medium">
+                    {ADDRESS_COPY.label}
+                </label>
+
+                {defaultAddress ? (
+                    <div className="mt-1 space-y-1">
+                        <label className="flex items-center gap-2 text-sm">
+                            <input
+                                type="radio"
+                                name="addressChoice"
+                                checked={useJobDefault}
+                                onChange={() => setUseJobDefault(true)}
+                            />
+                            <span>{ADDRESS_COPY.jobDefault(defaultAddress.addressLabel)}</span>
+                        </label>
+                        <label className="flex items-center gap-2 text-sm">
+                            <input
+                                type="radio"
+                                name="addressChoice"
+                                checked={!useJobDefault}
+                                onChange={() => setUseJobDefault(false)}
+                            />
+                            <span>{ADDRESS_COPY.otherAddress}</span>
+                        </label>
+                    </div>
+                ) : (
+                    <p className="mt-1 text-sm text-zinc-600">{ADDRESS_COPY.noDefault}</p>
+                )}
+
+                {!useJobDefault && (
+                    <div className="mt-2 space-y-2">
+                        <select
+                            id="pickedAddressId"
+                            value={pickedAddressId}
+                            onChange={(e) => setPickedAddressId(e.target.value)}
+                            className={fieldClass}
+                        >
+                            <option value="">{ADDRESS_COPY.pickerUnchosen}</option>
+                            {/* This job's own first, then every other address —
+                                grouped rather than filtered, because borrowing a
+                                place another job already uses is the case this
+                                whole chain started from. */}
+                            {addressesHere.length > 0 && (
+                                <optgroup label={ADDRESS_COPY.groupOnJob}>
+                                    {addressesHere.map((a) => (
+                                        <option key={a.id} value={a.id}>
+                                            {a.addressLabel}
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            )}
+                            <optgroup label={ADDRESS_COPY.groupOthers}>
+                                {addressesElsewhere.map((a) => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.addressLabel}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        </select>
+
+                        {/* The way out, and the label is the whole of what makes
+                            it honest: it SAVES first. A plain link here would
+                            discard a half-filled form, which is the one thing a
+                            requester sent away to create an address must not
+                            lose. The save is the same action the button at the
+                            foot of this form uses. */}
+                        <div>
+                            <button
+                                type="submit"
+                                formAction={draftAction}
+                                formNoValidate
+                                onClick={() => setLeavingForAddress(true)}
+                                disabled={draftPending || submitPending}
+                                className="rounded border border-zinc-300 px-3 py-1 text-sm disabled:opacity-50"
+                            >
+                                {ADDRESS_COPY.addAddress}
+                            </button>
+                            <p className="mt-1 text-xs text-zinc-500">
+                                {ADDRESS_COPY.addAddressHint}
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div>
@@ -939,6 +1122,12 @@ export default function PRForm({
             />
             <input type="hidden" name="confirmed" ref={confirmedRef} defaultValue="false" />
             <input type="hidden" name="existingDraftRecordId" value={draftRecordId} />
+            {/* #385 — THE REQUEST CARRIES AN ADDRESS AND NOT A CHOICE, so one id
+                is submitted and the branch above is a way of picking it. The
+                action re-derives nothing: it refuses a missing id at submit and
+                checks that the id names a real address, which is what a directly
+                callable Server Action owes. See lib/addressChoice.js. */}
+            <input type="hidden" name="deliveryAddressId" value={deliveryAddressId} />
 
             <div className="space-y-3">
                 {/* #170 — SAID BEFORE THE SAVE, because the save is what merges. The

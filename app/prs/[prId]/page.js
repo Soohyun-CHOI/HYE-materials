@@ -29,6 +29,8 @@ import GeneratePOForm from "./GeneratePOForm";
 import SignerProgressBar from "./SignerProgressBar";
 import WithdrawPRForm from "./WithdrawPRForm";
 import { userName } from "@/lib/userName";
+import { getAddressByRecordId } from "@/lib/airtable/addresses";
+import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 
 // The route param IS the human-readable ID, so the tab names the record for
 // ZERO Airtable operations (#201) — this reads the URL and nothing else.
@@ -159,6 +161,13 @@ async function renderPRDetailPage({ params }) {
     const isAdmin = user.isAdmin === true;
 
     const vendorName = vendorsById[pr.vendor?.[0]]?.vendorName || "—";
+    // #385 — ONE FIND, AND ONLY FOR A REQUEST THAT HAS ONE. `getAddressByRecordId`
+    // rather than the whole table: this page needs one label, where `/prs/new`
+    // needs every address to build a picker from. A request raised before this
+    // field existed costs nothing at all.
+    const deliveryAddressLabel = pr.deliveryAddress?.[0]
+        ? (await getAddressByRecordId(pr.deliveryAddress[0]))?.addressLabel || null
+        : null;
     const disciplineLabel = disciplineById[pr.discipline?.[0]]?.disciplineLabel || "—";
     // Job is a Lookup through Discipline -> Disciplines.Job (itself a link field),
     // so pr.job is a raw Job record ID, not display text — resolve it the
@@ -314,6 +323,17 @@ async function renderPRDetailPage({ params }) {
                 <p>Job: {jobDisplay}</p>
                 <p>Discipline: {disciplineLabel}</p>
                 <p>Vendor: {vendorName}</p>
+                {/* #385 — WHERE THIS REQUEST'S MATERIAL GOES, on the screen every
+                    signer reads before approving. It was read off the job until
+                    now and appeared nowhere, so a signer could not tell a request
+                    shipping to the usual place from one shipping somewhere else.
+                    No gate: the whole page is behind `canViewPR` on this record,
+                    and an address is not an invoice fact. A request raised before
+                    this field existed shows the dash every absent value here
+                    shows — the 39 on this base are not backfilled. */}
+                <p>
+                    {ADDRESS_CHOICE_COPY.label}: {deliveryAddressLabel || "—"}
+                </p>
                 <p>Requester: {requesterName}</p>
                 {pr.notes && <p>Notes: {pr.notes}</p>}
             </div>

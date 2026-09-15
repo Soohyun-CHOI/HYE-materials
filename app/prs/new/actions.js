@@ -25,6 +25,8 @@ import { isEmptyItemRow, mergeIdenticalItems } from "@/lib/prItemMerge";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
 import { CATEGORY_PICKER_COPY, categoryItemFields } from "@/lib/materialCategory";
+import { getAllAddresses } from "@/lib/airtable/addresses";
+import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { userName } from "@/lib/userName";
 
 // Canonical key for an item's duplicate-match identity — Item Name
@@ -89,6 +91,10 @@ function parseFormState(formData) {
         shippingFeeRaw,
         // Issue #69 — optional; null (not 0) when left blank.
         shippingFee: shippingFeeRaw ? parseFloat(shippingFeeRaw) : null,
+        // #385 — one address id, because the request stores an address and not a
+        // choice: the form's two branches are a way of picking, and which one was
+        // open is nothing the base keeps. See lib/addressChoice.js.
+        deliveryAddressId: formData.get("deliveryAddressId") || "",
         items: mergeIdenticalItems(JSON.parse(formData.get("itemsJson") || "[]")),
         // Each entry: { userId, confirmationType } — issue #66's per-signer
         // Approval/Agreement tag, picked in SignerList.js.
@@ -196,6 +202,7 @@ async function persistPRFromForm({ userId, state }) {
         vendorId,
         notes,
         shippingFee,
+        deliveryAddressId,
         items,
         signers,
         quotations,
@@ -210,9 +217,22 @@ async function persistPRFromForm({ userId, state }) {
         if (!existing) throw new Error("Draft record not found");
         pr = { id: existing.id, prId: existing.prId };
         oldChildIds = await collectChildIds(existing.id);
-        await updatePR(existing.id, { disciplineId, vendorId, notes, shippingFee });
+        await updatePR(existing.id, {
+            disciplineId,
+            vendorId,
+            notes,
+            shippingFee,
+            deliveryAddressId,
+        });
     } else {
-        pr = await createPR({ requesterId: userId, disciplineId, vendorId, notes, shippingFee });
+        pr = await createPR({
+            requesterId: userId,
+            disciplineId,
+            vendorId,
+            notes,
+            shippingFee,
+            deliveryAddressId,
+        });
     }
 
     const createdQuotationIds = [];
@@ -470,12 +490,26 @@ export async function createPRAction(prevState, formData) {
             quotations,
             shippingFee,
             shippingFeeRaw,
+            deliveryAddressId,
             confirmed,
         } =
             state;
 
         if (!disciplineId) return { error: "Select a Discipline." };
         if (!vendorId) return { error: "Select a Vendor." };
+        // #385 — REQUIRED AT SUBMIT AND NOT AT SAVE, which is every other required
+        // field's shape on this form: a Draft is allowed to be half-finished (#72)
+        // and this is the moment every answer has to be there. Without it the
+        // order document goes on printing a dash where a vendor reads the ship-to,
+        // which is the state this whole chain exists to end.
+        if (!deliveryAddressId) return { error: ADDRESS_CHOICE_COPY.required };
+        // And it has to name a row. Unreachable from the screen, which offers only
+        // addresses it loaded — but a Server Action is directly callable, and an
+        // id that names nothing would fail the whole write at Airtable rather than
+        // here. One list, the same read the form's own picker was built from.
+        if (!(await getAllAddresses()).some((a) => a.id === deliveryAddressId)) {
+            return { error: ADDRESS_CHOICE_COPY.unknown };
+        }
         if (items.length === 0) {
             return { error: "Add at least one item." };
         }

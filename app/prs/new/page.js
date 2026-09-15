@@ -5,6 +5,7 @@ import { getAllDisciplines } from "@/lib/airtable/disciplines";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getActiveUsers } from "@/lib/airtable/users";
 import { getCategoryTree } from "@/lib/airtable/materialCategories";
+import { getAllAddresses } from "@/lib/airtable/addresses";
 import { getDraftsByRequester } from "@/lib/airtable/purchaseRequests";
 import { loadPRDraft } from "@/lib/prDraft";
 import PRForm from "./PRForm";
@@ -28,12 +29,20 @@ async function renderNewPRPage({ searchParams }) {
     // needs 39 distinct values and Airtable has no DISTINCT — see
     // getCategoryTree for the measurement. What the cost is bounded by is the
     // catalog, never the number of requests this base has seen.
-    const [jobs, disciplines, vendors, users, categories] = await Promise.all([
+    // #385 — ONE MORE LIST, AND IT IS THE WHOLE COST OF THE ADDRESS CONTROL.
+    // `getAllAddresses` is the table in one query, bounded by this company's
+    // sites and its suppliers rather than by activity — the `Vendors` and `Tools`
+    // shape — so the picker's two groups and the job's own default both come out
+    // of memory. The job's default itself costs nothing at all: `getAllJobs`
+    // already carries `deliveryAddress` (#384). Measured on this render: 14
+    // operations before, 15 after.
+    const [jobs, disciplines, vendors, users, categories, addresses] = await Promise.all([
         getAllJobs(),
         getAllDisciplines(),
         getAllVendors(),
         getActiveUsers(),
         getCategoryTree(),
+        getAllAddresses(),
     ]);
 
     const { draft: draftParam } = await searchParams;
@@ -113,6 +122,7 @@ async function renderNewPRPage({ searchParams }) {
                 vendors={vendors}
                 users={users}
                 categories={categories}
+                addresses={addresses}
                 initialDraft={initialDraft}
                 draftLabel={draftLabel}
                 autoResume={autoResume}
