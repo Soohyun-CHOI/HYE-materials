@@ -140,6 +140,22 @@ const RETIRED = {
     // one sat beside, and it is a SUBSTRING of the retired name — the `Line 1`
     // trap at the top of this map, which is why every entry is matched whole.
     "Alternate Delivery Address": "#384 — a job's other addresses are `Addresses.\"Jobs\"`",
+    // #386 — THE SUBSTRING TRAP RUNS THE OTHER WAY HERE, which is why it is worth a
+    // second note beside the first. `Line 1` is a live name whose PREFIX is retired;
+    // this is a retired name that CONTAINS a live one — `Purchase Orders."Delivery
+    // Address"` is the link that replaced it, and `Jobs."Delivery Address"` and
+    // `Purchase Requests."Delivery Address"` were live throughout. Whole-name
+    // matching is what keeps all three passing, and a switch to substring matching
+    // would fail every one of them.
+    //
+    // IT IS A DELETION RATHER THAN A RENAME, like `Paid` two entries up. The select
+    // named which of a job's two addresses an order used and could name nothing once
+    // #384 removed the second slot; a type change is refused by the Metadata API and
+    // the code that writes the replacement has to WRITE it, so there is no ordering
+    // in which a retype leaves the committed code correct — see
+    // docs/notes/purchase-orders.md. The field is deleted by hand and the fact moved
+    // to another field, not to another name.
+    "Delivery Address Used": "#386 — the order freezes `Purchase Orders.\"Delivery Address\"`",
 };
 
 /**
