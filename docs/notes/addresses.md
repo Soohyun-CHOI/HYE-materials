@@ -393,7 +393,7 @@ is worth knowing before #387 or a job-address editor reaches for it.
   fails if either is reworded alone. Same shape `offline/address-creation.mjs`
   already uses to pin `/addresses/new`'s three group labels against `PRForm.js`.
 
-**THE 39-REQUEST FIGURE ABOVE IS 40 NOW, AND ONE OF THEM CARRIES AN ADDRESS.**
+**THE 39-REQUEST FIGURE IS 40, AND ONE OF THEM CARRIES AN ADDRESS.**
 #385's own section says thirty are `PO Signed`, one `Withdrawn` and six `Approved`;
 `HYE-PR-260915-01` was raised through the new form afterwards and holds
 `Leander Yard - Gate 3`. It is the first and only request on this base with one,
@@ -404,3 +404,36 @@ wrong about what follows from it; the correction is in `purchase-orders.md`, whe
 the generation path is.
 
 ---
+### Recording where it arrived (#387)
+
+Last of the four. `docs/notes/deliveries-and-invoices.md` owns the issue — the
+default rule, the four states, the refusals and the figures. Two things belong
+here, because they are about the CHAIN rather than about the delivery axis.
+
+**THE CHAIN IS CLOSED, AND WHAT IT BUILT IS A LOCATION.** #384 gave a job as many
+addresses as it uses, #385 put the question on the request, #386 froze the answer
+onto the order, and this records where the material was actually delivered. Four
+issues for one field because each is a different FACT: a job's default is a habit,
+a request's is an instruction, an order's is what a vendor was told, and a
+delivery's is what happened. The chain exists because inventory is counted per
+address, and `Deliveries."Delivery Address"` is the one of the four a quantity on
+hand is counted by — which is why it is the only one of the four that is not
+editable after it is written.
+
+- **NOTHING IN THE APP READS A JOB'S ADDRESS AS A DOCUMENT'S ANY MORE.**
+  `Jobs."Delivery Address"` has exactly one reader left: `/prs/new`, where it is
+  the preselected branch of a picker, and `addressesOnJob`, where it is one arm of
+  the union that groups a list. It is a FORM DEFAULT and nothing else. #386 removed
+  the last live read on the order axis and #387 declined to open a new one on the
+  delivery axis — the fallback there costs one token and was refused on the record.
+  **That is the sentence to check before a job-address editor is built**, because
+  such a screen would change a form's default and nothing else, which is a much
+  smaller change than it looks.
+
+**AND THE FOUR ADDRESSES ON THIS BASE ARE NOW REACHED FROM FOUR DIFFERENT PLACES**,
+which is worth stating because #384 measured one row reachable from one link.
+`Addresses` carries reverse-links from `Vendors`, `Jobs` (twice — the default and
+the union), `Purchase Requests`, `Purchase Orders` and `Deliveries`. Every one of
+them was created by a script in this chain and named by hand afterwards; the
+inverse Airtable auto-creates took the source table's name correctly in all of
+them, which is the fifth and sixth confirmation of #334's 5-of-5 measurement.

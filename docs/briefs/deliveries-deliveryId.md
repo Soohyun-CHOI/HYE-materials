@@ -32,13 +32,23 @@ reason a reader opened the page. The app currently sets it in the largest text o
 the screen after the heading.
 
 **identity — a block of facts copied off the delivery.** The job as code and
-name, the vendor, the received date, `PO on packing list` as a link or the word
+name, the vendor, the received date, `Delivery address`, `PO on packing list` as a
+link or the word
 `none`, the invoices paired with this delivery, who recorded it and when, and the
 packing list photo as a control that opens it over this page in the shared viewer
 (`_shared.md`, "A file opens over the screen that named it"), titled
 `Packing list photo · {filename}`. `PO on packing list` is named at that length on
 purpose: a bare `PO` would read as the order the delivery was recorded against,
 which is a different thing living on the rows below and reached another way.
+
+**`Delivery address` is where the material was delivered, not where it was ordered
+to.** The order's own address is on the purchase order's page and says where it was
+meant to go; the two are allowed to differ, and this line is the record of it. It
+shows the address's own label — the human-typed name of the place, the same value
+the request and the order both show — rather than the street, which belongs to the
+purchase order document a vendor reads. **There is no control for it here and a
+redesign should not draw one:** the address is set once, when the delivery is
+recorded. An em dash on every delivery entered before the field existed.
 
 **Invoices is plural and empty is a reading.** One invoice belongs to one
 delivery, so a delivery accumulates them as the office enters each. With none,

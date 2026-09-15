@@ -58,6 +58,29 @@ because both describe how the list itself was built:
 
 **action — `Received Date`.**
 
+**action — `Delivery address`,** a required dropdown beside the date, holding every
+address on the base in two groups — the ones this job uses first, then the rest.
+**The app fills it in from the orders the items above attach to**, and the reader
+can change it: the order says where the material was meant to go and this says
+where it was delivered, which is a different fact and the reason the field exists.
+It is the same control, the same word and the same two group headings as the
+request form's own address picker.
+
+**Under the control, one line saying where the default came from** — or none. Four
+states, and the silence is one of them: before any item has been entered the
+control stands alone, because the app has nothing to claim yet. When the orders
+agree it reports `Taken from the order this delivery attaches to.` in gray, with
+`Some of these orders record no address` added in amber when only some of them
+named one. When none of them did, gray again — it names the ORDER rather than the
+reader, who has done nothing wrong, since almost every order on the base records
+none. And when two orders name different addresses, nothing is preselected and an
+amber line says `so pick where the material was delivered`.
+
+**It never falls back to the job's usual address.** The job's addresses are first
+in the list, one click away, but the app does not assert one: this is the field
+inventory will be counted by, so a prefilled guess a busy reader accepts puts
+stock in the wrong place and leaves nothing on screen to say so.
+
 **action — `Packing list photo`,** a file input accepting PDF, JPEG or PNG.
 Required — the deliveries list's own empty state tells readers that the photo is
 what makes a delivery a record.
@@ -148,3 +171,16 @@ the invoice form.** In all three the document is what makes the record a record.
 
 **`Not against any order` is the same phrase** the delivery detail's table uses for
 the same state.
+
+**`Delivery address` is the request form's own word**, and so are the placeholder
+and the two group headings — one question about one table, asked on two forms.
+The two refusals are shared too, so a missing address reads identically whichever
+form refused it.
+
+**The gray-versus-amber split under this control is the same grammar** as the
+pairing box above it: gray reports what the app did, amber asks a person to check.
+
+**This screen is the only place the address is ever set.** It cannot be edited
+afterwards and the delivery's own page has no control for it — inventory is
+counted per address, so moving a recorded delivery to a different one is a stock
+movement rather than a correction, and nothing counts stock yet.

@@ -64,6 +64,7 @@ import { FILE_AXIS_LABEL, FILE_VIEWER_COPY } from "../../../lib/fileLinks.js";
 import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
 import { MATERIAL_SEARCH_COPY } from "../../../lib/materialPriceView.js";
 import { PO_ADDRESS_COPY } from "../../../lib/poDeliveryAddress.js";
+import { DELIVERY_ADDRESS_COPY } from "../../../lib/deliveryAddress.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -304,6 +305,14 @@ const PINNED = [
     // `offline/po-delivery-address.mjs`, which is the stronger assertion anyway.
     "shows no delivery address either",
     "Give the vendor the address separately",
+    // #387 — one clause per voice, in the wrap-safe form the entries above use.
+    // The gray one that reports, the amber one that qualifies it, and the amber one
+    // that refuses to choose between rivals; the fourth sentence is the gray silence
+    // and `deliveries-new.md` paraphrases rather than quotes it, so it is uncovered
+    // rather than wrongly passed.
+    "Taken from the order this delivery attaches to",
+    "Some of these orders record no address",
+    "so pick where the material was delivered",
     // The three sentences that stand in for a file, pinned on their distinctive
     // clause rather than whole: the briefs wrap, and the first of these is long
     // enough that the full sentence would match the constant and not the brief.
@@ -540,6 +549,15 @@ export function run({ check, assert, log }) {
         // word this app also says on `/prs/new`, which is the substring trap the
         // `Paid` note below describes, so only the sentence is pinned.
         ...stringsFrom(PO_ADDRESS_COPY),
+        // #387 — CALLED WITH BOTH COUNTS RATHER THAN LEFT TO `stringsFrom`, for the
+        // reason `ROLLBACK_COPY` above is: two of the four are builders taking an
+        // order COUNT, and the probe shapes try `(sample, "EA")` FIRST — an object is
+        // not `=== 1`, so only the plural would reach `loadable` and a pin on the
+        // singular would fail for the wrong reason. Measured on this branch before
+        // these two lines were written.
+        ...stringsFrom(DELIVERY_ADDRESS_COPY),
+        DELIVERY_ADDRESS_COPY.taken(1),
+        DELIVERY_ADDRESS_COPY.noOrderAddress(1),
         // #188 — CALLED WITH A REAL LIST RATHER THAN LEFT TO `stringsFrom`, whose
         // three probe shapes cannot supply one: every one of them makes the builder
         // throw, so the sentence a brief quotes would silently be absent from

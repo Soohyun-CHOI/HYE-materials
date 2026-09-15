@@ -12,6 +12,8 @@ import {
     planDelivery,
 } from "@/lib/deliveryAllocation";
 import { availableInvoiceOptions } from "@/lib/deliveryInvoiceLink";
+import { ADDRESS_CHOICE_COPY, addressOptions } from "@/lib/addressChoice";
+import { DELIVERY_ADDRESS_COPY, deliveryAddressDefault } from "@/lib/deliveryAddress";
 import {
     PAIRING,
     invoiceFromOption,
@@ -80,7 +82,13 @@ const EMPTY_ROW = { materialRecordId: "", qty: "" };
  * one, the recorder read it off the document and that beats anything computed, so
  * the action folds it in first.
  */
-export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceOptions = [] }) {
+export default function DeliveryForm({
+    jobs,
+    orderedItems,
+    vendorNames,
+    invoiceOptions = [],
+    addresses = [],
+}) {
     const [state, formAction, pending] = useActionState(createDeliveryAction, {});
 
     // A single accessible job is preselected: making someone choose from a list of
@@ -91,6 +99,14 @@ export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceO
     const [vendorId, setVendorId] = useState("");
     const [rows, setRows] = useState([{ ...EMPTY_ROW }]);
     const [receivedDate, setReceivedDate] = useState(() => new Date().toISOString().slice(0, 10));
+    // #387 — `""` MEANS "NOT PICKED YET" AND NOT "NOTHING", which is what lets the
+    // default follow the rows while a deliberate pick survives them. A recorder who
+    // chooses an address and then fixes a quantity must not have their answer
+    // silently replaced by a recomputed default; a recorder who has chosen nothing
+    // should see the default move as the plan does. So the control's value is the
+    // pick when there is one and the default otherwise, and the two are never merged
+    // into one piece of state.
+    const [pickedAddressId, setPickedAddressId] = useState("");
     const [notes, setNotes] = useState("");
     const [photo, setPhoto] = useState({ status: "empty" });
     // #231 — BEHIND A CHECKBOX, the idiom this same form already uses for the
@@ -259,11 +275,19 @@ export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceO
         setPoId("");
         setHasPoNumber(false);
         setRows([{ ...EMPTY_ROW }]);
+        // #387 — a pick made under the old job survives nothing else here and must
+        // not survive this either: the picker's first group is that JOB's addresses,
+        // and the default comes from orders the new job does not have.
+        setPickedAddressId("");
     }
 
     function pickVendor(id) {
         setVendorId(id);
         setRows([{ ...EMPTY_ROW }]);
+        // The address default is vendor-narrowed through the rows, so it goes back
+        // to computed for the same reason the rows do. A pick is not kept across a
+        // vendor change, since the orders it was taken from are no longer in play.
+        setPickedAddressId("");
         // The invoice list is vendor-narrowed, so an invoice picked under the old vendor
         // is not on offer under the new one — the same reason the item rows reset.
         // Back to computed, not to blank: the new vendor's own invoices are about to be
@@ -296,6 +320,27 @@ export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceO
         }
     }
 
+    // #387 — WHERE IT ARRIVED, DEFAULTED FROM THE ORDERS THE PLAN ATTACHES TO. Read
+    // off the plans rather than off the rows, for `delivery` above's reason: a
+    // material reaches an order only through allocation, so the rows cannot say
+    // which orders are in play and the plan can. The rule itself is
+    // `lib/deliveryAddress.js`, so this component decides nothing — it renders the
+    // answer and the sentence that goes with it.
+    const addressDefault = useMemo(
+        () =>
+            deliveryAddressDefault(
+                [...plansByMaterial.values()].flatMap((p) =>
+                    (p.rows || []).map((r) => r.orderedItem).filter(Boolean)
+                )
+            ),
+        [plansByMaterial]
+    );
+    const chosenAddressId = pickedAddressId || addressDefault.addressId || "";
+    const addressGroups = useMemo(
+        () => addressOptions(selectedJob, addresses),
+        [selectedJob, addresses]
+    );
+
     const filledRows = rows.filter((r) => r.materialRecordId && Number(r.qty) > 0);
     // NO BLOCKED-PLAN BRANCH HERE, and that is measured rather than assumed (#165).
     // This form cannot produce one: with a PO in use the item options are built
@@ -313,7 +358,12 @@ export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceO
         Boolean(effectiveVendorId) &&
         filledRows.length > 0 &&
         filledRows.length === rows.filter((r) => r.materialRecordId || r.qty !== "").length &&
-        Boolean(receivedDate);
+        Boolean(receivedDate) &&
+        // #387 — required, like the date and the photo beside it. The action refuses
+        // a missing one regardless, because a Server Action is callable whatever
+        // this rendered; disabling here is what stops a recorder reaching that
+        // refusal by way of a full form.
+        Boolean(chosenAddressId);
 
     const inputClass =
         "mt-1 w-full rounded border border-zinc-300 px-3 py-2 text-sm";
@@ -657,7 +707,88 @@ export default function DeliveryForm({ jobs, orderedItems, vendorNames, invoiceO
                         className={inputClass}
                     />
                 </div>
+
+                {/* #387 — WHERE IT ACTUALLY ARRIVED. Beside the date, in the second
+                    column this grid already declared and never filled, because both
+                    are facts about the delivery rather than about an item — and
+                    because the answer depends on the rows above, so it has to read
+                    after them.
+
+                    THE LABEL AND THE GROUP HEADINGS ARE `/prs/new`'s OWN WORDS,
+                    imported rather than re-coined: the two forms ask one question
+                    about one table, and a second wording would be two words for one
+                    fact the first time either was reworded. What is new is only the
+                    sentence under the control, which is about where the DEFAULT came
+                    from — a question that does not arise on a form whose default is
+                    the job's. */}
+                <div>
+                    <label htmlFor="deliveryAddressSelect" className="block text-sm font-medium">
+                        {ADDRESS_CHOICE_COPY.label}
+                    </label>
+                    <select
+                        id="deliveryAddressSelect"
+                        value={chosenAddressId}
+                        onChange={(e) => setPickedAddressId(e.target.value)}
+                        className={inputClass}
+                    >
+                        <option value="">{ADDRESS_CHOICE_COPY.pickerUnchosen}</option>
+                        {addressGroups.onJob.length > 0 && (
+                            <optgroup label={ADDRESS_CHOICE_COPY.groupOnJob}>
+                                {addressGroups.onJob.map((a) => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.addressLabel}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
+                        {addressGroups.others.length > 0 && (
+                            <optgroup label={ADDRESS_CHOICE_COPY.groupOthers}>
+                                {addressGroups.others.map((a) => (
+                                    <option key={a.id} value={a.id}>
+                                        {a.addressLabel}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        )}
+                    </select>
+                    {/* Gray reports what the app did, amber asks the recorder to
+                        check — this screen's own grammar, the same split the pairing
+                        box above uses. Nothing at all before anything is planned:
+                        `empty` is a state, and a control with no sentence under it is
+                        what "the app has nothing to claim yet" looks like.
+
+                        `taken` STANDS DOWN ONCE THE RECORDER HAS PICKED, and the
+                        other two do not. The difference is what each sentence is
+                        ABOUT: `taken` is a claim about the VALUE IN THIS CONTROL, so
+                        it goes false the moment somebody overrides it — found by
+                        walking the form, where `Cedar Park Shop` sat under
+                        `Taken from the order this delivery attaches to.` The other
+                        two are claims about the ORDERS, which a pick does not change,
+                        and they stay for the reason `ADDRESS_CHOICE_COPY.noDefault`
+                        stays on `/prs/new` after a requester answers it. */}
+                    {addressDefault.state === "agreed" && !pickedAddressId && (
+                        <p className="mt-1 text-xs text-zinc-500">
+                            {DELIVERY_ADDRESS_COPY.taken(addressDefault.orderCount)}
+                            {addressDefault.partly && (
+                                <span className="ml-1 text-amber-700">
+                                    {DELIVERY_ADDRESS_COPY.partly}
+                                </span>
+                            )}
+                        </p>
+                    )}
+                    {addressDefault.state === "no-order-address" && (
+                        <p className="mt-1 text-xs text-zinc-500">
+                            {DELIVERY_ADDRESS_COPY.noOrderAddress(addressDefault.orderCount)}
+                        </p>
+                    )}
+                    {addressDefault.state === "disagree" && (
+                        <p className="mt-1 text-xs text-amber-700">
+                            {DELIVERY_ADDRESS_COPY.disagree}
+                        </p>
+                    )}
+                </div>
             </div>
+            <input type="hidden" name="deliveryAddressId" value={chosenAddressId} />
 
             <div>
                 <label htmlFor="photoInput" className="block text-sm font-medium">
