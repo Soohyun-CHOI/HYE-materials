@@ -16,6 +16,14 @@ const eslintConfig = defineConfig([
     // never on CI. Both are clean today; what matters is that the local run
     // and the CI run look at the same tree, or the enforced baseline is not
     // the one anybody measured.
+    //
+    // THIS IS ONE HARD-CODED PATH AND THE DRIFT IT CLOSED IS GENERAL, so a
+    // second gitignored directory holding .js brings it back with nothing
+    // saying so — the entry below would still be there and still be right.
+    // Not observed: #195 measured the current state and `npx eslint .` lints
+    // 342 files, none of them untracked. Recorded here rather than guarded,
+    // because a check would have to run eslint or reimplement its ignore
+    // resolution, and eslint is deliberately a CI job of its own.
     ".venv/**",
   ]),
 ]);
