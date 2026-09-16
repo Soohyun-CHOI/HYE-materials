@@ -74,7 +74,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 **Renaming a field is safe and the procedure is mechanical**: a rename carries every formula, rollup and view filter with it, so the only thing it breaks is a string literal here — and a grep coming back empty does not finish it. `airtable-access.md` has the mechanism, the read-every-hunk step and the near-miss behind them.
 
-**A schema edit may not be assumed scriptable.** The Metadata API cannot write everything, and what it refuses is measured rather than read off the documentation — `docs/notes/airtable-access.md` has the figures, including which of the refusals force an invariant onto the DATA instead.
+**A schema edit may not be assumed scriptable.** The Metadata API cannot write everything, and what it refuses is measured rather than read off the documentation — `docs/notes/airtable-access.md` has the figures, including which of the refusals force an invariant onto the DATA instead. **A new table's Unit field is one of them** — leave it off and let `scripts/import/add_unit_options.py` create it.
 
 **Deleting or retyping a field is not the same as renaming it.** A rename preserves every value; a type change can silently drop them. Records in this base are not to be removed as tidying-up.
 
@@ -157,7 +157,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
 
-A service-layer function with no caller is verified by nothing — `upsertMaterial` sat unused from Phase 0 to #18 carrying three defects.
+A service-layer function with no caller is verified by nothing — `upsertMaterial` sat unused from Phase 0 to #18 carrying three defects. **An export nothing outside its own file imports now fails a check (#182).**
 
 ### One rule, one implementation
 
@@ -219,9 +219,9 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
 
-### Units (PR Items / PO Items / Invoice Items / Materials / Delivery Items)
+### Units
 
-One shared 19-value single select, source of truth `lib/units.js:CANONICAL_UNITS`. **Never use `typecast` on a Unit write** — it invents an option, which is how a canonical list silently gains a 20th value; omit an empty Unit instead. **Leave the Unit field off a new table** and let `scripts/import/add_unit_options.py` create it. The derivation is in `airtable-access.md`.
+One shared 19-value single select, source of truth `lib/units.js:CANONICAL_UNITS`. **Never use `typecast` on a Unit write** — it invents an option, which is how a canonical list silently gains a 20th value; omit an empty Unit instead. The derivation is in `airtable-access.md`; what a NEW table owes this list is under `Editing the Airtable schema`.
 
 ### Screen words and the fields behind them
 
@@ -280,7 +280,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 
 **Operating convention:** office staff run with `Is Admin: true`; a non-Admin Employee is site staff. Gating an endpoint to Admin scopes it to the office, not to a higher trust tier.
 
-- `requireUser()` / `requireRole(role)` / `requireAdmin()` / `requirePresident()` are for Server Components and Actions. All redirect to `/login` with no session. On insufficient permission `requireRole`/`requireAdmin` return `{ authorized: false }` for the caller to render; `requirePresident()` throws. Route Handlers cannot use these — they call `getActiveUser()` or `requireAdminApi()`, which return the user or a 401/403 `Response`.
+- `requireUser()` / `requireAdmin()` are for Server Components and Actions; both redirect to `/login` with no session, and `requireAdmin` returns `{ authorized: false }` for the caller to render. **`requireRole` and `requirePresident` are internal to `lib/authz.js` (#182)** — a President gate is `withPresidentAction`. Route Handlers cannot use these — they call `getActiveUser()` or `requireAdminApi()`, which return the user or a 401/403 `Response`.
 - **A SIGNED-OUT READER RETURNS TO WHERE THEY WERE (#373).** `requireUser()` carries the address into `/login`, and the sign-in flow hands it back. `proxy.js` stamps that address and **gates nothing** — authorization stays in the page.
 - **Gate a new endpoint with a wrapper**, not a bare call: `withAdminApi`, `withAdminAction`, `withPresidentAction`. A wrapped export cannot run its body unauthorized, because the body is an argument the wrapper decides whether to call.
 - **A `withAdminAction` refusal follows the call site (#185):** an action whose every call site BINDS the return returns `{ error }`, and one any call site invokes without binding throws — `useActionState` and an awaited call observe a return, a bare `<form action>` discards it. It is a conjunction, so a non-binding caller is the thing to change. Held by `offline/action-refusal-shape.mjs`.
