@@ -7,6 +7,7 @@ import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { summarizeDelivery } from "@/lib/deliveryAllocation";
 import { getDeliveryInvoicing } from "@/lib/deliveryReconciliation";
 import { describeDeliveryColumn } from "@/lib/deliveryStatus";
+import { jobOptionLabel, parseFilters, pickerOptions } from "@/lib/listFilters";
 import { withOpsLabel } from "@/lib/airtableOps";
 import DeliveriesListClient from "./DeliveriesListClient";
 
@@ -47,8 +48,18 @@ async function renderDeliveriesListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
 
-    const jobs = jobsFor(user, await getAllJobs());
+    // #324 — `allJobs` AND THE NARROWED `jobs` ARE TWO LOCALS, AND THE UNNARROWED ONE
+    // COSTS NOTHING. Every Job's `Deliveries` reverse-link is already on the records
+    // `getAllJobs` returned, so counting every delivery on the base — which is what
+    // tells "none exist yet" apart from "none for you" — is one flatMap over an array
+    // this page was already discarding. Without it this list told a reader with jobs
+    // but no deliveries on them `No deliveries recorded yet.`, which is the sentence
+    // `lib/poListView.js`'s rule bars, said to somebody whose company has plenty.
+    // `/invoices` keeps the same two locals for a neighboring reason (#314).
+    const allJobs = await getAllJobs();
+    const jobs = jobsFor(user, allJobs);
     const jobById = new Map(jobs.map((j) => [j.id, j]));
+    const deliveriesOnBase = new Set(allJobs.flatMap((j) => j.deliveries || [])).size;
 
     // getAllJobs already carries each Job's `Deliveries` reverse-link, so the ids
     // come out of the records the access filter has in hand — no query per Job.
@@ -84,9 +95,8 @@ async function renderDeliveriesListPage({ searchParams }) {
     // single job of being a log. The two pulled opposite ways — a log reads newest
     // first and an empty one means nothing delivered; a chasing list reads oldest
     // first and an empty one means there is nothing left to do — and nobody visits
-    // a query parameter on a schedule.
-    const filters = { over: sp?.over === "1" };
-
+    // a query parameter on a schedule. #324 is what turned that one move into the
+    // rule the four lists share, and `?over=1` is what it leaves here.
     const itemsByDelivery = new Map();
     for (const item of allItems) {
         const parent = item.delivery?.[0];
@@ -109,8 +119,15 @@ async function renderDeliveriesListPage({ searchParams }) {
                 deliveryId: d.deliveryId,
                 receivedDate: d.receivedDate || "",
                 createdAt: d.createdAt || "",
+                jobId: d.job?.[0] ?? null,
                 jobCode: jobById.get(d.job?.[0])?.jobCode ?? "—",
+                vendorId: d.vendor?.[0] ?? null,
                 vendorName: vendorNameById.get(d.vendor?.[0]) ?? "Unknown vendor",
+                // #324 — `Recorded By` is the axis this document has, which is why this
+                // list carries a reader's-own toggle and `/invoices` does not (#382).
+                // Resolved here so nobody's identity reaches the client, the same
+                // arrangement `/prs` and `/pos` use for their requester.
+                isMine: d.recordedBy?.[0] === user.id,
                 hasOverDelivery: items.some((i) => i.overDelivered),
                 invoicingChip: invoicingByDelivery.has(d.id)
                     ? describeDeliveryColumn(invoicingByDelivery.get(d.id))
@@ -132,6 +149,17 @@ async function renderDeliveriesListPage({ searchParams }) {
             return b.createdAt.localeCompare(a.createdAt);
         });
 
+    // #324 — the pickers' options come from the rows this reader can already see, and
+    // the URL is intersected with them, so a forged `?job=` in a pasted link is
+    // dropped before it reaches the client.
+    const options = {
+        job: pickerOptions(rows, "jobId", (r) =>
+            jobOptionLabel(jobById.get(r.jobId)?.jobCode, jobById.get(r.jobId)?.jobName)
+        ),
+        vendor: pickerOptions(rows, "vendorId", (r) => r.vendorName),
+    };
+    const initialFilters = parseFilters("/deliveries", sp ?? {}, options);
+
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
             <div className="flex items-baseline justify-between gap-4">
@@ -146,22 +174,20 @@ async function renderDeliveriesListPage({ searchParams }) {
                 </Link>
             </div>
 
-            {jobs.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600">
-                    You are not assigned to any job yet, so there are no deliveries to show. An Admin
-                    can add you to a job in Airtable.
-                </p>
-            ) : rows.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600">
-                    No deliveries recorded yet. Record one as material is delivered — the packing list
-                    photo is what makes it a record.
-                </p>
-            ) : (
-                <DeliveriesListClient
-                    rows={rows}
-                    initialOver={filters.over}
-                />
-            )}
+            {/* #324 — ALL THREE EMPTY STATES ARE THE CLIENT'S NOW, because which one
+                applies depends on whether a filter is active and that is state this
+                page does not hold. The two sentences that were here said a fourth
+                thing between them: "you are on no job" and "nothing recorded yet" are
+                one state — nothing in your scope — and the second was false for a
+                reader whose jobs simply hold no delivery. The access line survives as
+                that state's own sentence, and the packing-list line moved to the state
+                it is true of. */}
+            <DeliveriesListClient
+                rows={rows}
+                options={options}
+                initialFilters={initialFilters}
+                totalCount={deliveriesOnBase}
+            />
 
             <Link href="/" className="mt-8 inline-block text-sm underline">
                 Home

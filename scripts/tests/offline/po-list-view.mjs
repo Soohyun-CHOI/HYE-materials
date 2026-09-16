@@ -34,9 +34,7 @@ import {
     AWAITING_PO_COPY,
     AWAITING_PO_STATUSES,
     AWAITING_SEND_COPY,
-    EMPTY_COPY,
     awaitingPOCopy,
-    emptyStateKind,
     selectPOsAwaitingSend,
     selectPRsAwaitingPO,
     statusLabel,
@@ -101,54 +99,11 @@ export function run({ check, assert, log }) {
         );
     }
 
-    // ── empty states ────────────────────────────────────────────────────────
-    log("three empty states, because they are three different facts:");
-    check(
-        "no purchase order exists at all",
-        emptyStateKind({ totalCount: 0, visibleCount: 0, filtersActive: false }),
-        "none"
-    );
-    check(
-        "some exist but none is visible to this viewer",
-        emptyStateKind({ totalCount: 12, visibleCount: 0, filtersActive: false }),
-        "hidden"
-    );
-    check(
-        "visible rows exist and the filters excluded them",
-        emptyStateKind({ totalCount: 12, visibleCount: 5, filtersActive: true }),
-        "filtered"
-    );
-    check(
-        "rows to render means no empty state",
-        emptyStateKind({ totalCount: 12, visibleCount: 5, filtersActive: false }),
-        null
-    );
-
-    // ORDER IS LOAD-BEARING. A viewer who can see nothing must not be told to
-    // adjust filters that cannot help them, so `filtered` loses to both others.
-    check(
-        "nothing visible beats an active filter",
-        emptyStateKind({ totalCount: 12, visibleCount: 0, filtersActive: true }),
-        "hidden"
-    );
-    check(
-        "an empty base beats both",
-        emptyStateKind({ totalCount: 0, visibleCount: 0, filtersActive: true }),
-        "none"
-    );
-
-    // THE WORD THAT WOULD MAKE IT A LIE. "yet" claims the company has never raised
-    // a purchase order, which is false for a viewer who simply cannot see any.
-    assert("the none-exist message says 'yet'", EMPTY_COPY.none.includes("yet"));
-    assert("the nothing-visible message does NOT", !EMPTY_COPY.hidden.includes("yet"));
-    assert(
-        "and it explains the gate instead of blaming the data",
-        EMPTY_COPY.hidden.includes("request behind it")
-    );
-    for (const [kind, text] of Object.entries(EMPTY_COPY)) {
-        assert(`the ${kind} message is a sentence, not a fragment`, /^[A-Z].*\.$/.test(text.trim()));
-    }
-    check("every empty-state kind has copy", Object.keys(EMPTY_COPY).sort().join(","), "filtered,hidden,none");
+    // ── empty states ────────────────────────────────────────────────
+    // MOVED TO offline/list-filters.mjs IN #324, with the copy and the judgment
+    // themselves. This list's three sentences are now three of twelve, and the
+    // ordering they depend on is one function four lists call — so asserting them
+    // here would be this file holding a rule it no longer owns.
 
     // ── approved requests with no purchase order (#176) ─────────────────────
     // One fixture for every clause, and it is built to be REJECTED as well as

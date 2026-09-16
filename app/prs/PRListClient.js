@@ -1,129 +1,52 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 // Issue #272 — pure and import-free, so this component may hold the words while the
 // judgment stays on the server: `kind` arrives as a key, exactly as `unsigned`
 // arrives as a boolean on the invoice form (#198).
 import { PR_KIND_COPY } from "@/lib/prKind";
-import JobFilterDropdown from "./JobFilterDropdown";
+import {
+    LIST_EMPTY_COPY,
+    applyFilters,
+    emptyStateKind,
+    showsFilterBar,
+} from "@/lib/listFilters";
+import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
 
 // Issue #119 (follow-up) — instant, client-side narrow-filtering over the
-// already-visibility-filtered rows the server sent. No Apply button: changing
-// a filter re-renders the list in place. The active filters are mirrored into
-// the URL via history.replaceState (no navigation, no history entry, no server
-// round-trip), so refresh / shared link / back-button restore them — the
-// server reads those params back into the initial* props (and re-keys this
-// component) on a real load.
-export default function PRListClient({
-    rows,
-    jobOptions,
-    statuses,
-    initialSelectedJobs,
-    initialStatus,
-    initialMine,
-}) {
-    const router = useRouter();
-    const pathname = usePathname();
-    const [selectedJobs, setSelectedJobs] = useState(() => new Set(initialSelectedJobs));
-    const [status, setStatus] = useState(initialStatus);
-    const [mine, setMine] = useState(initialMine);
-    const firstRun = useRef(true);
+// already-visibility-filtered rows the server sent.
+//
+// THE BAR IS SHARED SINCE #324 and the mechanism is unchanged: no Apply button, and
+// the active filters mirrored into the URL so refresh, a shared link and the back
+// button restore them. What moved out is the state, the URL sync, the predicate and
+// every word — this list carries five axes now (a job picker, a vendor picker, the
+// reader's own, a status and a kind) and declares none of them here.
+const ROUTE = "/prs";
 
-    useEffect(() => {
-        // Skip the initial mount: the URL already reflects the initial filters
-        // (the server seeded them from it), so there's nothing to sync.
-        if (firstRun.current) {
-            firstRun.current = false;
-            return;
-        }
-        const p = new URLSearchParams();
-        [...selectedJobs].forEach((id) => p.append("job", id));
-        if (status) p.set("status", status);
-        if (mine) p.set("mine", "1");
-        const qs = p.toString();
-        // router.replace (not raw window.history.replaceState) so Next's own
-        // router state stays in sync — otherwise the filtered URL isn't
-        // restored when navigating back from a detail page. It's a replace (no
-        // new history entry) with scroll:false; the list already updated
-        // instantly from client state, so this URL sync is a non-blocking
-        // background re-render (server state/props are ignored once mounted).
-        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    }, [selectedJobs, status, mine, router, pathname]);
-
-    const filtered = rows.filter((r) => {
-        if (selectedJobs.size && !selectedJobs.has(r.jobId)) return false;
-        if (status && r.status !== status) return false;
-        if (mine && !r.isMine) return false;
-        return true;
-    });
-
-    const filtersActive = selectedJobs.size > 0 || Boolean(status) || mine;
-
-    function toggleJob(id) {
-        setSelectedJobs((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    }
-    function clearJobs() {
-        setSelectedJobs(new Set());
-    }
-    function clearAllFilters() {
-        setSelectedJobs(new Set());
-        setStatus("");
-        setMine(false);
-    }
+export default function PRListClient({ rows, options, initialFilters, totalCount }) {
+    const filters = useListFilters({ route: ROUTE, initial: initialFilters });
+    const shown = applyFilters(ROUTE, filters.state, rows);
+    const empty = shown.length
+        ? null
+        : emptyStateKind({ totalCount, visibleCount: rows.length, filtersActive: filters.active });
 
     return (
         <>
-            <div className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm">
-                {jobOptions.length > 0 && (
-                    <JobFilterDropdown
-                        jobs={jobOptions}
-                        selected={selectedJobs}
-                        onToggle={toggleJob}
-                        onClearJobs={clearJobs}
-                    />
-                )}
-                <label className="flex items-center gap-1">
-                    <input
-                        type="checkbox"
-                        checked={mine}
-                        onChange={(e) => setMine(e.target.checked)}
-                    />
-                    Raised by me
-                </label>
-                <label className="flex items-center gap-1">
-                    Status:
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="rounded border border-zinc-300 px-2 py-1"
-                    >
-                        <option value="">All</option>
-                        {statuses.map((s) => (
-                            <option key={s} value={s}>
-                                {s}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                {filtersActive && (
-                    <button type="button" onClick={clearAllFilters} className="underline">
-                        Clear all filters
-                    </button>
-                )}
-            </div>
+            {/* THE ROWS BEFORE ANY FILTER, NEVER THE ROWS AFTER. Keying this off
+                `shown` takes the bar away exactly when a filter has emptied the list,
+                which is the one moment `Clear all filters` is what the reader needs. */}
+            {showsFilterBar({ visibleCount: rows.length }) && (
+                <ListFilterBar
+                    filters={filters}
+                    options={options}
+                    shown={shown.length}
+                    total={rows.length}
+                />
+            )}
 
-            {filtered.length === 0 ? (
-                <p className="mt-6 text-sm text-zinc-600">
-                    {filtersActive ? "No PRs match these filters." : "No purchase requests to show."}
-                </p>
+            {empty ? (
+                <p className="mt-6 text-sm text-zinc-600">{LIST_EMPTY_COPY[ROUTE][empty]}</p>
             ) : (
                 <table className="mt-6 w-full text-sm">
                     <thead>
@@ -131,7 +54,7 @@ export default function PRListClient({
                             <th className="pr-2">PR ID</th>
                             <th className="pr-2">Requester</th>
                             <th className="pr-2">Vendor</th>
-                            {/* #314 — `Job / Discipline` until this issue, and one
+                            {/* #314 — `Job / Discipline` until that issue, and one
                                 cell from two fields. Every document list in the app
                                 heads this column `Job` and carries only a job; the
                                 discipline is on the request's own screen, which is
@@ -142,7 +65,7 @@ export default function PRListClient({
                         </tr>
                     </thead>
                     <tbody>
-                        {filtered.map((r) => {
+                        {shown.map((r) => {
                             // Issue #122 — a Withdrawn PR is a terminal, ended
                             // request. It stays in the list (that's the point
                             // of withdraw being a state transition, not a

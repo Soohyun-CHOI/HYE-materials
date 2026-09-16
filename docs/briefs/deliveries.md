@@ -18,9 +18,24 @@ list is and how it is ordered, not a state.
 
 **action.** A `Record a delivery` link beside the heading.
 
-**action — one filter,** a single `Over-delivered` checkbox. There is no job
-picker, no vendor filter and no date range; the ordering is always newest first
-and cannot be changed.
+**action — a filter bar,** the same component all four document lists carry
+(#324). Four controls: a job picker and a vendor picker, each taking several at
+once and each searchable; a `Recorded by me` checkbox; and an `Over-delivered`
+checkbox. There is no date range, and the ordering is always newest first and
+cannot be changed.
+
+**It carried the `Over-delivered` checkbox alone until #324.** The other three are
+the subject axes every document list carries — this one had none of them, which
+was not a decision: the bar was written for the screens that needed one and this
+screen got the one filter its own feature needed.
+
+**`Recorded by me` reads `Recorded By`, which is this document's own author.** The
+request and order lists say `Requested by me` because they read a requester; the
+invoice list has no such control at all, because an invoice records nobody.
+
+**The bar is drawn only when this reader has at least one row before filtering.**
+A reader on no job gets the sentence alone; a filter that empties the list keeps
+the bar.
 
 **evidence — the table, six columns.** Delivery, Vendor, Received, Delivered,
 Invoiced, Job.
@@ -51,24 +66,34 @@ carried a green `Delivery deleted.` line until #321; the invoice list, where the
 same act lands from the invoice detail, never carried one. See `_shared.md`, "The
 arrival is the confirmation".
 
-**When the filter is on and nothing matches:** `No delivery matches these
-filters.`
+**When any filter is active:** a `Clear all filters` control and a count beside
+it, `N of M`. The count was here before #324 and beside the over-delivered
+checkbox alone; it is on all four lists now.
 
-**When there are no rows at all:** one of two sentences, and they answer two
-different questions. `You are not assigned to any job yet, so there are no
-deliveries to show. An Admin can add you to a job in Airtable.` — which is the
-app's only screen that tells a reader how to get access, and it names Airtable
-because there is no user-administration screen. Or `No deliveries recorded yet.
-Record one as material is delivered — the packing list photo is what makes it a
-record.` when the reader has jobs but nothing has been recorded.
+**When there are no rows at all:** one of three sentences, the same three-way
+distinction all four document lists draw. `No deliveries recorded yet. Record one
+as material is delivered — the packing list photo is what makes it a record.`
+when the base holds none. `No deliveries to show. You see a delivery when it is on
+a job you are assigned to. An Admin can add you to a job in Airtable.` when some
+exist but none is in this reader's scope — the app's only screen that tells a
+reader how to get access, and it names Airtable because there is no
+user-administration screen. `No deliveries match these filters.` when the reader
+filtered them out.
 
-The second sentence is doing teaching rather than reporting: it states the one
-rule of the feature — that the photo is what makes a delivery a record — at the
-moment a reader has nothing else to look at. An empty state that only said "no
+The first sentence is doing teaching rather than reporting: it states the one rule
+of the feature — that the photo is what makes a delivery a record — at the moment
+a reader has nothing else to look at. An empty state that only said "no
 deliveries" would lose that.
 
-**When the reader is assigned to no jobs:** the filter and the table are both
-absent, not empty.
+**Until #324 that first sentence was shown to the wrong reader.** A site staffer
+whose jobs happened to hold no delivery was told none had been recorded, on a base
+with plenty — `yet` claims the company has never had one, and it is the word the
+scope-empty sentence must never carry. The two situations are one state now, and
+the teaching moved to the sentence it is true of.
+
+**When the reader is assigned to no jobs:** the bar and the table are both absent,
+not empty. That is the general rule rather than this screen's: the bar is drawn
+only when there is at least one row to narrow.
 
 ## What must agree elsewhere
 
@@ -84,10 +109,20 @@ been invoiced — so a reader meets one vocabulary.
 purchase order detail**, and it is a stored checkbox rather than a per-screen
 judgment.
 
-**The over-delivered filter is the only filter on purpose.** It was a
-vendor-chasing worklist wearing a checkbox until that worklist became the strip on
-the invoice list; what is left is one narrow question. A redesign adding filters
-here should know it is adding, not restoring.
+**The over-delivered filter survives for a stated reason, and #324 is what stated
+it.** It was one of two until #216 moved the vendor-chasing one to a strip on the
+invoice list, and it stayed on the ground that what was left is one narrow
+question. The rule that keeps it now is general: a closed set on one of these
+lists becomes a filter when the document or its own item rows hold the value, and
+a strip's subject when the values lie along a wait whose end is the good one.
+`Over Delivered` is a stored checkbox on this delivery's own item rows; it does not
+end, and its absence is not "done". The wait it creates — an excess with no
+request raised for it — is the strip on the request list, which is the same fact
+in the other shape.
+
+**The `Invoiced` chip is not a filter, by that same rule.** `Awaiting invoice` →
+`Partly invoiced` → `Invoiced` is a wait with degrees, and it already has its
+strip on the invoice list.
 
 **Newest first is this list's order and is stated on the screen.** The
 awaiting-invoice strip on the invoice list is ordered longest-wait-first instead,

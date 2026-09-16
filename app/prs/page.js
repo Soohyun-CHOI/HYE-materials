@@ -5,7 +5,8 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
-import { prKind } from "@/lib/prKind";
+import { PR_KIND_CHOICES, prKind } from "@/lib/prKind";
+import { jobOptionLabel, parseFilters, pickerOptions } from "@/lib/listFilters";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
 import { getOveragesAwaitingRequest } from "@/lib/overagePR";
 import { getDirectPurchasesAwaitingRequest } from "@/lib/directPurchaseClaim";
@@ -37,7 +38,6 @@ export default async function PRListPage(props) {
 async function renderPRListPage({ searchParams }) {
     const user = await requireUser();
     const sp = await searchParams;
-    const isPrivileged = user.role === "President" || user.isAdmin === true;
 
     // #314 — `getAllDisciplines()` WAS THE FOURTH AND IS GONE WITH THE COLUMN. It
     // bought one thing, the Discipline NAME for the `Job / Discipline` cell, and this
@@ -61,13 +61,7 @@ async function renderPRListPage({ searchParams }) {
     // extracted in #132) so the PO detail page gates on exactly the same rule:
     // President/Admin see everything, anyone else sees PRs they raised or on
     // their assigned job(s).
-    const myJobIds = new Set(user.assignedJobs || []);
     const visible = allPRs.filter((pr) => canViewPR(user, pr));
-
-    // Job filter options are limited to jobs the user can access, so the
-    // client filter can only narrow within the visible set, never widen it.
-    const accessibleJobs = isPrivileged ? jobs : jobs.filter((j) => myJobIds.has(j.id));
-    const accessibleJobIds = new Set(accessibleJobs.map((j) => j.id));
 
     // Resolve requester names for the whole visible set (the client filters
     // after, so names are needed for every visible row, not a subset).
@@ -99,8 +93,8 @@ async function renderPRListPage({ searchParams }) {
         requesterRecords.filter(Boolean).map((u) => [u.id, userName(u)])
     );
 
-    // Pre-shape each visible PR into a plain, display-ready row. jobId /
-    // status / isMine are the keys the client's narrow filters use — isMine is
+    // Pre-shape each visible PR into a plain, display-ready row. jobId / vendorId /
+    // status / isMine / kind are the keys the bar's five axes read — isMine is
     // resolved here so the requester's identity never has to go to the client.
     const rows = visible.map((pr) => ({
         id: pr.id,
@@ -108,6 +102,7 @@ async function renderPRListPage({ searchParams }) {
         status: pr.status,
         isMine: pr.requester?.[0] === user.id,
         requesterName: userNameById[pr.requester?.[0]] || "—",
+        vendorId: pr.vendor?.[0] ?? null,
         vendorName: vendorsById[pr.vendor?.[0]] || "—",
         jobId: pr.job?.[0] ?? null,
         jobCode: jobsById[pr.job?.[0]]?.jobCode || null,
@@ -120,26 +115,30 @@ async function renderPRListPage({ searchParams }) {
         kind: prKind(pr),
     }));
 
-    const jobOptions = accessibleJobs.map((j) => ({
-        id: j.id,
-        jobCode: j.jobCode,
-        jobName: j.jobName,
-    }));
+    // #324 — THE PICKERS' OPTIONS COME FROM THE VISIBLE ROWS, WHICH IS A CHANGE HERE
+    // AND NOT ON `/pos`. This list offered every job the reader was ASSIGNED to, so a
+    // reader with ten assignments and requests on two met eight options that empty the
+    // table, and — the other direction — a request visible only through canViewPR's
+    // clause 5 or 6, a signer or an edit-request recipient, neither of which implies
+    // assignment, appeared in the list and could not be filtered to. `/pos` fixed that
+    // where its page was new and `docs/notes/purchase-orders.md` recorded it as the
+    // divergence to close here. It leaks nothing: every job and every vendor named is
+    // already on a row this reader can read, in a column they can read it in.
+    const options = {
+        job: pickerOptions(rows, "jobId", (r) => jobOptionLabel(r.jobCode, jobsById[r.jobId]?.jobName)),
+        vendor: pickerOptions(rows, "vendorId", (r) => r.vendorName),
+        status: STATUSES,
+        kind: PR_KIND_CHOICES,
+    };
 
-    // Initial narrow-filter state, parsed from the URL so refresh / shared
-    // link / back-button restore it (the client keeps the URL in sync via
-    // router.replace). The job filter is intersected with accessible jobs
-    // here too, so a forged ?job in a pasted URL is dropped before it ever
-    // reaches the client. A fresh page load / back navigation remounts the
-    // client, which seeds its state from these props; router.replace updates
-    // during use don't remount it (no key), so the open dropdown / search /
-    // scroll are preserved as filters change.
-    const rawJob = sp.job;
-    const initialSelectedJobs = (Array.isArray(rawJob) ? rawJob : rawJob ? [rawJob] : []).filter(
-        (id) => accessibleJobIds.has(id)
-    );
-    const initialStatus = STATUSES.includes(sp.status) ? sp.status : "";
-    const initialMine = sp.mine === "1";
+    // Initial filter state, parsed from the URL so refresh / shared link /
+    // back-button restore it (the client keeps the URL in sync via router.replace).
+    // Every value is intersected with the options above, so a forged ?job in a pasted
+    // URL is dropped before it ever reaches the client. A fresh page load / back
+    // navigation remounts the client, which seeds its state from this prop;
+    // router.replace updates during use don't remount it (no key), so the open
+    // dropdown / search / scroll are preserved as filters change.
+    const initialFilters = parseFilters("/prs", sp, options);
 
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
@@ -161,11 +160,12 @@ async function renderPRListPage({ searchParams }) {
 
             <PRListClient
                 rows={rows}
-                jobOptions={jobOptions}
-                statuses={STATUSES}
-                initialSelectedJobs={initialSelectedJobs}
-                initialStatus={initialStatus}
-                initialMine={initialMine}
+                options={options}
+                initialFilters={initialFilters}
+                // Every submitted request on the base, before the visibility gate —
+                // the ONLY thing that tells "none exist yet" apart from "none for
+                // you", which this list conflated into one sentence until #324.
+                totalCount={allPRs.length}
             />
         </div>
     );

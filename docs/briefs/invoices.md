@@ -17,6 +17,42 @@ vendor has charged against their jobs.
 
 **identity.** The heading `Invoices`.
 
+**action — a filter bar (#324), and this list had none at all until then.** Three
+controls: a job picker and a vendor picker, each taking several at once and each
+searchable, and a `Status` dropdown offering `Paid` and `Not paid` with `All`
+first. It is the same component the other three lists carry, so the controls look
+and behave identically across them.
+
+**Three controls where the other three lists have four or five, and every
+difference is chosen.** There is no reader's-own toggle, because an invoice
+records nobody — `Deliveries` carries `Recorded By` and a request carries a
+requester, and `Invoices` carries neither. #382 is the issue that would give it
+one; until that field exists there is no axis for a control to read.
+
+**The `Status` dropdown is named for the column it narrows and offers that
+column's verdict.** `Overdue` is not a third option: it is a qualifier that
+composes with `Not paid` rather than replacing it, so offering it would make the
+options overlap and leave a reader wondering what picking `Not paid` excluded.
+
+**The `Delivery` chip is not a filter, and the variance badge is not one yet.** A
+closed set on one of these lists becomes a filter when the document or its own
+item rows hold the value, and a strip's subject when the values lie along a wait
+whose end is the good one — the delivery chip is a wait and already has its strip
+above this table. The variance flag is a state this invoice holds, so the rule
+does produce that axis; what it has no name for is the fact on THIS screen, since
+the design pass merges the marks of that family into one textless symbol and a
+separate issue groups them as tabs. A filter label would then be the only word
+this list has for it, which is code naming a symbol before design has said what it
+asserts.
+
+**The bar is drawn only when this reader has at least one row before filtering.**
+An empty scope gets the sentence alone; a filter that empties the list keeps the
+bar, because that is the moment `Clear all filters` is what the reader needs.
+
+**Neither strip above the table is narrowed by the bar.** A strip's rows are gated
+by their own rule — these are deliveries where the table is invoices — and its
+heading carries a count of what is waiting, which filtering would falsify.
+
 **evidence — the table, eight columns, the same eight for every reader.**
 Invoice ID, Vendor, `Job`, Issue Date, Due Date, Amount Due, Delivery, Status. Amount
 Due is right-aligned currency and is the vendor's stated total, never a computed one.
@@ -158,10 +194,15 @@ direction of the error, and that Vendor is the column starved; the numbers move 
 day real data arrives. **A width settled against this base is settled against
 nothing**, which is the one thing a redesign should not inherit from these figures.
 
-**When there are no rows:** one of two sentences. `No invoices yet.` when the base
-has none, and `No invoices to show. You see an invoice when it charges a purchase
-order you raised or one on a job you are assigned to.` when the reader's scope is
-empty. Same distinction the purchase order list draws.
+**When there are no rows:** one of three sentences, the same distinction all four
+document lists draw. `No invoices yet.` when the base has none. `No invoices to
+show. You see an invoice when it charges a purchase order you raised or one on a
+job you are assigned to.` when the reader's scope is empty. `No invoices match
+these filters.` when the reader filtered them out — the third is #324's, because
+until then there were no filters for it to be about.
+
+**When any filter is active:** a `Clear all filters` control and a count beside
+it, `N of M` — how many rows survived out of how many this reader has.
 
 **When some delivery is still waiting for an invoice:** a strip above the table, with
 a counted heading — `N deliveries are waiting for an invoice` — the line

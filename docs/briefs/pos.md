@@ -17,8 +17,26 @@ worklist and the closest thing the app has to a dashboard.
 this screen from the root screen says `Purchase orders`. One screen, two casings —
 see the shared brief's note on where the app disagrees with itself.
 
-**action — a filter bar:** a multi-job picker, a `Raised by me` checkbox, a
-status dropdown. Mirrored into the URL like the request list's.
+**action — a filter bar:** the same component all four document lists carry
+(#324). Four controls: a job picker and a vendor picker, each taking several at
+once and each searchable; a `Requested by me` checkbox; and a status dropdown
+whose first option is `All`. Mirrored into the URL like the request list's — it
+is literally the same bar.
+
+**`Requested by me` reads the request behind the order, not the order.** An order
+carries no requester of its own: it is generated when a request is fully approved,
+so nobody raises one. This brief said `Raised by me` until #324, which is what the
+screen should have been saying all along and was not — the code said `Requested by
+me`, and that turned out to be the word true of both rows, so the request list
+moved to it rather than this one moving away.
+
+**The bar is drawn only when this reader has at least one row before filtering.**
+An empty scope gets the sentence alone; a filter that empties the list keeps the
+bar, because that is the moment a clear control is what the reader needs.
+
+**Neither strip above the table is narrowed by the bar.** A strip's rows are gated
+by their own rule and its heading carries a count of what is waiting; filtering it
+would make that count a filtered count and the sentence false.
 
 **evidence — the table, eight columns.** PO ID, Vendor, `Job`, Total,
 Status, Delivery, Invoice, Payment. The last three hold chips rather than text.
@@ -87,7 +105,16 @@ judge for lateness is an ordinary record rather than a hand edit. It still count
 an unpaid invoice; it just never earns the badge. A designer should know that state
 exists.
 
-**When any filter is active:** a clear-filters control.
+**When any filter is active:** a `Clear all filters` control and a count beside
+it, `N of M` — how many rows survived out of how many this reader has.
+
+**The three chips are not filters, and that is the rule rather than an omission.**
+A closed set on one of these lists becomes a filter when the document or its own
+item rows hold the value, and becomes a strip's subject when the values lie along
+a wait whose end is the good one. `Awaiting delivery` → `Partly delivered` →
+`Delivered` is a wait with degrees, so it is strip material — and two of the three
+axes already have their strip, on the screen where the outcome gets recorded. The
+`Status` column is a stage the order is in rather than a wait, so it filters.
 
 **When there are no rows:** one of three sentences, and the three are not
 interchangeable. `No purchase orders yet. One is generated automatically when a
