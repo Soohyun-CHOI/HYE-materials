@@ -382,7 +382,12 @@ correction above `/prs`.
   `lib/poListView.js`.
 - **OUTSIDE THE TABLE'S WIDTH BUDGET, INSIDE THE PAGE'S.** The table is
   `table-fixed` with a `colgroup` summing to exactly 52rem and no slack; a strip is
-  not a column, so it re-cuts nothing. It does share the 832px, and it is a list of
+  not a column, so it re-cuts nothing. **THAT SUM WAS #166's SIX COLUMNS AND HAS
+  BEEN NEITHER SINCE #235 (#183):** the colgroup declares eight now, 58.25rem, past
+  the page and scrolling inside its own container — which strengthens this bullet
+  rather than weakening it, since a strip that re-cut nothing when the table had no
+  slack re-cuts nothing when it has less than none. The figure is in the #314
+  bullet above. It does share the 832px, and it is a list of
   one-line rows rather than a second table — two stacked tables read as one dataset
   split in half, and #216 and #217 show different facts on the same shape, which a
   line of text carries and a `colgroup` does not. **Measured, not counted:** 832px
@@ -665,8 +670,13 @@ the delivery chip on `/pos` and beside the `Invoices` heading on `/pos/[poId]`.
   belongs to the reconciliation mapper and must not spread, since a chip needs the
   total rather than the rows.
 - **A SEVENTH COLUMN ON `/pos`, AND THE BUDGET IS DELIBERATELY NOT RE-CUT.** The six
-  existing columns declare exactly 52rem, the width the page has, so the new one takes
-  the row past it and a narrow window wraps or scrolls. That is left standing: those
+  existing columns declared exactly 52rem, the width the page has, so the new one takes
+  the row past it and a narrow window wraps or scrolls. **#314 TOOK 7rem OUT OF ONE OF
+  THE SIX AND LEFT IT WHERE IT FELL (#183)**, so that sentence reads as a claim about
+  today and is not one: the six are 45rem, the seven 51.625rem — back under the page —
+  and the eight 58.25rem. The decision this bullet records is unaffected, since it is
+  about not re-cutting rather than about which side of 52rem a given count lands on.
+  That is left standing: those
   hand-declared rem widths are what the design pass will remove, so re-cutting them
   now — or stacking two chips in one cell, which is what #179 chose on `/invoices` —
   would be a pixel judgment made twice, once here and again after the design. What

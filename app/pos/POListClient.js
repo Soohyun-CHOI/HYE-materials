@@ -6,6 +6,7 @@ import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 import { EMPTY_COPY, emptyStateKind } from "@/lib/poListView";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
+import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
 import JobFilterDropdown from "@/app/prs/JobFilterDropdown";
 
 // Instant client-side narrowing over the already-gated rows the server sent, in
@@ -130,8 +131,8 @@ export default function POListClient({
                         at 141px, so 38 of 40 rows wrapped to two lines. Content
                         widths at 14px/20px Arial, plus the 8px `pr-2` every column
                         but the last carries: Job / Discipline 184, PO ID 149, Vendor 124,
-                        Status 117, Total 79 — 653px of the 832px a `max-w-4xl` page
-                        minus `p-8` has.
+                        Status 117, Total 79 — 653px of the 832px this page has
+                        (`app/components/listTableWidth.js`).
 
                         THREE COLUMNS ARE BOUNDED BY CONSTRUCTION and take only what
                         they need plus a little: a PO ID is a fixed format, Status is
@@ -180,7 +181,7 @@ export default function POListClient({
                         supplier names — and re-measuring is impossible until there
                         are some. If a real vendor list wraps these cells, Vendor is
                         where to give width back first. */}
-                    <table className="w-full min-w-[52rem] table-fixed text-sm">
+                    <table className={LIST_TABLE_CLASS}>
                         <colgroup>
                             <col style={{ width: "9.75rem" }} />
                             <col style={{ width: "9.25rem" }} />
@@ -191,10 +192,17 @@ export default function POListClient({
                             <col style={{ width: "8rem" }} />
                             <col style={{ width: "6.625rem" }} />
                             {/* #235 — A SEVENTH COLUMN, AND THE BUDGET IS NOT RE-CUT
-                                TO MAKE ROOM. The six above sum to exactly 52rem, the
-                                width this page has, so declaring the invoicing chip
-                                its own column takes the row past that and a narrow
-                                window wraps or scrolls. That is left standing on
+                                TO MAKE ROOM. The six above summed to exactly 52rem,
+                                the width this page has, so declaring the invoicing
+                                chip its own column takes the row past that and a
+                                narrow window wraps or scrolls. **THEY SUM TO 45rem
+                                NOW AND THE CONCLUSION IS UNCHANGED:** #314 narrowed
+                                the third column from 12.75rem to 5.75rem when it
+                                became a job code, and left the 7rem where it fell
+                                rather than handing it to a neighbor — so the six are
+                                under the budget and the eight declared here are over
+                                it, which is the state the paragraphs above and below
+                                describe. That is left standing on
                                 purpose: this table's hand-declared rem widths are
                                 what the design pass will take out, and re-cutting
                                 them now — or stacking two chips in one cell to avoid
@@ -207,10 +215,16 @@ export default function POListClient({
                             <col style={{ width: "6.625rem" }} />
                             {/* #311 — AN EIGHTH, AND THE BUDGET IS NOT RE-CUT FOR IT
                                 EITHER, which is #235's call above applied a second
-                                time rather than re-argued. The seven already sum past
-                                the 52rem this page has; the table sits in an
+                                time rather than re-argued. The seven already summed
+                                past the 52rem this page has; the table sits in an
                                 `overflow-x-auto`, so what widens is the scroll inside
-                                that container and nothing is truncated. Same width as
+                                that container and nothing is truncated. **#314's
+                                7rem TOOK THE SEVEN BACK UNDER IT** — 51.625rem — and
+                                the eight are 58.25rem, so this column is what puts
+                                the row past the page rather than the one before it.
+                                The call is the same either way: what belongs on the
+                                screen is the issue's decision and how wide it sits is
+                                the design pass's. Same width as
                                 its two siblings: the badge STACKS under the chip
                                 rather than sitting beside it, so the cell needs the
                                 wider of the two rather than their sum — `/invoices`'

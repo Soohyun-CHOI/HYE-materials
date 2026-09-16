@@ -25,6 +25,7 @@ import {
 } from "@/lib/deliveryStatus";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
+import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
 import { formatUSD } from "@/lib/format";
 import { VARIANCE_COPY } from "@/lib/variance";
 import AwaitingInvoiceStrip from "./AwaitingInvoiceStrip";
@@ -283,9 +284,9 @@ async function renderInvoiceListPage() {
             ) : (
                 <div className="mt-6 overflow-x-auto">
                 {/* THE DECLARED COLUMNS SUM TO EXACTLY 52rem, WHICH IS WHAT THE
-                    PAGE HAS: `max-w-4xl` is 56rem and `p-8` takes 4rem, leaving
-                    832px. #19's tables and the deliveries list are 52rem for the
-                    same reason.
+                    PAGE HAS — see `app/components/listTableWidth.js` for where
+                    that figure comes from. #19's tables and the deliveries list
+                    are held to the same one.
 
                     #166 gave this table a colgroup it did not have. An auto-layout
                     table sizes its columns from its own rows, so the Delivery
@@ -295,15 +296,17 @@ async function renderInvoiceListPage() {
                     widest chip rather than discovered per page load.
 
                     MEASURED, NOT GUESSED, and this table has almost no slack:
-                    seven columns need 832px against the 832px the page has. Six of
-                    the seven are bounded by construction and cannot grow — an
+                    eight columns need 832px against the 832px the page has. Seven of
+                    the eight are bounded by construction and cannot grow — an
                     Invoice ID is a fixed format (128px), a date is 10 characters
                     (72px), the Delivery column is a closed set of TWO chips plus a
                     marker since #210 and its widest is `Awaiting delivery` (102px,
                     unchanged: the state that left was not the widest one), Amount
-                    Due is bound by its own header (84px),
-                    and Status by the payment word above its badge (176px, and the
-                    reason the last column drops its right padding).
+                    Due is bound by its own header (84px), a Job is a house format
+                    of about ten characters (#314 added the column and it is bounded
+                    exactly as the Invoice ID is), and Status by the payment word
+                    above its badge (106px, and the reason the last column drops its
+                    right padding).
                     So VENDOR IS WHERE THE SLACK ISN'T: 8rem is 33px short of the
                     longest name on this base, and it is
                     also the one column where wrapping is least harmful.
@@ -316,6 +319,13 @@ async function renderInvoiceListPage() {
                     it actually holds and what has been wrapping since. The paragraph
                     is corrected rather than deleted because its ARGUMENT is unchanged
                     and is the one this table is still budgeted by.
+
+                    A FOURTH WAS STALE AND IS THE COUNT ITSELF (#183). #314 added the
+                    Job column, so the paragraph above said seven where the colgroup
+                    declares eight, and it named Status at its pre-#314 176px where
+                    the re-cut left it at 106. The budget did not move: this table
+                    re-cuts rather than appending, so the eight still sum to exactly
+                    52rem. The heading below is #309's own and keeps its seven.
 
                     SEVEN COLUMNS FOR EVERY READER AGAIN, AND ONE BUDGET (#309). #179
                     gave this table a second budget by taking the last column away
@@ -404,7 +414,7 @@ async function renderInvoiceListPage() {
                     bounded by construction, and its 1px is a real margin where Vendor's
                     would not have been. Vendor is still where to give width back
                     first. */}
-                <table className="w-full min-w-[52rem] table-fixed text-sm">
+                <table className={LIST_TABLE_CLASS}>
                     <colgroup>
                         <col style={{ width: "8.5rem" }} />
                         <col style={{ width: "8rem" }} />

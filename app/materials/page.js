@@ -11,6 +11,7 @@ import {
 } from "@/lib/materialPriceView";
 import { isPOSigned } from "@/lib/poUnsigned";
 import { formatUSD } from "@/lib/format";
+import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
 import MaterialSearchForm from "./MaterialSearchForm";
 import { withOpsLabel } from "@/lib/airtableOps";
 
@@ -166,7 +167,7 @@ async function renderMaterialPricesPage({ searchParams }) {
                                     takes them out of the content's hands: they are
                                     identical across groups, and neither a long
                                     vendor name nor a status tag can move them. */}
-                                <table className="w-full min-w-[52rem] table-fixed text-sm">
+                                <table className={LIST_TABLE_CLASS}>
                                     <colgroup>
                                         {/* Vendor absorbs whatever is left over. */}
                                         <col />

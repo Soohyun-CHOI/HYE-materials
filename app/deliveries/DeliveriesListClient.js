@@ -17,6 +17,7 @@ import Link from "next/link";
 // imported here — an import executes the module and it throws
 // `Missing AIRTABLE_API_KEY` in the browser (#162).
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
+import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
 
 // A `showInvoicing` prop and the `resolveDeliveryFilters` call that consumed it
 // were both here until #211. The column was withheld from a viewer who may not see
@@ -75,8 +76,9 @@ export default function DeliveriesListClient({ rows, initialOver }) {
 
             <div className="mt-4 overflow-x-auto">
                 {/* THE DECLARED COLUMNS SUM TO EXACTLY 52rem, WHICH IS WHAT THE PAGE
-                    HAS: `max-w-4xl` is 56rem and `p-8` takes 4rem, leaving 832px.
-                    #19's tables and the invoice list are 52rem for the same reason.
+                    HAS — see `app/components/listTableWidth.js` for where that
+                    figure comes from. #19's tables and the invoice list are held to
+                    the same one.
 
                     RE-BUDGETED AGAIN when the column became a chip. A chip is much
                     narrower than the sentence it replaced, so Invoiced gives room
@@ -96,7 +98,7 @@ export default function DeliveriesListClient({ rows, initialOver }) {
                     column was withheld from site staff; releasing that leaves the
                     six-column row for everyone, which is the one every measurement
                     in this comment was taken against. */}
-                <table className="w-full min-w-[52rem] table-fixed text-sm">
+                <table className={LIST_TABLE_CLASS}>
                     <colgroup>
                         <col style={{ width: "8.5rem" }} />
                         <col style={{ width: "8rem" }} />
