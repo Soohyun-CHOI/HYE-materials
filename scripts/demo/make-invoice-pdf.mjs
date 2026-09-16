@@ -10,7 +10,7 @@
 // exactly what issue #46's regex (/HYE-PO-\d{8}-\d{2}/g) needs to detect.
 //
 // Usage (from the repo root):
-//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/make-invoice-pdf.mjs HYE-PO-20260716-01
+//   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/make-invoice-pdf.mjs HYE-PO-260716-01
 //
 // Output always overwrites scripts/demo/output/demo-invoice.pdf (gitignored)
 // -- same path every time, so there's nothing to remember mid-demo besides
@@ -31,7 +31,7 @@ async function main() {
     const poId = process.argv[2];
     if (!poId) {
         console.error("Usage: node ... scripts/demo/make-invoice-pdf.mjs <PO_ID>");
-        console.error("Example: node ... scripts/demo/make-invoice-pdf.mjs HYE-PO-20260716-01");
+        console.error("Example: node ... scripts/demo/make-invoice-pdf.mjs HYE-PO-260716-01");
         process.exit(1);
     }
 

@@ -54,7 +54,7 @@ const EMAIL = "lib/email.js";
 const SENDABLE = {
     status: "Signed",
     presidentSigned: true,
-    poPdfFile: [{ url: "https://example.invalid/po.pdf", filename: "HYE-PO-20260101-01.pdf" }],
+    poPdfFile: [{ url: "https://example.invalid/po.pdf", filename: "HYE-PO-260101-01.pdf" }],
     sentAt: null,
 };
 
@@ -257,11 +257,11 @@ export function run({ check, assert, log }) {
 
     log("");
     log("the mail says what a vendor needs and no more:");
-    const subject = SEND_COPY.mail.subject({ poId: "HYE-PO-20260101-01", buyerName: "HANYANGENG USA INC." });
-    assert("the subject names the order", subject.includes("HYE-PO-20260101-01"));
+    const subject = SEND_COPY.mail.subject({ poId: "HYE-PO-260101-01", buyerName: "HANYANGENG USA INC." });
+    assert("the subject names the order", subject.includes("HYE-PO-260101-01"));
     assert("  and the buyer, since From carries the product instead", subject.includes("HANYANGENG USA INC."));
     const html = SEND_COPY.mail.html({
-        poId: "HYE-PO-20260101-01",
+        poId: "HYE-PO-260101-01",
         buyerName: "HANYANGENG USA INC.",
         vendorName: "Lone Star Pipe & Supply",
         // A NUMBER SINCE #292 — the builder formats it. See offline/mail-money.mjs
@@ -279,7 +279,7 @@ export function run({ check, assert, log }) {
     // that does NOT end in a period has to read just as well, and that is what proves
     // no branch is in there.
     const plainBuyer = SEND_COPY.mail.html({
-        poId: "HYE-PO-20260101-01",
+        poId: "HYE-PO-260101-01",
         buyerName: "ACME SUPPLY CO",
         vendorName: "Lone Star Pipe & Supply",
         // A NUMBER SINCE #292 — the builder formats it. See offline/mail-money.mjs
@@ -297,7 +297,7 @@ export function run({ check, assert, log }) {
         /\.\./.test("Attached is purchase order X from HANYANGENG USA INC.. The order total is $1.00.")
     );
     assert("the body greets the vendor by name", html.includes("Lone Star Pipe & Supply"));
-    assert("  names the order and its total once each", html.includes("HYE-PO-20260101-01") && html.includes("$1,234.00"));
+    assert("  names the order and its total once each", html.includes("HYE-PO-260101-01") && html.includes("$1,234.00"));
     // THE LAST LINE IS WHAT Reply-To IS FOR, SAID OUT LOUD. A vendor who does not know
     // a reply reaches a person will look up a phone number instead.
     assert("  and says a reply reaches the sender", /repl/i.test(html) && html.includes("Soo Choi"));

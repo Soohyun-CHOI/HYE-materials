@@ -581,7 +581,7 @@ export default function InvoiceForm({ vendors, pos }) {
     // generated is the common case being invoiced. Sorted by PO ID text,
     // not Created Date: that field is date-only (no time), so same-day POs
     // would otherwise tie and fall back to arbitrary API order. PO ID
-    // (HYE-PO-YYYYMMDD-##) is fixed-width and zero-padded throughout, so a
+    // (HYE-PO-YYMMDD-##) is fixed-width and zero-padded throughout, so a
     // plain string sort already gives the exact chronological + same-day-
     // sequence order — no timestamp needed. Sorted here rather than once
     // at the getOpenPOs() source, since posList also grows from PO

@@ -2,7 +2,7 @@
 // places the judgment must NOT be repeated.
 //
 // WHAT THIS TIER CARRIES THAT A BROWSER CANNOT. The rendering is browsable on this
-// base (`HYE-PO-20260817-05` is unsigned, open and not withdrawn, so the picker offers
+// base (`HYE-PO-260817-05` is unsigned, open and not withdrawn, so the picker offers
 // it), but three things are not: that the judgment reads `Status` rather than the
 // `President Signed` checkbox, that a PO withdrawn before it was ever signed is NOT
 // "unsigned", and that no client component compares the status string. The first two
@@ -29,7 +29,7 @@ export const title = "An unsigned order, wherever one is offered (#198)";
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 const read = (rel) => readFileSync(join(REPO_ROOT, rel), "utf8");
 
-const po = (status, presidentSigned = false) => ({ poId: "HYE-PO-20260817-05", status, presidentSigned });
+const po = (status, presidentSigned = false) => ({ poId: "HYE-PO-260817-05", status, presidentSigned });
 
 export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
@@ -69,7 +69,7 @@ export function run({ check, assert, log }) {
     check("`Withdrawn`", isPOUnsigned(po("Withdrawn")), false);
     check("a status the field gains later", isPOUnsigned(po("Sent to Vendor")), false);
     check("a blank status", isPOUnsigned(po("")), false);
-    check("no status at all", isPOUnsigned({ poId: "HYE-PO-20260817-05" }), false);
+    check("no status at all", isPOUnsigned({ poId: "HYE-PO-260817-05" }), false);
     check("no record at all", isPOUnsigned(null), false);
     check("  and undefined", isPOUnsigned(undefined), false);
 
@@ -77,18 +77,18 @@ export function run({ check, assert, log }) {
     log("the picker's label — the signal is part of the text, an `<option>` holding no markup:");
     check(
         "an unsigned order carries the word",
-        poOptionLabel({ poId: "HYE-PO-20260817-05", unsigned: true }),
-        "HYE-PO-20260817-05 — unsigned"
+        poOptionLabel({ poId: "HYE-PO-260817-05", unsigned: true }),
+        "HYE-PO-260817-05 — unsigned"
     );
     check(
         "  and a signed one carries the id alone",
-        poOptionLabel({ poId: "HYE-PO-20260817-05", unsigned: false }),
-        "HYE-PO-20260817-05"
+        poOptionLabel({ poId: "HYE-PO-260817-05", unsigned: false }),
+        "HYE-PO-260817-05"
     );
     check(
         "an absent flag says nothing rather than guessing",
-        poOptionLabel({ poId: "HYE-PO-20260716-03" }),
-        "HYE-PO-20260716-03"
+        poOptionLabel({ poId: "HYE-PO-260716-03" }),
+        "HYE-PO-260716-03"
     );
     check("a missing id yields an empty label, not `undefined`", poOptionLabel({ unsigned: true }), " — unsigned");
     check("  and no record at all yields nothing", poOptionLabel(null), "");
@@ -96,21 +96,21 @@ export function run({ check, assert, log }) {
     // hand over `unsigned`, and only one of them still has a `status` to pass.
     check(
         "a raw status on the object does not turn the label on",
-        poOptionLabel({ poId: "HYE-PO-20260817-05", status: PO_UNSIGNED_STATUS }),
-        "HYE-PO-20260817-05"
+        poOptionLabel({ poId: "HYE-PO-260817-05", status: PO_UNSIGNED_STATUS }),
+        "HYE-PO-260817-05"
     );
 
     // -----------------------------------------------------------------------
     log("the detect banner's clause — observed, selected, and no instruction:");
-    const one = UNSIGNED_COPY.detected(["HYE-PO-20260817-05"]).text;
-    const two = UNSIGNED_COPY.detected(["HYE-PO-20260817-05", "HYE-PO-20260817-01"]).text;
+    const one = UNSIGNED_COPY.detected(["HYE-PO-260817-05"]).text;
+    const two = UNSIGNED_COPY.detected(["HYE-PO-260817-05", "HYE-PO-260817-01"]).text;
     check(
         "one order, singular throughout",
         one,
-        " HYE-PO-20260817-05 is unsigned: the President has not signed it. It was still selected — an invoice can be recorded against an unsigned order."
+        " HYE-PO-260817-05 is unsigned: the President has not signed it. It was still selected — an invoice can be recorded against an unsigned order."
     );
     assert("two orders, plural throughout", two.includes("are unsigned") && two.includes("They were still selected"));
-    assert("  and both are named", two.includes("HYE-PO-20260817-05") && two.includes("HYE-PO-20260817-01"));
+    assert("  and both are named", two.includes("HYE-PO-260817-05") && two.includes("HYE-PO-260817-01"));
     assert("it starts with a space, being appended to whatever else detection found", one.startsWith(" "));
     check("the key is stable, so a call site can branch on it", UNSIGNED_COPY.detected([]).key, "unsigned-detected");
     // The restraint the issue asks for, asserted rather than trusted: no cause is

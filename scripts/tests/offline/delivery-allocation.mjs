@@ -47,9 +47,9 @@ const OTHER_MATERIAL = "recMatValve";
 function orderedItem(over) {
     return {
         id: "recPOI-" + (over.poItemId || "x"),
-        poItemId: over.poItemId || "HYE-PO-20260101-01-001",
+        poItemId: over.poItemId || "HYE-PO-260101-01-001",
         poRecordId: over.poRecordId || "recPO1",
-        poId: over.poId || "HYE-PO-20260101-01",
+        poId: over.poId || "HYE-PO-260101-01",
         poCreatedDate: "poCreatedDate" in over ? over.poCreatedDate : "2026-01-01",
         vendorRecordId: over.vendorRecordId || VENDOR,
         materialRecordId: over.materialRecordId || MATERIAL,
@@ -118,26 +118,26 @@ export function run({ check, assert, log }) {
     log("");
     log("Order — oldest first, then PO ID, then PO Item ID:");
     const sorted = sortCandidates([
-        orderedItem({ poItemId: "newer", poId: "HYE-PO-20260320-01", poCreatedDate: "2026-03-20" }),
-        orderedItem({ poItemId: "oldest", poId: "HYE-PO-20260101-01", poCreatedDate: "2026-01-01" }),
-        orderedItem({ poItemId: "middle", poId: "HYE-PO-20260210-01", poCreatedDate: "2026-02-10" }),
+        orderedItem({ poItemId: "newer", poId: "HYE-PO-260320-01", poCreatedDate: "2026-03-20" }),
+        orderedItem({ poItemId: "oldest", poId: "HYE-PO-260101-01", poCreatedDate: "2026-01-01" }),
+        orderedItem({ poItemId: "middle", poId: "HYE-PO-260210-01", poCreatedDate: "2026-02-10" }),
     ]);
     check("oldest PO first", sorted.map((l) => l.poItemId).join(","), "oldest,middle,newer");
 
     const sameDay = sortCandidates([
-        orderedItem({ poItemId: "second", poId: "HYE-PO-20260101-02", poCreatedDate: "2026-01-01" }),
-        orderedItem({ poItemId: "first", poId: "HYE-PO-20260101-01", poCreatedDate: "2026-01-01" }),
+        orderedItem({ poItemId: "second", poId: "HYE-PO-260101-02", poCreatedDate: "2026-01-01" }),
+        orderedItem({ poItemId: "first", poId: "HYE-PO-260101-01", poCreatedDate: "2026-01-01" }),
     ]);
     check("same calendar day ties break on PO ID", sameDay.map((l) => l.poItemId).join(","), "first,second");
 
     const samePo = sortCandidates([
-        orderedItem({ poItemId: "HYE-PO-20260101-01-002" }),
-        orderedItem({ poItemId: "HYE-PO-20260101-01-001" }),
+        orderedItem({ poItemId: "HYE-PO-260101-01-002" }),
+        orderedItem({ poItemId: "HYE-PO-260101-01-001" }),
     ]);
     check(
         "ordered items within one PO order by PO Item ID",
         samePo.map((l) => l.poItemId).join(","),
-        "HYE-PO-20260101-01-001,HYE-PO-20260101-01-002"
+        "HYE-PO-260101-01-001,HYE-PO-260101-01-002"
     );
 
     const undated = sortCandidates([
@@ -163,8 +163,8 @@ export function run({ check, assert, log }) {
     log("");
     log("One quantity spanning two orders becomes two rows:");
     const two = [
-        orderedItem({ poItemId: "old", poRecordId: "recPO1", poId: "HYE-PO-20260101-01", poCreatedDate: "2026-01-01", qty: 10, deliveredQty: 0 }),
-        orderedItem({ poItemId: "new", poRecordId: "recPO2", poId: "HYE-PO-20260201-01", poCreatedDate: "2026-02-01", qty: 10, deliveredQty: 0 }),
+        orderedItem({ poItemId: "old", poRecordId: "recPO1", poId: "HYE-PO-260101-01", poCreatedDate: "2026-01-01", qty: 10, deliveredQty: 0 }),
+        orderedItem({ poItemId: "new", poRecordId: "recPO2", poId: "HYE-PO-260201-01", poCreatedDate: "2026-02-01", qty: 10, deliveredQty: 0 }),
     ];
     const split = planDelivery({ orderedItems: two, vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 15 });
     check("two rows", split.rows.length, 2);
@@ -178,9 +178,9 @@ export function run({ check, assert, log }) {
 
     const three = planDelivery({
         orderedItems: [
-            orderedItem({ poItemId: "a", poRecordId: "p1", poId: "HYE-PO-20260101-01", poCreatedDate: "2026-01-01", qty: 5 }),
-            orderedItem({ poItemId: "b", poRecordId: "p2", poId: "HYE-PO-20260201-01", poCreatedDate: "2026-02-01", qty: 5 }),
-            orderedItem({ poItemId: "c", poRecordId: "p3", poId: "HYE-PO-20260301-01", poCreatedDate: "2026-03-01", qty: 5 }),
+            orderedItem({ poItemId: "a", poRecordId: "p1", poId: "HYE-PO-260101-01", poCreatedDate: "2026-01-01", qty: 5 }),
+            orderedItem({ poItemId: "b", poRecordId: "p2", poId: "HYE-PO-260201-01", poCreatedDate: "2026-02-01", qty: 5 }),
+            orderedItem({ poItemId: "c", poRecordId: "p3", poId: "HYE-PO-260301-01", poCreatedDate: "2026-03-01", qty: 5 }),
         ],
         vendorRecordId: VENDOR,
         materialRecordId: MATERIAL,
@@ -289,8 +289,8 @@ export function run({ check, assert, log }) {
     // one ordered item per material (and so does not wait on #170).
     const twoOrderedItemsOnePo = planDelivery({
         orderedItems: [
-            orderedItem({ poItemId: "HYE-PO-20260101-01-001", poRecordId: "recPO1", qty: 5 }),
-            orderedItem({ poItemId: "HYE-PO-20260101-01-002", poRecordId: "recPO1", qty: 5 }),
+            orderedItem({ poItemId: "HYE-PO-260101-01-001", poRecordId: "recPO1", qty: 5 }),
+            orderedItem({ poItemId: "HYE-PO-260101-01-002", poRecordId: "recPO1", qty: 5 }),
         ],
         vendorRecordId: VENDOR,
         materialRecordId: MATERIAL,
@@ -299,7 +299,7 @@ export function run({ check, assert, log }) {
     });
     check("both ordered items of the one PO fill", twoOrderedItemsOnePo.rows.slice(0, 2).map((r) => r.qty).join(","), "5,5");
     check("the excess is 4", twoOrderedItemsOnePo.rows[2].qty, 4);
-    check("the excess names the second ordered item, the last one filled", twoOrderedItemsOnePo.rows[2].orderedItem.poItemId, "HYE-PO-20260101-01-002");
+    check("the excess names the second ordered item, the last one filled", twoOrderedItemsOnePo.rows[2].orderedItem.poItemId, "HYE-PO-260101-01-002");
     check("only one PO was drawn on", twoOrderedItemsOnePo.poRecordIds.length, 1);
 
     log("");
@@ -348,10 +348,10 @@ export function run({ check, assert, log }) {
     // The two reasons are distinguished only by whether a PO was supplied, and
     // they ask the recorder for different things.
     assert("the two reasons are distinct values", BLOCKED.poHasNoOrderedItem !== BLOCKED.notOrdered);
-    const blockedCopy = describePlan(poWithoutItem, { poId: "HYE-PO-20260101-02", label: 'Pipe 2"' });
+    const blockedCopy = describePlan(poWithoutItem, { poId: "HYE-PO-260101-02", label: 'Pipe 2"' });
     check("one message, and it is the reason", blockedCopy.length, 1);
     check("keyed as blocked", blockedCopy[0].key, "blocked-po-has-no-ordered-item");
-    assert("it names the PO the recorder typed", blockedCopy[0].text.includes("HYE-PO-20260101-02"));
+    assert("it names the PO the recorder typed", blockedCopy[0].text.includes("HYE-PO-260101-02"));
     assert("and the item, since the reason is about this item", blockedCopy[0].text.includes('Pipe 2"'));
     const notOrderedCopy = describePlan(nothingOrdered, { label: 'Pipe 2"' });
     check("the other reason has its own message", notOrderedCopy[0].key, "blocked-not-ordered");
@@ -365,9 +365,9 @@ export function run({ check, assert, log }) {
     // Both branches are positions in the one order planDelivery already fills in.
     // Branch 2 is literally its last element, so this pins them to each other.
     const threeOrders = [
-        orderedItem({ poItemId: "c", poRecordId: "recPO3", poId: "HYE-PO-20260103-01", poCreatedDate: "2026-01-03", qty: 5, deliveredQty: 5 }),
-        orderedItem({ poItemId: "a", poRecordId: "recPO1", poId: "HYE-PO-20260101-01", poCreatedDate: "2026-01-01", qty: 5, deliveredQty: 5 }),
-        orderedItem({ poItemId: "b", poRecordId: "recPO2", poId: "HYE-PO-20260102-01", poCreatedDate: "2026-01-02", qty: 5, deliveredQty: 5 }),
+        orderedItem({ poItemId: "c", poRecordId: "recPO3", poId: "HYE-PO-260103-01", poCreatedDate: "2026-01-03", qty: 5, deliveredQty: 5 }),
+        orderedItem({ poItemId: "a", poRecordId: "recPO1", poId: "HYE-PO-260101-01", poCreatedDate: "2026-01-01", qty: 5, deliveredQty: 5 }),
+        orderedItem({ poItemId: "b", poRecordId: "recPO2", poId: "HYE-PO-260102-01", poCreatedDate: "2026-01-02", qty: 5, deliveredQty: 5 }),
     ];
     const allFull = planDelivery({ orderedItems: threeOrders, vendorRecordId: VENDOR, materialRecordId: MATERIAL, qty: 2 });
     check("nothing could be filled", allFull.allocated, 0);
@@ -431,37 +431,37 @@ export function run({ check, assert, log }) {
     );
     check(
         "a supplied PO explains why it did not spill",
-        describePlan(narrowed, { unit: "EA", poId: "HYE-PO-20260101-01" }).at(-1).key,
+        describePlan(narrowed, { unit: "EA", poId: "HYE-PO-260101-01" }).at(-1).key,
         "over-po-narrowed"
     );
     assert(
         "the po-narrowed message names the PO, since that is its whole point",
-        describePlan(narrowed, { unit: "EA", poId: "HYE-PO-20260101-01" })
+        describePlan(narrowed, { unit: "EA", poId: "HYE-PO-260101-01" })
             .at(-1)
-            .text.includes("HYE-PO-20260101-01")
+            .text.includes("HYE-PO-260101-01")
     );
     assert(
         "the fully-delivered message now names where the excess lands (#165)",
-        ALLOCATION_COPY.preview.overFullyDelivered(noneLeft, "EA").text.includes("HYE-PO-20260101-01")
+        ALLOCATION_COPY.preview.overFullyDelivered(noneLeft, "EA").text.includes("HYE-PO-260101-01")
     );
 
     log("");
     log("Banner copy — same decisions, past tense, from stored rows:");
-    const storedClean = [{ qty: 10, over: false, poId: "HYE-PO-20260101-01", unit: "EA" }];
+    const storedClean = [{ qty: 10, over: false, poId: "HYE-PO-260101-01", unit: "EA" }];
     check("one order says nothing", describeDelivery(storedClean).length, 0);
     const storedSplit = [
-        { qty: 10, over: false, poId: "HYE-PO-20260101-01", unit: "EA" },
-        { qty: 5, over: false, poId: "HYE-PO-20260201-01", unit: "EA" },
+        { qty: 10, over: false, poId: "HYE-PO-260101-01", unit: "EA" },
+        { qty: 5, over: false, poId: "HYE-PO-260201-01", unit: "EA" },
     ];
     check("two orders are announced", describeDelivery(storedSplit)[0].key, "split");
     const storedOver = [
-        { qty: 10, over: false, poId: "HYE-PO-20260101-01", unit: "EA" },
-        { qty: 3, over: true, poId: "HYE-PO-20260101-01", unit: "EA" },
+        { qty: 10, over: false, poId: "HYE-PO-260101-01", unit: "EA" },
+        { qty: 3, over: true, poId: "HYE-PO-260101-01", unit: "EA" },
     ];
     check("attached over-delivery names the PO", describeDelivery(storedOver).at(-1).key, "over-attached");
     const storedOverLoose = [
-        { qty: 10, over: false, poId: "HYE-PO-20260101-01", unit: "EA" },
-        { qty: 10, over: false, poId: "HYE-PO-20260201-01", unit: "EA" },
+        { qty: 10, over: false, poId: "HYE-PO-260101-01", unit: "EA" },
+        { qty: 10, over: false, poId: "HYE-PO-260201-01", unit: "EA" },
         { qty: 5, over: true, poId: null, unit: "EA" },
     ];
     check("unattached over-delivery does not", describeDelivery(storedOverLoose).at(-1).key, "over-unattached");
@@ -558,10 +558,10 @@ export function run({ check, assert, log }) {
     // The rows as stored: two items, the first split across two POs, the second
     // over-delivered. Entry order is Delivery Item ID order.
     const multi = [
-        { materialRecordId: "recRebar", itemName: "Rebar D13", size: "", unit: "EA", qty: 150, over: false, poId: "HYE-PO-20260101-01" },
-        { materialRecordId: "recRebar", itemName: "Rebar D13", size: "", unit: "EA", qty: 50, over: false, poId: "HYE-PO-20260201-01" },
-        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 30, over: false, poId: "HYE-PO-20260201-01" },
-        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 5, over: true, poId: "HYE-PO-20260201-01" },
+        { materialRecordId: "recRebar", itemName: "Rebar D13", size: "", unit: "EA", qty: 150, over: false, poId: "HYE-PO-260101-01" },
+        { materialRecordId: "recRebar", itemName: "Rebar D13", size: "", unit: "EA", qty: 50, over: false, poId: "HYE-PO-260201-01" },
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 30, over: false, poId: "HYE-PO-260201-01" },
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 5, over: true, poId: "HYE-PO-260201-01" },
     ];
     const groups = groupRowsByItem(multi);
     check("four rows collapse to two items", groups.length, 2);
@@ -576,7 +576,7 @@ export function run({ check, assert, log }) {
     // An unattributable over-delivery row carries no PO Item but does carry its
     // Material, so it must still group with its own item rather than alone.
     const looseGroups = groupRowsByItem([
-        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 10, over: false, poId: "HYE-PO-20260101-01" },
+        { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 10, over: false, poId: "HYE-PO-260101-01" },
         { materialRecordId: "recPipe", itemName: "Pipe", size: '2"', unit: "FT", qty: 4, over: true, poId: null },
     ]);
     check("an unattached over row groups with its item", looseGroups.length, 1);
@@ -605,9 +605,9 @@ export function run({ check, assert, log }) {
     // something folds at all. `HYE-DL-260804-02`'s shape: one material, 10 against one
     // order, then 10 within and 5 beyond against a second.
     const pipeRows = [
-        { id: "recRow1", materialRecordId: "recPipe", poRecordId: "recPO_A", poId: "HYE-PO-20260804-01", itemName: "Pipe", size: '2"', unit: "EA", qty: 10, over: false },
-        { id: "recRow2", materialRecordId: "recPipe", poRecordId: "recPO_B", poId: "HYE-PO-20260804-02", itemName: "Pipe", size: '2"', unit: "EA", qty: 10, over: false },
-        { id: "recRow3", materialRecordId: "recPipe", poRecordId: "recPO_B", poId: "HYE-PO-20260804-02", itemName: "Pipe", size: '2"', unit: "EA", qty: 5, over: true },
+        { id: "recRow1", materialRecordId: "recPipe", poRecordId: "recPO_A", poId: "HYE-PO-260804-01", itemName: "Pipe", size: '2"', unit: "EA", qty: 10, over: false },
+        { id: "recRow2", materialRecordId: "recPipe", poRecordId: "recPO_B", poId: "HYE-PO-260804-02", itemName: "Pipe", size: '2"', unit: "EA", qty: 10, over: false },
+        { id: "recRow3", materialRecordId: "recPipe", poRecordId: "recPO_B", poId: "HYE-PO-260804-02", itemName: "Pipe", size: '2"', unit: "EA", qty: 5, over: true },
     ];
     const noFold = (rows) => (rows || []).map((r) => ({ ...r, key: r.id, overQty: r.over ? r.qty : 0 }));
     const folded = groupRowsByItemAndOrder(pipeRows);
@@ -634,7 +634,7 @@ export function run({ check, assert, log }) {
     check("the other order's row is untouched", folded[0].qty, 10);
     check("  and has no excess", folded[0].overQty, 0);
     check("  so it states none", folded[0].overRowIds.length, 0);
-    check("entry order is kept", folded.map((g) => g.poId).join(","), "HYE-PO-20260804-01,HYE-PO-20260804-02");
+    check("entry order is kept", folded.map((g) => g.poId).join(","), "HYE-PO-260804-01,HYE-PO-260804-02");
     check("a row folds under its own order's id", folded[1].poRecordId, "recPO_B");
 
     // `overRowIds` IS A LIST BECAUSE THE CODE CAN PRODUCE TWO, and this is measured
@@ -656,14 +656,14 @@ export function run({ check, assert, log }) {
             id: r.id,
             materialRecordId: "recPipe",
             poRecordId: "recPO_A",
-            poId: "HYE-PO-20260101-01",
+            poId: "HYE-PO-260101-01",
             itemName: "Pipe",
             size: '2"',
             unit: "EA",
             qty: r.qty,
             over: r.overDelivered,
         })),
-        { id: "recD", materialRecordId: "recPipe", poRecordId: "recPO_A", poId: "HYE-PO-20260101-01", itemName: "Pipe", size: '2"', unit: "EA", qty: replay.splits[0].qty, over: true },
+        { id: "recD", materialRecordId: "recPipe", poRecordId: "recPO_A", poId: "HYE-PO-260101-01", itemName: "Pipe", size: '2"', unit: "EA", qty: replay.splits[0].qty, over: true },
     ];
     const replayFolded = groupRowsByItemAndOrder(afterReplay);
     check("which folds to one row", replayFolded.length, 1);

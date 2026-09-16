@@ -3,7 +3,7 @@ import { mkdir } from "fs/promises";
 import { writeFileSync } from "fs";
 
 const OUT_DIR = "C:\\dev\\materials\\scratch";
-const OUT_PATH = `${OUT_DIR}\\test-invoice-HYE-PO-20260715-99.pdf`;
+const OUT_PATH = `${OUT_DIR}\\test-invoice-HYE-PO-260715-99.pdf`;
 
 await mkdir(OUT_DIR, { recursive: true });
 
@@ -29,7 +29,7 @@ draw("123 Test Fabrication Way, Round Rock, TX 78681", { size: 10, color: gray, 
 draw(`Invoice #: DEMO-INV-9901`, { size: 10, dy: 14 });
 draw(`Invoice Date: 2026-07-15`, { size: 10, dy: 14 });
 draw(`Bill To: HANYANGENG USA INC.`, { size: 10, dy: 14 });
-draw(`PO #: HYE-PO-20260715-99`, { size: 12, f: bold, dy: 28 });
+draw(`PO #: HYE-PO-260715-99`, { size: 12, f: bold, dy: 28 });
 
 // Line items table
 const cols = [

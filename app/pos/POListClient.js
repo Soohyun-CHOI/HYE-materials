@@ -61,7 +61,7 @@ export default function POListClient({ rows, options, initialFilters, totalCount
                         MEASURED IN THE BROWSER, NOT COUNTED IN CHARACTERS, and the
                         first attempt is why. PO ID was sized at 9rem by counting 18
                         characters against the invoice list's 17-character ID — but a
-                        PO ID carries a FOUR-DIGIT year (the one exception to this
+                        PO ID carried a FOUR-DIGIT year then (the one exception to this
                         base's 2-digit convention), and `HYE-PO-20260805-02` rendered
                         at 141px, so 38 of 40 rows wrapped to two lines. Content
                         widths at 14px/20px Arial, plus the 8px `pr-2` every column

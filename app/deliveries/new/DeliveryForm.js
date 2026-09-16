@@ -431,7 +431,7 @@ export default function DeliveryForm({
                                 setPoId(e.target.value);
                                 setRows([{ ...EMPTY_ROW }]);
                                 }}
-                            placeholder="HYE-PO-YYYYMMDD-##"
+                            placeholder="HYE-PO-YYMMDD-##"
                             className={inputClass}
                         />
                         {poId.trim() && matchedPoItems.length === 0 && (

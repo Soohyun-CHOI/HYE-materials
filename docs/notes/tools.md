@@ -498,7 +498,7 @@ The direction of the delegation is forced rather than chosen: `offline/id-sequen
 
 **NOTHING ROLLS BACK A PARTIAL REGISTRATION.** `createToolItems` returns what it created and what it did not, and a failed create simply stops the rest. Undoing the rows before it would free ids the counter has already spent, and a later registration would re-issue them; `nextSequence` is MAX + 1, so the gap costs nothing while a reused number costs two labels on two tools. What the submission says about a short count is #338's.
 
-**#313 IS OPEN AND THIS FAMILY DOES NOT TOUCH IT.** That issue moves `Purchase Orders`' four-digit year onto the two-digit form everything else writes; the tool item family took the two-digit form from the start, so it adds nothing to that work. `offline/id-sequence.mjs` pins the split — five families on two digits, `PO` the one that is not — so the claim stays checkable rather than remembered.
+**#313 HAS SINCE MOVED `Purchase Orders` ONTO THE TWO-DIGIT FORM, AND THIS FAMILY NEVER ADDED TO THAT WORK.** The tool item family took the two-digit form from the start. `offline/id-sequence.mjs` used to pin the split — five families on two digits, `PO` the one that is not — and that assertion went with the exception it described; what replaced it is that no family declares a year width at all, which is the same claim in the form it takes once there is nothing to split.
 
 ## The reverse links needed no disambiguation, and that is worth recording
 

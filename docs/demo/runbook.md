@@ -161,7 +161,7 @@ script pulls that order's real vendor and ordered items, so the PDF matches what
 was ordered:
 
 ```bash
-node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/make-invoice-pdf.mjs HYE-PO-20260819-05
+node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/demo/make-invoice-pdf.mjs HYE-PO-260819-05
 ```
 
 At `/invoices/new`, attach `scripts/demo/output/demo-invoice.pdf`. Detection
@@ -261,7 +261,7 @@ unsigned order. Note the word `unsigned` appended to the option label itself.
 
 Navigate away without saving.
 
-### 5. `/pos/HYE-PO-20260819-05`
+### 5. `/pos/HYE-PO-260819-05`
 
 Land on the order from step 1. Ordered, Delivered and Invoiced on one row, with
 the two document lists under it. This is the reconciliation the whole app exists
@@ -442,13 +442,13 @@ of each are on the list:
 
 | Order | Delivery | Invoice |
 |---|---|---|
-| `HYE-PO-20260819-01` | | `Invoiced` |
-| `HYE-PO-20260819-02` | | `Partly invoiced` |
-| `HYE-PO-20260819-03` | | `Awaiting invoice` |
-| `HYE-PO-20260819-04` | `—` | `—` (withdrawn, row dimmed) |
-| `HYE-PO-20260819-16` | `Partly delivered` | |
+| `HYE-PO-260819-01` | | `Invoiced` |
+| `HYE-PO-260819-02` | | `Partly invoiced` |
+| `HYE-PO-260819-03` | | `Awaiting invoice` |
+| `HYE-PO-260819-04` | `—` | `—` (withdrawn, row dimmed) |
+| `HYE-PO-260819-16` | `Partly delivered` | |
 
-### 2. `/pos/HYE-PO-20260819-17`
+### 2. `/pos/HYE-PO-260819-17`
 
 The same two chips at document scope. `12 (over)` in **both** the Delivered and
 Invoiced columns — the two are treated identically, because both subtract against

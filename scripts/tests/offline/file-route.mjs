@@ -406,8 +406,8 @@ export function run({ check, assert, log }) {
 
     if (!check(
         "the title names the axis and then the file",
-        fileViewerTitle({ axis: FILE_AXIS.purchaseOrder, filename: "HYE-PO-20260821-02.pdf" }),
-        "Purchase order PDF · HYE-PO-20260821-02.pdf"
+        fileViewerTitle({ axis: FILE_AXIS.purchaseOrder, filename: "HYE-PO-260821-02.pdf" }),
+        "Purchase order PDF · HYE-PO-260821-02.pdf"
     )) fail();
     if (!check(
         "  and the axis alone when there is no filename",

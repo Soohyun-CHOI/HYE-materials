@@ -193,9 +193,9 @@ export function run({ check, assert, log }) {
             label: "AWAITING_SIGNATURE_COPY",
             html: (totalAmount) =>
                 AWAITING_SIGNATURE_COPY.html({
-                    poId: "HYE-PO-20260101-01",
+                    poId: "HYE-PO-260101-01",
                     prId: "HYE-PR-260101-01",
-                    poUrl: "https://portal.example.com/pos/HYE-PO-20260101-01",
+                    poUrl: "https://portal.example.com/pos/HYE-PO-260101-01",
                     vendorName: "Lone Star Pipe & Supply",
                     totalAmount,
                 }),
@@ -204,9 +204,9 @@ export function run({ check, assert, log }) {
             label: "SIGNED_NOTICE_COPY",
             html: (totalAmount) =>
                 SIGNED_NOTICE_COPY.html({
-                    poId: "HYE-PO-20260101-01",
+                    poId: "HYE-PO-260101-01",
                     prId: "HYE-PR-260101-01",
-                    poUrl: "https://portal.example.com/pos/HYE-PO-20260101-01",
+                    poUrl: "https://portal.example.com/pos/HYE-PO-260101-01",
                     vendorName: "Lone Star Pipe & Supply",
                     totalAmount,
                 }),
@@ -215,7 +215,7 @@ export function run({ check, assert, log }) {
             label: "SEND_COPY.mail",
             html: (totalAmount) =>
                 SEND_COPY.mail.html({
-                    poId: "HYE-PO-20260101-01",
+                    poId: "HYE-PO-260101-01",
                     buyerName: "HANYANGENG USA INC.",
                     vendorName: "Lone Star Pipe & Supply",
                     totalAmount,
