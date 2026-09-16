@@ -322,7 +322,7 @@ async function scenario(name, describe, body) {
  * BUILT WITH `pdf-lib` RATHER THAN BY HAND, and the reason is measured. A hand-rolled
  * PDF wrote its own cross-reference table and content-stream `/Length`, and the length
  * was one byte short of what the parser wanted: `pdf-parse` extracted
- * `HYE-PO-20260819-2` from a file whose text ended `…-27`, so the two-order detection
+ * `HYE-PO-260819-2` from a file whose text ended `…-27`, so the two-order detection
  * case silently found one order instead of two. `pdf-lib` is already a dependency —
  * `make-invoice-pdf.mjs` builds the live demo's invoice with it — so this costs
  * nothing and the bytes are somebody else's problem.

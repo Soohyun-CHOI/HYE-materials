@@ -6,14 +6,26 @@ import { isOurBlobUrl } from "@/lib/blobIngest";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { isPOUnsigned } from "@/lib/poUnsigned";
 import { hasUninvoicedItems } from "@/lib/poItemQty";
+import { ID_KINDS, idPattern } from "@/lib/idSequence";
 import { withOpsLabel } from "@/lib/airtableOps";
 
-// Issue #46. The company's real, historically-issued PO numbers use the
-// same HYE-PO-YYYYMMDD-## shape this system now generates (4-digit year —
-// see CLAUDE.md's ID-generation section for why that had to change first),
-// so one regex covers both old and new POs a vendor might reference back
-// to us in their invoice text.
-const PO_ID_PATTERN = /HYE-PO-\d{8}-\d{2}/g;
+// Issue #46 — the purchase orders a vendor's invoice quotes back to us, pulled out
+// of its text.
+//
+// THE SHAPE IS THE FAMILY'S, NOT A LITERAL (#313). It was `/HYE-PO-\d{8}-\d{2}/g`
+// written by hand, and this is the reader that a change of ID width breaks most
+// quietly: a stale width matches nothing a generator mints, detection returns an
+// empty list, and the form looks like it simply found no order. `idPattern` builds
+// it from `ID_KINDS.PO`, so the two cannot come apart.
+//
+// AND IT NARROWED RATHER THAN ACCEPTING BOTH WIDTHS, which was weighed. The
+// argument for keeping `\d{8}` is that the company's own pre-app purchase orders
+// carry a four-digit year and a vendor might quote one. What that misses is the
+// next line of this handler: every match is looked up with `getPOById`, and a
+// pre-app number has no record in this base — those orders were never in the app.
+// So a long-form match can only ever resolve to null and be dropped, and the wider
+// pattern protects nothing while inviting the reader to think it does. The
+// app-generated long forms it used to catch were rewritten by #313 itself.
 
 // Route Handler, not a Server Action — Admin-only (#134), and since #147 via
 // the withAdminApi wrapper rather than a returned refusal this file has to
@@ -63,7 +75,7 @@ export const POST = withAdminApi(async (request) => {
             const { pages } = await parser.getText();
             const fullText = pages.map((p) => p.text).join("\n");
 
-            const matches = [...new Set(fullText.match(PO_ID_PATTERN) || [])];
+            const matches = [...new Set(fullText.match(idPattern(ID_KINDS.PO)) || [])];
             const lookups = await Promise.all(matches.map((poId) => getPOById(poId)));
 
             const confirmed = [];

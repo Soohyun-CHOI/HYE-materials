@@ -708,11 +708,11 @@ export function run({ check, log, assert }) {
         itemName: "Pipe",
         size: '2"',
         deliveryId: "HYE-DL-260804-07",
-        originalPoId: "HYE-PO-20260804-10",
+        originalPoId: "HYE-PO-260804-10",
         overagePrId: "HYE-PR-260805-01",
-        overagePoId: "HYE-PO-20260806-01",
+        overagePoId: "HYE-PO-260806-01",
         invoiceId: "HYE-INV-260804-06",
-        thisPoId: "HYE-PO-20260806-01",
+        thisPoId: "HYE-PO-260806-01",
     };
     for (const site of ["overagePR", "overagePO", "originalPO"]) {
         const applied = describeOverageBanner({ site, state: "applied", facts });
@@ -986,7 +986,7 @@ export function run({ check, log, assert }) {
     assert("it names the invoice", caveat.includes("HYE-INV-260804-06"));
     assert("says the invoice charges BOTH orders", caveat.includes("both orders"));
     assert("and that a payment will not match this order alone", caveat.includes("will not match"));
-    assert("naming which order it means", caveat.includes("HYE-PO-20260806-01"));
+    assert("naming which order it means", caveat.includes("HYE-PO-260806-01"));
 
     // The original PO's banner must not claim THIS order was over-delivered: one
     // delivery can fill two orders of the same material, and #165 attaches the
@@ -1060,7 +1060,7 @@ export function run({ check, log, assert }) {
         "the summary names the invoice, the price and the excess",
         (() => {
             const t = full[0].text;
-            return t.includes("2 EA") && t.includes("HYE-INV-260804-06") && t.includes("HYE-PO-20260804-10");
+            return t.includes("2 EA") && t.includes("HYE-INV-260804-06") && t.includes("HYE-PO-260804-10");
         })()
     );
     check("an unknown reason renders nothing rather than crashing", describeOveragePreview({ eligible: false, blocked: "nope" }, facts).length, 0);

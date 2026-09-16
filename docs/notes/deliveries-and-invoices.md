@@ -693,12 +693,12 @@ gated read.
     deliveries. The link is n:1, so a delivery already carrying one invoice can carry
     another; the issue body's "unpaired deliveries" would have dropped exactly the
     legitimate second invoice.
-  - **The shape that would produce a 2 existed here** — `HYE-PO-20260804-04-001`
-    and `HYE-PO-20260730-02-002` were each filled by two deliveries — so the zero
+  - **The shape that would produce a 2 existed here** — `HYE-PO-260804-04-001`
+    and `HYE-PO-260730-02-002` were each filled by two deliveries — so the zero
     was a fact about the invoices of the day rather than a property of the rule.
 - **THE UNIT PRICE GATE CHANGES NOTHING ON THIS BASE, AND IS IN ANYWAY.** One
   invoice departs from an agreed price (`HYE-INV-260716-02`, 32.00 invoiced against
-  33.89 ordered on `HYE-PO-20260716-02-001`) and containment already excludes it,
+  33.89 ordered on `HYE-PO-260716-02-001`) and containment already excludes it,
   so the gate removes **no candidate pair at all**. It is `checkUnitPriceVariance`
   from `lib/variance.js` — the repo's existing comparison, absolute 0.01 — rather
   than a second tolerance. `Invoice Items.Variance Flag` was NOT reused as the
@@ -863,7 +863,7 @@ gated read.
     precondition is here though, so it is one record away rather than
     hypothetical: several deliveries brought more than one ordered item, and
     `HYE-DL-260804-10` has one of its two invoiced by `HYE-INV-260804-08` and the
-    other invoiced by nobody. One invoice for `HYE-PO-20260804-14-001` produces it.
+    other invoiced by nobody. One invoice for `HYE-PO-260804-14-001` produces it.
 - **THE RIVAL POOL NEEDS NO UNSCOPED READ, and the derivation is load-bearing.** A
   rival shares an ordered item with a candidate, a candidate's ordered items all
   lie inside the delivery, a delivery sits on one Job, and `canViewPR` clause 4
@@ -1150,7 +1150,7 @@ that stays the order's says so by name.
   — `HYE-INV-260804-07` was the case — and the second pass justified keeping it on the
   ground that the figure was visible on no other screen. **That was wrong**: #233 gave
   `/pos/[poId]` an `Invoiced` column with a red `(over)` mark, so
-  `HYE-PO-20260804-11` read `Qty 10` and `Invoiced 13 (over)`. Verified on that
+  `HYE-PO-260804-11` read `Qty 10` and `Invoiced 13 (over)`. Verified on that
   page rather than assumed. The invoicing excess is one click away, beside the quantity
   it exceeds, which is a better place for it than a delivery section on an invoice nothing
   has been matched to.
@@ -1184,8 +1184,8 @@ that stays the order's says so by name.
   requires the delivery to bring every ordered item the invoice charges, and
   `roomOnOrderedItem` refuses a pair with no room, so a computed pairing has
   `arrived > 0` on every judged ordered item. Through the data it plainly was —
-  `HYE-INV-260804-03` invoiced `166-DEMO Elbow` 5 on `HYE-PO-20260804-07` and
-  `166-DEMO Tee` 7 on `HYE-PO-20260804-08`, and the delivery matched to it,
+  `HYE-INV-260804-03` invoiced `166-DEMO Elbow` 5 on `HYE-PO-260804-07` and
+  `166-DEMO Tee` 7 on `HYE-PO-260804-08`, and the delivery matched to it,
   `HYE-DL-260804-05`, held one `Delivery Items` row: the Elbow. So the Tee's box
   reported `7 EA invoiced, none of it delivered by the matched delivery` while the
   Elbow's said nothing. That pairing predates the computed rule and `notContained` would refuse
@@ -1296,9 +1296,9 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   here was `HYE-INV-260804-03`, where each item touches one order — so the LISTED half
   had been seen on a screen and the silent half had not, which is backwards: a
   correction is the overwhelmingly common reason a real invoice carries two orders.
-  `HYE-INV-260817-01` was that case: `HYE-PO-20260817-01` and `-02` both named, no
+  `HYE-INV-260817-01` was that case: `HYE-PO-260817-01` and `-02` both named, no
   item list under either. `HYE-INV-260817-02` was its pair on the listed side,
-  `HYE-PO-20260817-03` and `-04` with a line each.
+  `HYE-PO-260817-03` and `-04` with a line each.
 - **AN ORDER WITH NO CHILD ROW IS NOT SEEDED, AND THAT IS A DECISION RATHER THAN A
   GAP.** It needs an invoice item with no `PO Item`, which the form could not make and
   which #278 made unwritable outright — free-text charges were built, dropped, and
@@ -1311,7 +1311,7 @@ per-order quantity and the copy are `lib/invoiceOrderBreakdown.js`.
   `PO` rather than `PO Item`, which is the plausible mistake because a free-text row
   does carry an order link. One such row was seeded on `HYE-INV-260817-02` and then
   retired, its `Amount Due` corrected from 184 to 144 in the same pass; the order it
-  charged, `HYE-PO-20260817-05`, was left standing, an order having existed either way.
+  charged, `HYE-PO-260817-05`, was left standing, an order having existed either way.
 - **THE CORRECTION SEED GOES THROUGH THE REAL FLOW BECAUSE THE FOLD KEY IS WHAT MAKES
   THE CASE.** Two halves at different prices do not fold, and then each touches one
   order and the list turns ON — the exact inverse of the shape being seeded. Writing
@@ -1477,7 +1477,7 @@ together, with the excess stated as a figure rather than a tag. The rule is
   alone has no single value for that cell — the situation #167 met on the invoice's
   items table, where the `PO` column had to go instead. Here the column is what the
   table is for, so the order joins the key. Both halves are visible on one screen:
-  `HYE-DL-260804-02` brought `165-DEMO Pipe 2"` 10 against `HYE-PO-20260804-01` and
+  `HYE-DL-260804-02` brought `165-DEMO Pipe 2"` 10 against `HYE-PO-260804-01` and
   10 + 5 against `-02`, so the last two fold and the first does not.
 - **A DIFFERENT KEY FROM #241's, AND THE REASONS ARE OPPOSITE.** That issue folds an
   invoice's items on `Material` + UNIT PRICE and excludes the order deliberately,
@@ -1499,7 +1499,7 @@ together, with the excess stated as a figure rather than a tag. The rule is
   — `/pos/[poId]`'s `Delivered` column prints `13 (over)` for the same fact one frame
   up — and the quantity is what the fold adds to it. **The word does not leave the
   page**: the headline item keeps its tag and the banner still reads `Over-delivered —
-  5 EA delivered beyond what HYE-PO-20260804-02 ordered.`
+  5 EA delivered beyond what HYE-PO-260804-02 ordered.`
 - **THE COLOR IS ON THE EXCESS ALONE, WHICH IS #241's RULE AT ITS OTHER HALF.** There
   an entry was wholly an exception, so its name took the tone; here the row is partly
   one, and coloring the total would say the 10 delivered inside the order is a
@@ -2052,7 +2052,7 @@ side folded with it, on the ordered item AND the unit price. The rule is
   drew is by SCOPE rather than by page, and #266 is what proves it — that issue's own
   phrasing has been corrected above, and both briefs now state the pair, because a
   designer who did not know would unify them. **Measured in the browser** on
-  `HYE-PO-20260819-17`: the folded row's mark computes to the badge's color and not
+  `HYE-PO-260819-17`: the folded row's mark computes to the badge's color and not
   to the two table cells', which is the assertion no file-only check can make.
 - **THE INVOICE SIDE FOLDS ON THE ORDERED ITEM AND THE UNIT PRICE**, which is
   `lib/invoiceItemFold.js`'s key at this scope with the ordered item where that module
@@ -2085,7 +2085,7 @@ side folded with it, on the ordered item AND the unit price. The rule is
   #237, #241).
 - **NO NEW READ, MEASURED RATHER THAN ASSERTED.** The fold is a pure regrouping of
   rows the page already holds and no credentialed function gained a call site. On the
-  labeled route, `HYE-PO-20260819-17` read **14 operations before and 14 after**, with
+  labeled route, `HYE-PO-260819-17` read **14 operations before and 14 after**, with
   the same ten tables and the same four repeats.
 - **Not in this issue:** the red `(over)` in the items table and its predicates, which
   are #169's and #233's and unchanged; the delivery detail's own fold; and the demo

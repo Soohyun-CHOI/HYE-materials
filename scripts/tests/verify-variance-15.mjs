@@ -46,7 +46,7 @@ import { createFixtures } from "./_fixtures.mjs";
  * ITS THREE FIXTURE RECORDS WERE HARD-CODED IDS AND ALL THREE WERE DEAD (#283).
  *
  * #15 wrote `rec5jSDWMNlyIbZDK` / `rec5X300LEYkNrqe9` / `recffjh8PlB8SQfXk` —
- * Demo Vendor Co., HYE-PO-20260716-07 and an uninvoiced ordered item on it — and
+ * Demo Vendor Co., HYE-PO-260716-07 and an uninvoiced ordered item on it — and
  * every one of them was wiped by a later `reset_demo.mjs --confirm`. The script
  * aborted on the first read with `Record ID rec5jSDWMNlyIbZDK does not exist`, so
  * it had been unrunnable since whichever reset came first, and nothing said so

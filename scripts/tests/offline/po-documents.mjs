@@ -3,7 +3,7 @@
 //
 // WHAT THIS TIER HAS TO CARRY HERE. The defect this issue removes is invisible to
 // a browser on this base: it needs one invoice charging TWO ordered items of one
-// order, and `HYE-PO-20260716-03` and `HYE-PO-20260716-02` are the only two that
+// order, and `HYE-PO-260716-03` and `HYE-PO-260716-02` are the only two that
 // have it. So the fold is asserted over shapes the base does not hold — three
 // ordered items invoiced by two invoices, a delivery filling two of them, a slice
 // belonging to another order — and the browser run confirms the two real ones.
@@ -52,9 +52,9 @@ export const title = "An order's invoices and deliveries, one entry per document
 
 /** This order's ordered items, in the order the table renders them. */
 const ORDERED = [
-    { id: "recPOI_A", poItemId: "HYE-PO-20260716-03-001", itemName: "Item A", size: '1/2"', unit: "EA" },
-    { id: "recPOI_B", poItemId: "HYE-PO-20260716-03-002", itemName: "Item B", size: '3"', unit: "EA" },
-    { id: "recPOI_C", poItemId: "HYE-PO-20260716-03-003", itemName: "Item C", size: "", unit: "FT" },
+    { id: "recPOI_A", poItemId: "HYE-PO-260716-03-001", itemName: "Item A", size: '1/2"', unit: "EA" },
+    { id: "recPOI_B", poItemId: "HYE-PO-260716-03-002", itemName: "Item B", size: '3"', unit: "EA" },
+    { id: "recPOI_C", poItemId: "HYE-PO-260716-03-003", itemName: "Item C", size: "", unit: "FT" },
 ];
 
 // #318 — THE FIXTURE CARRIES A DATE WHERE IT CARRIED A FLAG. `Invoices."Paid"` is

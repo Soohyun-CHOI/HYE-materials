@@ -85,15 +85,18 @@ const DATE_FIELD_NAMES = [
 export function run({ check, log, assert }) {
     // --- Part 1: the rule itself ----------------------------------------
     log("the daily stamp (local getters, date passed in so this is pinnable):");
-    check("2-digit year", dailyStamp(AUG_3, 2), "260803");
-    check("4-digit year — PO only", dailyStamp(AUG_3, 4), "20260803");
-    check("month and day are zero-padded", dailyStamp(JAN_9, 2), "260109");
-    check("defaults to 2 digits", dailyStamp(AUG_3), "260803");
+    check("2-digit year", dailyStamp(AUG_3), "260803");
+    check("month and day are zero-padded", dailyStamp(JAN_9), "260109");
+    // #313 — IT TAKES NO WIDTH ANY MORE, and the assertion is that it cannot be
+    // given one. A second argument was the four-digit branch PO used, so passing
+    // anything now must change nothing — or the branch is back, and one family
+    // can drift from the other five again.
+    check("a second argument changes nothing", dailyStamp(AUG_3, 4), "260803");
 
     log("");
     log("one prefix per family:");
     check("PR", dailyIdPrefix(ID_KINDS.PR, AUG_3), "HYE-PR-260803");
-    check("PO keeps the 4-digit year", dailyIdPrefix(ID_KINDS.PO, AUG_3), "HYE-PO-20260803");
+    check("PO, on the settled form since #313", dailyIdPrefix(ID_KINDS.PO, AUG_3), "HYE-PO-260803");
     check("Invoice", dailyIdPrefix(ID_KINDS.INVOICE, AUG_3), "HYE-INV-260803");
     check("Delivery", dailyIdPrefix(ID_KINDS.DELIVERY, AUG_3), "HYE-DL-260803");
     check("Direct purchase", dailyIdPrefix(ID_KINDS.DIRECT_PURCHASE, AUG_3), "HYE-DP-260803");
@@ -107,7 +110,7 @@ export function run({ check, log, assert }) {
     log("prefix lengths — the reason no length is hard-coded anywhere:");
     check("Invoice prefix is 14 chars, not the 13 #164 was filed with", dailyIdPrefix(ID_KINDS.INVOICE, AUG_3).length, 14);
     check("PR is 13", dailyIdPrefix(ID_KINDS.PR, AUG_3).length, 13);
-    check("PO is 15", dailyIdPrefix(ID_KINDS.PO, AUG_3).length, 15);
+    check("PO is 13 since #313, and was 15", dailyIdPrefix(ID_KINDS.PO, AUG_3).length, 13);
     check("Delivery is 13", dailyIdPrefix(ID_KINDS.DELIVERY, AUG_3).length, 13);
     check("Direct purchase is 13", dailyIdPrefix(ID_KINDS.DIRECT_PURCHASE, AUG_3).length, 13);
     check("Tool item is 13", dailyIdPrefix(ID_KINDS.TOOL_ITEM, AUG_3).length, 13);
@@ -138,13 +141,22 @@ export function run({ check, log, assert }) {
     const tokens = kinds.map(([, kind]) => kind.token);
     check("no two families share a token", new Set(tokens).size, tokens.length);
     check("the tool item token", ID_KINDS.TOOL_ITEM.token, "HYE-TL");
-    // #313 is the open issue about PO's four-digit year. Pinned here because the
-    // tool item family was added while that was open and took the majority form,
-    // so a reader can see it did not add to the problem.
-    check("families on the settled two-digit year",
-        kinds.filter(([, k]) => k.yearDigits === 2).length, 5);
-    check("and the one that is not, which is #313's subject",
-        kinds.filter(([, k]) => k.yearDigits === 4).map(([name]) => name).join(""), "PO");
+    // #313 CLOSED THE ONE EXCEPTION, AND THIS IS THE STRONGER PIN THAT REPLACED IT.
+    // While PO carried a four-digit year this counted families on each width, five
+    // against one, which kept the split visible but left `yearDigits` sitting there
+    // to be turned. The registry carries no width at all now, so what is asserted is
+    // that no family declares one AND that every prefix is the same shape: token,
+    // dash, six digits. A family re-declaring a width fails the first; one reaching
+    // a longer stamp some other way fails the second.
+    check("no family declares a year width",
+        kinds.filter(([, k]) => "yearDigits" in k).map(([name]) => name).join(",") || "none",
+        "none");
+    for (const [name, kind] of kinds) {
+        assert(
+            `  ${name} stamps six digits`,
+            new RegExp(`^${kind.token}-\\d{6}$`).test(dailyIdPrefix(kind, AUG_3))
+        );
+    }
 
     log("");
     log("assembling an ID:");
@@ -230,7 +242,7 @@ export function run({ check, log, assert }) {
         5
     );
     check("order does not matter", nextSequence(["HYE-INV-260803-05", "HYE-INV-260803-01"], "HYE-INV-260803"), 6);
-    check("a hand-typed 99 pushes the next one to 100", nextSequence(["HYE-PO-20260715-99"], "HYE-PO-20260715"), 100);
+    check("a hand-typed 99 pushes the next one to 100", nextSequence(["HYE-PO-260715-99"], "HYE-PO-260715"), 100);
 
     log("");
     log("membership: the formula narrows, this function decides:");

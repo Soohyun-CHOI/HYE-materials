@@ -30,8 +30,9 @@ showing code and name. It gates everything below it.
 
 **action — a checkbox in a bordered box:** `The packing list shows a PO number`.
 It is disabled until a job is chosen. Ticking it reveals a text field with the
-placeholder `HYE-PO-YYYYMMDD-##`, which is the app's own ID format spelled out as
-the hint.
+placeholder `HYE-PO-YYMMDD-##`, which is the app's own ID format spelled out as
+the hint. It read `YYYYMMDD` until #313 moved purchase orders onto the two-digit
+year every other document writes.
 
 **action — the vendor,** a dropdown **only when no order number was given**. An
 order fixes its vendor, so the field disappears rather than being pre-filled and

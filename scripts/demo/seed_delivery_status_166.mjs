@@ -458,7 +458,7 @@ and sets nothing — so every invoice it creates reads:
        "Against the ordered item: 3 EA more invoiced" even while unmatched,
        kept on the belief that the figure was visible nowhere else.
        #233 had already made that false: /pos/[poId] carries an Invoiced
-       column with a red (over) mark, so HYE-PO-20260804-11 reads
+       column with a red (over) mark, so HYE-PO-260804-11 reads
        Qty 10 and Invoiced 13 (over). Look for a invoicing excess there.
 
   ${ids.e ?? "E"}   the delivery-side excess, 12 arrived against an

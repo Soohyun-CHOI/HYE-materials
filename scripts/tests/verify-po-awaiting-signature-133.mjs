@@ -10,7 +10,7 @@
 //
 // #168 removed the signature-status condition from those filters altogether, on
 // the measured ground that an Awaiting Signature PO can legitimately carry an
-// invoice (`HYE-PO-20260805-02` does). So there is no `"Awaiting Signature"`
+// invoice (`HYE-PO-260805-02` does). So there is no `"Awaiting Signature"`
 // string left to go stale, and nothing for the original guard to guard. Step 2
 // now asserts the new behavior instead — the unsigned PO is PRESENT in all three —
 // which is a real regression guard for #168's change rather than a leftover.

@@ -66,7 +66,7 @@ const ADMIN_EMAIL = "soo@hanyangengusa.com";
 // outcome the rule can reach, and a `shared-order` or `several` here would be a
 // real failure rather than a differently-shaped pass.
 const DELIVERY_RECORD_ID = "rec52KJ2RM8Rn5yD2"; // HYE-DL-260804-09
-const PO_ITEM_RECORD_ID = "recDougDWinK53O6T"; // HYE-PO-20260804-12-001
+const PO_ITEM_RECORD_ID = "recDougDWinK53O6T"; // HYE-PO-260804-12-001
 const PO_RECORD_ID = "reccbpyDpL27vWU3j";
 const VENDOR_RECORD_ID = "rec5jSDWMNlyIbZDK"; // Demo Vendor Co.
 

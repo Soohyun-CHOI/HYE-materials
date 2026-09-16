@@ -84,10 +84,10 @@ async function run(path, label) {
     }
 }
 
-await run("scripts/demo/output/demo-invoice.pdf", "Case 1: real, fully-invoiced PO alone (HYE-PO-20260716-01)");
-await run("scratch/fake-po.pdf", "Case 2: PO-shaped string alone, no real PO (HYE-PO-20261231-99)");
+await run("scripts/demo/output/demo-invoice.pdf", "Case 1: real, fully-invoiced PO alone (HYE-PO-260716-01)");
+await run("scratch/fake-po.pdf", "Case 2: PO-shaped string alone, no real PO (HYE-PO-261231-99)");
 await run("scratch/no-po.pdf", "Case 3: no PO number at all");
 await run(
     "scratch/cooccur.pdf",
-    "Case 4 (co-occurrence): real open PO (HYE-PO-20260720-01) + a fake PO number (HYE-PO-20261231-99) in the same PDF"
+    "Case 4 (co-occurrence): real open PO (HYE-PO-260720-01) + a fake PO number (HYE-PO-261231-99) in the same PDF"
 );

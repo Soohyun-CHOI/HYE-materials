@@ -339,8 +339,8 @@ export function run({ check, log, assert }) {
     check(
         "dates order descending",
         sortHistoryRows([
-            { id: "a", date: "2025-01-01", poId: "HYE-PO-20250101-01" },
-            { id: "b", date: "2026-01-01", poId: "HYE-PO-20260101-01" },
+            { id: "a", date: "2025-01-01", poId: "HYE-PO-250101-01" },
+            { id: "b", date: "2026-01-01", poId: "HYE-PO-260101-01" },
         ])
             .map((r) => r.id)
             .join(","),
@@ -351,9 +351,9 @@ export function run({ check, log, assert }) {
     check(
         "same day falls back to the PO ID's own sequence, descending",
         sortHistoryRows([
-            { id: "first", date: "2026-07-29", poId: "HYE-PO-20260729-01" },
-            { id: "third", date: "2026-07-29", poId: "HYE-PO-20260729-03" },
-            { id: "second", date: "2026-07-29", poId: "HYE-PO-20260729-02" },
+            { id: "first", date: "2026-07-29", poId: "HYE-PO-260729-01" },
+            { id: "third", date: "2026-07-29", poId: "HYE-PO-260729-03" },
+            { id: "second", date: "2026-07-29", poId: "HYE-PO-260729-02" },
         ])
             .map((r) => r.id)
             .join(","),

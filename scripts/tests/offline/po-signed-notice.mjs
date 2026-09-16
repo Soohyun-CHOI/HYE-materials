@@ -61,9 +61,9 @@ const NOTIFICATIONS = "lib/notifications.js";
 
 /** One signed order, as the mail sees it. */
 const NOTICE = {
-    poId: "HYE-PO-20260101-01",
+    poId: "HYE-PO-260101-01",
     prId: "HYE-PR-260101-01",
-    poUrl: "https://portal.example.com/pos/HYE-PO-20260101-01",
+    poUrl: "https://portal.example.com/pos/HYE-PO-260101-01",
     vendorName: "Lone Star Pipe & Supply",
     // A NUMBER SINCE #292 — the builder formats it. Every assertion about the money
     // itself is in offline/mail-money.mjs, which owns that rule for all five senders.

@@ -21,14 +21,14 @@ import { isMain, standalone } from "./_harness.mjs";
 export const title = "What a slot's PO dropdown may offer (#242)";
 
 /** The page's own set: three open orders for this vendor, no origin. */
-const OPEN_A = { id: "recOpenA", poId: "HYE-PO-20260817-11" };
-const OPEN_B = { id: "recOpenB", poId: "HYE-PO-20260817-10" };
-const OPEN_C = { id: "recOpenC", poId: "HYE-PO-20260817-09" };
+const OPEN_A = { id: "recOpenA", poId: "HYE-PO-260817-11" };
+const OPEN_B = { id: "recOpenB", poId: "HYE-PO-260817-10" };
+const OPEN_C = { id: "recOpenC", poId: "HYE-PO-260817-09" };
 /** Merged by #57's search. */
-const SEARCHED = { id: "recSearched", poId: "HYE-PO-20260722-02", origin: PO_ORIGIN.search };
-const SEARCHED_2 = { id: "recSearched2", poId: "HYE-PO-20260716-08", origin: PO_ORIGIN.search };
+const SEARCHED = { id: "recSearched", poId: "HYE-PO-260722-02", origin: PO_ORIGIN.search };
+const SEARCHED_2 = { id: "recSearched2", poId: "HYE-PO-260716-08", origin: PO_ORIGIN.search };
 /** Merged by #46's detection. */
-const DETECTED = { id: "recDetected", poId: "HYE-PO-20260804-12", origin: PO_ORIGIN.detected };
+const DETECTED = { id: "recDetected", poId: "HYE-PO-260804-12", origin: PO_ORIGIN.detected };
 
 const LIST = [OPEN_A, OPEN_B, OPEN_C, SEARCHED, SEARCHED_2, DETECTED];
 const slot = (poRecordId = "", extra = {}) => ({ poRecordId, searchMode: false, results: [], ...extra });

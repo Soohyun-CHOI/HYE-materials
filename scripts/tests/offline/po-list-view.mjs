@@ -46,7 +46,7 @@ const PAGE = "app/pos/page.js";
 
 /** A signed order nobody has sent, and the one field each case spoils. */
 const UNSENT = {
-    poId: "HYE-PO-20260101-01",
+    poId: "HYE-PO-260101-01",
     presidentSigned: true,
     presidentSignedAt: "2026-01-01T10:00:00.000Z",
     status: "Signed",
@@ -228,7 +228,7 @@ export function run({ check, assert, log }) {
     // AND IT AGREES WITH THE STATUS TEST EVERYWHERE ELSE, which is the whole reason
     // the mutation is invisible on a screen: on the ordinary shapes both return the
     // same rows.
-    const ordinary = [UNSENT, { ...UNSENT, poId: "HYE-PO-20260101-02", sentAt: "2026-01-02T09:00:00.000Z", status: "Sent to Vendor" }];
+    const ordinary = [UNSENT, { ...UNSENT, poId: "HYE-PO-260101-02", sentAt: "2026-01-02T09:00:00.000Z", status: "Sent to Vendor" }];
     check(
         "the two judgments agree on every ordinary order",
         selectPOsAwaitingSend(ordinary).length,
@@ -245,7 +245,7 @@ export function run({ check, assert, log }) {
     );
     // THE SECOND MUTANT, AND IT HAS A WITNESS ON THE BASE. A withdrawn order's
     // `Sent At` is empty and will never be filled, so an unconditional list keeps it
-    // forever — `HYE-PO-20260819-26` is withdrawn AND signed today.
+    // forever — `HYE-PO-260819-26` is withdrawn AND signed today.
     check(
         "a withdrawn order is not, however signed it is",
         selectPOsAwaitingSend([{ ...UNSENT, status: "Withdrawn" }]).length,

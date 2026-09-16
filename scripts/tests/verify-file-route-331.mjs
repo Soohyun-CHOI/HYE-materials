@@ -182,7 +182,7 @@ if (!serverUp) {
         const r = await get(fileHref({ axis, ...t }), refusedCookie);
         check(`${axis} — an id that does not exist`, `${r.status} ${r.body}`, "404 Not found.");
     }
-    const bogus = await get("/api/files/vendor/HYE-PO-20260821-02/x.pdf", refusedCookie);
+    const bogus = await get("/api/files/vendor/HYE-PO-260821-02/x.pdf", refusedCookie);
     check("an axis token that is not one of the five", `${bogus.status} ${bogus.body}`, "404 Not found.");
 
     // ---------------------------------------------------------------------------
