@@ -29,6 +29,14 @@
 // a merge before the run leaves old rows long for as long as it takes to run this,
 // which is the only window and is the survivable direction.
 //
+// THE LEDGER IS A TRACKED FILE, BESIDE THIS SCRIPT, AND THAT IS DELIBERATE. A
+// rollback that exists on one machine is not a rollback; and what was changed on the
+// base, when, and from what to what is exactly the kind of record this repository
+// keeps. It lands in `scripts/import/`, which already holds `material_categories.csv`
+// and `requirements.txt` tracked next to the scripts that read them — a one-time
+// script and its data living together. NOT `data/` or `output/`, which `.gitignore`
+// sweeps as raw data.
+//
 // Run from the repo root. Dry run is the DEFAULT and prints the whole table:
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs \
 //     scripts/import/rewrite_po_year_313.mjs
@@ -39,7 +47,20 @@
 // within one process, and this is a different process from the app.
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { base, TABLES } from "../../lib/airtable/client.js";
+
+/**
+ * Where a ledger is written, and what it is called.
+ *
+ * RESOLVED FROM THIS MODULE RATHER THAN FROM THE WORKING DIRECTORY, so the file
+ * lands beside the script whatever `node` was run from — the header says why it
+ * belongs there. The name is the script's own, so `ls scripts/import/` puts the two
+ * next to each other and a reader meeting the ledger can tell what wrote it.
+ */
+const HERE = dirname(fileURLToPath(import.meta.url));
+const LEDGER_PREFIX = "rewrite_po_year_313-";
 
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
@@ -158,9 +179,9 @@ async function main() {
     // reversible: a run that dies halfway has still recorded every value it was
     // about to touch, and `--revert` puts back the ones that moved (the others are
     // written with the value they already hold, which is a no-op).
-    const ledger = `po-id-rewrite-313-${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`;
+    const ledger = join(HERE, `${LEDGER_PREFIX}${new Date().toISOString().replace(/[:.]/g, "-")}.jsonl`);
     writeFileSync(ledger, entries.map((e) => JSON.stringify(e)).join("\n") + "\n", "utf8");
-    console.log(`\nledger: ${ledger}`);
+    console.log(`\nledger: ${ledger}  (commit it — see this file's header)`);
 
     for (const { table, field } of TARGETS) {
         const mine = entries.filter((e) => e.table === table);
