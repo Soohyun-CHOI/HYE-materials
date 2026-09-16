@@ -22,10 +22,23 @@ about this list.
 **action.** A `New PR` button beside the heading — the only filled, high-contrast
 button on the screen.
 
-**action — a filter bar** above the table, in a bordered box: a job picker that
-takes several jobs at once, a `Raised by me` checkbox, and a status dropdown whose
-first option is `All`. The active filters are mirrored into the URL, so a refresh,
-a shared link and the back button all restore the view.
+**action — a filter bar** above the table, in a bordered box, and it is the same
+bar the other three document lists carry (#324). Five controls here: a job picker
+and a vendor picker, each taking several at once and each searchable; a
+`Requested by me` checkbox; a status dropdown; and a kind dropdown offering
+`Overage` and `Direct purchase`. Both dropdowns' first option is `All`. The active
+filters are mirrored into the URL, so a refresh, a shared link and the back button
+all restore the view.
+
+**The bar is drawn only when this reader has at least one row before filtering.**
+An empty scope gets the sentence alone; a filter that empties the list keeps the
+bar, because that is the moment `Clear all filters` is what the reader needs.
+
+**The kind dropdown offers two of the three kinds and never `Ordinary`.** The mark
+beside a row is deliberately silent for an ordinary request, so an option would
+coin the one word the app has decided not to have. The status dropdown does the
+same thing for a different reason — four of five values, because a Draft never
+reaches this list.
 
 **evidence — the table, six columns.** PR ID, Requester, Vendor, `Job`, Total,
 Status. The ID is a link; Total is right-aligned currency. `Job` is the job code
@@ -43,16 +56,27 @@ per-row judgment the list makes.
 
 ## What it carries only sometimes
 
-**When any filter is active:** a `Clear all filters` control in the filter bar,
-and the empty state below changes wording — see the next entry.
+**When any filter is active:** a `Clear all filters` control in the filter bar and
+a count beside it, `N of M` — how many rows survived out of how many this reader
+has. Both appear together and neither appears otherwise.
 
-**When there are no rows to show:** one of two sentences, and which one matters.
-`No PRs match these filters.` when the reader has filtered something out, and
-`No purchase requests to show.` when they have not. The second covers both an
-empty base and a reader whose scope is empty, and it does not distinguish them.
+**When there are no rows to show:** one of three sentences, and they are three
+different facts. `No purchase requests yet. Raise one and it appears here once it
+is submitted.` when the base holds none. `No purchase requests to show. You see a
+request you raised, one on a job you are assigned to, or one you are asked to
+sign.` when some exist but none is in this reader's scope. `No purchase requests
+match these filters.` when the reader filtered them out. It was two sentences
+until #324 and the second covered both of the first two cases — the word `yet`
+is what made it false for a reader whose scope is simply empty, and all four
+document lists draw the same three-way distinction now.
 
-**When the reader is assigned to no jobs at all:** the job picker is absent
-entirely rather than empty.
+**When no row carries a job, or none carries a vendor:** that picker is absent
+entirely rather than empty. The options are the jobs and vendors ON the rows this
+reader can see, so a picker with nothing to offer means the rows have nothing to
+offer it. It listed the reader's assigned jobs until #324, which meant an
+assignment with no request on it was an option that emptied the table, and a
+request reachable without an assignment — a signer's — was a row no filter could
+reach.
 
 **When a request has been withdrawn:** the whole row is dimmed to gray rather
 than hidden. Withdrawal is a state transition and not a delete, so the row stays
@@ -181,3 +205,20 @@ table (#280).
 
 **Dimming means ended, here and on the purchase order list and the signing
 chain.** Three places, one meaning.
+
+**The filter bar is one component on four lists (#324), and the differences
+between them are chosen.** Job and vendor are on all four, because every one of
+these documents holds both. `Requested by me` is here and on the purchase order
+list — one word, because both read the same field, the request's `Requester`,
+from the row here and through the parent request there. The deliveries list says
+`Recorded by me` instead, which is a different field. The invoice list has no such
+control at all, because an invoice records nobody. A redesign may restyle the bar
+and move it; what it may not do is let one list's control mean something different
+from the same control on another.
+
+**The kind mark is a filter here and nothing like it is a filter elsewhere**, and
+the rule behind that is worth knowing: a closed set on one of these lists becomes
+a filter when the document or its own item rows hold the value, and becomes a
+strip's subject when the values lie along a wait whose end is the good one. That
+is why the three chips on the purchase order list are not filters and why the
+over-delivered flag on the deliveries list is.

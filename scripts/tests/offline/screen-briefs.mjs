@@ -49,7 +49,11 @@ import {
     orderedItemStatus,
 } from "../../../lib/deliveryStatus.js";
 import { ITEM_PRECISION_COPY, VARIANCE_COPY } from "../../../lib/variance.js";
-import { AWAITING_PO_COPY, AWAITING_SEND_COPY, EMPTY_COPY } from "../../../lib/poListView.js";
+import { AWAITING_PO_COPY, AWAITING_SEND_COPY } from "../../../lib/poListView.js";
+// #324 — the three empty states MOVED here from `lib/poListView.js` when the other
+// three document lists became callers. `LIST_EMPTY_COPY` is twelve sentences rather
+// than three, and all four briefs quote their own.
+import { FILTER_BAR_COPY, LIST_AXES, LIST_EMPTY_COPY } from "../../../lib/listFilters.js";
 import { CONFIRM_COPY } from "../../../lib/authTokenState.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
@@ -237,6 +241,22 @@ const PINNED = [
     "No invoice charges this order yet.",
     "Nothing has been delivered against this order yet.",
     "No purchase orders yet. One is generated automatically when a purchase request is fully approved.",
+    // #324 - the shared bar's own vocabulary, which `_shared.md` now lists and four
+    // screen briefs quote. Pinned because the bar renders every one of these from the
+    // module rather than from its own JSX, so a rewording there would leave five
+    // briefs describing a bar the app no longer draws.
+    "Clear all filters",
+    "All jobs",
+    "All vendors",
+    "Search jobs…",
+    "Clear jobs",
+    "No matching jobs.",
+    "Requested by me",
+    "Recorded by me",
+    // The two sentences #324 corrected rather than added: `/prs` had no base-empty
+    // sentence of its own and `/deliveries` was saying `yet` to the wrong reader.
+    "No purchase requests yet. Raise one and it appears here once it is submitted.",
+    "No deliveries to show. You see a delivery when it is on a job you are assigned to. An Admin can add you to a job in Airtable.",
     "No purchase orders to show. You see a purchase order when you can see the request behind it.",
     "No purchase orders match these filters.",
     "Generation failed when the request was approved. Generate the order here.",
@@ -521,7 +541,13 @@ export function run({ check, assert, log }) {
     const loadable = [
         ...stringsFrom(VARIANCE_COPY),
         ...stringsFrom(ITEM_PRECISION_COPY),
-        ...stringsFrom(EMPTY_COPY),
+        ...stringsFrom(LIST_EMPTY_COPY),
+        // #324 - the bar's own vocabulary. `LIST_AXES` is walked whole: the picker
+        // words are built from each axis's noun and the labels sit beside them, so
+        // handing over the declaration is what keeps this list from being a second
+        // copy of the words it is checking.
+        ...stringsFrom(FILTER_BAR_COPY),
+        ...stringsFrom(LIST_AXES),
         ...stringsFrom(CONFIRM_COPY),
         ...stringsFrom(PO_DOCUMENTS_COPY),
         ...stringsFrom(LINK_COPY),

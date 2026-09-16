@@ -60,15 +60,19 @@ const LIST = "app/invoices/page.js";
 const JUDGMENT = "lib/invoiceJob.js";
 
 /**
- * Where each list's `<th>` row lives. Three are Client Components, so the JSX is not
- * on the page; the invoice list renders its own table. Read as: these are the four
- * document lists, and this is the file each one's header is in.
+ * Where each list's `<th>` row lives. Read as: these are the four document lists, and
+ * this is the file each one's header is in.
+ *
+ * ALL FOUR ARE CLIENT COMPONENTS SINCE #324. The invoice list rendered its own table
+ * on the page, which is the same fact as its having carried no filter — there was no
+ * client for a narrowing to live in. It has one now, so this map stopped having an
+ * exception in it.
  */
 const HEADER_FILES = {
     "/prs": "app/prs/PRListClient.js",
     "/pos": "app/pos/POListClient.js",
     "/deliveries": "app/deliveries/DeliveriesListClient.js",
-    "/invoices": "app/invoices/page.js",
+    "/invoices": "app/invoices/InvoicesListClient.js",
 };
 
 /** The two pages that stopped reading the level, and the strips that stopped rendering it. */

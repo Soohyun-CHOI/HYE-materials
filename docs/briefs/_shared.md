@@ -446,11 +446,54 @@ order yet.` and `Nothing has been delivered against this order yet.` Badges
 template** — it carried the payment date until #309, which made a badge mark the fact
 and left the date to the sentence on the invoice's own page.
 
-### Purchase orders (tier 1, `lib/poListView.js`, `lib/poUnsigned.js`)
+### The document lists' filter bar (tier 1, `lib/listFilters.js`)
 
+One component on `/prs`, `/pos`, `/deliveries` and `/invoices` (#324), with three
+control kinds and nothing else. Which axes a list carries is settled per list and
+every difference between them is chosen; the words are shared.
+
+- The two pickers: `Jobs: All jobs`, `Vendors: All vendors`, `N selected` when
+  something is picked, `Search jobs…` / `Search vendors…` inside, `Clear jobs` /
+  `Clear vendors` beside the search, and `No matching jobs.` / `No matching
+  vendors.` when the search finds none. Every one of these is BUILT from the
+  axis's noun, so a third picker coins no strings by hand.
+- The selects: a label and a colon, then `All` as the first option — `Status:` on
+  three lists and `Kind:` on one.
+- The toggles: `Requested by me` on `/prs` and `/pos`, `Recorded by me` on
+  `/deliveries`, `Over-delivered` on `/deliveries`.
+- When anything is active: `N of M` and `Clear all filters`, together.
+
+Twelve empty-state sentences, three per list, in the same module so they stay
+comparable:
+
+- `No purchase requests yet. Raise one and it appears here once it is submitted.`
+- `No purchase requests to show. You see a request you raised, one on a job you are assigned to, or one you are asked to sign.`
+- `No purchase requests match these filters.`
 - `No purchase orders yet. One is generated automatically when a purchase request is fully approved.`
 - `No purchase orders to show. You see a purchase order when you can see the request behind it.`
 - `No purchase orders match these filters.`
+- `No deliveries recorded yet. Record one as material is delivered — the packing list photo is what makes it a record.`
+- `No deliveries to show. You see a delivery when it is on a job you are assigned to. An Admin can add you to a job in Airtable.`
+- `No deliveries match these filters.`
+- `No invoices yet.`
+- `No invoices to show. You see an invoice when it charges a purchase order you raised or one on a job you are assigned to.`
+- `No invoices match these filters.`
+
+**The bar is drawn only when the reader has at least one row before filtering.**
+An empty scope gets the empty-state sentence alone; a filter that empties the list
+keeps the bar, because that is the moment the clear control is what the reader
+needs.
+
+**A closed set a list renders is a filter when the document or its own item rows
+hold the value, and a strip's subject when the values lie along a wait whose end
+is the good one.** That is what decides, for a designer as much as for the code,
+why the three chips on `/pos` have no controls while its `Status` does, and why
+`Over-delivered` on `/deliveries` does while the `Invoiced` chip beside it does
+not. A wait is recognizable by having degrees — `Awaiting X` → `Partly X` → `X`.
+
+### Purchase orders (tier 1, `lib/poListView.js`, `lib/poUnsigned.js`)
+
+- Its three empty states are in the section above, with the other three lists' nine.
 - `N approved requests have no purchase order`, with two voices under it:
   `Generation failed when the request was approved. Generate the order here.`
   for the office and `… Ask the office to generate it.` for everyone else (#176).
@@ -648,6 +691,13 @@ nothing you can see, nothing matching your filters. Those three are different
 sentences on purpose and a single "No results" would lose the distinction that
 matters most — whether the reader is looking at an empty base or at their own
 scope.
+
+**All four document lists draw that three-way distinction since #324, and only
+one of them did before.** The word `yet` is what makes the first sentence false
+for a reader whose scope is simply empty, so only the base-empty sentence carries
+it — and `/deliveries` was telling a site staffer whose jobs held no delivery that
+none had been recorded, on a base with plenty. Twelve sentences, three per list,
+in one module so they stay comparable.
 
 ## Constraints that already exist
 

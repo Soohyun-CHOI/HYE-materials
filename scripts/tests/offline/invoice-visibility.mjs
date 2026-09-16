@@ -63,7 +63,9 @@ export const title = "Invoice visibility (#211), and payment with no gate of its
 // still cannot tell whether a reader is gated, which is assertion 3's job.
 const PAID_READERS = {
     "app/invoices/page.js":
-        "the Status column — the payment word and the header variance badge, both open (#309)",
+        "the Status column's JUDGMENT — one `invoicePayment` call per row against the page's own day (#324)",
+    "app/invoices/InvoicesListClient.js":
+        "the Status column's RENDER — the payment word and the header variance badge, both open (#309)",
     "app/invoices/[invoiceId]/page.js":
         "the Payment section's props — the fact and `canEdit`, handed over unconditionally (#318)",
     "app/invoices/[invoiceId]/PaymentSection.js":
@@ -92,7 +94,18 @@ const PAID_READERS = {
  * actually true: the file is on the surface for one axis, and a payment read anywhere
  * outside these three containers is a second answer starting.
  */
-const PAYMENT_CONTAINERS = ["invoicePayment", "summarizePOPaymentStatus", "poPayment"];
+// #324 ADDED THE FOURTH AND IT IS THE SAME KIND OF THING. `INVOICE_PAYMENT_WORDS`
+// and `invoicePaymentWord` are the two words an INVOICE's payment reads as, derived
+// off the `poPayment` chips rather than written again — which is what keeps #311's
+// convergence on `Not paid` from coming apart a fourth time. A container, because the
+// reads are inside it and it holds no judgment of its own.
+const PAYMENT_CONTAINERS = [
+    "invoicePayment",
+    "summarizePOPaymentStatus",
+    "poPayment",
+    "INVOICE_PAYMENT_WORDS",
+    "invoicePaymentWord",
+];
 
 /** The section this screen's payment fact and its control both live in (#318). */
 const SECTION = "app/invoices/[invoiceId]/PaymentSection.js";
@@ -583,7 +596,11 @@ export async function run({ check, log, assert }) {
     );
     assert("  the file reads payment at all", total > 0);
     check("  and every one of them is inside a payment container", total - inside, 0);
-    check("  all three containers were found", namedContainers(statusFile.ast, PAYMENT_CONTAINERS).length, 3);
+    check(
+        "  every named container was found",
+        namedContainers(statusFile.ast, PAYMENT_CONTAINERS).length,
+        PAYMENT_CONTAINERS.length
+    );
     // `paidDate` IN THE JUDGMENT AND NOWHERE ELSE IN THE FILE (#318), WHICH INVERTS
     // #311's ASSERTION RATHER THAN DROPPING IT.
     //

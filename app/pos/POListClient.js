@@ -1,120 +1,55 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
-import { EMPTY_COPY, emptyStateKind } from "@/lib/poListView";
+import {
+    LIST_EMPTY_COPY,
+    applyFilters,
+    emptyStateKind,
+    showsFilterBar,
+} from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
-import JobFilterDropdown from "@/app/prs/JobFilterDropdown";
+import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
 
 // Instant client-side narrowing over the already-gated rows the server sent, in
 // the shape #119 set for the PR list: no Apply button, and the active filters
-// mirrored into the URL with router.replace — no navigation, no history entry,
-// no server round trip — so refresh, a shared link and the back button restore
-// the view. The dropdown itself is /prs's component rather than a copy of it.
+// mirrored into the URL — no navigation, no history entry, no server round trip —
+// so refresh, a shared link and the back button restore the view. The mirror itself
+// is `useListFilters`, which is the only place in the app that writes one.
+//
+// THE BAR IS SHARED SINCE #324. The dropdown used to be imported across from
+// `app/prs/` — a component living under one screen and read by another — and the
+// state, the URL sync, the predicate and every word were a copy of that list's. This
+// list gained a vendor picker with the move and its three empty states moved out of
+// `lib/poListView.js`, which had been the only list obeying that rule.
 //
 // These filters can only narrow within the visible set. The security boundary is
 // the server's canViewPR pass; nothing here can widen it.
-export default function POListClient({
-    rows,
-    jobOptions,
-    statuses,
-    totalCount,
-    initialSelectedJobs,
-    initialStatus,
-    initialMine,
-}) {
-    const router = useRouter();
-    const pathname = usePathname();
-    const [selectedJobs, setSelectedJobs] = useState(() => new Set(initialSelectedJobs));
-    const [status, setStatus] = useState(initialStatus);
-    const [mine, setMine] = useState(initialMine);
-    const firstRun = useRef(true);
+const ROUTE = "/pos";
 
-    useEffect(() => {
-        // The URL already reflects the initial filters — the server seeded them
-        // from it — so the first mount has nothing to sync.
-        if (firstRun.current) {
-            firstRun.current = false;
-            return;
-        }
-        const params = new URLSearchParams();
-        [...selectedJobs].forEach((id) => params.append("job", id));
-        if (status) params.set("status", status);
-        if (mine) params.set("mine", "1");
-        const qs = params.toString();
-        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-    }, [selectedJobs, status, mine, router, pathname]);
-
-    const filtered = rows.filter((row) => {
-        if (selectedJobs.size && !selectedJobs.has(row.jobId)) return false;
-        if (status && row.status !== status) return false;
-        if (mine && !row.isMine) return false;
-        return true;
-    });
-
-    const filtersActive = selectedJobs.size > 0 || Boolean(status) || mine;
-    const empty =
-        filtered.length === 0
-            ? emptyStateKind({ totalCount, visibleCount: rows.length, filtersActive })
-            : null;
-
-    function toggleJob(id) {
-        setSelectedJobs((prev) => {
-            const next = new Set(prev);
-            if (next.has(id)) next.delete(id);
-            else next.add(id);
-            return next;
-        });
-    }
-
-    function clearAllFilters() {
-        setSelectedJobs(new Set());
-        setStatus("");
-        setMine(false);
-    }
+export default function POListClient({ rows, options, initialFilters, totalCount }) {
+    const filters = useListFilters({ route: ROUTE, initial: initialFilters });
+    const shown = applyFilters(ROUTE, filters.state, rows);
+    const empty = shown.length
+        ? null
+        : emptyStateKind({ totalCount, visibleCount: rows.length, filtersActive: filters.active });
 
     return (
         <>
-            <div className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm">
-                {jobOptions.length > 0 && (
-                    <JobFilterDropdown
-                        jobs={jobOptions}
-                        selected={selectedJobs}
-                        onToggle={toggleJob}
-                        onClearJobs={() => setSelectedJobs(new Set())}
-                    />
-                )}
-                <label className="flex items-center gap-1">
-                    <input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} />
-                    Requested by me
-                </label>
-                <label className="flex items-center gap-1">
-                    Status:
-                    <select
-                        value={status}
-                        onChange={(e) => setStatus(e.target.value)}
-                        className="rounded border border-zinc-300 px-2 py-1"
-                    >
-                        <option value="">All</option>
-                        {statuses.map((s) => (
-                            <option key={s} value={s}>
-                                {s}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                {filtersActive && (
-                    <button type="button" onClick={clearAllFilters} className="underline">
-                        Clear all filters
-                    </button>
-                )}
-            </div>
+            {/* The rows BEFORE any filter, never the rows after — see
+                `showsFilterBar` for what keying it off `shown` would cost. */}
+            {showsFilterBar({ visibleCount: rows.length }) && (
+                <ListFilterBar
+                    filters={filters}
+                    options={options}
+                    shown={shown.length}
+                    total={rows.length}
+                />
+            )}
 
             {empty ? (
-                <p className="mt-6 text-sm text-zinc-600">{EMPTY_COPY[empty]}</p>
+                <p className="mt-6 text-sm text-zinc-600">{LIST_EMPTY_COPY[ROUTE][empty]}</p>
             ) : (
                 <div className="mt-6 overflow-x-auto">
                     {/* WIDTHS ARE DECLARED, WHICH IS THE RULE #166 ESTABLISHED — an
@@ -278,7 +213,7 @@ export default function POListClient({
                             </tr>
                         </thead>
                         <tbody>
-                            {filtered.map((row) => {
+                            {shown.map((row) => {
                                 // A withdrawn order is terminal and stays on record
                                 // (#138), so THE WHOLE ROW is dimmed rather than
                                 // hidden — the same "dimmed = ended" language #122

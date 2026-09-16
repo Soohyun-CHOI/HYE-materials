@@ -9,6 +9,7 @@ import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import { canViewPR } from "@/lib/prVisibility";
 import { selectPOsAwaitingSend, selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
+import { jobOptionLabel, parseFilters, pickerOptions } from "@/lib/listFilters";
 import { PO_SENT_STATUS } from "@/lib/poSend";
 import {
     daysWaiting,
@@ -204,6 +205,7 @@ async function renderPOListPage({ searchParams }) {
         return {
             id: po.id,
             poId: po.poId,
+            vendorId: po.vendor?.[0] ?? null,
             vendorName: vendorNameById.get(po.vendor?.[0]) || "—",
             jobId,
             jobCode: jobById.get(jobId)?.jobCode || null,
@@ -248,20 +250,22 @@ async function renderPOListPage({ searchParams }) {
         };
     });
 
-    // JOB FILTER OPTIONS COME FROM THE VISIBLE ROWS, NOT FROM THE VIEWER'S
-    // ASSIGNMENTS, and that is a deliberate divergence from /prs. There, options
-    // are the Jobs a user is assigned to, so a PR visible only through canViewPR's
-    // clause 5 or 6 — a signer, or a correction recipient, neither of which
-    // implies assignment — appears in the list and cannot be filtered to. CLAUDE.md
-    // records that as a known inconsistency whose obvious fix is a UI decision.
-    // This is that fix, made where the page is new rather than by changing /prs.
-    // It leaks nothing: every job named here is already on a row the viewer can
-    // see, in a column they can read.
-    const jobOptions = [...new Map(
-        rows
-            .filter((r) => r.jobId && r.jobCode)
-            .map((r) => [r.jobId, { id: r.jobId, jobCode: r.jobCode, jobName: jobById.get(r.jobId)?.jobName }])
-    ).values()].sort((a, b) => a.jobCode.localeCompare(b.jobCode));
+    // PICKER OPTIONS COME FROM THE VISIBLE ROWS, NOT FROM THE VIEWER'S ASSIGNMENTS.
+    // That was a deliberate divergence from /prs when this page was written — there,
+    // options were the Jobs a user is assigned to, so a PR visible only through
+    // canViewPR's clause 5 or 6, a signer or an edit-request recipient, neither of
+    // which implies assignment, appeared in the list and could not be filtered to.
+    // **#324 CLOSED THE DIVERGENCE BY MOVING /prs HERE**, so this is now the one rule
+    // both lists follow rather than the newer of two. It leaks nothing: every job and
+    // every vendor named is already on a row the viewer can see, in a column they can
+    // read. The vendor picker is #324's and had no equivalent on either list.
+    const options = {
+        job: pickerOptions(rows, "jobId", (r) =>
+            jobOptionLabel(r.jobCode, jobById.get(r.jobId)?.jobName)
+        ),
+        vendor: pickerOptions(rows, "vendorId", (r) => r.vendorName),
+        status: STATUSES,
+    };
 
     // #176 — THE STRIP IS GATED BY THE SAME RULE AS THE TABLE, canViewPR, and the
     // gate is applied to the requests rather than to the orders because there are
@@ -318,13 +322,9 @@ async function renderPOListPage({ searchParams }) {
     );
 
     // Initial filter state parsed from the URL, so refresh, a shared link and the
-    // back button all restore the view. Intersected with the options above, so a
-    // forged ?job in a pasted URL is dropped before it reaches the client.
-    const jobOptionIds = new Set(jobOptions.map((j) => j.id));
-    const rawJob = sp?.job;
-    const initialSelectedJobs = (Array.isArray(rawJob) ? rawJob : rawJob ? [rawJob] : []).filter((id) =>
-        jobOptionIds.has(id)
-    );
+    // back button all restore the view. Every value is intersected with the options
+    // above, so a forged ?job in a pasted URL is dropped before it reaches the client.
+    const initialFilters = parseFilters("/pos", sp ?? {}, options);
 
     return (
         <div className="mx-auto w-full max-w-4xl p-8">
@@ -343,14 +343,11 @@ async function renderPOListPage({ searchParams }) {
 
             <POListClient
                 rows={rows}
-                jobOptions={jobOptions}
-                statuses={STATUSES}
+                options={options}
+                initialFilters={initialFilters}
                 // Every PO on the base, before the visibility gate — the ONLY
                 // thing that tells "none exist yet" apart from "none for you".
                 totalCount={pos.length}
-                initialSelectedJobs={initialSelectedJobs}
-                initialStatus={STATUSES.includes(sp?.status) ? sp.status : ""}
-                initialMine={sp?.mine === "1"}
             />
         </div>
     );

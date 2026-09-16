@@ -50,6 +50,9 @@ import { dirname, join } from "node:path";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isPageFile, routeTemplate } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+// #324 — the four list bars declare their parameters rather than spelling them, so
+// the read side is read off the declaration. See `readParameters`.
+import { axesFor } from "../../../lib/listFilters.js";
 
 export const title = "Every URL parameter is read by the screen it lands on, and none confirms (#321)";
 
@@ -95,18 +98,33 @@ export const title = "Every URL parameter is read by the screen it lands on, and
  * table would, which is what these two rows are for.
  */
 const CARRIED = [
-    // ── list filters, mirrored into the URL by the list's own client ────────
-    { route: "/prs", param: "job", note: "job filter; repeatable; a Job record id, intersected with the reader's accessible jobs" },
-    { route: "/prs", param: "status", note: "status filter, one of the five Purchase Requests values" },
-    { route: "/prs", param: "mine", note: "`1` narrows to the reader's own requests" },
-    // THE PO LIST CARRIES THREE, AND THIS CHECK IS WHAT SAID SO. #321's own reading of
+    // ── list filters, mirrored into the URL by the shared bar ───────────────
+    // #324 SETTLED THESE ACROSS THE FOUR LISTS AND THEY ARE NO LONGER PER SCREEN. The
+    // axes are `lib/listFilters.js:LIST_AXES`; every value is intersected with the
+    // options the server computed, so a forged one never reaches the browser; absence
+    // is the unfiltered state and nothing ever encodes "all".
+    //
+    // THE PO LIST CARRIED THREE AND THIS CHECK IS WHAT SAID SO. #321's own reading of
     // the code found one — a grep for `sp.` misses `sp?.job` and `sp?.mine`, which is
     // how the list came to be written down as narrower than it is. Assertion 2's second
-    // direction reported both on the first run.
+    // direction reported both on the first run. It said the same about the seven #324
+    // added, on ITS first run.
+    { route: "/prs", param: "job", note: "job filter; repeatable; a Job record id, intersected with the jobs on rows this reader can see" },
+    { route: "/prs", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id. All four lists head a `Vendor` column and none could narrow by it" },
+    { route: "/prs", param: "status", note: "status filter, one of the four submitted Purchase Requests values — a Draft never reaches this list" },
+    { route: "/prs", param: "mine", note: "`1` narrows to the reader's own requests, read off `Purchase Requests.\"Requester\"`" },
+    { route: "/prs", param: "kind", note: "#324 — `overage` or `direct-purchase`, the two marks this list renders. `ordinary` is not offered: the chip is deliberately silent for it and an option would coin the word" },
     { route: "/pos", param: "job", note: "job filter; repeatable; intersected with the job options this reader can see" },
+    { route: "/pos", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id" },
     { route: "/pos", param: "status", note: "status filter, one of the four Purchase Orders values" },
-    { route: "/pos", param: "mine", note: "`1` narrows to the orders behind the reader's own requests" },
-    { route: "/deliveries", param: "over", note: "`1` narrows to deliveries carrying an over-delivery" },
+    { route: "/pos", param: "mine", note: "`1` narrows to the orders behind the reader's own requests — the same field `/prs` reads, one document upstream" },
+    { route: "/deliveries", param: "job", note: "#324 — job filter; repeatable. This list is Job-scoped already, so the picker narrows within a scope rather than defining one" },
+    { route: "/deliveries", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id" },
+    { route: "/deliveries", param: "mine", note: "#324 — `1` narrows to deliveries this reader recorded, off `Deliveries.\"Recorded By\"`. The axis `Invoices` has not got (#382)" },
+    { route: "/deliveries", param: "over", note: "`1` narrows to deliveries carrying an over-delivery — a stored checkbox on the delivery's own item rows (#181), which is why it survived #216" },
+    { route: "/invoices", param: "job", note: "#324 — job filter; repeatable. The job is the walk's rather than a field: `lib/invoiceJob.js` resolves it and takes no reader" },
+    { route: "/invoices", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id" },
+    { route: "/invoices", param: "status", note: "#324 — the payment word, `Paid` or `Not paid`. Named for the column it narrows; `Overdue` is a qualifier on the second rather than a third option" },
     { route: "/materials", param: "q", note: "the search term, tokenized by lib/materialPriceView.js; an empty one is the unsearched screen rather than a filter matching everything" },
 
     // ── navigation: which record the form opens on ──────────────────────────
@@ -413,12 +431,18 @@ function writtenParameters(rel, ast, routes) {
 /**
  * Every parameter a file READS off the URL, by name.
  *
- * THREE SHAPES, ALL OF WHICH ARE IN USE. A destructured `await searchParams` names its
- * keys directly; a whole `sp` is read a property at a time, which is what the four list
- * screens do; and `useSearchParams()` on the client reads through `.get()`, which is
- * `/materials`'s search box. A fourth shape would be invisible here, which is why
- * assertion 2 runs in both directions — an entry nothing reads fails as loudly as a
- * read of nothing.
+ * FOUR SHAPES, ALL OF WHICH ARE IN USE. A destructured `await searchParams` names its
+ * keys directly; a whole `sp` is read a property at a time; `useSearchParams()` on the
+ * client reads through `.get()`, which is `/materials`'s search box; and a whole `sp`
+ * is HANDED to `parseFilters(route, sp, options)`, which is what the four document
+ * lists do since #324.
+ *
+ * THE FOURTH IS THE SHAPE THIS FILE'S OWN HEADER PREDICTED WOULD BE INVISIBLE. It is
+ * also the one that needs no inference: the parameters are not read off member access
+ * but DECLARED, in `lib/listFilters.js:LIST_AXES`, so what a list reads comes from the
+ * declaration rather than from how its page happens to be written. A fifth shape would
+ * be invisible again, which is why assertion 2 still runs in both directions — an entry
+ * nothing reads fails as loudly as a read of nothing.
  */
 function readParameters(ast) {
     const params = new Set();
@@ -431,6 +455,19 @@ function readParameters(ast) {
         if (e?.type === "AwaitExpression") e = e.argument;
         return e?.type === "Identifier" && e.name === "searchParams";
     };
+
+    // The fourth shape: `parseFilters("/prs", sp, options)` reads exactly the axes that
+    // route declares. A route this app does not filter contributes nothing, so a typo
+    // in the literal reports as a read of nothing rather than passing quietly.
+    walk(ast, (n) => {
+        if (
+            n.type === "CallExpression" &&
+            n.callee?.name === "parseFilters" &&
+            n.arguments[0]?.type === "Literal" &&
+            typeof n.arguments[0].value === "string"
+        )
+            for (const axis of axesFor(n.arguments[0].value)) params.add(axis.param);
+    });
 
     walk(ast, (n) => {
         if (n.type !== "VariableDeclarator") return;

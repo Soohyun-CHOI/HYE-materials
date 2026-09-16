@@ -54,7 +54,7 @@ Replacing an email-and-Excel-based Purchase Request -> Purchase Order -> Invoice
 
 ## How the work flows
 
-Site staff talk to a vendor first and get a quotation — that happens outside the app, and it is why a PR arrives with the vendor and the prices already settled. The requester raises the PR with that quotation attached and names an ordered chain of signers. Each signer approves, edits and continues, or returns it for correction to anyone earlier. Full approval generates the PO as a frozen snapshot of the items, the President signs it, and **the order is placed by emailing that PDF to the vendor from inside the app (#281)** — sending it IS placing it, which is why the requester who raised the request may do it as well as the office. This sentence said "office staff send that PDF to the vendor — also outside the app", which described who happened to do it by hand rather than who owns the act; #281 moved it in and settled the owner. The vendor's invoice comes back to office staff, who enter it and reconcile it line by line against the PO.
+Site staff talk to a vendor first and get a quotation — that happens outside the app, and it is why a PR arrives with the vendor and the prices already settled. The requester raises the PR with that quotation attached and names an ordered chain of signers. Each signer approves, edits and continues, or returns it for correction to anyone earlier. Full approval generates the PO as a frozen snapshot of the items, the President signs it, and **the order is placed by emailing that PDF to the vendor from inside the app (#281)** — sending it IS placing it, which is why the requester who raised the request may do it as well as the office. The vendor's invoice comes back to office staff, who enter it and reconcile it line by line against the PO.
 
 Three kinds of people, and the distinction is organizational rather than a privilege ladder. **Site staff** are non-Admin Employees: they raise PRs, sign, and withdraw their own. **Office staff** all run with `Is Admin: true`, so gating something to Admin scopes it to the office — invoicing is Admin because invoicing is office work, not because Admin is more trusted. The **President** signs POs; nothing else is role-specific to them. Vendors have no account and never touch the app.
 
@@ -116,7 +116,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357) — the search box's words and the two sentences a miss chooses between, since the label's words are the catalog's rather than a requester's.
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
-- `lib/poListView.js` — the PO list's ordering, Status text, three empty states, and which approved PRs have no PO with both voices of that copy (#176). `selectPOsAwaitingSend` + `AWAITING_SEND_COPY` (#295) are the second strip.
+- `lib/poListView.js` — the PO list's ordering, Status text, and which approved PRs have no PO with both voices of that copy (#176). `selectPOsAwaitingSend` + `AWAITING_SEND_COPY` (#295) are the second strip.
+- `lib/listFilters.js` — what the four document lists filter by (#324): which axes each carries, the three controls, the parameter names, how they compose, the three empty states, and every word the bar says; `app/components/ListFilterBar.js` draws it. **A closed set a list renders is a filter when the document or its item rows hold it, and a strip's subject when it lies along a wait.**
 - `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, folded to one entry per document, their ordering, their empty states and `PO_DOCUMENTS_COPY`.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/poSend.js` — sending a signed order to the vendor (#281): `PO_SENT_STATUS`, the five refusals, and the screen and mail copy. `SIGNED_NOTICE_COPY` (#290) is the mail telling the requester to place it — here because `lib/email.js` cannot be imported by a check at all, so only a pure builder can be called with an argument missing.
@@ -236,9 +237,7 @@ One shared 19-value single select, source of truth `lib/units.js:CANONICAL_UNITS
 
 ## ID generation (lib/ids.js)
 
-`lib/ids.js` owns the lock, the query and the create; `lib/idSequence.js` is the pure half. Read `docs/notes/id-generation.md` before touching either — it holds the counter rule, the six daily families and the nine child relations.
-
-Naming: auto-generated → `X ID`. Human-typed → `X Label` / plain name. Calendar-only → `X Date`. Time-meaningful → `X At`.
+Read `docs/notes/id-generation.md` before touching `lib/ids.js` or `lib/idSequence.js` — it holds the counter rule, the six daily families and the nine child relations.
 
 ## Querying parent/child data
 

@@ -55,6 +55,17 @@ export const title = "One lateness judgment, two invoice screens (#316)";
 
 /** The list, and the page a reader lands on from it. */
 const LIST = "app/invoices/page.js";
+/**
+ * Where the list RENDERS its rows, which stopped being the page in #324.
+ *
+ * The two are split because the judgment and the render are: the page calls
+ * `invoicePayment` against its own single `today` and hands each row the badge's
+ * text, and the client draws it. That is the arrangement the other three lists
+ * already had, and it is what let this one grow a filter bar at all. Assertions 1
+ * through 3 stay on the page, because that is where the judgment is; only the
+ * due-date column moved.
+ */
+const LIST_TABLE = "app/invoices/InvoicesListClient.js";
 const DETAIL = "app/invoices/[invoiceId]/page.js";
 /** Where the judgment and its words live. */
 const MODULE = "lib/deliveryStatus.js";
@@ -260,7 +271,7 @@ export function run({ check, assert, log }) {
     // ── 4: the mark never stands without the date it reads ──────────────────
     log("");
     log("both screens still render the due date the mark is a reading of:");
-    for (const relPath of [LIST, DETAIL]) {
+    for (const relPath of [LIST_TABLE, DETAIL]) {
         assert(`${relPath} renders a due date`, rendersDueDate(parseFile(relPath).ast));
     }
     // ANTI-VACUITY: a page with the column taken out has to come back false, or
