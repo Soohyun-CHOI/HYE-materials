@@ -21,9 +21,12 @@ import { AWAITING_SEND_COPY } from "@/lib/poListView";
 // neither.
 //
 // NOT A TABLE, AND OUTSIDE THE TABLE'S WIDTH BUDGET. The list below is `table-fixed`
-// with a declared `colgroup` summing to exactly 52rem and no slack; a strip is not a
-// column, so it re-cuts nothing. What it shares is the page's 832px, which is why each
-// row is one line and the wide cell truncates.
+// with a declared `colgroup` summing to 58.25rem, past the page's own 52rem and
+// scrolling inside its container on purpose; this said exactly 52rem and no slack,
+// which was true of #166's six columns and not of the eight there now. A strip is not
+// a column, so it re-cuts nothing either way. What it shares is the page's 832px
+// (`app/components/listTableWidth.js`), which is why each row is one line and the
+// wide cell truncates.
 
 export default function AwaitingSendStrip({ rows }) {
     if (!rows || rows.length === 0) return null;

@@ -30,11 +30,14 @@ import OverageButton from "@/app/deliveries/[deliveryId]/OverageButton";
 // strip shares. A standing all-clear above every list is a thing people learn
 // to skip, and then it is not a signal on the day it changes.
 //
-// NOT A TABLE, AND OUTSIDE THE TABLE'S WIDTH BUDGET. The request list below is a
-// `table-fixed` with its own declared widths; a strip is not a column, so it re-cuts
-// nothing. What it shares is the page's 832px, and every row here is one line at that
-// width — measured in a browser, not counted in characters, which is how #168 put 38
-// of 40 PO IDs on two lines.
+// NOT A TABLE, AND OUTSIDE THE TABLE'S WIDTH BUDGET. This said the request list below
+// is a `table-fixed` with its own declared widths, and that list has never been one —
+// `PRListClient.js` renders a plain `w-full` table with no `colgroup`, so its columns
+// are sized from their own rows and there is no budget here to re-cut. The shape the
+// sentence describes is `/pos` and `/invoices`, one document along. What this strip
+// does share is the page's 832px (`app/components/listTableWidth.js`), and every row
+// here is one line at that width — measured in a browser, not counted in characters,
+// which is how #168 put 38 of 40 PO IDs on two lines.
 //
 // THE ACTION IS ON THE ROW, AND THE ROW IS WHAT THE ACTION TAKES.
 // `createOverageDraftAction` takes one `Delivery Items` record, and one purchase

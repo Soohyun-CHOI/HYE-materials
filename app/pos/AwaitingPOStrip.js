@@ -18,11 +18,14 @@ import { awaitingPOCopy } from "@/lib/poListView";
 // purchase-orders.md gives for not reusing it in a column headed Status.
 //
 // NOT A TABLE, AND OUTSIDE THE TABLE'S WIDTH BUDGET. The list below is
-// `table-fixed` with a declared `colgroup` summing to exactly 52rem and no slack
-// (#166's rule, measured for these six columns) — but a strip is not a column, so
-// it re-cuts nothing. What it does share is the page's 832px, so every row here
-// is one line at that width and was measured in a browser rather than counted in
-// characters, which is how #168 put 38 of 40 PO IDs on two lines.
+// `table-fixed` with a declared `colgroup` — eight columns summing to 58.25rem,
+// which is PAST the page's 52rem and scrolls inside its own container on purpose
+// (#235, #311, #314). This said six columns summing to exactly 52rem and no
+// slack, which was #166's table and has been neither since #235. A strip is not a
+// column either way, so it re-cuts nothing. What it does share is the page's
+// 832px (`app/components/listTableWidth.js`), so every row here is one line at
+// that width and was measured in a browser rather than counted in characters,
+// which is how #168 put 38 of 40 PO IDs on two lines.
 //
 // A SECOND TABLE WAS THE OTHER OPTION AND IS WORSE: two stacked tables read as
 // one dataset split in half, and it would double the column-budget problem for a

@@ -4,6 +4,7 @@ import { getMaterialPurchaseHistory } from "@/lib/materialHistory";
 import { statusTag } from "@/lib/materialPriceView";
 import { countsAsOrdered } from "@/lib/poItemQty";
 import { formatUSD } from "@/lib/format";
+import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Static, unlike the four record-detail pages (#201), and the record-id keying
@@ -84,7 +85,7 @@ async function renderMaterialHistoryPage({ params }) {
                         the figures column is. Only one table here, so there is no
                         cross-table drift to fix — this keeps the two screens
                         reading alike. */}
-                    <table className="w-full min-w-[52rem] table-fixed text-sm">
+                    <table className={LIST_TABLE_CLASS}>
                         {/* Widths measured against real content rather than guessed
                             (px needed vs allotted, at this table's 832px): Date 80,
                             Qty 40, Unit price 68 — its HEADER is wider than its
