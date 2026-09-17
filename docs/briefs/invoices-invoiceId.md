@@ -62,7 +62,9 @@ differently.
 
 **evidence — the orders this invoice charges.** A heading that is `Purchase Order`
 or `Purchase Orders` depending on the count, then one line per order: the order
-ID as a link, an em dash, and the order's status in bold.
+ID as a link, an em dash, and the order's status in bold. Absent entirely when
+there are no orders to name — see the items table below for the one state that
+does that.
 
 **evidence — the items table.** Seven columns: Item, Size, Unit, Qty, Unit
 Price, Amount, Remark. The last three of the first six are right-aligned
@@ -71,6 +73,22 @@ reads as one row again — so the row count is not the stored row count. There i
 deliberately **no order column**: a folded row can span two orders, so that cell
 has no single value. Under the table, a totals footer: Items Subtotal, Shipping
 Fee, and `Calculated Total` in bold.
+
+**Both this section and the one above it are conditional on the invoice having
+items, which is new in #330 and is the one state where this screen changes
+shape.** An invoice whose rows were removed in Airtable renders the sentence
+`This invoice has no items. Every invoice is entered with at least one.` where
+the table would be — no column heads, no totals footer, and no red header-variance
+box, since that box is a reading of a total there is nothing to compute. The
+orders section is not drawn at all: it derives from the items, so it would be a
+heading over nothing. `Amount Due` at the top is untouched, and it is what makes
+the state legible — a vendor's claim with nothing behind it.
+
+**The app cannot produce that invoice and cannot repair one.** Creating refuses a
+submission with no rows, editing refuses the record, and the only two paths that
+delete an invoice item delete the invoice with it. So a redesign should treat this
+as a record missing its own contents rather than as an empty state on a spectrum
+with the others — and must not reserve space for a table that is not there.
 
 **evidence — the matched delivery.** Under the `Delivery` heading, either the
 delivery ID as a link with its received date in parentheses, or the sentence

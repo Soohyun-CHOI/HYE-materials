@@ -16,6 +16,8 @@ import { PAIRING, describePairing, describeTieBreak } from "@/lib/deliveryInvoic
 import { QualifierMarker, StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { foldInvoiceItems } from "@/lib/invoiceItemFold";
 import { invoiceDeliveryEntries } from "@/lib/invoiceDeliveryEntries";
+// #330 — one fact, one sentence, shared with `updateInvoiceAction`'s refusal.
+import { ITEMS_MISSING_COPY, invoiceItemsMissing } from "@/lib/invoiceItemsMissing";
 import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "@/lib/invoiceOrderBreakdown";
 // #309 — the WALK only. This page loads the invoice items it renders anyway, so it
 // never had a use for `seesEveryInvoice`'s cost shortcut; it imported the helper to
@@ -358,14 +360,23 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 issue was not asked to redraw, and the list appears only in the
                 ambiguous case; its subject is the order, which is what this position
                 already says. */}
+            {/* #330 — THE HEADING GOES WITH THE LIST, because the one state that
+                empties this section is the one the Items section now speaks for.
+                `poRecords` is derived from the invoice items, so an invoice whose
+                rows were removed in Airtable has no order to name either — and a
+                heading standing over nothing is the same defect the section below
+                exists to end, one section up. */}
+            {poRecords.length > 0 && (
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">Purchase Order{poRecords.length === 1 ? "" : "s"}</h2>
-                {/* A `None linked.` empty state stood here (#278). Every invoice
-                    links at least one order: `createInvoiceAction` requires a `PO`
-                    per item and writes one `Invoice-PO Link` per distinct PO used,
-                    so `poRecords` is never empty — not even with #96's flag flipped,
-                    which is why this one was category 1 rather than category 3. The
-                    two invoices that rendered it were hand-entered. */}
+                {/* A `None linked.` empty state stood here (#278), on the ground that
+                    every invoice links at least one order: `createInvoiceAction`
+                    requires a `PO` per item and writes one `Invoice-PO Link` per
+                    distinct PO used. **#330 is the counter-example that ground did not
+                    have** — the two invoices which rendered it were hand-entered, and a
+                    hand edit can still empty an invoice today. What replaced the
+                    sentence is not another sentence here: the absence is stated once,
+                    where the rows would be, and this section is simply not drawn. */}
                 {poRecords.length > 0 && (
                     <ul className={`mt-2 text-sm ${orderBreakdown.shown ? "space-y-2" : "space-y-1"}`}>
                         {poRecords.map((po) => {
@@ -397,6 +408,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     </ul>
                 )}
             </div>
+            )}
 
             <div className="mt-6">
                 <h2 className="text-lg font-semibold">Items</h2>
@@ -409,6 +421,28 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                     two boxes each naming its own. Both halves of that trade are in
                     this one commit on purpose: removing the column alone would take
                     the order off the page entirely. */}
+                {/* #330 — THE SENTENCE REPLACES THE WHOLE TABLE, heads and totals
+                    footer included, and that is the decision rather than a detail.
+                    An empty `tbody` under seven column heads reads as an invoice that
+                    charges for nothing; worse, the footer is arithmetic over an
+                    absence — `formatUSD(undefined)` is `$0.00`, so it printed
+                    `Items Subtotal $0.00` and a `Calculated Total` equal to the
+                    shipping fee, which is a figure about this invoice that nobody
+                    should act on.
+
+                    THE SHAPE IS THE LISTS' OWN, one level down: `/invoices` renders
+                    `LIST_EMPTY_COPY` INSTEAD of its table, never a sentence inside
+                    one. The words are `lib/invoiceItemsMissing.js`'s, shared with the
+                    refusal `updateInvoiceAction` gives, because the two say the same
+                    thing about the same record.
+
+                    `Amount Due` ABOVE IS UNTOUCHED. It is the vendor's stated total,
+                    the one figure here that is still true, and it is what makes this
+                    state legible at all — a claim with nothing behind it. */}
+                {invoiceItemsMissing(invoice) ? (
+                    <p className="mt-2 text-sm text-zinc-600">{ITEMS_MISSING_COPY.absent}</p>
+                ) : (
+                <>
                 <table className="mt-2 w-full text-sm">
                     <thead>
                         <tr className="text-left text-zinc-500">
@@ -484,7 +518,14 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 </table>
                 {/* #179 — THE SAME LABEL THE LIST'S BADGE CARRIES, leading the
                     sentence that states the two figures. One kind, one word, on the
-                    row a reader clicks and the page they land on. */}
+                    row a reader clicks and the page they land on.
+
+                    #330 PUT IT INSIDE THE BRANCH ABOVE, so it goes with the totals it
+                    is a reading of. This box compares the vendor's stated total
+                    against what the items add up to; with no items there is nothing
+                    they add up to, and the stored flag was computed when there were —
+                    so it would print a red disagreement about the vendor's arithmetic
+                    on a record whose own contents are missing. */}
                 {invoice.varianceFlag && (
                     <p className="mt-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                         {VARIANCE_COPY.headerDetail(
@@ -492,6 +533,8 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                             formatUSD(invoice.calculatedTotal ?? invoice.itemsSubtotal)
                         )}
                     </p>
+                )}
+                </>
                 )}
             </div>
 

@@ -69,6 +69,7 @@ import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
 import { MATERIAL_SEARCH_COPY } from "../../../lib/materialPriceView.js";
 import { PO_ADDRESS_COPY } from "../../../lib/poDeliveryAddress.js";
 import { DELIVERY_ADDRESS_COPY } from "../../../lib/deliveryAddress.js";
+import { ITEMS_MISSING_COPY } from "../../../lib/invoiceItemsMissing.js";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The screen briefs describe the screens that exist (#260)";
@@ -239,6 +240,12 @@ const PINNED = [
     "nothing delivered yet",
     "delivered, not matched",
     "No invoice charges this order yet.",
+    // #330 — the one sentence an invoice with no items says, and it is pinned
+    // because TWO surfaces read it from one constant: this screen, where it stands
+    // in for the whole items table, and `updateInvoiceAction`'s refusal. A
+    // rewording in the module has to reach the brief, or the brief describes a
+    // screen the app no longer draws.
+    ITEMS_MISSING_COPY.absent,
     "Nothing has been delivered against this order yet.",
     "No purchase orders yet. One is generated automatically when a purchase request is fully approved.",
     // #324 - the shared bar's own vocabulary, which `_shared.md` now lists and four
@@ -582,6 +589,7 @@ export function run({ check, assert, log }) {
         // singular would fail for the wrong reason. Measured on this branch before
         // these two lines were written.
         ...stringsFrom(DELIVERY_ADDRESS_COPY),
+        ...stringsFrom(ITEMS_MISSING_COPY),
         DELIVERY_ADDRESS_COPY.taken(1),
         DELIVERY_ADDRESS_COPY.noOrderAddress(1),
         // #188 — CALLED WITH A REAL LIST RATHER THAN LEFT TO `stringsFrom`, whose
