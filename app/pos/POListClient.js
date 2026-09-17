@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 import {
-    LIST_EMPTY_COPY,
     applyFilters,
     emptyStateKind,
+    emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
@@ -14,9 +14,14 @@ import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
 
 // Instant client-side narrowing over the already-gated rows the server sent, in
 // the shape #119 set for the PR list: no Apply button, and the active filters
-// mirrored into the URL — no navigation, no history entry, no server round trip —
-// so refresh, a shared link and the back button restore the view. The mirror itself
-// is `useListFilters`, which is the only place in the app that writes one.
+// mirrored into the URL — no history entry and no remount — so refresh, a shared
+// link and the back button restore the view. The mirror itself is `useListFilters`,
+// which is the only place in the app that writes one.
+//
+// **THIS SAID "no navigation, no server round trip" UNTIL #325 AND IT WAS FALSE.** The
+// mirror is a soft navigation and it fetches the page's payload again — measured, one
+// request per write. It is debounced now; see `URL_MIRROR_DELAY_MS` in
+// `app/components/ListFilterBar.js`, which is where that measurement lives.
 //
 // THE BAR IS SHARED SINCE #324. The dropdown used to be imported across from
 // `app/prs/` — a component living under one screen and read by another — and the
@@ -49,7 +54,7 @@ export default function POListClient({ rows, options, initialFilters, totalCount
             )}
 
             {empty ? (
-                <p className="mt-6 text-sm text-zinc-600">{LIST_EMPTY_COPY[ROUTE][empty]}</p>
+                <p className="mt-6 text-sm text-zinc-600">{emptyStateText(ROUTE, empty, filters.state)}</p>
             ) : (
                 <div className="mt-6 overflow-x-auto">
                     {/* WIDTHS ARE DECLARED, WHICH IS THE RULE #166 ESTABLISHED — an

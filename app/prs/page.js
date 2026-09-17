@@ -106,6 +106,11 @@ async function renderPRListPage({ searchParams }) {
         vendorName: vendorsById[pr.vendor?.[0]] || "—",
         jobId: pr.job?.[0] ?? null,
         jobCode: jobsById[pr.job?.[0]]?.jobCode || null,
+        // #325 — the box matches a job by either half of what the picker beside it
+        // already offers, so the name joins the code on the row. FREE: `getAllJobs()`
+        // returns it on the record this page is already holding for the column and the
+        // picker label, so the search costs this screen no read.
+        jobName: jobsById[pr.job?.[0]]?.jobName || null,
         total: pr.totalAmount ?? pr.itemsSubtotal ?? 0,
         // Issue #272 — FREE, and that is why it is here rather than in the client:
         // both reverse-links the kind is read from are already on the record

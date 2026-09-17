@@ -259,6 +259,15 @@ async function renderInvoiceListPage({ searchParams }) {
             vendorName: vendorNameById[inv.vendor?.[0]] || "—",
             jobId: jobByInvoice.get(inv.id) ?? null,
             jobCode: jobById.get(jobByInvoice.get(inv.id))?.jobCode || null,
+            // #325 — free, off the same record as the code.
+            jobName: jobById.get(jobByInvoice.get(inv.id))?.jobName || null,
+            // #325 — THE ONE SECOND NAME ANY OF THE FOUR DOCUMENTS CARRIES, and the
+            // case the whole issue is named for: a vendor rings up quoting their own
+            // number and nothing in this app reached the row by it. It is on the record
+            // `getAllInvoices()` returned, so the search costs no read here either. No
+            // column shows it — that is a width decision the design pass owns — so the
+            // box says `Vendor Invoice #` to make the promise visible instead.
+            vendorInvoiceCode: inv.vendorInvoiceCode || "",
             // #382 — the axis this list did not have until `Invoices` gained a
             // `Recorded By`. Resolved here so nobody's identity reaches the client,
             // which is the arrangement the other three lists already use. An invoice

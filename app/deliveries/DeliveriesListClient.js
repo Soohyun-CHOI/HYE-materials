@@ -6,18 +6,23 @@ import Link from "next/link";
 //
 // SAME SHAPE AS THE OTHER THREE LISTS (#119, shared in #324): instant client-side
 // narrowing, no Apply button, and the active filters mirrored into the URL — no
-// navigation, no history entry, no server round trip. The server reads those params
-// back on a real load, so refresh, a shared link and the back button all restore the
-// view. The mirror itself is `useListFilters`, which is the one place that writes one.
+// history entry and no remount. The server reads those params back on a real load, so
+// refresh, a shared link and the back button all restore the view. The mirror itself
+// is `useListFilters`, which is the one place that writes one.
+//
+// **THIS SAID "no navigation, no server round trip" UNTIL #325 AND IT WAS FALSE.** The
+// mirror is a soft navigation and it fetches the page's payload again — measured, one
+// request per write. It is debounced now; see `URL_MIRROR_DELAY_MS` in
+// `app/components/ListFilterBar.js`, which is where that measurement lives.
 //
 // EVERY IMPORT HERE MUST BE CLIENT-SAFE. lib/deliveryStatus.js and lib/listFilters.js
 // are pure; lib/deliveryReconciliation.js reaches lib/airtable/ and must never be
 // imported here — an import executes the module and it throws
 // `Missing AIRTABLE_API_KEY` in the browser (#162).
 import {
-    LIST_EMPTY_COPY,
     applyFilters,
     emptyStateKind,
+    emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
@@ -69,7 +74,7 @@ export default function DeliveriesListClient({ rows, options, initialFilters, to
             )}
 
             {empty ? (
-                <p className="mt-6 text-sm text-zinc-600">{LIST_EMPTY_COPY[ROUTE][empty]}</p>
+                <p className="mt-6 text-sm text-zinc-600">{emptyStateText(ROUTE, empty, filters.state)}</p>
             ) : (
                 <div className="mt-4 overflow-x-auto">
                     {/* THE DECLARED COLUMNS SUM TO EXACTLY 52rem, WHICH IS WHAT THE PAGE

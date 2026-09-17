@@ -209,6 +209,10 @@ async function renderPOListPage({ searchParams }) {
             vendorName: vendorNameById.get(po.vendor?.[0]) || "—",
             jobId,
             jobCode: jobById.get(jobId)?.jobCode || null,
+            // #325 — the search's third name, and free: this map is built from
+            // `getAllJobs()` for the column and the picker label, so the name is
+            // already on the record.
+            jobName: jobById.get(jobId)?.jobName || null,
             total: po.totalAmount ?? po.itemsSubtotal ?? 0,
             // The raw value drives the filter; the rendered text is the column.
             status: po.status || "",

@@ -121,6 +121,10 @@ async function renderDeliveriesListPage({ searchParams }) {
                 createdAt: d.createdAt || "",
                 jobId: d.job?.[0] ?? null,
                 jobCode: jobById.get(d.job?.[0])?.jobCode ?? "—",
+                // #325 — free, from the same record the code and the picker label come
+                // from. The em dash above is searchable as a consequence of the search
+                // reading the strings the columns show; nobody can type one.
+                jobName: jobById.get(d.job?.[0])?.jobName ?? null,
                 vendorId: d.vendor?.[0] ?? null,
                 vendorName: vendorNameById.get(d.vendor?.[0]) ?? "Unknown vendor",
                 // #324 — `Recorded By` is the axis this document has, and #382 gave

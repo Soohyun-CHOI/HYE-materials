@@ -19,10 +19,18 @@ list is and how it is ordered, not a state.
 **action.** A `Record a delivery` link beside the heading.
 
 **action — a filter bar,** the same component all four document lists carry
-(#324). Four controls: a job picker and a vendor picker, each taking several at
-once and each searchable; a `Recorded by me` checkbox; and an `Over-delivered`
-checkbox. There is no date range, and the ordering is always newest first and
-cannot be changed.
+(#324). Five controls: a search box reading `Search by Delivery ID, vendor or job`
+(#325); a job picker and a vendor picker, each taking several at once and each
+searchable; a `Recorded by me` checkbox; and an `Over-delivered` checkbox. There is
+no date range, and the ordering is always newest first and cannot be changed.
+
+**The box does not reach the order on the packing list, and that is a decision.**
+`Deliveries."Packing List PO"` is a link, so what a delivery holds there is another
+document's name rather than one of its own — and the way from an order to the
+deliveries filling it is the order's own page, which lists them. A delivery has no
+second name of its own: the base holds a packing list FILE and a link to an order,
+and no packing list number anywhere. The matching rule is the other three lists':
+every word must appear, anywhere among the row's names, in any order and any case.
 
 **It carried the `Over-delivered` checkbox alone until #324.** The other three are
 the subject axes every document list carries — this one had none of them, which
