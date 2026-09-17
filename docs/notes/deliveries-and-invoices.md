@@ -1402,8 +1402,14 @@ and an entry that agrees no longer rendered at all. The rule is
   recoverable rather than lost: under the one-delivery premise a `Delivered` chip means
   everything invoiced arrived, so the per-material delivered quantity IS the per-material
   invoiced quantity, which the items table carries. `This invoice has no lines.` went with
-  it — an invoice with no items has no exceptions either, and the table above already
-  says it is empty.
+  it — an invoice with no items has no exceptions either. **Its second reason was that
+  "the table above already says it is empty", and that half was never true — corrected
+  on sight in #330.** An empty `tbody` under seven column heads with the totals footer
+  still drawn says the opposite: it reads as an invoice charging for nothing. The
+  decision stands on the first reason alone, which is enough — this section is about a
+  delivery's exceptions and there are none. What #330 did was put the sentence where
+  that half of the reason was pointing, in the items section itself, in this app's
+  words rather than the barred ones.
 - **THE NAME NOW COMES FROM THE INVOICE ITEM, WHICH REVERSES WHAT THE WALK DOES.** A row
   was labeled from the `PO Items` row it compares against; a folded entry can span two of
   those, so there is no single one to name — the fact that makes the items table's `PO`
@@ -2413,3 +2419,22 @@ The four document lists filtered three different ways and no list filtered by ve
   - **THE DELETE GOES THROUGH THE APP'S OWN ACTION, WHICH MEANT ESTABLISHING A MECHANISM THIS TIER DID NOT HAVE** — `deleteInvoiceAction` has no form, so the `$ACTION_*` post #231 uses does not reach it. `docs/notes/verification.md` carries the RPC, its id lookup and the two things that fooled the first run.
   - **AND THE ORPHANS ARE COUNTED RATHER THAN ASSUMED, because `deleteInvoiceHandler` earns the suspicion.** It destroys its children in a settled batch whose results it discards and then destroys the parent regardless, so a child that failed to go would be invisible from inside the action — and afterwards it has an empty `Invoice` link, so nothing asked from the parent's side would find it either. Every child id is captured BEFORE the delete and read back by id. Measured 2 of 2 gone, the invoice gone, and the base back to 22 invoices, 24 invoice items and 23 join rows with nothing parentless.
 - **`Direct Purchases."Recorded By"` IS WRITTEN AND READ BY NO SCREEN**, found while looking for the second neighbor's rendering of this word. `recordToDirectPurchase` maps it and no caller reads the key. That is a finding from this issue's work and not this issue's to fix, so it is in `docs/notes/backlog.md`.
+
+### Refusing an invoice with no items (#330)
+
+`createInvoiceAction` has refused a submission carrying no rows since #15 and nothing else in the app held the fact. So an invoice whose `Invoice Items` were removed in Airtable rendered seven column heads over an empty body with the totals footer under it — which reads as an invoice charging for nothing rather than as a record missing its own contents, and the footer's `Calculated Total` was the shipping fee on its own.
+
+- **THE TWO REFUSALS ARE TWO FACTS AND MUST NOT BECOME ONE STRING.** `createInvoiceAction` refuses a SUBMISSION with no rows; `updateInvoiceAction` refuses a RECORD with none. The tidy-up that merges them is wrong in both directions: `Add at least one item.` is an instruction the create form can carry out and the edit screen cannot — adding an item there is out of scope since #117, which its own text says ("to change an item's PO or add/remove items, delete and recreate the invoice") — and the record's sentence says nothing useful to somebody filling in a form. **The pair is the update refusal and the DETAIL SCREEN's empty state**, which do say the same thing about the same record, and they share one string.
+  - **THAT IS ALSO WHY THE MODULE IS NAMED FOR THE FACT.** `lib/invoiceItemsMissing.js` holds "this invoice has no items". A name pointing at the shared rule — `invoiceItemsRequired` was the first draft — would invite the next reader to fold the two refusals back together, which is the one change this design is against. `offline/invoice-items-missing.mjs` holds the split in both directions: the two record surfaces say the string, the create action does not, and nothing writes it a second time.
+
+- **THE COUNT COSTS NOTHING, AND ITS PLACEMENT IS THE POINT.** `recordToInvoice` carries the `Invoice Items` reverse-link, so `updateInvoiceAction` already holds the answer on the record `getInvoiceById` returned — no query, no operation. It is read BEFORE the `try`, because `updateInvoice` writes the header first: a count taken at the `getItemsByInvoice` call further down would already have changed the record it was refusing to touch. That call stays where it is and is for the item edits.
+
+- **HOW AN INVOICE REACHES THE STATE, WHICH IS WHAT LETS THE SENTENCE SAY WHAT IT SAYS.** `Invoice Items` rows are destroyed in exactly two places — `createInvoiceAction`'s rollback and `deleteInvoiceAction` — and both take the invoice with them in the same block; `updateInvoiceAction` edits values and deletes nothing. So no path in this app leaves one standing, and the second sentence ("Every invoice is entered with at least one") is the reader's only actionable fact: something outside the app removed them.
+  - **AND THE WAY OUT STAYS OPEN, deliberately.** `deleteInvoiceAction` is not gated on this and must not be: an invoice in this state is one somebody has to be able to remove, and its own `getLinkedRecords` walk finds nothing to destroy and then destroys the invoice.
+
+- **THE SENTENCE REPLACES THE WHOLE TABLE AND NOT JUST THE ROWS.** Column heads promise rows; the footer is arithmetic over an absence. The shape is the document lists' own, one level down — `/invoices` renders `LIST_EMPTY_COPY` INSTEAD of its table, never a sentence inside one. **The red header-variance box goes with the footer** for the same reason: it is a reading of a total there is nothing to compute, and the stored flag was set when there were items. `Amount Due` at the top is untouched, and it is what makes the state legible at all — a vendor's claim with nothing behind it.
+  - **ONE NOUN, AND NO `yet`.** The rows are `items` in both sentences; `rows` and `lines` were in the drafting and are barred — `Invoice Items` is the table so its row is an invoice item (#303), and `line` names no row of any table since #280. `yet` is what `lib/listFilters.js` bars from an empty state it is false of, and this is the sharpest case on the base: nothing is coming, because the app cannot add to this invoice.
+
+- **THE `Purchase Orders` SECTION IS NOT DRAWN IN THAT STATE EITHER, and #278 is the entry this reopens.** That issue deleted a `None linked.` empty state from it, on the ground that `poRecords` is never empty because the create path requires an order per item — noting the two invoices which had rendered it were hand-entered. A hand edit can still empty an invoice, so the ground held for the app's own paths and not for the base. It gets no sentence of its own: the absence has one cause and is stated once, where the rows would be, and this section's heading is simply not rendered rather than standing over nothing.
+
+- **NO INVOICE ON THE BASE IS IN THIS STATE — 0 of 22, counted**, with item counts running 1 to 3. So the screen's new branch is unreachable from today's data and `verify-invoice-items-330.mjs` has to build it: it creates a fixture invoice through the real action and then deletes that invoice's own `Invoice Items` row, which is the only way to reach a state no form can produce. This issue repairs no existing record and changes no schema.

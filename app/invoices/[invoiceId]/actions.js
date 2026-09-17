@@ -17,6 +17,7 @@ import {
     isWholeCentPrice,
     isWholeQty,
 } from "@/lib/variance";
+import { ITEMS_MISSING_COPY, invoiceItemsMissing } from "@/lib/invoiceItemsMissing";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 // Server Actions are directly callable regardless of what the page
@@ -121,6 +122,21 @@ async function updateInvoiceHandler(prevState, formData) {
 
         const invoice = await getInvoiceById(invoiceId);
         if (!invoice) return { error: "Invoice not found." };
+        // #330 — THE ROWS THIS SAVE IS ABOUT TO WRITE AGAINST, COUNTED BEFORE ANY
+        // WRITE. `updateInvoice` below is the first one and it lands on the header,
+        // so a refusal read any later would already have changed the record it was
+        // refusing to touch. The count costs NOTHING: `recordToInvoice` carries the
+        // `Invoice Items` reverse-link, so it is on the record the line above just
+        // loaded — the `getItemsByInvoice` call further down is inside the try and
+        // is for the item edits, not for this.
+        //
+        // A DIFFERENT FACT FROM `createInvoiceAction`'s, AND THEREFORE A DIFFERENT
+        // SENTENCE. That one refuses a SUBMISSION with no rows and says
+        // `Add at least one item.`, which is true on a form that can add one; this
+        // refuses a RECORD with none, on a screen where adding is out of scope
+        // (#117) and the answer is to delete and re-enter. Its words are the
+        // detail screen's, because those two say the same thing.
+        if (invoiceItemsMissing(invoice)) return { error: ITEMS_MISSING_COPY.absent };
 
         try {
             await updateInvoice(invoice.id, {
