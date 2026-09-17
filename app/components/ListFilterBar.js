@@ -19,9 +19,19 @@ import PickerFilter from "./PickerFilter";
 // FOUR COPIES OF ONE MECHANISM IS WHAT THIS REPLACES, and the mechanism itself is
 // #119's and carries over unchanged: instant client-side narrowing over rows the
 // server has already gated, no Apply button, and the active filters mirrored into the
-// URL with `router.replace` — no navigation, no history entry, no server round trip —
-// so refresh, a shared link and the back button restore the view. The security
-// boundary is the server's gate; nothing here can widen it.
+// URL with `router.replace` — no history entry and no remount, so an open dropdown, a
+// typed term and the scroll position survive a filter change — so refresh, a shared
+// link and the back button restore the view. The security boundary is the server's
+// gate; nothing here can widen it.
+//
+// **THIS SENTENCE ALSO SAID "no navigation, no server round trip" AND BOTH HALVES WERE
+// FALSE (#325).** `router.replace` is a soft navigation, and on a page that reads
+// `searchParams` that fetches the page's payload again — measured in a browser, one
+// `GET …?_rsc=…` per write. Nobody had ever measured it and four places in this
+// repository repeated it; all four are corrected in #325's commit. What survives of
+// the claim is the part that is true and is what the sentence was for: this component
+// does not remount, so the reader loses nothing they were in the middle of.
+// `URL_MIRROR_DELAY_MS` below is what the measurement changed.
 //
 // IT TAKES A DECLARATION RATHER THAN BRANCHING PER SCREEN. The axes a list carries
 // are `lib/listFilters.js:LIST_AXES`, and there are exactly four control kinds, so
@@ -38,12 +48,14 @@ import PickerFilter from "./PickerFilter";
  *
  * THE MIRROR RAN ON EVERY STATE CHANGE, WHICH WAS ONE WRITE PER CLICK UNTIL #325 GAVE
  * THIS BAR A TEXT BOX — and then one per KEYSTROKE, which is seventeen for one printed
- * id. Three comments in this repository call `router.replace` free ("no navigation, no
- * history entry, no server round trip") and none of them was ever measured; a soft
- * navigation on a page that reads `searchParams` refetches that page's payload, so
- * being wrong about it costs every Airtable read the screen makes, seventeen times
- * over. The delay makes the question moot instead of settling it: one write per query
- * rather than per keystroke, and nothing at all if the mirror really is free.
+ * id. FOUR places in this repository called `router.replace` free ("no navigation, no
+ * history entry, no server round trip") and none of them had ever been measured — the
+ * header above, `POListClient.js`, `DeliveriesListClient.js` and
+ * `docs/notes/deliveries-and-invoices.md` under #166. Measured here: a soft navigation
+ * on a page that reads `searchParams` fetches that page's payload again, one
+ * `GET …?_rsc=…` per write, so seventeen keystrokes were seventeen renders of a screen
+ * that reads Airtable. All four are corrected in the same commit; the delay is what
+ * the measurement changed.
  *
  * THE ROWS DO NOT WAIT. Narrowing is `applyFilters` over state that changed
  * synchronously, so the list still answers on the keystroke; what is deferred is only
