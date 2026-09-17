@@ -30,8 +30,10 @@ was not a decision: the bar was written for the screens that needed one and this
 screen got the one filter its own feature needed.
 
 **`Recorded by me` reads `Recorded By`, which is this document's own author.** The
-request and order lists say `Requested by me` because they read a requester; the
-invoice list has no such control at all, because an invoice records nobody.
+request and order lists say `Requested by me` because they read a requester. The
+invoice list says this same word, and since #382 for the same reason: that table
+gained a `Recorded By` of its own, so four lists say two words for two fields rather
+than four for four.
 
 **The bar is drawn only when this reader has at least one row before filtering.**
 A reader on no job gets the sentence alone; a filter that empties the list keeps

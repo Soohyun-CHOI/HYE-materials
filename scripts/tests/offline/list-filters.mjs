@@ -47,6 +47,7 @@ import {
     LIST_AXES,
     LIST_EMPTY_COPY,
     RESERVED_PARAMS,
+    ROW_KEY,
     applyFilters,
     axesFor,
     choiceLabel,
@@ -98,15 +99,20 @@ const SETTLED = {
     "/invoices": [
         ["job", CONTROL.picker],
         ["vendor", CONTROL.picker],
+        // #382 — the axis this list did not have. `Invoices` held neither a requester
+        // nor a recorder, so there was nothing for a control to read; the field
+        // arrived and the exception went with it.
+        ["mine", CONTROL.toggle],
         ["status", CONTROL.select],
     ],
 };
 
-/** The label each reader's-own toggle wears, and why no two of them are one word. */
+/** The label each reader's-own toggle wears: two words for two fields, over four lists. */
 const MINE_LABELS = {
     "/prs": "Requested by me",
     "/pos": "Requested by me",
     "/deliveries": "Recorded by me",
+    "/invoices": "Recorded by me",
 };
 
 /** The four list clients, and the two components they share. */
@@ -163,29 +169,21 @@ export function run({ check, assert, log }) {
     }
 
     // THE SHARED AXES, ASSERTED AS SHARED rather than read off the four rows above —
-    // "job and vendor are on every one of them" is the claim this issue makes, and a
-    // row-by-row table states it four times without ever saying it once.
-    for (const param of ["job", "vendor"]) {
+    // "these are on every one of them" is the claim, and a row-by-row table states it
+    // four times without ever saying it once.
+    //
+    // `mine` JOINED THE OTHER TWO IN #382 AND WAS THE ONE EXCEPTION UNTIL THEN.
+    // `/invoices` had no reader's-own toggle because `Invoices` carried no author
+    // field at all — `Deliveries` has `Recorded By`, `Purchase Requests` has
+    // `Requester`, and that table had neither. It has the first of those now, so the
+    // ground for the exception went with the schema change and the three subject axes
+    // are three.
+    for (const param of ["job", "vendor", "mine"]) {
         assert(
             `${param} is on all four lists`,
             FILTERED_LISTS.every((route) => axesFor(route).some((a) => a.param === param))
         );
     }
-    // AND THE ONE THAT IS ALMOST SHARED. `/invoices` has no reader's-own toggle because
-    // `Invoices` carries no `Recorded By` — `Deliveries` does and `Purchase Requests`
-    // has `Requester`. #382 is the issue that would give it one, and until then a
-    // toggle here would read an axis that does not exist.
-    check(
-        "the reader's-own toggle is on three lists and not the invoice list",
-        FILTERED_LISTS.filter((r) => axesFor(r).some((a) => a.param === "mine"))
-            .sort()
-            .join(" "),
-        "/deliveries /pos /prs"
-    );
-    assert(
-        "  and /invoices carries none",
-        !axesFor("/invoices").some((a) => a.param === "mine")
-    );
 
     // ── 2: the parameter names ──────────────────────────────────────────────
     log("");
@@ -408,14 +406,21 @@ export function run({ check, assert, log }) {
         const axis = axesFor(route).find((a) => a.param === "mine");
         check(`${route}'s toggle reads \`${label}\``, axis.label, label);
     }
-    // ONE WORD ON TWO LISTS, AND A DIFFERENT ONE ON THE THIRD. `/prs` and `/pos` read
-    // the same field — `Purchase Requests."Requester"`, on the row and through the
-    // parent order — so they must not be two words. `/deliveries` reads
-    // `Deliveries."Recorded By"`, which is a different field and therefore a different
-    // word; the participle follows the field name, per `docs/notes/naming.md`.
+    // TWO WORDS FOR TWO FIELDS, OVER FOUR LISTS — and which word a list says is read
+    // off the field it narrows by, never off the screen. `/prs` and `/pos` read
+    // `Purchase Requests."Requester"`, on the row and through the parent order, so
+    // they must not be two words. `/deliveries` and `/invoices` read a `Recorded By`,
+    // which is a different field and therefore a different word; the participle
+    // follows the field name, per `docs/notes/naming.md`. #382 made the second pair a
+    // pair — that list said nothing at all until it had a field to say it about.
     check("the two request-side lists say the same thing", MINE_LABELS["/prs"], MINE_LABELS["/pos"]);
+    check(
+        "and so do the two recorder-side lists",
+        MINE_LABELS["/deliveries"],
+        MINE_LABELS["/invoices"]
+    );
     assert(
-        "and the delivery list does not",
+        "and the two pairs are not one word",
         MINE_LABELS["/deliveries"] !== MINE_LABELS["/prs"]
     );
     // `Raised by me` IS FALSE OF AN ORDER ROW and is barred by name. Nobody raises a
@@ -523,6 +528,50 @@ export function run({ check, assert, log }) {
         assert(`${rel} parses the URL against its own options`, source.includes("parseFilters"));
         assert(`  and builds its pickers from the visible rows`, source.includes("pickerOptions"));
     }
+
+    // ── 9b: the page shapes the key every axis it declares reads (#382) ──────
+    //
+    // DECLARING AN AXIS IS HALF THE WORK AND THE OTHER HALF IS IN ANOTHER FILE, with
+    // nothing until now pairing them. `matchesFilters` reads `row[ROW_KEY[param]]`, and
+    // a row that carries no such key is `undefined` — which passes every picker and
+    // select while they are idle and fails every one of them the moment a reader picks
+    // something. So a list declaring `mine` whose page never sets `isMine` draws a live
+    // control that narrows to nothing, and section 1 above still passes: the
+    // declaration is right and the rows are wrong.
+    //
+    // THE SAME MUTANT `offline/job-column.mjs` NAMES ONE AXIS OVER — "remove the
+    // render, leave the read, and the screen is right, the budget is unchanged and
+    // nothing anywhere fails". It was reachable here because #382 added an axis to a
+    // list, which is the one edit that can produce it.
+    //
+    // IT READS THE PAGES' OWN OBJECT LITERALS rather than a list of key names, so
+    // nothing here has to be updated when a key is renamed — `ROW_KEY` is imported
+    // from the module that decides it, and both sides move together.
+    log("");
+    log("and each page shapes the row key every axis it declares will read:");
+    for (const rel of PAGES) {
+        const route = `/${rel.split("/")[1]}`;
+        const keys = new Set();
+        walk(parseFile(rel).ast, (n) => {
+            if (n.type !== "Property" || n.computed) return;
+            const name = n.key?.name ?? n.key?.value;
+            if (typeof name === "string") keys.add(name);
+        });
+        for (const axis of axesFor(route)) {
+            assert(`${rel} sets \`${ROW_KEY[axis.param]}\` for its \`${axis.param}\` axis`, keys.has(ROW_KEY[axis.param]));
+        }
+    }
+    // ANTI-VACUITY: the property walk has to be seen saying no. `/invoices` declares no
+    // `over` axis and its page shapes no `hasOverDelivery`, so the key ROW_KEY holds for
+    // an axis that list does not carry is the one this detector must not find.
+    const invoiceKeys = new Set();
+    walk(parseFile("app/invoices/page.js").ast, (n) => {
+        if (n.type !== "Property" || n.computed) return;
+        const name = n.key?.name ?? n.key?.value;
+        if (typeof name === "string") invoiceKeys.add(name);
+    });
+    assert("the property walk found the invoice list's own keys", invoiceKeys.has(ROW_KEY.mine));
+    assert("  and says no to a key that list has no axis for", !invoiceKeys.has(ROW_KEY.over));
 
     // ── 10: the detectors are seen working ──────────────────────────────────
     log("");

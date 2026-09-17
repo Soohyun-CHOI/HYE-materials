@@ -207,14 +207,15 @@ table (#280).
 chain.** Three places, one meaning.
 
 **The filter bar is one component on four lists (#324), and the differences
-between them are chosen.** Job and vendor are on all four, because every one of
-these documents holds both. `Requested by me` is here and on the purchase order
-list — one word, because both read the same field, the request's `Requester`,
-from the row here and through the parent request there. The deliveries list says
-`Recorded by me` instead, which is a different field. The invoice list has no such
-control at all, because an invoice records nobody. A redesign may restyle the bar
-and move it; what it may not do is let one list's control mean something different
-from the same control on another.
+between them are chosen.** Job, vendor and the reader's own are on all four,
+because every one of these documents holds all three — the last of them only
+since #382, which gave the invoice the author it had been missing.
+`Requested by me` is here and on the purchase order list — one word, because both
+read the same field, the request's `Requester`, from the row here and through the
+parent request there. The deliveries and invoice lists say `Recorded by me`
+instead, which is a different field and so a different word, and one word across
+those two. A redesign may restyle the bar and move it; what it may not do is let
+one list's control mean something different from the same control on another.
 
 **The kind mark is a filter here and nothing like it is a filter elsewhere**, and
 the rule behind that is worth knowing: a closed set on one of these lists becomes

@@ -120,10 +120,11 @@ const CARRIED = [
     { route: "/pos", param: "mine", note: "`1` narrows to the orders behind the reader's own requests — the same field `/prs` reads, one document upstream" },
     { route: "/deliveries", param: "job", note: "#324 — job filter; repeatable. This list is Job-scoped already, so the picker narrows within a scope rather than defining one" },
     { route: "/deliveries", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id" },
-    { route: "/deliveries", param: "mine", note: "#324 — `1` narrows to deliveries this reader recorded, off `Deliveries.\"Recorded By\"`. The axis `Invoices` has not got (#382)" },
+    { route: "/deliveries", param: "mine", note: "#324 — `1` narrows to deliveries this reader recorded, off `Deliveries.\"Recorded By\"`. #382 gave `Invoices` the same field, so this parameter now means one thing on two lists" },
     { route: "/deliveries", param: "over", note: "`1` narrows to deliveries carrying an over-delivery — a stored checkbox on the delivery's own item rows (#181), which is why it survived #216" },
     { route: "/invoices", param: "job", note: "#324 — job filter; repeatable. The job is the walk's rather than a field: `lib/invoiceJob.js` resolves it and takes no reader" },
     { route: "/invoices", param: "vendor", note: "#324 — vendor filter; repeatable; a Vendor record id" },
+    { route: "/invoices", param: "mine", note: "#382 — `1` narrows to invoices this reader entered, off `Invoices.\"Recorded By\"`. The last of the four lists to get this axis, because it was the last document to hold an author; an invoice entered before that field existed is nobody's" },
     { route: "/invoices", param: "status", note: "#324 — the payment word, `Paid` or `Not paid`. Named for the column it narrows; `Overdue` is a qualifier on the second rather than a third option" },
     { route: "/materials", param: "q", note: "the search term, tokenized by lib/materialPriceView.js; an empty one is the unsearched screen rather than a filter matching everything" },
 

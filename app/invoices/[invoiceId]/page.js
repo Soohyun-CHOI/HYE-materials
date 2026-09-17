@@ -23,6 +23,10 @@ import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "@/lib/invoiceOrderBreakdow
 import { getVisibleInvoiceIds } from "@/lib/invoiceVisibility";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
+import { getUserByRecordId } from "@/lib/airtable/users";
+// #382 — the first name, which is what a screen REPORTING a person prints. The
+// delivery detail's `Recorded by` line takes it from here for the same reason.
+import { userName } from "@/lib/userName";
 import { formatUSD } from "@/lib/format";
 // #179 — the two variance kinds are named in one place, beside the predicates
 // that set them.
@@ -123,7 +127,15 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // items rather than reading the Invoice-PO Link join table separately —
     // the two are equivalent by construction (see invoices/new/actions.js).
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
-    const poRecords = await Promise.all(poRecordIds.map((id) => getPOByRecordId(id)));
+    // #382 — the person who entered this invoice, read BESIDE the orders rather than
+    // before the gate above: a reader who is refused the record pays nothing for a
+    // name they will not see, and folding it into a round trip the page was already
+    // making costs no wall-clock time. One operation, and none at all on an invoice
+    // entered before the field existed.
+    const [poRecords, recorder] = await Promise.all([
+        Promise.all(poRecordIds.map((id) => getPOByRecordId(id))),
+        invoice.recordedBy?.[0] ? getUserByRecordId(invoice.recordedBy[0]) : null,
+    ]);
 
     // Issue #166 — the delivery side of this invoice, and since #210 the delivery it
     // matches rather than an estimate of which one answered it. Up to three
@@ -286,6 +298,22 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 <p>Vendor Invoice #: {invoice.vendorInvoiceCode || "—"}</p>
                 <p>Issue Date: {invoice.issueDate}</p>
                 <p>Due Date: {invoice.dueDate || "—"}</p>
+                {/* Issue #382 — who to ask about a figure that looks wrong. The same
+                    word and the same position the delivery detail gives it, one line
+                    above the document itself.
+
+                    NO INSTANT BESIDE IT, unlike the delivery's, and that is a fact
+                    about this table rather than a shorter sentence: `Invoices` has no
+                    `Created At`. The day is not missing from the screen either — an
+                    Invoice ID is HYE-INV-YYMMDD-##, which is why `getAllInvoices`
+                    sorts by it, so the heading above already carries it.
+
+                    ALWAYS DRAWN, WITH AN EM DASH WHEN EMPTY, like the three lines
+                    over it. Every invoice entered before this field existed has none,
+                    and "nobody is recorded" is the thing such a reader needs told —
+                    hiding the line would leave them unaware the app holds it at
+                    all. */}
+                <p>Recorded by: {userName(recorder) || "—"}</p>
                 {file && (
                     <p>
                         {/* Issue #331 — the vendor's document opens over this page

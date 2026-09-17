@@ -460,7 +460,9 @@ every difference between them is chosen; the words are shared.
 - The selects: a label and a colon, then `All` as the first option — `Status:` on
   three lists and `Kind:` on one.
 - The toggles: `Requested by me` on `/prs` and `/pos`, `Recorded by me` on
-  `/deliveries`, `Over-delivered` on `/deliveries`.
+  `/deliveries` and `/invoices`, `Over-delivered` on `/deliveries`. The
+  reader's-own toggle is on all four lists since #382 — two words for two
+  fields, and which word a list says follows the field it narrows by.
 - When anything is active: `N of M` and `Clear all filters`, together.
 
 Twelve empty-state sentences, three per list, in the same module so they stay
