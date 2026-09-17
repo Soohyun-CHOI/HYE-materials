@@ -259,6 +259,12 @@ async function renderInvoiceListPage({ searchParams }) {
             vendorName: vendorNameById[inv.vendor?.[0]] || "—",
             jobId: jobByInvoice.get(inv.id) ?? null,
             jobCode: jobById.get(jobByInvoice.get(inv.id))?.jobCode || null,
+            // #382 — the axis this list did not have until `Invoices` gained a
+            // `Recorded By`. Resolved here so nobody's identity reaches the client,
+            // which is the arrangement the other three lists already use. An invoice
+            // entered before the field existed has none and is false for every
+            // reader, which is what the toggle should say about it.
+            isMine: inv.recordedBy?.[0] === user.id,
             issueDate: inv.issueDate || "",
             dueDate: inv.dueDate || "",
             amountDue: inv.amountDue,

@@ -156,6 +156,19 @@ async function createInvoiceHandler(prevState, formData) {
             };
         }
 
+        // #382 — THE SESSION, READ ONCE FOR THE TWO THINGS BELOW THAT NEED IT: the
+        // `Recorded By` this create writes, and the delivery pairing's Job scope.
+        // `withAdminAction` loads a user to decide the gate and discards it
+        // (lib/authzWrap.js:createFlagGuard), so an action needing the person pays one
+        // operation for them — #185's question, reported at #193 rather than fixed by
+        // changing every wrapper's contract. The pairing block below used to make this
+        // call itself, which is why this is one operation moved rather than one added.
+        //
+        // BELOW THE REFUSALS AND ABOVE THE FIRST WRITE. A submission this action turns
+        // away still costs nothing, and nothing is created before the person writing
+        // it is known.
+        const user = await requireUser();
+
         let invoice;
         const createdItemIds = [];
         const createdLinkIds = [];
@@ -183,6 +196,10 @@ async function createInvoiceHandler(prevState, formData) {
                 // is a change to Tariff's behavior.
                 salesTax: salesTax ? parseFloat(salesTax) : null,
                 file: [{ url: invoiceFileUrl, filename: invoiceFileFilename || undefined }],
+                // #382 — inside the same create() as the file, so an invoice never
+                // exists without the person who entered it. The rollback below has
+                // nothing extra to undo: this is one field of one record.
+                recordedByUserId: user.id,
             });
 
             const createdItems = [];
@@ -277,14 +294,12 @@ async function createInvoiceHandler(prevState, formData) {
         // What a failure leaves is an unpaired invoice, which is this feature's
         // ordinary state and is what #216's strip above /invoices lists.
         //
-        // The user is re-read rather than handed down: withAdminAction loads one to
-        // decide the gate and discards it (lib/authzWrap.js:createFlagGuard), so this
-        // costs one operation that a wrapper passing its user would not. Reported to
-        // #193 as a measurement rather than fixed here, since changing that contract
-        // touches every wrapped action and is #185's question.
+        // The user this walk is scoped by is the one read above the create (#382),
+        // which is where the note about paying an operation for a person the wrapper
+        // already loaded now lives. This block made that call itself until #382 gave
+        // the write a second use for it.
         let pairing = { key: PAIRING.none };
         try {
-            const user = await requireUser();
             const { deliveries, invoices, agreedPrices } = await getDeliveriesForInvoice(user, {
                 vendorRecordId: vendorId,
                 orderedItems: items.map((item) => ({

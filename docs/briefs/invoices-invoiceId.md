@@ -24,10 +24,28 @@ every clean invoice looks like a problem and the screen stops working.
 
 **identity.** The Invoice ID, which is the page heading. Below it, in a plain
 block of small lines: the vendor's name, the vendor's own invoice number, the
-issue date, the due date. Any of the last three may be missing and renders as an
-em dash. The uploaded invoice file is on the same block, by filename, as a control
-that opens it over this page in the shared viewer (`_shared.md`, "A file opens over
-the screen that named it"), titled `Invoice file · {filename}`.
+issue date, the due date, and who entered the invoice. Any of those but the first
+may be missing and renders as an em dash. The uploaded invoice file is on the same
+block, by filename, as a control that opens it over this page in the shared viewer
+(`_shared.md`, "A file opens over the screen that named it"), titled
+`Invoice file · {filename}`.
+
+**`Recorded by` is the last line before the file, and it is the same word in the
+same position the delivery detail gives it (#382).** It names the person who typed
+the invoice in, by first name, so a reader looking at a figure that seems wrong has
+somebody to ask. It is audit only — nothing on this screen is gated on it, unlike a
+delivery, where the recorder is also the one person besides an Admin who may delete.
+
+**It carries no time beside the name, where the delivery's does.** That is a fact
+about the table rather than a shorter sentence: `Invoices` has no creation
+timestamp. The day is not missing from the screen — an Invoice ID is
+`HYE-INV-YYMMDD-##`, so the heading above already dates the record — and a redesign
+that wants the moment stated in words is asking for a field that does not exist yet.
+
+**The line is always drawn, and today it is an em dash on every invoice.** The field
+was added after every existing record, and nothing backfills them because the base
+holds no fact that would say who. Hiding the line when empty would leave that reader
+unaware the app records this at all, which is the opposite of what it is for.
 
 **evidence — `Amount Due (vendor's stated total)`.** The figure everything else
 on the screen judges, and the one number a reader must be able to find without

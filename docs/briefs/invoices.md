@@ -17,17 +17,23 @@ vendor has charged against their jobs.
 
 **identity.** The heading `Invoices`.
 
-**action — a filter bar (#324), and this list had none at all until then.** Three
+**action — a filter bar (#324), and this list had none at all until then.** Four
 controls: a job picker and a vendor picker, each taking several at once and each
-searchable, and a `Status` dropdown offering `Paid` and `Not paid` with `All`
-first. It is the same component the other three lists carry, so the controls look
-and behave identically across them.
+searchable; a `Recorded by me` checkbox; and a `Status` dropdown offering `Paid` and
+`Not paid` with `All` first. It is the same component the other three lists carry, so
+the controls look and behave identically across them.
 
-**Three controls where the other three lists have four or five, and every
-difference is chosen.** There is no reader's-own toggle, because an invoice
-records nobody — `Deliveries` carries `Recorded By` and a request carries a
-requester, and `Invoices` carries neither. #382 is the issue that would give it
-one; until that field exists there is no axis for a control to read.
+**`Recorded by me` arrived in #382 and this list was the one that could not have
+it.** It reads `Invoices."Recorded By"`, the person who typed the invoice in, which
+that issue added — the same field and the same word the deliveries list uses. Until
+then the table held no author at all, so there was no axis for a control to read;
+three controls where the others had four was a fact about the schema and never a
+judgment about the screen.
+
+**An invoice entered before that field existed is nobody's, and the toggle says so
+by excluding it.** Nothing backfills them, because the base records no fact that
+would say who. A reader who ticks the box on today's data sees an empty list, which
+is the truth about it.
 
 **The `Status` dropdown is named for the column it narrows and offers that
 column's verdict.** `Overdue` is not a third option: it is a qualifier that

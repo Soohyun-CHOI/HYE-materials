@@ -123,8 +123,9 @@ async function renderDeliveriesListPage({ searchParams }) {
                 jobCode: jobById.get(d.job?.[0])?.jobCode ?? "—",
                 vendorId: d.vendor?.[0] ?? null,
                 vendorName: vendorNameById.get(d.vendor?.[0]) ?? "Unknown vendor",
-                // #324 — `Recorded By` is the axis this document has, which is why this
-                // list carries a reader's-own toggle and `/invoices` does not (#382).
+                // #324 — `Recorded By` is the axis this document has, and #382 gave
+                // `Invoices` the same field, so all four lists carry a reader's-own
+                // toggle now and the two that read a recorder say one word.
                 // Resolved here so nobody's identity reaches the client, the same
                 // arrangement `/prs` and `/pos` use for their requester.
                 isMine: d.recordedBy?.[0] === user.id,
