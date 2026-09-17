@@ -26,7 +26,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | renaming a field, a screen word or an identifier | `docs/notes/naming.md` |
 | what a screen carries, or adding or removing a page | `docs/briefs/README.md` |
 
-`docs/notes/backlog.md` is the open-work list and is not tied to a path — see the last section.
+`docs/notes/backlog.md` is the open-work list and is not tied to a path — read when picking up work, not when doing it.
 
 **`lib/airtable/**` is governed by TWO files and both are required reading before an edit there** — `airtable-access.md` for how the base is queried, `naming.md` for what a field may be called.
 
@@ -43,6 +43,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 - A new **module** → one line in Service layer pattern, `path — what it owns`.
 - **What a screen carries, the distinctions it must show, and a word locked on it** → `docs/briefs/`, one file per page (#260). A page added, removed or given new content updates its brief in the SAME COMMIT; `offline/screen-briefs.mjs` fails on a page with no brief and on a tone the shared brief does not list.
 - **Every string a screen can render** → nowhere. `scripts/screen-strings.mjs` produces the list on demand (#288), and `docs/briefs/strings/` records only what it CANNOT produce and what no reader can reach. A file per screen was built, measured and dropped; the README there carries the figures and how a naming decision is made from the tool instead.
+- **No phase, milestone or branch status, ever.** What has merged is in the git history and in the tracker, and a document that restates it goes stale without anyone noticing.
 - If no area file fits, add one and an index row above it, in the same commit.
 - **The audience test decides ties.** A rule whose readers are wider than any one glob stays here; a rule only its own area's editor needs goes to that area's file. That is why "records in this base are not removed as tidying-up" is here rather than in `verification.md`.
 
@@ -299,22 +300,12 @@ Read `docs/notes/authorization.md` before adding an endpoint, an exemption or a 
 
 ## Utility scripts (scripts/)
 
-```
-scripts/
-  tests/offline/       standing tier — plain node, no credentials, run by npm test in CI
-  tests/verify-*.mjs   credentialed tier — writes fixtures to the shared base, by hand only
-  tests/_fixtures.mjs  the cleanup contract every credentialed script goes through
-  import/              reusable one-time backfills (Python)
-  demo/                seed scripts, kept in the repo and NOT deleted from Airtable
-  wrap-72.mjs          the 72-char wrap rule, executable — spans stay whole, --check verifies
-```
-
 - `npm test` runs the whole offline tier and CI runs it on every push; `npx eslint .` is a second CI job and stays clean, a rule this repo deliberately breaks taking a scoped disable with its reason rather than a tolerated error (#187).
 - **Do not run a `verify-*.mjs` casually** — one run costs hundreds of Airtable operations.
 - **Dummy records already in the base are deliberate, not leftovers.** Nothing in this base is to be removed as tidying-up.
 - **What a green CI run does NOT mean:** that authorization is enforced, or that anything rendered. Source shape is not execution — a gate inside `if (false)` satisfies a structural check — and this tier never opens a page, so a column that does not appear, a width that wraps and a field that reaches the browser are all invisible to it. Those are checked in a browser with the two fixture accounts and the finding written into the PR. Green means nothing cheap regressed.
 
-Read `docs/notes/verification.md` before adding a check, a script or a seed — it holds the tier boundary and where a new check goes, the exit codes, the fixture-cleanup contract and its run tag, the two permanent fixture accounts, the anti-vacuity rule, and why an Airtable formula or rollup is outside CI entirely.
+Read `docs/notes/verification.md` before adding a check, a script or a seed — it holds the directory map, the tier boundary and where a new check goes, the exit codes, the fixture-cleanup contract and its run tag, the two permanent fixture accounts, the anti-vacuity rule, and why an Airtable formula or rollup is outside CI entirely.
 
 ## Git workflow rules
 
@@ -336,14 +327,3 @@ Read `docs/notes/verification.md` before adding a check, a script or a seed — 
 - All GitHub content, project markdown, and web-app-facing text is English regardless of conversation language.
 - **That English is US English** — prose as well as identifiers, and in code comments as much as in user-facing copy. `behavior`, `judgment`, `canceled`, `labeled`, `catalog`, `gray`, `normalize`, `license`, `while` (not `whilst`). The one thing it does NOT reach is a value that belongs to something outside this repo — an Airtable select option, a dependency's package name (`@img/colour` in `package-lock.json`), a third-party field or CSS keyword — where the external spelling is the correct one and changing it breaks a lookup rather than fixing a style. Enforced under `app/` and `lib/` by `offline/us-english.mjs` (#215), which is scoped there so that documentation — this line included — can cite a form without being excused for it.
 - **Every text this repo puts on GitHub uses the repository's vocabulary** — issue titles, bodies and comments, PR titles and bodies, commit messages. Same words as the code and the docs, for the same reason: one thing named twice is two things to whoever reads only one of them.
-
----
-
-
-## Open work with no issue
-
-**Everything here is work recorded as needing doing that has no issue tracking it.** Once an issue exists the tracker is the record and the line goes — not replaced by a "tracked as #N" annotation, which would mean a doc edit every time an issue closes. The numbers in the headings are the *parent* issues these came out of, not tracking references.
-
-**This file records no phase, milestone or branch status at all.** What has merged is in the git history and in the tracker, and a document that restates it goes stale without anyone noticing.
-
-**The lists themselves are in `docs/notes/backlog.md`** — the withdraw, upload, row-visibility and verification follow-ups, and the unfiled items under them. They are read when picking up work, not when doing it, which is why they are not here.
