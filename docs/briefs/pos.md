@@ -18,10 +18,18 @@ this screen from the root screen says `Purchase orders`. One screen, two casings
 see the shared brief's note on where the app disagrees with itself.
 
 **action — a filter bar:** the same component all four document lists carry
-(#324). Four controls: a job picker and a vendor picker, each taking several at
-once and each searchable; a `Requested by me` checkbox; and a status dropdown
-whose first option is `All`. Mirrored into the URL like the request list's — it
-is literally the same bar.
+(#324). Five controls: a search box reading `Search by PO ID, vendor or job`
+(#325); a job picker and a vendor picker, each taking several at once and each
+searchable; a `Requested by me` checkbox; and a status dropdown whose first option
+is `All`. Mirrored into the URL like the request list's — it is literally the same
+bar.
+
+**An order has no second name, which is why the box takes only three.** What the
+vendor receives is the PDF this app emails them, with our own `PO ID` printed on
+it, so our name is the only one an order is ever called — `Purchase Orders` holds
+no vendor-side code at all. The matching rule is the request list's and the other
+two lists': every word must appear, anywhere among the row's names, in any order
+and any case.
 
 **`Requested by me` reads the request behind the order, not the order.** An order
 carries no requester of its own: it is generated when a request is fully approved,

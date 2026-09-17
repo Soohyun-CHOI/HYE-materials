@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 import {
-    LIST_EMPTY_COPY,
     applyFilters,
     emptyStateKind,
+    emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
@@ -49,7 +49,7 @@ export default function POListClient({ rows, options, initialFilters, totalCount
             )}
 
             {empty ? (
-                <p className="mt-6 text-sm text-zinc-600">{LIST_EMPTY_COPY[ROUTE][empty]}</p>
+                <p className="mt-6 text-sm text-zinc-600">{emptyStateText(ROUTE, empty, filters.state)}</p>
             ) : (
                 <div className="mt-6 overflow-x-auto">
                     {/* WIDTHS ARE DECLARED, WHICH IS THE RULE #166 ESTABLISHED — an

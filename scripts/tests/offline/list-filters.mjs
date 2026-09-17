@@ -54,6 +54,7 @@ import {
     choiceValue,
     emptyFilters,
     emptyStateKind,
+    emptyStateText,
     filterQuery,
     filtersActive,
     jobOptionLabel,
@@ -62,6 +63,9 @@ import {
     pickerOptions,
     showsFilterBar,
 } from "../../../lib/listFilters.js";
+// #325 — imported to BUILD the rejected alternative below, not to re-test the
+// tokenizer. `offline/search-tokens.mjs` is where the rule itself is pinned.
+import { matchesTokens, searchTokens } from "../../../lib/searchTokens.js";
 import { PR_KIND, PR_KIND_CHOICES, PR_KIND_COPY } from "../../../lib/prKind.js";
 import { INVOICE_PAYMENT_WORDS } from "../../../lib/deliveryStatus.js";
 
@@ -78,6 +82,9 @@ export const title = "What the four document lists filter by, and what the bar s
  */
 const SETTLED = {
     "/prs": [
+        // #325 — FIRST, AND THE POSITION IS SEMANTIC. The box names the ROW; every axis
+        // after it narrows by a property of one.
+        ["q", CONTROL.search],
         ["job", CONTROL.picker],
         ["vendor", CONTROL.picker],
         ["mine", CONTROL.toggle],
@@ -85,18 +92,21 @@ const SETTLED = {
         ["kind", CONTROL.select],
     ],
     "/pos": [
+        ["q", CONTROL.search],
         ["job", CONTROL.picker],
         ["vendor", CONTROL.picker],
         ["mine", CONTROL.toggle],
         ["status", CONTROL.select],
     ],
     "/deliveries": [
+        ["q", CONTROL.search],
         ["job", CONTROL.picker],
         ["vendor", CONTROL.picker],
         ["mine", CONTROL.toggle],
         ["over", CONTROL.toggle],
     ],
     "/invoices": [
+        ["q", CONTROL.search],
         ["job", CONTROL.picker],
         ["vendor", CONTROL.picker],
         // #382 — the axis this list did not have. `Invoices` held neither a requester
@@ -106,6 +116,59 @@ const SETTLED = {
         ["status", CONTROL.select],
     ],
 };
+
+/**
+ * What each list's box says and what it matches, by value (#325).
+ *
+ * TWO ARRAYS PER LIST BECAUSE THEY ARE TWO CLAIMS. `names` is a promise printed in the
+ * box and `keys` is what the matcher walks, and the defect they exist to catch is one
+ * drifting from the other — a box that offers `Vendor Invoice #` and a matcher that
+ * never reads it, or the reverse, which is a list quietly searching something it never
+ * said it would.
+ *
+ * THE THREE NAMES THAT ARE DELIBERATELY ABSENT are held further down, by name, because
+ * an exclusion nobody wrote down gets re-added by the next reader.
+ */
+const SEARCHES = {
+    "/prs": {
+        names: ["PR ID", "vendor", "job"],
+        keys: ["prId", "vendorName", "jobCode", "jobName"],
+    },
+    "/pos": {
+        names: ["PO ID", "vendor", "job"],
+        keys: ["poId", "vendorName", "jobCode", "jobName"],
+    },
+    "/deliveries": {
+        names: ["Delivery ID", "vendor", "job"],
+        keys: ["deliveryId", "vendorName", "jobCode", "jobName"],
+    },
+    "/invoices": {
+        names: ["Invoice ID", "Vendor Invoice #", "vendor", "job"],
+        keys: ["invoiceId", "vendorInvoiceCode", "vendorName", "jobCode", "jobName"],
+    },
+};
+
+/** What each box says, one string serving as its label and its placeholder. */
+const SEARCH_LABELS = {
+    "/prs": "Search by PR ID, vendor or job",
+    "/pos": "Search by PO ID, vendor or job",
+    "/deliveries": "Search by Delivery ID, vendor or job",
+    "/invoices": "Search by Invoice ID, Vendor Invoice #, vendor or job",
+};
+
+/**
+ * The names no list searches, and why — the far side of #325's line.
+ *
+ * ALL THREE ARE ANOTHER DOCUMENT'S NAME REACHED THROUGH A LINK, which is what the rule
+ * bars: allow one and the whole chain follows, a delivery by its order and an order by
+ * its request and a request by its quotation. Held as row keys because that is the
+ * shape the mutant takes — somebody adds the key to a page and the name to an axis.
+ */
+const NOT_SEARCHED = [
+    ["packingListPO", "a delivery holds a LINK to an order, not a name of its own"],
+    ["vendorQuotationCode", "the code is on the `Quotations` row, not the request's"],
+    ["directPurchaseId", "a direct purchase's own name, not the request it raised"],
+];
 
 /** The label each reader's-own toggle wears: two words for two fields, over four lists. */
 const MINE_LABELS = {
@@ -178,10 +241,61 @@ export function run({ check, assert, log }) {
     // `Requester`, and that table had neither. It has the first of those now, so the
     // ground for the exception went with the schema change and the three subject axes
     // are three.
-    for (const param of ["job", "vendor", "mine"]) {
+    //
+    // `q` JOINS THEM IN #325 AND IS THE FOURTH SHARED AXIS. What differs between the
+    // lists is which NAMES it takes, not whether it is there: every one of these
+    // documents has an id somebody can be holding.
+    for (const param of ["q", "job", "vendor", "mine"]) {
         assert(
             `${param} is on all four lists`,
             FILTERED_LISTS.every((route) => axesFor(route).some((a) => a.param === param))
+        );
+    }
+
+    // ── 1b: what each list searches ─────────────────────────────────────────
+    log("");
+    log("each box says what it matches, and matches what it says (#325):");
+    for (const [route, want] of Object.entries(SEARCHES)) {
+        const axis = axesFor(route).find((a) => a.control === CONTROL.search);
+        check(`${route} searches ${want.names.join(" + ")}`, axis.names.join(" + "), want.names.join(" + "));
+        check(`  off the row's ${want.keys.join(", ")}`, axis.keys.join(","), want.keys.join(","));
+        // THE LABEL IS BUILT FROM `names`, so a name added to the matcher appears in the
+        // box without anybody writing a sentence. Pinned by value as well, because
+        // "built from the array" is true of a builder that punctuates it wrongly.
+        check(`  and the box reads \`${SEARCH_LABELS[route]}\``, axis.words.label, SEARCH_LABELS[route]);
+        assert(
+            "  every name it says is in the sentence it draws",
+            want.names.every((name) => axis.words.label.includes(name))
+        );
+    }
+    // THE THREE SUBJECT KEYS ARE SHARED AND THE ID IS NOT, which is the whole shape of
+    // the decision: a vendor and a job are facts every one of these rows holds and
+    // every one of these lists heads a column for (#314), and the id and the second
+    // name are the document's own.
+    for (const route of FILTERED_LISTS) {
+        const axis = axesFor(route).find((a) => a.control === CONTROL.search);
+        assert(
+            `${route} searches the vendor and the job`,
+            ["vendorName", "jobCode", "jobName"].every((key) => axis.keys.includes(key))
+        );
+    }
+    check(
+        "only /invoices searches a second name",
+        FILTERED_LISTS.filter((r) =>
+            axesFor(r)
+                .find((a) => a.control === CONTROL.search)
+                .keys.includes("vendorInvoiceCode")
+        ).join(","),
+        "/invoices"
+    );
+    // The far side of the line, by name. `docs/notes/deliveries-and-invoices.md` has
+    // what each of the three would have cost.
+    for (const [key, why] of NOT_SEARCHED) {
+        assert(
+            `no list searches \`${key}\` — ${why}`,
+            FILTERED_LISTS.every((r) =>
+                axesFor(r).every((a) => a.control !== CONTROL.search || !a.keys.includes(key))
+            )
         );
     }
 
@@ -202,15 +316,19 @@ export function run({ check, assert, log }) {
             .join(", "),
         ""
     );
-    // #325 GIVES THESE LISTS A SEARCH AND #326 A PAGE, and both are behind the design
-    // pass. Reserving the names now is what keeps either issue from having to rewrite
-    // what is in the URL today; taking one for a filter is what this assertion stops.
+    // #325 SPENT THE SEARCH RESERVATION AND #326 STILL HOLDS THE PAGE. What is left
+    // reserved is `page`, and the assertion is unchanged for it: a filter taking that
+    // name is what this stops. Both names were inherited rather than coined — `q` from
+    // `/materials` and `page` from `/tools/[toolRecordId]` — so the app says one word
+    // for one thing across screens that do the same thing.
     for (const [what, name] of Object.entries(RESERVED_PARAMS)) {
         assert(
             `\`${name}\` is reserved for the ${what} and is no axis's parameter`,
             !FILTER_PARAMS.includes(name)
         );
     }
+    check("only `page` is still held back", Object.keys(RESERVED_PARAMS).join(","), "page");
+    assert("and `q` is a declared parameter now, not a reserved one", FILTER_PARAMS.includes("q"));
 
     // ── 3: parsing a URL ────────────────────────────────────────────────────
     log("");
@@ -249,6 +367,22 @@ export function run({ check, assert, log }) {
     // a reader met a word the app does not have.
     check("the ordinary kind is not selectable", refused.kind, "");
 
+    // #325 — THE ONE AXIS WITH NO OPTIONS TO INTERSECT AGAINST. Its values are not a
+    // set, so nothing is dropped; what is refused is a SHAPE, because one box holds one
+    // term and `?q=a&q=b` arrives as an array.
+    check(
+        "a search term is taken as typed",
+        parseFilters("/prs", { q: "HYE-PR-2608" }, prsOptions).q,
+        "HYE-PR-2608"
+    );
+    check(
+        "  case and spacing survive the parse, because the box shows them back",
+        parseFilters("/prs", { q: "  Acme  2608 " }, prsOptions).q,
+        "  Acme  2608 "
+    );
+    check("a repeated q is refused rather than joined", parseFilters("/prs", { q: ["a", "b"] }, prsOptions).q, "");
+    check("and an absent one is the unsearched box", parseFilters("/prs", {}, prsOptions).q, "");
+
     check(
         "an empty URL is the unfiltered list",
         JSON.stringify(parseFilters("/prs", {}, prsOptions)),
@@ -259,11 +393,13 @@ export function run({ check, assert, log }) {
     // ── 4: composition ──────────────────────────────────────────────────────
     log("");
     log("axes compose with AND, and a picker's own selection with OR:");
+    // Every row carries the four keys `/prs`'s box reads as well as the four its other
+    // axes do, so one set of rows serves both halves of the composition.
     const rows = [
-        { id: "a", jobId: "recJobA", vendorId: "recVenA", isMine: true, status: "Approved", kind: PR_KIND.ordinary },
-        { id: "b", jobId: "recJobB", vendorId: "recVenA", isMine: false, status: "Approved", kind: PR_KIND.overage },
-        { id: "c", jobId: "recJobB", vendorId: "recVenB", isMine: true, status: "In Review", kind: PR_KIND.ordinary },
-        { id: "d", jobId: null, vendorId: null, isMine: false, status: "In Review", kind: PR_KIND.ordinary },
+        { id: "a", prId: "HYE-PR-260803-01", vendorName: "Acme Supply", jobCode: "26-A", jobName: "Alpha", jobId: "recJobA", vendorId: "recVenA", isMine: true, status: "Approved", kind: PR_KIND.ordinary },
+        { id: "b", prId: "HYE-PR-260803-02", vendorName: "Acme Supply", jobCode: "26-B", jobName: "Beta", jobId: "recJobB", vendorId: "recVenA", isMine: false, status: "Approved", kind: PR_KIND.overage },
+        { id: "c", prId: "HYE-PR-260804-01", vendorName: "Beta Pipe", jobCode: "26-B", jobName: "Beta", jobId: "recJobB", vendorId: "recVenB", isMine: true, status: "In Review", kind: PR_KIND.ordinary },
+        { id: "d", prId: "HYE-PR-260804-02", vendorName: null, jobCode: null, jobName: null, jobId: null, vendorId: null, isMine: false, status: "In Review", kind: PR_KIND.ordinary },
     ];
     const ids = (state) => applyFilters("/prs", state, rows).map((r) => r.id).join("");
     const base = emptyFilters("/prs");
@@ -283,6 +419,38 @@ export function run({ check, assert, log }) {
         rows.every((r) => matchesFilters("/prs", { ...base, job: ["recJobB"] }, r) === ids({ ...base, job: ["recJobB"] }).includes(r.id))
     );
 
+    // ── 4b: the box, and the AND that crosses fields ────────────────────────
+    log("");
+    log("the box matches across the row's names, and composes with the controls beside it:");
+    check("an idle box narrows nothing", ids({ ...base, q: "" }), "abcd");
+    check("  and neither does one holding only spaces", ids({ ...base, q: "   " }), "abcd");
+    check("one token against the id", ids({ ...base, q: "260803" }), "ab");
+    check("  the same token typed in lower case", ids({ ...base, q: "hye-pr-260803" }), "ab");
+    check("one token against the vendor's name", ids({ ...base, q: "acme" }), "ab");
+    check("one against the job's code", ids({ ...base, q: "26-A" }), "a");
+    check("  and one against the job's name, which no column shows", ids({ ...base, q: "alpha" }), "a");
+    check("a substring of a name, not a prefix of it", ids({ ...base, q: "lph" }), "a");
+    // THE DECISION #325 HAD TO MAKE, RUN. `acme 2608` is a vendor and a fragment of an
+    // id — two tokens that no single field holds together — and it is the most ordinary
+    // thing a person reading a document aloud types.
+    check("two tokens landing in two different fields", ids({ ...base, q: "acme 2608" }), "ab");
+    check("  order does not matter", ids({ ...base, q: "2608 acme" }), "ab");
+    check("  and a third token narrows again", ids({ ...base, q: "acme 2608 beta" }), "b");
+    check("a token nothing carries admits nothing", ids({ ...base, q: "zzz" }), "");
+    // A TYPED NAME AND A CHOSEN ONE ARE TWO NARROWINGS, NOT ONE. Neither control
+    // rewrites the other, so saying two different things returns nothing.
+    check("the box and a picker compose with AND", ids({ ...base, q: "acme", vendor: ["recVenA"] }), "ab");
+    check("  and contradicting them returns nothing", ids({ ...base, q: "acme", vendor: ["recVenB"] }), "");
+    check("the box and a select", ids({ ...base, q: "acme", status: "Approved" }), "ab");
+    check("  the box and a toggle", ids({ ...base, q: "acme", mine: true }), "a");
+    // A row whose vendor and job are missing is still reachable by its own id, which is
+    // what filtering the nullish keys out of the haystack buys.
+    check("a row with no vendor or job still matches its id", ids({ ...base, q: "260804-02" }), "d");
+    assert(
+        "  and `null` never reaches the haystack as a word",
+        ids({ ...base, q: "null" }) === ""
+    );
+
     // ── 5: the URL a state produces ─────────────────────────────────────────
     log("");
     log("one state, one URL, in the order the list declares its axes:");
@@ -292,10 +460,11 @@ export function run({ check, assert, log }) {
         ""
     );
     check(
-        "a picker repeats and the rest follow in axis order",
+        "the search leads, a picker repeats, and the rest follow in axis order",
         decodeURIComponent(
             filterQuery("/prs", {
                 ...base,
+                q: "HYE-PR-2608",
                 job: ["recJobA", "recJobB"],
                 vendor: ["recVenA"],
                 mine: true,
@@ -303,8 +472,13 @@ export function run({ check, assert, log }) {
                 kind: PR_KIND.overage,
             })
         ),
-        "job=recJobA&job=recJobB&vendor=recVenA&mine=1&status=Approved&kind=overage"
+        "q=HYE-PR-2608&job=recJobA&job=recJobB&vendor=recVenA&mine=1&status=Approved&kind=overage"
     );
+    // A BOX HOLDING ONLY WHITESPACE WRITES NOTHING, for the reason nothing ever encodes
+    // "all": a bare URL and a cleared one have to be one string for one screen, and
+    // `?q=%20` would be a third.
+    assert("an empty box writes no parameter", !filterQuery("/prs", { ...base, q: "" }).includes("q="));
+    assert("  nor does one holding only spaces", !filterQuery("/prs", { ...base, q: "  " }).includes("q="));
     // NOTHING EVER ENCODES "ALL". A parameter whose value means "unfiltered" would put
     // `?status=` in a shared link and make a bare URL and a cleared one different
     // strings for one screen.
@@ -317,19 +491,29 @@ export function run({ check, assert, log }) {
         !filterQuery("/prs", { ...base, mine: false }).includes("mine")
     );
     // ROUND TRIP: what a bar writes is what the next load reads.
-    const roundTrip = { ...base, job: ["recJobB"], vendor: ["recVenA"], status: "Approved", mine: true };
+    const roundTrip = { ...base, q: "acme 2608", job: ["recJobB"], vendor: ["recVenA"], status: "Approved", mine: true };
     const qs = new URLSearchParams(filterQuery("/prs", roundTrip));
     check(
         "a URL the bar wrote parses back to the same state",
         JSON.stringify(
             parseFilters(
                 "/prs",
-                { job: qs.getAll("job"), vendor: qs.getAll("vendor"), status: qs.get("status"), mine: qs.get("mine") },
+                {
+                    q: qs.get("q"),
+                    job: qs.getAll("job"),
+                    vendor: qs.getAll("vendor"),
+                    status: qs.get("status"),
+                    mine: qs.get("mine"),
+                },
                 prsOptions
             )
         ),
         JSON.stringify(roundTrip)
     );
+    // THE TERM SURVIVES ITS SPACE, which is the one character a query carries that no
+    // other parameter does. `URLSearchParams` writes it as `+` and reads it back as a
+    // space, so the round trip above is what says the shared link works.
+    assert("  including the space between two tokens", qs.get("q") === "acme 2608");
 
     // ── 6: the three empty states ───────────────────────────────────────────
     log("");
@@ -366,6 +550,72 @@ export function run({ check, assert, log }) {
     // The twelve are twelve, not four repeated three times.
     const sentences = Object.values(LIST_EMPTY_COPY).flatMap((c) => Object.values(c));
     check("no two lists share a sentence", new Set(sentences).size, sentences.length);
+
+    // ── 6b: the narrowing sentence names the search (#325) ──────────────────
+    //
+    // NO FOURTH KIND. The box is a control in this bar and the value it matches is held
+    // by the document, so #324's own rule makes it a filter — `emptyStateKind` is
+    // untouched above and still answers its three questions. What is new is that the
+    // third sentence says WHICH narrowing emptied the list, because a typed term is the
+    // one whose content the reader can get wrong.
+    log("");
+    log("and the narrowing sentence names the term, and says when filters are on too:");
+    // THE FOUR `filtered` SENTENCES ARE BUILT FROM A NOUN NOW AND MUST NOT HAVE MOVED.
+    // Written out here as literals, which is the only way to catch a builder that
+    // punctuates or pluralizes differently from the strings #324 shipped.
+    const FILTERED_SENTENCES = {
+        "/prs": "No purchase requests match these filters.",
+        "/pos": "No purchase orders match these filters.",
+        "/deliveries": "No deliveries match these filters.",
+        "/invoices": "No invoices match these filters.",
+    };
+    for (const [route, want] of Object.entries(FILTERED_SENTENCES)) {
+        check(`${route}'s filters-only sentence is unchanged`, LIST_EMPTY_COPY[route].filtered, want);
+        const idle = emptyFilters(route);
+        check(
+            `  and is what an emptied bar with no term says`,
+            emptyStateText(route, "filtered", idle),
+            want
+        );
+    }
+    const searched = { ...emptyFilters("/invoices"), q: "ABC-1029" };
+    check(
+        "a term alone is quoted back",
+        emptyStateText("/invoices", "filtered", searched),
+        "No invoices match “ABC-1029”."
+    );
+    check(
+        "  and a term beside a filter says both",
+        emptyStateText("/invoices", "filtered", { ...searched, job: ["recJobA"] }),
+        "No invoices match “ABC-1029” and these filters."
+    );
+    check(
+        "  a picker alone is back to the plain sentence",
+        emptyStateText("/invoices", "filtered", { ...emptyFilters("/invoices"), job: ["recJobA"] }),
+        "No invoices match these filters."
+    );
+    check(
+        "the quoted term is tidied, never echoed raw",
+        emptyStateText("/prs", "filtered", { ...emptyFilters("/prs"), q: "  Acme   2608 " }),
+        "No purchase requests match “Acme 2608”."
+    );
+    // THE OTHER TWO KINDS ARE UNTOUCHED BY THE TERM. A reader who can see nothing at all
+    // must not be told about a search that cannot help them — which is `emptyStateKind`'s
+    // ordering rule reaching the sentence as well as the kind.
+    for (const kind of ["none", "hidden"]) {
+        check(
+            `the ${kind} sentence ignores the box`,
+            emptyStateText("/invoices", kind, searched),
+            LIST_EMPTY_COPY["/invoices"][kind]
+        );
+    }
+    check("and no kind at all is no sentence", emptyStateText("/invoices", null, searched), null);
+    // THE QUOTATION MARKS ARE `/materials`' OWN, which is the app's one other search
+    // miss. Two shapes of quote for one kind of sentence is the drift this catches.
+    assert(
+        "the term is quoted the way the other search box quotes one",
+        emptyStateText("/invoices", "filtered", searched).includes("“ABC-1029”")
+    );
 
     // ── 7: the bar's visibility invariant ───────────────────────────────────
     log("");
@@ -469,7 +719,14 @@ export function run({ check, assert, log }) {
 
     // A string only a filter bar says, appearing anywhere else, is the mutant this
     // whole issue is about: a bar assembled screen by screen.
+    // #325 — the four boxes' one string each. Built from the names each list searches,
+    // and pinned by value in SEARCH_LABELS above; here they join the vocabulary no file
+    // outside `lib/listFilters.js` may hold.
+    const searchLabels = FILTERED_LISTS.map(
+        (route) => axesFor(route).find((a) => a.control === CONTROL.search).words.label
+    );
     const BAR_ONLY = [
+        ...searchLabels,
         job.words.all,
         job.words.search,
         job.words.clear,
@@ -516,8 +773,15 @@ export function run({ check, assert, log }) {
     log("each list renders the shared bar and holds no mechanism of its own:");
     for (const rel of CLIENTS) {
         const source = readFileSync(repoPath(rel), "utf8");
-        for (const needed of ["ListFilterBar", "useListFilters", "applyFilters", "emptyStateKind", "showsFilterBar", "LIST_EMPTY_COPY"])
+        // `emptyStateText` REPLACED `LIST_EMPTY_COPY` HERE IN #325. The clients read a
+        // constant straight off the map until the third sentence had to name a term, and
+        // a branch written into four JSX files is four places for one rule — so the
+        // module composes the sentence and each client asks for it.
+        for (const needed of ["ListFilterBar", "useListFilters", "applyFilters", "emptyStateKind", "showsFilterBar", "emptyStateText"])
             assert(`${rel} uses ${needed}`, source.includes(needed));
+        // AND NONE OF THEM REACHES PAST IT TO THE RAW COPY, which would be a client
+        // rendering the plain sentence where the composed one belongs.
+        assert(`  and does not read LIST_EMPTY_COPY directly`, !source.includes("LIST_EMPTY_COPY"));
         // FOUR COPIES OF ONE URL SYNC IS WHAT THIS REPLACED. The hook owns both, so a
         // client holding either is a copy growing back.
         for (const banned of ["URLSearchParams", "router.replace", "useSearchParams"])
@@ -558,7 +822,16 @@ export function run({ check, assert, log }) {
             if (typeof name === "string") keys.add(name);
         });
         for (const axis of axesFor(route)) {
-            assert(`${rel} sets \`${ROW_KEY[axis.param]}\` for its \`${axis.param}\` axis`, keys.has(ROW_KEY[axis.param]));
+            // #325 — A SEARCH NAMES ITS OWN KEYS AND THERE ARE SEVERAL. `ROW_KEY` is one
+            // key per parameter whatever the route, and a search reads a different set
+            // per list, so that axis carries `keys` and this reads them. The pairing is
+            // the same one and is stronger for being plural: a page shaping four of the
+            // five keys `/invoices` searches fails here, and the box would otherwise
+            // have gone on promising `Vendor Invoice #` and matching nothing.
+            const wanted = axis.control === CONTROL.search ? axis.keys : [ROW_KEY[axis.param]];
+            for (const key of wanted) {
+                assert(`${rel} sets \`${key}\` for its \`${axis.param}\` axis`, keys.has(key));
+            }
         }
     }
     // ANTI-VACUITY: the property walk has to be seen saying no. `/invoices` declares no
@@ -613,6 +886,49 @@ export function run({ check, assert, log }) {
     check("a job with no name is its code alone", jobOptionLabel("26-A", ""), "26-A");
     check("  and with one, both", jobOptionLabel("26-A", "Alpha"), "26-A — Alpha");
     check("  and no code is no option", jobOptionLabel("", "Alpha"), null);
+
+    // #325's COMPOSITION DECISION, BUILT AS ITS ALTERNATIVE AND RUN. Per-field AND —
+    // every token inside ONE of the row's names — is the rule this issue weighed and
+    // rejected, and on the query it was rejected for it answers differently. Written out
+    // here rather than described, because "we chose the other one" is not a check.
+    const perField = (query, row) => {
+        const axis = axesFor("/prs").find((a) => a.control === CONTROL.search);
+        const tokens = searchTokens(query);
+        return axis.keys.some((key) => matchesTokens(row?.[key], tokens));
+    };
+    assert(
+        "a per-field AND loses `acme 2608` where the shipped rule finds it",
+        perField("acme 2608", rows[0]) === false &&
+            matchesFilters("/prs", { ...base, q: "acme 2608" }, rows[0]) === true
+    );
+    assert(
+        "  and the two agree when one name holds every token",
+        perField("acme supply", rows[0]) === true &&
+            matchesFilters("/prs", { ...base, q: "acme supply" }, rows[0]) === true
+    );
+    // The joined haystack cannot be matched ACROSS its boundary, which is what makes a
+    // plain space enough of a separator: a token never contains one.
+    assert(
+        "no token straddles two joined names",
+        matchesFilters("/prs", { ...base, q: "01acme" }, rows[0]) === false
+    );
+
+    // The plural key walk of 9b, seen saying no. `/prs` searches four keys and not the
+    // fifth `/invoices` does, so a page shaping only some of them is the mutant.
+    const prsSearch = axesFor("/prs").find((a) => a.control === CONTROL.search);
+    assert(
+        "the search key walk is plural and list-specific",
+        prsSearch.keys.length === 4 && !prsSearch.keys.includes("vendorInvoiceCode")
+    );
+    // The label builder, seen producing a different sentence from different names, so
+    // the four pinned strings above are a fact about the declaration rather than about
+    // a builder that ignores its argument.
+    assert(
+        "the box's sentence is built from the names it is given",
+        SEARCH_LABELS["/invoices"] !== SEARCH_LABELS["/prs"] &&
+            SEARCH_LABELS["/invoices"].includes("Vendor Invoice #") &&
+            !SEARCH_LABELS["/prs"].includes("Vendor Invoice #")
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -17,11 +17,21 @@ vendor has charged against their jobs.
 
 **identity.** The heading `Invoices`.
 
-**action — a filter bar (#324), and this list had none at all until then.** Four
-controls: a job picker and a vendor picker, each taking several at once and each
+**action — a filter bar (#324), and this list had none at all until then.** Five
+controls: a search box reading `Search by Invoice ID, Vendor Invoice #, vendor or
+job` (#325); a job picker and a vendor picker, each taking several at once and each
 searchable; a `Recorded by me` checkbox; and a `Status` dropdown offering `Paid` and
 `Not paid` with `All` first. It is the same component the other three lists carry, so
 the controls look and behave identically across them.
+
+**This is the one list whose box reaches a second name, and it is the case the
+search exists for.** A vendor rings the office quoting THEIR invoice number, and
+until #325 nothing in this app reached the row by it: `Invoices."Vendor Invoice
+Code"` is the only human-entered second name any of the four document tables holds.
+**No column shows it** — this table has no width to spare and a column is the design
+work's to place — so the box's own words are what tell the reader it will be found.
+Every word must appear, anywhere among the row's names, in any order and any case,
+so `acme 0091` finds an Acme invoice whose number carries 0091.
 
 **`Recorded by me` arrived in #382 and this list was the one that could not have
 it.** It reads `Invoices."Recorded By"`, the person who typed the invoice in, which

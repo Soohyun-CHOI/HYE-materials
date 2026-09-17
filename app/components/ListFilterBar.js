@@ -24,7 +24,7 @@ import PickerFilter from "./PickerFilter";
 // boundary is the server's gate; nothing here can widen it.
 //
 // IT TAKES A DECLARATION RATHER THAN BRANCHING PER SCREEN. The axes a list carries
-// are `lib/listFilters.js:LIST_AXES`, and there are exactly three control kinds, so
+// are `lib/listFilters.js:LIST_AXES`, and there are exactly four control kinds, so
 // this renders a list rather than choosing between four layouts. That is the property
 // that keeps a shared component from becoming the branch pile it would be if each
 // list's bar were assembled here.
@@ -32,6 +32,31 @@ import PickerFilter from "./PickerFilter";
 // EVERY WORD IT SAYS COMES FROM THAT MODULE. A label written into this JSX would be a
 // string no check can see — `offline/list-filters.mjs` holds the bar's vocabulary by
 // value and fails on any of it appearing as a literal outside its own module.
+
+/**
+ * How long the URL waits behind the rows.
+ *
+ * THE MIRROR RAN ON EVERY STATE CHANGE, WHICH WAS ONE WRITE PER CLICK UNTIL #325 GAVE
+ * THIS BAR A TEXT BOX — and then one per KEYSTROKE, which is seventeen for one printed
+ * id. Three comments in this repository call `router.replace` free ("no navigation, no
+ * history entry, no server round trip") and none of them was ever measured; a soft
+ * navigation on a page that reads `searchParams` refetches that page's payload, so
+ * being wrong about it costs every Airtable read the screen makes, seventeen times
+ * over. The delay makes the question moot instead of settling it: one write per query
+ * rather than per keystroke, and nothing at all if the mirror really is free.
+ *
+ * THE ROWS DO NOT WAIT. Narrowing is `applyFilters` over state that changed
+ * synchronously, so the list still answers on the keystroke; what is deferred is only
+ * the address bar catching up.
+ *
+ * 250ms, AND IT IS A GAP RATHER THAN A GUESS: comfortably longer than the interval
+ * between two keystrokes of somebody reading a document aloud to themselves, and short
+ * enough that a reader who stops typing and reaches for the address bar has the
+ * current URL before they get there. It applies to every axis rather than to the box
+ * alone, because one rule is better than a branch on which control moved, and a
+ * quarter second behind a checkbox is invisible.
+ */
+const URL_MIRROR_DELAY_MS = 250;
 
 /**
  * The filter state, the URL mirror, and the four ways a bar changes.
@@ -55,7 +80,11 @@ export function useListFilters({ route, initial }) {
             return;
         }
         const qs = filterQuery(route, state);
-        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+        const href = qs ? `${pathname}?${qs}` : pathname;
+        // The cleanup cancels a write the next keystroke has already superseded, which
+        // is what makes this one write per query. See URL_MIRROR_DELAY_MS.
+        const timer = setTimeout(() => router.replace(href, { scroll: false }), URL_MIRROR_DELAY_MS);
+        return () => clearTimeout(timer);
     }, [route, state, router, pathname]);
 
     return {
@@ -95,6 +124,28 @@ export default function ListFilterBar({ filters, options, shown, total }) {
     return (
         <div className="mt-6 flex flex-wrap items-center gap-4 rounded border border-zinc-200 p-4 text-sm">
             {axesFor(route).map((axis) => {
+                // THE BOX IS ALWAYS DRAWN, unlike the two controls below it. A picker
+                // with no options is absent because there is nothing to pick; a search
+                // has no options to be missing, and it is the one control that reaches
+                // a name no dropdown on this screen offers.
+                //
+                // `type="search"`, so the browser gives it the clearing affordance and
+                // a phone gives it the right keyboard. The label and the placeholder
+                // are ONE string from the module: two would be two promises about one
+                // box, and this file may hold neither of them.
+                if (axis.control === CONTROL.search) {
+                    return (
+                        <input
+                            key={axis.param}
+                            type="search"
+                            value={state[axis.param]}
+                            onChange={(e) => filters.setValue(axis.param, e.target.value)}
+                            aria-label={axis.words.label}
+                            placeholder={axis.words.label}
+                            className="w-full rounded border border-zinc-300 px-2 py-1 sm:w-96"
+                        />
+                    );
+                }
                 const choices = options?.[axis.param] ?? [];
                 if (axis.control === CONTROL.picker) {
                     if (choices.length === 0) return null;

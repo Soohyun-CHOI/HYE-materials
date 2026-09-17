@@ -23,12 +23,21 @@ about this list.
 button on the screen.
 
 **action — a filter bar** above the table, in a bordered box, and it is the same
-bar the other three document lists carry (#324). Five controls here: a job picker
-and a vendor picker, each taking several at once and each searchable; a
-`Requested by me` checkbox; a status dropdown; and a kind dropdown offering
-`Overage` and `Direct purchase`. Both dropdowns' first option is `All`. The active
-filters are mirrored into the URL, so a refresh, a shared link and the back button
-all restore the view.
+bar the other three document lists carry (#324). Six controls here: a search box
+reading `Search by PR ID, vendor or job` (#325); a job picker and a vendor picker,
+each taking several at once and each searchable; a `Requested by me` checkbox; a
+status dropdown; and a kind dropdown offering `Overage` and `Direct purchase`.
+Both dropdowns' first option is `All`. The active filters are mirrored into the
+URL, so a refresh, a shared link and the back button all restore the view.
+
+**The box takes the names on the row and works out which one was typed.** A
+request is an internal document and carries no second name — the vendor's own
+quotation code is on the `Quotations` row rather than this one, so it is not
+searched. Every word must appear, order does not matter, case is ignored, and a
+fragment matches: `2608 acme` finds a request from Acme whose id carries 2608,
+which is two words landing in two different names. A typed name and a picked one
+narrow together, so naming one vendor in the box and choosing another leaves
+nothing.
 
 **The bar is drawn only when this reader has at least one row before filtering.**
 An empty scope gets the sentence alone; a filter that empties the list keeps the

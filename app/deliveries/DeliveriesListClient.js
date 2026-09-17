@@ -15,9 +15,9 @@ import Link from "next/link";
 // imported here — an import executes the module and it throws
 // `Missing AIRTABLE_API_KEY` in the browser (#162).
 import {
-    LIST_EMPTY_COPY,
     applyFilters,
     emptyStateKind,
+    emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
@@ -69,7 +69,7 @@ export default function DeliveriesListClient({ rows, options, initialFilters, to
             )}
 
             {empty ? (
-                <p className="mt-6 text-sm text-zinc-600">{LIST_EMPTY_COPY[ROUTE][empty]}</p>
+                <p className="mt-6 text-sm text-zinc-600">{emptyStateText(ROUTE, empty, filters.state)}</p>
             ) : (
                 <div className="mt-4 overflow-x-auto">
                     {/* THE DECLARED COLUMNS SUM TO EXACTLY 52rem, WHICH IS WHAT THE PAGE

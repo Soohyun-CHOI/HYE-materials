@@ -448,10 +448,16 @@ and left the date to the sentence on the invoice's own page.
 
 ### The document lists' filter bar (tier 1, `lib/listFilters.js`)
 
-One component on `/prs`, `/pos`, `/deliveries` and `/invoices` (#324), with three
+One component on `/prs`, `/pos`, `/deliveries` and `/invoices` (#324), with four
 control kinds and nothing else. Which axes a list carries is settled per list and
 every difference between them is chosen; the words are shared.
 
+- The search box, first and on all four lists (#325). One string serves as its
+  label and its placeholder, and it names everything the box takes: `Search by PR
+  ID, vendor or job`, `Search by PO ID, vendor or job`, `Search by Delivery ID,
+  vendor or job`, `Search by Invoice ID, Vendor Invoice #, vendor or job`. It is
+  drawn even when the pickers beside it are not, because it has no options to be
+  missing and it reaches a name no dropdown on the screen offers.
 - The two pickers: `Jobs: All jobs`, `Vendors: All vendors`, `N selected` when
   something is picked, `Search jobs…` / `Search vendors…` inside, `Clear jobs` /
   `Clear vendors` beside the search, and `No matching jobs.` / `No matching
@@ -480,6 +486,21 @@ comparable:
 - `No invoices yet.`
 - `No invoices to show. You see an invoice when it charges a purchase order you raised or one on a job you are assigned to.`
 - `No invoices match these filters.`
+
+**The third of those three gains the typed term when there is one (#325), and
+there is still no fourth state.** A search is a filter, so what changes is the
+sentence rather than the judgment behind it — and it names the term because a
+typed one is the only narrowing whose content the reader can get wrong. Three
+shapes, from one noun per list:
+
+- `No invoices match these filters.`
+- `No invoices match “ABC-1029”.`
+- `No invoices match “ABC-1029” and these filters.`
+
+A reader who has narrowed twice is told so, because neither half alone would be
+true. There is no second sentence explaining the miss the way `/materials` has
+one: here the two candidates are a typo and a document nobody has entered, and
+nothing on the base tells them apart.
 
 **The bar is drawn only when the reader has at least one row before filtering.**
 An empty scope gets the empty-state sentence alone; a filter that empties the list

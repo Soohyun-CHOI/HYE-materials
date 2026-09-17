@@ -7,9 +7,9 @@ import { formatUSD } from "@/lib/format";
 // arrives as a boolean on the invoice form (#198).
 import { PR_KIND_COPY } from "@/lib/prKind";
 import {
-    LIST_EMPTY_COPY,
     applyFilters,
     emptyStateKind,
+    emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
@@ -46,7 +46,7 @@ export default function PRListClient({ rows, options, initialFilters, totalCount
             )}
 
             {empty ? (
-                <p className="mt-6 text-sm text-zinc-600">{LIST_EMPTY_COPY[ROUTE][empty]}</p>
+                <p className="mt-6 text-sm text-zinc-600">{emptyStateText(ROUTE, empty, filters.state)}</p>
             ) : (
                 <table className="mt-6 w-full text-sm">
                     <thead>
