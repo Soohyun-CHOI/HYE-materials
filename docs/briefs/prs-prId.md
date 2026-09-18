@@ -129,6 +129,15 @@ the time a signer sees it, and refusing the turn over a row somebody else raised
 would stop a signer editing a request they can still approve outright. Clearing a
 category counts as touching it.
 
+**When any figure on the form is not on a cent:** the turn is refused and nothing
+is saved (#308) — `Every item's quantity has to be a whole number.`, `Every item's
+unit price has to be a whole number of cents.`, or `Shipping Fee has to be a whole
+number of cents.` **This one checks every row rather than only the rows the signer
+touched**, which is where it parts from the category rule above: a figure is
+carried into the order and printed for the vendor, and the box holding it is
+editable right here, so a signer refused over somebody else's row can fix it
+without returning the request.
+
 **When a row has no category to show:** the four dropdowns open empty. A row
 saved before the catalog existed says so and shows the name it was saved with; a
 row whose category the reader cleared in this session says what the item WAS

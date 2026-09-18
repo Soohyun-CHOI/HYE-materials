@@ -81,6 +81,25 @@ deliberately not hidden.
 **action — `Shipping Fee (optional)`.** Labeled optional in the field name
 itself.
 
+**Three figures on this form are held to the cent, on save as well as on submit
+(#308).** A quantity has to be a whole number and a unit price and the Shipping
+Fee have to be whole numbers of cents, because they are summed into the total the
+vendor reads on the order. The refusals name the figure, one each:
+`Every item's quantity has to be a whole number.`, `Every item's unit price has to
+be a whole number of cents.`, `Shipping Fee has to be a whole number of cents.`
+The first two are the same words the invoice form already says, since it is the
+same rule about the same kind of figure.
+
+**The Shipping Fee carries two refusals and they answer different questions.**
+`Shipping Fee must be a number.` is about whether a figure was typed at all;
+the sentence above is about where it lands. An empty box and `1.005` are two
+mistakes.
+
+**Saving a draft is refused on these too, which is the one place this screen's
+draft is not permissive.** A draft may be half-finished — no category picked, no
+quantity typed, no quotation attached — and all of that still saves. What it may
+not hold is a figure that is wrong rather than absent.
+
 **action — Signers,** an ordered list the requester builds. Each signer is a
 person plus a confirmation type, `Approval` or `Agreement`, chosen per signer on a
 segmented control — two named kinds rather than a sliding toggle, because neither

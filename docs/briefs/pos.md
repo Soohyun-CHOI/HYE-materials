@@ -144,6 +144,15 @@ explanations. The office reads `Generation failed when the request was approved.
 Generate the order here.` and gets a retry control on each row; everyone else
 reads `… Ask the office to generate it.` and gets none.
 
+**When that retry is refused because a figure is off the cent (#308):** it answers
+with `This request holds a figure the order cannot carry — a quantity that is not
+a whole number, or an amount that is not a whole number of cents. Correct it on
+the request in Airtable, then generate the order again.` Every other failure
+answers `Something went wrong generating the PO. Please try again.` — the split
+is that pressing again helps for every cause but this one, which fails identically
+until the row is repaired. The sentence names Airtable because an approved
+request's items are past editing in this app.
+
 The sentence deliberately avoids `yet`. Generation runs inside the approving
 action and is never retried on its own, so a request in this state has already
 failed and `yet` would tell the reader to wait for something that will not

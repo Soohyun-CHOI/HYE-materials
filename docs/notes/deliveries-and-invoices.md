@@ -1766,8 +1766,10 @@ than as the app having decided it was small enough to ignore. One rule decides i
   never went through a control. **The lesson is not about `step`**: it is that a claim
   about what a form cannot produce is a measurement, and this one was written as an
   inference.
-- **`PO Items` AND `PR Items` ARE NOT GUARDED, AND THE CHAIN IS WORTH NAMING BECAUSE
-  ONE HALF OF IT REALLY DOES FLOW IN.** `PO Items."Unit Price"` is copied into an invoice item
+- **`PO Items` AND `PR Items` WERE NOT GUARDED UNTIL #308, AND THE CHAIN IS WORTH
+  NAMING BECAUSE ONE HALF OF IT REALLY DOES FLOW IN.** That issue did the upstream work
+  this bullet scoped out and priced, so the first clause is corrected rather than left
+  standing (#181); everything after it is why, and is unchanged. `PO Items."Unit Price"` is copied into an invoice item
   in three places on the form — `defaultedItem`, `updatePoItemSelection` and
   `handleCancelUnitPriceEdit` — and the PR form's own `step="0.01"` is behind the same
   hidden-JSON submit, so `PR Items` → `PO Items` → `Invoice Items` is open for a price
@@ -1779,6 +1781,13 @@ than as the app having decided it was small enough to ignore. One rule decides i
   `persistPRFromForm`, in two areas with their own notes files, and the PR is where a
   price is typed, so a refusal there needs copy and a brief. Measured: all 37 `PO Items`
   and all 43 `PR Items` rows are whole-cent today.
+  - **#308 PAID EXACTLY THAT PRICE AND THE ESTIMATE WAS RIGHT.** It wrote the copy
+    (`ITEM_PRECISION_COPY` reused verbatim, plus one new sentence for the shipping fee
+    and one for the PO retry), touched both areas' notes files, and put the enforcement
+    at `persistPRFromForm`'s two actions, the signing chain's edit turn, and the freeze
+    — `createPOItem` and `createPO`, which is `lib/poGeneration.js` reached through the
+    service layer rather than in it. `docs/notes/purchase-requests.md` carries the
+    derivation.
 - **THE OVERAGE SPLIT COMPUTES A QUANTITY AND STILL CANNOT INVENT A FRACTION.**
   `lib/overagePR.js` writes `(invoice.qty || 0) - excess` and `qty: excess`, where
   `excess` is always a `Delivery Items."Qty"` passed straight through, and there is no

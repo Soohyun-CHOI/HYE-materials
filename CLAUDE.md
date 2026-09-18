@@ -95,7 +95,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373): the parameter, the one predicate that judges it, and the two paths that carry it.
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
-- `lib/variance.js` — invoice/PO variance checks, and `VARIANCE_COPY`: the two kinds named apart (#179).
+- `lib/variance.js` — invoice/PO variance checks, and `VARIANCE_COPY`: the two kinds named apart (#179). Plus the cent rule (#254, #308): the two predicates, the guards, and the three refusals. **Nothing writes a quantity or a currency figure into an item or a document total without asking them.**
 - `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched.
 - `lib/searchTokens.js` — how a typed query becomes match tokens (#325), for both of the app's search boxes: the fold, the AND over tokens, the substring, and the two arguments `/materials` adds.
 - `lib/prItemMerge.js` — identical PR item rows are one item on save (#170): the six-field key, `isEmptyItemRow`, and `PR_ITEM_MERGE_COPY`. Applied in `parseFormState`, previewed by the form.
