@@ -25,12 +25,32 @@
 // regularizes the tree this assertion fails, which is the right outcome: the
 // decision to read codes as hierarchical should be taken, not inherited.
 //
+// THE CSV GAINED TWO COLUMNS IN #415 AND ONLY ONE OF THEM REACHES THE BASE.
+// `Item Name` is the readable name of each leaf and is imported into a stored
+// text field; `Template` records which of the eight shapes HQ wrote that name
+// with. **`Template` IS PROVENANCE FOR WHOEVER MAINTAINS THE CATALOG AND NOT A
+// VALUE THIS APP HAS ANY READING OF** — it is carried in the committed file on
+// purpose and left out of the import on purpose, so the assertion below exists to
+// stop the next reader concluding the import forgot it. The name itself is stored
+// rather than composed because those eight templates are not one rule: `Tube, SUS
+// 304, AP` takes three levels in order, `Tank Fabrication & Installation, Custom
+// Fabrication & Delivery` takes two out of order, and others append a word no
+// level holds.
+//
+// AND THE TWO PROPERTIES THE NAME HAS TO KEEP ARE HELD HERE (#415): every row
+// names something, and no two rows name the same thing. The second is the new
+// invariant — a screen can call a material by one name only if one name picks out
+// one category — and #416 builds on it. Both are shown to fail under a mutation
+// below, because "every row has a name" and "the traversal found no rows" are the
+// same result.
+//
 // EXIT CODES, per `docs/notes/verification.md`: 0 all clear, 1 something failed.
 
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+    CATEGORY_ITEM_NAME,
     CATEGORY_LABEL_FORMULA,
     CATEGORY_LABEL_SEPARATOR,
     CATEGORY_LABEL_SKIPPED,
@@ -63,6 +83,15 @@ const NAMES_WITH_A_SPACED_SLASH = 28;
 const HIGHEST_HQ_LEAF_TAIL = 33;
 /** Of the 11 rows breaking prefix nesting, the ones that break it at the LEAF. */
 const LEAVES_NOT_PREFIXED = 2;
+/**
+ * The column the CSV carries and the base does not (#415) — which of HQ's eight
+ * templates produced that row's `Item Name`. Named here rather than inline so the
+ * assertion that nothing imports it can name the same string it checks for.
+ */
+const CSV_PROVENANCE_COLUMN = "Template";
+const CSV_TEMPLATE_SHAPES = 8;
+/** Rows whose readable name happens to equal their composed label (#415). */
+const NAMES_EQUAL_TO_THEIR_LABEL = 12;
 
 /**
  * RFC 4180 enough for this file: quoted cells, embedded commas, CRLF.
@@ -102,13 +131,22 @@ export function run({ check, log }) {
     const cells = parsed.slice(1).filter((r) => r.some((c) => c !== ""));
     const rows = cells.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i]])));
 
-    const columns = CATEGORY_LEVELS.flatMap((l) => [l.code, l.name]);
+    const levelColumns = CATEGORY_LEVELS.flatMap((l) => [l.code, l.name]);
     const codeColumns = CATEGORY_LEVELS.map((l) => l.code);
     const nameColumns = CATEGORY_LEVELS.map((l) => l.name);
+    // The level names AND the leaf's own readable name. SEPARATE FROM
+    // `nameColumns` rather than folded into it, because the assertions below
+    // about the label are about the four LEVELS the label is composed from —
+    // widening that list made the spaced-slash census read 62 and the formula
+    // coverage read false, both correctly, and both about a column the label
+    // never touches. The whitespace rule is the one that really is about all
+    // five.
+    const typedColumns = [...nameColumns, CATEGORY_ITEM_NAME];
+    const columns = [CATEGORY_ITEM_NAME, ...levelColumns, CSV_PROVENANCE_COLUMN];
 
     log("the committed source:");
     check(`${CSV_PATH} parses to ${ROWS} rows`, rows.length, ROWS);
-    check("its header is the eight columns the module names", header.join(","), columns.join(","));
+    check("its header is the ten columns, in order", header.join(","), columns.join(","));
     check(
         "every cell of every row is filled",
         cells.filter((r) => r.length === columns.length && r.every((c) => c !== "")).length,
@@ -116,8 +154,55 @@ export function run({ check, log }) {
     );
     check(
         "no name carries leading, trailing or doubled whitespace",
-        rows.filter((r) => nameColumns.some((c) => r[c] !== r[c].trim() || /\s{2}/.test(r[c]))).length,
+        rows.filter((r) => typedColumns.some((c) => r[c] !== r[c].trim() || /\s{2}/.test(r[c]))).length,
         0
+    );
+
+    log("");
+    log("the readable name, and the two properties it has to keep (#415):");
+    const itemNames = rows.map((r) => r[CATEGORY_ITEM_NAME]);
+    check("every row names something", itemNames.filter((n) => n.trim() !== "").length, ROWS);
+    check("and no two rows name the same thing", new Set(itemNames).size, ROWS);
+    // WHY THE NAME IS STORED AND NOT A SECOND FORMULA, asserted rather than
+    // claimed. If the label rule produced it, this count would be `ROWS`. The 12
+    // that DO agree are the rows whose label collapses to one segment — `PFA`,
+    // `Aluminum`, `Chemicals` — so the agreement is a coincidence of short paths
+    // and not a rule with exceptions. The figure is typed out for the reason the
+    // others in this file are: a change to the catalog changes it in the same
+    // commit rather than being restated from the input and always agreeing.
+    check(
+        "the label rule does not produce the name",
+        rows.filter((r) => r[CATEGORY_ITEM_NAME] === composeCategoryLabel(r)).length,
+        NAMES_EQUAL_TO_THEIR_LABEL
+    );
+    check(
+        "  so most rows name something the path does not",
+        rows.filter((r) => r[CATEGORY_ITEM_NAME] !== composeCategoryLabel(r)).length,
+        ROWS - NAMES_EQUAL_TO_THEIR_LABEL
+    );
+    // THE MUTANTS, BUILT AND RUN. "Every row names something" and "the traversal
+    // found no rows" are the same result, and a duplicate is the failure that
+    // looks exactly like healthy data — neither assertion above can be trusted
+    // until it is seen to fail.
+    const blanked = itemNames.map((n, i) => (i === 0 ? "" : n));
+    check("a blanked name fails the first", blanked.filter((n) => n.trim() !== "").length === ROWS, false);
+    const duplicated = itemNames.map((n, i) => (i === 0 ? itemNames[1] : n));
+    check("a duplicated name fails the second", new Set(duplicated).size === ROWS, false);
+    check("  and the real column passes both", itemNames.filter((n) => n.trim() !== "").length === ROWS && new Set(itemNames).size === ROWS, true);
+
+    // THE COLUMN THAT IS CARRIED AND NOT IMPORTED — see the header. It is named
+    // here so a reader meeting it in the CSV is told it is deliberate rather than
+    // concluding the import dropped it.
+    check(`${CSV_PROVENANCE_COLUMN} is in the file`, header.includes(CSV_PROVENANCE_COLUMN), true);
+    check(
+        "  and nothing in the module names it, so nothing imports it",
+        [CATEGORY_ITEM_NAME, CATEGORY_LEAF_CODE, ...levelColumns].includes(CSV_PROVENANCE_COLUMN),
+        false
+    );
+    check(
+        `  it carries ${CSV_TEMPLATE_SHAPES} shapes, which is why the name is stored and not composed`,
+        new Set(rows.map((r) => r[CSV_PROVENANCE_COLUMN])).size,
+        CSV_TEMPLATE_SHAPES
     );
 
     log("");
