@@ -309,13 +309,20 @@ accuses makes the reader scroll back for the subject. It names no quantity: one
 invoice can be short on two ordered items with different units, so a single
 figure here would be either wrong or a sum of unlike things.
 
-**When the folded items do not all touch the same set of orders:** a short
-indented list under each order's row, naming what that order was invoiced for
-and in what quantity. A line carries two figures — the quantity this invoice
+**When the folded items are not all divided among the orders the same way:** a
+short indented list under each order's row, naming what that order was invoiced
+for and in what quantity. A line carries two figures — the quantity this invoice
 charged against that order, over the quantity that order asked for — with the
 unit written once after both: `Elbow 3" — 7 of 15 EA`. Only quantities, never
-prices. When every item touches the same orders the question is not ambiguous
-and nothing appears.
+prices.
+
+**What counts as the same way is the orders an item names AND the proportions it
+divided itself among them.** Two items that both put two thirds on one order and
+a third on the other say one thing, whatever the amounts; two that go 10 and 3
+against 2 and 11 do not, and the list appears. An invoice charging one order is
+always silent, because a single order takes the whole of every item — and there
+the list would repeat the items table line for line, since with one order a
+charge is the folded row's own quantity.
 
 **The unit is written once because both figures are in it.** An invoice item's
 `Unit` is a frozen copy of the ordered item's, so the two are one measure with a
