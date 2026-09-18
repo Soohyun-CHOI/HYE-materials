@@ -52,8 +52,12 @@ export const title = "What a tool label's QR symbol encodes, measured (#351)";
 /** The host a printed label carries, which is what every figure is measured at. */
 const PRODUCTION_ORIGIN = "https://hyeusa.com";
 
-/** The dev origin, three characters longer, which is why a local symbol differs. */
+/** The dev origin. Three characters longer than production and, since #411, the
+ *  same version — see section 8 for what that took away. */
 const DEV_ORIGIN = "http://localhost:3000";
+
+/** A Vercel preview domain, which is the host a label must never be printed from. */
+const PREVIEW_ORIGIN = "https://materials-hye.vercel.app";
 
 /** The four levels, so the table is computed rather than typed. */
 const LEVELS = ["L", "M", "Q", "H"];
@@ -126,8 +130,16 @@ export async function run({ check, assert, log }) {
     const id = mintedId(4);
     const url = labelURL(PRODUCTION_ORIGIN, id);
     check(`the minted id is ${id}`, id, "HYE-TL-260909-004");
-    check("the label's URL", url, "HTTPS://HYEUSA.COM/T/HYE-TL-260909-004");
-    check("  and it is 38 characters", url.length, 38);
+    check("the label's URL", url, "HTTPS://HYEUSA.COM/T/260909-004");
+    check("  and it is 31 characters", url.length, 31);
+    // THE SEVEN THE FAMILY TOKEN USED TO SPEND (#411), reached a second way so the
+    // length above is not the only thing holding it: the address was 38 characters,
+    // the id it names still is 17, and what it ends with is that id's last ten.
+    check("  seven fewer than the 38 it was", 38 - url.length, 7);
+    assert("  ending in the id's own tail", url.endsWith(id.slice(7)) && id.slice(7) === "260909-004");
+    // `HYE` on its own is in `HYEUSA.COM`, so the token is what is barred rather
+    // than its first three characters.
+    assert("  and carrying no part of the token", !url.includes("HYE-TL") && !url.includes("-TL-"));
     assert("  the origin's own case does not survive", !url.includes("hyeusa"));
     check("a typed lowercase id reaches the same URL", labelURL(PRODUCTION_ORIGIN, id.toLowerCase()), url);
     check("a trailing slash on the origin does not double", labelURL(`${PRODUCTION_ORIGIN}/`, id), url);
@@ -163,15 +175,28 @@ export async function run({ check, assert, log }) {
     // ANTI-VACUITY: the table is seen DISAGREEING across levels, so the equality
     // above is a fact about this level rather than about four identical rows.
     assert(
-        "the level matters: Q and H each cost at least a version",
+        "the level matters: Q and H each cost a version over M",
         table.find((r) => r.level === "Q").version > measured.version &&
-            table.find((r) => r.level === "H").version > table.find((r) => r.level === "Q").version
+            table.find((r) => r.level === "H").version > measured.version
     );
     check("and L buys nothing in size over M", table.find((r) => r.level === "L").version, table.find((r) => r.level === "M").version);
+    // WHAT #411 CHANGED IN THIS TABLE, RECORDED BECAUSE IT MADE AN ALTERNATIVE
+    // CHEAPER. At the 38-character address `H` cost TWO versions and `Q` one; at 31
+    // they cost one each, so the highest level is now the same printed density as
+    // `Q`. The choice does not reopen — what decided it is that a flipped module in
+    // a finder pattern loses the symbol at every level alike, which section 6
+    // measures and which no address length touches — but the price is not what it
+    // was, and a comparison that used to be a step is now an equality.
+    check(
+        "H and Q now land on the same version",
+        table.find((r) => r.level === "H").version,
+        table.find((r) => r.level === "Q").version
+    );
+    check("  which is one above the chosen level", table.find((r) => r.level === "H").version - measured.version, 1);
 
-    // ── 3: the capacity boundary #348 had calculated wrongly ───────────────
+    // ── 3: the capacity, which the address no longer fills (#411) ──────────
     log("");
-    log("the address sits exactly on this level's capacity:");
+    log("what this level's capacity leaves over:");
 
     let capacity = 0;
     for (let n = 1; n <= 80; n++) {
@@ -183,13 +208,33 @@ export async function run({ check, assert, log }) {
         }
     }
     check(`version ${QR_VERSION} at ${QR_ERROR_CORRECTION} holds N alphanumeric characters`, capacity, 38);
-    check("  and the address uses all of them", capacity - url.length, 0);
+    // THIS READ `capacity - url.length === 0` UNTIL #411, WHICH IS THE FIGURE THAT
+    // ISSUE EXISTS TO MOVE. The address filled the version exactly, so anything at
+    // all — a wider sequence, a longer host — stepped it.
+    check("  and the address leaves this many spare", capacity - url.length, 7);
 
-    // The next id width is one character longer, which is the state
-    // docs/notes/tools.md had recorded as fitting with two characters to spare.
+    // WHAT THE SEVEN ACTUALLY BUY, measured rather than described, because a
+    // headroom figure nobody can act on is one that gets re-derived. `nextSequence`
+    // widens past its pad, so a five-digit daily sequence is a real id.
     const wide = labelURL(PRODUCTION_ORIGIN, mintedId(1000));
-    check(`a four-digit sequence gives ${wide}`, wide.length, 39);
-    check("  which steps to the next version", encode(wide, QR_ERROR_CORRECTION).version, QR_VERSION + 1);
+    check(`a four-digit sequence gives ${wide}`, wide.length, 32);
+    check("  and stays at this version", encode(wide, QR_ERROR_CORRECTION).version, QR_VERSION);
+    const wider = labelURL(PRODUCTION_ORIGIN, mintedId(10000));
+    check(`a five-digit sequence gives ${wider}`, wider.length, 33);
+    check("  and still stays", encode(wider, QR_ERROR_CORRECTION).version, QR_VERSION);
+    // A HOST IS THE OTHER CLAIMANT ON THE SAME SEVEN. `hyeusa.com` is ten
+    // characters and seventeen is what the capacity allows beside today's code.
+    const longestHost = labelURL(`https://${"h".repeat(17)}`, id);
+    check(`a seventeen-character host gives ${longestHost.length} characters`, longestHost.length, capacity);
+    check("  which is still this version", encode(longestHost, QR_ERROR_CORRECTION).version, QR_VERSION);
+
+    // AND THE STEP IS SHOWN, so the figures above are a fact about the encoder
+    // rather than about a version that never moves. One character past the capacity
+    // is the next version — which is also the anti-vacuity this section used to get
+    // for free from the four-digit sequence.
+    const overCapacity = labelURL(`https://${"h".repeat(18)}`, id);
+    check(`one character more is ${overCapacity.length}`, overCapacity.length, capacity + 1);
+    check("  and steps to the next version", encode(overCapacity, QR_ERROR_CORRECTION).version, QR_VERSION + 1);
 
     // ── 4: the uppercase rule is worth a whole version ─────────────────────
     log("");
@@ -199,10 +244,16 @@ export async function run({ check, assert, log }) {
     check("one segment", upper.segments.length, 1);
     check("  and its mode", upper.segments[0].mode.id, "Alphanumeric");
 
-    const lower = encode(`${PRODUCTION_ORIGIN}/t/${id}`, QR_ERROR_CORRECTION);
+    // THE SHORTER ADDRESS DID NOT MAKE THE CAPITALS OPTIONAL (#411), which is worth
+    // a measurement rather than an assumption: what costs the version is the mode
+    // split and not the length, so the lowercase form is still version 3 with seven
+    // characters of room to spare.
+    const lowercase = url.toLowerCase();
+    const lower = encode(lowercase, QR_ERROR_CORRECTION);
     check("the same address in lowercase splits into modes", lower.segments.map((s) => s.mode.id).join("+"), "Byte+Alphanumeric");
     check("  and costs a version", lower.version, QR_VERSION + 1);
-    check("  at the same character count", `${PRODUCTION_ORIGIN}/t/${id}`.length, url.length);
+    check("  at the same character count", lowercase.length, url.length);
+    check("  well inside the capacity", capacity - lowercase.length, 7);
 
     // ── 5: the round trip, through a different library ──────────────────────
     log("");
@@ -298,11 +349,27 @@ export async function run({ check, assert, log }) {
     check("the quiet zone", built.quietZoneModules, 4);
     check("the side #353 multiplies", built.sideModules, 33);
 
-    // A dev origin is a different symbol, which is what stops a figure measured in
-    // a browser from being read as the printed one.
+    // A LOCAL SYMBOL USED TO BE A DIFFERENT SIZE AND IS NOT ANY MORE (#411), which
+    // is a safeguard this issue took away rather than a detail. #351 asserted
+    // version 3 here, and that difference was what stopped a figure measured in a
+    // browser from being read as the printed one — and, on a screen, what made a
+    // locally rendered symbol visibly not the sticker's. At 34 characters the dev
+    // origin is version 2 with the same module count, so only the PAYLOAD tells them
+    // apart now. Asserted in both directions so neither half can drift unnoticed.
     const local = await buildToolItemQR({ origin: DEV_ORIGIN, toolItemId: id });
-    check(`${DEV_ORIGIN} gives a ${local.version === QR_VERSION ? "matching" : "different"} version`, local.version, QR_VERSION + 1);
-    check("  and more modules a side", local.sideModules, QR_SIDE_MODULES + 4);
+    check(`${DEV_ORIGIN} is ${local.url.length} characters`, local.url.length, 34);
+    check("  and now gives the SAME version as production", local.version, QR_VERSION);
+    check("  at the same modules a side", local.sideModules, QR_SIDE_MODULES);
+    assert("  so only the payload distinguishes them", local.url !== url && local.url.includes("LOCALHOST"));
+
+    // WHICH LEAVES THE HOST WARNING ON `/tool-items/labels` AS THE DEFENSE, and the
+    // one case where the geometry still tells is the one that needed it least: a
+    // Vercel preview domain is long enough to step a version anyway.
+    const preview = await buildToolItemQR({ origin: PREVIEW_ORIGIN, toolItemId: id });
+    check(`a preview domain is ${preview.url.length} characters`, preview.url.length, 45);
+    assert("  past the capacity", preview.url.length > capacity);
+    check("  so it still steps a version", preview.version, QR_VERSION + 1);
+    check("  and more modules a side", preview.sideModules, QR_SIDE_MODULES + 4);
 
     // ── 9: the mode invariant is enforced, not assumed ─────────────────────
     log("");

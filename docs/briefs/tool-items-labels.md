@@ -35,6 +35,20 @@ printed:
   saying so. **The warning is not conditional** — nothing in the app knows which
   host is the permanent one, so the screen states the host and the risk and lets
   the person reading decide.
+
+**THIS WARNING IS THE ONLY DEFENSE LEFT AND IT HAS TO BE READABLE AT THE MOMENT
+OF PRESSING PRINT (#411).** Until that issue a symbol built on a dev host came
+out a version larger than a real one, so a wrong host was visible in the picture
+itself; the shortened address put both at version 2, and nothing about the sheet
+now looks different when the host is wrong. Measured on the current layout at
+1440x900 with three labels: the warning sits 240px above the print control and
+both are on screen at once. **It does not stay that way** — the picker grows one
+row per label between them, so a run of thirty puts the control below the fold
+and a run of a hundred puts it 2,600px down, and the person pressing Print has
+scrolled the warning off the screen. **A design must keep the host and this
+warning legible from wherever Print is pressed** — pinned beside the control, or
+repeated there, or the control placed where the warning still reads. What it may
+not do is treat this as a preamble somebody reads once on the way in.
 - **Which stock**, by name.
 - **How many labels across how many sheets**, once a selection exists.
 
@@ -61,10 +75,19 @@ corner. Each label carries three things and the reasons are not the same:
 - **The QR symbol**, in a box that is its full size including the four modules of
   quiet zone the SVG carries. **Nothing may be drawn inside that box.** The margin
   is what lets a camera separate the symbol from everything printed beside it.
-- **The `Tool Item ID` in characters a person can read.** This is the fallback for
+- **The printed code, in characters a person can read.** This is the fallback for
   a symbol that has been scratched or painted over, so it is not decoration and it
   may not be truncated. Its size has a floor; see below.
 - **The tool's name.**
+
+**The printed code is not the whole `Tool Item ID`, and the difference is the
+point (#411).** A tool item is `HYE-TL-260909-004` in the base, on this screen's
+own picker and on every other screen; the sticker carries `260909-004`. The
+seven characters dropped are on every tool item and separate none of them, so
+they cost the symbol its headroom and the label its width while confirming
+nothing. **A design must not put them back**, and must not treat the picker
+above the sheet and the sticker below it as needing the same string: one is a
+screen naming a record, the other is a sticker a person reads in order to type.
 
 ## What it carries only sometimes
 
@@ -102,32 +125,33 @@ reopened. **A design must not assume 30 labels of that size** — it should assu
 a grid whose dimensions come from somewhere else.
 
 **The symbol is sized in modules, never in millimeters.** A QR symbol's side grows
-four modules per version as the address it encodes gets longer, and this one is
-already at the exact capacity of its version. So the printed size is a fixed
-millimeters PER MODULE, chosen so that a symbol two versions larger still fits
-the label — which makes a longer address a bigger symbol rather than a denser
-one. **A design that pins the symbol to a box in millimeters would undo this**,
-and the failure is invisible on screen: it only shows up as a symbol a phone
-cannot read.
+four modules per version as the address it encodes gets longer. So the printed
+size is a fixed millimeters PER MODULE, chosen so that a symbol two versions
+larger still fits the label — which makes a longer address a bigger symbol
+rather than a denser one. **A design that pins the symbol to a box in
+millimeters would undo this**, and the failure is invisible on screen: it only
+shows up as a symbol a phone cannot read.
 
-**The readable id has a floor and no ceiling.** Its minimum size is a functional
+**The readable code has a floor and no ceiling.** Its minimum size is a functional
 constraint — it is the fallback path when the symbol is unreadable, so it has to
 be legible at arm's length — and it is set in code. **Everything above that floor
 is the design's**, including whether it is larger, where it sits, and what it is
 set in. It renders at the floor today because that is the constraint with no
 design applied to it, not because the floor is the right size.
 
-**Both the id and the tool's name render at that one size, and the sameness is
-deliberate.** The id is the only thing on the label with a size requirement, so
-it is the only figure there is; giving the id the floor and letting the name
-inherit the app's body size made the NAME larger than the id, which is a
-hierarchy nothing decided and the wrong way round. **A design setting them apart
-is expected — this is the absence of that decision, not a version of it.**
+**Both the code and the tool's name render at that one size, and the sameness is
+deliberate.** The code is the only thing on the label with a size requirement, so
+it is the only figure there is; giving it the floor and letting the name inherit
+the app's body size made the NAME larger, which is a hierarchy nothing decided
+and the wrong way round. **A design setting them apart is expected — this is the
+absence of that decision, not a version of it.**
 
-**Above the floor, the label's width is the limit.** The id is 17 characters and
-must not be cut off, so there is a size past which it no longer fits beside the
-symbol. That is a fact about this stock rather than a rule, and it moves with the
-stock; what code holds is that the id fits AT the floor.
+**The height is what binds this label and the width has room to spare.** The
+widest symbol the module size absorbs is 23.37 mm against 23.4 mm a label may
+print inside, while the code at its floor claims 15 mm of the 39.81 mm beside it
+— so 24.81 mm of width is unclaimed. **That slack is what #411 produced and what
+#412 spends**, and a design should not read the current layout as using the
+label up.
 
 **The screen words are `tool` and `tool item`.** A `Tools` row is a tool, a
 `Tool Items` row is a tool item, and never a bare `item` — four other tables on

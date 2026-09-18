@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { canonicalToolItemId, toolItemPath } from "@/lib/toolRoutes";
+import { toolItemIdFromLabelCode, toolItemPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
@@ -8,9 +8,13 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * IT EXISTS FOR ITS LENGTH AND FOR NOTHING ELSE. A QR code encodes the whole URL,
  * host included, and the symbol steps up a version as that string grows — thinner
  * modules on a sticker of the same size, read through oil and wear in a gloved
- * hand. `https://hyeusa.com/t/HYE-TL-260909-004` is 38 characters against 47 for
- * the screen's own address, which is a whole version at every error-correction
- * level. `docs/notes/tools.md` carries the arithmetic.
+ * hand. `https://hyeusa.com/t/260909-004` is 31 characters against 47 for the
+ * screen's own address. `docs/notes/tools.md` carries the arithmetic.
+ *
+ * THE SEGMENT IS THE PRINTED CODE AND NOT A `Tool Item ID` (#411). `HYE-TL-` opens
+ * every one of them and separates none, so the label drops it and this route puts
+ * it back — `toolItemIdFromLabelCode` is the whole of that, and what leaves here is
+ * the spelling the base holds.
  *
  * A REDIRECT AND NOT A REWRITE, WHICH IS THE DECISION THIS FILE IS. A rewrite would
  * serve the tool item's page here and cost no hop at all — and it would make this a
@@ -34,9 +38,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  *
  * IT NORMALIZES THE CASE SO THE NEXT HOP DOES NOT HAVE TO. The destination
  * redirects when the id it was handed is not the stored spelling, so passing a
- * typed `hye-tl-…` straight through would cost two hops. `canonicalToolItemId` is
- * a string transform with no read behind it, and its uppercase claim is asserted
- * against the id generator rather than assumed.
+ * typed `260909-004` through unchanged would cost two hops.
+ * `toolItemIdFromLabelCode` canonicalizes as it reattaches, and the uppercase claim
+ * behind that is asserted against the id generator rather than assumed.
  *
  * NO METADATA. Nothing here paints, so a title would name a tab no reader sees.
  */
@@ -45,10 +49,10 @@ import { withOpsLabel } from "@/lib/airtableOps";
 // `finally`, which is what a page that redirects needs, and a read added here
 // later is counted without anyone remembering to.
 export default async function LabelEntryPage(props) {
-    return withOpsLabel("/t/[toolItemId]", () => renderLabelEntryPage(props));
+    return withOpsLabel("/t/[labelCode]", () => renderLabelEntryPage(props));
 }
 
 async function renderLabelEntryPage({ params }) {
-    const { toolItemId } = await params;
-    redirect(toolItemPath(canonicalToolItemId(decodeURIComponent(toolItemId))));
+    const { labelCode } = await params;
+    redirect(toolItemPath(toolItemIdFromLabelCode(decodeURIComponent(labelCode))));
 }

@@ -663,7 +663,7 @@ office. Invoicing is Admin because invoicing is office work.
 | `/tools/new` | anyone signed in to reach; only somebody assigned to a job can use it (#338) |
 | `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337) |
-| `/t/[toolItemId]` | anyone, signed in or not — it draws nothing and redirects (#348) |
+| `/t/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
 `canViewPR`, in order, first match wins: a Draft is visible **only** to its

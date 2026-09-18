@@ -29,11 +29,11 @@ what they came for is where it is supposed to be and what has happened to it.
 
 **The label does not carry this address, and that is what lets this one be
 readable.** A QR encodes the whole URL, so the printed address is a short route
-of its own, `/t/[toolItemId]`, which redirects here and has a brief of its own.
+of its own, `/t/[labelCode]`, which redirects here and has a brief of its own.
 This page took the name its collection gives it once that separation existed
 (#348). The printed address is what may not move; this one may.
 
-**The id is also printed in characters a person can read**, for a symbol that
+**A code is also printed in characters a person can read**, for a symbol that
 has been scratched or painted over, so the second way here is somebody typing
 it. Case does not matter when they do; the page then moves itself to the
 canonical form of the address, so one tool item keeps one address.
@@ -41,9 +41,17 @@ canonical form of the address, so one tool item keeps one address.
 ## What it always carries
 
 **identity.** The `Tool Item ID` as the heading, and nothing else as a heading —
-the shape the four document detail screens already take. Here it is also the
-string printed on the label in the reader's hand, which is what lets them
-confirm they scanned the right thing.
+the shape the four document detail screens already take.
+
+**It is no longer the same string as the one on the sticker, and the confirmation
+still works (#411).** The label prints `260909-004` where the heading reads
+`HYE-TL-260909-004`, so what a reader matches is the end of the heading rather
+than the whole of it. That is what the seven dropped characters were worth:
+every tool item carries them, so they confirmed nothing, and what is left on the
+sticker is exactly the part that tells one tool item from another. **A design
+may not close the gap by shortening the heading** — this screen names a record
+and the base holds the long form — **and it may not close it by lengthening the
+sticker**, which is the whole of #411.
 
 **verdict.** Where the tool item is: its status, one of `In Stock`, `Out` or
 `Retired`. This is what the reader came for.

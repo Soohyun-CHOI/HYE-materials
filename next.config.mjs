@@ -11,9 +11,13 @@ const nextConfig = {
   // The uppercase spelling of the address a tool label carries (#348). A QR
   // code's alphanumeric mode holds digits, A-Z and a few marks and packs them
   // far tighter than byte mode, so the label encodes the whole URL in upper
-  // case — `HTTPS://HYEUSA.COM/T/HYE-TL-260909-004`, one symbol version smaller
-  // at every error-correction level. The scheme and host are case-insensitive
+  // case — `HTTPS://HYEUSA.COM/T/260909-004`, one symbol version smaller at
+  // every error-correction level. The scheme and host are case-insensitive
   // per RFC 3986; the PATH is not, so `/T/` has to resolve on its own.
+  //
+  // #411 SHORTENED THE SEGMENT AND THE ALIAS STILL EARNS ITS KEEP, measured
+  // rather than assumed: the 31-character lowercase form still splits into two
+  // modes and still costs a version.
   //
   // A REWRITE RATHER THAN A SECOND ROUTE OR A REDIRECT. Two directories
   // differing only in case cannot coexist on a case-insensitive filesystem
@@ -27,7 +31,7 @@ const nextConfig = {
   // `offline/tool-routes.mjs` compares this file against it — nothing else in
   // this repository can see a rewrite.
   async rewrites() {
-    return [{ source: "/T/:toolItemId", destination: "/t/:toolItemId" }];
+    return [{ source: "/T/:labelCode", destination: "/t/:labelCode" }];
   },
 };
 

@@ -34,7 +34,9 @@ import {
     TOOLS_PATH,
     TOOLS_ROUTES,
     canonicalToolItemId,
+    labelCodeFor,
     labelPath,
+    toolItemIdFromLabelCode,
     toolItemPath,
     toolPath,
 } from "../../../lib/toolRoutes.js";
@@ -47,8 +49,18 @@ export const title = "Every address on the tools axis, and the label's own (#348
 /** The route group the whole axis lives in, so one layout holds its width. */
 const GROUP_DIR = "app/(tools)";
 
-/** Addresses this issue retired. Nothing under app/ or lib/ may still name one. */
-const RETIRED = ["/tools/tool/", "/tools/[toolItemId]"];
+/**
+ * Addresses these issues retired. Nothing under app/ or lib/ may still name one.
+ *
+ * `/t/[toolItemId]` joined in #411, when the printed segment stopped being a
+ * `Tool Item ID`. It is the shape most likely to come back by habit: the ops label,
+ * a comment and a brief's own `Route:` line all spell a route as a string, and none
+ * of them is reached by the page-file comparison above.
+ */
+const RETIRED = ["/tools/tool/", "/tools/[toolItemId]", "/t/[toolItemId]"];
+
+/** The token every `Tool Item ID` opens with, and what a label code drops (#411). */
+const TOOL_ITEM_TOKEN = "HYE-TL-";
 
 /** Every `.js` under app/, repo-relative and posix-separated. */
 function appFiles() {
@@ -108,11 +120,11 @@ export function run({ check, assert, log }) {
     check("  a later page of it", toolPath("recAbc", 2), "/tools/recAbc?page=2");
     check("  and page 1 carries no parameter", toolPath("recAbc", 1), "/tools/recAbc");
     check("one tool item", toolItemPath("HYE-TL-260909-004"), "/tool-items/HYE-TL-260909-004");
-    check("the label's own", labelPath("HYE-TL-260909-004"), "/t/HYE-TL-260909-004");
+    check("the label's own", labelPath("HYE-TL-260909-004"), "/t/260909-004");
     for (const [name, built] of [
         ["toolPath", toolPath("rec/A b")],
         ["toolItemPath", toolItemPath("HYE/A b")],
-        ["labelPath", labelPath("HYE/A b")],
+        ["labelPath", labelPath("HYE-TL-A/B C")],
     ])
         assert(`  ${name} encodes its segment`, built.includes("%2F") && built.includes("%20"));
 
@@ -122,6 +134,58 @@ export function run({ check, assert, log }) {
     assert(
         "the label's path is shorter than the screen it opens",
         labelPath("HYE-TL-260909-004").length < toolItemPath("HYE-TL-260909-004").length
+    );
+
+    // ── 2b: the printed code, which is what that segment holds (#411) ───────
+    log("");
+    log("the label drops the family token and `/t/` puts it back:");
+
+    check("the code a label prints", labelCodeFor("HYE-TL-260909-004"), "260909-004");
+    check("  and the id it comes back as", toolItemIdFromLabelCode("260909-004"), "HYE-TL-260909-004");
+    // A ROUND TRIP ALONE PROVES NOTHING, WHICH IS THE TRAP THIS SECTION IS BUILT
+    // AGAINST. With the token mutated to the empty string both halves become the
+    // identity and every round trip in section 3 still passes — measured. So the
+    // value pins above and the three claims here are what carry it: the code really
+    // is shorter, it really does not carry the token, and the token really is seven
+    // characters. That is #224's rule — a second path to the number has to be a
+    // second path — with the literal typed out rather than read off the module.
+    check("the token is seven characters", TOOL_ITEM_TOKEN.length, 7);
+    check(
+        "  and the code is exactly that much shorter",
+        "HYE-TL-260909-004".length - labelCodeFor("HYE-TL-260909-004").length,
+        7
+    );
+    assert(
+        "  the code carries no part of the token",
+        !labelCodeFor("HYE-TL-260909-004").includes(TOOL_ITEM_TOKEN) &&
+            !labelCodeFor("HYE-TL-260909-004").includes("HYE")
+    );
+    // A TYPED CODE REACHES THE CANONICAL ID, so the destination has nothing to
+    // redirect and a scan stays at one hop — #348's rule, one transform further on.
+    // Section 3 runs the same pair over ids the generator really mints.
+    check("a typed lowercase code", toolItemIdFromLabelCode("260909-004"), "HYE-TL-260909-004");
+    check("  with space around it", toolItemIdFromLabelCode("  260909-004 "), "HYE-TL-260909-004");
+
+    // THE OLD FORM IS NOT ACCEPTED, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT.
+    // Nothing links to `/t/`, every symbol is built at render time and no label has
+    // been printed, so no artifact carries the old segment and a branch admitting it
+    // would have no caller — #340's ground for refusing a comparison it could not
+    // reach. Typing one produces a doubled token, which resolves to no tool item and
+    // meets the axis's own `Tool item not found`.
+    assert(
+        "a whole Tool Item ID is not silently accepted as a code",
+        toolItemIdFromLabelCode("HYE-TL-260909-004") === "HYE-TL-HYE-TL-260909-004"
+    );
+    // And a string that is not an id cannot become a label code at all.
+    let refusedCode = null;
+    try {
+        labelCodeFor("260909-004");
+    } catch (error) {
+        refusedCode = error.message;
+    }
+    assert(
+        "a code handed back to labelCodeFor is refused rather than re-stripped",
+        typeof refusedCode === "string" && refusedCode.includes(TOOL_ITEM_TOKEN)
     );
 
     // ── 3: the canonical form of a printed id ───────────────────────────────
@@ -153,6 +217,27 @@ export function run({ check, assert, log }) {
     check("  surrounding space goes", canonicalToolItemId("  HYE-TL-260909-004 "), "HYE-TL-260909-004");
     check("  and it is idempotent", canonicalToolItemId(canonicalToolItemId("hye-tl-260909-004")), "HYE-TL-260909-004");
 
+    // AND THE SAME IDS SURVIVE THE PRINTED FORM (#411), which is what stops the pair
+    // in section 2b being correct for one literal and wrong for a width the
+    // generator can produce — `nextSequence` widens past its pad, so `-1000` is a
+    // real id and its code is a character longer.
+    const codes = minted.map(labelCodeFor);
+    check(
+        `${minted.length} minted ids round-trip through their label code`,
+        minted.filter((id) => toolItemIdFromLabelCode(labelCodeFor(id)) !== id).length,
+        0
+    );
+    check(`  the first is ${codes[0]}`, codes[0], "260909-001");
+    check(`  and the widest is ${codes[codes.length - 1]}`, codes[codes.length - 1], "260909-1000");
+    check(
+        "  a code typed in lowercase reattaches to the same id",
+        minted.filter((id) => toolItemIdFromLabelCode(labelCodeFor(id).toLowerCase()) !== id).length,
+        0
+    );
+    // ANTI-VACUITY: none of those codes is its own id, so the zeros above are facts
+    // about a transform rather than about a pair that does nothing.
+    check("  and not one code equals the id it came from", codes.filter((code, at) => code === minted[at]).length, 0);
+
     // ── 4: the uppercase alias, which lives outside this tier's reach ───────
     log("");
     log("`next.config.mjs` rewrites the uppercase spelling to the route:");
@@ -165,7 +250,7 @@ export function run({ check, assert, log }) {
     check(
         "  and that destination is one of the routes above",
         LABEL_REWRITE.destination.replace(/:(\w+)/g, "[$1]"),
-        "/t/[toolItemId]"
+        "/t/[labelCode]"
     );
     // Uppercasing the whole URL is what the alias buys, so the source has to BE the
     // uppercase of the route rather than merely differ from it.
@@ -220,6 +305,62 @@ export function run({ check, assert, log }) {
     // ANTI-VACUITY: the enumeration finds the OTHER axes' handlers, so the zero is a
     // fact about this axis rather than about a filter that matches nothing.
     assert("  while the rest of app/api/ is still enumerated", appFiles().filter(isRouteFile).length > 5);
+
+    // ── 7: what the printed route actually does with its segment (#411) ─────
+    log("");
+    log("the printed route reattaches the token, on the segment it was handed:");
+    // READ OFF THE AST BECAUSE NAMING THE FUNCTION IS SATISFIED BY EVERY WRONG
+    // VERSION OF THE CALL. `toolItemIdFromLabelCode(labelCode)` and
+    // `toolItemIdFromLabelCode(decodeURIComponent(labelCode))` both name it, and only
+    // the ARGUMENT tells them apart — which is #352's answer to the trap #351 and
+    // #353 each fell into once. A segment passed undecoded turns an encoded
+    // character into a lookup miss, and a call swapped back to `canonicalToolItemId`
+    // sends every scan to an id the base does not hold.
+    const ENTRY_PAGE = `${GROUP_DIR}/t/[labelCode]/page.js`;
+    const calls = [];
+    walk(parseFile(ENTRY_PAGE).ast, (n) => {
+        if (n.type !== "CallExpression" || n.callee.type !== "Identifier") return;
+        calls.push({
+            name: n.callee.name,
+            args: n.arguments.map((arg) =>
+                arg.type === "CallExpression" && arg.callee.type === "Identifier"
+                    ? `${arg.callee.name}(…)`
+                    : arg.type
+            ),
+        });
+    });
+    assert(`  ${ENTRY_PAGE} parses to calls at all`, calls.length > 2);
+    const reattach = calls.filter((call) => call.name === "toolItemIdFromLabelCode");
+    check("it reattaches exactly once", reattach.length, 1);
+    check(
+        "  and what it is handed is the decoded segment",
+        reattach[0]?.args.join(", "),
+        "decodeURIComponent(…)"
+    );
+    check(
+        "  the canonicalizer is not called here instead",
+        calls.filter((call) => call.name === "canonicalToolItemId").length,
+        0
+    );
+    // The redirect is what leaves, and it leaves with the tool item's own address.
+    const redirects = calls.filter((call) => call.name === "redirect");
+    check("one redirect", redirects.length, 1);
+    check("  carrying the screen's path", redirects[0]?.args.join(", "), "toolItemPath(…)");
+    // ANTI-VACUITY: the same reader is shown a call whose argument is NOT a call, so
+    // the shape above is a fact about this file rather than about a walker that
+    // reports `decodeURIComponent(…)` for anything.
+    const plantedArgs = [];
+    walk(parseSource("f(decodeURIComponent(x)); f(x);\n", "<planted-call-args>").ast, (n) => {
+        if (n.type === "CallExpression" && n.callee.name === "f")
+            plantedArgs.push(
+                n.arguments[0]?.type === "CallExpression" ? `${n.arguments[0].callee.name}(…)` : n.arguments[0]?.type
+            );
+    });
+    check(
+        "  the reader tells a wrapped argument from a bare one",
+        plantedArgs.join(" | "),
+        "decodeURIComponent(…) | Identifier"
+    );
 }
 
 /** Every `.js` under lib/, repo-relative and posix-separated. */

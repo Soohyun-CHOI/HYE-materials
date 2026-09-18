@@ -1,6 +1,6 @@
 # Label address
 
-Route: `/t/[toolItemId]`
+Route: `/t/[labelCode]`
 Who reaches it: anyone, signed in or not — it reads nothing and shows nothing.
 Which width comes first: neither. Nothing here is drawn.
 
@@ -14,9 +14,13 @@ item's own screen, `/tool-items/[toolItemId]`.
 encodes, and a QR encodes the whole URL, host included. The longer that string,
 the higher the symbol's version and the finer its grid, so a sticker of a fixed
 size carries thinner modules — read through oil and wear, in a gloved hand, on a
-site. `https://hyeusa.com/t/HYE-TL-260909-004` is nine characters shorter than
-the screen it opens, which is a whole symbol version. `docs/notes/tools.md`
-carries the arithmetic.
+site. `https://hyeusa.com/t/260909-004` is sixteen characters shorter than the
+screen it opens. `docs/notes/tools.md` carries the arithmetic.
+
+**The segment is not a `Tool Item ID`, and that is what #411 changed.** A tool
+item is `HYE-TL-260909-004` in the base and on every screen; what the label
+carries is `260909-004`, because the seven characters in front of it are on
+every tool item and separate none of them. This route puts them back.
 
 **A redirect rather than the page itself, because one page has one address.**
 Serving the tool item's content here would make two addresses for one screen,
@@ -31,15 +35,23 @@ the app does not have. The arrival at the tool item is the answer.
 
 Nothing. There is no heading, no text, no control and no markup.
 
-**action.** One redirect, to `/tool-items/[toolItemId]`, carrying the same id
-with its capitals normalized. A person who scans a label sees their browser move
-once and land on the tool item.
+**action.** One redirect, to `/tool-items/[toolItemId]`, carrying the tool item
+id this route builds from the printed code — capitals normalized and the family
+token put back, so the destination is handed the spelling the base holds and has
+nothing of its own to redirect. A person who scans a label sees their browser
+move once and land on the tool item.
 
 ## What it carries only sometimes
 
-Nothing, and there is no branch. Every string is redirected alike — an id no tool
-item carries reaches the tool item screen and is answered there with
+Nothing, and there is no branch. Every string is redirected alike — a code no
+tool item carries reaches the tool item screen and is answered there with
 `Tool item not found`, which is the one place that sentence belongs.
+
+**A whole `Tool Item ID` typed here reaches that same sentence.** The old form
+of this address is not accepted: no label was ever printed with it and every
+symbol is built as a page renders, so nothing anywhere carries one. The token
+is simply put in front of whatever arrives, which for a string that already has
+one resolves to no tool item.
 
 **It does not check for a session either**, so a scan with nobody signed in
 redirects to the tool item, which is what sends the reader to `/login`. One sign-in
@@ -53,11 +65,18 @@ the name its collection gives it while the label keeps the short string. A desig
 or a later phase that prints the screen's address instead loses the symbol version
 this route buys.
 
-**The label prints the URL in capitals**, `HTTPS://HYEUSA.COM/T/HYE-TL-260909-004`,
-because a QR code packs digits and capitals far more tightly than mixed case. The
-uppercase spelling of the path resolves to this same route. What a label carries
-beside the code — the id in readable characters, for a symbol that has been
-scratched — is Phase 2's to lay out.
+**The code printed on the sticker and the segment of this address are one
+string**, and they may not be allowed to drift apart. The readable code exists
+for a symbol that has been scratched or painted over, and what the person
+reading it does with it is type it into the address — so printing one form
+while routing another breaks that path at the only point it is used.
+
+**The label prints the URL in capitals**, `HTTPS://HYEUSA.COM/T/260909-004`,
+because a QR code packs digits and capitals far more tightly than mixed case.
+The uppercase spelling of the path resolves to this same route. **Shortening the
+segment did not make that optional** — the lowercase form of the shorter address
+still costs a symbol version, because what costs it is the mixed character set
+and not the length.
 
 **Nothing is printed yet.** Every label this route is for is a later phase, so
 moving it today costs code and no reprinting; after that it costs both.
