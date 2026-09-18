@@ -1,5 +1,6 @@
 // Which order an invoice item was invoiced against (#237) — the same-set test, the
-// exclusion, the per-order quantity and the copy.
+// exclusion, the per-order quantity, what that quantity is measured against (#408)
+// and the copy.
 //
 // THE FOLD IS THE REAL ONE, NOT A HAND-MADE SHAPE. Every fixture here is raw Invoice
 // Items run through `foldInvoiceItems`, because the join this module does is on the
@@ -27,6 +28,19 @@
 //   - an invoice item with no `PO Item`. That was a state behind a flag when this
 //     was written and is no state at all since #278, so what the read below guards
 //     is a link emptied by hand rather than a kind of charge.
+//
+// #408'S DENOMINATOR RESTS ON A THIRD SHAPE, AND THAT ONE THE APP CAN REACH — which
+// is why it is asserted here AND produced on the base by
+// `scripts/tests/verify-order-breakdown-408.mjs` rather than pinned on this tier
+// alone. One folded item can cover TWO `PO Items` rows on ONE order:
+// `lib/prItemMerge.js:mergeKey` holds `Remark` and the quotation where
+// `lib/invoiceItemFold.js:foldKey` holds neither, so two request items differing only
+// in their remark survive as two rows, snapshot one-for-one into two ordered items,
+// and take one `Materials` row and one price. The fold is the coarser unit, so the
+// denominator sums the DISTINCT ordered items a charge covers — and both ways of
+// getting that wrong are built and run below, because reading one row's `Qty` and
+// adding one per invoice item are the two plausible mistakes and they fail on
+// different invoices.
 
 import { foldInvoiceItems } from "../../../lib/invoiceItemFold.js";
 import {
@@ -123,6 +137,48 @@ const LISTED_PLUS_FREE_TEXT = invoice([
     ...EACH_ITS_OWN.items,
     row({ id: "rec9", po: C, poItem: null, material: null, itemName: "Freight" }),
 ]);
+
+// Two rows of one item on ONE order, against TWO ordered items — the shape a pair of
+// request items differing only in their remark leaves (see the header). `row()`'s
+// default gives every row its own ordered item, so this is what the default already
+// means; it is named here because the denominator is the thing it decides.
+const TWO_ORDERED_ITEMS_ON_A = invoice([
+    row({ id: "rec1", po: A, material: "recMAT_1", qty: 5 }),
+    row({ id: "rec2", po: A, material: "recMAT_1", qty: 6 }),
+    row({ id: "rec3", po: B, material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41.07 }),
+]);
+
+// The same two rows against ONE ordered item. Not reachable through the invoice form —
+// #91 refuses an ordered item a sibling invoice item already claims — and reachable by
+// hand, which is this base's standing condition. It is the case that tells summing the
+// DISTINCT ordered items apart from adding one per row.
+const ONE_ORDERED_ITEM_TWICE = invoice([
+    row({ id: "rec1", po: A, poItem: "shared-ordered", material: "recMAT_1", qty: 5 }),
+    row({ id: "rec2", po: A, poItem: "shared-ordered", material: "recMAT_1", qty: 6 }),
+    row({ id: "rec3", po: B, material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41.07 }),
+]);
+
+/**
+ * What each ordered item was ordered for (#408).
+ *
+ * Keyed on the `PO Items` record id, which is what a charge row names through
+ * `PO Item` — the map `lib/deliveryReconciliation.js` hands over from rows the page
+ * has already read. The figures differ from one another on purpose: a denominator
+ * built by summing the wrong set lands on a different number rather than on the
+ * right one by luck.
+ */
+const ORDERED_QTY = new Map([
+    ["rec1-ordered", 20],
+    ["rec2-ordered", 30],
+    ["rec3-ordered", 40],
+    ["shared-ordered", 20],
+]);
+
+/** One invoice with the ordered quantities attached, the way the page hands them over. */
+const withOrderedQty = (fixture, map = ORDERED_QTY) => ({
+    ...fixture,
+    orderedQtyByOrderedItem: map,
+});
 
 export function run({ check, assert, log }) {
     // -----------------------------------------------------------------------
@@ -259,19 +315,134 @@ export function run({ check, assert, log }) {
     check("and 10 + 3 is the folded row's Qty in the table above", ONE_SPLIT.folded[0].qty, 13);
 
     // Two rows of one item on ONE order sum rather than repeating the item.
-    const twiceOnOneOrder = chargesByOrder(
-        invoice([
-            row({ id: "rec1", po: A, material: "recMAT_1", qty: 5 }),
-            row({ id: "rec2", po: A, material: "recMAT_1", qty: 6 }),
-            row({ id: "rec3", po: B, material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41.07 }),
-        ])
-    ).byOrder;
+    const twiceOnOneOrder = chargesByOrder(TWO_ORDERED_ITEMS_ON_A).byOrder;
     check("two rows of one item on one order are one line", twiceOnOneOrder.get(A).length, 1);
     check("  carrying their sum", twiceOnOneOrder.get(A)[0].qty, 11);
 
     // byOrder is populated whether or not it is shown — the decision and the data are
     // separable, and the page reads `shown`.
     check("byOrder is built for a silent invoice too", chargesByOrder(ONE_ORDER).byOrder.get(A).length, 2);
+
+    // -----------------------------------------------------------------------
+    log("what that quantity is measured against (#408) — per order, over the same rows:");
+    // ANTI-VACUITY FIRST. The denominator is an OPTIONAL input, so a module that
+    // ignored it entirely would pass every string assertion further down by
+    // rendering the pre-#408 line. One invoice, read both ways, is what proves the
+    // map is read at all.
+    const withoutMap = chargesByOrder(ONE_SPLIT).byOrder;
+    const withMap = chargesByOrder(withOrderedQty(ONE_SPLIT)).byOrder;
+    check("no map: a charge states no whole", withoutMap.get(A)[0].orderedQty, null);
+    check("  with the map, the same charge does", withMap.get(A)[0].orderedQty, 20);
+    assert(
+        "  and the quantity itself is untouched by the map, so only the whole moved",
+        withoutMap.get(A)[0].qty === withMap.get(A)[0].qty
+    );
+
+    check("each order carries ITS ordered item's quantity — A", withMap.get(A)[0].orderedQty, 20);
+    check("  and B carries the other half of the split", withMap.get(B)[0].orderedQty, 30);
+    check("  a second item on A takes its own ordered item", withMap.get(A)[1].orderedQty, 40);
+
+    // The shape the header names: one folded item over two ordered items on one order.
+    const twoOrdered = chargesByOrder(withOrderedQty(TWO_ORDERED_ITEMS_ON_A)).byOrder;
+    check("one line covering two ordered items on one order sums both", twoOrdered.get(A)[0].orderedQty, 50);
+    check("  while its own quantity stays the two rows' sum", twoOrdered.get(A)[0].qty, 11);
+
+    // And the case that tells the rule apart from adding one per row.
+    const sharedOrdered = chargesByOrder(withOrderedQty(ONE_ORDERED_ITEM_TWICE)).byOrder;
+    check("two rows on ONE ordered item count it once", sharedOrdered.get(A)[0].orderedQty, 20);
+    check("  with both rows' quantity still summed", sharedOrdered.get(A)[0].qty, 11);
+
+    // -----------------------------------------------------------------------
+    log("the denominator's mutants — the two plausible ways to sum the wrong set:");
+    // Both are the real builder with one line changed, and each is shown to disagree
+    // on the invoice its own mistake shows up on. They fail on DIFFERENT fixtures, so
+    // neither assertion is carrying the other.
+    const perRow = ({ folded, items, orderedQtyByOrderedItem } = {}) => {
+        const rowById = new Map((items || []).map((r) => [r.id, r]));
+        const byOrder = new Map();
+        for (const group of folded || []) {
+            for (const rowId of group.rowIds || []) {
+                const r = rowById.get(rowId);
+                if (!r || !r.poItem?.[0] || !r.po?.[0]) continue;
+                const ordered = orderedQtyByOrderedItem?.get(r.poItem[0]);
+                if (typeof ordered !== "number") continue;
+                const k = `${group.key}::${r.po[0]}`;
+                byOrder.set(k, (byOrder.get(k) ?? 0) + ordered);
+            }
+        }
+        return byOrder;
+    };
+    const firstOnly = ({ folded, items, orderedQtyByOrderedItem } = {}) => {
+        const rowById = new Map((items || []).map((r) => [r.id, r]));
+        const byOrder = new Map();
+        for (const group of folded || []) {
+            for (const rowId of group.rowIds || []) {
+                const r = rowById.get(rowId);
+                if (!r || !r.poItem?.[0] || !r.po?.[0]) continue;
+                const k = `${group.key}::${r.po[0]}`;
+                if (byOrder.has(k)) continue;
+                byOrder.set(k, orderedQtyByOrderedItem?.get(r.poItem[0]) ?? null);
+            }
+        }
+        return byOrder;
+    };
+    const sharedKey = ONE_ORDERED_ITEM_TWICE.folded[0].key;
+    const twoKey = TWO_ORDERED_ITEMS_ON_A.folded[0].key;
+    check(
+        "adding one per ROW double-counts an ordered item two rows charge",
+        perRow(withOrderedQty(ONE_ORDERED_ITEM_TWICE)).get(`${sharedKey}::${A}`),
+        40
+    );
+    assert(
+        "  and the real rule disagrees with it there",
+        sharedOrdered.get(A)[0].orderedQty === 20
+    );
+    check(
+        "reading the FIRST ordered item alone undercounts a line covering two",
+        firstOnly(withOrderedQty(TWO_ORDERED_ITEMS_ON_A)).get(`${twoKey}::${A}`),
+        20
+    );
+    assert(
+        "  and the real rule disagrees with it there",
+        twoOrdered.get(A)[0].orderedQty === 50
+    );
+    assert(
+        "the two mutants fail on different invoices, so one cannot mask the other",
+        perRow(withOrderedQty(TWO_ORDERED_ITEMS_ON_A)).get(`${twoKey}::${A}`) === 50 &&
+            firstOnly(withOrderedQty(ONE_ORDERED_ITEM_TWICE)).get(`${sharedKey}::${A}`) === 20
+    );
+
+    // -----------------------------------------------------------------------
+    log("a row with no ordered item is out of BOTH figures, not just the first:");
+    const partlyFreeText = chargesByOrder(
+        withOrderedQty(
+            invoice([
+                row({ id: "rec1", po: A, material: "recMAT_1", qty: 5 }),
+                row({ id: "rec2", po: A, poItem: null, material: "recMAT_1", qty: 6 }),
+                row({ id: "rec3", po: B, material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41.07 }),
+            ])
+        )
+    ).byOrder;
+    // The second row keys on its own id (no `Material` reaches the fold without an
+    // ordered item), so it is its own folded item and names no order at all.
+    check("the charge on A carries only the linked row's quantity", partlyFreeText.get(A)[0].qty, 5);
+    check("  and only that row's ordered item as its whole", partlyFreeText.get(A)[0].orderedQty, 20);
+    check("  so A carries one line, not two", partlyFreeText.get(A).length, 1);
+
+    // -----------------------------------------------------------------------
+    log("an ordered item the caller could not supply leaves the whole unstated:");
+    const noneResolved = chargesByOrder(
+        withOrderedQty(TWO_ORDERED_ITEMS_ON_A, new Map())
+    ).byOrder;
+    check("no ordered item resolved: nothing is claimed", noneResolved.get(A)[0].orderedQty, null);
+    const someResolved = chargesByOrder(
+        withOrderedQty(TWO_ORDERED_ITEMS_ON_A, new Map([["rec1-ordered", 20]]))
+    ).byOrder;
+    check("one of two resolved: the one that could be read", someResolved.get(A)[0].orderedQty, 20);
+    assert(
+        "  which is a smaller whole than both, never a zero standing in for the missing one",
+        someResolved.get(A)[0].orderedQty === 20 && twoOrdered.get(A)[0].orderedQty === 50
+    );
 
     // -----------------------------------------------------------------------
     log("the copy — item, size, quantity, unit, and no money:");
@@ -304,6 +475,53 @@ export function run({ check, assert, log }) {
     assert("a line carries no price and no amount even when handed both", !withMoney.includes("$"));
     check("  and says exactly what it said without them", withMoney, 'Elbow 3" — 5 EA');
     check("the key is stable, so a call site can branch on it", ORDER_BREAKDOWN_COPY.charged({}).key, "order-charged");
+
+    // -----------------------------------------------------------------------
+    log("the copy's whole (#408) — one unit, after both figures:");
+    check(
+        "a charge states the quantity over what its order asked for",
+        ORDER_BREAKDOWN_COPY.charged({
+            itemName: "166-DEMO Elbow",
+            size: '3"',
+            unit: "EA",
+            qty: 5,
+            orderedQty: 10,
+        }).text,
+        '166-DEMO Elbow 3" — 5 of 10 EA'
+    );
+    // THE UNIT ONCE, PINNED BY COUNT RATHER THAN BY READING THE STRING — `5 EA of 10
+    // EA` is the shape this decision rules out, and it would pass a substring test
+    // for the sentence above.
+    const pair = ORDER_BREAKDOWN_COPY.charged({
+        itemName: "Rebar",
+        size: "",
+        unit: "EA",
+        qty: 5,
+        orderedQty: 10,
+    }).text;
+    check("the unit appears once", pair.split("EA").length - 1, 1);
+    check("  and after both figures", pair, "Rebar — 5 of 10 EA");
+    check(
+        "a blank unit still states both figures",
+        ORDER_BREAKDOWN_COPY.charged({ itemName: "Rebar", size: "", unit: "", qty: 5, orderedQty: 10 }).text,
+        "Rebar — 5 of 10"
+    );
+    check(
+        "an unstated whole reads as the line read before #408",
+        ORDER_BREAKDOWN_COPY.charged({ itemName: "Rebar", size: "", unit: "EA", qty: 5, orderedQty: null }).text,
+        "Rebar — 5 EA"
+    );
+    check(
+        "a whole of zero is a figure and is stated",
+        ORDER_BREAKDOWN_COPY.charged({ itemName: "Rebar", size: "", unit: "EA", qty: 5, orderedQty: 0 }).text,
+        "Rebar — 5 of 0 EA"
+    );
+    // The denominator is a quantity, so it must not bring money with it either.
+    assert(
+        "the whole carries no currency",
+        !ORDER_BREAKDOWN_COPY.charged({ itemName: "Elbow", unit: "EA", qty: 5, orderedQty: 10, unitPrice: 13.49 })
+            .text.includes("$")
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

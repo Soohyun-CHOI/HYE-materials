@@ -171,7 +171,17 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
     // fold's `rowIds` against the invoice items already loaded, so it costs no query:
     // an Invoice Item carries its own `PO` and `PO Item`, and the order records are the
     // ones that section already renders. The rule is lib/invoiceOrderBreakdown.js.
-    const orderBreakdown = chargesByOrder({ folded: foldedItems, items });
+    //
+    // Issue #408 — and what each of those charges was measured against. The ordered
+    // quantities come off the reconciliation, which read `PO Items` to compare
+    // quantities and now hands the level back, so the denominator costs NO operation
+    // and no extra field: `findByRecordIds` passes no `fields`, so `Qty` was already
+    // on the records this page had (lib/airtable/poItems.js says so of its own).
+    const orderBreakdown = chargesByOrder({
+        folded: foldedItems,
+        items,
+        orderedQtyByOrderedItem: reconciliation.orderedQtyByOrderedItem,
+    });
 
     // Issue #241 — the delivery section's entries, one per FOLDED item rather than
     // one per invoice item, so what counts as one material is decided once for this
