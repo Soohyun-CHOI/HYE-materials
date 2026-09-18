@@ -83,30 +83,30 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 One module per rule, and **one rule, one implementation** — see below. Each entry is the path and what it owns; why it owns it is in the `docs/notes/` file for its area.
 
-- `lib/airtable/client.js` — shared connection, `TABLES`, `getLinkedRecords()`, `withKeyLock()`, and the batched readers `findChildRecords` / `findByRecordIds` / `findByFieldValues`. Throws at module load without `AIRTABLE_API_KEY`.
+- `lib/airtable/client.js` — the shared connection, the table names, the batched readers and `withKeyLock()`. Throws at module load without `AIRTABLE_API_KEY`.
 - `lib/airtable/{table}.js` — one file per table, plain async functions.
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
-- `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, plus the whole-formula builders `orByRecordId` / `orByField` / `andSearchAll` / `prefixMatch`.
+- `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, and the whole-formula builders.
 - `lib/ids.js` — all ID generation: the lock, the query and the create.
-- `lib/idSequence.js` — the pure half: the daily ID families, the nine child relations in `CHILD_KINDS`, `nextSequence`, `formatSequentialId`.
-- `lib/productName.js` — `PRODUCT_NAME` and `SIGN_IN_TITLE`. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
-- `lib/userName.js` — the name a screen prints for a user (#381): the first name, the full name the pickers and the two vendor-facing surfaces take, and the local-part fallback while none is stored. **A name field is read nowhere else.**
-- `lib/authTokenState.js` — whether a magic-link token can still be used: the five states, their copy, `TOKEN_TTL_MINUTES`.
-- `lib/loginDestination.js` — where a signed-out reader was headed (#373): the parameter, the one predicate that judges it, and the two paths that carry it.
+- `lib/idSequence.js` — the pure half: the daily ID families and the child relations.
+- `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
+- `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
+- `lib/authTokenState.js` — whether a magic-link token can still be used, and the TTL.
+- `lib/loginDestination.js` — where a signed-out reader was headed (#373).
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
-- `lib/variance.js` — invoice/PO variance checks, and `VARIANCE_COPY`: the two kinds named apart (#179). Plus the cent rule (#254, #308): the two predicates, the guards, and the three refusals. **Nothing writes a quantity or a currency figure into an item or a document total without asking them.**
+- `lib/variance.js` — invoice/PO variance checks and `VARIANCE_COPY` (#179), plus the cent rule (#254, #308). **Nothing writes a quantity or a currency figure into an item or a document total without asking them.**
 - `lib/itemNaming.js` — `normalizeItemText`: trim, collapse internal whitespace, case untouched.
-- `lib/searchTokens.js` — how a typed query becomes match tokens (#325), for both of the app's search boxes: the fold, the AND over tokens, the substring, and the two arguments `/materials` adds.
-- `lib/prItemMerge.js` — identical PR item rows are one item on save (#170): the six-field key, `isEmptyItemRow`, and `PR_ITEM_MERGE_COPY`. Applied in `parseFormState`, previewed by the form.
-- `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188): the restore names, both voices of the copy, and the recorder all four rollbacks write into. What a failed restore owes its reader, and why none of it reaches Airtable, is that module's own header.
-- `lib/materialCategory.js` — a category's composed label (#354) and the walk that narrows to one (#355): the four levels, the two words that drop out, the separator, the Airtable formula generated from all three, and every word the picker says. Plus, since #367, picking one level, the edit turn's refusal, and the `Category`+`Item Name` pair no call site may spell apart. **Nothing here writes a label.**
-- `lib/airtable/materialCategories.js` — the catalog's three reads (#355, #356): the whole tree for a form that narrows it, leaf codes resolved to record ids for the write, and record ids back to codes for the cache. **A duplicate leaf code throws rather than letting a row win**, since nothing on the base keeps them unique.
-- `lib/addressCreation.js` — creating an address (#384): the label key, the addresses a job uses (the UNION of `Addresses."Jobs"` and the job's own `Delivery Address`), the refusals, the `Country` options, and every word the app's first create screen outside `/admin` says.
-- `lib/addressChoice.js` — where a request's material goes (#385): the picker's two groups, the branch a stored address came back as, the id a submission carries, and every word the control says. **A request stores an ADDRESS and not a choice.**
-- `lib/materialIdentity.js` — what makes two ordered items the same material (#356): the category exactly, size and unit case-insensitively. The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
+- `lib/searchTokens.js` — how a typed query becomes match tokens (#325), for both of the app's search boxes.
+- `lib/prItemMerge.js` — identical PR item rows are one item on save (#170), and `PR_ITEM_MERGE_COPY`.
+- `lib/rollbackReport.js` — what a failed rollback in the signing chain reports (#188).
+- `lib/materialCategory.js` — a category's composed label and the walk that narrows to one (#354, #355, #367), plus the `Category`+`Item Name` pair no call site may spell apart. **Nothing here writes a label.**
+- `lib/airtable/materialCategories.js` — the catalog's three reads (#355, #356). **A duplicate leaf code throws rather than letting a row win.**
+- `lib/addressCreation.js` — creating an address (#384): the label key, the addresses a job uses, the refusals and every word the screen says.
+- `lib/addressChoice.js` — how a form asks where material goes, on both screens that ask (#385, #387). **A request stores an ADDRESS and not a choice.**
+- `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
-- `lib/toolStatus.js` — the tools track's two closed vocabularies (#334, narrowed in #335): three statuses, four events, and the three maps over them (#362, #363). No call site passes `createToolLogEntry` a string literal.
+- `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
 - `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), and the picker's words.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, and every word the screen says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
@@ -116,47 +116,47 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, the refusals, and every word it says.
 - `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, and every word they say.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
-- `lib/materialPriceView.js` — the view rules for those screens: query→tokens, row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357) — the search box's words and the two sentences a miss chooses between, since the label's words are the catalog's rather than a requester's.
+- `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
-- `lib/poListView.js` — the PO list's ordering, Status text, and which approved PRs have no PO with both voices of that copy (#176). `selectPOsAwaitingSend` + `AWAITING_SEND_COPY` (#295) are the second strip.
-- `lib/listFilters.js` — what the four document lists filter by (#324) and search by (#325): which axes each carries, the four controls, the parameter names, how they compose, the three empty states, and every word the bar says; `app/components/ListFilterBar.js` draws it. **A closed set a list renders is a filter when the document or its item rows hold it, and a strip's subject when it lies along a wait.** **A box searches the names ON THE ROW — the id, a second name the row itself carries, the vendor and the job — never another document's.**
-- `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, folded to one entry per document, their ordering, their empty states and `PO_DOCUMENTS_COPY`.
+- `lib/poListView.js` — the PO list's Status text, its empty states, and both strips above it (#176, #295).
+- `lib/listFilters.js` — what the four document lists filter by (#324) and search by (#325), and every word the bar says. **A closed set a list renders is a filter when the document or its item rows hold it, and a strip's subject when it lies along a wait.** **A box searches the names ON THE ROW — the id, a second name the row itself carries, the vendor and the job — never another document's.**
+- `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, and `PO_DOCUMENTS_COPY`.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
-- `lib/poSend.js` — sending a signed order to the vendor (#281): `PO_SENT_STATUS`, the five refusals, and the screen and mail copy. `SIGNED_NOTICE_COPY` (#290) is the mail telling the requester to place it — here because `lib/email.js` cannot be imported by a check at all, so only a pure builder can be called with an argument missing.
-- `lib/poDeliveryAddress.js` — the address an order freezes (#386): read from the request and never from the job, plus the two words `/pos/[poId]` says.
-- `lib/poUnsigned.js` — `isPOUnsigned` and the signal wherever an order is offered for an invoice (#198): the picker's option label and `UNSIGNED_COPY`. `AWAITING_SIGNATURE_COPY` (#292) is the mail asking the President to sign.
-- `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242): `PO_ORIGIN`, the searched-order claim rule, the one-slot-one-order exclusion, and detection's claim over an entry the search put there.
+- `lib/poSend.js` — sending a signed order to the vendor (#281): `PO_SENT_STATUS`, the refusals, and the screen and mail copy. `SIGNED_NOTICE_COPY` (#290) is the mail telling the requester to place it.
+- `lib/poDeliveryAddress.js` — the address an order freezes (#386): read from the request and never from the job.
+- `lib/poUnsigned.js` — `isPOUnsigned` and the signal wherever an order is offered for an invoice (#198). `AWAITING_SIGNATURE_COPY` (#292) is the mail asking the President to sign.
+- `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242).
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
-- `lib/fileLinks.js` — where an uploaded file is reached (#331): the five axis tokens, the href screens build, the viewer's words. Pure — five `"use client"` files import it.
-- `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, where that figure came from, the refusal's words, and the guard all five upload forms open their try with.
+- `lib/fileLinks.js` — where an uploaded file is reached (#331), and the viewer's words. Pure — `"use client"` files import it.
+- `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, the refusal's words, and the guard every upload form opens its try with.
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
-- `lib/directPurchase.js` — the way out of an invoice with no order (#272): `directPurchaseBlocked`, the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
+- `lib/directPurchase.js` — the way out of an invoice with no order (#272): the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
 - `lib/directPurchaseClaim.js` — the strip's rows and the Draft a site raises from one. Credentialed.
-- `lib/prKind.js` — which of three kinds a request is (#272), read from two reverse-links and **stored in no field**, plus the mark for each and the signer's sentence. Ordinary carries none.
+- `lib/prKind.js` — which of three kinds a request is (#272), the mark for each and the signer's sentence.
 - `lib/prWait.js` — a record waiting for a request: `WAIT_STAGE`, and the listed-against-offered split both strips above `/prs` obey (#272).
 - `lib/deliveryAllocation.js` — the allocation rule (`planDelivery`), its replay (`recomputeOverDelivery`), `ALLOCATION_COPY`, and the dropdown helpers the form imports.
-- `lib/deliveryAddress.js` — where a delivery arrived (#387): the default taken from the orders it attaches to, and its four states. **A job's address defaults `/prs/new` and nothing else, and a recorded delivery's is never rewritten — stock is counted by it.**
+- `lib/deliveryAddress.js` — where a delivery arrived (#387): the default taken from the orders it attaches to. **A job's address defaults `/prs/new` and nothing else, and a recorded delivery's is never rewritten — stock is counted by it.**
 - `lib/deliveryCandidates.js` — the Job → Disciplines → PRs → POs → PO Items walk that finds ordered items. Credentialed.
-- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. All THREE order-scope summaries live here (#311 added payment), and `AWAITING_DELIVERY_DAYS` (#263). **A screen showing an invoice never compares `Due Date` to today (#316)** — `invoicePayment` hands back the verdict and its day count from one expression, and a second rule beside it agrees until the boundary.
+- `lib/deliveryStatus.js` — delivered against invoiced against ordered: the judgment, `STATUS_COPY`, the list filters, the worklist order. All three order-scope summaries live here (#311), and `AWAITING_DELIVERY_DAYS` (#263). **A screen showing an invoice never compares `Due Date` to today (#316)** — `invoicePayment` hands back the verdict and its day count.
 - `lib/deliveryReconciliation.js` — the two batched walks joining invoices to deliveries through `Invoice Items` → `PO Item` ← `Delivery Items`. Credentialed.
 - `lib/deliveryInvoiceLink.js` — the invoice/delivery pairing rule, its dropdown options and every refusal.
 - `lib/deliveryInvoiceMatch.js` — the COMPUTED pairing (#231): containment, the price gate, a delivery's remaining capacity, the rival clause and its tie-break, `PAIRING_COPY`. One predicate serves both directions.
 - `lib/deliveryInvoiceCandidates.js` — which invoices a delivery may name, which deliveries an invoice may name, and the guarded write. Credentialed.
 - `lib/deliveryAccess.js` — `canAccessJobDeliveries`, the one Job-scope rule for deliveries.
 - `lib/deliveryDelete.js` — the delete predicate, the three voices of the confirmation, and the guarded write.
-- `lib/overage.js` — the overage request's judgment and `OVERAGE_COPY`. `overageAgreement` (#265), the quotation-supplying invoice and its ordering (#219), `awaitsOverageRequest` and the signer-copy rule (#217).
-- `lib/overagePR.js` — the read and write sides of the correction: the facts, the uncorrected-excess list (#217), the Draft it creates, and the apply step. Credentialed.
+- `lib/overage.js` — the overage request's judgment, the quotation-supplying invoice, and `OVERAGE_COPY` (#217, #219, #265).
+- `lib/overagePR.js` — the read and write sides of the correction: the facts, the Draft it creates, and the apply step (#217). Credentialed.
 - `lib/invoiceJob.js` — the job an invoice charges for (#314): one judgment, walked from the orders it charges, **taking no reader** so two readers cannot see two values on one row.
 - `lib/invoiceItemFold.js` — `foldInvoiceItems`: a split invoice item reads as one row again.
-- `lib/invoiceItemsMissing.js` — an invoice holding no item rows (#330): the free predicate, and the one sentence its screen and `updateInvoiceAction` share. **The create path's refusal is a DIFFERENT fact and keeps its own words.**
-- `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders they charge (#237): the same-set test that decides whether they appear, the per-order quantity, the no-ordered-item exclusion, `ORDER_BREAKDOWN_COPY`.
-- `lib/invoiceDeliveryEntries.js` — the invoice detail's delivery entries (#241): one per folded item, its members' shares added rather than re-clamped, and no entry where nothing disagrees.
+- `lib/invoiceItemsMissing.js` — an invoice holding no item rows (#330): the predicate and the one sentence its screen and `updateInvoiceAction` share. **The create path's refusal is a DIFFERENT fact and keeps its own words.**
+- `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders they charge (#237), and `ORDER_BREAKDOWN_COPY`.
+- `lib/invoiceDeliveryEntries.js` — the invoice detail's delivery entries (#241), one per folded item.
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
-- `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate, and a payment read behind a privilege test fails a check.**
+- `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
-- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener. #232 retired a marker on the same ground.**
-- `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the five list tables are held to and where 52rem comes from (#183). **A table on a different page shell declares its own and is not a stale copy.**
-- `app/components/Instant.js` — a stored instant, drawn in the reader's own zone (#374). **A time renders in the reader's zone and names none; the one surface with no reader — the order document — names the zone it used.** Nothing is drawn until the browser can say what that zone is, so no Server Component may format one.
+- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener.**
+- `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
+- `app/components/Instant.js` — a stored instant, drawn in the reader's own zone (#374). **A time renders in the reader's zone and names none; the one surface with no reader — the order document — names the zone it used.** No Server Component may format one.
 - `app/components/CategoryPicker.js` — the four-level category control, on both screens that reach an item (#367). No state and no sentence of its own.
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.
@@ -195,11 +195,11 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in-app). At least one required per PR; can have more than one over its lifetime (dynamic list on PR form, or later via Edit and continue).
 
-**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend, unlike Items Subtotal/Calculated Total/Variance Flag; human edits allowed and recompute variance — #117), Shipping Fee, Tariff (optional), Sales Tax (optional, #283 — currency; on `Invoices` only, since neither a PR nor a PO states a tax), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff + Sales Tax, blank = 0), Variance Flag (checkbox, backend-set), Paid Date (calendar — its presence IS the payment, `Sent At`'s shape; the `Paid` checkbox went in #318), File (attachment, required), Delivery (link -> Deliveries, single, optional — app-enforced, #210), Recorded By (link -> Users, #382).
+**Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend; human edits allowed and recompute variance, #117), Shipping Fee, Tariff (optional), Sales Tax (optional currency, #283 — on `Invoices` only), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff + Sales Tax, blank = 0), Variance Flag (checkbox, backend-set), Paid Date (calendar — its presence IS the payment, `Sent At`'s shape; the `Paid` checkbox went in #318), File (attachment, required), Delivery (link -> Deliveries, single, optional — app-enforced, #210), Recorded By (link -> Users, #382).
 
 **Invoice-PO Link**: join table, many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
-**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared, Unit Price/Qty discrepancies). Size/Unit are frozen copies from the linked PO Item, reference-only, no edit path (mismatch = wrong PO Item picked). **`PO Item` is required, and by this app rather than by the schema — Airtable cannot make a link field required (#278).** Only a PR takes typed items, so a charge with no ordered item behind it is not a state this app has: `createInvoiceAction` refuses one and `createInvoiceItem` throws.
+**Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single, app-enforced — #278), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared, Unit Price/Qty discrepancies). Size/Unit are frozen copies from the linked PO Item, reference-only, no edit path (mismatch = wrong PO Item picked). Only a PR takes typed items, so a charge with no ordered item behind it is not a state this app has.
 
 **Addresses**: Address Label (primary, human-typed, app-enforced unique — the one `X Label` primary NOT composed, #384), Line 1/2, City, State, Zip Code, Country, Formatted Address (formula), Jobs (link -> Jobs, multiple, #384).
 
@@ -244,13 +244,13 @@ Read `docs/notes/id-generation.md` before touching `lib/ids.js` or `lib/idSequen
 
 ## Querying parent/child data
 
-`filterByFormula` cannot match a link field against a record ID. Read the parent's reverse-link field via `.find(parentRecordId)` (`getLinkedRecords()`), never filter the child table directly. **The children themselves are read in one query per 50 ids, never one `find()` per child (#193)** — `findChildRecords`, which keeps the link array's order and throws on an id that does not resolve. A caller already holding the parent record passes its link array and skips the parent find; a reader that takes only an id cannot. Exception: `materialPrices.js:getMaterialPrice` uses the `Material Record ID` / `Vendor Record ID` lookups, because a price row is keyed by two links and has no parent whose reverse-link would do.
+`filterByFormula` cannot match a link field against a record ID. Read the parent's reverse-link field via `.find(parentRecordId)` (`getLinkedRecords()`), never filter the child table directly. **The children themselves are read in one query per 50 ids, never one `find()` per child (#193)** — `findChildRecords`, which keeps the link array's order and throws on an id that does not resolve. Exception: `materialPrices.js:getMaterialPrice` uses the `Material Record ID` / `Vendor Record ID` lookups, because a price row is keyed by two links and has no parent whose reverse-link would do.
 
 **Client bundle safety — an import is an execution.** No `"use client"` file may import anything that reaches `lib/airtable/` or `lib/airtableOps.js`, at any depth. Nothing tree-shakes away a dependency whose evaluation has side effects, so a pure helper in a credentialed module has to MOVE rather than be imported selectively. `next build` does not catch this. A `"use server"` file is a boundary, not a dependency. Enforced by `offline/client-import-safety.mjs`.
 
-**Formula injection — every interpolation escapes.** The one escape is `lib/airtableFormula.js:formulaString`, and every interpolation in `lib/` and `app/` goes through it or through a whole-formula builder from that module. A field name is a `{...}` reference and is never escaped; a builder refuses one containing a brace. An empty id list yields `FALSE()`, never an empty `OR()`. Enforced by `offline/formula-escaping.mjs`, which fails closed.
+**Formula injection — every interpolation escapes.** The one escape is `lib/airtableFormula.js:formulaString`, and every interpolation in `lib/` and `app/` goes through it or through a whole-formula builder from that module. Enforced by `offline/formula-escaping.mjs`, which fails closed.
 
-**Every Airtable operation is counted** (`lib/airtableOps.js`); only one inside a `withOpsLabel` scope is attributed. An unlabeled screen has no before and after. Printed when `AIRTABLE_OPS_LOG` is set: counting is always on, printing is gated. The count is a FLOOR — retries and raw `fetch()` to the Metadata API are invisible to it.
+**Every Airtable operation is counted** (`lib/airtableOps.js`); only one inside a `withOpsLabel` scope is attributed. An unlabeled screen has no before and after.
 
 **EVERY ENTRY POINT OPENS A SCOPE, and a new page, Server Action export or Route Handler method that opens none is a failing check** (#224). The label is derived from the ROUTE and the export name rather than chosen — `withOpsLabel`'s own doc has the four forms — and `offline/airtable-ops.mjs` fails a mismatch, so a typo cannot become a bucket. The unit is the EXPORT, never the file.
 
@@ -272,7 +272,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
 - Magic link only, restricted to the company email domain. `requestMagicLink()` domain-checks then emails a link; `consumeAuthToken` spends the token under `withKeyLock`. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
-- **The POST refuses a cross-origin submission** — the token authenticates the request but not the submitter's intent, and login CSRF would let a victim author under another identity. `Origin` is compared against `Host`, and absence fails open.
+- **The POST refuses a cross-origin submission** — `Origin` against `Host`, and absence fails open.
 - `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out.
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too.
 - **There is no user-creation screen.** A Users record appears as a side effect of a first magic-link sign-in and in no other way. `lib/airtable/users.js:addAssignedJob` is the only writer of `Assigned Jobs` and is additive.
@@ -291,10 +291,9 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - **Caller obligation for the flag helpers:** `requireAdmin()` only *reports* the decision. A caller that does not act on `{ authorized }` protects nothing.
 - **Re-authorization rule:** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI. A page being the only caller is not a substitute — Route Handlers and Server Actions are reachable directly.
 - Any route that fetches a caller-supplied URL also restricts it to our Vercel Blob host, independent of auth.
-- **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[id]/edit`, and the edit/delete/Paid-toggle actions) are Admin-only. Reading payment status is President-or-Admin.
+- **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only.
 - **Row-scoped, not role-scoped:** `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]`, `/invoices`, `/invoices/[invoiceId]`. All need only an active session to reach, then decide per record through `canViewPR` — for the invoice routes via `lib/invoiceVisibility.js`, which owns the walk and no predicate of its own. **A refusal renders the ordinary not-found text**: never confirm that a record exists outside someone's scope.
-- **`canViewPR`, in order, first match wins:** a `Draft` is visible only to its Requester, ahead of everything; then President/Admin; then the Requester; then anyone assigned to the PR's Job; then a signer on the chain; then the recipient of a correction request. The last two are status-agnostic and cost no queries. A missing link array throws rather than refusing.
-- **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails. **What a pass proves is narrow** — for an exempt export, only that the helper is named somewhere inside it; order is not checked.
+- **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails.
 
 - **A NEW SURFACE THAT SHOWS A PR, A PO OR AN INVOICE GATES PER RECORD, NOT PER ROLE**, and it does so by calling `canViewPR` — never by writing its own comparison. This is the rule most easily missed, because adding a route touches no file under `lib/authz*.js` and nothing fails when it is skipped: the page simply shows everyone everything.
 
