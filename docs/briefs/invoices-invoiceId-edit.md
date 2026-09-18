@@ -77,12 +77,41 @@ mismatch means the wrong ordered item was picked, so the fix is the link and nev
 the value. Both screens have to keep saying that, and the disabled-input treatment
 is currently how this one says it.
 
-**A charge's quantity has to be a whole number and its unit price a whole number
-of cents**, and this screen edits both freely, so it is refused on submit with
-`Every item's quantity has to be a whole number.` or
+**An invoice item's quantity has to be a whole number and its unit price a whole
+number of cents**, and this screen edits both freely, so it is refused on submit
+with `Every item's quantity has to be a whole number.` or
 `Every item's unit price has to be a whole number of cents.` The same rule holds
 on the new-invoice form; no control marks either figure as it is typed. What rests
 on it is the half-cent threshold behind the box below.
+
+**And so does every figure in the header block**, refused in a sentence naming
+the figure: `Shipping Fee has to be a whole number of cents.`,
+`Tariff has to be a whole number of cents.`,
+`Sales Tax has to be a whole number of cents.` or
+`Amount Due has to be a whole number of cents.` **This screen is the one that can
+refuse over a control nobody touched**, and a design has to keep that survivable:
+every save sends all four figures, so an invoice that reached the base carrying an
+off-cent `Tariff` — which only a hand edit in Airtable can now produce — stops an
+edit that only changed the vendor.
+
+**These four controls also carry `step="0.01"`, and a design must not read that
+as the rule being enforced in the browser.** They are rendered with
+`defaultValue` and carry no `min`, so the step base is the value the record
+loaded with, and the constraint asks whether a figure is a whole number of cents
+away from THAT — not away from zero. On an invoice storing a clean `0` a typed
+`1.005` is refused, which looks right by luck. **On an invoice storing `1.005`
+— the one case this rule exists for — the browser accepts `1.005` and refuses
+`1.01`, `1.00` and `12.34`**, so it admits the bad figure and blocks every
+repair, with a native message that names no field. Measured on both screens; the
+new-invoice form binds the same four to React state, which keeps the step base
+on the current value, so nothing is ever refused there.
+
+So **the app's sentence is the only correct refusal on this screen**, not a
+backstop behind a working control, and a design should treat the browser's
+message as noise to be removed rather than as a first line. Keeping every one of
+these controls visible still matters — the app's sentence names a figure, and
+hiding the optional terms behind a disclosure would name a box the reader cannot
+see.
 
 **Editing `Amount Due` recomputes the variance flags** that the invoice detail and
 the invoice list then render. So this screen is where the red `⚠ Check the total`

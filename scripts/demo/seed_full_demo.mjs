@@ -537,7 +537,10 @@ async function invoice({
     if (checkHeaderVariance(afterItems.amountDue, afterItems.calculatedTotal || 0)) {
         await updateInvoice(invoice.id, { varianceFlag: true });
     }
-    if (paid) await updateInvoice(invoice.id, { paid: true, paidDate: "2026-08-14" });
+    // #318 took `Invoices."Paid"` off the base and out of `updateInvoice`'s
+    // signature; the date's presence IS the payment. The key was destructured away
+    // rather than rejected, so this read as if the parameter still existed.
+    if (paid) await updateInvoice(invoice.id, { paidDate: "2026-08-14" });
 
     return withFile ? await waitForIngest(invoice.id, submittedUrl) : await getInvoiceByRecordId(invoice.id);
 }

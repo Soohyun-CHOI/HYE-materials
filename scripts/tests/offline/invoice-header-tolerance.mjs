@@ -39,6 +39,19 @@
 // `Something went wrong creating the invoice. Please try again.` on an input they
 // could have fixed.
 //
+// AND THE PREMISE HAS A SECOND HALF, WHICH #405 ADDED AND WHICH THIS FILE'S OWN
+// RULE PUTS HERE RATHER THAN IN A THIRD FILE. `Items Subtotal` is one term of
+// `Calculated Total`; `Shipping Fee`, `Tariff` and `Sales Tax` are the other
+// three, and `Amount Due` is the figure the sum is compared against. Half a cent
+// rests on ALL of them being whole numbers of cents, so a check that holds the
+// item half alone is asserting a premise that does not hold — which is the state
+// this file was in from #254 to #405, green throughout.
+//
+// THE MUTANT THAT MATTERS FOR THAT HALF IS DROPPING ONE FIGURE. Three of the four
+// guarded reads as done, and `Tariff` — set on 2 of 22 invoices when this was
+// written — is the one a reader would least likely notice going unasked. So the
+// figures are asserted by NAME at both levels rather than by counting calls.
+//
 // WHAT THIS TIER CANNOT SEE, STATED BECAUSE IT IS THE RESIDUE: a hand edit in the
 // Airtable UI. A `Qty` of 2.5 typed into a precision-0 field is stored and shown
 // as 3, and no check in this repository reads live rows — `verify-variance-15.mjs`
@@ -51,9 +64,12 @@
 
 import { readFileSync } from "node:fs";
 import {
+    HEADER_PRECISION_COPY,
     ITEM_PRECISION_COPY,
+    SHIPPING_FEE_PRECISION_COPY,
     checkHeaderVariance,
     checkUnitPriceVariance,
+    headerPrecisionRefusal,
     isWholeCentPrice,
     isWholeQty,
     VARIANCE_COPY,
@@ -65,8 +81,31 @@ export const title = "One tolerance decides whether an invoice's total disagrees
 
 const FORM = "app/invoices/new/InvoiceForm.js";
 const WRITER = "lib/airtable/invoiceItems.js";
+const HEADER_WRITER = "lib/airtable/invoices.js";
 const CREATE_ACTION = "app/invoices/new/actions.js";
 const EDIT_ACTION = "app/invoices/[invoiceId]/actions.js";
+
+/**
+ * The four figures of `HEADER_TOLERANCE`'s premise that are NOT an item's (#405),
+ * each as its copy key and the Airtable field the guard has to name.
+ *
+ * ORDERED AS `Calculated Total` SUMS, then the side it is compared against, which
+ * is the order `headerPrecisionRefusal` reports them in and is asserted below.
+ */
+const HEADER_FIGURES = [
+    ["shippingFee", "Shipping Fee"],
+    ["tariff", "Tariff"],
+    ["salesTax", "Sales Tax"],
+    ["amountDue", "Amount Due"],
+];
+
+/** The third argument of every `assertWholeCentPrice(...)` call in a subtree. */
+function guardedFields(node) {
+    return callsNamed(node, "assertWholeCentPrice")
+        .map((c) => c.arguments?.[2])
+        .filter((a) => a?.type === "Literal")
+        .map((a) => a.value);
+}
 
 /** The two figures the header comparison is about, as this form names them. */
 const STATED = "vendorStatedTotal";
@@ -255,6 +294,85 @@ export function run({ check, assert, log }) {
 
     // -----------------------------------------------------------------------
     log("");
+    log("THE PREMISE'S OTHER HALF — the three terms beside the items, and the");
+    log("figure the sum is compared against (#405):");
+    // One sentence per figure, and each names its own. A refusal that named the
+    // wrong control sends a reader to a box that is already right.
+    for (const [key, field] of HEADER_FIGURES) {
+        const sentence = HEADER_PRECISION_COPY[key];
+        assert(`${field} has a sentence`, typeof sentence === "string" && sentence.length > 0);
+        assert(`  which names ${field}`, sentence.includes(field));
+        assert(
+            "  and no other figure's",
+            HEADER_FIGURES.every(([, other]) => other === field || !sentence.includes(other))
+        );
+    }
+    // The shipping fee's is #308's, reused rather than rewritten — the whole reason
+    // that constant was named for the figure instead of for the request's screen.
+    check(
+        "the shipping fee reuses the request's sentence",
+        HEADER_PRECISION_COPY.shippingFee === SHIPPING_FEE_PRECISION_COPY,
+        true
+    );
+    // THE PREDICATE, FIGURE BY FIGURE. Asserted by name because the mutant is
+    // dropping ONE of the four — `Tariff` carries a value on 2 of 22 invoices, so a
+    // count of guarded figures reading 3 is what nobody would notice.
+    for (const [key, field] of HEADER_FIGURES) {
+        check(
+            `a sub-cent ${field} is refused`,
+            headerPrecisionRefusal({ [key]: 1.005 }),
+            HEADER_PRECISION_COPY[key]
+        );
+        assert(`  and a whole-cent ${field} is not`, headerPrecisionRefusal({ [key]: 8.11 }) === null);
+    }
+    // ABSENCE IS NOT A REFUSAL, which is what lets one guard serve a partial update
+    // and keeps Tariff and Sales Tax optional.
+    assert("nothing at all is refused nothing", headerPrecisionRefusal() === null);
+    assert("  an empty submission likewise", headerPrecisionRefusal({}) === null);
+    assert(
+        "  and a cleared optional term likewise",
+        headerPrecisionRefusal({ tariff: null, salesTax: undefined }) === null
+    );
+    // THE ORDER IS ONE DECISION, not one per screen. With every figure bad the
+    // sentence is the sum's first term, so two screens cannot name different ones.
+    check(
+        "with all four off the cent it names the sum's first term",
+        headerPrecisionRefusal({ shippingFee: 1.005, tariff: 1.005, salesTax: 1.005, amountDue: 1.005 }),
+        HEADER_PRECISION_COPY.shippingFee
+    );
+    check(
+        "  and with the terms clean it reaches the other side",
+        headerPrecisionRefusal({ shippingFee: 1, tariff: 2, salesTax: 3, amountDue: 1.005 }),
+        HEADER_PRECISION_COPY.amountDue
+    );
+    // THE SERVICE WRITERS, BY FIELD NAME. `lib/airtable/invoices.js` cannot be
+    // imported here — it reaches `client.js` and its module-load throw — so this is
+    // the AST, which is how this file already reads the item writers above.
+    const headerWriter = parseFile(HEADER_WRITER);
+    for (const fn of ["createInvoice", "updateInvoice"]) {
+        const node = resolveFunction(headerWriter.ast, fn);
+        assert(`${fn} resolves`, node !== null);
+        if (!node) continue;
+        const fields = guardedFields(node);
+        for (const [, field] of HEADER_FIGURES) {
+            check(`  ${fn} guards ${field}`, fields.includes(field), true);
+        }
+    }
+    // ANTI-VACUITY: the argument walk has to be seen saying no. `Unit Price` is the
+    // default field of that guard and is an item's figure, so no invoice writer
+    // names it — if this reads true the walk is not reading arguments at all.
+    const createNode = resolveFunction(headerWriter.ast, "createInvoice");
+    assert(
+        "the field walk says no to a figure these writers never hold",
+        !guardedFields(createNode).includes("Unit Price")
+    );
+    assert(
+        "  and it found the real arguments rather than an empty list",
+        guardedFields(createNode).length === HEADER_FIGURES.length
+    );
+
+    // -----------------------------------------------------------------------
+    log("");
     log("and the reader who typed the figure is refused before the throw:");
     // THE MUTANT: drop the action-level refusal. Everything above still passes and
     // the premise still holds — the reader just gets `Something went wrong` on an
@@ -272,6 +390,10 @@ export function run({ check, assert, log }) {
         check(`  ${handler} asks isWholeQty`, names.has("isWholeQty"), true);
         check(`  ${handler} asks isWholeCentPrice`, names.has("isWholeCentPrice"), true);
         check(`  ${handler} returns the reader's own words`, names.has("ITEM_PRECISION_COPY"), true);
+        // #405 — and asks the same question of the four header figures, whose boxes
+        // are on the same screen. Dropping this leaves the service throw reaching a
+        // reader as `Something went wrong`, which is the mutant one line up.
+        check(`  ${handler} asks headerPrecisionRefusal`, names.has("headerPrecisionRefusal"), true);
         // ANTI-VACUITY: the walk has to be inside this handler's body rather than
         // its wrapper, which is `invoice-money-terms.mjs`'s own lesson on these two
         // exports. `shippingFee` is read in both bodies and nowhere else.
