@@ -28,6 +28,15 @@ import { CATEGORY_PICKER_COPY, categoryItemFields } from "@/lib/materialCategory
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
 import { userName } from "@/lib/userName";
+// #308 — the same judgment and the same words the invoice write path has used since
+// #254, asked here because this is where the figure is decided rather than where it
+// is discovered.
+import {
+    ITEM_PRECISION_COPY,
+    SHIPPING_FEE_PRECISION_COPY,
+    isWholeCentPrice,
+    isWholeQty,
+} from "@/lib/variance";
 
 // Canonical key for an item's duplicate-match identity — Item Name
 // (case/whitespace-insensitive) + Qty + Unit Price, per issue #61. Size/Unit/
@@ -416,6 +425,33 @@ export async function saveDraftAction(prevState, formData) {
         if (state.shippingFeeRaw && Number.isNaN(state.shippingFee)) {
             return { error: "Shipping Fee must be a number." };
         }
+        // #308 — A SECOND QUESTION ABOUT THE SAME BOX, NOT A REPLACEMENT FOR THE ONE
+        // ABOVE. That one asks whether a figure was typed at all; this asks where it
+        // lands. An empty box and `1.005` are two mistakes and their readers need two
+        // sentences.
+        if (!isWholeCentPrice(state.shippingFee)) {
+            return { error: SHIPPING_FEE_PRECISION_COPY };
+        }
+        // THE DRAFT REFUSES TOO, AND THAT IS THE POINT RATHER THAN AN OVERSIGHT. #72
+        // lets a Draft be half-finished, and a fraction is not an unfinished state —
+        // it is a wrong value, and the whole of #308 is that the later it is caught
+        // the worse it is. Without this the service guard would still stop the write
+        // and the person who typed `2.5` would get `Couldn't save the draft. Please
+        // try again.` on an input they could fix — the exact shape #254 spent an issue
+        // removing from the invoice form.
+        //
+        // COERCED THE WAY THIS PATH ALREADY COERCES, which is what keeps it from
+        // refusing a Draft for being a Draft: `toNumberOrUndefined` is what
+        // `persistPRFromForm` writes with, and both predicates abstain on `undefined`,
+        // so a row with an empty quantity saves exactly as it did before.
+        for (const item of state.items) {
+            if (!isWholeQty(toNumberOrUndefined(item.qty))) {
+                return { error: ITEM_PRECISION_COPY.qty };
+            }
+            if (!isWholeCentPrice(toNumberOrUndefined(item.unitPrice))) {
+                return { error: ITEM_PRECISION_COPY.unitPrice };
+            }
+        }
 
         try {
             const { pr, blobCleanups } = await persistPRFromForm({ userId: user.id, state });
@@ -525,12 +561,27 @@ export async function createPRAction(prevState, formData) {
             if (!item.qty || !item.unitPrice) {
                 return { error: "Every item needs a quantity and a unit price." };
             }
+            // #308 — AFTER the presence check, so a blank is answered by the sentence
+            // that is about blankness. `parseFloat` because the form submits a hidden
+            // `itemsJson` of strings, which is the same coercion the invoice actions
+            // make and the reason `isWholeQty("3")` would be false.
+            if (!isWholeQty(parseFloat(item.qty))) {
+                return { error: ITEM_PRECISION_COPY.qty };
+            }
+            if (!isWholeCentPrice(parseFloat(item.unitPrice))) {
+                return { error: ITEM_PRECISION_COPY.unitPrice };
+            }
         }
         if (signers.length === 0) {
             return { error: "Assign at least one signer." };
         }
         if (shippingFeeRaw && Number.isNaN(shippingFee)) {
             return { error: "Shipping Fee must be a number." };
+        }
+        // #308 — the fee lands in `Purchase Orders."Total Amount"` beside the item
+        // amounts, which is the TOTAL line the vendor reads.
+        if (!isWholeCentPrice(shippingFee)) {
+            return { error: SHIPPING_FEE_PRECISION_COPY };
         }
         // At least one Quotation is required (not optional) — a PR always
         // needs the vendor's actual quote on file.

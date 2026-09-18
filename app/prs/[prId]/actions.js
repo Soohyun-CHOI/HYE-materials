@@ -21,6 +21,17 @@ import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
+// #308 — the same judgment and the same words the invoice write path has used since
+// #254. `PRECISION_BLOCKED` is how the PO retry below tells this refusal apart from
+// any other failure, since by then nobody can see the figure.
+import {
+    ITEM_PRECISION_COPY,
+    PRECISION_BLOCKED,
+    PRECISION_BLOCKED_COPY,
+    SHIPPING_FEE_PRECISION_COPY,
+    isWholeCentPrice,
+    isWholeQty,
+} from "@/lib/variance";
 import { withOpsLabel } from "@/lib/airtableOps";
 import {
     RESTORE_KEY,
@@ -218,6 +229,32 @@ export async function editAndContinueAction(prevState, formData) {
         }
         if (shippingFeeRaw && Number.isNaN(newShippingFee)) {
             return { error: "Shipping Fee must be a number." };
+        }
+        // #308 — a second question about the same box: the one above asks whether a
+        // figure was typed, this asks where it lands.
+        if (!isWholeCentPrice(newShippingFee)) {
+            return { error: SHIPPING_FEE_PRECISION_COPY };
+        }
+        // EVERY SUBMITTED ROW, NOT ONLY THE ONES THAT CHANGED, and the reason is two
+        // things this turn can otherwise do. A row whose figure was broken outside
+        // this app — a hand edit in Airtable, the one path #254 records as reaching
+        // nothing — would otherwise ride through on a turn that edited its remark and
+        // freeze into the order. And #188's rollback restores the STORED figures, so a
+        // turn allowed to start over a bad row would meet the service guard on the way
+        // back out and report a failed restore. Refusing the whole submission up front
+        // closes both, and the figure is on screen in an editable box, which is the
+        // condition #254 required of a refusal like this.
+        //
+        // `parseFloat` MATCHES THE DIFF BELOW, deliberately. That is also what makes
+        // an emptied box refusable here: it previously became `NaN`, was written as a
+        // change, and reached Airtable as a 422 the signer met as a generic failure.
+        for (const submitted of editedItems) {
+            if (!isWholeQty(parseFloat(submitted.qty))) {
+                return { error: ITEM_PRECISION_COPY.qty };
+            }
+            if (!isWholeCentPrice(parseFloat(submitted.unitPrice))) {
+                return { error: ITEM_PRECISION_COPY.unitPrice };
+            }
         }
 
         const { pr, signers, editRequests } = await loadPRContext(prId);
@@ -737,6 +774,9 @@ async function generatePOHandler(prevState, formData) {
             result = await generatePOForApprovedPR(pr);
         } catch (err) {
             console.error("Manual PO generation retry failed", err);
+            // #308 — the one failure this retry can explain, and the one it must:
+            // every other cause is worth another press and this one never is.
+            if (err?.code === PRECISION_BLOCKED) return { error: PRECISION_BLOCKED_COPY };
             return { error: "Something went wrong generating the PO. Please try again." };
         }
 

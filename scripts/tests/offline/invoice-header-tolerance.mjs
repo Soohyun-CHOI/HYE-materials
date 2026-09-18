@@ -230,19 +230,13 @@ export function run({ check, assert, log }) {
         check(`  ${fn} asserts a whole quantity`, called.has("assertWholeQty"), true);
         check(`  ${fn} asserts a whole-cent price`, called.has("assertWholeCentPrice"), true);
     }
-    // Both guards must actually throw rather than log, or the premise is a comment.
-    // Asked as a ThrowStatement rather than as a call to `Error`, which is a
-    // NewExpression and which the first version of this file looked for as a call
-    // — it reported both guards as not throwing while both did.
-    for (const guard of ["assertWholeQty", "assertWholeCentPrice"]) {
-        const node = resolveFunction(writer.ast, guard);
-        assert(`${guard} resolves`, node !== null);
-        let throws = false;
-        walk(node ?? {}, (n) => {
-            if (n.type === "ThrowStatement") throws = true;
-        });
-        assert(`  and throws`, throws);
-    }
+    // THAT THE GUARDS THROW IS `offline/item-precision.mjs`'s NOW (#308). It was
+    // asserted here, against this writer's own two private helpers — the ones that
+    // issue moved to `lib/variance.js` when five more writers needed them, so
+    // resolving them in this file is a question with no answer. What stays here is
+    // that these two writers CALL them, which is what this file is about: the premise
+    // the header tolerance rests on, enforced on the invoice path. The two assertions
+    // above still fail if either call goes.
     // ANTI-VACUITY: the identifier walk must be seen to say NO for a name that is
     // genuinely not called in that function — otherwise "it calls the guard" is
     // what this loop says about any name at all.
