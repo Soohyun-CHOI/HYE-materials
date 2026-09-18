@@ -311,8 +311,24 @@ figure here would be either wrong or a sum of unlike things.
 
 **When the folded items do not all touch the same set of orders:** a short
 indented list under each order's row, naming what that order was invoiced for
-and in what quantity. Only quantities, never prices. When every item touches
-the same orders the question is not ambiguous and nothing appears.
+and in what quantity. A line carries two figures — the quantity this invoice
+charged against that order, over the quantity that order asked for — with the
+unit written once after both: `Elbow 3" — 7 of 15 EA`. Only quantities, never
+prices. When every item touches the same orders the question is not ambiguous
+and nothing appears.
+
+**The unit is written once because both figures are in it.** An invoice item's
+`Unit` is a frozen copy of the ordered item's, so the two are one measure with a
+part and a whole on it; writing it twice would assert two measurements that
+happen to agree. A line whose ordered items carry no quantity states the charge
+alone, which is what a hand-emptied link leaves.
+
+**The whole is what that order asked for — not what is left to invoice.** A line
+reading `7 of 15` says this invoice charged 7 against an ordered quantity of 15;
+a second invoice may already have charged some of the rest, and nothing here
+says so. The figure also adds up every ordered item behind the line, since one
+folded row can cover two of them on one order, so it is the whole of what that
+line stands for rather than one row's.
 
 **When a delivery is matched AND something disagrees:** a list under the
 delivery, one entry per folded item, and **only** for the items that disagree.
@@ -356,10 +372,18 @@ meets one grammar rather than two.
 **`Mismatch` belongs to the delivery axis and may not be borrowed for a
 variance**, which is the mirror of the rule above.
 
-**How much was ordered is not on this screen, on purpose.** The purchase order
-detail answers it in its `Qty` column, one click away, and since #233 that page
-names this invoice. A redesign that adds an ordered quantity here re-opens a
-question two issues closed.
+**An ordered quantity appears on this screen as a denominator and nowhere
+else.** The `Purchase Orders` list carries one because that line's subject is an
+order and a charge against it needs a whole to be read against. The delivery
+section carries none — it compares this invoice against the delivery matched to
+it — and `/pos/[poId]`'s `Qty` column is where an ordered quantity stands as a
+figure in its own right.
+
+**What every invoice has charged against an ordered item belongs to
+`/pos/[poId]`.** This screen speaks for one document, that one speaks for the
+order across every invoice on it, and a figure moved between them changes
+meaning. A redesign that brings the cross-document total here puts two scopes on
+one line with nothing to tell them apart.
 
 **The overdue sentence is the invoice list's badge**, produced by the same judgment
 from the same call, so the row a reader clicked and the page they land on cannot
