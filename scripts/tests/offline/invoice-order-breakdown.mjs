@@ -47,6 +47,7 @@ import {
     ORDER_BREAKDOWN_COPY,
     chargesByOrder,
     ordersNamedByFoldedItem,
+    splitSignature,
 } from "../../../lib/invoiceOrderBreakdown.js";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -96,13 +97,42 @@ const ONE_ORDER = invoice([
     row({ id: "rec2", po: A, material: "recMAT_2", itemName: "Tee", qty: 7, unitPrice: 41.07 }),
 ]);
 
-// A corrective order every item is split across: two materials, each invoiced on both
-// orders at one price, so each folds to a single item touching {A, B}.
-const CORRECTIVE = invoice([
+// Two materials, each invoiced on both orders at one price, so each folds to a single
+// item touching {A, B} — and they divide themselves DIFFERENTLY, 10:3 against 5:1.
+// The order sets agree, so this was silent until #409 and is listed now.
+const SPLIT_DIFFERENTLY = invoice([
     row({ id: "rec1", po: A, material: "recMAT_1", qty: 10 }),
     row({ id: "rec2", po: A, material: "recMAT_2", itemName: "Tee", qty: 20, unitPrice: 41.07 }),
     row({ id: "rec3", po: B, material: "recMAT_1", qty: 3 }),
     row({ id: "rec4", po: B, material: "recMAT_2", itemName: "Tee", qty: 4, unitPrice: 41.07 }),
+]);
+
+// The same shape divided the SAME way — 10:5 and 20:10 are both 2:1 — so the two items
+// say one thing and the list stays silent. The absolute quantities differ on every
+// order, which is what makes this the fixture that tells the reduction apart from a
+// raw quantity: unreduced, these two signatures differ.
+const SAME_PROPORTIONS = invoice([
+    row({ id: "rec1", po: A, material: "recMAT_1", qty: 10 }),
+    row({ id: "rec2", po: A, material: "recMAT_2", itemName: "Tee", qty: 20, unitPrice: 41.07 }),
+    row({ id: "rec3", po: B, material: "recMAT_1", qty: 5 }),
+    row({ id: "rec4", po: B, material: "recMAT_2", itemName: "Tee", qty: 10, unitPrice: 41.07 }),
+]);
+
+// ONE item split across both orders, which is what a correction actually produces:
+// `createOverageDraft` takes a single delivery row and raises a single-item request.
+// One folded item is one signature under any rule, so the browsable silent case #237
+// seeded cannot be turned on by this issue or by a later one.
+const ONE_ITEM_SPLIT = invoice([
+    row({ id: "rec1", po: A, material: "recMAT_1", qty: 10 }),
+    row({ id: "rec2", po: B, material: "recMAT_1", qty: 3 }),
+]);
+
+// One order, two items, different quantities. Silent — and the case a RAW per-order
+// quantity would have turned on, since `A:10` beside `A:20` differs while the list it
+// would draw repeats the items table line for line.
+const ONE_ORDER_UNEVEN = invoice([
+    row({ id: "rec1", po: A, material: "recMAT_1", qty: 10 }),
+    row({ id: "rec2", po: A, material: "recMAT_2", itemName: "Tee", qty: 20, unitPrice: 41.07 }),
 ]);
 
 // One item invoiced against A, another against B. The case that opened the issue.
@@ -192,21 +222,29 @@ export function run({ check, assert, log }) {
         ONE_ORDER.folded.every((g) => Array.isArray(g.rowIds) && g.rowIds.length > 0)
     );
     assert(
-        "and the fold really folds these fixtures: 4 rows of CORRECTIVE become 2 items",
-        CORRECTIVE.items.length === 4 && CORRECTIVE.folded.length === 2
+        "and the fold really folds these fixtures: 4 rows of SAME_PROPORTIONS become 2 items",
+        SAME_PROPORTIONS.items.length === 4 && SAME_PROPORTIONS.folded.length === 2
     );
 
     // -----------------------------------------------------------------------
-    log("the same-set test — the four cases, and neither answer is the constant one:");
+    log("the split test — the five cases, and neither answer is the constant one:");
     check("one order: silent", chargesByOrder(ONE_ORDER).shown, false);
-    check("corrective order, every item split across both: silent", chargesByOrder(CORRECTIVE).shown, false);
+    check("one order, uneven quantities: silent", chargesByOrder(ONE_ORDER_UNEVEN).shown, false);
+    check("one item split across both: silent", chargesByOrder(ONE_ITEM_SPLIT).shown, false);
+    check("every item split the same way: silent", chargesByOrder(SAME_PROPORTIONS).shown, false);
     check("one item on A, one on B: listed", chargesByOrder(EACH_ITS_OWN).shown, true);
     check("one item split, one not: listed", chargesByOrder(ONE_SPLIT).shown, true);
+    check("same orders, split differently: listed", chargesByOrder(SPLIT_DIFFERENTLY).shown, true);
 
-    // The corrective case needs no rule of its own — it is silent because its sets
-    // AGREE, which is the whole reason this module has no branch naming a correction.
-    const correctiveSets = ordersNamedByFoldedItem(CORRECTIVE).map((e) => e.orderRecordIds.length);
-    check("and it is silent for the stated reason: both items touch two orders", correctiveSets.join(","), "2,2");
+    // The proportional case needs no rule of its own — it is silent because its
+    // SPLITS agree, which is why this module has no branch naming a correction.
+    const proportionalSets = ordersNamedByFoldedItem(SAME_PROPORTIONS).map((e) => e.orderRecordIds.length);
+    check("and it is silent with both items on two orders", proportionalSets.join(","), "2,2");
+    check(
+        "  because the two divide themselves alike",
+        ordersNamedByFoldedItem(SAME_PROPORTIONS).map((e) => splitSignature(e)).join(" | ").includes(`${A}:2 ${B}:1`),
+        true
+    );
 
     // -----------------------------------------------------------------------
     log("the mutants, built and run — a broken rule must not pass this file:");
@@ -227,8 +265,8 @@ export function run({ check, assert, log }) {
         alwaysDiffer(ONE_ORDER).shown !== chargesByOrder(ONE_ORDER).shown
     );
     assert(
-        "  and on the corrective order",
-        alwaysDiffer(CORRECTIVE).shown !== chargesByOrder(CORRECTIVE).shown
+        "  and on an invoice whose items are all split the same way",
+        alwaysDiffer(SAME_PROPORTIONS).shown !== chargesByOrder(SAME_PROPORTIONS).shown
     );
 
     // -----------------------------------------------------------------------
@@ -322,6 +360,136 @@ export function run({ check, assert, log }) {
     // byOrder is populated whether or not it is shown — the decision and the data are
     // separable, and the page reads `shown`.
     check("byOrder is built for a silent invoice too", chargesByOrder(ONE_ORDER).byOrder.get(A).length, 2);
+
+    // -----------------------------------------------------------------------
+    log("the split key (#409) — the orders AND how the quantity divided among them:");
+    const sigOf = (fixture) => ordersNamedByFoldedItem(fixture).map((e) => splitSignature(e));
+    check("an item naming no order signs nothing", sigOf(ALL_FREE_TEXT).join(","), ",");
+    check("one order reduces to 1 whatever the quantity", sigOf(ONE_ORDER_UNEVEN).join(" | "), `${A}:1 | ${A}:1`);
+    check("  which is the whole reason that invoice stays silent", chargesByOrder(ONE_ORDER_UNEVEN).shown, false);
+    check("10:5 and 20:10 both reduce to 2:1", sigOf(SAME_PROPORTIONS).join(" | "), `${A}:2 ${B}:1 | ${A}:2 ${B}:1`);
+    check("10:3 and 20:4 do not", sigOf(SPLIT_DIFFERENTLY).join(" | "), `${A}:10 ${B}:3 | ${A}:5 ${B}:1`);
+    check("the ids stay in the key, so a different set is a different split", sigOf(EACH_ITS_OWN).join(" | "), `${A}:1 | ${B}:1`);
+
+    // THE TWO INVARIANTS THIS KEY IS CHOSEN FOR, asserted rather than described.
+    //
+    // I1 — THE REDUCTION ONLY EVER MERGES. Two items a raw per-order quantity would
+    // call identical must stay identical, or the reduction would be inventing
+    // disagreements instead of collapsing them.
+    const rawSigOf = (fixture) =>
+        ordersNamedByFoldedItem(fixture).map((e) =>
+            [...e.orderRecordIds].sort().map((id) => `${id}:${e.qtyByOrder.get(id) ?? 0}`).join(" ")
+        );
+    for (const [name, fixture] of [
+        ["ONE_ORDER", ONE_ORDER],
+        ["ONE_ORDER_UNEVEN", ONE_ORDER_UNEVEN],
+        ["SAME_PROPORTIONS", SAME_PROPORTIONS],
+        ["SPLIT_DIFFERENTLY", SPLIT_DIFFERENTLY],
+        ["EACH_ITS_OWN", EACH_ITS_OWN],
+        ["ONE_SPLIT", ONE_SPLIT],
+    ]) {
+        const raw = new Set(rawSigOf(fixture));
+        const reduced = new Set(sigOf(fixture).filter((s) => s !== null));
+        assert(`I1 — ${name}: the reduction never splits what raw quantities joined`, reduced.size <= raw.size);
+    }
+
+    // I2 — NOTHING LISTED BEFORE #409 GOES SILENT. The order ids are still in the key,
+    // so two items whose SETS differ cannot sign the same however their quantities
+    // reduce. Read off the two fixtures that were listed under the set-only rule.
+    for (const [name, fixture] of [["EACH_ITS_OWN", EACH_ITS_OWN], ["ONE_SPLIT", ONE_SPLIT]]) {
+        const sets = new Set(
+            ordersNamedByFoldedItem(fixture)
+                .filter((e) => e.orderRecordIds.length > 0)
+                .map((e) => [...e.orderRecordIds].sort().join(" "))
+        );
+        assert(`I2 — ${name}: listed by the set-only rule`, sets.size > 1);
+        assert(`  and still listed by the split rule`, chargesByOrder(fixture).shown === true);
+    }
+
+    // -----------------------------------------------------------------------
+    log("the split key's mutants — the two ways to get the reduction wrong:");
+    // Neither is described: both are built, run, and shown to disagree with the real
+    // rule on a NAMED invoice, and they fail on different ones.
+    const shownBy = (signer) => (fixture) => {
+        const sigs = new Set(
+            ordersNamedByFoldedItem(fixture)
+                .filter((e) => e.orderRecordIds.length > 0)
+                .map(signer)
+        );
+        return sigs.size > 1;
+    };
+    const rawSigner = (e) =>
+        [...e.orderRecordIds].sort().map((id) => `${id}:${e.qtyByOrder.get(id) ?? 0}`).join(" ");
+    const setOnlySigner = (e) => [...e.orderRecordIds].sort().join(" ");
+    const shownRaw = shownBy(rawSigner);
+    const shownSetOnly = shownBy(setOnlySigner);
+
+    check("UNREDUCED quantities turn a one-order invoice ON", shownRaw(ONE_ORDER_UNEVEN), true);
+    assert(
+        "  where the real rule is silent — this is the assertion that catches it",
+        chargesByOrder(ONE_ORDER_UNEVEN).shown === false
+    );
+    check("  and they turn the proportional invoice ON too", shownRaw(SAME_PROPORTIONS), true);
+    assert("  where the real rule is silent", chargesByOrder(SAME_PROPORTIONS).shown === false);
+
+    check("the SET-ONLY rule (#409 not applied) leaves the new case silent", shownSetOnly(SPLIT_DIFFERENTLY), false);
+    assert(
+        "  where the real rule lists it — the widening, caught on its own invoice",
+        chargesByOrder(SPLIT_DIFFERENTLY).shown === true
+    );
+    assert(
+        "the two mutants fail on different invoices, so one cannot mask the other",
+        shownRaw(SPLIT_DIFFERENTLY) === true && shownSetOnly(ONE_ORDER_UNEVEN) === false
+    );
+
+    // THE THIRD MUTANT IS A PROPOSAL RATHER THAN A SLIP, and it is here so the
+    // refusal is executable. Putting the ORDERED quantity in the key signs `5 of 5`
+    // apart from `5 of 50`, which is a real argument — and it signs them apart on ONE
+    // ORDER too, where the list repeats the items table. `splitSignature`'s docstring
+    // says to run it against a one-order invoice; this is that run.
+    const withDenominator = (e) =>
+        [...e.orderRecordIds]
+            .sort()
+            .map((id) => `${id}:${e.qtyByOrder.get(id) ?? 0}/${e.orderedQtyByOrder.get(id) ?? ""}`)
+            .join(" ");
+    const oneOrderTwoWholes = withOrderedQty(
+        invoice([
+            row({ id: "rec1", po: A, material: "recMAT_1", qty: 5 }),
+            row({ id: "rec2", po: A, material: "recMAT_2", itemName: "Tee", qty: 5, unitPrice: 41.07 }),
+        ]),
+        new Map([
+            ["rec1-ordered", 5],
+            ["rec2-ordered", 50],
+        ])
+    );
+    const denominatorSigs = new Set(ordersNamedByFoldedItem(oneOrderTwoWholes).map(withDenominator));
+    check("two items of 5 on ONE order, ordered 5 and 50, sign apart under it", denominatorSigs.size, 2);
+    assert(
+        "  so it draws a list on a one-order invoice, which #409 says stays silent",
+        chargesByOrder(oneOrderTwoWholes).shown === false && denominatorSigs.size > 1
+    );
+
+    // A NON-INTEGER QUANTITY IS COMPARED UNREDUCED, which can only tell two items
+    // apart. Reachable by hand only — `assertWholeQty` guards every writer.
+    const fractional = invoice([
+        row({ id: "rec1", po: A, material: "recMAT_1", qty: 2.5 }),
+        row({ id: "rec2", po: B, material: "recMAT_1", qty: 5 }),
+        row({ id: "rec3", po: A, material: "recMAT_2", itemName: "Tee", qty: 1, unitPrice: 41.07 }),
+        row({ id: "rec4", po: B, material: "recMAT_2", itemName: "Tee", qty: 2, unitPrice: 41.07 }),
+    ]);
+    check("a fractional quantity is not reduced", sigOf(fractional)[0], `${A}:2.5 ${B}:5`);
+    check("  so it is told apart from the same ratio in whole numbers", chargesByOrder(fractional).shown, true);
+    assert(
+        "  and the whole-number pair alone would have been silent",
+        chargesByOrder(
+            invoice([
+                row({ id: "rec1", po: A, material: "recMAT_1", qty: 1 }),
+                row({ id: "rec2", po: B, material: "recMAT_1", qty: 2 }),
+                row({ id: "rec3", po: A, material: "recMAT_2", itemName: "Tee", qty: 1, unitPrice: 41.07 }),
+                row({ id: "rec4", po: B, material: "recMAT_2", itemName: "Tee", qty: 2, unitPrice: 41.07 }),
+            ])
+        ).shown === false
+    );
 
     // -----------------------------------------------------------------------
     log("what that quantity is measured against (#408) — per order, over the same rows:");
