@@ -25,6 +25,7 @@ import {
     ITEM_PRECISION_COPY,
     checkHeaderVariance,
     checkUnitPriceVariance,
+    headerPrecisionRefusal,
     isWholeCentPrice,
     isWholeQty,
 } from "@/lib/variance";
@@ -71,6 +72,21 @@ async function createInvoiceHandler(prevState, formData) {
         if (!vendorId) return { error: "Select a Vendor." };
         if (!issueDate) return { error: "Issue Date is required." };
         if (!amountDue) return { error: "Amount Due is required." };
+        // Issue #405 — the rest of `HEADER_TOLERANCE`'s premise, refused where the
+        // reader can fix it. #254 held `Items Subtotal` through the item loop below
+        // and left the three terms summed beside it, and the stated total they are
+        // compared against, asked by nothing — so a `1.005` in any of the four boxes
+        // above put a side of that comparison off the cent. `createInvoice` throws on
+        // the same judgment and stays the backstop; this is here for the reason the
+        // item refusal is, and more plainly, since every one of these four controls
+        // is a box the reader typed into on this screen.
+        const headerRefusal = headerPrecisionRefusal({
+            shippingFee: parseFloat(shippingFee),
+            tariff: tariff ? parseFloat(tariff) : null,
+            salesTax: salesTax ? parseFloat(salesTax) : null,
+            amountDue: parseFloat(amountDue),
+        });
+        if (headerRefusal) return { error: headerRefusal };
         // Required, unlike Quotations (#34) — every received vendor invoice
         // must be kept on file. The submit button is already disabled client-
         // side until the upload finishes, but Server Actions are callable

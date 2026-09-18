@@ -274,6 +274,28 @@ number of cents:** the form is refused on submit with
 form's other submit-time refusals, above the tabs, and they are the only place the
 app states this rule to a reader — no control marks either figure as it is typed.
 
+**When one of the money row's four figures is not a whole number of cents:** the
+same treatment, in a sentence naming the figure —
+`Shipping Fee has to be a whole number of cents.`,
+`Tariff has to be a whole number of cents.`,
+`Sales Tax has to be a whole number of cents.` or
+`Amount Due has to be a whole number of cents.` One at a time, in the order
+`Calculated Total` sums them and then the stated total they are compared against,
+so a form with two bad figures names the first and the reader meets the second on
+the next press. The stated total's sentence says `Amount Due` although this
+screen's control is labelled `Vendor's Stated Total`, because the refusal directly
+above it already says `Amount Due is required.` — a design that renames either has
+to rename both.
+
+**Nothing about these four controls stops it either**, although all four carry
+`step="0.01"`. They are bound to React state and carry no `min`, and with no
+`min` the browser takes the step base from the `value` attribute — which React
+keeps equal to the current value, so any figure sits on its own base and
+`checkValidity()` is true for all of them. Measured. So these sentences are the
+only place this screen states the rule, and a design should not read `step` as
+enforcing it. The edit screen's copies of these controls behave differently and
+no better; its brief has the measurement.
+
 **When something is still missing, the modal says which, and in the order a
 reader would fix it:** the vendor at the top of the form, then the attached file,
 then the Job inside the modal. The confirm button is disabled while any of them
@@ -298,11 +320,13 @@ before saving, **at the same threshold since #254**, and does not block on it. T
 two sentences differ in tense on purpose and only in tense: this one addresses the
 person still typing, and the stored one has no such reader.
 
-**An item's quantity is a whole number and its unit price a whole number of
-cents**, which is what makes that shared threshold half a cent rather than
-something looser. **Nothing about the controls enforces it** — the browser marks
-neither a fractional quantity nor a sub-cent price invalid on this form — so the
-app refuses them on submit, and the same rule holds on the edit screen. A design
+**Every figure on both sides of that comparison is a whole number of cents** —
+an item's quantity and unit price, the three terms of the money row, and the
+stated total itself — which is what makes that shared threshold half a cent
+rather than something looser. **Nothing about the controls enforces it** — the
+browser marks neither a fractional quantity nor a sub-cent price invalid on this
+form — so the app refuses them on submit, and the same rule holds on the edit
+screen. A design
 here has no decimal quantity to lay out, and a redesign that adds a decimal
 affordance to either control is promising something the app will decline.
 

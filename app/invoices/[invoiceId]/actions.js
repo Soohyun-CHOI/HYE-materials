@@ -14,6 +14,7 @@ import {
     ITEM_PRECISION_COPY,
     checkHeaderVariance,
     checkUnitPriceVariance,
+    headerPrecisionRefusal,
     isWholeCentPrice,
     isWholeQty,
 } from "@/lib/variance";
@@ -105,6 +106,26 @@ async function updateInvoiceHandler(prevState, formData) {
         if (!vendorId) return { error: "Select a Vendor." };
         if (!issueDate) return { error: "Issue Date is required." };
         if (!amountDue) return { error: "Amount Due is required." };
+        // Issue #405 — the same four figures as `createInvoiceAction`'s, and this
+        // screen is the one that can refuse over a box nobody touched: every save
+        // from here sends all four, so an invoice carrying an off-cent `Tariff` is
+        // refused on an edit that only changed the vendor. That is deliberate and it
+        // is why the sentence names the figure — the control holding the bad value is
+        // on this screen, filled in, a few rows above the button. The controls' own
+        // `step="0.01"` does NOT do this job and on this record it does the opposite:
+        // with no `min` the browser's step base is the value the record loaded with,
+        // so an invoice storing `1.005` has a control that accepts `1.005` and rejects
+        // every whole-cent repair of it (measured; this screen's brief carries it).
+        // The alternative, checking only what changed, would need a before-and-after
+        // this action does not have and would let a save write the header while
+        // leaving a term of the total off the cent.
+        const headerRefusal = headerPrecisionRefusal({
+            shippingFee: parseFloat(shippingFee),
+            tariff: tariff ? parseFloat(tariff) : null,
+            salesTax: salesTax ? parseFloat(salesTax) : null,
+            amountDue: parseFloat(amountDue),
+        });
+        if (headerRefusal) return { error: headerRefusal };
         for (const item of items) {
             if (!item.itemName || !item.qty || !item.unitPrice) {
                 return { error: "Every item needs a name, quantity, and unit price." };

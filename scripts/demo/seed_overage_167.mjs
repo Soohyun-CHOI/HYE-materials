@@ -187,7 +187,9 @@ async function invoice({ po, orderedItem, qty, issueDate, paid }) {
         unitPrice: 15,
         remark: "",
     });
-    if (paid) await updateInvoice(invoice.id, { paid: true, paidDate: "2026-08-05" });
+    // #318 — the date is the whole of the payment; `paid` has not been a parameter
+    // of `updateInvoice` since, and was being destructured away here.
+    if (paid) await updateInvoice(invoice.id, { paidDate: "2026-08-05" });
     // Wait for Airtable to take the file: the correction reads ITS copy, and an
     // unattached invoice is exactly the state that blocks the button.
     for (let i = 0; i < 40; i++) {
