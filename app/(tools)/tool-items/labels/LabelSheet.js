@@ -188,7 +188,15 @@ export default function LabelSheet({ labels, origin, sideModules }) {
                                     className="label-text"
                                     style={{ fontSize: `${MIN_ID_FONT_MM}mm` }}
                                 >
-                                    <div className="label-id">{label.toolItemId}</div>
+                                    {/* THE PRINTED CODE, NOT THE `Tool Item ID`
+                                        (#411). It is the same string the symbol's
+                                        own path carries, because the person reading
+                                        it is reading it in order to type it. The
+                                        page computes it; nothing here spells the
+                                        family token, and `offline/tool-label-sheet.mjs`
+                                        reads this expression off the AST — a value
+                                        check cannot tell the two fields apart. */}
+                                    <div className="label-id">{label.labelCode}</div>
                                     <div className="label-tool">{label.toolName}</div>
                                 </div>
                             </div>

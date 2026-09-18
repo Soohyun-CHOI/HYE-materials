@@ -120,8 +120,23 @@ export function run({ check, assert, log }) {
     // not to produce.
     assert("the widest symbol fits the label's height", budget.widestSymbolMm <= budget.usableHeightMm);
     check("what is left beside it for text", budget.textWidthMm, 39.81);
-    check("what the id needs at its floor", budget.minIdWidthMm, 25.5);
-    assert("  so the id fits beside the widest symbol", budget.minIdWidthMm <= budget.textWidthMm);
+    // TEN CHARACTERS SINCE #411, WHERE IT WAS THE WHOLE `Tool Item ID`'S SEVENTEEN.
+    // The label prints the id less its `HYE-TL-` token, so the floor's own width
+    // goes from 25.5 mm to 15.0 mm.
+    check("what the printed code needs at its floor", budget.minIdWidthMm, 15);
+    assert("  so it fits beside the widest symbol", budget.minIdWidthMm <= budget.textWidthMm);
+    // WHAT #412 IS HANDED, AND IT IS THE WIDTH RATHER THAN THE HEIGHT. #411's own
+    // body had it the other way round — that the readable code set the label's
+    // width — and the arithmetic says the HEIGHT binds and always did: the widest
+    // symbol is 23.37 mm against 23.4 mm of usable height, which is 0.03 mm, while
+    // the width has 24.81 mm unclaimed. Both figures are pinned so the next issue
+    // reads a measurement rather than re-deriving one.
+    check("the width left over beside the code", round4(budget.textWidthMm - budget.minIdWidthMm), 24.81);
+    check("against the height left over", round4(budget.usableHeightMm - budget.widestSymbolMm), 0.03);
+    assert(
+        "  so the height is what binds, not the width",
+        budget.usableHeightMm - budget.widestSymbolMm < budget.textWidthMm - budget.minIdWidthMm
+    );
     check("the id's floor", MIN_ID_FONT_MM, 2.5);
     check("the gap between symbol and text", LABEL_GAP_MM, 1.5);
     check("the safe inset from the die-cut", LABEL_SAFE_INSET_MM, 1);
@@ -169,6 +184,14 @@ export function run({ check, assert, log }) {
     assert("  today's fits", symbolBox({ sideModules: 33, moduleMm }).fits);
     assert("  two versions up still fits", symbolBox({ sideModules: 41, moduleMm }).fits);
     assert("  three does not, and is reported rather than cropped", !symbolBox({ sideModules: 45, moduleMm }).fits);
+    // AND NOT ONE OF THOSE VERDICTS MOVED WHEN THE CODE GOT SHORTER (#411), which is
+    // the same claim the two figures above make, made where a reader of `fits` will
+    // meet it: every one of them is decided on the HEIGHT, so `ID_CHARACTERS` at 17
+    // and at 10 produce the identical four answers.
+    assert(
+        "  the one that fails does so on height rather than on the code beside it",
+        symbolBox({ sideModules: 45, moduleMm }).boxMm > budget.usableHeightMm
+    );
 
     // ── 3: where each label position sits ───────────────────────────────────
     log("");
@@ -353,6 +376,78 @@ export function run({ check, assert, log }) {
     // ANTI-VACUITY: the walker is seen finding something in those files, so the two
     // zeros above are facts about the source rather than about a failed parse.
     assert("  the walker really reads those files", sheetNames.includes("labelBudget") && pageNames.includes("buildToolItemQR"));
+
+    // ── 7b: what the sticker actually prints (#411) ─────────────────────────
+    log("");
+    log("the label prints the code and not the stored id:");
+    // READ OFF THE AST BECAUSE NO VALUE CHECK CAN TELL THE TWO APART. Both fields
+    // are on the same object and both are strings, so `label.toolItemId` in place of
+    // `label.labelCode` renders a longer sticker and passes every figure in this
+    // file — including the width budget above, which is computed from a constant
+    // rather than from what the component reads. The mutation was run: with the
+    // member expression swapped, this file passed before this section existed.
+    //
+    // THE PICKER ABOVE THE SHEET IS THE OTHER HALF AND IT KEEPS THE ID. That list is
+    // a SCREEN, and a screen names a tool item by the value the base holds; only the
+    // paper carries the short form. So the assertion is about the element the
+    // stylesheet calls `label-id`, not about the file.
+    const printed = [];
+    const visitPrinted = (node, className) => {
+        if (!node || typeof node !== "object") return;
+        if (Array.isArray(node)) return node.forEach((child) => visitPrinted(child, className));
+        let here = className;
+        if (node.type === "JSXElement") {
+            const attr = node.openingElement?.attributes?.find(
+                (a) => a.type === "JSXAttribute" && a.name?.name === "className"
+            );
+            here = attr?.value?.type === "Literal" ? String(attr.value.value) : null;
+            if (here === "label-id" || here === "label-tool") {
+                for (const child of node.children) {
+                    if (child.type !== "JSXExpressionContainer") continue;
+                    const e = child.expression;
+                    printed.push({
+                        className: here,
+                        reads: e.type === "MemberExpression" ? `${e.object.name}.${e.property.name}` : e.type,
+                    });
+                }
+            }
+        }
+        for (const [key, value] of Object.entries(node)) {
+            if (key === "type" || key === "start" || key === "end" || key === "loc") continue;
+            visitPrinted(value, here);
+        }
+    };
+    visitPrinted(parseFile(SHEET_SOURCE).ast, null);
+    check("two things are printed on a label", printed.length, 2);
+    check(
+        "  the code, from the value the page computed",
+        printed.find((p) => p.className === "label-id")?.reads,
+        "label.labelCode"
+    );
+    check("  and the tool's name", printed.find((p) => p.className === "label-tool")?.reads, "label.toolName");
+    // The page is what computes it, through the one function that owns the form.
+    assert("the page builds that code through labelCodeFor", pageNames.includes("labelCodeFor"));
+    check(
+        "  and the sheet component never calls it",
+        sheetNames.filter((name) => name === "labelCodeFor").length,
+        0
+    );
+    // ANTI-VACUITY: the reader is shown telling two member expressions apart on a
+    // planted element, so the equality above is a fact about the component rather
+    // than about a walker that reports the first thing it sees.
+    const plantedPrinted = [];
+    const collect = (node) => {
+        if (!node || typeof node !== "object") return;
+        if (Array.isArray(node)) return node.forEach(collect);
+        if (node.type === "JSXExpressionContainer" && node.expression.type === "MemberExpression")
+            plantedPrinted.push(`${node.expression.object.name}.${node.expression.property.name}`);
+        for (const [k, v] of Object.entries(node)) {
+            if (k === "type" || k === "start" || k === "end" || k === "loc") continue;
+            collect(v);
+        }
+    };
+    collect(parseSource("const a = <p>{label.toolItemId}{label.labelCode}</p>;\n", "<planted-printed>").ast);
+    check("  the reader distinguishes the two fields", plantedPrinted.join(" | "), "label.toolItemId | label.labelCode");
 
     // ── 8: no client file may import the encoder ────────────────────────────
     log("");

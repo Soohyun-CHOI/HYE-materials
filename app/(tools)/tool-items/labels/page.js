@@ -6,7 +6,7 @@ import { getToolItemsByToolItemIds } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
 import { MAX_LABELS_PER_REQUEST, TOOL_LABEL_SHEET_COPY as COPY } from "@/lib/toolLabelSheet";
-import { TOOLS_PATH, canonicalToolItemId } from "@/lib/toolRoutes";
+import { TOOLS_PATH, canonicalToolItemId, labelCodeFor } from "@/lib/toolRoutes";
 import { TOOL_LIST_COPY } from "@/lib/toolListView";
 import LabelSheet from "./LabelSheet";
 import "./labels.css";
@@ -94,6 +94,14 @@ export default async function ToolLabelSheetPage({ searchParams }) {
             const symbol = await buildToolItemQR({ origin, toolItemId: toolItem.toolItemId });
             labels.push({
                 toolItemId: toolItem.toolItemId,
+                // WHAT THE STICKER PRINTS, AND IT IS THE SAME STRING THE SYMBOL'S
+                // PATH CARRIES (#411). The readable code is the fallback for a
+                // scratched symbol, and what that person does with it is type it
+                // into the address — so printing one form while routing another
+                // would break the path at the only point it is used. The tool
+                // item's id stays the key everything else on this page is matched
+                // and reported by.
+                labelCode: labelCodeFor(toolItem.toolItemId),
                 toolName: toolNames.get(toolItem.tool[0]) ?? "",
                 svg: symbol.svg,
                 // ITS OWN side count, not the constant. The module size is fixed

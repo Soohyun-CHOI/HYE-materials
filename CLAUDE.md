@@ -110,7 +110,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), and the picker's words.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, and every word the screen says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
-- `lib/toolRoutes.js` — every address on the tools axis (#348).
+- `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
 - `lib/toolLabelSheet.js` — the sheet a tool label prints on (#353).
 - `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, the refusals, and every word it says.
@@ -217,7 +217,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Tools**: the KIND a tool is bought as (#334) — first table of the tools track, which shares this base, this login and these people with everything above it. `Tool Name` (primary, human-entered, app-enforced unique; no minted ID, as `Vendors` and `Materials` have none), `Tool Items` (reverse-link).
 
-**Tool Items**: one physical tool, the thing a QR label is stuck to (#334). `Tool Item ID` (HYE-TL-YYMMDD-###, primary — PRINTED on the label, 3-digit sequence), `Tool` (link, single), `Status` (In Stock/Out/Retired), `Job` (link → Jobs, single, **required and app-enforced**), `Tool Log` (reverse-link). **`Status` and `Job` are both caches of the last `Tool Log` row, written by this app and never by an Airtable formula.** No `Created At`: the `Registered` log row holds it.
+**Tool Items**: one physical tool, the thing a QR label is stuck to (#334). `Tool Item ID` (HYE-TL-YYMMDD-###, primary, 3-digit sequence — the label prints and the QR carries it WITHOUT the `HYE-TL-` token, #411), `Tool` (link, single), `Status` (In Stock/Out/Retired), `Job` (link → Jobs, single, **required and app-enforced**), `Tool Log` (reverse-link). **`Status` and `Job` are both caches of the last `Tool Log` row, written by this app and never by an Airtable formula.** No `Created At`: the `Registered` log row holds it.
 
 **Tool Log**: what has happened to one tool item, append-only (#334). `Tool Log ID` ({Tool Item ID}-{seq}, 3 digits), `Tool Item` (link, single), `Event` (select — Registered/Checked Out/Checked In/Retired), `Job` (link → Jobs, single, **on every row and never blank**, which is what makes the previous row the previous job — so **no `Former Job` is stored**; where each event learns it is in `tools.md`), `Recorded By` (link → Users, single), `Event At` (datetime, UTC), `Checked Out To` (text — the person a tool item was handed to, **on `Checked Out` rows and blank on the other three, app-enforced both ways**; no account exists for these people, #376). `Notes` was here until #363 dropped the rule it existed for.
 
