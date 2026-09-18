@@ -11,11 +11,14 @@
 // Changing stock changes them in the same commit, which is the point rather than a
 // cost: a dimension nobody re-typed is a dimension nobody checked.
 //
-// THE STOCK'S GEOMETRY IS ALSO ADDED BACK UP, which is a second path rather than a
-// restatement. Avery 5160's published numbers are a margin, a pitch and a count,
-// and the page they came from is 215.9 x 279.4 mm — so the margins plus the
-// pitches have to reach the page, and they do only if every figure was transcribed
-// correctly. That is the assertion a typo in one of them fails.
+// THE SECOND PATH IS MAXIMALITY, AND #412 IS WHERE IT BECAME THAT. #353 was checking
+// a product's transcribed geometry — a margin, a pitch and a count — so adding them
+// back up to 215.9 x 279.4 mm was what a typo in one of them failed. Nothing is
+// transcribed now: the label comes from the symbol and the count is computed, so
+// what is worth asserting is that the computation is right at its boundary. Every
+// label keeps the far margin and ONE MORE of either would not, and the call itself
+// is read off the AST — because a count pinned to the correct number passes every
+// figure in this file, measured.
 //
 // AND THE MODULE SIZE IS DERIVED, NOT CHOSEN, so what is checked is the derivation
 // and its floor. `MIN_MODULE_MM` is a citation rather than a measurement — nothing
@@ -40,8 +43,10 @@ import { MAX_TOOL_ITEMS_PER_REGISTRATION } from "../../../lib/toolRegistration.j
 import {
     CELLS_PER_SHEET,
     LABEL_GAP_MM,
+    LABEL_GRID,
     LABEL_SAFE_INSET_MM,
     LABEL_STOCK,
+    LABEL_STOCK_NAME,
     MAX_LABELS_PER_REQUEST,
     MIN_ID_FONT_MM,
     MIN_MODULE_MM,
@@ -49,6 +54,7 @@ import {
     VERSION_HEADROOM,
     cellPosition,
     labelBudget,
+    labelSizeMm,
     moduleSizeMm,
     paginateLabels,
     readStartPosition,
@@ -67,90 +73,173 @@ const SHEET_SOURCE = "app/(tools)/tool-items/labels/LabelSheet.js";
 const PAGE_SOURCE = "app/(tools)/tool-items/labels/page.js";
 
 export function run({ check, assert, log }) {
-    // ── 1: the stock, transcribed and added back up ──────────────────────────
-    log("Avery 5160's published geometry, and the page it has to add up to:");
+    // ── 1: the stock, and the grid derived from it ───────────────────────────
+    log("the stock, and how many of those labels a sheet holds:");
     check("the page size keyword", LABEL_STOCK.page, "letter");
     check("page width", LABEL_STOCK.pageWidthMm, 215.9);
     check("page height", LABEL_STOCK.pageHeightMm, 279.4);
-    check("label width", LABEL_STOCK.labelWidthMm, 66.675);
-    check("label height", LABEL_STOCK.labelHeightMm, 25.4);
-    check("labels a sheet holds", CELLS_PER_SHEET, 30);
-    check("  three across", LABEL_STOCK.columns, 3);
-    check("  and ten down", LABEL_STOCK.rows, 10);
+    check("the margin a printer cannot reach into", LABEL_STOCK.marginMm, 10);
+    check("label width", LABEL_STOCK.labelWidthMm, 30.3);
+    check("label height", LABEL_STOCK.labelHeightMm, 16.8);
+    check("the gap between columns", LABEL_STOCK.columnGapMm, 2);
+    check("and between rows", LABEL_STOCK.rowGapMm, 2);
+    check("labels a sheet holds", CELLS_PER_SHEET, 78);
+    check("  six across", LABEL_GRID.columns, 6);
+    check("  and thirteen down", LABEL_GRID.rows, 13);
+    check("the column pitch", LABEL_GRID.columnPitchMm, 32.3);
+    check("and the row pitch", LABEL_GRID.rowPitchMm, 18.8);
 
-    // A SECOND PATH TO THE PAGE, which is what catches a mistyped margin or pitch:
-    // the left margin, the pitches and the last label's own width have to reach the
-    // paper's width, with the right margin left over — and on this stock the two
-    // margins are equal, which is a third thing to be wrong about.
-    const usedWidth =
-        LABEL_STOCK.marginLeftMm +
-        (LABEL_STOCK.columns - 1) * LABEL_STOCK.columnPitchMm +
-        LABEL_STOCK.labelWidthMm;
-    // FOUR DECIMALS RATHER THAN TWO, BECAUSE THE STOCK'S FIGURES NEED THEM. These
-    // are inches converted exactly — 3/16 of an inch is 4.7625 mm and 1/8 is 3.175
-    // — and rounding to hundredths destroys both. The first version of this file
-    // rounded to two and failed on its own arithmetic, which is the right way round
-    // for a check to be wrong.
-    check("the columns end this far from the left edge", round4(usedWidth), 211.1375);
-    check("  leaving the same margin they started with", round4(LABEL_STOCK.pageWidthMm - usedWidth), 4.7625);
-    const usedHeight = LABEL_STOCK.marginTopMm + LABEL_STOCK.rows * LABEL_STOCK.rowPitchMm;
-    check("the rows end this far from the top edge", round4(usedHeight), 266.7);
-    check("  leaving the same margin again", round4(LABEL_STOCK.pageHeightMm - usedHeight), 12.7);
-    check("the gap between columns", round4(LABEL_STOCK.columnPitchMm - LABEL_STOCK.labelWidthMm), 3.175);
-    check("and no gap between rows", round4(LABEL_STOCK.rowPitchMm - LABEL_STOCK.labelHeightMm), 0);
+    // THE SECOND PATH IS MAXIMALITY NOW, AND IT IS A BETTER ONE THAN THE SUM IT
+    // REPLACED. #353 added a product's margins and pitches back up and required the
+    // page to come out, which caught a transcription error in figures somebody had
+    // copied. Nothing is transcribed here — the count is computed — so the thing
+    // worth asserting is that the computation is right at the boundary: every label
+    // keeps the far margin, and ONE MORE of either would not.
+    const farRight =
+        LABEL_STOCK.pageWidthMm -
+        (LABEL_STOCK.marginMm + (LABEL_GRID.columns - 1) * LABEL_GRID.columnPitchMm + LABEL_STOCK.labelWidthMm);
+    const farBottom =
+        LABEL_STOCK.pageHeightMm -
+        (LABEL_STOCK.marginMm + (LABEL_GRID.rows - 1) * LABEL_GRID.rowPitchMm + LABEL_STOCK.labelHeightMm);
+    check("what is left to the right of the last column", round4(farRight), 14.1);
+    check("and below the last row", round4(farBottom), 27);
+    assert("  both clear the margin", farRight >= LABEL_STOCK.marginMm && farBottom >= LABEL_STOCK.marginMm);
+    // ANTI-VACUITY, AND THE HALF THAT MATTERS: a count that is merely on the page is
+    // satisfied by any number below the maximum, so the check has to see the next
+    // one fail. One more row would leave 8.2 mm, which is under the margin — the
+    // figure is pinned so a changed margin moves this assertion rather than
+    // silently keeping it true.
+    const oneMoreRight =
+        LABEL_STOCK.pageWidthMm -
+        (LABEL_STOCK.marginMm + LABEL_GRID.columns * LABEL_GRID.columnPitchMm + LABEL_STOCK.labelWidthMm);
+    const oneMoreBottom =
+        LABEL_STOCK.pageHeightMm -
+        (LABEL_STOCK.marginMm + LABEL_GRID.rows * LABEL_GRID.rowPitchMm + LABEL_STOCK.labelHeightMm);
+    check("a seventh column would overrun the paper by", round4(oneMoreRight), -18.2);
+    check("and a fourteenth row would leave only", round4(oneMoreBottom), 8.2);
+    assert(
+        "  so neither fits and the grid is maximal",
+        oneMoreRight < LABEL_STOCK.marginMm && oneMoreBottom < LABEL_STOCK.marginMm
+    );
+
+    // ── 1a: the grid is computed and not typed (#412) ────────────────────────
+    log("");
+    log("the count is derived from the stock rather than written beside it:");
+    // READ OFF THE AST, BECAUSE A PINNED COUNT THAT HAPPENS TO BE RIGHT PASSES EVERY
+    // VALUE ABOVE. Measured: replacing the derivation with a literal `6` leaves all
+    // 5384 checks green, and `3` fails eight — so the figures catch a WRONG count
+    // and nothing catches a count that has stopped tracking the stock. That is the
+    // whole property this issue restructured `LABEL_STOCK` for: when a real die-cut
+    // is bought, the dimensions change and the count has to follow. So the call and
+    // its arguments are what is asserted, not the answer.
+    const gridCalls = {};
+    walk(parseFile("lib/toolLabelSheet.js").ast, (n) => {
+        if (n.type !== "Property" || !["columns", "rows"].includes(n.key?.name)) return;
+        const v = n.value;
+        gridCalls[n.key.name] =
+            v.type === "CallExpression" && v.callee.type === "Identifier"
+                ? `${v.callee.name}(${v.arguments
+                      .map((a) =>
+                          a.type === "MemberExpression" ? `${a.object.name}.${a.property.name}` : a.type
+                      )
+                      .join(", ")})`
+                : v.type;
+    });
+    check(
+        "the columns are counted from the page's width",
+        gridCalls.columns,
+        "fitCount(BinaryExpression, LABEL_STOCK.labelWidthMm, LABEL_STOCK.columnGapMm)"
+    );
+    check(
+        "and the rows from its height",
+        gridCalls.rows,
+        "fitCount(BinaryExpression, LABEL_STOCK.labelHeightMm, LABEL_STOCK.rowGapMm)"
+    );
+    // ANTI-VACUITY: the reader is shown a pinned property beside a derived one, so
+    // the two above are facts about the module rather than about a walker that
+    // reports a call for anything.
+    const plantedGrid = {};
+    walk(parseSource("const g = { columns: 6, rows: fitCount(a - b, c, d) };\n", "<planted-grid>").ast, (n) => {
+        if (n.type !== "Property" || !["columns", "rows"].includes(n.key?.name)) return;
+        plantedGrid[n.key.name] = n.value.type === "CallExpression" ? "derived" : n.value.type;
+    });
+    check("  a pinned count reads as a literal", plantedGrid.columns, "Literal");
+    check("  and a computed one does not", plantedGrid.rows, "derived");
+
+    // ── 1b: the label is the smallest the two floors allow (#412) ────────────
+    log("");
+    log("the label size, solved from the floors rather than taken from a product:");
+    // TWO PATHS TO ONE PAIR OF NUMBERS. `LABEL_STOCK` states the label and
+    // `labelSizeMm` derives what the floors require; the stock has to satisfy the
+    // derivation, and on this stock it EQUALS it, because the label was chosen to be
+    // the smallest that does. A stock typed a hundredth small fails here.
+    const required = labelSizeMm({ sideModules: SIDE_MODULES_TODAY });
+    check("the widest symbol the headroom admits", required.widestSymbolMm, 14.8);
+    check("the label height that needs", required.heightMm, 16.8);
+    check("and the width, once the code sits beside it", required.widthMm, 30.3);
+    check("the stock's own height", LABEL_STOCK.labelHeightMm, required.heightMm);
+    check("and its own width", LABEL_STOCK.labelWidthMm, required.widthMm);
+    // ANTI-VACUITY: the derivation is shown MOVING with its inputs, so the equality
+    // above is a fact about this label rather than about a function that returns
+    // whatever the stock says.
+    const roomier = labelSizeMm({ sideModules: SIDE_MODULES_TODAY, versionsOfHeadroom: 2 });
+    check("a second version of headroom would need", roomier.heightMm, 18.4);
+    assert("  which this stock does not carry", roomier.heightMm > LABEL_STOCK.labelHeightMm);
+
+    // WHAT IT REPLACED, STATED SO THE SIZE IS READABLE AS A CHANGE. #353's label was
+    // a product's; this one is the symbol's.
+    assert("the label is narrower than the one it replaces", LABEL_STOCK.labelWidthMm < 66.675);
+    assert("  and shorter", LABEL_STOCK.labelHeightMm < 25.4);
+    assert("  so a sheet holds more of them", CELLS_PER_SHEET > 30);
 
     // ── 2: the module size, derived and floored ─────────────────────────────
     log("");
     log("millimeters per module, derived from the label's height:");
     const moduleMm = moduleSizeMm({ sideModules: SIDE_MODULES_TODAY });
-    check(`${SIDE_MODULES_TODAY} modules today, ${VERSION_HEADROOM} versions of headroom`, VERSION_HEADROOM, 2);
-    check("the derived module", moduleMm, 0.57);
+    check(`${SIDE_MODULES_TODAY} modules today, ${VERSION_HEADROOM} version of headroom`, VERSION_HEADROOM, 1);
+    check("the derived module", moduleMm, 0.4);
     assert(`  which clears the ${MIN_MODULE_MM} mm floor`, moduleMm >= MIN_MODULE_MM);
     check("the floor is a citation and this is its value", MIN_MODULE_MM, 0.4);
+    // AND IT LANDS ON THE FLOOR EXACTLY (#412), which is the whole of that issue in
+    // one line: #353 derived 0.57 from a product's label, and this label was solved
+    // backwards from the floor so the derivation has nowhere above it to land.
+    check("  and the derivation has no room above it", round4(moduleMm - MIN_MODULE_MM), 0);
 
     const budget = labelBudget({ sideModules: SIDE_MODULES_TODAY });
-    check("today's symbol box", budget.symbolMm, 18.81);
-    check("the widest it absorbs", budget.widestSymbolMm, 23.37);
-    check("what a label may print inside, tall", budget.usableHeightMm, 23.4);
-    check("and wide", budget.usableWidthMm, 64.68);
+    check("today's symbol box", budget.symbolMm, 13.2);
+    check("the widest it absorbs", budget.widestSymbolMm, 14.8);
+    check("what a label may print inside, tall", budget.usableHeightMm, 14.8);
+    check("and wide", budget.usableWidthMm, 28.3);
 
     // THE FIT, WHICH IS THE ONE CLAIM NO LAYOUT CAN OVERRIDE. If the widest symbol
-    // and the id's floor do not fit inside one label, the two must overlap however
+    // and the code's floor do not fit inside one label, the two must overlap however
     // they are drawn — and ink inside the quiet zone is what #351 asked this issue
     // not to produce.
     assert("the widest symbol fits the label's height", budget.widestSymbolMm <= budget.usableHeightMm);
-    check("what is left beside it for text", budget.textWidthMm, 39.81);
-    // TEN CHARACTERS SINCE #411, WHERE IT WAS THE WHOLE `Tool Item ID`'S SEVENTEEN.
-    // The label prints the id less its `HYE-TL-` token, so the floor's own width
-    // goes from 25.5 mm to 15.0 mm.
-    check("what the printed code needs at its floor", budget.minIdWidthMm, 15);
+    check("what is left beside it for text", budget.textWidthMm, 12);
+    check("what the printed code needs at its floor", budget.minIdWidthMm, 12);
     assert("  so it fits beside the widest symbol", budget.minIdWidthMm <= budget.textWidthMm);
-    // WHAT #412 IS HANDED, AND IT IS THE WIDTH RATHER THAN THE HEIGHT. #411's own
-    // body had it the other way round — that the readable code set the label's
-    // width — and the arithmetic says the HEIGHT binds and always did: the widest
-    // symbol is 23.37 mm against 23.4 mm of usable height, which is 0.03 mm, while
-    // the width has 24.81 mm unclaimed. Both figures are pinned so the next issue
-    // reads a measurement rather than re-deriving one.
-    check("the width left over beside the code", round4(budget.textWidthMm - budget.minIdWidthMm), 24.81);
-    check("against the height left over", round4(budget.usableHeightMm - budget.widestSymbolMm), 0.03);
-    assert(
-        "  so the height is what binds, not the width",
-        budget.usableHeightMm - budget.widestSymbolMm < budget.textWidthMm - budget.minIdWidthMm
-    );
-    check("the id's floor", MIN_ID_FONT_MM, 2.5);
+    // BOTH OF THOSE ARE EQUALITIES NOW, AND THAT IS WHAT THIS ISSUE IS. #411 handed
+    // over 24.81 mm of unclaimed width and 0.03 mm of unclaimed height on a
+    // product's label; the label is the symbol's now, so there is nothing left over
+    // in either direction. The two are pinned by value because they are the sharpest
+    // thing this tier can hold: any constant moved a hundredth puts one of them on
+    // the wrong side of its comparison.
+    check("the width left over beside the code", round4(budget.textWidthMm - budget.minIdWidthMm), 0);
+    check("and the height left over above the symbol", round4(budget.usableHeightMm - budget.widestSymbolMm), 0);
+    check("the code's floor", MIN_ID_FONT_MM, 2);
     check("the gap between symbol and text", LABEL_GAP_MM, 1.5);
     check("the safe inset from the die-cut", LABEL_SAFE_INSET_MM, 1);
 
     // ANTI-VACUITY: the derivation is shown REFUSING. A stock too short drives the
     // module under the floor, so the guard above is a fact about this stock rather
     // than about arithmetic that always passes.
-    const tiny = { ...LABEL_STOCK, labelHeightMm: 10 };
-    const tinyModule = Math.floor(((tiny.labelHeightMm - 2) / 41) * 100) / 100;
+    const tinyModule = Math.floor(((10 - 2) / 37) * 100) / 100;
     assert(`  a 10 mm label would derive ${tinyModule} mm and fail the floor`, tinyModule < MIN_MODULE_MM);
     // And a version step really does cost four modules a side, so the headroom is
     // spending something rather than nothing.
     assert(
-        "  two versions of headroom really costs module width",
+        "  a version of headroom really costs module width",
         moduleSizeMm({ sideModules: SIDE_MODULES_TODAY, versionsOfHeadroom: 0 }) > moduleMm
     );
 
@@ -164,9 +253,9 @@ export function run({ check, assert, log }) {
     // against the 0.57 the stock was derived for. The module size is fixed for the
     // stock; the box is per symbol.
     for (const [side, expected] of [
-        [33, 18.81],
-        [37, 21.09],
-        [41, 23.37],
+        [33, 13.2],
+        [37, 14.8],
+        [41, 16.4],
     ])
         check(`  ${side} modules is ${expected} mm`, symbolBox({ sideModules: side, moduleMm }).boxMm, expected);
     // The relation, so the literals above cannot all be wrong in the same direction.
@@ -179,28 +268,36 @@ export function run({ check, assert, log }) {
         round4(symbolBox({ sideModules: 41, moduleMm }).boxMm / 41),
         round4(symbolBox({ sideModules: 33, moduleMm }).boxMm / 33)
     );
-    // The headroom's edge, both sides of it: a label crops what overflows and a
-    // cropped symbol is unscannable with nothing to see, so the screen says so.
+    // THE HEADROOM'S EDGE, BOTH SIDES OF IT, AND #412 MOVED IT BY ONE STEP. A label
+    // crops what overflows and a cropped symbol is unscannable with nothing to see,
+    // so the screen says so instead. The boundary sits between 37 and 41 now where
+    // #353 put it between 41 and 45 — which is `VERSION_HEADROOM` going from two to
+    // one, made visible as a verdict rather than only as a constant.
     assert("  today's fits", symbolBox({ sideModules: 33, moduleMm }).fits);
-    assert("  two versions up still fits", symbolBox({ sideModules: 41, moduleMm }).fits);
-    assert("  three does not, and is reported rather than cropped", !symbolBox({ sideModules: 45, moduleMm }).fits);
-    // AND NOT ONE OF THOSE VERDICTS MOVED WHEN THE CODE GOT SHORTER (#411), which is
-    // the same claim the two figures above make, made where a reader of `fits` will
-    // meet it: every one of them is decided on the HEIGHT, so `ID_CHARACTERS` at 17
-    // and at 10 produce the identical four answers.
+    assert("  one version up still fits", symbolBox({ sideModules: 37, moduleMm }).fits);
+    assert("  two does not, and is reported rather than cropped", !symbolBox({ sideModules: 41, moduleMm }).fits);
+    assert("  nor does three", !symbolBox({ sideModules: 45, moduleMm }).fits);
+    // AND IT FAILS ON BOTH DIMENSIONS AT ONCE, which is what a label with no slack
+    // means: the symbol is square, the budget is 14.8 mm each way, so nothing is
+    // decided by one dimension rather than the other any more.
     assert(
-        "  the one that fails does so on height rather than on the code beside it",
-        symbolBox({ sideModules: 45, moduleMm }).boxMm > budget.usableHeightMm
+        "  the first one that fails overruns the height",
+        symbolBox({ sideModules: 41, moduleMm }).boxMm > budget.usableHeightMm
+    );
+    check(
+        "  and the width beside the code is the same 14.8 mm",
+        round4(budget.usableWidthMm - LABEL_GAP_MM - budget.minIdWidthMm),
+        14.8
     );
 
     // ── 3: where each label position sits ───────────────────────────────────
     log("");
     log("the corners the die-cut put the labels at:");
-    check("the first", JSON.stringify(cellPosition(0)), JSON.stringify({ leftMm: 4.76, topMm: 12.7 }));
-    check("second across", JSON.stringify(cellPosition(1)), JSON.stringify({ leftMm: 74.61, topMm: 12.7 }));
-    check("third across", JSON.stringify(cellPosition(2)), JSON.stringify({ leftMm: 144.46, topMm: 12.7 }));
-    check("first of the second row", JSON.stringify(cellPosition(3)), JSON.stringify({ leftMm: 4.76, topMm: 38.1 }));
-    check("the last one on the sheet", JSON.stringify(cellPosition(29)), JSON.stringify({ leftMm: 144.46, topMm: 241.3 }));
+    check("the first", JSON.stringify(cellPosition(0)), JSON.stringify({ leftMm: 10, topMm: 10 }));
+    check("second across", JSON.stringify(cellPosition(1)), JSON.stringify({ leftMm: 42.3, topMm: 10 }));
+    check("last across", JSON.stringify(cellPosition(5)), JSON.stringify({ leftMm: 171.5, topMm: 10 }));
+    check("first of the second row", JSON.stringify(cellPosition(6)), JSON.stringify({ leftMm: 10, topMm: 28.8 }));
+    check("the last one on the sheet", JSON.stringify(cellPosition(77)), JSON.stringify({ leftMm: 171.5, topMm: 235.6 }));
     // The last label's far corner has to be on the paper.
     const last = cellPosition(CELLS_PER_SHEET - 1);
     assert("and its far corner is on the page", last.leftMm + LABEL_STOCK.labelWidthMm <= LABEL_STOCK.pageWidthMm);
@@ -225,9 +322,16 @@ export function run({ check, assert, log }) {
     check("  with six blanks held open first", fromSeven[0].filter((cell) => cell === null).length, 6);
     check("  and the seventh cell carrying the first label", fromSeven[0][6].toolItemId, "T0");
     // A run that no longer fits spills, and the blanks do not repeat on sheet two.
-    const spilling = paginateLabels(Array.from({ length: 28 }, (_, at) => ({ toolItemId: `S${at}` })), 7);
-    check("28 from position 7 needs two sheets", spilling.length, 2);
-    check("  the first holds 30 cells", spilling[0].length, CELLS_PER_SHEET);
+    // The run is sized against the sheet rather than typed, because a smaller label
+    // moved the sheet from 30 cells to 78 and a literal here would have been the
+    // figure that stopped spilling (#412).
+    const spillCount = CELLS_PER_SHEET - 2;
+    const spilling = paginateLabels(
+        Array.from({ length: spillCount }, (_, at) => ({ toolItemId: `S${at}` })),
+        7
+    );
+    check(`${spillCount} from position 7 needs two sheets`, spilling.length, 2);
+    check(`  the first holds ${CELLS_PER_SHEET} cells`, spilling[0].length, CELLS_PER_SHEET);
     check("  the second holds the remaining 4", spilling[1].length, 4);
     check("  and none of them is blank", spilling[1].filter((cell) => cell === null).length, 0);
     check("nothing selected is no sheet at all", paginateLabels([], 1).length, 0);
@@ -449,6 +553,53 @@ export function run({ check, assert, log }) {
     collect(parseSource("const a = <p>{label.toolItemId}{label.labelCode}</p>;\n", "<planted-printed>").ast);
     check("  the reader distinguishes the two fields", plantedPrinted.join(" | "), "label.toolItemId | label.labelCode");
 
+    // ── 7c: every millimeter on the sheet comes from the stock (#412) ───────
+    log("");
+    log("no dimension is written into the component:");
+    // READ OFF THE AST FOR THE SAME REASON AS 7b. Section 6 already forbids a
+    // millimeter figure in the STYLESHEET, and the component's dimensions are inline
+    // styles it cannot see — so `width: "30.3mm"` in place of the constant would
+    // print the same sheet today and stop moving the day the stock does, which is
+    // the one property this whole file exists to keep. The label is the symbol's
+    // size now, so that day is closer than it was: #412 changed every one of these
+    // figures and a pinned one would have survived it.
+    const styleReads = [];
+    const pinned = [];
+    walk(parseFile(SHEET_SOURCE).ast, (n) => {
+        if (n.type !== "TemplateLiteral") return;
+        const tail = n.quasis[n.quasis.length - 1]?.value?.cooked ?? "";
+        if (!tail.startsWith("mm")) return;
+        for (const e of n.expressions) {
+            if (e.type === "Identifier") styleReads.push(e.name);
+            else if (e.type === "MemberExpression") styleReads.push(`${e.object.name}.${e.property.name}`);
+            else pinned.push(e.type);
+        }
+    });
+    assert(`  ${styleReads.length} millimeter values are built from a name`, styleReads.length >= 6);
+    check(
+        `  and none is a literal${pinned.length ? ` (${pinned.join(", ")})` : ""}`,
+        pinned.length,
+        0
+    );
+    // The four the label's own box needs, by name, so a box sized from something
+    // else entirely would fail rather than merely being un-pinned.
+    for (const name of [
+        "LABEL_STOCK.labelWidthMm",
+        "LABEL_STOCK.labelHeightMm",
+        "LABEL_SAFE_INSET_MM",
+        "LABEL_GAP_MM",
+    ])
+        assert(`  the cell reads ${name}`, styleReads.includes(name));
+    // ANTI-VACUITY: the same reader is shown a pinned millimeter, so the zero above
+    // is a fact about the component rather than about a walker that finds nothing.
+    const plantedMm = [];
+    walk(parseSource('const s = { width: `${30.3}mm`, height: `${h}mm` };\n', "<planted-mm>").ast, (n) => {
+        if (n.type !== "TemplateLiteral") return;
+        if (!(n.quasis[n.quasis.length - 1]?.value?.cooked ?? "").startsWith("mm")) return;
+        for (const e of n.expressions) plantedMm.push(e.type);
+    });
+    check("  the reader tells a pinned millimeter from a named one", plantedMm.join(" | "), "Literal | Identifier");
+
     // ── 8: no client file may import the encoder ────────────────────────────
     log("");
     log("the encoder stays out of the browser bundle:");
@@ -506,9 +657,22 @@ export function run({ check, assert, log }) {
         [COPY.openFromRegistration, COPY.openFromTool, COPY.openFromToolItem].filter((s) => /reprint/i.test(s)).length,
         0
     );
-    check("one label counts singular", COPY.sheetCount({ sheets: 1, labels: 1 }), "1 label across 1 sheet of Avery 5160.");
-    check("and several do not", COPY.sheetCount({ sheets: 2, labels: 34 }), "34 labels across 2 sheets of Avery 5160.");
-    check("the stock names itself", COPY.stock({ name: LABEL_STOCK.name }), "Stock: Avery 5160");
+    check("one label counts singular", COPY.sheetCount({ sheets: 1, labels: 1 }), "1 label across 1 sheet.");
+    check("and several do not", COPY.sheetCount({ sheets: 2, labels: 34 }), "34 labels across 2 sheets.");
+    // THE STOCK NAMES ITSELF BY ITS GEOMETRY (#412), because no product has these
+    // dimensions any more. Composed from `LABEL_STOCK` rather than typed, so the
+    // sentence cannot say one size while the label is another — and pinned by value
+    // so the composition is held rather than merely performed.
+    check("the stock names itself", COPY.stock({ name: LABEL_STOCK_NAME }), "Stock: 30.3 x 16.8 mm die-cut");
+    assert(
+        "  and the name is built from the two dimensions",
+        LABEL_STOCK_NAME.includes(String(LABEL_STOCK.labelWidthMm)) &&
+            LABEL_STOCK_NAME.includes(String(LABEL_STOCK.labelHeightMm))
+    );
+    // AND THE RUN'S OWN SENTENCE NO LONGER NAMES IT. `…sheets of Avery 5160.` read
+    // as a sheet of a product; `…sheets of 30.3 x 16.8 mm die-cut.` would read as a
+    // measurement of the sheet. It is stated once, on the line above.
+    assert("  which the sheet count does not repeat", !COPY.sheetCount({ sheets: 2, labels: 34 }).includes("mm"));
     check(
         "over the cap",
         COPY.overCap({ requested: 140, cap: MAX_LABELS_PER_REQUEST }),

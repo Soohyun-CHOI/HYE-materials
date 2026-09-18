@@ -6,6 +6,7 @@ import {
     LABEL_GAP_MM,
     LABEL_SAFE_INSET_MM,
     LABEL_STOCK,
+    LABEL_STOCK_NAME,
     MIN_ID_FONT_MM,
     TOOL_LABEL_SHEET_COPY as COPY,
     cellPosition,
@@ -94,7 +95,7 @@ export default function LabelSheet({ labels, origin, sideModules }) {
                 <p>
                     <strong>{COPY.hostWarningTitle}</strong> {COPY.hostWarning}
                 </p>
-                <p>{COPY.stock({ name: LABEL_STOCK.name })}</p>
+                <p>{COPY.stock({ name: LABEL_STOCK_NAME })}</p>
 
                 {oversized.length > 0 && (
                     <p>

@@ -49,7 +49,12 @@ scrolled the warning off the screen. **A design must keep the host and this
 warning legible from wherever Print is pressed** — pinned beside the control, or
 repeated there, or the control placed where the warning still reads. What it may
 not do is treat this as a preamble somebody reads once on the way in.
-- **Which stock**, by name.
+**Re-measured after #412 shrank the label and every figure above is unchanged**:
+the picker's rows are text and their height does not follow the sticker's. What
+did change is that a run now needs fewer sheets, not that it needs fewer rows.
+- **Which stock**, by its label size. **No product has these dimensions**, so the
+  line states the geometry a supplier would be asked for rather than a name
+  (#412); when a real stock is bought, its name is what belongs there.
 - **How many labels across how many sheets**, once a selection exists.
 
 **action.** Three controls:
@@ -62,7 +67,9 @@ not do is treat this as a preamble somebody reads once on the way in.
   in, and select-none reached only the state the screen refuses to print from. A
   run is a handful, so unchecking one or two is the whole interaction — **a design
   should not add a bulk control back without a reader who needs one.**
-- **The first label position on the sheet**, 1 to 30. **This is for a part-used
+- **The first label position on the sheet**, 1 to however many a sheet holds —
+  78 today, and a figure a design must read rather than assume. **This is for a
+  part-used
   sheet and it is the ordinary case rather than an edge**: a registration is
   usually a handful of tools, so printing always from the top would throw away
   most of a sheet every time. A person counts across the sheet to the first label
@@ -118,11 +125,42 @@ the first — a run that spills starts at the top of the next sheet.
 ## What must agree elsewhere
 
 **The stock's dimensions are not chosen yet and live in one place.** No printer
-has been confirmed at the site, so no adhesive stock has been bought;
-`Avery 5160` is the default because it is what an office printer takes. When the
+has been confirmed at the site, so no adhesive stock has been bought. When the
 real stock arrives, one constant changes and this screen's layout is not
-reopened. **A design must not assume 30 labels of that size** — it should assume
-a grid whose dimensions come from somewhere else.
+reopened. **A design must not assume a particular number of labels or a
+particular label size** — it should assume a grid whose dimensions come from
+somewhere else.
+
+**The label is 30.3 by 16.8 mm and it is sized from the symbol, not from a
+product (#412).** It was 66.7 by 25.4 mm, which was a real adhesive sheet picked
+when nothing had been printed. A wrench or a screwdriver has no flat run that
+wide, so the module and the readable code went to their floors and the label is
+what came out of the arithmetic. **78 fit a Letter sheet where 30 did**, and
+that count is computed from the page, the margin, the label and the gap rather
+than typed — a design must not assume it.
+
+**The narrow side is 16.8 mm and it is the dimension that decides whether the
+sticker goes on.** A label wraps along a handle, so the narrow side has to clear
+the handle's width and the long side runs down a tool that is far longer than
+30 mm. **A wrench handle is roughly 15 to 20 mm**, so this label goes on most of
+that range and **not on the narrow end of it: at 15 mm it does not fit, and
+nothing available to this app makes it fit.** The three things that could be
+smaller are all fixed from outside: the symbol's four-module quiet zone is the
+QR specification's, the 1 mm safe inset is the allowance for a die-cut that is
+not perfectly placed and a sheet that does not feed perfectly straight, and the
+0.4 mm module is a quoted camera limit this app cannot measure its way past.
+**So a tool with a handle narrower than about 17 mm has no label yet, and that
+is a stated limit rather than an oversight.**
+
+**The symbol and the code sit side by side, and stacking them was weighed and
+does not change the fit.** The symbol is wider than the code at its floor, so
+the narrow side comes out at 16.8 mm either way; what stacking changes is the
+long side, from 30.3 mm to 23.1 mm, and the sheet, from 78 labels to 100.
+**That is a real difference and it is the design's to ask for** — the figures
+are here so the request arrives with them attached rather than being
+re-derived. What it would cost: the tool's name has no length limit, and beside
+the symbol it sits in height the symbol has already paid for while under it, it
+decides the label's height.
 
 **The symbol is sized in modules, never in millimeters.** A QR symbol's side grows
 four modules per version as the address it encodes gets longer. So the printed
@@ -133,11 +171,20 @@ millimeters would undo this**, and the failure is invisible on screen: it only
 shows up as a symbol a phone cannot read.
 
 **The readable code has a floor and no ceiling.** Its minimum size is a functional
-constraint — it is the fallback path when the symbol is unreadable, so it has to
-be legible at arm's length — and it is set in code. **Everything above that floor
-is the design's**, including whether it is larger, where it sits, and what it is
-set in. It renders at the floor today because that is the constraint with no
-design applied to it, not because the floor is the right size.
+constraint — it is the fallback path when the symbol is unreadable — and it is
+set in code, at 2.0 mm. **Everything above that floor is the design's**,
+including whether it is larger, where it sits, and what it is set in. It renders
+at the floor today because that is the constraint with no design applied to it,
+not because the floor is the right size.
+
+**Both floors are quoted figures and neither was measured here (#412).** The
+module's 0.4 mm is the practical minimum published for a phone camera resolving
+a printed module; the code's 2.0 mm is the height below which an ordinary office
+printer stops holding a character's strokes apart. They were 0.57 and 2.5 mm,
+set for a label read at arm's length; this one is read in the hand, off a tool
+somebody is holding. **What would settle either is a sheet printed on paper and
+read by a phone, which nobody has done** — and until that happens the label is
+as small as arithmetic supports rather than as small as it goes.
 
 **Both the code and the tool's name render at that one size, and the sameness is
 deliberate.** The code is the only thing on the label with a size requirement, so
@@ -146,12 +193,20 @@ the app's body size made the NAME larger, which is a hierarchy nothing decided
 and the wrong way round. **A design setting them apart is expected — this is the
 absence of that decision, not a version of it.**
 
-**The height is what binds this label and the width has room to spare.** The
-widest symbol the module size absorbs is 23.37 mm against 23.4 mm a label may
-print inside, while the code at its floor claims 15 mm of the 39.81 mm beside it
-— so 24.81 mm of width is unclaimed. **That slack is what #411 produced and what
-#412 spends**, and a design should not read the current layout as using the
-label up.
+**Nothing is left over in either direction any more (#412).** The widest symbol
+the module absorbs is 14.8 mm against 14.8 mm of printable height, and the code
+at its floor claims 12 mm of the 12 mm beside it. #411 handed this screen
+24.81 mm of unclaimed width and #412 spent all of it on a smaller label. **A
+design adding anything to the label has to take it from something already
+there**, and the two things it may not take it from are the symbol's quiet zone
+and the code's floor.
+
+**The label absorbs one symbol version rather than two.** A QR symbol grows four
+modules a side as the address it encodes gets longer; the module cannot shrink
+to absorb that any more, because it is already at its floor, so the label has to.
+One step is what it carries. **Past that the screen says the symbol no longer
+fits and draws no label for it** — that sentence is reachable now in a way it was
+not, and a design must keep it.
 
 **The screen words are `tool` and `tool item`.** A `Tools` row is a tool, a
 `Tool Items` row is a tool item, and never a bare `item` — four other tables on
