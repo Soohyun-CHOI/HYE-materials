@@ -17,14 +17,15 @@ the app whose heading is a human name rather than a generated ID, because a
 material has no ID a person would recognize. Under it, the size and unit joined by
 a middle dot, in small gray text, when either exists.
 
-**That name is now the item's whole category path**, joined with ` > ` and up to
-146 characters — `Stainless Steel (SUS) > Weld Fitting (Clean Fitting) > Metal
-Face Seal (VCR) Fitting > Gland`. It is one string from one field and a redesign
-may split it visually, but the ancestry is part of the identity rather than
-decoration: the last segment alone does not say what the item is, since `Cap`,
-`Union` and `Gasket` each sit under several branches. **The heading wraps to
-three lines on a phone and nothing overflows**, which is the current behavior
-rather than a decision — how a long path should be set is open.
+**That name is the category's own item name**, up to 99 characters and 30 at the
+median — `Metal Face Seal (VCR) Fitting, Gland`. It is one string from one field.
+It was the whole category path until #416, up to 146 characters and carrying the
+ancestry with it; HQ writes these names with eight templates and most of them keep
+enough of the branch to say what the item is, but **the branch is no longer
+guaranteed to be in the heading** — 435 of the 777 names hold no word of their own
+Level 1. What the page does NOT carry is the path itself, and where one belongs is
+the design pass's. **The heading wraps on a phone and nothing overflows**, which
+is the current behavior rather than a decision.
 
 **evidence — `Purchase history`,** a table of six columns: Date, Vendor, Qty, Unit
 price, Amount, Order. One row per time this material was ordered.
@@ -72,5 +73,6 @@ as the vendor's latest with a caveat. The two screens disagree in appearance and
 agree in fact, and that is the relationship to preserve.
 
 **A material's identity is its category, size and unit** — never the vendor, and
-never the name, which is a lookup of the category's path and is nobody's typing.
+never the name, which is a lookup of the category's own name and is nobody's
+typing.
 Two vendors' prices for one material are two rows here, not two materials.

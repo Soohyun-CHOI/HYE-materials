@@ -45,7 +45,7 @@ export default function CategoryPicker({ categories, codes, itemName, hadCategor
     // whether this row ever had a category — see CATEGORY_PICKER_COPY, where
     // showing the second for the first is the copy defect #367 closed.
     const note = walk.complete
-        ? { className: "text-zinc-700", text: CATEGORY_PICKER_COPY.resolved(walk.selected.label).text }
+        ? { className: "text-zinc-700", text: CATEGORY_PICKER_COPY.resolved(walk.selected.itemName).text }
         : nothingPicked && hadCategory && itemName
           ? { className: "text-amber-800", text: CATEGORY_PICKER_COPY.cleared(itemName).text }
           : nothingPicked && itemName

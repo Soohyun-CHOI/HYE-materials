@@ -221,6 +221,23 @@ export function run({ check, log, assert }) {
     );
     check("no needles matches nothing, not everything", andSearchAll("F", []), "FALSE()");
     check("a braced field name is refused here too", refuses(() => andSearchAll("F}{", ["v"])), "refused");
+    // SEVERAL FIELDS JOIN INTO ONE HAYSTACK PER TOKEN (#416), so every word has to
+    // appear somewhere rather than all of them in one field.
+    check(
+        "andSearchAll spans several fields",
+        andSearchAll(["Material Label", "Category Path"], ["pipe"]),
+        'AND(SEARCH("pipe", LOWER({Material Label} & " " & {Category Path})))'
+    );
+    // **`LOWER()` WRAPS THE WHOLE JOIN, AND THIS IS PINNED BY SHAPE BECAUSE THE
+    // WRONG FORM FAILS SILENTLY.** `LOWER({a lookup})` returns blank on Airtable —
+    // measured, `SEARCH("stainless", LOWER({Category Path}))` matched 0 of 37
+    // materials where the joined form matched 35 — so lowering each field
+    // separately makes the search match nothing and raise no error. Nothing in this
+    // tier executes a formula, so the shape is the only thing this tier can hold.
+    const spanned = andSearchAll(["A", "B"], ["x"]);
+    check("  with one LOWER around the join, not one per field", spanned.split("LOWER(").length - 1, 1);
+    check("  and the fields joined by a space, so no token straddles the seam", spanned.includes('{A} & " " & {B}'), true);
+    check("a single field is unchanged by the array form", andSearchAll(["F"], ["x"]), andSearchAll("F", ["x"]));
 
     // prefixMatch (#164) is here for the same reason the OR builders are: the ID
     // counter needs a whole predicate, and the alternative was a per-call-site
