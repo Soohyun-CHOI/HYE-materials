@@ -55,13 +55,21 @@ const CSV_PATH = "scripts/import/material_categories.csv";
  * column off by however many commas the name columns carried.
  */
 function catalogPaths() {
+    // `.cache` is read by `splitExample` below, which asks whether a single token
+    // is a catalog word at all. Assigned here rather than passed, which is the
+    // shape this file already had.
+    catalogPaths.cache = catalogRows().map((r) => composeCategoryLabel(r));
+    return catalogPaths.cache;
+}
+
+/** The committed rows themselves, for the assertions that need more than a path. */
+function catalogRows() {
     const rows = parseCsv(readFileSync(join(REPO_ROOT, CSV_PATH), "utf8"));
     const header = rows[0];
-    catalogPaths.cache = rows
+    return rows
         .slice(1)
         .filter((row) => row.length === header.length && row.some(Boolean))
-        .map((row) => composeCategoryLabel(Object.fromEntries(header.map((h, i) => [h, row[i]]))));
-    return catalogPaths.cache;
+        .map((row) => Object.fromEntries(header.map((h, i) => [h, row[i]])));
 }
 
 /**
@@ -165,6 +173,43 @@ export function run({ check, log, assert }) {
         buildSearchTokens(`pipe ${arrow} 2"`).join("|"),
         'pipe|2"'
     );
+
+    log("");
+    log("a branch word still reaches the rows under it (#416):");
+    // WHAT THIS HOLDS IS THE PROPERTY AND NOT A FIGURE. `Item Name` stopped being
+    // the composed path in #416, and most names carry no word of their own Level 1
+    // — so a search for a branch would stop reaching the rows in it unless the
+    // query also matched the category's path. How MANY names is method-dependent:
+    // cutting a Level 1 into words four reasonable ways gives 425, 430, 431 and
+    // 461, so a pinned count would be pinning the tokenizer. What cannot drift is
+    // that every branch's own words find every row under it.
+    const rows = catalogRows();
+    const level1 = [...new Set(rows.map((r) => r["Level 1 Category"]))];
+    check("the tree has more than one Level 1 to ask about", level1.length > 1, true);
+
+    // The haystack each side matches, as `lib/airtable/materials.js` builds it: the
+    // label (which is the NAME plus size and unit since #416) and the path, joined.
+    // Size and unit are left out here because the CSV has none — what is under test
+    // is which of the two NAME-bearing strings the query can reach.
+    const withPath = (r) => `${r["Item Name"]} ${composeCategoryLabel(r)}`;
+    const nameOnly = (r) => r["Item Name"];
+
+    let unreachableByName = 0;
+    let unreachableWithPath = 0;
+    for (const branch of level1) {
+        const tokens = buildSearchTokens(branch);
+        for (const r of rows.filter((x) => x["Level 1 Category"] === branch)) {
+            if (matchingPaths([nameOnly(r)], tokens).length === 0) unreachableByName += 1;
+            if (matchingPaths([withPath(r)], tokens).length === 0) unreachableWithPath += 1;
+        }
+    }
+    check("searching a branch's own words reaches every row under it", unreachableWithPath, 0);
+    // THE MUTANT IS THE PRE-#416 QUERY, and it is run rather than described: with
+    // the path out of the haystack the same searches lose rows, which is the
+    // regression this issue would otherwise have shipped. The figure is printed
+    // rather than pinned, for the reason above.
+    check("  and matching the name alone would lose rows", unreachableByName > 0, true);
+    log(`  rows a branch search loses without the path: ${unreachableByName} of ${rows.length}`);
 
     log("");
     log("MATERIAL_SEARCH_COPY — the examples are made of the catalog's words (#357):");

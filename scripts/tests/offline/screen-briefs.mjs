@@ -415,7 +415,7 @@ const PINNED = [
     // rewording that collapsed them would leave the brief describing a
     // distinction the screen no longer makes. Clauses rather than whole
     // sentences, so a brief's own 72-character wrap cannot break a pin.
-    "Search by category, size or unit",
+    "Search by item name, category, size or unit",
     "no purchase order has put an item under it yet",
     "No category in the catalog carries all of those words",
     // The truncation line, pinned on the half a redesign would drop: the brief

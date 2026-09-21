@@ -18,7 +18,8 @@
 //      the first assertion fails before any per-state detail is read.
 //   4. No call site composes an item name from a label except through
 //      `categoryItemFields` — spell `itemName: category.label` in either action
-//      and the count is above 0.
+//      and the count is above 0. Why it is not also `.itemName` since #416 is on
+//      `itemNameByHand`.
 //
 // The anti-vacuity is inside 3 rather than beside it: "no refusal" and "the
 // predicate cannot see anything" are the same result, so the first thing asked is
@@ -57,8 +58,27 @@ function callCount(ast, name) {
     return n;
 }
 
-/** `itemName: <anything>.label` assignments — the pair spelled by hand. */
-function itemNameFromLabel(ast) {
+/**
+ * `itemName: <anything>.label` assignments — the pair spelled by hand.
+ *
+ * **IT STAYS ON `.label` AFTER #416, AND WIDENING IT TO `.itemName` WAS TRIED AND
+ * REVERTED.** The pair froze the category's label until that issue and freezes its
+ * item name now, so the obvious move is to flag the new field too — and it flags
+ * `itemName: item.itemName` in `app/prs/new/actions.js`, which is a parsed ROW
+ * being handed to `createItem` rather than a name composed from a category. The
+ * AST cannot tell the two apart: both are `<identifier>.itemName`, and which one
+ * it is depends on what the identifier holds. A guard with a false positive gets
+ * an exemption list, which is the shape this repository refuses.
+ *
+ * WHAT STILL HOLDS THE RULE, since this half no longer can: `categoryItemFields`
+ * is pinned by value on a fixture whose label and item name DIFFER, and both
+ * actions are asserted to call it. A third call site that composed a name from a
+ * category would have to route through the same function to write the pair at
+ * all. `.label` is kept because it is unambiguous — a label is a category's and
+ * nothing else's — and because it is the spelling somebody copying a pre-#416
+ * call site would write.
+ */
+function itemNameByHand(ast) {
     const found = [];
     walk(ast, (node) => {
         if (node.type !== "Property") return;
@@ -120,7 +140,7 @@ export function run({ check, log, assert }) {
 
     log("");
     log("a half-picked category cannot be saved, and an untouched one can:");
-    const resolved = { recordId: "recCat", label: "A > B" };
+    const resolved = { recordId: "recCat", label: "A > B", itemName: "B, A" };
     const answers = new Set(
         [
             refuseUnsettledCategory({ chosen: FULL, hadCategory: true, resolved }),
@@ -177,11 +197,14 @@ export function run({ check, log, assert }) {
         Object.keys(categoryItemFields(resolved)).sort().join(","),
         "categoryRecordId,itemName"
     );
-    check("  and the name is the label", categoryItemFields(resolved).itemName, resolved.label);
+    // #416 — the category's OWN name, not its composed path. Both are on the
+    // fixture and they differ, so this cannot pass by the two being equal.
+    check("  and the name is the category's item name", categoryItemFields(resolved).itemName, resolved.itemName);
+    check("  which is not its label", categoryItemFields(resolved).itemName === resolved.label, false);
     let handSpelled = [];
     for (const action of ACTIONS) {
         const { ast } = parseFile(action);
-        handSpelled = handSpelled.concat(itemNameFromLabel(ast).map(() => action));
+        handSpelled = handSpelled.concat(itemNameByHand(ast).map(() => action));
     }
     // WHAT THIS PREVENTS IS THE THIRD CALL SITE. Both of today's go through the
     // pair; a fourth screen that writes an item would be written by copying one
