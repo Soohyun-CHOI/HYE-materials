@@ -272,6 +272,29 @@ four were `key` properties and are covered now. A value that is only ever assign
 is not, and closing it would mean treating every module-level string as a
 vocabulary.
 
+## H — A copy key whose value is another constant's (#368)
+
+`Pick level 1 first.` and `Pick level 2 first.` on `/admin/categories/new`. That
+screen reuses the item picker's own words for its two parent controls —
+`CATEGORY_CREATION_COPY.awaitingParent` **is** `CATEGORY_PICKER_COPY.awaitingParent`,
+so the level labels a requester reads and the ones the office reads cannot drift —
+and the extractor attributes a `*_COPY` constant to the screens whose files NAME it.
+`/prs/new` and `/prs/[prId]` name that one; this screen names only its own.
+
+**The test answers "the screen called that string", so this one is closable** — a
+member expression whose object is a `*_COPY` in a file the screen reaches is a NAME,
+not a function body, which is the distinction the whole file turns on. **It was left
+open on cost rather than on principle:** resolving the reference means pulling in the
+whole of the other constant, which for `CATEGORY_PICKER_COPY` is six more strings
+this screen does not render — `Pick a category.`, the two refusals about a row's
+levels, and the two about a row saved before the catalog. An over-reach of six
+against a yield of two is the wrong side of the trade the `label:` row below records,
+and a rule that resolved only the KEYS a screen reads would be dataflow.
+
+**The four level labels are a different gap and are group F's**: `Level 1` … `Level 4`
+are built by `CATEGORY_LEVELS.map((_, i) => ...)`, so they exist as literals in no
+file at all and no screen has ever produced them, `/prs/new` included.
+
 ## What was closed, and what it cost
 
 Five shapes went during the pass that wrote this file, and #185 NARROWED a sixth

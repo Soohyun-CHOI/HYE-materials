@@ -35,6 +35,7 @@
 // 2 clean but incomplete (could not reach the base).
 
 import {
+    CATEGORY_ITEM_NAME,
     CATEGORY_LABEL_FORMULA,
     CATEGORY_LABEL_SEPARATOR,
     CATEGORY_LEAF_CODE,
@@ -150,7 +151,9 @@ let records;
 if (table) {
     try {
         const { base } = await import("../../lib/airtable/client.js");
-        records = await base(TABLE).select({ fields: [LABEL_FIELD, ...COLUMNS] }).all();
+        records = await base(TABLE)
+            .select({ fields: [LABEL_FIELD, CATEGORY_ITEM_NAME, ...COLUMNS] })
+            .all();
     } catch (err) {
         incomplete = true;
         log(`  SKIP  could not read the rows: ${err.message}`);
@@ -207,6 +210,24 @@ if (records) {
     check(
         `  every leaf code is distinct`,
         new Set(records.map((r) => r.get(CATEGORY_LEAF_CODE))).size,
+        records.length
+    );
+
+    // #415's TWO PROPERTIES, OVER LIVE ROWS SINCE #368, and the premise is what
+    // changed. That issue asserted them over the committed CSV because the CSV was
+    // the only way a row arrived; `/admin/categories/new` writes one now, so the
+    // base can carry a name the file does not and `offline/material-categories.mjs`
+    // cannot see it. **The second is the invariant every screen naming a material
+    // stands on** (#416): a material is called by its category's name, so one name
+    // has to pick out one category. The app's own gate is case-insensitive, which
+    // is why the fold is asserted here as well — a pair differing only in case
+    // would pass the exact count and be two rows the gate would not have allowed.
+    const itemNames = records.map((r) => r.get(CATEGORY_ITEM_NAME) ?? "");
+    check(`  every row names something`, itemNames.filter((n) => String(n).trim() !== "").length, records.length);
+    check(`  and no two rows name the same thing`, new Set(itemNames).size, records.length);
+    check(
+        `  nor under the fold the duplicate gate compares with`,
+        new Set(itemNames.map((n) => String(n).trim().toLowerCase())).size,
         records.length
     );
 
