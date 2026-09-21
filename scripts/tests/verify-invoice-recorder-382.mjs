@@ -27,6 +27,16 @@
 //   getting its own `That invoice no longer exists.` back, which reaches the
 //   handler and writes nothing.
 //
+//   THAT MACHINERY LEFT THIS FILE IN #250 and lives in `scripts/tests/_liveApp.mjs`,
+//   because a second script needed it and a second copy of a lookup into
+//   Turbopack's internals is the shape CLAUDE.md's "one rule, one implementation"
+//   refuses. Three things moved: the session, the id lookup and the POST. What
+//   #250 added there rather than here is the other body shape — an action taking
+//   a `FormData` cannot be called with a JSON array, and `deleteInvoiceAction`
+//   takes one string so this file never needed it. The session cookie now drops
+//   its attributes, which is the variant the rest of the tier uses and the
+//   correct one; it changed nothing observable here.
+//
 //   A — a session for the one Admin this app can use, and the create form's fields.
 //   B — a minimal PDF into Vercel Blob, since the file is a required argument.
 //   C — the create. `Recorded By` must hold that session's user and nobody else.
@@ -63,8 +73,9 @@
 //
 // Fixtures: one Invoice, its Invoice Items and its Invoice-PO Link rows, all
 // created by the real action and deleted in this same run by the real action, with
-// scripts/tests/_fixtures.mjs as the net behind it. One Auth Tokens row is spent to
-// mint the session. One Vercel Blob object is uploaded; the action's own `after()`
+// scripts/tests/_fixtures.mjs as the net behind it. TWO Auth Tokens rows are spent,
+// one per session — part G mints its own so the cleanup does not depend on how far
+// the body got, and this said one. One Vercel Blob object is uploaded; the action's own `after()`
 // cleanup deletes it once Airtable has ingested it, and the helper reports what it
 // finds rather than assuming. Reuses — never modifies, never deletes — one PO, one
 // PO Item and one Vendor. The ordered item is deliberately one that NO delivery
@@ -75,15 +86,15 @@
 
 import { put } from "@vercel/blob";
 import { TABLES, base } from "../../lib/airtable/client.js";
-import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { getInvoiceById } from "../../lib/airtable/invoices.js";
 import { getPOItemByRecordId } from "../../lib/airtable/poItems.js";
 import { getUserByEmail } from "../../lib/airtable/users.js";
 import { userName } from "../../lib/userName.js";
 import { applyFilters, axesFor, emptyFilters, parseFilters } from "../../lib/listFilters.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { DEFAULT_BASE_URL, callServerAction, serverActionId, sessionCookieFor } from "./_liveApp.mjs";
 
-const BASE = process.env.BASE_URL || "http://localhost:3000";
+const BASE = DEFAULT_BASE_URL;
 const ADMIN_EMAIL = "soo@hanyangengusa.com";
 
 // The target, chosen so this run's footprint is the smallest one that still
@@ -151,36 +162,6 @@ function actionFieldsFrom(html) {
     };
 }
 
-/**
- * The id of a server action a CLIENT component imports, looked up by export name.
- *
- * Turbopack writes `__next_internal_action_entry_do_not_use__ [{id: {name}}, …]`
- * into the chunk that carries the client reference, which is a JSON map — so this
- * asks for a name and never for a position. Returns null rather than guessing,
- * and the caller reports that as incomplete: a production build may not carry the
- * marker, and a run that silently skipped the delete would leave the fixture on
- * the base while reading as a pass.
- */
-async function serverActionId(cookie, pageUrl, exportName) {
-    const html = await (await fetch(pageUrl, { headers: { cookie } })).text();
-    const scripts = [...new Set([...html.matchAll(/src="(\/_next\/[^"]+\.js[^"]*)"/g)].map((m) => m[1]))];
-    for (const src of scripts) {
-        const js = await (await fetch(`${BASE}${src}`, { headers: { cookie } })).text();
-        for (const m of js.matchAll(/__next_internal_action_entry_do_not_use__\s*(\[.*?\])\s*\*\//gs)) {
-            let parsed;
-            try {
-                parsed = JSON.parse(m[1]);
-            } catch {
-                continue;
-            }
-            for (const [id, meta] of Object.entries(parsed[0] || {})) {
-                if (meta?.name === exportName) return id;
-            }
-        }
-    }
-    return null;
-}
-
 /** Whether one record id still resolves. A gone record throws rather than answering. */
 async function stillOnBase(table, recordId) {
     try {
@@ -214,16 +195,8 @@ try {
             userName(admin) || "no name"
         );
 
-        const token = await createAuthToken(ADMIN_EMAIL);
-        const tokenValue = typeof token === "string" ? token : token?.token;
-        const verified = await fetch(`${BASE}/api/auth/verify`, {
-            method: "POST",
-            headers: { "content-type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ token: tokenValue }),
-            redirect: "manual",
-        });
-        cookie = (verified.headers.getSetCookie?.() || []).join("; ");
-        ok("a session cookie was issued", cookie.length > 0, `status ${verified.status}`);
+        cookie = await sessionCookieFor(ADMIN_EMAIL);
+        ok("a session cookie was issued", cookie.length > 0);
 
         const page = await fetch(`${BASE}/invoices/new`, { headers: { cookie }, redirect: "manual" });
         const html = await page.text();
@@ -438,47 +411,38 @@ try {
     // the body got.
     let cleanupCookie = "";
     try {
-        const token = await createAuthToken(ADMIN_EMAIL);
-        const tokenValue = typeof token === "string" ? token : token?.token;
-        const verified = await fetch(`${BASE}/api/auth/verify`, {
-            method: "POST",
-            headers: { "content-type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({ token: tokenValue }),
-            redirect: "manual",
-        });
-        cleanupCookie = (verified.headers.getSetCookie?.() || []).join("; ");
+        cleanupCookie = await sessionCookieFor(ADMIN_EMAIL);
     } catch (err) {
         console.log(`  WARN  could not mint a cleanup session — ${err.message}`);
     }
 
     if (invoiceRecordId && invoiceId && cleanupCookie) {
         const pageUrl = `${BASE}/invoices/${encodeURIComponent(invoiceId)}`;
-        const actionId = await serverActionId(cleanupCookie, pageUrl, "deleteInvoiceAction");
+        const actionId = await serverActionId(pageUrl, "deleteInvoiceAction", { cookie: cleanupCookie });
         if (!actionId) {
             incomplete = true;
             console.log("  SKIP  the delete action's id is not in the served chunks — the helper below deletes instead");
         } else {
-            const res = await fetch(pageUrl, {
-                method: "POST",
-                headers: { cookie: cleanupCookie, "Next-Action": actionId, "content-type": "text/plain;charset=UTF-8" },
-                body: JSON.stringify([invoiceId]),
-                redirect: "manual",
-            });
-            const flight = await res.text();
             // THE ROUTE TREE CARRIES `"error":"$undefined"` ON EVERY RESPONSE, so a
             // bare search for `"error"` reads a success as a failure — measured, on
             // this script's first run. What a refused delete returns is the action's
             // own object, `{"error":"That invoice no longer exists."}`, which is the
             // shape the mechanism was proved with before any of this was written.
-            // The verdict is still the three record reads below rather than this
-            // string: a framework payload is a diagnostic, and whether the rows are
-            // gone is the claim.
-            const refusal = flight.match(/"error":"(?!\$undefined)([^"]*)"/);
-            deleteRan = res.status < 400 && !refusal;
+            // That discrimination is `_liveApp.mjs`'s since #250; the verdict is
+            // still the three record reads below rather than the string, because a
+            // framework payload is a diagnostic and whether the rows are gone is
+            // the claim.
+            const res = await callServerAction({
+                pageUrl,
+                actionId,
+                args: [invoiceId],
+                cookie: cleanupCookie,
+            });
+            deleteRan = res.status < 400 && !res.refusal;
             ok(
                 "deleteInvoiceAction ran and returned no refusal",
                 deleteRan,
-                `status ${res.status}${refusal ? ` — ${refusal[1]}` : ""}`
+                `status ${res.status}${res.refusal ? ` — ${res.refusal}` : ""}`
             );
         }
     }

@@ -314,11 +314,15 @@ try {
 // SKIP_CLEANUP still wins, and it is the one way this script exits 0 with rows on
 // the base. That is not the silence #171 is about: it is opt-in per run, the ids
 // are printed, and a deliberate choice is not a leak.
-// `process.exitCode` rather than `process.exit`, which is this repo's own
-// precedent for not stepping over cleanup (verify-withdraw-revalidation-122.mjs
-// says so in as many words) — and offline/fixture-cleanup.mjs bans an exit above
-// the teardown call for exactly that reason. It caught the first version of these
-// very lines, where the SKIP_CLEANUP branch exited before teardown was reached.
+// `process.exitCode` rather than `process.exit`, because this branch sits ABOVE
+// the teardown call and an exit here would step over it. This cited
+// verify-withdraw-revalidation-122.mjs as saying so in as many words, and #250
+// rewrote that file into the shape 368 and 382 use — cleanup first, then one
+// `process.exit` as the last statement — so the citation no longer had anything
+// to point at and this file is the only remaining `exitCode` in the tier. What
+// holds the rule is offline/fixture-cleanup.mjs, which bans an exit above the
+// teardown call. It caught the first version of these very lines, where the
+// SKIP_CLEANUP branch exited before teardown was reached.
 if (process.env.SKIP_CLEANUP) {
     console.log("SKIP_CLEANUP set — leaving records in place:", { invoiceId: invoice?.id, createdItemId, createdLinkId });
     process.exitCode = 0;
