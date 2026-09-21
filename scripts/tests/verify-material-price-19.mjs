@@ -235,9 +235,9 @@ if (incomplete) {
     check("the fixture user is not an Admin", fixtureUser.isAdmin === true, false);
     check("and not a President", fixtureUser.role, "Employee");
     const fixtureJobs = fixtureUser.assignedJobs || [];
-    const discipdisciplineJob = discipline.job?.[0];
+    const disciplineJob = discipline.job?.[0];
     assert(
-        `and not assigned to the fixture Line's Job (assigned to ${fixtureJobs.length})`,
+        `and not assigned to the fixture discipline's Job (assigned to ${fixtureJobs.length})`,
         !disciplineJob || !fixtureJobs.includes(disciplineJob)
     );
     assert("the requester is someone else", admin.id !== fixtureUser.id);

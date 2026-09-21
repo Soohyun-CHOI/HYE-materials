@@ -91,7 +91,7 @@ function assert(label, ok) {
     return Boolean(ok);
 }
 
-printProvenance({ title: "verify-invoice-ids-164 — the daily ID counter's population" });
+const provenance = printProvenance({ title: "verify-invoice-ids-164 — the daily ID counter's population" });
 
 // Fixtures (#171) — tracking, ordered deletion, per-record reporting and the
 // residue measurement all live in scripts/tests/_fixtures.mjs now. The bucket
@@ -629,7 +629,7 @@ console.log("\nCleaning up fixtures:");
 const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
-console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
+console.log(`commit ${provenance.commit ?? "UNKNOWN"}${provenance.dirtyEntries?.length ? " (DIRTY TREE)" : ""}`);
 // TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the daily ID counter; a
 // leak is about this run's effect on a shared base. Until #171 a failed delete
 // lowered `pass`, so a leak printed `SOME CHECKS FAILED` — the right exit code

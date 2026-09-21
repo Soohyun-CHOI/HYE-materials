@@ -45,7 +45,7 @@
 
 import { readdirSync } from "fs";
 import { isMain, standalone } from "./_harness.mjs";
-import { parseFile, repoPath, walk } from "./_ast.mjs";
+import { parseFile, parseSource, repoPath, walk } from "./_ast.mjs";
 
 export const title = "Fixture-cleanup contract across the credentialed tier (#171)";
 
@@ -162,6 +162,101 @@ export function run({ check, assert, log }) {
         "at least one script was seen calling .destroy() directly, so that arm ran",
         sawDestroyer
     );
+
+    // ── the helper's own delete path (#191) ─────────────────────────────────
+    //
+    // Everything above is about the ADOPTERS. These are about `_fixtures.mjs`
+    // itself, and they are here rather than in a file of their own because the
+    // subject is the same contract: how this tier removes what it made.
+    //
+    // They are source shape, which is all that is available — `_fixtures.mjs`
+    // imports the Airtable client and throws at module load without a key, so
+    // this tier cannot call `teardown` and cannot see a batch happen. What a
+    // credentialed run proves instead is in the pull request: 64 rows in 64
+    // requests before, 14 batch requests after, residue 0 both times.
+    log("");
+    log("the helper batches its deletes, and falls back per record (#191):");
+
+    const helper = parseFile(`${TESTS_DIR}/_fixtures.mjs`);
+
+    // Airtable's ceiling for one delete request. A literal, so changing it is a
+    // deliberate edit rather than a value that drifted out of a comment.
+    let batchSize = null;
+    walk(helper.ast, (n) => {
+        if (n.type === "VariableDeclarator" && n.id?.name === "DELETE_BATCH_SIZE") batchSize = n.init?.value ?? null;
+    });
+    check("  DELETE_BATCH_SIZE is Airtable's ceiling of ten", batchSize, 10);
+
+    // NO `destroy` IN THE HELPER PASSES A SCALAR, which is one assertion doing two
+    // jobs. The batch path must send a list or nothing is batched at all; and the
+    // one-at-a-time FALLBACK must send a one-element list rather than the bare id,
+    // because the two forms answer differently for a record that is already gone
+    // — measured, `DELETE /Table?records[]=recX` answers 404 naming the record
+    // while `DELETE /Table/recX` answers 403 with the permission sentence
+    // `residueState` documents as indistinguishable from a dead credential. A
+    // regression to the scalar form in either place would keep working and quietly
+    // lose the diagnosis.
+    //
+    // IT BANS THE SCALAR SHAPES RATHER THAN CERTIFYING ARRAYNESS, because source
+    // shape cannot do the latter: the batch call passes `chunk.map(…)`, which is a
+    // CallExpression that happens to return an array, and no parser can say that.
+    // What it CAN say is that the argument is not the thing the scalar form takes
+    // — a bare identifier, or a property read like `row.id`.
+    const SCALAR_SHAPES = new Set(["Identifier", "MemberExpression", "Literal"]);
+    const destroyArgs = [];
+    walk(helper.ast, (n) => {
+        if (
+            n.type === "CallExpression" &&
+            n.callee?.type === "MemberExpression" &&
+            n.callee.property?.name === "destroy"
+        ) {
+            destroyArgs.push(n.arguments[0]?.type ?? "(none)");
+        }
+    });
+    assert(`  the helper calls .destroy() at all (${destroyArgs.length})`, destroyArgs.length > 0);
+    check(
+        "  and no call passes a scalar id — every one is the batch form",
+        destroyArgs.filter((t) => SCALAR_SHAPES.has(t)).length,
+        0
+    );
+
+    // CHILDREN BEFORE PARENTS SURVIVES THE REGROUPING. Batching moved the
+    // deletes out of a per-parent loop into one flush per table, and the thing
+    // that must not move with it is the order: every child of a bucket goes
+    // before every parent of that bucket, or a parent is removed over the top of
+    // rows that still point at it. The child flush passes the table it is
+    // iterating; the parent flush passes the bucket's own.
+    const flushes = [];
+    walk(helper.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.type === "Identifier" && n.callee.name === "deleteRows") {
+            const arg = n.arguments[0];
+            const named =
+                arg?.type === "Identifier"
+                    ? arg.name
+                    : arg?.type === "MemberExpression"
+                      ? `${arg.object?.name}.${arg.property?.name}`
+                      : arg?.type;
+            flushes.push({ at: n.start, named });
+        }
+    });
+    // AND IT IS SOURCE ORDER, with this file's own standing caveat: swapping the
+    // two statements fails these, while a runtime short-circuit that leaves them
+    // where they are does not. Both mutations were run; only the first is caught.
+    flushes.sort((a, b) => a.at - b.at);
+    check("  there are two flushes, children and parents", flushes.length, 2);
+    check("  the first is the child tables", flushes[0]?.named, "table");
+    check("  and the second is the bucket's own table", flushes[1]?.named, "b.table");
+
+    // ANTI-VACUITY for the three above: the detector is shown reading a scalar
+    // destroy as a scalar, so "every call passes an array" is not what an empty
+    // walk reports.
+    const scalar = parseSource('base(t).destroy(id);\nbase(t).destroy([id]);\n', "<synthetic-scalar>");
+    const seen = [];
+    walk(scalar.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.property?.name === "destroy") seen.push(n.arguments[0]?.type);
+    });
+    check("  the detector reads a bare id as a scalar shape", SCALAR_SHAPES.has(seen[0]), true);
+    check("    and a one-element list as not one", SCALAR_SHAPES.has(seen[1]), false);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);
