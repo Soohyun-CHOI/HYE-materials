@@ -53,6 +53,9 @@ import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES, _debugLockKeys } from "../../lib/airtable/client.js";
 import { formulaString } from "../../lib/airtableFormula.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-materials-cache-18 — materials identity, Material Prices and the item axis" });
 
 let pass = true;
 let incomplete = null;

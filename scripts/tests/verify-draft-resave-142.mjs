@@ -43,6 +43,9 @@ import { isOurBlobUrl } from "../../lib/blobIngest.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-draft-resave-142 — re-saving a Draft must not lose its quotation" });
 
 let pass = true;
 function check(label, actual, expected) {

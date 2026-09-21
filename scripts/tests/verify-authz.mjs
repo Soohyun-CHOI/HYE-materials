@@ -44,6 +44,9 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-authz — Admin route refusals, the Blob host predicate, PO idempotency" });
 
 let pass = true;
 let incomplete = false;

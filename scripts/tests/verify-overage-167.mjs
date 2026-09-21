@@ -38,7 +38,6 @@
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
-import { execSync } from "child_process";
 // `del` moved to scripts/tests/_fixtures.mjs with the rest of the cleanup (#171).
 import { put } from "@vercel/blob";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
@@ -66,6 +65,7 @@ import { OVERAGE_BLOCKED, describeOverageBanner, isOverageApplied, resolveOrigin
 import { orderedItemStatus } from "../../lib/deliveryStatus.js";
 import { foldInvoiceItems } from "../../lib/invoiceItemFold.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -82,30 +82,7 @@ function assert(label, ok) {
     return Boolean(ok);
 }
 
-// A past run is only evidence if it can be tied to a tree.
-function gitContext() {
-    try {
-        return {
-            head: execSync("git rev-parse HEAD", { encoding: "utf8" }).trim(),
-            dirty: execSync("git status --porcelain", { encoding: "utf8" }).split("\n").filter((l) => l.trim()).length,
-        };
-    } catch (err) {
-        return { head: "unknown", dirty: null, error: String(err?.message ?? err) };
-    }
-}
-const git = gitContext();
-console.log("=".repeat(72));
-console.log("verify-overage-167 — raising an overage PR from an over-delivery");
-console.log(`commit    ${git.head}`);
-console.log(
-    git.dirty === null
-        ? `tree      unknown (${git.error})`
-        : git.dirty > 0
-          ? `tree      DIRTY — ${git.dirty} uncommitted file(s); the commit above does not identify what ran`
-          : "tree      clean — the commit above identifies exactly what ran"
-);
-console.log(`ran at    ${new Date().toISOString()}`);
-console.log("=".repeat(72));
+printProvenance({ title: "verify-overage-167 — raising an overage PR from an over-delivery" });
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
 // order. Blob objects go through trackBlob and are verified with head() rather

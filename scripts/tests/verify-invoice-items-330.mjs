@@ -50,6 +50,9 @@ import { getInvoiceById } from "../../lib/airtable/invoices.js";
 import { getPOItemByRecordId } from "../../lib/airtable/poItems.js";
 import { ITEMS_MISSING_COPY } from "../../lib/invoiceItemsMissing.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-invoice-items-330 — an invoice with no items" });
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const ADMIN_EMAIL = "soo@hanyangengusa.com";

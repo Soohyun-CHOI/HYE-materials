@@ -39,6 +39,9 @@ import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { userName } from "../../lib/userName.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-pr-visibility-143 — PR detail is row-scoped" });
 
 let pass = true;
 let incomplete = false;

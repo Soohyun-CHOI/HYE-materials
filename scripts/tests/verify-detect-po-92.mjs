@@ -20,6 +20,9 @@ import { readFileSync } from "fs";
 import { PDFParse } from "pdf-parse";
 import { getPOById } from "../../lib/airtable/purchaseOrders.js";
 import { hasUninvoicedItems } from "../../lib/poItemQty.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-detect-po-92 — what PO detection returns for four PDFs (figures, no verdict)" });
 
 const PO_ID_PATTERN = /HYE-PO-\d{8}-\d{2}/g;
 

@@ -42,6 +42,9 @@ import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-material-price-19 — material price search and purchase history" });
 
 const FIXTURE_EMAIL = "authz-fixture@hanyangengusa.com";
 

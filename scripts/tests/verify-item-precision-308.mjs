@@ -58,6 +58,9 @@ import {
     PRECISION_BLOCKED_COPY,
     SHIPPING_FEE_PRECISION_COPY,
 } from "../../lib/variance.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-item-precision-308 — a request figure the order cannot carry" });
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const ADMIN_EMAIL = "soo@hanyangengusa.com";

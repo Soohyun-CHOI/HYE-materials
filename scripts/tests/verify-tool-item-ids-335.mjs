@@ -47,6 +47,9 @@ import { ID_KINDS, dailyIdPrefix } from "../../lib/idSequence.js";
 import { TOOL_STATUS } from "../../lib/toolStatus.js";
 import { resetOps, snapshot } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-tool-item-ids-335 — the tool item ID, against the live base" });
 
 let pass = true;
 let incomplete = false;

@@ -65,6 +65,9 @@ import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { userName } from "../../lib/userName.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-po-withdraw-138 — the PO's terminal `Withdrawn` status" });
 
 let pass = true;
 // Set when the Airtable schema prerequisites aren't in place yet: the

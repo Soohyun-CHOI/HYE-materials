@@ -44,6 +44,9 @@ import {
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-po-awaiting-signature-133 — the PO's `Awaiting Signature` status" });
 
 let pass = true;
 function check(label, actual, expected) {

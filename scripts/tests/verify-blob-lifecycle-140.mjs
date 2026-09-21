@@ -44,6 +44,9 @@ import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-blob-lifecycle-140 — no Blob object outlives its ingest" });
 
 let pass = true;
 function check(label, actual, expected) {

@@ -41,6 +41,9 @@ import { getVendorByRecordId } from "../../lib/airtable/vendors.js";
 import { uninvoicedQty } from "../../lib/poItemQty.js";
 import { checkHeaderVariance, checkUnitPriceVariance } from "../../lib/variance.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-variance-15 — variance checks, and the Calculated Total formula" });
 
 /**
  * ITS THREE FIXTURE RECORDS WERE HARD-CODED IDS AND ALL THREE WERE DEAD (#283).

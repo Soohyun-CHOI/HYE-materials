@@ -93,6 +93,9 @@ import { userName } from "../../lib/userName.js";
 import { applyFilters, axesFor, emptyFilters, parseFilters } from "../../lib/listFilters.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { DEFAULT_BASE_URL, callServerAction, serverActionId, sessionCookieFor } from "./_liveApp.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-invoice-recorder-382 — who entered an invoice" });
 
 const BASE = DEFAULT_BASE_URL;
 const ADMIN_EMAIL = "soo@hanyangengusa.com";

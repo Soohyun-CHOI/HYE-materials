@@ -49,7 +49,6 @@
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
-import { execSync } from "child_process";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { resolveVerifyCategories } from "./_categories.mjs";
@@ -76,6 +75,7 @@ import { getAllJobs, getJobByRecordId } from "../../lib/airtable/jobs.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
 import { CANONICAL_UNITS } from "../../lib/units.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -112,35 +112,7 @@ async function waitFor(read, predicate, { ceilingMs = 15000, pollMs = 200 } = {}
 const settleNote = (w) =>
     `${w.reads === 1 ? "already settled on the FIRST read" : `settled after ${w.reads} reads`}, ${w.ms}ms`;
 
-// ---------------------------------------------------------------------------
-// Header. A past run is only evidence if it can be tied to a tree, so the commit
-// and whether it was dirty are printed before anything else runs. A dirty tree
-// does not fail the run — it is normal to verify work in progress — but it means
-// the commit alone does not identify what was tested.
-function gitContext() {
-    try {
-        const head = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-        const status = execSync("git status --porcelain", { encoding: "utf8" });
-        const dirtyFiles = status.split("\n").filter((l) => l.trim().length > 0);
-        return { head, dirty: dirtyFiles.length > 0, dirtyCount: dirtyFiles.length };
-    } catch (err) {
-        return { head: "unknown", dirty: null, error: String(err?.message ?? err) };
-    }
-}
-
-const git = gitContext();
-console.log("=".repeat(72));
-console.log("verify-deliveries-162 — recording deliveries from packing lists");
-console.log(`commit    ${git.head}`);
-console.log(
-    git.dirty === null
-        ? `tree      unknown (${git.error})`
-        : git.dirty
-          ? `tree      DIRTY — ${git.dirty && git.dirtyCount} uncommitted file(s); the commit above does not identify what ran`
-          : "tree      clean — the commit above identifies exactly what ran"
-);
-console.log(`ran at    ${new Date().toISOString()}`);
-console.log("=".repeat(72));
+printProvenance({ title: "verify-deliveries-162 — recording deliveries from packing lists" });
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
 // order, children before parents throughout.

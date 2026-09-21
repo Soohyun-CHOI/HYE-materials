@@ -56,6 +56,9 @@ import { getDeliveryByRecordId } from "../../lib/airtable/deliveries.js";
 import { getPOItemByRecordId } from "../../lib/airtable/poItems.js";
 import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-invoice-pairing-231 — the computed pairing, invoice side" });
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const ADMIN_EMAIL = "soo@hanyangengusa.com";

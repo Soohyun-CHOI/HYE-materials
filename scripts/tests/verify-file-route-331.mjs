@@ -36,6 +36,9 @@ import { getQuotationsByPR } from "../../lib/airtable/quotations.js";
 import { getDraftsByRequester, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { FILE_AXIS, fileHref } from "../../lib/fileLinks.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-file-route-331 — does the file route actually refuse?" });
 
 const BASE_URL = process.env.FILE_ROUTE_VERIFY_BASE_URL || "http://localhost:3000";
 
