@@ -35,6 +35,9 @@ import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { TABLES, findChildRecords, getLinkedRecords } from "../../lib/airtable/client.js";
 import { resetOps, snapshot } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-batched-reads-193 — reading a parent's children in one query per fifty" });
 
 let pass = true;
 function check(label, actual, expected) {

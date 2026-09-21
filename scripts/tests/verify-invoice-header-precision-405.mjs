@@ -61,6 +61,9 @@ import { createInvoice, getInvoiceById, updateInvoice } from "../../lib/airtable
 import { getPOItemByRecordId } from "../../lib/airtable/poItems.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { HEADER_PRECISION_COPY, PRECISION_BLOCKED } from "../../lib/variance.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-invoice-header-precision-405 — every figure an invoice's header carries, held to the cent" });
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const ADMIN_EMAIL = "soo@hanyangengusa.com";

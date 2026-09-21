@@ -59,7 +59,6 @@
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
-import { execSync } from "child_process";
 import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createPR } from "../../lib/airtable/purchaseRequests.js";
 import { createItem, getItemsByPR } from "../../lib/airtable/prItems.js";
@@ -75,6 +74,7 @@ import { base, TABLES, findByRecordIds } from "../../lib/airtable/client.js";
 import { prefixMatch } from "../../lib/airtableFormula.js";
 import { CHILD_KINDS, ID_KINDS, childKind, dailyIdPrefix, nextSequence } from "../../lib/idSequence.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -91,36 +91,7 @@ function assert(label, ok) {
     return Boolean(ok);
 }
 
-// ---------------------------------------------------------------------------
-// Header. A past run is only evidence if it can be tied to a tree, so the commit
-// and whether it was dirty are printed before anything else runs. A dirty tree does
-// not fail the run — it is normal to verify work in progress — but it means the
-// commit alone does not identify what was tested. Same block as
-// verify-deliveries-162.mjs; carrying it to the remaining scripts is #172.
-function gitContext() {
-    try {
-        const head = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-        const status = execSync("git status --porcelain", { encoding: "utf8" });
-        const dirtyFiles = status.split("\n").filter((l) => l.trim().length > 0);
-        return { head, dirty: dirtyFiles.length > 0, dirtyCount: dirtyFiles.length };
-    } catch (err) {
-        return { head: "unknown", dirty: null, error: String(err?.message ?? err) };
-    }
-}
-
-const git = gitContext();
-console.log("=".repeat(72));
-console.log("verify-invoice-ids-164 — the daily ID counter's population");
-console.log(`commit    ${git.head}`);
-console.log(
-    git.dirty === null
-        ? `tree      unknown (${git.error})`
-        : git.dirty
-          ? `tree      DIRTY — ${git.dirtyCount} uncommitted file(s); the commit above does not identify what ran`
-          : "tree      clean — the commit above identifies exactly what ran"
-);
-console.log(`ran at    ${new Date().toISOString()}`);
-console.log("=".repeat(72));
+printProvenance({ title: "verify-invoice-ids-164 — the daily ID counter's population" });
 
 // Fixtures (#171) — tracking, ordered deletion, per-record reporting and the
 // residue measurement all live in scripts/tests/_fixtures.mjs now. The bucket

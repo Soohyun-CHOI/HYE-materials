@@ -110,6 +110,9 @@ import { base, TABLES } from "../../lib/airtable/client.js";
 import { needsName, userName } from "../../lib/userName.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { DEFAULT_BASE_URL, callServerAction, serverActionId, sessionCookieFor } from "./_liveApp.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-withdraw-revalidation-122 — withdrawAction's re-validation, against the real action" });
 
 const BASE = DEFAULT_BASE_URL;
 

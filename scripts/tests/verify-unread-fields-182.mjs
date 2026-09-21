@@ -44,6 +44,9 @@
 
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-unread-fields-182 — which Airtable fields nothing reads (questions, not a verdict)" });
 
 const BASE_ID = process.env.AIRTABLE_BASE_ID;
 const API_KEY = process.env.AIRTABLE_API_KEY;

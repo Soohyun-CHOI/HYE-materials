@@ -70,6 +70,9 @@ import { foldInvoiceItems } from "../../lib/invoiceItemFold.js";
 import { ORDER_BREAKDOWN_COPY, chargesByOrder } from "../../lib/invoiceOrderBreakdown.js";
 import { resolveVerifyCategories } from "./_categories.mjs";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-order-breakdown-408 — each charge in the order breakdown carries its ordered quantity" });
 
 const BASE = process.env.BASE_URL || "http://localhost:3000";
 const ADMIN_EMAIL = "soo@hanyangengusa.com";

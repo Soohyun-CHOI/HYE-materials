@@ -60,6 +60,9 @@ import {
     composeCategoryLabel,
 } from "../../lib/materialCategory.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-category-creation-368 — adding a path to the catalog" });
 
 const TABLE = TABLES.MATERIAL_CATEGORIES;
 const LABEL_FIELD = "Category Label";

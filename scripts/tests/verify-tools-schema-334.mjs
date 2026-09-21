@@ -52,6 +52,9 @@ import {
     TOOL_STATUS_VALUES,
 } from "../../lib/toolStatus.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-tools-schema-334 — the three tools tables, against the live base" });
 
 let pass = true;
 let incomplete = false;

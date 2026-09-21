@@ -38,6 +38,9 @@ import { getPOById, searchPOs } from "../../lib/airtable/purchaseOrders.js";
 import { getInvoiceById } from "../../lib/airtable/invoices.js";
 import { getUserByEmail } from "../../lib/airtable/users.js";
 import { getMaterialByKey } from "../../lib/airtable/materials.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-formula-escaping-159 — formula escaping, read-only" });
 
 let pass = true;
 let incomplete = null;

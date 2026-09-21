@@ -48,10 +48,10 @@
 // Exit codes: 0 all clear, 1 something failed OR this run left rows on the base,
 // 2 clean but incomplete.
 
-import { execSync } from "child_process";
 import { base, TABLES, withKeyLock, _debugLockKeys } from "../../lib/airtable/client.js";
 import { createAuthToken, consumeAuthToken, getAuthTokenRecord } from "../../lib/airtable/authTokens.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -68,32 +68,7 @@ function assert(label, ok) {
     return Boolean(ok);
 }
 
-// Same block as verify-edit-log-fields-181.mjs and verify-invoice-ids-164.mjs
-// (#172): a past run is only evidence if it can be tied to a tree.
-function gitContext() {
-    try {
-        const head = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-        const status = execSync("git status --porcelain", { encoding: "utf8" });
-        const dirtyFiles = status.split("\n").filter((l) => l.trim().length > 0);
-        return { head, dirty: dirtyFiles.length > 0, dirtyCount: dirtyFiles.length };
-    } catch (err) {
-        return { head: "unknown", dirty: null, error: String(err?.message ?? err) };
-    }
-}
-
-const git = gitContext();
-console.log("=".repeat(72));
-console.log("verify-token-and-lock-174 — withKeyLock's rejection path, and token refusals");
-console.log(`commit    ${git.head}`);
-console.log(
-    git.dirty === null
-        ? `tree      unknown (${git.error})`
-        : git.dirty
-          ? `tree      DIRTY — ${git.dirtyCount} uncommitted file(s); the commit above does not identify what ran`
-          : "tree      clean — the commit above identifies exactly what ran"
-);
-console.log(`ran at    ${new Date().toISOString()}`);
-console.log("=".repeat(72));
+printProvenance({ title: "verify-token-and-lock-174 — withKeyLock's rejection path, and token refusals" });
 
 const fixtures = createFixtures({
     tag: "V174",

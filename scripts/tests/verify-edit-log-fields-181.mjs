@@ -69,8 +69,8 @@
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete (could not
 // reach the base).
 
-import { execSync } from "child_process";
 import { EDIT_LOG_FIELD_LABELS } from "../../lib/editLogFields.js";
+import { printProvenance } from "./_provenance.mjs";
 
 const TABLE = "PR Edit Log";
 const FIELD = "Field";
@@ -95,36 +95,7 @@ function report(label) {
     log(`  NOTE  ${label}`);
 }
 
-// ---------------------------------------------------------------------------
-// Header. A past run is only evidence if it can be tied to a tree, so the commit
-// and whether it was dirty are printed before anything else runs. A dirty tree
-// does not fail the run — it is normal to verify work in progress — but it means
-// the commit alone does not identify what was tested. Same block as
-// verify-invoice-ids-164.mjs and verify-deliveries-162.mjs (#172).
-function gitContext() {
-    try {
-        const head = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-        const status = execSync("git status --porcelain", { encoding: "utf8" });
-        const dirtyFiles = status.split("\n").filter((l) => l.trim().length > 0);
-        return { head, dirty: dirtyFiles.length > 0, dirtyCount: dirtyFiles.length };
-    } catch (err) {
-        return { head: "unknown", dirty: null, error: String(err?.message ?? err) };
-    }
-}
-
-const git = gitContext();
-console.log("=".repeat(72));
-console.log(`verify-edit-log-fields-181 — ${TABLE}."${FIELD}" choices vs lib/editLogFields.js`);
-console.log(`commit    ${git.head}`);
-console.log(
-    git.dirty === null
-        ? `tree      unknown (${git.error})`
-        : git.dirty
-          ? `tree      DIRTY — ${git.dirtyCount} uncommitted file(s); the commit above does not identify what ran`
-          : "tree      clean — the commit above identifies exactly what ran"
-);
-console.log(`ran at    ${new Date().toISOString()}`);
-console.log("=".repeat(72));
+printProvenance({ title: `verify-edit-log-fields-181 — ${TABLE}."${FIELD}" choices vs lib/editLogFields.js` });
 console.log(`\nLabels the code can write (${EDIT_LOG_FIELD_LABELS.length}): ${EDIT_LOG_FIELD_LABELS.join(", ")}\n`);
 
 try {

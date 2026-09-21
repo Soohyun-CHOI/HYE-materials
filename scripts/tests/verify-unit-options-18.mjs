@@ -36,6 +36,9 @@
 
 import { CANONICAL_UNITS } from "../../lib/units.js";
 import { TABLES } from "../../lib/airtable/client.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-unit-options-18 — Unit select options in Airtable vs CANONICAL_UNITS" });
 
 // The tables carrying the shared Unit select, by their production constants
 // rather than another hand-typed copy of the names. Delivery Items joined in

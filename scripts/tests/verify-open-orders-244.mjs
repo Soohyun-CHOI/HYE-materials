@@ -40,6 +40,9 @@ import { base, TABLES } from "../../lib/airtable/client.js";
 import { hasUninvoicedQty, hasUninvoicedItems } from "../../lib/poItemQty.js";
 import { snapshot, resetOps } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-open-orders-244 — the invoice form's purchase order picker" });
 
 let pass = true;
 function check(label, actual, expected) {

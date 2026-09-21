@@ -52,7 +52,6 @@
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
-import { execSync } from "child_process";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { resolveVerifyCategories } from "./_categories.mjs";
@@ -84,6 +83,7 @@ import {
 } from "../../lib/deliveryStatus.js";
 import { linkedDelivery } from "../../lib/deliveryInvoiceLink.js";
 import { createFixtures } from "./_fixtures.mjs";
+import { printProvenance } from "./_provenance.mjs";
 
 let pass = true;
 let incomplete = null;
@@ -166,34 +166,7 @@ async function countOps(fn) {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Header. A past run is only evidence if it can be tied to a tree, so the commit
-// and whether it was dirty are printed before anything else runs. A dirty tree
-// does not fail the run — it is normal to verify work in progress — but it means
-// the commit alone does not identify what was tested.
-function gitContext() {
-    try {
-        const head = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
-        const status = execSync("git status --porcelain", { encoding: "utf8" });
-        return { head, dirty: status.split("\n").filter((l) => l.trim()).length };
-    } catch (err) {
-        return { head: "unknown", dirty: null, error: String(err?.message ?? err) };
-    }
-}
-
-const git = gitContext();
-console.log("=".repeat(72));
-console.log("verify-delivery-status-166 — delivered vs invoiced vs ordered");
-console.log(`commit    ${git.head}`);
-console.log(
-    git.dirty === null
-        ? `tree      unknown (${git.error})`
-        : git.dirty > 0
-          ? `tree      DIRTY — ${git.dirty} uncommitted file(s); the commit above does not identify what ran`
-          : "tree      clean — the commit above identifies exactly what ran"
-);
-console.log(`ran at    ${new Date().toISOString()}`);
-console.log("=".repeat(72));
+printProvenance({ title: "verify-delivery-status-166 — delivered vs invoiced vs ordered" });
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
 // order: children before parents throughout, and the item-axis rows last because

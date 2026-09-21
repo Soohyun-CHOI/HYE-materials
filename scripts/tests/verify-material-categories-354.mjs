@@ -43,6 +43,9 @@ import {
     composeCategoryLabel,
 } from "../../lib/materialCategory.js";
 import { TABLES } from "../../lib/airtable/client.js";
+import { printProvenance } from "./_provenance.mjs";
+
+printProvenance({ title: "verify-material-categories-354 — the live category tree against the rule this repo holds" });
 
 const TABLE = TABLES.MATERIAL_CATEGORIES;
 const LABEL_FIELD = "Category Label";
