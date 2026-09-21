@@ -67,6 +67,19 @@ const APP = "app";
  * assertion 3 derives the shape from the tree and compares.
  */
 const ACTIONS = {
+    createCategoryAction: {
+        // The path rather than the sentence, because this is the one refusal in the
+        // table that lives in a copy constant — `offline/category-creation.mjs`
+        // pins `CATEGORY_CREATION_COPY.notAuthorized` by value, which is the pin the
+        // comment in assertion 2 says a literal inside a `"use server"` file cannot
+        // have. #368 put it there because a RETURNED refusal is screen copy and the
+        // vocabulary sweeps read `*_COPY` constants.
+        text: "CATEGORY_CREATION_COPY.notAuthorized",
+        file: "app/admin/categories/new/actions.js",
+        shape: "return",
+        binding: "useActionState",
+        why: "CategoryForm.js binds it; the box also carries its six validation refusals",
+    },
     createDisciplineAction: {
         text: "Not authorized.",
         file: "app/admin/disciplines/new/actions.js",
@@ -189,6 +202,18 @@ export function refusalShape(ast, actionName) {
                     returnsError = true;
                     if (prop.value?.type === "Literal" && typeof prop.value.value === "string") {
                         text = prop.value.value;
+                    }
+                    // A REFUSAL HELD IN A COPY CONSTANT REPORTS ITS PATH (#368), not
+                    // its value, which this file cannot resolve without importing the
+                    // module. That is enough for what assertion 2 needs here — that
+                    // the thunk still says what the table records — and the VALUE is
+                    // pinned where it belongs, in the check that owns the constant.
+                    if (
+                        prop.value?.type === "MemberExpression" &&
+                        prop.value.object?.type === "Identifier" &&
+                        prop.value.property?.type === "Identifier"
+                    ) {
+                        text = `${prop.value.object.name}.${prop.value.property.name}`;
                     }
                 }
             }
@@ -384,6 +409,12 @@ export function run({ check, assert, log }) {
         // `"use server"` action, which that file structurally cannot reach (#303 hit
         // the same wall). A thrown one is pinned here as well, for the opposite
         // reason — it is developer-facing, so nothing else would ever notice it move.
+        // **A refusal HELD IN A COPY CONSTANT is the exception and #368 added the
+        // first**: the table records the path, this assertion holds that the thunk
+        // still reads it, and the sentence itself is pinned by value in the offline
+        // check that owns the constant. That is a better pin than a literal here can
+        // be, which is why the premise above is "the only pin it can have" for a
+        // literal rather than for every returned refusal.
         if (text !== entry.text) wrong.push(`${name}: recorded ${JSON.stringify(entry.text)}, found ${JSON.stringify(text)}`);
     }
     check(
@@ -395,6 +426,7 @@ export function run({ check, assert, log }) {
     const probe = parseSource(
         'export const aThrower = withAdminAction(() => { throw new Error("no"); }, h);\n' +
             'export const aReturner = withAdminAction(() => ({ error: "no" }), h);\n' +
+            "export const aConstReturner = withAdminAction(() => ({ error: COPY.no }), h);\n" +
             "export const neither = withAdminAction(() => null, h);\n"
     ).ast;
     check("  the classifier reads a throwing thunk", refusalShape(probe, "aThrower").shape, "throw");
@@ -402,6 +434,10 @@ export function run({ check, assert, log }) {
     check("  and refuses to guess at a third", refusalShape(probe, "neither").shape, "unknown");
     check("  and it reads the wording off either", refusalShape(probe, "aThrower").text, "no");
     check("    including a returned one", refusalShape(probe, "aReturner").text, "no");
+    // The constant case (#368): the PATH, since resolving the value would mean
+    // importing whatever module the action imported.
+    check("    and a constant's path when that is what is returned", refusalShape(probe, "aConstReturner").text, "COPY.no");
+    check("      which is still a returning shape", refusalShape(probe, "aConstReturner").shape, "return");
 
     // ── 3. the rule, applied to the call sites rather than restated ─────────
     log("");

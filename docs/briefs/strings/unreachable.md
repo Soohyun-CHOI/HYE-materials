@@ -270,6 +270,50 @@ both halves were read with a real session — `soo@` (Admin) and `scoped-fixture
 (Employee) each saw it on `HYE-INV-260821-02`. The invoice list's badge is on the
 `Status` column, which the paragraph above records as open to every reader since #309.
 
+## `/admin/categories/new` (#368)
+
+**Judged by reading the controls, as the method above has it.** Six refusals reach
+that screen's one red box and four of them need a forged submit, because every
+control is `required` and the submit is disabled until the plan is complete.
+
+- **`A category needs a level 1 and a level 2 from the catalog, a level 3, a level 4
+  and an item name.`** — the two parent selects and the level-3 select carry
+  `required`, the level-4 input carries it unless the no-division box is checked, the
+  item-name input carries it, and the submit is disabled while `planCategory` returns
+  no plan. So every state this sentence describes is one the form cannot submit.
+- **`That level 2 is not in the catalog. Pick one from the list.`** — the value
+  submitted is a code the page put in the option, and it is also what the level-1 and
+  level-3 codes are checked against, so reaching this needs a forged submit. Same
+  shape as `/admin/disciplines/new`'s Job refusal.
+- **`Not authorized.`** — returned rather than thrown, like that sibling's, and
+  unreachable for the same reason: the page refuses a non-Admin before the form
+  exists. What an ordinary reader meets is the page's own
+  `Not authorized. This page is Admin-only.`
+- **`{parent} has no code left between 901 and 999, which is the range this office
+  adds paths in.`** — needs 99 paths added under one parent. **Unreachable by
+  arithmetic rather than by a control**, which is the one entry here of that kind:
+  HQ's own numbering under any parent stops at 33, and the block is empty on the live
+  base.
+- **REACHABLE, and named here so the absence is not read as a claim:** the two
+  duplicate refusals. `{name} is already the item name of {path}.` is what a person
+  meets by typing a name the catalog holds — the form previews it and the action
+  returns it — and `{path} is already in the catalog.` is what they meet by naming a
+  level 4 that exists. Both are ordinary states of this screen rather than forged
+  ones, and the amber preview above the submit is where a reader sees them first.
+- **`{code} is already a category code, so nothing was created.`** — reachable only
+  through the window `withKeyLock` cannot close, or a row filed under another branch
+  carrying a code in the block. Neither has been observed; the sentence is
+  deliberately worded so it does not promise a second attempt succeeds.
+- **`Pick a category.`** — `CATEGORY_PICKER_COPY.awaitingParent(0)`, which this
+  screen reuses for its level-2 and level-3 controls and never reaches at index 0:
+  level 1 always has options, so no control on this screen is ever waiting for a
+  parent that does not exist. The sentence belongs to `/prs/new`, where it is
+  reachable.
+
+**The counts in `Coverage` below predate this screen** and were not re-derived here:
+this section is judged on its own terms, and recounting 86 strings across every
+screen is a pass over that section rather than part of an issue that adds one page.
+
 ## Coverage
 
 **86 distinct refusal strings across the twenty-one screens.** It was 87 until #318
