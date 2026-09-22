@@ -82,7 +82,7 @@ function assert(label, ok) {
     return Boolean(ok);
 }
 
-printProvenance({ title: "verify-overage-167 — raising an overage PR from an over-delivery" });
+const provenance = printProvenance({ title: "verify-overage-167 — raising an overage PR from an over-delivery" });
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
 // order. Blob objects go through trackBlob and are verified with head() rather
@@ -613,7 +613,7 @@ console.log("\nCleaning up fixtures:");
 const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
-console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
+console.log(`commit ${provenance.commit ?? "UNKNOWN"}${provenance.dirtyEntries?.length ? " (DIRTY TREE)" : ""}`);
 // TWO VERDICTS, TWO SENTENCES (#171). `pass` is about the overage correction; a
 // leak is about this run's effect on a shared base and on the Blob store. Until
 // #171 a failed delete lowered `pass`, so a leak printed `SOME CHECKS FAILED` —

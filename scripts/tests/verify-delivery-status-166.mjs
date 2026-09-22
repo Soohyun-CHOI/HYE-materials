@@ -166,7 +166,7 @@ async function countOps(fn) {
     }
 }
 
-printProvenance({ title: "verify-delivery-status-166 — delivered vs invoiced vs ordered" });
+const provenance = printProvenance({ title: "verify-delivery-status-166 — delivered vs invoiced vs ordered" });
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
 // order: children before parents throughout, and the item-axis rows last because
@@ -717,7 +717,7 @@ console.log("\nCleaning up fixtures:");
 const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
-console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
+console.log(`commit ${provenance.commit ?? "UNKNOWN"}${provenance.dirtyEntries?.length ? " (DIRTY TREE)" : ""}`);
 // TWO VERDICTS, TWO SENTENCES (#171). `pass` is about delivery status; a leak is
 // about this run's effect on a shared base. Until #171 a failed delete lowered
 // `pass`, so a leak printed `SOME CHECKS FAILED` — the right exit code attached to

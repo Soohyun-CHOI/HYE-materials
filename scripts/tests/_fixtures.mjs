@@ -117,6 +117,22 @@ import { base } from "../../lib/airtable/client.js";
 import { prefixMatch } from "../../lib/airtableFormula.js";
 
 /** The `reason` that marks a record whose fate this run could not establish. */
+/**
+ * Ten, because that is Airtable's ceiling for one delete request (#191) — the
+ * same ceiling `create` has. Not a tuning knob: eleven is a 422 from the API, and
+ * lowering it only buys more requests for the same rows.
+ *
+ * WHAT IT DOES NOT BUY, MEASURED ON `verify-overage-167.mjs`. A request carries
+ * one table's ids, and deletion order has to keep every child in front of its
+ * parent, so rows are grouped by TABLE rather than packed ten at a time across
+ * the run. That script deletes 64 rows spread over 13 tables with no table
+ * holding more than 8, so the chunking below never fires there and the cost is
+ * 13 requests — one per table — rather than the 7 a table-blind packing would
+ * give. Still 64 down to 13; the ceiling starts paying only on a bucket that
+ * holds more than ten rows of one table.
+ */
+const DELETE_BATCH_SIZE = 10;
+
 const UNVERIFIED = "could not verify — the table did not answer";
 
 /**
@@ -456,51 +472,110 @@ export function createFixtures({ tag, buckets }) {
         const unreliable = vacuousBuckets();
 
         for (const b of buckets) {
+            // ONE PASS TO READ THE PARENTS, THEN ONE FLUSH PER TABLE (#191). The
+            // loop this replaces interleaved a parent's children with the parent
+            // itself, one request each. Batching needs the same rows grouped by
+            // TABLE, because a request carries one table's ids — and it must still
+            // put every child of this bucket in front of every parent, which is
+            // what the two phases below buy. Bucket order is untouched, so the
+            // cross-bucket guarantee (POs before PRs) is untouched with it.
+            const childQueues = new Map(); // table -> [{ id, label, parentId }]
+            const parentIds = [];
+            const childrenFailedFor = new Set();
+
             for (const id of ids(b.name)) {
-                let childrenFailed = false;
-
-                if (b.children?.length) {
-                    let parent = null;
-                    try {
-                        parent = await base(b.table).find(id);
-                    } catch (err) {
-                        // REFINEMENT 2. A failed read makes the child list unknown,
-                        // not empty, so the parent is not deleted over the top of it.
-                        unknown.push({ table: b.table, id, label: b.label, reason: err.message });
-                        leaked.push({ table: b.table, id, label: b.label, reason: `parent read failed: ${err.message}` });
-                        warn(`  cleanup SKIPPED: ${b.label} ${id} — could not read its children (${err.message}); remove it and them manually`);
-                        continue;
-                    }
-                    for (const spec of b.children) {
-                        for (const childId of parent.get(spec.link) || []) {
-                            try {
-                                await base(spec.table).destroy(childId);
-                                deleted += 1;
-                                log(`  deleted ${spec.label} ${childId}`);
-                            } catch (err) {
-                                childrenFailed = true;
-                                leaked.push({ table: spec.table, id: childId, label: spec.label, reason: err.message });
-                                warn(`  cleanup FAILED: ${spec.label} ${childId} — remove manually: ${err.message}`);
-                            }
-                        }
-                    }
-                }
-
-                if (childrenFailed) {
-                    // REFINEMENT 1. Keeping the parent leaves a findable pair
-                    // instead of an orphan.
-                    leaked.push({ table: b.table, id, label: b.label, reason: "kept: a child delete failed" });
-                    warn(`  cleanup SKIPPED: ${b.label} ${id} — kept so its undeleted children are not orphaned`);
+                if (!b.children?.length) {
+                    parentIds.push(id);
                     continue;
                 }
-
+                let parent = null;
                 try {
-                    await base(b.table).destroy(id);
-                    deleted += 1;
-                    log(`  deleted ${b.label} ${id}`);
+                    parent = await base(b.table).find(id);
                 } catch (err) {
-                    leaked.push({ table: b.table, id, label: b.label, reason: err.message });
-                    warn(`  cleanup FAILED: ${b.label} ${id} — remove manually: ${err.message}`);
+                    // REFINEMENT 2. A failed read makes the child list unknown,
+                    // not empty, so the parent is not deleted over the top of it.
+                    unknown.push({ table: b.table, id, label: b.label, reason: err.message });
+                    leaked.push({ table: b.table, id, label: b.label, reason: `parent read failed: ${err.message}` });
+                    warn(`  cleanup SKIPPED: ${b.label} ${id} — could not read its children (${err.message}); remove it and them manually`);
+                    continue;
+                }
+                for (const spec of b.children) {
+                    for (const childId of parent.get(spec.link) || []) {
+                        if (!childQueues.has(spec.table)) childQueues.set(spec.table, []);
+                        childQueues.get(spec.table).push({ id: childId, label: spec.label, parentId: id });
+                    }
+                }
+                parentIds.push(id);
+            }
+
+            for (const [table, rows] of childQueues) {
+                await deleteRows(table, rows, (row) => childrenFailedFor.add(row.parentId));
+            }
+
+            const survivors = parentIds.filter((id) => {
+                if (!childrenFailedFor.has(id)) return true;
+                // REFINEMENT 1. Keeping the parent leaves a findable pair
+                // instead of an orphan.
+                leaked.push({ table: b.table, id, label: b.label, reason: "kept: a child delete failed" });
+                warn(`  cleanup SKIPPED: ${b.label} ${id} — kept so its undeleted children are not orphaned`);
+                return false;
+            });
+            await deleteRows(
+                b.table,
+                survivors.map((id) => ({ id, label: b.label }))
+            );
+        }
+
+        /**
+         * Delete one table's rows, ten to a request, and fall back to one at a
+         * time for any batch that fails (#191).
+         *
+         * WHY THE FALLBACK IS THE WHOLE BATCH RATHER THAN THE NAMED RECORD.
+         * Measured against the live base: a batch delete carrying an id that no
+         * longer resolves answers **404 NOT_FOUND** and NAMES one id — `Could not
+         * find a record with ID "recX"` — and deletes NOTHING. All-or-nothing was
+         * established by mixing one already-deleted id into a batch of three and
+         * reading the other two back afterwards: both still present. So a failed
+         * batch has no successes to preserve, and the id it names is only the first
+         * of however many are bad; peeling them off one at a time is unbounded
+         * where re-sending the batch as singles is exactly N.
+         *
+         * AND THE SINGLE RETRY USES THE BATCH FORM WITH ONE ID, WHICH IS NOT
+         * PEDANTRY. `destroy(id)` issues `DELETE /Table/recXXX` and a missing
+         * record answers **403 INVALID_PERMISSIONS_OR_MODEL_NOT_FOUND** — the
+         * sentence `residueState` above documents as indistinguishable from a dead
+         * credential. `destroy([id])` issues `DELETE /Table?records[]=recXXX` and
+         * the same missing record answers 404 naming it. Same request count, a
+         * message that says which record and why. Batching improves the diagnosis
+         * here rather than costing it, which was the opposite of what #191 assumed.
+         *
+         * `onFailure` is how a child's failure reaches its parent, so the
+         * keep-the-parent rule survives the regrouping.
+         */
+        async function deleteRows(table, rows, onFailure) {
+            for (let i = 0; i < rows.length; i += DELETE_BATCH_SIZE) {
+                const chunk = rows.slice(i, i + DELETE_BATCH_SIZE);
+                try {
+                    await base(table).destroy(chunk.map((r) => r.id));
+                    deleted += chunk.length;
+                    for (const row of chunk) log(`  deleted ${row.label} ${row.id}`);
+                    continue;
+                } catch (err) {
+                    warn(
+                        `  cleanup BATCH FAILED: ${chunk[0].label} ×${chunk.length} — ${err.message}; ` +
+                            "retrying one at a time so each row is named"
+                    );
+                }
+                for (const row of chunk) {
+                    try {
+                        await base(table).destroy([row.id]);
+                        deleted += 1;
+                        log(`  deleted ${row.label} ${row.id}`);
+                    } catch (err) {
+                        leaked.push({ table, id: row.id, label: row.label, reason: err.message });
+                        warn(`  cleanup FAILED: ${row.label} ${row.id} — remove manually: ${err.message}`);
+                        onFailure?.(row);
+                    }
                 }
             }
         }

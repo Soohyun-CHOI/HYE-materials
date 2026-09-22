@@ -112,7 +112,7 @@ async function waitFor(read, predicate, { ceilingMs = 15000, pollMs = 200 } = {}
 const settleNote = (w) =>
     `${w.reads === 1 ? "already settled on the FIRST read" : `settled after ${w.reads} reads`}, ${w.ms}ms`;
 
-printProvenance({ title: "verify-deliveries-162 — recording deliveries from packing lists" });
+const provenance = printProvenance({ title: "verify-deliveries-162 — recording deliveries from packing lists" });
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
 // order, children before parents throughout.
@@ -719,7 +719,7 @@ console.log("\nCleaning up fixtures:");
 const teardown = await fixtures.teardown({ complete });
 
 console.log("\n" + "=".repeat(72));
-console.log(`commit ${git.head}${git.dirty ? " (DIRTY TREE)" : ""}`);
+console.log(`commit ${provenance.commit ?? "UNKNOWN"}${provenance.dirtyEntries?.length ? " (DIRTY TREE)" : ""}`);
 // TWO VERDICTS, TWO SENTENCES (#171). `pass` is about recording deliveries; a
 // leak is about this run's effect on a shared base. Before this the cleanup
 // reported per record but reached no verdict at all, so the aborted runs that
