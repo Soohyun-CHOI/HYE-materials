@@ -69,8 +69,9 @@ function diagnoseLoadFailure(err) {
         return {
             headline: "could not resolve an import",
             advice:
-                "If the missing specifier is a package (acorn, acorn-jsx), the dev dependencies this " +
-                "tier parses with are not installed — run `npm ci`. If it is a repo file, the path is wrong.",
+                "If the missing specifier is a package (acorn, acorn-jsx, jsqr, eslint, globals), the dev " +
+                "dependencies this tier parses, decodes and reads configuration with are not installed — " +
+                "run `npm ci`. If it is a repo file, the path is wrong.",
         };
     }
     return {
