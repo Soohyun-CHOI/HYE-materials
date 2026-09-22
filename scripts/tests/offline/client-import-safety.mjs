@@ -87,7 +87,7 @@ function resolveSpecifier(fromRel, spec) {
     return null;
 }
 
-export function run({ check, assert, log }) {
+export function run({ assert, log }) {
     const files = SCAN_ROOTS.flatMap((root) => listJsFiles(join(REPO_ROOT, root))).map((f) =>
         toPosix(relative(REPO_ROOT, f))
     );

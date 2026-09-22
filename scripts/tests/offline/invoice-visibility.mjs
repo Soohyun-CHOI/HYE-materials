@@ -906,16 +906,6 @@ function asksPrivilege(node, locals = new Set()) {
     return asks;
 }
 
-/** Is this test the WRITE's own gate — `updatePaidAction`'s `isAdmin`? */
-function adminTest(node) {
-    let admin = false;
-    walk(node, (n) => {
-        if (n.type === "MemberExpression" && n.property?.name === "isAdmin") admin = true;
-        if (n.type === "Identifier" && n.name === "isAdmin") admin = true;
-    });
-    return admin;
-}
-
 const PRIVILEGE_CALLS = new Set(["seesEveryInvoice", "requireAdmin", "requirePresident"]);
 const PRIVILEGE_FIELDS = new Set(["isAdmin", "role"]);
 

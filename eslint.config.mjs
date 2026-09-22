@@ -93,10 +93,22 @@ const eslintConfig = defineConfig([
     // JS files under scripts/ and asks the RESOLVED config about each one, so a
     // file this pattern fails to reach is a failing check rather than a silent
     // gap.
-    name: "scripts/no-undef (#426)",
+    name: "scripts/name-resolution (#426, #427)",
     files: ["scripts/**/*.{js,jsx,mjs,cjs}"],
     languageOptions: { globals: nodeOnlyGlobals },
-    rules: { "no-undef": "error" },
+    // The two halves of one question, which is why they sit in one section.
+    // `no-undef` is a reference with no binding — #172's codemod removed a
+    // binding and left the references. `no-unused-vars` is the mirror, a binding
+    // with no reference, which is what the same kind of sweep leaves when it
+    // removes the references instead. Neither rule sees the other's half, and
+    // #427 found 34 of the second shape standing under this directory.
+    //
+    // DEFAULT OPTIONS ON PURPOSE. `argsIgnorePattern` and its siblings would buy
+    // a hole in the rule for cases this directory does not have: all four unused
+    // parameters #427 found could simply lose their names, one of them through an
+    // array hole. The single place the rule is genuinely broken takes a scoped
+    // disable carrying its reason, where a reader meets it.
+    rules: { "no-undef": "error", "no-unused-vars": "error" },
   },
 ]);
 

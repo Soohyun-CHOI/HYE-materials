@@ -42,7 +42,7 @@ import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchase
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { createAuthToken } from "../../lib/airtable/authTokens.js";
-import { base, TABLES } from "../../lib/airtable/client.js";
+import { TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 

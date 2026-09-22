@@ -351,8 +351,6 @@ export function run({ check, assert, log }) {
     const files = SCANNED_DIRS.flatMap((dir) =>
         listJsFiles(repoPath(dir)).map((abs) => abs.split("\\").join("/"))
     );
-    const rel = (abs) => abs.slice(abs.indexOf("/" + SCANNED_DIRS[0] + "/") + 1) || abs;
-
     const collected = [];
     for (const abs of files) {
         const relPath = abs.slice(abs.lastIndexOf("/app/") >= 0 ? abs.lastIndexOf("/app/") + 1 : 0);

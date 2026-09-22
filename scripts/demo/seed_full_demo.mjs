@@ -121,7 +121,6 @@ import { ensureDemoFixtures } from "./seed_demo_fixtures.mjs";
 import { addAssignedJob } from "../../lib/airtable/users.js";
 import { userName } from "../../lib/userName.js";
 import {
-    SEED_CATEGORIES,
     assertItemsHaveCategories,
     itemForCategory,
     resolveSeedCategories,

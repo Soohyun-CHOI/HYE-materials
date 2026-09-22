@@ -62,7 +62,7 @@ export function run({ check, assert, log }) {
         selectedPoIds: [OPEN_B.id],
     });
     check("an order this slot holds stays offered", ids(holdingOpen).includes(OPEN_B.id), true);
-    const noSelfAllowance = ({ posForVendor, slot: s, selectedPoIds }) =>
+    const noSelfAllowance = ({ posForVendor, selectedPoIds }) =>
         (posForVendor || []).filter(
             (po) => !(selectedPoIds || []).includes(po.id) && po.origin !== PO_ORIGIN.search
         );

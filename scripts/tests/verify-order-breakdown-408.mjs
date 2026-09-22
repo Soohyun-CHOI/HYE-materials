@@ -54,7 +54,7 @@
 import { mkdirSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import { TABLES, base } from "../../lib/airtable/client.js";
+import { TABLES } from "../../lib/airtable/client.js";
 import { createAuthToken } from "../../lib/airtable/authTokens.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";

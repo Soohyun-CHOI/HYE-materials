@@ -197,16 +197,6 @@ async function mintSession() {
 }
 
 
-/** Whether one record id still resolves. */
-async function stillOnBase(table, recordId) {
-    try {
-        await base(table).find(recordId);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 /** Run `fn`, returning the error it threw or null. */
 async function threw(fn) {
     try {
@@ -358,7 +348,7 @@ try {
             notes: `${TAG}-TURN`,
         });
         fixtures.track("requests", turnPR.id);
-        const turnItem = await createItem({
+        await createItem({
             prRecordId: turnPR.id,
             prId: turnPR.prId,
             itemName: `${TAG} turn`,
@@ -371,7 +361,7 @@ try {
                 .select({ filterByFormula: `{Email} = "${ADMIN_EMAIL}"`, maxRecords: 1 })
                 .all()
         )[0];
-        const signer = await createSigner({
+        await createSigner({
             prRecordId: turnPR.id,
             prId: turnPR.prId,
             signerUserId: signerUser?.id,
@@ -411,7 +401,7 @@ try {
     fixtures.track("requests", brokenPR.id);
     // PAST THE SERVICE GUARD ON PURPOSE. This is the one state the app cannot produce
     // and the Airtable UI can, which is why the freeze guards at all.
-    const brokenItem = await base(TABLES.PR_ITEMS).create({
+    await base(TABLES.PR_ITEMS).create({
         "PR Item ID": `${brokenPR.prId}-001`,
         PR: [brokenPR.id],
         "Item Name": `${TAG} broken`,

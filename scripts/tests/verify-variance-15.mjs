@@ -32,7 +32,7 @@
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-variance-15.mjs
 
-import { base, TABLES } from "../../lib/airtable/client.js";
+import { TABLES } from "../../lib/airtable/client.js";
 import { createInvoice, linkInvoiceToPO, getInvoiceByRecordId, updateInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, updateInvoiceItem, getItemsByPOItem } from "../../lib/airtable/invoiceItems.js";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem, getItemsByPO } from "../../lib/airtable/poItems.js";

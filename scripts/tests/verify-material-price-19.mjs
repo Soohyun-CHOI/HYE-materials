@@ -278,9 +278,9 @@ if (incomplete) {
 
     // Vendor A: the cheaper price, at a DIFFERENT quantity — so the quantity
     // caveat is exercised too.
-    const genA = await makePO({ vendorId: vendorA.id, qty: 100, unitPrice: 12 });
+    await makePO({ vendorId: vendorA.id, qty: 100, unitPrice: 12 });
     // Vendor B: dearer, newer, smaller quantity.
-    const genB = await makePO({
+    await makePO({
         vendorId: vendorB.id,
         qty: 10,
         unitPrice: 30,
