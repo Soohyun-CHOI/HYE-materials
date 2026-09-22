@@ -389,9 +389,16 @@ try {
             originalPR: context.originalPR,
         });
         track("prs", draft.pr.id);
+        // NOT tracked, which this comment said the opposite of until #426 read it.
+        // The body is empty: the Quotation rows the draft created are never handed
+        // to the fixture helper, so deleting the PR leaves them behind. Corrected
+        // rather than fixed on purpose — whether to track them or drop the read is
+        // a judgment about the #171 cleanup contract, and settling it needs a
+        // credentialed run. `docs/notes/backlog.md` carries it, with the count of
+        // parentless `Quotations` rows this has actually left on the base.
         for (const q of await getQuotationsByPR(draft.pr.id)) {
-            // Tracked for cleanup; the Blob object the draft created is ours too.
         }
+        // The Blob objects the draft created ARE ours, and these are tracked.
         for (const cleanup of draft.blobCleanups) fixtures.trackBlob(cleanup.blobUrl);
 
         await updatePR(draft.pr.id, { status: "Approved" });
