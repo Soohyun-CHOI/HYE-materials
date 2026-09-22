@@ -145,7 +145,6 @@ async function countBy(table, field, formula) {
 }
 
 const NOW = new Date();
-const TODAY_ISO = NOW.toISOString().slice(0, 10);
 const PREFIX = {
     invoice: dailyIdPrefix(ID_KINDS.INVOICE, NOW),
     pr: dailyIdPrefix(ID_KINDS.PR, NOW),

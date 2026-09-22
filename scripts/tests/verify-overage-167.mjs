@@ -50,7 +50,6 @@ import { getItemsByPO, getPOItemsForReconciliation } from "../../lib/airtable/po
 import { createDelivery, getDeliveriesByRecordIds } from "../../lib/airtable/deliveries.js";
 import {
     createDeliveryItem,
-    getDeliveryItemsByRecordIds,
     getItemsByDelivery,
 } from "../../lib/airtable/deliveryItems.js";
 import { createInvoice, getInvoiceByRecordId, updateInvoice } from "../../lib/airtable/invoices.js";
@@ -396,6 +395,7 @@ try {
         // a judgment about the #171 cleanup contract, and settling it needs a
         // credentialed run. `docs/notes/backlog.md` carries it, with the count of
         // parentless `Quotations` rows this has actually left on the base.
+        // eslint-disable-next-line no-unused-vars -- #427: dropping the binding means dropping the loop, and the loop is the read above.
         for (const q of await getQuotationsByPR(draft.pr.id)) {
         }
         // The Blob objects the draft created ARE ours, and these are tracked.

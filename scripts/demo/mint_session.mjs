@@ -68,7 +68,7 @@ if (user && signup) {
     process.exit(1);
 }
 
-const { token, expiresAt } = await createAuthToken(email);
+const { token } = await createAuthToken(email);
 
 console.log("");
 console.log(user

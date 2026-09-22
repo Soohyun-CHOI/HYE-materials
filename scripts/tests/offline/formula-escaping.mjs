@@ -133,7 +133,7 @@ function findFilterProperties({ ast, source }) {
     return found;
 }
 
-function importsCanonicalFormulaString({ ast, source }) {
+function importsCanonicalFormulaString({ ast }) {
     let ok = false;
     walk(ast, (node) => {
         if (node.type !== "ImportDeclaration") return;

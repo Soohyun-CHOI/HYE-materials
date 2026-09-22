@@ -1,4 +1,10 @@
-// What the lint actually sees under scripts/ (#426).
+// What the lint actually sees under scripts/ (#426, #427).
+//
+// TWO RULES, ONE QUESTION, ONE CONFIG SECTION. `no-undef` is a reference with no
+// binding and `no-unused-vars` is a binding with no reference — the two halves of
+// "does every name here resolve". Both are asked for below, separately, because
+// they share a section: drop one and the other goes on passing while the section
+// still looks right.
 //
 // `no-undef` is enabled for scripts/ and reports nothing. That sentence is worth
 // exactly as much as the globals it was asked against, and flat config MERGES
@@ -41,10 +47,19 @@ import { ESLint } from "eslint";
 import { REPO_ROOT, repoPath, toPosix } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Lint scope — no-undef under scripts/ and the globals it is asked against";
+export const title =
+    "Lint scope — name resolution under scripts/ and the globals it is asked against";
 
 /** Extensions eslint lints. A file here with any other one is not its business. */
 const JS_EXTENSIONS = [".js", ".jsx", ".mjs", ".cjs"];
+
+/**
+ * The rules the scripts/ section turns on, which are two halves of one question:
+ * a reference with no binding (#426) and a binding with no reference (#427).
+ * Written out here rather than read off the config, because reading the subject
+ * off the thing under test is what #224 measured passing its own mutation.
+ */
+const NAME_RESOLUTION_RULES = ["no-undef", "no-unused-vars"];
 
 /**
  * Every JS file under scripts/. A local three-line walk rather than `_ast.mjs`'s
@@ -116,26 +131,36 @@ export async function run({ check, assert, log }) {
 
     log(`scripts/ holds ${files.length} JS file(s) eslint would lint`);
 
-    // --- the rule is on, for every one of them ---------------------------
+    // --- the rules are on, for every one of them -------------------------
     log("");
-    log("no-undef is an error for every JS file under scripts/:");
+    log(`${NAME_RESOLUTION_RULES.join(" and ")} are errors for every JS file under scripts/:`);
     // Resolved per file rather than sampled from one of them. A section that
     // stops reaching PART of the tree is the realistic drift — a narrowed glob,
     // a new subdirectory — and one sample answers for whichever file it happened
     // to be.
-    const offenders = [];
+    //
+    // BOTH RULES, ASKED SEPARATELY (#427). They are two halves of one question and
+    // they sit in one config section, so dropping either leaves the other passing
+    // and the section still looking right. A loop over the pair is what makes the
+    // second one's removal a failure rather than a quieter run.
+    const offenders = new Map(NAME_RESOLUTION_RULES.map((r) => [r, []]));
     const scriptsGlobals = new Map();
     for (const file of files) {
         const cfg = await eslint.calculateConfigForFile(file);
         const rel = toPosix(relative(REPO_ROOT, file));
-        if (severityOf(cfg.rules, "no-undef") !== 2) offenders.push(rel);
+        for (const rule of NAME_RESOLUTION_RULES) {
+            if (severityOf(cfg.rules, rule) !== 2) offenders.get(rule).push(rel);
+        }
         scriptsGlobals.set(rel, cfg.languageOptions?.globals ?? {});
     }
-    check(
-        "every file resolves no-undef to error",
-        offenders.length === 0 ? "all" : `${offenders.length} do not: ${offenders.slice(0, 5).join(", ")}`,
-        "all"
-    );
+    for (const rule of NAME_RESOLUTION_RULES) {
+        const bad = offenders.get(rule);
+        check(
+            `  every file resolves ${rule} to error`,
+            bad.length === 0 ? "all" : `${bad.length} do not: ${bad.slice(0, 4).join(", ")}`,
+            "all"
+        );
+    }
 
     // --- the globals it is asked against ---------------------------------
     log("");
@@ -188,7 +213,11 @@ export async function run({ check, assert, log }) {
     assert("window resolves LIVE for an app/ file", isLive(appGlobals, "window"));
     assert("  and document does too", isLive(appGlobals, "document"));
     assert("  so 'off' is a verdict this check can tell from 'defined'", !isLive(sampleGlobals, "window"));
-    log(`  (for the record, app/ resolves no-undef to severity ${severityOf(appConfig.rules, "no-undef")})`);
+    log(
+        `  (for the record, app/ resolves ${NAME_RESOLUTION_RULES.map(
+            (r) => `${r} to severity ${severityOf(appConfig.rules, r)}`
+        ).join(", ")})`
+    );
 
     // The enumeration's reach, not just its size: a walk that lost a directory
     // still returns plenty of files and passes a floor.

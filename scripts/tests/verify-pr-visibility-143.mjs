@@ -30,7 +30,7 @@
 // part could not run.
 
 import { canViewPR } from "../../lib/prVisibility.js";
-import { createPR, getPRByRecordId, getPRById, updatePR } from "../../lib/airtable/purchaseRequests.js";
+import { createPR, getPRByRecordId, updatePR } from "../../lib/airtable/purchaseRequests.js";
 import { createSigner } from "../../lib/airtable/prSigners.js";
 import { createEditRequest, resolveEditRequest } from "../../lib/airtable/prEditRequests.js";
 import { getUserByEmail, getUserByRecordId, getActiveUsers } from "../../lib/airtable/users.js";
@@ -245,7 +245,7 @@ try {
         check("with no chain role, the page answers not-found", refused.notFound, true);
 
         // Re-grant via the signer clause and confirm the page opens.
-        const signer2 = await createSigner({
+        await createSigner({
             prRecordId: pr.id,
             prId: pr.prId,
             signerUserId: fixture.id,

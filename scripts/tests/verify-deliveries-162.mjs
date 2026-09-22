@@ -306,7 +306,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
         requester, vendor: vendorA, discipline,
         itemName, size: '2"', unit: "EA", qty: 10, unitPrice: 30,
     });
-    const po2 = await makeOrder({
+    await makeOrder({
         requester, vendor: vendorA, discipline,
         itemName, size: '2"', unit: "EA", qty: 10, unitPrice: 32,
     });
@@ -592,7 +592,7 @@ if (incomplete && incomplete.startsWith("the Deliveries")) {
     // on one packing list, planned independently because they never compete for
     // the same ordered item, then read back and collapsed to items again.
     const multiItemName = `${TAG} Bolt`;
-    const po4 = await makeOrder({
+    await makeOrder({
         requester, vendor: vendorA, discipline,
         itemName: multiItemName, size: "M12", unit: "EA", qty: 50, unitPrice: 1.2,
     });

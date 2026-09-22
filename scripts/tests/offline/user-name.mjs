@@ -276,7 +276,6 @@ export function run({ check, assert, log }) {
     log("");
     log("`createUser` writes no name, which is what makes the step reachable:");
     const users = parseFile(MAPPER);
-    const created = [];
     let inCreate = false;
     walk(users.ast, (node) => {
         if (node.type === "FunctionDeclaration" && node.id?.name === "createUser") inCreate = true;

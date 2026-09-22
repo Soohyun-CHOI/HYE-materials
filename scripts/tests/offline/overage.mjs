@@ -28,7 +28,6 @@ import {
     OVERAGE_BLOCKED,
     OVERAGE_COPY,
     OVERAGE_STAGE,
-    attachedDeliveryRecordId,
     attachedPOItemRecordId,
     awaitsOverageRequest,
     describeOverageBanner,
@@ -51,7 +50,6 @@ import {
 // rather than about a name this file chose not to import (#219).
 import * as overage from "../../../lib/overage.js";
 import { recomputeOverDelivery } from "../../../lib/deliveryAllocation.js";
-import { STATUS_COPY } from "../../../lib/deliveryStatus.js";
 import { callPassesProperty, callsTo, parseFile, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -559,6 +557,12 @@ export function run({ check, log, assert }) {
     });
     check("the flattening comes from #210's own module", prImports.get("linkedDelivery"), "./deliveryInvoiceLink");
     check("and the judgment from this one", prImports.get("selectOverageInvoice"), "./overage");
+    // THE NAME BELOW IS A LITERAL, SO SOMETHING HAS TO ANCHOR IT (#427). If
+    // lib/overage.js renamed the accessor and lib/overagePR.js were not updated,
+    // the check below would go on finding the old name in overagePR's import list
+    // and go on passing. This is the half that notices, in the same `in overage`
+    // shape this file already uses to assert a name is ABSENT.
+    assert("lib/overage.js still exports the accessor named below", "attachedDeliveryRecordId" in overage);
     check("  including the row accessor", prImports.get("attachedDeliveryRecordId"), "./overage");
 
     // AND THE FIELD THE ACCESSOR READS IS ON THE ROWS. Every over-delivery row reaches

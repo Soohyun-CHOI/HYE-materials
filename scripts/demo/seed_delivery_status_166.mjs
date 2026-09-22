@@ -42,7 +42,7 @@ import { createItem } from "../../lib/airtable/prItems.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
 import { getItemsByPO } from "../../lib/airtable/poItems.js";
-import { createDelivery, getDeliveriesByRecordIds } from "../../lib/airtable/deliveries.js";
+import { createDelivery } from "../../lib/airtable/deliveries.js";
 import { createDeliveryItem } from "../../lib/airtable/deliveryItems.js";
 import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";

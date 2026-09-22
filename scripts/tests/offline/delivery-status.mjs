@@ -1008,7 +1008,7 @@ export function run({ check, log, assert }) {
     }
     assert(
         "  so a constant verdict disagrees on three of the four",
-        everyState.filter(([expected, orderedItems]) => alwaysAwaiting(orderedItems) !== invoicing(orderedItems)).length === 3
+        everyState.filter(([, orderedItems]) => alwaysAwaiting(orderedItems) !== invoicing(orderedItems)).length === 3
     );
 
     log("");

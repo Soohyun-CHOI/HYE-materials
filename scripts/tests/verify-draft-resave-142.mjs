@@ -122,9 +122,6 @@ const fixtures = createFixtures({
 });
 const TAG = fixtures.TAG;
 
-let prRecordId = null;
-let quotationRecordId = null;
-let blobUrl = null;
 let complete = false;
 
 try {
@@ -132,14 +129,14 @@ try {
     if (users.length === 0) throw new Error("No active users to attribute the fixture PR to.");
 
     const pr = await createPR({ requesterId: users[0].id, notes: `${TAG} verification — safe to delete` });
-    prRecordId = fixtures.track("prs", pr.id);
+    fixtures.track("prs", pr.id);
 
     const blob = await put("verify-142/quotation.pdf", await tinyPdf("#142 fixture"), {
         access: "public",
         addRandomSuffix: true,
         contentType: "application/pdf",
     });
-    blobUrl = fixtures.trackBlob(blob.url);
+    fixtures.trackBlob(blob.url);
 
     const quotation = await createQuotation({
         prRecordId: pr.id,
@@ -148,7 +145,6 @@ try {
         vendorQuotationCode: "VERIFY-142",
         file: [{ url: blob.url, filename: "quotation.pdf" }],
     });
-    quotationRecordId = quotation.id;
 
     console.log(`Fixture: PR ${pr.prId} / Quotation ${quotation.quotationId} [${quotation.id}]`);
 

@@ -29,7 +29,7 @@ import { createPR, updatePR } from "../../lib/airtable/purchaseRequests.js";
 import { createItem, getItemsByPR } from "../../lib/airtable/prItems.js";
 import { resolveVerifyCategories } from "./_categories.mjs";
 import { createInvoice } from "../../lib/airtable/invoices.js";
-import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
+import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllVendors } from "../../lib/airtable/vendors.js";
 import { TABLES, findChildRecords, getLinkedRecords } from "../../lib/airtable/client.js";

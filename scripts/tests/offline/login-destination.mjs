@@ -39,12 +39,14 @@ import {
     CONFIRM_PATH,
     DEFAULT_DESTINATION,
     DESTINATION_PARAM,
-    REQUEST_PATH_HEADER,
     SIGN_IN_PATH,
     confirmPath,
     safeDestination,
     signInPath,
 } from "../../../lib/loginDestination.js";
+// The namespace as well, so "the owner still exports this name" is a claim about
+// the export list rather than about a binding nothing reads — see section 2.
+import * as loginDestination from "../../../lib/loginDestination.js";
 import { callsTo, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isRouteFile, listEntryPoints } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -212,6 +214,11 @@ export function run({ check, assert, log }) {
 
     const proxy = parseFile("proxy.js");
     const proxyOwned = importedFrom(proxy.ast, OWNER);
+    // THE NAME BELOW IS A LITERAL, SO SOMETHING HAS TO ANCHOR IT (#427). Rename
+    // the export in the owner without updating proxy.js and the assertion after
+    // this one still passes: proxy.js goes on importing the old name and this goes
+    // on finding it. CI runs no `next build`, so nothing else would say so either.
+    assert(`${OWNER} still exports the name asserted below`, "REQUEST_PATH_HEADER" in loginDestination);
     assert(`proxy.js imports the header's name from ${OWNER}`, proxyOwned.has("REQUEST_PATH_HEADER"));
 
     const proxyFn = resolveFunction(proxy.ast, "proxy");
