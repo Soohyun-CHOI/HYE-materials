@@ -6,13 +6,8 @@ import { formatUSD } from "@/lib/format";
 // judgment stays on the server: `kind` arrives as a key, exactly as `unsigned`
 // arrives as a boolean on the invoice form (#198).
 import { PR_KIND_COPY } from "@/lib/prKind";
-import {
-    applyFilters,
-    emptyStateKind,
-    emptyStateText,
-    showsFilterBar,
-} from "@/lib/listFilters";
-import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
+import { emptyStateKind, emptyStateText, showsFilterBar } from "@/lib/listFilters";
+import ListFilterBar, { ListPageFoot, useListFilters } from "@/app/components/ListFilterBar";
 
 // Issue #119 (follow-up) — instant, client-side narrow-filtering over the
 // already-visibility-filtered rows the server sent.
@@ -24,9 +19,13 @@ import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
 // reader's own, a status and a kind) and declares none of them here.
 const ROUTE = "/prs";
 
-export default function PRListClient({ rows, options, initialFilters, totalCount }) {
-    const filters = useListFilters({ route: ROUTE, initial: initialFilters });
-    const shown = applyFilters(ROUTE, filters.state, rows);
+export default function PRListClient({ rows, options, initialFilters, initialPage, totalCount }) {
+    // #326 — the narrowing and the slice both come back from the hook now. The cut is
+    // here rather than on the server because the bar narrows in the browser, so nothing
+    // upstream knows how many rows survive; and the read stays whole because a page of
+    // records is not a page of rows a reader sees.
+    const filters = useListFilters({ route: ROUTE, initial: initialFilters, initialPage, rows });
+    const shown = filters.shown;
     const empty = shown.length
         ? null
         : emptyStateKind({ totalCount, visibleCount: rows.length, filtersActive: filters.active });
@@ -65,7 +64,7 @@ export default function PRListClient({ rows, options, initialFilters, totalCount
                         </tr>
                     </thead>
                     <tbody>
-                        {shown.map((r) => {
+                        {filters.page.rows.map((r) => {
                             // Issue #122 — a Withdrawn PR is a terminal, ended
                             // request. It stays in the list (that's the point
                             // of withdraw being a state transition, not a
@@ -111,6 +110,9 @@ export default function PRListClient({ rows, options, initialFilters, totalCount
                     </tbody>
                 </table>
             )}
+            {/* #326 — below the table and outside the empty branch: there is nothing to
+                count and no page to be on when the list is empty. */}
+            {!empty && <ListPageFoot filters={filters} />}
         </>
     );
 }

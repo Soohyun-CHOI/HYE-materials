@@ -20,14 +20,13 @@ import Link from "next/link";
 // imported here — an import executes the module and it throws
 // `Missing AIRTABLE_API_KEY` in the browser (#162).
 import {
-    applyFilters,
     emptyStateKind,
     emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
-import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
+import ListFilterBar, { ListPageFoot, useListFilters } from "@/app/components/ListFilterBar";
 
 // A `showInvoicing` prop and the `resolveDeliveryFilters` call that consumed it
 // were both here until #211. The column was withheld from a viewer who may not see
@@ -53,9 +52,13 @@ import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
 // list carries, and this one had none of them.
 const ROUTE = "/deliveries";
 
-export default function DeliveriesListClient({ rows, options, initialFilters, totalCount }) {
-    const filters = useListFilters({ route: ROUTE, initial: initialFilters });
-    const shown = applyFilters(ROUTE, filters.state, rows);
+export default function DeliveriesListClient({ rows, options, initialFilters, initialPage, totalCount }) {
+    // #326 — the narrowing and the slice both come back from the hook now. The cut is
+    // here rather than on the server because the bar narrows in the browser, so nothing
+    // upstream knows how many rows survive; and the read stays whole because a page of
+    // records is not a page of rows a reader sees.
+    const filters = useListFilters({ route: ROUTE, initial: initialFilters, initialPage, rows });
+    const shown = filters.shown;
     const empty = shown.length
         ? null
         : emptyStateKind({ totalCount, visibleCount: rows.length, filtersActive: filters.active });
@@ -120,7 +123,7 @@ export default function DeliveriesListClient({ rows, options, initialFilters, to
                             </tr>
                         </thead>
                         <tbody>
-                            {shown.map((row) => (
+                            {filters.page.rows.map((row) => (
                                 <tr
                                     key={row.deliveryId}
                                     className="border-b border-zinc-100 last:border-0"
@@ -186,6 +189,9 @@ export default function DeliveriesListClient({ rows, options, initialFilters, to
                     </table>
                 </div>
             )}
+            {/* #326 — below the table and outside the empty branch: there is nothing to
+                count and no page to be on when the list is empty. */}
+            {!empty && <ListPageFoot filters={filters} />}
         </>
     );
 }

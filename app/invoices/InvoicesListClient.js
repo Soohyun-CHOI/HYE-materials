@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 import {
-    applyFilters,
     emptyStateKind,
     emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
-import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
+import ListFilterBar, { ListPageFoot, useListFilters } from "@/app/components/ListFilterBar";
 
 // The invoice list's table, and the first filter bar it has ever carried (#324).
 //
@@ -28,9 +27,13 @@ import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
 // server calls it. `lib/listFilters.js` imports nothing.
 const ROUTE = "/invoices";
 
-export default function InvoicesListClient({ rows, options, initialFilters, totalCount }) {
-    const filters = useListFilters({ route: ROUTE, initial: initialFilters });
-    const shown = applyFilters(ROUTE, filters.state, rows);
+export default function InvoicesListClient({ rows, options, initialFilters, initialPage, totalCount }) {
+    // #326 — the narrowing and the slice both come back from the hook now. The cut is
+    // here rather than on the server because the bar narrows in the browser, so nothing
+    // upstream knows how many rows survive; and the read stays whole because a page of
+    // records is not a page of rows a reader sees.
+    const filters = useListFilters({ route: ROUTE, initial: initialFilters, initialPage, rows });
+    const shown = filters.shown;
     const empty = shown.length
         ? null
         : emptyStateKind({ totalCount, visibleCount: rows.length, filtersActive: filters.active });
@@ -237,7 +240,7 @@ export default function InvoicesListClient({ rows, options, initialFilters, tota
                             </tr>
                         </thead>
                         <tbody>
-                            {shown.map((row) => (
+                            {filters.page.rows.map((row) => (
                                 <tr key={row.id} className="border-t border-zinc-200">
                                     <td className="py-1 pr-2">
                                         <Link href={`/invoices/${row.invoiceId}`} className="underline">
@@ -454,6 +457,9 @@ export default function InvoicesListClient({ rows, options, initialFilters, tota
                     </table>
                 </div>
             )}
+            {/* #326 — below the table and outside the empty branch: there is nothing to
+                count and no page to be on when the list is empty. */}
+            {!empty && <ListPageFoot filters={filters} />}
         </>
     );
 }

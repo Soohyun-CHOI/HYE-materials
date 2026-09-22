@@ -5,12 +5,15 @@ import { usePathname, useRouter } from "next/navigation";
 import {
     CONTROL,
     FILTER_BAR_COPY,
+    LIST_PAGE_COPY,
+    applyFilters,
     axesFor,
     choiceLabel,
     choiceValue,
     emptyFilters,
-    filterQuery,
     filtersActive,
+    listQuery,
+    pageOfRows,
 } from "@/lib/listFilters";
 import PickerFilter from "./PickerFilter";
 
@@ -78,42 +81,109 @@ const URL_MIRROR_DELAY_MS = 250;
  * from those props; the `router.replace` updates during use do not remount it, so an
  * open dropdown, a search and the scroll position survive a filter change.
  */
-export function useListFilters({ route, initial }) {
+export function useListFilters({ route, initial, initialPage, rows }) {
     const router = useRouter();
     const pathname = usePathname();
     const [state, setState] = useState(() => initial ?? emptyFilters(route));
+    // The page the reader ASKED for. What they get is `page` below, which is this
+    // clamped to a page that exists; the two differ after a pasted URL and after a
+    // filter has shortened the list under a reader standing on the end of it.
+    const [asked, setAsked] = useState(() => initialPage ?? 1);
     const firstRun = useRef(true);
+
+    const shown = applyFilters(route, state, rows);
+    const page = pageOfRows(shown, asked);
+
+    // EVERY NARROWING RETURNS TO THE FIRST PAGE, and the address follows because the
+    // mirror below writes from the resolved page rather than from `asked`. Page 3 of a
+    // job's orders is not a position in a list the reader has just re-asked for — it is
+    // a row offset into a different set of rows.
+    const narrow = (next) => {
+        setAsked(1);
+        setState(next);
+    };
 
     useEffect(() => {
         // The URL already reflects the initial filters — the server seeded them from
-        // it — so the first mount has nothing to sync.
+        // it — so the first mount has nothing to sync. **Unless the page it asked for
+        // is not the page it got (#326)**: a pasted `?page=99` has to come back as the
+        // page actually on screen, or the address bar contradicts the screen for as
+        // long as the reader stays on it. That is the one thing the tools screen's own
+        // clamp does not do, and it is why this test is here rather than a bare return.
         if (firstRun.current) {
             firstRun.current = false;
-            return;
+            if (page.page === asked) return;
         }
-        const qs = filterQuery(route, state);
+        const qs = listQuery(route, state, page.page);
         const href = qs ? `${pathname}?${qs}` : pathname;
         // The cleanup cancels a write the next keystroke has already superseded, which
         // is what makes this one write per query. See URL_MIRROR_DELAY_MS.
         const timer = setTimeout(() => router.replace(href, { scroll: false }), URL_MIRROR_DELAY_MS);
         return () => clearTimeout(timer);
-    }, [route, state, router, pathname]);
+    }, [route, state, page.page, asked, router, pathname]);
 
     return {
         route,
         state,
         active: filtersActive(route, state),
+        // The rows the bar admits, and the slice of them this page holds. Both are
+        // derived here so no list computes either for itself — four screens narrowing
+        // and slicing by hand is what #324 replaced one axis earlier.
+        shown,
+        page,
+        goToPage: (n) => setAsked(n),
         toggleValue: (param, value) =>
-            setState((prev) => ({
+            narrow((prev) => ({
                 ...prev,
                 [param]: prev[param].includes(value)
                     ? prev[param].filter((v) => v !== value)
                     : [...prev[param], value],
             })),
-        setValue: (param, value) => setState((prev) => ({ ...prev, [param]: value })),
-        clearParam: (param) => setState((prev) => ({ ...prev, [param]: emptyFilters(route)[param] })),
-        clearAll: () => setState(emptyFilters(route)),
+        setValue: (param, value) => narrow((prev) => ({ ...prev, [param]: value })),
+        clearParam: (param) => narrow((prev) => ({ ...prev, [param]: emptyFilters(route)[param] })),
+        clearAll: () => narrow(emptyFilters(route)),
     };
+}
+
+/**
+ * The foot of a paged list: how many rows it holds, which page this is, and the two
+ * steps (#326).
+ *
+ * ONE COMPONENT RATHER THAN FOUR COPIES, for the reason the bar above it is one: this
+ * is four screens saying the same two sentences, and four copies is four chances for
+ * one of them to say `Page 1/2` while the others say `Page 1 of 2`.
+ *
+ * IT SAYS THE WORDS FROM THE MODULE AND HOLDS NONE OF ITS OWN. A string written into
+ * this JSX is invisible to `scripts/screen-strings.mjs` and to every vocabulary check,
+ * so it could not be swept when a word changes and Design could not reword it in one
+ * place — which is the arrangement the tools axis made standing (#339) and the reason
+ * `offline/list-filters.mjs` holds this vocabulary by value.
+ *
+ * THE STEPS ARE BUTTONS RATHER THAN LINKS, WHICH IS WHAT THE CLIENT-SIDE SLICE MAKES
+ * THEM. The tools screen's two steps are `<Link>`s because its page is resolved on the
+ * server and a step is a different address to fetch. Here the rows are already in the
+ * browser and the address is a mirror of state rather than the source of it, so a step
+ * that navigated would re-fetch a page whose rows never left. They stay real controls
+ * — focusable, keyboard-operable — and the address still follows, one mirror behind.
+ */
+export function ListPageFoot({ filters }) {
+    const { route, page } = filters;
+    return (
+        <div className="mt-4 flex items-center gap-4 text-sm text-zinc-600">
+            <span>{LIST_PAGE_COPY.total(route, page.total)}</span>
+            <span>{LIST_PAGE_COPY.pagePosition(page)}</span>
+            {page.page > 1 && (
+                <button type="button" onClick={() => filters.goToPage(page.page - 1)} className="underline">
+                    {LIST_PAGE_COPY.previous}
+                </button>
+            )}
+            {page.page < page.pageCount && (
+                <button type="button" onClick={() => filters.goToPage(page.page + 1)} className="underline">
+                    {LIST_PAGE_COPY.next}
+                </button>
+            )}
+        </div>
+    );
 }
 
 /**

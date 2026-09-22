@@ -180,6 +180,16 @@ const CARRIED = [
         param: "page",
         note: "#339 — which page of this tool's tool items, 1-based. Written by the two steps at the foot of the list and by `toolPath`; a value that is not a page resolves to one rather than rendering nothing",
     },
+    // THE FOUR DOCUMENT LISTS TOOK THE SAME NAME IN #326, which is what the reservation
+    // in `lib/listFilters.js` was holding it for. One note serves all four because the
+    // rule is one: the parameter is resolved against the rows that survived the BAR, not
+    // against anything the server counted, so it is the only parameter on these routes
+    // that no page validates before handing it to the browser.
+    ...["/prs", "/pos", "/deliveries", "/invoices"].map((route) => ({
+        route,
+        param: "page",
+        note: "#326 — which page of the rows this reader's filters admit, 1-based. Written by the two steps at the foot of the list, through `useListFilters`'s own URL mirror; absent on the first page, which is #324's convention that absence is the unapplied state. A page past the end resolves to the last one AND the address is rewritten to the page actually shown",
+    })),
 
     // ── a selection: which records the screen is built from ────────────────
     // A FIFTH GROUP, AND THE FIRST PLURAL PARAMETER THE APP CARRIES (#353). It is
