@@ -196,8 +196,10 @@ export const title =
 const REPO_ROOT = fileURLToPath(new URL("../../../", import.meta.url));
 // Copy lives in `lib/` and `app/`; the phrase list also reads the briefs, which are
 // prose about those screens. See the header on why the split rather than one scope.
+// The briefs are added to the prose map where that map is built, rather than being
+// a directory in this list — they are `.md` and carry no copy constants, so the two
+// scans take different file patterns and a single list cannot express both.
 const SCANNED_DIRS = ["app", "lib"];
-const PROSE_DIRS = [...SCANNED_DIRS, "docs/briefs"];
 
 // Each phrase names a row of a child table and nothing else. Written out rather
 // than derived, for the reason above.
