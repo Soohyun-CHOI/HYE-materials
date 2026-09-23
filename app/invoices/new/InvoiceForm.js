@@ -212,6 +212,21 @@ const confirmChangeMessage = (subject) =>
 // path reached the same state with the flag untouched, and it is closed below at
 // `noOrderedItemLeft` and in `createInvoiceAction`.
 
+/**
+ * One file as a `FileList`, the only shape a file input's `files` accepts.
+ *
+ * A NEW LIST FOR EVERY HAND-OFF, BECAUSE THE CONTROL KEEPS THE ONE IT IS GIVEN.
+ * Measured in Chromium: after `input.files = list`, the input's `files` is that same
+ * object, and emptying the control empties it in place — the `DataTransfer` it came
+ * from reads zero files too. So the form holds the `File` and never a list; a list
+ * handed to a control once would be empty the next time it was needed.
+ */
+function fileListOf(file) {
+    const list = new DataTransfer();
+    list.items.add(file);
+    return list.files;
+}
+
 // The common case (per product decision) is one PO with several invoices —
 // an invoice spanning several POs is the supported edge case, not the
 // default flow. So the header owns one always-visible PO slot, and
@@ -354,6 +369,13 @@ export default function InvoiceForm({ vendors, pos }) {
     // Issue #422 — the file control itself, so the box can open it. One input, so
     // there is one place a picked file arrives from whichever control was used.
     const fileInputRef = useRef(null);
+    // The same control where the `Invoice File` section draws it, below the
+    // breakpoint. Held only so `showHeldFile` can reach it.
+    const sectionFileInputRef = useRef(null);
+    // The file the form holds. Set where a file is accepted and read only by
+    // `showHeldFile`, so a control that was bypassed or emptied is given back the file
+    // the rest of the form describes.
+    const heldFileRef = useRef(null);
     // Whether a dragged file is over the box. The box's only state.
     const [draggingFile, setDraggingFile] = useState(false);
 
@@ -395,23 +417,57 @@ export default function InvoiceForm({ vendors, pos }) {
      * was more than one way to start it.
      */
     async function handleInvoiceFileChange(e) {
-        await acceptFile(e.target.files?.[0]);
+        const file = e.target.files?.[0];
+        // A dialog dismissed without a choice. Chromium empties the control and fires
+        // `change` for it, and nothing about the form changed — the pane, the upload
+        // and the line under the heading all still describe the file — so that file
+        // goes back onto the control that has just stopped naming it.
+        if (!file) {
+            showHeldFile();
+            return;
+        }
+        await acceptFile(file);
     }
 
     function handleFileDrop(e) {
         e.preventDefault();
         setDraggingFile(false);
-        const dropped = e.dataTransfer?.files;
-        // The control under the box names the file it is holding, and a drop never
-        // went through it — so without this it reads `No file chosen` beside the
-        // document it chose. A `FileList` from a drop assigns straight onto an input,
-        // and this one carries no `name`, so nothing is submitted from it either way.
-        if (dropped?.length && fileInputRef.current) fileInputRef.current.files = dropped;
-        acceptFile(dropped?.[0]);
+        acceptFile(e.dataTransfer?.files?.[0]);
+    }
+
+    /**
+     * Issue #422 — both file controls name the file the form holds, whatever last
+     * touched either of them.
+     *
+     * THREE THINGS LEFT A CONTROL NAMING SOMETHING ELSE BESIDE AN ATTACHED FILE, AND
+     * THIS IS THE ONE ANSWER TO ALL OF THEM. A drop never passes through a control. A
+     * dialog canceled in Chromium empties the control it opened from, and the change
+     * that fires carries no file. And a pick goes through one control only, so the
+     * one the other width hides keeps naming an older file, or none — measured: after
+     * a pick below the breakpoint and a drop above it, the hidden control still named
+     * the first file. In each case the form's own state is right and a control is
+     * wrong, so what is corrected is the controls.
+     *
+     * ASSIGNING `files` FIRES NOTHING, and that is what makes this safe to call from
+     * inside a change handler: measured, neither `change` nor `input` was dispatched,
+     * so the file is not uploaded again and detection does not run again. Neither
+     * input carries a `name`, so nothing is submitted from them either.
+     */
+    function showHeldFile() {
+        if (!heldFileRef.current) return;
+        for (const input of [fileInputRef.current, sectionFileInputRef.current]) {
+            if (input) input.files = fileListOf(heldFileRef.current);
+        }
     }
 
     async function acceptFile(file) {
         if (!file) return;
+
+        // Held before anything else, a refused file included: a file picked through
+        // a control stays named on it when it is refused, so a dropped one and one on
+        // the other control are named the same way.
+        heldFileRef.current = file;
+        showHeldFile();
 
         // Issue #422 — the file this one replaces is not on the screen any more, so
         // its address is released here rather than waiting for the document to go.
@@ -1429,8 +1485,9 @@ export default function InvoiceForm({ vendors, pos }) {
      * File` section, where it has always been; above it, it is under the box in the
      * pane, because that is where the file is. Only one of the two is ever visible —
      * each sits inside something the other width hides — and both hand the same
-     * function the same thing, so there is nothing here for the two to disagree
-     * about. The ref is the pane's, since the box is what opens it.
+     * function the same thing. **They are still two inputs holding two selections**,
+     * which is why `showHeldFile` puts every accepted file on both: the hidden one is
+     * the one a reader sees the moment the window crosses the breakpoint.
      */
     function renderFileInput(ref) {
         return (
@@ -1461,7 +1518,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     The vendor&apos;s original invoice document — required, every received invoice is kept on file.
                 </p>
                 <div className="mt-2 space-y-2">
-                    <div className="xl:hidden">{renderFileInput(null)}</div>
+                    <div className="xl:hidden">{renderFileInput(sectionFileInputRef)}</div>
                     {invoiceFile.status === "uploading" && (
                         <p className="text-sm text-zinc-500">Uploading {invoiceFile.filename}...</p>
                     )}
