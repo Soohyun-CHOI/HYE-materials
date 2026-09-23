@@ -54,10 +54,13 @@ export const title = "One route serves every uploaded file, per record (#331)";
 const ROUTE = "app/api/files/[axis]/[documentId]/[filename]/route.js";
 const VIEWER = "app/components/FileViewer.js";
 // #422 — the frame moved out of the viewer when a second surface began drawing a
-// file, so the sentence that stands in for a signal nothing can get moved with it.
-// Asserted in its new home AND as something the viewer still renders: either half
-// alone passes while the reader sees no file and is told nothing about it.
+// file. #433 then drew a PDF in the app rather than in a browser frame, so a document
+// that will not open is a state the app SEES, and the sentence for it lives with the
+// code that sees it: the frame for an image, the renderer for a PDF. Asserted there
+// AND as something the viewer still renders: either half alone passes while the
+// reader sees no file and is told nothing about it.
 const FRAME = "app/components/FileFrame.js";
+const PDF_PAGES = "app/components/PdfPages.js";
 const LINKS = "lib/fileLinks.js";
 
 /**
@@ -359,7 +362,7 @@ export function run({ check, assert, log }) {
     if (!check("  and it is in the viewer", (downloadSites[0] || "").split(":")[0], DOWNLOAD_SITE)) fail();
     if (!assert("  on an anchor pointed at the route", /fileHref\(/.test(viewerSrc))) fail();
 
-    // --- 5: the viewer's shape, and the states it cannot detect ------------
+    // --- 5: the viewer's shape, and the states it reports ------------------
     log("");
     log("5  the viewer honors the keyboard rule and cannot fail silently:");
 
@@ -371,13 +374,27 @@ export function run({ check, assert, log }) {
     if (!assert("  and returns focus to its opener", /openerRef\.current\?\.focus\(\)/.test(viewerSrc))) fail();
     if (!assert("  and says it is a dialog", /aria-modal/.test(viewerSrc) && /role="dialog"/.test(viewerSrc))) fail();
 
-    // The download control is what makes an undetectable render failure survivable,
-    // so it may not sit inside a conditional. Asserted as "no branch stands between
-    // the card and it": the copy is referenced once, unguarded.
+    // The download control stays beside every state, a drawn file and a failure
+    // alike, since showing and saving are two acts.
     const viewerImports = importedNames(viewerAst);
     if (!assert("the viewer renders the shared download copy", viewerImports.has("FILE_VIEWER_COPY"))) fail();
     if (!assert("  and puts the file in the shared frame", viewerImports.has("FileFrame"))) fail();
-    if (!assert("  which carries the hint that stands in for a signal it cannot get", /documentHint/.test(readRel(FRAME)))) fail();
+
+    // EACH FAILURE THE APP CAN SEE IS SAID WHERE IT IS SEEN (#433). An image reports
+    // its own error to the frame; a PDF that will not open, or asks for a password,
+    // is reported to the renderer. Read off the AST as `FILE_VIEWER_COPY.<key>`
+    // reads, so a sentence still defined but no longer rendered is the failure — the
+    // shape a regex over the file would pass, since the key's name also appears in
+    // comments.
+    const frameKeys = copyKeysRead(parseFile(FRAME).ast);
+    const pdfKeys = copyKeysRead(parseFile(PDF_PAGES).ast);
+    if (!assert("the frame says an image failed", frameKeys.has("loadFailed"))) fail();
+    if (!assert("  and refuses a type it will not draw", frameKeys.has("notViewable"))) fail();
+    if (!assert("the PDF renderer says a document failed", pdfKeys.has("loadFailed"))) fail();
+    if (!assert("  and says when one asks for a password", pdfKeys.has("passwordProtected"))) fail();
+    // ANTI-VACUITY: an empty read of either file also answers "has nothing", so the
+    // reader is required to find the loading sentence the renderer certainly shows.
+    if (!assert("  (the reader sees the renderer's copy at all: `loading` is found)", pdfKeys.has("loading"))) fail();
 
     // --- 6: the pure helpers do what the route and the viewer assume -------
     log("");
@@ -422,16 +439,35 @@ export function run({ check, assert, log }) {
     )) fail();
 
     // The three sentences are what a reader meets instead of a file, so none may be
-    // empty and the two that stand in for a frame must say what to do.
-    for (const key of ["documentHint", "imageFailed", "notViewable"]) {
+    // empty, and the refusal to draw a type must say what to do instead.
+    for (const key of ["loadFailed", "passwordProtected", "notViewable"]) {
         if (!assert(`${key} says something`, (FILE_VIEWER_COPY[key] || "").length > 20)) fail();
     }
-    if (!assert("the document hint names the way out", /download/i.test(FILE_VIEWER_COPY.documentHint))) fail();
-    if (!assert("  and so does the refusal to frame a type", /download/i.test(FILE_VIEWER_COPY.notViewable))) fail();
+    if (!assert("the refusal to draw a type names the way out", /download/i.test(FILE_VIEWER_COPY.notViewable))) fail();
+    // The password sentence is said in the pane too, which has no download — the file
+    // there is the reader's own — so it may not send the reader to one.
+    if (!assert("the password sentence does not send the pane's reader to a download", !/download/i.test(FILE_VIEWER_COPY.passwordProtected))) fail();
 
     log("");
     log(`  ${declared.length} axes, ${EVERY_GATE.length} gates, ${hrefs.length} attachment hrefs classified`);
     return ok;
+}
+
+/** Every `FILE_VIEWER_COPY.<key>` a file reads. */
+function copyKeysRead(ast) {
+    const keys = new Set();
+    walk(ast, (n) => {
+        if (
+            n.type === "MemberExpression" &&
+            !n.computed &&
+            n.object?.type === "Identifier" &&
+            n.object.name === "FILE_VIEWER_COPY" &&
+            n.property?.type === "Identifier"
+        ) {
+            keys.add(n.property.name);
+        }
+    });
+    return keys;
 }
 
 /** Calls to `name` inside a subtree, skipping any nested call this test excludes. */

@@ -62,8 +62,8 @@ the normal state of a control. What is conditional is what the box holds.
 
 **The form is still what the keyboard reaches first.** The document is to the left
 and the form to the right, which is the reading order; the focus order is the
-other way round, because the pane holds one control and a document while the form
-is the work.
+other way round, because the pane holds a document and the controls that move it
+while the form is the work.
 
 **action — one or more order slots.** Each slot is labeled `PO` and holds one
 order, chosen from a dropdown. A `+ Add another PO` control appends a slot; each
@@ -148,13 +148,23 @@ centered line, `Not authorized. This page is Admin-only.`, and nothing on it
 suggests what would otherwise be here.
 
 **When the box holds a file, it is drawn the way the file viewer draws one** — an
-image for a photograph, a frame for a PDF, and under a PDF the app's standing
-sentence about a browser that cannot show one. **The box has no chrome of its
-own:** no title, no download, nothing to close. **The empty box, the PDF and the
-image are one rect**, and a design may not let them differ: the line under a PDF
-that carries that sentence is part of the column in every state, left blank until
-there is a document to put under it, so the document is drawn exactly where the
-box was and at exactly its size.
+image for a photograph, and for a PDF the app's own pages, every page one under the
+next and scrolled in the column (#433). **Under the file is a row of controls**:
+`Page 2 of 3` naming the page in view — for a PDF only, since a picture has one —
+then `−`, the zoom as a percentage of the column's width, `+`, `Fit width` and
+`Rotate`. The zoom opens at the column's width and the turn is a quarter turn
+clockwise, because a scan or a photograph often arrives on its side; both work on a
+picture as on a PDF. **The box has no title, no size and no download**: the file is
+the reader's own, picked a moment ago, and the control under it replaces it. **The
+empty box and the drawn file are one rect**, and a design may not let them differ:
+the row the controls take is part of the column in every state, left blank until
+there is a file, so the file is drawn exactly where the box was and at exactly its
+size.
+
+**A PDF that will not open, or asks for a password, says so in the box** —
+`This file could not be loaded.` or
+`This file is protected by a password and cannot be shown here.` — and the row of
+controls stays blank, since there is nothing to move.
 
 **While a file is dragged over it**, the box says so — currently a darker border
 and a tint, and nothing else changes.
@@ -165,11 +175,11 @@ arrive with. The viewer says `This file cannot be shown here` in that case and t
 box says nothing, because here the box is a control before it is a picture and the
 section opposite already names the file that is attached.
 
-**Once the box holds a document it stops taking drops**, and the control under it
-is what replaces the file. A frame is another document, so a file dropped on it
-goes to the browser rather than to this form and nothing in the app can intercept
-it. The control is under the box in every state, which is one of the two things
-that keep the box one size; the blank line above it is the other.
+**A file dropped on the drawn file replaces it**, as a drop on the empty box
+attaches one. Until #433 a PDF was drawn in a frame, which is another document, and
+a drop on it went to the browser instead. The control is under the column in every
+state, which is one of the two things that keep the box one size; the blank row
+above it is the other.
 
 **Below 1280px the column is not drawn at all** — one column, the control back in
 the `Invoice File` section, and the form the same width as above the boundary.
@@ -402,10 +412,12 @@ slots would make that list meaningless.
 
 **The pane draws the file the same way the viewer does**, and that is one
 component rather than two descriptions of one rule. What it does not share is the
-viewer's chrome: the viewer names the file and offers to save it because it is an
-overlay somebody opened, and the pane is beside the form for as long as the file
-is attached. A redesign that gives the pane a header is adding a second thing that
-names the file — the file section already does, just to its left.
+viewer's chrome or its controls: the viewer names the file and offers to save it
+because it is an overlay somebody opened, and pages a PDF one page at a time; the
+pane is beside the form for as long as the file is attached, and scrolls through
+every page because the reader is copying from all of them. A redesign that gives the
+pane a header is adding a second thing that names the file — the file section
+already does, just to its left.
 
 **A file is required, as the packing list photo is on the delivery form.** In both
 cases the document is what makes the record a record. **The direct purchase takes

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 import FileFrame from "@/app/components/FileFrame";
+import { FILE_CONTROL, PageStepper, ZoomControls } from "@/app/components/FileControls";
 import {
     FILE_VIEWER_COPY,
     fileHref,
@@ -28,13 +29,16 @@ import {
  * also why the title needs the axis and the filename and nothing else.
  *
  * THE DOWNLOAD CONTROL IS ALWAYS RENDERED, AND THAT IS THE DESIGN RATHER THAN A
- * FALLBACK. There is no reliable way to learn that a document failed to render in
- * place, measured twice: `navigator.pdfViewerEnabled` returned `true` in a browser
- * that displayed nothing, and `<object type="application/pdf">`'s fallback children
- * stayed hidden while its box sat empty. So nothing here branches on detection; the
- * way out is beside the frame in every state, and an empty frame is never a dead end.
- * An image is the one kind that reports its own failure, so it is the one kind with a
- * state.
+ * FALLBACK. #331 put it there because a PDF in a frame could fail with nothing to
+ * detect; #433 draws the pages in the app, so a file that will not open now says so,
+ * and the control stays beside that sentence and beside a drawn file alike — showing
+ * and saving are two acts.
+ *
+ * THE PAGING AND THE ZOOM ARE THE HEADER'S, AND THEY APPEAR WITH THE FILE (#433). The
+ * frame reports how many pages it drew; until it does — while a PDF opens, or when it
+ * will not — there is nothing to page or to enlarge, so there are no controls to
+ * offer. A one-page file gets the zoom and no paging. Both start over each time the
+ * viewer opens, as the file itself does.
  *
  * THE FIRST OVERLAY IN THIS APP THAT HONORS CLAUDE.md's KEYBOARD RULE — closes on
  * `Escape` as well as by its opener, and hands focus back to that opener. The other
@@ -45,8 +49,12 @@ import {
  */
 export default function FileViewer({ axis, documentId, filename, contentType, children }) {
     const [open, setOpen] = useState(false);
+    const [pageCount, setPageCount] = useState(0);
+    const [page, setPage] = useState(1);
+    const [zoom, setZoom] = useState(1);
     const openerRef = useRef(null);
     const cardRef = useRef(null);
+    const pressedOnBackdrop = useRef(false);
 
     // Focus goes back to the control that opened this, not to the top of the
     // document — the reader was in the middle of a record and lands where they left.
@@ -74,29 +82,46 @@ export default function FileViewer({ axis, documentId, filename, contentType, ch
             <button
                 type="button"
                 ref={openerRef}
-                onClick={() => setOpen(true)}
+                onClick={() => {
+                    setPageCount(0);
+                    setPage(1);
+                    setZoom(1);
+                    setOpen(true);
+                }}
                 className="underline"
             >
                 {children || filename}
             </button>
 
             {open && (
-                <div className={MODAL_BACKDROP} onClick={close}>
-                    {/* The card stops the backdrop's close, so a click inside the
-                        document does not dismiss it. The backdrop click is an
-                        addition to the two the rule asks for, not a substitute. */}
+                // A click on the backdrop closes, and only one that STARTED there. The
+                // text on a page is selectable now (#433), and a drag that selects a
+                // figure and is released past the card's edge fires its click on the
+                // backdrop — the nearest element both ends share — and would close the
+                // viewer on the reader mid-copy. The backdrop click is an addition to
+                // the two the rule asks for, not a substitute.
+                <div
+                    className={MODAL_BACKDROP}
+                    onMouseDown={(e) => {
+                        pressedOnBackdrop.current = e.target === e.currentTarget;
+                    }}
+                    onClick={(e) => {
+                        if (pressedOnBackdrop.current && e.target === e.currentTarget) close();
+                    }}
+                >
                     <div
                         ref={cardRef}
                         role="dialog"
                         aria-modal="true"
                         aria-label={title}
                         tabIndex={-1}
-                        onClick={(e) => e.stopPropagation()}
                         className={`${MODAL_CARD} flex max-h-[90vh] w-full max-w-4xl flex-col`}
                     >
                         <div className="flex items-start justify-between gap-4">
                             <h2 className="text-sm font-medium break-all">{title}</h2>
                             <div className="flex shrink-0 items-center gap-3">
+                                {pageCount > 1 && <PageStepper page={page} pages={pageCount} onPage={setPage} />}
+                                {pageCount > 0 && <ZoomControls zoom={zoom} onZoom={setZoom} />}
                                 {/* Same origin, so `download` binds and the saved name
                                     is the record's own — the attribute #331 records as
                                     ignored across origins. This is the only place in
@@ -104,21 +129,28 @@ export default function FileViewer({ axis, documentId, filename, contentType, ch
                                 <a
                                     href={href}
                                     download={filename || undefined}
-                                    className="rounded border border-zinc-300 px-3 py-1.5 text-sm"
+                                    className={FILE_CONTROL}
                                 >
                                     {FILE_VIEWER_COPY.download}
                                 </a>
                                 <button
                                     type="button"
                                     onClick={close}
-                                    className="rounded border border-zinc-300 px-3 py-1.5 text-sm"
+                                    className={FILE_CONTROL}
                                 >
                                     {FILE_VIEWER_COPY.close}
                                 </button>
                             </div>
                         </div>
 
-                        <FileFrame href={href} kind={kind} title={title} />
+                        <FileFrame
+                            href={href}
+                            kind={kind}
+                            title={title}
+                            zoom={zoom}
+                            page={page}
+                            onReady={setPageCount}
+                        />
                     </div>
                 </div>
             )}

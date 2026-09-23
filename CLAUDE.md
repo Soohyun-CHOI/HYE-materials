@@ -22,7 +22,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
-| `lib/blobIngest.js`, `lib/prDraft.js`, `app/prs/new/**` | `docs/notes/uploads-and-drafts.md` |
+| `lib/blobIngest.js`, `lib/prDraft.js`, `app/prs/new/**`, `lib/file*.js`, `app/components/File*.js`, `app/components/PdfPages.js` | `docs/notes/uploads-and-drafts.md` |
 | `scripts/**`, `eslint.config.mjs` | `docs/notes/verification.md` |
 | renaming a field, a screen word or an identifier | `docs/notes/naming.md` |
 | what a screen carries, or adding or removing a page | `docs/briefs/README.md` |
@@ -130,6 +130,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242).
 - `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
 - `lib/fileLinks.js` — where an uploaded file is reached (#331), and the viewer's words. Pure — `"use client"` files import it.
+- `lib/fileView.js` — how a drawn file is sized, turned and sharpened (#433).
 - `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, the refusal's words, and the guard every upload form opens its try with.
 - `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
 - `lib/directPurchase.js` — the way out of an invoice with no order (#272): the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
@@ -158,7 +159,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener.**
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
-- `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
+- `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
+- `app/components/PdfPages.js` — a PDF's pages, drawn by the app (#433). **The one module that draws a page, and the only one that loads PDF.js.**
 - `app/components/Instant.js` — a stored instant, drawn in the reader's own zone (#374). **A time renders in the reader's zone and names none; the one surface with no reader — the order document — names the zone it used.** No Server Component may format one.
 - `app/components/CategoryPicker.js` — the four-level category control, on both screens that reach an item (#367). No state and no sentence of its own.
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.

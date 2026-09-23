@@ -260,7 +260,12 @@ uploaded file — a request's quotations, an order's PDF, an invoice's file, a
 delivery's packing list photo on both of its screens, and the direct-purchase strip
 above the request list. All six open the same viewer over the page they were on,
 titled `{what it is} · {filename}`, with the document shown in it and a control
-that saves it. Two things follow for a design. **The file is never a way out of the
+that saves it. **Since #433 the app draws the document itself** rather than
+handing a PDF to the reader's browser, so what the viewer looks like is this app's
+in every browser: a PDF is shown a page at a time, stepped by `‹` and `›` either
+side of `Page 2 of 3` in the viewer's own header, and a zoom sits beside them for a
+PDF and a picture alike. A one-page file gets the zoom and no paging. Two things
+follow for a design. **The file is never a way out of the
 app**: it used to be a link to the storage provider, which landed the reader in a
 tab naming neither the document it belongs to nor a way back, and the page behind
 the viewer is now what answers both. **And showing it and saving it are two acts**,
@@ -274,9 +279,11 @@ Edit and continue — there is no record to open, so those keep a plain link out
 facts do not contradict each other. `/invoices/new` shows the attached invoice
 beside the form at a wide enough viewport, because every field on that form is
 copied off that document; the link stays what it was, and the drawing is not a
-viewer — no title, no download, nothing to close, since nothing was opened. What
-carries over is the rendering itself, which is one component for every file this
-app shows. A design may put a document beside a form elsewhere on the same terms;
+viewer — no title, no download, nothing to close, since nothing was opened. It
+has controls of its own instead, in a row under the file: every page scrolls one
+under the next, the page in view is named, and the zoom, `Fit width` and `Rotate`
+work on a picture as on a PDF. What carries over is the rendering itself, which is
+one component for every file this app shows. A design may put a document beside a form elsewhere on the same terms;
 what it may not do is make a second thing that looks like the viewer.
 
 **And on that screen the place the file is drawn is also the place it is
@@ -284,9 +291,10 @@ attached** — a box that says to drop a file on it or click it, standing empty 
 the document's exact size until there is one. So a file surface in this app can be
 a control as well as a picture, and where it is both, the empty state belongs to
 the control: it is drawn from the first paint rather than appearing with the file.
-The file control itself stays the browser's own, under the box, because a dropped
-file cannot reach a form through a frame and something has to be able to replace
-the document once it is there.
+The file control itself stays the browser's own, under the box, because
+something has to replace the document from the keyboard once it is there. A file
+dropped on the drawn document replaces it too since #433 — before, a frame held the
+PDF and took the drop itself.
 
 **And a file link does not go stale, which removes a caution a design might
 otherwise have drawn.** The viewer asks this app for the file and this app re-reads
@@ -581,23 +589,25 @@ unknown one say the same thing) / `This sign-in link has already been used.` /
 What the viewer calls each of the five files it can show, over the filename:
 `Quotation` / `Purchase order PDF` / `Invoice file` / `Packing list photo`, and
 `Invoice file` again for the document on a direct-purchase row — the same words
-the screens carrying those files already used. Its two controls are `Download`
-and `Close`.
+the screens carrying those files already used. Its controls are `Download` and
+`Close`, and since #433 the paging and the zoom: `Previous page` and `Next page`
+either side of `Page 1 of 3`, and `Zoom out` and `Zoom in` either side of a
+percentage of the file's fitted width. The pane on `/invoices/new` adds
+`Fit width` and `Rotate`.
 
-Three sentences stand in for the file when it cannot be shown, and they are split
-by whether the failure can be detected at all. Under a document, always:
-`If nothing appears above, this browser cannot show it here` — then
-`download it to open it.` For a type the viewer will not frame:
-`This file cannot be shown here` — then `download it to open it.` And for an image
-that reported an error, the one failure with a real signal:
-`This file could not be loaded.`
+Three sentences stand in for the file when it cannot be shown. For a type the
+viewer will not draw: `This file cannot be shown here` — then
+`download it to open it.` For a picture or a PDF that will not open:
+`This file could not be loaded.` And for a PDF that asks for a password:
+`This file is protected by a password and cannot be shown here.` While a PDF
+opens: `Opening the file…`.
 
-**The first of those three is not a state and a design may not treat it as one.**
-Nothing can tell whether a document rendered: `navigator.pdfViewerEnabled`
-returned `true` in a browser that displayed nothing, and an `object` element's
-fallback children stayed hidden while its box sat empty. So the sentence is always
-there, and the control that saves the file is always beside it. A design that hides
-either behind a detected failure is drawing a state the app cannot reach.
+**All three are states now, and a design may draw them as states.** Until #433 a
+PDF was handed to the browser inside a frame, and nothing could tell whether it
+rendered — so a standing sentence sat under every document and a design was told it
+was not a state. The app draws the pages itself now and sees a document fail, so
+that sentence is gone. The control that saves the file stays beside every state
+anyway, because showing and saving are two acts.
 
 **Two of the labels are pinned and four strings are not, which is a fact about the
 matcher rather than about their standing.** `Purchase order PDF` and

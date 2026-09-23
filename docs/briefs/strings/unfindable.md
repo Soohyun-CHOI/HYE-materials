@@ -66,7 +66,7 @@ chunks, so a concatenated sentence counts more than once.
 | `RESTORE` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 8 |
 | `UPLOAD_LIMIT_COPY` | `lib/uploadLimit.js` | `refuseOversizeUpload`, `uploadLimitRefusal` | `/prs/new`, `/prs/[prId]`, `/invoices/new`, `/deliveries/new`, `/deliveries/[deliveryId]/edit` | 3 |
 | `FILE_AXIS_LABEL` | `lib/fileLinks.js` | `fileViewerTitle`, and `FileViewer` given an axis token | `/prs/[prId]`, `/pos/[poId]`, `/invoices/[invoiceId]`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/prs`, `/prs/new`, `/invoices/new` | 5 |
-| `FILE_VIEWER_COPY` | `lib/fileLinks.js` | `FileFrame`, in `FileViewer` and in the file pane | the same eight | 5 |
+| `FILE_VIEWER_COPY` | `lib/fileLinks.js` | `FileFrame`, `PdfPages`, `FileControls`, in `FileViewer` and in the file pane | the same eight | 13 |
 
 **#331's two rows are the first in this group reached through a COMPONENT rather
 than a function, and the shape is the same one level up.** A screen renders
@@ -83,6 +83,12 @@ one level deeper.** `/invoices/new` draws the attached invoice beside the form
 through `FileFrame`, which the viewer now shares rather than owns, so the sentence
 under a document reaches a screen that renders neither the viewer nor the
 constant. The count is unchanged: the pane says what the frame already said.
+
+**#433 took the row from five pieces to thirteen and from one component to three.**
+The paging and zoom labels, the page count and the two sentences for a PDF that will
+not open are chosen inside `FileControls` and `PdfPages`, which the viewer and the
+pane both render, so the same test answers the same way one level deeper again. The
+screen count is still eight, and the standing sentence under a document is gone.
 
 **#146's entry reaches more screens than any other row and is the smallest**, which
 is the pairing to notice. One sentence in three template pieces is shown on five
@@ -208,7 +214,8 @@ Handler has no screen, so the tool's whole output shape has no slot to put the
 string in. It stays reachable rather than unreachable, and that is the distinction
 worth keeping: a reader meets it by opening a forwarded link to a file they may not
 see, or one that no longer exists. Inside the app they never do, because the viewer
-requests the file from a frame and shows its own sentence when nothing arrives.
+requests the file itself and says `This file could not be loaded.` when nothing it
+can draw arrives.
 
 ## D — A string SET passed as a prop, where the members are found and the set is not
 

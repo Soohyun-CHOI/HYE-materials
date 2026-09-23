@@ -341,14 +341,14 @@ const PINNED = [
     "Some of these orders record no address",
     "so pick where the material was delivered",
     // The three sentences that stand in for a file, pinned on their distinctive
-    // clause rather than whole: the briefs wrap, and the first of these is long
-    // enough that the full sentence would match the constant and not the brief.
-    // The first one is the load-bearing one — it is not a state and cannot be, since
-    // nothing can detect that a document failed to render, so a design that turns it
-    // into a conditional is drawing something unreachable.
-    "this browser cannot show it here",
+    // clause rather than whole: the briefs wrap, and a long one would match the
+    // constant and not the brief. #433 replaced the first of the old three — a
+    // standing line under a document, there because nothing could detect a framed
+    // PDF failing — with the password sentence, since the app now draws the pages
+    // and sees a document fail.
     "This file cannot be shown here",
     "This file could not be loaded.",
+    "protected by a password and cannot be shown here",
     "over-deliveries are waiting for a request",
     "row with everything it needs raises the request here",
     // The five chips the same paragraph names. `prs.md` used to say how many there

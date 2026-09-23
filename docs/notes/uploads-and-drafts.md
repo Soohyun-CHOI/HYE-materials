@@ -49,9 +49,9 @@ The URL carries its own expiry in a path segment: `https://v5.airtableuserconten
 
 Cost is bounded by #146's ceiling — 20 MB in and 20 MB out, worst case — and the body is piped rather than buffered. Measured against reality rather than the ceiling: the largest attachment on this base is 6,884 B, the median is 879 B, and the largest file anybody has actually uploaded through this app is 493,296 B, one forty-second of the ceiling.
 
-**`Content-Disposition: inline` is load-bearing rather than a preference**, because the viewer puts the response in a frame and `attachment` makes a browser save instead of display. What makes a download a download is the viewer's own anchor carrying `download`, which works only because the route is same-origin — the very attribute #331 records as ignored across origins. So there is no `?download=` parameter and no second route: **one response shape, and the client decides.** The condition that would add one is a screen that has to hand a reader a file rather than show it, which nothing asks for today.
+**`Content-Disposition: inline` is load-bearing rather than a preference**, because `attachment` makes a browser save instead of display. The viewer put the response in a frame when this was written; since #433 it draws a PDF from the bytes itself, and what the disposition still decides is an address opened on its own — a bookmark, a link sent to somebody. What makes a download a download is the viewer's own anchor carrying `download`, which works only because the route is same-origin — the very attribute #331 records as ignored across origins. So there is no `?download=` parameter and no second route: **one response shape, and the client decides.** The condition that would add one is a screen that has to hand a reader a file rather than show it, which nothing asks for today.
 
-**No `Content-Security-Policy: sandbox` and no `X-Frame-Options`**, since sandbox breaks in-frame document rendering and we frame this ourselves. The door that closes instead is the content-type allowlist in `lib/fileLinks.js`: a hand-added Airtable attachment can claim any type, and anything outside PDF/JPEG/PNG is served as `application/octet-stream`, which `nosniff` will not let a browser reinterpret as markup. `Cache-Control: private, no-store`, so no shared cache holds gated bytes and Airtable's own `immutable` is not inherited.
+**No `Content-Security-Policy: sandbox` and no `X-Frame-Options`**, since sandbox broke the browser's own document rendering while the viewer framed this response. Since #433 the app draws a PDF itself, and the browser's rendering is what displays the file only when the address is opened on its own. The door that closes instead is the content-type allowlist in `lib/fileLinks.js`: a hand-added Airtable attachment can claim any type, and anything outside PDF/JPEG/PNG is served as `application/octet-stream`, which `nosniff` will not let a browser reinterpret as markup. `Cache-Control: private, no-store`, so no shared cache holds gated bytes and Airtable's own `immutable` is not inherited.
 
 #### The gate is per axis, and that is the issue's weight
 
@@ -81,6 +81,80 @@ Nothing on the render side got cheaper, and that was checked rather than assumed
 #### What #140 said about names, and which name it was about
 
 #140's issue body says a Blob object's name "carries a random suffix", and #331 had to settle which side of the ingest that describes, because it decides what a reader's browser saves. It is the **Blob object**: the client uploads with `upload(file.name, …)` against a token route that sets `addRandomSuffix: true`, so the object's URL reads `…/INV_593685_%2806-11%29_%28Jun%29_Swagelok%20TX-mtkxKWqqlbYjSo470P98dCxHwHKgHz.pdf`. **Airtable's attachment keeps the human's original name**, because every write passes `filename` from the form separately — `HYE logo.png` is on this base with its space intact, on both a `Quotations.File` and a `Deliveries."Packing List File"` row. So the route's `Content-Disposition` is the original name and the viewer's `download` attribute is too, which is also the first time that space survives a download: Airtable's own header dropped it.
+
+### Drawing a file (#433)
+
+**Every surface that draws a file through `app/components/FileFrame.js` draws a PDF with the app's own pages now**, from PDF.js's rendering layer, where an `<iframe>` handed the pages to the reader's browser. Counted in the code rather than taken from the six in `_shared.md`, it is **eight screens**: seven `FileViewer` call sites — `/prs/[prId]`'s quotations, a resumed Draft's quotation on `/prs/new`, the direct-purchase strip on `/prs`, `/pos/[poId]`, `/invoices/[invoiceId]`, and both delivery screens — and the pane on `/invoices/new`. `_shared.md`'s six counts the quotation once and the pane not at all. An image is still an image element everywhere.
+
+#### Why the frame went
+
+Paging, zoom and the chrome around a page were the browser's, so they differed from one browser to the next, and the viewer the design pass drew pages the document in its own header — which the app cannot do while the browser owns the pages, since it can neither learn the page count nor turn one. The header's paging works now: `onReady` hands the viewer the count, and the viewer owns the page.
+
+#### `pdfjs-dist` directly, not a wrapper
+
+`react-pdf` 11 pins `pdfjs-dist` at exactly 6.3.289, and `pdf-parse` — the server's text extraction since #46 — pins it at exactly 5.4.296, so the wrapper would have put a second engine in the tree. The direct dependency is `5.4.296`, and `npm ls` shows the two dedupe to one copy. What a wrapper would have saved is what has to be ours regardless: the scale, the device pixel ratio, the turn, canceling a stale render, and which pages are drawn. **The bundled viewer (`pdfjs-dist/web/`) is not imported and neither is its stylesheet**: `app/components/pdfTextLayer.css` carries the text layer's rules and nothing else, so every control, border and background is this app's.
+
+#### The worker, and what could have blocked it
+
+`new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url)` is emitted by Turbopack as an asset of its own, measured under both `next dev` and `next build` + `next start`: `/_next/static/media/pdf.worker.min.<hash>.mjs`, 1,046,214 bytes on disk and about 290 KB over the wire. Copying the worker into `public/` was the alternative, and it is a second copy of a dependency that goes stale on the next install with nothing noticing.
+
+**`ssr: false` on the renderer is load-bearing.** Without it the server pass compiles `PdfPages.js` as a client component's server half, and the worker URL there matched `next.config.mjs`'s `serverExternalPackages`, which list `pdfjs-dist` for `pdf-parse` — the build printed `Package pdfjs-dist can't be external` and went on. Loaded through `next/dynamic` with `ssr: false`, the server never sees the file and the warning is gone. `offline/file-drawing.mjs` holds that, and that nothing imports the engine or the renderer statically.
+
+**Nothing stands in the worker's way.** `proxy.js` sets no response header, `next.config.mjs` has no `headers()`, and the file route sets `nosniff`, a disposition and `cache-control` and no content security policy. The pane's `blob:` address never reaches the worker at all: PDF.js reads a non-HTTP URL on the page's own thread and posts the bytes across.
+
+#### Only where a file is drawn
+
+Two lazy steps: `FileFrame` loads `PdfPages.js` through `next/dynamic`, and `PdfPages.js` loads PDF.js by a dynamic import inside an effect. Measured on the production build, `/pos/[poId]` fetched neither until its viewer was opened; opening it fetched the renderer (about 2 KB), the engine (about 115 KB) and the worker (about 290 KB), all compressed transfer sizes. **Against a production build of `main`**, read off each route's client reference manifest, the eight screens' first-load JavaScript grew by 6.8–7.4 KB, 2.2–2.7 KB gzipped — the controls, the column hook and the loader, not the engine — and each of the other 24 routes by under 40 bytes gzipped. The engine is a chunk of its own, 396 KB and 114 KB gzipped; the renderer is 5.6 KB, 2.6 KB gzipped; the worker is the 1 MB above. All three arrive on opening a PDF and on nothing else.
+
+#### The text layer is what keeps the copy
+
+Transcribing is the pane's whole job, and dragging across a figure to copy it was what the browser's viewer gave; a canvas alone would have been worse than the frame. So each page carries PDF.js's `TextLayer`, made from the **same viewport** as its canvas, which is the whole of what keeps the text on the glyphs. A zoom does not rebuild it — its spans are placed in percent of the page and sized from `--total-scale-factor` — and a turn does. Measured in the pane: the layer's box equals the page box at 0° and at 90° (both 40,88 → 570,462 after the turn), and a mouse drag across the order number on `HYE-PO-260915-01` selected exactly `HYE-PO-20260915-01`.
+
+**The first drag selected two more lines**, and that is why `PdfPages.js` carries a port of `TextLayerBuilder`'s selection handling. Released one pixel past the last digit, the drag fell into empty space between absolutely placed spans and the browser extended the selection to whatever span followed in the markup — `Supplier's Name & Address` and `Lone Star Pipe & Supply`. The viewer's answer is an `endOfContent` element that, while a selection is being made, covers the layer beneath the text and is moved beside the span the selection ends in; with it the same drag stopped inside the number. PDF.js skips the moving in Firefox and so does the port; Firefox was not available to look at.
+
+**A scan has no text and so no layer to speak of** — PDF.js finds nothing to place, which is the case the issue excludes.
+
+The clipboard itself was not read back: this browser pane refuses `navigator.clipboard.readText()` and a scripted copy, and a keyboard `Ctrl+V` into the form's field left it empty, so what is verified is the selection a copy takes.
+
+#### Sharp, and redrawn rather than stretched
+
+A canvas drawn at one pixel per CSS pixel is stretched by a screen of ratio 2 and every figure on it goes soft, so each page is drawn at `devicePixelRatio` and shown at its CSS size. **A zoom redraws the page** rather than scaling the canvas: scaling is free and blurs by the zoom factor, which is exactly the reading a zoom exists for. The steps are discrete, so it is one render per click, and the old canvas stays in the box — stretched — until the new one replaces it, so nothing goes blank. Measured at 150% in the 530px pane: a canvas of 1590 × 2248 for a 795px page. **The canvas budget is 16,777,216 pixels**, iOS Safari's ceiling; past it a canvas draws nothing, so at the top zoom on a wide surface the ratio gives way instead — `canvasRatio`, held by value in `offline/file-drawing.mjs`.
+
+#### What a zoom means, and one decision the base's own file made
+
+**A zoom of 1 is the file as wide as its column, for a picture and a page alike**, and the readout is a multiple of that. PDF.js's own 100% is a page at printed size, which means nothing for a 4,000-pixel phone photograph, and one toolbar that meant two things by `100%` was what the issue removes. A picture narrower than the column is still drawn at its own width at 1.
+
+**Each page fits the width on its own.** The first cut took one scale from the first page, and `HYE-PO-260915-01` scrolled sideways at the opening zoom: its first two pages are A4 and its third, the quotation appended behind the order, is Letter and 17 points wider. A zoom step multiplies each page's own fit, and a zoom or a turn keeps the reader's place as a fraction of the column's height — measured 0.4547 before a step to 150% and 0.4545 after.
+
+**Fonts are not served.** The order document names Helvetica without embedding it, and PDF.js in a browser substitutes a system font for a standard face it is not given; glyph positions come from the file's own metrics either way, which is why the selection above lands on the glyphs. Serving `pdfjs-dist/standard_fonts` would be 804 KB copied into `public/` or a route to stream it, and nothing measured asks for it. The condition that would is a document whose text layer drifts off its glyphs in a browser without a Helvetica substitute.
+
+#### Two surfaces, two sets of controls, one renderer
+
+`FILE_LAYOUT.page` is the viewer — one page, stepped in its header beside the title, `Download` and `Close`, with the zoom added in the same bordered button the header already used. `FILE_LAYOUT.scroll` is the pane — every page one under the next, a toolbar under the column with the page in view, the zoom, `Fit width` and `Rotate`, and no title, size or download, since the file control is directly below and the file came off the reader's own disk. **The pane's zoom and turn work on a picture too**: a phone photograph of a paper invoice needs its small figures enlarged as a PDF does, and a toolbar that worked on only one kind would be two tools. What a picture does not get is the page indicator. The toolbar's row is reserved under the empty box as the frame's sentence line was, so the box and the drawn file stay one rect (`FILE_SLOT_TOOLBAR_ROOM`).
+
+The file size and the received date the design pass drew in the viewer's header are not here: each of the seven call sites would have to pass the attachment's `size`, and that is the design pass's work when it builds that header.
+
+**A control at its limit is marked, not disabled.** A `disabled` button drops the focus it holds, and in an overlay that sends the next `Tab` to the page behind it. `Next page` on the last page keeps its focus, says `aria-disabled`, dims and does nothing — measured: focus stayed on it at `Page 3 of 3`.
+
+#### A failure the app can see
+
+**The standing sentence under a document is gone**, because the thing it stood in for is gone: #331 put `If nothing appears above…` under the frame since nothing could detect that a framed PDF failed. PDF.js rejects a document it cannot open, so the app says so — `This file could not be loaded.`, the image's sentence until now, for both kinds — and names the one failure a reader can act on: a PDF asking for a password says `This file is protected by a password and cannot be shown here.` That sentence does not mention downloading, because the pane has no download. While a PDF opens: `Opening the file…`. Measured: the 30- and 48-byte PDFs on this base (`packing-387-a.pdf` on both delivery screens, `quote-387.pdf` on `/prs/[prId]`) give the failure sentence with `Download` and `Close` and no paging or zoom, and a locally made RC4 PDF with a user password gives the password sentence in the pane.
+
+`offline/file-route.mjs` asserts each failure sentence is read where its failure is seen — the frame for an image, the renderer for a PDF — off the AST, so a sentence still defined but no longer rendered fails.
+
+#### What the frame gave that this does not
+
+**In-document search and printing, by decision.** The browser's viewer offered both. Printing is `Download` and then the reader's own viewer; search across a one-page invoice is rarely what a reader wants when the figure is in front of them. **Links and form fields inside a PDF are drawn but not live** — there is no annotation layer, which the issue did not ask for. Thumbnails, the browser's own rotation and its zoom presets are replaced by the controls above rather than lost.
+
+#### Keyboard
+
+Escape and the return of focus are unchanged — measured: Escape closed the viewer and focus was back on the filename that opened it, and reopening started at page 1 and 100%. The new controls are plain buttons in the header, reached after the dialog by `Tab` in reading order. The column that scrolls is focusable, since a scrolling region the keyboard cannot reach cannot be scrolled from it. **A click on the backdrop now closes only if it started there**: selecting text made it possible to press inside the card and release outside it, and the click that follows lands on the backdrop — measured, a drag from the page to the backdrop left the viewer open, and a plain backdrop click still closed it.
+
+#### Where it was looked at
+
+In Chromium, on Windows, at a device pixel ratio of 2 — the viewer on `/pos/[poId]`, `/invoices/[invoiceId]`, `/prs/[prId]` and both delivery screens, and the pane on `/invoices/new`, under `next dev`; the viewer again under `next build` + `next start`. **Not looked at: Firefox, Safari and Edge.** The claim that the viewer is the same in every browser is a claim about these pages being drawn by the app, and it has been seen in one engine.
+
+**What it cost the Blob store:** six objects, all orphans of the kind #422 records as surviving by design — a file picked on `/invoices/new` is uploaded whether or not an invoice follows. Two copies of the three-page order document and a third under the production build, a 636-byte password-protected PDF, and two generated pictures. No Airtable record was created, changed or deleted.
 
 ### The upload size limit (#146)
 

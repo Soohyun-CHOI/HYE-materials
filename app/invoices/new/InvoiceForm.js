@@ -8,10 +8,11 @@ import { createInvoiceAction, createDirectPurchaseAction } from "./actions";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
 // Issue #422 — the document this form transcribes, drawn beside it, in the box that
-// took the file in the first place. The component is the one the file viewer uses, so
-// a file is framed one way in this app; the classes, the breakpoint and the box's one
+// took the file in the first place. It is drawn by the component the file viewer
+// uses, so a file is drawn one way in this app; `./PaneFile.js` holds it with the
+// pane's own toolbar (#433), and the classes, the breakpoint and the box's one
 // sentence are `./filePane.js`.
-import FileFrame from "@/app/components/FileFrame";
+import PaneFile from "./PaneFile";
 import { FILE_AXIS, FILE_RENDER, fileRenderKind, fileViewerTitle } from "@/lib/fileLinks";
 import {
     FILE_DROP_BOX,
@@ -19,7 +20,7 @@ import {
     FILE_PANE,
     FILE_PANE_COPY,
     FILE_SLOT,
-    FILE_SLOT_HINT_ROOM,
+    FILE_SLOT_TOOLBAR_ROOM,
     FORM_COLUMN,
     FORM_COLUMNS,
 } from "./filePane";
@@ -1516,7 +1517,7 @@ export default function InvoiceForm({ vendors, pos }) {
      * reader is not told where the document will go, they are shown, and the page
      * does not rearrange itself at the moment of attaching.
      *
-     * A FILE THAT CANNOT BE FRAMED LEAVES THE BOX AS IT WAS. `notViewable` is the
+     * A FILE THAT CANNOT BE DRAWN LEAVES THE BOX AS IT WAS. `notViewable` is the
      * viewer's answer for a type it will not draw, and the viewer was opened on
      * purpose so it may not open empty. Here the box is a control before it is a
      * picture: leaving it standing keeps the way to pick another file where it was,
@@ -1530,19 +1531,18 @@ export default function InvoiceForm({ vendors, pos }) {
      * who switched. A file attached last on `Manual Entry` gets the pane it has less
      * use for, which is the cost of there being one rule.
      *
-     * THE BOX STOPS TAKING DROPS ONCE IT HOLDS A DOCUMENT, and the control under it
-     * is what answers that. A frame is another document: a file dropped onto it goes
-     * to the browser's own viewer rather than to this form, and nothing here can
-     * intercept it. So the file control sits under the box in every state, which is
-     * also what keeps the box one size — it is a line that is always there rather
-     * than one that appears with the file.
+     * A FILE DROPPED ON THE DRAWN DOCUMENT REPLACES IT (#433). It did not while a
+     * frame drew it — a frame is another document, and a drop on it went to the
+     * browser's own viewer — and the page this app draws now is part of this one, so
+     * the drop reaches the column's handler like a drop anywhere else in it. The
+     * dashed highlight is still the empty box's alone: over a drawn file there is no
+     * box to light up. The file control stays under the column in every state, which
+     * is what keeps the column one size and the one way to replace a file from the
+     * keyboard.
      */
     function renderFilePane() {
         const kind = fileRenderKind(invoiceFile.contentType);
         const drawable = invoiceFile.previewUrl && kind !== FILE_RENDER.unknown;
-        // A document brings its own sentence into the slot's last line; the box and
-        // an image leave that line empty, so all three are drawn at one size.
-        const bringsItsOwnHint = drawable && kind === FILE_RENDER.document;
         return (
             <aside
                 className={FILE_PANE}
@@ -1553,9 +1553,12 @@ export default function InvoiceForm({ vendors, pos }) {
                 onDragLeave={() => setDraggingFile(false)}
                 onDrop={handleFileDrop}
             >
-                <div className={bringsItsOwnHint ? FILE_SLOT : `${FILE_SLOT} ${FILE_SLOT_HINT_ROOM}`}>
+                {/* A drawn file brings its toolbar into the slot's last row; the box
+                    leaves that row empty, so both are drawn at one size. */}
+                <div className={drawable ? FILE_SLOT : `${FILE_SLOT} ${FILE_SLOT_TOOLBAR_ROOM}`}>
                     {drawable ? (
-                        <FileFrame
+                        <PaneFile
+                            key={invoiceFile.previewUrl}
                             href={invoiceFile.previewUrl}
                             kind={kind}
                             title={fileViewerTitle({ axis: FILE_AXIS.invoice, filename: invoiceFile.filename })}
