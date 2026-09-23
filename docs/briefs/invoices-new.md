@@ -42,7 +42,28 @@ generates its own ID separately.
 **action — `Invoice File`,** its own section. Required: the submit button cannot
 be pressed without it, and says so — see below. A line under the heading says why:
 `The vendor's original invoice document — required, every received invoice is kept
-on file.`
+on file.` The section states what happened to the file — see the upload states
+below — and, **below 1280px, holds the control that picks it.**
+
+**action — the file's own column, from 1280px up.** A box down the left of the
+screen, the height of the viewport, that stays in place as the form is scrolled,
+with the file control under it. **The box is where the file is attached and where
+it is then drawn**, at the same size in both states: empty it says
+`Drop the invoice file here, or click to choose one.` and takes a file dropped on
+it or opens the file dialog when clicked; with a file it holds the document
+itself. So the reader is shown where the document will go rather than told, and
+the page does not rearrange itself when they attach one. At that width the
+`Invoice File` section keeps its heading, its line and its states, and does not
+carry the control.
+
+**The column is drawn before there is a file, and a design may not make it
+conditional.** It is the file's control, not a preview of one — an empty state is
+the normal state of a control. What is conditional is what the box holds.
+
+**The form is still what the keyboard reaches first.** The document is to the left
+and the form to the right, which is the reading order; the focus order is the
+other way round, because the pane holds one control and a document while the form
+is the work.
 
 **action — one or more order slots.** Each slot is labeled `PO` and holds one
 order, chosen from a dropdown. A `+ Add another PO` control appends a slot; each
@@ -126,33 +147,35 @@ while saving. It is disabled in every state but the last.
 centered line, `Not authorized. This page is Admin-only.`, and nothing on it
 suggests what would otherwise be here.
 
-**When a file is attached and the viewport is at least 1280px wide, the file
-itself is drawn to the left of the form,** in a column that stays in place as the
-form is scrolled — the document on the left and the transcription of it on the
-right, in that reading order. **The form is still reached first from the
-keyboard**, because the pane holds nothing to fill in and a PDF frame is several
-focusable controls rather than one. It is the same rendering the file viewer uses
-everywhere else —
-an image for a photograph, a frame for a PDF, and under a PDF the app's standing
-sentence about a browser that cannot show one. **It has no controls of its own:**
-no title, no download, nothing to close. The form is the whole of what a reader
-does here, and the pane is the document they are copying from.
+**When the box holds a file, it is drawn the way the file viewer draws one** — an
+image for a photograph, a frame for a PDF, and under a PDF the app's standing
+sentence about a browser that cannot show one. **The box has no chrome of its
+own:** no title, no download, nothing to close. That sentence is the only thing
+that makes the two states differ in size, by the one line it takes.
 
-**It is under both tabs**, because the tab only reorders the four blocks. So
-`Manual Entry`, which puts the file last, shows the pane once the form is already
-filled in — which is a consequence of there being one rule rather than a case that
-was designed for.
+**While a file is dragged over it**, the box says so — currently a darker border
+and a tint, and nothing else changes.
 
-**Below that width nothing about this screen changes** — one column, no pane, and
-the form is the same width on both sides of that boundary. **And with no file
-attached the page does not widen either**, so the two-column shape exists only
-while there is a document for the second column. A design should read the width as
-a property of the pane rather than of the screen.
+**A file the app will not draw leaves the box as it was**, prompt and all: a type
+outside PDF, JPEG and PNG, which the control does not offer but a reader can still
+arrive with. The viewer says `This file cannot be shown here` in that case and the
+box says nothing, because here the box is a control before it is a picture and the
+section opposite already names the file that is attached.
 
-**The pane is absent for a file the app will not draw** — a type outside PDF, JPEG
-and PNG, which the file control does not offer but a reader can still arrive with.
-The viewer says a sentence in that case and the pane says nothing, the difference
-being that the viewer was opened on purpose.
+**Once the box holds a document it stops taking drops**, and the control under it
+is what replaces the file. A frame is another document, so a file dropped on it
+goes to the browser rather than to this form and nothing in the app can intercept
+it. The control is under the box in every state, which is also what keeps the box
+one size.
+
+**Below 1280px the column is not drawn at all** — one column, the control back in
+the `Invoice File` section, and the form the same width as above the boundary.
+Nothing else about the screen changes.
+
+**All of it is under both tabs**, because the tab only reorders the four blocks.
+So `Manual Entry`, which puts the `Invoice File` section last, still has the box
+from the first paint — the section's position and the column's are two different
+things.
 
 **When a file is attached, the app tries to read the order numbers off it.**
 Detection runs on any upload and is best-effort, so it always produces a message,

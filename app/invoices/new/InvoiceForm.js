@@ -7,12 +7,20 @@ import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { createInvoiceAction, createDirectPurchaseAction } from "./actions";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
-// Issue #422 — the document this form transcribes, drawn beside it. The component is
-// the one the file viewer uses, so a file is framed one way in this app; the classes
-// are `./filePaneLayout.js`, which holds the breakpoint on its own.
+// Issue #422 — the document this form transcribes, drawn beside it, in the box that
+// took the file in the first place. The component is the one the file viewer uses, so
+// a file is framed one way in this app; the classes, the breakpoint and the box's one
+// sentence are `./filePane.js`.
 import FileFrame from "@/app/components/FileFrame";
 import { FILE_AXIS, FILE_RENDER, fileRenderKind, fileViewerTitle } from "@/lib/fileLinks";
-import { FILE_PANE, FILE_PANE_MARK, FORM_COLUMN, FORM_COLUMNS } from "./filePaneLayout";
+import {
+    FILE_DROP_BOX,
+    FILE_DROP_BOX_OVER,
+    FILE_PANE,
+    FILE_PANE_COPY,
+    FORM_COLUMN,
+    FORM_COLUMNS,
+} from "./filePane";
 // Issue #198 — pure and import-free, so a client component may hold it; the judgment
 // itself already ran on the server and every PO here carries its answer as `unsigned`.
 import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
@@ -340,6 +348,11 @@ export default function InvoiceForm({ vendors, pos }) {
     // release it cannot read that state: the catch below runs before its own setState
     // has landed, and the unmount effect closes over the first render's copy.
     const previewUrlRef = useRef(null);
+    // Issue #422 — the file control itself, so the box can open it. One input, so
+    // there is one place a picked file arrives from whichever control was used.
+    const fileInputRef = useRef(null);
+    // Whether a dragged file is over the box. The box's only state.
+    const [draggingFile, setDraggingFile] = useState(false);
 
     // Issue #422 — one object URL at a time, and none after this form is gone. Every
     // replacement revokes in handleInvoiceFileChange, so what is left for unmount is
@@ -370,8 +383,31 @@ export default function InvoiceForm({ vendors, pos }) {
         }
     }
 
+    /**
+     * Issue #422 — three ways in, one rule.
+     *
+     * The file control below, the box in the pane and a file dropped on that box all
+     * end here, because what has to happen to a picked file — the size guard, the
+     * preview, the upload, the detection — is one sequence and was one before there
+     * was more than one way to start it.
+     */
     async function handleInvoiceFileChange(e) {
-        const file = e.target.files?.[0];
+        await acceptFile(e.target.files?.[0]);
+    }
+
+    function handleFileDrop(e) {
+        e.preventDefault();
+        setDraggingFile(false);
+        const dropped = e.dataTransfer?.files;
+        // The control under the box names the file it is holding, and a drop never
+        // went through it — so without this it reads `No file chosen` beside the
+        // document it chose. A `FileList` from a drop assigns straight onto an input,
+        // and this one carries no `name`, so nothing is submitted from it either way.
+        if (dropped?.length && fileInputRef.current) fileInputRef.current.files = dropped;
+        acceptFile(dropped?.[0]);
+    }
+
+    async function acceptFile(file) {
         if (!file) return;
 
         // Issue #422 — the file this one replaces is not on the screen any more, so
@@ -1383,6 +1419,37 @@ export default function InvoiceForm({ vendors, pos }) {
         );
     }
 
+    /**
+     * Issue #422 — the control itself, drawn wherever the layout puts it.
+     *
+     * TWO CALL SITES AND ONE CONTROL. Below the breakpoint it is in the `Invoice
+     * File` section, where it has always been; above it, it is under the box in the
+     * pane, because that is where the file is. Only one of the two is ever visible —
+     * each sits inside something the other width hides — and both hand the same
+     * function the same thing, so there is nothing here for the two to disagree
+     * about. The ref is the pane's, since the box is what opens it.
+     */
+    function renderFileInput(ref) {
+        return (
+            <input
+                ref={ref}
+                type="file"
+                accept="application/pdf,image/jpeg,image/png"
+                onChange={handleInvoiceFileChange}
+                className="block text-sm"
+            />
+        );
+    }
+
+    /**
+     * Issue #422 — WHAT THIS SECTION KEEPS AT A WIDE VIEWPORT IS WHAT IT SAYS, NOT
+     * WHAT IT DOES. The control moved into the pane, where the file is; the heading,
+     * the line saying why a file is required, the upload's own state and the
+     * detection message stay here in the text column. That is not only a placement:
+     * the detection message runs to three lines and changes length, and under the box
+     * it would resize the box every time a file was attached — which is the one thing
+     * the reserved box is for.
+     */
     function renderFileSection() {
         return (
             <div>
@@ -1391,12 +1458,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     The vendor&apos;s original invoice document — required, every received invoice is kept on file.
                 </p>
                 <div className="mt-2 space-y-2">
-                    <input
-                        type="file"
-                        accept="application/pdf,image/jpeg,image/png"
-                        onChange={handleInvoiceFileChange}
-                        className="block text-sm"
-                    />
+                    <div className="xl:hidden">{renderFileInput(null)}</div>
                     {invoiceFile.status === "uploading" && (
                         <p className="text-sm text-zinc-500">Uploading {invoiceFile.filename}...</p>
                     )}
@@ -1443,8 +1505,20 @@ export default function InvoiceForm({ vendors, pos }) {
      * is not an option either way — it re-reads a record per request and there is no
      * invoice record until this form is submitted.
      *
-     * TO THE LEFT OF THE FORM, AND LAST IN THE DOCUMENT. `filePaneLayout.js` carries
-     * why those two are not the same order.
+     * TO THE LEFT OF THE FORM, AND LAST IN THE DOCUMENT. `filePane.js` carries why
+     * those two are not the same order.
+     *
+     * THE COLUMN IS DRAWN BEFORE THERE IS A FILE, AND THAT IS WHAT MAKES IT THE
+     * CONTROL. An empty box stands in the document's exact place and takes the file:
+     * dropped on it, or picked through the dialog it opens when clicked. So the
+     * reader is not told where the document will go, they are shown, and the page
+     * does not rearrange itself at the moment of attaching.
+     *
+     * A FILE THAT CANNOT BE FRAMED LEAVES THE BOX AS IT WAS. `notViewable` is the
+     * viewer's answer for a type it will not draw, and the viewer was opened on
+     * purpose so it may not open empty. Here the box is a control before it is a
+     * picture: leaving it standing keeps the way to pick another file where it was,
+     * and the section opposite already says which file is attached.
      *
      * UNDER BOTH TABS, and that follows from what a tab is here rather than from a
      * separate decision: the tab changes the ORDER of the four blocks and nothing
@@ -1454,21 +1528,42 @@ export default function InvoiceForm({ vendors, pos }) {
      * who switched. A file attached last on `Manual Entry` gets the pane it has less
      * use for, which is the cost of there being one rule.
      *
-     * NOTHING IS DRAWN FOR A FILE THAT CANNOT BE FRAMED, where the viewer says a
-     * sentence. The viewer was opened on purpose and may not open empty; the pane
-     * was opened by nobody, so it owes nothing — and `notViewable` alone in a column
-     * half the screen wide would be an answer to a question the reader did not ask.
+     * THE BOX STOPS TAKING DROPS ONCE IT HOLDS A DOCUMENT, and the control under it
+     * is what answers that. A frame is another document: a file dropped onto it goes
+     * to the browser's own viewer rather than to this form, and nothing here can
+     * intercept it. So the file control sits under the box in every state, which is
+     * also what keeps the box one size — it is a line that is always there rather
+     * than one that appears with the file.
      */
     function renderFilePane() {
         const kind = fileRenderKind(invoiceFile.contentType);
-        if (!invoiceFile.previewUrl || kind === FILE_RENDER.unknown) return null;
+        const drawable = invoiceFile.previewUrl && kind !== FILE_RENDER.unknown;
         return (
-            <aside {...FILE_PANE_MARK} className={FILE_PANE}>
-                <FileFrame
-                    href={invoiceFile.previewUrl}
-                    kind={kind}
-                    title={fileViewerTitle({ axis: FILE_AXIS.invoice, filename: invoiceFile.filename })}
-                />
+            <aside
+                className={FILE_PANE}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    if (!drawable) setDraggingFile(true);
+                }}
+                onDragLeave={() => setDraggingFile(false)}
+                onDrop={handleFileDrop}
+            >
+                {drawable ? (
+                    <FileFrame
+                        href={invoiceFile.previewUrl}
+                        kind={kind}
+                        title={fileViewerTitle({ axis: FILE_AXIS.invoice, filename: invoiceFile.filename })}
+                    />
+                ) : (
+                    <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={draggingFile ? FILE_DROP_BOX_OVER : FILE_DROP_BOX}
+                    >
+                        {FILE_PANE_COPY.drop}
+                    </button>
+                )}
+                <div className="mt-2 shrink-0">{renderFileInput(fileInputRef)}</div>
             </aside>
         );
     }
@@ -1963,13 +2058,11 @@ export default function InvoiceForm({ vendors, pos }) {
         );
     }
 
-    // Issue #422 — the two columns exist only while there is a document for the
-    // second one, and `filePaneLayout.js` says why they may not be unconditional.
-    const filePane = renderFilePane();
-
+    // Issue #422 — two columns from the first paint, because the second one is the
+    // file control and not a preview of one. `filePane.js` says what that changed.
     return (
         <>
-        <div className={filePane ? FORM_COLUMNS : undefined}>
+        <div className={FORM_COLUMNS}>
         <form action={formAction} className={`mt-6 space-y-8 ${FORM_COLUMN}`}>
             {state?.error && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -2038,7 +2131,7 @@ export default function InvoiceForm({ vendors, pos }) {
                             : "Create Invoice"}
             </button>
         </form>
-        {filePane}
+        {renderFilePane()}
         </div>
 
         {dpOpen && renderDirectPurchaseModal()}
