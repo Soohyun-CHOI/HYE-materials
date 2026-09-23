@@ -68,7 +68,7 @@ did change is that a run now needs fewer sheets, not that it needs fewer rows.
   run is a handful, so unchecking one or two is the whole interaction — **a design
   should not add a bulk control back without a reader who needs one.**
 - **The first label position on the sheet**, 1 to however many a sheet holds —
-  78 today, and a figure a design must read rather than assume. **This is for a
+  110 today, and a figure a design must read rather than assume. **This is for a
   part-used
   sheet and it is the ordinary case rather than an edge**: a registration is
   usually a handful of tools, so printing always from the top would throw away
@@ -77,15 +77,21 @@ did change is that a run now needs fewer sheets, not that it needs fewer rows.
 - **Print.**
 
 **the sheet.** One page-sized box per sheet, each label placed at its stock's own
-corner. Each label carries three things and the reasons are not the same:
+corner. Each label carries two things, the symbol and the code under it, and the
+reasons are not the same:
 
 - **The QR symbol**, in a box that is its full size including the four modules of
   quiet zone the SVG carries. **Nothing may be drawn inside that box.** The margin
   is what lets a camera separate the symbol from everything printed beside it.
-- **The printed code, in characters a person can read.** This is the fallback for
-  a symbol that has been scratched or painted over, so it is not decoration and it
-  may not be truncated. Its size has a floor; see below.
-- **The tool's name.**
+- **The printed code, in characters a person can read, under the symbol.** This
+  is the fallback for a symbol that has been scratched or painted over, so it is
+  not decoration and it may not be truncated. Its size has a floor and its face
+  is part of the label's arithmetic; see below.
+
+**The tool's name is not on the label (#431).** The design dropped it. The
+picker above the sheet still names each tool item by its tool, because that is
+a screen naming a record and the person choosing labels chooses by it; the
+sticker carries the code alone.
 
 **The printed code is not the whole `Tool Item ID`, and the difference is the
 point (#411).** A tool item is `HYE-TL-260909-004` in the base, on this screen's
@@ -120,7 +126,9 @@ print control does not act.
 
 **When the run does not fit one sheet:** more than one sheet is drawn, and each
 one prints on its own page. Blanks held open by the start position appear only on
-the first — a run that spills starts at the top of the next sheet.
+the first — a run that spills starts at the top of the next sheet. A sheet holds
+more labels than one request prints, so this is reached from a start position
+past 11 and not by the size of the run alone.
 
 ## What must agree elsewhere
 
@@ -131,18 +139,18 @@ reopened. **A design must not assume a particular number of labels or a
 particular label size** — it should assume a grid whose dimensions come from
 somewhere else.
 
-**The label is 30.3 by 16.8 mm and it is sized from the symbol, not from a
-product (#412).** It was 66.7 by 25.4 mm, which was a real adhesive sheet picked
-when nothing had been printed. A wrench or a screwdriver has no flat run that
-wide, so the module and the readable code went to their floors and the label is
-what came out of the arithmetic. **78 fit a Letter sheet where 30 did**, and
-that count is computed from the page, the margin, the label and the gap rather
-than typed — a design must not assume it.
+**The label is 16.8 mm wide by 20.42 mm tall and it is sized from the symbol,
+not from a product (#412, #431).** It was 66.7 by 25.4 mm, which was a real
+adhesive sheet picked when nothing had been printed. A wrench or a screwdriver
+has no flat run that wide, so the module and the readable code went to their
+floors and the label is what came out of the arithmetic. **110 fit a Letter
+sheet**, and that count is computed from the page, the margin, the label and the
+gap rather than typed — a design must not assume it.
 
 **The narrow side is 16.8 mm and it is the dimension that decides whether the
 sticker goes on.** A label wraps along a handle, so the narrow side has to clear
 the handle's width and the long side runs down a tool that is far longer than
-30 mm. **A wrench handle is roughly 15 to 20 mm**, so this label goes on most of
+20 mm. **A wrench handle is roughly 15 to 20 mm**, so this label goes on most of
 that range and **not on the narrow end of it: at 15 mm it does not fit, and
 nothing available to this app makes it fit.** The three things that could be
 smaller are all fixed from outside: the symbol's four-module quiet zone is the
@@ -152,19 +160,19 @@ not perfectly placed and a sheet that does not feed perfectly straight, and the
 **So a tool with a handle narrower than about 17 mm has no label yet, and that
 is a stated limit rather than an oversight.**
 
-**The symbol and the code sit side by side, and stacking them was weighed and
-does not change the fit.** The symbol is wider than the code at its floor, so
-the narrow side comes out at 16.8 mm either way; what stacking changes is the
-long side, from 30.3 mm to 23.1 mm, and the sheet, from 78 labels to 100.
-**That is a real difference and it is the design's to ask for** — the figures
-are here so the request arrives with them attached rather than being
-re-derived. What it would cost: the tool's name has no length limit, and beside
-the symbol it sits in height the symbol has already paid for while under it, it
-decides the label's height.
+**The code sits under the symbol (#431), and the order is part of the
+geometry.** The symbol is wider than the code at its floor, so the narrow side
+is the symbol's alone either way. Beside the symbol, the long side was the
+symbol and ten characters, 30.3 mm, and a sheet held 78; under it, the long side
+is the symbol, a gap and one line of code, 20.42 mm, and a sheet holds 110. What
+kept the code beside the symbol was the tool's name, which sat in height the
+symbol had already paid for — and the label no longer carries the name. **So
+the code above the symbol, or beside it again, is a different label rather than
+a restyling of this one**, with different dimensions and a different count.
 
 **The symbol is sized in modules, never in millimeters.** A QR symbol's side grows
 four modules per version as the address it encodes gets longer. So the printed
-size is a fixed millimeters PER MODULE, chosen so that a symbol two versions
+size is a fixed millimeters PER MODULE, chosen so that a symbol one version
 larger still fits the label — which makes a longer address a bigger symbol
 rather than a denser one. **A design that pins the symbol to a box in
 millimeters would undo this**, and the failure is invisible on screen: it only
@@ -172,34 +180,39 @@ shows up as a symbol a phone cannot read.
 
 **The readable code has a floor and no ceiling.** Its minimum size is a functional
 constraint — it is the fallback path when the symbol is unreadable — and it is
-set in code, at 2.0 mm. **Everything above that floor is the design's**,
-including whether it is larger, where it sits, and what it is set in. It renders
-at the floor today because that is the constraint with no design applied to it,
-not because the floor is the right size.
+set in code, at 6 pt. **Everything above that floor is the design's**, and the
+cost of going above it is now fixed: the code's line is the one thing the
+label's height is built from besides the symbol, so a larger code makes the
+label taller by the same amount, and wider as well past about 8.4 pt, where ten
+characters outgrow the symbol. It renders at the floor, which is the size the
+design kept when it chose the face.
+
+**The code is set in Inconsolata, and the face is part of the label's
+arithmetic (#431).** The design chose it. The label's width budget is that
+face's measured advance — half its size per character — so a different face is
+a different number. **Changing the face is the design's to do and it reopens
+that figure**; what the label has room for without changing size is a face up
+to about 0.69 of its size per character, ten characters under the widest symbol.
+The face reaches the printed code and nothing else on this screen.
 
 **Both floors are quoted figures and neither was measured here (#412).** The
 module's 0.4 mm is the practical minimum published for a phone camera resolving
-a printed module; the code's 2.0 mm is the height below which an ordinary office
-printer stops holding a character's strokes apart. They were 0.57 and 2.5 mm,
-set for a label read at arm's length; this one is read in the hand, off a tool
-somebody is holding. **What would settle either is a sheet printed on paper and
-read by a phone, which nobody has done** — and until that happens the label is
-as small as arithmetic supports rather than as small as it goes.
+a printed module; the code's 6 pt is the size print convention holds as the
+smallest legible in printed matter. That is a font size, and it is stated in
+points because the convention is — it was 2.0 mm, which is 5.67 pt, until
+#431. The two were 0.57 mm and 2.5 mm before #412, set for a label read at arm's
+length; this one is read in the hand, off a tool somebody is holding. **What
+would settle either is a sheet printed on paper and read by a phone, which
+nobody has done** — and until that happens the label is as small as arithmetic
+supports rather than as small as it goes.
 
-**Both the code and the tool's name render at that one size, and the sameness is
-deliberate.** The code is the only thing on the label with a size requirement, so
-it is the only figure there is; giving it the floor and letting the name inherit
-the app's body size made the NAME larger, which is a hierarchy nothing decided
-and the wrong way round. **A design setting them apart is expected — this is the
-absence of that decision, not a version of it.**
-
-**Nothing is left over in either direction any more (#412).** The widest symbol
-the module absorbs is 14.8 mm against 14.8 mm of printable height, and the code
-at its floor claims 12 mm of the 12 mm beside it. #411 handed this screen
-24.81 mm of unclaimed width and #412 spent all of it on a smaller label. **A
-design adding anything to the label has to take it from something already
-there**, and the two things it may not take it from are the symbol's quiet zone
-and the code's floor.
+**Nothing is left over for the symbol, and next to nothing under the code (#412,
+#431).** The widest symbol the module absorbs is 14.8 mm against 14.8 mm of
+printable width, and the code's line takes the height left under it to within
+0.003 mm. The one room on the label is beside the code: ten characters at the
+floor take 10.58 mm of the 14.8 mm under the symbol. **A design adding anything
+to the label has to take it from something already there**, and the two things
+it may not take it from are the symbol's quiet zone and the code's floor.
 
 **The label absorbs one symbol version rather than two.** A QR symbol grows four
 modules a side as the address it encodes gets longer; the module cannot shrink

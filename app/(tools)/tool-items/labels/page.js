@@ -1,3 +1,4 @@
+import { Inconsolata } from "next/font/google";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
@@ -41,6 +42,23 @@ export const metadata = { title: "Print tool labels" };
 //
 // NOTHING IS GATED PER ROW. `requireUser()` is #337's decision for the whole axis:
 // no Role, no Job scoping, and no tool item is one reader's rather than another's.
+
+// THE FACE THE PRINTED CODE IS SET IN, LOADED HERE AND NOWHERE ELSE (#431). The
+// label's width budget is this face's measured advance —
+// `lib/toolLabelSheet.js:CHARACTER_WIDTH_RATIO` — so the code has to print in it, or
+// the budget describes letters that are not on the paper. The face is the design's
+// choice and `LABEL_CODE_TYPEFACE` names it; `next/font` takes it as a static
+// import, so the name is spelled here as well and `offline/tool-label-sheet.mjs`
+// compares the two. It reaches this route and the code alone: the root layout and
+// the tools layout are where a design is applied to screens, and #336 left the
+// second empty for that.
+//
+// IF THE FACE HAS NOT ARRIVED WHEN PRINT IS PRESSED, THE FALLBACK PRINTS, and
+// nothing here can stop that. **Not observed.** The code has the room: ten
+// characters at the floor fit under the symbol in any face up to 0.69 of its size
+// per character, and the fallback `next/font` declares — Arial at a `size-adjust`
+// of 112.16%, read off the rendered page — comes to 0.6.
+const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-code" });
 
 export default async function ToolLabelSheetPage({ searchParams }) {
     return withOpsLabel("/tool-items/labels", async () => {
@@ -120,8 +138,11 @@ export default async function ToolLabelSheetPage({ searchParams }) {
         // what the heading did until it was wrapped. `labels.css` hides this class
         // at print, and `offline/tool-label-sheet.mjs` requires every heading,
         // sentence and link in this file to be inside it.
+        //
+        // The face's property is defined here, above the sheet, and `.label-id` is
+        // the one rule that reads it.
         return (
-            <main>
+            <main className={labelCodeFont.variable}>
                 <div className="label-screen-only">
                     <h1>{COPY.heading}</h1>
                     {requested.length > printing.length && (

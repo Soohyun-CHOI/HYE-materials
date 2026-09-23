@@ -22,12 +22,14 @@ carries, which distinctions it must make visible, and which words are fixed — 
 the whole of what carries over. Everything else is open, and a design that
 resembles what is there now has taken a resemblance for a requirement.
 
-**Two visual decisions are real, and they are the only two.** The app is
+**Three visual decisions are real, and they are the only three.** The app is
 light-only, and modal chrome has a single source. Both were decided on their own
 terms with the reasoning recorded — #218 and #126 — and both are in
 "Constraints that already exist" at the foot of this document with what they
-rest on. Everything in the paragraph above is about the choices nobody made; it
-is not a claim that no decision was ever taken.
+rest on. **The third is the design's own**: the code a tool label prints is set
+in Inconsolata, and the label's brief carries it, because the label's width is
+measured in that face (#431). Everything in the paragraph above is about the
+choices nobody made; it is not a claim that no decision was ever taken.
 
 **The repository is deliberately not connected to the design tool.** Connecting
 it would align the work to the existing styles, which is what that feature is

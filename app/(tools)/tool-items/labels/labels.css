@@ -18,6 +18,11 @@
  * dimension arrives as an inline style computed from that object, so changing stock
  * touches the object and this one keyword.
  *
+ * AND ONE NAME IS SPELLED TWICE BESIDE IT (#431): `--font-label-code`, the property
+ * the page's face loader defines and `.label-id` reads. `next/font` takes the name
+ * as a literal, so the page carries one spelling and this file the other, and the
+ * same check compares them.
+ *
  * `margin: 0` IS LOAD-BEARING RATHER THAN TIDY. A browser's default page margin is
  * around half an inch, and it would push the whole sheet down and across by that
  * much — every label off its die-cut by more than a label's height. The stock's own
@@ -45,9 +50,14 @@
     background: #fff;
 }
 
+/* The code goes under the symbol (#431), which is the order the label's dimensions
+   were derived for. `align-items` centers the two across the label, where beside
+   each other it centered them down it; where the room goes that a smaller symbol
+   leaves is the design's. */
 .label-cell {
     position: absolute;
     display: flex;
+    flex-direction: column;
     align-items: center;
     overflow: hidden;
     box-sizing: border-box;
@@ -55,27 +65,23 @@
 
 /* The symbol's box is sized inline to `QR_SIDE_MODULES` worth of millimeters — the
    count INCLUDING its four modules of quiet zone. Nothing may be drawn over it, so
-   it is a flex item that cannot shrink and the text sits beside it. */
+   it is a flex item that cannot shrink and the code sits under it. */
 .label-symbol svg {
     display: block;
     width: 100%;
     height: 100%;
 }
 
-.label-text {
-    min-width: 0;
-    overflow: hidden;
-}
-
-/* The readable id is the fallback for a symbol somebody has scratched or painted
+/* The readable code is the fallback for a symbol somebody has scratched or painted
    over, so it may not be cut off. Its SIZE is a floor set in
-   `lib/toolLabelSheet.js`; raising it is the design's to do. */
+   `lib/toolLabelSheet.js`, and raising it is the design's to do. Its FACE is the one
+   the width budget was measured in (#431): the page loads it as `--font-label-code`,
+   and changing it means measuring `CHARACTER_WIDTH_RATIO` again. It is set here
+   rather than inherited, so no face chosen for the rest of the app reaches the code
+   by inheritance. */
 .label-id {
+    font-family: var(--font-label-code);
     white-space: nowrap;
-}
-
-.label-tool {
-    overflow: hidden;
 }
 
 @media print {
