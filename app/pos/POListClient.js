@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { formatUSD } from "@/lib/format";
 import {
-    applyFilters,
     emptyStateKind,
     emptyStateText,
     showsFilterBar,
 } from "@/lib/listFilters";
 import { StatusChip } from "@/app/components/DeliveryStatusMarks";
 import { LIST_TABLE_CLASS } from "@/app/components/listTableWidth";
-import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
+import ListFilterBar, { ListPageFoot, useListFilters } from "@/app/components/ListFilterBar";
 
 // Instant client-side narrowing over the already-gated rows the server sent, in
 // the shape #119 set for the PR list: no Apply button, and the active filters
@@ -33,9 +32,13 @@ import ListFilterBar, { useListFilters } from "@/app/components/ListFilterBar";
 // the server's canViewPR pass; nothing here can widen it.
 const ROUTE = "/pos";
 
-export default function POListClient({ rows, options, initialFilters, totalCount }) {
-    const filters = useListFilters({ route: ROUTE, initial: initialFilters });
-    const shown = applyFilters(ROUTE, filters.state, rows);
+export default function POListClient({ rows, options, initialFilters, initialPage, totalCount }) {
+    // #326 — the narrowing and the slice both come back from the hook now. The cut is
+    // here rather than on the server because the bar narrows in the browser, so nothing
+    // upstream knows how many rows survive; and the read stays whole because a page of
+    // records is not a page of rows a reader sees.
+    const filters = useListFilters({ route: ROUTE, initial: initialFilters, initialPage, rows });
+    const shown = filters.shown;
     const empty = shown.length
         ? null
         : emptyStateKind({ totalCount, visibleCount: rows.length, filtersActive: filters.active });
@@ -218,7 +221,7 @@ export default function POListClient({ rows, options, initialFilters, totalCount
                             </tr>
                         </thead>
                         <tbody>
-                            {shown.map((row) => {
+                            {filters.page.rows.map((row) => {
                                 // A withdrawn order is terminal and stays on record
                                 // (#138), so THE WHOLE ROW is dimmed rather than
                                 // hidden — the same "dimmed = ended" language #122
@@ -281,6 +284,9 @@ export default function POListClient({ rows, options, initialFilters, totalCount
                     </table>
                 </div>
             )}
+            {/* #326 — below the table and outside the empty branch: there is nothing to
+                count and no page to be on when the list is empty. */}
+            {!empty && <ListPageFoot filters={filters} />}
         </>
     );
 }

@@ -167,6 +167,10 @@ async function renderPRListPage({ searchParams }) {
                 rows={rows}
                 options={options}
                 initialFilters={initialFilters}
+                // #326 — the slice the URL asks for. It is not parsed or clamped here:
+                // what it has to be clamped against is how many rows survive the bar,
+                // and the bar narrows in the browser.
+                initialPage={sp?.page}
                 // Every submitted request on the base, before the visibility gate —
                 // the ONLY thing that tells "none exist yet" apart from "none for
                 // you", which this list conflated into one sentence until #324.

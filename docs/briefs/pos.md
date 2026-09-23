@@ -89,7 +89,32 @@ the order is finished with. **A redesign that separates these two columns, or th
 lets one be read without the other, removes the only device that makes the pair
 honest.**
 
+**evidence — the foot of the list, two facts, always.** How many purchase orders the list
+holds, and which page of them this is. Both are stated whether or not there is a
+second page: a position that appears only once a list is long leaves the short
+case saying nothing, and the short case is where a reader most needs to know they
+are seeing all of it. **The total counts the rows the filters admit**, which is
+what is actually being paged — so it differs from the `N of M` count in the bar
+above while a filter is on, and agrees with it when none is. The page size is one
+number for all four lists and is not named here; it is a design value and
+`lib/listFilters.js` is the one place it lives.
+
 ## What it carries only sometimes
+
+**When the list runs past one page:** a step to the next page, and a step back
+when this is not the first one. The two are absent at the ends rather than drawn
+and dead, so a list that fits on one page carries neither and the foot is two
+sentences. **Any change to a filter returns the reader to the first page** — a
+position is an offset into a set of rows, and narrowing replaces the set — and
+the address drops the page along with it, which is the same rule the filters
+follow: absence is the unapplied state.
+
+**When the address asks for a page that is not there:** the last page, and the
+address is rewritten to the page actually shown. A URL is typed, edited and
+copied, so the number in it is a request rather than a promise; answering it with
+an empty screen would show the reader nothing and tell them nothing, and leaving
+the asked-for number in the bar would hand the next reader a link that means
+something else.
 
 **When an invoice charging the order is past its due date and still unpaid:** a red
 `⚠ Overdue` badge **stacked underneath** the payment chip, in the same cell.

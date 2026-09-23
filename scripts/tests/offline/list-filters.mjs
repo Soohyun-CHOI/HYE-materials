@@ -45,6 +45,8 @@ import {
     FILTER_BAR_COPY,
     FILTER_PARAMS,
     LIST_EMPTY_COPY,
+    LIST_PAGE_COPY,
+    LIST_PAGE_SIZE,
     RESERVED_PARAMS,
     ROW_KEY,
     applyFilters,
@@ -57,7 +59,9 @@ import {
     filterQuery,
     filtersActive,
     jobOptionLabel,
+    listQuery,
     matchesFilters,
+    pageOfRows,
     parseFilters,
     pickerOptions,
     showsFilterBar,
@@ -767,6 +771,103 @@ export function run({ check, assert, log }) {
         0
     );
 
+    // THE FOOT'S WORDS ARE SWEPT TOO, AND OVER A NARROWER SET THAN THE BAR'S (#326).
+    // `Previous` and `Next` are also `lib/toolListView.js`'s, legitimately: two axes
+    // each own the words their own paging control says, and a repository-wide sweep of
+    // those two would report that module rather than a defect. So this asks the
+    // question where a literal WOULD be the defect — the four clients and the two
+    // shared components, none of which may hold a word of its own.
+    const PAGE_ONLY = [
+        LIST_PAGE_COPY.previous,
+        LIST_PAGE_COPY.next,
+        LIST_PAGE_COPY.pagePosition({ page: 1, pageCount: 1 }),
+        ...FILTERED_LISTS.map((route) => LIST_PAGE_COPY.total(route, 2)),
+    ];
+    const footStrays = [];
+    for (const rel of [...CLIENTS, ...SHARED]) {
+        const text = allText(parseFile(rel).ast).join("\n");
+        for (const word of PAGE_ONLY) if (text.includes(word)) footStrays.push(`${rel}: ${word}`);
+    }
+    check(
+        `no foot string is written into a list or a shared component${footStrays.length ? ` (${footStrays.join("; ")})` : ""}`,
+        footStrays.length,
+        0
+    );
+
+    // ── 8b: one page size, and nothing pins it by value (#326) ──────────────
+    //
+    // EVERY LENGTH BELOW IS DERIVED FROM `LIST_PAGE_SIZE`, which is the whole point of
+    // the constant. Writing 25 into an assertion would make the check a second place to
+    // edit when the design moves the figure, and a check that has to be edited in step
+    // with the thing it checks is not holding anything. The four lists agree by
+    // construction — none of them holds a size, they all reach `pageOfRows` through the
+    // shared hook — so what is asserted here is the RULE that function applies.
+    log("");
+    log("one page size for the four lists, and every length here derives from it:");
+    const row = (i) => ({ id: `r${i}` });
+    const exactlyOne = Array.from({ length: LIST_PAGE_SIZE }, (_, i) => row(i));
+    const twoAndOne = Array.from({ length: LIST_PAGE_SIZE * 2 + 1 }, (_, i) => row(i));
+
+    assert("a page size is declared at all", Number.isInteger(LIST_PAGE_SIZE) && LIST_PAGE_SIZE > 0);
+    check("a full page and no more is one page", pageOfRows(exactlyOne, 1).pageCount, 1);
+    check("  and it holds every row", pageOfRows(exactlyOne, 1).rows.length, LIST_PAGE_SIZE);
+    check("one row past it is two pages", pageOfRows([...exactlyOne, row(99)], 1).pageCount, 2);
+    check("two pages and a row is three", pageOfRows(twoAndOne, 1).pageCount, 3);
+    check("  whose first page is full", pageOfRows(twoAndOne, 1).rows.length, LIST_PAGE_SIZE);
+    // THE LAST PAGE IS SHORT, which is the state a browser pass has to see and the one
+    // an off-by-one in the slice destroys.
+    check("  and whose last is the remainder", pageOfRows(twoAndOne, 3).rows.length, 1);
+    check("  reporting the whole count, not the page's", pageOfRows(twoAndOne, 2).total, twoAndOne.length);
+    check(
+        "  and the second page starts where the first stopped",
+        pageOfRows(twoAndOne, 2).rows[0].id,
+        twoAndOne[LIST_PAGE_SIZE].id
+    );
+
+    // A PAGE PAST THE END IS THE LAST ONE, AND AN UNREADABLE ONE IS THE FIRST.
+    check("a page past the end resolves to the last", pageOfRows(twoAndOne, 99).page, 3);
+    check("  and carries that page's rows", pageOfRows(twoAndOne, 99).rows.length, 1);
+    for (const junk of ["0", "-2", "two", "", null, undefined, "1.5"])
+        check(`  ${JSON.stringify(junk)} resolves to the first`, pageOfRows(twoAndOne, junk).page, 1);
+    check("an empty list is page 1 of 1", pageOfRows([], 3).pageCount, 1);
+    check("  holding nothing", pageOfRows([], 3).rows.length, 0);
+
+    // THE FIRST PAGE WRITES NO PARAMETER, which is #324's convention and what keeps a
+    // bare URL and a cleared one one string. `?page=1` is a third spelling and is
+    // normalized away rather than accepted.
+    log("");
+    log("the page joins the query only when it is not the first:");
+    const idle = emptyFilters("/prs");
+    check("page 1 writes nothing", listQuery("/prs", idle, 1), "");
+    check("  and neither does a junk page", listQuery("/prs", idle, "nonsense"), "");
+    check("page 2 writes the reserved name", listQuery("/prs", idle, 2), `${RESERVED_PARAMS.page}=2`);
+    const withFilter = { ...idle, mine: true };
+    assert(
+        "it goes last, behind the bar's own axes",
+        listQuery("/prs", withFilter, 3) === `${filterQuery("/prs", withFilter)}&${RESERVED_PARAMS.page}=3`
+    );
+    check("and the bar alone is unchanged", listQuery("/prs", withFilter, 1), filterQuery("/prs", withFilter));
+    // THE PAGE IS NOT AN AXIS, and this is where that is held: `parseFilters` has no
+    // options to check it against and `FILTER_PARAMS` must not grow to hold it.
+    assert("`page` is not a filter parameter", !FILTER_PARAMS.includes(RESERVED_PARAMS.page));
+
+    // THE FOOT SAYS BOTH FACTS, AND THE COUNT INFLECTS. `LIST_NOUN` gained a singular
+    // for exactly this; a list holding one row is reachable on every one of the four.
+    log("");
+    log("the foot names the rows and the page, and says one of something correctly:");
+    for (const route of FILTERED_LISTS) {
+        const one = LIST_PAGE_COPY.total(route, 1);
+        const many = LIST_PAGE_COPY.total(route, 2);
+        // THE TEST IS THAT THE TWO NOUNS DIFFER, not that one of them ends in an `s`.
+        // A singular that is just the plural with the number swapped is the mutation
+        // this catches, and an English spelling rule written into a check would be a
+        // second place to be wrong about `deliveries`.
+        assert(`${route} says one of something`, one.startsWith("1 ") && many.startsWith("2 "));
+        assert(`  in a different word from two`, one.slice(2) !== many.slice(2));
+        assert(`  and the plural is the one the empty state uses`, LIST_EMPTY_COPY[route].filtered.includes(many.slice(2)));
+    }
+    check("the position names both numbers", LIST_PAGE_COPY.pagePosition({ page: 2, pageCount: 3 }), "Page 2 of 3");
+
     // ── 9: the four clients agree ───────────────────────────────────────────
     log("");
     log("each list renders the shared bar and holds no mechanism of its own:");
@@ -776,15 +877,32 @@ export function run({ check, assert, log }) {
         // constant straight off the map until the third sentence had to name a term, and
         // a branch written into four JSX files is four places for one rule — so the
         // module composes the sentence and each client asks for it.
-        for (const needed of ["ListFilterBar", "useListFilters", "applyFilters", "emptyStateKind", "showsFilterBar", "emptyStateText"])
+        // `applyFilters` WAS IN THIS LIST UNTIL #326 AND MOVED INTO THE HOOK. Each
+        // client narrowed for itself and then sliced for itself would be two mechanisms
+        // per screen where the point is that there are none: the hook returns the rows
+        // the bar admits AND the page of them this screen draws, so a client that
+        // narrows or slices by hand is the copy growing back. Both are asserted absent
+        // below and `pageOfRows` is asserted present in the shared component instead.
+        for (const needed of ["ListFilterBar", "useListFilters", "emptyStateKind", "showsFilterBar", "emptyStateText"])
             assert(`${rel} uses ${needed}`, source.includes(needed));
+        // RENDERED, NOT MERELY IMPORTED. A mutation that deleted the element left the
+        // import standing and `includes("ListPageFoot")` passed, which is the shape
+        // #224 records: an assertion that shares a path with the thing it checks.
+        assert(`  and renders <ListPageFoot>`, source.includes("<ListPageFoot"));
         // AND NONE OF THEM REACHES PAST IT TO THE RAW COPY, which would be a client
         // rendering the plain sentence where the composed one belongs.
         assert(`  and does not read LIST_EMPTY_COPY directly`, !source.includes("LIST_EMPTY_COPY"));
         // FOUR COPIES OF ONE URL SYNC IS WHAT THIS REPLACED. The hook owns both, so a
-        // client holding either is a copy growing back.
-        for (const banned of ["URLSearchParams", "router.replace", "useSearchParams"])
+        // client holding either is a copy growing back. `applyFilters` and `pageOfRows`
+        // join them in #326 for the same reason.
+        for (const banned of ["URLSearchParams", "router.replace", "useSearchParams", "applyFilters", "pageOfRows"])
             assert(`  and holds no ${banned}`, !source.includes(banned));
+    }
+    // AND THE ONE PLACE THAT DOES BOTH IS THE SHARED HOOK (#326).
+    {
+        const bar = readFileSync(repoPath("app/components/ListFilterBar.js"), "utf8");
+        for (const needed of ["applyFilters", "pageOfRows", "listQuery"])
+            assert(`the shared bar is the one caller of ${needed}`, bar.includes(needed));
     }
     for (const rel of PAGES) {
         const source = readFileSync(repoPath(rel), "utf8");

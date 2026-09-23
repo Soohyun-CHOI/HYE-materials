@@ -356,6 +356,10 @@ async function renderInvoiceListPage({ searchParams }) {
                 rows={rows}
                 options={options}
                 initialFilters={initialFilters}
+                // #326 — the slice the URL asks for. It is not parsed or clamped here:
+                // what it has to be clamped against is how many rows survive the bar,
+                // and the bar narrows in the browser.
+                initialPage={sp?.page}
                 totalCount={allInvoices.length}
             />
         </div>

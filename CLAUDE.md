@@ -16,6 +16,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/pos/**`, `lib/po*.js` | `docs/notes/purchase-orders.md` |
 | `app/prs/**`, `lib/prSigning.js`, `lib/prDraft.js` | `docs/notes/purchase-requests.md` |
 | `app/materials/**`, `lib/material*.js` | `docs/notes/materials.md` |
+| `lib/listFilters.js`, `app/components/ListFilterBar.js` | `docs/notes/deliveries-and-invoices.md` |
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
 | `app/(tools)/**`, `lib/tool*.js` | `docs/notes/tools.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
@@ -120,7 +121,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.
 - `lib/poListView.js` — the PO list's Status text, its empty states, and both strips above it (#176, #295).
-- `lib/listFilters.js` — what the four document lists filter by (#324) and search by (#325), and every word the bar says. **A closed set a list renders is a filter when the document or its item rows hold it, and a strip's subject when it lies along a wait.** **A box searches the names ON THE ROW — the id, a second name the row itself carries, the vendor and the job — never another document's.**
+- `lib/listFilters.js` — what the four document lists filter by (#324), search by (#325) and page by (#326), and every word the bar and the foot say. **`LIST_PAGE_SIZE` is the one place a page size lives and no screen reads it** — the cut is after the gate and after the bar, so the read stays whole. **A closed set a list renders is a filter when the document or its item rows hold it, and a strip's subject when it lies along a wait.** **A box searches the names ON THE ROW — the id, a second name the row itself carries, the vendor and the job — never another document's.**
 - `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, and `PO_DOCUMENTS_COPY`.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/poSend.js` — sending a signed order to the vendor (#281): `PO_SENT_STATUS`, the refusals, and the screen and mail copy. `SIGNED_NOTICE_COPY` (#290) is the mail telling the requester to place it.
