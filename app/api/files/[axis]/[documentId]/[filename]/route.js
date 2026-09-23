@@ -43,14 +43,20 @@ import { getQuotationByQuotationId } from "@/lib/airtable/quotations";
 // out; the largest file anybody has actually put through this app is 493 KB, and the
 // body is piped rather than buffered.
 //
-// `inline` IS LOAD-BEARING, not a preference. The viewer puts this response in a
-// frame, and `attachment` makes a browser save instead of display. What makes a
-// download a download is the viewer's own anchor, which carries `download` and works
-// because this route is same-origin — the very thing #331 records as impossible
-// across origins.
+// `inline` IS LOAD-BEARING, not a preference. Inside the app nothing frames this
+// response any more — since #433 the viewer reads a PDF's bytes and draws the pages
+// itself, and an image element ignores the disposition — but the address is also
+// opened on its own, from a bookmark or a link sent to somebody, and there
+// `attachment` makes a browser save instead of display. What makes a download a
+// download is the viewer's own anchor, which carries `download` and works because
+// this route is same-origin — the very thing #331 records as impossible across
+// origins.
 //
-// NO `Content-Security-Policy: sandbox` AND NO `X-Frame-Options`. Sandbox breaks
-// in-frame document rendering and we frame this ourselves. What shuts the door
+// NO `Content-Security-Policy: sandbox` AND NO `X-Frame-Options`. Sandbox broke the
+// browser's own document rendering when the viewer framed this response (#331), and
+// that rendering is still what displays it when the address is opened on its own —
+// the one place since #433 where the browser draws it rather than the app. What
+// shuts the door
 // instead is the content-type allowlist: an attachment added by hand in Airtable can
 // claim any type, and anything outside the three becomes `application/octet-stream`,
 // which `nosniff` will not let a browser reinterpret as markup.
@@ -175,8 +181,8 @@ export async function GET(request, { params }) {
         if (!entry) return notFound();
 
         const user = await getActiveUser();
-        // A page cannot reach this state — the viewer's frame only exists on a screen
-        // that already rendered with a session — so what lands here is a forwarded
+        // A page cannot reach this state — the viewer only exists on a screen that
+        // already rendered with a session — so what lands here is a forwarded
         // link, and the app's own front door is the useful answer. `requireUser()`
         // cannot be used: `redirect()` is for the page-render pipeline.
         if (!user) {
