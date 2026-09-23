@@ -5,6 +5,7 @@ import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
 import { isPOUnsigned } from "@/lib/poUnsigned";
 import { DIRECT_PURCHASE_COPY } from "@/lib/directPurchase";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { PAGE_WIDE_WHEN_PANE } from "./filePaneLayout";
 import InvoiceForm from "./InvoiceForm";
 
 export const metadata = { title: "New Invoice" };
@@ -70,8 +71,12 @@ async function renderNewInvoicePage({ searchParams } = {}) {
     const sp = (await searchParams) ?? {};
     const recorded = typeof sp.recorded === "string" ? sp.recorded : null;
 
+    // Issue #422 — the second class is the only thing this page knows about the file
+    // pane: the form draws it, and the container widens under it once the viewport is
+    // wide enough to hold both. `filePaneLayout.js` holds that width, the `:has()`
+    // the class carries and why the decision reaches the container this way.
     return (
-        <div className="mx-auto w-full max-w-2xl p-8">
+        <div className={`mx-auto w-full max-w-2xl p-8 ${PAGE_WIDE_WHEN_PANE}`}>
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">New Invoice</h1>
                 <Link href="/invoices" className="text-sm underline">

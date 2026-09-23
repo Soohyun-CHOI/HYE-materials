@@ -126,6 +126,34 @@ while saving. It is disabled in every state but the last.
 centered line, `Not authorized. This page is Admin-only.`, and nothing on it
 suggests what would otherwise be here.
 
+**When a file is attached and the viewport is at least 1280px wide, the file
+itself is drawn to the left of the form,** in a column that stays in place as the
+form is scrolled — the document on the left and the transcription of it on the
+right, in that reading order. **The form is still reached first from the
+keyboard**, because the pane holds nothing to fill in and a PDF frame is several
+focusable controls rather than one. It is the same rendering the file viewer uses
+everywhere else —
+an image for a photograph, a frame for a PDF, and under a PDF the app's standing
+sentence about a browser that cannot show one. **It has no controls of its own:**
+no title, no download, nothing to close. The form is the whole of what a reader
+does here, and the pane is the document they are copying from.
+
+**It is under both tabs**, because the tab only reorders the four blocks. So
+`Manual Entry`, which puts the file last, shows the pane once the form is already
+filled in — which is a consequence of there being one rule rather than a case that
+was designed for.
+
+**Below that width nothing about this screen changes** — one column, no pane, and
+the form is the same width on both sides of that boundary. **And with no file
+attached the page does not widen either**, so the two-column shape exists only
+while there is a document for the second column. A design should read the width as
+a property of the pane rather than of the screen.
+
+**The pane is absent for a file the app will not draw** — a type outside PDF, JPEG
+and PNG, which the file control does not offer but a reader can still arrive with.
+The viewer says a sentence in that case and the pane says nothing, the difference
+being that the viewer was opened on purpose.
+
 **When a file is attached, the app tries to read the order numbers off it.**
 Detection runs on any upload and is best-effort, so it always produces a message,
 and the message has several distinct voices at two levels — informational, or a
@@ -345,6 +373,13 @@ marks cannot disagree about what counts as still open.
 **One slot, one order is the picker's rule** and it is also what makes the invoice
 detail's `Purchase Orders` list unambiguous. A design that allowed one order in two
 slots would make that list meaningless.
+
+**The pane draws the file the same way the viewer does**, and that is one
+component rather than two descriptions of one rule. What it does not share is the
+viewer's chrome: the viewer names the file and offers to save it because it is an
+overlay somebody opened, and the pane is beside the form for as long as the file
+is attached. A redesign that gives the pane a header is adding a second thing that
+names the file — the file section already does, just to its left.
 
 **A file is required, as the packing list photo is on the delivery form.** In both
 cases the document is what makes the record a record. **The direct purchase takes

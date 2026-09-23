@@ -268,6 +268,15 @@ picked in the current session and not yet saved, on `/prs/new`, `/invoices/new` 
 Edit and continue — there is no record to open, so those keep a plain link out, and
 `/prs/new`'s brief says how the two read differently side by side.
 
+**Since #422 one of those three also draws the file where it stands**, and the two
+facts do not contradict each other. `/invoices/new` shows the attached invoice
+beside the form at a wide enough viewport, because every field on that form is
+copied off that document; the link stays what it was, and the drawing is not a
+viewer — no title, no download, nothing to close, since nothing was opened. What
+carries over is the rendering itself, which is one component for every file this
+app shows. A design may put a document beside a form elsewhere on the same terms;
+what it may not do is make a second thing that looks like the viewer.
+
 **And a file link does not go stale, which removes a caution a design might
 otherwise have drawn.** The viewer asks this app for the file and this app re-reads
 the record on every request, so a page held open overnight, a bookmark and a link

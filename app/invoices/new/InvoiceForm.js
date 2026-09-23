@@ -1,12 +1,18 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useActionState } from "react";
 import { upload } from "@vercel/blob/client";
 import { refuseOversizeUpload } from "@/lib/uploadLimit";
 import { createInvoiceAction, createDirectPurchaseAction } from "./actions";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
+// Issue #422 — the document this form transcribes, drawn beside it. The component is
+// the one the file viewer uses, so a file is framed one way in this app; the classes
+// are `./filePaneLayout.js`, which holds the breakpoint on its own.
+import FileFrame from "@/app/components/FileFrame";
+import { FILE_AXIS, FILE_RENDER, fileRenderKind, fileViewerTitle } from "@/lib/fileLinks";
+import { FILE_PANE, FILE_PANE_MARK, FORM_COLUMN, FORM_COLUMNS } from "./filePaneLayout";
 // Issue #198 — pure and import-free, so a client component may hold it; the judgment
 // itself already ran on the server and every PO here carries its answer as `unsigned`.
 import { UNSIGNED_COPY, poOptionLabel } from "@/lib/poUnsigned";
@@ -235,6 +241,13 @@ export default function InvoiceForm({ vendors, pos }) {
     // proceed without one. Same client-side direct-upload pattern as
     // Quotations otherwise: uploads the moment it's picked (background),
     // never blocks on Server Action body-size limits.
+    //
+    // Issue #422 — `previewUrl` and `contentType` ride ON this object rather than
+    // beside it, so the pane and the lines under the file input cannot come to
+    // describe two different files. Every path that replaces this state carries both
+    // forward or drops both: an upload that fails keeps the pane, because the file is
+    // fine and the retry is to pick it again, and a file refused for its size leaves
+    // no pane, because the form is then holding nothing it could attach.
     const [invoiceFile, setInvoiceFile] = useState({ status: "idle" });
     // Replaces window.confirm() — { proceed, subject } | null. Set by
     // confirmIfDirty when items has actually diverged from its auto-
@@ -322,6 +335,21 @@ export default function InvoiceForm({ vendors, pos }) {
     // replacing the old itemName/qty/unitPrice truthiness check, which
     // couldn't tell an auto-filled value from a typed one.
     const autoInsertedItemsRef = useRef(JSON.stringify([{ ...EMPTY_ITEM }]));
+    // Issue #422 — the object URL the pane is currently drawing, held for its own
+    // revocation. A ref rather than the state above, because the two things that
+    // release it cannot read that state: the catch below runs before its own setState
+    // has landed, and the unmount effect closes over the first render's copy.
+    const previewUrlRef = useRef(null);
+
+    // Issue #422 — one object URL at a time, and none after this form is gone. Every
+    // replacement revokes in handleInvoiceFileChange, so what is left for unmount is
+    // the last one; the effect takes no dependencies deliberately, since a preview
+    // that survives to the end of the form is exactly what it is for.
+    useEffect(() => {
+        return () => {
+            if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+        };
+    }, []);
 
     // Issue #272 — the jobs are fetched the first time the modal opens and kept
     // for the rest of the session: the list is small, it does not change while a
@@ -346,18 +374,41 @@ export default function InvoiceForm({ vendors, pos }) {
         const file = e.target.files?.[0];
         if (!file) return;
 
+        // Issue #422 — the file this one replaces is not on the screen any more, so
+        // its address is released here rather than waiting for the document to go.
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = null;
         setInvoiceFile({ status: "uploading", filename: file.name });
         setPoDetection(null);
         try {
             refuseOversizeUpload(file);
+            // Issue #422 — AFTER the guard and before the upload. After, because a
+            // file refused for its size is not going to be attached and must not be
+            // drawn; before, because the pane is what the reader types from and
+            // waiting for the round trip would withhold it for the second the upload
+            // takes. Both setState calls are in one synchronous tick, so the state
+            // set above never reaches a render without this.
+            const previewUrl = URL.createObjectURL(file);
+            previewUrlRef.current = previewUrl;
+            const preview = { previewUrl, contentType: file.type };
+            setInvoiceFile({ status: "uploading", filename: file.name, ...preview });
             const blob = await upload(file.name, file, {
                 access: "public",
                 handleUploadUrl: "/api/invoices/upload",
             });
-            setInvoiceFile({ status: "done", url: blob.url, filename: file.name });
+            setInvoiceFile({ status: "done", url: blob.url, filename: file.name, ...preview });
             await detectAndApplyPOs(blob.url);
         } catch (err) {
-            setInvoiceFile({ status: "error", filename: file.name, error: err.message });
+            // The pane survives a failed upload and not a refused file, which is the
+            // same split `previewUrlRef` already holds: it is null when the guard
+            // threw and set when the network did.
+            setInvoiceFile({
+                status: "error",
+                filename: file.name,
+                error: err.message,
+                previewUrl: previewUrlRef.current,
+                contentType: file.type,
+            });
         }
     }
 
@@ -1382,6 +1433,46 @@ export default function InvoiceForm({ vendors, pos }) {
         );
     }
 
+    /**
+     * Issue #422 — the vendor's document, beside the form that transcribes it.
+     *
+     * IT IS NOT DRAWN FROM THE UPLOADED COPY. The file is at a Blob URL by the time
+     * this renders, and the pane still draws the reader's own bytes: an object URL
+     * costs no request at all, it is ready before the upload finishes, and it is
+     * gone with the document rather than being an address that exists. `/api/files`
+     * is not an option either way — it re-reads a record per request and there is no
+     * invoice record until this form is submitted.
+     *
+     * TO THE LEFT OF THE FORM, AND LAST IN THE DOCUMENT. `filePaneLayout.js` carries
+     * why those two are not the same order.
+     *
+     * UNDER BOTH TABS, and that follows from what a tab is here rather than from a
+     * separate decision: the tab changes the ORDER of the four blocks and nothing
+     * else, which `docs/briefs/invoices-new.md` calls the outermost structure of the
+     * screen. A pane that came and went with the tab would make the tab mean more
+     * than order, and it would take the document away mid-transcription from anyone
+     * who switched. A file attached last on `Manual Entry` gets the pane it has less
+     * use for, which is the cost of there being one rule.
+     *
+     * NOTHING IS DRAWN FOR A FILE THAT CANNOT BE FRAMED, where the viewer says a
+     * sentence. The viewer was opened on purpose and may not open empty; the pane
+     * was opened by nobody, so it owes nothing — and `notViewable` alone in a column
+     * half the screen wide would be an answer to a question the reader did not ask.
+     */
+    function renderFilePane() {
+        const kind = fileRenderKind(invoiceFile.contentType);
+        if (!invoiceFile.previewUrl || kind === FILE_RENDER.unknown) return null;
+        return (
+            <aside {...FILE_PANE_MARK} className={FILE_PANE}>
+                <FileFrame
+                    href={invoiceFile.previewUrl}
+                    kind={kind}
+                    title={fileViewerTitle({ axis: FILE_AXIS.invoice, filename: invoiceFile.filename })}
+                />
+            </aside>
+        );
+    }
+
     function renderItemsSection() {
         // Issue #99 — locked (visible but faded/disabled, not hidden — so
         // the shape of the invoice is visible right away) until a PO is
@@ -1872,9 +1963,14 @@ export default function InvoiceForm({ vendors, pos }) {
         );
     }
 
+    // Issue #422 — the two columns exist only while there is a document for the
+    // second one, and `filePaneLayout.js` says why they may not be unconditional.
+    const filePane = renderFilePane();
+
     return (
         <>
-        <form action={formAction} className="mt-6 space-y-8">
+        <div className={filePane ? FORM_COLUMNS : undefined}>
+        <form action={formAction} className={`mt-6 space-y-8 ${FORM_COLUMN}`}>
             {state?.error && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
                     {state.error}
@@ -1942,6 +2038,8 @@ export default function InvoiceForm({ vendors, pos }) {
                             : "Create Invoice"}
             </button>
         </form>
+        {filePane}
+        </div>
 
         {dpOpen && renderDirectPurchaseModal()}
 
