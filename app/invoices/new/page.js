@@ -5,6 +5,7 @@ import { getOpenPOs } from "@/lib/airtable/purchaseOrders";
 import { isPOUnsigned } from "@/lib/poUnsigned";
 import { DIRECT_PURCHASE_COPY } from "@/lib/directPurchase";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { PAGE_WIDE } from "./filePane";
 import InvoiceForm from "./InvoiceForm";
 
 export const metadata = { title: "New Invoice" };
@@ -70,8 +71,11 @@ async function renderNewInvoicePage({ searchParams } = {}) {
     const sp = (await searchParams) ?? {};
     const recorded = typeof sp.recorded === "string" ? sp.recorded : null;
 
+    // Issue #422 — the second class is the only thing this page knows about the file
+    // pane: the form draws that column and this widens the page enough to hold it
+    // once the viewport is. `filePane.js` holds the width and what decided it.
     return (
-        <div className="mx-auto w-full max-w-2xl p-8">
+        <div className={`mx-auto w-full max-w-2xl p-8 ${PAGE_WIDE}`}>
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-semibold">New Invoice</h1>
                 <Link href="/invoices" className="text-sm underline">

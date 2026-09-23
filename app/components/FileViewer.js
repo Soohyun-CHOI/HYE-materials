@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
+import FileFrame from "@/app/components/FileFrame";
 import {
-    FILE_RENDER,
     FILE_VIEWER_COPY,
     fileHref,
     fileRenderKind,
@@ -122,48 +122,6 @@ export default function FileViewer({ axis, documentId, filename, contentType, ch
                     </div>
                 </div>
             )}
-        </>
-    );
-}
-
-/**
- * The file itself, or the sentence that stands in for it.
- *
- * An image element for a photo, a frame for a document, and neither for a type the
- * route will not serve as itself — that last one becomes `application/octet-stream`
- * upstream, so a frame would offer a download dialog inside an overlay that already
- * has the control.
- */
-function FileFrame({ href, kind, title }) {
-    const [failed, setFailed] = useState(false);
-
-    if (kind === FILE_RENDER.unknown) {
-        return <p className="mt-4 text-sm text-zinc-600">{FILE_VIEWER_COPY.notViewable}</p>;
-    }
-
-    if (kind === FILE_RENDER.image) {
-        if (failed) {
-            return <p className="mt-4 text-sm text-red-700">{FILE_VIEWER_COPY.imageFailed}</p>;
-        }
-        return (
-            <div className="mt-4 min-h-0 flex-1 overflow-auto">
-                {/* eslint-disable-next-line @next/next/no-img-element -- the route
-                    streams a gated attachment and re-reads the record per request, so
-                    there is nothing for the image optimizer to cache or resize. */}
-                <img
-                    src={href}
-                    alt={title}
-                    onError={() => setFailed(true)}
-                    className="mx-auto max-w-full"
-                />
-            </div>
-        );
-    }
-
-    return (
-        <>
-            <iframe src={href} title={title} className="mt-4 min-h-0 w-full flex-1 border-0" />
-            <p className="mt-2 text-xs text-zinc-500">{FILE_VIEWER_COPY.documentHint}</p>
         </>
     );
 }

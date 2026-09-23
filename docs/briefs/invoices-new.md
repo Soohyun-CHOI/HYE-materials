@@ -42,7 +42,28 @@ generates its own ID separately.
 **action — `Invoice File`,** its own section. Required: the submit button cannot
 be pressed without it, and says so — see below. A line under the heading says why:
 `The vendor's original invoice document — required, every received invoice is kept
-on file.`
+on file.` The section states what happened to the file — see the upload states
+below — and, **below 1280px, holds the control that picks it.**
+
+**action — the file's own column, from 1280px up.** A box down the left of the
+screen, the height of the viewport, that stays in place as the form is scrolled,
+with the file control under it. **The box is where the file is attached and where
+it is then drawn**, at the same size in both states: empty it says
+`Drop the invoice file here, or click to choose one.` and takes a file dropped on
+it or opens the file dialog when clicked; with a file it holds the document
+itself. So the reader is shown where the document will go rather than told, and
+the page does not rearrange itself when they attach one. At that width the
+`Invoice File` section keeps its heading, its line and its states, and does not
+carry the control.
+
+**The column is drawn before there is a file, and a design may not make it
+conditional.** It is the file's control, not a preview of one — an empty state is
+the normal state of a control. What is conditional is what the box holds.
+
+**The form is still what the keyboard reaches first.** The document is to the left
+and the form to the right, which is the reading order; the focus order is the
+other way round, because the pane holds one control and a document while the form
+is the work.
 
 **action — one or more order slots.** Each slot is labeled `PO` and holds one
 order, chosen from a dropdown. A `+ Add another PO` control appends a slot; each
@@ -125,6 +146,39 @@ while saving. It is disabled in every state but the last.
 **When the reader is not an Admin:** the form does not exist. The page is one
 centered line, `Not authorized. This page is Admin-only.`, and nothing on it
 suggests what would otherwise be here.
+
+**When the box holds a file, it is drawn the way the file viewer draws one** — an
+image for a photograph, a frame for a PDF, and under a PDF the app's standing
+sentence about a browser that cannot show one. **The box has no chrome of its
+own:** no title, no download, nothing to close. **The empty box, the PDF and the
+image are one rect**, and a design may not let them differ: the line under a PDF
+that carries that sentence is part of the column in every state, left blank until
+there is a document to put under it, so the document is drawn exactly where the
+box was and at exactly its size.
+
+**While a file is dragged over it**, the box says so — currently a darker border
+and a tint, and nothing else changes.
+
+**A file the app will not draw leaves the box as it was**, prompt and all: a type
+outside PDF, JPEG and PNG, which the control does not offer but a reader can still
+arrive with. The viewer says `This file cannot be shown here` in that case and the
+box says nothing, because here the box is a control before it is a picture and the
+section opposite already names the file that is attached.
+
+**Once the box holds a document it stops taking drops**, and the control under it
+is what replaces the file. A frame is another document, so a file dropped on it
+goes to the browser rather than to this form and nothing in the app can intercept
+it. The control is under the box in every state, which is one of the two things
+that keep the box one size; the blank line above it is the other.
+
+**Below 1280px the column is not drawn at all** — one column, the control back in
+the `Invoice File` section, and the form the same width as above the boundary.
+Nothing else about the screen changes.
+
+**All of it is under both tabs**, because the tab only reorders the four blocks.
+So `Manual Entry`, which puts the `Invoice File` section last, still has the box
+from the first paint — the section's position and the column's are two different
+things.
 
 **When a file is attached, the app tries to read the order numbers off it.**
 Detection runs on any upload and is best-effort, so it always produces a message,
@@ -345,6 +399,13 @@ marks cannot disagree about what counts as still open.
 **One slot, one order is the picker's rule** and it is also what makes the invoice
 detail's `Purchase Orders` list unambiguous. A design that allowed one order in two
 slots would make that list meaningless.
+
+**The pane draws the file the same way the viewer does**, and that is one
+component rather than two descriptions of one rule. What it does not share is the
+viewer's chrome: the viewer names the file and offers to save it because it is an
+overlay somebody opened, and the pane is beside the form for as long as the file
+is attached. A redesign that gives the pane a header is adding a second thing that
+names the file — the file section already does, just to its left.
 
 **A file is required, as the packing list photo is on the delivery form.** In both
 cases the document is what makes the record a record. **The direct purchase takes

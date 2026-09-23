@@ -65,8 +65,8 @@ chunks, so a concatenated sentence counts more than once.
 | `ROLLBACK_COPY` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 15 |
 | `RESTORE` | `lib/rollbackReport.js` | `rollbackMessage` | `/prs/[prId]` | 8 |
 | `UPLOAD_LIMIT_COPY` | `lib/uploadLimit.js` | `refuseOversizeUpload`, `uploadLimitRefusal` | `/prs/new`, `/prs/[prId]`, `/invoices/new`, `/deliveries/new`, `/deliveries/[deliveryId]/edit` | 3 |
-| `FILE_AXIS_LABEL` | `lib/fileLinks.js` | `fileViewerTitle`, and `FileViewer` given an axis token | `/prs/[prId]`, `/pos/[poId]`, `/invoices/[invoiceId]`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/prs`, `/prs/new` | 5 |
-| `FILE_VIEWER_COPY` | `lib/fileLinks.js` | `FileViewer` | the same seven | 5 |
+| `FILE_AXIS_LABEL` | `lib/fileLinks.js` | `fileViewerTitle`, and `FileViewer` given an axis token | `/prs/[prId]`, `/pos/[poId]`, `/invoices/[invoiceId]`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/prs`, `/prs/new`, `/invoices/new` | 5 |
+| `FILE_VIEWER_COPY` | `lib/fileLinks.js` | `FileFrame`, in `FileViewer` and in the file pane | the same eight | 5 |
 
 **#331's two rows are the first in this group reached through a COMPONENT rather
 than a function, and the shape is the same one level up.** A screen renders
@@ -77,6 +77,12 @@ function. The screen called a component, and reading the words means entering
 somebody else's body and deciding which member an axis token reaches. It also
 reaches more screens than any other row, #146's included, for the same reason that
 one does: one shared thing, drawn everywhere.
+
+**#422 added the eighth screen and the second component, which is the same shape
+one level deeper.** `/invoices/new` draws the attached invoice beside the form
+through `FileFrame`, which the viewer now shares rather than owns, so the sentence
+under a document reaches a screen that renders neither the viewer nor the
+constant. The count is unchanged: the pane says what the frame already said.
 
 **#146's entry reaches more screens than any other row and is the smallest**, which
 is the pairing to notice. One sentence in three template pieces is shown on five

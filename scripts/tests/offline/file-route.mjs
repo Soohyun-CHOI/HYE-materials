@@ -53,6 +53,11 @@ export const title = "One route serves every uploaded file, per record (#331)";
 
 const ROUTE = "app/api/files/[axis]/[documentId]/[filename]/route.js";
 const VIEWER = "app/components/FileViewer.js";
+// #422 — the frame moved out of the viewer when a second surface began drawing a
+// file, so the sentence that stands in for a signal nothing can get moved with it.
+// Asserted in its new home AND as something the viewer still renders: either half
+// alone passes while the reader sees no file and is told nothing about it.
+const FRAME = "app/components/FileFrame.js";
 const LINKS = "lib/fileLinks.js";
 
 /**
@@ -371,7 +376,8 @@ export function run({ check, assert, log }) {
     // the card and it": the copy is referenced once, unguarded.
     const viewerImports = importedNames(viewerAst);
     if (!assert("the viewer renders the shared download copy", viewerImports.has("FILE_VIEWER_COPY"))) fail();
-    if (!assert("  and the hint that stands in for a signal it cannot get", /documentHint/.test(viewerSrc))) fail();
+    if (!assert("  and puts the file in the shared frame", viewerImports.has("FileFrame"))) fail();
+    if (!assert("  which carries the hint that stands in for a signal it cannot get", /documentHint/.test(readRel(FRAME)))) fail();
 
     // --- 6: the pure helpers do what the route and the viewer assume -------
     log("");
