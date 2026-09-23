@@ -43,8 +43,8 @@ export async function generateMetadata({ params }) {
  * which is what makes this different in kind from every other detail screen here.
  *
  * IT REDIRECTS A NON-CANONICAL ID, and the reason is the second way in: the label
- * prints the id in readable characters beside the QR code, for a symbol that has
- * been scratched or painted over, so somebody types it by hand. The lookup is
+ * prints the tool item's code in readable characters under the QR code, for a
+ * symbol that has been scratched or painted over, so somebody types it by hand. The lookup is
  * case-insensitive for that, and this redirect is what stops the concession from
  * turning one printed address into several. `permanentRedirect` rather than
  * `redirect`, because the mapping is stable forever: a `Tool Item ID` is minted

@@ -20,6 +20,12 @@
 // is read off the AST — because a count pinned to the correct number passes every
 // figure in this file, measured.
 //
+// AND #431 ADDED THREE FACTS NO FIGURE CAN SEE. Which side the module is read from,
+// which way the two pieces stack and what face the code prints in are all source:
+// the two sides leave the symbol the same room, a label drawn upside down adds up to
+// the same sums, and a face is a name rather than a number. So they are read off
+// the AST and the stylesheet, each beside a planted counterexample.
+//
 // AND THE MODULE SIZE IS DERIVED, NOT CHOSEN, so what is checked is the derivation
 // and its floor. `MIN_MODULE_MM` is a citation rather than a measurement — nothing
 // here printed anything — and holding the derived module above it is what turns
@@ -45,10 +51,11 @@ import {
     LABEL_GAP_MM,
     LABEL_GRID,
     LABEL_SAFE_INSET_MM,
+    LABEL_CODE_TYPEFACE,
     LABEL_STOCK,
     LABEL_STOCK_NAME,
     MAX_LABELS_PER_REQUEST,
-    MIN_ID_FONT_MM,
+    MIN_ID_FONT_PT,
     MIN_MODULE_MM,
     TOOL_LABEL_SHEET_COPY as COPY,
     VERSION_HEADROOM,
@@ -60,7 +67,16 @@ import {
     readStartPosition,
     symbolBox,
 } from "../../../lib/toolLabelSheet.js";
-import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
+import {
+    listJsFiles,
+    parseFile,
+    parseSource,
+    repoPath,
+    resolveFunction,
+    toPosix,
+    walk,
+    REPO_ROOT,
+} from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The sheet a tool label is printed on, by value (#353)";
@@ -71,6 +87,64 @@ const SIDE_MODULES_TODAY = 33;
 /** The route's two files, which several sections below read off the AST. */
 const SHEET_SOURCE = "app/(tools)/tool-items/labels/LabelSheet.js";
 const PAGE_SOURCE = "app/(tools)/tool-items/labels/page.js";
+const CSS_SOURCE = "app/(tools)/tool-items/labels/labels.css";
+const MODULE_SOURCE = "lib/toolLabelSheet.js";
+
+/** `LABEL_STOCK.labelWidthMm` for a member read, the bare name for an identifier. */
+function readName(node) {
+    if (node.type === "Identifier") return node.name;
+    if (node.type === "MemberExpression" && !node.computed)
+        return `${readName(node.object)}.${node.property.name}`;
+    return node.type;
+}
+
+/** The `LABEL_STOCK` members a function reads, in source order. */
+function stockMembersRead(fn) {
+    const found = [];
+    walk(fn, (n) => {
+        if (n.type === "MemberExpression" && n.object.type === "Identifier" && n.object.name === "LABEL_STOCK")
+            found.push(n.property.name);
+    });
+    return found;
+}
+
+/** Every name a function reads, members spelled out. */
+function namesRead(fn) {
+    const found = new Set();
+    walk(fn, (n) => {
+        if (n.type === "MemberExpression" || n.type === "Identifier") found.add(readName(n));
+    });
+    return found;
+}
+
+/** A JSX element's `className` when it is a literal, else null. */
+function literalClass(element) {
+    const attr = element.openingElement?.attributes?.find(
+        (a) => a.type === "JSXAttribute" && a.name?.name === "className"
+    );
+    return attr?.value?.type === "Literal" ? String(attr.value.value) : null;
+}
+
+/** The first element in a tree carrying this literal class. */
+function elementWithClass(ast, className) {
+    let found = null;
+    walk(ast, (n) => {
+        if (!found && n.type === "JSXElement" && literalClass(n) === className) found = n;
+    });
+    return found;
+}
+
+/** The body of one rule in a stylesheet, comments stripped, or null. */
+function cssRule(css, selector) {
+    const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return bare.match(new RegExp(`(?:^|[\\s}])${escaped}\\s*\\{([^}]*)\\}`))?.[1] ?? null;
+}
+
+/** One declaration's value inside a rule body, or null. */
+function cssValue(body, property) {
+    return body?.match(new RegExp(`(?:^|;|\\s)${property}\\s*:\\s*([^;]+?)\\s*(?:;|$)`))?.[1] ?? null;
+}
 
 export function run({ check, assert, log }) {
     // ── 1: the stock, and the grid derived from it ───────────────────────────
@@ -79,15 +153,15 @@ export function run({ check, assert, log }) {
     check("page width", LABEL_STOCK.pageWidthMm, 215.9);
     check("page height", LABEL_STOCK.pageHeightMm, 279.4);
     check("the margin a printer cannot reach into", LABEL_STOCK.marginMm, 10);
-    check("label width", LABEL_STOCK.labelWidthMm, 30.3);
-    check("label height", LABEL_STOCK.labelHeightMm, 16.8);
+    check("label width", LABEL_STOCK.labelWidthMm, 16.8);
+    check("label height", LABEL_STOCK.labelHeightMm, 20.42);
     check("the gap between columns", LABEL_STOCK.columnGapMm, 2);
     check("and between rows", LABEL_STOCK.rowGapMm, 2);
-    check("labels a sheet holds", CELLS_PER_SHEET, 78);
-    check("  six across", LABEL_GRID.columns, 6);
-    check("  and thirteen down", LABEL_GRID.rows, 13);
-    check("the column pitch", LABEL_GRID.columnPitchMm, 32.3);
-    check("and the row pitch", LABEL_GRID.rowPitchMm, 18.8);
+    check("labels a sheet holds", CELLS_PER_SHEET, 110);
+    check("  ten across", LABEL_GRID.columns, 10);
+    check("  and eleven down", LABEL_GRID.rows, 11);
+    check("the column pitch", LABEL_GRID.columnPitchMm, 18.8);
+    check("and the row pitch", LABEL_GRID.rowPitchMm, 22.42);
 
     // THE SECOND PATH IS MAXIMALITY NOW, AND IT IS A BETTER ONE THAN THE SUM IT
     // REPLACED. #353 added a product's margins and pitches back up and required the
@@ -101,22 +175,22 @@ export function run({ check, assert, log }) {
     const farBottom =
         LABEL_STOCK.pageHeightMm -
         (LABEL_STOCK.marginMm + (LABEL_GRID.rows - 1) * LABEL_GRID.rowPitchMm + LABEL_STOCK.labelHeightMm);
-    check("what is left to the right of the last column", round4(farRight), 14.1);
-    check("and below the last row", round4(farBottom), 27);
+    check("what is left to the right of the last column", round4(farRight), 19.9);
+    check("and below the last row", round4(farBottom), 24.78);
     assert("  both clear the margin", farRight >= LABEL_STOCK.marginMm && farBottom >= LABEL_STOCK.marginMm);
     // ANTI-VACUITY, AND THE HALF THAT MATTERS: a count that is merely on the page is
     // satisfied by any number below the maximum, so the check has to see the next
-    // one fail. One more row would leave 8.2 mm, which is under the margin — the
-    // figure is pinned so a changed margin moves this assertion rather than
-    // silently keeping it true.
+    // one fail. One more column would leave 1.1 mm and one more row 2.36, both under
+    // the margin — the figures are pinned so a changed margin moves this assertion
+    // rather than silently keeping it true.
     const oneMoreRight =
         LABEL_STOCK.pageWidthMm -
         (LABEL_STOCK.marginMm + LABEL_GRID.columns * LABEL_GRID.columnPitchMm + LABEL_STOCK.labelWidthMm);
     const oneMoreBottom =
         LABEL_STOCK.pageHeightMm -
         (LABEL_STOCK.marginMm + LABEL_GRID.rows * LABEL_GRID.rowPitchMm + LABEL_STOCK.labelHeightMm);
-    check("a seventh column would overrun the paper by", round4(oneMoreRight), -18.2);
-    check("and a fourteenth row would leave only", round4(oneMoreBottom), 8.2);
+    check("an eleventh column would leave only", round4(oneMoreRight), 1.1);
+    check("and a twelfth row only", round4(oneMoreBottom), 2.36);
     assert(
         "  so neither fits and the grid is maximal",
         oneMoreRight < LABEL_STOCK.marginMm && oneMoreBottom < LABEL_STOCK.marginMm
@@ -175,26 +249,55 @@ export function run({ check, assert, log }) {
     // the smallest that does. A stock typed a hundredth small fails here.
     const required = labelSizeMm({ sideModules: SIDE_MODULES_TODAY });
     check("the widest symbol the headroom admits", required.widestSymbolMm, 14.8);
-    check("the label height that needs", required.heightMm, 16.8);
-    check("and the width, once the code sits beside it", required.widthMm, 30.3);
-    check("the stock's own height", LABEL_STOCK.labelHeightMm, required.heightMm);
-    check("and its own width", LABEL_STOCK.labelWidthMm, required.widthMm);
+    check("the label width that needs, the symbol's alone", required.widthMm, 16.8);
+    check("and the height, once one em of code sits under it", required.heightMm, 20.42);
+    check("the stock's own width", LABEL_STOCK.labelWidthMm, required.widthMm);
+    check("and its own height", LABEL_STOCK.labelHeightMm, required.heightMm);
     // ANTI-VACUITY: the derivation is shown MOVING with its inputs, so the equality
     // above is a fact about this label rather than about a function that returns
     // whatever the stock says.
     const roomier = labelSizeMm({ sideModules: SIDE_MODULES_TODAY, versionsOfHeadroom: 2 });
-    check("a second version of headroom would need", roomier.heightMm, 18.4);
-    assert("  which this stock does not carry", roomier.heightMm > LABEL_STOCK.labelHeightMm);
+    check("a second version of headroom would need a label this wide", roomier.widthMm, 18.4);
+    check("  and this tall", roomier.heightMm, 22.02);
+    assert("  which this stock does not carry", roomier.widthMm > LABEL_STOCK.labelWidthMm);
 
     // WHAT IT REPLACED, STATED SO THE SIZE IS READABLE AS A CHANGE. #353's label was
-    // a product's; this one is the symbol's.
-    assert("the label is narrower than the one it replaces", LABEL_STOCK.labelWidthMm < 66.675);
+    // a product's; #412's was the symbol's with the code beside it; this one is the
+    // symbol's with the code under it (#431). The narrow side did not move — the
+    // symbol sets it either way — and the long side is what stacking bought.
+    assert("the label is narrower than the product it replaces", LABEL_STOCK.labelWidthMm < 66.675);
     assert("  and shorter", LABEL_STOCK.labelHeightMm < 25.4);
-    assert("  so a sheet holds more of them", CELLS_PER_SHEET > 30);
+    check("the narrow side is the one side by side had", Math.min(LABEL_STOCK.labelWidthMm, LABEL_STOCK.labelHeightMm), 16.8);
+    assert("  and the long side is shorter than side by side's 30.3 mm", Math.max(LABEL_STOCK.labelWidthMm, LABEL_STOCK.labelHeightMm) < 30.3);
+    assert("  so a sheet holds more than side by side's 78", CELLS_PER_SHEET > 78);
+
+    // ── 1c: the module is read off the width (#431) ─────────────────────────
+    log("");
+    log("the side the module size is read from:");
+    // READ OFF THE AST, BECAUSE NO FIGURE CAN TELL THE TWO SIDES APART. Stacked, the
+    // width leaves the widest symbol 14.8 mm and the height, after the gap and the
+    // code, 14.8033 — and both floor to the same 0.4 mm module. So a `moduleSizeMm`
+    // reading the height's room passes every value in this file, and the only thing
+    // that can see which side it reads is its source.
+    const moduleReads = stockMembersRead(resolveFunction(parseFile(MODULE_SOURCE).ast, "moduleSizeMm"));
+    check("moduleSizeMm reads the label's width and no other side", moduleReads.join(", "), "labelWidthMm");
+    // ANTI-VACUITY: the reader is shown a function that reads the other side, so the
+    // answer above is a fact about the module rather than a reader that always says
+    // width.
+    const plantedModule = stockMembersRead(
+        resolveFunction(
+            parseSource(
+                "function moduleSizeMm() { return (LABEL_STOCK.labelHeightMm - 2 - LABEL_GAP_MM) / 37; }\n",
+                "<planted-module>"
+            ).ast,
+            "moduleSizeMm"
+        )
+    );
+    check("  a function reading the height reads as the height", plantedModule.join(", "), "labelHeightMm");
 
     // ── 2: the module size, derived and floored ─────────────────────────────
     log("");
-    log("millimeters per module, derived from the label's height:");
+    log("millimeters per module, derived from the label's width:");
     const moduleMm = moduleSizeMm({ sideModules: SIDE_MODULES_TODAY });
     check(`${SIDE_MODULES_TODAY} modules today, ${VERSION_HEADROOM} version of headroom`, VERSION_HEADROOM, 1);
     check("the derived module", moduleMm, 0.4);
@@ -208,27 +311,32 @@ export function run({ check, assert, log }) {
     const budget = labelBudget({ sideModules: SIDE_MODULES_TODAY });
     check("today's symbol box", budget.symbolMm, 13.2);
     check("the widest it absorbs", budget.widestSymbolMm, 14.8);
-    check("what a label may print inside, tall", budget.usableHeightMm, 14.8);
-    check("and wide", budget.usableWidthMm, 28.3);
+    check("what a label may print inside, wide", budget.usableWidthMm, 14.8);
+    check("and tall", budget.usableHeightMm, 18.42);
 
     // THE FIT, WHICH IS THE ONE CLAIM NO LAYOUT CAN OVERRIDE. If the widest symbol
     // and the code's floor do not fit inside one label, the two must overlap however
     // they are drawn — and ink inside the quiet zone is what #351 asked this issue
-    // not to produce.
-    assert("the widest symbol fits the label's height", budget.widestSymbolMm <= budget.usableHeightMm);
-    check("what is left beside it for text", budget.textWidthMm, 12);
-    check("what the printed code needs at its floor", budget.minIdWidthMm, 12);
-    assert("  so it fits beside the widest symbol", budget.minIdWidthMm <= budget.textWidthMm);
-    // BOTH OF THOSE ARE EQUALITIES NOW, AND THAT IS WHAT THIS ISSUE IS. #411 handed
-    // over 24.81 mm of unclaimed width and 0.03 mm of unclaimed height on a
-    // product's label; the label is the symbol's now, so there is nothing left over
-    // in either direction. The two are pinned by value because they are the sharpest
-    // thing this tier can hold: any constant moved a hundredth puts one of them on
-    // the wrong side of its comparison.
-    check("the width left over beside the code", round4(budget.textWidthMm - budget.minIdWidthMm), 0);
-    check("and the height left over above the symbol", round4(budget.usableHeightMm - budget.widestSymbolMm), 0);
-    check("the code's floor", MIN_ID_FONT_MM, 2);
-    check("the gap between symbol and text", LABEL_GAP_MM, 1.5);
+    // not to produce. Stacked (#431), the symbol takes the width and the code the
+    // height under it, and the code also has to clear the width.
+    assert("the widest symbol fits the label's width", budget.widestSymbolMm <= budget.usableWidthMm);
+    check("what is left under it and the gap for the code", budget.textHeightMm, 2.12);
+    check("what the code needs at its floor, tall — six points", round4(budget.minIdHeightMm), 2.1167);
+    assert("  so it fits under the widest symbol", budget.minIdHeightMm <= budget.textHeightMm);
+    check("and across, ten characters at the floor", round4(budget.minIdWidthMm), 10.5833);
+    assert("  which the width under the symbol clears", budget.minIdWidthMm <= budget.usableWidthMm);
+    // THE SYMBOL HAS NOTHING LEFT OVER ACROSS, AND THE CODE HAS NEXT TO NOTHING DOWN.
+    // The label is solved from the floors, so the width is exactly the widest symbol,
+    // and the height is short of the parts by nothing but its rounding up to a
+    // hundredth — six points is 2.1167 mm, the label 20.42 where the parts come to
+    // 20.4167. Pinned by value because they are the sharpest thing this tier can
+    // hold: any constant moved a hundredth puts one on the wrong side of its
+    // comparison. The one real room is beside the code, under the symbol.
+    check("the width left over beside the widest symbol", round4(budget.usableWidthMm - budget.widestSymbolMm), 0);
+    check("the height left over under the code", round4(budget.textHeightMm - budget.minIdHeightMm), 0.0033);
+    check("the width left beside the code, under the symbol", round4(budget.usableWidthMm - budget.minIdWidthMm), 4.2167);
+    check("the code's floor, in points", MIN_ID_FONT_PT, 6);
+    check("the gap between symbol and code", LABEL_GAP_MM, 1.5);
     check("the safe inset from the die-cut", LABEL_SAFE_INSET_MM, 1);
 
     // ANTI-VACUITY: the derivation is shown REFUSING. A stock too short drives the
@@ -278,26 +386,54 @@ export function run({ check, assert, log }) {
     assert("  two does not, and is reported rather than cropped", !symbolBox({ sideModules: 41, moduleMm }).fits);
     assert("  nor does three", !symbolBox({ sideModules: 45, moduleMm }).fits);
     // AND IT FAILS ON BOTH DIMENSIONS AT ONCE, which is what a label with no slack
-    // means: the symbol is square, the budget is 14.8 mm each way, so nothing is
-    // decided by one dimension rather than the other any more.
+    // means: the symbol is square and its room is 14.8 mm across and 14.8033 down,
+    // so no verdict is decided by one dimension rather than the other.
     assert(
-        "  the first one that fails overruns the height",
-        symbolBox({ sideModules: 41, moduleMm }).boxMm > budget.usableHeightMm
+        "  the first one that fails overruns the width",
+        symbolBox({ sideModules: 41, moduleMm }).boxMm > budget.usableWidthMm
     );
     check(
-        "  and the width beside the code is the same 14.8 mm",
-        round4(budget.usableWidthMm - LABEL_GAP_MM - budget.minIdWidthMm),
-        14.8
+        "  and down, what the gap and the code leave it",
+        round4(budget.usableHeightMm - LABEL_GAP_MM - budget.minIdHeightMm),
+        14.8033
+    );
+    // WHICH IS WHY THE CLAUSES ARE READ OFF THE SOURCE (#431). With the two rooms
+    // this close, `symbolBox` could drop either comparison and return every verdict
+    // above unchanged — so what is asserted is that it reads both sides, and the
+    // gap and the code's size on the way down.
+    const boxReads = namesRead(resolveFunction(parseFile(MODULE_SOURCE).ast, "symbolBox"));
+    const BOX_NEEDS = ["LABEL_STOCK.labelWidthMm", "LABEL_STOCK.labelHeightMm", "LABEL_GAP_MM", "ID_FONT_MM"];
+    const boxMissing = BOX_NEEDS.filter((name) => !boxReads.has(name));
+    check(
+        `  symbolBox reads both sides, the gap and the code's size${boxMissing.length ? ` (missing ${boxMissing.join(", ")})` : ""}`,
+        boxMissing.length,
+        0
+    );
+    // ANTI-VACUITY: a planted symbolBox with the height clause gone is seen missing
+    // exactly what that clause read.
+    const plantedBoxReads = namesRead(
+        resolveFunction(
+            parseSource(
+                "function symbolBox({ boxMm }) { return boxMm <= LABEL_STOCK.labelWidthMm - 2; }\n",
+                "<planted-box>"
+            ).ast,
+            "symbolBox"
+        )
+    );
+    check(
+        "  a symbolBox with one clause is seen missing the other",
+        BOX_NEEDS.filter((name) => !plantedBoxReads.has(name)).join(", "),
+        "LABEL_STOCK.labelHeightMm, LABEL_GAP_MM, ID_FONT_MM"
     );
 
     // ── 3: where each label position sits ───────────────────────────────────
     log("");
     log("the corners the die-cut put the labels at:");
     check("the first", JSON.stringify(cellPosition(0)), JSON.stringify({ leftMm: 10, topMm: 10 }));
-    check("second across", JSON.stringify(cellPosition(1)), JSON.stringify({ leftMm: 42.3, topMm: 10 }));
-    check("last across", JSON.stringify(cellPosition(5)), JSON.stringify({ leftMm: 171.5, topMm: 10 }));
-    check("first of the second row", JSON.stringify(cellPosition(6)), JSON.stringify({ leftMm: 10, topMm: 28.8 }));
-    check("the last one on the sheet", JSON.stringify(cellPosition(77)), JSON.stringify({ leftMm: 171.5, topMm: 235.6 }));
+    check("second across", JSON.stringify(cellPosition(1)), JSON.stringify({ leftMm: 28.8, topMm: 10 }));
+    check("last across", JSON.stringify(cellPosition(9)), JSON.stringify({ leftMm: 179.2, topMm: 10 }));
+    check("first of the second row", JSON.stringify(cellPosition(10)), JSON.stringify({ leftMm: 10, topMm: 32.42 }));
+    check("the last one on the sheet", JSON.stringify(cellPosition(109)), JSON.stringify({ leftMm: 179.2, topMm: 234.2 }));
     // The last label's far corner has to be on the paper.
     const last = cellPosition(CELLS_PER_SHEET - 1);
     assert("and its far corner is on the page", last.leftMm + LABEL_STOCK.labelWidthMm <= LABEL_STOCK.pageWidthMm);
@@ -310,7 +446,9 @@ export function run({ check, assert, log }) {
     check("nothing is position 1", readStartPosition(""), 1);
     check("  as is a word", readStartPosition("abc"), 1);
     check("  and zero", readStartPosition("0"), 1);
-    check("past the end clamps to the last", readStartPosition("99"), CELLS_PER_SHEET);
+    // `999` rather than a number just past the sheet: this read `99` until #431 took
+    // the sheet to 110 positions and made it an ordinary one.
+    check("past the end clamps to the last", readStartPosition("999"), CELLS_PER_SHEET);
     check("a negative clamps to the first", readStartPosition("-4"), 1);
 
     const six = Array.from({ length: 6 }, (_, at) => ({ toolItemId: `T${at}` }));
@@ -344,21 +482,29 @@ export function run({ check, assert, log }) {
     // ANTI-VACUITY for that equality: the figure is also pinned by value, so the two
     // moving together is a fact rather than the assertion comparing a name to itself.
     check("and that cap is this number", MAX_TOOL_ITEMS_PER_REGISTRATION, 100);
-    assert("  a sheet holds fewer than one request prints, so a run spans sheets", CELLS_PER_SHEET < MAX_LABELS_PER_REQUEST);
+    // A SHEET HOLDS MORE THAN ONE REQUEST PRINTS SINCE #431, which turned what this
+    // asserted round: it said a run always spans sheets. The largest request now fits
+    // one sheet from the top and spills onto a second only from a start position
+    // past eleven, so both sides of that edge are pinned — the second sheet is still
+    // a state the screen reaches, and this is where it is reached from.
+    check("a sheet holds this many more than the largest request", CELLS_PER_SHEET - MAX_LABELS_PER_REQUEST, 10);
+    const largest = Array.from({ length: MAX_LABELS_PER_REQUEST }, (_, at) => ({ toolItemId: `L${at}` }));
+    check("  the largest request from position 11 is one sheet", paginateLabels(largest, 11).length, 1);
+    check("  and from position 12 is two", paginateLabels(largest, 12).length, 2);
 
     // ── 6: `@page` is spelled in a file nothing else in this tier reads ─────
     log("");
     log("`labels.css` carries the one figure a custom property cannot:");
-    const css = readFileSync(repoPath("app/(tools)/tool-items/labels/labels.css"), "utf8");
+    const css = readFileSync(repoPath(CSS_SOURCE), "utf8");
     assert(`the page box names \`${LABEL_STOCK.page}\``, new RegExp(`size:\\s*${LABEL_STOCK.page}\\s*;`).test(css));
     assert("  and takes no margin, so the stock's own margins mean something", /@page[^}]*margin:\s*0\s*;/s.test(css));
     assert("everything not a label is hidden at print", /@media print[\s\S]*\.label-screen-only\s*\{[^}]*display:\s*none/.test(css));
     assert("and a second sheet starts a second page", /\.label-sheet \+ \.label-sheet[\s\S]*break-before:\s*page/.test(css));
     // NO PHYSICAL DIMENSION MAY BE WRITTEN HERE. Every millimeter is an inline style
-    // computed from LABEL_STOCK; one in the stylesheet is the figure that would not
-    // move when the stock does.
-    const millimeters = css.replace(/\/\*[\s\S]*?\*\//g, "").match(/\d+(?:\.\d+)?mm/g) || [];
-    check(`no millimeter figure in the stylesheet${millimeters.length ? ` (${millimeters.join(", ")})` : ""}`, millimeters.length, 0);
+    // computed from LABEL_STOCK, and the code's points one computed from its floor
+    // (#431); one in the stylesheet is the figure that would not move when they do.
+    const physical = css.replace(/\/\*[\s\S]*?\*\//g, "").match(/\d+(?:\.\d+)?(?:mm|pt)\b/g) || [];
+    check(`no millimeter or point figure in the stylesheet${physical.length ? ` (${physical.join(", ")})` : ""}`, physical.length, 0);
 
     // ── 6b: nothing but a sheet reaches the paper ───────────────────────────
     log("");
@@ -481,101 +627,93 @@ export function run({ check, assert, log }) {
     // zeros above are facts about the source rather than about a failed parse.
     assert("  the walker really reads those files", sheetNames.includes("labelBudget") && pageNames.includes("buildToolItemQR"));
 
-    // ── 7b: what the sticker actually prints (#411) ─────────────────────────
+    // ── 7b: what the sticker actually prints (#411, #431) ───────────────────
     log("");
-    log("the label prints the code and not the stored id:");
-    // READ OFF THE AST BECAUSE NO VALUE CHECK CAN TELL THE TWO APART. Both fields
-    // are on the same object and both are strings, so `label.toolItemId` in place of
+    log("the label prints the code and the symbol, and nothing else:");
+    // READ OFF THE AST BECAUSE NO VALUE CHECK CAN TELL THE FIELDS APART. They are on
+    // the same object and all strings, so `label.toolItemId` in place of
     // `label.labelCode` renders a longer sticker and passes every figure in this
     // file — including the width budget above, which is computed from a constant
-    // rather than from what the component reads. The mutation was run: with the
-    // member expression swapped, this file passed before this section existed.
+    // rather than from what the component reads. The mutation was run in #411: with
+    // the member expression swapped, this file passed before this section existed.
     //
-    // THE PICKER ABOVE THE SHEET IS THE OTHER HALF AND IT KEEPS THE ID. That list is
-    // a SCREEN, and a screen names a tool item by the value the base holds; only the
-    // paper carries the short form. So the assertion is about the element the
-    // stylesheet calls `label-id`, not about the file.
-    const printed = [];
-    const visitPrinted = (node, className) => {
-        if (!node || typeof node !== "object") return;
-        if (Array.isArray(node)) return node.forEach((child) => visitPrinted(child, className));
-        let here = className;
-        if (node.type === "JSXElement") {
-            const attr = node.openingElement?.attributes?.find(
-                (a) => a.type === "JSXAttribute" && a.name?.name === "className"
-            );
-            here = attr?.value?.type === "Literal" ? String(attr.value.value) : null;
-            if (here === "label-id" || here === "label-tool") {
-                for (const child of node.children) {
-                    if (child.type !== "JSXExpressionContainer") continue;
-                    const e = child.expression;
-                    printed.push({
-                        className: here,
-                        reads: e.type === "MemberExpression" ? `${e.object.name}.${e.property.name}` : e.type,
-                    });
-                }
+    // AND SINCE #431 THE WHOLE CELL IS ASSERTED, NOT ONE ELEMENT OF IT. The tool's
+    // name printed under the code until the design dropped it, and it would come back
+    // as one more expression in the cell passing every sum here, because the height
+    // budget counts the code alone.
+    //
+    // THE PICKER ABOVE THE SHEET IS THE OTHER HALF, AND IT KEEPS THE ID AND THE NAME.
+    // That list is a SCREEN, and a screen names a tool item by the value the base
+    // holds and by its tool; only the paper carries the short form, alone.
+    const sheetAst = parseFile(SHEET_SOURCE).ast;
+    const cell = elementWithClass(sheetAst, "label-cell");
+    const printedIn = (root) => {
+        const found = [];
+        walk(root, (n) => {
+            if (n.type !== "JSXElement") return;
+            for (const child of n.children) {
+                if (child.type !== "JSXExpressionContainer") continue;
+                if (child.expression.type === "JSXEmptyExpression") continue;
+                found.push(readName(child.expression));
             }
-        }
-        for (const [key, value] of Object.entries(node)) {
-            if (key === "type" || key === "start" || key === "end" || key === "loc") continue;
-            visitPrinted(value, here);
-        }
+        });
+        return found;
     };
-    visitPrinted(parseFile(SHEET_SOURCE).ast, null);
-    check("two things are printed on a label", printed.length, 2);
-    check(
-        "  the code, from the value the page computed",
-        printed.find((p) => p.className === "label-id")?.reads,
-        "label.labelCode"
-    );
-    check("  and the tool's name", printed.find((p) => p.className === "label-tool")?.reads, "label.toolName");
-    // The page is what computes it, through the one function that owns the form.
+    check("the cell prints one value, the code the page computed", printedIn(cell).join(" | "), "label.labelCode");
+    const innerHtml = elementWithClass(sheetAst, "label-symbol")
+        ?.openingElement.attributes.find((a) => a.type === "JSXAttribute" && a.name?.name === "dangerouslySetInnerHTML")
+        ?.value?.expression?.properties?.find((p) => p.key?.name === "__html")?.value;
+    check("  and draws one symbol, the page's", innerHtml ? readName(innerHtml) : null, "label.svg");
+    const nameReads = [];
+    walk(sheetAst, (n) => {
+        if (n.type === "MemberExpression" && readName(n) === "label.toolName") nameReads.push(n);
+    });
+    const namesInCell = nameReads.filter((n) => n.start >= cell.start && n.end <= cell.end).length;
+    check("the tool's name is read nowhere inside the cell", namesInCell, 0);
+    // ANTI-VACUITY for that zero: the same walk finds the name where it still is.
+    assert("  and is still read above the sheet, where the picker names each tool item", nameReads.length - namesInCell >= 1);
+    // The page is what computes the code, through the one function that owns the form.
     assert("the page builds that code through labelCodeFor", pageNames.includes("labelCodeFor"));
     check(
         "  and the sheet component never calls it",
         sheetNames.filter((name) => name === "labelCodeFor").length,
         0
     );
-    // ANTI-VACUITY: the reader is shown telling two member expressions apart on a
-    // planted element, so the equality above is a fact about the component rather
-    // than about a walker that reports the first thing it sees.
-    const plantedPrinted = [];
-    const collect = (node) => {
-        if (!node || typeof node !== "object") return;
-        if (Array.isArray(node)) return node.forEach(collect);
-        if (node.type === "JSXExpressionContainer" && node.expression.type === "MemberExpression")
-            plantedPrinted.push(`${node.expression.object.name}.${node.expression.property.name}`);
-        for (const [k, v] of Object.entries(node)) {
-            if (k === "type" || k === "start" || k === "end" || k === "loc") continue;
-            collect(v);
-        }
-    };
-    collect(parseSource("const a = <p>{label.toolItemId}{label.labelCode}</p>;\n", "<planted-printed>").ast);
-    check("  the reader distinguishes the two fields", plantedPrinted.join(" | "), "label.toolItemId | label.labelCode");
+    // ANTI-VACUITY: the reader is shown a cell carrying the name as well, so the
+    // single value above is a fact about the component rather than about a walker
+    // that stops at the first thing it sees.
+    const plantedCell = elementWithClass(
+        parseSource(
+            'const a = <div className="label-cell"><div className="label-symbol" />' +
+                '<div className="label-id">{label.labelCode}</div><div>{label.toolName}</div></div>;\n',
+            "<planted-cell>"
+        ).ast,
+        "label-cell"
+    );
+    check("  a cell carrying the name is seen carrying it", printedIn(plantedCell).join(" | "), "label.labelCode | label.toolName");
 
-    // ── 7c: every millimeter on the sheet comes from the stock (#412) ───────
+    // ── 7c: every physical dimension on the sheet comes from a name (#412) ──
     log("");
     log("no dimension is written into the component:");
     // READ OFF THE AST FOR THE SAME REASON AS 7b. Section 6 already forbids a
     // millimeter figure in the STYLESHEET, and the component's dimensions are inline
-    // styles it cannot see — so `width: "30.3mm"` in place of the constant would
+    // styles it cannot see — so `width: "16.8mm"` in place of the constant would
     // print the same sheet today and stop moving the day the stock does, which is
-    // the one property this whole file exists to keep. The label is the symbol's
-    // size now, so that day is closer than it was: #412 changed every one of these
-    // figures and a pinned one would have survived it.
+    // the one property this whole file exists to keep. #412 changed every one of
+    // these figures and a pinned one would have survived it. **The code's size is in
+    // points since #431**, so a point is held to the same rule as a millimeter.
     const styleReads = [];
     const pinned = [];
-    walk(parseFile(SHEET_SOURCE).ast, (n) => {
+    walk(sheetAst, (n) => {
         if (n.type !== "TemplateLiteral") return;
         const tail = n.quasis[n.quasis.length - 1]?.value?.cooked ?? "";
-        if (!tail.startsWith("mm")) return;
+        if (!/^(?:mm|pt)\b/.test(tail)) return;
         for (const e of n.expressions) {
-            if (e.type === "Identifier") styleReads.push(e.name);
-            else if (e.type === "MemberExpression") styleReads.push(`${e.object.name}.${e.property.name}`);
+            if (e.type === "Identifier" || e.type === "MemberExpression") styleReads.push(readName(e));
             else pinned.push(e.type);
         }
     });
-    assert(`  ${styleReads.length} millimeter values are built from a name`, styleReads.length >= 6);
+    assert(`  ${styleReads.length} physical values are built from a name`, styleReads.length >= 8);
     check(
         `  and none is a literal${pinned.length ? ` (${pinned.join(", ")})` : ""}`,
         pinned.length,
@@ -590,15 +728,172 @@ export function run({ check, assert, log }) {
         "LABEL_GAP_MM",
     ])
         assert(`  the cell reads ${name}`, styleReads.includes(name));
-    // ANTI-VACUITY: the same reader is shown a pinned millimeter, so the zero above
-    // is a fact about the component rather than about a walker that finds nothing.
+    // ANTI-VACUITY: the same reader is shown a pinned millimeter and a pinned point,
+    // so the zero above is a fact about the component rather than about a walker that
+    // finds nothing.
     const plantedMm = [];
-    walk(parseSource('const s = { width: `${30.3}mm`, height: `${h}mm` };\n', "<planted-mm>").ast, (n) => {
-        if (n.type !== "TemplateLiteral") return;
-        if (!(n.quasis[n.quasis.length - 1]?.value?.cooked ?? "").startsWith("mm")) return;
-        for (const e of n.expressions) plantedMm.push(e.type);
-    });
-    check("  the reader tells a pinned millimeter from a named one", plantedMm.join(" | "), "Literal | Identifier");
+    walk(
+        parseSource('const s = { width: `${30.3}mm`, height: `${h}mm`, fontSize: `${6}pt` };\n', "<planted-mm>").ast,
+        (n) => {
+            if (n.type !== "TemplateLiteral") return;
+            if (!/^(?:mm|pt)\b/.test(n.quasis[n.quasis.length - 1]?.value?.cooked ?? "")) return;
+            for (const e of n.expressions) plantedMm.push(e.type);
+        }
+    );
+    check("  the reader tells a pinned figure from a named one", plantedMm.join(" | "), "Literal | Identifier | Literal");
+
+    // ── 7d: the code prints in the face its width was measured in (#431) ────
+    log("");
+    log("the code is set in the face CHARACTER_WIDTH_RATIO was measured against:");
+    // THE WIDTH BUDGET IS ONE FACE'S ADVANCE, SO THE FACE IS PART OF THE BUDGET. A
+    // different face prints a different width under a ratio that no longer describes
+    // it, and nothing in the arithmetic can notice — the ratio is a constant. So the
+    // chain from the name to the paper is asserted link by link: the module names the
+    // face, the page loads that face through `next/font` into a custom property and
+    // defines it above the sheet, and `.label-id` is set in it. The face is pinned by
+    // VALUE beside the width it was measured for (section 2's 10.5833 mm at ten
+    // characters): changing either literal is measuring the ratio again, in the same
+    // commit.
+    check("the face named beside the ratio", LABEL_CODE_TYPEFACE, "Inconsolata");
+    const pageAst = parseFile(PAGE_SOURCE).ast;
+    const faceLoader = (ast) => {
+        const imported = [];
+        walk(ast, (n) => {
+            if (n.type === "ImportDeclaration" && n.source.value === "next/font/google")
+                for (const s of n.specifiers) imported.push({ imported: s.imported?.name, local: s.local.name });
+        });
+        let binding = null;
+        let property = null;
+        walk(ast, (n) => {
+            if (n.type !== "VariableDeclarator" || n.init?.type !== "CallExpression") return;
+            if (!imported.some((i) => i.local === n.init.callee.name)) return;
+            binding = n.id.name;
+            const option = n.init.arguments[0]?.properties?.find((p) => p.key?.name === "variable");
+            property = option?.value?.type === "Literal" ? option.value.value : null;
+        });
+        return { faces: imported.map((i) => i.imported), binding, property };
+    };
+    const loader = faceLoader(pageAst);
+    // `next/font` spells a family's spaces as underscores in its export names.
+    check("the page loads that face and no other", loader.faces.join(", "), LABEL_CODE_TYPEFACE.replace(/ /g, "_"));
+    check("  into this custom property", loader.property, "--font-label-code");
+    // DEFINED ABOVE THE SHEET, or `var()` resolves to nothing and the code falls back
+    // to the body's face in silence — which is the state #412 measured without
+    // knowing it.
+    const classesAbove = (ast) => {
+        const found = [];
+        const visit = (node, classes) => {
+            if (!node || typeof node !== "object") return;
+            if (Array.isArray(node)) return node.forEach((child) => visit(child, classes));
+            let here = classes;
+            if (node.type === "JSXElement") {
+                const attr = node.openingElement.attributes.find(
+                    (a) => a.type === "JSXAttribute" && a.name?.name === "className"
+                );
+                if (attr?.value?.type === "JSXExpressionContainer") here = [...classes, readName(attr.value.expression)];
+                if (node.openingElement.name?.name === "LabelSheet") found.push(...here);
+            }
+            for (const [key, value] of Object.entries(node)) {
+                if (key === "type" || key === "start" || key === "end" || key === "loc") continue;
+                visit(value, here);
+            }
+        };
+        visit(ast, []);
+        return found;
+    };
+    assert(
+        `  and puts ${loader.binding}.variable on an element above the sheet`,
+        Boolean(loader.binding) && classesAbove(pageAst).includes(`${loader.binding}.variable`)
+    );
+    check(
+        "the code's rule is set in that property",
+        cssValue(cssRule(css, ".label-id"), "font-family"),
+        `var(${loader.property})`
+    );
+    // ANTI-VACUITY, one per link: a page loading another face into another property
+    // reads as that face; a property put BESIDE the sheet is not seen above it; and a
+    // rule with no face of its own reads as none.
+    const plantedLoader = faceLoader(
+        parseSource(
+            'import { Roboto_Mono } from "next/font/google";\n' +
+                'const f = Roboto_Mono({ subsets: ["latin"], variable: "--font-other" });\n',
+            "<planted-loader>"
+        ).ast
+    );
+    check(
+        "  a page loading another face reads as that face",
+        `${plantedLoader.faces.join(", ")} into ${plantedLoader.property}`,
+        "Roboto_Mono into --font-other"
+    );
+    check(
+        "  a property beside the sheet is not above it",
+        classesAbove(parseSource("const a = <main><div className={f.variable} /><LabelSheet /></main>;\n", "<planted-beside>").ast).length,
+        0
+    );
+    check(
+        "  and a code rule with no face of its own reads as none",
+        cssValue(cssRule(".label-id { white-space: nowrap; }", ".label-id"), "font-family"),
+        null
+    );
+
+    // ── 7e: the code goes under the symbol, one em tall (#431) ──────────────
+    log("");
+    log("the symbol above, the code under it, and the code one em tall:");
+    // WHAT IS ON TOP IS THIS ISSUE'S DECISION AND NO SUM CAN SEE IT: a label drawn
+    // with the code above the symbol, or beside it again, adds up to exactly the
+    // figures above. Two things decide it and both are source — the order the cell's
+    // children are written in, and the direction the stylesheet flows them.
+    const childClasses = (element) =>
+        (element?.children ?? [])
+            .filter((child) => child.type === "JSXElement")
+            .map((child) => literalClass(child) ?? child.openingElement.name?.name);
+    check("the cell holds the symbol and then the code", childClasses(cell).join(", "), "label-symbol, label-id");
+    check("  and the stylesheet stacks them", cssValue(cssRule(css, ".label-cell"), "flex-direction"), "column");
+    // THE CODE'S LINE BOX IS ITS SIZE, which is what lets `labelSizeMm` count it as
+    // one em. Left to inherit, the box is the page's one and a half em and the code
+    // claims more height than the label gave it — so both properties read the floor.
+    const codeStyle = (element) => {
+        const style = element?.openingElement.attributes.find(
+            (a) => a.type === "JSXAttribute" && a.name?.name === "style"
+        );
+        const properties = style?.value?.expression?.properties ?? [];
+        const read = (key) => {
+            const value = properties.find((p) => p.key?.name === key)?.value;
+            if (!value) return "none";
+            if (value.type !== "TemplateLiteral" || value.expressions.length !== 1 || value.quasis[0].value.cooked !== "")
+                return value.type;
+            return `${readName(value.expressions[0])} ${value.quasis[1].value.cooked}`;
+        };
+        return `${read("fontSize")} / ${read("lineHeight")}`;
+    };
+    check(
+        "  the code's size and its line box are both the floor, in points",
+        codeStyle(elementWithClass(sheetAst, "label-id")),
+        "MIN_ID_FONT_PT pt / MIN_ID_FONT_PT pt"
+    );
+    // ANTI-VACUITY: a planted cell with the code on top and no line box reads that
+    // way round and without one, and a stylesheet flowing it as a row reads as a row.
+    const plantedFlip = parseSource(
+        'const a = <div className="label-cell">' +
+            '<div className="label-id" style={{ fontSize: `${MIN_ID_FONT_PT}pt` }}>{c}</div>' +
+            '<div className="label-symbol" /></div>;\n',
+        "<planted-flip>"
+    ).ast;
+    check(
+        "  a cell with the code on top reads that way round",
+        childClasses(elementWithClass(plantedFlip, "label-cell")).join(", "),
+        "label-id, label-symbol"
+    );
+    check(
+        "  a code with no line box of its own is seen without one",
+        codeStyle(elementWithClass(plantedFlip, "label-id")),
+        "MIN_ID_FONT_PT pt / none"
+    );
+    check(
+        "  and a row reads as a row",
+        cssValue(cssRule(".label-cell { display: flex; flex-direction: row; }", ".label-cell"), "flex-direction"),
+        "row"
+    );
 
     // ── 8: no client file may import the encoder ────────────────────────────
     log("");
@@ -663,14 +958,14 @@ export function run({ check, assert, log }) {
     // dimensions any more. Composed from `LABEL_STOCK` rather than typed, so the
     // sentence cannot say one size while the label is another — and pinned by value
     // so the composition is held rather than merely performed.
-    check("the stock names itself", COPY.stock({ name: LABEL_STOCK_NAME }), "Stock: 30.3 x 16.8 mm die-cut");
+    check("the stock names itself", COPY.stock({ name: LABEL_STOCK_NAME }), "Stock: 16.8 x 20.42 mm die-cut");
     assert(
         "  and the name is built from the two dimensions",
         LABEL_STOCK_NAME.includes(String(LABEL_STOCK.labelWidthMm)) &&
             LABEL_STOCK_NAME.includes(String(LABEL_STOCK.labelHeightMm))
     );
     // AND THE RUN'S OWN SENTENCE NO LONGER NAMES IT. `…sheets of Avery 5160.` read
-    // as a sheet of a product; `…sheets of 30.3 x 16.8 mm die-cut.` would read as a
+    // as a sheet of a product; `…sheets of 16.8 x 20.42 mm die-cut.` would read as a
     // measurement of the sheet. It is stated once, on the line above.
     assert("  which the sheet count does not repeat", !COPY.sheetCount({ sheets: 2, labels: 34 }).includes("mm"));
     check(

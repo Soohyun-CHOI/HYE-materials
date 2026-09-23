@@ -7,7 +7,7 @@ import {
     LABEL_SAFE_INSET_MM,
     LABEL_STOCK,
     LABEL_STOCK_NAME,
-    MIN_ID_FONT_MM,
+    MIN_ID_FONT_PT,
     TOOL_LABEL_SHEET_COPY as COPY,
     cellPosition,
     labelBudget,
@@ -27,8 +27,12 @@ import {
 // assertion for this one in `offline/tool-label-sheet.mjs`.
 //
 // EVERY DIMENSION COMES FROM `lib/toolLabelSheet.js` AND NONE FROM THIS FILE. The
-// stock is not chosen yet, so the figures move together when it is; a millimeter
-// written here would be the one that did not move.
+// stock is not chosen yet, so the figures move together when it is; a millimeter or
+// a point written here would be the one that did not move.
+//
+// THE CODE GOES UNDER THE SYMBOL (#431), and a label carries those two and nothing
+// else. `labels.css` stacks them; the order below is the order they print in, which
+// is the order the label's dimensions were derived for.
 //
 // `dangerouslySetInnerHTML` IS THE ONLY WAY TO INLINE AN SVG STRING, and it is safe
 // here for a reason rather than by inspection: the symbol is produced by `qrcode`'s
@@ -175,30 +179,35 @@ export default function LabelSheet({ labels, origin, sideModules }) {
                                     style={symbolStyle(label.toolItemId)}
                                     dangerouslySetInnerHTML={{ __html: label.svg }}
                                 />
-                                {/* ONE SIZE FOR BOTH, AND IT IS THE ID'S FLOOR
-                                    BECAUSE THE ID IS THE ONLY THING ON THE LABEL
-                                    THAT CONSTRAINS ONE. Setting it on the id alone
-                                    and letting the tool's name inherit the body's
-                                    size made the name larger than the id —
-                                    measured in a browser — which is a hierarchy
-                                    nothing here decided, on the one element that
-                                    has to stay legible. Both at the floor is the
-                                    absence of a choice, which is what
-                                    `_shared.md` asks an undesigned screen for. */}
+                                {/* ITS SIZE AND ITS LINE BOX ARE ONE FIGURE, which
+                                    is what lets the label's arithmetic count the
+                                    code as one em tall (#431). Left to inherit, the
+                                    line box is the page's — one and a half em,
+                                    from Tailwind's preflight — and the code would
+                                    claim half as much again as `labelSizeMm` gave
+                                    it. Set at the floor, which is the size the
+                                    design kept when it chose the face.
+
+                                    THE PRINTED CODE, NOT THE `Tool Item ID`
+                                    (#411). It is the same string the symbol's own
+                                    path carries, because the person reading it is
+                                    reading it in order to type it. The page
+                                    computes it; nothing here spells the family
+                                    token, and `offline/tool-label-sheet.mjs` reads
+                                    this expression off the AST — a value check
+                                    cannot tell the two fields apart.
+
+                                    THE TOOL'S NAME IS NOT ON THE LABEL (#431). The
+                                    design dropped it, and the picker above is where
+                                    a tool item is still named by its tool. */}
                                 <div
-                                    className="label-text"
-                                    style={{ fontSize: `${MIN_ID_FONT_MM}mm` }}
+                                    className="label-id"
+                                    style={{
+                                        fontSize: `${MIN_ID_FONT_PT}pt`,
+                                        lineHeight: `${MIN_ID_FONT_PT}pt`,
+                                    }}
                                 >
-                                    {/* THE PRINTED CODE, NOT THE `Tool Item ID`
-                                        (#411). It is the same string the symbol's
-                                        own path carries, because the person reading
-                                        it is reading it in order to type it. The
-                                        page computes it; nothing here spells the
-                                        family token, and `offline/tool-label-sheet.mjs`
-                                        reads this expression off the AST — a value
-                                        check cannot tell the two fields apart. */}
-                                    <div className="label-id">{label.labelCode}</div>
-                                    <div className="label-tool">{label.toolName}</div>
+                                    {label.labelCode}
                                 </div>
                             </div>
                         )
