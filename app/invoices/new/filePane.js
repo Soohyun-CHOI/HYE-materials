@@ -95,16 +95,43 @@ export const PANE_COLUMN = "xl:col-start-1 xl:row-start-1";
 export const FILE_PANE = `hidden xl:sticky xl:top-8 xl:flex xl:h-[calc(100vh_-_4rem)] xl:flex-col ${PANE_COLUMN}`;
 
 /**
+ * The rect the box and the document share, above the file control.
+ *
+ * ONE RECT IN EVERY STATE IS THE ISSUE'S OWN WORDS — an empty box at the document's
+ * size, and then the document in the same place at the same size. What stood in the
+ * way was one line: `FileFrame` puts a document's standing sentence under its frame,
+ * inside the same column, so a PDF was drawn 24px shorter than the box it replaced —
+ * measured at 1440, box 792 tall and frame 768. An image has no such line, and was
+ * drawn at the box's full height.
+ *
+ * SO THE LINE IS PART OF THE SLOT RATHER THAN TAKEN OUT OF THE DOCUMENT. With a
+ * document in it, the slot holds the frame and its sentence; with nothing, or with an
+ * image, it holds the box or the picture and leaves that line empty. Every state then
+ * draws the file's rect at one size, and the sentence appears in a line that was
+ * already there rather than pushing the frame up.
+ *
+ * THE FRAME WAS NOT EDITED FOR THIS. Six other surfaces draw a file through it inside
+ * an overlay where the sentence under the frame costs nothing, and #422 changes none
+ * of them; the slot is this pane's, so the accommodation is too.
+ */
+export const FILE_SLOT = "flex min-h-0 flex-1 flex-col";
+
+/**
+ * The line a document's sentence takes, left empty in the other two states.
+ *
+ * `FileFrame`'s sentence is `mt-2 text-xs`: 8px of margin and a 16px line, which is
+ * this 24px exactly. It holds while the sentence is one line, measured at the
+ * narrowest pane the breakpoint allows. A type scale that wraps it at that width
+ * reopens a gap of one line, and the fix is here rather than in the frame.
+ */
+export const FILE_SLOT_HINT_ROOM = "pb-6";
+
+/**
  * The box, empty.
  *
- * IT IS `mt-4 min-h-0 flex-1` BECAUSE THAT IS WHAT THE FRAME IS. `FileFrame` gives
- * its image and its document those three classes, so the empty box and the drawn
- * document occupy one rect and the file lands exactly where the box was. Measured at
- * 1440: the box at top 80, 721 wide, 792 tall, and the frame that replaced it at top
- * 80, 721 wide, **768** tall. The 24px is a document's standing hint line, which sits
- * under the frame and which an image does not have. It is left alone because closing
- * it means either editing a frame six other surfaces share or reserving a line of
- * text that is not there.
+ * `mt-4 min-h-0 flex-1` BECAUSE THAT IS WHAT THE FRAME IS. `FileFrame` gives its
+ * image and its document those three classes, so inside the slot above the box and
+ * the drawn file start at one top and fill one height.
  *
  * A BUTTON RATHER THAN A STYLED `div`, so it is reached by `Tab` and opened by
  * `Enter` or `Space` with nothing written here to make that true.

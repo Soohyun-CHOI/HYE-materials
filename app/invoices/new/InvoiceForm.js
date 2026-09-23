@@ -18,6 +18,8 @@ import {
     FILE_DROP_BOX_OVER,
     FILE_PANE,
     FILE_PANE_COPY,
+    FILE_SLOT,
+    FILE_SLOT_HINT_ROOM,
     FORM_COLUMN,
     FORM_COLUMNS,
 } from "./filePane";
@@ -1538,6 +1540,9 @@ export default function InvoiceForm({ vendors, pos }) {
     function renderFilePane() {
         const kind = fileRenderKind(invoiceFile.contentType);
         const drawable = invoiceFile.previewUrl && kind !== FILE_RENDER.unknown;
+        // A document brings its own sentence into the slot's last line; the box and
+        // an image leave that line empty, so all three are drawn at one size.
+        const bringsItsOwnHint = drawable && kind === FILE_RENDER.document;
         return (
             <aside
                 className={FILE_PANE}
@@ -1548,21 +1553,23 @@ export default function InvoiceForm({ vendors, pos }) {
                 onDragLeave={() => setDraggingFile(false)}
                 onDrop={handleFileDrop}
             >
-                {drawable ? (
-                    <FileFrame
-                        href={invoiceFile.previewUrl}
-                        kind={kind}
-                        title={fileViewerTitle({ axis: FILE_AXIS.invoice, filename: invoiceFile.filename })}
-                    />
-                ) : (
-                    <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className={draggingFile ? FILE_DROP_BOX_OVER : FILE_DROP_BOX}
-                    >
-                        {FILE_PANE_COPY.drop}
-                    </button>
-                )}
+                <div className={bringsItsOwnHint ? FILE_SLOT : `${FILE_SLOT} ${FILE_SLOT_HINT_ROOM}`}>
+                    {drawable ? (
+                        <FileFrame
+                            href={invoiceFile.previewUrl}
+                            kind={kind}
+                            title={fileViewerTitle({ axis: FILE_AXIS.invoice, filename: invoiceFile.filename })}
+                        />
+                    ) : (
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className={draggingFile ? FILE_DROP_BOX_OVER : FILE_DROP_BOX}
+                        >
+                            {FILE_PANE_COPY.drop}
+                        </button>
+                    )}
+                </div>
                 <div className="mt-2 shrink-0">{renderFileInput(fileInputRef)}</div>
             </aside>
         );

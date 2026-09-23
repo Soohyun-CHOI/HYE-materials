@@ -150,8 +150,11 @@ suggests what would otherwise be here.
 **When the box holds a file, it is drawn the way the file viewer draws one** — an
 image for a photograph, a frame for a PDF, and under a PDF the app's standing
 sentence about a browser that cannot show one. **The box has no chrome of its
-own:** no title, no download, nothing to close. That sentence is the only thing
-that makes the two states differ in size, by the one line it takes.
+own:** no title, no download, nothing to close. **The empty box, the PDF and the
+image are one rect**, and a design may not let them differ: the line under a PDF
+that carries that sentence is part of the column in every state, left blank until
+there is a document to put under it, so the document is drawn exactly where the
+box was and at exactly its size.
 
 **While a file is dragged over it**, the box says so — currently a darker border
 and a tint, and nothing else changes.
@@ -165,8 +168,8 @@ section opposite already names the file that is attached.
 **Once the box holds a document it stops taking drops**, and the control under it
 is what replaces the file. A frame is another document, so a file dropped on it
 goes to the browser rather than to this form and nothing in the app can intercept
-it. The control is under the box in every state, which is also what keeps the box
-one size.
+it. The control is under the box in every state, which is one of the two things
+that keep the box one size; the blank line above it is the other.
 
 **Below 1280px the column is not drawn at all** — one column, the control back in
 the `Invoice File` section, and the form the same width as above the boundary.
