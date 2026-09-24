@@ -120,7 +120,11 @@ been signed yet.
 **action.** The purchase order PDF, openable by anyone who can see the order —
 site staff place the order from it. It opens **over this page**, in a viewer that
 shows the document and carries a control that saves it; the reader keeps the order
-they were reading and never leaves the app. Six lines of this brief called it a
+they were reading and never leaves the app. **The document is the order's own two
+pages followed by every quotation on the request**, in the order the request
+numbered them: a PDF quotation adds its own pages at its own size, and a photograph
+or screenshot adds one page shaped like the picture, at the order's scale and the
+way up the app shows it. So a document of many pages of mixed sizes is ordinary. Six lines of this brief called it a
 download until #331, which is what the click never did: the response has always
 said `inline`, so it showed the file where the reader's browser could and prompted
 a save where it could not. Showing it and saving it are two acts now, and the
@@ -256,6 +260,16 @@ neither of them created the state. For any other reader, a sentence saying the
 document is not available yet, and no control. A control that can only fail is
 never offered.
 
+**When a quotation on the request cannot be added to the document**, pressing
+that control makes nothing, and the answer names every such quotation — by its
+file's name, as the request's page lists it, and its quotation ID — with why: it
+has no file, its file is not a PDF, JPEG or PNG, its file cannot be read, or it is a
+protected PDF. It asks for a readable PDF, JPEG or PNG to be attached to that
+quotation in Airtable and never says to try again, because pressing again fails
+the same way until one is. **No document is
+made without it**: one missing a quotation would go to the vendor as it was, since
+a document that exists is never remade.
+
 **The control appears only when there is no document, and that is a rule rather
 than a coincidence.** The order document is a partial snapshot — the items and
 the money are frozen, while the vendor, the job, the addresses, the internal
@@ -271,17 +285,21 @@ the screen and that is why there is no confirmation dialog** — the reader has
 already seen where it goes, so a dialog would ask the same question twice. If a
 redesign moves the address away from the button, the dialog has to come back.
 
-**When the office cannot send it, the reason is named where the control would
-be**, and on this screen only two of the send's four refusals can appear: the
-order was withdrawn, or the vendor has no `PIC Email` on record — that second
-one says to add the address on the vendor's record first. **The other two
-cannot be reached from here, because the page's own shape already answers
-them**: this whole block only exists once the order is signed, and the send
-lives inside the branch where a document is on file, so "not signed" and "no
-document" have their own sentences higher up and never reach the send. They are
-still refused by the app, for a caller that does not come through this page.
-Nobody outside the office sees any of the four: for another reader there is
-simply nothing there, since the send is not theirs to make.
+**When the requester or the office cannot send it, the reason is named where the
+control would be**, and on this screen three of the send's five refusals can
+appear: the order was withdrawn; its document is larger than an email to the
+vendor can carry — which says to download it and send it another way, and that
+the order will still show as not sent, since the app records only what it sent;
+or the vendor has no `PIC Email` on record — which says to add the address on the
+vendor's record first. The size is said before the address, so nobody adds an
+address only to learn the order cannot be mailed from here. **The other two cannot
+be reached from here, because the page's own shape already answers them**: this
+whole block only exists once the order is signed, and the send lives inside the
+branch where a document is on file, so "not signed" and "no document" have their
+own sentences higher up and never reach the send. They are still refused by the
+app, for a caller that does not come through this page. Nobody but the requester
+and the office sees any of them: for another reader there is simply nothing there,
+since the send is not theirs to make.
 
 **Once it has been sent the control is gone for good**, replaced by the record
 of the send. A second send is refused rather than offered: two copies of one

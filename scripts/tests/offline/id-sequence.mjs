@@ -54,6 +54,7 @@ import {
     dailyStamp,
     formatSequentialId,
     nextSequence,
+    sequenceOf,
 } from "../../../lib/idSequence.js";
 import { prefixMatch } from "../../../lib/airtableFormula.js";
 import { isMain, standalone } from "./_harness.mjs";
@@ -341,6 +342,30 @@ export function run({ check, log, assert }) {
     // that rather than letting it look like a childless parent, but the pure
     // function still has to treat it as "no siblings" rather than crashing.
     check("undefined ids are ignored, not crashed on", nextSequence([undefined, undefined], "HYE-PR-260710-07"), 1);
+
+    // #40 — THE READING ITSELF, which `lib/poQuotations.js` orders a request's
+    // quotations by. It is the membership test `nextSequence` runs, so the two cannot
+    // disagree about what a sibling is.
+    log("");
+    log("the sequence an id carries, which quotations are ordered by (#40):");
+    const Q = { seqPrefix: "Q" };
+    check("a quotation's number", sequenceOf("HYE-PR-260710-07-Q03", "HYE-PR-260710-07", Q), 3);
+    check("  past its padding", sequenceOf("HYE-PR-260710-07-Q100", "HYE-PR-260710-07", Q), 100);
+    check("  a plain child is not a quotation", sequenceOf("HYE-PR-260710-07-001", "HYE-PR-260710-07", Q), null);
+    check("  and a quotation is not a plain child", sequenceOf("HYE-PR-260710-07-Q01", "HYE-PR-260710-07"), null);
+    check("  another request's is not this one's", sequenceOf("HYE-PR-260710-08-Q01", "HYE-PR-260710-07", Q), null);
+    check("  a hand-typed suffix is not a number", sequenceOf("HYE-PR-260710-07-Q01a", "HYE-PR-260710-07", Q), null);
+    check("  nor is a non-string", sequenceOf(undefined, "HYE-PR-260710-07", Q), null);
+    // THE CASE THE READING EXISTS FOR: the string order and the number order part at
+    // the padding's width, and only the number is the sequence.
+    const pastPadding = ["HYE-PR-260710-07-Q11", "HYE-PR-260710-07-Q100"];
+    check("  the string sort puts the hundredth first", [...pastPadding].sort().join(" "), "HYE-PR-260710-07-Q100 HYE-PR-260710-07-Q11");
+    check(
+        "  the numbers do not",
+        pastPadding.map((id) => sequenceOf(id, "HYE-PR-260710-07", Q)).join(" "),
+        "11 100"
+    );
+    check("  and nextSequence reads the same numbers", nextSequence(pastPadding, "HYE-PR-260710-07", Q), 101);
 
     log("");
     log("assembling a child ID:");

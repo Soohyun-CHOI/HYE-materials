@@ -125,6 +125,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poDocuments.js` — an order's two document lists: the invoices charging it and the deliveries filling it, and `PO_DOCUMENTS_COPY`.
 - `lib/poWithdraw.js` — the PO-withdrawal predicate, both voices of its copy, and the guarded write.
 - `lib/poSend.js` — sending a signed order to the vendor (#281): `PO_SENT_STATUS`, the refusals, and the screen and mail copy. `SIGNED_NOTICE_COPY` (#290) is the mail telling the requester to place it.
+- `lib/poQuotations.js` — the quotations an order's document carries (#40): every one, in `Quotation ID` order, told apart by contents, each turned into pages, and the refusal naming one it cannot append.
 - `lib/poDeliveryAddress.js` — the address an order freezes (#386): read from the request and never from the job.
 - `lib/poUnsigned.js` — `isPOUnsigned` and the signal wherever an order is offered for an invoice (#198). `AWAITING_SIGNATURE_COPY` (#292) is the mail asking the President to sign.
 - `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242).
