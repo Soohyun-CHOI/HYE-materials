@@ -175,22 +175,6 @@ const inputClass =
 const fieldClass =
     "mt-1 w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50";
 
-// "PDF Upload" vs "Manual Entry" (added after the initial build) is a
-// single form/single state tree with two tabs, not two separate forms —
-// PDF or hand-typed, it's the same underlying task (entering an invoice),
-// and switching tabs must never lose whatever's already been
-// attached/detected/typed. So `activeTab` only ever changes which order
-// these render helpers appear in below — every one of them reads/writes
-// the exact same state regardless of which tab is active, and PO
-// detection (issue #46) always runs on any file upload in either tab
-// (a product decision — detection is harmless best-effort, so there's no
-// real reason to disable it just because someone started on the Manual
-// tab).
-const TABS = [
-    { id: "pdf", label: "PDF Upload" },
-    { id: "manual", label: "Manual Entry" },
-];
-
 // Shared by both triggers that reset items the same way (a direct PO
 // change, or a Vendor change that swaps the PO indirectly) — names
 // whichever field the user actually touched, rather than a single
@@ -239,8 +223,6 @@ export default function InvoiceForm({ vendors, pos }) {
     // nowhere to put a refusal. The modal renders after `</form>`, beside
     // ConfirmDialog, for the same reason.
     const [dpState, dpFormAction, dpPending] = useActionState(createDirectPurchaseAction, {});
-    // Default "pdf" — the primary path most people try first.
-    const [activeTab, setActiveTab] = useState("pdf");
 
     // Local copy, not just the prop directly — issue #46's detection can
     // confirm a PO that was created *after* this page's initial server-side
@@ -677,7 +659,7 @@ export default function InvoiceForm({ vendors, pos }) {
                     level: detectionLevel,
                     message: `Detected PO${confirmed.length > 1 ? "s" : ""}: ${confirmed
                         .map((c) => c.poId)
-                        .join(", ")}${fullyInvoicedNote}${unconfirmedNote} — not auto-applied since a PO or items are already entered. Select manually above if needed.${withdrawnNote}`,
+                        .join(", ")}${fullyInvoicedNote}${unconfirmedNote} — not auto-applied since a PO or items are already entered. Select manually below if needed.${withdrawnNote}`,
                 });
                 return;
             }
@@ -1263,7 +1245,7 @@ export default function InvoiceForm({ vendors, pos }) {
             <div className="space-y-4">
                 {/* Issue #57 layout follow-up — Vendor and the primary PO
                     slot sit side by side, directly under the file upload
-                    section above (see the tab-order comment near the
+                    section above (see the block-order comment near the
                     bottom): the common path is "attach PDF, both auto-
                     fill" or "pick Vendor, PO narrows to it" — putting them
                     in the same row makes that pairing visible at a glance. */}
@@ -1579,14 +1561,6 @@ export default function InvoiceForm({ vendors, pos }) {
      * purpose so it may not open empty. Here the box is a control before it is a
      * picture: leaving it standing keeps the way to pick another file where it was,
      * and the section opposite already says which file is attached.
-     *
-     * UNDER BOTH TABS, and that follows from what a tab is here rather than from a
-     * separate decision: the tab changes the ORDER of the four blocks and nothing
-     * else, which `docs/briefs/invoices-new.md` calls the outermost structure of the
-     * screen. A pane that came and went with the tab would make the tab mean more
-     * than order, and it would take the document away mid-transcription from anyone
-     * who switched. A file attached last on `Manual Entry` gets the pane it has less
-     * use for, which is the cost of there being one rule.
      *
      * A FILE DROPPED ON THE DRAWN DOCUMENT REPLACES IT (#433). It did not while a
      * frame drew it — a frame is another document, and a drop on it went to the
@@ -2137,44 +2111,13 @@ export default function InvoiceForm({ vendors, pos }) {
                 </p>
             )}
 
-            <div className="flex gap-2 border-b border-zinc-300">
-                {TABS.map((tab) => (
-                    <button
-                        key={tab.id}
-                        type="button"
-                        onClick={() => setActiveTab(tab.id)}
-                        className={
-                            activeTab === tab.id
-                                ? "border-b-2 border-foreground px-3 pb-2 text-sm font-semibold"
-                                : "px-3 pb-2 text-sm text-zinc-500"
-                        }
-                    >
-                        {tab.label}
-                    </button>
-                ))}
-            </div>
-
-            {/* Same state, same fields, every time — the tab only ever
-                reorders these four blocks. PDF Upload leads with the file
-                (and whatever it auto-fills below); Manual Entry leads with
-                the fields to fill in by hand, with the still-required file
-                attachment last. Totals stays pinned right after Items in
-                both orders. */}
-            {activeTab === "pdf" ? (
-                <>
-                    {renderFileSection()}
-                    {renderHeaderFields()}
-                    {renderItemsSection()}
-                    {renderTotalsSection()}
-                </>
-            ) : (
-                <>
-                    {renderHeaderFields()}
-                    {renderItemsSection()}
-                    {renderTotalsSection()}
-                    {renderFileSection()}
-                </>
-            )}
+            {/* Issue #327 — one order of blocks and no tabs. The file comes first,
+                since nothing can be submitted without it and what it fills in is
+                what the fields below would otherwise be typed into. */}
+            {renderFileSection()}
+            {renderHeaderFields()}
+            {renderItemsSection()}
+            {renderTotalsSection()}
 
             <input type="hidden" name="itemsJson" value={JSON.stringify(items)} />
             {invoiceFile.status === "done" && (

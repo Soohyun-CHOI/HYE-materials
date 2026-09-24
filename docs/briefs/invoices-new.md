@@ -20,17 +20,15 @@ orders it refers to.
 
 **identity.** The heading `New Invoice`, and a link to the invoice list.
 
-**The form is two tabs, `PDF Upload` and `Manual Entry`, and both are always
-present.** The tab changes nothing but the order of four blocks — the file
-section, the header fields, `Items`, and the totals — so every field exists under
-either and switching never loses what is typed. `PDF Upload` leads with the file
-and whatever it auto-fills below; `Manual Entry` leads with the fields to fill in
-by hand and puts the still-required file last. **This is the outermost structure
-on the screen**, and a design that draws one sequence of blocks has drawn one of
-the two.
+**The form is four blocks in one order, and there are no tabs:** the `Invoice
+File` section, the header fields, `Items`, and the totals. The file leads because
+nothing can be submitted without it, and what it fills in is what the fields below
+would otherwise be typed into. A reader typing everything by hand meets the same
+fields in the same order, so a design draws one sequence of blocks and no second
+arrangement of it.
 
-**action — the vendor,** a required dropdown, first because it narrows everything
-below it.
+**action — the vendor,** a required dropdown, first of the header fields because it
+narrows everything below it.
 
 **action — the vendor's own invoice number,** with the placeholder
 `The vendor's own invoice number, as printed on their document`. The placeholder is
@@ -185,11 +183,6 @@ above it is the other.
 the `Invoice File` section, and the form the same width as above the boundary.
 Nothing else about the screen changes.
 
-**All of it is under both tabs**, because the tab only reorders the four blocks.
-So `Manual Entry`, which puts the `Invoice File` section last, still has the box
-from the first paint — the section's position and the column's are two different
-things.
-
 **When a file is attached, the app tries to read the order numbers off it.**
 Detection runs on any upload and is best-effort, so it always produces a message,
 and the message has several distinct voices at two levels — informational, or a
@@ -335,8 +328,9 @@ when the modal opens, not when the page loads, so its select reads
 number of cents:** the form is refused on submit with
 `Every item's quantity has to be a whole number.` or
 `Every item's unit price has to be a whole number of cents.` These sit with the
-form's other submit-time refusals, above the tabs, and they are the only place the
-app states this rule to a reader — no control marks either figure as it is typed.
+form's other submit-time refusals, at the head of the form, and they are the only
+place the app states this rule to a reader — no control marks either figure as it
+is typed.
 
 **When one of the money row's four figures is not a whole number of cents:** the
 same treatment, in a sentence naming the figure —
@@ -361,10 +355,10 @@ enforcing it. The edit screen's copies of these controls behave differently and
 no better; its brief has the measurement.
 
 **When something is still missing, the modal says which, and in the order a
-reader would fix it:** the vendor at the top of the form, then the attached file,
-then the Job inside the modal. The confirm button is disabled while any of them
-is. The same rule answers the server, so the button never offers what the action
-declines.
+reader would fix it:** the attached file, which the form opens with, then the
+vendor under it, then the Job inside the modal. The confirm button is disabled
+while any of them is. The same rule answers the server, so the button never
+offers what the action declines.
 
 **When the reader has just recorded one:** a green line above the form, naming
 the record and the job it is waiting on, over an empty form. There is nothing to

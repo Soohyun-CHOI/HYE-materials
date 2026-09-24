@@ -261,8 +261,8 @@ than a string in a file.
 |---|---|---|
 | `{Item Name} {Size} — {qty} {unit}` | `/invoices/[invoiceId]` | `lib/invoiceOrderBreakdown.js:169`, `ORDER_BREAKDOWN_COPY.charged` |
 | `That item` | `/invoices/[invoiceId]` | `lib/invoiceOrderBreakdown.js:179`, the `||` fallback in `itemLabel` |
-| `{itemName}{ — size}{ (Uninvoiced: n)}` | `/invoices/new` | `InvoiceForm.js:1494-1498`, four containers in one `<option>` |
-| `Changing the {Vendor\|PO} will clear the items you've entered so far. Continue?` | `/invoices/new` | `InvoiceForm.js:180`, `confirmChangeMessage` |
+| `{itemName}{ — size}{ (Uninvoiced: n)}` | `/invoices/new` | `InvoiceForm.js:1723-1727`, four containers in one `<option>` |
+| `Changing the {Vendor\|PO} will clear the items you've entered so far. Continue?` | `/invoices/new` | `InvoiceForm.js:182`, `confirmChangeMessage` |
 
 The first three have no literal run long enough to be worth finding — ` — `,
 ` (Uninvoiced: ` and a space are what a tool would report. The fallback is group B
