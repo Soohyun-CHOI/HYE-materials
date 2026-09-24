@@ -7,6 +7,7 @@ import { getPRByRecordId, updatePR } from "@/lib/airtable/purchaseRequests";
 import { getVendorByRecordId } from "@/lib/airtable/vendors";
 import { getUserByRecordId } from "@/lib/airtable/users";
 import { generateAndAttachPOPdf, HYE_BUYER_NAME } from "@/lib/poPdf";
+import { PO_QUOTATIONS_COPY, QUOTATION_UNREADABLE } from "@/lib/poQuotations";
 import { notifyPOSigned } from "@/lib/notifications";
 import { isPOWithdrawn, withdrawPOAsRequester } from "@/lib/poWithdraw";
 import { canSendPOToVendor, getPOSendEligibility, PO_SENT_STATUS, SEND_COPY } from "@/lib/poSend";
@@ -99,7 +100,9 @@ async function signPOHandler(prevState, formData) {
             // Non-fatal by design (see comment above) — rolling back the
             // signature here would contradict the "an approval, once made,
             // stands" model. It stays committed; the retry lives on the PO
-            // page (regeneratePDFAction).
+            // page (regeneratePDFAction). A quotation the document cannot carry
+            // (#40) lands here as well, and it is that retry which names it — the
+            // same split as #308's, where the automatic path stays silent.
             console.error("PDF generation failed after PO signing (non-fatal, retry available on PO page)", err);
         }
 
@@ -182,6 +185,11 @@ export async function regeneratePDFAction(prevState, formData) {
             await generateAndAttachPOPdf(po.id);
         } catch (err) {
             console.error("Manual PDF regeneration failed", err);
+            // #40 — THE ONE FAILURE THIS CAN NAME, AND THE ONE IT MUST: a quotation the
+            // document cannot carry fails every press the same way until its file is
+            // replaced, so `try again` would be false and would invite a loop. The
+            // shape is #308's on the order's own retry.
+            if (err?.code === QUOTATION_UNREADABLE) return { error: PO_QUOTATIONS_COPY.unreadable(err.quotations) };
             return { error: "Something went wrong generating the PDF. Please try again." };
         }
 

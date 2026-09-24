@@ -25,6 +25,14 @@
 // the vendor has the order. `already-sent` is therefore deliberately absent from the
 // refusal map, and that absence is asserted rather than assumed.
 //
+// THE FOURTH IS #40's, AND IT IS A FAILURE THAT ISSUE MADE REACHABLE. Every quotation
+// is appended to the order's document now, so a document can outgrow what Resend will
+// carry — which one quotation under the 20 MiB upload ceiling never could. Past that
+// the send answered `try again`, recorded nothing and left the button to fail the same
+// way forever, which is #308's loop on a different button. So the size is judged
+// before the press, from the attachment's own `size`; the ceiling is typed out below
+// and its derivation is checked both ways — the figure fits, the next MiB up does not.
+//
 // WHAT THIS TIER CANNOT SEE, and it is the one thing that has to be added by hand:
 // the `Sent to Vendor` option on `Purchase Orders.Status`. Airtable refuses an option
 // list PATCH (measured: 422 `INVALID_REQUEST_UNKNOWN`), so the option is a UI edit,
@@ -37,11 +45,13 @@ import { readFileSync } from "node:fs";
 import {
     canSendPOToVendor,
     getPOSendEligibility,
+    MAX_SEND_DOCUMENT_BYTES,
     PO_SENT_STATUS,
     SEND_COPY,
     SEND_REFUSAL,
 } from "../../../lib/poSend.js";
 import { isPOSigned, PO_SIGNED_STATUSES } from "../../../lib/poUnsigned.js";
+import { MAX_UPLOAD_BYTES } from "../../../lib/uploadLimit.js";
 import { callsBefore, callsFunction, parseFile, repoPath, resolveFunction } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -136,10 +146,12 @@ export function run({ check, assert, log }) {
     }
     // The predicate's own refusals, behavioral because the module is pure.
     check("a sendable order is sendable", getPOSendEligibility({ po: SENDABLE, vendorEmail: "a@b.co" }).eligible, true);
+    const withSize = (size) => ({ ...SENDABLE, poPdfFile: [{ ...SENDABLE.poPdfFile[0], size }] });
     const cases = [
         ["withdrawn", { ...SENDABLE, status: "Withdrawn" }, "a@b.co"],
         ["unsigned", { ...SENDABLE, presidentSigned: false }, "a@b.co"],
         ["no-document", { ...SENDABLE, poPdfFile: [] }, "a@b.co"],
+        ["too-large", withSize(MAX_SEND_DOCUMENT_BYTES + 1), "a@b.co"],
         ["no-address", SENDABLE, ""],
         ["already-sent", { ...SENDABLE, sentAt: "2026-08-25T10:00:00.000Z" }, "a@b.co"],
     ];
@@ -162,6 +174,40 @@ export function run({ check, assert, log }) {
         getPOSendEligibility({ po: { ...SENDABLE, status: "Signed", sentAt: "2026-08-25T10:00:00.000Z" }, vendorEmail: "a@b.co" }).reason,
         "already-sent"
     );
+
+    // ── 3a. the size a mail can carry (#40) ─────────────────────────────────
+    log("");
+    log("a document larger than an email can carry is refused before the press (#40):");
+    // TYPED OUT, per #353's rule for a figure: an assertion written in terms of the
+    // constant would hold for any value it took.
+    check("the ceiling is 27 MiB", MAX_SEND_DOCUMENT_BYTES, 28311552);
+    // THE DERIVATION, BOTH WAYS. Resend refuses a mail over 40MB with its attachments
+    // base64-encoded; on the strictest reading that is 40,000,000 bytes, and a MIME
+    // part writes 78 bytes (76 characters and a line break) for every 57 of document.
+    const encoded = (bytes) => Math.ceil((bytes * 78) / 57);
+    check("  it encodes under 40,000,000 bytes", encoded(MAX_SEND_DOCUMENT_BYTES) < 40_000_000, true);
+    check("  and the next whole MiB up would not", encoded(28 * 1024 * 1024) > 40_000_000, true);
+    // WHY THE CHECK EXISTS AT ALL, stated as arithmetic: one quotation at the upload
+    // ceiling behind the order's own pages — all a document could carry before #40 —
+    // is under this ceiling, so no order the app could send before is refused now.
+    check("  one quotation at the upload ceiling still sends", MAX_UPLOAD_BYTES + 64 * 1024 < MAX_SEND_DOCUMENT_BYTES, true);
+    check("  two of them could not", 2 * MAX_UPLOAD_BYTES > MAX_SEND_DOCUMENT_BYTES, true);
+    // STRICTLY GREATER, uploadLimit.js's convention: the ceiling itself is sent.
+    check("a document of exactly the ceiling is sent", getPOSendEligibility({ po: withSize(MAX_SEND_DOCUMENT_BYTES), vendorEmail: "a@b.co" }).eligible, true);
+    check("  one byte more is refused", getPOSendEligibility({ po: withSize(MAX_SEND_DOCUMENT_BYTES + 1), vendorEmail: "a@b.co" }).reason, "too-large");
+    // A `size` Airtable has not filled in refuses nothing — the send finds out.
+    check("  and a document whose size is not known yet is not refused", getPOSendEligibility({ po: SENDABLE, vendorEmail: "a@b.co" }).eligible, true);
+    // Ahead of the address, since nobody should add one only to be told this.
+    check(
+        "  it is said before a missing address is",
+        getPOSendEligibility({ po: withSize(MAX_SEND_DOCUMENT_BYTES + 1), vendorEmail: "" }).reason,
+        "too-large"
+    );
+    // The action re-asks it before it reads the document, so an oversized one is never
+    // fetched only to be refused.
+    if (handler) {
+        assert("the action asks before it fetches the document", callsBefore(handler, "getPOSendEligibility", "fetch"));
+    }
 
     // ── 3b. WHO may press, which stopped being a role ───────────────────────
     log("");
@@ -194,7 +240,7 @@ export function run({ check, assert, log }) {
     log("every refusal the predicate can return has words:");
     // `already-sent` IS DELIBERATELY NOT IN THE REFUSAL MAP (#281). It is not a
     // failure — the vendor has the order, which is what the presser wanted — so it has
-    // its own voice and its own rendering. Four refusals, five reasons.
+    // its own voice and its own rendering. Five refusals, six reasons.
     const reasons = new Set(cases.map(([r]) => r));
     for (const r of reasons) {
         const isRefusal = r !== "already-sent";
@@ -205,6 +251,13 @@ export function run({ check, assert, log }) {
         );
     }
     check("and no sentence for a reason nothing returns", Object.keys(SEND_REFUSAL).length, reasons.size - 1);
+    // THE SIZE REFUSAL SAYS WHAT TO DO, because nothing on the page cures it: the
+    // document is what it is, and #281 refuses to replace one that exists.
+    const tooLarge = SEND_REFUSAL["too-large"];
+    assert("the size refusal names the ceiling", tooLarge.includes("27 MB"));
+    assert("  says where the document is and that it has to go another way", /download it above/i.test(tooLarge) && /another way/i.test(tooLarge));
+    assert("  says the order will still read as not sent", /still show as not sent/i.test(tooLarge));
+    assert("  and never says to try again", !/try again/i.test(tooLarge));
     // THE TWO FAILURE MESSAGES SAY OPPOSITE THINGS AND MUST NOT BE SWAPPED. One says
     // nothing was sent; the other says the vendor has it. A reader acting on the wrong
     // one either sends twice or never sends at all.

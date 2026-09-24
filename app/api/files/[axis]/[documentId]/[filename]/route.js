@@ -40,8 +40,10 @@ import { getQuotationByQuotationId } from "@/lib/airtable/quotations";
 // the other defects #331 carries are Airtable's headers: the saved name loses a space
 // (`HYE logo.png` came back as `filename="HYElogo.png"`) and the type decides whether
 // a click views or saves. Cost is bounded by #146's ceiling at 20 MB in and 20 MB
-// out; the largest file anybody has actually put through this app is 493 KB, and the
-// body is piped rather than buffered.
+// out for every file a person uploaded; the one file served here that nobody uploaded
+// is the order document, which since #40 carries every quotation on its request and
+// so can reach that ceiling once per quotation. The largest file anybody has actually
+// put through this app is 493 KB, and the body is piped rather than buffered.
 //
 // `inline` IS LOAD-BEARING, not a preference. Inside the app nothing frames this
 // response any more — since #433 the viewer reads a PDF's bytes and draws the pages
