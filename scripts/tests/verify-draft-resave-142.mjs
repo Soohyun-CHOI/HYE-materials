@@ -39,7 +39,7 @@ import { createPR } from "../../lib/airtable/purchaseRequests.js";
 import { createQuotation, getQuotationsByPR } from "../../lib/airtable/quotations.js";
 import { loadPRDraft } from "../../lib/prDraft.js";
 import { shouldReuseQuotation } from "../../lib/quotationReuse.js";
-import { isOurBlobUrl } from "../../lib/blobIngest.js";
+import { isOurBlobUrl } from "../../lib/fileSource.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";

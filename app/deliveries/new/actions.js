@@ -13,6 +13,7 @@ import { invoiceFromOption, planPairings } from "@/lib/deliveryInvoiceMatch";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getPRByRecordId } from "@/lib/airtable/purchaseRequests";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
+import { isOurBlobUrl } from "@/lib/fileSource";
 import { getDeliveryCandidates } from "@/lib/deliveryCandidates";
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
@@ -112,6 +113,16 @@ export async function createDeliveryAction(prevState, formData) {
         // disabled client-side until the upload finishes, but a Server Action is
         // callable directly regardless of what the page rendered.
         if (!fileUrl) return { error: "Attach a photo of the packing list." };
+        // Issue #438 — the photo this form uploaded, which is a url on our Blob
+        // store, and nothing else: Airtable fetches and keeps whatever an attachment
+        // url points at, and here it keeps it as the evidence a delivery happened.
+        // Before the PO read and the create, so a call turned away writes nothing;
+        // the reader is told what they can act on and the real reason is logged —
+        // createDirectPurchaseAction's shape.
+        if (!isOurBlobUrl(fileUrl)) {
+            console.error("createDeliveryAction refused a packing list url that is not on our Blob store");
+            return { error: "Attach a photo of the packing list." };
+        }
 
         // A typed PO ID has to resolve, has to belong to this job, and has to be that
         // vendor's. A wrong one is a mistyped or mistaken reference, and guessing

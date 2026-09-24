@@ -8,13 +8,24 @@
 // catches.
 //
 // lib/quotationReuse.js imports nothing, which is why this can be an offline
-// check at all — the caller computes the two facts precisely so the rule itself
+// check at all — the caller computes the facts precisely so the rule itself
 // stays reachable without credentials.
+//
+// #438 ADDED THE WHOLE ENTRY'S FATE, and its mutant is the permissive one again:
+// a plan that lets an entry naming a dead record, or naming none, carry a url that
+// is not ours through to `create` hands Airtable an address it will fetch and keep.
+// So the refusals are asserted first among the new cases, and the reuse case beside
+// them, since that is the one url that is not ours and still belongs.
 
-import { shouldReuseQuotation } from "../../../lib/quotationReuse.js";
+import {
+    QUOTATION_ENTRY,
+    QUOTATION_REUSE_COPY,
+    planQuotationEntry,
+    shouldReuseQuotation,
+} from "../../../lib/quotationReuse.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Draft re-save — shouldReuseQuotation (#142)";
+export const title = "Draft re-save — shouldReuseQuotation (#142) and each entry's fate (#438)";
 
 export function run({ check }) {
     // The case the bug was: hydrated from a Draft, file untouched, so the url
@@ -91,6 +102,74 @@ export function run({ check }) {
         false
     );
     check("an empty argument object refuses", shouldReuseQuotation({}), false);
+
+    // ── #438 — what a save does with each entry ────────────────────────────────
+    const plan = (facts) =>
+        planQuotationEntry({ recordId: "", hasFile: false, hasCode: false, isLiveRecord: false, isOurFile: false, ...facts });
+
+    // THE TWO REFUSALS FIRST: the url would reach Airtable and is not ours.
+    check(
+        "an entry naming a record the draft no longer has, url not ours -> refused as changed elsewhere",
+        plan({ recordId: "recGone", hasFile: true, isLiveRecord: false, isOurFile: false }),
+        QUOTATION_ENTRY.changedElsewhere
+    );
+    check(
+        "an entry naming no record, url not ours -> refused as not our file",
+        plan({ recordId: "", hasFile: true, isOurFile: false }),
+        QUOTATION_ENTRY.notOurFile
+    );
+    check(
+        "  and a code beside it does not rescue it",
+        plan({ recordId: "", hasFile: true, hasCode: true, isOurFile: false }),
+        QUOTATION_ENTRY.notOurFile
+    );
+
+    // THE ONE URL THAT IS NOT OURS AND STILL BELONGS: kept by its record, never written.
+    check(
+        "hydrated entry whose record is live, file untouched -> reuse",
+        plan({ recordId: "recQ1", hasFile: true, isLiveRecord: true, isOurFile: false }),
+        QUOTATION_ENTRY.reuse
+    );
+    check(
+        "  and a live code-only entry is reused too",
+        plan({ recordId: "recQ2", hasCode: true, isLiveRecord: true }),
+        QUOTATION_ENTRY.reuse
+    );
+
+    check(
+        "a file this session uploaded, no record -> create",
+        plan({ recordId: "", hasFile: true, isOurFile: true }),
+        QUOTATION_ENTRY.create
+    );
+    check(
+        "a replaced file on a live entry -> create",
+        plan({ recordId: "recQ1", hasFile: true, isLiveRecord: true, isOurFile: true }),
+        QUOTATION_ENTRY.create
+    );
+    check(
+        "a file uploaded again on an entry whose record went -> create, not refused",
+        plan({ recordId: "recGone", hasFile: true, isLiveRecord: false, isOurFile: true }),
+        QUOTATION_ENTRY.create
+    );
+    check(
+        "a code with no file on a dead record -> create, since no url reaches Airtable",
+        plan({ recordId: "recGone", hasCode: true, isLiveRecord: false }),
+        QUOTATION_ENTRY.create
+    );
+    check("no file and no code -> skip (#72)", plan({ recordId: "recQ1", isLiveRecord: true }), QUOTATION_ENTRY.skip);
+
+    // The answers are a closed set, and every one of them is reachable above.
+    check(
+        "the plan's answers are exactly five",
+        Object.values(QUOTATION_ENTRY).sort().join(","),
+        "changed-elsewhere,create,not-our-file,reuse,skip"
+    );
+
+    check(
+        "the sentence a reader meets for the two-tab case",
+        QUOTATION_REUSE_COPY.changedElsewhere,
+        "One of this draft's quotations was changed in another tab. Reopen the draft and try again."
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

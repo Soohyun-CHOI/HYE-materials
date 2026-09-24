@@ -19,10 +19,14 @@
 // with `npm test`; this file no longer repeats them.
 //
 // What is left here is everything that genuinely needs credentials or a server:
-//   B — the Blob host predicate the detect-po SSRF guard uses. Imports the real
-//       isOurBlobUrl; #147 deleted the hand-copy that used to live here. Stays
-//       credentialed because lib/blobIngest.js imports the Airtable client,
-//       which throws at module load without AIRTABLE_API_KEY.
+//   B — gone to the offline tier in #438. It was the Blob host predicate the
+//       detect-po SSRF guard uses, credentialed only because the predicate lived
+//       in lib/blobIngest.js behind that module's import of the Airtable client.
+//       It is lib/fileSource.js now, imports nothing, and means OUR store rather
+//       than any host ending in the Vercel suffix, so the six cases that were
+//       here — one of which expected an arbitrary store to pass — are
+//       scripts/tests/offline/file-source.mjs's, beside the check that the route
+//       asks it before it fetches.
 //   C — PO generation against a real throwaway PR+PO: fixture, then
 //       idempotency. #147 deleted this part's copy of generatePOAction's Admin
 //       guard; offline/authz-structure.mjs and offline/authz-wrappers.mjs cover
@@ -36,8 +40,6 @@
 // AUTHZ_VERIFY_BASE_URL. Exit codes: 0 all clear, 1 something failed, 2 clean
 // but incomplete (a part could not run).
 
-import { readFileSync } from "fs";
-import { isOurBlobUrl } from "../../lib/blobIngest.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
@@ -46,7 +48,7 @@ import { TABLES } from "../../lib/airtable/client.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 
-printProvenance({ title: "verify-authz — Admin route refusals, the Blob host predicate, PO idempotency" });
+printProvenance({ title: "verify-authz — Admin route refusals and PO idempotency" });
 
 let pass = true;
 let incomplete = false;
@@ -57,23 +59,6 @@ function check(label, actual, expected) {
     log(`  ${ok ? "PASS" : "FAIL"}  ${label}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
     return ok;
 }
-
-// ---------------------------------------------------------------------------
-console.log("Part B — isOurBlobUrl, the host predicate the detect-po SSRF guard uses:");
-// #147: this used to be a local copy named blobUrlAllowed. It is the real
-// function now, and the route calls the same one, so there is nothing left to
-// drift. The six cases are unchanged so the before/after is comparable.
-check("our Blob host allowed", isOurBlobUrl("https://abc123.public.blob.vercel-storage.com/inv.pdf"), true);
-check("http (non-https) Blob rejected", isOurBlobUrl("http://abc123.public.blob.vercel-storage.com/x.pdf"), false);
-check("cloud metadata IP rejected", isOurBlobUrl("https://169.254.169.254/latest/meta-data/"), false);
-check("arbitrary host rejected", isOurBlobUrl("https://evil.example.com/x.pdf"), false);
-check("look-alike host rejected", isOurBlobUrl("https://public.blob.vercel-storage.com.evil.com/x"), false);
-check("malformed URL rejected", isOurBlobUrl("not a url"), false);
-check(
-    "wiring — detect-po imports the shared predicate rather than restating it",
-    readFileSync(new URL("../../app/api/invoices/detect-po/route.js", import.meta.url), "utf8").includes("isOurBlobUrl"),
-    true
-);
 
 // ---------------------------------------------------------------------------
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion

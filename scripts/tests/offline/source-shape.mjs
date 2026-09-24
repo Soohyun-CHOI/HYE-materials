@@ -376,11 +376,13 @@ export function run(reporter) {
     // The same rule on the delivery side (#162), where the photo IS editable in
     // place — so `Packing List File` has TWO writers rather than one, and the
     // shape that makes that safe is what these checks pin. createDelivery writes
-    // it at creation; replaceDeliveryPhoto is the narrow second writer and must
-    // call isOurBlobUrl, which is what makes #142's failure mode (re-submitting an
-    // url Airtable issued) unreachable by construction rather than by discipline;
+    // it at creation; replaceDeliveryPhoto is the narrow second writer; and
     // updateDelivery, which the in-place edit of date and note goes through, must
-    // not touch the field at all.
+    // not touch the field at all. What makes #142's failure mode (re-submitting an
+    // url Airtable issued) unreachable by construction is the precondition both
+    // writers ask since #438 — a url on our own Blob store — and that is held in
+    // `offline/file-source.mjs` for every attachment writer at once, which is why
+    // the replacer's own `isOurBlobUrl` assertion left this file.
     const deliveriesTable = fileOf("lib/airtable/deliveries.js");
     const isPackingListKey = (n) =>
         n.type === "Property" &&
@@ -404,11 +406,6 @@ export function run(reporter) {
     assert(
         "the other is inside replaceDeliveryPhoto",
         packingListWrites.filter((w) => within(w, replacePhotoFn)).length === 1
-    );
-    check(
-        "replaceDeliveryPhoto refuses a url that is not ours (isOurBlobUrl)",
-        Boolean(replacePhotoFn) && callsFunction(replacePhotoFn, "isOurBlobUrl"),
-        true
     );
     const updateDeliveryFn = resolveFunction(deliveriesTable.ast, "updateDelivery");
     assert(

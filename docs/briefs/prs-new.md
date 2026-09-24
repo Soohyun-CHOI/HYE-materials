@@ -170,6 +170,14 @@ show. Replacing the file on a hydrated entry moves it to the second reading. The
 first said `Uploaded` too until #331, which was false on a resumed draft — nothing
 was uploaded in that session.
 
+**When the same draft was saved from another tab after that tab replaced or removed
+one of its quotations:** saving or submitting here is refused and nothing is
+written — `One of this draft's quotations was changed in another tab. Reopen the
+draft and try again.` (#438). This tab is still holding a quotation the draft no
+longer has, and saving it used to put the old file back, or an empty one once its
+link had expired. Reopening shows the draft as it is now; picking the file again on
+that entry is the other way through, since a file picked here is a new upload.
+
 **When a picked file is over the size limit:** the same red line as a failed
 upload, but immediately and before anything is sent —
 `This file is larger than the upload limit`, then the file's own size against the
