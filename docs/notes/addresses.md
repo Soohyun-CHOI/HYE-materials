@@ -362,7 +362,10 @@ READER's own request history costs, because `getDraftsByRequester` walks every
 request its requester ever raised; the 22 was an Admin with 27 of them and this
 is a requester with none. Recorded in that file beside its own figure, because
 two numbers for one screen with no account beside them is the thing a later
-reader cannot resolve.
+reader cannot resolve. **#248 took that dependency out**: the Drafts cost every
+reader the same one query since then, so what an account has filed no longer
+moves this page's figure — whether it holds a Draft still does, through the
+resume prompt's load.
 
 ---
 

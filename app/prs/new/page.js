@@ -47,10 +47,11 @@ async function renderNewPRPage({ searchParams }) {
 
     const { draft: draftParam } = await searchParams;
 
-    // The Requester's own saved Drafts, most-recent first (Created At, #105),
-    // scoped to them by getDraftsByRequester reading their own reverse-link —
-    // never anyone else's. Fetched on every load: #74's "Open a saved draft"
-    // list needs the full set, and #73's resume prompt needs the most recent.
+    // The Requester's own saved Drafts, most-recent first (Created At, #105):
+    // the base's Drafts, narrowed by getDraftsByRequester to the ones this
+    // reader requested and never anyone else's (#248). Fetched on every load:
+    // #74's "Open a saved draft" list needs the full set, and #73's resume
+    // prompt needs the most recent.
     const drafts = await getDraftsByRequester(user.id);
 
     // Issue #74 — lightweight row labels for the list modal, built entirely
