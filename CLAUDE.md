@@ -129,11 +129,12 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/poDeliveryAddress.js` — the address an order freezes (#386): read from the request and never from the job.
 - `lib/poUnsigned.js` — `isPOUnsigned` and the signal wherever an order is offered for an invoice (#198). `AWAITING_SIGNATURE_COPY` (#292) is the mail asking the President to sign.
 - `lib/poPickerOptions.js` — which orders one slot's PO dropdown may offer (#242).
-- `lib/blobIngest.js` — `confirmIngestThenDelete`, and `isOurBlobUrl` (also the detect-po SSRF host predicate).
+- `lib/blobIngest.js` — `confirmIngestThenDelete`.
+- `lib/fileSource.js` — `isOurBlobUrl`, our own store and no other (#438), and `assertOurBlobFiles`, every attachment writer's backstop.
 - `lib/fileLinks.js` — where an uploaded file is reached (#331), and the viewer's words. Pure — `"use client"` files import it.
 - `lib/fileView.js` — how a drawn file is sized, turned and sharpened (#433).
 - `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, the refusal's words, and the guard every upload form opens its try with.
-- `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record.
+- `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record, and `planQuotationEntry`, what a save does with each entry (#438).
 - `lib/directPurchase.js` — the way out of an invoice with no order (#272): the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
 - `lib/directPurchaseClaim.js` — the strip's rows and the Draft a site raises from one. Credentialed.
 - `lib/prKind.js` — which of three kinds a request is (#272), the mark for each and the signer's sentence.
@@ -272,6 +273,7 @@ Every user file is written to Vercel Blob first and then handed to Airtable as a
 
 - **Airtable's own attachment URLs die at a wall-clock instant, so nothing durable may store one and NO SCREEN RENDERS ONE (#331)** — a file is served by `/api/files`, which re-reads per request. **Re-submitting one as an attachment is data loss.**
 - **One size ceiling for every user upload, minted into the token and never compared after the bytes land** (#146) — a refusal that measures late leaves an object to clean up, and a multipart request is refused outright because the signed ceiling does not bind one.
+- **Every attachment url is on our own Blob store (#438).** An action handed a caller's url refuses any other before its first write; the writer throws as the backstop. Held by `offline/file-source.mjs`.
 
 Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persistPRFromForm` — it holds the ingest sequence, the confirmation signal, the poll figures and the writer counts.
 
@@ -296,7 +298,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - **A READ STATE IS NEVER REPLACED BY THE CONTROL THAT EDITS IT (#318).** A control may be absent for a reader who may not act, or closed for one who may; the fact it edits is stated either way and never twice.
 - **Caller obligation for the flag helpers:** `requireAdmin()` only *reports* the decision. A caller that does not act on `{ authorized }` protects nothing.
 - **Re-authorization rule:** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI. A page being the only caller is not a substitute — Route Handlers and Server Actions are reachable directly.
-- Any route that fetches a caller-supplied URL also restricts it to our Vercel Blob host, independent of auth.
+- Any route or action that fetches a caller-supplied URL, or hands one to Airtable, restricts it to our own Blob store, independent of auth.
 - **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only.
 - **Row-scoped, not role-scoped:** `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]`, `/invoices`, `/invoices/[invoiceId]`. All need only an active session to reach, then decide per record through `canViewPR` — for the invoice routes via `lib/invoiceVisibility.js`, which owns the walk and no predicate of its own. **A refusal renders the ordinary not-found text**: never confirm that a record exists outside someone's scope.
 - **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails.

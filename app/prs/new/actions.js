@@ -15,9 +15,10 @@ import { createItem, getItemsByPR } from "@/lib/airtable/prItems";
 import { createSigner, getSignersByPR } from "@/lib/airtable/prSigners";
 import { createQuotation, getQuotationsByPR, updateQuotation } from "@/lib/airtable/quotations";
 import { getUserByRecordId } from "@/lib/airtable/users";
-import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
+import { confirmIngestThenDelete } from "@/lib/blobIngest";
+import { isOurBlobUrl } from "@/lib/fileSource";
 import { notifyCurrentTurn } from "@/lib/notifications";
-import { shouldReuseQuotation } from "@/lib/quotationReuse";
+import { QUOTATION_ENTRY, QUOTATION_REUSE_COPY, planQuotationEntry } from "@/lib/quotationReuse";
 // #170 — the merge rule and the empty-row test, both pure and both shared with the
 // form. `isEmptyItemRow` moved there rather than being restated: the merge needs the
 // same answer this write path needs.
@@ -204,6 +205,11 @@ async function destroyChildren({ itemIds = [], signerIds = [], quotationIds = []
 // that narrows the window without closing it — but to stop rewriting an
 // attachment that never changed: such an entry keeps its existing Quotation
 // record, and only a genuinely new upload creates one.
+//
+// Issue #438 — AND A URL THAT WOULD BE WRITTEN IS ONE OF OURS, OR NOTHING IS
+// WRITTEN. The reads below come first so that every entry's fate is decided before
+// the first write, and a refusal comes back as `{ refusal }` — the sentence for the
+// caller to return — with the Draft exactly as it was.
 async function persistPRFromForm({ userId, state }) {
     const {
         existingDraftRecordId,
@@ -218,14 +224,55 @@ async function persistPRFromForm({ userId, state }) {
     } =
         state;
 
-    let pr;
+    let existing = null;
     let oldChildIds = null;
-
     if (existingDraftRecordId) {
-        const existing = await getPRByRecordId(existingDraftRecordId);
+        existing = await getPRByRecordId(existingDraftRecordId);
         if (!existing) throw new Error("Draft record not found");
-        pr = { id: existing.id, prId: existing.prId };
         oldChildIds = await collectChildIds(existing.id);
+    }
+
+    // Which Quotation records this PR actually has right now. A recordId the
+    // form carries that is absent here is not reusable: two tabs on the same
+    // Draft, one of which replaces a file and saves, is enough to make one,
+    // since a replacement is a destroy-and-create and the other tab's copy of
+    // that record id is dead afterwards. Such an entry fell through to the
+    // create path with a url that may have expired — the hole #142 narrowed —
+    // and is refused since #438 instead.
+    const liveQuotationIds = new Set(oldChildIds?.quotationIds ?? []);
+
+    // Issue #438 — WHAT EACH ENTRY BECOMES, DECIDED ONCE AND BEFORE ANYTHING IS
+    // WRITTEN. The rule and its reasoning live in lib/quotationReuse.js; this
+    // supplies the facts. The loop below walks this same plan, so the entry the
+    // refusal judged and the entry the loop writes cannot be judged twice.
+    const plan = quotations.map((q) => ({
+        q,
+        fate: planQuotationEntry({
+            recordId: q.recordId,
+            hasFile: Boolean(q.url),
+            hasCode: Boolean((q.vendorQuotationCode || "").trim()),
+            isLiveRecord: liveQuotationIds.has(q.recordId),
+            isOurFile: isOurBlobUrl(q.url),
+        }),
+    }));
+    const refused = plan.find(
+        ({ fate }) => fate === QUOTATION_ENTRY.changedElsewhere || fate === QUOTATION_ENTRY.notOurFile
+    );
+    if (refused) {
+        // The reader is told what they can act on; the real reason is logged —
+        // createDirectPurchaseAction's shape.
+        console.error(`persistPRFromForm refused a quotation file url that is not on our Blob store (${refused.fate})`);
+        return {
+            refusal:
+                refused.fate === QUOTATION_ENTRY.changedElsewhere
+                    ? QUOTATION_REUSE_COPY.changedElsewhere
+                    : "Every quotation needs a file attached.",
+        };
+    }
+
+    let pr;
+    if (existing) {
+        pr = { id: existing.id, prId: existing.prId };
         await updatePR(existing.id, {
             disciplineId,
             vendorId,
@@ -258,14 +305,6 @@ async function persistPRFromForm({ userId, state }) {
     // generation is fully in place: a reused record belongs to the previous
     // generation, and the rollback cannot undo a write to it.
     const pendingCodeUpdates = [];
-    // Which Quotation records this PR actually has right now. A recordId the
-    // form carries that is absent here is not reusable and falls through to
-    // the create path — with a url that may have expired, which is the hole
-    // #142 narrows rather than closes. Reaching it needs no Airtable edit:
-    // two tabs on the same Draft, one of which replaces a file and saves, is
-    // enough, since a replacement is a destroy-and-create and the other tab's
-    // copy of that record id is dead afterwards.
-    const liveQuotationIds = new Set(oldChildIds?.quotationIds ?? []);
 
     try {
         // Quotations first — each becomes its own record and items link to
@@ -274,28 +313,22 @@ async function persistPRFromForm({ userId, state }) {
         // keeps any entry with a file OR a typed code; fully-empty entries
         // are dropped (issue #72 decision).
         const quotationByIndex = [];
-        for (const q of quotations) {
-            const code = (q.vendorQuotationCode || "").trim();
-            if (!q.url && !code) {
+        for (const { q, fate } of plan) {
+            if (fate === QUOTATION_ENTRY.skip) {
                 quotationByIndex.push(null);
                 continue;
             }
 
-            // Issue #142 — the rule and its reasoning live in
-            // lib/quotationReuse.js; this supplies the two facts it needs.
-            // Picking a new file goes through upload(), so a replacement reads
-            // as a fresh upload and takes the create path below with a url
-            // Airtable can actually fetch. Editing only the code leaves the url
-            // alone, so the file is kept and only the code is written.
-            if (
-                shouldReuseQuotation({
-                    recordId: q.recordId,
-                    isLiveRecord: liveQuotationIds.has(q.recordId),
-                    isFreshUpload: isOurBlobUrl(q.url),
-                })
-            ) {
+            // Issue #142 — picking a new file goes through upload(), so a
+            // replacement reads as a fresh upload and takes the create path below
+            // with a url Airtable can actually fetch. Editing only the code leaves
+            // the url alone, so the file is kept and only the code is written.
+            if (fate === QUOTATION_ENTRY.reuse) {
                 reusedQuotationIds.add(q.recordId);
-                pendingCodeUpdates.push({ recordId: q.recordId, vendorQuotationCode: code });
+                pendingCodeUpdates.push({
+                    recordId: q.recordId,
+                    vendorQuotationCode: (q.vendorQuotationCode || "").trim(),
+                });
                 quotationByIndex.push(q.recordId);
                 continue;
             }
@@ -312,8 +345,9 @@ async function persistPRFromForm({ userId, state }) {
             // Issue #140 — remember what to clean up, but don't clean up here:
             // the caller does it once its own last write has landed, so a
             // rollback below leaves the object available for the retry.
-            // isOurBlobUrl filters out a re-opened Draft's Airtable URL
-            // (lib/prDraft.js), which was never ours to delete.
+            // isOurBlobUrl filters out an entry carrying a code and no file — the
+            // only created entry whose url is not ours, since the plan refused
+            // every other one before anything was written (#438).
             if (isOurBlobUrl(q.url)) {
                 blobCleanups.push({
                     table: TABLES.QUOTATIONS,
@@ -454,7 +488,11 @@ export async function saveDraftAction(prevState, formData) {
         }
 
         try {
-            const { pr, blobCleanups } = await persistPRFromForm({ userId: user.id, state });
+            const result = await persistPRFromForm({ userId: user.id, state });
+            // Issue #438 — refused before anything was written, so nothing was saved
+            // and there is no object of ours to clean up: the sentence is the answer.
+            if (result.refusal) return { error: result.refusal };
+            const { pr, blobCleanups } = result;
             // Issue #140 — the Draft save IS this action's whole transaction, so
             // this is its end: Airtable has the quotation files, the Blob objects
             // can go. Never inside persistPRFromForm, whose rollback has to be
@@ -615,6 +653,9 @@ export async function createPRAction(prevState, formData) {
         let blobCleanups = [];
         try {
             const result = await persistPRFromForm({ userId: user.id, state });
+            // Issue #438 — refused before the first write, so a Draft being submitted
+            // is still the Draft it was, and nothing is flipped to In Review.
+            if (result.refusal) return { error: result.refusal };
             pr = result.pr;
             blobCleanups = result.blobCleanups;
             // Submission starts the review chain — whether this PR began as a

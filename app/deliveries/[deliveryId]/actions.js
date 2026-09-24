@@ -12,6 +12,7 @@ import {
 import { getDeliveryItemsByRecordIds } from "@/lib/airtable/deliveryItems";
 import { getDeliveriesByRecordIds } from "@/lib/airtable/deliveries";
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
+import { isOurBlobUrl } from "@/lib/fileSource";
 import { describeOveragePreview } from "@/lib/overage";
 import { createOverageDraft, getOverageContext } from "@/lib/overagePR";
 import { canAccessJobDeliveries } from "@/lib/deliveryAccess";
@@ -92,6 +93,15 @@ export async function replaceDeliveryPhotoAction(prevState, formData) {
         const filename = formData.get("packingListFilename");
 
         if (!url) return { error: "Upload a photo first." };
+        // Issue #438 — refused here in the sentence a missing photo gets, before the
+        // delivery is read, rather than left to replaceDeliveryPhoto's throw, which
+        // reached a reader as "Something went wrong". The throw stays behind this as
+        // the backstop; the real reason is logged — createDirectPurchaseAction's
+        // shape.
+        if (!isOurBlobUrl(url)) {
+            console.error("replaceDeliveryPhotoAction refused a packing list url that is not on our Blob store");
+            return { error: "Upload a photo first." };
+        }
 
         const loaded = await loadForEdit(user, deliveryId);
         if (loaded.error) return loaded;

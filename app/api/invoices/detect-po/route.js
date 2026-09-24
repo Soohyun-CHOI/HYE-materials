@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PDFParse } from "pdf-parse";
 import { withAdminApi } from "@/lib/authz";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
-import { isOurBlobUrl } from "@/lib/blobIngest";
+import { isOurBlobUrl } from "@/lib/fileSource";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
 import { isPOUnsigned } from "@/lib/poUnsigned";
 import { hasUninvoicedItems } from "@/lib/poItemQty";
@@ -44,12 +44,16 @@ export const POST = withAdminApi(async (request) => {
         // metadata endpoints, etc.). Legitimate blobUrls are always the public
         // Blob host returned by the client upload() call.
         //
-        // Issue #147 — the predicate itself is isOurBlobUrl (lib/blobIngest.js),
-        // which was already documented as "the same host predicate the detect-po
-        // SSRF guard uses" while in fact being a second copy of it. One
-        // definition now, so the guard and the Blob-cleanup path cannot drift;
-        // both rejection branches answered with this same 400 before, so the
-        // response is unchanged.
+        // Issue #147 — the predicate itself is isOurBlobUrl, which was already
+        // documented as "the same host predicate the detect-po SSRF guard uses"
+        // while in fact being a second copy of it. One definition now, so the
+        // guard and the Blob-cleanup path cannot drift; both rejection branches
+        // answered with this same 400 before, so the response is unchanged.
+        //
+        // Issue #438 — it lives in lib/fileSource.js now and means OUR store: until
+        // then it admitted any host ending in `.public.blob.vercel-storage.com`,
+        // which is every Vercel customer's. Every attachment url a caller supplies
+        // anywhere in the app is held to the same predicate.
         if (!isOurBlobUrl(blobUrl)) {
             return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
         }

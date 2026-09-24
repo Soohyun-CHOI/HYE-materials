@@ -21,9 +21,10 @@
 // try, rather than "positioned after this error message"), and they run on every
 // push via `npm test`.
 //
-// What stays here needs credentials: Parts A2/A3 read lib/blobIngest.js, which
+// What stays here needs credentials: Part A2 reads lib/blobIngest.js, which
 // imports the Airtable client and therefore throws at module load without
-// AIRTABLE_API_KEY, and Part B calls the real helper against real records.
+// AIRTABLE_API_KEY, and Part B calls the real helper against real records. Part
+// A3 read the same module for isOurBlobUrl until #438 moved the predicate out.
 //
 // Run with (from the repo root):
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-blob-lifecycle-140.mjs
@@ -32,10 +33,10 @@ import { head, put } from "@vercel/blob";
 import { PDFDocument, StandardFonts } from "pdf-lib";
 import {
     confirmIngestThenDelete,
-    isOurBlobUrl,
     INGEST_POLL_INTERVAL_MS,
     INGEST_CONFIRM_TIMEOUT_MS,
 } from "../../lib/blobIngest.js";
+import { isOurBlobUrl } from "../../lib/fileSource.js";
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { resolveVerifyCategories } from "./_categories.mjs";
@@ -77,18 +78,11 @@ console.log("\nPart A2 — helper constants come from the measured latency:");
 check("poll interval", INGEST_POLL_INTERVAL_MS, 300);
 check("confirm ceiling", INGEST_CONFIRM_TIMEOUT_MS, 10000);
 
-console.log("\nPart A3 — isOurBlobUrl (pure):");
-check(
-    "our store",
-    isOurBlobUrl("https://abc.public.blob.vercel-storage.com/x.pdf"),
-    true
-);
-check(
-    "Airtable's own URL is skipped (a re-opened Draft carries these)",
-    isOurBlobUrl("https://v5.airtableusercontent.com/v3/u/55/x"),
-    false
-);
-check("empty", isOurBlobUrl(""), false);
+// Part A3 was isOurBlobUrl's pure cases and went to the offline tier in #438,
+// with the predicate: it is lib/fileSource.js now and imports nothing, and its
+// "our store" case — any host ending in the Vercel suffix — was the defect that
+// issue removed. scripts/tests/offline/file-source.mjs holds them. The import
+// above stays for the real-record reads below, against this run's own store.
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
 // order; POs before PRs, since a PO links its PR. Blob objects go through

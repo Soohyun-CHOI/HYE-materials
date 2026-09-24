@@ -178,12 +178,15 @@ rendered only in the state its refusal excludes.
 
 ## `/prs/new`
 
-Fifteen refusals; **eleven judged unreachable, four not judged.** The form carries
-`required` on the job, the discipline, the vendor and every item field, and the
-submit is
+Sixteen refusals; **eleven judged unreachable, one reachable, four not judged.** The
+form carries `required` on the job, the discipline, the vendor and every item field,
+and the submit is
 disabled until a quotation file has uploaded — which answers the eleven. The four not
 judged are the draft-management refusals, whose controls are per-draft and whose
-gating was not traced.
+gating was not traced. The reachable one is #438's `One of this draft's quotations was
+changed in another tab. Reopen the draft and try again.`, which the same draft saved
+from a second tab reaches with nothing forged, once the first tab has replaced or
+removed one of its quotations.
 
 ## `/prs/[prId]`
 

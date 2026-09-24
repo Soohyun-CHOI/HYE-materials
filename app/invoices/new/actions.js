@@ -14,7 +14,8 @@ import {
 import { createInvoiceItem, updateInvoiceItem } from "@/lib/airtable/invoiceItems";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem } from "@/lib/airtable/poItems";
 import { getPOByRecordId } from "@/lib/airtable/purchaseOrders";
-import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
+import { confirmIngestThenDelete } from "@/lib/blobIngest";
+import { isOurBlobUrl } from "@/lib/fileSource";
 import { createDirectPurchase } from "@/lib/airtable/directPurchases";
 import { DIRECT_PURCHASE_COPY, directPurchaseBlocked } from "@/lib/directPurchase";
 import { isPOWithdrawn } from "@/lib/poWithdraw";
@@ -93,6 +94,17 @@ async function createInvoiceHandler(prevState, formData) {
         // directly regardless of what the page rendered, so this is re-checked
         // here too.
         if (!invoiceFileUrl) return { error: "Attach the invoice file." };
+        // Issue #438 — and it has to be the file this form uploaded: a url on our
+        // Blob store. Airtable fetches and keeps whatever an attachment url points
+        // at, so anything else would make this action a fetcher of caller-supplied
+        // addresses — the refusal createDirectPurchaseAction makes further down this
+        // file. Among the refusals and above the session read, so a submission
+        // turned away here still costs nothing (#382); the reader is told what they
+        // can act on and the real reason is logged.
+        if (!isOurBlobUrl(invoiceFileUrl)) {
+            console.error("createInvoiceAction refused an invoice file url that is not on our Blob store");
+            return { error: "Attach the invoice file." };
+        }
         if (items.length === 0) return { error: "Add at least one item." };
         for (const item of items) {
             if (!item.itemName || !item.qty || !item.unitPrice) {

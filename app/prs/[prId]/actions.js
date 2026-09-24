@@ -17,7 +17,8 @@ import { ITEM_FIELDS, ITEM_FIELD_LABELS, SHIPPING_FEE_LABEL } from "@/lib/editLo
 import { createQuotation } from "@/lib/airtable/quotations";
 import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
 import { categoryItemFields, refuseUnsettledCategory } from "@/lib/materialCategory";
-import { confirmIngestThenDelete, isOurBlobUrl } from "@/lib/blobIngest";
+import { confirmIngestThenDelete } from "@/lib/blobIngest";
+import { isOurBlobUrl } from "@/lib/fileSource";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
@@ -226,6 +227,16 @@ export async function editAndContinueAction(prevState, formData) {
 
         for (const q of newQuotations) {
             if (!q.url) return { error: "Every quotation needs a file attached." };
+            // Issue #438 — a quotation added on this turn is one this session
+            // uploaded, so its url is on our Blob store; anything else came from a
+            // direct call, and Airtable would fetch and keep whatever it points at.
+            // Refused here, before this turn reads or writes anything, with the
+            // sentence a missing file gets; the real reason is logged —
+            // createDirectPurchaseAction's shape.
+            if (!isOurBlobUrl(q.url)) {
+                console.error("editAndContinueAction refused a quotation file url that is not on our Blob store");
+                return { error: "Every quotation needs a file attached." };
+            }
         }
         if (shippingFeeRaw && Number.isNaN(newShippingFee)) {
             return { error: "Shipping Fee must be a number." };

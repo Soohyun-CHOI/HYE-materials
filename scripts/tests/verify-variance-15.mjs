@@ -168,7 +168,10 @@ try {
         shippingFee: 0,
         tariff: TARIFF,
         salesTax: SALES_TAX,
-        file: [{ url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf", filename: "test.pdf" }],
+        // No file: nothing here reads it, and createInvoice refuses a url off this
+        // app's Blob store since #438 — this was a w3.org sample PDF, which Airtable
+        // fetched and kept. The app requires a file; Airtable does not.
+        file: [],
     });
     fixtures.track("invoices", invoice.id);
     console.log("Created invoice", invoice.invoiceId, invoice.id);
