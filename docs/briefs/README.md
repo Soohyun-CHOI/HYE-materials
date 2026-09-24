@@ -75,7 +75,7 @@ strings is what a vocabulary sweep reads, and it is better re-run than stored.
 **Reading the screens that closely did read back on these files.** It found a
 completeness claim in `login.md` that was false — the screen carries a line the
 brief did not list — and it moved 28 facts into four briefs that none of them
-carried, including that `/invoices/new` is two tabs.
+carried.
 
 ## Keeping them true
 

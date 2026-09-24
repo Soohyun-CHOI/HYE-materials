@@ -153,9 +153,11 @@ export function run({ check, assert, log }) {
         "the identifier walk reached the form",
         formIdentifiers.has("EMPTY_ITEM") && formIdentifiers.size > 100
     );
+    // A route rather than a sentence, because a design pass rewords copy and leaves
+    // a route where it is.
     assert(
         "  and the literal walk did too",
-        literalsIn(FORM).some((s) => s.includes("Manual Entry"))
+        literalsIn(FORM).some((s) => s.includes("/api/invoices/detect-po"))
     );
     // ANTI-VACUITY FOR THE JSX HALF SPECIFICALLY, because that is the half the first
     // version of this file did not have: the walk must be seen to read text that is

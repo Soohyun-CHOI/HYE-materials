@@ -27,9 +27,8 @@ strings** — four of which say both words in one sentence.
 
 **Of 194 conditions, 127 gave a reader nothing the brief already said.** 65%, and the
 overlap rose with the brief's length: `/invoices` was 85% duplicated. Of the 67 that
-were new, 28 were facts a design genuinely needs — including that `/invoices/new` is
-two tabs, which no brief had said — and 26 were refusals no reader can reach, which a
-brief must not list at all. The 28 went into the briefs. The rest went.
+were new, 28 were facts a design genuinely needs and 26 were refusals no reader can
+reach, which a brief must not list at all. The 28 went into the briefs. The rest went.
 
 **Of the four fields per entry, three were derivable from the code.** The string
 itself, the file and line, and what quotes or pins it are all things a script
