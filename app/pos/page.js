@@ -8,6 +8,7 @@ import { getPOItemsByRecordIds } from "@/lib/airtable/poItems";
 import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
 import { getInvoicesByRecordIds } from "@/lib/airtable/invoices";
 import { canViewPR } from "@/lib/prVisibility";
+import { isRequester } from "@/lib/prRequester";
 import { selectPOsAwaitingSend, selectPRsAwaitingPO, statusLabel } from "@/lib/poListView";
 import { jobOptionLabel, parseFilters, pickerOptions } from "@/lib/listFilters";
 import { PO_SENT_STATUS } from "@/lib/poSend";
@@ -250,7 +251,7 @@ async function renderPOListPage({ searchParams }) {
             // A PO carries no requester of its own — it is the parent PR's
             // (#138). Resolved here so the requester's identity never reaches
             // the client, the same way /prs resolves isMine server-side.
-            isMine: pr?.requester?.[0] === user.id,
+            isMine: isRequester(user, pr),
         };
     });
 

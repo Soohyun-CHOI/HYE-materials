@@ -134,7 +134,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/fileLinks.js` — where an uploaded file is reached (#331), and the viewer's words. Pure — `"use client"` files import it.
 - `lib/fileView.js` — how a drawn file is sized, turned and sharpened (#433).
 - `lib/uploadLimit.js` — the one ceiling every user upload is held to (#146): `MAX_UPLOAD_BYTES`, the refusal's words, and the guard every upload form opens its try with.
-- `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record, and `planQuotationEntry`, what a save does with each entry (#438).
+- `lib/quotationReuse.js` — `shouldReuseQuotation`: when a re-saved Draft keeps its existing Quotation record, and `planQuotationEntry`, what a save does with each entry (#438), and `detachQuotations`, what a form keeps once its draft is gone (#440).
 - `lib/directPurchase.js` — the way out of an invoice with no order (#272): the one predicate the modal and the action share, and `DIRECT_PURCHASE_COPY`.
 - `lib/directPurchaseClaim.js` — the strip's rows and the Draft a site raises from one. Credentialed.
 - `lib/prKind.js` — which of three kinds a request is (#272), the mark for each and the signer's sentence.
@@ -156,6 +156,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceItemsMissing.js` — an invoice holding no item rows (#330): the predicate and the one sentence its screen and `updateInvoiceAction` share. **The create path's refusal is a DIFFERENT fact and keeps its own words.**
 - `lib/invoiceOrderBreakdown.js` — an invoice's items under the orders they charge (#237), and `ORDER_BREAKDOWN_COPY`.
 - `lib/invoiceDeliveryEntries.js` — the invoice detail's delivery entries (#241), one per folded item.
+- `lib/prRequester.js` — who raised a request, and whether a write may take it as the reader's own draft (#440). **Nothing else reads `Requester` off a request.**
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
@@ -300,8 +301,8 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - **Re-authorization rule:** every directly-callable endpoint re-authorizes to the level of the strictest page that renders its UI. A page being the only caller is not a substitute — Route Handlers and Server Actions are reachable directly.
 - Any route or action that fetches a caller-supplied URL, or hands one to Airtable, restricts it to our own Blob store, independent of auth.
 - **Role-scoped:** `app/admin/**` and the invoice write paths (`/invoices/new`, `/invoices/[invoiceId]/edit`, and the edit, delete and payment actions) are Admin-only.
-- **Row-scoped, not role-scoped:** `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]`, `/invoices`, `/invoices/[invoiceId]`. All need only an active session to reach, then decide per record through `canViewPR` — for the invoice routes via `lib/invoiceVisibility.js`, which owns the walk and no predicate of its own. **A refusal renders the ordinary not-found text**: never confirm that a record exists outside someone's scope.
-- **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails.
+- **Row-scoped, not role-scoped:** `/prs`, `/prs/[prId]`, `/pos`, `/pos/[poId]`, `/invoices`, `/invoices/[invoiceId]`. All need only an active session to reach, then decide per record through `canViewPR` — for the invoice routes via `lib/invoiceVisibility.js`, which owns the walk and no predicate of its own. **A refusal renders the ordinary not-found text**, a write's too: never confirm that a record exists outside someone's scope.
+- **Enforced by `offline/authz-structure.mjs`**, which enumerates every `app/api/**/route.js` and every `"use server"` export and requires each to be wrapped or listed as an exemption with a reason. A stale exemption fails. An exemption's per-record comparison is held by `offline/owner-before-write.mjs` wherever a request is read by id (#440).
 
 - **A NEW SURFACE THAT SHOWS A PR, A PO OR AN INVOICE GATES PER RECORD, NOT PER ROLE**, and it does so by calling `canViewPR` — never by writing its own comparison. This is the rule most easily missed, because adding a route touches no file under `lib/authz*.js` and nothing fails when it is skipped: the page simply shows everyone everything.
 

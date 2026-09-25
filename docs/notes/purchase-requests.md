@@ -422,6 +422,103 @@ anybody pressed the button.
   answers diverge at all, before any per-stage detail. Verified by mutation:
   making `stillWaiting` mean `requestOfferable` fails it on the first line.
 
+### A save that names a request asks whose it is (#440)
+
+`persistPRFromForm` took `existingDraftRecordId` off the form and rewrote the request
+it named, and `getPRByRecordId` returns any request by id — so a call naming someone
+else's request, or one already submitted, rewrote it, and `createPRAction` then put it
+back to `In Review` at step 1 and mailed its first signer. `editAndContinueAction`
+linked an item to whatever `existing:` quotation id it was handed.
+
+- **THE SAME DEFECT HAD A SCREEN PATH, WHICH IS WHAT MADE THE WORDING MATTER.** The
+  same draft open in two tabs: once one tab submits, the other's `Save draft` rewrote
+  the request's fields and rebuilt its `PR Items` and `PR Signers` as a new generation
+  — fresh `Pending` signer rows, so every approval already given was destroyed — and
+  its `Submit PR` reset the chain. A draft deleted in the other tab made every save
+  here fail with `Couldn't save the draft. Please try again.`, which no retry could
+  change. So two of the refusals below have readers who forged nothing.
+- **COUNTED OVER EVERY WRITE THAT TAKES A RECORD ID, AND THE BODY'S THREE WERE THE
+  WHOLE OF IT.** All sixteen `"use server"` files and eleven route handlers: the
+  delete, the withdrawal, the order's withdrawal, send and document, and every signing
+  turn already asked the owner before writing, and the child ids a save carries —
+  `quotations[].recordId` (#438) and an edit turn's item ids — were already held to
+  the parent. What had nothing asking was `existingDraftRecordId` on the two save
+  paths and the `existing:` choice.
+- **ONE JUDGMENT FOR THE THREE DRAFT WRITES, IN `lib/prRequester.js`.** Saving and
+  submitting re-target the draft a form holds and deleting removes it, and all three
+  ask whether the request is the reader's own Draft. `deleteDraftAction` asked status
+  before identity and said `You can only delete your own drafts.` to a stranger, which
+  confirmed that a request by that guessable PR ID existed; it takes the same
+  `ownDraftRefusal` now. **Identity first**: somebody else's request, in any status,
+  answers exactly as an id that resolves to nothing — `That draft no longer exists.`,
+  the words that delete already had — and `This draft has already been submitted. Open
+  it from the PR list.` is said only to the requester, who can open their own request
+  in every status anyway. One sentence for both would tell the second-tab reader that
+  a request they can see does not exist.
+- **THE REQUESTER IS THE FIRST LINKED USER, AND ALL TWENTY-EIGHT READS OF THE FIELD
+  GO THROUGH THAT MODULE.** Ten sites compared `pr.requester?.[0]` with the reader and
+  #248's `getDraftsByRequester` asked `includes`; the module's header carries why the first
+  element won and what membership would have handed a pasted second user. Moving only
+  the comparisons was weighed and refused: `prSigning`'s requester turn binds the
+  first element to a variable and compares it elsewhere, which no check can follow,
+  while "nothing else reads `.requester`" is one that `offline/pr-requester.mjs` holds
+  with no exemption list — `lib/userName.js`'s shape from #381.
+- **FIRST, AHEAD OF THE DUPLICATE CHECK.** The judgment lives in `resumedDraft` and
+  both save actions call it straight after parsing, so nothing is computed about the
+  named record before its owner is known. #438 had put the draft's reads at the head
+  of `persistPRFromForm`, but `findDuplicatePR` runs earlier than that on a submit and
+  leaves the named request out of its comparison — so a stranger's unconfirmed submit
+  could come back as a duplicate warning naming another request, its requester and its
+  date, in the refusal's place. `persistPRFromForm` now takes the judged draft rather
+  than reading one. The warning's own habit of naming a request its reader may not see
+  is older than this and is in `backlog.md`.
+- **A READ THAT THROWS IS `gone` ONLY WHEN AIRTABLE ANSWERED ABOUT THE RECORD.** An id
+  that resolves to nothing throws rather than returning null — `403 NOT_AUTHORIZED`,
+  for one that never existed and for a deleted one alike — and the key had read the
+  session one operation earlier, so the 403 is about the record. A 5xx or a lost
+  connection keeps the retryable failure it always had, because reading it as `gone`
+  makes the form let go of a draft that still exists and the next save makes a second
+  one. **An id of another table does not throw at all**: `find` hands back that
+  table's row (`airtable-access.md`), so identity is what refuses it, and a `Users`
+  row maps to `status: "Active"` — which status asked first would have called
+  `submitted`.
+- **`gone` LETS THE FORM GO OF THE DRAFT; `submitted` DOES NOT.** A draft that is gone
+  can only keep what was typed as a new request, so the form clears its record id and
+  says so, exactly as it does when this tab's own list deletes the open draft — one
+  `detachFromDraft` for both. A submitted draft must not become a second request for
+  one in review, so the form keeps it and the sentence sends the reader to the list.
+  **The list's own path had a dead end of its own, from #438 on**: the entries it
+  hydrated kept the gone draft's quotation record ids and Airtable's urls for their
+  files, so the next save was refused as `changedElsewhere` and told the reader to
+  reopen a draft that no longer existed. `lib/quotationReuse.js:detachQuotations`
+  releases them — every record id goes, a file that came from the draft goes with it,
+  a file picked this session stays — and the notice says when files went. **The
+  draft's row leaves the form's list of saved drafts on both paths too**, which the
+  browser walk is what found: the list's own delete had always dropped the row, and a
+  `gone` answer left it, so the notice said the draft was deleted beside a list
+  still counting it.
+- **THE EDIT TURN ASKS ABOUT THE QUOTATION IT WOULD LINK, AND NOTHING MORE.** The
+  request's own quotations are `pr.quotationRowIds`, on the record `loadPRContext`
+  already read — the reverse link the page built the dropdown from — so the question
+  costs nothing. Only a choice that differs from the item's stored link is asked,
+  because only that one is written; refusing an unchanged stored link would lock the
+  whole turn over a row somebody else linked wrongly. `readQuotationChoice` is the one
+  reader of the `existing:`/`new:` encoding, before the `try`, and the loop inside it
+  walks what was judged.
+- **WHAT IT COSTS, MEASURED ON THE DEV SERVER'S LEDGER.** A refused save, submit or
+  delete stops at 2 operations — the session and the one request read. A refused edit
+  turn stops at 8, which are the reads that turn already made before its `try`. The
+  accepted paths read what they read before: the one request read moved to the front
+  of the save rather than being added to it.
+- **`offline/owner-before-write.mjs` HOLDS THE ORDER FOR EVERY READ OF A REQUEST BY
+  ID.** Its inventory classifies each call, its judged rows require the judgment to be
+  asked about the record read, outside every `try`, before the first side effect and
+  before anything else touches the record or its id — and what counts as a side effect
+  is derived from `base(...)` writes, mail and Blob calls rather than listed. Two rows
+  carry an excuse from the last clause, `withdrawAction` and `withdrawPOAsRequester`,
+  which test for existence before ownership; `backlog.md` has why that is left, and
+  the excuse fails the check the day it stops being needed.
+
 ### Three kinds, and where the kind lives (#272)
 
 A signer approving a request is making one of three different decisions —

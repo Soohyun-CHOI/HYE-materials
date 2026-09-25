@@ -135,7 +135,26 @@ requester sent away for an address from losing a half-filled form. A redesign ma
 move it but must not turn it into a plain link.
 
 **When the draft currently open in the form is deleted:** a notice, and the form
-detaches from that record rather than silently re-targeting a new one.
+detaches from that record rather than silently re-targeting a new one. **The same
+state is reached from a second tab since #440**: a save or a submit naming a draft
+that was deleted somewhere else is refused, and the form lets go of it exactly as if
+this tab's own list had deleted it — the typed content stays and the next save is a
+new request. Either way the draft leaves the drafts list and its count, so the list
+never counts a draft the notice beside it says was deleted. The notice has two wordings and the difference is the draft's own
+quotation files, which go with it: `The saved draft was deleted. Your changes are
+still here and will be saved as a new PR.` when it had none, and `The saved draft was
+deleted, and its quotation files with it — attach them again. Everything else is
+still here and will be saved as a new PR.` when it had some. The entries themselves
+stay, with their `Vendor Quotation Code`, and show the file control again. Until #440
+the list's own delete left those files on the entries and the next save was refused.
+
+**When the draft open here was submitted from somewhere else in the meantime** — a
+second tab, or this one before the browser went back: saving, submitting and deleting
+it from the drafts list are all refused with `This draft has already been submitted.
+Open it from the PR list.`, and nothing is written. **The form does not let go of this
+draft**, which is the difference from the case above and is deliberate: a save as a new
+draft would make a second request for one already in review. The sentence is in the
+same red line every other refusal on this form uses.
 
 **When a quotation file is uploading or has failed:** per-entry state on that
 entry — a filename, a spinner, or the error. A file is required per entry before

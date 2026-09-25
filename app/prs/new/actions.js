@@ -28,6 +28,7 @@ import { getCategoriesByLeafCode } from "@/lib/airtable/materialCategories";
 import { CATEGORY_PICKER_COPY, categoryItemFields } from "@/lib/materialCategory";
 import { getAllAddresses } from "@/lib/airtable/addresses";
 import { ADDRESS_CHOICE_COPY } from "@/lib/addressChoice";
+import { OWN_DRAFT_COPY, ownDraftRefusal, requesterOf } from "@/lib/prRequester";
 import { userName } from "@/lib/userName";
 // #308 — the same judgment and the same words the invoice write path has used since
 // #254, asked here because this is where the figure is decided rather than where it
@@ -64,9 +65,8 @@ async function findDuplicatePR(disciplineId, items, excludeRecordId = null) {
         const priorKey = priorItems.map(itemKey).sort().join(",");
         if (priorKey !== submittedKey) continue;
 
-        const requester = priorPr.requester?.[0]
-            ? await getUserByRecordId(priorPr.requester[0])
-            : null;
+        const requesterId = requesterOf(priorPr);
+        const requester = requesterId ? await getUserByRecordId(requesterId) : null;
 
         return {
             priorPrId: priorPr.prId,
@@ -112,10 +112,70 @@ function parseFormState(formData) {
         // Each entry: { url, filename, vendorQuotationCode } — issue #67.
         quotations: JSON.parse(formData.get("quotationsJson") || "[]"),
         // Issue #72 — set once a Draft has been saved/resumed; both save and
-        // submit then re-target that record instead of creating a new PR.
+        // submit then re-target that record instead of creating a new PR. #440 —
+        // read by resumedDraft and by nothing else, which is what lets a save ask
+        // whose the record is before anything is computed about it.
         existingDraftRecordId: formData.get("existingDraftRecordId") || null,
         confirmed: formData.get("confirmed") === "true",
     };
+}
+
+/**
+ * The draft a save names, and whether the reader may save onto it — asked before
+ * anything is computed about that record (#440).
+ *
+ * `existingDraftRecordId` is whatever the form, or a direct call, says it is, and
+ * `getPRByRecordId` returns any request by id, so until #440 a save rewrote whichever
+ * request it named: someone else's, or one already submitted. A second tab holding
+ * the same draft reached the second from the screen — once one tab submits, the
+ * other's save replaced the request's signers and erased the approvals given.
+ *
+ * FIRST, AHEAD OF THE DUPLICATE CHECK AS WELL AS EVERY WRITE. `findDuplicatePR`
+ * leaves the named request out of its comparison and can answer a submission in
+ * place of the refusal, so running it first computed something about a record before
+ * anybody knew it was the reader's — and its warning names another request, who
+ * raised it and when. The judgment is `lib/prRequester.js:ownDraftRefusal`, which
+ * `deleteDraftAction` asks too.
+ *
+ * Returns `{ existing }` — the reader's own Draft, or null when the save names none
+ * — or `{ refusal }`, one of `OWN_DRAFT_REFUSAL`, or `{ failed }` when the read
+ * itself went wrong.
+ *
+ * A READ THAT THROWS IS `gone` ONLY WHEN AIRTABLE ANSWERED ABOUT THE RECORD. An id
+ * that resolves to nothing throws rather than returning null — `403 NOT_AUTHORIZED`,
+ * for one that never existed and for a deleted one alike, measured for #440 — and
+ * that is an answer about the record and not the key, which read the session one
+ * operation earlier. A 5xx or a lost connection is not an answer about the record,
+ * and reading it as `gone` would have the form let go of a draft that still exists,
+ * so the next save makes a second one; it is the retryable failure it always was
+ * instead.
+ *
+ * AN ID OF ANOTHER TABLE DOES NOT THROW. `find` answers with that table's record and
+ * the mapper builds a request with no `Requester` out of it (`airtable-access.md`),
+ * so it is identity that refuses it — and a `Users` row maps to `status: "Active"`,
+ * which a judgment asking status first would have answered as `submitted`.
+ */
+async function resumedDraft(user, recordId) {
+    if (!recordId) return { existing: null };
+    let pr;
+    try {
+        pr = await getPRByRecordId(recordId);
+    } catch (err) {
+        const status = err?.statusCode ?? 0;
+        if (status >= 400 && status < 500 && status !== 401 && status !== 429) pr = null;
+        else return { failed: err };
+    }
+    const refusal = ownDraftRefusal(user, pr);
+    return refusal ? { refusal } : { existing: pr };
+}
+
+/**
+ * What a save answers for a refusal, with the key the form reads beside the words:
+ * `gone` lets the form go of the draft so the next save makes a new one, and
+ * `submitted` must not, since that would make a second request for one in review.
+ */
+function draftRefusal(refusal) {
+    return { error: OWN_DRAFT_COPY[refusal], draftRefusal: refusal };
 }
 
 /**
@@ -210,27 +270,16 @@ async function destroyChildren({ itemIds = [], signerIds = [], quotationIds = []
 // WRITTEN. The reads below come first so that every entry's fate is decided before
 // the first write, and a refusal comes back as `{ refusal }` — the sentence for the
 // caller to return — with the Draft exactly as it was.
-async function persistPRFromForm({ userId, state }) {
-    const {
-        existingDraftRecordId,
-        disciplineId,
-        vendorId,
-        notes,
-        shippingFee,
-        deliveryAddressId,
-        items,
-        signers,
-        quotations,
-    } =
+//
+// #440 — `existing` ARRIVES JUDGED. It is the reader's own Draft, which each caller
+// learned from resumedDraft before computing anything else about it, or null for a
+// new request; this function reads no request by id, so there is no second place
+// whose owner could go unasked.
+async function persistPRFromForm({ user, state, existing }) {
+    const { disciplineId, vendorId, notes, shippingFee, deliveryAddressId, items, signers, quotations } =
         state;
 
-    let existing = null;
-    let oldChildIds = null;
-    if (existingDraftRecordId) {
-        existing = await getPRByRecordId(existingDraftRecordId);
-        if (!existing) throw new Error("Draft record not found");
-        oldChildIds = await collectChildIds(existing.id);
-    }
+    const oldChildIds = existing ? await collectChildIds(existing.id) : null;
 
     // Which Quotation records this PR actually has right now. A recordId the
     // form carries that is absent here is not reusable: two tabs on the same
@@ -282,7 +331,7 @@ async function persistPRFromForm({ userId, state }) {
         });
     } else {
         pr = await createPR({
-            requesterId: userId,
+            requesterId: user.id,
             disciplineId,
             vendorId,
             notes,
@@ -408,7 +457,7 @@ async function persistPRFromForm({ userId, state }) {
             signerIds: createdSignerIds,
             quotationIds: createdQuotationIds,
         });
-        if (!existingDraftRecordId && pr) {
+        if (!existing && pr) {
             await base(TABLES.PURCHASE_REQUESTS).destroy(pr.id).catch(() => {});
         }
         throw err;
@@ -449,6 +498,14 @@ export async function saveDraftAction(prevState, formData) {
     return withOpsLabel("saveDraftAction", async () => {
         const user = await requireUser();
         const parsed = parseFormState(formData);
+        // #440 — whose the named draft is, before anything else is asked about the
+        // save; see resumedDraft for why it is first.
+        const resumed = await resumedDraft(user, parsed.existingDraftRecordId);
+        if (resumed.refusal) return draftRefusal(resumed.refusal);
+        if (resumed.failed) {
+            console.error("saveDraftAction could not read the draft it names", resumed.failed);
+            return { error: "Couldn't save the draft. Please try again." };
+        }
         // Resolved even on a Draft, so a saved row carries its link and its
         // composed name rather than being repaired at submit — and so a Draft
         // re-opened tomorrow shows the same item text a signer will see. Rows
@@ -488,7 +545,7 @@ export async function saveDraftAction(prevState, formData) {
         }
 
         try {
-            const result = await persistPRFromForm({ userId: user.id, state });
+            const result = await persistPRFromForm({ user, state, existing: resumed.existing });
             // Issue #438 — refused before anything was written, so nothing was saved
             // and there is no object of ours to clean up: the sentence is the answer.
             if (result.refusal) return { error: result.refusal };
@@ -519,14 +576,20 @@ export async function saveDraftAction(prevState, formData) {
 // records first (destroying a Quotations record also drops its Airtable File
 // attachment), then the PR itself. The Vercel Blob originals of quotation
 // files are intentionally not touched here (tracked separately).
+//
+// #440 — THE SAME JUDGMENT AS A SAVE, IN THE SAME WORDS. This asked status before
+// identity and answered a stranger `You can only delete your own drafts.` and
+// `Only drafts can be deleted here.`, which told anyone holding a guessable PR ID
+// that a request by that id existed and whether it was still a draft. It is
+// `ownDraftRefusal` now, so another person's request reads as one that does not
+// exist, and the requester of one submitted in the meantime is told that.
 export async function deleteDraftAction(prId) {
     return withOpsLabel("deleteDraftAction", async () => {
         const user = await requireUser();
 
         const pr = await getPRById(prId);
-        if (!pr) return { error: "That draft no longer exists." };
-        if (pr.status !== "Draft") return { error: "Only drafts can be deleted here." };
-        if (pr.requester?.[0] !== user.id) return { error: "You can only delete your own drafts." };
+        const refusal = ownDraftRefusal(user, pr);
+        if (refusal) return draftRefusal(refusal);
 
         try {
             // Children (best-effort, allSettled) before the PR, so a mid-failure
@@ -552,6 +615,14 @@ export async function createPRAction(prevState, formData) {
     return withOpsLabel("createPRAction", async () => {
         const user = await requireUser();
         const parsed = parseFormState(formData);
+        // #440 — whose the named draft is, before the duplicate check below leaves
+        // it out of a comparison and before anything is written; see resumedDraft.
+        const resumed = await resumedDraft(user, parsed.existingDraftRecordId);
+        if (resumed.refusal) return draftRefusal(resumed.refusal);
+        if (resumed.failed) {
+            console.error("createPRAction could not read the draft it names", resumed.failed);
+            return { error: "Something went wrong creating the PR. Please try again." };
+        }
         // Before the duplicate check, deliberately: #61 keys a row on its name,
         // and a name is composed from the category now — so the incoming rows
         // have to carry theirs before they can be compared with a stored PR's.
@@ -639,11 +710,7 @@ export async function createPRAction(prevState, formData) {
         // Submit-time check, skipped once the Requester has confirmed past a
         // previously-shown warning.
         if (!confirmed) {
-            const duplicate = await findDuplicatePR(
-                disciplineId,
-                items,
-                state.existingDraftRecordId
-            );
+            const duplicate = await findDuplicatePR(disciplineId, items, resumed.existing?.id ?? null);
             if (duplicate) {
                 return { duplicateWarning: duplicate };
             }
@@ -652,7 +719,7 @@ export async function createPRAction(prevState, formData) {
         let pr;
         let blobCleanups = [];
         try {
-            const result = await persistPRFromForm({ userId: user.id, state });
+            const result = await persistPRFromForm({ user, state, existing: resumed.existing });
             // Issue #438 — refused before the first write, so a Draft being submitted
             // is still the Draft it was, and nothing is flipped to In Review.
             if (result.refusal) return { error: result.refusal };

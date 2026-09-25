@@ -39,6 +39,16 @@
 // So an exemption buys strictly less than a wrapper. That is the second reason
 // to keep the exemption list short, the first being that every entry is a
 // precedent the next author can copy.
+//
+// WHERE THE REQUIRE_USER_AXIS COMPARISON IS HELD FOR A REQUEST, SINCE #440. That
+// reason says the authorization is "the record-by-record comparison in the body", and
+// nothing here reads the body — which is how `saveDraftAction` and `createPRAction`
+// carried the exemption while comparing nothing. `offline/owner-before-write.mjs`
+// inventories every read of a request by id and requires, of each one a write
+// follows, that the declared judgment is asked about that record first. It holds the
+// comparison's presence and order where the record compared is a request, which
+// reaches an order's writes through the request behind the order; the delivery and
+// tool axes, which compare a job, are still held by nothing but their exemptions here.
 // ---------------------------------------------------------------------------
 
 import { callsFunction } from "./_ast.mjs";
