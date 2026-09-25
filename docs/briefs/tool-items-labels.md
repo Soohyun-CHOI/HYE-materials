@@ -232,10 +232,11 @@ screen they open. That is the arrangement `/tools`' control on `/tools/new`
 already has.
 
 **The tool's page prints the page it is showing.** That screen reads its tool items
-ten at a time, so ten printed ids are what a render holds; a tool with more is
-printed a page at a time. **This is the paging's consequence rather than a
-choice**, and a design offering "print all of this tool" would be asking for a
-read that screen divided on purpose.
+twenty-five at a time, so a page of printed ids is what a render holds, and a page
+fits inside the hundred this screen prints at once; a tool with more is printed a
+page at a time. **This is the paging's consequence rather than a choice**, and a
+design offering "print all of this tool" would be asking for a read that screen
+divided on purpose.
 
 **The sheet is drawn at its true printed size, so it cannot fit a phone.** At a
 375px width the controls fit and the sheet is more than twice that, so the page

@@ -40,8 +40,9 @@ screen carries for the same trip.
 
 **action.** A control that prints labels for **the tool items on this page**
 (#353), and the scope is in its own words rather than left to be inferred. This
-screen reads its tool items a page at a time, so a render holds ten printed ids
-and no more; a tool with more than that is printed a page at a time. **A design
+screen reads its tool items a page at a time, so a render holds one page of
+printed ids — twenty-five at most — and no more; a tool with more than that is
+printed a page at a time, and one press is at most a page of labels. **A design
 must not offer "print all of this tool"** — that would need a read of every tool
 item under it, which is the cost the paging exists to avoid.
 
@@ -73,9 +74,10 @@ appears only once a list is long leaves the short case saying nothing.
 **A step to the previous page**, when this is not the first one, and **a
 step to the next**, when this is not the last. Each is absent at its own
 end rather than drawn and dead, so a tool with one page carries neither.
-**A second page is the rare case and the controls should be drawn as
-minor:** one purchase is at most fifty tools and usually a single digit,
-so most tools have one page and the list is short.
+**A second page exists only for a tool with more than twenty-five tool
+items**, and that number counts every registration of the tool rather than
+one: registering more of a tool adds to the same list, and one registration
+can make up to a hundred.
 
 **When the tool has no tool items at all:** one sentence in place of the
 entries, `Nothing is recorded under this tool.` and then why that can
@@ -94,17 +96,20 @@ for two.
 
 ## What must agree elsewhere
 
-**A page holds ten tool items, and how that number is expressed is open.**
-This is the first paged list in the app. The screen currently states the
+**A page holds twenty-five tool items, the design's figure for the list as
+it drew it (#442), and how the position is expressed is still open.** This
+is the first paged list in the app. The screen currently states the
 position as a page number out of a count and offers one step in each
 direction; whether a reader on a phone is better served by that, by a
 count of what is left, or by something else entirely is a decision this
-screen has not made. **Ten itself is the part with no measurement behind
-it** — everything else on this axis that looks like a number has one, and
-nobody has yet held this list on a phone with a real warehouse in it. It
-was chosen as a screenful of three short facts at 375px. It is stated here
-rather than left in the code because a design cannot re-decide a number it
-cannot see; anything up to fifty costs the app exactly the same to fetch.
+screen has not made. **Twenty-five is the design's to move again** when
+the list is drawn again. It replaced ten, an estimate of a screenful made
+before any screen was drawn, and it is a design's figure rather than a
+measurement — nobody has yet held this list on a phone with a real
+warehouse in it. **Two ceilings on it are not the design's.** Anything up
+to fifty costs the app exactly the same to fetch, and a fifty-first row is
+a second read; and a page is how many labels one press of the print
+control asks for, which the label screen prints a hundred at a time.
 
 **The status shown here is the same value the tool list counts.**
 `Tool Items."Status"` is maintained by the app rather than computed on
