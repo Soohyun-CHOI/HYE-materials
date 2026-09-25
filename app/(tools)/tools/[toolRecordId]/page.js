@@ -86,6 +86,13 @@ async function renderToolPage({ params, searchParams }) {
     // The slice is decided here and the read follows it. `pageOfToolItems` clamps
     // as well as slices, so a typed or copied `?page=` never lands on an empty
     // screen for a page that exists.
+    //
+    // `rowIds: page.ids` IS WHAT DIVIDES THE READ, AND TWO CLAIMS REST ON IT (#442):
+    // the four operations above, and the print control below sending one page.
+    // Without it `getToolItemsByTool` reads the tool's whole link array, and this
+    // screen reads every tool item under the tool and prints every one of them with
+    // nothing on screen to show it — so `offline/tool-list-view.mjs` reads the
+    // argument off the source, and the print link's, rather than trusting a figure.
     const page = pageOfToolItems(tool.toolItems, sp.page);
     const [toolItems, jobs] = await Promise.all([
         getToolItemsByTool(tool.id, { rowIds: page.ids }),
@@ -109,11 +116,12 @@ async function renderToolPage({ params, searchParams }) {
 
                     {/* The label sheet for what is on THIS page, and the scope is
                         the paging's rather than a choice (#353). The page reads one
-                        slice of the tool's link array, so ten printed ids are what
-                        this render holds; offering the whole tool would need a read
-                        of every tool item under it, which is the cost #339 divided
-                        the read to avoid. A tool with more is printed a page at a
-                        time. Its word is the label screen's own. */}
+                        slice of the tool's link array, so one page of printed ids is
+                        what this render holds; offering the whole tool would need a
+                        read of every tool item under it, which is the cost #339
+                        divided the read to avoid. A tool with more is printed a page
+                        at a time, and a page is sized to fit what the label screen
+                        prints at once. Its word is the label screen's own. */}
                     <p>
                         <Link
                             href={toolItemLabelsPath(toolItems.map((toolItem) => toolItem.toolItemId))}
