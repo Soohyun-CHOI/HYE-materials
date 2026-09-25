@@ -3,6 +3,7 @@ import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
 import { FILE_AXIS } from "@/lib/fileLinks";
 import { canViewPR } from "@/lib/prVisibility";
+import { isRequester, requesterOf } from "@/lib/prRequester";
 import { getPRById } from "@/lib/airtable/purchaseRequests";
 import { getSignersByPR } from "@/lib/airtable/prSigners";
 import { getItemsByPR } from "@/lib/airtable/prItems";
@@ -113,7 +114,7 @@ async function renderPRDetailPage({ params }) {
 
     const userIds = new Set(
         [
-            pr.requester?.[0],
+            requesterOf(pr),
             ...signers.map((s) => s.signer?.[0]),
             ...editRequests.flatMap((c) => [c.initiatedBy?.[0], c.sentTo?.[0]]),
             ...editLog.map((e) => e.changedBy?.[0]),
@@ -174,7 +175,7 @@ async function renderPRDetailPage({ params }) {
     // same way as Vendor/Discipline above.
     const job = jobsById[pr.job?.[0]];
     const jobDisplay = job ? `${job.jobCode} — ${job.jobName}` : "—";
-    const requesterName = userName(usersById[pr.requester?.[0]]) || "—";
+    const requesterName = userName(usersById[requesterOf(pr)]) || "—";
 
     // Read-only trail of the full signing chain (issue #9): every source
     // table already existed (PR Signers.Signed At, PR Edit Requests,
@@ -516,7 +517,7 @@ async function renderPRDetailPage({ params }) {
                 this sits outside the turn-gated SigningPanel above). Allowed
                 only from In Review this pass; requester-only, re-checked
                 server-side in withdrawAction regardless of this gate. */}
-            {pr.status === "In Review" && pr.requester?.[0] === user.id && (
+            {pr.status === "In Review" && isRequester(user, pr) && (
                 <div className="mt-8 border-t border-zinc-200 pt-6">
                     <WithdrawPRForm prId={pr.prId} />
                 </div>

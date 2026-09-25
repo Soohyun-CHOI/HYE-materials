@@ -3,6 +3,7 @@ import FileViewer from "@/app/components/FileViewer";
 import { requireUser } from "@/lib/authz";
 import { FILE_AXIS } from "@/lib/fileLinks";
 import { canViewPR } from "@/lib/prVisibility";
+import { isRequester } from "@/lib/prRequester";
 import { getPOById } from "@/lib/airtable/purchaseOrders";
 import { getInvoicingStatusByPO } from "@/lib/airtable/poItems";
 import { getInvoiceItemsByRecordIds } from "@/lib/airtable/invoiceItems";
@@ -163,10 +164,10 @@ async function renderPODetailPage({ params }) {
     // Eligibility comes from the one shared predicate, and the same
     // president-signature branch drives both the modal wording and the
     // banner below, resolved once here.
-    const isRequester = pr.requester?.[0] === user.id;
+    const readerIsRequester = isRequester(user, pr);
     const withdrawn = isPOWithdrawn(po);
     const withdrawCopy = getWithdrawCopy(po.presidentSigned);
-    const withdrawEligibility = isRequester ? getPOWithdrawEligibility(po) : null;
+    const withdrawEligibility = readerIsRequester ? getPOWithdrawEligibility(po) : null;
 
     // Issue #281 — `sentBy` joins the three users this page already resolves in one
     // batch, so naming who sent the order costs one more id in a fetch that was
@@ -212,7 +213,7 @@ async function renderPODetailPage({ params }) {
     // the control and its refusal read one answer. The address comes from the vendor
     // this page already loaded, so the `no-address` branch costs nothing.
     const sendEligibility = getPOSendEligibility({ po, vendorEmail: vendor?.picEmail });
-    // WHO, as against WHETHER — the same split the withdrawal has (`isRequester` gates
+    // WHO, as against WHETHER — the same split the withdrawal has (`readerIsRequester` gates
     // the section, then eligibility picks control-or-refusal). One predicate for both
     // document controls: sending an order is placing it, so it is the requester's act
     // as much as the office's, and making the document is the send's precondition.
@@ -944,7 +945,7 @@ async function renderPODetailPage({ params }) {
                 while a linked invoice explains what would have to happen
                 first rather than showing a dead control. Re-validated in
                 withdrawPOAction regardless of this gate. */}
-            {isRequester && withdrawEligibility.reason !== "wrong-status" && (
+            {readerIsRequester && withdrawEligibility.reason !== "wrong-status" && (
                 <div className="mt-8 border-t border-zinc-200 pt-6">
                     {withdrawEligibility.eligible ? (
                         <WithdrawPOForm

@@ -20,6 +20,7 @@ import { categoryItemFields, refuseUnsettledCategory } from "@/lib/materialCateg
 import { confirmIngestThenDelete } from "@/lib/blobIngest";
 import { isOurBlobUrl } from "@/lib/fileSource";
 import { getCurrentTurn, getReturnTargets, computeAdvance } from "@/lib/prSigning";
+import { isRequester } from "@/lib/prRequester";
 import { notifyCurrentTurn, notifyPOAwaitingSignature } from "@/lib/notifications";
 import { generatePOForApprovedPR } from "@/lib/poGeneration";
 // #308 — the same judgment and the same words the invoice write path has used since
@@ -55,6 +56,24 @@ import {
 // reports — see lib/rollbackReport.js for why the report is words rather than a
 // count, and why it never reaches Airtable. Nothing here may pass a restore key as a
 // string literal, for the same reason the PR Edit Log labels may not.
+
+/**
+ * One item's quotation choice on Edit and continue, read once (#440). The form
+ * encodes it as `existing:<Quotations record id>`, `new:<index into this turn's
+ * newQuotationsJson>`, or "" for none (EditAndContinueForm.js), and this is the one
+ * place that spells either prefix: the turn judges the answer before its `try` and
+ * the loop inside the `try` walks what was judged, so the id the refusal looked at
+ * is the id the write carries. Returns `{ existingId }`, `{ newIndex }` or `{}`.
+ */
+function readQuotationChoice(value) {
+    if (typeof value !== "string") return {};
+    if (value.startsWith("existing:")) {
+        const existingId = value.slice("existing:".length);
+        return existingId ? { existingId } : {};
+    }
+    if (value.startsWith("new:")) return { newIndex: Number(value.slice("new:".length)) };
+    return {};
+}
 
 async function loadPRContext(prId) {
     const pr = await getPRById(prId);
@@ -349,6 +368,33 @@ export async function editAndContinueAction(prevState, formData) {
             }
         }
 
+        // #440 — A QUOTATION THIS TURN WOULD LINK IS ONE OF THIS REQUEST'S, ASKED
+        // BEFORE ANYTHING IS WRITTEN. The request's own quotations are
+        // `pr.quotationRowIds`, the reverse link on the record `loadPRContext` already
+        // read — the same link the page built this form's dropdown from — so the
+        // question costs no read. Only a choice that differs from the item's stored
+        // link is asked, because only that one is written: a row somebody else linked
+        // wrongly and this signer left alone must not lock the whole turn. Reachable
+        // only by a direct call, or by a quotation removed in Airtable while the form
+        // was open, so the sentence is short and the real reason is logged.
+        const requestQuotationIds = new Set(pr.quotationRowIds);
+        const quotationChoices = new Map();
+        for (const submitted of editedItems) {
+            const original = originalById[submitted.id];
+            if (!original) continue;
+            const choice = readQuotationChoice(submitted.quotationChoice);
+            const storedQuotationId = original.quotation?.[0] || null;
+            if (
+                choice.existingId &&
+                choice.existingId !== storedQuotationId &&
+                !requestQuotationIds.has(choice.existingId)
+            ) {
+                console.error(`editAndContinueAction refused a quotation ${pr.prId} does not have`);
+                return { error: "One of the quotations picked for an item is not on this PR. Reload the page and try again." };
+            }
+            quotationChoices.set(submitted.id, choice);
+        }
+
         const createdEditLogIds = [];
         const touchedItemIds = new Set(changes.map((c) => c.itemId));
         // itemId -> { newQuotationId, oldQuotationId } — only populated for
@@ -392,26 +438,21 @@ export async function editAndContinueAction(prevState, formData) {
                 }
             }
 
-            // Resolve each submitted item's Quotation choice ("existing:<id>"
-            // | "new:<index>" | "") against its actually-stored current link
-            // — an item whose choice didn't change (the common case: it was
-            // never shown a dropdown, or the Requester left it alone) gets no
-            // write at all.
-            for (const submitted of editedItems) {
-                const original = originalById[submitted.id];
-                if (!original) continue;
-
-                let newQuotationId = null;
-                if (submitted.quotationChoice?.startsWith("existing:")) {
-                    newQuotationId = submitted.quotationChoice.slice("existing:".length);
-                } else if (submitted.quotationChoice?.startsWith("new:")) {
-                    newQuotationId = createdQuotationIds[Number(submitted.quotationChoice.slice(4))];
-                }
+            // Resolve each submitted item's Quotation choice, as judged above,
+            // against its actually-stored current link — an item whose choice
+            // didn't change (the common case: it was never shown a dropdown, or
+            // the Requester left it alone) gets no write at all. A "new:<index>"
+            // choice needs the real record id, which is why this half waits for
+            // the creates above.
+            for (const [itemId, choice] of quotationChoices) {
+                const original = originalById[itemId];
+                const newQuotationId =
+                    choice.newIndex !== undefined ? createdQuotationIds[choice.newIndex] : choice.existingId ?? null;
 
                 const oldQuotationId = original.quotation?.[0] || null;
                 if (newQuotationId !== oldQuotationId) {
-                    quotationLinkChanges.set(submitted.id, { newQuotationId, oldQuotationId });
-                    touchedItemIds.add(submitted.id);
+                    quotationLinkChanges.set(itemId, { newQuotationId, oldQuotationId });
+                    touchedItemIds.add(itemId);
                 }
             }
 
@@ -725,7 +766,7 @@ export async function withdrawAction(prevState, formData) {
         // Re-checked server-side, independent of any UI gating — a forged prId
         // for someone else's PR, or a stale request against a PR that has since
         // advanced, must both be rejected.
-        if (pr.requester?.[0] !== user.id) {
+        if (!isRequester(user, pr)) {
             return { error: "You can only withdraw your own PR." };
         }
         if (pr.status !== "In Review") {

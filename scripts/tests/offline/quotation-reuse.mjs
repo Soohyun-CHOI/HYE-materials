@@ -16,16 +16,22 @@
 // is not ours through to `create` hands Airtable an address it will fetch and keep.
 // So the refusals are asserted first among the new cases, and the reuse case beside
 // them, since that is the one url that is not ours and still belongs.
+//
+// #440 ADDED WHAT THE FORM DOES ONCE ITS DRAFT IS GONE, and the first assertion there
+// is the defect itself: an entry the form kept after its draft was deleted is refused
+// by the plan above, which is how deleting an open draft that had a quotation file
+// left the next save with nowhere to go.
 
 import {
     QUOTATION_ENTRY,
     QUOTATION_REUSE_COPY,
+    detachQuotations,
     planQuotationEntry,
     shouldReuseQuotation,
 } from "../../../lib/quotationReuse.js";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Draft re-save — shouldReuseQuotation (#142) and each entry's fate (#438)";
+export const title = "Draft re-save — shouldReuseQuotation (#142), each entry's fate (#438), and letting go of a gone draft (#440)";
 
 export function run({ check }) {
     // The case the bug was: hydrated from a Draft, file untouched, so the url
@@ -170,6 +176,52 @@ export function run({ check }) {
         QUOTATION_REUSE_COPY.changedElsewhere,
         "One of this draft's quotations was changed in another tab. Reopen the draft and try again."
     );
+
+    // ── #440 — the entries once the draft they came from is gone ───────────────
+    // Three entries as the form holds them: one hydrated from the draft and never
+    // touched, one hydrated and then given a new file this session, one added fresh.
+    // `isOurFile` is what the save would compute for each url.
+    const fromDraft = {
+        recordId: "recQ1",
+        file: { status: "done", url: "https://v5.airtableusercontent.com/q.pdf", filename: "q.pdf", quotationId: "HYE-PR-1-Q01" },
+        vendorQuotationCode: "VQ-1",
+    };
+    const replaced = {
+        recordId: "recQ2",
+        file: { status: "done", url: "https://ours.public.blob.vercel-storage.com/q2.pdf", filename: "q2.pdf" },
+        vendorQuotationCode: "VQ-2",
+    };
+    const fresh = { recordId: "", file: { status: "done", url: "https://ours.public.blob.vercel-storage.com/q3.pdf" }, vendorQuotationCode: "" };
+    const saved = (entry, isOurFile) =>
+        plan({
+            recordId: entry.recordId,
+            hasFile: Boolean(entry.file?.url),
+            hasCode: Boolean(entry.vendorQuotationCode),
+            // No draft behind the save, so no record is among its quotations.
+            isLiveRecord: false,
+            isOurFile,
+        });
+
+    // THE DEFECT, SHOWN RATHER THAN DESCRIBED: this is what the list's own delete left
+    // the form holding, and the next save refused it.
+    check(
+        "an entry the form kept after its draft went is refused on the next save",
+        saved(fromDraft, false),
+        QUOTATION_ENTRY.changedElsewhere
+    );
+    const { entries, filesDropped } = detachQuotations([fromDraft, replaced, fresh]);
+    check("letting go empties the one file that came from the draft", filesDropped, 1);
+    check("  and every entry loses its record id", entries.map((e) => e.recordId).join(","), ",,");
+    check("  the draft's own file is gone from its entry", entries[0].file.status, "idle");
+    check("  its typed code stays", entries[0].vendorQuotationCode, "VQ-1");
+    check("  a file picked this session is kept", entries[1].file.url, replaced.file.url);
+    check("  and so is a fresh entry's", entries[2].file.url, fresh.file.url);
+    // And the save that follows creates what it can and refuses nothing.
+    check("the emptied entry saves as a code on a new quotation", saved(entries[0], false), QUOTATION_ENTRY.create);
+    check("  the replaced one as a new quotation", saved(entries[1], true), QUOTATION_ENTRY.create);
+    check("  and the fresh one likewise", saved(entries[2], true), QUOTATION_ENTRY.create);
+    check("the entries it was handed are not changed in place", fromDraft.recordId, "recQ1");
+    check("a draft with no quotation files drops nothing", detachQuotations([fresh]).filesDropped, 0);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

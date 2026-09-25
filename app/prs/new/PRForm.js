@@ -30,6 +30,11 @@ import {
     jobDefaultAddressId,
 } from "@/lib/addressChoice";
 import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";
+// #440 — the two answers a save can get about the draft it names, their words, and
+// what this form does with its quotation entries once that draft is gone. Both
+// modules are pure, so this Client Component may import them.
+import { OWN_DRAFT_COPY, OWN_DRAFT_REFUSAL } from "@/lib/prRequester";
+import { detachQuotations } from "@/lib/quotationReuse";
 
 // quotationIndex: null until the Requester picks one (issue #67) — only
 // meaningful once 2+ Quotations exist; ignored (and auto-resolved server-
@@ -145,8 +150,25 @@ export default function PRForm({
     autoResume = false,
     draftList = [],
 }) {
-    const [submitState, submitAction, submitPending] = useActionState(createPRAction, null);
-    const [draftState, draftAction, draftPending] = useActionState(saveDraftAction, null);
+    // #440 — A SAVE REFUSED BECAUSE ITS DRAFT IS GONE LETS GO OF THAT DRAFT, HERE,
+    // where the answer arrives, so it is handled once per answer rather than by an
+    // effect that would have to tell a new answer from one it had already seen. Only
+    // `gone`: the draft was deleted, from this tab's list or anywhere else, so what is
+    // typed can only be kept by saving it as a new request. `submitted` keeps the
+    // draft and its sentence sends the reader to the request that exists, because a
+    // new one would be a second request for what is already in review.
+    async function submitThenDetach(prev, formData) {
+        const result = await createPRAction(prev, formData);
+        if (result?.draftRefusal === OWN_DRAFT_REFUSAL.gone) detachFromDraft();
+        return result;
+    }
+    async function saveThenDetach(prev, formData) {
+        const result = await saveDraftAction(prev, formData);
+        if (result?.draftRefusal === OWN_DRAFT_REFUSAL.gone) detachFromDraft();
+        return result;
+    }
+    const [submitState, submitAction, submitPending] = useActionState(submitThenDetach, null);
+    const [draftState, draftAction, draftPending] = useActionState(saveThenDetach, null);
 
     // Issue #74 — when the page hands us a Draft to open directly
     // (autoResume: an explicit pick from the drafts list, via ?draft), seed
@@ -227,14 +249,37 @@ export default function PRForm({
     const [confirmingPrId, setConfirmingPrId] = useState(null);
     const [deletingPrId, setDeletingPrId] = useState(null);
     const [deleteError, setDeleteError] = useState(null);
-    const [deletedOpenDraftNotice, setDeletedOpenDraftNotice] = useState(false);
+    // The sentence saying the form has let go of a deleted draft, or null. Which of
+    // the two it is depends on whether the draft's own quotation files went with it.
+    const [detachNotice, setDetachNotice] = useState(null);
+
+    // #440 — ONE WAY OF LETTING GO OF A DRAFT THAT IS GONE, for both ways of learning
+    // it is: this tab's own list deleted it, or a save was refused as `gone`. The typed
+    // content stays and the next save creates a new request. The quotation entries
+    // are released too, which the list's path did not do before this: an entry
+    // hydrated from the draft kept the draft's record id and Airtable's url for its
+    // file, so the next save was refused as a quotation changed in another tab — see
+    // `detachQuotations`. And the draft's row leaves the list of saved drafts, which
+    // the list's own delete had already done and a `gone` answer did not: the notice
+    // said the draft was deleted while the list beside it still counted it.
+    function detachFromDraft() {
+        const { entries, filesDropped } = detachQuotations(quotations);
+        setQuotations(entries);
+        setDrafts((prev) => prev.filter((d) => d.prId !== openDraftPrId));
+        setDraftRecordId("");
+        setOpenDraftPrId(null);
+        setDetachNotice(filesDropped > 0 ? OWN_DRAFT_COPY.detachedWithoutFiles : OWN_DRAFT_COPY.detached);
+    }
 
     async function handleDelete(prId) {
         setDeletingPrId(prId);
         setDeleteError(null);
         try {
             const res = await deleteDraftAction(prId);
-            if (res?.error) {
+            // #440 — a draft already gone is the outcome the reader asked for, so it
+            // leaves the list the way a deleted one does. Any other refusal — the
+            // draft was submitted in the meantime — stays on the row in its words.
+            if (res?.error && res.draftRefusal !== OWN_DRAFT_REFUSAL.gone) {
                 setDeleteError(res.error);
                 setDeletingPrId(null);
                 return;
@@ -243,11 +288,7 @@ export default function PRForm({
             // If the deleted Draft is the one open in the form, keep the
             // typed content but detach it so Save/Submit creates a NEW PR
             // rather than trying to update a now-deleted record.
-            if (prId === openDraftPrId) {
-                setDraftRecordId("");
-                setOpenDraftPrId(null);
-                setDeletedOpenDraftNotice(true);
-            }
+            if (prId === openDraftPrId) detachFromDraft();
             setConfirmingPrId(null);
             setDeletingPrId(null);
         } catch {
@@ -319,7 +360,7 @@ export default function PRForm({
         if (draftState?.savedDraft?.recordId) {
             setDraftRecordId(draftState.savedDraft.recordId);
             setOpenDraftPrId(draftState.savedDraft.prId);
-            setDeletedOpenDraftNotice(false);
+            setDetachNotice(null);
             if (leavingForAddress) {
                 const job = allJobs.find((j) => j.id === jobId);
                 const query = new URLSearchParams({ from: draftState.savedDraft.prId });
@@ -451,6 +492,12 @@ export default function PRForm({
     const quotationsIncomplete = quotations.length === 0 || quotations.some((q) => q.file.status !== "done");
 
     const showDuplicateWarning = Boolean(submitState?.duplicateWarning) && !warningDismissed;
+
+    // #440 — a `gone` refusal is said by the notice the form shows once it has let go
+    // of the draft, so the red line carries every other answer and never that one
+    // twice. `submitted` is one of those others: its sentence is the reader's way on.
+    const shownError =
+        [submitState, draftState].find((s) => s?.error && s.draftRefusal !== OWN_DRAFT_REFUSAL.gone)?.error ?? null;
 
     // #170 — what the save will merge, read off the same rule the action writes with.
     // Recomputed per render on the rows in hand: it is a pure pass over a handful of
@@ -679,15 +726,14 @@ export default function PRForm({
                     Open a saved draft ({drafts.length})
                 </button>
             </div>
-            {(submitState?.error || draftState?.error) && (
+            {shownError && (
                 <p className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
-                    {submitState?.error || draftState?.error}
+                    {shownError}
                 </p>
             )}
-            {deletedOpenDraftNotice && (
+            {detachNotice && (
                 <p className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                    The saved draft was deleted. Your changes are still here and will be saved as a
-                    new PR.
+                    {detachNotice}
                 </p>
             )}
 

@@ -7,6 +7,11 @@
 // road the new read does not share: the user's reverse link, against a status
 // filter over the whole table and each row's own `Requester`.
 //
+// SINCE #440 THE TWO ROADS AGREE ONLY WHILE NO REQUEST NAMES TWO REQUESTERS. The
+// reverse link lists a request under every user it names, and the read now takes
+// the first one (`lib/prRequester.js`), so a request carrying a second would sit in
+// that user's walk and not in their answer. No write path links two.
+//
 // WHY THIS TIER. The status filter is a formula, and the offline tier never
 // executes one (docs/notes/verification.md), so whether the base answers the way
 // the code assumes is a question only live rows can settle.

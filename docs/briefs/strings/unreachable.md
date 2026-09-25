@@ -178,23 +178,42 @@ rendered only in the state its refusal excludes.
 
 ## `/prs/new`
 
-Sixteen refusals; **eleven judged unreachable, one reachable, four not judged.** The
-form carries `required` on the job, the discipline, the vendor and every item field,
-and the submit is
-disabled until a quotation file has uploaded — which answers the eleven. The four not
-judged are the draft-management refusals, whose controls are per-draft and whose
-gating was not traced. The reachable one is #438's `One of this draft's quotations was
-changed in another tab. Reopen the draft and try again.`, which the same draft saved
-from a second tab reaches with nothing forged, once the first tab has replaced or
-removed one of its quotations.
+Fifteen refusals; **thirteen judged unreachable, two reachable.** The form carries
+`required` on the job, the discipline, the vendor and every item field, and the
+submit is disabled until a quotation file has uploaded — which answers eleven of the
+thirteen. The reachable pair are both a second tab's: #438's `One of this draft's
+quotations was changed in another tab. Reopen the draft and try again.`, once the
+other tab has replaced or removed one of the draft's quotations, and #440's `This
+draft has already been submitted. Open it from the PR list.`, once the other tab has
+submitted it — on a save, a submit, or a delete from the drafts list this tab loaded
+earlier.
+
+- **`That draft no longer exists.` is held and never drawn here (#440).** It is what
+  a save, a submit and a delete answer for a draft that is gone and for somebody
+  else's request alike, and neither answer reaches this screen as a sentence: a save
+  or a submit refused that way lets go of the draft and shows the amber notice in its
+  place, and a delete refused that way takes the row out of the list as a delete
+  would. What reaches it is a direct call.
+- **`Couldn't delete the draft. Please try again.`** needs Airtable to fail, the same
+  class as every other `Please try again.` in this file. It and the sentence above
+  were two of four this list carried as not judged; the other two were
+  `deleteDraftAction`'s own `Only drafts can be deleted here.` and `You can only
+  delete your own drafts.`, and #440 retired both for the pair above.
 
 ## `/prs/[prId]`
 
-Twenty refusals; **three judged, seventeen not.** The signing chain's guards depend
+Twenty-one refusals; **four judged, seventeen not.** The signing chain's guards depend
 on whose turn it is and on the request's status, and the controls that would produce
 each state are spread across the signer bar, the correction form, the withdraw button
 and the edit-and-continue form. Judging those means tracing four control sets against
 `prSigning`'s turn rule, which this pass did not do.
+
+- **`One of the quotations picked for an item is not on this PR. Reload the page and
+  try again.` is judged unreachable (#440).** The edit form builds each item's
+  quotation dropdown from this request's own quotations, and the action refuses only a
+  choice it would WRITE — one differing from the item's stored link — so the form's
+  own options never produce it. What does is a direct call, or a quotation removed in
+  Airtable while the form stood open.
 
 - **The three that are judged are #188's**, and they are judged REACHABLE rather than
   unreachable: the failed-rollback voice of each signing action, reached when an

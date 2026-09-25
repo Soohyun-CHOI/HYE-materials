@@ -5,6 +5,7 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllVendors } from "@/lib/airtable/vendors";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { canViewPR } from "@/lib/prVisibility";
+import { isRequester, requesterOf } from "@/lib/prRequester";
 import { PR_KIND_CHOICES, prKind } from "@/lib/prKind";
 import { jobOptionLabel, parseFilters, pickerOptions } from "@/lib/listFilters";
 import { accessibleJobs as jobsFor } from "@/lib/deliveryAccess";
@@ -69,7 +70,7 @@ async function renderPRListPage({ searchParams }) {
     // Issue #193 — read in ONE query below rather than one find per requester,
     // which is the shape that grew with the rows on the page. This list is already
     // distinct, so batching changes nothing else about it.
-    const requesterIds = [...new Set(visible.map((pr) => pr.requester?.[0]).filter(Boolean))];
+    const requesterIds = [...new Set(visible.map((pr) => requesterOf(pr)).filter(Boolean))];
     // Issue #217 — the strip's rows, read alongside the requester names rather than
     // after them, so the strip costs the page no extra round trip. ITS ROWS ARE
     // GATED BY THE DELIVERY RULE, NOT THIS PAGE'S: the table is purchase requests
@@ -100,8 +101,8 @@ async function renderPRListPage({ searchParams }) {
         id: pr.id,
         prId: pr.prId,
         status: pr.status,
-        isMine: pr.requester?.[0] === user.id,
-        requesterName: userNameById[pr.requester?.[0]] || "—",
+        isMine: isRequester(user, pr),
+        requesterName: userNameById[requesterOf(pr)] || "—",
         vendorId: pr.vendor?.[0] ?? null,
         vendorName: vendorsById[pr.vendor?.[0]] || "—",
         jobId: pr.job?.[0] ?? null,
