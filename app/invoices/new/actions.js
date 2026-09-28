@@ -302,10 +302,10 @@ async function createInvoiceHandler(prevState, formData) {
             // order — Links, then Items, then the Invoice itself.
             if (invoice) {
                 await Promise.allSettled([
-                    ...createdLinkIds.map((id) => base(TABLES.INVOICE_PO_LINK).destroy(id)),
-                    ...createdItemIds.map((id) => base(TABLES.INVOICE_ITEMS).destroy(id)),
+                    ...createdLinkIds.map((id) => base(TABLES.INVOICE_PO_LINK).destroy([id])),
+                    ...createdItemIds.map((id) => base(TABLES.INVOICE_ITEMS).destroy([id])),
                 ]);
-                await base(TABLES.INVOICES).destroy(invoice.id).catch(() => {});
+                await base(TABLES.INVOICES).destroy([invoice.id]).catch(() => {});
             }
 
             console.error("createInvoiceAction failed, rolled back", err);

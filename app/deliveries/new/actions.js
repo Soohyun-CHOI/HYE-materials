@@ -284,9 +284,9 @@ export async function createDeliveryAction(prevState, formData) {
             // half-recorded delivery. Reverse creation order.
             if (delivery) {
                 await Promise.allSettled(
-                    createdItemIds.map((id) => base(TABLES.DELIVERY_ITEMS).destroy(id))
+                    createdItemIds.map((id) => base(TABLES.DELIVERY_ITEMS).destroy([id]))
                 );
-                await base(TABLES.DELIVERIES).destroy(delivery.id).catch(() => {});
+                await base(TABLES.DELIVERIES).destroy([delivery.id]).catch(() => {});
             }
             console.error("createDeliveryAction failed, rolled back", err);
             return { error: "Something went wrong recording this delivery. Please try again." };

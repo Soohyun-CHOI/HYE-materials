@@ -259,10 +259,10 @@ async function deleteInvoiceHandler(invoiceId) {
                 getLinkedRecords(TABLES.INVOICES, invoice.id, "Invoice-PO Link", TABLES.INVOICE_PO_LINK),
             ]);
             await Promise.allSettled([
-                ...items.map((r) => base(TABLES.INVOICE_ITEMS).destroy(r.id)),
-                ...links.map((r) => base(TABLES.INVOICE_PO_LINK).destroy(r.id)),
+                ...items.map((r) => base(TABLES.INVOICE_ITEMS).destroy([r.id])),
+                ...links.map((r) => base(TABLES.INVOICE_PO_LINK).destroy([r.id])),
             ]);
-            await base(TABLES.INVOICES).destroy(invoice.id);
+            await base(TABLES.INVOICES).destroy([invoice.id]);
         } catch (err) {
             console.error("deleteInvoiceAction failed", err);
             return { error: "Couldn't delete the invoice. Please try again." };
