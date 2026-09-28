@@ -21,7 +21,12 @@
  * the paragraph rides on that branch. **If it is fixed, the fix belongs where the
  * action is bound to the form — here and in `PRForm.js` — and not inside
  * `app/components/CategoryPicker.js`**, which renders one row's control and can
- * see neither the action nor the reset.
+ * see neither the action nor the reset. **A form that keeps its fields through a
+ * refusal exists since #449**: `app/(tools)/tools/new/ToolRegistrationForm.js`
+ * submits through a handler of its own, inside a transition, which React follows
+ * with no reset, and keeps `action` for a press before hydration. Its header carries
+ * what was read in react-dom and measured, so a fix here starts there rather than
+ * from another probe.
  */
 
 import { useActionState, useState } from "react";

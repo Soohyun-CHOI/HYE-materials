@@ -34,7 +34,9 @@
 //   twenty-five has inside a hundred, with those edges first read off
 //   `pageOfToolItems`; what the page reads for the account it lands with, what it
 //   hands the fork, and what the fork's dismissal does to the address are read off
-//   the AST beside planted versions doing each wrong.
+//   the AST beside planted versions doing each wrong. So is the control that opens
+//   the form from the page (#451): what it is handed, what it says, and that no
+//   condition stands above it.
 //
 //   AND NO TOOLS SCREEN PUTS TEXT IN ITS MARKUP. #338 and #340 both state that
 //   arrangement in prose — every string a tools screen renders is in a constant,
@@ -666,6 +668,79 @@ export function run({ check, assert, log }) {
     check("  the router is seen", plantedFork.routed.join(", "), "useRouter, router.replace");
     check("  with no history write", plantedFork.replaced, 0);
     check("  and a link carrying another count is seen", plantedFork.linkArgs, "toolName: toolName, quantity: requested");
+
+    // THE CONTROL THAT REGISTERS MORE OF THIS TOOL (#451). It opens the form with this
+    // tool's name and no count, in the registration form's words, and it stands under no
+    // condition: a tool with nothing under it keeps it, and so does a reader on no job,
+    // whom the form itself tells why it cannot take them. A control drawn only beside the
+    // list renders this very page on every tool this base holds, so none of that shows in
+    // a figure and all of it is read off the source.
+    const registerControls = (ast) => {
+        const found = [];
+        const skip = new Set(["type", "start", "end", "loc", "range", "parent"]);
+        // The keys under which a node's children render only sometimes.
+        const branches = {
+            ConditionalExpression: ["consequent", "alternate"],
+            LogicalExpression: ["right"],
+            IfStatement: ["consequent", "alternate"],
+        };
+        (function visit(node, conditions) {
+            if (!node || typeof node !== "object") return;
+            if (Array.isArray(node)) return node.forEach((child) => visit(child, conditions));
+            if (typeof node.type !== "string") return;
+            if (node.type === "JSXElement") {
+                const href = node.openingElement.attributes.find((a) => a.name?.name === "href")?.value?.expression;
+                if (href?.type === "CallExpression" && nameOf(href.callee) === "registerPath")
+                    found.push({
+                        handed: (href.arguments[0]?.properties ?? [])
+                            .map((p) => `${p.key?.name}: ${nameOf(p.value)}`)
+                            .join(", "),
+                        says: node.children
+                            .filter((child) => child.type !== "JSXText" || child.value.trim())
+                            .map((child) => nameOf(child.expression ?? child))
+                            .join(", "),
+                        conditions,
+                    });
+            }
+            for (const key of Object.keys(node)) {
+                if (skip.has(key)) continue;
+                visit(node[key], conditions + (branches[node.type]?.includes(key) ? 1 : 0));
+            }
+        })(ast, 0);
+        return found;
+    };
+    const controls = registerControls(parseFile(TOOL_SCREEN).ast);
+    check("the page opens the registration form from one control", controls.length, 1);
+    check("  handed this tool's name and no count", controls[0]?.handed, "toolName: tool.toolName");
+    check("  in the registration form's words for it", controls[0]?.says, "TOOL_REGISTRATION_COPY.registerMore");
+    check("  and under no condition — not the list's, not the reader's", controls[0]?.conditions, 0);
+    // ANTI-VACUITY: a planted page carrying the control in the not-found return, beside
+    // the list only, and for a reader on a job only is seen doing all three — and the one
+    // beside the list is seen handing a record id and a count and saying the heading.
+    const plantedControls = registerControls(
+        parseSource(
+            "async function renderToolPage() {\n" +
+                "  if (!tool) return <Link href={registerPath({ toolName: name })}>{TOOL_REGISTRATION_COPY.registerMore}</Link>;\n" +
+                "  return (<div>\n" +
+                "    {page.total === 0 ? <p /> : <Link href={registerPath({ toolName: tool.id, quantity: page.total })}>{TOOL_REGISTRATION_COPY.heading}</Link>}\n" +
+                "    {canRegisterToolItems(user, jobs) && <Link href={registerPath({ toolName: tool.toolName })}>{TOOL_REGISTRATION_COPY.registerMore}</Link>}\n" +
+                "  </div>);\n" +
+                "}\n",
+            "<planted-control>"
+        ).ast
+    );
+    check("  three controls are seen as three", plantedControls.length, 3);
+    check(
+        "  each under the condition it is drawn beneath",
+        plantedControls.map((control) => control.conditions).join(", "),
+        "1, 1, 1"
+    );
+    check(
+        "  a record id and a count are seen handed",
+        plantedControls[1]?.handed,
+        "toolName: tool.id, quantity: page.total"
+    );
+    check("  and the heading's word is seen", plantedControls[1]?.says, "TOOL_REGISTRATION_COPY.heading");
 
     // ── 2c: this list's page and the document lists' page stay two constants ─
     log("");

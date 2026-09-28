@@ -54,9 +54,10 @@ opened, and the write asks the base again.
 **When the reader is assigned to no job:** the form is not there at all. The
 screen is the heading and one sentence saying there is no job to register a tool
 item against and to ask for a job assignment. Nothing else — no disabled form,
-no empty picker. `Tool Items."Job"` is required, the job comes from the reader's
-own assignments with no exception for the office, so an Admin on no job meets
-this too.
+no empty picker, and nothing an address names, so a reader arriving from a
+tool's own screen sees exactly what one arriving from `/tools` does.
+`Tool Items."Job"` is required, the job comes from the reader's own assignments
+with no exception for the office, so an Admin on no job meets this too.
 
 **When the reader is assigned to exactly one job:** the job is stated rather
 than chosen, and there is no control for it.
@@ -64,16 +65,18 @@ than chosen, and there is no control for it.
 **When the reader is assigned to more than one:** a choice among their own jobs,
 and no other job is offered.
 
-**When the address names a tool and a count (#449):** the name and the count
-start filled in, and both are the reader's to change before anything is written.
-This is where a registration that fell short sends the reader to write the rest —
-the tool's own screen offers it as `Register the other 4` — and a copied link is
-a request to register that many of that tool. **The screen says nothing about why
-the fields are filled**: a line reading the address back would show whoever opens
-a copied link an account of somebody else's registration, which is the line
-#321 took off every screen. A reload opens the same form with the same suggestion
-and writes nothing. The job is never carried, so a reader on several jobs chooses
-one as always.
+**When the address names a tool (#449, #451):** the name starts filled in, and
+so does the count when the address carries one; both are the reader's to change
+before anything is written. A tool's own screen opens the form this way. Its
+`Register more of this tool` names the tool and no count, so the count starts at
+1 — where it starts whenever the address names none, or names one the submit
+would refuse. After a registration that fell short, its `Register the other 4`
+names both, to write the rest. A copied link is a request to register that tool,
+or that many of it. **The screen says nothing about why the fields are filled**:
+a line reading the address back would show whoever opens a copied link an
+account of somebody else's registration, which is the line #321 took off every
+screen. A reload opens the same form with the same suggestion and writes nothing.
+The job is never carried, so a reader on several jobs chooses one as always.
 
 **When a registration writes anything, the screen is left (#449).** The reader
 lands on the tool's own screen — the tool the tool items were written under — on
@@ -113,8 +116,12 @@ was typed through any of them.
 A tool, a tool item. The same pair governs `/tools`, the tool's own screen and
 the tool item's, so a word chosen here is chosen for all of them.
 
-**The heading is also the word on the control that opens this screen.** `/tools`
-carries it, and the two come from one constant so they cannot drift.
+**The heading is also the word on `/tools`' control that opens this screen**,
+and the two come from one constant so they cannot drift. A tool's own screen
+opens it too, with `Register more of this tool` and, after a registration that
+fell short, `Register the other 4`; their words come from the same constant and
+say what they open it with. This said "the control that opens this screen",
+which stopped being the only one at #449.
 
 **The cap of 100 is a fact about one submission, not about a tool.** It comes
 from what one server invocation can write — three Airtable operations per tool
