@@ -191,19 +191,34 @@ const CARRIED = [
         note: "#326 — which page of the rows this reader's filters admit, 1-based. Written by the two steps at the foot of the list, through `useListFilters`'s own URL mirror; absent on the first page, which is #324's convention that absence is the unapplied state. A page past the end resolves to the last one AND the address is rewritten to the page actually shown",
     })),
 
-    // ── a selection: which records the screen is built from ────────────────
-    // A FIFTH GROUP, AND THE FIRST PLURAL PARAMETER THE APP CARRIES (#353). It is
-    // not a filter, because there is no list it narrows — without it this screen has
-    // nothing to render at all; not a navigation, because that opens a form ON a
-    // record and this constitutes the whole page; not a slice, because it is not a
-    // part of something longer; and not an account, because it says what the next
-    // act is FOR rather than that an act happened. That last distinction is what
-    // keeps it clear of #321: a copied link is a perfectly good request to print
-    // those labels again, which is exactly what a confirmation must never be.
+    // ── a selection: which records the next act is for ────────────────────
+    // A FIFTH GROUP (#353). It is not a filter, because there is no list it narrows —
+    // without it the label screen has nothing to render at all; not a navigation,
+    // because that opens a form ON a record and this constitutes the whole page; not a
+    // slice, because it is not a part of something longer; and not an account,
+    // because it says what the next act is FOR rather than that an act happened. That
+    // last distinction is what keeps it clear of #321: a copied link is a perfectly
+    // good request to print those labels again, which is exactly what a confirmation
+    // must never be. **This called it the first plural parameter the app carries, and
+    // it was not** — `/prs`' `job` had been repeatable since #321; corrected by #443.
+    //
+    // #443 GAVE IT A SECOND MEMBER RATHER THAN A SEVENTH GROUP, and the reload test
+    // these groups are sorted by is what decides that. A tool's list carries what it
+    // has selected for a label run under the same name and the same values, and the
+    // print control moves them to the label screen unchanged — so both answer a reload
+    // the same way: the same records come back named for the same act. Of the four
+    // exclusions above only the first changes its reason: the list renders the same
+    // rows with the selection or without it, so the parameter marks them rather than
+    // narrowing them. A group of its own would be a second name for one answer.
     {
         route: "/tool-items/labels",
         param: "id",
-        note: "#353 — which tool items to print labels for; repeatable, a printed `Tool Item ID` each, canonicalized and de-duplicated then capped at the largest registration. Written by the link on a registration's own answer, where the minted ids live and nowhere else, and by the one on a tool's page",
+        note: "#353 — which tool items to print labels for; repeatable, a printed `Tool Item ID` each, read through `readToolItemIds` — canonical and each once — then capped at the largest registration. Written by the link on a registration's own answer, where the minted ids live and nowhere else, by a tool item's own page, and by a tool's page, which sends what its list has selected (#443)",
+    },
+    {
+        route: "/tools/[toolRecordId]",
+        param: "id",
+        note: "#443 — which of this tool's tool items the list has selected for a label run; repeatable, the label screen's own name and values, so the print control hands them over unchanged. Written by `toolPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn; read off the address by the list with `useSearchParams().getAll`, and never by the server, which is what keeps the page at four operations",
     },
 
     // ── a one-time account of something the screen does not otherwise say ───
@@ -425,10 +440,12 @@ function writtenParameters(rel, ast, routes) {
                     else keys.forEach((k) => deferred.add(k));
                 }
             }
+            // `append` since #443: a repeated key is written that way, and a tool's
+            // selection is the first write to need it.
             if (
                 n.type === "CallExpression" &&
                 n.callee?.type === "MemberExpression" &&
-                n.callee.property?.name === "set" &&
+                (n.callee.property?.name === "set" || n.callee.property?.name === "append") &&
                 n.arguments[0]?.type === "Literal" &&
                 typeof n.arguments[0].value === "string"
             )
@@ -459,9 +476,10 @@ function writtenParameters(rel, ast, routes) {
  *
  * FOUR SHAPES, ALL OF WHICH ARE IN USE. A destructured `await searchParams` names its
  * keys directly; a whole `sp` is read a property at a time; `useSearchParams()` on the
- * client reads through `.get()`, which is `/materials`'s search box; and a whole `sp`
- * is HANDED to `parseFilters(route, sp, options)`, which is what the four document
- * lists do since #324.
+ * client reads through `.get()`, which is `/materials`'s search box — or `.getAll()`
+ * for a repeated key, which is a tool's selection since #443; and a whole `sp` is
+ * HANDED to `parseFilters(route, sp, options)`, which is what the four document lists
+ * do since #324.
  *
  * THE FOURTH IS THE SHAPE THIS FILE'S OWN HEADER PREDICTED WOULD BE INVISIBLE. It is
  * also the one that needs no inference: the parameters are not read off member access
@@ -525,7 +543,7 @@ function readParameters(ast) {
             n.callee?.type === "MemberExpression" &&
             n.callee.object?.type === "Identifier" &&
             getLocals.has(n.callee.object.name) &&
-            n.callee.property?.name === "get" &&
+            (n.callee.property?.name === "get" || n.callee.property?.name === "getAll") &&
             n.arguments[0]?.type === "Literal"
         )
             params.add(n.arguments[0].value);
@@ -646,6 +664,24 @@ export function run({ check, assert, log }) {
             (w) => w.param === "page" && w.route === "/tools/[toolRecordId]"
         )
     );
+    // The fifth, and #443's: a REPEATED key, which `URLSearchParams` writes with
+    // `append`. Without this shape a tool's selection would be read by its list and
+    // written by nothing this file can see, so assertion 1 would hold it to nothing.
+    const viaAppend = parseSource(
+        'export const TOOLS_PATH = "/tools";\n' +
+            "export function toolPath(id, selected) {\n" +
+            "  const query = new URLSearchParams();\n" +
+            '  for (const toolItemId of selected) query.append("id", toolItemId);\n' +
+            "  return `${TOOLS_PATH}/${encodeURIComponent(id)}?${query}`;\n" +
+            "}\n",
+        "<appended-key>"
+    );
+    assert(
+        "  and reads a key written with append, on the route it is written for",
+        writtenParameters("lib/toolRoutes.js", viaAppend.ast, routes).some(
+            (w) => w.param === "id" && w.route === "/tools/[toolRecordId]"
+        )
+    );
 
     // ── 2: nothing is read that nothing writes ──────────────────────────────
     log("");
@@ -691,6 +727,18 @@ export function run({ check, assert, log }) {
         "  and so is one reading it a property at a time",
         wholeRead.includes("done") && wholeRead.includes("over")
     );
+    // And the read #443 added: a repeated key off `useSearchParams()`, which `.get()`
+    // would answer with only the first value. The inventory row for a tool's selection
+    // rests on this shape being seen.
+    const repeatedRead = parseSource(
+        "function ToolItemList() {\n" +
+            "  const params = useSearchParams();\n" +
+            '  const selection = params.getAll("id");\n' +
+            "  return <div>{selection.length}</div>;\n" +
+            "}\n",
+        "<repeated-read>"
+    );
+    assert("  and so is one reading every value of a repeated key", readParameters(repeatedRead.ast).includes("id"));
 
     // ── 3: `done` is gone ───────────────────────────────────────────────────
     log("");

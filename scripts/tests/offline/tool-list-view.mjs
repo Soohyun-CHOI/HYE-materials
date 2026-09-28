@@ -18,8 +18,16 @@
 //   size and those lengths are literals** — before it every length was derived from
 //   the constant, and only a twelve-row fixture held a figure, by the accident of
 //   being two pages at ten — and the source is read for the two things no figure
-//   shows: that the screen reads and prints one page, and that its page size is its
-//   own number rather than the document lists'.
+//   shows: that the screen reads one page, and that its page size is its own number
+//   rather than the document lists'.
+//
+//   THE SELECTION IS WHAT A LABEL RUN IS FOR (#443), and it splits the same way.
+//   What a press does to it and what the control says are pure functions, held by
+//   value at literal sizes on both sides of the print cap; what no value can show is
+//   where it lives — that the server never reads it, that the list is handed only the
+//   rows the page read, that the print link and both steps are built from it, and
+//   that a press rewrites the address without a render — so those are read off the
+//   AST of the page and of the list, each beside a planted screen doing it wrong.
 //
 //   AND NO TOOLS SCREEN PUTS TEXT IN ITS MARKUP. #338 and #340 both state that
 //   arrangement in prose — every string a tools screen renders is in a constant,
@@ -42,10 +50,15 @@ import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
 import {
     TOOL_LIST_COPY,
     TOOL_PAGE_SIZE,
+    describeSelection,
     pageOfToolItems,
+    pageSelection,
     summarizeTools,
+    togglePage,
+    toggleToolItem,
 } from "../../../lib/toolListView.js";
 import { MAX_LABELS_PER_REQUEST } from "../../../lib/toolLabelSheet.js";
+import { readToolItemIds } from "../../../lib/toolRoutes.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -93,8 +106,19 @@ function bareItemWords(text) {
     );
 }
 
-/** The tool's own screen, whose read and print link section 2b reads off the AST. */
+/** The tool's own screen, whose read and the rows it hands on section 2b reads off the AST. */
 const TOOL_SCREEN = "app/(tools)/tools/[toolRecordId]/page.js";
+
+/** The list on that screen, whose selection section 2b reads off the AST (#443). */
+const TOOL_ITEM_LIST = "app/(tools)/tools/[toolRecordId]/ToolItemList.js";
+
+/** `(await searchParams) ?? {}`, `await searchParams` or `searchParams` — a page's address. */
+function isSearchParams(init) {
+    let e = init;
+    if (e?.type === "LogicalExpression") e = e.left;
+    if (e?.type === "AwaitExpression") e = e.argument;
+    return e?.type === "Identifier" && e.name === "searchParams";
+}
 
 /** `page.ids` for a member read, the bare name for an identifier, else the node's type. */
 function nameOf(node) {
@@ -220,12 +244,13 @@ export function run({ check, assert, log }) {
     // Above 50 a page would cost two `findChildRecords` queries instead of one,
     // which is a boundary on this number that is not the design's.
     assert("  and stays inside one batched read of fifty", TOOL_PAGE_SIZE <= 50);
-    // AND A PAGE IS WHAT ONE PRESS OF PRINT SENDS (#442), the other boundary that is
-    // not the design's. The tool's screen hands the label screen the tool items on
-    // the page it shows, and the label screen prints `MAX_LABELS_PER_REQUEST` at a
-    // time — a cap tied to the registration form rather than to this page — so the
-    // page has to fit under it or a press prints part of its page. Each figure is
-    // pinned by value where it lives; this is the order between them.
+    // AND A PAGE IS WHAT ONE PRESS OF THE PAGE BOX SELECTS (#443), the other boundary
+    // that is not the design's. The print control acts only on a selection of at most
+    // `MAX_LABELS_PER_REQUEST` — a cap tied to the registration form rather than to
+    // this page — so a page larger than that would be a box whose first press leaves
+    // the control refusing. It was what one press of print SENT until #443 (#442), and
+    // the order held for that reason then. Each figure is pinned by value where it
+    // lives; this is the order between them.
     assert("  and fits what the label screen prints at once", TOOL_PAGE_SIZE <= MAX_LABELS_PER_REQUEST);
 
     const idsOfLength = (n) => Array.from({ length: n }, (_, i) => `rec${String(i).padStart(3, "0")}`);
@@ -284,22 +309,42 @@ export function run({ check, assert, log }) {
     check("an empty tool has one page, not none", pageOfToolItems([], 1).pageCount, 1);
     check("  and that page is empty", pageOfToolItems([], 1).ids.length, 0);
 
-    // ── 2b: the screen reads one page and prints the same page (#442) ───────
+    // ── 2b: the screen reads one page, and its list selects among it (#442, #443) ─
     log("");
-    log("the tool's screen reads the page it shows and prints that page:");
-    // TWO CLAIMS REST ON ONE ARGUMENT AND NOTHING HELD IT. The screen is four
-    // operations whatever the tool's size, and its print control sends one page —
+    log("the tool's screen reads the page it shows and hands the list those rows alone:");
+    // TWO CLAIMS REST ON ONE ARGUMENT AND NOTHING HELD IT UNTIL #442. The screen is
+    // four operations whatever the tool's size, and its page box selects one page —
     // and both are true only because the read hands `getToolItemsByTool` the page's
-    // ids, and the print link is built from what that read returned. Drop `rowIds`
-    // and the screen reads every tool item under the tool and prints every one of
-    // them, with no figure on screen to show it. So the call and its argument are
-    // read off the source.
+    // ids and the list is handed the rows that read returned. Drop `rowIds` and the
+    // screen reads every tool item under the tool and offers every one of them to the
+    // page box, with no figure on screen to show it. Until #443 the second claim was
+    // the print link, built on this page from the same read.
+    //
+    // AND THE PAGE READS NOTHING BUT `page` OFF ITS ADDRESS (#443). What a label run is
+    // for is in the address too, and a page that read it could fetch the tool items
+    // selected on other pages — a fifth operation, and more — without any figure on
+    // screen moving. It is the list's to read, on the client; the page never names it.
     const screenFacts = (ast) => {
         let pageBinding = null;
         let readBinding = null;
         let rowIds = null;
-        let printFrom = null;
+        let rowsFrom = null;
+        let printLinks = 0;
+        const addressBindings = new Set();
+        const addressReads = new Set();
         walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && isSearchParams(n.init)) {
+                if (n.id?.type === "Identifier") addressBindings.add(n.id.name);
+                if (n.id?.type === "ObjectPattern")
+                    for (const p of n.id.properties) if (p.key?.type === "Identifier") addressReads.add(p.key.name);
+            }
+            // What the list is handed as its rows: the read's binding, mapped.
+            if (n.type === "JSXAttribute" && n.name?.name === "rows") {
+                const value = n.value?.expression;
+                const mapped = value?.type === "CallExpression" && value.callee?.property?.name === "map";
+                rowsFrom = mapped ? nameOf(value.callee.object) : nameOf(value ?? {});
+            }
+            if (n.type === "CallExpression" && n.callee?.name === "toolItemLabelsPath") printLinks++;
             if (
                 n.type === "VariableDeclarator" &&
                 n.init?.type === "CallExpression" &&
@@ -324,34 +369,130 @@ export function run({ check, assert, log }) {
                 const option = n.arguments?.[1]?.properties?.find((p) => p.key?.name === "rowIds");
                 rowIds = option ? nameOf(option.value) : "none";
             }
-            if (n.type === "CallExpression" && n.callee?.name === "toolItemLabelsPath") {
-                const argument = n.arguments?.[0];
-                const mapped = argument?.type === "CallExpression" && argument.callee?.property?.name === "map";
-                printFrom = mapped ? nameOf(argument.callee.object) : nameOf(argument ?? {});
-            }
         });
-        return { pageBinding, readBinding, rowIds, printFrom };
+        walk(ast, (n) => {
+            if (
+                n.type === "MemberExpression" &&
+                !n.computed &&
+                n.object?.type === "Identifier" &&
+                addressBindings.has(n.object.name)
+            )
+                addressReads.add(n.property.name);
+        });
+        return { pageBinding, readBinding, rowIds, rowsFrom, printLinks, addressReads: [...addressReads].sort() };
     };
     const facts = screenFacts(parseFile(TOOL_SCREEN).ast);
     assert("the screen chooses its page through pageOfToolItems", facts.pageBinding !== null);
     check("  the read is handed that page's ids", facts.rowIds, `${facts.pageBinding}.ids`);
-    check("  and the print link is built from what the read returned", facts.printFrom, facts.readBinding);
+    check("  and the list is handed the rows that read returned", facts.rowsFrom, facts.readBinding);
     assert("  which is a binding the screen really has", facts.readBinding !== null);
-    // ANTI-VACUITY: a planted screen that reads the whole tool and prints the whole
-    // link array is seen doing both, so the two answers above are facts about the
-    // screen rather than a reader that echoes what it expects.
+    check("the page reads only `page` off its address", facts.addressReads.join(", "), "page");
+    check("  and builds no print link of its own", facts.printLinks, 0);
+    // ANTI-VACUITY: a planted screen that reads the whole tool, hands the list the whole
+    // link array, reads the selection and prints it itself is seen doing all four, so the
+    // answers above are facts about the screen rather than a reader that echoes them.
     const plantedScreen = screenFacts(
         parseSource(
-            "async function renderToolPage() {\n" +
+            "async function renderToolPage({ searchParams }) {\n" +
+                "  const sp = (await searchParams) ?? {};\n" +
                 "  const page = pageOfToolItems(tool.toolItems, sp.page);\n" +
                 "  const [toolItems, jobs] = await Promise.all([getToolItemsByTool(tool.id), getAllJobs()]);\n" +
-                "  return <Link href={toolItemLabelsPath(tool.toolItems.map((id) => id))} />;\n" +
+                "  const picked = await getToolItemsByToolItemIds(sp.id);\n" +
+                "  return <ToolItemList rows={tool.toolItems.map((id) => id)} href={toolItemLabelsPath(picked)} />;\n" +
                 "}\n",
             "<planted-screen>"
         ).ast
     );
     check("  a read with no page is seen reading none", plantedScreen.rowIds, "none");
-    check("  and a link built from the whole tool is seen so", plantedScreen.printFrom, "tool.toolItems");
+    check("  rows from the whole tool are seen so", plantedScreen.rowsFrom, "tool.toolItems");
+    check("  a page reading the selection is seen reading it", plantedScreen.addressReads.join(", "), "id, page");
+    check("  and a print link built on the page is seen", plantedScreen.printLinks, 1);
+
+    // THE LIST'S HALF (#443). The selection is read off the address here and nowhere
+    // else, and three things about it hold only in the source: the print link is built
+    // from it and not from the rows; the page box acts on the rows it was handed and
+    // nothing wider; and every address this file writes carries it, through
+    // `history.replaceState` and never the router — which is the difference between a
+    // press that costs nothing and one that re-renders the page at four operations.
+    const listFacts = (ast) => {
+        const bindings = new Map();
+        let selection = null;
+        let readOff = null;
+        let printFrom = null;
+        let pageBoxOver = null;
+        const toolPathCalls = [];
+        let replaced = 0;
+        const routed = [];
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.type === "Identifier") {
+                bindings.set(n.id.name, n.init);
+                if (n.init?.type === "CallExpression" && n.init.callee?.name === "readToolItemIds") {
+                    selection = n.id.name;
+                    // What it is handed: every `id` in the address, or only the first.
+                    const source = n.init.arguments[0];
+                    const method = source?.type === "CallExpression" ? nameOf(source.callee).split(".").pop() : null;
+                    const literals = source?.arguments?.map((a) => JSON.stringify(a.value)).join(", ");
+                    readOff = method ? `${method}(${literals})` : nameOf(source ?? {});
+                }
+            }
+        });
+        const origin = (node) => {
+            const init = node?.type === "Identifier" ? bindings.get(node.name) : node;
+            return init?.type === "CallExpression" && init.callee?.property?.name === "map"
+                ? nameOf(init.callee.object)
+                : nameOf(node ?? {});
+        };
+        walk(ast, (n) => {
+            if (n.type !== "CallExpression") return;
+            const callee = nameOf(n.callee);
+            if (callee === "toolItemLabelsPath") printFrom = origin(n.arguments[0]);
+            if (callee === "togglePage") pageBoxOver = origin(n.arguments[1]);
+            if (callee === "toolPath")
+                toolPathCalls.push(n.arguments.length === 3 ? nameOf(n.arguments[2]) : `${n.arguments.length} arguments`);
+            if (callee === "window.history.replaceState") replaced++;
+            if (callee === "useRouter" || callee === "redirect" || /^router\./.test(callee)) routed.push(callee);
+        });
+        return { selection, readOff, printFrom, pageBoxOver, toolPathCalls, replaced, routed };
+    };
+    const list = listFacts(parseFile(TOOL_ITEM_LIST).ast);
+    check("the list reads its selection through readToolItemIds", list.selection, "selection");
+    // `get` would answer with the first id alone, so a selection of three would read as
+    // one and print one — a defect no figure on this page shows until print is pressed.
+    check("  handed every `id` in the address", list.readOff, 'getAll("id")');
+    check("  the print link is built from it", list.printFrom, list.selection);
+    check("  the page box acts on the rows the page handed it", list.pageBoxOver, "rows");
+    check(
+        "  every address it writes carries a selection — the new one, or the current one on a step",
+        list.toolPathCalls.join(", "),
+        "next, selection, selection"
+    );
+    check("  written with history.replaceState", list.replaced, 1);
+    check("  and never through the router", list.routed.join(", "), "");
+    // ANTI-VACUITY: a planted list doing each of those wrong is seen doing it — the
+    // print link built from the rows, the page box over a wider list, a step that drops
+    // the selection, and the router instead of the history.
+    const plantedList = listFacts(
+        parseSource(
+            "function ToolItemList({ toolRecordId, rows, page, everyId }) {\n" +
+                "  const router = useRouter();\n" +
+                "  const params = useSearchParams();\n" +
+                '  const selection = readToolItemIds(params.get("id"));\n' +
+                "  const wider = everyId.map((id) => id);\n" +
+                "  const press = () => router.replace(toolPath(toolRecordId, page, togglePage(selection, wider)));\n" +
+                "  return (<>\n" +
+                "    <Link href={toolItemLabelsPath(rows.map((row) => row.toolItemId))} />\n" +
+                "    <Link href={toolPath(toolRecordId, page + 1)} />\n" +
+                "  </>);\n" +
+                "}\n",
+            "<planted-list>"
+        ).ast
+    );
+    check("  a read of the first id alone is seen so", plantedList.readOff, 'get("id")');
+    check("  a print link from the rows is seen so", plantedList.printFrom, "rows");
+    check("  a page box over a wider list is seen so", plantedList.pageBoxOver, "everyId");
+    check("  a step dropping the selection is seen", plantedList.toolPathCalls.join(", "), "CallExpression, 2 arguments");
+    check("  and the router is seen", plantedList.routed.join(", "), "useRouter, router.replace");
+    check("  with no history write", plantedList.replaced, 0);
 
     // ── 2c: this list's page and the document lists' page stay two constants ─
     log("");
@@ -416,6 +557,104 @@ export function run({ check, assert, log }) {
         1
     );
 
+    // ── 2d: what a press makes of the selection, and when print acts (#443) ─
+    log("");
+    log("a box selects one entry, the page box this page, and print acts on what one print takes:");
+    // Printed ids typed out, three on this page and one that is not — which is the
+    // shape every claim below is about, since a selection outlives a page turn.
+    const A = "HYE-TL-260909-001";
+    const B = "HYE-TL-260909-002";
+    const C = "HYE-TL-260909-003";
+    const ELSEWHERE = "HYE-TL-260910-001";
+    const thisPage = [A, B, C];
+
+    // THE LIST'S ORDER, WHATEVER ORDER THE BOXES WERE PRESSED IN — oldest first, so a
+    // sheet reads the way the list does. ELSEWHERE is a later day, so it sorts after the
+    // page even when it was selected first.
+    check("a press adds an entry, in the list's order", toggleToolItem([ELSEWHERE], B).join(), `${B},${ELSEWHERE}`);
+    check("  a second press takes it out again", toggleToolItem([B, ELSEWHERE], B).join(), ELSEWHERE);
+    check("  and what is left is in the list's order too", toggleToolItem([C, A, B], A).join(), `${B},${C}`);
+    // BY THE SEQUENCE AS A NUMBER: a day's thousandth tool item follows its 999th, where
+    // a sort of the strings would put `-1000` first.
+    check(
+        "a four-digit sequence follows a three-digit one",
+        toggleToolItem(["HYE-TL-260909-999"], "HYE-TL-260909-1000").join(),
+        "HYE-TL-260909-999,HYE-TL-260909-1000"
+    );
+    check("  and a string that is no id goes last", toggleToolItem(["ABC"], A).join(), `${A},ABC`);
+
+    check("this page with none of it selected", pageSelection([ELSEWHERE], thisPage), "none");
+    check("  with some of it", pageSelection([B, ELSEWHERE], thisPage), "some");
+    check("  with all of it, whatever else is selected", pageSelection([ELSEWHERE, C, A, B], thisPage), "all");
+    check("  and a page with no entries has nothing selected", pageSelection([ELSEWHERE], []), "none");
+
+    check(
+        "the page box on a page with none selected adds the page",
+        togglePage([ELSEWHERE], thisPage).join(),
+        `${A},${B},${C},${ELSEWHERE}`
+    );
+    check(
+        "  on a page partly selected it adds the rest and takes nothing out",
+        togglePage([C, ELSEWHERE], thisPage).join(),
+        `${A},${B},${C},${ELSEWHERE}`
+    );
+    check(
+        "  on a page all selected it takes this page out and keeps the other",
+        togglePage([A, ELSEWHERE, B, C], thisPage).join(),
+        ELSEWHERE
+    );
+    // Two left over, arriving out of order as a hand-typed address can, so the order of
+    // what is left is a fact this asserts rather than one a single survivor hides.
+    const LATER = "HYE-TL-260911-001";
+    check(
+        "  and what it keeps is in the list's order",
+        togglePage([LATER, A, B, C, ELSEWHERE], thisPage).join(),
+        `${ELSEWHERE},${LATER}`
+    );
+
+    const noneSelected = describeSelection([], thisPage);
+    check("nothing selected: print does not act", noneSelected.printable, false);
+    check(
+        "  and says the label screen's sentence for it",
+        noneSelected.sentence,
+        "Nothing is selected, so there is nothing to print."
+    );
+    check("one selected: print acts", describeSelection([B], thisPage).printable, true);
+    check("  and says how many", describeSelection([B], thisPage).sentence, "1 selected");
+    // Two on this page and one not, so the two counts differ: with one of each, a count
+    // of the entries ON this page would read the same here — the one-selected case
+    // above catches that swap too, so this is a second path to the claim.
+    check(
+        "some of them not on this page: it says how many are not",
+        describeSelection([A, ELSEWHERE, B], thisPage).sentence,
+        "3 selected, 1 not on this page"
+    );
+    check("  and counts them", describeSelection([A, ELSEWHERE, B], thisPage).notOnPage, 1);
+
+    // THE CAP'S TWO SIDES, AT LITERAL SIZES, WITH EACH INPUT'S SIZE ASSERTED FIRST. The
+    // boundary this is about is DISTINCT ids after the address is read, so the inputs are
+    // built through `readToolItemIds` and counted before anything is asked of them — a
+    // fixture that collapsed to fewer ids would otherwise ask about the wrong side of the
+    // edge and pass, which is what #442 found a twelve-row fixture doing to a page size.
+    const distinctIds = (n) =>
+        readToolItemIds(Array.from({ length: n }, (_, at) => `HYE-TL-260909-${String(at + 1).padStart(3, "0")}`));
+    const hundred = distinctIds(100);
+    const hundredAndOne = distinctIds(101);
+    check("a hundred distinct ids read as a hundred", hundred.length, 100);
+    check("  and a hundred and one as a hundred and one", hundredAndOne.length, 101);
+    check("a selection of a hundred prints", describeSelection(hundred, thisPage).printable, true);
+    check("  and one of a hundred and one does not", describeSelection(hundredAndOne, thisPage).printable, false);
+    check(
+        "  and says why",
+        describeSelection(hundredAndOne, thisPage).sentence,
+        "101 selected, and one print takes at most 100."
+    );
+    // The same edge from the address's side: a hundred and one values holding a repeat
+    // are a hundred tool items, and print.
+    const withRepeat = readToolItemIds([...hundred, hundred[0].toLowerCase()]);
+    check("a hundred and one values with one repeat read as a hundred", withRepeat.length, 100);
+    check("  and print", describeSelection(withRepeat, thisPage).printable, true);
+
     // The address a page of this list lives at moved to lib/toolRoutes.js in
     // #348, with every other address on the axis; `offline/tool-routes.mjs`
     // holds it now.
@@ -460,6 +699,23 @@ export function run({ check, assert, log }) {
         "the position names both figures",
         TOOL_LIST_COPY.pagePosition({ page: 2, pageCount: 3 }).includes("2") &&
             TOOL_LIST_COPY.pagePosition({ page: 2, pageCount: 3 }).includes("3")
+    );
+    // THE SELECTION'S WORDS (#443), AND NONE NAMES WHAT IS SELECTED — not `tool item`,
+    // which this axis decided against showing with its replacement still open, and not
+    // a bare `item`, which names a row of four other tables. The sentences are pinned in
+    // 2d; these are the controls'.
+    check("the page box", TOOL_LIST_COPY.selectPage, "Select all on this page");
+    check("  an entry's box, named by its id", TOOL_LIST_COPY.selectToolItem(A), `Select ${A}`);
+    check("  the way out", TOOL_LIST_COPY.clearSelection, "Clear selection");
+    check(
+        "  and not one of the selection's words says `item`",
+        [
+            TOOL_LIST_COPY.selectPage,
+            TOOL_LIST_COPY.clearSelection,
+            TOOL_LIST_COPY.selected({ count: 3, notOnPage: 1 }),
+            TOOL_LIST_COPY.selectionOverCap({ count: 101, cap: 100 }),
+        ].filter((text) => /\bitems?\b/i.test(text)).length,
+        0
     );
     assert("the copy scanner finds a planted bare `item`", bareItemWords("Every item on this tool.").length === 1);
     assert("  and does not flag `tool item` or `tool items`", bareItemWords("This tool item and those tool items.").length === 0);

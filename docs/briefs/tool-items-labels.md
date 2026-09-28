@@ -66,7 +66,9 @@ did change is that a run now needs fewer sheets, not that it needs fewer rows.
   label starts included, so select-all named the state the screen already opens
   in, and select-none reached only the state the screen refuses to print from. A
   run is a handful, so unchecking one or two is the whole interaction — **a design
-  should not add a bulk control back without a reader who needs one.**
+  should not add a bulk control back without a reader who needs one.** From a
+  tool's own page the address names only what was selected there (#443), and this
+  is the one place that whole run is listed together before the paper is spent.
 - **The first label position on the sheet**, 1 to however many a sheet holds —
   110 today, and a figure a design must read rather than assume. **This is for a
   part-used
@@ -105,7 +107,8 @@ screen naming a record, the other is a sticker a person reads in order to type.
 ## What it carries only sometimes
 
 **When the address named no tool item:** the heading and one sentence saying so,
-pointing at the two screens that open this one. No empty sheet and no controls.
+pointing at two of the three screens that open this one — a registration's answer
+and a tool's own page. No empty sheet and no controls.
 
 **When none of the named ids is on the base:** the heading and one sentence
 saying none exists. This is reachable by hand-typing an address.
@@ -118,7 +121,8 @@ find out.
 
 **When more ids were named than one request prints:** a sentence saying how many
 were named, that this prints 100 at a time, and that the first 100 are below. The
-cap is the largest registration's cap and the two are one number, so nothing the
+cap is the largest registration's cap and the two are one number, and a tool's own
+page refuses to send a larger selection than this prints (#443), so nothing the
 app itself produces can reach this.
 
 **When nothing is selected:** a sentence saying there is nothing to print, and the
@@ -226,17 +230,21 @@ not, and a design must keep it.
 this base hold item rows. The same pair governs `/tools`, `/tools/new`, the tool's
 own screen and the tool item's.
 
-**Two screens open this one and their words come from here**, so the control on a
-registration's answer and the control on a tool's own page cannot drift from the
-screen they open. That is the arrangement `/tools`' control on `/tools/new`
-already has.
+**Three screens open this one and their words come from here**, so the controls
+on a registration's answer, on a tool's own page and on a tool item's own page
+cannot drift from the screen they open. That is the arrangement `/tools`' control
+on `/tools/new` already has. This said two until #443, which counted the tool
+item's, added in #352.
 
-**The tool's page prints the page it is showing.** That screen reads its tool items
-twenty-five at a time, so a page of printed ids is what a render holds, and a page
-fits inside the hundred this screen prints at once; a tool with more is printed a
-page at a time. **This is the paging's consequence rather than a choice**, and a
-design offering "print all of this tool" would be asking for a read that screen
-divided on purpose.
+**A tool's page sends what its list has selected (#443)** — this screen's own
+parameter with its own values, in the list's order — and its control says only
+`Print labels`, because the boxes on that page show the range. It sent the page
+it was showing until then. Its page box still selects a page at a time, so a page
+fits inside the hundred this screen prints at once, and that screen refuses a
+selection larger than that rather than sending one whose tail this would drop.
+**A design offering "select all of this tool" there would be asking for a read
+that screen divided on purpose.** Excluding a label here trims this sheet and
+does not reach back into that selection.
 
 **The sheet is drawn at its true printed size, so it cannot fit a phone.** At a
 375px width the controls fit and the sheet is more than twice that, so the page
