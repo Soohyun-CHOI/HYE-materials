@@ -56,9 +56,10 @@ export const metadata = { title: "Print tool labels" };
 //
 // IF THE FACE HAS NOT ARRIVED WHEN PRINT IS PRESSED, THE FALLBACK PRINTS, and
 // nothing here can stop that. **Not observed.** The code has the room: ten
-// characters at the floor fit under the symbol in any face up to 0.69 of its size
-// per character, and the fallback `next/font` declares — Arial at a `size-adjust`
-// of 112.16%, read off the rendered page — comes to 0.6.
+// characters at the floor fit under the symbol in any face up to 0.62 of its size
+// per character — 0.69 until #453 narrowed the label — and the fallback `next/font`
+// declares, Arial at a `size-adjust` of 112.16% read off the rendered page, comes
+// to 0.6.
 const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-code" });
 
 export default async function ToolLabelSheetPage({ searchParams }) {

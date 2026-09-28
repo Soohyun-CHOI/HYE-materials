@@ -300,6 +300,72 @@ export function run({ check, assert, log }) {
         check("  a swapped pair reads as swapped", `${read("labelBudget")}|${read("symbolBox")}`, "symbol.sideModules|QR_SIDE_MODULES");
     }
 
+    // DRAWN AT THE BOX `symbolBox` GIVES, AND THE LINE UNDER IT ASKS WHETHER IT FITS
+    // (#453). What this page says about size is two things and both are source. The
+    // box it draws is `symbolBox`'s answer, and a millimeter typed into the style in its
+    // place draws today's symbol exactly and stops following the stock and the version
+    // the day either moves — #412's pinned count one screen over. And the label absorbs
+    // no version step since #453, so a host past seventeen characters builds a symbol
+    // the sheet refuses: the line saying the drawing is printed size has to be the one
+    // asked about `fits`, or it is false on every such host. This tier renders neither,
+    // so both are read off the page.
+    const symbolReading = (parsed) => {
+        const found = { binding: "none", box: "none", note: "none", noteReads: 0 };
+        const text = (node) => {
+            if (!node) return "none";
+            if (node.type === "Identifier") return node.name;
+            if (node.type === "MemberExpression" && !node.computed) return `${text(node.object)}.${node.property.name}`;
+            if (node.type === "ConditionalExpression")
+                return `${text(node.test)} ? ${text(node.consequent)} : ${text(node.alternate)}`;
+            return parsed.source.slice(node.start, node.end);
+        };
+        walk(parsed.ast, (n) => {
+            if (
+                n.type === "VariableDeclarator" &&
+                n.init?.type === "CallExpression" &&
+                n.init.callee?.name === "symbolBox" &&
+                n.id.type === "ObjectPattern"
+            )
+                found.binding = n.id.properties.map((p) => `${p.key.name}: ${p.value.name}`).join(", ");
+            if (n.type === "JSXElement") {
+                const attrs = n.openingElement.attributes;
+                if (attrs.some((a) => a.name?.name === "dangerouslySetInnerHTML")) {
+                    const style = attrs.find((a) => a.name?.name === "style")?.value?.expression?.properties ?? [];
+                    found.box = ["width", "height"].map((key) => text(style.find((p) => p.key?.name === key)?.value)).join(" / ");
+                }
+            }
+            if (n.type === "MemberExpression" && !n.computed && n.property.name === "printedSizeNote") found.noteReads++;
+            if (n.type === "JSXExpressionContainer" && text(n.expression).includes("printedSizeNote"))
+                found.note = text(n.expression);
+        });
+        return found;
+    };
+    const drawn = symbolReading(page);
+    check("the box and the verdict both come from symbolBox", drawn.binding, "boxMm: symbolMm, fits: symbolFits");
+    check("  the symbol is drawn at that box", drawn.box, "`${symbolMm}mm` / `${symbolMm}mm`");
+    check(
+        "  and the line under it says printed size only when it fits",
+        drawn.note,
+        "symbolFits ? COPY.printedSizeNote : COPY.symbolTooLargeNote"
+    );
+    check("  which is the only place the printed-size line is read", drawn.noteReads, 1);
+    // ANTI-VACUITY: a page typing the width and saying printed size whatever the
+    // verdict is read as doing both — the reader tells a pinned box and an
+    // unconditional line from the page's own.
+    const plantedDrawn = symbolReading(
+        parseSource(
+            "const { boxMm: symbolMm } = symbolBox({ sideModules: symbol.sideModules, moduleMm });\n" +
+                'const a = <div><div style={{ width: "13.2mm", height: `${symbolMm}mm` }} dangerouslySetInnerHTML={{ __html: symbol.svg }} />' +
+                "<p>{COPY.printedSizeNote}</p></div>;\n",
+            "<planted-drawn>"
+        )
+    );
+    check(
+        "  a page ignoring both is read that way",
+        `${plantedDrawn.binding} | ${plantedDrawn.box} | ${plantedDrawn.note}`,
+        'boxMm: symbolMm | "13.2mm" / `${symbolMm}mm` | COPY.printedSizeNote'
+    );
+
     // PRINTS NOTHING ITSELF, which is what keeps "the same physical object as the
     // original" true by construction rather than by comparison: the reprint is the
     // sheet screen, so there is no second layout to drift. A print path here would
@@ -323,6 +389,13 @@ export function run({ check, assert, log }) {
     assert("the section names the label", TOOL_ITEM_COPY.labelHeading === "Label");
     assert("the alt names the thing rather than the picture", TOOL_ITEM_COPY.symbolAlt.includes("tool item"));
     assert("and the printed-size note says so", TOOL_ITEM_COPY.printedSizeNote.includes("prints"));
+    // Its place is taken when the symbol does not fit the stock (#453), and the words
+    // name the host for the reason the sheet's own sentence does.
+    check(
+        "the line when the symbol does not fit",
+        TOOL_ITEM_COPY.symbolTooLargeNote,
+        "The address from this host is long enough that this symbol does not fit the label stock, so it does not print."
+    );
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");

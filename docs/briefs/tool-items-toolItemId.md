@@ -333,6 +333,16 @@ transition, the symbol and the print control are all absent here rather than
 empty**, and there is no state in between: a symbol is a pure function of the
 id, so every tool item that exists has one.
 
+**When the host makes the symbol too large for the label stock (#453):** the
+line under the symbol reads `The address from this host is long enough that
+this symbol does not fit the label stock, so it does not print.` in place of the
+line saying it is shown at the size it prints. The label keeps no room for a
+symbol larger than today's, so any host longer than seventeen characters
+reaches this, and a Vercel domain is one. The symbol is still drawn at its own
+size and the print control still leads to the sheet, which names the tool item
+rather than drawing its label. **A design that keeps the printed-size line and
+drops this one makes the page claim a printed size for a label nothing prints.**
+
 **There is no such thing as a tool item whose label is missing**, which is worth
 saying because it looks like a state and is not. What can be missing is a printed
 sticker on the object, and the app does not record whether one was ever printed or

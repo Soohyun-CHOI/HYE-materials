@@ -52,8 +52,9 @@
 
 /* The code goes under the symbol (#431), which is the order the label's dimensions
    were derived for. `align-items` centers the two across the label, where beside
-   each other it centered them down it; where the room goes that a smaller symbol
-   leaves is the design's. */
+   each other it centered them down it. The label is sized for today's symbol alone
+   since #453, so no smaller one reaches it and nothing is left over under the code
+   to place. */
 .label-cell {
     position: absolute;
     display: flex;
@@ -63,9 +64,10 @@
     box-sizing: border-box;
 }
 
-/* The symbol's box is sized inline to `QR_SIDE_MODULES` worth of millimeters — the
-   count INCLUDING its four modules of quiet zone. Nothing may be drawn over it, so
-   it is a flex item that cannot shrink and the code sits under it. */
+/* The symbol's box is sized inline from that symbol's own side count — the count
+   INCLUDING its four modules of quiet zone — times the stock's module, which is
+   `symbolBox`. Nothing may be drawn over it, so it is a flex item that cannot
+   shrink and the code sits under it. */
 .label-symbol svg {
     display: block;
     width: 100%;

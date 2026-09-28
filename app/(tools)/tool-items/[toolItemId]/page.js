@@ -190,9 +190,12 @@ async function renderToolItemPage({ params }) {
         toolItemId: toolItem.toolItemId,
     });
     // Derived against today's version plus the stock's headroom, then applied to
-    // the side count this symbol actually came out at.
+    // the side count this symbol actually came out at. Whether it FITS is asked here
+    // too (#453): the stock absorbs no version step, so a longer host builds a symbol
+    // the sheet refuses, and the line under it has to say that rather than that it is
+    // printed size.
     const { moduleMm } = labelBudget({ sideModules: QR_SIDE_MODULES });
-    const { boxMm: symbolMm } = symbolBox({ sideModules: symbol.sideModules, moduleMm });
+    const { boxMm: symbolMm, fits: symbolFits } = symbolBox({ sideModules: symbol.sideModules, moduleMm });
 
     return (
         <div>
@@ -270,7 +273,7 @@ async function renderToolItemPage({ params }) {
                 style={{ width: `${symbolMm}mm`, height: `${symbolMm}mm` }}
                 dangerouslySetInnerHTML={{ __html: symbol.svg }}
             />
-            <p>{COPY.printedSizeNote}</p>
+            <p>{symbolFits ? COPY.printedSizeNote : COPY.symbolTooLargeNote}</p>
             <p>
                 <Link href={toolItemLabelsPath([toolItem.toolItemId])}>
                     {SHEET_COPY.openFromToolItem}
