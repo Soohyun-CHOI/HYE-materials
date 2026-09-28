@@ -238,10 +238,10 @@ async function destroyChildren({ itemIds = [], signerIds = [], quotationIds = []
     // Items link to Quotations, so drop items/signers before the quotations
     // they point at.
     await Promise.allSettled([
-        ...signerIds.map((id) => base(TABLES.PR_SIGNERS).destroy(id)),
-        ...itemIds.map((id) => base(TABLES.PR_ITEMS).destroy(id)),
+        ...signerIds.map((id) => base(TABLES.PR_SIGNERS).destroy([id])),
+        ...itemIds.map((id) => base(TABLES.PR_ITEMS).destroy([id])),
     ]);
-    await Promise.allSettled(quotationIds.map((id) => base(TABLES.QUOTATIONS).destroy(id)));
+    await Promise.allSettled(quotationIds.map((id) => base(TABLES.QUOTATIONS).destroy([id])));
 }
 
 // Shared persistence for both the Draft-save and the submit paths (issue
@@ -458,7 +458,7 @@ async function persistPRFromForm({ user, state, existing }) {
             quotationIds: createdQuotationIds,
         });
         if (!existing && pr) {
-            await base(TABLES.PURCHASE_REQUESTS).destroy(pr.id).catch(() => {});
+            await base(TABLES.PURCHASE_REQUESTS).destroy([pr.id]).catch(() => {});
         }
         throw err;
     }
@@ -598,7 +598,7 @@ export async function deleteDraftAction(prId) {
             // only on { ok: true }, so a failed PR destroy keeps the row.
             const childIds = await collectChildIds(pr.id);
             await destroyChildren(childIds);
-            await base(TABLES.PURCHASE_REQUESTS).destroy(pr.id);
+            await base(TABLES.PURCHASE_REQUESTS).destroy([pr.id]);
         } catch (err) {
             console.error("deleteDraftAction failed", err);
             return { error: "Couldn't delete the draft. Please try again." };

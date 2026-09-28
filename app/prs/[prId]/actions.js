@@ -139,10 +139,15 @@ async function finishTurn({ pr, turn, signers, editRequests, rollback }) {
         }
         if (resolvedEditRequestId) {
             await rollback.attempt(RESTORE_KEY.correctionResolved, resolvedEditRequestId, () =>
-                base(TABLES.PR_EDIT_REQUESTS).update(resolvedEditRequestId, {
-                    Status: "Pending",
-                    "Resolved At": null,
-                })
+                base(TABLES.PR_EDIT_REQUESTS).update([
+                    {
+                        id: resolvedEditRequestId,
+                        fields: {
+                            Status: "Pending",
+                            "Resolved At": null,
+                        },
+                    },
+                ])
             );
         }
         throw err;
@@ -570,7 +575,7 @@ export async function editAndContinueAction(prevState, formData) {
                 );
             }
             await rollback.attemptAll(RESTORE_KEY.history, createdEditLogIds, (id) =>
-                base(TABLES.PR_EDIT_LOG).destroy(id)
+                base(TABLES.PR_EDIT_LOG).destroy([id])
             );
 
             // #188 — A QUOTATION AN UNRESTORED ITEM STILL POINTS AT IS KEPT, and this
@@ -597,7 +602,7 @@ export async function editAndContinueAction(prevState, formData) {
             await rollback.attemptAll(
                 RESTORE_KEY.quotation,
                 createdQuotationIds.filter((id) => !strandedQuotationIds.has(id)),
-                (id) => base(TABLES.QUOTATIONS).destroy(id)
+                (id) => base(TABLES.QUOTATIONS).destroy([id])
             );
 
             if (turn.type === "signer") {
@@ -699,7 +704,7 @@ export async function returnForCorrectionAction(prevState, formData) {
         } catch (err) {
             if (createdEditRequestId) {
                 await rollback.attempt(RESTORE_KEY.correctionCreated, createdEditRequestId, () =>
-                    base(TABLES.PR_EDIT_REQUESTS).destroy(createdEditRequestId)
+                    base(TABLES.PR_EDIT_REQUESTS).destroy([createdEditRequestId])
                 );
             }
             await rollback.attempt(RESTORE_KEY.signer, turn.prSignerRecordId, () =>

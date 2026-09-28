@@ -258,6 +258,8 @@ Read `docs/notes/id-generation.md` before touching `lib/ids.js` or `lib/idSequen
 
 **Formula injection — every interpolation escapes.** The one escape is `lib/airtableFormula.js:formulaString`, and every interpolation in `lib/` and `app/` goes through it or through a whole-formula builder from that module. Enforced by `offline/formula-escaping.mjs`, which fails closed.
 
+**Every write by record id goes through the BATCH form of `update`/`destroy` (#444)** — the single-record forms perform on the id's own row whatever table is addressed (`destroy` unconditionally), the batch forms refuse a foreign-table id, so a single-record `base(...).update`/`destroy` fails `offline/write-by-id-table.mjs`.
+
 **Every Airtable operation is counted** (`lib/airtableOps.js`); only one inside a `withOpsLabel` scope is attributed. An unlabeled screen has no before and after.
 
 **EVERY ENTRY POINT OPENS A SCOPE, and a new page, Server Action export or Route Handler method that opens none is a failing check** (#224). The label is derived from the ROUTE and the export name rather than chosen — `withOpsLabel`'s own doc has the four forms — and `offline/airtable-ops.mjs` fails a mismatch, so a typo cannot become a bucket. The unit is the EXPORT, never the file.

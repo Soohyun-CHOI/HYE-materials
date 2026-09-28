@@ -38,8 +38,11 @@ export async function claimDirectPurchaseAction(prevState, formData) {
 
         let directPurchase;
         try {
-            // findByRecordIds throws on an id that does not resolve, which is what a
-            // stale page or a forged field produces.
+            // getDirectPurchasesByRecordIds is a RECORD_ID() select, so an id that
+            // resolves to nothing — a stale page or a forged field — comes back as an
+            // empty array rather than a throw (measured, #444); the `!directPurchase`
+            // check below is what turns that into `gone`. The catch is for a genuine
+            // read failure, which must not read as a missing row.
             [directPurchase] = await getDirectPurchasesByRecordIds([recordId]);
         } catch {
             return { error: DIRECT_PURCHASE_COPY.refused.gone };
