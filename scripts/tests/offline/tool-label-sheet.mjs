@@ -991,7 +991,15 @@ export function run({ check, assert, log }) {
     log("");
     log("what the screen says:");
     check("the heading", COPY.heading, "Print tool labels");
-    check("the control on a registration", COPY.openFromRegistration, "Print labels for these tool items");
+    // A REGISTRATION OPENS THIS THROUGH A TOOL'S PAGE SINCE #449, which it lands on with
+    // what it wrote selected, so the opener its own answer carried went with the answer
+    // and the empty address points at that page alone.
+    check("no opener is left for a registration's answer", "openFromRegistration" in COPY, false);
+    check(
+        "  and the empty address says where a run is chosen",
+        COPY.noneRequested,
+        "No tool item was named to print. Open this from a tool's own page."
+    );
     // NO RANGE IN ITS WORDS SINCE #443: the boxes and the count beside it show what it
     // sends. It read `…for the tool items on this page` while it sent the page.
     check("the control on a tool", COPY.openFromTool, "Print labels");
@@ -1006,7 +1014,7 @@ export function run({ check, assert, log }) {
     // promising a re-print states what the app cannot check.
     check(
         "  and no opener claims a re-print",
-        [COPY.openFromRegistration, COPY.openFromTool, COPY.openFromToolItem].filter((s) => /reprint/i.test(s)).length,
+        [COPY.openFromTool, COPY.openFromToolItem].filter((s) => /reprint/i.test(s)).length,
         0
     );
     check("one label counts singular", COPY.sheetCount({ sheets: 1, labels: 1 }), "1 label across 1 sheet.");

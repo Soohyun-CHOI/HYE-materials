@@ -110,13 +110,13 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
 - `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), and the picker's words.
-- `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, and every word the screen says.
+- `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, what the form opens with and a landing's account (#449), and every word a registration says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
 - `lib/toolLabelSheet.js` — the sheet a tool label prints on (#353).
 - `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, the refusals, and every word it says.
-- `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, which tool items a label run is for (#443), and every word they say.
+- `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, which tool items a label run is for (#443), the page a registration lands on (#449), and their own words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.

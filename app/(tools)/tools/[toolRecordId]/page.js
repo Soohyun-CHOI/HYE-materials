@@ -4,8 +4,10 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemsByTool } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
+import { TOOL_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/toolRegistration";
 import { TOOLS_PATH } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
+import RegistrationShortfall from "./RegistrationShortfall";
 import ToolItemList from "./ToolItemList";
 
 // Static, the way `/materials/[materialId]` is and for the same reason: the
@@ -51,6 +53,19 @@ export const metadata = { title: "Tool" };
  * it off the address and rewrites it on every press without a render, and its header
  * says why the page cannot be the reader the way `/login`'s is (#373). So an id
  * selected on another page is never fetched here, and a press costs no operation.
+ *
+ * AND WHATEVER A REGISTRATION LANDS WITH (#449). A registration arrives here with what
+ * it wrote selected, and its address carries two things more when they happened: how
+ * many were asked for and not written, and which of those written have no
+ * `Registered` row. This page DOES read those, off the address and for nothing. A box
+ * or a step writes an address without them rather than a different value of them (see
+ * `toolPath`), and the one control that removes one, the fork's dismissal, hides what
+ * it removes — so the address never holds a different account from the one this
+ * render drew, at most none, which is what makes a server read correct here and wrong
+ * for the selection. The selection is the arrival's whole confirmation and nothing
+ * here repeats it (#321); these are what it cannot show. The notice is drawn here and
+ * the fork is `RegistrationShortfall.js`, whose header says why its dismissal edits
+ * the address on the client.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
  * answering it on this page would mean reading every tool item under the tool —
@@ -108,6 +123,7 @@ async function renderToolPage({ params, searchParams }) {
     ]);
 
     const jobCodeById = Object.fromEntries(jobs.map((job) => [job.id, job.jobCode]));
+    const account = readRegistrationAccount({ unwritten: sp.unwritten, unlogged: sp.unlogged });
 
     return (
         <div>
@@ -120,6 +136,26 @@ async function renderToolPage({ params, searchParams }) {
                 <p>{COPY.noToolItems}</p>
             ) : (
                 <>
+                    {/* A registration's account, which only a list with rows in it can
+                        carry: one that wrote nothing stays on the form (#449). The fork
+                        carries two controls and the notice none, which is the difference
+                        between a choice and a fact nothing repairs; they stand apart, and
+                        the fork's count never includes the notice's tool items, which
+                        were written. */}
+                    {account.unwritten > 0 && (
+                        <RegistrationShortfall toolName={tool.toolName} unwritten={account.unwritten} />
+                    )}
+                    {account.unlogged.length > 0 && (
+                        <div>
+                            <p>{TOOL_REGISTRATION_COPY.unlogged}</p>
+                            <ul>
+                                {account.unlogged.map((toolItemId) => (
+                                    <li key={toolItemId}>{toolItemId}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     <p>{COPY.total(page.total)}</p>
 
                     {/* The rows this render read, and only those, which is what

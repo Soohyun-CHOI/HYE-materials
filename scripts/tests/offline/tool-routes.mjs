@@ -37,6 +37,7 @@ import {
     labelCodeFor,
     labelPath,
     readToolItemIds,
+    registerPath,
     toolItemIdFromLabelCode,
     toolItemLabelsPath,
     toolItemPath,
@@ -193,6 +194,45 @@ export function run({ check, assert, log }) {
         two.join()
     );
     check("  and still says which page", written.get("page"), "2");
+
+    // ── 2a′: a registration's landing, and the address of the form it offers (#449) ─
+    log("");
+    log("a registration's landing carries its account after the selection:");
+    // Literals again, and at the edges the account has: a shortfall of one is the
+    // smallest there is and must be written, none must not, and the unlogged ids keep
+    // their order. Only a registration passes the fourth argument, so the list's own
+    // addresses are the three-argument ones pinned above.
+    check(
+        "a landing that fell short and left one unlogged",
+        toolPath("recAbc", 2, ["HYE-TL-260928-015"], { unwritten: 3, unlogged: ["HYE-TL-260928-015"] }),
+        "/tools/recAbc?page=2&id=HYE-TL-260928-015&unwritten=3&unlogged=HYE-TL-260928-015"
+    );
+    check("  a shortfall of one is carried", toolPath("recAbc", 1, [], { unwritten: 1 }), "/tools/recAbc?unwritten=1");
+    check("  none is not", toolPath("recAbc", 1, [], { unwritten: 0 }), "/tools/recAbc");
+    check(
+        "  every unlogged id is carried, in order",
+        toolPath("recAbc", 1, [], { unlogged: two }),
+        "/tools/recAbc?unlogged=HYE-TL-260909-004&unlogged=HYE-TL-260909-007"
+    );
+    check(
+        "  and an empty account leaves the plain selection",
+        toolPath("recAbc", 2, two, {}),
+        "/tools/recAbc?page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+    );
+
+    log("");
+    log("and the form it offers opens on a tool and a count:");
+    check(
+        "the form opened on a tool and a count",
+        registerPath({ toolName: "DEMO Angle Grinder", quantity: 4 }),
+        "/tools/new?toolName=DEMO+Angle+Grinder&quantity=4"
+    );
+    // One is the smallest count a shortfall hands over, so it is the edge to write.
+    check("  a count of one is carried", registerPath({ toolName: "Drill", quantity: 1 }), "/tools/new?toolName=Drill&quantity=1");
+    check("  a name alone", registerPath({ toolName: "Drill" }), "/tools/new?toolName=Drill");
+    check("  and with nothing to fill, the plain form", registerPath(), REGISTER_PATH);
+    check("  whose address is the form's own", registerPath(), "/tools/new");
+    check("  escaping what a query must", registerPath({ toolName: "A&B=C" }), "/tools/new?toolName=A%26B%3DC");
 
     // ── 2b: the printed code, which is what that segment holds (#411) ───────
     log("");

@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { upsertTool } from "@/lib/airtable/tools";
@@ -7,7 +8,9 @@ import { createToolItems } from "@/lib/airtable/toolItems";
 import { createToolLogEntry } from "@/lib/airtable/toolLog";
 import { TOOL_EVENT } from "@/lib/toolStatus";
 import { assignedJobsFor } from "@/lib/toolJob";
+import { pageHolding } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY, readQuantity } from "@/lib/toolRegistration";
+import { toolPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
@@ -25,7 +28,19 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
  * ToolRegistrationForm.js reads this through `useActionState`, so a refusal
  * lands in `state` and the form renders it in the one slot it already has for
- * the validation refusals below.
+ * the validation refusals below. A batch that wrote nothing is one of them since
+ * #449, and it is the only return that is not a check made before the writes.
+ *
+ * WHAT IT WROTE IS SAID BY LANDING ON IT (#449). A registration that writes a tool
+ * item redirects to its tool's page, on the page of that list holding the first tool
+ * item it wrote, with every one it wrote selected — so the ids survive a reload and
+ * their labels are one press of that page's print control. The address also carries
+ * the two things the landing cannot show: how many were asked for and not written,
+ * and which of those written have no `Registered` row (`toolPath`'s fourth argument,
+ * read back by `readRegistrationAccount`). Both halves of the address were in hand
+ * without a read: `upsertTool` returns the row it found or made, and that row's
+ * `Tool Items` array is the one it had before this batch, so its length is the
+ * position the first new tool item takes.
  *
  * THE JOB IS NEVER TAKEN FROM THE FORM'S WORD FOR IT. What arrives is a Job
  * record id, and it is admitted only if `assignedJobsFor` returns a job with
@@ -40,13 +55,22 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * CLAUDE.md's concurrency section forbids, and the reason lib/materialsCache.js
  * takes its two locks in sequence. The cost of obeying it is that a failure in
  * the log pass can leave more than one tool item without a `Registered` row, and
- * the copy names those separately.
+ * the landing names those separately.
  *
  * NOTHING ROLLS BACK. `createToolItems`' own header carries the argument: undoing
  * the rows would free ids the daily counter has already spent, and `nextSequence`
  * is MAX + 1, so a gap costs nothing while a reused number costs two labels on
  * two tools. What this action owes the person instead is an exact account, which
- * is why it returns every minted id rather than a count.
+ * is why the landing selects every minted id rather than counting them.
+ *
+ * TWO THINGS NOBODY HAS OBSERVED, RECORDED WHERE THEY WOULD BE MET. A registration of
+ * the same tool in another invocation, landing between `upsertTool`'s read and this
+ * batch, moves where this one's tool items sit, so the landing can open a page early;
+ * the selection is by id, so the list's own sentence still says how many are not on
+ * it. And a THROW — from `upsertTool`, or from the day-prefix query `createToolItems`
+ * makes before its first create — reaches no slot on the form, as it did before #449:
+ * it fails before anything this action could word, where the refusal below is for a
+ * batch that ran and wrote none.
  */
 export async function registerToolItemsAction(prevState, formData) {
     return withOpsLabel("registerToolItemsAction", async () => {
@@ -70,11 +94,21 @@ export async function registerToolItemsAction(prevState, formData) {
 
         const { tool } = await upsertTool({ toolName });
 
-        const { created, failed } = await createToolItems({
+        // `createToolItems` also hands back what failed, with the error. The landing
+        // needs only how many were not written, which is the count less what was: the
+        // batch stops at its first failed create and attempts nothing after it, so the
+        // failure names one tool item where the shortfall can be many.
+        const { created } = await createToolItems({
             toolRecordId: tool.id,
             jobRecordId: job.id,
             count,
         });
+
+        // NOTHING WAS WRITTEN, SO THERE IS NOTHING TO LAND ON (#449). The tool exists —
+        // it was found or made above — but its page would show no selection and nothing
+        // to print, so the person stays on the form, told in the slot every refusal uses
+        // that registering again writes these under it.
+        if (created.length === 0) return { error: TOOL_REGISTRATION_COPY.noneWritten(count) };
 
         // The `Registered` row is this action's to write — `createToolItems`
         // creates the tool item and its cached `Status` and says so. One row per
@@ -85,7 +119,6 @@ export async function registerToolItemsAction(prevState, formData) {
         // requests at a rate limit makes the account worse rather than shorter.
         // The rows before it are complete and the ones after it are named as
         // unlogged, which is a state with no repair (see the copy).
-        const logged = [];
         const unlogged = [];
         for (const toolItem of created) {
             if (unlogged.length > 0) {
@@ -100,23 +133,20 @@ export async function registerToolItemsAction(prevState, formData) {
                     jobRecordId: job.id,
                     recordedByUserId: user.id,
                 });
-                logged.push(toolItem.toolItemId);
             } catch {
                 unlogged.push(toolItem.toolItemId);
             }
         }
 
-        return {
-            toolName: tool.toolName,
-            jobCode: job.jobCode,
-            requested: count,
-            toolItemIds: created.map((toolItem) => toolItem.toolItemId),
-            unloggedToolItemIds: unlogged,
-            // `failed` carries the error objects `createToolItems` collected; the
-            // screen needs only that the count came up short, which the two
-            // numbers above already say. Read here so a future reader sees it was
-            // considered rather than missed.
-            shortBy: failed.length > 0 ? count - created.length : 0,
-        };
+        // OUTSIDE EVERY `try`, AND IT HAS TO BE. `redirect` throws to navigate, so a
+        // `catch` around it would take the navigation for a failed log write.
+        redirect(
+            toolPath(
+                tool.id,
+                pageHolding(tool.toolItems.length),
+                created.map((toolItem) => toolItem.toolItemId),
+                { unwritten: count - created.length, unlogged }
+            )
+        );
     });
 }

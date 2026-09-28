@@ -5,6 +5,7 @@ import { assignedJobsFor } from "@/lib/toolJob";
 import {
     TOOL_REGISTRATION_COPY as COPY,
     canRegisterToolItems,
+    readRegistrationPrefill,
 } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
 import ToolRegistrationForm from "./ToolRegistrationForm";
@@ -30,13 +31,21 @@ export const metadata = { title: "Register tool items" };
  * rather than what went wrong. The action re-derives the same answer, because a
  * Server Action is reachable without this page.
  *
+ * THE ADDRESS MAY NAME A TOOL AND A COUNT (#449), and that is where the form's two
+ * fields start — the offer a registration that fell short makes on its tool's page
+ * opens this with that tool and the count it did not write. Read here and handed down,
+ * which is #373's shape: nothing on this screen rewrites the address while it is open.
+ * It costs no operation, and the screen says nothing about why the fields are filled,
+ * so a reload opens the same suggestion and a copied link is a request rather than an
+ * account of somebody else's registration (#321).
+ *
  * NO WIDTH, NO COLOR, NO SPACING — see the form's header and #336's layout.
  */
-export default async function RegisterToolItemsPage() {
-    return withOpsLabel("/tools/new", () => renderRegisterToolItemsPage());
+export default async function RegisterToolItemsPage(props) {
+    return withOpsLabel("/tools/new", () => renderRegisterToolItemsPage(props));
 }
 
-async function renderRegisterToolItemsPage() {
+async function renderRegisterToolItemsPage({ searchParams }) {
     const user = await requireUser();
     const [tools, allJobs] = await Promise.all([getAllTools(), getAllJobs()]);
 
@@ -49,6 +58,9 @@ async function renderRegisterToolItemsPage() {
         );
     }
 
+    const sp = (await searchParams) ?? {};
+    const prefill = readRegistrationPrefill({ toolName: sp.toolName, quantity: sp.quantity });
+
     return (
         <div>
             <h1>{COPY.heading}</h1>
@@ -56,6 +68,7 @@ async function renderRegisterToolItemsPage() {
             <ToolRegistrationForm
                 tools={tools}
                 jobs={assignedJobsFor(user, allJobs)}
+                prefill={prefill}
             />
         </div>
     );

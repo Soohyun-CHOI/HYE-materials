@@ -103,11 +103,12 @@ here would make a word mean a stage on one screen and a location on
 another. The words appear as themselves on this screen, so the count is
 never carried by color alone.
 
-**`Out` and `Retired` will read zero on every row until a later phase.**
-Nothing in the app writes a `Checked Out`, `Checked In` or `Retired`
-log row yet — registration is the only event that exists — so the only
-count with a figure in it today is `In Stock`. That is a fact about how
-far the app has got, not about the screen: all three are drawn.
+**All three counts carry figures.** A check-out, a check-in and a
+retirement each write the status they show (#362, #363), so a row can read
+any mix of the three and a design draws for all of them. This said `Out`
+and `Retired` would read zero on every row until a later phase, which
+stopped being true when those issues wrote the other two events; corrected
+by #449.
 
 **One tool's own screen is `/tools/[toolRecordId]`, one level under this
 one.** It held the tool ITEM until #348, because a QR code encodes the

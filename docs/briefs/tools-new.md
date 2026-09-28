@@ -64,41 +64,48 @@ than chosen, and there is no control for it.
 **When the reader is assigned to more than one:** a choice among their own jobs,
 and no other job is offered.
 
-**When a registration succeeds:** an account of what was written, and it names
-**every minted tool item id, one per line, rather than counting them** — the id
-is what gets printed onto a sticker, so a count cannot be acted on. It also
-names the tool the items landed under and the job they were filed against. The
-account arrives as the submission's own answer, not through the URL: a reload
-does not repeat it and a copied link shows a stranger nothing.
+**When the address names a tool and a count (#449):** the name and the count
+start filled in, and both are the reader's to change before anything is written.
+This is where a registration that fell short sends the reader to write the rest —
+the tool's own screen offers it as `Register the other 4` — and a copied link is
+a request to register that many of that tool. **The screen says nothing about why
+the fields are filled**: a line reading the address back would show whoever opens
+a copied link an account of somebody else's registration, which is the line
+#321 took off every screen. A reload opens the same form with the same suggestion
+and writes nothing. The job is never carried, so a reader on several jobs chooses
+one as always.
 
-**Each of those ids opens the tool item it names (#340)**, so the account is a
-way onward and not only a record.
+**When a registration writes anything, the screen is left (#449).** The reader
+lands on the tool's own screen — the tool the tool items were written under — on
+the page of its list where they begin, with every one of them selected. That
+screen, and not this one, is what says what was written: its list names every
+id, a reload keeps the selection, and its print control sends exactly those
+labels. **This form carries no account of what it wrote.** It carried one until
+#449 — a list of the minted ids under the form, the only place they appeared
+together — and a design must not bring it back: the landing is the account, and
+a second one would say it twice.
 
-**And the account carries the control that prints their labels (#353)**, which
-is the way onward that matters most: a tool item with no label is a row nothing
-can reach, so registering is not finished until the stickers exist. It carries
-every id it just listed across to the sheet. **This is the only screen that can
-offer it for THESE tool items** — the ids are in the submission's answer and
-nowhere else — which is why the control belongs beside them rather than on a
-list somebody navigates back to.
+**When fewer were written than were asked for, or some of what was written has
+no recorded registration:** both are said where the registration lands, beside
+the selection, and the tool's own screen carries what each says. Neither is on
+this form. **The rows already written are never undone** in either case, because
+their ids are spent and a later registration would re-issue them onto different
+tools.
 
-**When fewer were written than were asked for:** the account additionally says
-how many of how many, that what was written stays, and that the remainder can
-be registered again — which lands them under the same tool. **The rows already
-written are never undone**, because their ids are spent and a later registration
-would re-issue them onto different tools.
-
-**When a tool item was written but its registration was not recorded:** those
-ids are named separately, with the fact that nothing holds the moment they came
-into existence. `Tool Items` carries no created-at field, so the first row of a
-tool item's history is the only place that moment lives. **A design must not
-fold these into the list above** — they are a different state from a tool item
-that registered cleanly, and there is no repair for them.
+**When nothing was written:** one sentence in the refusal slot, saying none of
+them were and that registering again writes them under the same tool — `None of
+the 5 asked for were written. Registering again writes them under the same
+tool.` The form stays, and **everything typed stays with it** — the name, the
+count and the job — because what the sentence asks for is the same submit again.
+The tool may exist by then, since a registration writes the tool before
+its tool items, and `/tools` and the tool's own screen already say so in their
+own words.
 
 **When a refusal fires:** one sentence in the one slot the form has for it. Every
 refusal this screen can produce arrives in that same slot — an empty name, a
 quantity that is not a whole number, a quantity over the cap, a job that is not
-the reader's. **Draw the slot once.**
+the reader's, and nothing written. **Draw the slot once.** Every field keeps what
+was typed through any of them.
 
 ## What must agree elsewhere
 
@@ -114,15 +121,14 @@ from what one server invocation can write — three Airtable operations per tool
 item — and the refusal tells the reader to repeat the form. A design that reads
 it as a limit on how many of a kind the company may own would be wrong.
 
-**This screen's answer is the only place those ids appear together**, and since
-#353 that is what the label sheet depends on. Leaving the page loses the list;
-each row is still reachable, since #339 the tool list opens the tool these
-landed under and that screen lists every tool item under it. What does not
-survive is which of them this submission wrote — so the control that prints
-their labels has to be here, on the answer, rather than on a screen somebody
-comes back to. It is also the reason the account names every id instead of
-counting.
+**What a registration wrote is said by the tool's own screen, where it lands
+(#449).** The ids appear together there as a selection, on a screen somebody can
+return to and reload; its print control is how their labels are printed; and what
+the registration could not do — write all it was asked for, or record the
+registration of every tool item it wrote — is said there beside them. This
+screen's part is the form, and the address that opens it filled in.
 
 **A tool item's id is printed and glued to a tool.** Two rows sharing one id
 means two tools wearing one label, which is why nothing in the app deletes a
-tool item and why the ids on this screen are worth reading carefully.
+tool item and why the ids a registration writes are worth reading carefully
+where it lands.

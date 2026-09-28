@@ -14,10 +14,11 @@ name somebody typed once — and each row here is a `tool item`, one drill
 with one printed id stuck to it. Six of one drill is one tool and six tool
 items.
 
-**It is reached from the tool list and from nowhere else.** The tool item's
-own screen is the one a machine opens; this one is opened by a person who
-picked a name off a list. So the reader is at a desk as often as on a
-site — printing labels, or checking what the company has of something.
+**It is reached from the tool list, and a registration lands on it (#449).**
+The tool item's own screen is the one a machine opens; this one is opened by a
+person who picked a name off a list, or who has just registered tool items of
+this tool and arrives with them selected. So the reader is at a desk as often
+as on a site — printing labels, or checking what the company has of something.
 
 **The address is a record id and cannot be read.** `Tools` mints no id, the
 way `Vendors` and `Materials` mint none, because nothing prints a tool and
@@ -86,6 +87,41 @@ appears only once a list is long leaves the short case saying nothing.
 
 ## What it carries only sometimes
 
+**When a registration has just written tool items of this tool (#449):** the
+reader lands here with every tool item it wrote selected — those and no others
+— on the page where they begin. A registration makes up to a hundred, so what it
+wrote can run past this page; the sentence beside the print control then says
+how many are not on it, exactly as it does for any selection, and the steps
+carry the selection on. **Nothing here says the registration happened**: the
+selection is what says it (#321; `_shared.md`, "The arrival is the
+confirmation"). What the registration could not do is said by the next two
+entries, and only when it happened.
+
+**When the registration wrote fewer than were asked for:** one sentence saying
+how many were not written and that what was written stays — `3 were not
+written. What was written stays.` — and two controls that answer it. `Register
+the other 3` opens the registration form with this tool's name and that count
+filled in, both still the reader's to change there. `Done registering` removes
+the sentence and both controls. **The two are a pair, and the pairing is what
+says what the choice is about**: one goes on registering and the other ends it,
+so neither can be read as being about the entry below. It is a choice rather
+than a confirmation dialog — `Done registering` acts on nothing in the base.
+
+**When some of what it wrote has no recorded registration:** one sentence —
+`These were written, but their registration was not recorded, so nothing holds
+the moment they were entered:` — and their ids. **Nothing is offered, because
+nothing repairs them**: a late registration row would state a time that is not
+when they were entered, and what is lost is the moment somebody entered the
+tool rather than the moment it was bought. They are also in the list as ordinary
+entries, selected with the rest, because they were written and need labels.
+**A design must not fold this sentence into the list**, which would read them as
+registered cleanly, **nor draw it the way the entry above is drawn**, since
+there is nothing to choose. It can name a tool item on another page of the list.
+
+**When both happened:** both stand, each whole. The count the first gives does
+not include the second's tool items, which were written. `Done registering`
+answers the first alone, and the second stays.
+
 **A step to the previous page**, when this is not the first one, and **a
 step to the next**, when this is not the last. Each is absent at its own
 end rather than drawn and dead, so a tool with one page carries neither.
@@ -98,7 +134,8 @@ selected on one page is still selected on the next.
 **When nothing is selected:** the sentence is the label screen's own for the
 same state, `Nothing is selected, so there is nothing to print.`, and the
 print control is drawn but does not act. Every arrival from the tool list
-starts here; only an address carrying a selection does not. **It does not print
+starts here; a registration's arrival does not, and neither does any other
+address carrying a selection. **It does not print
 the page instead** — that was the control's behavior until #443, and
 it is exactly what made its range a sentence rather than something on the
 screen. The page is one press of the page box away, and that press shows it.
@@ -164,7 +201,21 @@ again rather than an account of anything. It is kept in the list's order,
 whatever order the boxes were pressed in, so a sheet reads the way the list
 does. **A design must not offer "select all of this tool"**, for the reason
 this screen never offered "print all": it is a read of every tool item under
-the tool.
+the tool. **A registration's arrival is such an address (#449)**: it carries
+what the registration wrote, which is why what it wrote survives a reload.
+
+**A registration's account rides beside the selection on the address it lands
+on, and on no other (#449).** It is the two entries above — how many were not
+written, and which have no recorded registration — and neither is a
+confirmation: the selection is the confirmation, and these are what it cannot
+show, the way the invoice screen says how a delivery was matched to it (#231).
+A reload of that address repeats both, which is true — nothing repairs a missing
+registration, and the choice stands until it is answered — and `Done
+registering` takes the first out of the address. **Every address the list
+itself writes carries the selection alone**, so the reader's first press of a
+box or step to another page leaves both behind; what is on the screen stays
+until the next page is opened. A copied address carrying them shows them to
+whoever opens it.
 
 **The label screen still asks which labels to print, and that is not a second
 selection.** Arriving from here, every tool item this selection names starts
@@ -202,10 +253,10 @@ other tables on this base hold item rows, so a bare `item` names four
 things; `Status` and `Job` name one field each and are the words the tool
 item's own screen already uses for them.
 
-**Every id here links to `/tool-items/[toolItemId]`, and so does the
-registration form's answer.** Both point at the same screen; the
-difference is that this list survives a reload, which is what the
-registration form's list of minted ids does not.
+**Every id here links to `/tool-items/[toolItemId]`, and this is where a
+registration's ids are listed (#449).** The registration form listed them
+under itself until then, where a reload lost them; it keeps no account of its
+own now and sends the reader here, where the list survives a reload.
 
 **A tool's name never appears as a path segment**, here or anywhere. The
 segment is Airtable's record id: `Tools` mints none, a typed name can hold

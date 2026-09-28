@@ -404,9 +404,10 @@ breaks the equality, and nothing on screen would show it.
 keeps a replacement the same physical object as the original by construction —
 there is no second layout to drift from the sheet's.
 
-**There are three ways in and only one of them survives a reload.** A scan of the
-label is the first, arriving through the short route that redirects here; the
-registration form's answer is the second, and each id it names links here, but
-that list is gone once the page is; the third is the tool list, where a tool
-opens its own screen and that screen lists every tool item under it with a link
-to this one (#339).
+**There are two ways in, and both survive a reload.** A scan of the label is the
+first, arriving through the short route that redirects here; the second is a
+tool's own screen, which lists every tool item under it with a link to this one
+(#339) and is reached from the tool list and from a registration, which lands
+there with what it wrote selected (#449). **This said three ways, one of them
+lost on a reload**: the registration form's own answer linked here too until
+#449, and that list was gone once the page was.

@@ -15,7 +15,9 @@ sheet of adhesive stock and print it.
 **A tool item with no label is a row nothing can reach.** The QR symbol is the
 only way a phone gets from a physical drill to its record, so this screen is the
 last step of registration rather than a convenience — and it is why a
-registration's own answer links straight here.
+registration lands on its tool's own screen with what it wrote selected, one
+press of that screen's print control from here (#449). Until then the
+registration's own answer linked straight here.
 
 **The screen exists because paper is not a screen.** What it draws is a sheet at
 its true printed size, and the whole point of every dimension on it is that the
@@ -107,8 +109,10 @@ screen naming a record, the other is a sticker a person reads in order to type.
 ## What it carries only sometimes
 
 **When the address named no tool item:** the heading and one sentence saying so,
-pointing at two of the three screens that open this one — a registration's answer
-and a tool's own page. No empty sheet and no controls.
+pointing at a tool's own page, which is where a run is selected — `No tool item
+was named to print. Open this from a tool's own page.` It named a registration's
+answer as well until #449, which stopped a registration opening this screen. No
+empty sheet and no controls.
 
 **When none of the named ids is on the base:** the heading and one sentence
 saying none exists. This is reachable by hand-typing an address.
@@ -230,11 +234,13 @@ not, and a design must keep it.
 this base hold item rows. The same pair governs `/tools`, `/tools/new`, the tool's
 own screen and the tool item's.
 
-**Three screens open this one and their words come from here**, so the controls
-on a registration's answer, on a tool's own page and on a tool item's own page
-cannot drift from the screen they open. That is the arrangement `/tools`' control
-on `/tools/new` already has. This said two until #443, which counted the tool
-item's, added in #352.
+**Two screens open this one and their words come from here**, so the controls on
+a tool's own page and on a tool item's own page cannot drift from the screen they
+open. That is the arrangement `/tools`' control on `/tools/new` already has. This
+said two until #443, which counted the tool item's, added in #352; it said three
+until #449, which moved a registration's run onto the tool's own page — the
+registration lands there with what it wrote selected, and that page's control is
+how its labels are printed.
 
 **A tool's page sends what its list has selected (#443)** — this screen's own
 parameter with its own values, in the list's order — and its control says only

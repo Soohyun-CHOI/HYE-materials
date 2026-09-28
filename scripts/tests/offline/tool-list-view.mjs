@@ -29,6 +29,13 @@
 //   that a press rewrites the address without a render — so those are read off the
 //   AST of the page and of the list, each beside a planted screen doing it wrong.
 //
+//   AND A REGISTRATION LANDS HERE (#449), which splits the same way once more. Which
+//   page it lands on is `pageHolding`, held by value at the edges a page of
+//   twenty-five has inside a hundred, with those edges first read off
+//   `pageOfToolItems`; what the page reads for the account it lands with, what it
+//   hands the fork, and what the fork's dismissal does to the address are read off
+//   the AST beside planted versions doing each wrong.
+//
 //   AND NO TOOLS SCREEN PUTS TEXT IN ITS MARKUP. #338 and #340 both state that
 //   arrangement in prose — every string a tools screen renders is in a constant,
 //   so a vocabulary sweep and scripts/screen-strings.mjs can reach it — and until
@@ -40,8 +47,9 @@
 // WHAT IT CANNOT SEE. Whether any of it reaches a browser, which is this tier's
 // standing limit — a page renders no rows in a check. In particular it cannot see
 // that the counts are right about the base: `summarizeTools` is exercised on
-// literal tool items here, and whether `Out` ever holds a nonzero figure depends
-// on a screen that writes a `Checked Out` row, which this app does not have yet.
+// literal tool items here. **This went on to say `Out` depended on a screen that
+// writes a `Checked Out` row, which the app did not have; #362 wrote one, and a
+// browser has shown the figure since.**
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
@@ -51,6 +59,7 @@ import {
     TOOL_LIST_COPY,
     TOOL_PAGE_SIZE,
     describeSelection,
+    pageHolding,
     pageOfToolItems,
     pageSelection,
     summarizeTools,
@@ -309,6 +318,48 @@ export function run({ check, assert, log }) {
     check("an empty tool has one page, not none", pageOfToolItems([], 1).pageCount, 1);
     check("  and that page is empty", pageOfToolItems([], 1).ids.length, 0);
 
+    // WHERE A REGISTRATION LANDS (#449): the page holding the first tool item it wrote,
+    // whose position is the length the tool's link array had before the batch. THE
+    // INPUTS ARE SEEN TO BE EDGES BEFORE ANYTHING IS ASKED OF `pageHolding` — read off
+    // `pageOfToolItems`, the other function that decides where a page begins — so each
+    // literal below is a claim about a boundary rather than a number that happens to
+    // agree, which is what #442 found a twelve-row fixture failing to be.
+    log("");
+    log("a registration lands on the page holding the first tool item it wrote:");
+    const positions = idsOfLength(100);
+    check("position 24 is the last page 1 holds", pageOfToolItems(positions, 1).ids.at(-1), positions[24]);
+    check("  and 25 the first page 2 holds", pageOfToolItems(positions, 2).ids[0], positions[25]);
+    check(
+        "  49 the last of page 2, and 50 the first of page 3",
+        `${pageOfToolItems(positions, 2).ids.at(-1)} ${pageOfToolItems(positions, 3).ids[0]}`,
+        `${positions[49]} ${positions[50]}`
+    );
+    check("  and 99 the last of page 4", pageOfToolItems(positions, 4).ids.at(-1), positions[99]);
+    for (const [position, want] of [
+        [0, 1],
+        [24, 1],
+        [25, 2],
+        [49, 2],
+        [50, 3],
+        [99, 4],
+    ])
+        check(`  a tool item at position ${position} is on page ${want}`, pageHolding(position), want);
+    // A SECOND PATH TO THE SAME ANSWER: every one of a hundred positions is on the page
+    // `pageHolding` names, found through `pageOfToolItems`' own slice rather than its
+    // arithmetic — which is what fails a divisor or a base drifting from the list's.
+    check(
+        "  and every one of a hundred is on the page it names",
+        positions.filter((id, position) => !pageOfToolItems(positions, pageHolding(position)).ids.includes(id)).length,
+        0
+    );
+    for (const [raw, why] of [
+        [-1, "a negative"],
+        [2.5, "a fraction"],
+        [undefined, "nothing"],
+        ["25", "a string"],
+    ])
+        check(`  ${why} is page 1`, pageHolding(raw), 1);
+
     // ── 2b: the screen reads one page, and its list selects among it (#442, #443) ─
     log("");
     log("the tool's screen reads the page it shows and hands the list those rows alone:");
@@ -330,9 +381,25 @@ export function run({ check, assert, log }) {
         let rowIds = null;
         let rowsFrom = null;
         let printLinks = 0;
+        let accountFrom = null;
+        let fork = null;
+        const mapped = [];
         const addressBindings = new Set();
         const addressReads = new Set();
         walk(ast, (n) => {
+            // #449: where the account is read from, what the fork is handed, and which
+            // arrays the page maps — the notice's ids are one of them.
+            if (n.type === "CallExpression" && n.callee?.name === "readRegistrationAccount")
+                accountFrom = (n.arguments[0]?.properties ?? [])
+                    .map((p) => `${p.key?.name}: ${nameOf(p.value)}`)
+                    .sort()
+                    .join(", ");
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationShortfall")
+                fork = n.attributes
+                    .map((a) => `${a.name?.name}: ${nameOf(a.value?.expression ?? {})}`)
+                    .sort()
+                    .join(", ");
+            if (n.type === "CallExpression" && n.callee?.property?.name === "map") mapped.push(nameOf(n.callee.object));
             if (n.type === "VariableDeclarator" && isSearchParams(n.init)) {
                 if (n.id?.type === "Identifier") addressBindings.add(n.id.name);
                 if (n.id?.type === "ObjectPattern")
@@ -379,15 +446,62 @@ export function run({ check, assert, log }) {
             )
                 addressReads.add(n.property.name);
         });
-        return { pageBinding, readBinding, rowIds, rowsFrom, printLinks, addressReads: [...addressReads].sort() };
+        return {
+            pageBinding,
+            readBinding,
+            rowIds,
+            rowsFrom,
+            printLinks,
+            accountFrom,
+            fork,
+            noticeFrom: mapped.filter((name) => name.includes("unlogged")).join(", "),
+            addressReads: [...addressReads].sort(),
+        };
     };
     const facts = screenFacts(parseFile(TOOL_SCREEN).ast);
     assert("the screen chooses its page through pageOfToolItems", facts.pageBinding !== null);
     check("  the read is handed that page's ids", facts.rowIds, `${facts.pageBinding}.ids`);
     check("  and the list is handed the rows that read returned", facts.rowsFrom, facts.readBinding);
     assert("  which is a binding the screen really has", facts.readBinding !== null);
-    check("the page reads only `page` off its address", facts.addressReads.join(", "), "page");
+    // AND A REGISTRATION'S ACCOUNT (#449), which this page does read: it is drawn at
+    // render and no box or step moves it, so a server read is right for it where it is
+    // wrong for the selection. Pinned by name, so a page that began to read `id` fails
+    // here even while it read the account as well.
+    check(
+        "the page reads `page` and a registration's account off its address, and never the selection",
+        facts.addressReads.join(", "),
+        "page, unlogged, unwritten"
+    );
     check("  and builds no print link of its own", facts.printLinks, 0);
+    // WHAT THE ACCOUNT IS READ THROUGH AND HANDED TO (#449). One reader of the two keys,
+    // the fork handed the tool's own name and the count that reader returned, and the
+    // notice's ids mapped from it — not from the address directly, which would skip the
+    // reading that drops a forged count and spells every id once.
+    check(
+        "  the account is read through readRegistrationAccount, off the address",
+        facts.accountFrom,
+        "unlogged: sp.unlogged, unwritten: sp.unwritten"
+    );
+    check("  the fork is handed the tool's name and that count", facts.fork, "toolName: tool.toolName, unwritten: account.unwritten");
+    check("  and the notice names the account's tool items", facts.noticeFrom, "account.unlogged");
+    // ANTI-VACUITY: a planted page reading one key raw, handing the fork a record id and
+    // the address's own count, and mapping the address's list is seen doing all three.
+    const plantedHandoff = screenFacts(
+        parseSource(
+            "async function renderToolPage({ searchParams }) {\n" +
+                "  const sp = (await searchParams) ?? {};\n" +
+                "  const account = readRegistrationAccount({ unwritten: sp.unwritten });\n" +
+                "  return (<>\n" +
+                "    <RegistrationShortfall toolName={tool.id} unwritten={sp.unwritten} />\n" +
+                "    <ul>{sp.unlogged.map((id) => <li key={id}>{id}</li>)}</ul>\n" +
+                "  </>);\n" +
+                "}\n",
+            "<planted-handoff>"
+        ).ast
+    );
+    check("  a reader handed one key is seen so", plantedHandoff.accountFrom, "unwritten: sp.unwritten");
+    check("  a fork handed a record id and a raw count is seen so", plantedHandoff.fork, "toolName: tool.id, unwritten: sp.unwritten");
+    check("  and a notice mapped off the address is seen so", plantedHandoff.noticeFrom, "sp.unlogged");
     // ANTI-VACUITY: a planted screen that reads the whole tool, hands the list the whole
     // link array, reads the selection and prints it itself is seen doing all four, so the
     // answers above are facts about the screen rather than a reader that echoes them.
@@ -493,6 +607,65 @@ export function run({ check, assert, log }) {
     check("  a step dropping the selection is seen", plantedList.toolPathCalls.join(", "), "CallExpression, 2 arguments");
     check("  and the router is seen", plantedList.routed.join(", "), "useRouter, router.replace");
     check("  with no history write", plantedList.replaced, 0);
+
+    // THE FORK'S HALF (#449). `Done registering` has to edit the CURRENT address and take
+    // one key out of it: an address rebuilt from anything the render was handed would put
+    // back a selection the reader has since changed, and deleting more than `unwritten`
+    // would take the notice's ids with it. `Register the other N` has to carry the count
+    // the fork was handed. None of that moves a figure, so it is read off the source.
+    const FORK = "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js";
+    const forkFacts = (ast) => {
+        const deleted = [];
+        const added = [];
+        let replaced = 0;
+        let rebuilt = 0;
+        let readsLocation = false;
+        const routed = [];
+        let linkArgs = null;
+        walk(ast, (n) => {
+            if (n.type === "MemberExpression" && nameOf(n) === "window.location.href") readsLocation = true;
+            if (n.type !== "CallExpression") return;
+            const callee = nameOf(n.callee);
+            if (/\.searchParams\.delete$/.test(callee)) deleted.push(n.arguments[0]?.value);
+            if (/\.searchParams\.(set|append)$/.test(callee)) added.push(n.arguments[0]?.value);
+            if (callee === "window.history.replaceState") replaced++;
+            if (callee === "toolPath") rebuilt++;
+            if (callee === "useRouter" || /^router\./.test(callee)) routed.push(callee);
+            if (callee === "registerPath")
+                linkArgs = (n.arguments[0]?.properties ?? []).map((p) => `${p.key?.name}: ${nameOf(p.value)}`).join(", ");
+        });
+        return { deleted, added, replaced, rebuilt, readsLocation, routed, linkArgs };
+    };
+    const fork = forkFacts(parseFile(FORK).ast);
+    check("the fork's dismissal takes exactly `unwritten` out of the address", fork.deleted.join(", "), "unwritten");
+    check("  and puts nothing in", fork.added.join(", "), "");
+    check("  editing the current address rather than rebuilding one", `${fork.readsLocation} ${fork.rebuilt}`, "true 0");
+    check("  written with history.replaceState", fork.replaced, 1);
+    check("  and never through the router", fork.routed.join(", "), "");
+    check("its link opens the form on this tool and the count it was handed", fork.linkArgs, "toolName: toolName, quantity: unwritten");
+    // ANTI-VACUITY: a planted fork doing each of those wrong is seen doing it.
+    const plantedFork = forkFacts(
+        parseSource(
+            "function RegistrationShortfall({ toolRecordId, page, toolName, unwritten, requested }) {\n" +
+                "  const router = useRouter();\n" +
+                "  const finish = () => {\n" +
+                "    const address = new URL(toolPath(toolRecordId, page, []), origin);\n" +
+                '    address.searchParams.delete("unwritten");\n' +
+                '    address.searchParams.delete("unlogged");\n' +
+                '    address.searchParams.set("done", "1");\n' +
+                "    router.replace(`${address.pathname}${address.search}`);\n" +
+                "  };\n" +
+                "  return <Link href={registerPath({ toolName, quantity: requested })} />;\n" +
+                "}\n",
+            "<planted-fork>"
+        ).ast
+    );
+    check("  a dismissal taking the notice with it is seen", plantedFork.deleted.join(", "), "unwritten, unlogged");
+    check("  a key put in is seen", plantedFork.added.join(", "), "done");
+    check("  an address rebuilt from the render is seen", `${plantedFork.readsLocation} ${plantedFork.rebuilt}`, "false 1");
+    check("  the router is seen", plantedFork.routed.join(", "), "useRouter, router.replace");
+    check("  with no history write", plantedFork.replaced, 0);
+    check("  and a link carrying another count is seen", plantedFork.linkArgs, "toolName: toolName, quantity: requested");
 
     // ── 2c: this list's page and the document lists' page stay two constants ─
     log("");
