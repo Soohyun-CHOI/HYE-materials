@@ -38,13 +38,28 @@ four document detail screens take with theirs.
 **action.** A way back to `/tools`, carrying the same words the tool item's
 screen carries for the same trip.
 
-**action.** A control that prints labels for **the tool items on this page**
-(#353), and the scope is in its own words rather than left to be inferred. This
-screen reads its tool items a page at a time, so a render holds one page of
-printed ids — twenty-five at most — and no more; a tool with more than that is
-printed a page at a time, and one press is at most a page of labels. **A design
-must not offer "print all of this tool"** — that would need a read of every tool
-item under it, which is the cost the paging exists to avoid.
+**action.** A box on every entry and one for the page, and together they say
+**which tool items a label run is for** (#443). An entry's box selects that tool
+item or takes it out. The page box selects every entry on this page, or, when
+all of them are selected already, takes this page out — and a page partly
+selected is completed rather than cleared. **The page box reaches this page and
+no further, and its own words say so:** `Select all on this page`. This screen
+reads its tool items a page at a time, so a render holds one page of printed
+ids and no more, and selecting the whole tool would need a read of every tool
+item under it — the cost the paging exists to avoid. It shows whether **none,
+some or all of this page** is selected, and that is this page's answer alone,
+whatever is selected on another.
+
+**action.** A control that prints labels for **what is selected** (#353, #443),
+`Print labels`. **It names no range, and that is the point:** the boxes and the
+count beside it show what a press sends, which is what the control's words had
+to say while it sent the page it was on. It opens the label screen with the
+selection, in the list's order.
+
+**evidence.** One sentence standing with the print control, saying what a
+press would send: how many are selected — `3 selected` — or, when nothing is,
+why the control does not act (below). The words name no noun for what is
+selected; see below.
 
 **evidence.** How many tool items this tool has in total. #326 names this
 as the fact every list in this app is missing: without it nothing on
@@ -57,7 +72,7 @@ retired tool still counts.
 **evidence.** One entry per tool item, **oldest first**, each carrying
 three facts: its printed `Tool Item ID`, which is the way into that tool
 item's own screen; its status, one of `In Stock`, `Out` or `Retired`; and
-the job it is on.
+the job it is on. Each carries its box as well; see above.
 
 **Oldest first is load-bearing rather than a default.** A link array is
 creation order and the ids in one registration are contiguous, so oldest
@@ -77,7 +92,36 @@ end rather than drawn and dead, so a tool with one page carries neither.
 **A second page exists only for a tool with more than twenty-five tool
 items**, and that number counts every registration of the tool rather than
 one: registering more of a tool adds to the same list, and one registration
-can make up to a hundred.
+can make up to a hundred. Both steps carry the selection, so what was
+selected on one page is still selected on the next.
+
+**When nothing is selected:** the sentence is the label screen's own for the
+same state, `Nothing is selected, so there is nothing to print.`, and the
+print control is drawn but does not act. Every arrival from the tool list
+starts here; only an address carrying a selection does not. **It does not print
+the page instead** — that was the control's behavior until #443, and
+it is exactly what made its range a sentence rather than something on the
+screen. The page is one press of the page box away, and that press shows it.
+**The control stays drawn while it does not act**, because it is what tells a
+reader what the boxes are for; how an inactive control looks is the design's.
+
+**When something is selected:** a way to clear it, `Clear selection`, which
+empties the selection on every page at once. The page box already clears one
+page; this is the way out of a selection made on pages the reader is no longer
+on. Absent when there is nothing to clear, the way the steps are absent at
+their ends.
+
+**When some of what is selected is not on this page:** the sentence says how
+many, `3 selected, 1 not on this page`, and says nothing of it otherwise. A
+selection outlives a page turn, so this is what reconciles the count with a
+page whose boxes show fewer — and it is the only place those tool items appear
+until the label screen lists them.
+
+**When more are selected than one print takes:** `101 selected, and one print
+takes at most 100.`, and the print control does not act. The label screen
+prints a hundred at a time and would print the first hundred of a longer run,
+so a press here would print less than it sent. It needs a tool with more than
+a hundred tool items, selected across pages.
 
 **When the tool has no tool items at all:** one sentence in place of the
 entries, `Nothing is recorded under this tool.` and then why that can
@@ -85,8 +129,8 @@ happen — a registration writes the tool before it writes the tool items,
 so one that failed in between leaves the tool with none. **This is
 reachable and is not an error state**, the same way the tool item screen's
 missing history is: nothing rolls back, and the row that stands is sound.
-The total and the page position are absent with it; there is nothing to
-count and no page to be on.
+The total, the page position, the boxes and the print control are absent
+with it; there is nothing to count, no page to be on and nothing to print.
 
 **When no tool carries the record id in the address:** the screen is the
 heading `Tool not found` and a way back to `/tools`. Nothing on this axis
@@ -108,19 +152,44 @@ before any screen was drawn, and it is a design's figure rather than a
 measurement — nobody has yet held this list on a phone with a real
 warehouse in it. **Two ceilings on it are not the design's.** Anything up
 to fifty costs the app exactly the same to fetch, and a fifty-first row is
-a second read; and a page is how many labels one press of the print
-control asks for, which the label screen prints a hundred at a time.
+a second read; and a page is how many one press of the page box selects,
+where the print control acts on at most a hundred — what the label screen
+prints at once.
+
+**The selection rides in the address (#443), which is what lets it survive a
+page turn, a reload and a copied link.** It is the label screen's own
+parameter with its own values — printed ids — so the print control hands it
+over unchanged, and a copied address is a request to print those labels
+again rather than an account of anything. It is kept in the list's order,
+whatever order the boxes were pressed in, so a sheet reads the way the list
+does. **A design must not offer "select all of this tool"**, for the reason
+this screen never offered "print all": it is a read of every tool item under
+the tool.
+
+**The label screen still asks which labels to print, and that is not a second
+selection.** Arriving from here, every tool item this selection names starts
+included there. Excluding one there trims that sheet and does not reach back
+into this screen's selection — it is where the whole run is listed at once,
+beside the start position and the sheet count, for a last decision about the
+paper. The two are different acts and take different words: `Select` here,
+`Include` there.
+
+**No word the selection adds names what is selected.** `tool item` is decided
+against appearing with its replacement not yet chosen, and a bare `item` names
+a row of four other tables, so the selection's words say neither — the way
+the document lists' pickers say `N selected`. The column head below is the
+older word and is untouched here.
 
 **The status shown here is the same value the tool list counts.**
 `Tool Items."Status"` is maintained by the app rather than computed on
 either screen, so this page, the tool list and the tool item's own screen
 cannot disagree about where a tool item is.
 
-**Every entry will read `In Stock` until a later phase.** Nothing in the
-app writes a `Checked Out`, `Checked In` or `Retired` log row yet —
-registration is the only event that exists — so the column holds one
-value today. All three are real and a design should draw for three; what
-is missing is the screen that produces the other two.
+**All three statuses reach this column.** A check-out, a check-in and a
+retirement each write the status it shows (#362, #363), so an entry reads
+`In Stock`, `Out` or `Retired`, and a design draws for three. This said every
+entry would read `In Stock` until a later phase, which stopped being true
+when those issues wrote the other two; corrected by #443.
 
 **There is no count per status on this screen, and adding one is not
 free.** That question belongs to the tool list one level up. Answering it

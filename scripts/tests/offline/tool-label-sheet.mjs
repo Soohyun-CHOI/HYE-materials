@@ -492,6 +492,56 @@ export function run({ check, assert, log }) {
     check("  the largest request from position 11 is one sheet", paginateLabels(largest, 11).length, 1);
     check("  and from position 12 is two", paginateLabels(largest, 12).length, 2);
 
+    // ── 5b: the address is read through the one reading of `id` (#443) ───────
+    log("");
+    log("the page reads its ids through the reading a tool's list shares:");
+    // ONE PARAMETER, TWO READERS, ONE FUNCTION. A tool's list selects what this screen
+    // prints and sends it under this screen's own name, so the two must read `id` the
+    // same way — a second spelling here that stopped dropping repeats would print one
+    // tool item twice from a list that showed it once. So the page is read for where
+    // its `id` goes: handed to `readToolItemIds` once, read nowhere else, and never
+    // canonicalized by the page itself. `offline/tool-routes.mjs` holds the values.
+    const idReading = (ast) => {
+        const found = { handed: [], reads: 0, canonicalized: 0 };
+        const unchain = (node) => (node?.type === "ChainExpression" ? node.expression : node);
+        const isIdRead = (node) =>
+            node?.type === "MemberExpression" &&
+            !node.computed &&
+            node.object.type === "Identifier" &&
+            node.object.name === "params" &&
+            node.property.name === "id";
+        walk(ast, (n) => {
+            if (isIdRead(n)) found.reads++;
+            if (n.type === "CallExpression" && n.callee.type === "Identifier") {
+                if (n.callee.name === "readToolItemIds") found.handed.push(readName(unchain(n.arguments[0]) ?? {}));
+                if (n.callee.name === "canonicalToolItemId") found.canonicalized++;
+            }
+        });
+        return found;
+    };
+    const pageReading = idReading(parseFile(PAGE_SOURCE).ast);
+    check("the page hands its `id` to readToolItemIds, once", pageReading.handed.join(" | "), "params.id");
+    check("  and reads it nowhere else", pageReading.reads, 1);
+    check("  nor canonicalizes an id itself", pageReading.canonicalized, 0);
+    // ANTI-VACUITY: the reading this page carried until #443, restored, is seen for what
+    // it is — the parameter read outside the shared function, and canonicalized here.
+    const restoredReading = idReading(
+        parseSource(
+            "async function page({ searchParams }) {\n" +
+                "  const params = await searchParams;\n" +
+                "  const raw = params?.id ?? [];\n" +
+                "  const asked = (Array.isArray(raw) ? raw : [raw]).map((v) => canonicalToolItemId(v));\n" +
+                "  const requested = [...new Set(asked.filter(Boolean))];\n" +
+                "}\n",
+            "<planted-restored-reading>"
+        ).ast
+    );
+    check("  the restored reading is seen handing nothing over", restoredReading.handed.length, 0);
+    assert(
+        "  while reading the parameter and canonicalizing it itself",
+        restoredReading.reads === 1 && restoredReading.canonicalized === 1
+    );
+
     // ── 6: `@page` is spelled in a file nothing else in this tier reads ─────
     log("");
     log("`labels.css` carries the one figure a custom property cannot:");
@@ -942,7 +992,14 @@ export function run({ check, assert, log }) {
     log("what the screen says:");
     check("the heading", COPY.heading, "Print tool labels");
     check("the control on a registration", COPY.openFromRegistration, "Print labels for these tool items");
-    check("the control on a tool", COPY.openFromTool, "Print labels for the tool items on this page");
+    // NO RANGE IN ITS WORDS SINCE #443: the boxes and the count beside it show what it
+    // sends. It read `…for the tool items on this page` while it sent the page.
+    check("the control on a tool", COPY.openFromTool, "Print labels");
+    check(
+        "  and the sentence it stands beside when nothing is selected",
+        COPY.nothingSelected,
+        "Nothing is selected, so there is nothing to print."
+    );
     check("the control on one tool item", COPY.openFromToolItem, "Print the label");
     // IT MAY NOT SAY `REPRINT`, which is what it said until #352 was read on screen:
     // nothing in this base records whether a sticker was ever printed, so a control

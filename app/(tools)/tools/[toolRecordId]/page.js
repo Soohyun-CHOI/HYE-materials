@@ -4,9 +4,9 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemsByTool } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
-import { TOOL_LABEL_SHEET_COPY as SHEET_COPY } from "@/lib/toolLabelSheet";
-import { TOOLS_PATH, toolItemLabelsPath, toolItemPath, toolPath } from "@/lib/toolRoutes";
+import { TOOLS_PATH } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
+import ToolItemList from "./ToolItemList";
 
 // Static, the way `/materials/[materialId]` is and for the same reason: the
 // segment is an Airtable record id, which names nothing a reader would recognize,
@@ -45,6 +45,12 @@ export const metadata = { title: "Tool" };
  * from the tool's own `Tool Items` link array BEFORE anything is fetched, so a
  * tool with three hundred units costs exactly what a tool with three costs, and
  * the total the screen states comes from that array's length for nothing.
+ *
+ * AND WHATEVER IS SELECTED (#443). Which tool items a label run is for rides in the
+ * address as `id`, and this page never reads it: `ToolItemList.js` beside it reads
+ * it off the address and rewrites it on every press without a render, and its header
+ * says why the page cannot be the reader the way `/login`'s is (#373). So an id
+ * selected on another page is never fetched here, and a press costs no operation.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
  * answering it on this page would mean reading every tool item under the tool —
@@ -88,11 +94,13 @@ async function renderToolPage({ params, searchParams }) {
     // screen for a page that exists.
     //
     // `rowIds: page.ids` IS WHAT DIVIDES THE READ, AND TWO CLAIMS REST ON IT (#442):
-    // the four operations above, and the print control below sending one page.
-    // Without it `getToolItemsByTool` reads the tool's whole link array, and this
-    // screen reads every tool item under the tool and prints every one of them with
-    // nothing on screen to show it — so `offline/tool-list-view.mjs` reads the
-    // argument off the source, and the print link's, rather than trusting a figure.
+    // the four operations above, and the page box below selecting one page (#443;
+    // until then the second claim was the print control sending one page). Without
+    // it `getToolItemsByTool` reads the tool's whole link array, and this screen
+    // reads every tool item under the tool and offers every one of them to the page
+    // box with nothing on screen to show it — so `offline/tool-list-view.mjs` reads
+    // the argument off the source, and the rows this hands the list, rather than
+    // trusting a figure.
     const page = pageOfToolItems(tool.toolItems, sp.page);
     const [toolItems, jobs] = await Promise.all([
         getToolItemsByTool(tool.id, { rowIds: page.ids }),
@@ -114,65 +122,23 @@ async function renderToolPage({ params, searchParams }) {
                 <>
                     <p>{COPY.total(page.total)}</p>
 
-                    {/* The label sheet for what is on THIS page, and the scope is
-                        the paging's rather than a choice (#353). The page reads one
-                        slice of the tool's link array, so one page of printed ids is
-                        what this render holds; offering the whole tool would need a
-                        read of every tool item under it, which is the cost #339
-                        divided the read to avoid. A tool with more is printed a page
-                        at a time, and a page is sized to fit what the label screen
-                        prints at once. Its word is the label screen's own. */}
-                    <p>
-                        <Link
-                            href={toolItemLabelsPath(toolItems.map((toolItem) => toolItem.toolItemId))}
-                        >
-                            {SHEET_COPY.openFromTool}
-                        </Link>
-                    </p>
-
-                    {/* Oldest first, which is the link array's own order and so
-                        ascending `Tool Item ID` — the number a person reads off a
-                        label. Nothing sorts. */}
-                    <ol>
-                        {toolItems.map((toolItem) => (
-                            <li key={toolItem.id}>
-                                <dl>
-                                    <div>
-                                        <dt>{COPY.toolItemLabel}</dt>
-                                        <dd>
-                                            <Link
-                                                href={toolItemPath(toolItem.toolItemId)}
-                                            >
-                                                {toolItem.toolItemId}
-                                            </Link>
-                                        </dd>
-                                    </div>
-                                    <div>
-                                        <dt>{COPY.statusLabel}</dt>
-                                        <dd>{toolItem.status}</dd>
-                                    </div>
-                                    <div>
-                                        <dt>{COPY.jobLabel}</dt>
-                                        <dd>{jobCodeById[toolItem.job?.[0]]}</dd>
-                                    </div>
-                                </dl>
-                            </li>
-                        ))}
-                    </ol>
-
-                    {/* Which page this is, stated whether or not there is a
-                        second one: #326 names "nothing on screen says whether a
-                        reader is looking at everything or at the beginning of it"
-                        as the defect, and a position that appears only once a
-                        list is long leaves the short case saying nothing. The two
-                        steps are absent at the ends rather than drawn dead. */}
-                    <p>{COPY.pagePosition(page)}</p>
-                    {page.page > 1 && (
-                        <Link href={toolPath(tool.id, page.page - 1)}>{COPY.previous}</Link>
-                    )}
-                    {page.page < page.pageCount && (
-                        <Link href={toolPath(tool.id, page.page + 1)}>{COPY.next}</Link>
-                    )}
+                    {/* The rows this render read, and only those, which is what
+                        keeps the page box to this page (#443): the list selects
+                        among what it is handed and has no way to name a tool item
+                        it was not. What a label run is for is the list's to read
+                        off the address, and the print control that sends it lives
+                        there with the boxes that make it. */}
+                    <ToolItemList
+                        toolRecordId={tool.id}
+                        rows={toolItems.map((toolItem) => ({
+                            id: toolItem.id,
+                            toolItemId: toolItem.toolItemId,
+                            status: toolItem.status,
+                            jobCode: jobCodeById[toolItem.job?.[0]],
+                        }))}
+                        page={page.page}
+                        pageCount={page.pageCount}
+                    />
                 </>
             )}
         </div>

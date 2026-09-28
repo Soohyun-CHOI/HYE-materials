@@ -7,7 +7,7 @@ import { getToolItemsByToolItemIds } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
 import { MAX_LABELS_PER_REQUEST, TOOL_LABEL_SHEET_COPY as COPY } from "@/lib/toolLabelSheet";
-import { TOOLS_PATH, canonicalToolItemId, labelCodeFor } from "@/lib/toolRoutes";
+import { TOOLS_PATH, labelCodeFor, readToolItemIds } from "@/lib/toolRoutes";
 import { TOOL_LIST_COPY } from "@/lib/toolListView";
 import LabelSheet from "./LabelSheet";
 import "./labels.css";
@@ -65,14 +65,11 @@ export default async function ToolLabelSheetPage({ searchParams }) {
         await requireUser();
 
         const params = await searchParams;
-        const raw = params?.id ?? [];
-        const asked = (Array.isArray(raw) ? raw : [raw])
-            .map((value) => canonicalToolItemId(value))
-            .filter(Boolean);
-        // A repeated id in the address would print one tool item twice, which is
-        // two stickers for one drill — the failure the whole id family exists to
-        // prevent.
-        const requested = [...new Set(asked)];
+        // Canonical, each once, in the address's order — the one reading of `id`,
+        // which a tool's own list takes through the same function (#443), so the
+        // run it sends is the run this prints. A repeated id would print one tool
+        // item twice, which is why that function drops it.
+        const requested = readToolItemIds(params?.id);
         const printing = requested.slice(0, MAX_LABELS_PER_REQUEST);
 
         // The public host behind Vercel's proxy rather than the request URL, which

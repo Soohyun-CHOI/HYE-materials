@@ -36,7 +36,9 @@ import {
     canonicalToolItemId,
     labelCodeFor,
     labelPath,
+    readToolItemIds,
     toolItemIdFromLabelCode,
+    toolItemLabelsPath,
     toolItemPath,
     toolPath,
 } from "../../../lib/toolRoutes.js";
@@ -135,6 +137,62 @@ export function run({ check, assert, log }) {
         "the label's path is shorter than the screen it opens",
         labelPath("HYE-TL-260909-004").length < toolItemPath("HYE-TL-260909-004").length
     );
+
+    // ── 2a: the selection rides in a tool's address as `id` (#443) ──────────
+    log("");
+    log("a tool's address carries what its list has selected, and reads it back:");
+    // Literal addresses rather than ones built from the module's own pieces, so a
+    // change to the parameter's name, its order after `page` or its encoding fails
+    // here rather than moving with the thing it is checked against.
+    const two = ["HYE-TL-260909-004", "HYE-TL-260909-007"];
+    check(
+        "a selection on the first page",
+        toolPath("recAbc", 1, two),
+        "/tools/recAbc?id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+    );
+    check(
+        "  and on a later one, after the page",
+        toolPath("recAbc", 2, two),
+        "/tools/recAbc?page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+    );
+    check("  an empty selection carries nothing", toolPath("recAbc", 2, []), "/tools/recAbc?page=2");
+    check("  nor on the first page", toolPath("recAbc", 1, []), "/tools/recAbc");
+    // THE SAME NAME AND THE SAME VALUES THE LABEL SCREEN TAKES, which is the claim
+    // that lets the print control hand a selection over unchanged.
+    check(
+        "the label screen is handed the same query",
+        toolItemLabelsPath(two).split("?")[1],
+        toolPath("recAbc", 1, two).split("?")[1]
+    );
+
+    // ONE READING OF `id` FOR BOTH SCREENS. Canonical, blank dropped, each once, the
+    // first occurrence keeping its place — asserted on what each reader really hands
+    // it: a Server Component's string, its array, nothing, and `getAll`'s array.
+    check("one id as a string", readToolItemIds("hye-tl-260909-004").join(), "HYE-TL-260909-004");
+    check("  none at all", readToolItemIds(undefined).length, 0);
+    check("  an empty value", readToolItemIds(["", "  "]).length, 0);
+    check(
+        "  a repeat is dropped, spelled differently or not",
+        readToolItemIds([
+            "HYE-TL-260909-007",
+            "hye-tl-260909-004",
+            " HYE-TL-260909-007 ",
+            "HYE-TL-260909-004",
+        ]).join(),
+        "HYE-TL-260909-007,HYE-TL-260909-004"
+    );
+    // IT DOES NOT ASK WHETHER A STRING IS A TOOL ITEM — the label screen's read does,
+    // and names what it cannot find — so a string of any shape comes back canonical.
+    check("  and a string that is no id is kept, canonical", readToolItemIds(["abc"]).join(), "ABC");
+    // The write and the read agree: what `toolPath` puts in the address is what
+    // `readToolItemIds` takes out of it, through the browser's own parser.
+    const written = new URLSearchParams(toolPath("recAbc", 2, two).split("?")[1]);
+    check(
+        "an address written by toolPath reads back as the same selection",
+        readToolItemIds(written.getAll("id")).join(),
+        two.join()
+    );
+    check("  and still says which page", written.get("page"), "2");
 
     // ── 2b: the printed code, which is what that segment holds (#411) ───────
     log("");
