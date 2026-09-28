@@ -1,14 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { TOOL_LABEL_SHEET_COPY as SHEET_COPY } from "@/lib/toolLabelSheet";
-import { toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
-import { useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
     TOOL_REGISTRATION_COPY as COPY,
     matchExistingTool,
-    toolNameKey,
 } from "@/lib/toolRegistration";
 import { registerToolItemsAction } from "./actions";
 
@@ -21,8 +17,10 @@ import { registerToolItemsAction } from "./actions";
  * ground that nothing about this app's appearance was designed, so a value chosen
  * here to make the first write screen look finished would become the baseline a
  * design has to justify departing from. What the markup does carry is the
- * STRUCTURE a design needs: a labeled control per fact, one slot every refusal
- * arrives in, and the account of what was written as a list.
+ * STRUCTURE a design needs: a labeled control per fact and one slot every refusal
+ * arrives in. **It carried the account of what was written as a list until #449**,
+ * which moved that to where a registration lands — the tool's own page, with every
+ * id it wrote selected.
  *
  * EVERY STRING COMES FROM `TOOL_REGISTRATION_COPY`. A word written into JSX is
  * invisible to the vocabulary checks and to scripts/screen-strings.mjs, so it
@@ -36,45 +34,61 @@ import { registerToolItemsAction } from "./actions";
  * is the one thing a find-or-create write path owes them. It is a PREVIEW and not
  * the verdict — the list is as old as the page — and the action asks Airtable.
  *
+ * ITS STATE IS A REFUSAL AND NOTHING ELSE (#449). A registration that writes a tool
+ * item leaves for its tool's page, so `useActionState` only ever holds `{ error }`.
+ * That is also why the preview no longer adds the names this form has registered: it
+ * did so because the form stayed put after a success, one registration staler than
+ * its own list, and a form that is left has no second registration to be stale for.
+ *
+ * IT OPENS WHERE THE PAGE SAYS, AND THE PERSON HAS THE LAST WORD (#449). `prefill` is
+ * where the two fields start — nothing typed and 1, or a tool's name and a count off
+ * the address a registration that fell short offers — and nothing here holds either
+ * against an edit: the name seeds the field's own state and the count is the input's
+ * default.
+ *
+ * A REFUSAL LEAVES EVERY FIELD AS IT WAS, WHICH IS WHAT `submit` IS FOR (#449). React
+ * 19 resets a form once an action bound through its `action` prop settles. Measured
+ * here, hydrated and with the handler taken out: a refusal kept the name, which this
+ * component controls, and put the count back to where the page started it and the job
+ * back to its placeholder. That cost little while this form's only reachable refusal
+ * was a name of nothing but spaces. A batch that wrote nothing is the refusal that says
+ * to register again, and a form that has just dropped two of the three things it asks
+ * to be sent again answers it wrongly. So `submit` hands the fields to the action
+ * itself inside a transition, and that path resets nothing — read in the installed
+ * react-dom rather than off the documentation: with the event's default prevented and
+ * a transition started, its form-action listener passes `startHostTransition` a `null`
+ * action, whose branch is a no-op where the other calls `requestFormReset` first, so
+ * the action is not run twice either. **`action={formAction}` STAYS**: before this
+ * component hydrates the handler does not exist, and what submits then is the server
+ * action that prop renders — measured, a press before hydration without it became a
+ * GET of this address carrying every field. The browser's own constraints still run
+ * first, the action still binds through `useActionState` (#185), and a success still
+ * leaves for the tool's page. `app/prs/[prId]/EditAndContinueForm.js` records the same
+ * reset on a form whose submission carries state rather than fields, and why it is
+ * left there.
+ *
  * THE SUBMIT IS DISABLED WHILE PENDING, which is not a nicety: `withKeyLock`
  * serializes within one invocation only, so the frontend guard is the other half
  * of every duplicate-id argument in lib/ids.js.
  */
-export default function ToolRegistrationForm({ tools, jobs }) {
+export default function ToolRegistrationForm({ tools, jobs, prefill }) {
     const [state, formAction, pending] = useActionState(registerToolItemsAction, null);
-    const [toolName, setToolName] = useState("");
-    // THE LOADED LIST GOES STALE THE MOMENT THIS FORM SUCCEEDS, AND THE STALENESS
-    // WAS VISIBLE. Measured in a browser: registering `DEMO Impact Driver` left the
-    // preview still reading that nobody had registered it, on the same screen and
-    // one line above the id it had just minted. A preview being older than the base
-    // is the arrangement — the write asks Airtable again — but a screen stating
-    // something the reader has just disproved is not staleness, it is a falsehood.
-    // The form stays put on purpose (its account is what a person prints from), so
-    // the names it has itself registered are added here rather than refetched: a
-    // `router.refresh()` would buy the same answer for two more Airtable operations
-    // per registration.
-    // ADJUSTED DURING RENDER RATHER THAN IN AN EFFECT, which is React's own
-    // guidance for state derived from a previous render and is what
-    // `react-hooks/set-state-in-effect` points at — an effect here re-renders in a
-    // second pass for a value already in hand.
-    const [registeredHere, setRegisteredHere] = useState([]);
-    const justRegistered = state?.toolName;
-    if (justRegistered && !registeredHere.includes(justRegistered)) {
-        setRegisteredHere([...registeredHere, justRegistered]);
-    }
+    const [toolName, setToolName] = useState(prefill.toolName);
 
     const typed = toolName.trim();
-    const typedKey = typed ? toolNameKey(typed) : "";
-    // One answer from two sources, and the same key behind both — the tools the
-    // page loaded, and the ones this page has registered since.
-    const existingName =
-        (typed ? matchExistingTool(typed, tools)?.toolName : null) ??
-        registeredHere.find((name) => toolNameKey(name) === typedKey) ??
-        null;
-    const registered = state?.toolItemIds;
+    const existingName = typed ? (matchExistingTool(typed, tools)?.toolName ?? null) : null;
+
+    // See the header: the fields are read before the transition, and handing them to
+    // the action here is what keeps them after a refusal. `action` stays for a press
+    // that lands before this component hydrates.
+    const submit = (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        startTransition(() => formAction(formData));
+    };
 
     return (
-        <form action={formAction}>
+        <form action={formAction} onSubmit={submit}>
             {state?.error && <p role="alert">{state.error}</p>}
 
             <div>
@@ -105,7 +119,7 @@ export default function ToolRegistrationForm({ tools, jobs }) {
                     required
                     min="1"
                     max={MAX_TOOL_ITEMS_PER_REGISTRATION}
-                    defaultValue="1"
+                    defaultValue={String(prefill.quantity)}
                 />
             </div>
 
@@ -137,70 +151,6 @@ export default function ToolRegistrationForm({ tools, jobs }) {
             <button type="submit" disabled={pending}>
                 {COPY.submit}
             </button>
-
-            {/* The account of what was written, and it names every minted id
-                because a `Tool Item ID` is printed onto a sticker — a count
-                cannot be acted on. It arrives as the action's return value rather
-                than through the URL, so a reload does not repeat it and a copied
-                link shows a stranger nothing (#321). */}
-            {registered && (
-                <div role="status">
-                    <p>
-                        {COPY.registered({
-                            toolName: state.toolName,
-                            jobCode: state.jobCode,
-                            toolItemIds: registered,
-                        })}
-                    </p>
-                    {state.shortBy > 0 && (
-                        <p>
-                            {COPY.shortCount({
-                                requested: state.requested,
-                                created: registered.length,
-                            })}
-                        </p>
-                    )}
-                    <p>{COPY.ids}</p>
-                    {/* Each id links to the tool item it names (#340), which is
-                        the issue that created that page — the same rule by which
-                        #336 put a `/tools` link on the root screen and #338 put
-                        this form's control on `/tools`: the issue that opens a
-                        route is the one that makes it reachable. The address is
-                        built rather than spelled, so #348's move of that page
-                        reached this link without anyone grepping for it. */}
-                    <ul>
-                        {registered.map((toolItemId) => (
-                            <li key={toolItemId}>
-                                <Link href={toolItemPath(toolItemId)}>
-                                    {toolItemId}
-                                </Link>
-                            </li>
-                        ))}
-                    </ul>
-                    {/* And the way onward that matters most, because a tool item
-                        with no label is a row nothing can reach (#353). This
-                        account is the ONLY place these ids appear together — a
-                        reload loses it — so the link that leaves is the only way
-                        the selection can cross into the sheet. Its word is the
-                        label screen's own, the way this form's control on `/tools`
-                        takes its word from this screen's heading. */}
-                    <p>
-                        <Link href={toolItemLabelsPath(registered)}>
-                            {SHEET_COPY.openFromRegistration}
-                        </Link>
-                    </p>
-                    {state.unloggedToolItemIds.length > 0 && (
-                        <>
-                            <p>{COPY.unlogged}</p>
-                            <ul>
-                                {state.unloggedToolItemIds.map((toolItemId) => (
-                                    <li key={toolItemId}>{toolItemId}</li>
-                                ))}
-                            </ul>
-                        </>
-                    )}
-                </div>
-            )}
         </form>
     );
 }

@@ -29,7 +29,8 @@ export const metadata = { title: "Print tool labels" };
 // which is the per-record shape #193 forbids. It returns the table's order and no
 // error for an id that resolves to nothing, so the matching back and the account of
 // what was missing are this page's own — and the ids are put back into the
-// ADDRESS's order, which for a registration is the order its account listed them.
+// ADDRESS's order, which for a run sent from a tool's page is its list's order (#443);
+// a registration's run arrives that way too since #449.
 //
 // THE HOST IS READ AND SHOWN, AND THAT IS A SAFEGUARD RATHER THAN A DECORATION.
 // A symbol encodes the host it was printed from, so a sheet printed on a preview

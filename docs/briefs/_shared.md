@@ -97,22 +97,26 @@ takes them away. They are not a layout to preserve.
    outlived the sentence: a reload repeated it and a copied link showed a
    stranger a confirmation for something they had not done.
 
-   **The five exceptions are the places the arrival answers nothing**, and they
+   **The four exceptions are the places the arrival answers nothing**, and they
    are exceptions to the placement rather than to the rule. `/invoices/new`
    records a direct purchase and comes back to an empty form, because the
    request it raises belongs to the site; the three admin create forms have no
    detail screen to land on at all. Each still says what it wrote, and each
    brief describes its own line.
 
-   **The fifth does it without a parameter, and that is the shape to copy
-   (#338).** `/tools/new` writes as many tool items as were bought and has no
-   one document to land on — a registration makes many — so it states what it
-   wrote where the reader is. What is different is HOW: the other four
-   redirect to themselves carrying the value in the URL, and this one renders
-   the submission's own answer. So a reload repeats nothing and a copied link
-   shows a stranger nothing, which is the objection the removed lines were
-   removed for. It also could not use a parameter if it wanted to — what it has
-   to say is a list of minted ids rather than one value.
+   **A registration was a fifth, and it joined the rule rather than finding a
+   better exception (#449).** `/tools/new` writes as many tool items as were
+   bought, so it has no one document to land on — and it lands on their TOOL, the
+   screen that lists them, with every one it wrote selected. The selection is
+   what it says about the act: it names each id, survives a reload, and is one
+   press from their labels. The form stated its own account of the ids until
+   then, which a reload lost along with the only control that printed them.
+   **Two facts ride beside that selection and neither is a confirmation** —
+   that fewer were written than asked for, which offers to write the rest or be
+   done, and which of those written have no recorded registration. They are what
+   the arrival cannot show, the way the invoice screen says how a delivery was
+   matched to it (#231), and the tool's own brief carries both and what a reload
+   does to them.
 
    A redesign that adds a success state to a document screen is undoing this,
    which is why it is here rather than in one brief.

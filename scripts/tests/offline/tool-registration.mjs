@@ -26,6 +26,18 @@
 // preview reaches a browser at all is checked with a real session and recorded
 // in the pull request.
 //
+// AND SINCE #449 IT HOLDS WHERE A REGISTRATION LANDS, in the same two halves. What
+// the form opens filled with and what a landing's account reads as are pure, held
+// by value at their edges. Where the action sends the person — which record, which
+// page, which tool items selected and what account beside them — is in a module
+// this tier cannot load (the action reaches lib/airtable/), and naming the calls
+// would be satisfied by every wrong version of them, so the redirect's ARGUMENTS
+// and the form's state are read off the AST, each beside a planted file doing it
+// wrong. **What that cannot show is the two failures themselves**: a batch that
+// stops short and a log pass that stops are both unreachable without breaking the
+// base, so the refusal, the shortfall and the unlogged names are held here as
+// source and as words, and never as a run.
+//
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { normalizeItemText } from "../../../lib/itemNaming.js";
@@ -35,11 +47,19 @@ import {
     canRegisterToolItems,
     matchExistingTool,
     readQuantity,
+    readRegistrationAccount,
+    readRegistrationPrefill,
     toolNameKey,
 } from "../../../lib/toolRegistration.js";
+import { registerPath, toolPath } from "../../../lib/toolRoutes.js";
+import { callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Registering tool items — the pure half (#338)";
+export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449)";
+
+/** The action whose redirect section 8 reads, and the form whose state it reads. */
+const ACTION = "app/(tools)/tools/new/actions.js";
+const FORM = "app/(tools)/tools/new/ToolRegistrationForm.js";
 
 /** Every string the copy constant can produce, builders called with real input. */
 function copyStrings() {
@@ -50,20 +70,16 @@ function copyStrings() {
     out.push(TOOL_REGISTRATION_COPY.matchesExisting("Impact Driver"));
     out.push(TOOL_REGISTRATION_COPY.newTool("Impact Driver"));
     out.push(TOOL_REGISTRATION_COPY.quantityTooMany({ requested: 250, limit: 100 }));
-    out.push(
-        TOOL_REGISTRATION_COPY.registered({
-            toolName: "Impact Driver",
-            jobCode: "26-DEMO-01",
-            toolItemIds: ["HYE-TL-260909-001", "HYE-TL-260909-002"],
-        })
-    );
-    out.push(TOOL_REGISTRATION_COPY.registered({
-        toolName: "Impact Driver",
-        jobCode: "26-DEMO-01",
-        toolItemIds: ["HYE-TL-260909-001"],
-    }));
-    out.push(TOOL_REGISTRATION_COPY.shortCount({ requested: 6, created: 4 }));
+    for (const n of [1, 5]) out.push(TOOL_REGISTRATION_COPY.noneWritten(n));
+    for (const n of [1, 4]) out.push(TOOL_REGISTRATION_COPY.shortfall(n), TOOL_REGISTRATION_COPY.registerOthers(n));
     return out;
+}
+
+/** `tool.id` for a member read, the bare name for an identifier, else the node's type. */
+function nameOf(node) {
+    if (node?.type === "Identifier") return node.name;
+    if (node?.type === "MemberExpression" && !node.computed) return `${nameOf(node.object)}.${node.property.name}`;
+    return node?.type ?? "none";
 }
 
 /**
@@ -186,25 +202,325 @@ export function run({ check, assert, log }) {
         bare.length,
         0
     );
-    // The account of what was written names the ids rather than counting them,
-    // because a Tool Item ID is printed onto a sticker.
-    const account = TOOL_REGISTRATION_COPY.registered({
-        toolName: "Impact Driver",
-        jobCode: "26-DEMO-01",
-        toolItemIds: ["HYE-TL-260909-001", "HYE-TL-260909-002"],
-    });
-    assert("the account names the tool", account.includes("Impact Driver"));
-    assert("  and the job it was filed against", account.includes("26-DEMO-01"));
-    assert("  and reads singular at one", TOOL_REGISTRATION_COPY.registered({
-        toolName: "T",
-        jobCode: "J",
-        toolItemIds: ["x"],
-    }).includes("1 tool item of"));
-    // The one state a tool item can be in with no history: `Tool Items` carries no
-    // `Created At`, so nothing else holds the moment it came into existence.
-    assert(
-        "the unlogged sentence says what is missing rather than what failed",
-        TOOL_REGISTRATION_COPY.unlogged.includes("came into existence")
+    // THE FORM'S OWN ACCOUNT IS GONE (#449): a registration lands on its tool's page,
+    // whose selection names every id it wrote, so the words that stated it here went
+    // with it and nothing on the form says what was written.
+    check(
+        "no word is left for the form's own account",
+        ["registered", "ids", "shortCount"].filter((key) => key in TOOL_REGISTRATION_COPY).join(", "),
+        ""
+    );
+    // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's sentence and
+    // its two answers, which pair on the verb — one goes on registering and one ends it —
+    // and the notice, which offers nothing because nothing repairs what it names.
+    check("the fork's sentence", TOOL_REGISTRATION_COPY.shortfall(4), "4 were not written. What was written stays.");
+    check("  singular at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 was not written. What was written stays.");
+    check("  the answer that goes on", TOOL_REGISTRATION_COPY.registerOthers(4), "Register the other 4");
+    check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Done registering");
+    check(
+        "the notice",
+        TOOL_REGISTRATION_COPY.unlogged,
+        "These were written, but their registration was not recorded, so nothing holds the moment they were entered:"
+    );
+    // A batch that wrote nothing stays on the form, and what it says is true whether the
+    // tool was found or made just now.
+    check(
+        "nothing written",
+        TOOL_REGISTRATION_COPY.noneWritten(5),
+        "None of the 5 asked for were written. Registering again writes them under the same tool."
+    );
+    check(
+        "  and at one",
+        TOOL_REGISTRATION_COPY.noneWritten(1),
+        "The one asked for was not written. Registering again writes it under the same tool."
+    );
+    // `tool item` is decided against appearing while its replacement is open (#378), so
+    // none of the words #449 wrote says it.
+    check(
+        "no word #449 wrote says `tool item`",
+        [
+            TOOL_REGISTRATION_COPY.shortfall(4),
+            TOOL_REGISTRATION_COPY.registerOthers(4),
+            TOOL_REGISTRATION_COPY.doneRegistering,
+            TOOL_REGISTRATION_COPY.unlogged,
+            TOOL_REGISTRATION_COPY.noneWritten(5),
+            TOOL_REGISTRATION_COPY.noneWritten(1),
+        ].filter((text) => /tool items?/i.test(text)).length,
+        0
+    );
+
+    // ── 6: what the form opens with (#449) ──────────────────────────────────
+    log("");
+    log("the form opens on what its address names, and on nothing its submit would refuse:");
+    // THE CEILING IS PINNED FIRST, because the edge below is its: 100 opens as itself and
+    // 101 at one only while one submission may write a hundred.
+    check("one submission writes at most", MAX_TOOL_ITEMS_PER_REGISTRATION, 100);
+    const opens = (sp) => JSON.stringify(readRegistrationPrefill(sp));
+    check(
+        "a tool and a count",
+        opens({ toolName: "  DEMO Angle Grinder ", quantity: "4" }),
+        JSON.stringify({ toolName: "DEMO Angle Grinder", quantity: 4 })
+    );
+    check("  nothing named opens empty, at one", opens({}), JSON.stringify({ toolName: "", quantity: 1 }));
+    check("  the ceiling opens as itself", readRegistrationPrefill({ quantity: "100" }).quantity, 100);
+    for (const [raw, why] of [
+        ["101", "one over the ceiling"],
+        ["0", "zero"],
+        ["-3", "a negative"],
+        ["2.5", "a fraction"],
+        ["four", "a word"],
+        [["4", "5"], "a repeated key"],
+    ])
+        check(`  ${why} opens at one`, readRegistrationPrefill({ quantity: raw }).quantity, 1);
+    check("  a repeated name opens empty", readRegistrationPrefill({ toolName: ["A", "B"] }).toolName, "");
+    // THE WRITE AND THE READ AGREE, through the browser's own parser, on a name holding the
+    // characters a query has to escape.
+    const reopened = new URLSearchParams(registerPath({ toolName: "A & B / C+D", quantity: 7 }).split("?")[1]);
+    check(
+        "  an address registerPath writes opens the form on the same two values",
+        opens({ toolName: reopened.get("toolName"), quantity: reopened.get("quantity") }),
+        JSON.stringify({ toolName: "A & B / C+D", quantity: 7 })
+    );
+
+    // ── 7: what a landing's account reads as (#449) ─────────────────────────
+    log("");
+    log("a registration's landing carries what it could not show, and nothing it cannot have:");
+    const unwrittenOf = (raw) => readRegistrationAccount({ unwritten: raw }).unwritten;
+    check("a shortfall of four", unwrittenOf("4"), 4);
+    check("  of one, the smallest there is", unwrittenOf("1"), 1);
+    check("  of ninety-nine, the most a registration that wrote anything can fall short by", unwrittenOf("99"), 99);
+    for (const [raw, why] of [
+        ["100", "the ceiling, which only a registration that wrote nothing could fall short by,"],
+        ["0", "zero"],
+        ["-1", "a negative"],
+        ["1.5", "a fraction"],
+        ["four", "a word"],
+        [["4"], "a repeated key"],
+        [undefined, "nothing"],
+    ])
+        check(`  ${why} offers nothing`, unwrittenOf(raw), 0);
+    check(
+        "the unlogged ids read as the selection does, canonical and each once",
+        readRegistrationAccount({
+            unlogged: ["hye-tl-260928-014", "HYE-TL-260928-014 ", "HYE-TL-260928-015"],
+        }).unlogged.join(),
+        "HYE-TL-260928-014,HYE-TL-260928-015"
+    );
+    check("  one as a string", readRegistrationAccount({ unlogged: "HYE-TL-260928-014" }).unlogged.join(), "HYE-TL-260928-014");
+    check("  and none as none", readRegistrationAccount({}).unlogged.length, 0);
+    // THE WRITE AND THE READ AGREE: what `toolPath` puts on a landing is what this takes
+    // off it, and the selection beside it comes through untouched.
+    const landed = new URLSearchParams(
+        toolPath("recAbc", 2, ["HYE-TL-260928-014", "HYE-TL-260928-015"], {
+            unwritten: 3,
+            unlogged: ["HYE-TL-260928-015"],
+        }).split("?")[1]
+    );
+    const readBack = readRegistrationAccount({ unwritten: landed.get("unwritten"), unlogged: landed.getAll("unlogged") });
+    check(
+        "  a landing toolPath writes reads back as the same account",
+        `${readBack.unwritten} ${readBack.unlogged.join()}`,
+        "3 HYE-TL-260928-015"
+    );
+    check("  beside the same selection", landed.getAll("id").join(), "HYE-TL-260928-014,HYE-TL-260928-015");
+
+    // ── 8: where the action sends the person, and what the form keeps (#449) ─
+    log("");
+    log("a registration that wrote anything lands on its tool, and the form holds only a refusal:");
+    const landingFacts = (ast) => {
+        const facts = { found: false, redirects: 0, returns: [], toolFrom: null, caughtInto: null };
+        const action = resolveFunction(ast, "registerToolItemsAction");
+        if (!action) return facts;
+        facts.found = true;
+        walk(action, (n) => {
+            // `const { tool } = await upsertTool(…)` — where the record id comes from.
+            if (n.type === "VariableDeclarator" && n.id?.type === "ObjectPattern") {
+                const init = n.init?.type === "AwaitExpression" ? n.init.argument : n.init;
+                if (n.id.properties.some((p) => p.key?.name === "tool")) facts.toolFrom = nameOf(init?.callee ?? {});
+            }
+            if (n.type === "ReturnStatement" && n.argument?.type === "ObjectExpression")
+                facts.returns.push(n.argument.properties.map((p) => p.key?.name).join("+"));
+            // Which list the log pass's failures are pushed into.
+            if (n.type === "CatchClause")
+                walk(n.body, (inner) => {
+                    if (inner.type === "CallExpression" && inner.callee?.property?.name === "push" && facts.caughtInto === null)
+                        facts.caughtInto = nameOf(inner.callee.object);
+                });
+        });
+        const redirects = callsTo(action, "redirect");
+        facts.redirects = redirects.length;
+        const call = redirects[0];
+        if (!call) return facts;
+        facts.inTry = insideTry(action, call);
+        const path = call.arguments[0];
+        facts.target = nameOf(path?.callee ?? {});
+        const [record, page, selected, account] = path?.arguments ?? [];
+        facts.record = nameOf(record ?? {});
+        facts.page =
+            page?.type === "CallExpression" ? `${nameOf(page.callee)}(${nameOf(page.arguments[0] ?? {})})` : nameOf(page ?? {});
+        facts.selected =
+            selected?.type === "CallExpression" && selected.callee?.property?.name === "map"
+                ? `${nameOf(selected.callee.object)} → ${nameOf(selected.arguments[0]?.body ?? {})}`
+                : nameOf(selected ?? {});
+        const propertyOf = (name) => account?.properties?.find((p) => p.key?.name === name)?.value;
+        const unwritten = propertyOf("unwritten");
+        facts.unwritten =
+            unwritten?.type === "BinaryExpression"
+                ? `${nameOf(unwritten.left)} ${unwritten.operator} ${nameOf(unwritten.right)}`
+                : nameOf(unwritten ?? {});
+        facts.unlogged = nameOf(propertyOf("unlogged") ?? {});
+        // THE REFUSAL FOR A BATCH THAT WROTE NOTHING, and that it stands before the
+        // redirect in the source — which is not execution order, and is what this tier has.
+        facts.guardBefore = false;
+        walk(action, (n) => {
+            if (n.type !== "IfStatement" || n.start > call.start) return;
+            const test = n.test;
+            const empty =
+                test?.type === "BinaryExpression" &&
+                nameOf(test.left) === "created.length" &&
+                test.operator === "===" &&
+                test.right?.value === 0;
+            const refuses =
+                n.consequent?.type === "ReturnStatement" &&
+                n.consequent.argument?.properties?.map((p) => p.key?.name).join() === "error";
+            if (empty && refuses) facts.guardBefore = true;
+        });
+        return facts;
+    };
+    const land = landingFacts(parseFile(ACTION).ast);
+    assert(`${ACTION} declares registerToolItemsAction`, land.found);
+    check("it redirects once", land.redirects, 1);
+    check("  to a tool's page", land.target, "toolPath");
+    check("  the tool upsertTool found or made", `${land.record} from ${land.toolFrom}`, "tool.id from upsertTool");
+    check("  on the page holding the first tool item it wrote", land.page, "pageHolding(tool.toolItems.length)");
+    check("  selecting every tool item it created, by printed id", land.selected, "created → toolItem.toolItemId");
+    check("  counting as unwritten what was asked for less what was created", land.unwritten, "count - created.length");
+    check("  and naming as unlogged the list its log pass fills on a failure", `${land.unlogged} ${land.caughtInto}`, "unlogged unlogged");
+    check("the redirect is outside every try", land.inTry, false);
+    check("  a batch that wrote nothing refuses before it", land.guardBefore, true);
+    check("  and every value the action returns is a refusal", [...new Set(land.returns)].join(", "), "error");
+    // ANTI-VACUITY: a planted action doing each of those wrong is seen doing it — the
+    // record from another reader and another binding, the page from the count, a
+    // selection of the logged tool items, a shortfall of the whole count, the redirect
+    // inside the loop's try, the refusal after it, and the old account returned.
+    const plantedLanding = landingFacts(
+        parseSource(
+            "export async function registerToolItemsAction(prevState, formData) {\n" +
+                "  return withOpsLabel('registerToolItemsAction', async () => {\n" +
+                "    const { tool } = await getToolByName(toolName);\n" +
+                "    const { created } = await createToolItems({ toolRecordId: tool.id, jobRecordId: job.id, count });\n" +
+                "    const logged = [];\n" +
+                "    for (const toolItem of created) {\n" +
+                "      try {\n" +
+                "        await createToolLogEntry({});\n" +
+                "        redirect(toolPath(job.id, pageHolding(count), logged, { unwritten: count, unlogged: created }));\n" +
+                "      } catch { logged.push(toolItem.toolItemId); }\n" +
+                "    }\n" +
+                "    if (created.length === 0) return { error: 'x' };\n" +
+                "    return { toolItemIds: created };\n" +
+                "  });\n" +
+                "}\n",
+            "<planted-landing>"
+        ).ast
+    );
+    check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.toolFrom}`, "job.id from getToolByName");
+    check("  a page from another figure is seen", plantedLanding.page, "pageHolding(count)");
+    check("  a selection of anything but what was created is seen", plantedLanding.selected, "logged");
+    check("  a shortfall of the whole count is seen", plantedLanding.unwritten, "count");
+    check("  an unlogged list the failures do not fill is seen", `${plantedLanding.unlogged} ${plantedLanding.caughtInto}`, "created logged");
+    check("  a redirect inside a try is seen", plantedLanding.inTry, true);
+    check("  a refusal after the redirect is seen", plantedLanding.guardBefore, false);
+    check("  and the old account returned is seen", [...new Set(plantedLanding.returns)].join(", "), "error, toolItemIds");
+
+    const formFacts = (ast) => {
+        const stateReads = new Set();
+        let nameStartsFrom = null;
+        let countStartsFrom = null;
+        const opens = [];
+        let formAttributes = null;
+        let prevented = false;
+        let dispatched = false;
+        walk(ast, (n) => {
+            // HOW THE FORM SUBMITS (#449): through `onSubmit`, which prevents the default and
+            // hands the fields to the action inside a transition — the path React 19 does not
+            // reset — with `action` kept for a press before hydration.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "form")
+                formAttributes = n.attributes.map((a) => a.name?.name).sort().join(", ");
+            if (n.type === "CallExpression" && nameOf(n.callee).endsWith(".preventDefault")) prevented = true;
+            if (n.type === "CallExpression" && n.callee?.name === "startTransition")
+                walk(n.arguments[0] ?? {}, (inner) => {
+                    if (inner.type === "CallExpression" && inner.callee?.name === "formAction") dispatched = true;
+                });
+            if (n.type === "MemberExpression" && !n.computed && n.object?.type === "Identifier" && n.object.name === "state")
+                stateReads.add(n.property.name);
+            if (n.type === "CallExpression" && n.callee?.name === "useState") nameStartsFrom = nameOf(n.arguments[0] ?? {});
+            if (n.type === "JSXOpeningElement" && n.name?.name === "input") {
+                const attribute = (name) => n.attributes.find((a) => a.name?.name === name);
+                if (attribute("name")?.value?.value === "quantity") {
+                    const value = attribute("defaultValue")?.value;
+                    const expression = value?.expression;
+                    countStartsFrom =
+                        expression?.type === "CallExpression" && expression.callee?.name === "String"
+                            ? nameOf(expression.arguments[0])
+                            : nameOf(expression ?? value ?? {});
+                }
+            }
+            if (n.type === "CallExpression" && ["toolItemLabelsPath", "toolItemPath", "toolPath"].includes(n.callee?.name))
+                opens.push(n.callee.name);
+        });
+        return {
+            stateReads: [...stateReads].sort().join(", "),
+            nameStartsFrom,
+            countStartsFrom,
+            opens: opens.join(", "),
+            submits: `${formAttributes} · ${prevented ? "prevents the default" : "lets the default run"} · ${dispatched ? "dispatches in a transition" : "dispatches nothing itself"}`,
+        };
+    };
+    const form = formFacts(parseFile(FORM).ast);
+    check("the form reads nothing off its state but the refusal", form.stateReads, "error");
+    check("  its name field starts from the page's prefill", form.nameStartsFrom, "prefill.toolName");
+    check("  and its count from the prefill's count", form.countStartsFrom, "prefill.quantity");
+    check("  and it links to no screen, the account's links gone with the account", form.opens, "");
+    // A REFUSAL KEEPS WHAT WAS TYPED (#449), because the batch that wrote nothing tells the
+    // reader to register again: measured in a browser, bound through `action` alone a
+    // refusal put the count and the job back, and through the handler it keeps all three.
+    check(
+        "  it submits through a handler that keeps the fields, with the action kept for a press before hydration",
+        form.submits,
+        "action, onSubmit · prevents the default · dispatches in a transition"
+    );
+    // ANTI-VACUITY: a planted form reading its old account, starting both fields from
+    // literals and linking to the label screen is seen doing all four.
+    const plantedForm = formFacts(
+        parseSource(
+            "function ToolRegistrationForm({ prefill }) {\n" +
+                "  const [state] = useActionState(registerToolItemsAction, null);\n" +
+                '  const [toolName] = useState("");\n' +
+                "  return (<form action={formAction}>{state?.error}{state?.toolItemIds && <Link href={toolItemLabelsPath(state.toolItemIds)} />}\n" +
+                '    <input name="quantity" defaultValue="1" /></form>);\n' +
+                "}\n",
+            "<planted-form>"
+        ).ast
+    );
+    check("  a form reading its old account is seen", plantedForm.stateReads, "error, toolItemIds");
+    check("  a name started from nothing is seen", plantedForm.nameStartsFrom, "Literal");
+    check("  a count started from a literal is seen", plantedForm.countStartsFrom, "Literal");
+    check("  a link to the label screen is seen", plantedForm.opens, "toolItemLabelsPath");
+    check("  and a form bound through `action` alone is seen", plantedForm.submits, "action · lets the default run · dispatches nothing itself");
+    const plantedHandler = formFacts(
+        parseSource(
+            "function ToolRegistrationForm({ prefill }) {\n" +
+                "  const [state, formAction] = useActionState(registerToolItemsAction, null);\n" +
+                "  const submit = (event) => { formAction(new FormData(event.currentTarget)); };\n" +
+                "  return <form onSubmit={submit}>{state?.error}</form>;\n" +
+                "}\n",
+            "<planted-handler>"
+        ).ast
+    );
+    check(
+        "  and so is a handler that drops the action and dispatches outside a transition",
+        plantedHandler.submits,
+        "onSubmit · lets the default run · dispatches nothing itself"
     );
 
     // ── anti-vacuity ───────────────────────────────────────────────────────

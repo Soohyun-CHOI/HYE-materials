@@ -71,8 +71,9 @@ export const title = "Every URL parameter is read by the screen it lands on, and
  * is why it is in the URL at all. A NAVIGATION re-opens the same form on the same
  * draft or token. A SLICE re-renders the same page of the same long list. A ONE-TIME
  * ACCOUNT repeats itself, which is the defect the
- * confirmation line was removed for — these four are the places where saying nothing
- * would be worse, and each one's entry says why it is not a confirmation.
+ * confirmation line was removed for — these are the places where saying nothing
+ * would be worse, and each one's entry says why it is not a confirmation. **This said
+ * "these four", and the group held entries on five routes before #449 added a sixth.**
  *
  * THE SIXTH GROUP IS A DESTINATION AND IT IS THE FIRST PARAMETER THAT IS NOT ABOUT
  * THE SCREEN CARRYING IT (#373). Every other entry here says something about the
@@ -156,6 +157,16 @@ const CARRIED = [
         param: "from",
         note: "#385 — the PR ID of the request that sent the reader here, which puts a line and a way back on the screen. Written by the request form's `Save draft and add an address`, which saves the draft BEFORE navigating so the id names a record that exists. JUDGED BY NOTHING, and that is the point rather than an omission: it is an identifier and not an address, so the way back is /prs/new?draft=<it>, which this app builds — and that screen resolves the id against the READER'S OWN drafts, so a forged one matches nothing and the form opens empty. There is no destination here for lib/loginDestination.js's predicate to judge",
     },
+    {
+        route: "/tools/new",
+        param: "toolName",
+        note: "#449 — the tool the form opens on, by its name, which is where the name field starts. Written by `registerPath`, from the offer a registration that fell short makes where it lands. A NAME and not a record id: the form takes a name, a tool's name is its identity, and a record id in an address is the defect docs/notes/naming.md records against /tools/[toolRecordId]. The reader may change it, and the screen says nothing about why it is there, so a reload opens the same form on the same suggestion — this group's answer — and a copied link is a request to register, never somebody else's account",
+    },
+    {
+        route: "/tools/new",
+        param: "quantity",
+        note: "#449 — how many the form opens asking for, beside the name above, under the form's own field name. The first entry in this group that names no record: it joins because its reload answer is the group's, the same form with the same suggestion and nothing written. Read through `readQuantity`, so a value the form's own submit would refuse opens at 1",
+    },
 
     // ── a destination: where the reader was going before being asked to sign in ──
     {
@@ -213,12 +224,12 @@ const CARRIED = [
     {
         route: "/tool-items/labels",
         param: "id",
-        note: "#353 — which tool items to print labels for; repeatable, a printed `Tool Item ID` each, read through `readToolItemIds` — canonical and each once — then capped at the largest registration. Written by the link on a registration's own answer, where the minted ids live and nowhere else, by a tool item's own page, and by a tool's page, which sends what its list has selected (#443)",
+        note: "#353 — which tool items to print labels for; repeatable, a printed `Tool Item ID` each, read through `readToolItemIds` — canonical and each once — then capped at the largest registration. Written by a tool's page, which sends what its list has selected (#443), and by a tool item's own page. A registration's own answer linked here until #449, which lands a registration on its tool's page with what it wrote selected instead",
     },
     {
         route: "/tools/[toolRecordId]",
         param: "id",
-        note: "#443 — which of this tool's tool items the list has selected for a label run; repeatable, the label screen's own name and values, so the print control hands them over unchanged. Written by `toolPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn; read off the address by the list with `useSearchParams().getAll`, and never by the server, which is what keeps the page at four operations",
+        note: "#443 — which of this tool's tool items the list has selected for a label run; repeatable, the label screen's own name and values, so the print control hands them over unchanged. Written by `toolPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn — and by a registration's redirect, which lands with every tool item it wrote selected (#449); read off the address by the list with `useSearchParams().getAll`, and never by the server, which is what keeps the page at four operations",
     },
 
     // ── a one-time account of something the screen does not otherwise say ───
@@ -228,6 +239,16 @@ const CARRIED = [
         note: "#231 — which delivery the app matched to this invoice at creation. NOT a confirmation: the standing answer below is the delivery section, and this says how the match was reached, which nothing else on the page holds",
     },
     { route: "/invoices/[invoiceId]", param: "tied", note: "#231 — `1` when a tie-break decided the pairing above; a bare flag, never a count" },
+    {
+        route: "/tools/[toolRecordId]",
+        param: "unwritten",
+        note: "#449 — how many a registration was asked for and did not write, which offers to register the rest or be done. NOT a confirmation: what was written is the landing's own selection (`id`), and this is the one fact about the registration that list cannot show — `paired`'s shape, on the record a registration lands on. Written by `toolPath`'s fourth argument, which only the registration passes; a reload repeats it until `Done registering` deletes it from the address, and every address the list itself writes carries the selection alone, so the reader's first press or step leaves it behind",
+    },
+    {
+        route: "/tools/[toolRecordId]",
+        param: "unlogged",
+        note: "#449 — which tool items a registration wrote without their `Registered` row; repeatable, printed ids read through `readToolItemIds`. Named with nothing offered, because nothing repairs them, and a reload repeating it is true for as long as those tool items exist. Written and left behind exactly as `unwritten` is",
+    },
     {
         route: "/invoices/new",
         param: "recorded",
