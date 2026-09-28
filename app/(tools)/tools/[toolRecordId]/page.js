@@ -5,7 +5,7 @@ import { getToolItemsByTool } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/toolRegistration";
-import { TOOLS_PATH } from "@/lib/toolRoutes";
+import { TOOLS_PATH, registerPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import RegistrationShortfall from "./RegistrationShortfall";
 import ToolItemList from "./ToolItemList";
@@ -66,6 +66,14 @@ export const metadata = { title: "Tool" };
  * here repeats it (#321); these are what it cannot show. The notice is drawn here and
  * the fork is `RegistrationShortfall.js`, whose header says why its dismissal edits
  * the address on the client.
+ *
+ * AND IT IS WHERE SOMEBODY REGISTERS MORE OF THIS TOOL (#451). One control opens the
+ * registration form with this tool's name filled in and no count — nothing here knows
+ * how many were bought — and costs nothing, since the name is on the row already read.
+ * It is drawn for every tool this page finds, the one with nothing under it included,
+ * and for every reader: the form is where a reader on no job is told why it cannot take
+ * them, as it is for `/tools`' own control. `registerPath` records what carrying the
+ * tool's name rather than its record id costs.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
  * answering it on this page would mean reading every tool item under the tool —
@@ -131,6 +139,11 @@ async function renderToolPage({ params, searchParams }) {
                 is the shape the tool item's page takes with its printed id. */}
             <h1>{tool.toolName}</h1>
             <Link href={TOOLS_PATH}>{COPY.backToTools}</Link>
+            {/* Registering more of this tool (#451), above the branch below so a tool
+                with nothing under it keeps it — there it is the way to write what a
+                registration did not. It is not one of the fork's answers, which stand
+                apart inside that branch. */}
+            <Link href={registerPath({ toolName: tool.toolName })}>{TOOL_REGISTRATION_COPY.registerMore}</Link>
 
             {page.total === 0 ? (
                 <p>{COPY.noToolItems}</p>

@@ -41,10 +41,10 @@ import { registerToolItemsAction } from "./actions";
  * its own list, and a form that is left has no second registration to be stale for.
  *
  * IT OPENS WHERE THE PAGE SAYS, AND THE PERSON HAS THE LAST WORD (#449). `prefill` is
- * where the two fields start — nothing typed and 1, or a tool's name and a count off
- * the address a registration that fell short offers — and nothing here holds either
- * against an edit: the name seeds the field's own state and the count is the input's
- * default.
+ * where the two fields start — nothing typed and 1, a tool's name and 1 off the address
+ * a tool's own page offers (#451), or a tool's name and a count off the one a
+ * registration that fell short offers — and nothing here holds either against an edit:
+ * the name seeds the field's own state and the count is the input's default.
  *
  * A REFUSAL LEAVES EVERY FIELD AS IT WAS, WHICH IS WHAT `submit` IS FOR (#449). React
  * 19 resets a form once an action bound through its `action` prop settles. Measured

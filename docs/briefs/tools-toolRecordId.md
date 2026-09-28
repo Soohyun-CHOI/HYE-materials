@@ -18,7 +18,8 @@ items.
 The tool item's own screen is the one a machine opens; this one is opened by a
 person who picked a name off a list, or who has just registered tool items of
 this tool and arrives with them selected. So the reader is at a desk as often
-as on a site — printing labels, or checking what the company has of something.
+as on a site — printing labels, checking what the company has of something, or
+registering more of it (#451).
 
 **The address is a record id and cannot be read.** `Tools` mints no id, the
 way `Vendors` and `Materials` mint none, because nothing prints a tool and
@@ -38,6 +39,26 @@ four document detail screens take with theirs.
 
 **action.** A way back to `/tools`, carrying the same words the tool item's
 screen carries for the same trip.
+
+**action.** A control that opens the registration form with this tool's name
+filled in, `Register more of this tool` (#451). Buying more of a tool the
+company already has is the same registration as buying the first, and the
+form puts them under this tool because the name finds it — so somebody who
+knows which tool they bought starts here rather than typing its name again.
+**It carries no count**: nothing on this screen knows how many were bought,
+so the form asks, starting where it always starts. **Nor does it carry the
+selection or the page**: the boxes are for printing, and it opens the same
+form from every page of the list. It is on this screen for every tool it
+finds, the one with nothing under it included, and for every reader —
+somebody assigned to no job reaches the form and meets the sentence that
+screen has for them, as they would from `/tools`.
+
+**It is not one of the answers a registration that fell short offers, and a
+design must not draw it as one.** Those two are a pair about the registration
+the reader has just made (below); this one begins another. When both are on
+the screen they open one form — `Register the other 3` with the count that
+was not written, this one with none — and `Done registering` takes the pair
+away and leaves this standing.
 
 **action.** A box on every entry and one for the page, and together they say
 **which tool items a label run is for** (#443). An entry's box selects that tool
@@ -168,6 +189,9 @@ reachable and is not an error state**, the same way the tool item screen's
 missing history is: nothing rolls back, and the row that stands is sound.
 The total, the page position, the boxes and the print control are absent
 with it; there is nothing to count, no page to be on and nothing to print.
+**The control that registers more of this tool stays, and this is where it
+matters most**: it is how the tool items a failed registration did not write
+get written, under the name that registration found or made.
 
 **When no tool carries the record id in the address:** the screen is the
 heading `Tool not found` and a way back to `/tools`. Nothing on this axis
@@ -224,6 +248,13 @@ into this screen's selection — it is where the whole run is listed at once,
 beside the start position and the sheet count, for a last decision about the
 paper. The two are different acts and take different words: `Select` here,
 `Include` there.
+
+**Every control that opens the registration form takes its words from that
+form's constant (#451)**, so none can drift from the form it opens — the
+arrangement the label screen has with the two screens that open it. They say
+different things because they open it differently: `/tools`' own carries the
+form's heading and opens it on no tool, this screen's opens it on this tool,
+and the fork's opens it on this tool and a count.
 
 **No word the selection adds names what is selected.** `tool item` is decided
 against appearing with its replacement not yet chosen, and a bare `item` names

@@ -221,8 +221,9 @@ gives the signer the same four-level picker the requester used.
   before the hand step. What it did reach: the picker opening on the stored path,
   a deeper level clearing when its parent changes, the refusal sentence on a
   half-picked row with nothing written, and the rollback above.
-- **EVERY `<select>` IN THIS APP RESETS AFTER A SERVER ACTION RETURNS, AND IT IS
-  NOT THIS ISSUE'S DOING.** Measured with a `data-probe` attribute on the render:
+- **A `<select>` RESETS AFTER A SERVER ACTION RETURNS ON EVERY FORM THAT LEAVES
+  REACT TO SUBMIT IT, AND IT IS NOT THIS ISSUE'S DOING.** Measured with a
+  `data-probe` attribute on the render:
   after a refusal React had rendered `value="01"` on the first level while the DOM
   read `""` and `selectedIndex` 0 — React 19 resets the form when an action
   settles, and a controlled `<select>` carries no `selected` ATTRIBUTE for
@@ -233,7 +234,11 @@ gives the signer the same four-level picker the requester used.
   intact — the hidden `itemsJson` still held the picked codes — so nothing is
   written wrongly; what the reader sees after a refusal is emptier than what the
   form holds. Left alone here deliberately: the fix belongs once, wherever the
-  form action is bound, rather than inside one picker.
+  form action is bound, rather than inside one picker. **This said every
+  `<select>` in this app, which #449 made false**: the tool registration form
+  submits through a handler of its own, inside a transition, and React follows
+  that with no reset — `app/(tools)/tools/new/ToolRegistrationForm.js`'s header
+  has what that rests on, and it is the shape a fix here would take.
 
 ### Quotations
 

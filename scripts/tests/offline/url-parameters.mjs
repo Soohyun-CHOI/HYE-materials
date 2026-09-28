@@ -160,12 +160,12 @@ const CARRIED = [
     {
         route: "/tools/new",
         param: "toolName",
-        note: "#449 — the tool the form opens on, by its name, which is where the name field starts. Written by `registerPath`, from the offer a registration that fell short makes where it lands. A NAME and not a record id: the form takes a name, a tool's name is its identity, and a record id in an address is the defect docs/notes/naming.md records against /tools/[toolRecordId]. The reader may change it, and the screen says nothing about why it is there, so a reload opens the same form on the same suggestion — this group's answer — and a copied link is a request to register, never somebody else's account",
+        note: "#449 — the tool the form opens on, by its name, which is where the name field starts. Written by `registerPath`, from a tool's own page (#451) and from the offer a registration that fell short makes where it lands. A NAME and not a record id: the form takes a name, a tool's name is its identity, and a record id in an address is the defect docs/notes/naming.md records against /tools/[toolRecordId]. The reader may change it, and the screen says nothing about why it is there, so a reload opens the same form on the same suggestion — this group's answer — and a copied link is a request to register, never somebody else's account",
     },
     {
         route: "/tools/new",
         param: "quantity",
-        note: "#449 — how many the form opens asking for, beside the name above, under the form's own field name. The first entry in this group that names no record: it joins because its reload answer is the group's, the same form with the same suggestion and nothing written. Read through `readQuantity`, so a value the form's own submit would refuse opens at 1",
+        note: "#449 — how many the form opens asking for, beside the name above, under the form's own field name. The first entry in this group that names no record: it joins because its reload answer is the group's, the same form with the same suggestion and nothing written. Read through `readQuantity`, so a value the form's own submit would refuse opens at 1 — and so does an address carrying none, which is what a tool's own page writes (#451)",
     },
 
     // ── a destination: where the reader was going before being asked to sign in ──

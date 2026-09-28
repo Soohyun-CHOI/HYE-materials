@@ -31,13 +31,15 @@ export const metadata = { title: "Register tool items" };
  * rather than what went wrong. The action re-derives the same answer, because a
  * Server Action is reachable without this page.
  *
- * THE ADDRESS MAY NAME A TOOL AND A COUNT (#449), and that is where the form's two
- * fields start — the offer a registration that fell short makes on its tool's page
- * opens this with that tool and the count it did not write. Read here and handed down,
- * which is #373's shape: nothing on this screen rewrites the address while it is open.
- * It costs no operation, and the screen says nothing about why the fields are filled,
- * so a reload opens the same suggestion and a copied link is a request rather than an
- * account of somebody else's registration (#321).
+ * THE ADDRESS MAY NAME A TOOL, AND A COUNT (#449, #451), and that is where the form's
+ * two fields start — a tool's own page opens this with that tool's name and no count,
+ * and the offer a registration that fell short makes there opens it with that tool and
+ * the count it did not write. Read here and handed down, which is #373's shape: nothing
+ * on this screen rewrites the address while it is open. It costs no operation, and the
+ * screen says nothing about why the fields are filled, so a reload opens the same
+ * suggestion and a copied link is a request rather than an account of somebody else's
+ * registration (#321). It is read after the refusal above, so a reader on no job meets
+ * that screen whatever the address names.
  *
  * NO WIDTH, NO COLOR, NO SPACING — see the form's header and #336's layout.
  */

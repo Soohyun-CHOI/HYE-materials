@@ -217,6 +217,14 @@ export function run({ check, assert, log }) {
     check("  singular at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 was not written. What was written stays.");
     check("  the answer that goes on", TOOL_REGISTRATION_COPY.registerOthers(4), "Register the other 4");
     check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Done registering");
+    // THE CONTROL A TOOL'S OWN PAGE OPENS THE FORM FROM (#451), which begins a
+    // registration where the fork's first answer finishes one — so it says `more of this
+    // tool` beside `the other N`, and never the heading `/tools` opens the form with.
+    check(
+        "the control a tool's page opens the form from",
+        TOOL_REGISTRATION_COPY.registerMore,
+        "Register more of this tool"
+    );
     check(
         "the notice",
         TOOL_REGISTRATION_COPY.unlogged,
@@ -235,10 +243,11 @@ export function run({ check, assert, log }) {
         "The one asked for was not written. Registering again writes it under the same tool."
     );
     // `tool item` is decided against appearing while its replacement is open (#378), so
-    // none of the words #449 wrote says it.
+    // none of the words #449 and #451 wrote says it.
     check(
-        "no word #449 wrote says `tool item`",
+        "no word #449 or #451 wrote says `tool item`",
         [
+            TOOL_REGISTRATION_COPY.registerMore,
             TOOL_REGISTRATION_COPY.shortfall(4),
             TOOL_REGISTRATION_COPY.registerOthers(4),
             TOOL_REGISTRATION_COPY.doneRegistering,
@@ -262,6 +271,13 @@ export function run({ check, assert, log }) {
         JSON.stringify({ toolName: "DEMO Angle Grinder", quantity: 4 })
     );
     check("  nothing named opens empty, at one", opens({}), JSON.stringify({ toolName: "", quantity: 1 }));
+    // A NAME ALONE IS WHAT A TOOL'S OWN PAGE SENDS (#451), and its count starts where the
+    // count of an address naming nothing does, and where a count the submit refuses does.
+    check(
+        "  a tool and no count opens on the tool, at one",
+        opens({ toolName: "DEMO Angle Grinder" }),
+        JSON.stringify({ toolName: "DEMO Angle Grinder", quantity: 1 })
+    );
     check("  the ceiling opens as itself", readRegistrationPrefill({ quantity: "100" }).quantity, 100);
     for (const [raw, why] of [
         ["101", "one over the ceiling"],
@@ -280,6 +296,13 @@ export function run({ check, assert, log }) {
         "  an address registerPath writes opens the form on the same two values",
         opens({ toolName: reopened.get("toolName"), quantity: reopened.get("quantity") }),
         JSON.stringify({ toolName: "A & B / C+D", quantity: 7 })
+    );
+    // AND THE NAME ALONE, read the way the form's page gets it: a plain object with no
+    // `quantity` key at all, which is what an address without one hands the page.
+    check(
+        "  and one naming the tool alone opens on that name, at one",
+        opens(Object.fromEntries(new URLSearchParams(registerPath({ toolName: "A & B / C+D" }).split("?")[1]))),
+        JSON.stringify({ toolName: "A & B / C+D", quantity: 1 })
     );
 
     // ── 7: what a landing's account reads as (#449) ─────────────────────────
