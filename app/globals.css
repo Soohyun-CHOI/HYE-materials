@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* The design's values under their names (#462): declared for every page here,
+   and read only on the tools axis until #258. */
+@import "./designValues.css";
 
 :root {
   /* This app has one appearance, and says so (#218). Left unset the used
