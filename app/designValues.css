@@ -1,28 +1,37 @@
 /*
- * The design's values, each under the name of its kind (#462).
+ * The design's values, each under a conventional name, in rem (#462).
  *
  * A SCREEN READS THE NAME AND NEVER WRITES THE VALUE. Tailwind turns every name
  * here into a utility as well as a CSS variable, so a screen asks for the kind of
- * thing it is drawing — the height of a control that commits, the ink of a caption
- * — and the figure lives in this file alone.
+ * thing it is drawing — the height of a large control, the color of subtle text —
+ * and the figure lives in this file alone. A value that belongs to no ladder the
+ * design draws is Tailwind's own and is read by Tailwind's name: the three
+ * weights, the two breakpoints, the blur and the full radius.
  *
  * DECLARED HERE AND APPLIED NOWHERE, WHICH IS WHAT THIS FILE IS FOR. It holds
- * `@theme` blocks, two `@custom-variant` lines and comments, and nothing that
- * selects an element: a rule here would style every page, the ones above the
- * tools axis included, and those each hold a width container of their own.
- * `app/globals.css` imports it, so every page's stylesheet carries the names, and
- * until #258 a name is read only by a file that nothing outside `app/(tools)/`
- * calls. `offline/design-values.mjs` holds all three.
+ * `@theme` blocks and comments, and nothing that selects an element: a rule here
+ * would style every page, the ones above the tools axis included, and those each
+ * hold a width container of their own. `app/globals.css` imports it, so every
+ * page's stylesheet carries the names, and until #258 a name is read only by a
+ * file that nothing outside `app/(tools)/` calls. `offline/design-values.mjs`
+ * holds all three.
  *
  * WHAT IS HERE IS WHAT THE TOOLS SCREENS DRAW. A row of the design's spec that
  * only the screens above this axis draw is declared with the first of them to
  * read it; `docs/notes/design-system.md` lists those rows and why each waits.
  *
- * A NAME IS THE KIND, NEVER A NUMBER. It is the design's own row name where that
- * names a kind, and a word from the row's description where the row is numbered
- * (the inks, the weights) or where its name is a word this repository already
- * spends (`Label`, `Inline`). A value the phone screen takes in place of a web one
- * is a name of its own under `phone-`, read under the `phone:` variant.
+ * A NAME IS THE WORD DESIGN SYSTEMS USE FOR THE KIND, NEVER A NUMBER, AND NEVER A
+ * KEY TAILWIND OR THE APP ALREADY DECLARES. The design's own word for each row
+ * stays in the comment beside it, and `docs/notes/design-system.md` holds the
+ * table from one to the other. A step suffix marks the steps of one kind, and a
+ * ladder the design draws is declared whole even where a step equals a default.
+ * A value the phone screen takes in place of a web one is a name of its own under
+ * `mobile-`, read under `max-sm:`.
+ *
+ * A LENGTH IS REM, THE DESIGN'S PX OVER 16, so a reader's text size moves every
+ * length together; each comment gives the design's figure. What stays px is what
+ * is drawn in px by convention: the ring, the shadows, and the scrollbar, whose
+ * lane is the browser's own.
  *
  * `@theme` AND NOT `@theme inline`, so every utility reads `var(--name)` and a
  * second set of values later is values behind these names rather than a rebuild.
@@ -35,237 +44,230 @@
  */
 
 @theme {
-    /* 0a · Control — a height is named for what is pressed. */
-    --height-commitment: 36px; /* an action that commits or abandons, and a field inside a dialog */
-    --height-control: 32px; /* a search field, a filter chip, a pager, a nav row, an icon button */
-    --height-nested: 30px; /* a control inside another, one step down */
-    --height-in-text: 26px; /* a control inside a running line — the design's Inline, which 0f calls In text */
-    --height-close: 28px; /* the smaller icon box: a dialog's close */
-    --size-icon: 16px; /* the mark a 32 box holds */
-    --size-icon-nested: 14px; /* the mark a 28 box holds, and a Nested 30 inside a field */
-    --spacing-side-summary: 8px; /* either side of an inline summary's words */
-    --spacing-side-control: 10px; /* either side of a chip's or a menu option's words */
-    --spacing-side-commitment: 16px; /* either side of a 36px control's words */
-    --min-width-menu: 140px; /* a menu is its longest item's width, from here */
-    --max-width-menu: 280px; /* to here */
-    --spacing-menu-offset: 6px; /* under the control that opens it */
-    --spacing-menu-inset: 5px; /* inside it */
+    /* 0a · Control — what a pointer touches. A control's height is a step of one ladder. */
+    --height-control-lg: 2.25rem; /* Commitment, 36: an action that commits or abandons, and a field inside a dialog */
+    --height-control: 2rem; /* Control, 32: a search field, a filter chip, a pager, a nav row, an icon button */
+    --height-control-sm: 1.875rem; /* Nested, 30: a control inside another, one step down */
+    --height-control-inline: 1.625rem; /* Inline, 26: a control inside a running sentence, which 0f calls In text */
+    --height-dialog-close: 1.75rem; /* Icon box, 28: the smaller square, which holds a dialog's close (0l Head) */
+    --size-icon: 1rem; /* Icon box, 16: the mark a 32 square holds */
+    --size-icon-sm: 0.875rem; /* Icon box, 14: the mark a 28 square holds, and a Nested 30 inside a field */
+    --spacing-control-inline-inset-x: 0.5rem; /* Side room, 8: either side of an inline summary's words, and of a 26 pill (0f) */
+    --spacing-control-inset-x: 0.625rem; /* Side room, 10: either side of a chip's or a menu option's words */
+    --spacing-control-lg-inset-x: 1rem; /* Side room, 16: either side of a 36px control's words */
+    --min-width-menu: 8.75rem; /* Menu, 140: its longest item's width, from here */
+    --max-width-menu: 17.5rem; /* Menu, 280: to here */
+    --spacing-menu-offset: 0.375rem; /* Menu, 6: under the control that opens it */
+    --spacing-menu-inset: 0.3125rem; /* Menu, 5: inside it */
 
     /* 0b · Layout — the page's own measure. */
-    --container-content: 1080px; /* the centered measure, for short lines */
-    --spacing-margin: 32px; /* the left and right edge, measured to ink */
-    --spacing-within: 8px; /* the gap within a cluster, and between an icon and its word */
-    --spacing-between: 14px; /* the gap between clusters */
-    --spacing-nav-icon: 11px; /* between an icon and its word in a nav row */
-    --spacing-band-type: 20px; /* above a band of type */
-    --height-row: 40px; /* a table row */
-    --spacing-row-reach: 12px; /* how far a row's hover face, and a sticky ground over rows, reach past the text */
-    --height-column-head: 36px; /* every table's head row */
-    --spacing-selection-bar: 12px; /* the selection bar above the pager */
-    --spacing-selection-bar-inset: 8px; /* inside it */
-    --spacing-selection-bar-rise: 8px; /* how far it rises as it appears */
-    --transition-duration-selection-bar: 160ms; /* how long it takes to fade in */
+    --container-content: 67.5rem; /* Content, 1080: the centered measure, for short text */
+    --spacing-page-gutter: 2rem; /* Margin, 32: the left and right edge, measured to ink */
+    --spacing-gap: 0.5rem; /* Gap, 8: within a cluster, and between an icon and its word */
+    --spacing-gap-lg: 0.875rem; /* Gap, 14: between clusters */
+    --spacing-nav-gap: 0.6875rem; /* Gap, 11: between an icon and its word in a nav row */
+    --spacing-list-header-inset-top: 1.25rem; /* Band padding, 20: above a band of type, a list's head */
+    --height-table-row: 2.5rem; /* Row, 40: a table row */
+    --spacing-table-bleed: 0.75rem; /* Row, 12: how far a row's hover face, and a sticky ground over rows, reach past the text */
+    --height-table-header: 2.25rem; /* Column head, 36: every table's head row */
+    --spacing-selection-bar-offset: 0.75rem; /* Selection bar, 12: above the pager */
+    --spacing-selection-bar-inset: 0.5rem; /* Selection bar, 8: inside it */
+    --spacing-selection-bar-slide: 0.5rem; /* Selection bar, 8: how far it rises as it appears */
+    --transition-duration-selection-bar: 160ms; /* Selection bar: how long it takes to fade in */
 
-    /* 0c · Blue — a face pair, one edge, an accent. Blue marks what is chosen: what is
-       selected, current, or the single action a screen exists for (0f). */
-    --color-blue-face: #F0F9FF; /* the current nav item, a selected table row, the account avatar */
-    --color-blue-face-hover: #E6F5FF; /* pointing at something already on the face */
-    --color-blue-accent: oklch(0.487 0.216 257); /* the primary action, a current icon, a focused caret */
-    --color-blue-accent-hover: oklch(0.437 0.211 257); /* a filled action under the pointer */
-    --color-blue-accent-disabled: color-mix(in oklab, var(--color-blue-accent) 40%, transparent); /* a filled action that cannot act yet (0f) */
+    /* 0c · Blue — a face pair and an accent. Blue marks what is chosen: what is
+       selected, current, or the single action a screen exists for (0f Chosen). */
+    --color-selected: #F0F9FF; /* Face: the current nav item, a set filter chip, the account avatar, a selected table row */
+    --color-selected-hover: #E6F5FF; /* Face hover: pointing at something already on the face */
+    --color-primary: oklch(0.487 0.216 257); /* Accent: the primary action, a current icon, a focused caret */
+    --color-primary-hover: oklch(0.437 0.211 257); /* Accent hover: a filled action under the pointer */
+    --color-primary-disabled: color-mix(in oklab, var(--color-primary) 40%, transparent); /* 0f Disabled: a filled action that cannot act yet */
 
     /* 0d · Red — the one red that carries a message, and a destructive action. */
-    --color-red-face: #FFF4F5; /* under the pointer on a destructive action */
-    --color-red-accent: #DC0015; /* any mark, any word, any bar that carries a message */
-    --color-red-accent-hover: oklch(0.512 0.205 27); /* a filled red action under the pointer */
+    --color-danger-subtle: #FFF4F5; /* Face: under the pointer on a destructive action */
+    --color-danger: #DC0015; /* Accent: any mark, any word, any bar that carries a message */
+    --color-danger-hover: oklch(0.512 0.205 27); /* Accent hover: a filled red action under the pointer */
 
-    /* 0e · Ink — one hue, and an ink named for what it says. */
-    --color-ink: oklch(0.255 0.013 265); /* every figure, every heading, an id at rest, a row of text */
-    --color-ink-context: oklch(0.405 0.013 265); /* the sentence under a heading, a note beside a value, the breadcrumb above a title */
-    --color-ink-caption: oklch(0.505 0.012 265); /* a column head, a block's name, a field label, a unit, a placeholder, a status mark */
-    --color-ink-inert: oklch(0.760 0.010 265); /* the dot between two clauses, the / between breadcrumb levels, a disabled pager arrow, a disabled control's glyph */
+    /* 0e · Ink — one hue, and a foreground for what the text says. */
+    --color-foreground-default: oklch(0.255 0.013 265); /* Ink: every figure, every heading, an id at rest, a row of text */
+    --color-foreground-muted: oklch(0.405 0.013 265); /* Ink 2: the sentence under a heading, a note beside a value, the breadcrumb above a title */
+    --color-foreground-subtle: oklch(0.505 0.012 265); /* Ink 3: a column head, a block's name, a field label, a unit, a placeholder, a status mark */
+    --color-foreground-faint: oklch(0.760 0.010 265); /* Ink 4: the dot between two clauses, the / between breadcrumb levels, a disabled pager arrow, a disabled control's glyph */
 
-    --color-inner-rule: oklch(0.946 0.005 265); /* between two line items inside a card */
-    --color-rule: oklch(0.928 0.006 265); /* between two table rows, and around a region */
-    --color-band: oklch(0.896 0.007 265); /* where the main column changes register */
-    --color-edge: oklch(0.888 0.008 265); /* the border of a card, a button, a chip at rest */
-    --color-edge-focus: oklch(0.640 0.010 265); /* a field once it holds the caret */
+    --color-divider-subtle: oklch(0.946 0.005 265); /* Inner rule: between two item rows inside a card */
+    --color-divider: oklch(0.928 0.006 265); /* Rule: between two table rows, and around a region */
+    --color-divider-strong: oklch(0.896 0.007 265); /* Band: where the main column changes register */
+    --color-border: oklch(0.888 0.008 265); /* Edge: the border of a card, a button, a chip at rest */
+    --color-border-focus: oklch(0.640 0.010 265); /* Edge focus: a field once it holds the caret */
 
-    /* The washes are the ink in amounts, so each is written as one. */
-    --color-wash: color-mix(in oklab, var(--color-ink) 3%, transparent); /* a bordered control, or a table row, under the pointer */
-    --color-field: color-mix(in oklab, var(--color-ink) 4.5%, transparent); /* a resting ground that answers no pointer */
-    --color-hover: color-mix(in oklab, var(--color-ink) 5.5%, transparent); /* anything without an outline under the pointer */
-    --color-thumb: color-mix(in oklab, var(--color-ink) 20%, transparent); /* a scrollbar's thumb (0i) */
-    --color-thumb-hover: color-mix(in oklab, var(--color-ink) 34%, transparent); /* a scrollbar under the pointer */
+    /* The washes are the foreground in amounts, so each is written as one. */
+    --color-hover-subtle: color-mix(in oklab, var(--color-foreground-default) 3%, transparent); /* Wash: a bordered control, or a table row, under the pointer */
+    --color-background-muted: color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent); /* Field: a resting ground that answers no pointer */
+    --color-hover: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Hover: anything without an outline under the pointer */
+    --color-scrollbar-thumb: color-mix(in oklab, var(--color-foreground-default) 20%, transparent); /* 0i Bar: a scrollbar's thumb */
+    --color-scrollbar-thumb-hover: color-mix(in oklab, var(--color-foreground-default) 34%, transparent); /* Thumb hover: a scrollbar under the pointer */
 
     /* 0f · States — a number field with steps. */
-    --width-number-field: 120px;
-    --spacing-step-inset: 3px; /* its − and + from its ends */
+    --width-number-input: 7.5rem; /* Field, 120: a number field */
+    --spacing-stepper-inset: 0.1875rem; /* Field, 3: its − and + from its ends */
 
     /* 0g · Status — the mark carries the state. */
-    --size-status-mark: 9px;
-    --stroke-width-status-ring: 1.5px; /* the ring an open state is drawn with */
+    --size-status-indicator: 0.5625rem; /* Status, 9: the mark */
+    --stroke-width-status-ring: 1.5px; /* Status, 1.5: the ring an open state is drawn with */
 
-    /* 0h · Type — a size carries its own line height, and the tracking and weight
-       its row names; a weight is named for what it sets. */
-    --text-page-title: 24px;
-    --text-page-title--line-height: 32px;
-    --text-page-title--letter-spacing: -0.012em;
-    --text-page-title--font-weight: 600;
-    --text-section: 16px; /* what opens a screen or a dialog */
-    --text-section--line-height: 24px;
-    --text-reading: 14px; /* a line item, a table row, any control */
-    --text-reading--line-height: 20px;
-    --text-beside: 13px; /* a note under a value, a chip's label, a field's label in a dialog */
-    --text-beside--line-height: 20px;
-    --text-head: 12px; /* a column head and a block's name — the design's Label */
-    --text-head--line-height: 16px;
-    --text-head--font-weight: 600;
-    --text-wordmark: 17px; /* the one string in the rail that may take this size */
-    --text-wordmark--line-height: 24px;
-    --text-wordmark--font-weight: 500;
-    --font-weight-page: 400; /* the page, declared only to restore it inside a heavier line */
-    --font-weight-value: 500; /* what you choose from, what money is, and a history's event */
-    --font-weight-title: 600; /* what titles or acts: a heading, a tab, a button, a block's name */
-    --tracking-id: -0.02em; /* a Fragment Mono id under 21px */
+    /* 0h · Type — a size is a step of one ladder, and it carries its own line height
+       on the 0.25rem grid and the tracking and weight its row names. The three
+       weights themselves are Tailwind's. */
+    --text-heading-lg: 1.5rem; /* Page title, 24 */
+    --text-heading-lg--line-height: 2rem;
+    --text-heading-lg--letter-spacing: -0.012em;
+    --text-heading-lg--font-weight: 600;
+    --text-heading: 1rem; /* Section, 16: what opens a screen or a dialog */
+    --text-heading--line-height: 1.5rem;
+    --text-body: 0.875rem; /* Reading, 14: an item row, a table row, any control */
+    --text-body--line-height: 1.25rem;
+    --text-body-sm: 0.8125rem; /* Beside, 13: a note under a value, a chip's label, a field's label in a dialog */
+    --text-body-sm--line-height: 1.25rem;
+    --text-heading-sm: 0.75rem; /* Label, 12: a column head and a block's name */
+    --text-heading-sm--line-height: 1rem;
+    --text-heading-sm--font-weight: 600;
+    --text-brand: 1.0625rem; /* Wordmark, 17: the one string in the rail that may take this size */
+    --text-brand--line-height: 1.5rem;
+    --text-brand--font-weight: 500;
+    --tracking-id: -0.02em; /* Tracking: a Fragment Mono id under 21px */
 
-    /* 0i · Scroll — the bar, and the room it is given. */
-    --spacing-scrollbar: 8px; /* its lane, reserved whether or not it shows */
-    --spacing-scrollbar-clearance: 2px; /* around the thumb inside the lane */
-    --spacing-end: 40px; /* what a column ending in open space closes on */
+    /* 0i · Scroll — the bar, and the room it is given. The lane is the browser's own
+       scrollbar, whose width follows no text size, so it and its clearance stay px. */
+    --spacing-scrollbar: 8px; /* Bar, 8: its lane, reserved whether or not it shows */
+    --spacing-scrollbar-inset: 2px; /* Bar, 2: around the thumb inside the lane */
+    --spacing-scroll-inset-bottom: 2.5rem; /* End, 40: what a column ending in open space closes on */
 
-    /* 0j · Radius — a corner is named for what the thing is. */
-    --radius-pill: 999px; /* anything whose height is its whole shape */
-    --radius-mark: 2px; /* a thing drawn rather than read */
-    --radius-control: 8px; /* every button, field, menu item and hover pill */
-    --radius-group: 10px; /* a small box that holds controls or a summary */
-    --radius-surface: 12px; /* a large face that holds a layout */
+    /* 0j · Radius — a corner is a step of one ladder, named for what the thing is.
+       Pill is Tailwind's full radius. */
+    --radius-preview: 0.125rem; /* Mark, 2: a thing drawn rather than read */
+    --radius-control: 0.5rem; /* Control, 8: every button, field, menu item and hover pill */
+    --radius-card: 0.625rem; /* Group, 10: a small box that holds controls or a summary */
+    --radius-dialog: 0.75rem; /* Surface, 12: a large face that holds a layout */
 
     /* 0k · Elevation — every shadow and every wash behind a lifted surface is the
-       shadow ink in an amount, so each is written as one. */
-    --color-shadow-ink: oklch(0.22 0.025 265);
-    --color-sticky: oklch(1 0 0 / 0.82); /* a surface that holds its place, while the page runs under it */
-    --backdrop-blur-sticky: 8px;
-    --color-backdrop-modal: color-mix(in oklab, var(--color-shadow-ink) 40%, transparent); /* what lies behind a Modal */
-    --color-backdrop-panel: color-mix(in oklab, var(--color-shadow-ink) 10%, transparent); /* what lies behind a Panel */
-    --shadow-raised: 0 8px 24px color-mix(in oklab, var(--color-shadow-ink) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-shadow-ink) 6%, transparent); /* a surface that opens from a control */
-    --shadow-panel: 0 12px 48px color-mix(in oklab, var(--color-shadow-ink) 16%, transparent); /* a surface that slides in from an edge */
-    --shadow-modal: 0 24px 60px color-mix(in oklab, var(--color-shadow-ink) 24%, transparent); /* a surface that has to be answered or dismissed */
-    --shadow-preview: 0 0 0 1px color-mix(in oklab, var(--color-shadow-ink) 6%, transparent), 0 2px 8px color-mix(in oklab, var(--color-shadow-ink) 8%, transparent); /* a print shown on the page */
-    --spacing-tooltip-top: 3px; /* a tooltip's inside, above its line */
-    --spacing-tooltip-x: 9px; /* either side */
-    --spacing-tooltip-bottom: 4px; /* below */
-    --spacing-tooltip-offset: 6px; /* above its target */
-    --spacing-tooltip-rail: 10px; /* beside an icon in the collapsed rail */
-    --transition-delay-tooltip: 360ms;
+       shadow ink in an amount, so each is written as one, and a shadow stays px.
+       Sticky's blur is Tailwind's. */
+    --color-elevation: oklch(0.22 0.025 265); /* Shadow ink */
+    --color-background-translucent: oklch(1 0 0 / 0.82); /* Sticky: a surface that holds its place, while the page runs under it */
+    --color-dialog-overlay: color-mix(in oklab, var(--color-elevation) 40%, transparent); /* Wash: what lies behind a Modal */
+    --color-drawer-overlay: color-mix(in oklab, var(--color-elevation) 10%, transparent); /* Wash: what lies behind a Panel */
+    --shadow-popover: 0 8px 24px color-mix(in oklab, var(--color-elevation) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 6%, transparent); /* Raised: a surface that opens from a control */
+    --shadow-drawer: 0 12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent); /* Panel: a surface that slides in from an edge */
+    --shadow-dialog: 0 24px 60px color-mix(in oklab, var(--color-elevation) 24%, transparent); /* Modal: a surface that has to be answered or dismissed */
+    --shadow-preview: 0 0 0 1px color-mix(in oklab, var(--color-elevation) 6%, transparent), 0 2px 8px color-mix(in oklab, var(--color-elevation) 8%, transparent); /* Preview: a print shown on the page */
+    --spacing-tooltip-inset-top: 0.1875rem; /* Tooltip, 3: its inside, above its words */
+    --spacing-tooltip-inset-x: 0.5625rem; /* Tooltip, 9: either side */
+    --spacing-tooltip-inset-bottom: 0.25rem; /* Tooltip, 4: below */
+    --spacing-tooltip-offset: 0.375rem; /* Tooltip, 6: above its target */
+    --spacing-tooltip-rail-offset: 0.625rem; /* Tooltip, 10: beside an icon in the collapsed rail */
+    --transition-delay-tooltip: 360ms; /* Tooltip: how long before it appears */
 
     /* 0l · Modal — the frame every dialog shares. */
-    --container-dialog: 420px; /* a dialog of fields in one column */
-    --spacing-dialog-clear: 28px; /* held clear on every side of the screen */
-    --spacing-dialog: 24px; /* the room all round, and from the last field to the actions */
-    --spacing-dialog-head: 20px; /* from the title's line to the body */
-    --spacing-dialog-pair: 12px; /* between two short fields sharing a row */
-    --spacing-close-pull: 4px; /* how far the close pulls out so its ink meets the edge */
+    --container-dialog: 26.25rem; /* Width, 420: a dialog of fields in one column */
+    --spacing-dialog-gutter: 1.75rem; /* Position, 28: held clear on every side of the screen */
+    --spacing-dialog-inset: 1.5rem; /* Compact, 24: the room all round, and from the last field to the actions */
+    --spacing-dialog-header-stack: 1.25rem; /* Compact, 20: from the title's line to the body */
+    --spacing-dialog-inline: 0.75rem; /* Compact, 12: between two short fields sharing a row */
+    --spacing-dialog-close-offset: 0.25rem; /* Head, 4: how far the close pulls out so its ink meets the edge */
 
-    /* 0m · Navigation — the frame every screen sits in. */
-    --width-rail: 56px; /* collapsed */
-    --width-rail-open: 248px; /* expanded */
-    --spacing-rail-inset: 12px;
-    --transition-duration-rail: 200ms; /* how long it takes to widen */
-    --ease-rail: cubic-bezier(0.2, 0, 0, 1);
-    --height-account: 48px; /* the account row */
-    --size-avatar: 24px;
-    --height-breadcrumb: 48px; /* the way back and a record's pager */
+    /* 0m · Navigation — the frame every screen sits in. From Tailwind's xl, the
+       design's 1280 window, the expanded rail pushes the page. */
+    --width-rail: 3.5rem; /* Rail, 56: collapsed */
+    --width-rail-expanded: 15.5rem; /* Rail, 248: expanded */
+    --spacing-rail-inset: 0.75rem; /* Rail, 12: inside */
+    --transition-duration-rail: 200ms; /* Rail: how long it takes to widen */
+    --ease-rail: cubic-bezier(0.2, 0, 0, 1); /* Rail: how it widens */
+    --height-account: 3rem; /* Account, 48: the account row */
+    --size-avatar: 1.5rem; /* Account, 24: the avatar */
+    --height-breadcrumb: 3rem; /* Breadcrumb, 48: the way back and a record's pager */
 
     /* 0n · Record page — the header a detail page opens with. */
-    --spacing-record-header: 24px; /* above and below its rule */
-    --spacing-under-breadcrumb: 14px; /* from the breadcrumb bar to the header */
-    --spacing-header-title: 10px; /* from the title to the line under it */
-    --spacing-header-status: 12px; /* from that line to the status */
-    --spacing-block-name: 12px; /* from a block's name to its first line — the phone's too */
+    --spacing-page-header-stack: 1.5rem; /* Record header, 24: above and below its rule */
+    --spacing-breadcrumb-stack: 0.875rem; /* Record header, 14: from the breadcrumb bar to the header */
+    --spacing-title-stack: 0.625rem; /* Header stack, 10: from the title to the line of text under it */
+    --spacing-subtitle-stack: 0.75rem; /* Header stack, 12: from the line of text under the title to the status */
+    --spacing-heading-sm-stack: 0.75rem; /* Rail blocks, 12: from a block's name to what it heads, the phone's Block name too */
 
-    /* Tools 0a · App — what the phone screen takes in place of the web values. */
-    --spacing-phone-margin: 16px; /* either side of the screen */
-    --height-phone-top-bar: 56px;
-    --spacing-phone-top-bar-end: 4px; /* the top bar's right side */
-    --size-phone-bar-icon: 24px; /* the mark on the top bar's round button */
-    --spacing-phone-foot-bar-top: 16px;
-    --spacing-phone-foot-bar-bottom: 20px;
-    --spacing-phone-foot-bar-gap: 12px; /* between its rows */
-    --shadow-phone-foot-bar: 0 -1px 12px color-mix(in oklab, var(--color-shadow-ink) 6%, transparent); /* cast upward while content runs under it */
-    --spacing-phone-target: 48px; /* the least a touch target takes, square */
+    /* Tools 0a · App — what the phone screen takes in place of the web values, read
+       under max-sm, whose 40rem is this repository's edge rather than the design's. */
+    --spacing-mobile-gutter: 1rem; /* Screen, 16: either side of the screen */
+    --height-mobile-top-bar: 3.5rem; /* Top bar, 56 */
+    --spacing-mobile-top-bar-inset-right: 0.25rem; /* Top bar, 4: its right side */
+    --size-mobile-top-bar-icon: 1.5rem; /* Top bar, 24: the mark on its round button */
+    --spacing-mobile-bottom-bar-inset-top: 1rem; /* Foot bar, 16: above */
+    --spacing-mobile-bottom-bar-inset-bottom: 1.25rem; /* Foot bar, 20: below */
+    --spacing-mobile-bottom-bar-stack: 0.75rem; /* Foot bar, 12: between its rows */
+    --shadow-mobile-bottom-bar: 0 -1px 12px color-mix(in oklab, var(--color-elevation) 6%, transparent); /* Foot bar: cast upward while content runs under it */
+    --spacing-mobile-touch-target: 3rem; /* Target, 48: the least a touch target takes, square */
 
-    --text-phone-title: 22px; /* the record's name */
-    --text-phone-title--line-height: 28px;
-    --text-phone-title--letter-spacing: -0.012em;
-    --text-phone-title--font-weight: 600;
-    --text-phone-bar: 17px; /* the top bar's id, a sheet or dialog title, a button */
-    --text-phone-bar--line-height: 24px;
-    --text-phone-event: 16px; /* a log line's event, a dialog's sentence, a field's value */
-    --text-phone-event--line-height: 24px;
-    --text-phone-beside: 15px; /* a pill or chip label, a note under a value */
-    --text-phone-beside--line-height: 20px;
-    --text-phone-log-detail: 14px; /* the lines under a log event */
-    --text-phone-log-detail--line-height: 20px;
-    --text-phone-block-name: 13px;
-    --text-phone-block-name--line-height: 20px;
-    --text-phone-block-name--font-weight: 600;
+    --text-mobile-heading-lg: 1.375rem; /* Title, 22: the record's name */
+    --text-mobile-heading-lg--line-height: 1.75rem;
+    --text-mobile-heading-lg--letter-spacing: -0.012em;
+    --text-mobile-heading-lg--font-weight: 600;
+    --text-mobile-heading: 1.0625rem; /* Bar, 17: the top bar's id, a sheet or dialog title, a button */
+    --text-mobile-heading--line-height: 1.5rem;
+    --text-mobile-body: 1rem; /* Event, 16: a log entry's event, a dialog's sentence, a field's value */
+    --text-mobile-body--line-height: 1.5rem;
+    --text-mobile-body-sm: 0.9375rem; /* Beside, 15: a pill or chip label, a note under a value */
+    --text-mobile-body-sm--line-height: 1.25rem;
+    --text-mobile-body-xs: 0.875rem; /* Log detail, 14: what a log entry says under its event */
+    --text-mobile-body-xs--line-height: 1.25rem;
+    --text-mobile-heading-sm: 0.8125rem; /* Block name, 13 */
+    --text-mobile-heading-sm--line-height: 1.25rem;
+    --text-mobile-heading-sm--font-weight: 600;
 
-    --height-phone-button: 50px; /* full width, in the foot bar */
-    --height-phone-dialog-button: 48px; /* full width, in a dialog */
-    --height-phone-field: 50px;
-    --spacing-phone-field-x: 16px; /* inside it */
-    --size-phone-field-icon: 18px;
-    --spacing-phone-field-icon: 10px; /* from its icon to its value */
-    --height-phone-pill: 36px; /* a chip */
-    --spacing-phone-pill-x: 14px;
-    --spacing-phone-pill-chevron: 12px; /* on its chevron side */
-    --size-phone-status-mark: 10px;
-    --radius-phone-control: 12px; /* a button, a field, a menu and a dialog */
-    --radius-phone-sheet: 28px; /* a sheet's top corners */
-    --opacity-phone-pressed: 50%; /* a text button while pressed */
+    --height-mobile-button: 3.125rem; /* Button, 50: full width, in the foot bar */
+    --height-mobile-dialog-button: 3rem; /* Button, 48: full width, in a dialog */
+    --height-mobile-input: 3.125rem; /* Field, 50 */
+    --spacing-mobile-input-inset-x: 1rem; /* Field, 16: inside it */
+    --size-mobile-input-icon: 1.125rem; /* Field, 18: its icon */
+    --spacing-mobile-input-gap: 0.625rem; /* Field, 10: from its icon to its value */
+    --height-mobile-chip: 2.25rem; /* Pill, 36: a chip */
+    --spacing-mobile-chip-inset-x: 0.875rem; /* Pill, 14: either side */
+    --spacing-mobile-chip-inset-right: 0.75rem; /* Pill, 12: on its chevron side */
+    --size-mobile-status-indicator: 0.625rem; /* Status, 10: the mark */
+    --radius-mobile-control: 0.75rem; /* Radius, 12: a button, a field, a menu and a dialog */
+    --radius-mobile-drawer: 1.75rem; /* Radius, 28: a sheet's top corners */
+    --opacity-mobile-pressed: 50%; /* Field: a text button while pressed */
 
-    --spacing-phone-title-top: 16px; /* under the top bar */
-    --spacing-phone-title-bottom: 22px;
-    --spacing-phone-section: 32px; /* between two sections */
-    --size-phone-log-dot: 6px;
-    --spacing-phone-log-dot: 12px; /* beside the dot */
-    --spacing-phone-log-entry: 20px; /* between entries */
-    --size-phone-log-icon: 14px; /* before the person and the job */
+    --spacing-mobile-top-bar-stack: 1rem; /* Title block, 16: under the top bar */
+    --spacing-mobile-title-stack: 1.375rem; /* Title block, 22: below it */
+    --spacing-mobile-stack: 2rem; /* Section, 32: between two sections */
+    --size-mobile-log-dot: 0.375rem; /* Log, 6: the dot */
+    --spacing-mobile-log-gap: 0.75rem; /* Log, 12: beside the dot */
+    --spacing-mobile-log-stack: 1.25rem; /* Log, 20: between entries */
+    --size-mobile-log-icon: 0.875rem; /* Log, 14: before the person and the job */
 
-    --width-phone-sheet-handle: 36px;
-    --height-phone-sheet-handle: 4px;
-    --spacing-phone-sheet-handle: 12px; /* from the sheet's top */
-    --spacing-phone-sheet-title: 14px; /* above and below the title */
-    --height-phone-sheet-row: 56px; /* at least */
-    --spacing-phone-sheet-row-y: 15px;
-    --spacing-phone-sheet-row-x: 16px; /* and the inner rule's inset between rows */
-    --spacing-phone-sheet-foot: 20px; /* plus the device's safe area */
-    --shadow-phone-sheet: 0 -12px 48px color-mix(in oklab, var(--color-shadow-ink) 16%, transparent); /* cast upward */
-    --color-backdrop-phone-sheet: color-mix(in oklab, var(--color-shadow-ink) 24%, transparent);
-    --spacing-phone-confirm-top: 24px; /* a confirming sheet's title from its top */
-    --spacing-phone-confirm-id: 4px; /* the id under the title */
-    --spacing-phone-confirm-sentence: 14px; /* the sentence under the id */
-    --spacing-phone-confirm-actions: 20px; /* the actions under the sentence */
-    --spacing-phone-confirm-stack: 12px; /* between the stacked actions */
-    --width-phone-menu: 232px;
-    --spacing-phone-menu-end: 12px; /* from the screen's right edge */
-    --spacing-phone-menu-offset: 4px; /* under the top bar */
-    --spacing-phone-menu-row-x: 16px; /* inside a row */
+    --width-mobile-drawer-handle: 2.25rem; /* Sheet, 36: the handle */
+    --height-mobile-drawer-handle: 0.25rem; /* Sheet, 4: the handle */
+    --spacing-mobile-drawer-inset-top: 0.75rem; /* Sheet, 12: the handle from the sheet's top */
+    --spacing-mobile-drawer-title-inset-y: 0.875rem; /* Sheet, 14: above and below the title */
+    --height-mobile-drawer-row: 3.5rem; /* Sheet, 56: a row, at least */
+    --spacing-mobile-drawer-row-inset-y: 0.9375rem; /* Sheet, 15: inside a row */
+    --spacing-mobile-drawer-row-inset-x: 1rem; /* Sheet, 16: inside a row, and the Inner rule's inset between rows */
+    --spacing-mobile-drawer-inset-bottom: 1.25rem; /* Sheet, 20: at the foot, plus the device's safe area */
+    --shadow-mobile-drawer: 0 -12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent); /* Sheet: cast upward */
+    --color-mobile-drawer-overlay: color-mix(in oklab, var(--color-elevation) 24%, transparent); /* Sheet: what lies behind it */
+    --spacing-mobile-confirm-inset-top: 1.5rem; /* Sheet that confirms, 24: its title from its top */
+    --spacing-mobile-confirm-title-stack: 0.25rem; /* Sheet that confirms, 4: the id under the title */
+    --spacing-mobile-confirm-id-stack: 0.875rem; /* Sheet that confirms, 14: the sentence under the id */
+    --spacing-mobile-confirm-description-stack: 1.25rem; /* Sheet that confirms, 20: the actions under the sentence */
+    --spacing-mobile-confirm-action-stack: 0.75rem; /* Sheet that confirms, 12: between the stacked actions */
+    --width-mobile-menu: 14.5rem; /* Menu, 232 */
+    --spacing-mobile-menu-gutter: 0.75rem; /* Menu, 12: from the screen's right edge */
+    --spacing-mobile-menu-offset: 0.25rem; /* Menu, 4: under the top bar */
+    --spacing-mobile-menu-row-inset-x: 1rem; /* Menu, 16: inside a row */
 }
 
 @theme inline {
     /* The faces, each resolving to the variable its next/font loader sets. The
        issue that first reads a face loads it (docs/notes/design-system.md). */
-    --font-text: var(--font-instrument-sans), system-ui, sans-serif; /* everything but ids, file names and the wordmark */
-    --font-id: var(--font-fragment-mono), ui-monospace, monospace; /* ids and file names */
-    --font-wordmark: var(--font-fraunces), Georgia, serif; /* the wordmark */
+    --font-ui: var(--font-instrument-sans), system-ui, sans-serif; /* Instrument Sans: everything but ids, file names and the wordmark */
+    --font-id: var(--font-fragment-mono), ui-monospace, monospace; /* Fragment Mono: ids and file names */
+    --font-brand: var(--font-fraunces), Georgia, serif; /* Fraunces: the wordmark */
 }
-
-/* The phone screen is below this edge. The design draws the two frames at 375 and
-   1600 and not the edge between them; docs/notes/design-system.md has the reason
-   for this one. */
-@custom-variant phone (@media (width < 40rem));
-
-/* From here the expanded rail pushes the page; below it the rail covers the page. */
-@custom-variant rail-push (@media (width >= 80rem));

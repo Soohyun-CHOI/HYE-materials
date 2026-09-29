@@ -2,21 +2,33 @@
 // where the tools axis is the only caller (#462).
 //
 // FOUR CLAIMS, AND THE ORDER IS THE ORDER THEY DEPEND ON EACH OTHER.
-//   1. `app/designValues.css` DECLARES AND DOES NOTHING ELSE: `@theme` blocks,
-//      `@custom-variant` lines and comments, and no rule that selects an element.
-//      `app/globals.css` imports it right after Tailwind and reads none of it.
+//   1. `app/designValues.css` DECLARES AND DOES NOTHING ELSE: `@theme` blocks and
+//      comments, and no rule that selects an element. `app/globals.css` imports it
+//      right after Tailwind and reads none of it.
 //   2. EVERY DECLARATION IS THE DESIGN'S VALUE, typed out below rather than read
-//      back from the file, with the relations the design states held beside it:
-//      a wash is the ink in an amount, every shadow is the shadow ink in an amount,
-//      every size carries a line height on the 4 grid, and no name carries a digit.
+//      back from the file, with the relations the design states held beside it —
+//      a wash is the foreground in an amount, every shadow and overlay is the
+//      shadow ink in an amount, every size carries a line height on the 0.25rem
+//      grid — and the ones this repository adds: a length is rem, a whole number of
+//      the design's pixels over 16, outside the px kept by convention; no name
+//      carries a digit; and no name is a key Tailwind or the app already declares.
 //   3. A NAME IS READ ONLY BY A FILE THAT NOTHING OUTSIDE `app/(tools)/` CALLS.
 //   4. EVERY NAME IS READ, OR WAITS ON AN ISSUE NAMED BESIDE IT — and a face that
 //      is read is loaded by its next/font call where it is read.
 //
 // BY LITERAL, WHICH IS #351's AND #353's LESSON APPLIED BEFORE IT COULD REPEAT.
 // A table built from the declaration would pass for any value it held, so the
-// figures are the design's, typed here, and a change to one is a change to both
-// files in one commit. `verification.md` has the incident that taught it.
+// figures are the design's, turned into rem and typed here, and a change to one is
+// a change to both files in one commit. `verification.md` has the incident that
+// taught it.
+//
+// A KEY ALREADY DECLARED IS A KEY THE MATERIALS SCREENS READ. `text-sm` and the
+// app's own `--color-foreground` are both read across them today, so a name that
+// took either key would restyle those screens with no change on them. The keys are
+// read from Tailwind's own `theme.css` and from the app's other stylesheets rather
+// than listed here, since the set that matters is the one the build sees. A value
+// equal to one of Tailwind's is not a failure: a ladder the design draws is
+// declared whole, and `docs/notes/design-system.md` has why.
 //
 // WHAT A CLASS READS IS TAILWIND'S ANSWER, NOT A SECOND ONE WRITTEN HERE. Which
 // theme variable a utility resolves to is Tailwind's rule — `h-` reads a height,
@@ -55,9 +67,9 @@
 // spelled in this file would be built into every page's stylesheet
 // (`app/components/listTableWidth.js` measured that). The variable names in the
 // table are read the same way, which is why every declared variable reaches every
-// page's `:root` from the commit that declares it. The one rule that reads one,
-// `.fill-rule`, Tailwind builds from an SVG attribute in `public/`, and no element
-// carries it — `docs/notes/design-system.md` has the measurement.
+// page's `:root` from the commit that declares it. No rule Tailwind builds from
+// the repository reads a name; `docs/notes/design-system.md` has the scan that
+// measured it.
 //
 // WHAT IT CANNOT SEE: anything rendered, a class assembled at runtime in the app,
 // a dynamic import(), and whether a face's loader class sits above the element
@@ -87,213 +99,217 @@ const READERS_TO_COME = [456, 457, 458, 459, 460, 463];
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
  * it first — `null` once a screen reads it. A two-element row is a part of the
  * size above it (its line height, tracking or weight) and is read with that size.
+ * A length is the design's px over 16; the design-system notes carry the px.
  */
 const VALUES = [
     // 0a · Control
-    ["--height-commitment", "36px", 456],
-    ["--height-control", "32px", 457],
-    ["--height-nested", "30px", 456],
-    ["--height-in-text", "26px", 460],
-    ["--height-close", "28px", 456],
-    ["--size-icon", "16px", 460],
-    ["--size-icon-nested", "14px", 456],
-    ["--spacing-side-summary", "8px", 457],
-    ["--spacing-side-control", "10px", 463],
-    ["--spacing-side-commitment", "16px", 456],
-    ["--min-width-menu", "140px", 463],
-    ["--max-width-menu", "280px", 463],
-    ["--spacing-menu-offset", "6px", 463],
-    ["--spacing-menu-inset", "5px", 463],
+    ["--height-control-lg", "2.25rem", 456],
+    ["--height-control", "2rem", 457],
+    ["--height-control-sm", "1.875rem", 456],
+    ["--height-control-inline", "1.625rem", 460],
+    ["--height-dialog-close", "1.75rem", 456],
+    ["--size-icon", "1rem", 460],
+    ["--size-icon-sm", "0.875rem", 456],
+    ["--spacing-control-inline-inset-x", "0.5rem", 457],
+    ["--spacing-control-inset-x", "0.625rem", 463],
+    ["--spacing-control-lg-inset-x", "1rem", 456],
+    ["--min-width-menu", "8.75rem", 463],
+    ["--max-width-menu", "17.5rem", 463],
+    ["--spacing-menu-offset", "0.375rem", 463],
+    ["--spacing-menu-inset", "0.3125rem", 463],
     // 0b · Layout
-    ["--container-content", "1080px", 463],
-    ["--spacing-margin", "32px", 460],
-    ["--spacing-within", "8px", 456],
-    ["--spacing-between", "14px", 456],
-    ["--spacing-nav-icon", "11px", 460],
-    ["--spacing-band-type", "20px", 463],
-    ["--height-row", "40px", 463],
-    ["--spacing-row-reach", "12px", 463],
-    ["--height-column-head", "36px", 463],
-    ["--spacing-selection-bar", "12px", 463],
-    ["--spacing-selection-bar-inset", "8px", 463],
-    ["--spacing-selection-bar-rise", "8px", 463],
+    ["--container-content", "67.5rem", 463],
+    ["--spacing-page-gutter", "2rem", 460],
+    ["--spacing-gap", "0.5rem", 456],
+    ["--spacing-gap-lg", "0.875rem", 456],
+    ["--spacing-nav-gap", "0.6875rem", 460],
+    ["--spacing-list-header-inset-top", "1.25rem", 463],
+    ["--height-table-row", "2.5rem", 463],
+    ["--spacing-table-bleed", "0.75rem", 463],
+    ["--height-table-header", "2.25rem", 463],
+    ["--spacing-selection-bar-offset", "0.75rem", 463],
+    ["--spacing-selection-bar-inset", "0.5rem", 463],
+    ["--spacing-selection-bar-slide", "0.5rem", 463],
     ["--transition-duration-selection-bar", "160ms", 463],
     // 0c · Blue
-    ["--color-blue-face", "#F0F9FF", 460],
-    ["--color-blue-face-hover", "#E6F5FF", 463],
-    ["--color-blue-accent", "oklch(0.487 0.216 257)", 456],
-    ["--color-blue-accent-hover", "oklch(0.437 0.211 257)", 456],
-    ["--color-blue-accent-disabled", "color-mix(in oklab, var(--color-blue-accent) 40%, transparent)", 456],
+    ["--color-selected", "#F0F9FF", 460],
+    ["--color-selected-hover", "#E6F5FF", 463],
+    ["--color-primary", "oklch(0.487 0.216 257)", 456],
+    ["--color-primary-hover", "oklch(0.437 0.211 257)", 456],
+    ["--color-primary-disabled", "color-mix(in oklab, var(--color-primary) 40%, transparent)", 456],
     // 0d · Red
-    ["--color-red-face", "#FFF4F5", 463],
-    ["--color-red-accent", "#DC0015", 456],
-    ["--color-red-accent-hover", "oklch(0.512 0.205 27)", 463],
+    ["--color-danger-subtle", "#FFF4F5", 463],
+    ["--color-danger", "#DC0015", 456],
+    ["--color-danger-hover", "oklch(0.512 0.205 27)", 463],
     // 0e · Ink
-    ["--color-ink", "oklch(0.255 0.013 265)", 456],
-    ["--color-ink-context", "oklch(0.405 0.013 265)", 456],
-    ["--color-ink-caption", "oklch(0.505 0.012 265)", 456],
-    ["--color-ink-inert", "oklch(0.760 0.010 265)", 457],
-    ["--color-inner-rule", "oklch(0.946 0.005 265)", 458],
-    ["--color-rule", "oklch(0.928 0.006 265)", 457],
-    ["--color-band", "oklch(0.896 0.007 265)", 463],
-    ["--color-edge", "oklch(0.888 0.008 265)", 456],
-    ["--color-edge-focus", "oklch(0.640 0.010 265)", 456],
-    ["--color-wash", "color-mix(in oklab, var(--color-ink) 3%, transparent)", 456],
-    ["--color-field", "color-mix(in oklab, var(--color-ink) 4.5%, transparent)", 456],
-    ["--color-hover", "color-mix(in oklab, var(--color-ink) 5.5%, transparent)", 456],
-    ["--color-thumb", "color-mix(in oklab, var(--color-ink) 20%, transparent)", 460],
-    ["--color-thumb-hover", "color-mix(in oklab, var(--color-ink) 34%, transparent)", 460],
+    ["--color-foreground-default", "oklch(0.255 0.013 265)", 456],
+    ["--color-foreground-muted", "oklch(0.405 0.013 265)", 456],
+    ["--color-foreground-subtle", "oklch(0.505 0.012 265)", 456],
+    ["--color-foreground-faint", "oklch(0.760 0.010 265)", 457],
+    ["--color-divider-subtle", "oklch(0.946 0.005 265)", 458],
+    ["--color-divider", "oklch(0.928 0.006 265)", 457],
+    ["--color-divider-strong", "oklch(0.896 0.007 265)", 463],
+    ["--color-border", "oklch(0.888 0.008 265)", 456],
+    ["--color-border-focus", "oklch(0.640 0.010 265)", 456],
+    ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", 456],
+    ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", 456],
+    ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", 456],
+    ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", 460],
+    ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", 460],
     // 0f · States
-    ["--width-number-field", "120px", 456],
-    ["--spacing-step-inset", "3px", 456],
+    ["--width-number-input", "7.5rem", 456],
+    ["--spacing-stepper-inset", "0.1875rem", 456],
     // 0g · Status
-    ["--size-status-mark", "9px", 463],
+    ["--size-status-indicator", "0.5625rem", 463],
     ["--stroke-width-status-ring", "1.5px", 463],
     // 0h · Type
-    ["--text-page-title", "24px", 463],
-    ["--text-page-title--line-height", "32px"],
-    ["--text-page-title--letter-spacing", "-0.012em"],
-    ["--text-page-title--font-weight", "600"],
-    ["--text-section", "16px", 456],
-    ["--text-section--line-height", "24px"],
-    ["--text-reading", "14px", 456],
-    ["--text-reading--line-height", "20px"],
-    ["--text-beside", "13px", 456],
-    ["--text-beside--line-height", "20px"],
-    ["--text-head", "12px", 457],
-    ["--text-head--line-height", "16px"],
-    ["--text-head--font-weight", "600"],
-    ["--text-wordmark", "17px", 460],
-    ["--text-wordmark--line-height", "24px"],
-    ["--text-wordmark--font-weight", "500"],
-    ["--font-weight-page", "400", 456],
-    ["--font-weight-value", "500", 456],
-    ["--font-weight-title", "600", 456],
+    ["--text-heading-lg", "1.5rem", 463],
+    ["--text-heading-lg--line-height", "2rem"],
+    ["--text-heading-lg--letter-spacing", "-0.012em"],
+    ["--text-heading-lg--font-weight", "600"],
+    ["--text-heading", "1rem", 456],
+    ["--text-heading--line-height", "1.5rem"],
+    ["--text-body", "0.875rem", 456],
+    ["--text-body--line-height", "1.25rem"],
+    ["--text-body-sm", "0.8125rem", 456],
+    ["--text-body-sm--line-height", "1.25rem"],
+    ["--text-heading-sm", "0.75rem", 457],
+    ["--text-heading-sm--line-height", "1rem"],
+    ["--text-heading-sm--font-weight", "600"],
+    ["--text-brand", "1.0625rem", 460],
+    ["--text-brand--line-height", "1.5rem"],
+    ["--text-brand--font-weight", "500"],
     ["--tracking-id", "-0.02em", 457],
-    ["--font-text", "var(--font-instrument-sans), system-ui, sans-serif", 456],
+    ["--font-ui", "var(--font-instrument-sans), system-ui, sans-serif", 456],
     ["--font-id", "var(--font-fragment-mono), ui-monospace, monospace", 457],
-    ["--font-wordmark", "var(--font-fraunces), Georgia, serif", 460],
+    ["--font-brand", "var(--font-fraunces), Georgia, serif", 460],
     // 0i · Scroll
     ["--spacing-scrollbar", "8px", 460],
-    ["--spacing-scrollbar-clearance", "2px", 460],
-    ["--spacing-end", "40px", 460],
+    ["--spacing-scrollbar-inset", "2px", 460],
+    ["--spacing-scroll-inset-bottom", "2.5rem", 460],
     // 0j · Radius
-    ["--radius-pill", "999px", 458],
-    ["--radius-mark", "2px", 457],
-    ["--radius-control", "8px", 456],
-    ["--radius-group", "10px", 463],
-    ["--radius-surface", "12px", 456],
+    ["--radius-preview", "0.125rem", 457],
+    ["--radius-control", "0.5rem", 456],
+    ["--radius-card", "0.625rem", 463],
+    ["--radius-dialog", "0.75rem", 456],
     // 0k · Elevation
-    ["--color-shadow-ink", "oklch(0.22 0.025 265)", 456],
-    ["--color-sticky", "oklch(1 0 0 / 0.82)", 460],
-    ["--backdrop-blur-sticky", "8px", 460],
-    ["--color-backdrop-modal", "color-mix(in oklab, var(--color-shadow-ink) 40%, transparent)", 456],
-    ["--color-backdrop-panel", "color-mix(in oklab, var(--color-shadow-ink) 10%, transparent)", 460],
+    ["--color-elevation", "oklch(0.22 0.025 265)", 456],
+    ["--color-background-translucent", "oklch(1 0 0 / 0.82)", 460],
+    ["--color-dialog-overlay", "color-mix(in oklab, var(--color-elevation) 40%, transparent)", 456],
+    ["--color-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 10%, transparent)", 460],
     [
-        "--shadow-raised",
-        "0 8px 24px color-mix(in oklab, var(--color-shadow-ink) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-shadow-ink) 6%, transparent)",
+        "--shadow-popover",
+        "0 8px 24px color-mix(in oklab, var(--color-elevation) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 6%, transparent)",
         463,
     ],
-    ["--shadow-panel", "0 12px 48px color-mix(in oklab, var(--color-shadow-ink) 16%, transparent)", 460],
-    ["--shadow-modal", "0 24px 60px color-mix(in oklab, var(--color-shadow-ink) 24%, transparent)", 456],
+    ["--shadow-drawer", "0 12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", 460],
+    ["--shadow-dialog", "0 24px 60px color-mix(in oklab, var(--color-elevation) 24%, transparent)", 456],
     [
         "--shadow-preview",
-        "0 0 0 1px color-mix(in oklab, var(--color-shadow-ink) 6%, transparent), 0 2px 8px color-mix(in oklab, var(--color-shadow-ink) 8%, transparent)",
+        "0 0 0 1px color-mix(in oklab, var(--color-elevation) 6%, transparent), 0 2px 8px color-mix(in oklab, var(--color-elevation) 8%, transparent)",
         457,
     ],
-    ["--spacing-tooltip-top", "3px", 460],
-    ["--spacing-tooltip-x", "9px", 460],
-    ["--spacing-tooltip-bottom", "4px", 460],
-    ["--spacing-tooltip-offset", "6px", 460],
-    ["--spacing-tooltip-rail", "10px", 460],
+    ["--spacing-tooltip-inset-top", "0.1875rem", 460],
+    ["--spacing-tooltip-inset-x", "0.5625rem", 460],
+    ["--spacing-tooltip-inset-bottom", "0.25rem", 460],
+    ["--spacing-tooltip-offset", "0.375rem", 460],
+    ["--spacing-tooltip-rail-offset", "0.625rem", 460],
     ["--transition-delay-tooltip", "360ms", 460],
     // 0l · Modal
-    ["--container-dialog", "420px", 456],
-    ["--spacing-dialog-clear", "28px", 456],
-    ["--spacing-dialog", "24px", 456],
-    ["--spacing-dialog-head", "20px", 456],
-    ["--spacing-dialog-pair", "12px", 456],
-    ["--spacing-close-pull", "4px", 456],
+    ["--container-dialog", "26.25rem", 456],
+    ["--spacing-dialog-gutter", "1.75rem", 456],
+    ["--spacing-dialog-inset", "1.5rem", 456],
+    ["--spacing-dialog-header-stack", "1.25rem", 456],
+    ["--spacing-dialog-inline", "0.75rem", 456],
+    ["--spacing-dialog-close-offset", "0.25rem", 456],
     // 0m · Navigation
-    ["--width-rail", "56px", 460],
-    ["--width-rail-open", "248px", 460],
-    ["--spacing-rail-inset", "12px", 460],
+    ["--width-rail", "3.5rem", 460],
+    ["--width-rail-expanded", "15.5rem", 460],
+    ["--spacing-rail-inset", "0.75rem", 460],
     ["--transition-duration-rail", "200ms", 460],
     ["--ease-rail", "cubic-bezier(0.2, 0, 0, 1)", 460],
-    ["--height-account", "48px", 460],
-    ["--size-avatar", "24px", 460],
-    ["--height-breadcrumb", "48px", 460],
+    ["--height-account", "3rem", 460],
+    ["--size-avatar", "1.5rem", 460],
+    ["--height-breadcrumb", "3rem", 460],
     // 0n · Record page
-    ["--spacing-record-header", "24px", 463],
-    ["--spacing-under-breadcrumb", "14px", 463],
-    ["--spacing-header-title", "10px", 463],
-    ["--spacing-header-status", "12px", 463],
-    ["--spacing-block-name", "12px", 463],
+    ["--spacing-page-header-stack", "1.5rem", 463],
+    ["--spacing-breadcrumb-stack", "0.875rem", 463],
+    ["--spacing-title-stack", "0.625rem", 463],
+    ["--spacing-subtitle-stack", "0.75rem", 463],
+    ["--spacing-heading-sm-stack", "0.75rem", 463],
     // Tools 0a · App
-    ["--spacing-phone-margin", "16px", 458],
-    ["--height-phone-top-bar", "56px", 463],
-    ["--spacing-phone-top-bar-end", "4px", 463],
-    ["--size-phone-bar-icon", "24px", 463],
-    ["--spacing-phone-foot-bar-top", "16px", 458],
-    ["--spacing-phone-foot-bar-bottom", "20px", 458],
-    ["--spacing-phone-foot-bar-gap", "12px", 458],
-    ["--shadow-phone-foot-bar", "0 -1px 12px color-mix(in oklab, var(--color-shadow-ink) 6%, transparent)", 458],
-    ["--spacing-phone-target", "48px", 458],
-    ["--text-phone-title", "22px", 463],
-    ["--text-phone-title--line-height", "28px"],
-    ["--text-phone-title--letter-spacing", "-0.012em"],
-    ["--text-phone-title--font-weight", "600"],
-    ["--text-phone-bar", "17px", 458],
-    ["--text-phone-bar--line-height", "24px"],
-    ["--text-phone-event", "16px", 458],
-    ["--text-phone-event--line-height", "24px"],
-    ["--text-phone-beside", "15px", 458],
-    ["--text-phone-beside--line-height", "20px"],
-    ["--text-phone-log-detail", "14px", 463],
-    ["--text-phone-log-detail--line-height", "20px"],
-    ["--text-phone-block-name", "13px", 458],
-    ["--text-phone-block-name--line-height", "20px"],
-    ["--text-phone-block-name--font-weight", "600"],
-    ["--height-phone-button", "50px", 458],
-    ["--height-phone-dialog-button", "48px", 463],
-    ["--height-phone-field", "50px", 458],
-    ["--spacing-phone-field-x", "16px", 458],
-    ["--size-phone-field-icon", "18px", 458],
-    ["--spacing-phone-field-icon", "10px", 458],
-    ["--height-phone-pill", "36px", 458],
-    ["--spacing-phone-pill-x", "14px", 458],
-    ["--spacing-phone-pill-chevron", "12px", 458],
-    ["--size-phone-status-mark", "10px", 463],
-    ["--radius-phone-control", "12px", 458],
-    ["--radius-phone-sheet", "28px", 458],
-    ["--opacity-phone-pressed", "50%", 458],
-    ["--spacing-phone-title-top", "16px", 463],
-    ["--spacing-phone-title-bottom", "22px", 463],
-    ["--spacing-phone-section", "32px", 463],
-    ["--size-phone-log-dot", "6px", 463],
-    ["--spacing-phone-log-dot", "12px", 463],
-    ["--spacing-phone-log-entry", "20px", 463],
-    ["--size-phone-log-icon", "14px", 463],
-    ["--width-phone-sheet-handle", "36px", 458],
-    ["--height-phone-sheet-handle", "4px", 458],
-    ["--spacing-phone-sheet-handle", "12px", 458],
-    ["--spacing-phone-sheet-title", "14px", 458],
-    ["--height-phone-sheet-row", "56px", 458],
-    ["--spacing-phone-sheet-row-y", "15px", 458],
-    ["--spacing-phone-sheet-row-x", "16px", 458],
-    ["--spacing-phone-sheet-foot", "20px", 458],
-    ["--shadow-phone-sheet", "0 -12px 48px color-mix(in oklab, var(--color-shadow-ink) 16%, transparent)", 458],
-    ["--color-backdrop-phone-sheet", "color-mix(in oklab, var(--color-shadow-ink) 24%, transparent)", 458],
-    ["--spacing-phone-confirm-top", "24px", 463],
-    ["--spacing-phone-confirm-id", "4px", 463],
-    ["--spacing-phone-confirm-sentence", "14px", 463],
-    ["--spacing-phone-confirm-actions", "20px", 463],
-    ["--spacing-phone-confirm-stack", "12px", 463],
-    ["--width-phone-menu", "232px", 463],
-    ["--spacing-phone-menu-end", "12px", 463],
-    ["--spacing-phone-menu-offset", "4px", 463],
-    ["--spacing-phone-menu-row-x", "16px", 463],
+    ["--spacing-mobile-gutter", "1rem", 458],
+    ["--height-mobile-top-bar", "3.5rem", 463],
+    ["--spacing-mobile-top-bar-inset-right", "0.25rem", 463],
+    ["--size-mobile-top-bar-icon", "1.5rem", 463],
+    ["--spacing-mobile-bottom-bar-inset-top", "1rem", 458],
+    ["--spacing-mobile-bottom-bar-inset-bottom", "1.25rem", 458],
+    ["--spacing-mobile-bottom-bar-stack", "0.75rem", 458],
+    ["--shadow-mobile-bottom-bar", "0 -1px 12px color-mix(in oklab, var(--color-elevation) 6%, transparent)", 458],
+    ["--spacing-mobile-touch-target", "3rem", 458],
+    ["--text-mobile-heading-lg", "1.375rem", 463],
+    ["--text-mobile-heading-lg--line-height", "1.75rem"],
+    ["--text-mobile-heading-lg--letter-spacing", "-0.012em"],
+    ["--text-mobile-heading-lg--font-weight", "600"],
+    ["--text-mobile-heading", "1.0625rem", 458],
+    ["--text-mobile-heading--line-height", "1.5rem"],
+    ["--text-mobile-body", "1rem", 458],
+    ["--text-mobile-body--line-height", "1.5rem"],
+    ["--text-mobile-body-sm", "0.9375rem", 458],
+    ["--text-mobile-body-sm--line-height", "1.25rem"],
+    ["--text-mobile-body-xs", "0.875rem", 463],
+    ["--text-mobile-body-xs--line-height", "1.25rem"],
+    ["--text-mobile-heading-sm", "0.8125rem", 458],
+    ["--text-mobile-heading-sm--line-height", "1.25rem"],
+    ["--text-mobile-heading-sm--font-weight", "600"],
+    ["--height-mobile-button", "3.125rem", 458],
+    ["--height-mobile-dialog-button", "3rem", 463],
+    ["--height-mobile-input", "3.125rem", 458],
+    ["--spacing-mobile-input-inset-x", "1rem", 458],
+    ["--size-mobile-input-icon", "1.125rem", 458],
+    ["--spacing-mobile-input-gap", "0.625rem", 458],
+    ["--height-mobile-chip", "2.25rem", 458],
+    ["--spacing-mobile-chip-inset-x", "0.875rem", 458],
+    ["--spacing-mobile-chip-inset-right", "0.75rem", 458],
+    ["--size-mobile-status-indicator", "0.625rem", 463],
+    ["--radius-mobile-control", "0.75rem", 458],
+    ["--radius-mobile-drawer", "1.75rem", 458],
+    ["--opacity-mobile-pressed", "50%", 458],
+    ["--spacing-mobile-top-bar-stack", "1rem", 463],
+    ["--spacing-mobile-title-stack", "1.375rem", 463],
+    ["--spacing-mobile-stack", "2rem", 463],
+    ["--size-mobile-log-dot", "0.375rem", 463],
+    ["--spacing-mobile-log-gap", "0.75rem", 463],
+    ["--spacing-mobile-log-stack", "1.25rem", 463],
+    ["--size-mobile-log-icon", "0.875rem", 463],
+    ["--width-mobile-drawer-handle", "2.25rem", 458],
+    ["--height-mobile-drawer-handle", "0.25rem", 458],
+    ["--spacing-mobile-drawer-inset-top", "0.75rem", 458],
+    ["--spacing-mobile-drawer-title-inset-y", "0.875rem", 458],
+    ["--height-mobile-drawer-row", "3.5rem", 458],
+    ["--spacing-mobile-drawer-row-inset-y", "0.9375rem", 458],
+    ["--spacing-mobile-drawer-row-inset-x", "1rem", 458],
+    ["--spacing-mobile-drawer-inset-bottom", "1.25rem", 458],
+    ["--shadow-mobile-drawer", "0 -12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", 458],
+    ["--color-mobile-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 24%, transparent)", 458],
+    ["--spacing-mobile-confirm-inset-top", "1.5rem", 463],
+    ["--spacing-mobile-confirm-title-stack", "0.25rem", 463],
+    ["--spacing-mobile-confirm-id-stack", "0.875rem", 463],
+    ["--spacing-mobile-confirm-description-stack", "1.25rem", 463],
+    ["--spacing-mobile-confirm-action-stack", "0.75rem", 463],
+    ["--width-mobile-menu", "14.5rem", 463],
+    ["--spacing-mobile-menu-gutter", "0.75rem", 463],
+    ["--spacing-mobile-menu-offset", "0.25rem", 463],
+    ["--spacing-mobile-menu-row-inset-x", "1rem", 463],
 ];
+
+/**
+ * The lengths that stay px: what is drawn in px by convention. The ring is a
+ * stroke, and the scrollbar's lane is the browser's own, whose width follows no
+ * text size, so the clearance inside it follows it. Every shadow stays px too,
+ * and is not a length.
+ */
+const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar", "--spacing-scrollbar-inset"];
 
 /**
  * The three faces: the only names in `@theme inline`, each resolving to the
@@ -301,21 +317,17 @@ const VALUES = [
  * that `variable`, in a file only the tools axis reaches.
  */
 const FACES = {
-    "--font-text": { loader: "Instrument_Sans", variable: "--font-instrument-sans" },
+    "--font-ui": { loader: "Instrument_Sans", variable: "--font-instrument-sans" },
     "--font-id": { loader: "Fragment_Mono", variable: "--font-fragment-mono" },
-    "--font-wordmark": { loader: "Fraunces", variable: "--font-fraunces" },
+    "--font-brand": { loader: "Fraunces", variable: "--font-fraunces" },
 };
-
-/** The two variants, by the media condition each selects and the issue that reads it first. */
-const VARIANTS = [
-    ["phone", "(width < 40rem)", 458],
-    ["rail-push", "(width >= 80rem)", 460],
-];
 
 /** The route files Next renders from, under `app/`. A file one of them reaches is on a page. */
 const ROUTE_FILE = /^app\/(.*\/)?(page|layout|template|loading|error|not-found|default|global-error|route)\.js$/;
 
 const isToolsFile = (rel) => rel.startsWith(TOOLS_DIR);
+
+const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The declaration
@@ -323,13 +335,12 @@ const isToolsFile = (rel) => rel.startsWith(TOOLS_DIR);
 
 /**
  * The top level of a declaration file: its `@theme` blocks with their
- * declarations, its `@custom-variant` lines, and anything else — which the file
- * must not have. Comments are stripped first, so a comment may say anything.
+ * declarations, and anything else — which the file must not have. Comments are
+ * stripped first, so a comment may say anything.
  */
 export function parseDeclaration(css) {
-    const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    const text = withoutComments(css);
     const blocks = [];
-    const variants = [];
     const other = [];
     let i = 0;
     while (i < text.length) {
@@ -366,14 +377,14 @@ export function parseDeclaration(css) {
             continue;
         }
         const end = text.indexOf(";", i);
-        const statement = (end === -1 ? rest : text.slice(i, end)).trim();
-        const variant = /^@custom-variant\s+([a-z-]+)\s+\(@media\s+(\([^()]*\))\)$/.exec(statement);
-        if (variant && !statement.includes("{")) variants.push({ name: variant[1], condition: variant[2] });
-        else other.push(statement.slice(0, 80));
+        other.push((end === -1 ? rest : text.slice(i, end)).trim().slice(0, 80));
         i = end === -1 ? text.length : end + 1;
     }
-    return { blocks, variants, other };
+    return { blocks, other };
 }
+
+/** Every custom property a stylesheet declares, comments aside. */
+const keysOf = (css) => new Set([...withoutComments(css).matchAll(/(--[a-z0-9-]+)\s*:/gi)].map((m) => m[1]));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tailwind, asked what a token reads
@@ -394,27 +405,10 @@ async function loadDesignSystem(stylesheet = STYLESHEET) {
     });
 }
 
-/** A token's variants: every segment before its last, split outside brackets. */
-function variantsOf(token) {
-    const segments = [];
-    let depth = 0;
-    let start = 0;
-    for (let k = 0; k < token.length; k++) {
-        const c = token[k];
-        if (c === "[" || c === "(") depth++;
-        else if (c === "]" || c === ")") depth--;
-        else if (c === ":" && depth === 0) {
-            segments.push(token.slice(start, k));
-            start = k + 1;
-        }
-    }
-    return segments;
-}
-
 /**
  * For each token, the declared names it reads: the variables its CSS refers to,
- * a shadow by its `--tw-shadow` line, a face by the variable it resolves to, and a
- * variant by name. Anything Tailwind does not know as a utility reads nothing.
+ * a shadow by its `--tw-shadow` line, and a face by the variable it resolves to.
+ * Anything Tailwind does not know as a utility reads nothing.
  */
 function makeReader(ds, declaredNames) {
     const shadowDeclarations = new Map();
@@ -425,7 +419,6 @@ function makeReader(ds, declaredNames) {
         if (declaration) shadowDeclarations.set(name, declaration);
     }
     const faceByVariable = new Map(Object.entries(FACES).map(([face, { variable }]) => [variable, face]));
-    const variantNames = new Set(VARIANTS.map(([name]) => name));
 
     const cache = new Map();
     return function readsOf(tokens) {
@@ -441,7 +434,6 @@ function makeReader(ds, declaredNames) {
                         if (faceByVariable.has(v)) reads.add(faceByVariable.get(v));
                     }
                     for (const [name, declaration] of shadowDeclarations) if (out.includes(declaration)) reads.add(name);
-                    for (const variant of variantsOf(token)) if (variantNames.has(variant)) reads.add(`@${variant}`);
                 }
                 cache.set(token, reads);
             });
@@ -530,9 +522,9 @@ function routesReaching(graph) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * `waiting` maps every tracked name (a variant as `@name`) to the issue it waits
- * on, or null once read. `sources` maps a name to the names its value mixes in.
- * Returns what was read and every failure, each a sentence naming the file.
+ * `waiting` maps every tracked name to the issue it waits on, or null once read.
+ * `sources` maps a name to the names its value mixes in. Returns what was read
+ * and every failure, each a sentence naming the file.
  */
 export function judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome }) {
     const failures = [];
@@ -589,7 +581,7 @@ export async function run({ check, assert, log }) {
     // ── 1: the declaration and its import ────────────────────────────────────
     log("app/designValues.css declares and does nothing else:");
     const parsed = parseDeclaration(readFileSync(join(REPO_ROOT, DECLARATION), "utf8"));
-    check("  statements other than @theme blocks and @custom-variant lines", parsed.other.join(" | "), "");
+    check("  statements other than @theme blocks", parsed.other.join(" | "), "");
     const stray = parsed.blocks.flatMap((b) => b.declarations.filter((d) => d.stray).map((d) => d.stray));
     check("  anything in a @theme block that is not a custom property", stray.join(" | "), "");
     const declared = new Map();
@@ -604,7 +596,7 @@ export async function run({ check, assert, log }) {
     }
     check("  the names in @theme inline are the three faces", resolvedAtUse.sort().join(" "), Object.keys(FACES).sort().join(" "));
 
-    const globals = readFileSync(join(REPO_ROOT, STYLESHEET), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+    const globals = withoutComments(readFileSync(join(REPO_ROOT, STYLESHEET), "utf8"));
     const statements = globals.split(";").map((s) => s.trim()).filter(Boolean);
     check("  app/globals.css opens with Tailwind, then the declaration", statements.slice(0, 2).join("; "), '@import "tailwindcss"; @import "./designValues.css"');
     check("  and imports the declaration once", globals.split("./designValues.css").length - 1, 1);
@@ -615,30 +607,43 @@ export async function run({ check, assert, log }) {
     log("every declaration is the design's value, and the relations the design states hold:");
     check("  declared names are exactly the table's", [...declared.keys()].sort().join(" "), [...declaredNames].sort().join(" "));
     for (const [name, value] of VALUES) check(`  ${name}`, declared.get(name), value);
-    const variantsDeclared = parsed.variants.map((v) => `${v.name} ${v.condition}`).join(" | ");
-    check("  the variants and the edge each selects", variantsDeclared, VARIANTS.map(([n, c]) => `${n} ${c}`).join(" | "));
 
-    check("  no name carries a digit", [...declaredNames, ...VARIANTS.map(([n]) => n)].filter((n) => /\d/.test(n)).join(" "), "");
+    check("  no name carries a digit", [...declaredNames].filter((n) => /\d/.test(n)).join(" "), "");
 
     const mixes = (value) => [...value.matchAll(/color-mix\(in oklab, var\((--[a-z0-9-]+)\) [\d.]+%, transparent\)/g)].map((m) => m[1]);
-    const washes = ["--color-wash", "--color-field", "--color-hover", "--color-thumb", "--color-thumb-hover"];
-    for (const name of washes) check(`  ${name} is the ink in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-ink");
-    const lifted = VALUES.filter(([n]) => n.startsWith("--shadow-") || n.startsWith("--color-backdrop-")).map(([n]) => n);
+    const washes = ["--color-hover-subtle", "--color-background-muted", "--color-hover", "--color-scrollbar-thumb", "--color-scrollbar-thumb-hover"];
+    for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");
+    const lifted = VALUES.filter(([n]) => n.startsWith("--shadow-") || /^--color-.*-overlay$/.test(n)).map(([n]) => n);
     for (const name of lifted) {
         const used = mixes(declared.get(name) ?? "");
-        assert(`  ${name} is the shadow ink in amounts`, used.length > 0 && used.every((u) => u === "--color-shadow-ink"));
+        assert(`  ${name} is the shadow ink in amounts`, used.length > 0 && used.every((u) => u === "--color-elevation"));
     }
     const sizes = tracked.filter(([n]) => n.startsWith("--text-")).map(([n]) => n);
     for (const size of sizes) {
-        const leading = parseFloat(declared.get(`${size}--line-height`));
-        assert(`  ${size} carries a line height on the 4 grid (${leading}px)`, Number.isInteger(leading / 4));
+        const leading = declared.get(`${size}--line-height`) ?? "";
+        assert(`  ${size} carries a line height on the 0.25rem grid (${leading})`, leading.endsWith("rem") && Number.isInteger(parseFloat(leading) / 0.25));
         const tracking = declared.get(`${size}--letter-spacing`);
-        if (tracking) assert(`  ${size} is tracked negative only because it is 21px or more`, parseFloat(declared.get(size)) >= 21 && tracking.startsWith("-"));
+        if (tracking) assert(`  ${size} is tracked negative only because it is 21px or more`, parseFloat(declared.get(size)) * 16 >= 21 && tracking.startsWith("-"));
     }
     for (const [name] of VALUES.filter((row) => row.length === 2)) {
         const owner = name.replace(/--(line-height|letter-spacing|font-weight)$/, "");
         assert(`  ${name} belongs to a size in the table`, owner !== name && tracked.some(([n]) => n === owner));
     }
+
+    // A length is rem: the design's px over 16, and the design draws whole pixels.
+    const lengths = [...declared].filter(([, v]) => /^-?[\d.]+(px|rem)$/.test(v));
+    assert(`  the declaration holds ${lengths.length} lengths`, lengths.length > 100);
+    check("  a length in px is one kept in px by convention", lengths.filter(([, v]) => v.endsWith("px")).map(([n]) => n).sort().join(" "), [...PX_KEPT].sort().join(" "));
+    check("  every rem is a whole number of the design's pixels over 16", lengths.filter(([, v]) => v.endsWith("rem") && !Number.isInteger(parseFloat(v) * 16)).map(([n, v]) => `${n} ${v}`).join(" | "), "");
+
+    // A key already declared is a key the materials screens read.
+    const tailwindKeys = keysOf(readFileSync(requireFromRepo.resolve("tailwindcss/theme.css"), "utf8"));
+    const otherStylesheets = ["app", "components"].flatMap((d) => cssFiles(join(REPO_ROOT, d))).map(repoRelative).filter((f) => f !== DECLARATION);
+    const appKeys = new Set(otherStylesheets.flatMap((rel) => [...keysOf(readFileSync(join(REPO_ROOT, rel), "utf8"))]));
+    assert("  Tailwind's own keys are read, the ones the materials screens use among them", ["--text-sm", "--radius-lg", "--font-sans", "--color-red-500"].every((k) => tailwindKeys.has(k)));
+    assert("  and so are the app's own", ["--color-foreground", "--color-background", "--font-sans", "--font-mono"].every((k) => appKeys.has(k)));
+    check("  no name is a key Tailwind already declares", [...declaredNames].filter((n) => tailwindKeys.has(n)).join(" "), "");
+    check("  no name is a key the app's other stylesheets declare", [...declaredNames].filter((n) => appKeys.has(n)).join(" "), "");
 
     // ── the oracle, seen to work before anything is claimed with it ──────────
     log("");
@@ -649,21 +654,24 @@ export async function run({ check, assert, log }) {
     const cls = (...parts) => parts.join("");
     const sees = (token, expected) =>
         check(`  ${token} reads`, [...readsOf([token])].sort().join(" "), [...expected].sort().join(" "));
-    sees(cls("h-", "commitment"), ["--height-commitment"]);
+    sees(cls("h-", "control-lg"), ["--height-control-lg"]);
     sees(cls("flex-", "row"), []);
     // A derived value is read by its own name; what it mixes in is the judgment's.
-    sees(cls("hover", ":", "bg-", "wash"), ["--color-wash"]);
-    sees(cls("bg-", "ink", "/3"), ["--color-ink"]);
-    sees(cls("phone", ":", "h-", "phone-button"), ["--height-phone-button", "@phone"]);
+    sees(cls("hover", ":", "bg-", "hover-subtle"), ["--color-hover-subtle"]);
+    sees(cls("bg-", "foreground-default", "/3"), ["--color-foreground-default"]);
+    sees(cls("max-", "sm", ":", "h-", "mobile-button"), ["--height-mobile-button"]);
     sees(cls("max-", "sm", ":", "hidden"), []);
-    sees(cls("shadow-", "modal"), ["--shadow-modal", "--color-shadow-ink"]);
-    sees(cls("font-", "text"), ["--font-text"]);
-    sees(cls("text-", "page-title"), [
-        "--text-page-title",
-        "--text-page-title--line-height",
-        "--text-page-title--letter-spacing",
-        "--text-page-title--font-weight",
+    sees(cls("shadow-", "dialog"), ["--shadow-dialog", "--color-elevation"]);
+    sees(cls("font-", "ui"), ["--font-ui"]);
+    sees(cls("text-", "heading-lg"), [
+        "--text-heading-lg",
+        "--text-heading-lg--line-height",
+        "--text-heading-lg--letter-spacing",
+        "--text-heading-lg--font-weight",
     ]);
+    // Tailwind's own names for a value no ladder holds read none of these.
+    sees(cls("font-", "medium"), []);
+    sees(cls("rounded-", "full"), []);
     sees(cls("text-", "zinc-500"), []);
     sees("Choose", []);
 
@@ -671,7 +679,6 @@ export async function run({ check, assert, log }) {
     log("");
     log("the corpus and the graph are seen to reach what they should:");
     const jsFiles = ["app", "components", "lib"].flatMap((d) => (existsSync(join(REPO_ROOT, d)) ? listJsFiles(join(REPO_ROOT, d)) : [])).map(repoRelative);
-    const styleFiles = ["app", "components"].flatMap((d) => cssFiles(join(REPO_ROOT, d))).map(repoRelative).filter((f) => f !== DECLARATION);
     const graph = new Map();
     const readsByFile = new Map();
     const loaders = [];
@@ -690,13 +697,13 @@ export async function run({ check, assert, log }) {
         readsByFile.set(rel, reads);
         loaders.push(...loadersOf(rel, ast));
     }
-    for (const rel of styleFiles) {
+    for (const rel of otherStylesheets) {
         const css = readFileSync(join(REPO_ROOT, rel), "utf8");
         graph.set(rel, new Set([...css.matchAll(/@import\s+"(\.[^"]+)"/g)].map(([, spec]) => toPosix(join(dirname(rel), spec)))));
-        readsByFile.set(rel, varRefsOf(css.replace(/\/\*[\s\S]*?\*\//g, ""), declaredNames));
+        readsByFile.set(rel, varRefsOf(withoutComments(css), declaredNames));
     }
     const routesByFile = routesReaching(graph);
-    assert(`  parsed ${jsFiles.length} modules and ${styleFiles.length} stylesheets`, jsFiles.length > 150 && styleFiles.length >= 2);
+    assert(`  parsed ${jsFiles.length} modules and ${otherStylesheets.length} stylesheets`, jsFiles.length > 150 && otherStylesheets.length >= 2);
     assert("  the tools layout is a route file that reaches itself", routesByFile.get("app/(tools)/layout.js")?.has("app/(tools)/layout.js"));
     assert("  the root layout reaches app/globals.css", routesByFile.get(STYLESHEET)?.has("app/layout.js"));
     assert(
@@ -710,10 +717,7 @@ export async function run({ check, assert, log }) {
     assert("  the label page's face loader is found, variable and all", loaders.some((l) => l.imported === "Inconsolata" && l.variable === "--font-label-code"));
 
     // ── 3 and 4: who reads, and every name read or waiting ───────────────────
-    const waiting = new Map([
-        ...tracked.map(([name, , issue]) => [name, issue]),
-        ...VARIANTS.map(([name, , issue]) => [`@${name}`, issue]),
-    ]);
+    const waiting = new Map(tracked.map(([name, , issue]) => [name, issue]));
     const sources = new Map(tracked.map(([name, value]) => [name, varRefsOf(value, declaredNames)]));
     const { read, failures } = judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome: READERS_TO_COME });
 
@@ -728,7 +732,7 @@ export async function run({ check, assert, log }) {
     // ── the judgment, seen to fail where it should ───────────────────────────
     log("");
     log("the judgment fails each planted case and passes its repair:");
-    const plantedName = "--height-commitment";
+    const plantedName = "--height-control-lg";
     const plant = ({ file, routes, names = [plantedName], issue = 456, loaderFile = null }) =>
         judge({
             waiting: new Map(names.map((name) => [name, issue])),
@@ -761,20 +765,20 @@ export async function run({ check, assert, log }) {
     );
     assert(
         "  a face read with no loader on the axis fails",
-        plant({ file: shared, routes: ["app/(tools)/layout.js"], names: ["--font-text"], issue: null }).some((f) => f.includes("loads Instrument_Sans"))
+        plant({ file: shared, routes: ["app/(tools)/layout.js"], names: ["--font-ui"], issue: null }).some((f) => f.includes("loads Instrument_Sans"))
     );
     check(
         "  and its loader in a file only the tools axis reaches repairs it",
-        plant({ file: shared, routes: ["app/(tools)/layout.js"], names: ["--font-text"], issue: null, loaderFile: "app/(tools)/layout.js" }).join(" | "),
+        plant({ file: shared, routes: ["app/(tools)/layout.js"], names: ["--font-ui"], issue: null, loaderFile: "app/(tools)/layout.js" }).join(" | "),
         ""
     );
 
     // A planted module read end to end, so the reading of strings is seen too.
-    const planted = parseSource(`export const X = () => <div className="${cls("h-", "commitment")} ${cls("phone", ":", "h-", "phone-button")}" />;`, "<planted>").ast;
+    const planted = parseSource(`export const X = () => <div className="${cls("h-", "control-lg")} ${cls("max-", "sm", ":", "h-", "mobile-button")}" />;`, "<planted>").ast;
     check(
         "  a planted module's className reads through the same path",
         [...readsOf(tokensOf(stringsOf(planted)))].sort().join(" "),
-        ["--height-commitment", "--height-phone-button", "@phone"].sort().join(" ")
+        ["--height-control-lg", "--height-mobile-button"].sort().join(" ")
     );
 }
 

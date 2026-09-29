@@ -605,13 +605,13 @@ The tools screens say what the design says. The act is `create` — `New tools` 
 
 ## The design's values on this axis (#462)
 
-`app/designValues.css` declares the values the design settled for these screens, each under the name of its kind, and `design-system.md` carries the reasoning, the names and what waits. Nothing on this axis reads one yet; the issues that apply them come next, and what each owes is this.
+`app/designValues.css` declares the values the design settled for these screens, each under a conventional name and in rem, and `design-system.md` carries the reasoning, the names, the table from the design's words to them and what waits. Nothing on this axis reads one yet; the issues that apply them come next, and what each owes is this.
 
 **A TOOLS SCREEN READS THE NAME AND WRITES NO VALUE.** A value the drawings carry that the spec gives no name to — `design-system.md` lists several, the 336 label column among them — is named in the same commit as the first file that reads it, and a name the check's table marks for an issue is unmarked by the pull request that reads it.
 
 **WHO MAY READ ONE IS WHO CALLS THE FILE, NOT WHERE IT SITS.** A component may live anywhere and read a name as long as nothing outside `app/(tools)/` calls it, which is what lets #460's rail sit where any screen could call it while only this layout does. A component both axes call reads none, so a screen here that wants one of its shapes draws its own; the two dialogs on the tool item page importing `MODAL_BACKDROP` and `MODAL_CARD` are that case.
 
-**THE PHONE'S VALUES ARE NAMES OF THEIR OWN**, read under the `phone` variant beside the web name, and **THE FIRST ISSUE TO READ A FACE LOADS IT**, into the variable the face resolves to, in a file only this axis reaches — the arrangement the label page already has with Inconsolata, which no name here is for. `offline/design-values.mjs` fails each of these.
+**THE PHONE'S VALUES ARE NAMES OF THEIR OWN**, under `mobile-` and read under Tailwind's `max-sm` variant beside the web name, and **THE FIRST ISSUE TO READ A FACE LOADS IT**, into the variable the face resolves to, in a file only this axis reaches — the arrangement the label page already has with Inconsolata, which no name here is for. `offline/design-values.mjs` fails each of these.
 
 ## Three tables, and what each is for
 
