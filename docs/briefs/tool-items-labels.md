@@ -28,41 +28,39 @@ screen in this app whose correctness is physical.
 
 **identity.** The heading, `Print tool labels`.
 
-**evidence.** Three facts about the run, all of them screen-only and never
-printed:
+**evidence.** Two facts about the run, both screen-only and never printed:
 
-- **The host each symbol will encode**, spelled out. A symbol carries the host it
-  was printed from, so a sheet printed on a preview domain is thirty stickers
-  pointing somewhere that will stop resolving. This is stated with a warning
-  saying so. **The warning is not conditional** — nothing in the app knows which
-  host is the permanent one, so the screen states the host and the risk and lets
-  the person reading decide.
-
-**THIS WARNING IS THE ONLY DEFENSE LEFT AND IT HAS TO BE READABLE AT THE MOMENT
-OF PRESSING PRINT (#411).** Until that issue a symbol built on a dev host came
-out a version larger than a real one, so a wrong host was visible in the picture
-itself; the shortened address put both at version 2, and nothing about the sheet
-now looks different when the host is wrong. Measured on the current layout at
-1440x900 with three labels: the warning sits 240px above the print control and
-both are on screen at once. **It does not stay that way** — the picker grows one
-row per label between them, so a run of thirty puts the control below the fold
-and a run of a hundred puts it 2,600px down, and the person pressing Print has
-scrolled the warning off the screen. **A design must keep the host and this
-warning legible from wherever Print is pressed** — pinned beside the control, or
-repeated there, or the control placed where the warning still reads. What it may
-not do is treat this as a preamble somebody reads once on the way in.
-**Re-measured after #412 shrank the label and every figure above is unchanged**:
-the picker's rows are text and their height does not follow the sticker's. What
-did change is that a run now needs fewer sheets, not that it needs fewer rows.
-**#453 put a refusal back for the long hosts**: the label holds no room for a
-symbol larger than today's, so a Vercel domain's symbols do not fit and no sheet
-is drawn there at all. A host short enough to stay at today's size — a local
-server's is one — still looks exactly like the real one, and for those this
-warning is still the only defense.
 - **Which stock**, by its label size. **No product has these dimensions**, so the
   line states the geometry a supplier would be asked for rather than a name
   (#412); when a real stock is bought, its name is what belongs there.
 - **How many labels across how many sheets**, once a selection exists.
+
+**The host each symbol will encode is not stated (#454).** It was the first of
+three facts here. A symbol carries the host it was printed from, so a sheet
+printed on a preview domain is thirty stickers pointing somewhere that will stop
+resolving, and the screen spelled the host out with a warning saying so. **The
+warning was not conditional** — nothing in the app knows which host is the
+permanent one — so on the host the app keeps it would be false above every
+sheet, and #454 took it off with the host above it. What the two guarded is a
+rule kept outside this screen.
+
+**THE WARNING WAS THE ONLY DEFENSE LEFT AFTER #411, AND IT WAS WRITTEN TO BE READ
+AT THE MOMENT OF PRESSING PRINT.** Until that issue a symbol built on a dev host
+came out a version larger than a real one, so a wrong host was visible in the
+picture itself; the shortened address put both at version 2, and nothing about
+the sheet looks different when the host is wrong. Measured at 1440x900 with three
+labels, the warning sat 240px above the print control and both were on screen at
+once, but the picker grows one row per label between them, so a run of thirty put
+the control below the fold and a run of a hundred put it 2,600px down. #412's
+smaller label left those figures unchanged, since the picker's rows are text and
+a smaller sticker needs fewer sheets rather than fewer rows. So this said a design
+had to keep the host and the warning legible from wherever Print is pressed, and
+never treat them as a preamble read once on the way in, until #454 took both off.
+**#453 put a refusal back for the long hosts**: the label holds no room for a
+symbol larger than today's, so a Vercel domain's symbols do not fit and no sheet
+is drawn there at all. A host short enough to stay at today's size — a local
+server's is one — still looks exactly like the real one, and nothing on the
+screen says which host it is.
 
 **action.** Three controls:
 
