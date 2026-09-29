@@ -68,6 +68,8 @@ import {
     symbolBox,
 } from "../../../lib/toolLabelSheet.js";
 import {
+    callsTo,
+    insideCallTo,
     listJsFiles,
     parseFile,
     parseSource,
@@ -477,10 +479,10 @@ export function run({ check, assert, log }) {
     log("each symbol's box comes from its own side count:");
     // THE DEFECT THIS SECTION EXISTS FOR WAS MEASURED IN A BROWSER, NOT REASONED
     // ABOUT. Every box was sized from `QR_SIDE_MODULES`, so a version-3 symbol —
-    // which is what a longer host produces, and what localhost produces today —
-    // was scaled INTO today's box: 37 modules in 18.81 mm is 0.508 mm a module
-    // against the 0.57 the stock was derived for. The module size is fixed for the
-    // stock; the box is per symbol.
+    // which is what a longer host produces, and what localhost produced until #411
+    // shortened the address — was scaled INTO today's box: 37 modules in 18.81 mm
+    // is 0.508 mm a module against the 0.57 the stock was derived for. The module
+    // size is fixed for the stock; the box is per symbol.
     for (const [side, expected] of [
         [33, 13.2],
         [37, 14.8],
@@ -1171,7 +1173,8 @@ export function run({ check, assert, log }) {
     );
     // A SYMBOL PAST THE STOCK NAMES THE HOST AND PRESCRIBES NOTHING (#453). With no
     // version of headroom a Vercel domain reaches this, and there larger stock is the
-    // wrong answer: the warning above the sheet already says what the right one is.
+    // wrong answer: the right one is printing from the host a label should carry,
+    // which no sentence on the screen gives since #454 took the warning off.
     check(
         "a symbol past the stock",
         COPY.symbolTooLarge({ toolItemIds: ["HYE-TL-260909-014", "HYE-TL-260909-015"] }),
@@ -1192,7 +1195,18 @@ export function run({ check, assert, log }) {
         COPY.missing({ toolItemIds: ["HYE-TL-260909-014"] }),
         "Not on this base, so no label is offered for HYE-TL-260909-014."
     );
-    assert("the host warning names the risk rather than the mechanism", COPY.hostWarning.includes("printed from"));
+    // THE HOST AND ITS WARNING WENT TOGETHER (#454), as `openFromRegistration` went
+    // with the answer it stood on. The warning showed on every host, so on the one the
+    // app keeps it would be false above every sheet, and the host line alone was the
+    // same guard for the same reader. Their words are what a later pass would reach
+    // for to put the guard back, so the absence is held here and section 10 holds
+    // where the host itself goes.
+    check(
+        "no word is left for the host or its warning",
+        ["hostLabel", "hostWarningTitle", "hostWarning"].filter((key) => key in COPY).join(", "),
+        ""
+    );
+    assert("  and the same question finds a word that is there", "stock" in COPY);
     // THE DESIGN'S NOUN SINCE #455: a `Tool Items` row is a `tool` in a sentence, so no
     // string here says `tool item` — the opposite of what this held until then, when
     // it failed a bare `item`. Builders called, so a sentence a builder makes is held
@@ -1206,6 +1220,94 @@ export function run({ check, assert, log }) {
     const oldNoun = strings.filter((text) => /\btool items?\b/i.test(text));
     check(`no string says \`tool item\`${oldNoun.length ? ` (${oldNoun.join(" | ")})` : ""}`, oldNoun.length, 0);
     assert("  and the matcher would see one", /\btool items?\b/i.test("140 tool items were named"));
+
+    // ── 10: the host reaches the symbols and nothing else (#454) ────────────
+    log("");
+    log("the host the page reads goes into the symbols and is shown nowhere:");
+    // THE PAGE STILL READS THE HOST, BECAUSE A SYMBOL ENCODES IT. From #353 it also
+    // handed the origin to the sheet component, which printed it above the warning,
+    // and #454 took both off. So what is held is where the reading goes: the host
+    // header is read once, the host only to build the origin, the origin inside
+    // `buildToolItemQR`'s argument and nowhere else, and the sheet component names
+    // neither. Off the AST, because the origin in a symbol and the origin in a
+    // sentence are one string, and no value check can tell where a page put it.
+    //
+    // WHAT IT CANNOT SEE is a host reaching the screen by a path those names do not
+    // take — the builder's own `url` carries it too, and a sheet printing that would
+    // pass. It follows the reading the page makes, not every string the host is in.
+    /** Reads of a binding: a declaration, a property's key and a member's name are not. */
+    const readsOf = (ast, name) => {
+        const notReads = new Set();
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator") notReads.add(n.id);
+            if (n.type === "Property" && !n.computed) notReads.add(n.key);
+            if (n.type === "MemberExpression" && !n.computed) notReads.add(n.property);
+        });
+        const reads = [];
+        walk(ast, (n) => {
+            if (n.type === "Identifier" && n.name === name && !notReads.has(n)) reads.push(n);
+        });
+        return reads;
+    };
+    /** Where a page's origin and host are read: into what they build, or elsewhere. */
+    const hostFlow = (ast) => {
+        let originInit = null;
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id.type === "Identifier" && n.id.name === "origin")
+                originInit = n.init;
+        });
+        const within = (node) => Boolean(originInit) && node.start >= originInit.start && node.end <= originInit.end;
+        const origin = readsOf(ast, "origin");
+        const host = readsOf(ast, "host");
+        return {
+            headerReads: callsTo(ast, "get").filter((call) => call.arguments[0]?.value === "host").length,
+            originIntoSymbols: origin.filter((n) => insideCallTo(ast, n, "buildToolItemQR")).length,
+            originElsewhere: origin.filter((n) => !insideCallTo(ast, n, "buildToolItemQR")).length,
+            hostIntoOrigin: host.filter(within).length,
+            hostElsewhere: host.filter((n) => !within(n)).length,
+        };
+    };
+    const flow = hostFlow(pageAst);
+    check("the page reads the host header once", flow.headerReads, 1);
+    assert(`  its origin goes into the symbols (${flow.originIntoSymbols})`, flow.originIntoSymbols >= 1);
+    check("  and is read nowhere else", flow.originElsewhere, 0);
+    assert(`  the host is read to build it (${flow.hostIntoOrigin})`, flow.hostIntoOrigin >= 1);
+    check("  and for nothing else", flow.hostElsewhere, 0);
+    check(
+        "the sheet component names neither",
+        sheetNames.filter((name) => name === "origin" || name === "host").length,
+        0
+    );
+    // ANTI-VACUITY: a page reading the header a second time, handing its origin to
+    // the sheet as well and printing its host is seen doing all three, beside the
+    // reads that are allowed — so the figures above are facts about the page rather
+    // than about a reader that finds nothing, and the shorthand the builder is handed
+    // counts once. A sheet taking the origin is seen naming it.
+    const plantedFlow = hostFlow(
+        parseSource(
+            'const host = headerList.get("host");\n' +
+                'const shown = headerList.get("host");\n' +
+                "const origin = `http://${host}`;\n" +
+                "const symbol = buildToolItemQR({ origin, toolItemId });\n" +
+                "const page = <main><p>{host}</p><LabelSheet origin={origin} /></main>;\n",
+            "<planted-host-shown>"
+        ).ast
+    );
+    check(
+        "  a page showing the host is seen showing it",
+        `${plantedFlow.headerReads} header reads; ` +
+            `${plantedFlow.originIntoSymbols} into the symbols, ${plantedFlow.originElsewhere} elsewhere; ` +
+            `${plantedFlow.hostIntoOrigin} into the origin, ${plantedFlow.hostElsewhere} elsewhere`,
+        "2 header reads; 1 into the symbols, 1 elsewhere; 1 into the origin, 1 elsewhere"
+    );
+    const plantedSheetNames = [];
+    walk(
+        parseSource("function LabelSheet({ labels, origin }) { return <p>{origin}</p>; }\n", "<planted-sheet>").ast,
+        (n) => {
+            if (n.type === "Identifier") plantedSheetNames.push(n.name);
+        }
+    );
+    assert("  and a sheet taking the origin is seen naming it", plantedSheetNames.includes("origin"));
 }
 
 function round4(value) {

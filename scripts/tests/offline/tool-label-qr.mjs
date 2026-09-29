@@ -362,9 +362,9 @@ export async function run({ check, assert, log }) {
     check("  at the same modules a side", local.sideModules, QR_SIDE_MODULES);
     assert("  so only the payload distinguishes them", local.url !== url && local.url.includes("LOCALHOST"));
 
-    // WHICH LEAVES THE HOST WARNING ON `/tool-items/labels` AS THE DEFENSE, and the
-    // one case where the geometry still tells is the one that needed it least: a
-    // Vercel preview domain is long enough to step a version anyway.
+    // WHICH LEFT THE HOST WARNING ON `/tool-items/labels` AS THE DEFENSE UNTIL #454
+    // TOOK IT OFF, and the one case where the geometry still tells is the one that
+    // needed it least: a Vercel preview domain is long enough to step a version anyway.
     const preview = await buildToolItemQR({ origin: PREVIEW_ORIGIN, toolItemId: id });
     check(`a preview domain is ${preview.url.length} characters`, preview.url.length, 45);
     assert("  past the capacity", preview.url.length > capacity);

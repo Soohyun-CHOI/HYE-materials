@@ -32,14 +32,17 @@ export const metadata = { title: "Print tool labels" };
 // ADDRESS's order, which for a run sent from a tool's page is its list's order (#443);
 // a registration's run arrives that way too since #449.
 //
-// THE HOST IS READ AND SHOWN, AND THAT IS A SAFEGUARD RATHER THAN A DECORATION.
-// A symbol encodes the host it was printed from, so a sheet printed on a preview
-// domain is thirty stickers pointing at somewhere that will stop resolving.
-// docs/notes/tools.md has said not to print a label from a preview host since #340,
-// and until this screen existed that was a rule with nothing to attach to. Naming
-// the host ON THE SCREEN — never on the label — is what puts it in front of the
-// person about to spend a sheet of adhesive stock, and the app is on a Vercel
-// domain today, so it is the live case rather than a hypothetical one.
+// THE HOST IS READ FOR THE SYMBOL AND SHOWN NOWHERE (#454). A symbol encodes the
+// host it was printed from, so a sheet printed on a preview domain is thirty
+// stickers pointing at somewhere that will stop resolving — which is why
+// docs/notes/tools.md has said not to print a label from a preview host since #340.
+// From #353 this screen named the host above the sheet, with a warning under it that
+// it was not the address a label should carry, and the warning showed on every host,
+// since nothing here knows which one is permanent: on the host the app keeps it would
+// be false above every sheet, and before then the reader it would stop is the one who
+// already knows. So both went, and what they guarded is left to that rule rather
+// than to anything on this screen. `offline/tool-label-sheet.mjs` holds that the
+// origin below reaches the symbol and nothing else.
 //
 // NOTHING IS GATED PER ROW. `requireUser()` is #337's decision for the whole axis:
 // no Role, no Job scoping, and no tool item is one reader's rather than another's.
@@ -156,7 +159,7 @@ export default async function ToolLabelSheetPage({ searchParams }) {
                     )}
                 </div>
                 {labels.length > 0 && (
-                    <LabelSheet labels={labels} origin={origin} sideModules={QR_SIDE_MODULES} />
+                    <LabelSheet labels={labels} sideModules={QR_SIDE_MODULES} />
                 )}
             </main>
         );

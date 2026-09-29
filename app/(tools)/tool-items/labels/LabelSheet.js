@@ -58,7 +58,7 @@ function labelStyle({ leftMm, topMm }) {
     };
 }
 
-export default function LabelSheet({ labels, origin, sideModules }) {
+export default function LabelSheet({ labels, sideModules }) {
     const [excluded, setExcluded] = useState(() => new Set());
     const [startPosition, setStartPosition] = useState(1);
 
@@ -93,12 +93,6 @@ export default function LabelSheet({ labels, origin, sideModules }) {
     return (
         <>
             <div className="label-screen-only label-controls">
-                <p>
-                    {COPY.hostLabel} <span className="label-host">{origin}</span>
-                </p>
-                <p>
-                    <strong>{COPY.hostWarningTitle}</strong> {COPY.hostWarning}
-                </p>
                 <p>{COPY.stock({ name: LABEL_STOCK_NAME })}</p>
 
                 {oversized.length > 0 && (
