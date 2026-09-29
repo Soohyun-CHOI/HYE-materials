@@ -201,14 +201,16 @@ export function run({ check, assert, log }) {
     // Literals again, and at the edges the account has: a shortfall of one is the
     // smallest there is and must be written, none must not, and the unlogged ids keep
     // their order. Only a registration passes the fourth argument, so the list's own
-    // addresses are the three-argument ones pinned above.
+    // addresses are the three-argument ones pinned above. `asked` rides with the
+    // shortfall and only with it (#455), so a registration that wrote everything lands
+    // with neither.
     check(
         "a landing that fell short and left one unlogged",
-        toolPath("recAbc", 2, ["HYE-TL-260928-015"], { unwritten: 3, unlogged: ["HYE-TL-260928-015"] }),
-        "/tools/recAbc?page=2&id=HYE-TL-260928-015&unwritten=3&unlogged=HYE-TL-260928-015"
+        toolPath("recAbc", 2, ["HYE-TL-260928-015"], { asked: 4, unwritten: 3, unlogged: ["HYE-TL-260928-015"] }),
+        "/tools/recAbc?page=2&id=HYE-TL-260928-015&asked=4&unwritten=3&unlogged=HYE-TL-260928-015"
     );
-    check("  a shortfall of one is carried", toolPath("recAbc", 1, [], { unwritten: 1 }), "/tools/recAbc?unwritten=1");
-    check("  none is not", toolPath("recAbc", 1, [], { unwritten: 0 }), "/tools/recAbc");
+    check("  a shortfall of one is carried, with what was asked", toolPath("recAbc", 1, [], { asked: 2, unwritten: 1 }), "/tools/recAbc?asked=2&unwritten=1");
+    check("  none is not, and neither is what was asked", toolPath("recAbc", 1, [], { asked: 5, unwritten: 0 }), "/tools/recAbc");
     check(
         "  every unlogged id is carried, in order",
         toolPath("recAbc", 1, [], { unlogged: two }),

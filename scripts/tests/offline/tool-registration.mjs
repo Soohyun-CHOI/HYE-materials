@@ -38,6 +38,13 @@
 // base, so the refusal, the shortfall and the unlogged names are held here as
 // source and as words, and never as a run.
 //
+// AND SINCE #455 THE WORDS ARE THE DESIGN'S, pinned by value — `create` for the act and
+// `tool` for what one creates. The scanner that failed a bare `item` here went with the
+// rule it held: that rule was the tools area's stricter reading of #303, and the design
+// reversed it. What replaces it is the sweep's own claim, that no string in the
+// constant says `tool item`. `offline/tool-screen-words.mjs` holds the verb across
+// every tools screen.
+//
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { normalizeItemText } from "../../../lib/itemNaming.js";
@@ -55,7 +62,7 @@ import { registerPath, toolPath } from "../../../lib/toolRoutes.js";
 import { callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449)";
+export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449, #455)";
 
 /** The action whose redirect section 8 reads, and the form whose state it reads. */
 const ACTION = "app/(tools)/tools/new/actions.js";
@@ -71,7 +78,11 @@ function copyStrings() {
     out.push(TOOL_REGISTRATION_COPY.newTool("Impact Driver"));
     out.push(TOOL_REGISTRATION_COPY.quantityTooMany({ requested: 250, limit: 100 }));
     for (const n of [1, 5]) out.push(TOOL_REGISTRATION_COPY.noneWritten(n));
-    for (const n of [1, 4]) out.push(TOOL_REGISTRATION_COPY.shortfall(n), TOOL_REGISTRATION_COPY.registerOthers(n));
+    out.push(TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }));
+    for (const n of [1, 4]) {
+        out.push(TOOL_REGISTRATION_COPY.shortfall(n));
+        out.push(TOOL_REGISTRATION_COPY.unloggedHeading(n), TOOL_REGISTRATION_COPY.unlogged(n));
+    }
     return out;
 }
 
@@ -83,19 +94,14 @@ function nameOf(node) {
 }
 
 /**
- * Every `item`/`items` in a string that is NOT part of `tool item`.
+ * The noun the design replaced (#455), in any number and case.
  *
- * The tools track's own vocabulary rule: a tool is one `tool item`, never a bare
- * `item`, because four other tables on this base hold item rows and a bare word
- * names a row on all of them. `offline/item-row-nouns.mjs` holds the app-wide
- * rule over screen strings; this holds it inside the one constant, which is where
- * every string on this screen lives.
+ * WHAT IT REPLACED IS THE OPPOSITE RULE. This file failed a bare `item` until #455, as
+ * the tools area's reading of #303; the design put `item` on a tool's own page and
+ * `tool` in every sentence about one, so what a string here may no longer say is the
+ * noun it used to require.
  */
-function bareItemWords(text) {
-    return [...String(text).matchAll(/\b(items?)\b/gi)]
-        .filter((m) => !/tool\s$/i.test(String(text).slice(0, m.index)))
-        .map((m) => m[0]);
-}
+const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
 export function run({ check, assert, log }) {
     // ── 1: two spellings of one name are one key ────────────────────────────
@@ -196,10 +202,13 @@ export function run({ check, assert, log }) {
         strings.filter((s) => /undefined|NaN/.test(s)).length,
         0
     );
-    const bare = strings.flatMap((s) => bareItemWords(s).map(() => s));
+    // THE SWEEP'S CLAIM (#455): the design's noun is `tool`, so nothing here says the
+    // one it replaced. The whole constant, builders called, rather than a list of keys —
+    // a key added later is held without anybody remembering to name it.
+    const oldNoun = strings.filter((s) => TOOL_ITEM_NOUN.test(s));
     check(
-        `no bare \`item\` where the noun is a tool item${bare.length ? ` (${JSON.stringify(bare[0])})` : ""}`,
-        bare.length,
+        `no string says \`tool item\`${oldNoun.length ? ` (${JSON.stringify(oldNoun[0])})` : ""}`,
+        oldNoun.length,
         0
     );
     // THE FORM'S OWN ACCOUNT IS GONE (#449): a registration lands on its tool's page,
@@ -210,52 +219,63 @@ export function run({ check, assert, log }) {
         ["registered", "ids", "shortCount"].filter((key) => key in TOOL_REGISTRATION_COPY).join(", "),
         ""
     );
-    // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's sentence and
-    // its two answers, which pair on the verb — one goes on registering and one ends it —
-    // and the notice, which offers nothing because nothing repairs what it names.
-    check("the fork's sentence", TOOL_REGISTRATION_COPY.shortfall(4), "4 were not written. What was written stays.");
-    check("  singular at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 was not written. What was written stays.");
-    check("  the answer that goes on", TOOL_REGISTRATION_COPY.registerOthers(4), "Register the other 4");
-    check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Done registering");
+    // THE DESIGN'S WORDS (#455), BY VALUE. The form's heading is also `/tools`' control,
+    // so the two are one string; the submit names what it makes.
+    check("the heading, which /tools' control carries", TOOL_REGISTRATION_COPY.heading, "New tools");
+    check("  and the submit", TOOL_REGISTRATION_COPY.submit, "Create tools");
+    // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's two sentences
+    // and its two answers, one going on and one stopping — and the notice, whose one
+    // control dismisses it and repairs nothing, because nothing repairs what it names.
+    check("the fork's first sentence", TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }), "3 of 5 tools created");
+    check("  its second", TOOL_REGISTRATION_COPY.shortfall(2), "2 couldn't be created");
+    check("  at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 couldn't be created");
+    check("  the answer that goes on", TOOL_REGISTRATION_COPY.registerOthers, "Create the rest");
+    check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Not now");
     // THE CONTROL A TOOL'S OWN PAGE OPENS THE FORM FROM (#451), which begins a
     // registration where the fork's first answer finishes one — so it says `more of this
-    // tool` beside `the other N`, and never the heading `/tools` opens the form with.
+    // tool` beside `the rest`, and never the heading `/tools` opens the form with.
     check(
         "the control a tool's page opens the form from",
         TOOL_REGISTRATION_COPY.registerMore,
-        "Register more of this tool"
+        "Create more of this tool"
     );
-    check(
-        "the notice",
-        TOOL_REGISTRATION_COPY.unlogged,
-        "These were written, but their registration was not recorded, so nothing holds the moment they were entered:"
-    );
+    check("the notice", TOOL_REGISTRATION_COPY.unloggedHeading(2), "2 tools have no creation date");
+    check("  at one", TOOL_REGISTRATION_COPY.unloggedHeading(1), "1 tool has no creation date");
+    check("  what it means", TOOL_REGISTRATION_COPY.unlogged(2), "Only the creation date wasn't saved for these");
+    check("  at one", TOOL_REGISTRATION_COPY.unlogged(1), "Only the creation date wasn't saved for this one");
+    check("  and the control that takes it away", TOOL_REGISTRATION_COPY.gotIt, "Got it");
     // A batch that wrote nothing stays on the form, and what it says is true whether the
     // tool was found or made just now.
     check(
         "nothing written",
         TOOL_REGISTRATION_COPY.noneWritten(5),
-        "None of the 5 asked for were written. Registering again writes them under the same tool."
+        "None of the 5 asked for were created. Creating them again puts them under the same tool."
     );
     check(
         "  and at one",
         TOOL_REGISTRATION_COPY.noneWritten(1),
-        "The one asked for was not written. Registering again writes it under the same tool."
+        "The one asked for was not created. Creating it again puts it under the same tool."
     );
-    // `tool item` is decided against appearing while its replacement is open (#378), so
-    // none of the words #449 and #451 wrote says it.
+    // THE SWEEP'S OWN SENTENCES (#455), the ones the design did not draw and the verb and
+    // the noun were carried into. The preview names the tool and what joins it, so the
+    // second takes `These` rather than a second `tool` meaning something else; and the
+    // no-job sentence keeps what the reader can do, which is ask.
     check(
-        "no word #449 or #451 wrote says `tool item`",
-        [
-            TOOL_REGISTRATION_COPY.registerMore,
-            TOOL_REGISTRATION_COPY.shortfall(4),
-            TOOL_REGISTRATION_COPY.registerOthers(4),
-            TOOL_REGISTRATION_COPY.doneRegistering,
-            TOOL_REGISTRATION_COPY.unlogged,
-            TOOL_REGISTRATION_COPY.noneWritten(5),
-            TOOL_REGISTRATION_COPY.noneWritten(1),
-        ].filter((text) => /tool items?/i.test(text)).length,
-        0
+        "the preview for a tool that exists",
+        TOOL_REGISTRATION_COPY.matchesExisting("Impact Driver"),
+        "Impact Driver is already a tool. These join the ones already under it."
+    );
+    check("  and for one that does not", TOOL_REGISTRATION_COPY.newTool("Impact Driver"), "Impact Driver is a tool nobody has created yet.");
+    check("the count left empty", TOOL_REGISTRATION_COPY.quantityMissing, "Say how many tools to create.");
+    check(
+        "  and one past the ceiling",
+        TOOL_REGISTRATION_COPY.quantityTooMany({ requested: 250, limit: 100 }),
+        "250 is more than can be created at once. Create up to 100 at a time and repeat for the rest — they land under the same tool."
+    );
+    check(
+        "a reader on no job",
+        TOOL_REGISTRATION_COPY.noJob,
+        "You are not assigned to a job, so there is no job to create tools against. Ask for a job assignment first."
     );
 
     // ── 6: what the form opens with (#449) ──────────────────────────────────
@@ -308,20 +328,30 @@ export function run({ check, assert, log }) {
     // ── 7: what a landing's account reads as (#449) ─────────────────────────
     log("");
     log("a registration's landing carries what it could not show, and nothing it cannot have:");
-    const unwrittenOf = (raw) => readRegistrationAccount({ unwritten: raw }).unwritten;
-    check("a shortfall of four", unwrittenOf("4"), 4);
-    check("  of one, the smallest there is", unwrittenOf("1"), 1);
-    check("  of ninety-nine, the most a registration that wrote anything can fall short by", unwrittenOf("99"), 99);
-    for (const [raw, why] of [
-        ["100", "the ceiling, which only a registration that wrote nothing could fall short by,"],
-        ["0", "zero"],
-        ["-1", "a negative"],
-        ["1.5", "a fraction"],
-        ["four", "a word"],
-        [["4"], "a repeated key"],
-        [undefined, "nothing"],
+    // A SHORTFALL IS A PAIR SINCE #455: how many were asked for, and how many of those
+    // were not written. `1 ≤ unwritten < asked ≤ the ceiling`, read as one value, since
+    // `3 of 5 tools created` is false the moment either half is.
+    const accountOf = (asked, unwritten) => {
+        const account = readRegistrationAccount({ asked, unwritten });
+        return `${account.asked}/${account.unwritten}`;
+    };
+    check("five asked, two not written", accountOf("5", "2"), "5/2");
+    check("  the smallest shortfall there is, one of two", accountOf("2", "1"), "2/1");
+    check("  and the largest, one written of the most one submission asks for", accountOf("100", "99"), "100/99");
+    for (const [asked, unwritten, why] of [
+        ["5", "5", "none written, which stays on the form rather than landing,"],
+        ["5", "0", "none unwritten, which is no shortfall,"],
+        ["5", "6", "more unwritten than asked for"],
+        ["101", "100", "more asked for than one submission may write"],
+        ["1", "1", "one asked for and not written"],
+        [undefined, "2", "a count with nothing asked beside it"],
+        ["5", undefined, "an asked with no count"],
+        ["5", "1.5", "a fraction"],
+        ["five", "2", "a word"],
+        [["5"], "2", "a repeated key"],
+        ["5", ["2"], "  and a repeated count"],
     ])
-        check(`  ${why} offers nothing`, unwrittenOf(raw), 0);
+        check(`  ${why} offers nothing`, accountOf(asked, unwritten), "0/0");
     check(
         "the unlogged ids read as the selection does, canonical and each once",
         readRegistrationAccount({
@@ -335,15 +365,20 @@ export function run({ check, assert, log }) {
     // off it, and the selection beside it comes through untouched.
     const landed = new URLSearchParams(
         toolPath("recAbc", 2, ["HYE-TL-260928-014", "HYE-TL-260928-015"], {
+            asked: 5,
             unwritten: 3,
             unlogged: ["HYE-TL-260928-015"],
         }).split("?")[1]
     );
-    const readBack = readRegistrationAccount({ unwritten: landed.get("unwritten"), unlogged: landed.getAll("unlogged") });
+    const readBack = readRegistrationAccount({
+        asked: landed.get("asked"),
+        unwritten: landed.get("unwritten"),
+        unlogged: landed.getAll("unlogged"),
+    });
     check(
         "  a landing toolPath writes reads back as the same account",
-        `${readBack.unwritten} ${readBack.unlogged.join()}`,
-        "3 HYE-TL-260928-015"
+        `${readBack.asked} ${readBack.unwritten} ${readBack.unlogged.join()}`,
+        "5 3 HYE-TL-260928-015"
     );
     check("  beside the same selection", landed.getAll("id").join(), "HYE-TL-260928-014,HYE-TL-260928-015");
 
@@ -370,6 +405,12 @@ export function run({ check, assert, log }) {
                         facts.caughtInto = nameOf(inner.callee.object);
                 });
         });
+        // #455: the event each first log row is written with — the vocabulary's key, read
+        // off the call, since a stale key and a spelled string both reach the writer as
+        // an argument and only the argument's source tells them from the right one.
+        const logCall = callsTo(action, "createToolLogEntry")[0];
+        const eventValue = logCall?.arguments[0]?.properties?.find((p) => p.key?.name === "event")?.value;
+        facts.event = eventValue?.type === "Literal" ? JSON.stringify(eventValue.value) : nameOf(eventValue ?? {});
         const redirects = callsTo(action, "redirect");
         facts.redirects = redirects.length;
         const call = redirects[0];
@@ -386,6 +427,7 @@ export function run({ check, assert, log }) {
                 ? `${nameOf(selected.callee.object)} → ${nameOf(selected.arguments[0]?.body ?? {})}`
                 : nameOf(selected ?? {});
         const propertyOf = (name) => account?.properties?.find((p) => p.key?.name === name)?.value;
+        facts.asked = nameOf(propertyOf("asked") ?? {});
         const unwritten = propertyOf("unwritten");
         facts.unwritten =
             unwritten?.type === "BinaryExpression"
@@ -412,11 +454,13 @@ export function run({ check, assert, log }) {
     };
     const land = landingFacts(parseFile(ACTION).ast);
     assert(`${ACTION} declares registerToolItemsAction`, land.found);
+    check("its log pass writes the vocabulary's first event (#455)", land.event, "TOOL_EVENT.CREATED");
     check("it redirects once", land.redirects, 1);
     check("  to a tool's page", land.target, "toolPath");
     check("  the tool upsertTool found or made", `${land.record} from ${land.toolFrom}`, "tool.id from upsertTool");
     check("  on the page holding the first tool item it wrote", land.page, "pageHolding(tool.toolItems.length)");
     check("  selecting every tool item it created, by printed id", land.selected, "created → toolItem.toolItemId");
+    check("  carrying as asked what the submission asked for (#455)", land.asked, "count");
     check("  counting as unwritten what was asked for less what was created", land.unwritten, "count - created.length");
     check("  and naming as unlogged the list its log pass fills on a failure", `${land.unlogged} ${land.caughtInto}`, "unlogged unlogged");
     check("the redirect is outside every try", land.inTry, false);
@@ -435,8 +479,8 @@ export function run({ check, assert, log }) {
                 "    const logged = [];\n" +
                 "    for (const toolItem of created) {\n" +
                 "      try {\n" +
-                "        await createToolLogEntry({});\n" +
-                "        redirect(toolPath(job.id, pageHolding(count), logged, { unwritten: count, unlogged: created }));\n" +
+                "        await createToolLogEntry({ event: 'Registered' });\n" +
+                "        redirect(toolPath(job.id, pageHolding(count), logged, { asked: created.length, unwritten: count, unlogged: created }));\n" +
                 "      } catch { logged.push(toolItem.toolItemId); }\n" +
                 "    }\n" +
                 "    if (created.length === 0) return { error: 'x' };\n" +
@@ -446,9 +490,11 @@ export function run({ check, assert, log }) {
             "<planted-landing>"
         ).ast
     );
+    check("  an event spelled as a string is seen", plantedLanding.event, '"Registered"');
     check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.toolFrom}`, "job.id from getToolByName");
     check("  a page from another figure is seen", plantedLanding.page, "pageHolding(count)");
     check("  a selection of anything but what was created is seen", plantedLanding.selected, "logged");
+    check("  an asked figure that is what was created is seen", plantedLanding.asked, "created.length");
     check("  a shortfall of the whole count is seen", plantedLanding.unwritten, "count");
     check("  an unlogged list the failures do not fill is seen", `${plantedLanding.unlogged} ${plantedLanding.caughtInto}`, "created logged");
     check("  a redirect inside a try is seen", plantedLanding.inTry, true);
@@ -563,15 +609,13 @@ export function run({ check, assert, log }) {
     // The refusal detector is seen to refuse and to admit, since "every bad value
     // is refused" is also what a function returning a refusal always would give.
     assert("a good quantity is NOT refused", readQuantity("7").refusal === null);
-    // The copy scanner is seen finding a planted bare noun, since zero is also
-    // what a broken regex reports.
+    // The noun matcher is seen finding the replaced noun in either number and any case,
+    // and passing the design's, since zero is also what a broken regex reports.
+    assert("the noun matcher finds `tool items`", TOOL_ITEM_NOUN.test("Say how many tool items to register."));
+    assert("  and `Tool item`", TOOL_ITEM_NOUN.test("Tool item not found"));
     assert(
-        "the copy scanner finds a planted bare `item`",
-        bareItemWords("Every item on this purchase order.").length === 1
-    );
-    assert(
-        "  and does not flag `tool item` or `tool items`",
-        bareItemWords("These tool items and that tool item.").length === 0
+        "  and passes the design's `tools` and `items`",
+        !TOOL_ITEM_NOUN.test("Say how many tools to create.") && !TOOL_ITEM_NOUN.test("13 items")
     );
     assert("the ceiling is a positive whole number", Number.isInteger(MAX_TOOL_ITEMS_PER_REGISTRATION) && MAX_TOOL_ITEMS_PER_REGISTRATION > 0);
 }

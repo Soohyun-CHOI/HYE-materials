@@ -38,9 +38,9 @@ const PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
 
 export const title = "What one tool item's page shows (#340)";
 
-/** A row with every fact filled, which is what registration actually writes. */
+/** A row with every fact filled, which is what creating a tool item actually writes. */
 const FULL_ROW = {
-    event: TOOL_EVENT.REGISTERED,
+    event: TOOL_EVENT.CREATED,
     eventAt: "2026-09-09T15:14:26.537Z",
     recordedByName: "scoped-fixture",
     jobCode: "26-DEMO-01",
@@ -52,18 +52,14 @@ const keysOf = (row) => logRowFacts(row).map((fact) => fact.key);
 const copyStrings = () => Object.values(TOOL_ITEM_COPY).filter((v) => typeof v === "string");
 
 /**
- * Every `item`/`items` in a string that is not part of `tool item`.
+ * The noun the design replaced (#455), in any number and case.
  *
- * The tools track's own rule: one physical tool is a `tool item` and never a bare
- * `item`, because four other tables on this base hold item rows.
- * `offline/item-row-nouns.mjs` holds the app-wide version over screen strings;
- * this holds it inside the one constant every string on this screen comes from.
+ * THIS FILE HELD THE OPPOSITE RULE UNTIL THEN, failing a bare `item` as the tools
+ * area's reading of #303. The design says `tool` in every sentence about one, so what
+ * a string here may no longer say is the noun it used to require — with one string
+ * left saying it on purpose, below.
  */
-function bareItemWords(text) {
-    return [...String(text).matchAll(/\b(items?)\b/gi)].filter(
-        (m) => !/tool\s$/i.test(String(text).slice(0, m.index))
-    );
-}
+const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
 export function run({ check, assert, log }) {
     // ── 1: the order, which is the reading order of a row ───────────────────
@@ -84,12 +80,12 @@ export function run({ check, assert, log }) {
     check(
         "and the values are the ones handed in",
         logRowFacts(FULL_ROW).filter((f) => f.key !== "eventAt").map((f) => f.value).join(" / "),
-        "Registered / 26-DEMO-01 / scoped-fixture"
+        "Created / 26-DEMO-01 / scoped-fixture"
     );
 
     // ── 2: nothing drops, and no fifth arrives ─────────────────────────────
     // THERE WAS A FIFTH UNTIL #363 AND IT WENT WITH ITS FIELD. `Notes` was
-    // optional, absent on a `Registered` row, and omitted rather than drawn
+    // optional, absent on a first row, and omitted rather than drawn
     // empty; `Tool Log."Notes"` is deleted from the base, so the pair, the
     // drops-when-blank rule and the assertions holding it went together. What
     // replaces them is the opposite claim: a row this function is handed extra
@@ -173,18 +169,28 @@ export function run({ check, assert, log }) {
     const strings = copyStrings();
     assert(`the constant holds ${strings.length} strings`, strings.length >= 10);
     check("none is empty", strings.filter((s) => !s.trim()).length, 0);
-    const bare = strings.filter((s) => bareItemWords(s).length > 0);
+    // THE SWEEP'S CLAIM (#455), AND ITS ONE REMAINDER NAMED BY VALUE. The not-found
+    // heading is the design's to rewrite — its replacement named the least likely
+    // cause — so it is the one string here still saying the replaced noun. Pinned as
+    // the whole list rather than excused: when the design answers, this fails and the
+    // expected value becomes nothing.
     check(
-        `no bare \`item\` where the noun is a tool item${bare.length ? ` (${JSON.stringify(bare[0])})` : ""}`,
-        bare.length,
-        0
+        "the one string still saying `tool item` is the not-found heading, left for the design",
+        strings.filter((s) => TOOL_ITEM_NOUN.test(s)).join(" | "),
+        "Tool item not found"
+    );
+    check("  and the symbol's alt, which no screen draws, takes the design's `tool`", TOOL_ITEM_COPY.symbolAlt, "QR label for this tool");
+    check(
+        "  as the empty history does",
+        TOOL_ITEM_COPY.noHistory,
+        "Nothing has been recorded against this tool, so nothing holds when it was created."
     );
     // The two sentences this screen owns that no other screen has. The first is
     // #338's reachable state — a tool item written whose first log row was not —
     // and it says what is missing rather than that something failed.
     assert(
         "the empty-history sentence names what is lost",
-        TOOL_ITEM_COPY.noHistory.includes("came into existence")
+        TOOL_ITEM_COPY.noHistory.includes("was created")
     );
     assert(
         "the not-found heading names a tool item",
@@ -383,11 +389,12 @@ export function run({ check, assert, log }) {
         ""
     );
 
-    // The words, and the one that is a VISIBLE ATTRIBUTE so it may not be a literal
-    // in the JSX — `offline/tool-list-view.mjs` fails an `alt` on this axis, and it
-    // doubles as what a reader sees when a symbol cannot load.
+    // The words, and the one written for a VISIBLE ATTRIBUTE, which may not be a
+    // literal in the JSX — `offline/tool-list-view.mjs` fails an `alt` on this axis.
+    // No screen draws it: the symbol is inline markup with no `alt`, which #455 found
+    // in a browser (see lib/toolItemView.js).
     assert("the section names the label", TOOL_ITEM_COPY.labelHeading === "Label");
-    assert("the alt names the thing rather than the picture", TOOL_ITEM_COPY.symbolAlt.includes("tool item"));
+    assert("the alt names the thing rather than the picture", TOOL_ITEM_COPY.symbolAlt.includes("this tool"));
     assert("and the printed-size note says so", TOOL_ITEM_COPY.printedSizeNote.includes("prints"));
     // Its place is taken when the symbol does not fit the stock (#453), and the words
     // name the host for the reason the sheet's own sentence does.
@@ -420,8 +427,8 @@ export function run({ check, assert, log }) {
     assert("the key reader follows the returned order", keysOf(FULL_ROW)[0] === "event" && keysOf(FULL_ROW)[2] === "job");
     // The copy scanner is seen finding a planted bare noun, since zero is also
     // what a broken matcher reports.
-    assert("the copy scanner finds a planted bare `item`", bareItemWords("Every item on this order.").length === 1);
-    assert("  and does not flag `tool item` or `tool items`", bareItemWords("This tool item and those tool items.").length === 0);
+    assert("the noun matcher finds `tool item`", TOOL_ITEM_NOUN.test("QR label for this tool item"));
+    assert("  and passes the design's `tool`", !TOOL_ITEM_NOUN.test(TOOL_ITEM_COPY.symbolAlt));
 }
 
 if (isMain(import.meta.url)) await standalone(title, run);

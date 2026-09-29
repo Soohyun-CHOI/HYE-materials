@@ -105,7 +105,7 @@ confirmation in this app that IS a dialog is for something that cannot be undone
 — a withdrawal, a deletion. A check-out is undone by the check-in the same
 control offers a moment later.
 
-**action.** `Retire this tool item`, which opens a dialog and is the second and
+**action.** `Retire this tool`, which opens a dialog and is the second and
 last control on the page. It is offered from `In Stock` and from `Out` alike —
 a tool that broke on a site is retired from there, and requiring a check-in
 first would put an event in the history that did not happen.
@@ -115,7 +115,7 @@ STOP THEM.** One of them is pressed dozens of times a day and the other is that
 tool item's last. The first difference is structural: the transition control
 SUBMITS, so pressing it records; this one OPENS, so pressing it does nothing
 until a second press inside the dialog. The second is the wording: `Check out`
-names no object and `Retire this tool item` does. **A design may do anything
+names no object and `Retire this tool` does. **A design may do anything
 else it likes with them and may not undo either of those** — in particular it
 may not make the retire control a one-press submit, and it may not put the two
 at a size and prominence that says they are the same kind of act.
@@ -133,8 +133,9 @@ as harmless, because the first guard only helps somebody who stops and reads.
 What placement is actually for is making the mis-press less likely in the first
 place, and that is worth doing on its own terms rather than as a rescue.
 
-**What the dialog carries**, in this order: the heading `Retire this tool
-item?`, an account of what becomes true, and the two ways out. The account is
+**What the dialog carries**, in this order: the heading `Retire this tool?`, an
+account of what becomes true, and the two ways out, `Retire tool` and `Cancel`
+— the confirm names what it retires, as the opener does (#455). The account is
 three facts and an ending — the tool item stops counting as something the
 company holds, nothing more can be recorded against it, its row and its whole
 history stay, and `This cannot be undone.` **That account is the point of the
@@ -207,6 +208,14 @@ a preview of the physical object, which is the whole reason it is on this screen
 A design may change how it is presented and where it sits; if it changes the size,
 the line saying it is printed size has to go with it.
 
+**It has no accessible name, and no word for one reaches this screen (#455).** The
+census of this page's strings lists `QR label for this tool`, because the page
+imports the constant that holds it, but nothing draws it: the symbol is inline
+markup with no `alt`, and read in a browser it carries no `role`, no `aria-label`
+and no `title`. Whether it should be named by those words or hidden, since the
+heading already carries the id, is undecided — so a design must not draw room for
+the string, and naming the symbol is a decision about the page rather than a word.
+
 **action.** A control that prints this tool item's label. It leads to the label
 sheet screen carrying this one tool item, rather than printing from here — that
 screen owns the sheet layout and the position on the sheet to start at, and
@@ -223,6 +232,15 @@ one printing a label for the first time.
 Each entry carries four facts and always all four — the event, when it
 happened, the job it happened on, and who recorded it. **There is no fifth and
 nothing is ever absent**, so a design does not need a shape for a missing one.
+
+**The event is printed as the base stores it: `Created`, `Checked Out`,
+`Checked In` or `Retired` (#455).** The first is the design's word and was
+`Registered` until then; the base renamed the value in place, so every entry
+that said `Registered` says `Created`, and none says the old word. **The case is
+the base's**, which is every select value's on every screen in this app — `In
+Stock`, `In Review`, `Sent to Vendor` — so the design's `Checked out` and
+`Checked in` read `Checked Out` and `Checked In` here. Setting select values in
+sentence case would be a decision for every screen at once, not for this one.
 
 **The instant renders as a date and a time to the minute**, in the same five parts
 the request detail's history uses — the only other history in the app. **This was
@@ -317,9 +335,8 @@ recorded. A blank in any of the five reads the same way: a defect upstream,
 shown rather than hidden.
 
 **When the tool item has no history at all:** one sentence in place of the
-entries, opening
-`Nothing has been recorded against this tool item` and going on to say that
-nothing holds when it came into existence. **This is reachable and is not an
+entries, `Nothing has been recorded against this tool, so nothing holds when it
+was created.` **This is reachable and is not an
 error state.** Registration writes the tool item and then its first log row, and
 a failure between the two leaves exactly this; the row is sound, with its id,
 its status and its job. There is no repair, because a log row written later
@@ -397,11 +414,15 @@ up again — so **a check-in on a different job from the check-out above it is a
 true record of a tool changing site**, and a retirement always matching the row
 above it is what keeps that reading available.
 
-**`Tool` and `tool item` are the two nouns, and they are not interchangeable.**
-A `Tools` row is a tool — the kind, the name somebody typed once. A `Tool Items`
-row is a tool item — this object, with this printed id. Six of one drill is one
-tool and six tool items. Never a bare `item`: four other tables on this base
-hold item rows.
+**The two tables are not interchangeable, and the screen names them the
+design's way (#455).** A `Tools` row is a tool — the kind, the name somebody
+typed once, which this page labels `Tool`. A `Tool Items` row — this object,
+with this printed id, which this brief calls a tool item — is a `tool` in every
+sentence about it: `Retire this tool`, `This tool is Retired, …`, `This tool was
+last scanned on …`. Six of one drill is one tool and six tools under it, counted
+as items on the tool's own page. **The one sentence here that still says `tool
+item` is the not-found heading**, which the design is rewriting; the brief quotes
+it as it stands.
 
 **The symbol here and a symbol on the sheet are the same object at the same size,
 and that is measured rather than intended.** Both screens read one module size

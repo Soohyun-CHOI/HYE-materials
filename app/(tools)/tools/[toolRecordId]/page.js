@@ -8,6 +8,7 @@ import { TOOL_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/toolRegis
 import { TOOLS_PATH, registerPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import RegistrationShortfall from "./RegistrationShortfall";
+import RegistrationUnlogged from "./RegistrationUnlogged";
 import ToolItemList from "./ToolItemList";
 
 // Static, the way `/materials/[materialId]` is and for the same reason: the
@@ -56,16 +57,17 @@ export const metadata = { title: "Tool" };
  *
  * AND WHATEVER A REGISTRATION LANDS WITH (#449). A registration arrives here with what
  * it wrote selected, and its address carries two things more when they happened: how
- * many were asked for and not written, and which of those written have no
- * `Registered` row. This page DOES read those, off the address and for nothing. A box
- * or a step writes an address without them rather than a different value of them (see
- * `toolPath`), and the one control that removes one, the fork's dismissal, hides what
- * it removes — so the address never holds a different account from the one this
- * render drew, at most none, which is what makes a server read correct here and wrong
+ * many were asked for and not written — with how many were asked for beside it since
+ * #455 — and which of those written have no first log row. This page DOES read those,
+ * off the address and for nothing. A box or a step writes an address without them
+ * rather than a different value of them (see `toolPath`), and the two controls that
+ * remove them, the fork's `Not now` and the notice's `Got it`, each hide what they
+ * remove — so the address never holds a different account from the one this render
+ * drew, at most less of it, which is what makes a server read correct here and wrong
  * for the selection. The selection is the arrival's whole confirmation and nothing
- * here repeats it (#321); these are what it cannot show. The notice is drawn here and
- * the fork is `RegistrationShortfall.js`, whose header says why its dismissal edits
- * the address on the client.
+ * here repeats it (#321); these are what it cannot show. The fork is
+ * `RegistrationShortfall.js` and the notice `RegistrationUnlogged.js`, whose headers
+ * say why each dismissal edits the address on the client.
  *
  * AND IT IS WHERE SOMEBODY REGISTERS MORE OF THIS TOOL (#451). One control opens the
  * registration form with this tool's name filled in and no count — nothing here knows
@@ -131,7 +133,7 @@ async function renderToolPage({ params, searchParams }) {
     ]);
 
     const jobCodeById = Object.fromEntries(jobs.map((job) => [job.id, job.jobCode]));
-    const account = readRegistrationAccount({ unwritten: sp.unwritten, unlogged: sp.unlogged });
+    const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
 
     return (
         <div>
@@ -151,23 +153,18 @@ async function renderToolPage({ params, searchParams }) {
                 <>
                     {/* A registration's account, which only a list with rows in it can
                         carry: one that wrote nothing stays on the form (#449). The fork
-                        carries two controls and the notice none, which is the difference
-                        between a choice and a fact nothing repairs; they stand apart, and
-                        the fork's count never includes the notice's tool items, which
-                        were written. */}
+                        asks a question and the notice states a fact nothing repairs, so
+                        the fork's two controls answer it and the notice's one only takes
+                        it away (#455); they stand apart, and the fork's count never
+                        includes the notice's tool items, which were written. */}
                     {account.unwritten > 0 && (
-                        <RegistrationShortfall toolName={tool.toolName} unwritten={account.unwritten} />
+                        <RegistrationShortfall
+                            toolName={tool.toolName}
+                            asked={account.asked}
+                            unwritten={account.unwritten}
+                        />
                     )}
-                    {account.unlogged.length > 0 && (
-                        <div>
-                            <p>{TOOL_REGISTRATION_COPY.unlogged}</p>
-                            <ul>
-                                {account.unlogged.map((toolItemId) => (
-                                    <li key={toolItemId}>{toolItemId}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
+                    {account.unlogged.length > 0 && <RegistrationUnlogged toolItemIds={account.unlogged} />}
 
                     <p>{COPY.total(page.total)}</p>
 

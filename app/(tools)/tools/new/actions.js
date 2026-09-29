@@ -35,12 +35,13 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * item redirects to its tool's page, on the page of that list holding the first tool
  * item it wrote, with every one it wrote selected — so the ids survive a reload and
  * their labels are one press of that page's print control. The address also carries
- * the two things the landing cannot show: how many were asked for and not written,
- * and which of those written have no `Registered` row (`toolPath`'s fourth argument,
- * read back by `readRegistrationAccount`). Both halves of the address were in hand
- * without a read: `upsertTool` returns the row it found or made, and that row's
- * `Tool Items` array is the one it had before this batch, so its length is the
- * position the first new tool item takes.
+ * the two things the landing cannot show: how many were asked for and not written —
+ * with how many were asked for beside it, since #455's `3 of 5 tools created` needs
+ * both — and which of those written have no `Created` row (`toolPath`'s fourth
+ * argument, read back by `readRegistrationAccount`). Both halves of the address
+ * were in hand without a read: `upsertTool` returns the row it found or made, and
+ * that row's `Tool Items` array is the one it had before this batch, so its length
+ * is the position the first new tool item takes.
  *
  * THE JOB IS NEVER TAKEN FROM THE FORM'S WORD FOR IT. What arrives is a Job
  * record id, and it is admitted only if `assignedJobsFor` returns a job with
@@ -54,7 +55,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * log row inside the batch would nest two `withKeyLock` calls — the thing
  * CLAUDE.md's concurrency section forbids, and the reason lib/materialsCache.js
  * takes its two locks in sequence. The cost of obeying it is that a failure in
- * the log pass can leave more than one tool item without a `Registered` row, and
+ * the log pass can leave more than one tool item without a `Created` row, and
  * the landing names those separately.
  *
  * NOTHING ROLLS BACK. `createToolItems`' own header carries the argument: undoing
@@ -110,7 +111,7 @@ export async function registerToolItemsAction(prevState, formData) {
         // that registering again writes these under it.
         if (created.length === 0) return { error: TOOL_REGISTRATION_COPY.noneWritten(count) };
 
-        // The `Registered` row is this action's to write — `createToolItems`
+        // The `Created` row is this action's to write — `createToolItems`
         // creates the tool item and its cached `Status` and says so. One row per
         // tool item that was actually created, and a failure STOPS the pass
         // rather than trying the rest, which is `createToolItems`' own posture
@@ -129,7 +130,7 @@ export async function registerToolItemsAction(prevState, formData) {
                 await createToolLogEntry({
                     toolItemRecordId: toolItem.id,
                     toolItemId: toolItem.toolItemId,
-                    event: TOOL_EVENT.REGISTERED,
+                    event: TOOL_EVENT.CREATED,
                     jobRecordId: job.id,
                     recordedByUserId: user.id,
                 });
@@ -145,7 +146,7 @@ export async function registerToolItemsAction(prevState, formData) {
                 tool.id,
                 pageHolding(tool.toolItems.length),
                 created.map((toolItem) => toolItem.toolItemId),
-                { unwritten: count - created.length, unlogged }
+                { asked: count, unwritten: count - created.length, unlogged }
             )
         );
     });

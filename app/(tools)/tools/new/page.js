@@ -10,7 +10,10 @@ import {
 import { withOpsLabel } from "@/lib/airtableOps";
 import ToolRegistrationForm from "./ToolRegistrationForm";
 
-export const metadata = { title: "Register tool items" };
+// The form's own heading, read from its constant rather than spelled a second time: the
+// tab said `Register tool items` in a literal of its own until #455 took the design's
+// word, and a second copy is the one a sweep misses.
+export const metadata = { title: COPY.heading };
 
 /**
  * The tools track's first write screen (#338), and the first screen on this base

@@ -10,9 +10,12 @@ drawn first and the phone is what it folds into.
 Which units of this tool exist, and where is each of them?
 
 **One row per physical object.** A `Tools` row is a `tool` — the kind, the
-name somebody typed once — and each row here is a `tool item`, one drill
-with one printed id stuck to it. Six of one drill is one tool and six tool
-items.
+name somebody typed once — and each row here is one drill with one printed
+id stuck to it, a `Tool Items` row, which this brief calls a tool item.
+**The screen calls each one an `item`, the design's (#455)**: it counts
+`13 items` and heads their column `Item`, and a sentence about one elsewhere
+calls it a `tool`. Six of one drill is one tool and six items on this
+screen.
 
 **It is reached from the tool list, and a registration lands on it (#449).**
 The tool item's own screen is the one a machine opens; this one is opened by a
@@ -41,7 +44,7 @@ four document detail screens take with theirs.
 screen carries for the same trip.
 
 **action.** A control that opens the registration form with this tool's name
-filled in, `Register more of this tool` (#451). Buying more of a tool the
+filled in, `Create more of this tool` (#451, #455). Buying more of a tool the
 company already has is the same registration as buying the first, and the
 form puts them under this tool because the name finds it — so somebody who
 knows which tool they bought starts here rather than typing its name again.
@@ -56,9 +59,9 @@ screen has for them, as they would from `/tools`.
 **It is not one of the answers a registration that fell short offers, and a
 design must not draw it as one.** Those two are a pair about the registration
 the reader has just made (below); this one begins another. When both are on
-the screen they open one form — `Register the other 3` with the count that
-was not written, this one with none — and `Done registering` takes the pair
-away and leaves this standing.
+the screen they open one form — `Create the rest` with the count that was not
+written, this one with none — and `Not now` takes the pair away and leaves
+this standing.
 
 **action.** A box on every entry and one for the page, and together they say
 **which tool items a label run is for** (#443). An entry's box selects that tool
@@ -83,7 +86,7 @@ press would send: how many are selected — `3 selected` — or, when nothing is
 why the control does not act (below). The words name no noun for what is
 selected; see below.
 
-**evidence.** How many tool items this tool has in total. #326 names this
+**evidence.** How many tool items this tool has in total, `13 items`. #326 names this
 as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
@@ -118,30 +121,34 @@ selection is what says it (#321; `_shared.md`, "The arrival is the
 confirmation"). What the registration could not do is said by the next two
 entries, and only when it happened.
 
-**When the registration wrote fewer than were asked for:** one sentence saying
-how many were not written and that what was written stays — `3 were not
-written. What was written stays.` — and two controls that answer it. `Register
-the other 3` opens the registration form with this tool's name and that count
-filled in, both still the reader's to change there. `Done registering` removes
-the sentence and both controls. **The two are a pair, and the pairing is what
-says what the choice is about**: one goes on registering and the other ends it,
-so neither can be read as being about the entry below. It is a choice rather
-than a confirmation dialog — `Done registering` acts on nothing in the base.
+**When the registration wrote fewer than were asked for:** two sentences, the
+design's (#455) — how many of how many were created, `3 of 5 tools created`,
+and how many were not, `2 couldn't be created` — and two controls that answer
+them. `Create the rest` opens the registration form with this tool's name and
+the count that was not written filled in, both still the reader's to change
+there. `Not now` removes the sentences and both controls. **The two are a pair,
+and the pairing is what says what the choice is about**: one goes on creating
+and the other ends it, so neither can be read as being about the entry below.
+It is a choice rather than a confirmation dialog — `Not now` acts on nothing in
+the base. The first sentence always says `tools`: a shortfall has at least one
+created and one not, so what was asked for is at least two.
 
-**When some of what it wrote has no recorded registration:** one sentence —
-`These were written, but their registration was not recorded, so nothing holds
-the moment they were entered:` — and their ids. **Nothing is offered, because
-nothing repairs them**: a late registration row would state a time that is not
-when they were entered, and what is lost is the moment somebody entered the
-tool rather than the moment it was bought. They are also in the list as ordinary
-entries, selected with the rest, because they were written and need labels.
-**A design must not fold this sentence into the list**, which would read them as
-registered cleanly, **nor draw it the way the entry above is drawn**, since
-there is nothing to choose. It can name a tool item on another page of the list.
+**When some of what it wrote has no first history entry:** two sentences —
+`2 tools have no creation date` and `Only the creation date wasn't saved for
+these` (`1 tool has no creation date`, `… for this one` at one) — then their
+ids, then one control, `Got it` (#455). **Nothing is offered that repairs them,
+because nothing does**: a late history entry would state a time that is not when
+they were created. `Got it` takes the notice away and nothing else — it answers
+no question, which is what still sets it apart from the entry above. They are
+also in the list as ordinary entries, selected with the rest, because they were
+written and need labels. **A design must not fold this notice into the list**,
+which would read them as created cleanly, **nor draw it the way the entry above
+is drawn**, since there is nothing to choose. It can name a tool on another page
+of the list.
 
-**When both happened:** both stand, each whole. The count the first gives does
-not include the second's tool items, which were written. `Done registering`
-answers the first alone, and the second stays.
+**When both happened:** both stand, each whole. The counts the first gives do
+not include the second's tools, which were written. `Not now` answers the first
+alone and `Got it` the second alone, so either can go and leave the other.
 
 **A step to the previous page**, when this is not the first one, and **a
 step to the next**, when this is not the last. Each is absent at its own
@@ -183,8 +190,8 @@ a hundred tool items, selected across pages.
 
 **When the tool has no tool items at all:** one sentence in place of the
 entries, `Nothing is recorded under this tool.` and then why that can
-happen — a registration writes the tool before it writes the tool items,
-so one that failed in between leaves the tool with none. **This is
+happen — `Creating writes the tool before its items, so one that failed in
+between leaves the tool with none.` **This is
 reachable and is not an error state**, the same way the tool item screen's
 missing history is: nothing rolls back, and the row that stands is sound.
 The total, the page position, the boxes and the print control are absent
@@ -229,17 +236,17 @@ the tool. **A registration's arrival is such an address (#449)**: it carries
 what the registration wrote, which is why what it wrote survives a reload.
 
 **A registration's account rides beside the selection on the address it lands
-on, and on no other (#449).** It is the two entries above — how many were not
-written, and which have no recorded registration — and neither is a
-confirmation: the selection is the confirmation, and these are what it cannot
-show, the way the invoice screen says how a delivery was matched to it (#231).
-A reload of that address repeats both, which is true — nothing repairs a missing
-registration, and the choice stands until it is answered — and `Done
-registering` takes the first out of the address. **Every address the list
-itself writes carries the selection alone**, so the reader's first press of a
-box or step to another page leaves both behind; what is on the screen stays
-until the next page is opened. A copied address carrying them shows them to
-whoever opens it.
+on, and on no other (#449).** It is the two entries above — how many were asked
+for and how many of those were not written, and which have no first history
+entry — and none of it is a confirmation: the selection is the confirmation,
+and these are what it cannot show, the way the invoice screen says how a
+delivery was matched to it (#231). A reload of that address repeats both, which
+is true — nothing repairs a missing entry, and the choice stands until it is
+answered — until `Not now` takes the first out of the address and `Got it` the
+second. **Every address the list itself writes carries the selection alone**,
+so the reader's first press of a box or step to another page leaves both
+behind; what is on the screen stays until the next page is opened. A copied
+address carrying them shows them to whoever opens it.
 
 **The label screen still asks which labels to print, and that is not a second
 selection.** Arriving from here, every tool item this selection names starts
@@ -256,11 +263,10 @@ different things because they open it differently: `/tools`' own carries the
 form's heading and opens it on no tool, this screen's opens it on this tool,
 and the fork's opens it on this tool and a count.
 
-**No word the selection adds names what is selected.** `tool item` is decided
-against appearing with its replacement not yet chosen, and a bare `item` names
-a row of four other tables, so the selection's words say neither — the way
-the document lists' pickers say `N selected`. The column head below is the
-older word and is untouched here.
+**No word the selection adds names what is selected** — the way the document
+lists' pickers say `N selected`. It was written while `tool item` was decided
+against appearing with its replacement not yet chosen; #455 chose it, `item` on
+this screen, and the selection's words needed nothing from it.
 
 **The status shown here is the same value the tool list counts.**
 `Tool Items."Status"` is maintained by the app rather than computed on
@@ -279,10 +285,13 @@ here would mean reading every tool item under the tool, which is the cost
 the paging exists to avoid — this page reads only the entries it draws,
 whatever the tool's size.
 
-**`Tool item` keeps its modifier where `Status` and `Job` do not.** Four
-other tables on this base hold item rows, so a bare `item` names four
-things; `Status` and `Job` name one field each and are the words the tool
-item's own screen already uses for them.
+**The column over each code is `Item`, beside `Status` and `Job` (#455).** It
+said `Tool item` until then, on the ground that four other tables on this base
+hold item rows and a bare `item` names four things — stricter than the app's
+own rule, under which the modifier drops where nothing on the screen offers a
+second kind of item row. No tools screen shows a request's, an order's, an
+invoice's or a delivery's. `Status` and `Job` name one field each and are the
+words the tool item's own screen already uses for them.
 
 **Every id here links to `/tool-items/[toolItemId]`, and this is where a
 registration's ids are listed (#449).** The registration form listed them

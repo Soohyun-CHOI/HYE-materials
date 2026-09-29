@@ -1119,11 +1119,15 @@ export function run({ check, assert, log }) {
     // what it wrote selected, so the opener its own answer carried went with the answer
     // and the empty address points at that page alone.
     check("no opener is left for a registration's answer", "openFromRegistration" in COPY, false);
+    // `Nothing` since #455, where it said `No tool item`: the design's noun is `tool`,
+    // and this sentence also names a tool's own page, so a first `tool` meaning one
+    // of its tools would have one word standing for two things in it.
     check(
         "  and the empty address says where a run is chosen",
         COPY.noneRequested,
-        "No tool item was named to print. Open this from a tool's own page."
+        "Nothing was named to print. Open this from a tool's own page."
     );
+    check("  and an address naming none this base holds", COPY.noneFound, "None of those tools exists.");
     // NO RANGE IN ITS WORDS SINCE #443: the boxes and the count beside it show what it
     // sends. It read `…for the tool items on this page` while it sent the page.
     check("the control on a tool", COPY.openFromTool, "Print labels");
@@ -1181,7 +1185,7 @@ export function run({ check, assert, log }) {
     check(
         "over the cap",
         COPY.overCap({ requested: 140, cap: MAX_LABELS_PER_REQUEST }),
-        "140 tool items were named and this prints 100 at a time, so the first 100 are below."
+        "140 tools were named and this prints 100 at a time, so the first 100 are below."
     );
     check(
         "an id the base does not hold",
@@ -1189,12 +1193,19 @@ export function run({ check, assert, log }) {
         "Not on this base, so no label is offered for HYE-TL-260909-014."
     );
     assert("the host warning names the risk rather than the mechanism", COPY.hostWarning.includes("printed from"));
-    // The screen words are `tool` and `tool item`, never a bare `item` — #303's rule,
-    // which on this axis is four other tables' worth of item rows.
-    const strings = Object.values(COPY).filter((value) => typeof value === "string");
-    const bareItem = strings.filter((text) => /\bitems?\b/.test(text) && !/\btool items?\b/.test(text));
-    check(`no string says a bare item${bareItem.length ? ` (${bareItem.join(" | ")})` : ""}`, bareItem.length, 0);
-    assert("  and the matcher would see one", /\bitems?\b/.test("every item on this sheet"));
+    // THE DESIGN'S NOUN SINCE #455: a `Tool Items` row is a `tool` in a sentence, so no
+    // string here says `tool item` — the opposite of what this held until then, when
+    // it failed a bare `item`. Builders called, so a sentence a builder makes is held
+    // as well as a plain string.
+    const strings = [
+        ...Object.values(COPY).filter((value) => typeof value === "string"),
+        COPY.overCap({ requested: 140, cap: MAX_LABELS_PER_REQUEST }),
+        COPY.missing({ toolItemIds: ["HYE-TL-260909-014"] }),
+        COPY.symbolTooLarge({ toolItemIds: ["HYE-TL-260909-014"] }),
+    ];
+    const oldNoun = strings.filter((text) => /\btool items?\b/i.test(text));
+    check(`no string says \`tool item\`${oldNoun.length ? ` (${oldNoun.join(" | ")})` : ""}`, oldNoun.length, 0);
+    assert("  and the matcher would see one", /\btool items?\b/i.test("140 tool items were named"));
 }
 
 function round4(value) {
