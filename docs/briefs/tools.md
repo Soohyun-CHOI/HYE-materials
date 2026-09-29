@@ -10,12 +10,16 @@ drawn first and the phone is what it folds into.
 How many of each kind of tool does the company have, and how many of them
 are out?
 
-**A `Tools` row is a `tool` — the kind of tool, the name somebody typed
-once — and a `Tool Items` row is a `tool item`, one physical object
-carrying a printed id.** #338 settled that pair. Six of one drill is one
-tool and six tool items, and this screen has one row per tool. This brief
-said "tool kinds" before that issue, which would have invited `Kind` as a
-word on the screen; the word is `tool`.
+**A `Tools` row is a tool — the kind of tool, the name somebody typed
+once — and a `Tool Items` row is one physical object carrying a printed
+id.** #338 settled the pair and this brief calls the second a `tool item`,
+which is the base's word for it. **The screens call it what the design
+does (#455)**: a `tool` in any sentence about one — `Create tools`,
+`Retire this tool` — and an `item` where a tool's own screen counts what is
+under it. So six of one drill is one tool, six items on its screen, and a
+tool in every sentence about any one of them; this screen has one row per
+tool. This brief said "tool kinds" before #338, which would have invited
+`Kind` as a word on the screen; the word is `tool`.
 
 **The question is about the fleet rather than about any one tool**, which
 is why a row carries three counts and no total. A reader looking for one
@@ -41,9 +45,10 @@ same rule that makes the other list screens `Purchase Requests`,
 
 **action.** The control that opens the registration form at `/tools/new`,
 carrying that form's own heading as its word so the two cannot drift
-(#338). Every other list screen in the app opens its create form the same
-way. It is above the list rather than inside it, because the reader with
-no tools at all is the one who needs it most.
+(#338) — `New tools`, the design's (#455). Every other list screen in the
+app opens its create form the same way. It is above the list rather than
+inside it, because the reader with no tools at all is the one who needs it
+most.
 
 **evidence.** One row per tool, ordered by name. The name is the row's
 identity and is the way into that tool's own screen.
@@ -67,9 +72,8 @@ A design that adds the three together is making that choice.
 ## What it carries only sometimes
 
 **When there are no tools at all:** one sentence in place of the rows,
-`No tools yet.` and then how one comes to exist — somebody registering
-tool items of it. The control above it is still there and is the way to
-do that.
+`No tools yet. One appears here when somebody creates it.` The control
+above it is still there and is the way to do that.
 
 **This is the only empty state this screen can reach**, which is worth
 saying because the shared brief describes three. The other two are
@@ -124,6 +128,12 @@ collection**, and the label prints a third address again. None of this
 reaches a reader: what they see is a name on this list and a printed id on
 the next screen.
 
-**A tool item is never a bare `item` on any tools screen.** Four other
-tables on this base have items of their own — a request's, an order's, an
-invoice's, a delivery's — so the modifier stays.
+**A physical tool is an `item` on its tool's own screen and a `tool` in a
+sentence, and never a `tool item` on any screen (#455).** This brief said
+it was never a bare `item`, because four other tables on this base have
+items of their own — a request's, an order's, an invoice's, a delivery's.
+That was stricter than the app's own rule for item rows: the modifier
+drops where nothing on the screen offers a second kind of item row, and no
+tools screen shows any of those four. The one sentence that still says
+`tool item` is the tool item screen's not-found heading, which is the
+design's to rewrite.

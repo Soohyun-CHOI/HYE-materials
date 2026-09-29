@@ -242,12 +242,17 @@ const CARRIED = [
     {
         route: "/tools/[toolRecordId]",
         param: "unwritten",
-        note: "#449 — how many a registration was asked for and did not write, which offers to register the rest or be done. NOT a confirmation: what was written is the landing's own selection (`id`), and this is the one fact about the registration that list cannot show — `paired`'s shape, on the record a registration lands on. Written by `toolPath`'s fourth argument, which only the registration passes; a reload repeats it until `Done registering` deletes it from the address, and every address the list itself writes carries the selection alone, so the reader's first press or step leaves it behind",
+        note: "#449 — how many a registration was asked for and did not write, which offers to create the rest or stop. NOT a confirmation: what was written is the landing's own selection (`id`), and this is the one fact about the registration that list cannot show — `paired`'s shape, on the record a registration lands on. Written by `toolPath`'s fourth argument, which only the registration passes; a reload repeats it until `Not now` deletes it from the address, and every address the list itself writes carries the selection alone, so the reader's first press or step leaves it behind",
+    },
+    {
+        route: "/tools/[toolRecordId]",
+        param: "asked",
+        note: "#455 — how many that registration was asked for, beside `unwritten` and only with it, because the design's `3 of 5 tools created` needs both halves and the page may not count the selection (`id`) to find the first. Read as one pair with it — `1 ≤ unwritten < asked ≤ the ceiling` or neither — so a hand-edited address cannot make the sentence false. Written, repeated and deleted exactly as `unwritten` is",
     },
     {
         route: "/tools/[toolRecordId]",
         param: "unlogged",
-        note: "#449 — which tool items a registration wrote without their `Registered` row; repeatable, printed ids read through `readToolItemIds`. Named with nothing offered, because nothing repairs them, and a reload repeating it is true for as long as those tool items exist. Written and left behind exactly as `unwritten` is",
+        note: "#449 — which tool items a registration wrote without their `Created` row; repeatable, printed ids read through `readToolItemIds`. Nothing is offered for them, because nothing repairs them; a reload repeats it until `Got it` deletes it from the address (#455), which takes the notice away and repairs nothing. Written and left behind exactly as `unwritten` is",
     },
     {
         route: "/invoices/new",

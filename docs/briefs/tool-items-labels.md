@@ -9,7 +9,7 @@ step. Both widths must work; this one is drawn first.
 
 ## What it answers
 
-We registered some tools and now they need stickers. Put their QR labels onto a
+We created some tools and now they need stickers. Put their QR labels onto a
 sheet of adhesive stock and print it.
 
 **A tool item with no label is a row nothing can reach.** The QR symbol is the
@@ -114,13 +114,16 @@ screen naming a record, the other is a sticker a person reads in order to type.
 ## What it carries only sometimes
 
 **When the address named no tool item:** the heading and one sentence saying so,
-pointing at a tool's own page, which is where a run is selected — `No tool item
-was named to print. Open this from a tool's own page.` It named a registration's
+pointing at a tool's own page, which is where a run is selected — `Nothing was
+named to print. Open this from a tool's own page.` It named a registration's
 answer as well until #449, which stopped a registration opening this screen. No
-empty sheet and no controls.
+empty sheet and no controls. It said `No tool item was named` until #455; the
+design's noun is `tool`, and a first `tool` meaning one of a tool's tools would
+stand for two things in a sentence that goes on to name the tool.
 
 **When none of the named ids is on the base:** the heading and one sentence
-saying none exists. This is reachable by hand-typing an address.
+saying none exists, `None of those tools exists.` This is reachable by
+hand-typing an address.
 
 **When some of them are not on the base:** those ids are named in a sentence of
 their own and no label is offered for them. **They are not folded into the
@@ -258,10 +261,13 @@ where Print is pressed. **It is also why the host a label carries is settled
 before the first sheet is printed**: a permanent host past seventeen characters
 puts that room back, and the label grows 1.6 mm each way with it.
 
-**The screen words are `tool` and `tool item`.** A `Tools` row is a tool, a
-`Tool Items` row is a tool item, and never a bare `item` — four other tables on
-this base hold item rows. The same pair governs `/tools`, `/tools/new`, the tool's
-own screen and the tool item's.
+**The screen words are the design's (#455).** A `Tools` row is a tool, and a
+`Tool Items` row — which this brief calls a tool item — is a `tool` in any
+sentence about one, as in `None of those tools exists.`, and never a `tool item`
+on screen. The same words govern `/tools`, `/tools/new`, the tool's own screen,
+where the tools under one are counted as `items`, and the tool item's. This said
+the pair was `tool` and `tool item` and never a bare `item`, which the design
+reversed.
 
 **Two screens open this one and their words come from here**, so the controls on
 a tool's own page and on a tool item's own page cannot drift from the screen they

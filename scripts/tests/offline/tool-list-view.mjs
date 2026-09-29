@@ -105,17 +105,14 @@ function copyStrings() {
 }
 
 /**
- * Every `item`/`items` in a string that is not part of `tool item`.
+ * The noun the design replaced (#455), in any number and case.
  *
- * The tools track's own rule, the same matcher `offline/tool-item-view.mjs` uses
- * on the other tools constant: one physical tool is a `tool item` and never a bare
- * `item`, because four other tables on this base hold item rows.
+ * THIS FILE HELD THE OPPOSITE RULE UNTIL THEN — a string here failed for a bare `item`,
+ * the tools area's reading of #303. The design put `items` on a tool's own page (its
+ * count and its column) and `tool` in every sentence about one, so what a string here
+ * may no longer say is the noun it used to require.
  */
-function bareItemWords(text) {
-    return [...String(text).matchAll(/\b(items?)\b/gi)].filter(
-        (m) => !/tool\s$/i.test(String(text).slice(0, m.index))
-    );
-}
+const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
 /** The tool's own screen, whose read and the rows it hands on section 2b reads off the AST. */
 const TOOL_SCREEN = "app/(tools)/tools/[toolRecordId]/page.js";
@@ -385,6 +382,7 @@ export function run({ check, assert, log }) {
         let printLinks = 0;
         let accountFrom = null;
         let fork = null;
+        let notice = null;
         const mapped = [];
         const addressBindings = new Set();
         const addressReads = new Set();
@@ -398,6 +396,12 @@ export function run({ check, assert, log }) {
                     .join(", ");
             if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationShortfall")
                 fork = n.attributes
+                    .map((a) => `${a.name?.name}: ${nameOf(a.value?.expression ?? {})}`)
+                    .sort()
+                    .join(", ");
+            // #455: the notice is a component of its own now, since `Got it` is a press.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationUnlogged")
+                notice = n.attributes
                     .map((a) => `${a.name?.name}: ${nameOf(a.value?.expression ?? {})}`)
                     .sort()
                     .join(", ");
@@ -456,7 +460,8 @@ export function run({ check, assert, log }) {
             printLinks,
             accountFrom,
             fork,
-            noticeFrom: mapped.filter((name) => name.includes("unlogged")).join(", "),
+            notice,
+            mappedFromAddress: mapped.filter((name) => name.includes("unlogged")).join(", "),
             addressReads: [...addressReads].sort(),
         };
     };
@@ -472,29 +477,36 @@ export function run({ check, assert, log }) {
     check(
         "the page reads `page` and a registration's account off its address, and never the selection",
         facts.addressReads.join(", "),
-        "page, unlogged, unwritten"
+        "asked, page, unlogged, unwritten"
     );
     check("  and builds no print link of its own", facts.printLinks, 0);
-    // WHAT THE ACCOUNT IS READ THROUGH AND HANDED TO (#449). One reader of the two keys,
-    // the fork handed the tool's own name and the count that reader returned, and the
-    // notice's ids mapped from it — not from the address directly, which would skip the
-    // reading that drops a forged count and spells every id once.
+    // WHAT THE ACCOUNT IS READ THROUGH AND HANDED TO (#449, #455). One reader of the
+    // three keys, the fork handed the tool's own name and the two figures that reader
+    // returned, and the notice handed that reader's ids — not the address's, which would
+    // skip the reading that drops a forged count and spells every id once.
     check(
         "  the account is read through readRegistrationAccount, off the address",
         facts.accountFrom,
-        "unlogged: sp.unlogged, unwritten: sp.unwritten"
+        "asked: sp.asked, unlogged: sp.unlogged, unwritten: sp.unwritten"
     );
-    check("  the fork is handed the tool's name and that count", facts.fork, "toolName: tool.toolName, unwritten: account.unwritten");
-    check("  and the notice names the account's tool items", facts.noticeFrom, "account.unlogged");
+    check(
+        "  the fork is handed the tool's name and those two figures",
+        facts.fork,
+        "asked: account.asked, toolName: tool.toolName, unwritten: account.unwritten"
+    );
+    check("  and the notice is handed the account's tool items", facts.notice, "toolItemIds: account.unlogged");
+    check("  which the page no longer lists itself", facts.mappedFromAddress, "");
     // ANTI-VACUITY: a planted page reading one key raw, handing the fork a record id and
-    // the address's own count, and mapping the address's list is seen doing all three.
+    // the address's own figures, and handing the notice the address's list — then mapping
+    // it as well — is seen doing all of it.
     const plantedHandoff = screenFacts(
         parseSource(
             "async function renderToolPage({ searchParams }) {\n" +
                 "  const sp = (await searchParams) ?? {};\n" +
                 "  const account = readRegistrationAccount({ unwritten: sp.unwritten });\n" +
                 "  return (<>\n" +
-                "    <RegistrationShortfall toolName={tool.id} unwritten={sp.unwritten} />\n" +
+                "    <RegistrationShortfall toolName={tool.id} asked={sp.asked} unwritten={sp.unwritten} />\n" +
+                "    <RegistrationUnlogged toolItemIds={sp.unlogged} />\n" +
                 "    <ul>{sp.unlogged.map((id) => <li key={id}>{id}</li>)}</ul>\n" +
                 "  </>);\n" +
                 "}\n",
@@ -502,8 +514,13 @@ export function run({ check, assert, log }) {
         ).ast
     );
     check("  a reader handed one key is seen so", plantedHandoff.accountFrom, "unwritten: sp.unwritten");
-    check("  a fork handed a record id and a raw count is seen so", plantedHandoff.fork, "toolName: tool.id, unwritten: sp.unwritten");
-    check("  and a notice mapped off the address is seen so", plantedHandoff.noticeFrom, "sp.unlogged");
+    check(
+        "  a fork handed a record id and raw figures is seen so",
+        plantedHandoff.fork,
+        "asked: sp.asked, toolName: tool.id, unwritten: sp.unwritten"
+    );
+    check("  a notice handed the address's list is seen so", plantedHandoff.notice, "toolItemIds: sp.unlogged");
+    check("  and a list mapped off the address is seen so", plantedHandoff.mappedFromAddress, "sp.unlogged");
     // ANTI-VACUITY: a planted screen that reads the whole tool, hands the list the whole
     // link array, reads the selection and prints it itself is seen doing all four, so the
     // answers above are facts about the screen rather than a reader that echoes them.
@@ -610,12 +627,14 @@ export function run({ check, assert, log }) {
     check("  and the router is seen", plantedList.routed.join(", "), "useRouter, router.replace");
     check("  with no history write", plantedList.replaced, 0);
 
-    // THE FORK'S HALF (#449). `Done registering` has to edit the CURRENT address and take
-    // one key out of it: an address rebuilt from anything the render was handed would put
-    // back a selection the reader has since changed, and deleting more than `unwritten`
-    // would take the notice's ids with it. `Register the other N` has to carry the count
-    // the fork was handed. None of that moves a figure, so it is read off the source.
+    // THE FORK'S HALF (#449, #455). `Not now` has to edit the CURRENT address and take the
+    // fork's own two keys out of it: an address rebuilt from anything the render was
+    // handed would put back a selection the reader has since changed, and deleting
+    // `unlogged` too would take the notice's ids with it. `Create the rest` has to carry
+    // the count the fork was handed. None of that moves a figure, so it is read off the
+    // source — and the notice's `Got it` below is held the same way.
     const FORK = "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js";
+    const NOTICE = "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js";
     const forkFacts = (ast) => {
         const deleted = [];
         const added = [];
@@ -639,7 +658,7 @@ export function run({ check, assert, log }) {
         return { deleted, added, replaced, rebuilt, readsLocation, routed, linkArgs };
     };
     const fork = forkFacts(parseFile(FORK).ast);
-    check("the fork's dismissal takes exactly `unwritten` out of the address", fork.deleted.join(", "), "unwritten");
+    check("the fork's dismissal takes exactly its own two keys out of the address", fork.deleted.join(", "), "asked, unwritten");
     check("  and puts nothing in", fork.added.join(", "), "");
     check("  editing the current address rather than rebuilding one", `${fork.readsLocation} ${fork.rebuilt}`, "true 0");
     check("  written with history.replaceState", fork.replaced, 1);
@@ -668,6 +687,37 @@ export function run({ check, assert, log }) {
     check("  the router is seen", plantedFork.routed.join(", "), "useRouter, router.replace");
     check("  with no history write", plantedFork.replaced, 0);
     check("  and a link carrying another count is seen", plantedFork.linkArgs, "toolName: toolName, quantity: requested");
+
+    // THE NOTICE'S HALF (#455). `Got it` is the same act on the other key: the current
+    // address, `unlogged` alone out of it, no router. The fork's `asked` and `unwritten`
+    // stay, so a reader who takes the notice away is still asked the fork's question.
+    const notice = forkFacts(parseFile(NOTICE).ast);
+    check("the notice's dismissal takes exactly `unlogged` out of the address", notice.deleted.join(", "), "unlogged");
+    check("  and puts nothing in", notice.added.join(", "), "");
+    check("  editing the current address rather than rebuilding one", `${notice.readsLocation} ${notice.rebuilt}`, "true 0");
+    check("  written with history.replaceState", notice.replaced, 1);
+    check("  never through the router", notice.routed.join(", "), "");
+    check("  and it opens no form", notice.linkArgs, null);
+    // ANTI-VACUITY: a planted notice taking the fork's keys with it, through the router,
+    // and offering to create them again is seen doing each.
+    const plantedNotice = forkFacts(
+        parseSource(
+            "function RegistrationUnlogged({ toolItemIds, toolName }) {\n" +
+                "  const router = useRouter();\n" +
+                "  const dismiss = () => {\n" +
+                "    const address = new URL(window.location.href);\n" +
+                '    address.searchParams.delete("unlogged");\n' +
+                '    address.searchParams.delete("unwritten");\n' +
+                "    router.replace(`${address.pathname}${address.search}`);\n" +
+                "  };\n" +
+                "  return <Link href={registerPath({ toolName, quantity: toolItemIds.length })} />;\n" +
+                "}\n",
+            "<planted-notice>"
+        ).ast
+    );
+    check("  a dismissal taking the fork's count with it is seen", plantedNotice.deleted.join(", "), "unlogged, unwritten");
+    check("  the router is seen", plantedNotice.routed.join(", "), "useRouter, router.replace");
+    check("  and an offer to create them again is seen", plantedNotice.linkArgs, "toolName: toolName, quantity: toolItemIds.length");
 
     // THE CONTROL THAT REGISTERS MORE OF THIS TOOL (#451). It opens the form with this
     // tool's name and no count, in the registration form's words, and it stands under no
@@ -918,9 +968,10 @@ export function run({ check, assert, log }) {
         strings.filter((s) => /\bkinds?\b/i.test(s)).length,
         0
     );
+    // THE SWEEP'S CLAIM (#455): nothing here says the noun the design replaced.
     check(
-        "no string says a bare `item`",
-        strings.filter((s) => bareItemWords(s).length > 0).length,
+        "no string says `tool item`",
+        strings.filter((s) => TOOL_ITEM_NOUN.test(s)).length,
         0
     );
     // The three field labels are the tool item page's, not a second spelling.
@@ -940,18 +991,30 @@ export function run({ check, assert, log }) {
         0
     );
     check("the heading is the table's name", TOOL_LIST_COPY.heading, "Tools");
-    check("one tool item is singular", TOOL_LIST_COPY.total(1), "1 tool item");
-    check("  and two are plural", TOOL_LIST_COPY.total(2), "2 tool items");
-    check("  and none is plural too", TOOL_LIST_COPY.total(0), "0 tool items");
+    // THE DESIGN'S `13 items` (#455): a tool's own page counts what is under it as items,
+    // and heads their column the same way.
+    check("one item is singular", TOOL_LIST_COPY.total(1), "1 item");
+    check("  and two are plural", TOOL_LIST_COPY.total(2), "2 items");
+    check("  and none is plural too", TOOL_LIST_COPY.total(0), "0 items");
+    check("  the column over each one's code", TOOL_LIST_COPY.toolItemLabel, "Item");
+    // THE TWO EMPTY STATES, which the sweep carried the verb and the noun into. The
+    // second names the tool and what is under it, so it says `its items` rather than a
+    // second `tool` meaning something else in one sentence.
+    check("no tool at all", TOOL_LIST_COPY.noTools, "No tools yet. One appears here when somebody creates it.");
+    check(
+        "  and a tool with nothing under it",
+        TOOL_LIST_COPY.noToolItems,
+        "Nothing is recorded under this tool. Creating writes the tool before its items, so one that failed in between leaves the tool with none."
+    );
     assert(
         "the position names both figures",
         TOOL_LIST_COPY.pagePosition({ page: 2, pageCount: 3 }).includes("2") &&
             TOOL_LIST_COPY.pagePosition({ page: 2, pageCount: 3 }).includes("3")
     );
-    // THE SELECTION'S WORDS (#443), AND NONE NAMES WHAT IS SELECTED — not `tool item`,
-    // which this axis decided against showing with its replacement still open, and not
-    // a bare `item`, which names a row of four other tables. The sentences are pinned in
-    // 2d; these are the controls'.
+    // THE SELECTION'S WORDS (#443), AND NONE NAMES WHAT IS SELECTED. They were written
+    // while `tool item` was decided against showing with its replacement still open, so
+    // they said neither that nor `item`; #455 settled the word and left them alone. The
+    // sentences are pinned in 2d; these are the controls'.
     check("the page box", TOOL_LIST_COPY.selectPage, "Select all on this page");
     check("  an entry's box, named by its id", TOOL_LIST_COPY.selectToolItem(A), `Select ${A}`);
     check("  the way out", TOOL_LIST_COPY.clearSelection, "Clear selection");
@@ -965,8 +1028,8 @@ export function run({ check, assert, log }) {
         ].filter((text) => /\bitems?\b/i.test(text)).length,
         0
     );
-    assert("the copy scanner finds a planted bare `item`", bareItemWords("Every item on this tool.").length === 1);
-    assert("  and does not flag `tool item` or `tool items`", bareItemWords("This tool item and those tool items.").length === 0);
+    assert("the noun matcher finds `tool items`", TOOL_ITEM_NOUN.test("No tools yet. One appears here when somebody registers tool items of it."));
+    assert("  and passes the design's `13 items`", !TOOL_ITEM_NOUN.test(TOOL_LIST_COPY.total(13)));
 
     // ── 4: no tools screen writes text into its markup ──────────────────────
     log("");

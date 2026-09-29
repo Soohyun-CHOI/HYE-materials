@@ -89,8 +89,10 @@ export function run({ check, log, assert }) {
 
     log("");
     log("the four events, in order:");
+    // `Created` WAS `Registered` UNTIL #455, renamed in the Airtable UI with the rows
+    // following it — see lib/toolStatus.js's header.
     check("TOOL_EVENT_VALUES", TOOL_EVENT_VALUES.join(" | "),
-        "Registered | Checked Out | Checked In | Retired");
+        "Created | Checked Out | Checked In | Retired");
     check("four and no more", TOOL_EVENT_VALUES.length, 4);
     assert("no duplicates", new Set(TOOL_EVENT_VALUES).size === TOOL_EVENT_VALUES.length);
 
@@ -99,7 +101,10 @@ export function run({ check, log, assert }) {
     // Vendor`) rather than invented here: every word is capitalized except a
     // preposition that is neither first nor last. Held by value because the option
     // list cannot be corrected through the API — a casing slip is a hand edit in
-    // the UI plus a rewrite of every row that carries the old string.
+    // the UI. It said "plus a rewrite of every row that carries the old string",
+    // which #455 measured false: a cell holds its choice by id, so an option renamed
+    // in place carries every row with it (docs/notes/airtable-access.md). What this
+    // guards is the hand edit, which is still one nobody should have to make.
     log("");
     log("title case, particles lowercase (the base's own convention):");
     const PARTICLES = new Set(["to", "from", "of", "on", "in", "for", "with", "at", "by"]);
@@ -190,7 +195,7 @@ export function run({ check, log, assert }) {
     // Worth pinning now that it is 1 of 4 rather than 2 of 8: an event and a status
     // spelling the same word is a deliberate coincidence, not drift. `Retired` is a
     // transition a person designates, so it is named for the state it arrives at;
-    // everything else is either a scan (named for the act) or `Registered` (named
+    // everything else is either a scan (named for the act) or `Created` (named
     // for an act with no status of its own).
     log("");
     log("`Retired` is the one string both vocabularies carry:");
@@ -200,8 +205,8 @@ export function run({ check, log, assert }) {
 
     log("");
     log("statusAfterEvent applies the map:");
-    check("registration puts it in stock",
-        statusAfterEvent(TOOL_EVENT.REGISTERED), TOOL_STATUS.IN_STOCK);
+    check("creating one puts it in stock",
+        statusAfterEvent(TOOL_EVENT.CREATED), TOOL_STATUS.IN_STOCK);
     check("a check-out sends it out",
         statusAfterEvent(TOOL_EVENT.CHECKED_OUT), TOOL_STATUS.OUT);
     check("a check-in brings it back",
@@ -257,9 +262,9 @@ export function run({ check, log, assert }) {
 
     // THE TWO MAPS ARE NOT INVERSES, WHICH IS WHY BOTH EXIST. Two events land on
     // `In Stock`, so inverting `STATUS_AFTER_EVENT` is not a function; and
-    // `Registered` is offered by no status, because registration creates the row
+    // `Created` is offered by no status, because creating a tool item makes the row
     // rather than moving one. A later pass tempted to derive one map from the other
-    // fails here rather than shipping a screen that offers `Registered`.
+    // fails here rather than shipping a screen that offers `Created`.
     log("");
     log("the two maps are not each other's inverse:");
     const intoInStock = Object.entries(STATUS_AFTER_EVENT)
@@ -268,7 +273,7 @@ export function run({ check, log, assert }) {
     check("events landing on In Stock", intoInStock.length, 2);
     const offered = new Set(Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean));
     assert("  so no status can offer both of them", offered.size === 2);
-    assert("`Registered` is offered by no status", !offered.has(TOOL_EVENT.REGISTERED));
+    assert("`Created` is offered by no status", !offered.has(TOOL_EVENT.CREATED));
 
     // AND EVERY OFFER MOVES THE TOOL ITEM. An offer whose event leaves the status
     // where it was is a control that does nothing and a log row that records a
@@ -436,7 +441,7 @@ export function run({ check, log, assert }) {
         JSON.stringify(pyStatus), JSON.stringify(paletteRule)
     );
     const eventRule = [
-        ["Registered", "blueLight2"], ["Checked Out", "cyanLight2"],
+        ["Created", "blueLight2"], ["Checked Out", "cyanLight2"],
         ["Checked In", "tealLight2"], ["Retired", "grayLight2"],
     ];
     check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));

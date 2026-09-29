@@ -396,9 +396,10 @@ const PINNED = [
     // is the reading a redesign is most likely to lose.
     // Pinned on a clause that fits inside a brief's own 72-character wrap, which
     // is the constraint the #272 note above records the hard way, and on a clause
-    // unique to THIS constant rather than on `came into existence`, which
-    // `lib/toolRegistration.js` also says.
-    "Nothing has been recorded against this tool item",
+    // unique to THIS constant. The comma is part of the pin since #455: the noun
+    // became `tool`, and without it the pin would also match the sentence it
+    // replaced, which said `this tool item`.
+    "Nothing has been recorded against this tool,",
     "Tool item not found",
     // #146 — the one refusal five screens share, pinned WITHOUT either figure for the
     // reason the threshold sentence above is: the briefs write where the sizes go, and

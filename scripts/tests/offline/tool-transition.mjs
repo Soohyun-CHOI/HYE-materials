@@ -105,17 +105,14 @@ function copyStrings() {
 }
 
 /**
- * Every `item`/`items` in a string that is not part of `tool item`.
+ * The noun the design replaced (#455), in any number and case.
  *
- * The tools track's own rule: one physical tool is a `tool item` and never a bare
- * `item`, because four other tables on this base hold item rows. Same matcher as
- * offline/tool-item-view.mjs, on this screen's other constant.
+ * THIS FILE HELD THE OPPOSITE RULE UNTIL THEN, failing a bare `item` as the tools area's
+ * reading of #303. The design says `tool` in every sentence about one — `Retire this
+ * tool` above all — so what a string here may no longer say is the noun it used to
+ * require.
  */
-function bareItemWords(text) {
-    return [...String(text).matchAll(/\b(items?)\b/gi)].filter(
-        (m) => !/tool\s$/i.test(String(text).slice(0, m.index))
-    );
-}
+const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
 /**
  * The source text of `propName` in the object argument of every call to `fnName`.
@@ -415,11 +412,23 @@ export function run({ check, assert, log }) {
     const strings = copyStrings();
     assert(`the constant holds ${strings.length} strings`, strings.length >= 8);
     check("none is empty", strings.filter((s) => !s.trim()).length, 0);
-    const bare = strings.filter((s) => bareItemWords(s).length > 0);
+    // THE SWEEP'S CLAIM (#455): nothing here says the noun the design replaced.
+    const oldNoun = strings.filter((s) => TOOL_ITEM_NOUN.test(s));
     check(
-        `no bare \`item\` where the noun is a tool item${bare.length ? ` (${JSON.stringify(bare[0])})` : ""}`,
-        bare.length,
+        `no string says \`tool item\`${oldNoun.length ? ` (${JSON.stringify(oldNoun[0])})` : ""}`,
+        oldNoun.length,
         0
+    );
+    // The two sentences the sweep carried the noun into, by value.
+    check(
+        "the terminal sentence",
+        TOOL_TRANSITION_COPY.noTransition({ status: TOOL_STATUS.RETIRED }),
+        "This tool is Retired, so nothing more can be recorded against it."
+    );
+    check(
+        "  and the one for a move",
+        TOOL_TRANSITION_COPY.movesJob({ from: "26-DEMO-02", to: "26-DEMO-01" }),
+        "This tool was last scanned on 26-DEMO-02. Recording this on 26-DEMO-01 moves it there."
     );
     // `kind` is the notes' explanatory word for what separates `Tools` from
     // `Tool Items` and names no row (#338); `transition` is this issue's, for the
@@ -535,11 +544,22 @@ export function run({ check, assert, log }) {
     // now, the way `createToolItems` does. Read off that module's source, since
     // it imports `lib/airtable/client.js` and this tier cannot load it.
     const writer = parseFile("lib/airtable/toolLog.js");
+    // THE THIRD IS THE EVENT, AND A RENAME IS WHY (#455). A key renamed in `TOOL_EVENT` with
+    // one call site left behind reads `undefined`, which drops out of the request body —
+    // so the no-typecast refusal never fires and the row lands with no `Event`. The
+    // writer refuses anything outside the vocabulary, that included.
     for (const [what, guard] of [
-        ["a job", 'if (!jobRecordId) throw new Error("createToolLogEntry: a Job is required");'],
-        ["a recorder", 'if (!recordedByUserId) throw new Error("createToolLogEntry: a Recorded By is required");'],
+        ["a missing job", 'if (!jobRecordId) throw new Error("createToolLogEntry: a Job is required");'],
+        ["a missing recorder", 'if (!recordedByUserId) throw new Error("createToolLogEntry: a Recorded By is required");'],
+        ["an event outside the vocabulary, a missing one included", "if (!TOOL_EVENT_VALUES.includes(event)) {"],
     ])
-        assert(`the writer throws on a missing ${what}`, writer.source.includes(guard));
+        assert(`the writer throws on ${what}`, writer.source.includes(guard));
+    // AND THE VOCABULARY IT ASKS IS THE MODULE'S, not a list spelled beside the guard,
+    // which would be the second copy a rename leaves behind.
+    assert(
+        "  reading the event list from lib/toolStatus.js",
+        /import \{[^}]*\bTOOL_EVENT_VALUES\b[^}]*\} from "\.\.\/toolStatus"/.test(writer.source)
+    );
     check(
         "  and writes both links unconditionally",
         [/Job: \[jobRecordId\]/, /"Recorded By": \[recordedByUserId\]/].filter((re) => !re.test(writer.source)).length,
@@ -894,9 +914,10 @@ export function run({ check, assert, log }) {
     // ── 9: the words the modal says ────────────────────────────────────────
     log("");
     log("what the modal says before it happens:");
-    check("the opener names its object", TOOL_TRANSITION_COPY.retireOpener, "Retire this tool item");
-    check("the heading repeats it as a question", TOOL_TRANSITION_COPY.retireHeading, "Retire this tool item?");
-    check("the confirm drops the modifier the heading supplied", TOOL_TRANSITION_COPY.retireSubmit, "Retire");
+    // THE DESIGN'S WORDS (#455): `tool` for the object, and a confirm that names it too.
+    check("the opener names its object", TOOL_TRANSITION_COPY.retireOpener, "Retire this tool");
+    check("the heading repeats it as a question", TOOL_TRANSITION_COPY.retireHeading, "Retire this tool?");
+    check("the confirm names what it retires", TOOL_TRANSITION_COPY.retireSubmit, "Retire tool");
     check("and the way out is the app's own word", TOOL_TRANSITION_COPY.retireCancel, "Cancel");
     // THE OPENER AND THE TRANSITION CONTROL MAY NOT READ ALIKE, which is half of
     // what keeps a once-ever act from looking like a dozens-a-day one. The other
@@ -904,7 +925,7 @@ export function run({ check, assert, log }) {
     assert(
         "the opener does not read like the transition control",
         TOOL_TRANSITION_COPY.retireOpener !== TOOL_TRANSITION_COPY.control[TOOL_EVENT.CHECKED_OUT] &&
-            TOOL_TRANSITION_COPY.retireOpener.includes("tool item")
+            TOOL_TRANSITION_COPY.retireOpener.includes("this tool")
     );
     // THE BODY IS AN ACCOUNT OF WHAT BECOMES TRUE, which `_shared.md` names as the
     // point of a confirmation. Three facts and the app's one ending.
@@ -1009,8 +1030,8 @@ export function run({ check, assert, log }) {
     }
     // The copy scanner is seen finding a planted bare noun, since zero is also what
     // a broken matcher reports.
-    assert("the copy scanner finds a planted bare `item`", bareItemWords("Every item on this order.").length === 1);
-    assert("  and does not flag `tool item` or `tool items`", bareItemWords("This tool item and those tool items.").length === 0);
+    assert("the noun matcher finds `tool item`", TOOL_ITEM_NOUN.test("Retire this tool item?"));
+    assert("  and passes the design's `tool`", !TOOL_ITEM_NOUN.test(TOOL_TRANSITION_COPY.retireHeading));
     // The pure half is shown producing two different answers from two statuses, so
     // the section-1 equalities are not one constant compared with itself.
     assert(

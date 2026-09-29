@@ -48,6 +48,15 @@ which is how two `Edit Log` options sat off the palette for two issues
 `scripts/tests/offline/tool-status.mjs` pins them against
 `lib/toolStatus.js` so the two cannot drift.
 
+#455 CHANGED ONE OF THEM BY HAND, AND THIS SPEC FOLLOWS THE BASE. The
+first event, `Registered`, became `Created` by editing the option's text
+in the Airtable UI: a cell holds its choice by id, so every row followed,
+where adding one option and deleting the other would have emptied them.
+The same pass brought the rest of the spec back to what the base holds --
+`Notes`, deleted by hand in #363, is gone from it, so a run no longer
+reads it as missing and creates it again; `Checked Out To`, added in #376
+outside this script, is in it; and every description is the base's own.
+
 THE COLOR RULE, stated so it can be checked rather than admired: walk
 Airtable's light palette in declaration order, and give the terminal
 value gray. `Purchase Orders."Status"` does the same (blue, cyan, teal,
@@ -136,7 +145,7 @@ TOOL_STATUS_CHOICES = [
 ]
 
 TOOL_EVENT_CHOICES = [
-    {"name": "Registered", "color": "blueLight2"},
+    {"name": "Created", "color": "blueLight2"},
     {"name": "Checked Out", "color": "cyanLight2"},
     {"name": "Checked In", "color": "tealLight2"},
     {"name": "Retired", "color": "grayLight2"},
@@ -159,7 +168,8 @@ TOOLS = {
         "a time. Takes no minted ID, the way Vendors and Materials do not: nothing "
         "prints a kind and nobody quotes one, so the typed name is the identity. "
         "That uniqueness is app-enforced (Airtable has no unique constraint) -- "
-        "createToolAction refuses a second kind with the same name."
+        "upsertTool finds or creates it under a lock, so a second kind "
+        "with the same name is never created."
     ),
     "fields": [
         {
@@ -168,9 +178,10 @@ TOOLS = {
             "description": (
                 "Issue #334 -- what a person calls this kind of tool, typed on the "
                 "registration form. The natural key: app-enforced unique, matched "
-                "case-insensitively because Airtable's = on a text field is, and "
-                "because Impact Driver and impact driver are one kind whose count "
-                "must not split in two."
+                "case-insensitively through LOWER(TRIM(...)), because Airtable's = "
+                "on a text field is NOT (#338, measured), and because Impact "
+                "Driver and impact driver are one kind whose count must not split "
+                "in two."
             ),
         },
     ],
@@ -238,8 +249,9 @@ def tool_items(tools_table_id):
                     "blank in the per-status count and a dead option in the filter.\n\n"
                     "Retired COVERS BOTH DISPOSAL AND A TOOL FOUND MISSING AT A STOCK "
                     "CHECK, because on this axis they are one fact -- the company no "
-                    "longer holds it -- and which of the two it was goes in "
-                    "Tool Log.Notes. Without it a discarded tool sits In Stock forever "
+                    "longer holds it -- and nothing records which of the two it was: "
+                    "#363 weighed that and deleted the Tool Log.Notes field it would "
+                    "have lived in. Without it a discarded tool sits In Stock forever "
                     "and the count is wrong, and the only other correction is deleting "
                     "the record, which takes its whole log with it.\n\n"
                     "A DERIVED CACHE OF Tool Log, WRITTEN BY THE APP -- DO NOT EDIT "
@@ -263,10 +275,10 @@ def tool_items(tools_table_id):
                 "type": "multipleRecordLinks",
                 "options": {"linkedTableId": TBL_JOBS},
                 "description": (
-                    "Issue #334, corrected in #335 -- WHERE THIS TOOL WAS LAST "
-                    "SCANNED, cached from the last Tool Log row. NOT a durable "
+                    "Issue #334, corrected in #335 and #363 -- WHERE THIS TOOL WAS "
+                    "LAST SCANNED, cached from the last Tool Log row. NOT a durable "
                     "attribute saying which job owns the tool, which is what this "
-                    "description used to claim.\n\n"
+                    "description claimed before #335.\n\n"
                     "THE SAME KIND OF VALUE AS Status, FROM THE SAME ROW. A manager "
                     "scans out their own job's tools to workers; a worker may carry "
                     "one to another site; whoever manages the site it reaches scans "
@@ -274,13 +286,26 @@ def tool_items(tools_table_id):
                     "as a check-out on one job and the next check-in on another -- "
                     "which is why #335 removed the Job Changed event, as it added no "
                     "fact that pair does not already carry.\n\n"
+                    "WHERE THE VALUE COMES FROM, and #363 split this in two. A SCAN "
+                    "takes it from the Users.\"Assigned Jobs\" of whoever performs it "
+                    "-- automatically when they have one, from a dropdown when they "
+                    "have several, and typed nowhere -- because the actor is holding "
+                    "the tool. A RETIREMENT takes it from THIS FIELD: retiring moves "
+                    "nothing, so the Tool Log row inherits where the tool item "
+                    "already was and this cache is written back unchanged. This "
+                    "description said the value comes from the actor without "
+                    "qualification, which was a sentence about three events written "
+                    "when three existed.\n\n"
+                    "SO THIS FIELD FEEDS A WRITE AS WELL AS ANSWERING A READ, which "
+                    "is the one thing worth knowing before changing it: "
+                    "lib/toolTransition.js:readRetirement hands it to "
+                    "createToolLogEntry, so a wrong value here becomes a wrong value "
+                    "on a row that cannot be corrected by a later event -- Retired is "
+                    "terminal.\n\n"
                     "REQUIRED, and by the app rather than by the schema: Airtable "
-                    "cannot make a link field required, the same limit "
-                    "Invoice Items.\"PO Item\" lives with (#278). Never empty, "
-                    "because every event carries a job and registration is an event. "
-                    "The job comes from the Users.\"Assigned Jobs\" of whoever "
-                    "performs the scan -- automatically when they have one, from a "
-                    "dropdown when they have several, and typed nowhere.\n\n"
+                    "cannot make a link field required, the same limit Invoice "
+                    "Items.\"PO Item\" lives with (#278). Never empty, because every "
+                    "event carries a job and registration is an event.\n\n"
                     "Single-record, app-enforced (422 on prefersSingleRecordLink)."
                 ),
             },
@@ -342,38 +367,45 @@ def tool_log(tool_items_table_id):
                 "type": "singleSelect",
                 "options": {"choices": TOOL_EVENT_CHOICES},
                 "description": (
-                    "Issue #334, narrowed in #335 -- what happened. Four values "
-                    "against Status's three, which is why Tool Items.Status is a "
-                    "mapping of this rather than a copy of it.\n\n"
-                    "Registered IS THE FIRST ROW OF EVERY TOOL ITEM'S HISTORY, and it "
+                    "Issue #334, narrowed in #335, renamed in #455 -- what happened. "
+                    "Four values against Status's three, which is why Tool "
+                    "Items.Status is a mapping of this rather than a copy of it.\n\n"
+                    "Created IS THE FIRST ROW OF EVERY TOOL ITEM'S HISTORY, and it "
                     "exists because Tool Items carries no Created At. That field was "
                     "left off on the ground that this log's first row holds the "
-                    "instant, so without an event naming registration there would be "
+                    "instant, so without an event naming the act there would be "
                     "nowhere at all answering when a tool item came into existence. "
                     "Checked In was the alternative and reads wrong: it means a tool "
-                    "came back into stock, and one being registered has never been "
-                    "out. It is not a fiction either -- the label still has to be "
-                    "printed and stuck on, so the In Stock it leaves behind describes "
-                    "a real tool sitting on a bench.\n\n"
+                    "came back into stock, and one just created has never been out. "
+                    "It is not a fiction either -- the label still has to be printed "
+                    "and stuck on, so the In Stock it leaves behind describes a real "
+                    "tool sitting on a bench.\n\n"
+                    "IT WAS Registered UNTIL #455, which took the design's word for "
+                    "the act. The option was renamed in place and not replaced: a "
+                    "cell holds its choice by id, so every row that held Registered "
+                    "reads Created, where deleting the old option would have emptied "
+                    "each of them.\n\n"
                     "TWO NAMING SHAPES. A transition a person designates on a screen "
                     "is named for the state it leaves the tool in, so the event and "
                     "the status are the same string: Retired, the only one of that "
                     "kind left. A transition that happens by SCANNING carries an "
                     "action name, because the person is performing an act rather than "
-                    "declaring a state: Checked Out, Checked In. Registered is a "
-                    "third case -- an act with no status of its own name.\n\n"
+                    "declaring a state: Checked Out, Checked In. Created is a third "
+                    "case -- an act with no status of its own name.\n\n"
                     "WHAT #335 REMOVED: Sent to Repair, Returned from Repair, Lost "
                     "and Found, because a broken tool here is thrown away rather than "
                     "repaired and nobody reports one missing; and Job Changed, "
                     "because a tool moving site is already two rows, a check-out on "
                     "one job and the next check-in on another, so a separate event "
                     "added no fact.\n\n"
-                    "Written with NO typecast, so a value outside this list fails "
-                    "the write rather than minting a fifth choice off the palette. "
-                    "The list cannot be repaired through the API afterwards (422, "
-                    "measured), which is what makes failing loudly the only recovery "
-                    "there is. lib/toolStatus.js:TOOL_EVENT is the source of truth "
-                    "and no call site passes a literal."
+                    "Written with NO typecast, so a value outside this list fails the "
+                    "write rather than minting a fifth choice off the palette, and "
+                    "lib/airtable/toolLog.js:createToolLogEntry refuses a missing one "
+                    "before the write, since a value never sent is one Airtable "
+                    "cannot refuse. The list cannot be repaired through the API "
+                    "afterwards (422, measured), which is what makes failing loudly "
+                    "the only recovery there is. lib/toolStatus.js:TOOL_EVENT is the "
+                    "source of truth and no call site passes a literal."
                 ),
             },
             {
@@ -381,28 +413,56 @@ def tool_log(tool_items_table_id):
                 "type": "multipleRecordLinks",
                 "options": {"linkedTableId": TBL_JOBS},
                 "description": (
-                    "Issue #334 -- the job this event happened on, which is where "
-                    "the tool item is immediately after it. Filled on every row and "
-                    "never blank; that is the property the whole history rests on.\n\n"
-                    "IT COMES FROM THE ACTOR, NOT FROM THE TOOL. Registration, "
-                    'check-out and check-in all take it from the Users."Assigned '
-                    'Jobs" of whoever performs the scan -- automatically when they '
-                    "have one, from a dropdown when they have several, typed nowhere. "
-                    "STORED AT THAT MOMENT AND NEVER LOOKED UP LATER: Assigned Jobs "
-                    "changes when a person moves site, so a log that referenced it "
-                    "would make an old check-out describe today's assignment, which "
-                    "is the exact thing this copy exists to prevent.\n\n"
-                    'ITS OWN COPY, NOT A LOOKUP THROUGH Tool Items."Job". That field '
+                    "Issue #334, corrected in #363 -- the job the tool item was on at "
+                    "that event. Filled on every row and never blank; that is the "
+                    "property the whole history rests on.\n\n"
+                    "THE INVARIANT AND THE MECHANISM ARE TWO THINGS, and this "
+                    "description fused them until #363. It read \"IT COMES FROM THE "
+                    "ACTOR, NOT FROM THE TOOL. Registration, check-out and check-in "
+                    "all take it from the Users.\"Assigned Jobs\" of whoever performs "
+                    "the scan\", which enumerated three events because three existed. "
+                    "What is universal is the sentence above; where each event learns "
+                    "it is a separate question with two answers.\n\n"
+                    "A SCANNED EVENT TAKES IT FROM THE ACTOR. Registration, check-out "
+                    "and check-in read the Users.\"Assigned Jobs\" of whoever performs "
+                    "the scan -- automatically when they have one, from a dropdown "
+                    "when they have several, typed nowhere. That is sound because in "
+                    "all three the actor has the tool in their hands, so where they "
+                    "are is where it is.\n\n"
+                    "THE DESIGNATED EVENT TAKES IT FROM THE TOOL ITEM. Retiring moves "
+                    "nothing and the person designating need not be near the tool, so "
+                    "a Retired row inherits Tool Items.\"Job\" -- where it was. Taking "
+                    "the actor's writes a site the tool had never been on: measured "
+                    "on this base before #363 merged, HYE-TL-260909-004 was checked "
+                    "in on 26-DEMO-02 and retired on 26-DEMO-01, and \"which tools "
+                    "were on 26-DEMO-02\" lost it. That row and the cache it fed were "
+                    "repaired to 26-DEMO-02 in the same commit. Who retired it is "
+                    "Recorded By, which is what that column is for.\n\n"
+                    "STORED AT THAT MOMENT AND NEVER LOOKED UP LATER, whichever "
+                    "source it came from. Assigned Jobs changes when a person moves "
+                    "site, so a log that referenced it would make an old check-out "
+                    "describe today's assignment, which is the exact thing this copy "
+                    "exists to prevent. Inheriting copies an immutable stored value "
+                    "when the row is WRITTEN and does not touch that rule.\n\n"
+                    "ITS OWN COPY, NOT A LOOKUP THROUGH Tool Items.\"Job\". That field "
                     "is itself a cache of THIS column on the latest row, so a lookup "
-                    "would make every row of the history say where the tool is "
-                    "now.\n\n"
+                    "would make every row of the history say where the tool is now. "
+                    "The retirement reads the cache once, at write time, which is a "
+                    "copy and not a lookup.\n\n"
                     "NO 'Former Job' FIELD, DELIBERATELY. Because there are no "
                     "blanks, the PREVIOUS row's Job is unambiguously the previous "
                     "job: a check-in on a different job than the check-out before it "
-                    "IS the record of a tool changing site. Storing the pair would be "
-                    "one fact in two places, derivable from an ordering the log "
-                    "already has, and #340 renders the whole history at once so it "
-                    "holds both rows. Single-record, app-enforced."
+                    "IS the record of a tool changing site. A retirement always "
+                    "agrees with the row above it, which is what keeps that reading "
+                    "available. Storing the pair would be one fact in two places, "
+                    "derivable from an ordering the log already has, and #340 renders "
+                    "the whole history at once so it holds both rows.\n\n"
+                    "REQUIRED, and by the app: "
+                    "lib/airtable/toolLog.js:createToolLogEntry throws on a missing "
+                    "job rather than writing an empty link, the same guard "
+                    "createToolItems opens with. It wrote [] until #363, which "
+                    "nothing could reach while every caller resolved a job out of the "
+                    "actor's assignments. Single-record, app-enforced."
                 ),
             },
             {
@@ -430,24 +490,20 @@ def tool_log(tool_items_table_id):
                     'to tell this one apart from, unlike Deliveries."Received Date".'
                 ),
             },
+            # `Notes` WAS HERE AND WENT FROM THE BASE BY HAND IN #363, with the rule it
+            # was carried for; #455 took it out of this spec, which a re-run would
+            # otherwise have read as a field missing and created again.
             {
-                "name": "Notes",
-                "type": "multilineText",
+                # #376 added this on the base outside this script; #455 put it in the
+                # spec, so a run re-reading the base finds what it asked for.
+                "name": "Checked Out To",
+                "type": "singleLineText",
                 "description": (
-                    "Issue #334 -- why, for the one event a person designates "
-                    "rather than scans: what happened to a tool being Retired. "
-                    "Plural Notes and Long text follow the header-record "
-                    "convention (Purchase Requests, Deliveries, Direct Purchases, "
-                    "PR Edit Requests).\n\n"
-                    "OPTIONAL TODAY, AND REQUIRED ON Retired ONCE A SCREEN WRITES "
-                    "IT. That event cannot be undone, and it covers two different "
-                    "real happenings -- a tool thrown away, and a tool found missing "
-                    "at a stock check -- so with no reason the row does not say "
-                    "which. That screen does not exist yet -- #334 creates the tables "
-                    "and nothing here writes a row -- so the rule is recorded rather "
-                    "than enforced, and it is enforced by the app rather than by "
-                    "this field, since Airtable cannot make a field conditionally "
-                    "required. docs/notes/tools.md carries it as open."
+                    "The person this tool item was handed to. Written on Checked Out "
+                    "rows only and blank on Created, Checked In and Retired; "
+                    "app-enforced in both directions, since the people who receive "
+                    "tools have no account here. Trimmed with runs of spaces "
+                    "collapsed and case kept, matched without case."
                 ),
             },
         ],
