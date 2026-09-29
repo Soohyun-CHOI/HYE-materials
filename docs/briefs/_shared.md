@@ -47,9 +47,11 @@ every column width, the shape of a chip, the shape of a card, where a thing
 sits on the page, and whether a page is one column or two.
 
 What is amber today may be green; what has no shadow today may have one; what is
-a colored pill today may be a rule, an underline or a dot. Issue #258 is where
-the values get named once and the repeated shapes become primitives, and it
-draws that set from the design rather than from what the screens do today.
+a colored pill today may be a rule, an underline or a dot. Issue #462 names the
+values once, beginning with the ones the tools screens read; #258 is where the
+screens above them come onto the names and the repeated shapes become
+primitives, and both draw that set from the design rather than from what the
+screens do today.
 
 Two consequences worth stating plainly, because they are the ones a reader of
 this document is most likely to doubt. The colors named in this file — the
@@ -801,7 +803,8 @@ does not decide for the chrome it paints itself — a scrollbar, a `<select>`
 popup, a date picker. `scripts/tests/offline/no-dark-mode.mjs` keeps it that
 way, and that file's own header says to **delete it** when dark mode returns
 rather than widen it or add an exemption. A second appearance is not forbidden;
-it is deferred until there is a token layer to own it, which is #258.
+it is deferred until every screen reads its look by name — #462 declares the
+names, and #258 brings the screens above the tools axis onto them.
 
 **The tools screens and the two sign-in screens are used at a phone width as
 well as at a monitor. Every other screen is used at a monitor.** A tool is

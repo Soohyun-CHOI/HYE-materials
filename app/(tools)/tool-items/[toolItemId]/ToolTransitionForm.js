@@ -35,8 +35,9 @@ import { recordToolItemEventAction } from "./actions";
  *
  * IT CARRIES NO CLASS, NO WIDTH, NO COLOR AND NO SPACING — #336's rule for this
  * axis, and it bites hardest here: this is the first control in the app a gloved
- * hand presses, and the size that makes it is #258's to decide. The brief says
- * so, because the design work cannot read this file.
+ * hand presses, and the size that makes it is the design's, which #462 names and
+ * the issue that styles this control reads. The brief says so, because the
+ * design work cannot read this file.
  *
  * EVERY STRING COMES FROM `TOOL_TRANSITION_COPY`, which `offline/
  * tool-list-view.mjs` holds by failing on any JSX text under app/(tools)/.

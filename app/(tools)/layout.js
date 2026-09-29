@@ -29,8 +29,9 @@
  * this app's appearance was designed, so a width, a padding or a type value
  * chosen here would become the baseline a design has to justify departing from —
  * which is exactly what `docs/briefs/_shared.md` opens by saying it is not.
- * #258 is what fills it, and this one element is the whole of what it has to
- * reach for the tools axis.
+ * The issues that apply the design's values to this axis fill it, reading the
+ * names `app/designValues.css` declares (#462), and this one element is the whole
+ * of what they have to reach for the axis's width.
  *
  * These screens are the only ones in the app used at a phone width as well as at
  * a monitor: a tool is entered and its labels printed at a desk, and a tool item

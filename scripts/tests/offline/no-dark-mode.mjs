@@ -3,10 +3,11 @@
 // DELETE THIS FILE WHEN DARK MODE IS REINTRODUCED. It is a guard on a decision,
 // not on a property of the code, and the decision is expected to be revisited:
 // #218 removed the variants rather than moving them behind tokens because there
-// is no token layer yet, and the Design System milestone is where a second set
-// of values gets decided once, behind names that already exist. On the commit
-// that reintroduces them this check is the thing standing in the way, and the
-// right response is to remove it rather than to widen it or add an exemption.
+// was no token layer then, and the Design System milestone is where a second set
+// of values gets decided once, behind names that already exist — the names
+// `app/designValues.css` has declared since #462. On the commit that
+// reintroduces them this check is the thing standing in the way, and the right
+// response is to remove it rather than to widen it or add an exemption.
 // Nothing else in this tier has that property, which is why it is said here in
 // the first paragraph rather than in a footnote.
 //

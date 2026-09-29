@@ -19,6 +19,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `lib/listFilters.js`, `app/components/ListFilterBar.js` | `docs/notes/deliveries-and-invoices.md` |
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
 | `app/(tools)/**`, `lib/tool*.js` | `docs/notes/tools.md` |
+| `app/designValues.css`, `app/globals.css` | `docs/notes/design-system.md` |
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
@@ -160,6 +161,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
+- `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` calls may read one.**
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener.**
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
 - `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
