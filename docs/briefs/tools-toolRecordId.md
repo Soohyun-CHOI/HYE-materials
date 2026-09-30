@@ -43,24 +43,25 @@ four document detail screens take with theirs.
 **action.** A way back to `/tools`, carrying the same words the tool item's
 screen carries for the same trip.
 
-**action.** A control that opens the registration form with this tool's name
-filled in, `Create more of this tool` (#451, #455). Buying more of a tool the
-company already has is the same registration as buying the first, and the
-form puts them under this tool because the name finds it — so somebody who
-knows which tool they bought starts here rather than typing its name again.
-**It carries no count**: nothing on this screen knows how many were bought,
-so the form asks, starting where it always starts. **Nor does it carry the
-selection or the page**: the boxes are for printing, and it opens the same
-form from every page of the list. It is on this screen for every tool it
-finds, the one with nothing under it included, and for every reader —
-somebody assigned to no job reaches the form and meets the sentence that
-screen has for them, as they would from `/tools`.
+**action.** A control that opens the registration dialog on this tool,
+`New tools` — the design's word (#456), where it said `Create more of this
+tool` from #451. Buying more of a tool the company already has is the same
+registration as buying the first, and the dialog puts them under this tool,
+which it names under its title — so somebody who knows which tool they bought
+starts here rather than typing its name again. **It carries no count**:
+nothing on this screen knows how many were bought, so the dialog asks,
+starting where it always starts. **Nor does it carry the selection or the
+page**: the boxes are for printing, and it opens the same dialog from every
+page of the list. It is on this screen for every tool it finds, the one with
+nothing under it included, and for every reader — somebody assigned to no job
+sees it disabled, with `Ask the office to assign you to a job` before it, as
+they would on `/tools`.
 
 **It is not one of the answers a registration that fell short offers, and a
 design must not draw it as one.** Those two are a pair about the registration
 the reader has just made (below); this one begins another. When both are on
-the screen they open one form — `Create the rest` with the count that was not
-written, this one with none — and `Not now` takes the pair away and leaves
+the screen they open one dialog — `Create the rest` with the count that was
+not written, this one with none — and `Not now` takes the pair away and leaves
 this standing.
 
 **action.** A box on every entry and one for the page, and together they say
@@ -124,9 +125,8 @@ entries, and only when it happened.
 **When the registration wrote fewer than were asked for:** two sentences, the
 design's (#455) — how many of how many were created, `3 of 5 tools created`,
 and how many were not, `2 couldn't be created` — and two controls that answer
-them. `Create the rest` opens the registration form with this tool's name and
-the count that was not written filled in, both still the reader's to change
-there. `Not now` removes the sentences and both controls. **The two are a pair,
+them. `Create the rest` opens the registration dialog on this tool, with the
+count that was not written filled in and still the reader's to change there. `Not now` removes the sentences and both controls. **The two are a pair,
 and the pairing is what says what the choice is about**: one goes on creating
 and the other ends it, so neither can be read as being about the entry below.
 It is a choice rather than a confirmation dialog — `Not now` acts on nothing in
@@ -256,12 +256,13 @@ beside the start position and the sheet count, for a last decision about the
 paper. The two are different acts and take different words: `Select` here,
 `Include` there.
 
-**Every control that opens the registration form takes its words from that
-form's constant (#451)**, so none can drift from the form it opens — the
-arrangement the label screen has with the two screens that open it. They say
-different things because they open it differently: `/tools`' own carries the
-form's heading and opens it on no tool, this screen's opens it on this tool,
-and the fork's opens it on this tool and a count.
+**Every control that opens the registration dialog takes its words from that
+dialog's constant (#451)**, so none can drift from the dialog it opens — the
+arrangement the label screen has with the two screens that open it. Two say
+the dialog's heading, because both begin a registration: `/tools`' own, which
+opens it on no tool, and this screen's, which opens it on this tool. The
+fork's says `Create the rest`, because it finishes one, and opens it on this
+tool and a count (#456).
 
 **No word the selection adds names what is selected** — the way the document
 lists' pickers say `N selected`. It was written while `tool item` was decided

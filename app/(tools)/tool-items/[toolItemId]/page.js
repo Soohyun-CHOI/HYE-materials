@@ -228,8 +228,10 @@ async function renderToolItemPage({ params }) {
                 A REFUSAL STANDS WHERE BOTH CONTROLS WOULD BE, never beside them.
                 A retired tool item allows nothing to anybody and somebody on no
                 job can record nothing, and in either case a control would be a
-                promise the action refuses. `/tools/new` renders its refusal as
-                the screen for the same reason. Each control is then asked for
+                promise the action refuses. `/tools/new` rendered its refusal as
+                the screen for the same reason until #456, whose openers of the
+                registration say it beside themselves, disabled, since what they
+                open is not on the page. Each control is then asked for
                 separately, because the two answers come from two maps and agree
                 only on today's three statuses. */}
             {transition.refusal ? (

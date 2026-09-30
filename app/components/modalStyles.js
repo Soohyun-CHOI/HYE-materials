@@ -4,6 +4,15 @@
 // PRForm's resume / draft-list / draft-saved modals, and the withdraw
 // confirm (WithdrawPRForm.js, #122). All five now import from here.
 //
+// ONE OF TWO FRAMES SINCE #456, AND WHAT ENDS THAT IS WRITTEN DOWN. The
+// design's frame is `app/components/DialogFrame.js`, on the browser's own
+// modal dialog, and only the tools axis calls it until #258. Two dialogs on
+// that axis are still drawn here — the tool item page's retirement and its
+// check-out sheet — and #458 moves them onto the frame, after which nothing
+// under `app/(tools)/` imports this file; `offline/dialog-frame.mjs` names
+// the two, so a third fails. The screens above the tools axis keep this file
+// until #258 gives them the design's frame, and this file goes with it then.
+//
 // MODAL_CARD deliberately carries NO max-w-* width: width is the caller's
 // responsibility, appended per call site (max-w-md for the four standard
 // modals, max-w-lg for the wider drafts-list modal). Baking a default

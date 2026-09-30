@@ -3,10 +3,12 @@ import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemsByTool } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
+import { assignedJobsFor } from "@/lib/toolJob";
 import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
-import { TOOL_REGISTRATION_COPY, readRegistrationAccount } from "@/lib/toolRegistration";
-import { TOOLS_PATH, registerPath } from "@/lib/toolRoutes";
+import { TOOL_REGISTRATION_COPY, canRegisterToolItems, readRegistrationAccount } from "@/lib/toolRegistration";
+import { TOOLS_PATH } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
+import RegistrationDialog from "../RegistrationDialog";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
 import ToolItemList from "./ToolItemList";
@@ -70,12 +72,13 @@ export const metadata = { title: "Tool" };
  * say why each dismissal edits the address on the client.
  *
  * AND IT IS WHERE SOMEBODY REGISTERS MORE OF THIS TOOL (#451). One control opens the
- * registration form with this tool's name filled in and no count — nothing here knows
- * how many were bought — and costs nothing, since the name is on the row already read.
- * It is drawn for every tool this page finds, the one with nothing under it included,
- * and for every reader: the form is where a reader on no job is told why it cannot take
- * them, as it is for `/tools`' own control. `registerPath` records what carrying the
- * tool's name rather than its record id costs.
+ * registration dialog on this tool and with no count — nothing here knows how many
+ * were bought — and costs nothing: the name is on the row already read, and the reader
+ * and the job list are what this page reads anyway. It is drawn for every tool this page
+ * finds, the one with nothing under it included, and for every reader — disabled, with
+ * the reason before it, for a reader on no job, as `/tools`' own control and the offer
+ * below are (#456). `registerToolItemsAction`'s header records what finding the tool by
+ * its name rather than its record id costs.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
  * answering it on this page would mean reading every tool item under the tool —
@@ -97,7 +100,7 @@ export default async function ToolPage(props) {
 // Every signed-in user, with no Role and no Job scoping (#337) — the same reader
 // the rest of this axis has.
 async function renderToolPage({ params, searchParams }) {
-    await requireUser();
+    const user = await requireUser();
     const { toolRecordId } = await params;
     const sp = (await searchParams) ?? {};
 
@@ -134,6 +137,11 @@ async function renderToolPage({ params, searchParams }) {
 
     const jobCodeById = Object.fromEntries(jobs.map((job) => [job.id, job.jobCode]));
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
+    // What both openers on this page hand the registration dialog (#456): whether this
+    // reader may register at all, which is the one predicate every opener asks, and the
+    // jobs its choice offers.
+    const canRegister = canRegisterToolItems(user, jobs);
+    const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));
 
     return (
         <div>
@@ -144,15 +152,20 @@ async function renderToolPage({ params, searchParams }) {
             {/* Registering more of this tool (#451), above the branch below so a tool
                 with nothing under it keeps it — there it is the way to write what a
                 registration did not. It is not one of the fork's answers, which stand
-                apart inside that branch. */}
-            <Link href={registerPath({ toolName: tool.toolName })}>{TOOL_REGISTRATION_COPY.registerMore}</Link>
+                apart inside that branch. It opens the dialog on this tool (#456). */}
+            <RegistrationDialog
+                opener={TOOL_REGISTRATION_COPY.heading}
+                canRegister={canRegister}
+                jobs={assignedJobs}
+                tool={{ toolName: tool.toolName }}
+            />
 
             {page.total === 0 ? (
                 <p>{COPY.noToolItems}</p>
             ) : (
                 <>
                     {/* A registration's account, which only a list with rows in it can
-                        carry: one that wrote nothing stays on the form (#449). The fork
+                        carry: one that wrote nothing stays in the dialog (#449, #456). The fork
                         asks a question and the notice states a fact nothing repairs, so
                         the fork's two controls answer it and the notice's one only takes
                         it away (#455); they stand apart, and the fork's count never
@@ -162,6 +175,8 @@ async function renderToolPage({ params, searchParams }) {
                             toolName={tool.toolName}
                             asked={account.asked}
                             unwritten={account.unwritten}
+                            canRegister={canRegister}
+                            jobs={assignedJobs}
                         />
                     )}
                     {account.unlogged.length > 0 && <RegistrationUnlogged toolItemIds={account.unlogged} />}

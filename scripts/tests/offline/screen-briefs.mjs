@@ -38,10 +38,15 @@
 // assertion be an exact equality in both directions. A brief's name comes from the
 // route template the same way `withOpsLabel`'s label does, so a name cannot
 // disagree with the screen it is about, and there is no exemption list to go stale.
+// **A DIALOG'S BRIEF IS THE ONE NAME NOT DERIVED (#456)**: a page that became a
+// dialog keeps the brief it had, and `DIALOG_BRIEFS` pairs each with the component
+// that draws it — a claim this file tests against the pages' imports, which is what
+// keeps the list from being the exemption list this paragraph refuses.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { listJsFiles, repoPath, toPosix, REPO_ROOT } from "./_ast.mjs";
+import { listJsFiles, parseFile, repoPath, toPosix, REPO_ROOT } from "./_ast.mjs";
 import { listEntryPoints, countEntryPointFiles, routeTemplate } from "./_entrypoints.mjs";
+import { importedPairs } from "./unread-exports.mjs";
 import {
     STATUS_COPY,
     AWAITING_INVOICE_COPY,
@@ -88,6 +93,55 @@ const BRIEFS_DIR = "docs/briefs";
  * does not exist.
  */
 const NON_SCREEN = new Set(["_shared.md", "README.md", "design-copy-findings.md"]);
+
+/**
+ * The briefs that describe a DIALOG rather than a page, each with the component that
+ * draws it (#456).
+ *
+ * A PAGE THAT BECAME A DIALOG KEEPS ITS BRIEF. `/tools/new` was a page with a brief named
+ * for it, and #456 drew it as a dialog over the pages that open it; the design work still
+ * needs one place saying what the registration carries, so the file stays and says where
+ * the dialog opens in place of a route — an `Opens from:` line naming each page in
+ * backticks, the way a `Route:` line names one. Its name is the page it replaced, which
+ * is what a reader looking for it will look for, and nothing derives it any more.
+ *
+ * WHAT KEEPS ONE FROM GOING STALE IS THIS MAP, and it is the half the both-directions rule
+ * cannot supply once there is no page. Each entry names the component: it has to exist,
+ * every page its brief names has to reach it through its imports, every page that reaches
+ * it has to be named, and no page may carry the brief's name — so a dialog removed, moved
+ * off a page it claims, given an opener the brief does not name, or put back as a page
+ * fails here rather than leaving a brief that tells the design work something else.
+ * #457's label sheet is the next row.
+ */
+const DIALOG_BRIEFS = new Map([["tools-new.md", "app/(tools)/tools/RegistrationDialog.js"]]);
+
+/** Each file's imports, parsed once however many pages' walks pass through it. */
+const importsOf = new Map();
+
+/** Every module a file reaches through its relative and `@/` imports, itself included. */
+function reachedFrom(start) {
+    const seen = new Set();
+    const stack = [start];
+    while (stack.length > 0) {
+        const rel = stack.pop();
+        if (seen.has(rel)) continue;
+        seen.add(rel);
+        if (!/\.(m?js|jsx)$/.test(rel) || !existsSync(repoPath(rel))) continue;
+        if (!importsOf.has(rel))
+            importsOf.set(
+                rel,
+                [...importedPairs(rel, parseFile(rel).ast)].map((pair) => pair.slice(0, pair.lastIndexOf("::")))
+            );
+        stack.push(...importsOf.get(rel));
+    }
+    return seen;
+}
+
+/** The pages a dialog brief says it opens from, as the route templates it backticks. */
+function opensFrom(text) {
+    const line = text.match(/^Opens from:(.*)$/m)?.[1];
+    return line === undefined ? null : [...line.matchAll(/`([^`]+)`/g)].map((m) => m[1]);
+}
 
 /**
  * A route template's brief filename. The one hand-held case is "/", which has no
@@ -432,6 +486,9 @@ export function run({ check, assert, log }) {
     assert("the briefs directory is not empty", onDisk.length > 0);
 
     const screenFiles = onDisk.filter((f) => !NON_SCREEN.has(f));
+    // A page's brief, as against a dialog's (#456): the both-directions rule is about
+    // pages, and a dialog's brief is held to its component below instead.
+    const pageBriefs = screenFiles.filter((f) => !DIALOG_BRIEFS.has(f));
     // LINE ENDINGS NORMALIZED, AND THIS WAS A LIVE DEFECT (#256). The structural scan
     // below looks for "\n## …\n"; this working tree is CRLF, so it matched nothing and
     // reported every brief as missing every section. It passed in the branch that added
@@ -463,18 +520,55 @@ export function run({ check, assert, log }) {
     check("the enumeration found as many pages as there are page.js files", routes.length, byName.page);
 
     const expected = new Set(routes.map(briefFileName));
-    const missing = [...expected].filter((f) => !screenFiles.includes(f)).sort();
+    const missing = [...expected].filter((f) => !pageBriefs.includes(f)).sort();
     check("no page without a brief", missing.length === 0 ? "none" : missing.join(", "), "none");
 
-    const extra = screenFiles.filter((f) => !expected.has(f)).sort();
+    const extra = pageBriefs.filter((f) => !expected.has(f)).sort();
     check("no brief without a page", extra.length === 0 ? "none" : extra.join(", "), "none");
+
+    // --- a dialog's brief, held to the component that draws it (#456) ------
+    log("");
+    log("every dialog's brief names the pages that draw the dialog, all of them and no other:");
+    const pageFileByRoute = new Map(entries.filter((e) => e.kind === "page").map((e) => [routeTemplate(e.file), e.file]));
+    const dialogFailures = [];
+    for (const [file, component] of DIALOG_BRIEFS) {
+        const text = briefText.get(file);
+        if (!text) {
+            dialogFailures.push(`${file}: not on disk`);
+            continue;
+        }
+        if (expected.has(file)) dialogFailures.push(`${file}: a page carries this name, so it is that page's brief`);
+        if (!existsSync(repoPath(component))) dialogFailures.push(`${file}: ${component} does not exist`);
+        const pages = opensFrom(text);
+        if (!pages || pages.length === 0) {
+            dialogFailures.push(`${file}: no Opens from line naming a page`);
+            continue;
+        }
+        for (const route of pages) {
+            const pageFile = pageFileByRoute.get(route);
+            if (!pageFile) dialogFailures.push(`${file}: opens from ${route}, which is no page`);
+            else if (!reachedFrom(pageFile).has(component)) dialogFailures.push(`${file}: ${route} does not reach ${component}`);
+        }
+        // And the other direction: every page that draws the dialog is one the brief names,
+        // so a new opener cannot leave the brief telling the design work fewer places.
+        for (const [route, pageFile] of pageFileByRoute)
+            if (!pages.includes(route) && reachedFrom(pageFile).has(component))
+                dialogFailures.push(`${file}: ${route} draws ${component} and the brief does not name it`);
+        if (/^Route:/m.test(text)) dialogFailures.push(`${file}: carries a Route line as well`);
+    }
+    check(
+        "no dialog brief naming a page that is missing or does not draw it, or leaving out one that does",
+        dialogFailures.length === 0 ? "none" : dialogFailures.join("; "),
+        "none"
+    );
+    log(`  ${DIALOG_BRIEFS.size} dialog brief(s), opened from ${[...DIALOG_BRIEFS.keys()].flatMap((f) => opensFrom(briefText.get(f) ?? "") ?? []).join(", ")}`);
 
     // --- each brief declares the route its filename claims ---------------
     log("");
     log("each brief's own Route line agrees with its filename:");
     const routeMismatches = [];
     for (const [file, text] of briefText) {
-        if (NON_SCREEN.has(file)) continue;
+        if (NON_SCREEN.has(file) || DIALOG_BRIEFS.has(file)) continue;
         const declared = text.match(/^Route:\s*`([^`]+)`/m)?.[1];
         if (!declared) routeMismatches.push(`${file}: no Route line`);
         else if (briefFileName(declared) !== file) routeMismatches.push(`${file}: declares ${declared}`);
@@ -698,8 +792,22 @@ export function run({ check, assert, log }) {
     assert("  and rejects one nobody defines", !tonesInStatusCopy().has("catastrophe"));
     assert("a fabricated sentence is in no constant", !loadable.some((s) => s.includes("Everything is fine here")));
     assert("  and a pinned one is", loadable.some((s) => s.includes("⚠ Check the total")));
-    assert("the brief set is the size the app is", screenFiles.length === byName.page);
+    assert("the page briefs are as many as the app's pages", pageBriefs.length === byName.page);
     assert("every non-screen file is present", NON_SCREEN.size === onDisk.length - screenFiles.length);
+    // THE DIALOG SECTION IS SEEN TO BE ABLE TO FAIL (#456): its reader reaches a dialog
+    // through a page's imports and does not reach it through a page that has none of it,
+    // and its line reader takes a route and refuses a brief with no line.
+    assert("every dialog brief is on disk", [...DIALOG_BRIEFS.keys()].every((f) => onDisk.includes(f)));
+    assert(
+        "the import walk reaches the registration dialog from the tool list",
+        reachedFrom(pageFileByRoute.get("/tools") ?? "").has("app/(tools)/tools/RegistrationDialog.js")
+    );
+    assert(
+        "  and not from the label screen, which never opens it",
+        !reachedFrom(pageFileByRoute.get("/tool-items/labels") ?? "").has("app/(tools)/tools/RegistrationDialog.js")
+    );
+    check("the Opens from line is read route by route", (opensFrom("Opens from: `/a` and `/b/[c]`.") ?? []).join(" "), "/a /b/[c]");
+    assert("  and a brief with none reads as none", opensFrom("Route: `/a`") === null);
     // The repo walk is real: this file is under scripts/ and so must NOT be in it.
     assert("the app/lib walk excludes this tier", !toPosix(REPO_ROOT + "/scripts").includes("/app/"));
 }

@@ -30,14 +30,12 @@ import { readFileSync } from "node:fs";
 import { ID_KINDS, dailyIdPrefix, formatSequentialId } from "../../../lib/idSequence.js";
 import {
     LABEL_REWRITE,
-    REGISTER_PATH,
     TOOLS_PATH,
     TOOLS_ROUTES,
     canonicalToolItemId,
     labelCodeFor,
     labelPath,
     readToolItemIds,
-    registerPath,
     toolItemIdFromLabelCode,
     toolItemLabelsPath,
     toolItemPath,
@@ -59,8 +57,13 @@ const GROUP_DIR = "app/(tools)";
  * `Tool Item ID`. It is the shape most likely to come back by habit: the ops label,
  * a comment and a brief's own `Route:` line all spell a route as a string, and none
  * of them is reached by the page-file comparison above.
+ *
+ * `/tools/new` joined in #456, when the registration became a dialog over the page that
+ * opens it. A link to it would not 404: the dynamic segment takes `new` as a record id
+ * and answers with the tool page's not-found, so a stray `href` is a dead end that looks
+ * like a missing tool, which is why it is held here and not left to a click.
  */
-const RETIRED = ["/tools/tool/", "/tools/[toolItemId]", "/t/[toolItemId]"];
+const RETIRED = ["/tools/tool/", "/tools/[toolItemId]", "/t/[toolItemId]", "/tools/new"];
 
 /** The token every `Tool Item ID` opens with, and what a label code drops (#411). */
 const TOOL_ITEM_TOKEN = "HYE-TL-";
@@ -118,7 +121,6 @@ export function run({ check, assert, log }) {
     log("");
     log("each builder lands on the route it is for:");
     check("the tool list", TOOLS_PATH, "/tools");
-    check("the registration form", REGISTER_PATH, "/tools/new");
     check("one tool", toolPath("recAbc"), "/tools/recAbc");
     check("  a later page of it", toolPath("recAbc", 2), "/tools/recAbc?page=2");
     check("  and page 1 carries no parameter", toolPath("recAbc", 1), "/tools/recAbc");
@@ -222,19 +224,9 @@ export function run({ check, assert, log }) {
         "/tools/recAbc?page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
     );
 
-    log("");
-    log("and the form it offers opens on a tool and a count:");
-    check(
-        "the form opened on a tool and a count",
-        registerPath({ toolName: "DEMO Angle Grinder", quantity: 4 }),
-        "/tools/new?toolName=DEMO+Angle+Grinder&quantity=4"
-    );
-    // One is the smallest count a shortfall hands over, so it is the edge to write.
-    check("  a count of one is carried", registerPath({ toolName: "Drill", quantity: 1 }), "/tools/new?toolName=Drill&quantity=1");
-    check("  a name alone", registerPath({ toolName: "Drill" }), "/tools/new?toolName=Drill");
-    check("  and with nothing to fill, the plain form", registerPath(), REGISTER_PATH);
-    check("  whose address is the form's own", registerPath(), "/tools/new");
-    check("  escaping what a query must", registerPath({ toolName: "A&B=C" }), "/tools/new?toolName=A%26B%3DC");
+    // `registerPath` was checked here from #449 to #456 — the registration form's address,
+    // opened on a tool and a count. The form is a dialog now and has no address; what its
+    // openers hand it is `offline/tool-registration.mjs`'s to hold.
 
     // ── 2b: the printed code, which is what that segment holds (#411) ───────
     log("");

@@ -1,18 +1,20 @@
 // Registering tool items — the pure half (#338).
 //
 // WHAT THIS FILE IS FOR. `lib/toolRegistration.js` holds one judgment that two
-// readers reach independently: the form previews whether a typed name names a
+// readers reach independently: the dialog previews whether a typed name names a
 // tool that already exists, and the action decides whether to create a second
 // `Tools` row. If those two ever disagree, the screen tells somebody they are
 // adding to an existing tool while the write coins a new one — and nothing
 // fails, because the two answers are never compared at runtime. So the key is
-// one function and this file pins it.
+// one function and this file pins it. **Since #456 the same holds for what a
+// submission may be**: the dialog refuses it before sending anything and the action
+// refuses it again, both through `readRegistration`, which is pinned here by value.
 //
 // THE JOB RULE IT USED TO PIN IS `offline/tool-job.mjs`'s SINCE #363, and so is
 // the deliberate disagreement with `lib/deliveryAccess.js:accessibleJobs`.
 // `assignedJobsFor` left `lib/toolRegistration.js` when the retirement made it
 // three write paths' rule rather than this screen's. What section 4 keeps is
-// `canRegisterToolItems`, which really is this form's own question.
+// `canRegisterToolItems`, which really is this dialog's own question.
 //
 // WHAT IT CANNOT SEE. Whether Airtable agrees. The lookup this key stands in for
 // is `LOWER(TRIM({Tool Name})) = LOWER(TRIM(…))`, and that comparison lives in a
@@ -23,50 +25,57 @@
 // re-measure it, and a green run is not evidence that the two halves match.
 //
 // It also cannot see rendering, which is this tier's standing limit: that the
-// preview reaches a browser at all is checked with a real session and recorded
-// in the pull request.
+// preview, the suggestions and the dialog itself reach a browser at all is checked
+// with a real session and recorded in the pull request.
 //
 // AND SINCE #449 IT HOLDS WHERE A REGISTRATION LANDS, in the same two halves. What
-// the form opens filled with and what a landing's account reads as are pure, held
-// by value at their edges. Where the action sends the person — which record, which
-// page, which tool items selected and what account beside them — is in a module
-// this tier cannot load (the action reaches lib/airtable/), and naming the calls
-// would be satisfied by every wrong version of them, so the redirect's ARGUMENTS
-// and the form's state are read off the AST, each beside a planted file doing it
+// the dialog opens at and what a landing's account reads as are pure, held by value
+// at their edges. Where the action sends the person — which record, which page,
+// which tool items selected and what account beside them — is in a module this tier
+// cannot load (the action reaches lib/airtable/), and naming the calls would be
+// satisfied by every wrong version of them, so the redirect's ARGUMENTS and the
+// dialog's submission are read off the AST, each beside a planted file doing it
 // wrong. **What that cannot show is the two failures themselves**: a batch that
 // stops short and a log pass that stops are both unreachable without breaking the
 // base, so the refusal, the shortfall and the unlogged names are held here as
 // source and as words, and never as a run.
 //
 // AND SINCE #455 THE WORDS ARE THE DESIGN'S, pinned by value — `create` for the act and
-// `tool` for what one creates. The scanner that failed a bare `item` here went with the
-// rule it held: that rule was the tools area's stricter reading of #303, and the design
-// reversed it. What replaces it is the sweep's own claim, that no string in the
-// constant says `tool item`. `offline/tool-screen-words.mjs` holds the verb across
-// every tools screen.
+// `tool` for what one creates — and since #456 the dialog's own words with them. The
+// scanner that failed a bare `item` here went with the rule it held: that rule was the
+// tools area's stricter reading of #303, and the design reversed it. What replaces it
+// is the sweep's own claim, that no string in the constant says `tool item`.
+// `offline/tool-screen-words.mjs` holds the verb across every tools screen.
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { normalizeItemText } from "../../../lib/itemNaming.js";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
+    MAX_TOOL_SUGGESTIONS,
     TOOL_REGISTRATION_COPY,
     canRegisterToolItems,
     matchExistingTool,
+    openingCount,
     readQuantity,
+    readRegistration,
     readRegistrationAccount,
-    readRegistrationPrefill,
+    suggestTools,
     toolNameKey,
 } from "../../../lib/toolRegistration.js";
-import { registerPath, toolPath } from "../../../lib/toolRoutes.js";
+import { TOOL_JOB_COPY } from "../../../lib/toolJob.js";
+import { toolPath } from "../../../lib/toolRoutes.js";
 import { callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449, #455)";
+export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449, #455, #456)";
 
-/** The action whose redirect section 8 reads, and the form whose state it reads. */
-const ACTION = "app/(tools)/tools/new/actions.js";
-const FORM = "app/(tools)/tools/new/ToolRegistrationForm.js";
+/** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
+const ACTION = "app/(tools)/tools/actions.js";
+const DIALOG = "app/(tools)/tools/RegistrationDialog.js";
+
+/** A builder's parts (#456) as the one string a reader sees. */
+const joined = (parts) => parts.map((part) => (typeof part === "string" ? part : part.emphasis)).join("");
 
 /** Every string the copy constant can produce, builders called with real input. */
 function copyStrings() {
@@ -74,10 +83,9 @@ function copyStrings() {
     for (const value of Object.values(TOOL_REGISTRATION_COPY)) {
         if (typeof value === "string") out.push(value);
     }
-    out.push(TOOL_REGISTRATION_COPY.matchesExisting("Impact Driver"));
-    out.push(TOOL_REGISTRATION_COPY.newTool("Impact Driver"));
-    out.push(TOOL_REGISTRATION_COPY.quantityTooMany({ requested: 250, limit: 100 }));
-    for (const n of [1, 5]) out.push(TOOL_REGISTRATION_COPY.noneWritten(n));
+    out.push(joined(TOOL_REGISTRATION_COPY.matchesExisting({ toolName: "Impact Driver", items: "13 items" })));
+    out.push(TOOL_REGISTRATION_COPY.quantityHelp(100));
+    out.push(TOOL_REGISTRATION_COPY.quantityInvalid(100), TOOL_REGISTRATION_COPY.quantityTooMany(100));
     out.push(TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }));
     for (const n of [1, 4]) {
         out.push(TOOL_REGISTRATION_COPY.shortfall(n));
@@ -133,7 +141,7 @@ export function run({ check, assert, log }) {
 
     // ── 2: the preview finds what the write would find ──────────────────────
     log("");
-    log("the form's preview and the write reach one verdict:");
+    log("the dialog's preview and the write reach one verdict:");
     const tools = [
         { id: "recA", toolName: "Impact Driver" },
         { id: "recB", toolName: "Angle Grinder" },
@@ -143,6 +151,40 @@ export function run({ check, assert, log }) {
     check("a name nothing holds matches nothing", matchExistingTool("Rotary Hammer", tools), null);
     check("an empty name matches nothing", matchExistingTool("   ", tools), null);
     check("and no list matches nothing", matchExistingTool("Impact Driver", []), null);
+
+    // ── 2b: what a partly typed name suggests (#456) ────────────────────────
+    // THE DESIGN'S RULE, AT ITS EDGES: every tool whose name holds what is typed, on the
+    // write's own key, in the list's order, five at most — and none for a name typed in
+    // full, which the preview answers instead. The five is pinned first, because the
+    // edge below is its.
+    log("");
+    log("a partly typed name suggests the tools whose names hold it, five at most:");
+    check("the most a name suggests", MAX_TOOL_SUGGESTIONS, 5);
+    const shelf = [
+        { toolName: "Angle Grinder 4\"", count: 4 },
+        { toolName: "Band Saw", count: 2 },
+        { toolName: "Chop Saw, 14\"", count: 3 },
+        { toolName: "Core Drill", count: 2 },
+        { toolName: "Cordless Drill, DeWalt", count: 13 },
+        { toolName: "Magnetic Drill", count: 3 },
+        { toolName: "Pipe Cutter, Hydraulic", count: 2 },
+        { toolName: "Plasma Cutter", count: 1 },
+        { toolName: "Rotary Hammer Drill", count: 1 },
+        { toolName: "Torque Wrench", count: 7 },
+    ];
+    const names = (typed) => suggestTools(typed, shelf).map((tool) => tool.toolName).join(" | ");
+    check("a word inside names, in the list's order", names("saw"), "Band Saw | Chop Saw, 14\"");
+    check("  whatever its case and spacing", names("  CHOP   saw "), "Chop Saw, 14\"");
+    check(
+        "  and no more than five of the six it holds",
+        names("r"),
+        "Angle Grinder 4\" | Core Drill | Cordless Drill, DeWalt | Magnetic Drill | Pipe Cutter, Hydraulic"
+    );
+    check("a name typed in full suggests nothing", names("band saw"), "");
+    check("  nor does nothing typed", names("   "), "");
+    check("  nor a word no tool holds", names("chainsaw"), "");
+    // The count each suggestion says is its own, handed through untouched.
+    check("each suggestion keeps its count", suggestTools("cordless", shelf)[0]?.count, 13);
 
     // ── 3: how many one submission may write ───────────────────────────────
     log("");
@@ -156,28 +198,26 @@ export function run({ check, assert, log }) {
         ["a negative", "-4"],
         ["a fraction", "1.5"],
         ["a word", "six"],
-        ["one over the ceiling", String(MAX_TOOL_ITEMS_PER_REGISTRATION + 1)],
-    ]) {
-        const { count, refusal } = readQuantity(raw);
-        assert(`  ${what} is refused and carries no count`, count === null && typeof refusal === "string" && refusal.length > 0);
-    }
-    // The refusal a person acts on has to name both figures AND the way out,
-    // because the way out is repeating the form rather than giving up: the
-    // find-or-create path lands the rest under the same tool.
-    const tooMany = TOOL_REGISTRATION_COPY.quantityTooMany({ requested: 250, limit: 100 });
-    assert("the ceiling refusal names what was asked for", tooMany.includes("250"));
-    assert("  and the ceiling", tooMany.includes("100"));
-    assert("  and that the rest land under the same tool", tooMany.includes("same tool"));
+    ])
+        check(`  ${what} is refused with the range`, `${readQuantity(raw).count} ${readQuantity(raw).refusal}`, "null Enter 1 to 100.");
+    check(
+        "  and one over the ceiling with the ceiling alone",
+        `${readQuantity(String(MAX_TOOL_ITEMS_PER_REGISTRATION + 1)).count} ${readQuantity(String(MAX_TOOL_ITEMS_PER_REGISTRATION + 1)).refusal}`,
+        "null Max 100 at a time."
+    );
+    // THE WAY OUT IS IN THE WORDS: the ceiling is on one submission, so the refusal says
+    // `at a time`, and the find-or-create path lands the rest under the same tool.
+    assert("the ceiling refusal says the rest can follow", TOOL_REGISTRATION_COPY.quantityTooMany(100).includes("at a time"));
 
-    // ── 4: who may use this form at all ────────────────────────────────────
+    // ── 4: who may use this dialog at all ──────────────────────────────────
     // THE JOB RULE ITSELF MOVED TO `offline/tool-job.mjs` IN #363, with the
     // function it is about: three write paths read it now, so a check named for
     // this screen was asserting about a module the other two would not think to
-    // look in. What stays here is this form's own question — whether the person
+    // look in. What stays here is this dialog's own question — whether the person
     // in front of it may use it — which is `canRegisterToolItems` and nothing
-    // else. The disagreement with `canAccessJobDeliveries` moved with the rule.
+    // else, and which every opener asks (#456).
     log("");
-    log("whether this person may use this form:");
+    log("whether this person may use the dialog:");
     const jobs = [
         { id: "job1", jobCode: "26-DEMO-01" },
         { id: "job2", jobCode: "26-DEMO-02" },
@@ -193,9 +233,9 @@ export function run({ check, assert, log }) {
 
     // ── 5: the copy ────────────────────────────────────────────────────────
     log("");
-    log("every word the screen can say:");
+    log("every word a registration can say:");
     const strings = copyStrings();
-    assert(`the constant yielded ${strings.length} strings`, strings.length > 12);
+    assert(`the constant yielded ${strings.length} strings`, strings.length > 20);
     check("none is empty", strings.filter((s) => !s || !s.trim()).length, 0);
     check(
         "none renders `undefined` or `NaN` from a builder",
@@ -211,18 +251,52 @@ export function run({ check, assert, log }) {
         oldNoun.length,
         0
     );
-    // THE FORM'S OWN ACCOUNT IS GONE (#449): a registration lands on its tool's page,
-    // whose selection names every id it wrote, so the words that stated it here went
-    // with it and nothing on the form says what was written.
+    // THE FORM'S OWN ACCOUNT IS GONE (#449), AND THE ADDRESS'S OPENER WITH IT (#456): a
+    // registration lands on its tool's page, whose selection names every id it wrote, and
+    // a tool's own page opens the dialog in its title rather than in words of its own.
     check(
-        "no word is left for the form's own account",
-        ["registered", "ids", "shortCount"].filter((key) => key in TOOL_REGISTRATION_COPY).join(", "),
+        "no word is left for the form's own account or the address's own opener",
+        ["registered", "ids", "shortCount", "registerMore", "quantityMissing", "quantityNotWhole"]
+            .filter((key) => key in TOOL_REGISTRATION_COPY)
+            .join(", "),
         ""
     );
-    // THE DESIGN'S WORDS (#455), BY VALUE. The form's heading is also `/tools`' control,
-    // so the two are one string; the submit names what it makes.
-    check("the heading, which /tools' control carries", TOOL_REGISTRATION_COPY.heading, "New tools");
-    check("  and the submit", TOOL_REGISTRATION_COPY.submit, "Create tools");
+    // THE DESIGN'S WORDS, BY VALUE (#455, #456). The title is also the list's and a tool's
+    // page's opener, so the three are one string; the submit names what it makes.
+    check("the title, which both openers that begin a registration say", TOOL_REGISTRATION_COPY.heading, "New tools");
+    check("  the line under it, opened on no tool", TOOL_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
+    check("  the name's label", TOOL_REGISTRATION_COPY.nameLabel, "Tool name");
+    check("  and its placeholder", TOOL_REGISTRATION_COPY.namePlaceholder, "e.g. Impact Driver, Milwaukee");
+    check("  the count's label", TOOL_REGISTRATION_COPY.quantityLabel, "Quantity");
+    check("  and its help", TOOL_REGISTRATION_COPY.quantityHelp(100), "Up to 100");
+    check("  the job's label", TOOL_REGISTRATION_COPY.jobLabel, "Job");
+    check("  and its choice left empty, the picker's own word", TOOL_REGISTRATION_COPY.jobUnchosen, TOOL_JOB_COPY.unchosen);
+    check("  the submit", TOOL_REGISTRATION_COPY.submit, "Create tools");
+    check("  and the way out", TOOL_REGISTRATION_COPY.cancel, "Cancel");
+    // THE PREVIEW (#456): a tool that exists, with its count in the words its own page
+    // heads its list with, and a name that coins one.
+    check(
+        "the preview for a tool that exists",
+        joined(TOOL_REGISTRATION_COPY.matchesExisting({ toolName: "Impact Driver", items: "13 items" })),
+        "Adds to Impact Driver, which already has 13 items"
+    );
+    check(
+        "  with the tool and its count as the parts the note sets in Ink",
+        TOOL_REGISTRATION_COPY.matchesExisting({ toolName: "T", items: "N" })
+            .filter((part) => typeof part !== "string")
+            .map((part) => part.emphasis)
+            .join(", "),
+        "T, N"
+    );
+    check("  and for one that does not", TOOL_REGISTRATION_COPY.newTool, "Creates a new tool");
+    // EACH FIELD'S REFUSAL, AND THE ONE ABOUT THE WHOLE DIALOG (#456).
+    check("a name left empty", TOOL_REGISTRATION_COPY.nameMissing, "Enter a tool name.");
+    check("  a count out of range", TOOL_REGISTRATION_COPY.quantityInvalid(100), "Enter 1 to 100.");
+    check("  a count past the ceiling", TOOL_REGISTRATION_COPY.quantityTooMany(100), "Max 100 at a time.");
+    check("  a job not chosen, the picker's own word", TOOL_REGISTRATION_COPY.jobNoneChosen, TOOL_JOB_COPY.noneChosen);
+    check("  a job not the reader's, the picker's own word", TOOL_REGISTRATION_COPY.jobNotYours, TOOL_JOB_COPY.notYours);
+    check("nothing written", TOOL_REGISTRATION_COPY.noneWritten, "Couldn't create the tools. Try again.");
+    check("why an opener cannot act, for a reader on no job", TOOL_REGISTRATION_COPY.noJob, "Ask the office to assign you to a job");
     // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's two sentences
     // and its two answers, one going on and one stopping — and the notice, whose one
     // control dismisses it and repairs nothing, because nothing repairs what it names.
@@ -231,98 +305,51 @@ export function run({ check, assert, log }) {
     check("  at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 couldn't be created");
     check("  the answer that goes on", TOOL_REGISTRATION_COPY.registerOthers, "Create the rest");
     check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Not now");
-    // THE CONTROL A TOOL'S OWN PAGE OPENS THE FORM FROM (#451), which begins a
-    // registration where the fork's first answer finishes one — so it says `more of this
-    // tool` beside `the rest`, and never the heading `/tools` opens the form with.
-    check(
-        "the control a tool's page opens the form from",
-        TOOL_REGISTRATION_COPY.registerMore,
-        "Create more of this tool"
-    );
     check("the notice", TOOL_REGISTRATION_COPY.unloggedHeading(2), "2 tools have no creation date");
     check("  at one", TOOL_REGISTRATION_COPY.unloggedHeading(1), "1 tool has no creation date");
     check("  what it means", TOOL_REGISTRATION_COPY.unlogged(2), "Only the creation date wasn't saved for these");
     check("  at one", TOOL_REGISTRATION_COPY.unlogged(1), "Only the creation date wasn't saved for this one");
     check("  and the control that takes it away", TOOL_REGISTRATION_COPY.gotIt, "Got it");
-    // A batch that wrote nothing stays on the form, and what it says is true whether the
-    // tool was found or made just now.
-    check(
-        "nothing written",
-        TOOL_REGISTRATION_COPY.noneWritten(5),
-        "None of the 5 asked for were created. Creating them again puts them under the same tool."
-    );
-    check(
-        "  and at one",
-        TOOL_REGISTRATION_COPY.noneWritten(1),
-        "The one asked for was not created. Creating it again puts it under the same tool."
-    );
-    // THE SWEEP'S OWN SENTENCES (#455), the ones the design did not draw and the verb and
-    // the noun were carried into. The preview names the tool and what joins it, so the
-    // second takes `These` rather than a second `tool` meaning something else; and the
-    // no-job sentence keeps what the reader can do, which is ask.
-    check(
-        "the preview for a tool that exists",
-        TOOL_REGISTRATION_COPY.matchesExisting("Impact Driver"),
-        "Impact Driver is already a tool. These join the ones already under it."
-    );
-    check("  and for one that does not", TOOL_REGISTRATION_COPY.newTool("Impact Driver"), "Impact Driver is a tool nobody has created yet.");
-    check("the count left empty", TOOL_REGISTRATION_COPY.quantityMissing, "Say how many tools to create.");
-    check(
-        "  and one past the ceiling",
-        TOOL_REGISTRATION_COPY.quantityTooMany({ requested: 250, limit: 100 }),
-        "250 is more than can be created at once. Create up to 100 at a time and repeat for the rest — they land under the same tool."
-    );
-    check(
-        "a reader on no job",
-        TOOL_REGISTRATION_COPY.noJob,
-        "You are not assigned to a job, so there is no job to create tools against. Ask for a job assignment first."
-    );
 
-    // ── 6: what the form opens with (#449) ──────────────────────────────────
+    // ── 6: what the dialog opens at, and what a submission is (#449, #456) ────
     log("");
-    log("the form opens on what its address names, and on nothing its submit would refuse:");
+    log("the dialog opens on a count its submit would take, and one reading refuses a submission:");
     // THE CEILING IS PINNED FIRST, because the edge below is its: 100 opens as itself and
     // 101 at one only while one submission may write a hundred.
     check("one submission writes at most", MAX_TOOL_ITEMS_PER_REGISTRATION, 100);
-    const opens = (sp) => JSON.stringify(readRegistrationPrefill(sp));
-    check(
-        "a tool and a count",
-        opens({ toolName: "  DEMO Angle Grinder ", quantity: "4" }),
-        JSON.stringify({ toolName: "DEMO Angle Grinder", quantity: 4 })
-    );
-    check("  nothing named opens empty, at one", opens({}), JSON.stringify({ toolName: "", quantity: 1 }));
-    // A NAME ALONE IS WHAT A TOOL'S OWN PAGE SENDS (#451), and its count starts where the
-    // count of an address naming nothing does, and where a count the submit refuses does.
-    check(
-        "  a tool and no count opens on the tool, at one",
-        opens({ toolName: "DEMO Angle Grinder" }),
-        JSON.stringify({ toolName: "DEMO Angle Grinder", quantity: 1 })
-    );
-    check("  the ceiling opens as itself", readRegistrationPrefill({ quantity: "100" }).quantity, 100);
+    check("the offer's count opens as itself", openingCount(4), 4);
+    check("  and the ceiling does", openingCount(100), 100);
     for (const [raw, why] of [
-        ["101", "one over the ceiling"],
-        ["0", "zero"],
-        ["-3", "a negative"],
-        ["2.5", "a fraction"],
+        [undefined, "nothing handed over — the list's and a tool's page's"],
+        [101, "one over the ceiling"],
+        [0, "zero"],
+        [2.5, "a fraction"],
         ["four", "a word"],
-        [["4", "5"], "a repeated key"],
     ])
-        check(`  ${why} opens at one`, readRegistrationPrefill({ quantity: raw }).quantity, 1);
-    check("  a repeated name opens empty", readRegistrationPrefill({ toolName: ["A", "B"] }).toolName, "");
-    // THE WRITE AND THE READ AGREE, through the browser's own parser, on a name holding the
-    // characters a query has to escape.
-    const reopened = new URLSearchParams(registerPath({ toolName: "A & B / C+D", quantity: 7 }).split("?")[1]);
+        check(`  ${why} opens at one`, openingCount(raw), 1);
+
+    const reading = (submitted, offered = jobs) => JSON.stringify(readRegistration(submitted, offered));
+    const good = { toolName: "  Impact Driver ", quantity: "5", jobId: "job2" };
     check(
-        "  an address registerPath writes opens the form on the same two values",
-        opens({ toolName: reopened.get("toolName"), quantity: reopened.get("quantity") }),
-        JSON.stringify({ toolName: "A & B / C+D", quantity: 7 })
+        "a submission it takes is the trimmed name, the count and the job",
+        reading(good),
+        JSON.stringify({ registration: { toolName: "Impact Driver", count: 5, job: jobs[1] } })
     );
-    // AND THE NAME ALONE, read the way the form's page gets it: a plain object with no
-    // `quantity` key at all, which is what an address without one hands the page.
+    check("a reader on no job is refused the whole registration", reading(good, []), JSON.stringify({ error: TOOL_REGISTRATION_COPY.noJob }));
+    check("  a name of nothing under the name", reading({ ...good, toolName: "   " }), JSON.stringify({ fields: { toolName: "Enter a tool name." } }));
+    check("  a count past the ceiling under the count", reading({ ...good, quantity: "140" }), JSON.stringify({ fields: { quantity: "Max 100 at a time." } }));
+    check("  no job chosen under the job", reading({ ...good, jobId: "" }), JSON.stringify({ fields: { jobId: TOOL_JOB_COPY.noneChosen } }));
+    check("  a job not the reader's under the job", reading({ ...good, jobId: "job9" }), JSON.stringify({ fields: { jobId: TOOL_JOB_COPY.notYours } }));
     check(
-        "  and one naming the tool alone opens on that name, at one",
-        opens(Object.fromEntries(new URLSearchParams(registerPath({ toolName: "A & B / C+D" }).split("?")[1]))),
-        JSON.stringify({ toolName: "A & B / C+D", quantity: 1 })
+        "  and every field at once, as the design draws them",
+        Object.keys(JSON.parse(reading({ toolName: "", quantity: "", jobId: "" })).fields).join(", "),
+        "toolName, quantity, jobId"
+    );
+    // WHAT A FORM HANDS OVER IS `FormData.get`'s: a missing key is null, never a crash.
+    check(
+        "  a field the form never sent reads as missing",
+        Object.keys(JSON.parse(reading({ toolName: null, quantity: null, jobId: null })).fields).join(", "),
+        "toolName, quantity, jobId"
     );
 
     // ── 7: what a landing's account reads as (#449) ─────────────────────────
@@ -339,7 +366,7 @@ export function run({ check, assert, log }) {
     check("  the smallest shortfall there is, one of two", accountOf("2", "1"), "2/1");
     check("  and the largest, one written of the most one submission asks for", accountOf("100", "99"), "100/99");
     for (const [asked, unwritten, why] of [
-        ["5", "5", "none written, which stays on the form rather than landing,"],
+        ["5", "5", "none written, which stays in the dialog rather than landing,"],
         ["5", "0", "none unwritten, which is no shortfall,"],
         ["5", "6", "more unwritten than asked for"],
         ["101", "100", "more asked for than one submission may write"],
@@ -382,11 +409,11 @@ export function run({ check, assert, log }) {
     );
     check("  beside the same selection", landed.getAll("id").join(), "HYE-TL-260928-014,HYE-TL-260928-015");
 
-    // ── 8: where the action sends the person, and what the form keeps (#449) ─
+    // ── 8: where the action sends the person, and how the dialog submits (#449, #456) ─
     log("");
-    log("a registration that wrote anything lands on its tool, and the form holds only a refusal:");
+    log("a registration that wrote anything lands on its tool, and one that did not stays in the dialog:");
     const landingFacts = (ast) => {
-        const facts = { found: false, redirects: 0, returns: [], toolFrom: null, caughtInto: null };
+        const facts = { found: false, redirects: 0, returns: [], toolFrom: null, caughtInto: null, readFrom: null };
         const action = resolveFunction(ast, "registerToolItemsAction");
         if (!action) return facts;
         facts.found = true;
@@ -396,8 +423,17 @@ export function run({ check, assert, log }) {
                 const init = n.init?.type === "AwaitExpression" ? n.init.argument : n.init;
                 if (n.id.properties.some((p) => p.key?.name === "tool")) facts.toolFrom = nameOf(init?.callee ?? {});
             }
+            // `const reading = readRegistration({ … }, jobs)` — what the submission is read by,
+            // and the list its job is admitted from.
+            if (n.type === "VariableDeclarator" && n.id?.name === "reading" && n.init?.type === "CallExpression")
+                facts.readFrom = `${nameOf(n.init.callee)}(…, ${nameOf(n.init.arguments[1] ?? {})})`;
+            if (n.type === "VariableDeclarator" && n.id?.name === "jobs" && n.init) {
+                const init = n.init.type === "AwaitExpression" ? n.init.argument : n.init;
+                if (init?.type === "CallExpression") facts.jobsFrom = nameOf(init.callee);
+            }
             if (n.type === "ReturnStatement" && n.argument?.type === "ObjectExpression")
                 facts.returns.push(n.argument.properties.map((p) => p.key?.name).join("+"));
+            if (n.type === "ReturnStatement" && n.argument?.type === "Identifier") facts.returns.push(n.argument.name);
             // Which list the log pass's failures are pushed into.
             if (n.type === "CatchClause")
                 walk(n.body, (inner) => {
@@ -454,6 +490,8 @@ export function run({ check, assert, log }) {
     };
     const land = landingFacts(parseFile(ACTION).ast);
     assert(`${ACTION} declares registerToolItemsAction`, land.found);
+    check("it reads the submission through the dialog's own reading", land.readFrom, "readRegistration(…, jobs)");
+    check("  against the reader's own jobs", land.jobsFrom, "assignedJobsFor");
     check("its log pass writes the vocabulary's first event (#455)", land.event, "TOOL_EVENT.CREATED");
     check("it redirects once", land.redirects, 1);
     check("  to a tool's page", land.target, "toolPath");
@@ -465,15 +503,20 @@ export function run({ check, assert, log }) {
     check("  and naming as unlogged the list its log pass fills on a failure", `${land.unlogged} ${land.caughtInto}`, "unlogged unlogged");
     check("the redirect is outside every try", land.inTry, false);
     check("  a batch that wrote nothing refuses before it", land.guardBefore, true);
-    check("  and every value the action returns is a refusal", [...new Set(land.returns)].join(", "), "error");
+    // WHAT IT RETURNS IS A REFUSAL AND NOTHING ELSE: the reading's own answer when it took
+    // nothing, and the one about the whole dialog when the batch wrote nothing.
+    check("  and every value the action returns is a refusal", [...new Set(land.returns)].join(", "), "reading, error");
     // ANTI-VACUITY: a planted action doing each of those wrong is seen doing it — the
     // record from another reader and another binding, the page from the count, a
     // selection of the logged tool items, a shortfall of the whole count, the redirect
-    // inside the loop's try, the refusal after it, and the old account returned.
+    // inside the loop's try, the refusal after it, the old account returned, and a
+    // submission read by a check of its own against every job on the base.
     const plantedLanding = landingFacts(
         parseSource(
             "export async function registerToolItemsAction(prevState, formData) {\n" +
                 "  return withOpsLabel('registerToolItemsAction', async () => {\n" +
+                "    const jobs = await getAllJobs();\n" +
+                "    const reading = readQuantity(formData.get('quantity'), allJobs);\n" +
                 "    const { tool } = await getToolByName(toolName);\n" +
                 "    const { created } = await createToolItems({ toolRecordId: tool.id, jobRecordId: job.id, count });\n" +
                 "    const logged = [];\n" +
@@ -490,6 +533,8 @@ export function run({ check, assert, log }) {
             "<planted-landing>"
         ).ast
     );
+    check("  a submission read by another check, against another list, is seen", plantedLanding.readFrom, "readQuantity(…, allJobs)");
+    check("  a job list not narrowed to the reader is seen", plantedLanding.jobsFrom, "getAllJobs");
     check("  an event spelled as a string is seen", plantedLanding.event, '"Registered"');
     check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.toolFrom}`, "job.id from getToolByName");
     check("  a page from another figure is seen", plantedLanding.page, "pageHolding(count)");
@@ -501,95 +546,189 @@ export function run({ check, assert, log }) {
     check("  a refusal after the redirect is seen", plantedLanding.guardBefore, false);
     check("  and the old account returned is seen", [...new Set(plantedLanding.returns)].join(", "), "error, toolItemIds");
 
-    const formFacts = (ast) => {
-        const stateReads = new Set();
-        let nameStartsFrom = null;
-        let countStartsFrom = null;
-        const opens = [];
-        let formAttributes = null;
-        let prevented = false;
-        let dispatched = false;
+    // THE DIALOG'S HALF (#456). It submits through its own handler, which prevents the
+    // default, asks `readRegistration` before anything is sent and returns on a refusal,
+    // and only then hands the fields to the action inside a transition — the path React
+    // 19 does not reset — with no `action` prop anywhere, since a dialog is never open
+    // before hydration. What it says is read off what the reading and the action answered,
+    // as `fields` and `error`; its three fields start from what the opener handed over.
+    // Opened on a tool, the tool is the line under the title and its name goes as it
+    // stands; a tool's count is said in its own page's words; a reader who may not
+    // register meets a disabled opener with the reason; and it is open only while the
+    // address is the one it was opened at. Each is read as the expression that decides it,
+    // since naming the call or the prop would be satisfied by every wrong version of it.
+    const dialogFacts = ({ ast, source }) => {
+        const text = (node) => (node ? source.slice(node.start, node.end).replace(/\s+/g, " ") : "");
+        const facts = {
+            saidReads: new Set(),
+            starts: {},
+            guardedFirst: null,
+            submitsThrough: null,
+            subtitle: null,
+            actionProps: 0,
+            openWhile: null,
+            address: null,
+            gate: null,
+            nameField: [],
+            totals: [],
+        };
         walk(ast, (n) => {
-            // HOW THE FORM SUBMITS (#449): through `onSubmit`, which prevents the default and
-            // hands the fields to the action inside a transition — the path React 19 does not
-            // reset — with `action` kept for a press before hydration.
-            if (n.type === "JSXOpeningElement" && n.name?.name === "form")
-                formAttributes = n.attributes.map((a) => a.name?.name).sort().join(", ");
-            if (n.type === "CallExpression" && nameOf(n.callee).endsWith(".preventDefault")) prevented = true;
-            if (n.type === "CallExpression" && n.callee?.name === "startTransition")
-                walk(n.arguments[0] ?? {}, (inner) => {
-                    if (inner.type === "CallExpression" && inner.callee?.name === "formAction") dispatched = true;
-                });
-            if (n.type === "MemberExpression" && !n.computed && n.object?.type === "Identifier" && n.object.name === "state")
-                stateReads.add(n.property.name);
-            if (n.type === "CallExpression" && n.callee?.name === "useState") nameStartsFrom = nameOf(n.arguments[0] ?? {});
-            if (n.type === "JSXOpeningElement" && n.name?.name === "input") {
-                const attribute = (name) => n.attributes.find((a) => a.name?.name === name);
-                if (attribute("name")?.value?.value === "quantity") {
-                    const value = attribute("defaultValue")?.value;
-                    const expression = value?.expression;
-                    countStartsFrom =
-                        expression?.type === "CallExpression" && expression.callee?.name === "String"
-                            ? nameOf(expression.arguments[0])
-                            : nameOf(expression ?? value ?? {});
+            if (n.type === "JSXAttribute" && n.name?.name === "action") facts.actionProps++;
+            if (n.type === "JSXOpeningElement" && n.name?.name === "DialogFrame") {
+                const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
+                facts.submitsThrough = nameOf(attribute("onSubmit") ?? {});
+                facts.subtitle = text(attribute("subtitle"));
+            }
+            if (n.type === "MemberExpression" && !n.computed && n.object?.type === "Identifier" && n.object.name === "said")
+                facts.saidReads.add(n.property.name);
+            if (n.type === "ChainExpression" && n.expression?.type === "MemberExpression") {
+                const member = n.expression;
+                if (member.object?.type === "Identifier" && member.object.name === "said") facts.saidReads.add(member.property.name);
+            }
+            // What each of the three fields starts from, by the state it is bound to.
+            if (
+                n.type === "VariableDeclarator" &&
+                n.id?.type === "ArrayPattern" &&
+                n.init?.type === "CallExpression" &&
+                n.init.callee?.name === "useState"
+            ) {
+                const field = n.id.elements[0]?.name;
+                if (["toolName", "count", "jobId"].includes(field)) {
+                    const first = n.init.arguments[0];
+                    facts.starts[field] = text(first?.type === "ArrowFunctionExpression" ? first.body : first);
                 }
             }
-            if (n.type === "CallExpression" && ["toolItemLabelsPath", "toolItemPath", "toolPath"].includes(n.callee?.name))
-                opens.push(n.callee.name);
+            // Whether it is open, and the address compared with the one it was opened at.
+            if (n.type === "VariableDeclarator" && n.id?.name === "open") facts.openWhile = text(n.init);
+            if (n.type === "VariableDeclarator" && n.id?.name === "address") facts.address = text(n.init);
+            // The refusal at the opener: what it asks, and the control it draws instead.
+            if (n.type === "IfStatement") {
+                let button = null;
+                walk(n.consequent, (inner) => {
+                    if (!button && inner.type === "JSXOpeningElement" && inner.name?.name === "Button") button = inner;
+                });
+                if (button)
+                    facts.gate = `${text(n.test)} → Button ${button.attributes
+                        .map((a) => (a.value ? `${a.name?.name}: ${text(a.value.expression ?? a.value)}` : a.name?.name))
+                        .join(", ")}`;
+            }
+            // Where the name is asked for, and where it goes as it stands.
+            if (n.type === "ConditionalExpression")
+                for (const [side, branch] of [
+                    ["then", n.consequent],
+                    ["else", n.alternate],
+                ])
+                    walk(branch, (inner) => {
+                        if (inner.type !== "JSXOpeningElement") return;
+                        const value = (name) => inner.attributes.find((a) => a.name?.name === name)?.value?.value;
+                        if (value("name") === "toolName")
+                            facts.nameField.push(`${text(n.test)} ${side}: ${inner.name?.name}${value("type") ? ` ${value("type")}` : ""}`);
+                    });
+            // A tool's count, in the words its own page heads its list with.
+            if (n.type === "CallExpression" && nameOf(n.callee) === "TOOL_LIST_COPY.total") facts.totals.push(text(n.arguments[0]));
         });
+        // The submit handler: its first call after the default is prevented is the reading,
+        // and the transition that sends the fields comes after a return on a refusal. It is
+        // a function inside the component, so it is found by its binding.
+        let submit = null;
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === "submit" && /Function/.test(n.init?.type ?? "")) submit = n.init;
+        });
+        if (submit) {
+            const calls = [];
+            walk(submit, (n) => {
+                if (n.type === "CallExpression") calls.push(nameOf(n.callee));
+            });
+            const read = calls.indexOf("readRegistration");
+            const sent = calls.indexOf("startTransition");
+            let refusesBeforeSending = false;
+            walk(submit, (n) => {
+                if (n.type === "IfStatement" && nameOf(n.test?.argument ?? {}) === "reading.registration") refusesBeforeSending = true;
+            });
+            let dispatched = false;
+            for (const transition of callsTo(submit, "startTransition"))
+                walk(transition.arguments[0] ?? {}, (inner) => {
+                    if (inner.type === "CallExpression" && inner.callee?.name === "formAction") dispatched = true;
+                });
+            facts.guardedFirst = `${calls.includes("event.preventDefault") ? "prevents the default" : "lets the default run"} · ${
+                read >= 0 && (sent < 0 || read < sent) && refusesBeforeSending ? "reads before sending" : "sends unread"
+            } · ${dispatched ? "dispatches in a transition" : "dispatches nothing itself"}`;
+        }
         return {
-            stateReads: [...stateReads].sort().join(", "),
-            nameStartsFrom,
-            countStartsFrom,
-            opens: opens.join(", "),
-            submits: `${formAttributes} · ${prevented ? "prevents the default" : "lets the default run"} · ${dispatched ? "dispatches in a transition" : "dispatches nothing itself"}`,
+            ...facts,
+            saidReads: [...facts.saidReads].sort().join(", "),
+            nameField: facts.nameField.sort().join(" | "),
+            totals: facts.totals.sort().join(", "),
         };
     };
-    const form = formFacts(parseFile(FORM).ast);
-    check("the form reads nothing off its state but the refusal", form.stateReads, "error");
-    check("  its name field starts from the page's prefill", form.nameStartsFrom, "prefill.toolName");
-    check("  and its count from the prefill's count", form.countStartsFrom, "prefill.quantity");
-    check("  and it links to no screen, the account's links gone with the account", form.opens, "");
-    // A REFUSAL KEEPS WHAT WAS TYPED (#449), because the batch that wrote nothing tells the
-    // reader to register again: measured in a browser, bound through `action` alone a
-    // refusal put the count and the job back, and through the handler it keeps all three.
+    const dialog = dialogFacts(parseFile(DIALOG));
+    check("the dialog submits through its own handler, handed to the frame", dialog.submitsThrough, "submit");
     check(
-        "  it submits through a handler that keeps the fields, with the action kept for a press before hydration",
-        form.submits,
-        "action, onSubmit · prevents the default · dispatches in a transition"
+        "  which prevents the default, reads before sending and dispatches in a transition",
+        dialog.guardedFirst,
+        "prevents the default · reads before sending · dispatches in a transition"
     );
-    // ANTI-VACUITY: a planted form reading its old account, starting both fields from
-    // literals and linking to the label screen is seen doing all four.
-    const plantedForm = formFacts(
-        parseSource(
-            "function ToolRegistrationForm({ prefill }) {\n" +
-                "  const [state] = useActionState(registerToolItemsAction, null);\n" +
-                '  const [toolName] = useState("");\n' +
-                "  return (<form action={formAction}>{state?.error}{state?.toolItemIds && <Link href={toolItemLabelsPath(state.toolItemIds)} />}\n" +
-                '    <input name="quantity" defaultValue="1" /></form>);\n' +
-                "}\n",
-            "<planted-form>"
-        ).ast
+    check("  with no action prop anywhere", dialog.actionProps, 0);
+    check("  and says only what the reading or the action refused", dialog.saidReads, "error, fields");
+    check(
+        "its fields start from what the opener handed over: the tool, the count, and the one job there is",
+        `${dialog.starts.toolName} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
+        'tool ? tool.toolName : "" | String(openingCount(quantity)) | jobs.length === 1 ? jobs[0].id : ""'
     );
-    check("  a form reading its old account is seen", plantedForm.stateReads, "error, toolItemIds");
-    check("  a name started from nothing is seen", plantedForm.nameStartsFrom, "Literal");
-    check("  a count started from a literal is seen", plantedForm.countStartsFrom, "Literal");
-    check("  a link to the label screen is seen", plantedForm.opens, "toolItemLabelsPath");
-    check("  and a form bound through `action` alone is seen", plantedForm.submits, "action · lets the default run · dispatches nothing itself");
-    const plantedHandler = formFacts(
+    check("opened on a tool, the tool is the line under the title", dialog.subtitle, "tool ? tool.toolName : COPY.intro");
+    check("  and its name goes as it stands, with no field to type it in", dialog.nameField, "tool else: Combobox | tool then: input hidden");
+    check("a tool's count, suggested or matched, is in its own page's words", dialog.totals, "existing.count, suggestion.count");
+    check(
+        "a reader who may not register meets the opener disabled, with why before it",
+        dialog.gate,
+        "!canRegister → Button disabled, disabledReason: COPY.noJob"
+    );
+    check(
+        "and it is open only while the address is the one it was opened at",
+        `${dialog.openWhile} where address = ${dialog.address}`,
+        "openedAt !== null && openedAt === address where address = useSearchParams().toString()"
+    );
+    // ANTI-VACUITY: a planted dialog bound through `action`, sending before it reads,
+    // reading the action's old account, starting its fields from literals, naming no tool,
+    // asking a name it was handed, counting in another figure, gating on something else and
+    // staying open over a moved address is seen doing each.
+    const plantedDialog = dialogFacts(
         parseSource(
-            "function ToolRegistrationForm({ prefill }) {\n" +
+            "function RegistrationDialog({ canRegister }) {\n" +
+                "  const address = useSearchParams().toString();\n" +
+                "  const open = openedAt !== null;\n" +
+                "  if (canRegister === false) return <Button disabled>{opener}</Button>;\n" +
+                "}\n" +
+                "function RegistrationForm({ quantity }) {\n" +
                 "  const [state, formAction] = useActionState(registerToolItemsAction, null);\n" +
-                "  const submit = (event) => { formAction(new FormData(event.currentTarget)); };\n" +
-                "  return <form onSubmit={submit}>{state?.error}</form>;\n" +
+                '  const [toolName] = useState("");\n' +
+                '  const [count] = useState("1");\n' +
+                '  const [jobId] = useState("");\n' +
+                "  const said = state;\n" +
+                "  const submit = (event) => { startTransition(() => formAction(new FormData(event.currentTarget))); const reading = readRegistration({}, []); };\n" +
+                "  return <DialogFrame onSubmit={submit} subtitle={COPY.intro}><form action={formAction}>{said?.error}{said?.toolItemIds}" +
+                '{false ? <input type="hidden" name="toolName" /> : <Combobox name="toolName" suggestions={s.map((x) => ({ detail: String(x.count) }))} />}' +
+                "</form></DialogFrame>;\n" +
                 "}\n",
-            "<planted-handler>"
-        ).ast
+            "<planted-dialog>"
+        )
     );
+    check("  an action prop is seen", plantedDialog.actionProps, 1);
+    check("  a handler sending before it reads is seen", plantedDialog.guardedFirst, "lets the default run · sends unread · dispatches in a transition");
+    check("  an old account read is seen", plantedDialog.saidReads, "error, toolItemIds");
     check(
-        "  and so is a handler that drops the action and dispatches outside a transition",
-        plantedHandler.submits,
-        "onSubmit · lets the default run · dispatches nothing itself"
+        "  fields started from literals are seen",
+        `${plantedDialog.starts.toolName} | ${plantedDialog.starts.count} | ${plantedDialog.starts.jobId}`,
+        '"" | "1" | ""'
+    );
+    check("  a line under the title that names no tool is seen", plantedDialog.subtitle, "COPY.intro");
+    check("  a name asked for whatever the dialog was opened on is seen", plantedDialog.nameField, "false else: Combobox | false then: input hidden");
+    check("  a count in another figure is seen", plantedDialog.totals, "");
+    check("  a gate on something else, with no reason, is seen", plantedDialog.gate, "canRegister === false → Button disabled");
+    check(
+        "  and a dialog that stays open over a moved address is seen",
+        `${plantedDialog.openWhile} where address = ${plantedDialog.address}`,
+        "openedAt !== null where address = useSearchParams().toString()"
     );
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
@@ -609,6 +748,10 @@ export function run({ check, assert, log }) {
     // The refusal detector is seen to refuse and to admit, since "every bad value
     // is refused" is also what a function returning a refusal always would give.
     assert("a good quantity is NOT refused", readQuantity("7").refusal === null);
+    assert("  and a good submission is taken", Boolean(readRegistration(good, jobs).registration));
+    // The suggestions are seen to find something, since an empty answer is also what a
+    // filter keeping nothing returns for every name above that suggests none.
+    assert("a partly typed name finds a suggestion", suggestTools("drill", shelf).length > 0);
     // The noun matcher is seen finding the replaced noun in either number and any case,
     // and passing the design's, since zero is also what a broken regex reports.
     assert("the noun matcher finds `tool items`", TOOL_ITEM_NOUN.test("Say how many tool items to register."));

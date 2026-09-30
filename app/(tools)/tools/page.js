@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/authz";
+import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllTools } from "@/lib/airtable/tools";
 import { getToolItemsByRecordIds } from "@/lib/airtable/toolItems";
+import { assignedJobsFor } from "@/lib/toolJob";
 import { TOOL_LIST_COPY as COPY, summarizeTools } from "@/lib/toolListView";
-import { REGISTER_PATH, toolPath } from "@/lib/toolRoutes";
-import { TOOL_REGISTRATION_COPY } from "@/lib/toolRegistration";
+import { toolPath } from "@/lib/toolRoutes";
+import { TOOL_REGISTRATION_COPY, canRegisterToolItems } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
+import RegistrationDialog from "./RegistrationDialog";
 
 // The constant rather than a second spelling of the word: the tab and the
 // heading are both the table's name and must not drift apart.
@@ -20,12 +23,17 @@ export const metadata = { title: COPY.heading };
  * single figure cannot be written without deciding whether a retired tool is
  * still owned.
  *
- * THREE OPERATIONS, AND THE THIRD IS THE ONE THAT GROWS. The session find,
+ * FOUR OPERATIONS, AND THE FOURTH IS THE ONE THAT GROWS. The session find,
  * `getAllTools` — the whole table in one query, bounded by what the company has
  * bought — and then every tool item those tools name, read in one batch of 50 at
  * a time. `getAllTools` already returns each tool's `Tool Items` link array, so
  * finding the units costs no query per tool (#193), and `getToolItemsByRecordIds`
- * was written for exactly this call.
+ * was written for exactly this call. **The job list is the third since #456**, read
+ * beside the tools rather than after them: the registration dialog opens over this
+ * page, and what it offers — the reader's own jobs, or none and a disabled opener —
+ * is `/tools/new`'s old read, moved here with the form. The tools it suggests as a
+ * name is typed are the list this page has already read, each with its count off the
+ * link array, so they cost nothing.
  *
  * NO PER-STATUS ROLLUP ON `Tools`, WHICH IS A DECISION WITH A MEASURED TRIGGER.
  * The walk is `ceil(total tool items / 50)`, so this page passes ten operations
@@ -53,22 +61,30 @@ export default async function ToolsPage() {
 // account only because it records who performed it, and a tool item moves between
 // jobs, so the person scanning one is not always assigned to the job it is on.
 async function renderToolsPage() {
-    await requireUser();
+    const user = await requireUser();
 
-    const tools = await getAllTools();
+    const [tools, allJobs] = await Promise.all([getAllTools(), getAllJobs()]);
     // The link arrays the tools already carry, flattened into one batched read.
     const toolItems = await getToolItemsByRecordIds(tools.flatMap((tool) => tool.toolItems));
     const rows = summarizeTools(tools, toolItems);
+    // How many a tool has is its link array's length — the figure its own page heads
+    // its list with — and never a sum of statuses, so one word says one number on both.
+    const itemCount = Object.fromEntries(tools.map((tool) => [tool.id, tool.toolItems.length]));
 
     return (
         <div>
             <h1>{COPY.heading}</h1>
 
-            {/* The control that opens the registration form, carrying that
-                form's own heading so the two cannot drift (#338). It is above
+            {/* The control that opens the registration dialog, carrying that
+                dialog's own title so the two cannot drift (#338). It is above
                 the list rather than inside it because a reader with no tools yet
-                needs it most. */}
-            <Link href={REGISTER_PATH}>{TOOL_REGISTRATION_COPY.heading}</Link>
+                needs it most, and it opens on no tool (#456). */}
+            <RegistrationDialog
+                opener={TOOL_REGISTRATION_COPY.heading}
+                canRegister={canRegisterToolItems(user, allJobs)}
+                jobs={assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode }))}
+                tools={rows.map((row) => ({ toolName: row.toolName, count: itemCount[row.id] }))}
+            />
 
             {rows.length === 0 ? (
                 <p>{COPY.noTools}</p>

@@ -92,8 +92,9 @@ const DELIVERY_JOB_AXIS =
 const TOOL_JOB_AXIS =
     "Session + the submitted job being one the actor's own Users.\"Assigned Jobs\" names, not a role. " +
     "requireUser() already cannot be dropped (it redirects), and the deciding comparison is " +
-    "assignedJobsFor (lib/toolJob.js) against the loaded job list in the body — directly in " +
-    "#338's registration, through planTransition (lib/toolTransition.js) in #362's check-out and " +
+    "assignedJobsFor (lib/toolJob.js) against the loaded job list in the body — through " +
+    "readRegistration (lib/toolRegistration.js) in #338's registration since #456, which the " +
+    "dialog asks too, through planTransition (lib/toolTransition.js) in #362's check-out and " +
     "check-in and in #363's retirement. TWO SHAPES OF THAT ONE COMPARISON, and the difference is " +
     "worth stating: the first three admit a SUBMITTED job only if it is one of the actor's, while " +
     "the retirement submits none at all — it inherits the tool item's own job (#363) — so what is " +
@@ -264,7 +265,7 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
-    { file: "app/(tools)/tools/new/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
+    { file: "app/(tools)/tools/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
     {
         file: "app/(tools)/tool-items/[toolItemId]/actions.js",
         name: "recordToolItemEventAction",

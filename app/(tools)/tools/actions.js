@@ -9,13 +9,18 @@ import { createToolLogEntry } from "@/lib/airtable/toolLog";
 import { TOOL_EVENT } from "@/lib/toolStatus";
 import { assignedJobsFor } from "@/lib/toolJob";
 import { pageHolding } from "@/lib/toolListView";
-import { TOOL_REGISTRATION_COPY, readQuantity } from "@/lib/toolRegistration";
+import { TOOL_REGISTRATION_COPY, readRegistration } from "@/lib/toolRegistration";
 import { toolPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
  * Register `count` tool items of one tool (#338), and the first row of each
  * one's history.
+ *
+ * IT LIVED BESIDE `/tools/new` UNTIL #456, which took the route away: the form is a
+ * dialog now, opened from the tool list and from a tool's own page — the offer a
+ * registration that fell short makes is on that page too — so the action sits beside
+ * both, under `/tools`. Nothing about what it writes moved with it.
  *
  * NOT WRAPPED, AND LISTED AS AN EXEMPTION WITH THAT REASON. `requireUser()`
  * settles only that this is an active session; the authorization that decides
@@ -25,11 +30,14 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * helper fits: registering a tool is site work, so an Admin on no job must be
  * refused and a non-Admin employee on a job must pass.
  *
- * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
- * ToolRegistrationForm.js reads this through `useActionState`, so a refusal
- * lands in `state` and the form renders it in the one slot it already has for
- * the validation refusals below. A batch that wrote nothing is one of them since
- * #449, and it is the only return that is not a check made before the writes.
+ * REFUSES BY RETURNING, BECAUSE THE CALL SITE BINDS (#185). RegistrationDialog.js reads
+ * this through `useActionState`, so a refusal lands in `state` and the dialog renders
+ * it where it belongs: `{ fields }` names each refusal about one field under that field,
+ * and `{ error }` is the one line above the actions that a refusal about the whole
+ * registration takes — a reader on no job, and a batch that wrote nothing, which since
+ * #449 is the only return that is not a check made before the writes. **What a
+ * submission may be is `readRegistration`'s**, the same function the dialog asks before
+ * it sends anything, so the two cannot refuse differently.
  *
  * WHAT IT WROTE IS SAID BY LANDING ON IT (#449). A registration that writes a tool
  * item redirects to its tool's page, on the page of that list holding the first tool
@@ -43,11 +51,13 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * that row's `Tool Items` array is the one it had before this batch, so its length
  * is the position the first new tool item takes.
  *
- * THE JOB IS NEVER TAKEN FROM THE FORM'S WORD FOR IT. What arrives is a Job
- * record id, and it is admitted only if `assignedJobsFor` returns a job with
- * that id — so a forged submission cannot file a tool item against a site the
- * actor is not on. Where the value comes from on the screen is one assignment
- * used without asking, or a choice among several; nothing types one.
+ * THE TOOL IS FOUND BY THE NAME SUBMITTED, FROM EVERY OPENER. A tool's page and the offer
+ * open the dialog on that tool and submit its name as a hidden field, and the list's
+ * dialog submits what was typed; `upsertTool` finds or makes the row either way. So on a
+ * base holding two `Tools` rows with one key — `withKeyLock`'s residual (#338) — a
+ * registration opened on one of them lands under whichever row the lookup returns, which
+ * need not be the page it was opened from. Nothing has observed it: the base's tools
+ * carry distinct keys. The repair is #338's, merging the two rows by hand.
  *
  * TWO WRITES IN SEQUENCE AND NEVER NESTED, WHICH IS FORCED RATHER THAN CHOSEN.
  * `createToolItems` holds the day-prefix lock across its whole batch and
@@ -69,29 +79,28 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * batch, moves where this one's tool items sit, so the landing can open a page early;
  * the selection is by id, so the list's own sentence still says how many are not on
  * it. And a THROW — from `upsertTool`, or from the day-prefix query `createToolItems`
- * makes before its first create — reaches no slot on the form, as it did before #449:
- * it fails before anything this action could word, where the refusal below is for a
- * batch that ran and wrote none.
+ * makes before its first create — reaches no line in the dialog, as it reached none on
+ * the form before #449: it fails before anything this action could word, where the
+ * refusal below is for a batch that ran and wrote none.
  */
 export async function registerToolItemsAction(prevState, formData) {
     return withOpsLabel("registerToolItemsAction", async () => {
         const user = await requireUser();
 
-        const toolName = String(formData.get("toolName") ?? "").trim();
-        if (!toolName) return { error: TOOL_REGISTRATION_COPY.nameMissing };
-
-        const { count, refusal } = readQuantity(formData.get("quantity"));
-        if (refusal) return { error: refusal };
-
         // One list for however many jobs this person is on, which is the shape
-        // `/deliveries` uses. The picker's options and this check read the same
-        // function, so a job the screen could not offer cannot be admitted here.
+        // `/deliveries` uses. The dialog's choice and this check read the same
+        // function, so a job the dialog could not offer cannot be admitted here.
         const jobs = assignedJobsFor(user, await getAllJobs());
-        if (jobs.length === 0) return { error: TOOL_REGISTRATION_COPY.noJob };
-
-        const submittedJobId = String(formData.get("jobId") ?? "");
-        const job = jobs.find((candidate) => candidate.id === submittedJobId) ?? null;
-        if (!job) return { error: TOOL_REGISTRATION_COPY.jobNotYours };
+        const reading = readRegistration(
+            {
+                toolName: formData.get("toolName"),
+                quantity: formData.get("quantity"),
+                jobId: formData.get("jobId"),
+            },
+            jobs
+        );
+        if (!reading.registration) return reading;
+        const { toolName, count, job } = reading.registration;
 
         const { tool } = await upsertTool({ toolName });
 
@@ -107,9 +116,8 @@ export async function registerToolItemsAction(prevState, formData) {
 
         // NOTHING WAS WRITTEN, SO THERE IS NOTHING TO LAND ON (#449). The tool exists —
         // it was found or made above — but its page would show no selection and nothing
-        // to print, so the person stays on the form, told in the slot every refusal uses
-        // that registering again writes these under it.
-        if (created.length === 0) return { error: TOOL_REGISTRATION_COPY.noneWritten(count) };
+        // to print, so the person stays in the dialog, told above its actions.
+        if (created.length === 0) return { error: TOOL_REGISTRATION_COPY.noneWritten };
 
         // The `Created` row is this action's to write — `createToolItems`
         // creates the tool item and its cached `Status` and says so. One row per

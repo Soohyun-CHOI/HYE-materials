@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { TOOL_REGISTRATION_COPY as COPY } from "@/lib/toolRegistration";
-import { registerPath } from "@/lib/toolRoutes";
+import RegistrationDialog from "../RegistrationDialog";
 
 // What a registration that fell short offers where it lands (#449): write the rest, or
 // be done. A FORK AND NOT A NOTICE, and the difference is what the markup carries — two
@@ -15,12 +14,14 @@ import { registerPath } from "@/lib/toolRoutes";
 // many were not. The first needs `asked`, which the landing's address carries beside
 // `unwritten` for exactly this, and what was created is the one less the other.
 //
-// `Create the rest` OPENS THE FORM WITH THIS TOOL'S NAME AND THE COUNT FILLED IN
-// (`registerPath`), both still the person's to change there. `Not now` IS THE OTHER
-// ANSWER, AND IT ENDS THE QUESTION: the fork goes, and so do `asked` and `unwritten`
-// from the address, so a reload does not ask again. The two are a pair on purpose — one
-// goes on creating and one stops — which is what says the choice is about the shortfall
-// and not about the notice.
+// `Create the rest` OPENS THE REGISTRATION DIALOG ON THIS TOOL WITH THE COUNT FILLED IN
+// (#456), the count still the person's to change there. It went to `/tools/new` with the
+// name and the count in the query until that route went; it hands the dialog the same two
+// things now, and for a reader on no job it is drawn disabled with the reason before it,
+// as the page's other opener is. `Not now` IS THE OTHER ANSWER, AND IT ENDS THE
+// QUESTION: the fork goes, and so do `asked` and `unwritten` from the address, so a reload
+// does not ask again. The two are a pair on purpose — one goes on creating and one stops
+// — which is what says the choice is about the shortfall and not about the notice.
 //
 // THE DISMISSAL EDITS THE CURRENT ADDRESS AND THE FORK'S TWO KEYS OF IT. The list's
 // boxes rewrite the address without a render (`ToolItemList.js`'s header has why), so an
@@ -31,12 +32,12 @@ import { registerPath } from "@/lib/toolRoutes";
 // renders the page again, four operations to take away two sentences.
 //
 // NOT A MODAL. `Not now` acts on nothing in the base, and CLAUDE.md keeps a modal for an
-// act that cannot be undone.
+// act that cannot be undone. The fork becoming a dialog of its own is #459's.
 //
 // EVERY WORD IS `TOOL_REGISTRATION_COPY`'s, this axis's rule since #338: they are a
 // registration's words wherever they are drawn, which is also why the fork is a file of
 // its own rather than part of the list.
-export default function RegistrationShortfall({ toolName, asked, unwritten }) {
+export default function RegistrationShortfall({ toolName, asked, unwritten, canRegister, jobs }) {
     const [done, setDone] = useState(false);
     if (done) return null;
 
@@ -52,7 +53,13 @@ export default function RegistrationShortfall({ toolName, asked, unwritten }) {
         <div>
             <p>{COPY.shortfallHeading({ created: asked - unwritten, asked })}</p>
             <p>{COPY.shortfall(unwritten)}</p>
-            <Link href={registerPath({ toolName, quantity: unwritten })}>{COPY.registerOthers}</Link>
+            <RegistrationDialog
+                opener={COPY.registerOthers}
+                canRegister={canRegister}
+                jobs={jobs}
+                tool={{ toolName }}
+                quantity={unwritten}
+            />
             <button type="button" onClick={finish}>
                 {COPY.doneRegistering}
             </button>

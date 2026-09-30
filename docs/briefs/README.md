@@ -60,6 +60,13 @@ Every page gets a file. There is no exemption list, and length follows what the
 screen carries — the three admin create forms are short because a brief saying
 "one form, no distinctions, nothing conditional" is complete for them.
 
+**A page that becomes a dialog keeps its file (#456).** It says where the dialog
+opens — an `Opens from:` line naming each page, in place of the `Route:` line —
+and keeps the name it had, which is where a reader will look for it.
+`tools-new.md` is the first: the registration was `/tools/new` and is a dialog
+over `/tools` and a tool's own screen now. The check holds such a brief to the
+component that draws it rather than to a page.
+
 ## What a screen SAYS, beside what it carries
 
 `strings/` is not a second set of briefs. `scripts/screen-strings.mjs` produces
@@ -80,7 +87,8 @@ carried.
 ## Keeping them true
 
 `scripts/tests/offline/screen-briefs.mjs` runs in CI and checks four things: that
-the set of briefs matches the app's actual pages both ways, that each brief has its
+the set of briefs matches the app's actual pages both ways — and that a dialog's
+brief names the pages that open it, every one (#456) — that each brief has its
 required structure, that the tone names `_shared.md` lists are exactly the ones the
 code can produce, and that the words it quotes are still the words the constants
 hold. Its header says what it cannot check, which is most of what a brief asserts.

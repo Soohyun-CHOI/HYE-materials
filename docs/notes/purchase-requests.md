@@ -237,8 +237,9 @@ gives the signer the same four-level picker the requester used.
   form action is bound, rather than inside one picker. **This said every
   `<select>` in this app, which #449 made false**: the tool registration form
   submits through a handler of its own, inside a transition, and React follows
-  that with no reset — `app/(tools)/tools/new/ToolRegistrationForm.js`'s header
-  has what that rests on, and it is the shape a fix here would take.
+  that with no reset — a dialog since #456, `app/(tools)/tools/RegistrationDialog.js`,
+  with what that rests on in `docs/notes/tools.md` — and it is the shape a fix here
+  would take.
 
 ### Quotations
 

@@ -157,16 +157,9 @@ const CARRIED = [
         param: "from",
         note: "#385 — the PR ID of the request that sent the reader here, which puts a line and a way back on the screen. Written by the request form's `Save draft and add an address`, which saves the draft BEFORE navigating so the id names a record that exists. JUDGED BY NOTHING, and that is the point rather than an omission: it is an identifier and not an address, so the way back is /prs/new?draft=<it>, which this app builds — and that screen resolves the id against the READER'S OWN drafts, so a forged one matches nothing and the form opens empty. There is no destination here for lib/loginDestination.js's predicate to judge",
     },
-    {
-        route: "/tools/new",
-        param: "toolName",
-        note: "#449 — the tool the form opens on, by its name, which is where the name field starts. Written by `registerPath`, from a tool's own page (#451) and from the offer a registration that fell short makes where it lands. A NAME and not a record id: the form takes a name, a tool's name is its identity, and a record id in an address is the defect docs/notes/naming.md records against /tools/[toolRecordId]. The reader may change it, and the screen says nothing about why it is there, so a reload opens the same form on the same suggestion — this group's answer — and a copied link is a request to register, never somebody else's account",
-    },
-    {
-        route: "/tools/new",
-        param: "quantity",
-        note: "#449 — how many the form opens asking for, beside the name above, under the form's own field name. The first entry in this group that names no record: it joins because its reload answer is the group's, the same form with the same suggestion and nothing written. Read through `readQuantity`, so a value the form's own submit would refuse opens at 1 — and so does an address carrying none, which is what a tool's own page writes (#451)",
-    },
+    // `/tools/new?toolName=` and `?quantity=` stood here from #449 to #456, the tool and
+    // the count the registration form opened on. The form is a dialog over the page that
+    // opens it now, handed both by its opener, so neither is in any address.
 
     // ── a destination: where the reader was going before being asked to sign in ──
     {
