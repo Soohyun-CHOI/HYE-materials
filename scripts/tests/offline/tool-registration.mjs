@@ -40,6 +40,11 @@
 // base, so the refusal, the shortfall and the unlogged names are held here as
 // source and as words, and never as a run.
 //
+// AND SINCE #459 WHICH PART OF A LANDING'S ACCOUNT IS TOLD, by value: each part is a
+// dialog, one at a time and the notice first, while the page found it and its key is
+// still on the address. What each dialog does with the answer is read off the source in
+// `offline/tool-list-view.mjs`, beside the rest of the page.
+//
 // AND SINCE #455 THE WORDS ARE THE DESIGN'S, pinned by value — `create` for the act and
 // `tool` for what one creates — and since #456 the dialog's own words with them. The
 // scanner that failed a bare `item` here went with the rule it held: that rule was the
@@ -54,6 +59,7 @@ import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
     MAX_TOOL_SUGGESTIONS,
     TOOL_REGISTRATION_COPY,
+    accountToTell,
     canRegisterToolItems,
     matchExistingTool,
     openingCount,
@@ -68,7 +74,7 @@ import { toolPath } from "../../../lib/toolRoutes.js";
 import { callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449, #455, #456)";
+export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449, #455, #456, #459)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(tools)/tools/actions.js";
@@ -297,19 +303,36 @@ export function run({ check, assert, log }) {
     check("  a job not the reader's, the picker's own word", TOOL_REGISTRATION_COPY.jobNotYours, TOOL_JOB_COPY.notYours);
     check("nothing written", TOOL_REGISTRATION_COPY.noneWritten, "Couldn't create the tools. Try again.");
     check("why an opener cannot act, for a reader on no job", TOOL_REGISTRATION_COPY.noJob, "Ask the office to assign you to a job");
-    // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's two sentences
-    // and its two answers, one going on and one stopping — and the notice, whose one
-    // control dismisses it and repairs nothing, because nothing repairs what it names.
-    check("the fork's first sentence", TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }), "3 of 5 tools created");
-    check("  its second", TOOL_REGISTRATION_COPY.shortfall(2), "2 couldn't be created");
-    check("  at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 couldn't be created");
+    // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's title, its one
+    // sentence and its two answers, one going on and one stopping — and the notice, whose
+    // one control dismisses it and repairs nothing, because nothing repairs what it names.
+    // Each is a dialog since #459, and each sentence is 1k's as far as it goes: what 1k
+    // adds about the ones that were created is the selection's to say (#321).
+    check("the fork's title", TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }), "3 of 5 tools created");
+    check("  its sentence", TOOL_REGISTRATION_COPY.shortfall(2), "2 couldn't be created.");
+    check("  at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 couldn't be created.");
     check("  the answer that goes on", TOOL_REGISTRATION_COPY.registerOthers, "Create the rest");
     check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Not now");
-    check("the notice", TOOL_REGISTRATION_COPY.unloggedHeading(2), "2 tools have no creation date");
+    check("the notice's title", TOOL_REGISTRATION_COPY.unloggedHeading(2), "2 tools have no creation date");
     check("  at one", TOOL_REGISTRATION_COPY.unloggedHeading(1), "1 tool has no creation date");
-    check("  what it means", TOOL_REGISTRATION_COPY.unlogged(2), "Only the creation date wasn't saved for these");
-    check("  at one", TOOL_REGISTRATION_COPY.unlogged(1), "Only the creation date wasn't saved for this one");
+    check(
+        "  its sentence, which says that nothing repairs it",
+        TOOL_REGISTRATION_COPY.unlogged(2),
+        "Only the creation date wasn't saved for these 2, and it can't be added later."
+    );
+    check(
+        "  at one",
+        TOOL_REGISTRATION_COPY.unlogged(1),
+        "Only the creation date wasn't saved for this one, and it can't be added later."
+    );
     check("  and the control that takes it away", TOOL_REGISTRATION_COPY.gotIt, "Got it");
+    // 1k'S TWO CONFIRMATIONS ARE NOT TAKEN, and a sweep that took the design's words whole
+    // would bring them in: where the created ones are, and that all were created.
+    check(
+        "  no sentence says where the created ones are or that all were",
+        copyStrings().filter((s) => /saved and selected|work as usual/.test(s)).join(" | "),
+        ""
+    );
 
     // ── 6: what the dialog opens at, and what a submission is (#449, #456) ────
     log("");
@@ -408,6 +431,51 @@ export function run({ check, assert, log }) {
         "5 3 HYE-TL-260928-015"
     );
     check("  beside the same selection", landed.getAll("id").join(), "HYE-TL-260928-014,HYE-TL-260928-015");
+
+    // ── 7b: which part of it is told, one at a time (#459) ───────────────────
+    log("");
+    log("a landing's account is told a part at a time, the notice first, while its key stands:");
+    // THE ACCOUNT IS WHAT THE PAGE READ AND THE ADDRESS IS AS IT STANDS NOW. Both parts
+    // are asked of each: a part is told only while the page found it and its key is still
+    // on the address, which each answer edits by deleting its own keys and no others.
+    const both = { asked: 5, unwritten: 2, unlogged: ["HYE-TL-260928-015"] };
+    const shortfallOnly = { ...both, unlogged: [] };
+    const unloggedOnly = { ...both, asked: 0, unwritten: 0 };
+    const nothing = { asked: 0, unwritten: 0, unlogged: [] };
+    const addressOf = (query) => new URLSearchParams(query);
+    const full = "id=HYE-TL-260928-014&asked=5&unwritten=2&unlogged=HYE-TL-260928-015";
+    check("both on a landing: the notice first", accountToTell(both, addressOf(full)), "unlogged");
+    check(
+        "  and once `Got it` takes `unlogged` out, the fork",
+        accountToTell(both, addressOf("id=HYE-TL-260928-014&asked=5&unwritten=2")),
+        "shortfall"
+    );
+    check(
+        "  and once `Not now` takes the fork's two out as well, nothing",
+        accountToTell(both, addressOf("id=HYE-TL-260928-014")),
+        null
+    );
+    // Each answer is independent: taking the fork's keys out first leaves the notice.
+    check(
+        "  the fork's keys gone and the notice's standing still tells the notice",
+        accountToTell(both, addressOf("id=HYE-TL-260928-014&unlogged=HYE-TL-260928-015")),
+        "unlogged"
+    );
+    check("a shortfall alone is the fork", accountToTell(shortfallOnly, addressOf(full)), "shortfall");
+    check("unlogged tools alone are the notice", accountToTell(unloggedOnly, addressOf(full)), "unlogged");
+    check("an account with nothing in it tells nothing, whatever the address says", accountToTell(nothing, addressOf(full)), null);
+    check(
+        "  and a key the page did not find, a forged count, is not a part either",
+        accountToTell(readRegistrationAccount({ asked: "5", unwritten: "5" }), addressOf("asked=5&unwritten=5")),
+        null
+    );
+    // ANTI-VACUITY: the order is seen to be a choice rather than an accident of the input —
+    // with the notice's part empty the same address tells the fork, so "unlogged" above
+    // is the notice winning over a fork that was there to be told.
+    assert(
+        "  the fork is told on the same address once the notice's part is empty",
+        accountToTell(both, addressOf(full)) !== accountToTell(shortfallOnly, addressOf(full))
+    );
 
     // ── 8: where the action sends the person, and how the dialog submits (#449, #456) ─
     log("");

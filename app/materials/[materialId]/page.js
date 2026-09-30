@@ -16,9 +16,8 @@ import { withOpsLabel } from "@/lib/airtableOps";
 // human ID in the URL already, so they name their record for zero operations.
 export const metadata = { title: "Material" };
 
-// A page, not a modal (#19): this repo's modals are confirmation dialogs
-// (app/components/modalStyles.js), and every reading surface — /prs/[prId],
-// /pos/[poId] — is its own route so it can be linked and reloaded.
+// A page, not a modal (#19): every reading surface — /prs/[prId], /pos/[poId] — is
+// its own route so it can be linked and reloaded.
 //
 // Keyed on the Airtable record id, which is the first route in the app to do
 // that: Materials has no human identifier, its primary field is the

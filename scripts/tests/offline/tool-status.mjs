@@ -287,7 +287,8 @@ export function run({ check, log, assert }) {
     }
     // The pair is a round trip rather than two one-way streets: what a check-out
     // leaves offers the check-in that undoes it. That is what makes the transition
-    // correctable, which is the whole reason it is one press and not a modal.
+    // correctable, which is why #362 made it one press and not a modal, under the
+    // rule CLAUDE.md held until #459.
     check(
         "the pair is a round trip",
         eventOfferedBy(statusAfterEvent(eventOfferedBy(TOOL_STATUS.IN_STOCK))),

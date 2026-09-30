@@ -36,7 +36,9 @@
 //   hands the fork, and what the fork's dismissal does to the address are read off
 //   the AST beside planted versions doing each wrong. So is the control that opens
 //   the form from the page (#451): what it is handed, what it says, and that no
-//   condition stands above it.
+//   condition stands above it. Since #459 the fork and the notice are dialogs, and
+//   the same reading holds when each is open, what closing it answers, the order
+//   they stand in, and how the fork opens the registration.
 //
 //   AND NO TOOLS SCREEN PUTS TEXT IN ITS MARKUP. #338 and #340 both state that
 //   arrangement in prose — every string a tools screen renders is in a constant,
@@ -420,6 +422,7 @@ export function run({ check, assert, log }) {
         let accountFrom = null;
         let fork = null;
         let notice = null;
+        const told = [];
         const mapped = [];
         const addressBindings = new Set();
         const addressReads = new Set();
@@ -431,17 +434,21 @@ export function run({ check, assert, log }) {
                     .map((p) => `${p.key?.name}: ${nameOf(p.value)}`)
                     .sort()
                     .join(", ");
-            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationShortfall")
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationShortfall") {
                 fork = n.attributes
                     .map((a) => `${a.name?.name}: ${nameOf(a.value?.expression ?? {})}`)
                     .sort()
                     .join(", ");
+                told.push(n.name.name);
+            }
             // #455: the notice is a component of its own now, since `Got it` is a press.
-            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationUnlogged")
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationUnlogged") {
                 notice = n.attributes
                     .map((a) => `${a.name?.name}: ${nameOf(a.value?.expression ?? {})}`)
                     .sort()
                     .join(", ");
+                told.push(n.name.name);
+            }
             if (n.type === "CallExpression" && n.callee?.property?.name === "map") mapped.push(nameOf(n.callee.object));
             if (n.type === "VariableDeclarator" && isSearchParams(n.init)) {
                 if (n.id?.type === "Identifier") addressBindings.add(n.id.name);
@@ -498,6 +505,8 @@ export function run({ check, assert, log }) {
             accountFrom,
             fork,
             notice,
+            // The order the two stand in, which is the order their frames close and open in.
+            told: told.join(", "),
             mappedFromAddress: mapped.filter((name) => name.includes("unlogged")).join(", "),
             addressReads: [...addressReads].sort(),
         };
@@ -517,36 +526,40 @@ export function run({ check, assert, log }) {
         "asked, page, unlogged, unwritten"
     );
     check("  and builds no print link of its own", facts.printLinks, 0);
-    // WHAT THE ACCOUNT IS READ THROUGH AND HANDED TO (#449, #455). One reader of the
-    // three keys, the fork handed the tool's own name and the two figures that reader
-    // returned, and the notice handed that reader's ids — not the address's, which would
-    // skip the reading that drops a forged count and spells every id once.
+    // WHAT THE ACCOUNT IS READ THROUGH AND HANDED TO (#449, #455, #459). One reader of the
+    // three keys, and both dialogs handed what that reader returned — not the address's
+    // values, which would skip the reading that drops a forged count and spells every id
+    // once. Each is handed the whole account since #459, because which of them is told
+    // depends on both parts (`accountToTell`), and each names the tool under its title.
     check(
         "  the account is read through readRegistrationAccount, off the address",
         facts.accountFrom,
         "asked: sp.asked, unlogged: sp.unlogged, unwritten: sp.unwritten"
     );
-    // AND, SINCE #456, what its opener needs of the reader: whether they may register,
-    // asked once on this page, and the jobs the dialog offers — the same two the page's
-    // own opener is handed, so the two openers cannot answer the reader differently.
+    // AND, SINCE #456, what the fork's opener needs of the reader: whether they may
+    // register, asked once on this page, and the jobs the dialog offers — the same two the
+    // page's own opener is handed, so the two openers cannot answer the reader differently.
     check(
-        "  the fork is handed the tool's name, those two figures and the page's answer about the reader",
+        "  the fork is handed the tool's name, that reading and the page's answer about the reader",
         facts.fork,
-        "asked: account.asked, canRegister: canRegister, jobs: assignedJobs, toolName: tool.toolName, unwritten: account.unwritten"
+        "account: account, canRegister: canRegister, jobs: assignedJobs, toolName: tool.toolName"
     );
-    check("  and the notice is handed the account's tool items", facts.notice, "toolItemIds: account.unlogged");
+    check("  and the notice the tool's name and the same reading", facts.notice, "account: account, toolName: tool.toolName");
     check("  which the page no longer lists itself", facts.mappedFromAddress, "");
+    // THE NOTICE STANDS FIRST (#459): it is told first, and a notice whose answer hands
+    // over to the fork has to close before the fork opens, which is tree order.
+    check("  the notice stands before the fork", facts.told, "RegistrationUnlogged, RegistrationShortfall");
     // ANTI-VACUITY: a planted page reading one key raw, handing the fork a record id and
-    // the address's own figures, and handing the notice the address's list — then mapping
-    // it as well — is seen doing all of it.
+    // the address itself, handing the notice the address, putting the fork first and
+    // mapping the address's list as well is seen doing all of it.
     const plantedHandoff = screenFacts(
         parseSource(
             "async function renderToolPage({ searchParams }) {\n" +
                 "  const sp = (await searchParams) ?? {};\n" +
                 "  const account = readRegistrationAccount({ unwritten: sp.unwritten });\n" +
                 "  return (<>\n" +
-                "    <RegistrationShortfall toolName={tool.id} asked={sp.asked} unwritten={sp.unwritten} />\n" +
-                "    <RegistrationUnlogged toolItemIds={sp.unlogged} />\n" +
+                "    <RegistrationShortfall toolName={tool.id} account={sp} />\n" +
+                "    <RegistrationUnlogged account={sp} />\n" +
                 "    <ul>{sp.unlogged.map((id) => <li key={id}>{id}</li>)}</ul>\n" +
                 "  </>);\n" +
                 "}\n",
@@ -554,12 +567,9 @@ export function run({ check, assert, log }) {
         ).ast
     );
     check("  a reader handed one key is seen so", plantedHandoff.accountFrom, "unwritten: sp.unwritten");
-    check(
-        "  a fork handed a record id and raw figures is seen so",
-        plantedHandoff.fork,
-        "asked: sp.asked, toolName: tool.id, unwritten: sp.unwritten"
-    );
-    check("  a notice handed the address's list is seen so", plantedHandoff.notice, "toolItemIds: sp.unlogged");
+    check("  a fork handed a record id and the address is seen so", plantedHandoff.fork, "account: sp, toolName: tool.id");
+    check("  a notice handed the address is seen so", plantedHandoff.notice, "account: sp");
+    check("  the fork put first is seen", plantedHandoff.told, "RegistrationShortfall, RegistrationUnlogged");
     check("  and a list mapped off the address is seen so", plantedHandoff.mappedFromAddress, "sp.unlogged");
     // ANTI-VACUITY: a planted screen that reads the whole tool, hands the list the whole
     // link array, reads the selection and prints it itself is seen doing all four, so the
@@ -667,16 +677,20 @@ export function run({ check, assert, log }) {
     check("  and the router is seen", plantedList.routed.join(", "), "useRouter, router.replace");
     check("  with no history write", plantedList.replaced, 0);
 
-    // THE FORK'S HALF (#449, #455). `Not now` has to edit the CURRENT address and take the
-    // fork's own two keys out of it: an address rebuilt from anything the render was
-    // handed would put back a selection the reader has since changed, and deleting
+    // THE FORK'S HALF (#449, #455, #459). `Not now` has to edit the CURRENT address and
+    // take the fork's own two keys out of it: an address rebuilt from anything the render
+    // was handed would put back a selection the reader has since changed, and deleting
     // `unlogged` too would take the notice's ids with it. `Create the rest` has to carry
-    // the count the fork was handed — into the registration dialog since #456, where it
-    // carried it into `/tools/new`'s query before. None of that moves a figure, so it is
-    // read off the source — and the notice's `Got it` below is held the same way.
+    // the count the fork was handed into the registration dialog, and since #459 the fork
+    // is a dialog of its own: open while `accountToTell` tells it and the registration is
+    // shut, closed with `Not now` on the close and on Escape as on its own answer, handing
+    // focus to the page's heading, and opening the form through the one opening rule
+    // behind the one gate. None of that moves a figure, so it is read off the source — and
+    // the notice's `Got it` below is held the same way.
     const FORK = "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js";
     const NOTICE = "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js";
-    const forkFacts = (ast) => {
+    const forkFacts = ({ ast, source }) => {
+        const text = (node) => (node ? source.slice(node.start, node.end).replace(/\s+/g, " ") : "");
         const deleted = [];
         const added = [];
         let replaced = 0;
@@ -684,9 +698,34 @@ export function run({ check, assert, log }) {
         let readsLocation = false;
         const routed = [];
         let opens = null;
+        let gate = null;
+        let frame = null;
+        let told = null;
+        let registration = null;
+        const answers = [];
         walk(ast, (n) => {
             if (n.type === "MemberExpression" && nameOf(n) === "window.location.href") readsLocation = true;
-            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationDialog") opens = dialogProps(n);
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationForm") opens = dialogProps(n);
+            // The gate and what it says: its props, and the one expression it holds.
+            if (n.type === "JSXElement" && n.openingElement.name?.name === "RegistrationOpener") {
+                const said = n.children.find((c) => c.type === "JSXExpressionContainer");
+                gate = `${dialogProps(n.openingElement)} → ${text(said?.expression)}`;
+            }
+            // The frame: when it is open, what closing it answers, and whether a press opened it.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "DialogFrame") {
+                const attribute = (name) => n.attributes.find((a) => a.name?.name === name);
+                const unprompted = attribute("unprompted");
+                frame = `open: ${text(attribute("open")?.value?.expression)} · onClose: ${text(
+                    attribute("onClose")?.value?.expression
+                )} · ${unprompted ? "unprompted" : "prompted"}`;
+            }
+            // The dialog's own answers, by what each one runs.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "Button") {
+                const onClick = n.attributes.find((a) => a.name?.name === "onClick");
+                answers.push(text(onClick?.value?.expression));
+            }
+            if (n.type === "VariableDeclarator" && n.id?.name === "told") told = text(n.init);
+            if (n.type === "VariableDeclarator" && n.id?.name === "registration") registration = text(n.init);
             if (n.type !== "CallExpression") return;
             const callee = nameOf(n.callee);
             if (/\.searchParams\.delete$/.test(callee)) deleted.push(n.arguments[0]?.value);
@@ -695,24 +734,35 @@ export function run({ check, assert, log }) {
             if (callee === "toolPath") rebuilt++;
             if (callee === "useRouter" || /^router\./.test(callee)) routed.push(callee);
         });
-        return { deleted, added, replaced, rebuilt, readsLocation, routed, opens };
+        return { deleted, added, replaced, rebuilt, readsLocation, routed, opens, gate, frame, told, registration, answers: answers.join(", ") };
     };
-    const fork = forkFacts(parseFile(FORK).ast);
+    const fork = forkFacts(parseFile(FORK));
     check("the fork's dismissal takes exactly its own two keys out of the address", fork.deleted.join(", "), "asked, unwritten");
     check("  and puts nothing in", fork.added.join(", "), "");
     check("  editing the current address rather than rebuilding one", `${fork.readsLocation} ${fork.rebuilt}`, "true 0");
     check("  written with history.replaceState", fork.replaced, 1);
     check("  and never through the router", fork.routed.join(", "), "");
+    check("it is told when accountToTell says so", fork.told, 'accountToTell(account, address) === "shortfall"');
     check(
-        "its answer that goes on opens the registration dialog on this tool, with the count it was handed",
+        "  open while it is told and the registration is shut, closed as `Not now` closes it, and unprompted",
+        fork.frame,
+        "open: told && !registration.open · onClose: notNow · unprompted"
+    );
+    check("  whose own answer that stops is the same `Not now`", fork.answers, "notNow");
+    check("its answer that goes on opens through the one opening rule", fork.registration, "useRegistrationOpening()");
+    check("  behind the one gate, in the fork's own words", fork.gate, "canRegister: canRegister, onOpen: registration.start → COPY.registerOthers");
+    check(
+        "  onto the registration form on this tool, with the count it was handed",
         fork.opens,
-        "canRegister: canRegister, jobs: jobs, opener: COPY.registerOthers, quantity: unwritten, tool: { toolName }"
+        "jobs: jobs, key: registration.opening, onClose: registration.close, open: registration.open, quantity: account.unwritten, tool: { toolName }"
     );
     // ANTI-VACUITY: a planted fork doing each of those wrong is seen doing it.
     const plantedFork = forkFacts(
         parseSource(
-            "function RegistrationShortfall({ toolRecordId, page, toolName, unwritten, requested, jobs }) {\n" +
+            "function RegistrationShortfall({ toolRecordId, page, toolName, account, requested, jobs }) {\n" +
                 "  const router = useRouter();\n" +
+                "  const registration = { open: false };\n" +
+                "  const told = account.unwritten > 0;\n" +
                 "  const finish = () => {\n" +
                 "    const address = new URL(toolPath(toolRecordId, page, []), origin);\n" +
                 '    address.searchParams.delete("unwritten");\n' +
@@ -720,55 +770,79 @@ export function run({ check, assert, log }) {
                 '    address.searchParams.set("done", "1");\n' +
                 "    router.replace(`${address.pathname}${address.search}`);\n" +
                 "  };\n" +
-                "  return <RegistrationDialog opener={COPY.heading} canRegister={true} jobs={jobs} tool={{ toolName: toolRecordId }} quantity={requested} />;\n" +
+                "  return (<>\n" +
+                "    <DialogFrame open={told} onClose={() => {}}>\n" +
+                "      <Button onClick={finish}>{COPY.doneRegistering}</Button>\n" +
+                "      <RegistrationOpener canRegister={true} onOpen={() => {}}>{COPY.heading}</RegistrationOpener>\n" +
+                "    </DialogFrame>\n" +
+                "    <RegistrationForm open={true} onClose={finish} jobs={jobs} tool={{ toolName: toolRecordId }} quantity={requested} />\n" +
+                "  </>);\n" +
                 "}\n",
             "<planted-fork>"
-        ).ast
+        )
     );
     check("  a dismissal taking the notice with it is seen", plantedFork.deleted.join(", "), "unwritten, unlogged");
     check("  a key put in is seen", plantedFork.added.join(", "), "done");
     check("  an address rebuilt from the render is seen", `${plantedFork.readsLocation} ${plantedFork.rebuilt}`, "false 1");
     check("  the router is seen", plantedFork.routed.join(", "), "useRouter, router.replace");
     check("  with no history write", plantedFork.replaced, 0);
+    check("  a fork told whatever the address says is seen", plantedFork.told, "account.unwritten > 0");
     check(
-        "  and a dialog opened on another record, another count and no question about the reader is seen",
+        "  a frame open over the registration, closed by an answer that answers nothing, and prompted, is seen",
+        plantedFork.frame,
+        "open: told · onClose: () => {} · prompted"
+    );
+    check("  an opening kept by itself is seen", plantedFork.registration, "{ open: false }");
+    check("  a gate opened on nothing and another word is seen", plantedFork.gate, "canRegister: true, onOpen: ArrowFunctionExpression → COPY.heading");
+    check(
+        "  and a form opened on another record, another count and always is seen",
         plantedFork.opens,
-        "canRegister: true, jobs: jobs, opener: COPY.heading, quantity: requested, tool: { toolName: toolRecordId }"
+        "jobs: jobs, onClose: finish, open: true, quantity: requested, tool: { toolName: toolRecordId }"
     );
 
-    // THE NOTICE'S HALF (#455). `Got it` is the same act on the other key: the current
-    // address, `unlogged` alone out of it, no router. The fork's `asked` and `unwritten`
-    // stay, so a reader who takes the notice away is still asked the fork's question.
-    const notice = forkFacts(parseFile(NOTICE).ast);
+    // THE NOTICE'S HALF (#455, #459). `Got it` is the same act on the other key: the
+    // current address, `unlogged` alone out of it, no router. The fork's `asked` and
+    // `unwritten` stay, so a reader who takes the notice away is asked the fork's question
+    // next. Since #459 it is a dialog told first, closed with `Got it` on the close and on
+    // Escape, handing focus to the page's heading, and opening nothing.
+    const notice = forkFacts(parseFile(NOTICE));
     check("the notice's dismissal takes exactly `unlogged` out of the address", notice.deleted.join(", "), "unlogged");
     check("  and puts nothing in", notice.added.join(", "), "");
     check("  editing the current address rather than rebuilding one", `${notice.readsLocation} ${notice.rebuilt}`, "true 0");
     check("  written with history.replaceState", notice.replaced, 1);
     check("  never through the router", notice.routed.join(", "), "");
-    check("  and it opens no dialog", notice.opens, null);
+    check("it is told when accountToTell says so", notice.told, 'accountToTell(account, address) === "unlogged"');
+    check("  open while it is told, closed as `Got it` closes it, and unprompted", notice.frame, "open: told · onClose: gotIt · unprompted");
+    check("  whose one answer is that `Got it`", notice.answers, "gotIt");
+    check("  and it opens no registration", `${notice.opens} ${notice.gate}`, "null null");
     // ANTI-VACUITY: a planted notice taking the fork's keys with it, through the router,
-    // and offering to create them again is seen doing each.
+    // told whatever the address says, and offering to create them again is seen doing each.
     const plantedNotice = forkFacts(
         parseSource(
-            "function RegistrationUnlogged({ toolItemIds, toolName, jobs }) {\n" +
+            "function RegistrationUnlogged({ account, toolName, jobs }) {\n" +
                 "  const router = useRouter();\n" +
+                "  const told = account.unlogged.length > 0;\n" +
                 "  const dismiss = () => {\n" +
                 "    const address = new URL(window.location.href);\n" +
                 '    address.searchParams.delete("unlogged");\n' +
                 '    address.searchParams.delete("unwritten");\n' +
                 "    router.replace(`${address.pathname}${address.search}`);\n" +
                 "  };\n" +
-                "  return <RegistrationDialog opener={COPY.registerOthers} canRegister jobs={jobs} tool={{ toolName }} quantity={toolItemIds.length} />;\n" +
+                "  return (<>\n" +
+                "    <DialogFrame open={told} onClose={dismiss} unprompted><Button onClick={dismiss}>{COPY.gotIt}</Button></DialogFrame>\n" +
+                "    <RegistrationForm open={told} onClose={dismiss} jobs={jobs} tool={{ toolName }} quantity={account.unlogged.length} />\n" +
+                "  </>);\n" +
                 "}\n",
             "<planted-notice>"
-        ).ast
+        )
     );
     check("  a dismissal taking the fork's count with it is seen", plantedNotice.deleted.join(", "), "unlogged, unwritten");
     check("  the router is seen", plantedNotice.routed.join(", "), "useRouter, router.replace");
+    check("  a notice told whatever the address says is seen", plantedNotice.told, "account.unlogged.length > 0");
     check(
         "  and an offer to create them again is seen",
         plantedNotice.opens,
-        "canRegister: true, jobs: jobs, opener: COPY.registerOthers, quantity: toolItemIds.length, tool: { toolName }"
+        "jobs: jobs, onClose: dismiss, open: told, quantity: account.unlogged.length, tool: { toolName }"
     );
 
     // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A tool's page

@@ -6,7 +6,7 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
 
 ### Material price screens (#19)
 
-`/materials` (search, grouped by item with a row per vendor) and `/materials/[materialId]` (one item's full purchase history, newest first). Both are pages, not modals — this repo's modals are confirmation dialogs (`modalStyles.js`) and every reading surface is its own route.
+`/materials` (search, grouped by item with a row per vendor) and `/materials/[materialId]` (one item's full purchase history, newest first). Both are pages, not modals — every reading surface is its own route, so it can be linked and reloaded. **This also said the repo's modals are confirmation dialogs, which was false**: `/prs/new`'s three are a prompt, a picker and a notice, and the tools axis opens dialogs that register and that tell (#456, #459). The route argument never rested on it; corrected in #459, with the same clause in `/materials/[materialId]`'s own comment.
 
 - **It reads the item axis, not PR Items.** Comparison figures come from **Material Prices**, history from **PO Items**, both reached through #18's `Material` link — never by matching `Item Name` text. A PR Item is a *requested* price, and an unapproved PR's price is one nobody ever paid.
 - **Any active user, no Job scoping** — what a material costs is not a per-Job secret, and site staff pricing a job need it as much as the office. **The exception is document identifiers:** PO ID, PR ID and Job are shown only to a viewer who passes `canViewPR` on the source PO's parent PR, the same gate `app/pos/[poId]` uses. Price, vendor, date, quantity and PO status are open. A refused row renders `—` and still shows its price.

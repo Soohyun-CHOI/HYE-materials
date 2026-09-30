@@ -1,4 +1,4 @@
-import { Instrument_Sans } from "next/font/google";
+import { Fragment_Mono, Instrument_Sans } from "next/font/google";
 
 /**
  * The layout every tools screen renders inside (#336).
@@ -41,8 +41,9 @@ import { Instrument_Sans } from "next/font/google";
  * can take the face and nothing does until it asks for it: the registration dialog
  * sets `font-ui`, and the screens behind it keep the face they have until #463
  * gives them the look. **This is the one place a face is loaded for the tools
- * screens**, and #457's and #460's join it here rather than in the file that first
- * reads each; `offline/design-values.mjs` holds that a face read on this axis has a
+ * screens**: #459's Fragment Mono joined it here, for the ids a landing's notice
+ * lists, rather than in the file that first reads it, and #460's joins it the same
+ * way; `offline/design-values.mjs` holds that a face read on this axis has a
  * loader only this axis reaches, and #258 moves the lot to the root layout, where
  * Geist's two calls are today. What reaches past this element is only what is a
  * DOM descendant of it — a dialog or a list in the top layer is still one, which
@@ -58,6 +59,10 @@ import { Instrument_Sans } from "next/font/google";
 // three the design uses — 400, 500 and 600 — are one file.
 const uiFace = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument-sans" });
 
+// The design's id face, in the one weight the design sets it at (#459). It is not a
+// variable font, so the weight is named.
+const idFace = Fragment_Mono({ subsets: ["latin"], weight: "400", variable: "--font-fragment-mono" });
+
 export default function ToolsLayout({ children }) {
-    return <div className={uiFace.variable}>{children}</div>;
+    return <div className={`${uiFace.variable} ${idFace.variable}`}>{children}</div>;
 }

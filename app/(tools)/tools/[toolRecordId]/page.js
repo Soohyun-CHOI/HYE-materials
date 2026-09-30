@@ -69,7 +69,10 @@ export const metadata = { title: "Tool" };
  * for the selection. The selection is the arrival's whole confirmation and nothing
  * here repeats it (#321); these are what it cannot show. The fork is
  * `RegistrationShortfall.js` and the notice `RegistrationUnlogged.js`, whose headers
- * say why each dismissal edits the address on the client.
+ * say why each dismissal edits the address on the client. **Each is a dialog over this
+ * page since #459**, told one at a time and the notice first — which is
+ * `lib/toolRegistration.js:accountToTell`, asked of this render's reading and of the
+ * address as it stands — so both are handed the whole account.
  *
  * AND IT IS WHERE SOMEBODY REGISTERS MORE OF THIS TOOL (#451). One control opens the
  * registration dialog on this tool and with no count — nothing here knows how many
@@ -168,18 +171,19 @@ async function renderToolPage({ params, searchParams }) {
                         carry: one that wrote nothing stays in the dialog (#449, #456). The fork
                         asks a question and the notice states a fact nothing repairs, so
                         the fork's two controls answer it and the notice's one only takes
-                        it away (#455); they stand apart, and the fork's count never
-                        includes the notice's tool items, which were written. */}
+                        it away (#455), and the fork's count never includes the notice's
+                        tool items, which were written. Each is a dialog since #459, one at
+                        a time and the notice first; it stands first here too, so when its
+                        answer hands over to the fork the one closes before the other opens. */}
+                    {account.unlogged.length > 0 && <RegistrationUnlogged toolName={tool.toolName} account={account} />}
                     {account.unwritten > 0 && (
                         <RegistrationShortfall
                             toolName={tool.toolName}
-                            asked={account.asked}
-                            unwritten={account.unwritten}
+                            account={account}
                             canRegister={canRegister}
                             jobs={assignedJobs}
                         />
                     )}
-                    {account.unlogged.length > 0 && <RegistrationUnlogged toolItemIds={account.unlogged} />}
 
                     <p>{COPY.total(page.total)}</p>
 

@@ -176,6 +176,9 @@
     --spacing-dialog-close-offset: 0.25rem; /* Head, 4: how far the close pulls out so its ink meets the edge */
     --spacing-dialog-header-inline: 1rem; /* Head, 16: the least room between the title and the close */
     --spacing-dialog-title-stack: 0.125rem; /* Head, 2: from the title to the line under it */
+    --spacing-dialog-summary-inset-y: 1rem; /* Split, 16: inside a dialog's summary, above and below */
+    --spacing-dialog-summary-inset-x: 1.125rem; /* Split, 18: inside a dialog's summary, either side */
+    --spacing-dialog-summary-stack: 0.25rem; /* 1k, 4: between two ids a dialog's summary lists, which the spec does not state */
 
     /* 0m · Navigation — the frame every screen sits in. From Tailwind's xl, the
        design's 1280 window, the expanded rail pushes the page. */

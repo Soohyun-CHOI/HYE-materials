@@ -133,13 +133,15 @@ export async function recordToolItemEventAction(prevState, formData) {
 /**
  * Retire one tool item (#363) — the transition with no way out.
  *
- * A MODAL RATHER THAN A PRESS, AND THE RULE IS THE ONE #362 READ THE OTHER WAY.
- * CLAUDE.md: a modal is for an act that cannot be undone; an act that can is
- * edited in place. A check-out is undone by the check-in the same control
- * offers a moment later, so that one is one press; nothing undoes this, so the
- * screen states what becomes true before it happens. The frequency argument
- * points the same way — a tool item is retired once, ever, so a heavier
- * confirmation costs nothing anybody will meet twice.
+ * A MODAL RATHER THAN A PRESS, AND THE RULE WAS THE ONE #362 READ THE OTHER WAY.
+ * CLAUDE.md held that a modal is for an act that cannot be undone and an act that
+ * can is edited in place, until #459 dropped it; where a dialog goes is the
+ * design's now, and #458 moves both transitions into dialogs. Under that rule a
+ * check-out is undone by the check-in the same control offers a moment later, so
+ * that one is one press; nothing undoes this, so the screen states what becomes
+ * true before it happens. The frequency argument points the same way — a tool
+ * item is retired once, ever, so a heavier confirmation costs nothing anybody
+ * will meet twice.
  *
  * NO REASON IS ASKED FOR, AND THAT IS A RULE THIS ISSUE RETIRED RATHER THAN
  * IMPLEMENTED. A required note on this event was recorded as pending from #334,

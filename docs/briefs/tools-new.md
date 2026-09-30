@@ -102,11 +102,11 @@ together — and a design must not bring it back: the landing is the account, an
 a second one would say it twice.
 
 **When fewer were written than were asked for, or some of what was written has
-no recorded registration:** both are said where the registration lands, beside
-the selection, and the tool's own screen carries what each says. Neither is in
-this dialog. **The rows already written are never undone** in either case,
-because their ids are spent and a later registration would re-issue them onto
-different tools.
+no recorded registration:** both are said where the registration lands, each in
+a dialog of its own over the selection (#459), and the tool's own screen carries
+what each says. Neither is in this dialog. **The rows already written are never
+undone** in either case, because their ids are spent and a later registration
+would re-issue them onto different tools.
 
 **When nothing was written:** one sentence on the line above the actions —
 `Couldn't create the tools. Try again.` The dialog stays, and **everything
@@ -149,8 +149,8 @@ be wrong.
 (#449).** The ids appear together there as a selection, on a screen somebody can
 return to and reload; its print control is how their labels are printed; and what
 the registration could not do — write all it was asked for, or record the
-registration of every tool item it wrote — is said there beside them. This
-dialog's part is the form.
+registration of every tool item it wrote — is said there over them, in dialogs
+of their own (#459). This dialog's part is the form.
 
 **A tool item's id is printed and glued to a tool.** Two rows sharing one id
 means two tools wearing one label, which is why nothing in the app deletes a

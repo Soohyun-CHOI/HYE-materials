@@ -8,14 +8,16 @@ import { retireToolItemAction } from "./actions";
 /**
  * Retiring one tool item (#363) — the transition with no way out.
  *
- * A MODAL, WHERE THE TRANSITION BESIDE IT IS ONE PRESS, AND THE RULE DECIDES IT
- * RATHER THAN TASTE. CLAUDE.md: a modal is for an act that cannot be undone; an
- * act that can is edited in place. #362 read that the other way and was right to
- * — a check-out is undone by the check-in the same control offers a moment later
- * — and nothing undoes this. The frequency points the same way: a tool item is
- * retired once, ever, so a heavier confirmation costs nothing anybody meets
- * twice, where a second tap on a check-out is dozens a day and is what sends
- * people back to paper.
+ * A MODAL, WHERE THE TRANSITION BESIDE IT IS ONE PRESS, AND A RULE DECIDED IT
+ * RATHER THAN TASTE. CLAUDE.md held that a modal is for an act that cannot be
+ * undone and an act that can is edited in place, until #459 dropped the rule:
+ * where a dialog goes is the design's, and #458 moves this one onto the design's
+ * frame. The reading the rule gave stands with the shape until then. #362 read it
+ * the other way and was right to — a check-out is undone by the check-in the same
+ * control offers a moment later — and nothing undoes this. The frequency points
+ * the same way: a tool item is retired once, ever, so a heavier confirmation
+ * costs nothing anybody meets twice, where a second tap on a check-out is dozens
+ * a day and is what sends people back to paper.
  *
  * THE BODY IS WHAT THE MODAL IS FOR. `docs/briefs/_shared.md` says it of the
  * three deletion voices: they are accurate accounts of what becomes true rather
