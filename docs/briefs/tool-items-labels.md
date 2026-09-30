@@ -262,14 +262,16 @@ puts that room back, and the label grows 1.6 mm each way with it.
 **The screen words are the design's (#455).** A `Tools` row is a tool, and a
 `Tool Items` row — which this brief calls a tool item — is a `tool` in any
 sentence about one, as in `None of those tools exists.`, and never a `tool item`
-on screen. The same words govern `/tools`, `/tools/new`, the tool's own screen,
-where the tools under one are counted as `items`, and the tool item's. This said
+on screen. The same words govern `/tools`, the registration dialog over it, the
+tool's own screen, where the tools under one are counted as `items`, and the tool
+item's. This said
 the pair was `tool` and `tool item` and never a bare `item`, which the design
 reversed.
 
 **Two screens open this one and their words come from here**, so the controls on
 a tool's own page and on a tool item's own page cannot drift from the screen they
-open. That is the arrangement `/tools`' control on `/tools/new` already has. This
+open. That is the arrangement the registration dialog has with the controls that
+open it, which was `/tools`' control on `/tools/new` until #456. This
 said two until #443, which counted the tool item's, added in #352; it said three
 until #449, which moved a registration's run onto the tool's own page — the
 registration lands there with what it wrote selected, and that page's control is

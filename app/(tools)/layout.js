@@ -1,3 +1,5 @@
+import { Instrument_Sans } from "next/font/google";
+
 /**
  * The layout every tools screen renders inside (#336).
  *
@@ -33,10 +35,29 @@
  * names `app/designValues.css` declares (#462), and this one element is the whole
  * of what they have to reach for the axis's width.
  *
+ * THE DESIGN'S FACES ARE LOADED HERE, AND LOADING ONE STYLES NOTHING (#456). Each
+ * `next/font` call below defines the variable its face resolves to — `--font-ui`
+ * reads `--font-instrument-sans` — on this one element, so everything on the axis
+ * can take the face and nothing does until it asks for it: the registration dialog
+ * sets `font-ui`, and the screens behind it keep the face they have until #463
+ * gives them the look. **This is the one place a face is loaded for the tools
+ * screens**, and #457's and #460's join it here rather than in the file that first
+ * reads each; `offline/design-values.mjs` holds that a face read on this axis has a
+ * loader only this axis reaches, and #258 moves the lot to the root layout, where
+ * Geist's two calls are today. What reaches past this element is only what is a
+ * DOM descendant of it — a dialog or a list in the top layer is still one, which
+ * is why a face reaches them. The label sheet's Inconsolata stays on its own page:
+ * it is the label's measured face and not the design's (`tools.md`).
+ *
  * These screens are the only ones in the app used at a phone width as well as at
  * a monitor: a tool is entered and its labels printed at a desk, and a tool item
  * is scanned on site. `docs/notes/tools.md` carries that derivation.
  */
+
+// The design's UI face, all of its weights at once: it is a variable font, so the
+// three the design uses — 400, 500 and 600 — are one file.
+const uiFace = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument-sans" });
+
 export default function ToolsLayout({ children }) {
-    return <div>{children}</div>;
+    return <div className={uiFace.variable}>{children}</div>;
 }

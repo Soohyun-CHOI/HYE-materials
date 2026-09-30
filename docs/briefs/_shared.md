@@ -23,7 +23,8 @@ the whole of what carries over. Everything else is open, and a design that
 resembles what is there now has taken a resemblance for a requirement.
 
 **Three visual decisions are real, and they are the only three.** The app is
-light-only, and modal chrome has a single source. Both were decided on their own
+light-only, and modal chrome had a single source — until #456 brought the
+design's own frame to the tools axis. Both were decided on their own
 terms with the reasoning recorded — #218 and #126 — and both are in
 "Constraints that already exist" at the foot of this document with what they
 rest on. **The third is the design's own**: the code a tool label prints is set
@@ -107,8 +108,9 @@ takes them away. They are not a layout to preserve.
    brief describes its own line.
 
    **A registration was a fifth, and it joined the rule rather than finding a
-   better exception (#449).** `/tools/new` writes as many tool items as were
-   bought, so it has no one document to land on — and it lands on their TOOL, the
+   better exception (#449).** The registration — the page `/tools/new` until
+   #456, a dialog over the page that opens it since — writes as many tool items
+   as were bought, so it has no one document to land on — and it lands on their TOOL, the
    screen that lists them, with every one it wrote selected. The selection is
    what it says about the act: it names each id, survives a reload, and is one
    press from their labels. The form stated its own account of the ids until
@@ -696,7 +698,7 @@ office. Invoicing is Admin because invoicing is office work.
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
 | `/tools` | anyone signed in, with no Role and no Job scoping (#337) |
-| `/tools/new` | anyone signed in to reach; only somebody assigned to a job can use it (#338) |
+| the registration dialog, over `/tools` and `/tools/[toolRecordId]` (#456) | anyone on either page; only somebody assigned to a job can open it (#338) |
 | `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337) |
 | `/t/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
@@ -782,20 +784,24 @@ reader met the normal word first and had to hover for the one that mattered. It
 became a chip value in words. A meaning carried by color alone fails the same
 test one step further along, which is why the rule reads the way it does.
 
-**Modal styling has a single source.** `app/components/modalStyles.js` holds the
-backdrop and the card, imported at six sites. It is the one shape in the app
-that is already a primitive rather than a per-page reassembly, and #258 is where
-the rest joins it.
+**Modal styling had a single source until #456, and has two until #258.**
+`app/components/modalStyles.js` holds the backdrop and the card, imported at six
+sites, and the screens above the tools axis keep it until #258. The tools axis
+opens its dialogs in the design's own frame, `app/components/DialogFrame.js` —
+the registration first, and the tool item page's two when #458 moves them off
+the old one. It was the one shape in the app that was already a primitive
+rather than a per-page reassembly, and #258 is where the rest joins the design's.
 
 **BUT THE BEHAVIOR HAS TWO, AND THAT IS AN INCONSISTENCY RATHER THAN A
 DISTINCTION.** Anything opening over the page is supposed to close on `Escape`
-as well as by its opener and hand focus back to it. **Two of about a dozen
-overlays do** — the file viewer (#331) and the tool item page's retire dialog
-(#363) — and the rest close only by their own controls, so a reader who learns
-`Escape` on one meets a dead key on the next. Repairing the others was out of
-scope for both issues that got it right, so it is written down here instead of
-being discovered: **a design pass over modals should settle this for all of
-them**, and the fix is behavioral rather than visual.
+as well as by its opener and hand focus back to it. **Three of about a dozen
+overlays do** — the file viewer (#331), the tool item page's retire dialog
+(#363) and the design's frame (#456), which is the browser's own modal dialog —
+and the rest close only by their own controls, so a reader who learns `Escape`
+on one meets a dead key on the next. Repairing the others was out of scope for
+every issue that got it right, so it is written down here instead of being
+discovered: **a design pass over modals should settle this for all of them**,
+and the fix is behavioral rather than visual.
 
 **The app is light-only, deliberately.** #218 removed 343 `dark:` variants and
 the `prefers-color-scheme` block, and added `color-scheme: light` so the browser
@@ -824,7 +830,7 @@ measured rather than assumed: at 375px both screens render with no horizontal
 overflow, the form 311px inside the page's padding.
 
 **Both widths does not mean both first, and each tools brief now says which
-one it is drawn for (#348).** `/tools`, `/tools/new` and
+one it is drawn for (#348).** `/tools`, the registration dialog over it and
 `/tools/[toolRecordId]` are DESKTOP first: a site has laptops and monitors
 too, entering a name and a quantity is typing, and printing the labels that
 follow happens at whatever machine the printer is attached to.

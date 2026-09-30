@@ -1,7 +1,7 @@
 // The job a `Tool Log` row is filed against (#363).
 //
 // WHAT THIS FILE IS FOR, AND WHY IT IS ITS OWN. `assignedJobsFor` and the
-// picker's two words were pinned inside `offline/tool-registration.mjs` while
+// picker's words were pinned inside `offline/tool-registration.mjs` while
 // they lived in `lib/toolRegistration.js`. They are three write paths' rule now
 // — registration, the two scan transitions, and the retirement — so a check
 // named for one screen would be asserting about a module none of the other two
@@ -20,7 +20,8 @@
 //
 // WHAT IT CANNOT SEE. Whether a job list handed in is the whole table, which is
 // the caller's business; and rendering, which is this tier's standing limit —
-// that a picker with one assignment shows no dropdown is checked in a browser.
+// that a picker with one assignment opens with it already chosen is checked in a
+// browser.
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
@@ -104,25 +105,36 @@ export function run({ check, assert, log }) {
         assignedJobsFor(adminOnNone, JOBS).length === 0
     );
 
-    // ── 3: the two words, read by both screens rather than re-spelled ──────
+    // ── 3: the words, read by both screens rather than re-spelled ──────────
+    // The design's verb since #456, `Choose` where it was `Pick` (0l), and a third
+    // word for a picker left at its placeholder, which the registration dialog says
+    // under the choice before anything is sent.
     log("");
-    log("the picker's two words, and both screens reading them:");
-    check("the unchosen option", TOOL_JOB_COPY.unchosen, "Pick a job");
-    check("the not-your-job refusal", TOOL_JOB_COPY.notYours, "Pick a job you are assigned to.");
-    check("two words and no more", Object.keys(TOOL_JOB_COPY).length, 2);
+    log("the picker's words, and both screens reading them:");
+    check("the unchosen option", TOOL_JOB_COPY.unchosen, "Choose a job");
+    check("the refusal for none chosen", TOOL_JOB_COPY.noneChosen, "Choose a job.");
+    check("the not-your-job refusal", TOOL_JOB_COPY.notYours, "Choose a job you are assigned to.");
+    check("three words and no more", Object.keys(TOOL_JOB_COPY).length, 3);
     // READ OFF THE SOURCE, for the reason `propertySource` records: comparing the
     // VALUES cannot tell a screen reading this constant from a screen spelling
     // the same words again, because two equal string literals are one primitive.
     // What is being held is that the copies cannot drift apart, and that is a
     // fact about the expression rather than about the string.
     for (const [what, file] of [
-        ["registration form", "lib/toolRegistration.js"],
+        ["registration dialog", "lib/toolRegistration.js"],
         ["tool item page", "lib/toolTransition.js"],
     ]) {
         const parsed = parseFile(file);
         check(`the ${what} reads the unchosen option`, propertySource(parsed, "jobUnchosen"), "TOOL_JOB_COPY.unchosen");
         check(`  and the refusal`, propertySource(parsed, "jobNotYours"), "TOOL_JOB_COPY.notYours");
     }
+    // The none-chosen refusal has one reader so far, the registration dialog; the
+    // check-out answers a missing job with `notYours` (`readSubmission`).
+    check(
+        "the registration dialog reads the none-chosen refusal",
+        propertySource(parseFile("lib/toolRegistration.js"), "jobNoneChosen"),
+        "TOOL_JOB_COPY.noneChosen"
+    );
     // The values agreeing is then a consequence rather than the claim, and it is
     // still worth one line: an import of the wrong key would read correctly above
     // and hand back the wrong word.
@@ -143,11 +155,11 @@ export function run({ check, assert, log }) {
     // filter is shown discarding something and keeping something on one input.
     const mixed = assignedJobsFor({ assignedJobs: ["job1", "gone"] }, JOBS);
     assert("the filter keeps what is assigned and drops what is not", mixed.length === 1 && mixed[0].id === "job1");
-    // And the two-word count is shown to be a reading of the object rather than
-    // a constant, by naming both keys.
+    // And the three-word count is shown to be a reading of the object rather than
+    // a constant, by naming every key.
     assert(
-        "the copy constant really holds those two keys",
-        Object.keys(TOOL_JOB_COPY).sort().join() === "notYours,unchosen"
+        "the copy constant really holds those three keys",
+        Object.keys(TOOL_JOB_COPY).sort().join() === "noneChosen,notYours,unchosen"
     );
     // AND THE SOURCE READER IS SHOWN TELLING A LITERAL FROM A REFERENCE, because
     // "it read `TOOL_JOB_COPY.unchosen`" and "it read nothing and the comparison
@@ -155,10 +167,10 @@ export function run({ check, assert, log }) {
     // section 3 exists for, run in-file.
     {
         const planted = parseSource(
-            'const A = { jobUnchosen: "Pick a job", jobNotYours: TOOL_JOB_COPY.notYours };\n',
+            'const A = { jobUnchosen: "Choose a job", jobNotYours: TOOL_JOB_COPY.notYours };\n',
             "<planted-literal>"
         );
-        check("  a re-spelled word reads as a literal", propertySource(planted, "jobUnchosen"), '"Pick a job"');
+        check("  a re-spelled word reads as a literal", propertySource(planted, "jobUnchosen"), '"Choose a job"');
         check("  and a read one reads as the reference", propertySource(planted, "jobNotYours"), "TOOL_JOB_COPY.notYours");
     }
     // A key nothing assigns has to read as MISSING rather than as the expected

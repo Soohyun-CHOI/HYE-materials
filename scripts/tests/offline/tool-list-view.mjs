@@ -120,6 +120,9 @@ const TOOL_SCREEN = "app/(tools)/tools/[toolRecordId]/page.js";
 /** The list on that screen, whose selection section 2b reads off the AST (#443). */
 const TOOL_ITEM_LIST = "app/(tools)/tools/[toolRecordId]/ToolItemList.js";
 
+/** The tool list, whose opener of the registration dialog section 2b reads off the AST (#456). */
+const LIST_SCREEN = "app/(tools)/tools/page.js";
+
 /** `(await searchParams) ?? {}`, `await searchParams` or `searchParams` — a page's address. */
 function isSearchParams(init) {
     let e = init;
@@ -133,6 +136,40 @@ function nameOf(node) {
     if (node?.type === "Identifier") return node.name;
     if (node?.type === "MemberExpression" && !node.computed) return `${nameOf(node.object)}.${node.property.name}`;
     return node?.type ?? "none";
+}
+
+/**
+ * What a `<RegistrationDialog>` is handed (#456), prop by prop and sorted: a name or a
+ * member as `nameOf` reads it, a literal as its value, an object as its own props, and a
+ * bare attribute as `true`. The opener carries what the registration's address carried
+ * until #456, so these are what the three openers are held to.
+ */
+function dialogProps(openingElement) {
+    // A call reads as its callee and its arguments, so `canRegisterToolItems(user, jobs)`
+    // is told from a literal `true` and from the same predicate asked of another list;
+    // a function handed as an argument reads as `…`, since only its caller matters here.
+    const sourceOf = (node) => {
+        if (node?.type === "CallExpression")
+            return `${sourceOf(node.callee)}(${node.arguments
+                .map((argument) => (argument.type === "ArrowFunctionExpression" ? "…" : sourceOf(argument)))
+                .join(", ")})`;
+        if (node?.type === "MemberExpression" && !node.computed) return `${sourceOf(node.object)}.${node.property.name}`;
+        return nameOf(node);
+    };
+    const valueOf = (node) => {
+        if (!node) return "true";
+        const expression = node.type === "JSXExpressionContainer" ? node.expression : node;
+        if (expression?.type === "Literal") return String(expression.value);
+        if (expression?.type === "ObjectExpression")
+            return `{ ${expression.properties
+                .map((p) => (p.shorthand ? p.key.name : `${p.key?.name}: ${sourceOf(p.value)}`))
+                .join(", ")} }`;
+        return sourceOf(expression);
+    };
+    return openingElement.attributes
+        .map((attribute) => `${attribute.name?.name}: ${valueOf(attribute.value)}`)
+        .sort()
+        .join(", ");
 }
 
 // ---------------------------------------------------------------------------
@@ -489,10 +526,13 @@ export function run({ check, assert, log }) {
         facts.accountFrom,
         "asked: sp.asked, unlogged: sp.unlogged, unwritten: sp.unwritten"
     );
+    // AND, SINCE #456, what its opener needs of the reader: whether they may register,
+    // asked once on this page, and the jobs the dialog offers — the same two the page's
+    // own opener is handed, so the two openers cannot answer the reader differently.
     check(
-        "  the fork is handed the tool's name and those two figures",
+        "  the fork is handed the tool's name, those two figures and the page's answer about the reader",
         facts.fork,
-        "asked: account.asked, toolName: tool.toolName, unwritten: account.unwritten"
+        "asked: account.asked, canRegister: canRegister, jobs: assignedJobs, toolName: tool.toolName, unwritten: account.unwritten"
     );
     check("  and the notice is handed the account's tool items", facts.notice, "toolItemIds: account.unlogged");
     check("  which the page no longer lists itself", facts.mappedFromAddress, "");
@@ -631,8 +671,9 @@ export function run({ check, assert, log }) {
     // fork's own two keys out of it: an address rebuilt from anything the render was
     // handed would put back a selection the reader has since changed, and deleting
     // `unlogged` too would take the notice's ids with it. `Create the rest` has to carry
-    // the count the fork was handed. None of that moves a figure, so it is read off the
-    // source — and the notice's `Got it` below is held the same way.
+    // the count the fork was handed — into the registration dialog since #456, where it
+    // carried it into `/tools/new`'s query before. None of that moves a figure, so it is
+    // read off the source — and the notice's `Got it` below is held the same way.
     const FORK = "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js";
     const NOTICE = "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js";
     const forkFacts = (ast) => {
@@ -642,9 +683,10 @@ export function run({ check, assert, log }) {
         let rebuilt = 0;
         let readsLocation = false;
         const routed = [];
-        let linkArgs = null;
+        let opens = null;
         walk(ast, (n) => {
             if (n.type === "MemberExpression" && nameOf(n) === "window.location.href") readsLocation = true;
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationDialog") opens = dialogProps(n);
             if (n.type !== "CallExpression") return;
             const callee = nameOf(n.callee);
             if (/\.searchParams\.delete$/.test(callee)) deleted.push(n.arguments[0]?.value);
@@ -652,10 +694,8 @@ export function run({ check, assert, log }) {
             if (callee === "window.history.replaceState") replaced++;
             if (callee === "toolPath") rebuilt++;
             if (callee === "useRouter" || /^router\./.test(callee)) routed.push(callee);
-            if (callee === "registerPath")
-                linkArgs = (n.arguments[0]?.properties ?? []).map((p) => `${p.key?.name}: ${nameOf(p.value)}`).join(", ");
         });
-        return { deleted, added, replaced, rebuilt, readsLocation, routed, linkArgs };
+        return { deleted, added, replaced, rebuilt, readsLocation, routed, opens };
     };
     const fork = forkFacts(parseFile(FORK).ast);
     check("the fork's dismissal takes exactly its own two keys out of the address", fork.deleted.join(", "), "asked, unwritten");
@@ -663,11 +703,15 @@ export function run({ check, assert, log }) {
     check("  editing the current address rather than rebuilding one", `${fork.readsLocation} ${fork.rebuilt}`, "true 0");
     check("  written with history.replaceState", fork.replaced, 1);
     check("  and never through the router", fork.routed.join(", "), "");
-    check("its link opens the form on this tool and the count it was handed", fork.linkArgs, "toolName: toolName, quantity: unwritten");
+    check(
+        "its answer that goes on opens the registration dialog on this tool, with the count it was handed",
+        fork.opens,
+        "canRegister: canRegister, jobs: jobs, opener: COPY.registerOthers, quantity: unwritten, tool: { toolName }"
+    );
     // ANTI-VACUITY: a planted fork doing each of those wrong is seen doing it.
     const plantedFork = forkFacts(
         parseSource(
-            "function RegistrationShortfall({ toolRecordId, page, toolName, unwritten, requested }) {\n" +
+            "function RegistrationShortfall({ toolRecordId, page, toolName, unwritten, requested, jobs }) {\n" +
                 "  const router = useRouter();\n" +
                 "  const finish = () => {\n" +
                 "    const address = new URL(toolPath(toolRecordId, page, []), origin);\n" +
@@ -676,7 +720,7 @@ export function run({ check, assert, log }) {
                 '    address.searchParams.set("done", "1");\n' +
                 "    router.replace(`${address.pathname}${address.search}`);\n" +
                 "  };\n" +
-                "  return <Link href={registerPath({ toolName, quantity: requested })} />;\n" +
+                "  return <RegistrationDialog opener={COPY.heading} canRegister={true} jobs={jobs} tool={{ toolName: toolRecordId }} quantity={requested} />;\n" +
                 "}\n",
             "<planted-fork>"
         ).ast
@@ -686,7 +730,11 @@ export function run({ check, assert, log }) {
     check("  an address rebuilt from the render is seen", `${plantedFork.readsLocation} ${plantedFork.rebuilt}`, "false 1");
     check("  the router is seen", plantedFork.routed.join(", "), "useRouter, router.replace");
     check("  with no history write", plantedFork.replaced, 0);
-    check("  and a link carrying another count is seen", plantedFork.linkArgs, "toolName: toolName, quantity: requested");
+    check(
+        "  and a dialog opened on another record, another count and no question about the reader is seen",
+        plantedFork.opens,
+        "canRegister: true, jobs: jobs, opener: COPY.heading, quantity: requested, tool: { toolName: toolRecordId }"
+    );
 
     // THE NOTICE'S HALF (#455). `Got it` is the same act on the other key: the current
     // address, `unlogged` alone out of it, no router. The fork's `asked` and `unwritten`
@@ -697,12 +745,12 @@ export function run({ check, assert, log }) {
     check("  editing the current address rather than rebuilding one", `${notice.readsLocation} ${notice.rebuilt}`, "true 0");
     check("  written with history.replaceState", notice.replaced, 1);
     check("  never through the router", notice.routed.join(", "), "");
-    check("  and it opens no form", notice.linkArgs, null);
+    check("  and it opens no dialog", notice.opens, null);
     // ANTI-VACUITY: a planted notice taking the fork's keys with it, through the router,
     // and offering to create them again is seen doing each.
     const plantedNotice = forkFacts(
         parseSource(
-            "function RegistrationUnlogged({ toolItemIds, toolName }) {\n" +
+            "function RegistrationUnlogged({ toolItemIds, toolName, jobs }) {\n" +
                 "  const router = useRouter();\n" +
                 "  const dismiss = () => {\n" +
                 "    const address = new URL(window.location.href);\n" +
@@ -710,23 +758,31 @@ export function run({ check, assert, log }) {
                 '    address.searchParams.delete("unwritten");\n' +
                 "    router.replace(`${address.pathname}${address.search}`);\n" +
                 "  };\n" +
-                "  return <Link href={registerPath({ toolName, quantity: toolItemIds.length })} />;\n" +
+                "  return <RegistrationDialog opener={COPY.registerOthers} canRegister jobs={jobs} tool={{ toolName }} quantity={toolItemIds.length} />;\n" +
                 "}\n",
             "<planted-notice>"
         ).ast
     );
     check("  a dismissal taking the fork's count with it is seen", plantedNotice.deleted.join(", "), "unlogged, unwritten");
     check("  the router is seen", plantedNotice.routed.join(", "), "useRouter, router.replace");
-    check("  and an offer to create them again is seen", plantedNotice.linkArgs, "toolName: toolName, quantity: toolItemIds.length");
+    check(
+        "  and an offer to create them again is seen",
+        plantedNotice.opens,
+        "canRegister: true, jobs: jobs, opener: COPY.registerOthers, quantity: toolItemIds.length, tool: { toolName }"
+    );
 
-    // THE CONTROL THAT REGISTERS MORE OF THIS TOOL (#451). It opens the form with this
-    // tool's name and no count, in the registration form's words, and it stands under no
-    // condition: a tool with nothing under it keeps it, and so does a reader on no job,
-    // whom the form itself tells why it cannot take them. A control drawn only beside the
-    // list renders this very page on every tool this base holds, so none of that shows in
-    // a figure and all of it is read off the source.
-    const registerControls = (ast) => {
+    // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A tool's page
+    // opens it on that tool and with no count, in the dialog's own title — the design's
+    // `New tools` — and the list opens it on no tool. Each stands under no condition: a
+    // tool with nothing under it keeps its opener, and so does a reader on no job, whom
+    // the opener itself tells why it cannot act (0f). What decides that is one predicate,
+    // `canRegisterToolItems`, asked by each page and handed down, so no opener answers the
+    // reader differently. An opener drawn only beside the list renders this very page on
+    // every tool this base holds, so none of that shows in a figure and all of it is read
+    // off the source.
+    const dialogOpeners = (ast) => {
         const found = [];
+        const bindings = new Map();
         const skip = new Set(["type", "start", "end", "loc", "range", "parent"]);
         // The keys under which a node's children render only sometimes.
         const branches = {
@@ -734,23 +790,28 @@ export function run({ check, assert, log }) {
             LogicalExpression: ["right"],
             IfStatement: ["consequent", "alternate"],
         };
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.type === "Identifier" && n.init?.type === "CallExpression")
+                bindings.set(n.id.name, nameOf(n.init.callee));
+        });
         (function visit(node, conditions) {
             if (!node || typeof node !== "object") return;
             if (Array.isArray(node)) return node.forEach((child) => visit(child, conditions));
             if (typeof node.type !== "string") return;
-            if (node.type === "JSXElement") {
-                const href = node.openingElement.attributes.find((a) => a.name?.name === "href")?.value?.expression;
-                if (href?.type === "CallExpression" && nameOf(href.callee) === "registerPath")
-                    found.push({
-                        handed: (href.arguments[0]?.properties ?? [])
-                            .map((p) => `${p.key?.name}: ${nameOf(p.value)}`)
-                            .join(", "),
-                        says: node.children
-                            .filter((child) => child.type !== "JSXText" || child.value.trim())
-                            .map((child) => nameOf(child.expression ?? child))
-                            .join(", "),
-                        conditions,
-                    });
+            if (node.type === "JSXOpeningElement" && node.name?.name === "RegistrationDialog") {
+                const canRegister = node.attributes.find((a) => a.name?.name === "canRegister")?.value?.expression;
+                found.push({
+                    handed: dialogProps(node),
+                    // What decides whether it may act, followed through a binding the page
+                    // asked it into, so a literal and a second predicate both show.
+                    asks:
+                        canRegister?.type === "CallExpression"
+                            ? nameOf(canRegister.callee)
+                            : canRegister?.type === "Identifier"
+                              ? (bindings.get(canRegister.name) ?? canRegister.name)
+                              : nameOf(canRegister ?? {}),
+                    conditions,
+                });
             }
             for (const key of Object.keys(node)) {
                 if (skip.has(key)) continue;
@@ -759,38 +820,88 @@ export function run({ check, assert, log }) {
         })(ast, 0);
         return found;
     };
-    const controls = registerControls(parseFile(TOOL_SCREEN).ast);
-    check("the page opens the registration form from one control", controls.length, 1);
-    check("  handed this tool's name and no count", controls[0]?.handed, "toolName: tool.toolName");
-    check("  in the registration form's words for it", controls[0]?.says, "TOOL_REGISTRATION_COPY.registerMore");
-    check("  and under no condition — not the list's, not the reader's", controls[0]?.conditions, 0);
-    // ANTI-VACUITY: a planted page carrying the control in the not-found return, beside
-    // the list only, and for a reader on a job only is seen doing all three — and the one
-    // beside the list is seen handing a record id and a count and saying the heading.
-    const plantedControls = registerControls(
+    const openers = dialogOpeners(parseFile(TOOL_SCREEN).ast);
+    check("the tool's page opens the registration dialog from one opener", openers.length, 1);
+    check(
+        "  on this tool, with no count, in the dialog's own title",
+        openers[0]?.handed,
+        "canRegister: canRegister, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: { toolName: tool.toolName }"
+    );
+    check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterToolItems");
+    check("  and under no condition — not the list's, not the reader's", openers[0]?.conditions, 0);
+    const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
+    check("the tool list opens it from one opener", listOpeners.length, 1);
+    check(
+        "  on no tool, in the same title, with the list's tools to suggest",
+        listOpeners[0]?.handed,
+        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: rows.map(…)"
+    );
+    check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterToolItems");
+    check("  and under no condition either", listOpeners[0]?.conditions, 0);
+    // THE COUNT BESIDE A SUGGESTED TOOL IS ITS LINK ARRAY'S LENGTH (#456) — the figure its
+    // own page heads its list with — and never a sum of statuses, so one word says one
+    // number on both screens. Read off the object the list hands the dialog for each tool
+    // and off the binding that count comes from, since `rows.map(…)` above reads alike
+    // whatever the mapping counts.
+    const toolsHanded = (parsed) => {
+        let count = null;
+        let from = null;
+        walk(parsed.ast, (n) => {
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationDialog") {
+                const tools = n.attributes.find((a) => a.name?.name === "tools")?.value?.expression;
+                const body = tools?.type === "CallExpression" ? tools.arguments[0]?.body : null;
+                const property = body?.type === "ObjectExpression" ? body.properties.find((p) => p.key?.name === "count") : null;
+                if (property) count = parsed.source.slice(property.value.start, property.value.end);
+            }
+            if (n.type === "VariableDeclarator" && n.id?.name === "itemCount")
+                from = parsed.source.slice(n.init.start, n.init.end).replace(/\s+/g, " ");
+        });
+        return `${count} from ${from}`;
+    };
+    check(
+        "  each suggested tool counted by its link array, as its own page counts it",
+        toolsHanded(parseFile(LIST_SCREEN)),
+        "itemCount[row.id] from Object.fromEntries(tools.map((tool) => [tool.id, tool.toolItems.length]))"
+    );
+    check(
+        "  and a count summed from the statuses is seen (anti-vacuity)",
+        toolsHanded(
+            parseSource(
+                "const itemCount = Object.fromEntries(rows.map((row) => [row.id, row.counts[0].count]));\n" +
+                    "const x = <RegistrationDialog tools={rows.map((row) => ({ toolName: row.toolName, count: row.counts[0].count + row.counts[1].count }))} />;\n",
+                "<planted-tools>"
+            )
+        ),
+        "row.counts[0].count + row.counts[1].count from Object.fromEntries(rows.map((row) => [row.id, row.counts[0].count]))"
+    );
+    // ANTI-VACUITY: a planted page carrying an opener in the not-found return, one beside
+    // the list only, and one for a reader on a job only is seen doing all three — and the
+    // one beside the list is seen handing a record id and a count, saying another word and
+    // asking no predicate at all.
+    const plantedOpeners = dialogOpeners(
         parseSource(
             "async function renderToolPage() {\n" +
-                "  if (!tool) return <Link href={registerPath({ toolName: name })}>{TOOL_REGISTRATION_COPY.registerMore}</Link>;\n" +
+                "  if (!tool) return <RegistrationDialog opener={TOOL_REGISTRATION_COPY.heading} canRegister={canRegister} jobs={assignedJobs} tool={{ toolName: name }} />;\n" +
                 "  return (<div>\n" +
-                "    {page.total === 0 ? <p /> : <Link href={registerPath({ toolName: tool.id, quantity: page.total })}>{TOOL_REGISTRATION_COPY.heading}</Link>}\n" +
-                "    {canRegisterToolItems(user, jobs) && <Link href={registerPath({ toolName: tool.toolName })}>{TOOL_REGISTRATION_COPY.registerMore}</Link>}\n" +
+                "    {page.total === 0 ? <p /> : <RegistrationDialog opener={TOOL_REGISTRATION_COPY.registerOthers} canRegister={true} jobs={assignedJobs} tool={{ toolName: tool.id }} quantity={page.total} />}\n" +
+                "    {canRegisterToolItems(user, jobs) && <RegistrationDialog opener={TOOL_REGISTRATION_COPY.heading} canRegister={canRegister} jobs={assignedJobs} tool={{ toolName: tool.toolName }} />}\n" +
                 "  </div>);\n" +
                 "}\n",
-            "<planted-control>"
+            "<planted-opener>"
         ).ast
     );
-    check("  three controls are seen as three", plantedControls.length, 3);
+    check("  three openers are seen as three", plantedOpeners.length, 3);
     check(
         "  each under the condition it is drawn beneath",
-        plantedControls.map((control) => control.conditions).join(", "),
+        plantedOpeners.map((opener) => opener.conditions).join(", "),
         "1, 1, 1"
     );
     check(
-        "  a record id and a count are seen handed",
-        plantedControls[1]?.handed,
-        "toolName: tool.id, quantity: page.total"
+        "  a record id, a count and another word are seen handed",
+        plantedOpeners[1]?.handed,
+        "canRegister: true, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.registerOthers, quantity: page.total, tool: { toolName: tool.id }"
     );
-    check("  and the heading's word is seen", plantedControls[1]?.says, "TOOL_REGISTRATION_COPY.heading");
+    check("  and a literal in place of the predicate is seen", plantedOpeners[1]?.asks, "Literal");
 
     // ── 2c: this list's page and the document lists' page stay two constants ─
     log("");

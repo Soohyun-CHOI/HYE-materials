@@ -43,7 +43,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 - **Why one module exists, and the constraints on editing it** → that module's own file header.
 - A new **field** → the Data model list: name, type, link topology. Its rationale goes to the area notes file.
 - A new **module** → one line in Service layer pattern, `path — what it owns`.
-- **What a screen carries, the distinctions it must show, and a word locked on it** → `docs/briefs/`, one file per page (#260). A page added, removed or given new content updates its brief in the SAME COMMIT; `offline/screen-briefs.mjs` fails on a page with no brief and on a tone the shared brief does not list.
+- **What a screen carries, the distinctions it must show, and a word locked on it** → `docs/briefs/`, one file per page (#260), and a page that became a dialog keeps its own (#456). A page added, removed or given new content updates its brief in the SAME COMMIT; `offline/screen-briefs.mjs` fails on a page with no brief and on a tone the shared brief does not list.
 - **Every string a screen can render** → nowhere. `scripts/screen-strings.mjs` produces the list on demand (#288), and `docs/briefs/strings/` records only what it CANNOT produce and what no reader can reach. A file per screen was built, measured and dropped; the README there carries the figures and how a naming decision is made from the tool instead.
 - **No phase, milestone or branch status, ever.** What has merged is in the git history and in the tracker, and a document that restates it goes stale without anyone noticing.
 - If no area file fits, add one and an index row above it, in the same commit.
@@ -111,7 +111,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
 - `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), and the picker's words.
-- `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, what the form opens with and a landing's account (#449), and every word a registration says.
+- `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the suggestions, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
@@ -162,7 +162,9 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
 - `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` calls may read one.**
-- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the single source for modal styling. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener.**
+- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`: the tool item page's two until #458, the rest until #258. **A modal is for an act that cannot be undone; an act that can is edited in place (#318)** — about where an ACT goes, not about an overlay performing none: `/prs/new`'s three are a prompt, a picker and a notice. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener.**
+- `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456); `lib/dialogFrame.js`, its word.
+- `app/components/Controls.js`, `Menu.js` — 0a's controls and the list a field opens (#456); `lib/controls.js`, their keys and words.
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
 - `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
 - `app/components/PdfPages.js` — a PDF's pages, drawn by the app (#433). **The one module that draws a page, and the only one that loads PDF.js.**

@@ -16,8 +16,8 @@ export const metadata = { title: COPY.heading };
  * tier (CLAUDE.md), and where a delivery goes is not a fact the office holds — the
  * site staffer who talked to the vendor is the one who knows it. A job code is an
  * accounting artifact and a vendor is a commercial relationship, which is why
- * those two are the office's to author; a place is neither. `/deliveries/new`,
- * `/tools/new` and `createOverageDraftAction` are the precedent: site work takes
+ * those two are the office's to author; a place is neither. `/deliveries/new`, the
+ * tool registration and `createOverageDraftAction` are the precedent: site work takes
  * `requireUser()` plus whatever per-record rule applies, and there is none here.
  * An Admin gate would also make this a dead end for the exact reader it is built
  * for, since #385 sends a requester here from the request form.
@@ -27,7 +27,7 @@ export const metadata = { title: COPY.heading };
  * suppliers, the `Vendors` and `Tools` shape — and it is what lets the form warn
  * about a label that is already taken at no query cost per keystroke AND list what
  * a job already ships to without a second question. `getAllJobs` is the one-query
- * shape `/deliveries/new` and `/tools/new` both use.
+ * shape `/deliveries/new` and the tool registration's openers both use.
  *
  * `?from=` IS A REQUEST WAITING FOR THIS ADDRESS (#385), AND IT IS JUDGED BY
  * NOTHING HERE ON PURPOSE. It is a `PR ID` rather than an address, so there is no

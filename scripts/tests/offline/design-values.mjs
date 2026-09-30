@@ -91,9 +91,11 @@ const TOOLS_DIR = "app/(tools)/";
 /**
  * The issues that read a name next. An issue that lands takes its number out, and
  * every name still waiting on it then has to be read or undeclared. #459 waits on
- * nothing today: it follows #456's dialog frame and reads no name first.
+ * nothing today: it opens its dialogs in #456's frame, which reads every name those
+ * need, and reads no name first. #456 took its own number out when the frame and the
+ * controls it opens began reading theirs.
  */
-const READERS_TO_COME = [456, 457, 458, 459, 460, 463];
+const READERS_TO_COME = [457, 458, 459, 460, 463];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -103,25 +105,25 @@ const READERS_TO_COME = [456, 457, 458, 459, 460, 463];
  */
 const VALUES = [
     // 0a · Control
-    ["--height-control-lg", "2.25rem", 456],
+    ["--height-control-lg", "2.25rem", null],
     ["--height-control", "2rem", 457],
-    ["--height-control-sm", "1.875rem", 456],
+    ["--height-control-sm", "1.875rem", null],
     ["--height-control-inline", "1.625rem", 460],
-    ["--height-dialog-close", "1.75rem", 456],
-    ["--size-icon", "1rem", 460],
-    ["--size-icon-sm", "0.875rem", 456],
+    ["--height-dialog-close", "1.75rem", null],
+    ["--size-icon", "1rem", null],
+    ["--size-icon-sm", "0.875rem", null],
     ["--spacing-control-inline-inset-x", "0.5rem", 457],
-    ["--spacing-control-inset-x", "0.625rem", 463],
-    ["--spacing-control-lg-inset-x", "1rem", 456],
+    ["--spacing-control-inset-x", "0.625rem", null],
+    ["--spacing-control-lg-inset-x", "1rem", null],
     ["--min-width-menu", "8.75rem", 463],
     ["--max-width-menu", "17.5rem", 463],
-    ["--spacing-menu-offset", "0.375rem", 463],
-    ["--spacing-menu-inset", "0.3125rem", 463],
+    ["--spacing-menu-offset", "0.375rem", null],
+    ["--spacing-menu-inset", "0.3125rem", null],
     // 0b · Layout
     ["--container-content", "67.5rem", 463],
     ["--spacing-page-gutter", "2rem", 460],
-    ["--spacing-gap", "0.5rem", 456],
-    ["--spacing-gap-lg", "0.875rem", 456],
+    ["--spacing-gap", "0.5rem", null],
+    ["--spacing-gap-lg", "0.875rem", null],
     ["--spacing-nav-gap", "0.6875rem", 460],
     ["--spacing-list-header-inset-top", "1.25rem", 463],
     ["--height-table-row", "2.5rem", 463],
@@ -134,31 +136,31 @@ const VALUES = [
     // 0c · Blue
     ["--color-selected", "#F0F9FF", 460],
     ["--color-selected-hover", "#E6F5FF", 463],
-    ["--color-primary", "oklch(0.487 0.216 257)", 456],
-    ["--color-primary-hover", "oklch(0.437 0.211 257)", 456],
-    ["--color-primary-disabled", "color-mix(in oklab, var(--color-primary) 40%, transparent)", 456],
+    ["--color-primary", "oklch(0.487 0.216 257)", null],
+    ["--color-primary-hover", "oklch(0.437 0.211 257)", null],
+    ["--color-primary-disabled", "color-mix(in oklab, var(--color-primary) 40%, transparent)", null],
     // 0d · Red
     ["--color-danger-subtle", "#FFF4F5", 463],
-    ["--color-danger", "#DC0015", 456],
+    ["--color-danger", "#DC0015", null],
     ["--color-danger-hover", "oklch(0.512 0.205 27)", 463],
     // 0e · Ink
-    ["--color-foreground-default", "oklch(0.255 0.013 265)", 456],
-    ["--color-foreground-muted", "oklch(0.405 0.013 265)", 456],
-    ["--color-foreground-subtle", "oklch(0.505 0.012 265)", 456],
+    ["--color-foreground-default", "oklch(0.255 0.013 265)", null],
+    ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
+    ["--color-foreground-subtle", "oklch(0.505 0.012 265)", null],
     ["--color-foreground-faint", "oklch(0.760 0.010 265)", 457],
     ["--color-divider-subtle", "oklch(0.946 0.005 265)", 458],
-    ["--color-divider", "oklch(0.928 0.006 265)", 457],
+    ["--color-divider", "oklch(0.928 0.006 265)", null],
     ["--color-divider-strong", "oklch(0.896 0.007 265)", 463],
-    ["--color-border", "oklch(0.888 0.008 265)", 456],
-    ["--color-border-focus", "oklch(0.640 0.010 265)", 456],
-    ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", 456],
-    ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", 456],
-    ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", 456],
+    ["--color-border", "oklch(0.888 0.008 265)", null],
+    ["--color-border-focus", "oklch(0.640 0.010 265)", null],
+    ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", null],
+    ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", 457],
+    ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
     ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", 460],
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", 460],
     // 0f · States
-    ["--width-number-input", "7.5rem", 456],
-    ["--spacing-stepper-inset", "0.1875rem", 456],
+    ["--width-number-input", "7.5rem", null],
+    ["--spacing-stepper-inset", "0.1875rem", null],
     // 0g · Status
     ["--size-status-indicator", "0.5625rem", 463],
     ["--stroke-width-status-ring", "1.5px", 463],
@@ -167,11 +169,11 @@ const VALUES = [
     ["--text-heading-lg--line-height", "2rem"],
     ["--text-heading-lg--letter-spacing", "-0.012em"],
     ["--text-heading-lg--font-weight", "600"],
-    ["--text-heading", "1rem", 456],
+    ["--text-heading", "1rem", null],
     ["--text-heading--line-height", "1.5rem"],
-    ["--text-body", "0.875rem", 456],
+    ["--text-body", "0.875rem", null],
     ["--text-body--line-height", "1.25rem"],
-    ["--text-body-sm", "0.8125rem", 456],
+    ["--text-body-sm", "0.8125rem", null],
     ["--text-body-sm--line-height", "1.25rem"],
     ["--text-heading-sm", "0.75rem", 457],
     ["--text-heading-sm--line-height", "1rem"],
@@ -180,7 +182,7 @@ const VALUES = [
     ["--text-brand--line-height", "1.5rem"],
     ["--text-brand--font-weight", "500"],
     ["--tracking-id", "-0.02em", 457],
-    ["--font-ui", "var(--font-instrument-sans), system-ui, sans-serif", 456],
+    ["--font-ui", "var(--font-instrument-sans), system-ui, sans-serif", null],
     ["--font-id", "var(--font-fragment-mono), ui-monospace, monospace", 457],
     ["--font-brand", "var(--font-fraunces), Georgia, serif", 460],
     // 0i · Scroll
@@ -189,21 +191,21 @@ const VALUES = [
     ["--spacing-scroll-inset-bottom", "2.5rem", 460],
     // 0j · Radius
     ["--radius-preview", "0.125rem", 457],
-    ["--radius-control", "0.5rem", 456],
-    ["--radius-card", "0.625rem", 463],
-    ["--radius-dialog", "0.75rem", 456],
+    ["--radius-control", "0.5rem", null],
+    ["--radius-card", "0.625rem", null],
+    ["--radius-dialog", "0.75rem", null],
     // 0k · Elevation
-    ["--color-elevation", "oklch(0.22 0.025 265)", 456],
+    ["--color-elevation", "oklch(0.22 0.025 265)", null],
     ["--color-background-translucent", "oklch(1 0 0 / 0.82)", 460],
-    ["--color-dialog-overlay", "color-mix(in oklab, var(--color-elevation) 40%, transparent)", 456],
+    ["--color-dialog-overlay", "color-mix(in oklab, var(--color-elevation) 40%, transparent)", null],
     ["--color-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 10%, transparent)", 460],
     [
         "--shadow-popover",
         "0 8px 24px color-mix(in oklab, var(--color-elevation) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 6%, transparent)",
-        463,
+        null,
     ],
     ["--shadow-drawer", "0 12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", 460],
-    ["--shadow-dialog", "0 24px 60px color-mix(in oklab, var(--color-elevation) 24%, transparent)", 456],
+    ["--shadow-dialog", "0 24px 60px color-mix(in oklab, var(--color-elevation) 24%, transparent)", null],
     [
         "--shadow-preview",
         "0 0 0 1px color-mix(in oklab, var(--color-elevation) 6%, transparent), 0 2px 8px color-mix(in oklab, var(--color-elevation) 8%, transparent)",
@@ -216,12 +218,14 @@ const VALUES = [
     ["--spacing-tooltip-rail-offset", "0.625rem", 460],
     ["--transition-delay-tooltip", "360ms", 460],
     // 0l · Modal
-    ["--container-dialog", "26.25rem", 456],
-    ["--spacing-dialog-gutter", "1.75rem", 456],
-    ["--spacing-dialog-inset", "1.5rem", 456],
-    ["--spacing-dialog-header-stack", "1.25rem", 456],
-    ["--spacing-dialog-inline", "0.75rem", 456],
-    ["--spacing-dialog-close-offset", "0.25rem", 456],
+    ["--container-dialog", "26.25rem", null],
+    ["--spacing-dialog-gutter", "1.75rem", null],
+    ["--spacing-dialog-inset", "1.5rem", null],
+    ["--spacing-dialog-header-stack", "1.25rem", null],
+    ["--spacing-dialog-inline", "0.75rem", null],
+    ["--spacing-dialog-close-offset", "0.25rem", null],
+    ["--spacing-dialog-header-inline", "1rem", null],
+    ["--spacing-dialog-title-stack", "0.125rem", null],
     // 0m · Navigation
     ["--width-rail", "3.5rem", 460],
     ["--width-rail-expanded", "15.5rem", 460],
@@ -715,6 +719,12 @@ export async function run({ check, assert, log }) {
         return routes.some(isToolsFile) && routes.some((r) => !isToolsFile(r));
     })());
     assert("  the label page's face loader is found, variable and all", loaders.some((l) => l.imported === "Inconsolata" && l.variable === "--font-label-code"));
+    // #456 — the design's faces load in one place, the tools layout, and the first of
+    // them is found there: the loader judgment below is asked against a real call.
+    assert(
+        "  and the tools layout's, where the design's faces load",
+        loaders.some((l) => l.file === "app/(tools)/layout.js" && l.imported === "Instrument_Sans" && l.variable === "--font-instrument-sans")
+    );
 
     // ── 3 and 4: who reads, and every name read or waiting ───────────────────
     const waiting = new Map(tracked.map(([name, , issue]) => [name, issue]));
@@ -733,7 +743,7 @@ export async function run({ check, assert, log }) {
     log("");
     log("the judgment fails each planted case and passes its repair:");
     const plantedName = "--height-control-lg";
-    const plant = ({ file, routes, names = [plantedName], issue = 456, loaderFile = null }) =>
+    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null }) =>
         judge({
             waiting: new Map(names.map((name) => [name, issue])),
             sources: new Map(),
@@ -748,7 +758,7 @@ export async function run({ check, assert, log }) {
     const shared = "app/components/PlantedRail.js";
     assert(
         "  a shared file only the tools layout calls reads, so a waiting name it reads is stale",
-        plant({ file: shared, routes: ["app/(tools)/layout.js"] }).some((f) => f.includes("still waits on #456"))
+        plant({ file: shared, routes: ["app/(tools)/layout.js"] }).some((f) => f.includes("still waits on #463"))
     );
     check("  and once the mark is gone it passes", plant({ file: shared, routes: ["app/(tools)/layout.js"], issue: null }).join(" | "), "");
     assert(

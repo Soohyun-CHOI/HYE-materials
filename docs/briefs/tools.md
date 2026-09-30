@@ -43,12 +43,13 @@ nothing here to preserve and nothing to depart from.
 same rule that makes the other list screens `Purchase Requests`,
 `Purchase Orders`, `Invoices` and `Deliveries`.
 
-**action.** The control that opens the registration form at `/tools/new`,
-carrying that form's own heading as its word so the two cannot drift
+**action.** The control that opens the registration dialog over this screen
+(#456), carrying that dialog's own heading as its word so the two cannot drift
 (#338) — `New tools`, the design's (#455). Every other list screen in the
-app opens its create form the same way. It is above the list rather than
-inside it, because the reader with no tools at all is the one who needs it
-most.
+app opens its create form the same way, as a screen of its own. It is above
+the list rather than inside it, because the reader with no tools at all is the
+one who needs it most. For a reader assigned to no job it is drawn disabled,
+with `Ask the office to assign you to a job` before it.
 
 **evidence.** One row per tool, ordered by name. The name is the row's
 identity and is the way into that tool's own screen.
@@ -120,8 +121,9 @@ whole address and its length decides the symbol's version; a route of its
 own carries that now, so the flat slot came free and one tool took it.
 **A tool's name never appears as a path segment** — the segment is
 Airtable's record id, since `Tools` mints none and a typed name is not a
-path — which is also what keeps a tool somebody names `new` from
-colliding with the registration form.
+path — which is also what kept a tool somebody names `new` from
+colliding with the registration form's route, until #456 made the form a
+dialog.
 
 **A tool item's screen is `/tool-items/[toolItemId]`, off this axis's own
 collection**, and the label prints a third address again. None of this
