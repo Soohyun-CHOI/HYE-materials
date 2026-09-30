@@ -100,9 +100,16 @@ export function run({ check, assert, log }) {
     log("");
     log("sign-in line — derived from the product name, not a second copy of it:");
     assert(`SIGN_IN_TITLE ("${SIGN_IN_TITLE}") contains the product name`, SIGN_IN_TITLE.includes(PRODUCT_NAME));
+    // THE SUBJECT LEFT `lib/email.js` WITH THE REST OF THE MAIL'S WORDS IN #471, for
+    // the builder `lib/authTokenState.js:SIGN_IN_COPY.mail`, and this follows it
+    // rather than the file — the sender now passes through whatever it is handed.
     assert(
         "the email subject reads SIGN_IN_TITLE rather than a literal",
-        /subject:\s*SIGN_IN_TITLE\b/.test(sources.get("lib/email.js") ?? "")
+        /subject:\s*SIGN_IN_TITLE\b/.test(sources.get("lib/authTokenState.js") ?? "")
+    );
+    assert(
+        "  and the sender no longer names the sign-in line itself",
+        !/SIGN_IN_TITLE/.test(sources.get("lib/email.js") ?? "")
     );
     // THE HEADING MOVED FILE IN #373 AND THIS FOLLOWS THE SCREEN RATHER THAN THE
     // FILE. `/login` became a Server Component so it could read the destination

@@ -5,10 +5,11 @@ Who reaches it: anybody whose `Users` row has no first name, on the first page
 they try to open after signing in. In practice that is every new colleague once,
 and — for one transition — every existing account once. Nobody sees it twice.
 
-It is the **third step of the sign-in flow**, so it is used at a phone width as
-well as at a monitor, for the same reason the two screens before it are: a QR
-label scanned on site can arrive signed out, and a first-time scanner comes
-through all three.
+It is the **last step of the sign-in flow** — after the confirm screen's button,
+or after the code on the sign-in screen (#471) — so it is used at a phone width as
+well as at a monitor, for the same reason the screens before it are: a QR label
+scanned on site can arrive signed out, and a first-time scanner comes through
+them.
 
 ## What it answers
 

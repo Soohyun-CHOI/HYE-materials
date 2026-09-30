@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyMagicLink } from "@/lib/auth";
+import { CROSS_ORIGIN_REFUSAL, isCrossOrigin } from "@/lib/crossOrigin";
 import {
     confirmPath,
     DEFAULT_DESTINATION,
@@ -26,46 +27,17 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * this endpoint is reachable without the page that renders the form, so a value
  * judged only there would be judged nowhere. A value it refuses lands on
  * `DEFAULT_DESTINATION`, exactly as a submission carrying none does.
+ *
+ * IT REFUSES A CROSS-ORIGIN SUBMISSION FIRST, because the token authenticates the
+ * request and not the submitter's intent — login CSRF. The predicate and its
+ * reasoning are `lib/crossOrigin.js` since #471, which gave the same refusal to
+ * the code a sign-in email carries; nothing about this route's behavior moved
+ * with it.
  */
-
-/**
- * Reject a cross-origin submission.
- *
- * THE THREAT IS LOGIN CSRF, WHICH THE TOKEN DOES NOT ANSWER. The token
- * authenticates the request but not the submitter's intent, so an attacker can
- * POST their OWN token through a victim's browser and land the victim in the
- * attacker's account. That is not merely a mislabeled session here: this app's
- * signing chain rests on who submitted a purchase request, so a victim authoring
- * under someone else's identity corrupts the record the app exists to keep.
- * `sameSite: "lax"` on the session cookie does not help — it governs a cookie
- * being SENT, not being SET, and this response sets one.
- *
- * FAIL OPEN WHEN `Origin` IS ABSENT. Every current browser sends it on a form
- * POST, so a real submission is covered; refusing on absence would instead break
- * any client that omits it, for no gain against an attacker who can send any
- * header they like anyway. The header is compared against `Host` rather than
- * against `request.url`, because behind Vercel's proxy `Host` is the public host
- * the request was actually addressed to.
- *
- * A MALFORMED `Origin` IS A REJECTION, not a parse error to shrug at: it is
- * present, so the fail-open case does not apply, and it does not match.
- */
-function isCrossOrigin(request) {
-    const origin = request.headers.get("origin");
-    if (!origin) return false;
-
-    const host = request.headers.get("host");
-    try {
-        return new URL(origin).host !== host;
-    } catch {
-        return true;
-    }
-}
-
 export async function POST(request) {
     return withOpsLabel("POST /api/auth/verify", async () => {
         if (isCrossOrigin(request)) {
-            return NextResponse.json({ error: "Cross-origin sign-in is not allowed" }, { status: 403 });
+            return NextResponse.json({ error: CROSS_ORIGIN_REFUSAL }, { status: 403 });
         }
 
         const form = await request.formData();

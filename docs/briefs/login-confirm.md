@@ -88,16 +88,25 @@ this screen says so, for the same reason nothing names the destination: a
 returning reader never meets that step.
 
 **`Confirm sign-in` is the exact phrase the sign-in screen promises**, in
-`Open it and press Confirm sign-in`. The two are one instruction split across an
-email round trip, and renaming the button breaks the sentence on the other screen.
+`open the link and press Confirm sign-in`, and the email says it too. The three are
+one instruction split across an email round trip; the sign-in screen and the email
+take the word from this screen's own constant, so a rename here reaches both, and a
+redesign that rewords either of them has to keep naming this button.
+
+**This screen is one of two ways to finish a sign-in (#471).** The email also
+carries a code, which signs in only the screen that asked for the email, and using
+either one ends the other — so a link opened after its code was used lands on the
+`already been used` sentence. Nothing here mentions the code, and that is
+deliberate: this screen is reached by opening the link, and it is the link's
+device that this screen signs in, which the button's line already says.
 
 **The five states and their sentences are one closed set** in a single module, and
 the same module is what the page reads to reach its verdict without consuming the
 token. A design cannot add a sixth state, and should not merge two — the four
 failure voices are four because each leaves the reader in a different position.
 
-**Fifteen minutes is stated in two places** — here and on the sign-in screen — from
-one constant.
+**Fifteen minutes is stated on both screens and in the email** — here, twice on the
+sign-in screen's code step, and once in the email — from one constant.
 
 **The submission is refused across origins**, so this page's form must post to the
 app's own host. Nothing about that is visible, but it rules out hosting the button

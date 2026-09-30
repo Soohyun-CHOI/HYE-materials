@@ -198,14 +198,20 @@ the function returns a key, or accept that it lives only here.
 
 | String | Screen | Authored in |
 |---|---|---|
-| `Email must be a company address` | `/login` | `lib/auth.js:26`, thrown; serialized by `app/api/auth/request/route.js:18` |
-| `Email is required` | `/login` | `app/api/auth/request/route.js:10` |
+| `Email must be a company address` | `/login` | `lib/auth.js:36`, thrown; serialized by `app/api/auth/request/route.js:43` |
+| `Email is required` | `/login` | `app/api/auth/request/route.js:32` |
 | `Not found.` | no screen | `app/api/files/[axis]/[documentId]/[filename]/route.js`, the body of its 404 |
+| `Cross-origin sign-in is not allowed` | `/login` | `lib/crossOrigin.js`, answered by the request and code routes (#471) |
+| `A sign-in email needs a six-digit code` | `/login` | `lib/authTokenState.js`, thrown by the mail builder; serialized by the request route (#471) |
+| `A sign-in email needs its link` | `/login` | the same builder (#471) |
 
 **Unclosable in principle.** The screen renders `{errorMessage}`; the words are two
 files away in a different entry point, and nothing that walks a route's own files
 will ever reach them. The second is also the clearest `unreachable` entry in the
-other file — the input is `required`, so no reader can produce it.
+other file — the input is `required`, so no reader can produce it. **The last three
+are the first two's shape, from #471**: a module the screen does not name, a Route
+Handler that serializes it, and — `unreachable.md` says why — no reader who meets
+them.
 
 **#331's row is unclosable for a stronger reason than the two above it: there is no
 screen to attribute it to at all.** `scripts/screen-strings.mjs` is a per-SCREEN
@@ -273,10 +279,11 @@ returned by a lower-case module-level function.
 
 ## G — Declared-only closed vocabulary
 
-`info`, `warning`, `no-vendor`, `no-job`, `matched` on `/invoices/new`, and `idle`
-on `/login`. Each is declared in an array or an object and never compared with
-`===`, so the extractor — which finds a closed vocabulary's compared members and its
-`key` properties — sees nothing of it.
+`info`, `warning`, `no-vendor`, `no-job` and `matched` on `/invoices/new`. Each is
+declared in an array or an object and never compared with `===`, so the extractor —
+which finds a closed vocabulary's compared members and its `key` properties — sees
+nothing of it. `idle` on `/login` was one until #471, whose code step compares it,
+and the extractor lists it now.
 
 **Nobody reads these, and that is exactly why they matter.** #274's `billed-more`,
 `order-billed`, `billed-short` and `billed-over` were four uses of a barred word

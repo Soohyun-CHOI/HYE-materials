@@ -1,4 +1,5 @@
 import { safeDestination } from "@/lib/loginDestination";
+import { readPendingSignIn } from "@/lib/session";
 import { withOpsLabel } from "@/lib/airtableOps";
 import LoginForm from "./LoginForm";
 
@@ -27,6 +28,14 @@ import LoginForm from "./LoginForm";
  * one outcome (`lib/loginDestination.js`), so there is no second case to word,
  * and `/login` is reachable by anyone — a shared link naming somebody else's
  * destination would show it to whoever opened it.
+ *
+ * AND IT OPENS ON THE CODE STEP WHEN THIS BROWSER IS WAITING FOR ONE (#471). The
+ * email step binds the browser to the email it asked for (`lib/session.js`), and
+ * this page reads that binding, so a phone that dropped the tab while its owner
+ * went to the mail app comes back to the field the code goes in rather than to a
+ * blank address. It reads a cookie and not the row: the address is in the
+ * binding, and what the row says is the code's own answer when one is typed —
+ * so the page still makes no Airtable call.
  */
 export default async function LoginPage(props) {
     return withOpsLabel("/login", () => renderLoginPage(props));
@@ -34,10 +43,11 @@ export default async function LoginPage(props) {
 
 async function renderLoginPage({ searchParams }) {
     const { destination } = await searchParams;
+    const pending = await readPendingSignIn();
 
     return (
         <div className="flex flex-1 items-center justify-center p-8">
-            <LoginForm destination={safeDestination(destination) ?? ""} />
+            <LoginForm destination={safeDestination(destination) ?? ""} pendingEmail={pending?.email ?? ""} />
         </div>
     );
 }

@@ -59,7 +59,7 @@ import { AWAITING_PO_COPY, AWAITING_SEND_COPY } from "../../../lib/poListView.js
 // three document lists became callers. `LIST_EMPTY_COPY` is twelve sentences rather
 // than three, and all four briefs quote their own.
 import { FILTER_BAR_COPY, LIST_AXES, LIST_EMPTY_COPY } from "../../../lib/listFilters.js";
-import { CONFIRM_COPY } from "../../../lib/authTokenState.js";
+import { CODE_COPY, CODE_STATES, CONFIRM_COPY, SIGN_IN_COPY } from "../../../lib/authTokenState.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
@@ -330,6 +330,22 @@ const PINNED = [
     "This sign-in link has expired. Sign-in links last 15 minutes.",
     "Press the button to finish signing in on this device.",
     "Confirm sign-in",
+    // #471 — the code step on `/login`. Its sentences are one closed set in
+    // `lib/authTokenState.js`, quoted in `login.md` for a designer who will redraw
+    // the step; the refusal with a figure is pinned at the figure the brief shows,
+    // which the loadable list below renders explicitly.
+    "We sent a sign-in link and a code to",
+    "or open the link and press Confirm sign-in",
+    "using one ends the other",
+    "Send a new email",
+    "Use a different email",
+    "We sent a new email. Use the code in the newest one.",
+    "Enter the 6-digit code from the email.",
+    "That code does not match. 4 tries left.",
+    "This code was entered wrong 5 times, so it no longer works.",
+    "The code or the link in this email has already been used.",
+    "This code has expired. Codes last 15 minutes.",
+    "No sign-in code is waiting on this screen.",
     "That invoice no longer exists.",
     "No invoice from this vendor has been entered yet, so there is nothing to attach.",
     "One invoice belongs to one delivery, so one already attached elsewhere is",
@@ -651,6 +667,12 @@ export function run({ check, assert, log }) {
         ...stringsFrom(FILTER_BAR_COPY),
         ...stringsFrom(LIST_AXES),
         ...stringsFrom(CONFIRM_COPY),
+        // #471 — the code step's words. `CODE_COPY`'s one builder takes a count of
+        // tries left, and `stringsFrom` probes a builder with the status sample
+        // first, so the sentence a brief quotes is rendered here at its own figure.
+        ...stringsFrom(SIGN_IN_COPY),
+        ...stringsFrom(CODE_COPY),
+        CODE_COPY[CODE_STATES.WRONG](4),
         ...stringsFrom(PO_DOCUMENTS_COPY),
         ...stringsFrom(LINK_COPY),
         ...stringsFrom(STATUS_COPY),

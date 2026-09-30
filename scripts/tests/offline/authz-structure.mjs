@@ -181,7 +181,26 @@ const EXEMPTIONS = [
     {
         file: "app/api/auth/request/route.js",
         name: "POST",
-        reason: "Public by design: this is how someone with no session asks for a magic link. There is no caller to authorize.",
+        reason:
+            "Public by design: this is how someone with no session asks for a magic link. There is no caller to " +
+            "authorize. Since #471 it also binds the asking browser to the email it sent, so it refuses a " +
+            "cross-origin submission — a page elsewhere must not be able to leave a visitor waiting on its own email.",
+    },
+    {
+        file: "app/api/auth/request/route.js",
+        name: "DELETE",
+        reason:
+            "Public by design (#471): forgets which sign-in email this browser is waiting on, which is the code " +
+            "step's way back to the address. It touches only the caller's own cookie, and having none is not an error.",
+    },
+    {
+        file: "app/api/auth/code/route.js",
+        name: "POST",
+        reason:
+            "Public by design (#471): spends a sign-in row with the code its email carries, and starts the session. " +
+            "The code is the credential, and it is checked against the row the ASKING browser is bound to by a " +
+            "sealed cookie, never one the submission names. It refuses a cross-origin submission first, for the " +
+            "verify route's reason: a code authenticates a request but not the submitter's intent.",
     },
     {
         file: "app/api/auth/logout/route.js",

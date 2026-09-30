@@ -47,6 +47,7 @@ import {
 // The namespace as well, so "the owner still exports this name" is a claim about
 // the export list rather than about a binding nothing reads — see section 2.
 import * as loginDestination from "../../../lib/loginDestination.js";
+import { SIGN_IN_COPY } from "../../../lib/authTokenState.js";
 import { callsTo, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isRouteFile, listEntryPoints } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -376,29 +377,65 @@ export function run({ check, assert, log }) {
         0
     );
 
+    // ── 5b: the code's endpoint hands the destination back (#471) ───────────
+    // The second place a destination leaves the server for a browser to follow:
+    // the sign-in screen goes wherever this answers once a code has worked. It is
+    // reachable without that screen, so the value it hands back has to be the one
+    // it judged itself, read from the body by the shared name.
+    log("");
+    log("`POST /api/auth/code` judges the destination it hands back:");
+    const codeRoute = parseFile("app/api/auth/code/route.js");
+    const codeOwned = importedFrom(codeRoute.ast, OWNER);
+    const codePost = resolveFunction(codeRoute.ast, "POST");
+    assert("the POST resolves", Boolean(codePost));
+    const readsByName = (arg) => {
+        const node = arg?.type === "ChainExpression" ? arg.expression : arg;
+        return (
+            node?.type === "MemberExpression" &&
+            node.computed === true &&
+            node.property?.type === "Identifier" &&
+            codeOwned.has(node.property.name)
+        );
+    };
+    check(
+        "the body's field is judged, by its declared name",
+        callsTo(codePost, "safeDestination").filter((call) => readsByName(call.arguments[0])).length,
+        1
+    );
+    const handedBack = [];
+    walk(codePost, (n) => {
+        if (n.type === "Property" && n.key?.name === "destination") handedBack.push(n.value);
+    });
+    assert(`it hands a destination back (${handedBack.length})`, handedBack.length > 0);
+    check(
+        "  and every one it hands back is the judged one",
+        handedBack.filter((value) => !reaches(codePost, value, "safeDestination")).length,
+        0
+    );
+
     // ── 6: the hop that leaves the app ──────────────────────────────────────
-    // `lib/email.js` cannot be IMPORTED here — it throws at module load without
-    // `RESEND_API_KEY` — but it can be parsed, and one thing about it is this
-    // issue's: the link gained a second parameter, so the `&` joining them is an
-    // entity start inside an `href` this file writes by hand.
+    // One thing about the mail is this issue's: the link gained a second
+    // parameter, so the `&` joining them is an entity start inside an `href`
+    // written by hand. Since #471 the mail's words are a pure builder,
+    // `SIGN_IN_COPY.mail` — `lib/email.js` throws at module load without
+    // `RESEND_API_KEY` and could only be parsed — so the escape is CALLED here with
+    // a link `confirmPath` built, rather than read off a template.
     log("");
     log("the mail's link is built by the same builder, and escaped into its href:");
     const auth = parseFile("lib/auth.js");
     assert("lib/auth.js builds the mail's URL with confirmPath", callsTo(auth.ast, "confirmPath").length === 1);
-    const mail = parseFile("lib/email.js");
-    const magicLink = resolveFunction(mail.ast, "sendMagicLinkEmail");
-    assert("sendMagicLinkEmail resolves", Boolean(magicLink));
-    const hrefs = [];
-    walk(magicLink, (n) => {
-        if (n.type !== "TemplateLiteral") return;
-        n.quasis.forEach((quasi, i) => {
-            if ((quasi.value.cooked ?? "").includes('href="')) hrefs.push(n.expressions[i]);
-        });
-    });
+    const handsOver = callsTo(auth.ast, "html").some((call) =>
+        call.arguments[0]?.properties?.some((p) => p.key?.name === "confirmUrl")
+    );
+    assert("  and hands that URL to the mail's builder", handsOver);
+    const built = confirmPath({ token: "abc", destination: "/tool-items/X" });
+    const html = SIGN_IN_COPY.mail.html({ confirmUrl: `https://portal.example.com${built}`, code: "012345" });
+    const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
     check("it writes one href", hrefs.length, 1);
-    assert(
-        "  whose value goes through the escaper rather than in raw",
-        hrefs[0]?.type === "CallExpression" && hrefs[0].callee?.name === "htmlAttr"
+    check(
+        "  whose separator is escaped rather than in raw",
+        hrefs[0],
+        `https://portal.example.com${CONFIRM_PATH}?token=abc&amp;${DESTINATION_PARAM}=%2Ftool-items%2FX`
     );
 
     // ── 7: the two screens that hold it in between ──────────────────────────
