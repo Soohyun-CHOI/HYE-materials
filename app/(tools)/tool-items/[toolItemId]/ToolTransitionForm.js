@@ -15,15 +15,17 @@ import { recordToolItemEventAction } from "./actions";
 /**
  * The one transition this tool item's status allows (#362).
  *
- * NO MODAL, AND THE RULE IS THIS REPOSITORY'S OWN. CLAUDE.md: a modal is for an
- * act that cannot be undone; an act that can is edited in place (#318). A
- * check-out can be undone by a check-in — `lib/airtable/toolLog.js` says
- * correcting a mistaken scan is another row — so the confirmation the issue asks
- * for is that ARRIVING IS NOT ACTING. A QR opens the page, the page states the
- * printed id and the current status, and pressing this is the act. #363 is the
- * transition that cannot be undone and that issue carries the weight instead: a
- * required reason, which its own body calls what stands between a mis-tap and a
- * state the app cannot leave.
+ * NO MODAL, AND THE RULE THAT DECIDED IT IS GONE. CLAUDE.md held that a modal is
+ * for an act that cannot be undone and an act that can is edited in place (#318),
+ * until #459 dropped it: where a dialog goes is the design's, which draws the
+ * transitions in dialogs, and #458 moves them there. What follows is the reading
+ * the rule gave, and the shape stands until then. A check-out can be undone by a
+ * check-in — `lib/airtable/toolLog.js` says correcting a mistaken scan is another
+ * row — so the confirmation the issue asks for is that ARRIVING IS NOT ACTING. A
+ * QR opens the page, the page states the printed id and the current status, and
+ * pressing this is the act. #363 is the transition that cannot be undone and that
+ * issue carries the weight instead: a required reason, which its own body calls
+ * what stands between a mis-tap and a state the app cannot leave.
  *
  * THE COST OF THE OTHER ANSWER IS WHAT SETTLES IT RATHER THAN THE RULE ALONE. A
  * project starts with a manager scanning their job's tools out one at a time and
@@ -195,9 +197,10 @@ export default function ToolTransitionForm({
                         }}
                     />
 
-                    {/* THE SHEET IS A PICKER AND PERFORMS NO ACT, which is what puts
-                        it on the permitted side of the modal rule — `/prs/new`'s
-                        three are a prompt, a picker and a notice. It opens from the
+                    {/* THE SHEET IS A PICKER AND PERFORMS NO ACT, which is what put
+                        it on the permitted side of the modal rule CLAUDE.md held until
+                        #459 dropped it — `/prs/new`'s three are a prompt, a picker and a
+                        notice. It opens from the
                         field, closes on `Escape`, by its own control and on the
                         backdrop, and hands focus back to the field. The chrome is
                         the app's single source; whether it rises from the bottom

@@ -2,9 +2,9 @@
 //
 // WHAT THIS FILE IS FOR. `app/components/DialogFrame.js` is Claude Design's 0l drawn once,
 // `app/components/Controls.js` and `app/components/Menu.js` are the 0a controls the
-// registration dialog is the first to use, and #457, #458 and #459 call them rather than
-// drawing their own. So what they are held to is held here, where each of those issues
-// will run into it:
+// registration dialog is the first to use, and the landing's two dialogs call them (#459),
+// as #457 and #458 will, rather than drawing their own. So what they are held to is held
+// here, where each of those issues will run into it:
 //
 //   1. THE KEYS. WAI-ARIA's select-only combobox and its editable combobox with list
 //      autocomplete are the two patterns, and `lib/controls.js` says what each key does
@@ -15,7 +15,10 @@
 //      silent to a screen reader and moves no figure this tier can read.
 //   3. THE FRAME. The browser's own modal dialog (`showModal`), Escape asking the owner
 //      and turned down while busy, the caret put in the first field that takes typing,
-//      and the list put in the top layer through the Popover API.
+//      and the list put in the top layer through the Popover API — and since #459 a
+//      dialog no press opened handing focus to the page's heading as it closes, the
+//      sentence a dialog says describing that dialog, and the actions wrapping on a
+//      narrow dialog rather than running off it.
 //   4. THE WORDS. Every string these three render comes from `lib/dialogFrame.js` or
 //      `lib/controls.js`, pinned by value, and none is in their markup — the rule
 //      `offline/tool-list-view.mjs` holds for every file under `app/(tools)/`, which these
@@ -48,7 +51,7 @@ import { DIALOG_FRAME_COPY } from "../../../lib/dialogFrame.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The dialog frame and the controls in it (#456)";
+export const title = "The dialog frame and the controls in it (#456, #459)";
 
 const FRAME = "app/components/DialogFrame.js";
 const CONTROLS = "app/components/Controls.js";
@@ -297,6 +300,41 @@ export function run({ check, assert, log }) {
     check("  and nothing asks while it is busy", asksOnlyWhenIdle, true);
     check("  its first field is one that takes typing", /querySelector\("input:not\(\[type=hidden\]\)"\)/.test(frame.source), true);
 
+    // WHAT A DIALOG NO PRESS OPENED, AND A DIALOG THAT SAYS SOMETHING, ASK OF THE FRAME (#459).
+    // The browser hands focus back to what held it when the dialog opened, which for one a
+    // page opens on arrival is nothing, so the frame hands it to the page's heading — made
+    // focusable where the page did not — and only for a dialog marked so, as it closes. A
+    // dialog's sentence names itself as its dialog's description and takes that away as it
+    // goes; and the actions wrap, since an action drawn disabled carries its reason before it.
+    // Read through one function, so the planted frame below is judged the same way.
+    const frameFacts = ({ ast, source }) => {
+        const body = (name) => {
+            const fn = functionNamed(ast, name);
+            return fn ? source.slice(fn.start, fn.end) : "";
+        };
+        const heading = body("focusPageHeading");
+        const message = body("DialogMessage");
+        const actionRow =
+            elements(functionNamed(ast, "DialogActions") ?? {}, "div")
+                .map((a) => a.className)
+                .find((c) => typeof c === "string" && c.includes("justify-end")) ?? "";
+        return {
+            heading: [/querySelector\("h1"\)/.test(heading), /tabIndex = -1/.test(heading), /\.focus\(\)/.test(heading)].join(" "),
+            onClose: /dialog\.close\(\);\s*if \(unprompted\) focusPageHeading\(\);/.test(source),
+            describes: [
+                /closest\("dialog"\)/.test(message),
+                /setAttribute\("aria-describedby", id\)/.test(message),
+                /removeAttribute\("aria-describedby"\)/.test(message),
+            ].join(" "),
+            wraps: /\bflex-wrap\b/.test(actionRow),
+        };
+    };
+    const frameRules = frameFacts(frame);
+    check("  a dialog no press opened hands focus to the page's heading, made focusable", frameRules.heading, "true true true");
+    check("  and only one marked unprompted, in the branch that closes it", frameRules.onClose, true);
+    check("  a dialog's sentence describes the dialog it stands in, and stops when it goes", frameRules.describes, "true true true");
+    check("  and the actions wrap rather than run off a narrow dialog", frameRules.wraps, true);
+
     // ── 4: the words ────────────────────────────────────────────────────────
     log("");
     log("every word they render comes from a constant:");
@@ -320,7 +358,18 @@ export function run({ check, assert, log }) {
     check("  the files", onOldFrame.join(", "), [...OLD_FRAME.keys()].sort().join(", "));
     check("  each waiting on #458", [...new Set(OLD_FRAME.values())].join(), "458");
     const onNewFrame = toolsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame")).sort();
-    assert(`  and the frame has a caller on the axis (${onNewFrame.join(", ")})`, onNewFrame.includes("app/(tools)/tools/RegistrationDialog.js"));
+    // The registration's dialog (#456) and the landing's two (#459).
+    check(
+        "  and the frame's callers on the axis are the three dialogs drawn on it",
+        onNewFrame.join(", "),
+        [
+            "app/(tools)/tools/RegistrationDialog.js",
+            "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js",
+            "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js",
+        ]
+            .sort()
+            .join(", ")
+    );
 
     // ── anti-vacuity ────────────────────────────────────────────────────────
     log("");
@@ -360,6 +409,21 @@ export function run({ check, assert, log }) {
         "  the census finds the old frame in a file that imports it",
         onOldFrame.includes("app/(tools)/tool-items/[toolItemId]/RetireToolItemForm.js")
     );
+    // The frame's #459 rules are seen to fail on a frame that keeps the browser's own return,
+    // hands focus back on every close, names no description and holds its actions on a line.
+    const plantedFrame = frameFacts(
+        parseSource(
+            'function focusPageHeading() { document.querySelector("main")?.focus(); }\n' +
+                "export function DialogFrame({ open }) { useLayoutEffect(() => { if (!open) { dialog.close(); focusPageHeading(); } }, [open]); }\n" +
+                "export function DialogMessage({ children }) { return <p>{children}</p>; }\n" +
+                'export function DialogActions({ children }) { return <div className="flex justify-end gap-gap">{children}</div>; }\n',
+            "<planted-frame>"
+        )
+    );
+    check("  a heading neither found nor made focusable is seen", plantedFrame.heading, "false false true");
+    check("  a return to it on every close is seen", plantedFrame.onClose, false);
+    check("  a sentence describing nothing is seen", plantedFrame.describes, "false false false");
+    check("  and actions held on one line are seen", plantedFrame.wraps, false);
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

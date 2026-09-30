@@ -10,10 +10,11 @@ import { DIALOG_FRAME_COPY as COPY } from "@/lib/dialogFrame";
  * dialog in the top layer, makes everything outside it inert — pointer and keyboard both,
  * so focus cannot wander behind it — turns Escape into a `cancel` event, and hands focus
  * back to whatever held it when the dialog closes. That is every behavior CLAUDE.md asks
- * of anything opening over the page except one, with no dependency and no focus trap
- * written here. The one it does not bring is 0l's own: the first field that takes typing
- * holds the caret when the dialog opens, where the browser gives focus to the first
- * focusable thing, which in this frame is the close. So the frame moves it.
+ * of anything a press opens over the page, with no dependency and no focus trap written
+ * here. The one it does not bring is 0l's own: the first field that takes typing holds the
+ * caret when the dialog opens, where the browser gives focus to the first focusable thing,
+ * which in this frame is the close. So the frame moves it. A dialog no press opened asks
+ * one thing more, below.
  *
  * A DIALOG CLOSES ONLY WHEN ITS OWNER SAYS SO. Escape and the close ask `onClose`, and the
  * browser's own closing is turned down, so the owner's `open` stays the one account of
@@ -25,6 +26,22 @@ import { DIALOG_FRAME_COPY as COPY } from "@/lib/dialogFrame";
  *
  * WHAT IT HOLDS IS RENDERED ONLY WHILE IT IS OPEN, so a dialog opened again starts from
  * what its opener hands it rather than from whatever it was left holding.
+ *
+ * A DIALOG NO PRESS OPENED HANDS FOCUS TO THE PAGE'S HEADING WHEN IT CLOSES (#459). The
+ * browser hands focus back to whatever held it when the dialog opened, which for a dialog
+ * a page opens on arrival is nothing on a fresh load and, after a landing, an opener the
+ * landing took away. So such a dialog is `unprompted`, and its closing puts focus on the
+ * page's `h1` — where the page begins, which is where an arrival with nothing to tell
+ * leaves the reader, and what a screen reader names as it lands. The heading is made
+ * focusable here rather than by each page, so the rule has one implementation. A dialog
+ * that opens as another closes takes focus as it opens, and hands it back to the heading
+ * the same way.
+ *
+ * WHAT A DIALOG SAYS AND WHAT IT HOLDS UP ARE THE FRAME'S TOO (#459). `DialogMessage` is
+ * 0l's one sentence, and it describes the dialog it stands in, since a dialog with no
+ * field is otherwise announced by its title alone; `DialogSummary` is 0l's summary, the
+ * card a dialog holds up for reference. The landing's two dialogs are the first to say
+ * and to list, and #458's confirmations say the same kind of sentence.
  *
  * ONE OF TWO FRAMES ON THE TOOLS AXIS UNTIL #458, AND THE ONLY ONE WHEN THAT LANDS. The tool
  * item page's two dialogs — the retirement and the check-out's name sheet — are still drawn
@@ -46,15 +63,29 @@ function AlertMark() {
 }
 
 /**
+ * Where focus goes when a dialog no press opened closes: the page's heading (#459), made
+ * focusable if the page did not make it so. A page with no heading keeps what the browser
+ * gave back.
+ */
+function focusPageHeading() {
+    const heading = document.querySelector("h1");
+    if (!heading) return;
+    if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
+    heading.focus();
+}
+
+/**
  * A modal dialog of 0l's Compact build: 420 wide and 28 clear of every edge of the screen,
  * 24 of room all round, the title at the Section size with a line under it 2 below, and a
  * 28 close on the right, centered on the title's line and pulled 4 out so its mark meets
- * the edge, at least 16 from the title.
+ * the edge, at least 16 from the title. A figure in the title is tabular, as the design
+ * sets every figure.
  *
  * `onSubmit` makes what it holds a form, which is how a dialog of fields submits: its
- * actions are inside the form with the fields they submit.
+ * actions are inside the form with the fields they submit. `unprompted` is for a dialog
+ * no press opened, which hands focus to the page's heading when it closes.
  */
-export function DialogFrame({ open, onClose, busy = false, title, subtitle, onSubmit, children }) {
+export function DialogFrame({ open, onClose, busy = false, unprompted = false, title, subtitle, onSubmit, children }) {
     const dialogRef = useRef(null);
     const titleId = useId();
 
@@ -66,8 +97,9 @@ export function DialogFrame({ open, onClose, busy = false, title, subtitle, onSu
             dialog.querySelector("input:not([type=hidden])")?.focus();
         } else if (!open && dialog.open) {
             dialog.close();
+            if (unprompted) focusPageHeading();
         }
-    }, [open]);
+    }, [open, unprompted]);
 
     const ask = () => {
         if (!busy) onClose();
@@ -91,7 +123,7 @@ export function DialogFrame({ open, onClose, busy = false, title, subtitle, onSu
                 <>
                     <div className="flex shrink-0 items-start justify-between gap-dialog-header-inline">
                         <div className="flex min-w-0 flex-col gap-dialog-title-stack">
-                            <h2 id={titleId} className="text-heading font-semibold">
+                            <h2 id={titleId} className="text-heading font-semibold tabular-nums">
                                 {title}
                             </h2>
                             {subtitle && <p className="text-body-sm text-foreground-muted">{subtitle}</p>}
@@ -160,9 +192,49 @@ export function DialogBody({ children }) {
 }
 
 /**
+ * The one sentence a dialog says (0l: 14, in Ink), and what describes the dialog it stands
+ * in (#459). A dialog of fields is named by its title and needs no more, but one that tells
+ * the reader something would be announced by its title alone, so this names itself as its
+ * dialog's description — set before the dialog opens, since a child's layout effect runs
+ * before its frame's, and taken away as it closes. A figure in it is tabular.
+ */
+export function DialogMessage({ children }) {
+    const id = useId();
+    const messageRef = useRef(null);
+
+    useLayoutEffect(() => {
+        const dialog = messageRef.current?.closest("dialog");
+        if (!dialog) return undefined;
+        dialog.setAttribute("aria-describedby", id);
+        return () => dialog.removeAttribute("aria-describedby");
+    }, [id]);
+
+    return (
+        <p ref={messageRef} id={id} className="text-body text-pretty tabular-nums text-foreground-default">
+            {children}
+        </p>
+    );
+}
+
+/**
+ * A dialog's summary (0l Split): a card on the Field ground at the Group radius, 16 inside
+ * above and below and 18 either side — what a dialog holds up for reference rather than
+ * asks about. What it holds lays itself out; the ids a landing names are the first (1k).
+ */
+export function DialogSummary({ children }) {
+    return (
+        <div className="rounded-card bg-background-muted px-dialog-summary-inset-x py-dialog-summary-inset-y">{children}</div>
+    );
+}
+
+/**
  * The dialog's actions, on the right 8 apart and 24 under what it asks — and above them,
  * 14 over, the one line a refusal about the whole dialog takes: a 16 alert mark 8 before
  * one sentence at 13, both in Red (0l). A refusal about one field is that field's to say.
+ *
+ * THEY WRAP, still on the right, when they do not fit one line (#459). An action that
+ * cannot act carries its reason before it (0f), and in a dialog 319 wide on a phone the
+ * reason and the button beside another action are wider than the line.
  */
 export function DialogActions({ refusal, children }) {
     return (
@@ -173,7 +245,7 @@ export function DialogActions({ refusal, children }) {
                     <span>{refusal}</span>
                 </p>
             )}
-            <div className="flex justify-end gap-gap">{children}</div>
+            <div className="flex flex-wrap justify-end gap-gap">{children}</div>
         </div>
     );
 }

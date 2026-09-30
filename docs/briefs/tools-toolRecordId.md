@@ -59,10 +59,10 @@ they would on `/tools`.
 
 **It is not one of the answers a registration that fell short offers, and a
 design must not draw it as one.** Those two are a pair about the registration
-the reader has just made (below); this one begins another. When both are on
-the screen they open one dialog — `Create the rest` with the count that was
-not written, this one with none — and `Not now` takes the pair away and leaves
-this standing.
+the reader has just made (below); this one begins another. Both open one
+dialog — `Create the rest` with the count that was not written, this one with
+none — and `Not now` takes the pair away with the dialog they stand in and
+leaves this standing.
 
 **action.** A box on every entry and one for the page, and together they say
 **which tool items a label run is for** (#443). An entry's box selects that tool
@@ -122,33 +122,43 @@ selection is what says it (#321; `_shared.md`, "The arrival is the
 confirmation"). What the registration could not do is said by the next two
 entries, and only when it happened.
 
-**When the registration wrote fewer than were asked for:** two sentences, the
-design's (#455) — how many of how many were created, `3 of 5 tools created`,
-and how many were not, `2 couldn't be created` — and two controls that answer
-them. `Create the rest` opens the registration dialog on this tool, with the
-count that was not written filled in and still the reader's to change there. `Not now` removes the sentences and both controls. **The two are a pair,
+**When the registration wrote fewer than were asked for:** a dialog over the
+screen, the design's (#455, #459) — how many of how many were created as its
+title, `3 of 5 tools created`, the tool's name under it, and how many were not,
+`2 couldn't be created.` — and two controls that answer them. `Create the rest`
+puts the dialog away and opens the registration dialog on this tool, with the
+count that was not written filled in and still the reader's to change there;
+canceling that brings this dialog back, since nothing answered it. `Not now`
+takes the dialog away, and so do its close and `Escape`. **The two are a pair,
 and the pairing is what says what the choice is about**: one goes on creating
 and the other ends it, so neither can be read as being about the entry below.
-It is a choice rather than a confirmation dialog — `Not now` acts on nothing in
+It is a choice rather than a confirmation — `Not now` acts on nothing in
 the base. The first sentence always says `tools`: a shortfall has at least one
 created and one not, so what was asked for is at least two.
 
-**When some of what it wrote has no first history entry:** two sentences —
-`2 tools have no creation date` and `Only the creation date wasn't saved for
-these` (`1 tool has no creation date`, `… for this one` at one) — then their
-ids, then one control, `Got it` (#455). **Nothing is offered that repairs them,
-because nothing does**: a late history entry would state a time that is not when
-they were created. `Got it` takes the notice away and nothing else — it answers
-no question, which is what still sets it apart from the entry above. They are
-also in the list as ordinary entries, selected with the rest, because they were
-written and need labels. **A design must not fold this notice into the list**,
-which would read them as created cleanly, **nor draw it the way the entry above
-is drawn**, since there is nothing to choose. It can name a tool on another page
+**When some of what it wrote has no first history entry:** a dialog over the
+screen (#459) — `2 tools have no creation date` as its title, the tool's name
+under it, and `Only the creation date wasn't saved for these 2, and it can't be
+added later.` (`1 tool has no creation date`, `… for this one, and it can't be
+added later.` at one) — then their ids, in the dialog's summary, then one
+control, `Got it` (#455). **Nothing is offered that repairs them, because
+nothing does**: a late history entry would state a time that is not when they
+were created. `Got it` takes the notice away and nothing else, and so do its
+close and `Escape` — it answers no question, which is what still sets it apart
+from the entry above. They are also in the list as ordinary entries, selected
+with the rest, because they were written and need labels. **A design must not
+fold this notice into the list**,
+which would read them as created cleanly, **nor give it the entry above's two
+answers**, since there is nothing to choose. It can name a tool on another page
 of the list.
 
-**When both happened:** both stand, each whole. The counts the first gives do
-not include the second's tools, which were written. `Not now` answers the first
-alone and `Got it` the second alone, so either can go and leave the other.
+**When both happened:** each whole, one dialog at a time and the tools with no
+creation date first (#459): `Create the rest` can end on another landing, which
+carries only its own registration's account, so the notice is read before the
+shortfall is answered. The counts the first gives do not include the second's
+tools, which were written. `Not now` answers the first alone and `Got it` the
+second alone, so either can go and leave the other — after `Got it` the
+shortfall follows, and a reload between them opens whichever is left.
 
 **A step to the previous page**, when this is not the first one, and **a
 step to the next**, when this is not the last. Each is absent at its own
@@ -240,12 +250,12 @@ on, and on no other (#449).** It is the two entries above — how many were aske
 for and how many of those were not written, and which have no first history
 entry — and none of it is a confirmation: the selection is the confirmation,
 and these are what it cannot show, the way the invoice screen says how a
-delivery was matched to it (#231). A reload of that address repeats both, which
-is true — nothing repairs a missing entry, and the choice stands until it is
-answered — until `Not now` takes the first out of the address and `Got it` the
-second. **Every address the list itself writes carries the selection alone**,
-so the reader's first press of a box or step to another page leaves both
-behind; what is on the screen stays until the next page is opened. A copied
+delivery was matched to it (#231). A reload of that address tells again what is
+still on it, which is true — nothing repairs a missing entry, and the choice
+stands until it is answered — until `Not now` takes the first out of the address
+and `Got it` the second. **Every address the list itself writes carries the
+selection alone**, and while either dialog stands the list behind it cannot be
+pressed, so the account leaves the address by being answered. A copied
 address carrying them shows them to whoever opens it.
 
 **The label screen still asks which labels to print, and that is not a second

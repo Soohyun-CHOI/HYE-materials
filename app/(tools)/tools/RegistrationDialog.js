@@ -29,6 +29,13 @@ import { registerToolItemsAction } from "./actions";
  * where it was opened from is said inside it, which is what #449's and #321's rules came
  * to once there is no address: a reload shows the page as it was, closed.
  *
+ * THE OFFER'S OPENER STANDS IN A DIALOG OF ITS OWN SINCE #459, so it cannot be this
+ * component: the offer puts itself away as the registration opens, and a control inside
+ * a dialog that is gone cannot hold the one that replaced it. So the parts are exported —
+ * `useRegistrationOpening` for the rule below, `RegistrationOpener` for the gate, and
+ * `RegistrationForm` for the dialog — and this default export is them assembled for an
+ * opener that stands on a page. Each is one implementation, whichever of the two draws it.
+ *
  * A READER ON NO JOB MEETS EVERY OPENER DRAWN AND DISABLED, WITH WHY BEFORE IT (0f), and
  * the dialog never opens for them. What #451 kept is kept: no opener is hidden, and all
  * three ask one predicate, `canRegisterToolItems`, which the page asks and hands down as
@@ -55,40 +62,63 @@ import { registerToolItemsAction } from "./actions";
  * starts from what the opener hands over, and not from what the last one was left holding.
  */
 export default function RegistrationDialog({ opener, canRegister, jobs, tool = null, quantity, tools = [] }) {
+    const registration = useRegistrationOpening();
+
+    return (
+        <>
+            <RegistrationOpener canRegister={canRegister} onOpen={registration.start}>
+                {opener}
+            </RegistrationOpener>
+            {canRegister && (
+                <RegistrationForm
+                    key={registration.opening}
+                    open={registration.open}
+                    onClose={registration.close}
+                    jobs={jobs}
+                    tool={tool}
+                    quantity={quantity}
+                    tools={tools}
+                />
+            )}
+        </>
+    );
+}
+
+/**
+ * Whether the dialog is open, for whatever opens it (#456, #459): open only while the
+ * address is the one it was opened at, and `opening` counts the openings so each one
+ * starts the form afresh from what its opener hands it.
+ */
+export function useRegistrationOpening() {
     const address = useSearchParams().toString();
     const [openedAt, setOpenedAt] = useState(null);
     const [opening, setOpening] = useState(0);
     const open = openedAt !== null && openedAt === address;
 
+    return {
+        open,
+        opening,
+        start: () => {
+            setOpening((count) => count + 1);
+            setOpenedAt(address);
+        },
+        close: () => setOpenedAt(null),
+    };
+}
+
+/**
+ * The control that opens the dialog — or, for a reader who may not register, the same
+ * control drawn disabled with why before it (0f), and the dialog never opens for them.
+ */
+export function RegistrationOpener({ canRegister, onOpen, children }) {
     if (!canRegister) {
         return (
             <Button disabled disabledReason={COPY.noJob}>
-                {opener}
+                {children}
             </Button>
         );
     }
-
-    return (
-        <>
-            <Button
-                onClick={() => {
-                    setOpening((count) => count + 1);
-                    setOpenedAt(address);
-                }}
-            >
-                {opener}
-            </Button>
-            <RegistrationForm
-                key={opening}
-                open={open}
-                onClose={() => setOpenedAt(null)}
-                jobs={jobs}
-                tool={tool}
-                quantity={quantity}
-                tools={tools}
-            />
-        </>
-    );
+    return <Button onClick={onOpen}>{children}</Button>;
 }
 
 /** The note under a typed name: the preview, with the tool and its count in Ink. */
@@ -100,7 +130,8 @@ function preview(existing) {
     );
 }
 
-function RegistrationForm({ open, onClose, jobs, tool, quantity, tools }) {
+/** The dialog itself, opened by whatever holds its opening. */
+export function RegistrationForm({ open, onClose, jobs, tool, quantity, tools = [] }) {
     const [state, formAction, pending] = useActionState(registerToolItemsAction, null);
     const [toolName, setToolName] = useState(tool ? tool.toolName : "");
     const [count, setCount] = useState(() => String(openingCount(quantity)));

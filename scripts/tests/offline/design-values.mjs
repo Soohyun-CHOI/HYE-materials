@@ -90,12 +90,14 @@ const TOOLS_DIR = "app/(tools)/";
 
 /**
  * The issues that read a name next. An issue that lands takes its number out, and
- * every name still waiting on it then has to be read or undeclared. #459 waits on
- * nothing today: it opens its dialogs in #456's frame, which reads every name those
- * need, and reads no name first. #456 took its own number out when the frame and the
- * controls it opens began reading theirs.
+ * every name still waiting on it then has to be read or undeclared. #456 took its own
+ * number out when the frame and the controls it opens began reading theirs. #459 took
+ * its own out as well, and it was written here as waiting on nothing, which 1k's
+ * drawing did not bear out: its notice lists ids in the id face on a dialog's summary,
+ * so it was the first reader of three names marked for #457 and declared the three the
+ * summary needed.
  */
-const READERS_TO_COME = [457, 458, 459, 460, 463];
+const READERS_TO_COME = [457, 458, 460, 463];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -154,7 +156,7 @@ const VALUES = [
     ["--color-border", "oklch(0.888 0.008 265)", null],
     ["--color-border-focus", "oklch(0.640 0.010 265)", null],
     ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", null],
-    ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", 457],
+    ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", null],
     ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
     ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", 460],
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", 460],
@@ -181,9 +183,9 @@ const VALUES = [
     ["--text-brand", "1.0625rem", 460],
     ["--text-brand--line-height", "1.5rem"],
     ["--text-brand--font-weight", "500"],
-    ["--tracking-id", "-0.02em", 457],
+    ["--tracking-id", "-0.02em", null],
     ["--font-ui", "var(--font-instrument-sans), system-ui, sans-serif", null],
-    ["--font-id", "var(--font-fragment-mono), ui-monospace, monospace", 457],
+    ["--font-id", "var(--font-fragment-mono), ui-monospace, monospace", null],
     ["--font-brand", "var(--font-fraunces), Georgia, serif", 460],
     // 0i · Scroll
     ["--spacing-scrollbar", "8px", 460],
@@ -226,6 +228,9 @@ const VALUES = [
     ["--spacing-dialog-close-offset", "0.25rem", null],
     ["--spacing-dialog-header-inline", "1rem", null],
     ["--spacing-dialog-title-stack", "0.125rem", null],
+    ["--spacing-dialog-summary-inset-y", "1rem", null],
+    ["--spacing-dialog-summary-inset-x", "1.125rem", null],
+    ["--spacing-dialog-summary-stack", "0.25rem", null],
     // 0m · Navigation
     ["--width-rail", "3.5rem", 460],
     ["--width-rail-expanded", "15.5rem", 460],
