@@ -70,7 +70,7 @@ import {
     togglePage,
     toggleToolItem,
 } from "../../../lib/toolListView.js";
-import { MAX_LABELS_PER_REQUEST } from "../../../lib/toolLabelSheet.js";
+import { MAX_LABELS_PER_REQUEST } from "../../../lib/toolLabelPage.js";
 import { readToolItemIds } from "../../../lib/toolRoutes.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -1051,9 +1051,9 @@ export function run({ check, assert, log }) {
     const ELSEWHERE = "HYE-TL-260910-001";
     const thisPage = [A, B, C];
 
-    // THE LIST'S ORDER, WHATEVER ORDER THE BOXES WERE PRESSED IN — oldest first, so a
-    // sheet reads the way the list does. ELSEWHERE is a later day, so it sorts after the
-    // page even when it was selected first.
+    // THE LIST'S ORDER, WHATEVER ORDER THE BOXES WERE PRESSED IN — oldest first, so the
+    // labels print the way the list reads. ELSEWHERE is a later day, so it sorts after
+    // the page even when it was selected first.
     check("a press adds an entry, in the list's order", toggleToolItem([ELSEWHERE], B).join(), `${B},${ELSEWHERE}`);
     check("  a second press takes it out again", toggleToolItem([B, ELSEWHERE], B).join(), ELSEWHERE);
     check("  and what is left is in the list's order too", toggleToolItem([C, A, B], A).join(), `${B},${C}`);

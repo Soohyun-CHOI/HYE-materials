@@ -239,8 +239,8 @@ page turn, a reload and a copied link.** It is the label screen's own
 parameter with its own values — printed ids — so the print control hands it
 over unchanged, and a copied address is a request to print those labels
 again rather than an account of anything. It is kept in the list's order,
-whatever order the boxes were pressed in, so a sheet reads the way the list
-does. **A design must not offer "select all of this tool"**, for the reason
+whatever order the boxes were pressed in, so the labels print in the order the
+list reads. **A design must not offer "select all of this tool"**, for the reason
 this screen never offered "print all": it is a read of every tool item under
 the tool. **A registration's arrival is such an address (#449)**: it carries
 what the registration wrote, which is why what it wrote survives a reload.
@@ -260,11 +260,11 @@ address carrying them shows them to whoever opens it.
 
 **The label screen still asks which labels to print, and that is not a second
 selection.** Arriving from here, every tool item this selection names starts
-included there. Excluding one there trims that sheet and does not reach back
+included there. Excluding one there trims that run and does not reach back
 into this screen's selection — it is where the whole run is listed at once,
-beside the start position and the sheet count, for a last decision about the
-paper. The two are different acts and take different words: `Select` here,
-`Include` there.
+beside the count of labels it prints, for a last decision about the tape. It
+stood beside the start position and the sheet count until #467. The two are
+different acts and take different words: `Select` here, `Include` there.
 
 **Every control that opens the registration dialog takes its words from that
 dialog's constant (#451)**, so none can drift from the dialog it opens — the

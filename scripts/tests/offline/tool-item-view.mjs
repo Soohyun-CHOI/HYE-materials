@@ -257,9 +257,8 @@ export function run({ check, assert, log }) {
     );
 
     // SIZED BY THIS SYMBOL'S OWN SIDE COUNT, which is #353's measured defect one
-    // screen over: the module size is derived once for the stock, and passing the
-    // constant to the BOX scales a larger version into today's box and thins its
-    // modules.
+    // screen over: the budget is sized once for the label, and passing the constant
+    // to the BOX scales a larger version into today's box and thins its modules.
     //
     // THE ARGUMENT IS READ, NOT THE NAME. Asserting that `symbolBox`, `labelBudget`
     // and `QR_SIDE_MODULES` all APPEAR would pass with the two arguments swapped,
@@ -285,13 +284,35 @@ export function run({ check, assert, log }) {
     };
     check("the module size is derived from the constant", sideModulesArgOf("labelBudget"), "QR_SIDE_MODULES");
     check("  and the box from this symbol's own count", sideModulesArgOf("symbolBox"), "symbol.sideModules");
+    // AND THE BOX IS ASKED OF THE BUDGET THE PAGE SIZED (#467), since `fits` is whether
+    // the symbol is no larger than the one that budget was sized for: handed anything
+    // else, `symbolBox` throws as the page renders, which this tier would never see.
+    const budgetHanded = (parsed) => {
+        let bound = "none";
+        let handed = "none";
+        walk(parsed.ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.init?.type === "CallExpression" && n.init.callee?.name === "labelBudget" && n.id.type === "Identifier")
+                bound = n.id.name;
+            if (n.type === "CallExpression" && n.callee?.name === "symbolBox") {
+                const prop = n.arguments[0]?.properties?.find((p) => p.key?.name === "budget");
+                handed = prop ? (prop.value.type === "Identifier" ? prop.value.name : prop.value.type) : "nothing";
+            }
+        });
+        return `${bound} -> ${handed}`;
+    };
+    check("  and is handed the budget labelBudget made", budgetHanded(page), "budget -> budget");
+    check(
+        "  where a call handed a module size alone is seen handing no budget",
+        budgetHanded(parseSource("const { moduleMm } = labelBudget({ sideModules: QR_SIDE_MODULES });\nconst b = symbolBox({ sideModules: symbol.sideModules, moduleMm });\n", "<planted-no-budget>")),
+        "none -> nothing"
+    );
     // ANTI-VACUITY: the reader is shown telling the two apart on a planted swap, so
     // the two checks above are a fact about the call sites rather than about a
     // reader that returns the same thing whatever it is given.
     {
         const planted = parseSource(
             "const a = labelBudget({ sideModules: symbol.sideModules });\n" +
-                "const b = symbolBox({ sideModules: QR_SIDE_MODULES, moduleMm });\n",
+                "const b = symbolBox({ sideModules: QR_SIDE_MODULES, budget });\n",
             "<planted-swap>"
         );
         const read = (fn) => {
@@ -312,9 +333,9 @@ export function run({ check, assert, log }) {
     // place draws today's symbol exactly and stops following the stock and the version
     // the day either moves — #412's pinned count one screen over. And the label absorbs
     // no version step since #453, so a host past seventeen characters builds a symbol
-    // the sheet refuses: the line saying the drawing is printed size has to be the one
-    // asked about `fits`, or it is false on every such host. This tier renders neither,
-    // so both are read off the page.
+    // the label screen refuses: the line saying the drawing is printed size has to be
+    // the one asked about `fits`, or it is false on every such host. This tier renders
+    // neither, so both are read off the page.
     const symbolReading = (parsed) => {
         const found = { binding: "none", box: "none", note: "none", noteReads: 0 };
         const text = (node) => {
@@ -360,8 +381,8 @@ export function run({ check, assert, log }) {
     // unconditional line from the page's own.
     const plantedDrawn = symbolReading(
         parseSource(
-            "const { boxMm: symbolMm } = symbolBox({ sideModules: symbol.sideModules, moduleMm });\n" +
-                'const a = <div><div style={{ width: "13.2mm", height: `${symbolMm}mm` }} dangerouslySetInnerHTML={{ __html: symbol.svg }} />' +
+            "const { boxMm: symbolMm } = symbolBox({ sideModules: symbol.sideModules, budget });\n" +
+                'const a = <div><div style={{ width: "9.57mm", height: `${symbolMm}mm` }} dangerouslySetInnerHTML={{ __html: symbol.svg }} />' +
                 "<p>{COPY.printedSizeNote}</p></div>;\n",
             "<planted-drawn>"
         )
@@ -369,15 +390,16 @@ export function run({ check, assert, log }) {
     check(
         "  a page ignoring both is read that way",
         `${plantedDrawn.binding} | ${plantedDrawn.box} | ${plantedDrawn.note}`,
-        'boxMm: symbolMm | "13.2mm" / `${symbolMm}mm` | COPY.printedSizeNote'
+        'boxMm: symbolMm | "9.57mm" / `${symbolMm}mm` | COPY.printedSizeNote'
     );
 
     // PRINTS NOTHING ITSELF, which is what keeps "the same physical object as the
     // original" true by construction rather than by comparison: the reprint is the
-    // sheet screen, so there is no second layout to drift. A print path here would
-    // also be a reprint without a start position, and a reprint is the archetypal
-    // part-used sheet.
-    assert("it links to the sheet screen", called.has("toolItemLabelsPath"));
+    // label screen, so there is no second layout to drift. This said a print path
+    // here would also be a reprint without a start position, and a reprint the
+    // archetypal part-used sheet; a label is a page of its own since #467, so that
+    // reason went with the sheet and the first one is the whole of it.
+    assert("it links to the label screen", called.has("toolItemLabelsPath"));
     check(
         "  and implements no print path of its own",
         [
@@ -397,7 +419,7 @@ export function run({ check, assert, log }) {
     assert("the alt names the thing rather than the picture", TOOL_ITEM_COPY.symbolAlt.includes("this tool"));
     assert("and the printed-size note says so", TOOL_ITEM_COPY.printedSizeNote.includes("prints"));
     // Its place is taken when the symbol does not fit the stock (#453), and the words
-    // name the host for the reason the sheet's own sentence does.
+    // name the host for the reason the label screen's own sentence does.
     check(
         "the line when the symbol does not fit",
         TOOL_ITEM_COPY.symbolTooLargeNote,

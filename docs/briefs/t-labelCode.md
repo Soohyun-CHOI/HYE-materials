@@ -14,8 +14,8 @@ item's own screen, `/tool-items/[toolItemId]`.
 encodes, and a QR encodes the whole URL, host included. The longer that string,
 the higher the symbol's version and the finer its grid, so a sticker of a fixed
 size carries thinner modules — read through oil and wear, in a gloved hand, on a
-site. `https://hyeusa.com/t/260909-004` is sixteen characters shorter than the
-screen it opens. `docs/notes/tools.md` carries the arithmetic.
+site. `https://app.hyeusa.com/t/260909-004` is sixteen characters shorter than
+the screen it opens. `docs/notes/tools.md` carries the arithmetic.
 
 **The segment is not a `Tool Item ID`, and that is what #411 changed.** A tool
 item is `HYE-TL-260909-004` in the base and on every screen; what the label
@@ -71,7 +71,7 @@ for a symbol that has been scratched or painted over, and what the person
 reading it does with it is type it into the address — so printing one form
 while routing another breaks that path at the only point it is used.
 
-**The label prints the URL in capitals**, `HTTPS://HYEUSA.COM/T/260909-004`,
+**The label prints the URL in capitals**, `HTTPS://APP.HYEUSA.COM/T/260909-004`,
 because a QR code packs digits and capitals far more tightly than mixed case.
 The uppercase spelling of the path resolves to this same route. **Shortening the
 segment did not make that optional** — the lowercase form of the shorter address

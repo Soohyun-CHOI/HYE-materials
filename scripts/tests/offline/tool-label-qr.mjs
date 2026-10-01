@@ -21,10 +21,12 @@
 // encoder's rather than assumed to match.
 //
 // WHAT IT CANNOT SEE, and both limits are real rather than disclaimers.
-//   * IT DECODES THE MATRIX, NOT THE SERVED SVG. The bytes the route returns are
-//     rendered by the library from the same input, and whether a browser PAINTS
-//     them decodably is rendering — which this tier never does. That is checked
-//     once in a browser against the running route and recorded in the pull request.
+//   * IT DECODES THE SVG'S PATH, NOT A BROWSER'S PAINTING OF IT. Until #467 it decoded
+//     the matrix alone; since the builder draws the symbol itself, section 7b fills the
+//     SVG's own path into a raster and decodes that. Whether a browser PAINTS or PRINTS
+//     the bytes decodably is still rendering, which this tier never does — and a print
+//     is where the stroke the library drew became a hairline, which is why the builder
+//     fills. That is checked in a printed PDF and recorded in the pull request.
 //   * THE QUIET ZONE IS UNPROVABLE HERE. A software decoder reads a clean image
 //     with no margin at all — measured, and asserted below so the fact is in the
 //     tier rather than only in prose. Four modules rests on the specification and
@@ -49,10 +51,17 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "What a tool label's QR symbol encodes, measured (#351)";
 
-/** The host a printed label carries, which is what every figure is measured at. */
-const PRODUCTION_ORIGIN = "https://hyeusa.com";
+/**
+ * The host a printed label carries, which is what every figure is measured at.
+ *
+ * `app.hyeusa.com` SINCE #467, the host decided for the app. It was `hyeusa.com`,
+ * four characters shorter, from #348 until then, and #351 and #411 measured their
+ * figures against that one — 31 characters, seven spare — which `docs/notes/tools.md`
+ * keeps as the record of those two issues.
+ */
+const PRODUCTION_ORIGIN = "https://app.hyeusa.com";
 
-/** The dev origin. Three characters longer than production and, since #411, the
+/** The dev origin. One character shorter than production and, since #411, the
  *  same version — see section 8 for what that took away. */
 const DEV_ORIGIN = "http://localhost:3000";
 
@@ -130,12 +139,13 @@ export async function run({ check, assert, log }) {
     const id = mintedId(4);
     const url = labelURL(PRODUCTION_ORIGIN, id);
     check(`the minted id is ${id}`, id, "HYE-TL-260909-004");
-    check("the label's URL", url, "HTTPS://HYEUSA.COM/T/260909-004");
-    check("  and it is 31 characters", url.length, 31);
+    check("the label's URL", url, "HTTPS://APP.HYEUSA.COM/T/260909-004");
+    check("  and it is 35 characters", url.length, 35);
     // THE SEVEN THE FAMILY TOKEN USED TO SPEND (#411), reached a second way so the
-    // length above is not the only thing holding it: the address was 38 characters,
-    // the id it names still is 17, and what it ends with is that id's last ten.
-    check("  seven fewer than the 38 it was", 38 - url.length, 7);
+    // length above is not the only thing holding it: with the token the address was
+    // 42 characters at this host — 38 at `hyeusa.com`, where #411 measured it — the id
+    // it names still is 17, and what it ends with is that id's last ten.
+    check("  seven fewer than the 42 the token made it", 42 - url.length, 7);
     assert("  ending in the id's own tail", url.endsWith(id.slice(7)) && id.slice(7) === "260909-004");
     // `HYE` on its own is in `HYEUSA.COM`, so the token is what is barred rather
     // than its first three characters.
@@ -182,7 +192,8 @@ export async function run({ check, assert, log }) {
     check("and L buys nothing in size over M", table.find((r) => r.level === "L").version, table.find((r) => r.level === "M").version);
     // WHAT #411 CHANGED IN THIS TABLE, RECORDED BECAUSE IT MADE AN ALTERNATIVE
     // CHEAPER. At the 38-character address `H` cost TWO versions and `Q` one; at 31
-    // they cost one each, so the highest level is now the same printed density as
+    // they cost one each, and at the 35 `app.hyeusa.com` makes they still do (#467),
+    // so the highest level is now the same printed density as
     // `Q`. The choice does not reopen — what decided it is that a flipped module in
     // a finder pattern loses the symbol at every level alike, which section 6
     // measures and which no address length touches — but the price is not what it
@@ -211,18 +222,20 @@ export async function run({ check, assert, log }) {
     // THIS READ `capacity - url.length === 0` UNTIL #411, WHICH IS THE FIGURE THAT
     // ISSUE EXISTS TO MOVE. The address filled the version exactly, so anything at
     // all — a wider sequence, a longer host — stepped it.
-    check("  and the address leaves this many spare", capacity - url.length, 7);
+    // SEVEN AT `hyeusa.com` (#411), THREE AT `app.hyeusa.com` (#467): the four
+    // characters the host decided since took four of them.
+    check("  and the address leaves this many spare", capacity - url.length, 3);
 
-    // WHAT THE SEVEN ACTUALLY BUY, measured rather than described, because a
+    // WHAT THE THREE ACTUALLY BUY, measured rather than described, because a
     // headroom figure nobody can act on is one that gets re-derived. `nextSequence`
     // widens past its pad, so a five-digit daily sequence is a real id.
     const wide = labelURL(PRODUCTION_ORIGIN, mintedId(1000));
-    check(`a four-digit sequence gives ${wide}`, wide.length, 32);
+    check(`a four-digit sequence gives ${wide}`, wide.length, 36);
     check("  and stays at this version", encode(wide, QR_ERROR_CORRECTION).version, QR_VERSION);
     const wider = labelURL(PRODUCTION_ORIGIN, mintedId(10000));
-    check(`a five-digit sequence gives ${wider}`, wider.length, 33);
+    check(`a five-digit sequence gives ${wider}`, wider.length, 37);
     check("  and still stays", encode(wider, QR_ERROR_CORRECTION).version, QR_VERSION);
-    // A HOST IS THE OTHER CLAIMANT ON THE SAME SEVEN. `hyeusa.com` is ten
+    // A HOST IS THE OTHER CLAIMANT ON THE SAME ROOM. `app.hyeusa.com` is fourteen
     // characters and seventeen is what the capacity allows beside today's code.
     const longestHost = labelURL(`https://${"h".repeat(17)}`, id);
     check(`a seventeen-character host gives ${longestHost.length} characters`, longestHost.length, capacity);
@@ -246,14 +259,14 @@ export async function run({ check, assert, log }) {
 
     // THE SHORTER ADDRESS DID NOT MAKE THE CAPITALS OPTIONAL (#411), which is worth
     // a measurement rather than an assumption: what costs the version is the mode
-    // split and not the length, so the lowercase form is still version 3 with seven
-    // characters of room to spare.
+    // split and not the length, so the lowercase form is still version 3 while it is
+    // three characters inside what version 2 holds.
     const lowercase = url.toLowerCase();
     const lower = encode(lowercase, QR_ERROR_CORRECTION);
     check("the same address in lowercase splits into modes", lower.segments.map((s) => s.mode.id).join("+"), "Byte+Alphanumeric");
     check("  and costs a version", lower.version, QR_VERSION + 1);
     check("  at the same character count", lowercase.length, url.length);
-    check("  well inside the capacity", capacity - lowercase.length, 7);
+    check("  inside the capacity", capacity - lowercase.length, 3);
 
     // ── 5: the round trip, through a different library ──────────────────────
     log("");
@@ -339,6 +352,70 @@ export async function run({ check, assert, log }) {
             return Boolean(out) && out.data === url;
         })()
     );
+
+    // ── 7b: the symbol is drawn in fills, and the drawing itself decodes (#467) ──
+    log("");
+    log("the dark modules are filled rectangles, and the SVG's own path reads back:");
+    // A STROKE THINNER THAN A POINT PRINTS AS A HAIRLINE, measured in the PDF Chrome and
+    // Edge save: the library's renderer drew each row as a stroke one module wide, which
+    // at 0.29 mm is 0.82 pt, and the PDF wrote it at line width 0 and 82% alpha. So the
+    // builder draws fills, and this holds that no stroke comes back.
+    const darkPath = (svg) => svg.match(/<path fill="#000000" d="([^"]+)"/)?.[1] ?? null;
+    assert("the ink is a filled path", Boolean(darkPath(built.svg)));
+    check("  and nothing in the symbol is stroked", /stroke/.test(built.svg), false);
+    // ANTI-VACUITY: the library's own renderer, which the builder used until #467, is
+    // seen drawing exactly the stroke this refuses.
+    const libraryRendering = await QRCode.toString(url, { type: "svg", errorCorrectionLevel: QR_ERROR_CORRECTION, margin: QR_QUIET_ZONE_MODULES });
+    assert("  where the library's own renderer strokes its rows", /<path stroke="#000000"/.test(libraryRendering));
+    // AND THE DRAWING DECODES, which until #467 nothing here could say: the round trip
+    // above reads the MATRIX. The SVG's dark path is filled into a raster at four
+    // pixels a module, the way a printer fills it, and jsQR reads it back.
+    const { createCanvas, Path2D } = await import("@napi-rs/canvas");
+    const rasterOf = (d, draw) => {
+        const scale = 4;
+        const canvas = createCanvas(QR_SIDE_MODULES * scale, QR_SIDE_MODULES * scale);
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#ffffff";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.scale(scale, scale);
+        context.fillStyle = "#000000";
+        context.strokeStyle = "#000000";
+        draw(context, new Path2D(d));
+        const image = context.getImageData(0, 0, canvas.width, canvas.height);
+        return jsQR(image.data, image.width, image.height);
+    };
+    const drawn = rasterOf(darkPath(built.svg), (context, path) => context.fill(path));
+    check("the SVG's own path, filled, decodes to the address", drawn?.data, url);
+    // AND IT SITS INSIDE ITS QUIET ZONE, which the decode cannot say, since a decoder
+    // reads a symbol with no margin at all (section 7): the dark rectangles reach four
+    // modules from every edge of the box and no closer. Read off the path's own corners.
+    const extent = (d) => {
+        const xs = [];
+        const ys = [];
+        for (const [, x, y, run] of d.matchAll(/M(\d+) (\d+)h(\d+)v1h-\d+z/g)) {
+            xs.push(Number(x), Number(x) + Number(run));
+            ys.push(Number(y), Number(y) + 1);
+        }
+        return `${Math.min(...xs)}..${Math.max(...xs)} across, ${Math.min(...ys)}..${Math.max(...ys)} down`;
+    };
+    check("  its dark modules span the symbol proper, four in from every edge", extent(darkPath(built.svg)), "4..29 across, 4..29 down");
+    // ANTI-VACUITY: the same reading of a path drawn with no quiet-zone offset is seen
+    // starting at the box's own edge.
+    check("  where a path drawn without the margin starts at the edge", extent("M0 0h7v1h-7zM18 24h7v1h-7z"), "0..25 across, 0..25 down");
+    // ANTI-VACUITY, and the print's failure in miniature: the library's stroked rows
+    // drawn as a quarter-module hairline do not decode, while the same rows stroked a
+    // module wide do — so the decode above is a fact about how the modules are drawn.
+    const strokedRows = libraryRendering.match(/<path stroke="#000000" d="([^"]+)"/)[1];
+    const hairline = rasterOf(strokedRows, (context, path) => {
+        context.lineWidth = 0.25;
+        context.stroke(path);
+    });
+    check("  rows drawn as hairlines do not", hairline, null);
+    const fullStroke = rasterOf(strokedRows, (context, path) => {
+        context.lineWidth = 1;
+        context.stroke(path);
+    });
+    check("  and the same rows a module wide do", fullStroke?.data, url);
 
     // ── 8: what the builder hands the label layout ──────────────────────────
     log("");

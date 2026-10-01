@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { TOOL_LABEL_SHEET_COPY as SHEET_COPY } from "@/lib/toolLabelSheet";
+import { TOOL_LABEL_PAGE_COPY as LABEL_COPY } from "@/lib/toolLabelPage";
 import {
     TOOL_LIST_COPY as COPY,
     describeSelection,
@@ -65,7 +65,7 @@ import { readToolItemIds, toolItemLabelsPath, toolItemPath, toolPath } from "@/l
 // that many tool items, selected page by page. If it is ever met, the fix is to stop
 // the boxes at what one print takes.
 //
-// EVERY WORD IS IN `TOOL_LIST_COPY` OR `TOOL_LABEL_SHEET_COPY` AND NONE IS IN JSX, this
+// EVERY WORD IS IN `TOOL_LIST_COPY` OR `TOOL_LABEL_PAGE_COPY` AND NONE IS IN JSX, this
 // axis's rule since #338, held by `offline/tool-list-view.mjs`.
 export default function ToolItemList({ toolRecordId, rows, page, pageCount }) {
     const params = useSearchParams();
@@ -91,10 +91,10 @@ export default function ToolItemList({ toolRecordId, rows, page, pageCount }) {
                 </button>
             )}
             {summary.printable ? (
-                <Link href={toolItemLabelsPath(selection)}>{SHEET_COPY.openFromTool}</Link>
+                <Link href={toolItemLabelsPath(selection)}>{LABEL_COPY.openFromTool}</Link>
             ) : (
                 <span role="link" aria-disabled="true">
-                    {SHEET_COPY.openFromTool}
+                    {LABEL_COPY.openFromTool}
                 </span>
             )}
 

@@ -370,6 +370,7 @@ const SURVIVING_IDENTIFIERS = {
     lines: "lines of text in airtableOps.js",
     termLine: "a line of text in the PO PDF's terms block",
     lineHeight: "the CSS property",
+    idBaselineMm: "the baseline a tool label's code is set on, a line of printed text (#467)",
     formatScopeLine: "one line of the ops log",
     formatRepeatedLine: "the same, for a repeated scope",
     // Words that merely contain the letters.
