@@ -35,10 +35,13 @@
 // cannot load (the action reaches lib/airtable/), and naming the calls would be
 // satisfied by every wrong version of them, so the redirect's ARGUMENTS and the
 // dialog's submission are read off the AST, each beside a planted file doing it
-// wrong. **What that cannot show is the two failures themselves**: a batch that
-// stops short and a log pass that stops are both unreachable without breaking the
-// base, so the refusal, the shortfall and the unlogged names are held here as
-// source and as words, and never as a run.
+// wrong. **This said the two failures themselves could never be run here, and #470
+// made that false**: a batch that stops short and a log pass that stops are still
+// unreachable without breaking the base, but what decides their account is
+// `lib/airtableBatch.js` now, which imports nothing — so section 9 runs a
+// registration's two passes against a fake base and reads the landing they produce,
+// and section 8 holds that the action and the two writers are wired the way section 9
+// assumes.
 //
 // AND SINCE #459 WHICH PART OF A LANDING'S ACCOUNT IS TOLD, by value: each part is a
 // dialog, one at a time and the notice first, while the page found it and its key is
@@ -71,14 +74,21 @@ import {
 } from "../../../lib/toolRegistration.js";
 import { TOOL_JOB_COPY } from "../../../lib/toolJob.js";
 import { toolPath } from "../../../lib/toolRoutes.js";
+import { createInBatches } from "../../../lib/airtableBatch.js";
+import { childKind, formatSequentialIds, nextChildId } from "../../../lib/idSequence.js";
 import { callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
+import { fakeBase } from "./_fakeBase.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "Registering tool items — the pure half, and where a registration lands (#338, #449, #455, #456, #459)";
+export const title =
+    "Registering tool items — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #470)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(tools)/tools/actions.js";
 const DIALOG = "app/(tools)/tools/RegistrationDialog.js";
+/** The two writers a registration calls, whose wiring section 8 reads (#470). */
+const TOOL_ITEMS = "lib/airtable/toolItems.js";
+const TOOL_LOG = "lib/airtable/toolLog.js";
 
 /** A builder's parts (#456) as the one string a reader sees. */
 const joined = (parts) => parts.map((part) => (typeof part === "string" ? part : part.emphasis)).join("");
@@ -117,7 +127,7 @@ function nameOf(node) {
  */
 const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
-export function run({ check, assert, log }) {
+export async function run({ check, assert, log }) {
     // ── 1: two spellings of one name are one key ────────────────────────────
     log("one tool name, however it is typed:");
     const canonical = toolNameKey("Impact Driver");
@@ -481,7 +491,7 @@ export function run({ check, assert, log }) {
     log("");
     log("a registration that wrote anything lands on its tool, and one that did not stays in the dialog:");
     const landingFacts = (ast) => {
-        const facts = { found: false, redirects: 0, returns: [], toolFrom: null, caughtInto: null, readFrom: null };
+        const facts = { found: false, redirects: 0, returns: [], toolFrom: null, unloggedFrom: null, readFrom: null };
         const action = resolveFunction(ast, "registerToolItemsAction");
         if (!action) return facts;
         facts.found = true;
@@ -502,19 +512,19 @@ export function run({ check, assert, log }) {
             if (n.type === "ReturnStatement" && n.argument?.type === "ObjectExpression")
                 facts.returns.push(n.argument.properties.map((p) => p.key?.name).join("+"));
             if (n.type === "ReturnStatement" && n.argument?.type === "Identifier") facts.returns.push(n.argument.name);
-            // Which list the log pass's failures are pushed into.
-            if (n.type === "CatchClause")
-                walk(n.body, (inner) => {
-                    if (inner.type === "CallExpression" && inner.callee?.property?.name === "push" && facts.caughtInto === null)
-                        facts.caughtInto = nameOf(inner.callee.object);
-                });
+            // #470: `const { unlogged } = await createFirstToolLogEntries(…)` — whose answer
+            // the landing's unlogged names are. Until then it was a list a catch pushed into.
+            if (n.type === "VariableDeclarator" && n.id?.type === "ObjectPattern" && n.id.properties.some((p) => p.key?.name === "unlogged")) {
+                const init = n.init?.type === "AwaitExpression" ? n.init.argument : n.init;
+                facts.unloggedFrom = nameOf(init?.callee ?? {});
+            }
         });
-        // #455: the event each first log row is written with — the vocabulary's key, read
-        // off the call, since a stale key and a spelled string both reach the writer as
-        // an argument and only the argument's source tells them from the right one.
-        const logCall = callsTo(action, "createToolLogEntry")[0];
-        const eventValue = logCall?.arguments[0]?.properties?.find((p) => p.key?.name === "event")?.value;
-        facts.event = eventValue?.type === "Literal" ? JSON.stringify(eventValue.value) : nameOf(eventValue ?? {});
+        // #470: WHAT THE LOG PASS IS HANDED — the tool items `createToolItems` answered with,
+        // the chosen job and the reader — read off the one call, and where it stands. The
+        // event it writes is the writer's own since #470, read in the writers' block below.
+        const logCall = callsTo(action, "createFirstToolLogEntries")[0];
+        const logArgument = (name) => nameOf(logCall?.arguments[0]?.properties?.find((p) => p.key?.name === name)?.value ?? {});
+        facts.logged = `${logArgument("toolItems")} ${logArgument("jobRecordId")} ${logArgument("recordedByUserId")}`;
         const redirects = callsTo(action, "redirect");
         facts.redirects = redirects.length;
         const call = redirects[0];
@@ -541,6 +551,7 @@ export function run({ check, assert, log }) {
         // THE REFUSAL FOR A BATCH THAT WROTE NOTHING, and that it stands before the
         // redirect in the source — which is not execution order, and is what this tier has.
         facts.guardBefore = false;
+        let guardAt = -1;
         walk(action, (n) => {
             if (n.type !== "IfStatement" || n.start > call.start) return;
             const test = n.test;
@@ -552,15 +563,22 @@ export function run({ check, assert, log }) {
             const refuses =
                 n.consequent?.type === "ReturnStatement" &&
                 n.consequent.argument?.properties?.map((p) => p.key?.name).join() === "error";
-            if (empty && refuses) facts.guardBefore = true;
+            if (empty && refuses) {
+                facts.guardBefore = true;
+                guardAt = n.start;
+            }
         });
+        // #470: the log pass after that refusal — a batch that wrote nothing has nothing to
+        // log — and before the redirect, which carries its answer.
+        facts.logBetween = Boolean(logCall) && guardAt >= 0 && logCall.start > guardAt && logCall.start < call.start;
         return facts;
     };
     const land = landingFacts(parseFile(ACTION).ast);
     assert(`${ACTION} declares registerToolItemsAction`, land.found);
     check("it reads the submission through the dialog's own reading", land.readFrom, "readRegistration(…, jobs)");
     check("  against the reader's own jobs", land.jobsFrom, "assignedJobsFor");
-    check("its log pass writes the vocabulary's first event (#455)", land.event, "TOOL_EVENT.CREATED");
+    check("its log pass is handed what it created, the chosen job and the reader (#470)", land.logged, "created job.id user.id");
+    check("  after the refusal of an empty batch and before the redirect", land.logBetween, true);
     check("it redirects once", land.redirects, 1);
     check("  to a tool's page", land.target, "toolPath");
     check("  the tool upsertTool found or made", `${land.record} from ${land.toolFrom}`, "tool.id from upsertTool");
@@ -568,7 +586,7 @@ export function run({ check, assert, log }) {
     check("  selecting every tool item it created, by printed id", land.selected, "created → toolItem.toolItemId");
     check("  carrying as asked what the submission asked for (#455)", land.asked, "count");
     check("  counting as unwritten what was asked for less what was created", land.unwritten, "count - created.length");
-    check("  and naming as unlogged the list its log pass fills on a failure", `${land.unlogged} ${land.caughtInto}`, "unlogged unlogged");
+    check("  and naming as unlogged what the log pass answers (#470)", `${land.unlogged} from ${land.unloggedFrom}`, "unlogged from createFirstToolLogEntries");
     check("the redirect is outside every try", land.inTry, false);
     check("  a batch that wrote nothing refuses before it", land.guardBefore, true);
     // WHAT IT RETURNS IS A REFUSAL AND NOTHING ELSE: the reading's own answer when it took
@@ -576,9 +594,11 @@ export function run({ check, assert, log }) {
     check("  and every value the action returns is a refusal", [...new Set(land.returns)].join(", "), "reading, error");
     // ANTI-VACUITY: a planted action doing each of those wrong is seen doing it — the
     // record from another reader and another binding, the page from the count, a
-    // selection of the logged tool items, a shortfall of the whole count, the redirect
-    // inside the loop's try, the refusal after it, the old account returned, and a
-    // submission read by a check of its own against every job on the base.
+    // selection of another list, a shortfall of the whole count, an unlogged list read
+    // off something other than the log pass, a log pass handed another list, job and
+    // reader and run after the redirect, the redirect inside a try, the refusal after
+    // it, the old account returned, and a submission read by a check of its own against
+    // every job on the base.
     const plantedLanding = landingFacts(
         parseSource(
             "export async function registerToolItemsAction(prevState, formData) {\n" +
@@ -588,12 +608,11 @@ export function run({ check, assert, log }) {
                 "    const { tool } = await getToolByName(toolName);\n" +
                 "    const { created } = await createToolItems({ toolRecordId: tool.id, jobRecordId: job.id, count });\n" +
                 "    const logged = [];\n" +
-                "    for (const toolItem of created) {\n" +
-                "      try {\n" +
-                "        await createToolLogEntry({ event: 'Registered' });\n" +
-                "        redirect(toolPath(job.id, pageHolding(count), logged, { asked: created.length, unwritten: count, unlogged: created }));\n" +
-                "      } catch { logged.push(toolItem.toolItemId); }\n" +
-                "    }\n" +
+                "    const { unlogged } = await readUnlogged(created);\n" +
+                "    try {\n" +
+                "      redirect(toolPath(job.id, pageHolding(count), logged, { asked: created.length, unwritten: count, unlogged: created }));\n" +
+                "    } catch { logged.push(1); }\n" +
+                "    await createFirstToolLogEntries({ toolItems: logged, jobRecordId: tool.id, recordedByUserId: job.id });\n" +
                 "    if (created.length === 0) return { error: 'x' };\n" +
                 "    return { toolItemIds: created };\n" +
                 "  });\n" +
@@ -603,16 +622,112 @@ export function run({ check, assert, log }) {
     );
     check("  a submission read by another check, against another list, is seen", plantedLanding.readFrom, "readQuantity(…, allJobs)");
     check("  a job list not narrowed to the reader is seen", plantedLanding.jobsFrom, "getAllJobs");
-    check("  an event spelled as a string is seen", plantedLanding.event, '"Registered"');
+    check("  a log pass handed another list, job and reader is seen", plantedLanding.logged, "logged tool.id job.id");
+    check("  a log pass after the redirect is seen", plantedLanding.logBetween, false);
     check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.toolFrom}`, "job.id from getToolByName");
     check("  a page from another figure is seen", plantedLanding.page, "pageHolding(count)");
     check("  a selection of anything but what was created is seen", plantedLanding.selected, "logged");
     check("  an asked figure that is what was created is seen", plantedLanding.asked, "created.length");
     check("  a shortfall of the whole count is seen", plantedLanding.unwritten, "count");
-    check("  an unlogged list the failures do not fill is seen", `${plantedLanding.unlogged} ${plantedLanding.caughtInto}`, "created logged");
+    check(
+        "  an unlogged list read off anything but the log pass's answer is seen",
+        `${plantedLanding.unlogged} from ${plantedLanding.unloggedFrom}`,
+        "created from readUnlogged"
+    );
     check("  a redirect inside a try is seen", plantedLanding.inTry, true);
     check("  a refusal after the redirect is seen", plantedLanding.guardBefore, false);
     check("  and the old account returned is seen", [...new Set(plantedLanding.returns)].join(", "), "error, toolItemIds");
+
+    // #470: THE TWO WRITERS A REGISTRATION CALLS, read off their own sources, since both
+    // reach lib/airtable/client.js. What section 9 runs is `lib/airtableBatch.js` and the
+    // ID rule; what makes that the registration is that these hand them their rows —
+    // the tool items inside the day-prefix lock, awaited before the lock's callback
+    // returns, and the first log rows minted with no read and named back as unlogged.
+    log("");
+    log("the two writers hand the batch writer their rows (#470):");
+    const writerFacts = ({ ast, source }) => {
+        const text = (node) => (node ? source.slice(node.start, node.end).replace(/\s+/g, " ") : "none");
+        const facts = {};
+        const items = resolveFunction(ast, "createToolItems");
+        if (items) {
+            const [mint] = callsTo(items, "generateNextToolItemIds");
+            const callback = mint?.arguments[1];
+            const [write] = callback ? callsTo(callback, "createRecords") : [];
+            facts.itemsWrite = write ? `${text(write.arguments[0])}, ${text(write.arguments[1])}, ${text(write.arguments[2])}` : "none";
+            let awaited = false;
+            walk(callback ?? {}, (n) => {
+                if (n.type === "AwaitExpression" && n.argument === write) awaited = true;
+            });
+            facts.itemsAwaited = awaited;
+            let created = "none";
+            walk(callback ?? {}, (n) => {
+                if (n.type === "Property" && n.key?.name === "created") created = text(n.value);
+            });
+            facts.created = created;
+        }
+        const first = resolveFunction(ast, "createFirstToolLogEntries");
+        if (first) {
+            const [mint] = callsTo(first, "generateFirstChildIds");
+            const config = (name) => text(mint?.arguments[0]?.properties?.find((p) => p.key?.name === name)?.value);
+            facts.firstMint = `${config("parentTableName")} ${config("parentLinkFieldName")} ${config("parents")}`;
+            const callback = mint?.arguments[1];
+            const [write] = callback ? callsTo(callback, "createRecords") : [];
+            facts.logWrite = write ? `${text(write.arguments[0])}, ${text(write.arguments[1])}` : "none";
+            let unlogged = "none";
+            walk(callback ?? {}, (n) => {
+                if (n.type === "Property" && n.key?.name === "unlogged") unlogged = text(n.value);
+            });
+            facts.unlogged = unlogged;
+            const [fields] = callsTo(first, "entryFields");
+            facts.event = text(fields?.arguments[0]?.properties?.find((p) => p.key?.name === "event")?.value);
+            facts.perRow = callsTo(first, "generateChildId").length + callsTo(first, "createToolLogEntry").length;
+        }
+        return facts;
+    };
+    const itemsWriter = writerFacts(parseFile(TOOL_ITEMS));
+    check(
+        "createToolItems writes its tool items through createRecords",
+        itemsWriter.itemsWrite,
+        'TABLES.TOOL_ITEMS, "Tool Item ID", toolItemIds'
+    );
+    check("  awaited inside the day-prefix lock's callback", itemsWriter.itemsAwaited, true);
+    check("  answering as created exactly what was written", itemsWriter.created, "written.map(({ record }) => recordToToolItem(record))");
+    const logWriter = writerFacts(parseFile(TOOL_LOG));
+    check(
+        "createFirstToolLogEntries mints each first row with no read",
+        logWriter.firstMint,
+        'TABLES.TOOL_ITEMS "Tool Log" toolItems.map((toolItem) => ({ prefix: toolItem.toolItemId, childRecordIds: toolItem.toolLog }))'
+    );
+    check("  writes the rows through createRecords", logWriter.logWrite, 'TABLES.TOOL_LOG, "Tool Log ID"');
+    check("  names as unlogged what did not land", logWriter.unlogged, "unwritten.map(({ toolItem }) => toolItem.toolItemId)");
+    check("  writes the vocabulary's first event (#455)", logWriter.event, "TOOL_EVENT.CREATED");
+    check("  and mints nothing one row at a time", logWriter.perRow, 0);
+    const plantedWriters = writerFacts(
+        parseSource(
+            "export async function createToolItems({ count }) {\n" +
+                "  return generateNextToolItemIds(count, (toolItemIds) => {\n" +
+                "    createRecords(TABLES.TOOL_LOG, 'Tool Item ID', toolItemIds, rowOf);\n" +
+                "    return { created: toolItemIds };\n" +
+                "  });\n" +
+                "}\n" +
+                "export async function createFirstToolLogEntries({ toolItems }) {\n" +
+                "  entryFields({ event: 'Created' });\n" +
+                "  for (const toolItem of toolItems) await createToolLogEntry({ toolItem });\n" +
+                "  return generateFirstChildIds({ parentTableName: TABLES.TOOL_LOG, parentLinkFieldName: 'Tool Log', parents: [] }, async (ids) => {\n" +
+                "    const { written } = await createRecords(TABLES.TOOL_ITEMS, 'Tool Log ID', ids, rowOf);\n" +
+                "    return { unlogged: written.map(({ item }) => item) };\n" +
+                "  });\n" +
+                "}\n",
+            "<planted-writers>"
+        )
+    );
+    check("  a write to another table is seen", plantedWriters.itemsWrite, "TABLES.TOOL_LOG, 'Tool Item ID', toolItemIds");
+    check("  a write the lock's callback does not wait for is seen", plantedWriters.itemsAwaited, false);
+    check("  created answered as what was minted is seen", plantedWriters.created, "toolItemIds");
+    check("  a first row minted under another parent is seen", plantedWriters.firstMint, "TABLES.TOOL_LOG 'Tool Log' []");
+    check("  unlogged read off what was written is seen", plantedWriters.unlogged, "written.map(({ item }) => item)");
+    check("  an event spelled as a string is seen", plantedWriters.event, "'Created'");
+    check("  and a row minted one at a time is seen", plantedWriters.perRow, 1);
 
     // THE DIALOG'S HALF (#456). It submits through its own handler, which prevents the
     // default, asks `readRegistration` before anything is sent and returns on a refusal,
@@ -798,6 +913,89 @@ export function run({ check, assert, log }) {
         `${plantedDialog.openWhile} where address = ${plantedDialog.address}`,
         "openedAt !== null where address = useSearchParams().toString()"
     );
+
+    // ── 9: a registration's failures, run against a fake base (#470) ─────────
+    // What a landing says after a batch fails is decided by `lib/airtableBatch.js`, which
+    // imports nothing, so a registration's two passes run here as section 8 reads them
+    // wired: its tool items minted as one contiguous run and written ten to a request,
+    // then a first log row for each that landed — its id `nextChildId` over no siblings —
+    // written the same way. The account they leave goes onto a landing through `toolPath`
+    // and is read back the way the tool's page reads it, so each assertion is about what
+    // the reader is told. The fake is `airtable-batch.mjs`' own (`_fakeBase.mjs`).
+    log("");
+    log("a registration whose batch fails says how many were written, and which have no first row (#470):");
+    const FIRST_ROW = childKind("Tool Items", "Tool Log");
+    const printed = (from, to) =>
+        Array.from({ length: to - from + 1 }, (_, i) => `HYE-TL-261001-${String(from + i).padStart(3, "0")}`).join(" ");
+    const register = async (count, { toolAnswer, logAnswer } = {}) => {
+        const toolBase = fakeBase({ idField: "Tool Item ID", answer: toolAnswer });
+        const tools = await createInBatches(formatSequentialIds("HYE-TL-261001", 1, count, { padLength: 3 }), {
+            idField: "Tool Item ID",
+            rowOf: (toolItemId) => ({ "Tool Item ID": toolItemId }),
+            create: toolBase.create,
+            readBack: toolBase.readBack,
+        });
+        const created = tools.written.map(({ item }) => item);
+        const logBase = fakeBase({ idField: "Tool Log ID", answer: logAnswer });
+        const logs = await createInBatches(created, {
+            idField: "Tool Log ID",
+            rowOf: (toolItemId) => ({ "Tool Log ID": nextChildId(FIRST_ROW, toolItemId, []) }),
+            create: logBase.create,
+            readBack: logBase.readBack,
+        });
+        const address = new URLSearchParams(
+            toolPath("recTool", 1, created, { asked: count, unwritten: count - created.length, unlogged: logs.unwritten }).split("?")[1]
+        );
+        const account = readRegistrationAccount({
+            asked: address.get("asked"),
+            unwritten: address.get("unwritten"),
+            unlogged: address.getAll("unlogged"),
+        });
+        const told = (query = address) => accountToTell(account, query);
+        const said =
+            account.unwritten > 0
+                ? `${TOOL_REGISTRATION_COPY.shortfallHeading({ created: account.asked - account.unwritten, asked: account.asked })} — ${TOOL_REGISTRATION_COPY.shortfall(account.unwritten)}`
+                : "";
+        return { created, account, address, told, said, rows: [...logBase.held.keys()] };
+    };
+    const without = (address, key) => {
+        const next = new URLSearchParams(address);
+        next.delete(key);
+        if (key === "unwritten") next.delete("asked");
+        return next;
+    };
+    {
+        const refused = await register(25, { toolAnswer: (n) => (n === 1 ? { land: 0 } : null) });
+        check("a tool items request refused whole: what landed before it is selected", refused.address.getAll("id").join(" "), printed(1, 10));
+        check("  and the fork says the rest", refused.said, "10 of 25 tools created — 15 couldn't be created.");
+        check("  with nothing unlogged, since every one written has its first row", `${refused.told()} ${refused.account.unlogged.length}`, "shortfall 0");
+    }
+    {
+        const lost = await register(25, { toolAnswer: (n, rows) => (n === 1 ? { land: rows.length } : null) });
+        check("its answer lost after the rows landed: the read-back selects twenty", lost.address.getAll("id").join(" "), printed(1, 20));
+        check("  and the fork says five", lost.said, "20 of 25 tools created — 5 couldn't be created.");
+        check("  each of the twenty with its first row, minted with no read", `${lost.rows.length} ${lost.rows[0]} ${lost.rows[19]}`, "20 HYE-TL-261001-001-001 HYE-TL-261001-020-001");
+    }
+    {
+        const unlogged = await register(12, { logAnswer: (n) => (n === 1 ? { land: 0 } : null) });
+        check("a first rows request refused whole: every tool item selected", unlogged.address.getAll("id").join(" "), printed(1, 12));
+        check("  no shortfall to offer", `${unlogged.account.asked}/${unlogged.account.unwritten}`, "0/0");
+        check("  and the notice names exactly the two without a row", unlogged.account.unlogged.join(" "), printed(11, 12));
+        check("  told as the notice", `${unlogged.told()} — ${TOOL_REGISTRATION_COPY.unloggedHeading(unlogged.account.unlogged.length)}`, "unlogged — 2 tools have no creation date");
+        check("  and after `Got it`, nothing", unlogged.told(without(unlogged.address, "unlogged")), null);
+    }
+    {
+        const logLost = await register(12, { logAnswer: (n, rows) => (n === 1 ? { land: rows.length } : null) });
+        check("its answer lost after the rows landed: no tool item is named, and nothing told", `${logLost.account.unlogged.length} ${logLost.told()}`, "0 null");
+    }
+    {
+        const both = await register(25, {
+            toolAnswer: (n) => (n === 2 ? { land: 0 } : null),
+            logAnswer: (n) => (n === 1 ? { land: 0 } : null),
+        });
+        check("both passes failing: the notice first, naming the second ten", `${both.told()} ${both.account.unlogged.join(" ")}`, `unlogged ${printed(11, 20)}`);
+        check("  then the fork, for the five never written", `${both.told(without(both.address, "unlogged"))} — ${both.said}`, "shortfall — 20 of 25 tools created — 5 couldn't be created.");
+    }
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");

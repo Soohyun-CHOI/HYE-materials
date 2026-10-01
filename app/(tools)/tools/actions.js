@@ -5,8 +5,7 @@ import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { upsertTool } from "@/lib/airtable/tools";
 import { createToolItems } from "@/lib/airtable/toolItems";
-import { createToolLogEntry } from "@/lib/airtable/toolLog";
-import { TOOL_EVENT } from "@/lib/toolStatus";
+import { createFirstToolLogEntries } from "@/lib/airtable/toolLog";
 import { assignedJobsFor } from "@/lib/toolJob";
 import { pageHolding } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY, readRegistration } from "@/lib/toolRegistration";
@@ -59,14 +58,18 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * need not be the page it was opened from. Nothing has observed it: the base's tools
  * carry distinct keys. The repair is #338's, merging the two rows by hand.
  *
- * TWO WRITES IN SEQUENCE AND NEVER NESTED, WHICH IS FORCED RATHER THAN CHOSEN.
- * `createToolItems` holds the day-prefix lock across its whole batch and
- * `createToolLogEntry` takes a per-tool-item lock of its own, so writing each
- * log row inside the batch would nest two `withKeyLock` calls — the thing
+ * TWO WRITES IN SEQUENCE, AND SINCE #470 THAT IS CHOSEN RATHER THAN FORCED.
+ * `createToolItems` holds the day-prefix lock across its whole batch, and the log
+ * pass took a per-tool-item lock of its own until #470, so writing each log row
+ * inside the batch would have nested two `withKeyLock` calls — the thing
  * CLAUDE.md's concurrency section forbids, and the reason lib/materialsCache.js
- * takes its two locks in sequence. The cost of obeying it is that a failure in
- * the log pass can leave more than one tool item without a `Created` row, and
- * the landing names those separately.
+ * takes its two locks in sequence. `createFirstToolLogEntries` takes no lock, since
+ * a tool item this invocation just made has no history to read, so nothing forbids
+ * it now; the pass stays after the batch because inside it would hold the lock every
+ * registration in this process waits on through writes that mint nothing under it.
+ * The cost is the one obeying the rule had: a failure in the log pass can leave
+ * more than one tool item without a `Created` row, and the landing names those
+ * separately.
  *
  * NOTHING ROLLS BACK. `createToolItems`' own header carries the argument: undoing
  * the rows would free ids the daily counter has already spent, and `nextSequence`
@@ -104,10 +107,10 @@ export async function registerToolItemsAction(prevState, formData) {
 
         const { tool } = await upsertTool({ toolName });
 
-        // `createToolItems` also hands back what failed, with the error. The landing
-        // needs only how many were not written, which is the count less what was: the
-        // batch stops at its first failed create and attempts nothing after it, so the
-        // failure names one tool item where the shortfall can be many.
+        // `createToolItems` also hands back the failure that stopped it. The landing
+        // needs only how many were not written, which is the count less what was: a
+        // failed request is read back by its ids before it is counted, and nothing
+        // after it is sent (#470), so `created` is every tool item the base holds.
         const { created } = await createToolItems({
             toolRecordId: tool.id,
             jobRecordId: job.id,
@@ -121,31 +124,18 @@ export async function registerToolItemsAction(prevState, formData) {
 
         // The `Created` row is this action's to write — `createToolItems`
         // creates the tool item and its cached `Status` and says so. One row per
-        // tool item that was actually created, and a failure STOPS the pass
-        // rather than trying the rest, which is `createToolItems`' own posture
-        // one level up and for its reason: a log write that fails is failing
-        // systemically far more often than per row, and firing a hundred more
-        // requests at a rate limit makes the account worse rather than shorter.
-        // The rows before it are complete and the ones after it are named as
-        // unlogged, which is a state with no repair (see the copy).
-        const unlogged = [];
-        for (const toolItem of created) {
-            if (unlogged.length > 0) {
-                unlogged.push(toolItem.toolItemId);
-                continue;
-            }
-            try {
-                await createToolLogEntry({
-                    toolItemRecordId: toolItem.id,
-                    toolItemId: toolItem.toolItemId,
-                    event: TOOL_EVENT.CREATED,
-                    jobRecordId: job.id,
-                    recordedByUserId: user.id,
-                });
-            } catch {
-                unlogged.push(toolItem.toolItemId);
-            }
-        }
+        // tool item that was actually created, ten to a request since #470, and a
+        // failed request STOPS the pass rather than sending the rest, which is
+        // `createToolItems`' own posture and for its reason: a log write that fails
+        // is failing systemically far more often than per row. What did not land is
+        // named as unlogged, which is a state with no repair (see the copy); a
+        // request whose answer was lost is read back first, so a row that did land
+        // is never named.
+        const { unlogged } = await createFirstToolLogEntries({
+            toolItems: created,
+            jobRecordId: job.id,
+            recordedByUserId: user.id,
+        });
 
         // OUTSIDE EVERY `try`, AND IT HAS TO BE. `redirect` throws to navigate, so a
         // `catch` around it would take the navigation for a failed log write.
