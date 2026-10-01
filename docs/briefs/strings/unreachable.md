@@ -32,10 +32,20 @@ reason.
 
 ## `/login`
 
-- **`Email is required`** — `app/api/auth/request/route.js:10`. The email input
+- **`Email is required`** — `app/api/auth/request/route.js:32`. The email input
   carries `required`, so an empty submit never leaves the page. **Checked in a
   browser**: with the field cleared the form reports invalid and the submit handler
   does not run, so the standing message stays and this one never appears.
+- **`Cross-origin sign-in is not allowed`** (#471) — `lib/crossOrigin.js`, answered
+  by the request route and the code route and shown by the screen's error slot. The
+  screen posts to its own host, so its own requests never carry another origin; the
+  sentence is for a page elsewhere, which has no screen here to show it on.
+- **`A sign-in email needs a six-digit code`** and **`A sign-in email needs its
+  link`** (#471) — the mail builder's refusals in `lib/authTokenState.js`, thrown
+  inside `requestMagicLink` and serialized by the request route. The only caller
+  hands the builder the code and the link the row it just created carries, so
+  neither is ever missing; they exist so that a future caller who forgets one fails
+  instead of mailing `undefined`.
 
 ## `/invoices/new`
 

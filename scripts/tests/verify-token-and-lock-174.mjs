@@ -24,6 +24,17 @@
 // call (`auth-token:<token>`), so Part A checks the mechanism and Part B checks
 // the rule that rests on it.
 //
+//   3. `consumeAuthCode` (#471), and the race that issue's correctness rests on.
+//      The email carries a code beside the link, and the two are ways of spending
+//      ONE row: they share one lock key and one write, so a link and a code
+//      arriving together must end the row once. That is a run-time property of
+//      two real calls against the base — the structure is held offline by
+//      `offline/sign-in-code.mjs`, and what a code attempt is judged to be by
+//      `offline/auth-token-state.mjs` — so Part C races them, and races the right
+//      code against itself, which is a double submit. It is WITHIN ONE PROCESS,
+//      because that is what the lock covers; two instances at once are the
+//      residual `lib/airtable/authTokens.js`'s header names.
+//
 // PART A IS PURE — no Airtable, deterministic through setTimeout — and would be
 // better off in the offline tier. It is here because `withKeyLock` lives in
 // `lib/airtable/client.js`, which throws at module load without credentials. A
@@ -41,15 +52,23 @@
 // Run from the repo root:
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-token-and-lock-174.mjs
 //
-// Fixtures: two Auth Tokens rows, deleted in this same run through
-// scripts/tests/_fixtures.mjs (#171). Creates nothing in Vercel Blob and mints no
-// session — a consumed token is not a session, and both rows are destroyed.
+// Fixtures: five Auth Tokens rows — two for Part B, three for Part C — deleted in
+// this same run through scripts/tests/_fixtures.mjs (#171). Creates nothing in
+// Vercel Blob and mints no session — a consumed token is not a session, and every
+// row is destroyed. Part C prints its own operation count.
 //
 // Exit codes: 0 all clear, 1 something failed OR this run left rows on the base,
 // 2 clean but incomplete.
 
 import { base, TABLES, withKeyLock, _debugLockKeys } from "../../lib/airtable/client.js";
-import { createAuthToken, consumeAuthToken, getAuthTokenRecord } from "../../lib/airtable/authTokens.js";
+import {
+    createAuthToken,
+    consumeAuthCode,
+    consumeAuthToken,
+    getAuthTokenRecord,
+} from "../../lib/airtable/authTokens.js";
+import { CODE_STATES } from "../../lib/authTokenState.js";
+import { snapshot } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 
@@ -68,7 +87,9 @@ function assert(label, ok) {
     return Boolean(ok);
 }
 
-printProvenance({ title: "verify-token-and-lock-174 — withKeyLock's rejection path, and token refusals" });
+printProvenance({
+    title: "verify-token-and-lock-174 — withKeyLock's rejection path, token refusals, and the link-and-code race",
+});
 
 const fixtures = createFixtures({
     tag: "V174",
@@ -177,6 +198,93 @@ try {
         check("still unused before the attempt", (await getAuthTokenRecord(expiredToken)).get("Used") === true, false);
         check("an expired token is refused even though it was never used", await consumeAuthToken(expiredToken), null);
     }
+
+    // -----------------------------------------------------------------------
+    console.log("\nPart C — the code (#471): one row, two ways in, and it ends once");
+    const opsBeforeC = snapshot().total;
+
+    const raceEmail = `${TAG}-race@hyeusa.com`;
+    const race = await createAuthToken(raceEmail);
+    fixtures.track("tokens", race.recordId);
+    assert("createAuthToken returns a six-digit code", /^\d{6}$/.test(race.code ?? ""));
+    assert("  and the row's record id", typeof race.recordId === "string" && race.recordId.startsWith("rec"));
+
+    // A WRONG CODE IS COUNTED BEFORE IT IS ANSWERED — the order the issue's
+    // fail-closed argument rests on, read back rather than assumed.
+    const wrongCode = race.code === "000000" ? "000001" : "000000";
+    const wrong = await consumeAuthCode(race.recordId, wrongCode);
+    check("a wrong code is refused as wrong", wrong.state, CODE_STATES.WRONG);
+    check("  with four tries left", wrong.remaining, 4);
+    const afterWrong = await getAuthTokenRecord(race.token);
+    check("  and the row holds its count", afterWrong?.get("Code Attempts"), 1);
+    check("  while the row stays unused", afterWrong?.get("Used") === true, false);
+
+    // THE CONTROL, WHICH IS WHAT MAKES "EXACTLY ONE WINS" MEAN SOMETHING. The same
+    // read-then-spend under two DIFFERENT keys, on a row of its own: if both see
+    // it unused, the window one shared key closes is real at this base's speed,
+    // and the race below passes because of the key rather than because of timing.
+    // Written out here rather than by breaking the production module, so the run
+    // proves the window without ever shipping the defect.
+    const control = await createAuthToken(`${TAG}-control@hyeusa.com`);
+    fixtures.track("tokens", control.recordId);
+    const readThenSpend = (key) =>
+        withKeyLock(key, async () => {
+            const row = await getAuthTokenRecord(control.token);
+            const unused = row?.get("Used") !== true;
+            if (unused) await base(TABLES.AUTH_TOKENS).update([{ id: row.id, fields: { Used: true } }]);
+            return unused;
+        });
+    const [left, right] = await Promise.all([readThenSpend(`${TAG}-key-a`), readThenSpend(`${TAG}-key-b`)]);
+    if (left && right) {
+        assert("the control: under two keys, both see one row unused — the window is real", true);
+    } else {
+        incomplete = "the control could not open the race window, so the race below proves nothing this run";
+        console.log(`  SKIP  ${incomplete}`);
+    }
+
+    // THE RACE. The link and the code for one row, fired together, in the one
+    // process the lock covers. With two lock keys both would read the row unused
+    // and both would start a session, which is what the control just did.
+    const opsBeforeRace = snapshot().total;
+    const [byLink, byCode] = await Promise.all([
+        consumeAuthToken(race.token),
+        consumeAuthCode(race.recordId, race.code),
+    ]);
+    const raceOps = snapshot().total - opsBeforeRace;
+    const linkWon = byLink?.email === raceEmail;
+    const codeWon = byCode?.state === CODE_STATES.VALID;
+    check("a link and a code racing for one row: exactly one wins", Number(linkWon) + Number(codeWon), 1);
+    console.log(`    (${linkWon ? "the link" : codeWon ? "the code" : "neither"} won, in ${raceOps} operations)`);
+    if (linkWon) check("  the code that lost is told the row is used", byCode?.state, CODE_STATES.USED);
+    if (codeWon) check("  the link that lost is refused", byLink, null);
+    const afterRace = await getAuthTokenRecord(race.token);
+    check("  the row is spent", afterRace?.get("Used"), true);
+    // The loser writes nothing: a code refused as `used` is not an attempt.
+    check("  and only the winner counted an attempt", afterRace?.get("Code Attempts"), codeWon ? 2 : 1);
+
+    // A DOUBLE SUBMIT: the right code, twice, at once.
+    const twice = await createAuthToken(`${TAG}-twice@hyeusa.com`);
+    fixtures.track("tokens", twice.recordId);
+    const [one, two] = await Promise.all([
+        consumeAuthCode(twice.recordId, twice.code),
+        consumeAuthCode(twice.recordId, twice.code),
+    ]);
+    check(
+        "the right code sent twice at once signs in once",
+        [one.state, two.state].sort().join(","),
+        [CODE_STATES.USED, CODE_STATES.VALID].sort().join(",")
+    );
+    check("  and counts one attempt", (await getAuthTokenRecord(twice.token))?.get("Code Attempts"), 1);
+    check("the link of a row a code spent is refused", await consumeAuthToken(twice.token), null);
+
+    // WHAT IS NOT AN ATTEMPT COSTS NO READ.
+    const opsBeforeRefusals = snapshot().total;
+    check("a browser waiting for nothing is refused", (await consumeAuthCode(undefined, twice.code)).state, CODE_STATES.MISSING);
+    check("a value that is not a code is refused", (await consumeAuthCode(twice.recordId, "12345")).state, CODE_STATES.MALFORMED);
+    check("  and neither touched the base", snapshot().total - opsBeforeRefusals, 0);
+    check("an id no row answers to is invalid", (await consumeAuthCode("recAAAAAAAAAAAAAA", twice.code)).state, CODE_STATES.INVALID);
+
+    console.log(`\n  Part C cost ${snapshot().total - opsBeforeC} Airtable operations (the race itself ${raceOps}).`);
 
     complete = true;
 } catch (err) {

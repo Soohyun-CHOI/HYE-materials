@@ -592,6 +592,14 @@ PDF, not on a screen. The five token states:
 unknown one say the same thing) / `This sign-in link has already been used.` /
 `This sign-in link has expired. Sign-in links last 15 minutes.`
 
+The code step on `/login` (#471), from the same module: `Check your email`, `Code`,
+`Sign in`, `Send a new email`, `Use a different email`, and one sentence per
+refusal — `Enter the 6-digit code from the email.` / `That code does not match.
+4 tries left.` / `This code was entered wrong 5 times, so it no longer works.` /
+`The code or the link in this email has already been used.` / `This code has
+expired. Codes last 15 minutes.` / `No sign-in code is waiting on this screen.` The
+figures come from the constants that decide them, as the link's do.
+
 ### Uploaded files (tier 1, `lib/fileLinks.js`)
 
 What the viewer calls each of the five files it can show, over the filename:
@@ -823,8 +831,9 @@ tool item is ever drawn.
 
 **Those two name no width priority, and that is decided rather than left
 open.** Each tools brief says which width it is drawn for; these two say
-neither, because each is one field and one button with nothing to fold — there
-is no layout for a priority to decide today. It becomes a real question when
+neither, because each step is one field and one button, with at most two small
+controls under them, and nothing to fold — there is no layout for a priority to
+decide today. It becomes a real question when
 #258 gives them a scale, and both cases are on the table when it does. What is
 measured rather than assumed: at 375px both screens render with no horizontal
 overflow, the form 311px inside the page's padding.

@@ -23,7 +23,9 @@
 // never import it. A body assembled in there can be read as source and never CALLED,
 // which means no check can ever ask what figure it would print. #290 moved the first
 // mail out for that reason and #292 generalized it: a mail carrying a figure is a
-// builder, a mail carrying none stays where its own issue put it.
+// builder, a mail carrying none stays where its own issue put it — except the
+// sign-in mail, which became one in #471 for the code it carries rather than for a
+// figure.
 //
 // THE SECOND MUTANT IS THE RIGHT CALL WITH THE WRONG VALUE. `itemsSubtotal` instead of
 // `totalAmount` formats just as prettily, and a formatted string passed where a number
@@ -60,7 +62,9 @@ const SEND_ACTION = "app/pos/[poId]/actions.js";
 const SENDERS = {
     sendMagicLinkEmail: {
         money: false,
-        why: "a link and a TTL in minutes; no figure of any kind",
+        why:
+            "a link, a six-digit code and a TTL in minutes; no money of any kind. Its words are a builder since" +
+            " #471 (lib/authTokenState.js:SIGN_IN_COPY.mail) for the code it carries, not for a figure",
     },
     sendSignerTurnEmail: {
         money: false,

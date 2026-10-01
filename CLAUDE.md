@@ -68,7 +68,7 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 - Next.js (App Router, JavaScript, Tailwind), deployed on Vercel.
 - Airtable as data store only (base: "Material Purchases"). All business logic lives in the backend. Airtable formulas only for pure data transforms, never workflow logic.
-- Auth: magic link only, restricted to company email domain, verified. New signups always land as plain Employee (Is Admin: false) — promotion is a manual Airtable edit.
+- Auth: a magic link, or the code the same email carries (#471), restricted to company email domain, verified. New signups always land as plain Employee (Is Admin: false) — promotion is a manual Airtable edit.
 
 
 ### Editing the Airtable schema
@@ -93,7 +93,9 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/idSequence.js` — the pure half: the daily ID families and the child relations.
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
-- `lib/authTokenState.js` — whether a magic-link token can still be used, and the TTL.
+- `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, and every word either says.
+- `lib/crossOrigin.js` — the login-CSRF refusal every sign-in POST makes.
+- `lib/cookieLifetime.js` — each sealed cookie's lifetime, one value for its seal and its cookie. A session lasts 30 days from sign-in and is never extended.
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373).
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
@@ -233,7 +235,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Tool Log**: what has happened to one tool item, append-only (#334). `Tool Log ID` ({Tool Item ID}-{seq}, 3 digits), `Tool Item` (link, single), `Event` (select — Created/Checked Out/Checked In/Retired), `Job` (link → Jobs, single, **on every row and never blank**, which is what makes the previous row the previous job — so **no `Former Job` is stored**; where each event learns it is in `tools.md`), `Recorded By` (link → Users, single), `Event At` (datetime, UTC), `Checked Out To` (text — the person a tool item was handed to, **on `Checked Out` rows and blank on the other three, app-enforced both ways**; no account exists for these people, #376). `Notes` was here until #363 dropped the rule it existed for.
 
-**Auth Tokens**: Token (primary), Email, Expires At, Used, Created At. Single-use, 15-min TTL.
+**Auth Tokens**: Token (primary), Code (text, six digits, #471), Code Attempts (number), Email, Expires At, Used, Created At. Single-use by link or code, 15-min TTL, five tries per code.
 
 ### Units
 
@@ -286,8 +288,8 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
-- Magic link only, restricted to the company email domain. `requestMagicLink()` domain-checks then emails a link; `consumeAuthToken` spends the token under `withKeyLock`. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
-- **The POST refuses a cross-origin submission** — `Origin` against `Host`, and absence fails open.
+- A magic link, or the code beside it in the same email, restricted to the company email domain. `requestMagicLink()` domain-checks then emails both; **a code works only in the browser that asked (#471)**, and `consumeAuthToken` and `consumeAuthCode` spend the one row under one `withKeyLock` key. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
+- **Every sign-in POST refuses a cross-origin submission** — `Origin` against `Host`, and absence fails open.
 - `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out.
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too.
 - **There is no user-creation screen.** A Users record appears as a side effect of a first magic-link sign-in and in no other way. `lib/airtable/users.js:addAssignedJob` is the only writer of `Assigned Jobs` and is additive.
