@@ -216,12 +216,13 @@ and no `title`. Whether it should be named by those words or hidden, since the
 heading already carries the id, is undecided — so a design must not draw room for
 the string, and naming the symbol is a decision about the page rather than a word.
 
-**action.** A control that prints this tool item's label. It leads to the label
-screen carrying this one tool item, rather than printing from here — that screen
-owns the label's page and the print rule, so printing from here would be a second
-layout of one label. It also owned the position on the sheet to start at until
-#467 took the sheet, when **printing one label was the archetypal part-used
-sheet**; a label is a page of its own now, so nothing is part used.
+**action.** A control that prints this tool item's label, `Print label`. It opens
+the labels' dialog on this one label (#457), rather than printing the page — that
+dialog owns the label's page and the print rule, so printing the page would be a
+second layout of one label. It led to the label screen carrying this one tool
+item until then, and that screen also owned the position on the sheet to start
+at until #467 took the sheet, when **printing one label was the archetypal
+part-used sheet**; a label is a page of its own now, so nothing is part used.
 
 **It does not say `reprint`, and the reason is that the screen cannot know.**
 Nothing in this base records whether a sticker was ever printed or stuck on, so a
@@ -357,8 +358,8 @@ this symbol does not fit the label stock, so it does not print.` in place of the
 line saying it is shown at the size it prints. The label keeps no room for a
 symbol larger than today's, so any host longer than seventeen characters
 reaches this, and a Vercel domain is one. The symbol is still drawn at its own
-size and the print control still leads to the label screen, which names the tool
-item rather than drawing its label. **A design that keeps the printed-size line
+size and the print control still opens the labels' dialog, which draws no page
+for it and says why (#457). **A design that keeps the printed-size line
 and drops this one makes the page claim a printed size for a label nothing
 prints.**
 
@@ -426,16 +427,21 @@ as items on the tool's own page. **The one sentence here that still says `tool
 item` is the not-found heading**, which the design is rewriting; the brief quotes
 it as it stands.
 
-**The symbol here and a symbol on the label screen are the same object at the
-same size, and that is measured rather than intended.** Both screens read one
-module size, the floor a print proved (#467), and multiply it by the side count
-that symbol actually came out at, so a longer address makes a bigger symbol on
-both rather than a denser one on either. A design that pins this one to a box in
-pixels breaks the equality, and nothing on screen would show it.
+**The symbol here and the label the dialog prints are one object, built once for
+both (#457), and this page draws it at the size it prints at — measured, 9.568 mm
+for a symbol drawn 9.57.** The dialog draws the same label at twice that, 19.14
+mm, and prints it at its own; the label screen drew it at the same size as this
+page until then. Both read one module size, the floor a print proved (#467), and
+multiply it by the side count that symbol actually came out at, so a longer
+address makes a bigger symbol on both rather than a denser one on either. A
+design that pins this one to a box in pixels breaks the equality with the
+printed label, and nothing on screen would show it.
 
-**This screen prints nothing itself.** Its print control is a link. That is what
-keeps a replacement the same physical object as the original by construction —
-there is no second layout to drift from the label screen's.
+**This screen prints nothing itself.** Its print control opens the labels'
+dialog on the label this page built (#457), and it was a link to the label
+screen until then. That is what keeps a replacement the same physical object as
+the original by construction — there is no second layout to drift from the
+dialog's.
 
 **There are two ways in, and both survive a reload.** A scan of the label is the
 first, arriving through the short route that redirects here; the second is a

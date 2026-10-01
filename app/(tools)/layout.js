@@ -48,8 +48,9 @@ import Rail from "@/app/components/Rail";
  * face read on this axis has a loader only this axis reaches, and #258 moves the lot
  * to the root layout, where Geist's two calls are today. What reaches past this element
  * is only what is a DOM descendant of it — a dialog or a list in the top layer is still
- * one, which is why a face reaches them. The label's Inconsolata stays on its own page:
- * it is the label's measured face and not the design's (`tools.md`).
+ * one, which is why a face reaches them. The label's Inconsolata stays with the labels'
+ * dialog, which loads it (#457): it is the label's measured face and not the design's
+ * (`tools.md`).
  *
  * These screens are the only ones in the app used at a phone width as well as at
  * a monitor: a tool is entered and its labels printed at a desk, and a tool item

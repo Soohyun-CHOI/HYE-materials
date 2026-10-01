@@ -25,7 +25,7 @@
 //   What a press does to it and what the control says are pure functions, held by
 //   value at literal sizes on both sides of the print cap; what no value can show is
 //   where it lives — that the server never reads it, that the list is handed only the
-//   rows the page read, that the print link and both steps are built from it, and
+//   rows the page read, that the labels' opener and both steps are built from it, and
 //   that a press rewrites the address without a render — so those are read off the
 //   AST of the page and of the list, each beside a planted screen doing it wrong.
 //
@@ -298,7 +298,7 @@ export function run({ check, assert, log }) {
     // the control refusing. It was what one press of print SENT until #443 (#442), and
     // the order held for that reason then. Each figure is pinned by value where it
     // lives; this is the order between them.
-    assert("  and fits what the label screen prints at once", TOOL_PAGE_SIZE <= MAX_LABELS_PER_REQUEST);
+    assert("  and fits what one print takes at once", TOOL_PAGE_SIZE <= MAX_LABELS_PER_REQUEST);
 
     const idsOfLength = (n) => Array.from({ length: n }, (_, i) => `rec${String(i).padStart(3, "0")}`);
     // Literal lengths and literal page counts, on both sides of both edges a page of
@@ -407,7 +407,8 @@ export function run({ check, assert, log }) {
     // ids and the list is handed the rows that read returned. Drop `rowIds` and the
     // screen reads every tool item under the tool and offers every one of them to the
     // page box, with no figure on screen to show it. Until #443 the second claim was
-    // the print link, built on this page from the same read.
+    // the print link, built on this page from the same read — the labels' opener, in the
+    // list, since #457.
     //
     // AND THE PAGE READS NOTHING BUT `page` OFF ITS ADDRESS (#443). What a label run is
     // for is in the address too, and a page that read it could fetch the tool items
@@ -419,6 +420,7 @@ export function run({ check, assert, log }) {
         let rowIds = null;
         let rowsFrom = null;
         let printLinks = 0;
+        let listToolName = null;
         let accountFrom = null;
         let fork = null;
         let notice = null;
@@ -461,7 +463,14 @@ export function run({ check, assert, log }) {
                 const mapped = value?.type === "CallExpression" && value.callee?.property?.name === "map";
                 rowsFrom = mapped ? nameOf(value.callee.object) : nameOf(value ?? {});
             }
-            if (n.type === "CallExpression" && n.callee?.name === "toolItemLabelsPath") printLinks++;
+            // The labels' opener (#457), which is the list's to draw — it was a link the
+            // list built until then, and a page drawing one of its own would open the
+            // labels on something other than the selection the list holds.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "LabelsDialog") printLinks++;
+            if (n.type === "JSXOpeningElement" && n.name?.name === "ToolItemList") {
+                const named = n.attributes.find((a) => a.name?.name === "toolName");
+                listToolName = named ? nameOf(named.value?.expression ?? {}) : "none";
+            }
             if (
                 n.type === "VariableDeclarator" &&
                 n.init?.type === "CallExpression" &&
@@ -502,6 +511,7 @@ export function run({ check, assert, log }) {
             rowIds,
             rowsFrom,
             printLinks,
+            listToolName,
             accountFrom,
             fork,
             notice,
@@ -525,7 +535,10 @@ export function run({ check, assert, log }) {
         facts.addressReads.join(", "),
         "asked, page, unlogged, unwritten"
     );
-    check("  and builds no print link of its own", facts.printLinks, 0);
+    check("  and draws no labels' opener of its own", facts.printLinks, 0);
+    // THE LABELS' DIALOG NAMES THE TOOL UNDER ITS TITLE (#457), and the name is the one
+    // this page read for its heading, handed to the list that draws the opener.
+    check("  handing the list the tool's name for that dialog", facts.listToolName, "tool.toolName");
     // WHAT THE ACCOUNT IS READ THROUGH AND HANDED TO (#449, #455, #459). One reader of the
     // three keys, and both dialogs handed what that reader returned — not the address's
     // values, which would skip the reading that drops a forged count and spells every id
@@ -581,7 +594,10 @@ export function run({ check, assert, log }) {
                 "  const page = pageOfToolItems(tool.toolItems, sp.page);\n" +
                 "  const [toolItems, jobs] = await Promise.all([getToolItemsByTool(tool.id), getAllJobs()]);\n" +
                 "  const picked = await getToolItemsByToolItemIds(sp.id);\n" +
-                "  return <ToolItemList rows={tool.toolItems.map((id) => id)} href={toolItemLabelsPath(picked)} />;\n" +
+                "  return (<>\n" +
+                "    <ToolItemList rows={tool.toolItems.map((id) => id)} />\n" +
+                "    <LabelsDialog toolItemIds={picked} />\n" +
+                "  </>);\n" +
                 "}\n",
             "<planted-screen>"
         ).ast
@@ -589,19 +605,24 @@ export function run({ check, assert, log }) {
     check("  a read with no page is seen reading none", plantedScreen.rowIds, "none");
     check("  rows from the whole tool are seen so", plantedScreen.rowsFrom, "tool.toolItems");
     check("  a page reading the selection is seen reading it", plantedScreen.addressReads.join(", "), "id, page");
-    check("  and a print link built on the page is seen", plantedScreen.printLinks, 1);
+    check("  a labels' opener drawn on the page is seen", plantedScreen.printLinks, 1);
+    check("  and a list handed no tool's name is seen so", plantedScreen.listToolName, "none");
 
     // THE LIST'S HALF (#443). The selection is read off the address here and nowhere
-    // else, and three things about it hold only in the source: the print link is built
-    // from it and not from the rows; the page box acts on the rows it was handed and
-    // nothing wider; and every address this file writes carries it, through
-    // `history.replaceState` and never the router — which is the difference between a
-    // press that costs nothing and one that re-renders the page at four operations.
-    const listFacts = (ast) => {
+    // else, and three things about it hold only in the source: the labels' opener is
+    // handed it and not the rows — a link built from it until #457, which took the labels
+    // into a dialog — and stands disabled exactly where the list's own sentence says why;
+    // the page box acts on the rows it was handed and nothing wider; and every address
+    // this file writes carries it, through `history.replaceState` and never the router —
+    // which is the difference between a press that costs nothing and one that re-renders
+    // the page at four operations.
+    const listFacts = (ast, source) => {
         const bindings = new Map();
         let selection = null;
         let readOff = null;
         let printFrom = null;
+        let printDisabled = null;
+        let printTitle = null;
         let pageBoxOver = null;
         const toolPathCalls = [];
         let replaced = 0;
@@ -626,23 +647,38 @@ export function run({ check, assert, log }) {
                 : nameOf(node ?? {});
         };
         walk(ast, (n) => {
+            if (n.type === "JSXOpeningElement" && n.name?.name === "LabelsDialog") {
+                const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
+                printFrom = origin(attribute("toolItemIds"));
+                const disabled = attribute("disabled");
+                printDisabled = disabled && source ? source.slice(disabled.start, disabled.end) : "none";
+                const title = attribute("title");
+                printTitle = title ? nameOf(title) : "none";
+            }
             if (n.type !== "CallExpression") return;
             const callee = nameOf(n.callee);
-            if (callee === "toolItemLabelsPath") printFrom = origin(n.arguments[0]);
             if (callee === "togglePage") pageBoxOver = origin(n.arguments[1]);
             if (callee === "toolPath")
                 toolPathCalls.push(n.arguments.length === 3 ? nameOf(n.arguments[2]) : `${n.arguments.length} arguments`);
             if (callee === "window.history.replaceState") replaced++;
             if (callee === "useRouter" || callee === "redirect" || /^router\./.test(callee)) routed.push(callee);
         });
-        return { selection, readOff, printFrom, pageBoxOver, toolPathCalls, replaced, routed };
+        return { selection, readOff, printFrom, printDisabled, printTitle, pageBoxOver, toolPathCalls, replaced, routed };
     };
-    const list = listFacts(parseFile(TOOL_ITEM_LIST).ast);
+    const listFile = parseFile(TOOL_ITEM_LIST);
+    const list = listFacts(listFile.ast, listFile.source);
     check("the list reads its selection through readToolItemIds", list.selection, "selection");
     // `get` would answer with the first id alone, so a selection of three would read as
     // one and print one — a defect no figure on this page shows until print is pressed.
     check("  handed every `id` in the address", list.readOff, 'getAll("id")');
-    check("  the print link is built from it", list.printFrom, list.selection);
+    check("  the labels' opener is handed it", list.printFrom, list.selection);
+    // `describeSelection` says why a press would not print — nothing selected, or more
+    // than one print takes — and the opener is drawn disabled on exactly that.
+    check("  and is disabled where the list's sentence says why", list.printDisabled, "!summary.printable");
+    // ITS WORD IS THE DIALOG'S TITLE FROM A TOOL'S PAGE, `Print labels`. The opener hands
+    // the dialog its title, so the tool item page's `Print label` here would title a run
+    // of many with one label's word, and no figure on the page would move.
+    check("  and says the dialog's word for a run from a tool", list.printTitle, "LABEL_COPY.openFromTool");
     check("  the page box acts on the rows the page handed it", list.pageBoxOver, "rows");
     check(
         "  every address it writes carries a selection — the new one, or the current one on a step",
@@ -652,26 +688,27 @@ export function run({ check, assert, log }) {
     check("  written with history.replaceState", list.replaced, 1);
     check("  and never through the router", list.routed.join(", "), "");
     // ANTI-VACUITY: a planted list doing each of those wrong is seen doing it — the
-    // print link built from the rows, the page box over a wider list, a step that drops
-    // the selection, and the router instead of the history.
-    const plantedList = listFacts(
-        parseSource(
-            "function ToolItemList({ toolRecordId, rows, page, everyId }) {\n" +
-                "  const router = useRouter();\n" +
-                "  const params = useSearchParams();\n" +
-                '  const selection = readToolItemIds(params.get("id"));\n' +
-                "  const wider = everyId.map((id) => id);\n" +
-                "  const press = () => router.replace(toolPath(toolRecordId, page, togglePage(selection, wider)));\n" +
-                "  return (<>\n" +
-                "    <Link href={toolItemLabelsPath(rows.map((row) => row.toolItemId))} />\n" +
-                "    <Link href={toolPath(toolRecordId, page + 1)} />\n" +
-                "  </>);\n" +
-                "}\n",
-            "<planted-list>"
-        ).ast
+    // opener handed the rows and never disabled, the page box over a wider list, a step
+    // that drops the selection, and the router instead of the history.
+    const plantedListFile = parseSource(
+        "function ToolItemList({ toolRecordId, rows, page, everyId }) {\n" +
+            "  const router = useRouter();\n" +
+            "  const params = useSearchParams();\n" +
+            '  const selection = readToolItemIds(params.get("id"));\n' +
+            "  const wider = everyId.map((id) => id);\n" +
+            "  const press = () => router.replace(toolPath(toolRecordId, page, togglePage(selection, wider)));\n" +
+            "  return (<>\n" +
+            "    <LabelsDialog toolItemIds={rows.map((row) => row.toolItemId)} />\n" +
+            "    <Link href={toolPath(toolRecordId, page + 1)} />\n" +
+            "  </>);\n" +
+            "}\n",
+        "<planted-list>"
     );
+    const plantedList = listFacts(plantedListFile.ast, plantedListFile.source);
     check("  a read of the first id alone is seen so", plantedList.readOff, 'get("id")');
-    check("  a print link from the rows is seen so", plantedList.printFrom, "rows");
+    check("  an opener handed the rows is seen so", plantedList.printFrom, "rows");
+    check("  and one never disabled is seen so", plantedList.printDisabled, "none");
+    check("  and one with no title of its own is seen so", plantedList.printTitle, "none");
     check("  a page box over a wider list is seen so", plantedList.pageBoxOver, "everyId");
     check("  a step dropping the selection is seen", plantedList.toolPathCalls.join(", "), "CallExpression, 2 arguments");
     check("  and the router is seen", plantedList.routed.join(", "), "useRouter, router.replace");
@@ -1098,7 +1135,7 @@ export function run({ check, assert, log }) {
     const noneSelected = describeSelection([], thisPage);
     check("nothing selected: print does not act", noneSelected.printable, false);
     check(
-        "  and says the label screen's sentence for it",
+        "  and says this page's sentence for it, the label screen's until #457",
         noneSelected.sentence,
         "Nothing is selected, so there is nothing to print."
     );

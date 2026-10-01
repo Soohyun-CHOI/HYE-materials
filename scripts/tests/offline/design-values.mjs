@@ -98,9 +98,11 @@ const TOOLS_DIR = "app/(tools)/";
  * summary needed. #460 took its own out with the rail, the breadcrumb and the tooltip:
  * it read three of #457's first, handed the tooltip above a target and a column's End
  * to #463, left the Panel's wash to #457, which takes out what the spec dropped, and
- * undeclared the account's two with the account.
+ * undeclared the account's two with the account. #457 took its own out with the labels'
+ * dialog, which read the three names still marked for it, and undeclared the Panel's
+ * wash, which nothing draws since the files of 2026-10-01 put nothing behind a Panel.
  */
-const READERS_TO_COME = [457, 458, 463];
+const READERS_TO_COME = [458, 463];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -153,6 +155,7 @@ const VALUES = [
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
     ["--color-foreground-subtle", "oklch(0.505 0.012 265)", null],
     ["--color-foreground-faint", "oklch(0.760 0.010 265)", null],
+    ["--spacing-separator-inline", "0.5625rem", null],
     ["--color-divider-subtle", "oklch(0.946 0.005 265)", 458],
     ["--color-divider", "oklch(0.928 0.006 265)", null],
     ["--color-divider-strong", "oklch(0.896 0.007 265)", 463],
@@ -180,7 +183,7 @@ const VALUES = [
     ["--text-body--line-height", "1.25rem"],
     ["--text-body-sm", "0.8125rem", null],
     ["--text-body-sm--line-height", "1.25rem"],
-    ["--text-heading-sm", "0.75rem", 457],
+    ["--text-heading-sm", "0.75rem", null],
     ["--text-heading-sm--line-height", "1rem"],
     ["--text-heading-sm--font-weight", "600"],
     // The wordmark in the rail, Bricolage Grotesque since the files of 2026-10-01 (#460).
@@ -197,7 +200,7 @@ const VALUES = [
     ["--spacing-scrollbar-inset", "2px", null],
     ["--spacing-scroll-inset-bottom", "2.5rem", 463],
     // 0j · Radius
-    ["--radius-preview", "0.125rem", 457],
+    ["--radius-preview", "0.125rem", null],
     ["--radius-control", "0.5rem", null],
     ["--radius-card", "0.625rem", null],
     ["--radius-dialog", "0.75rem", null],
@@ -205,8 +208,6 @@ const VALUES = [
     ["--color-elevation", "oklch(0.22 0.025 265)", null],
     ["--color-background-translucent", "oklch(1 0 0 / 0.82)", null],
     ["--color-dialog-overlay", "color-mix(in oklab, var(--color-elevation) 40%, transparent)", null],
-    // The files of 2026-10-01 put nothing behind a Panel; #457 takes out what the spec dropped.
-    ["--color-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 10%, transparent)", 457],
     [
         "--shadow-popover",
         "0 8px 24px color-mix(in oklab, var(--color-elevation) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 6%, transparent)",
@@ -217,7 +218,7 @@ const VALUES = [
     [
         "--shadow-preview",
         "0 0 0 1px color-mix(in oklab, var(--color-elevation) 6%, transparent), 0 2px 8px color-mix(in oklab, var(--color-elevation) 8%, transparent)",
-        457,
+        null,
     ],
     ["--spacing-tooltip-inset-top", "0.1875rem", null],
     ["--spacing-tooltip-inset-x", "0.5625rem", null],
@@ -240,6 +241,14 @@ const VALUES = [
     ["--spacing-dialog-summary-inset-y", "1rem", null],
     ["--spacing-dialog-summary-inset-x", "1.125rem", null],
     ["--spacing-dialog-summary-stack", "0.25rem", null],
+    ["--container-dialog-preview", "48.75rem", null],
+    ["--height-dialog-preview", "32.5rem", null],
+    ["--width-dialog-preview-pane", "27.5rem", null],
+    ["--spacing-dialog-preview-stack", "1.25rem", null],
+    ["--spacing-dialog-preview-inline", "0.75rem", null],
+    ["--spacing-dialog-panel-stack", "1.5rem", null],
+    ["--spacing-dialog-panel-list-stack", "0.25rem", null],
+    ["--size-dialog-step", "1.25rem", null],
     // 0m · Navigation
     ["--width-rail", "3.5rem", null],
     ["--width-rail-expanded", "15.5rem", null],
@@ -728,15 +737,19 @@ export async function run({ check, assert, log }) {
     assert(`  parsed ${jsFiles.length} modules and ${otherStylesheets.length} stylesheets`, jsFiles.length > 150 && otherStylesheets.length >= 2);
     assert("  the tools layout is a route file that reaches itself", routesByFile.get("app/(tools)/layout.js")?.has("app/(tools)/layout.js"));
     assert("  the root layout reaches app/globals.css", routesByFile.get(STYLESHEET)?.has("app/layout.js"));
+    // The labels' stylesheet is reached through the dialog's import from both pages that
+    // open it (#457), where it was the labels' page's own until then.
     assert(
-        "  the label page reaches its stylesheet",
-        routesByFile.get("app/(tools)/tool-items/labels/labels.css")?.has("app/(tools)/tool-items/labels/page.js")
+        "  the labels' stylesheet is reached from both pages that open the dialog",
+        ["app/(tools)/tools/[toolRecordId]/page.js", "app/(tools)/tool-items/[toolItemId]/page.js"].every((route) =>
+            routesByFile.get("app/(tools)/tool-items/labels.css")?.has(route)
+        )
     );
     assert("  a component shared by both axes is reached from each", (() => {
         const routes = [...(routesByFile.get("app/components/Instant.js") ?? [])];
         return routes.some(isToolsFile) && routes.some((r) => !isToolsFile(r));
     })());
-    assert("  the label page's face loader is found, variable and all", loaders.some((l) => l.imported === "Inconsolata" && l.variable === "--font-label-code"));
+    assert("  the labels' face loader is found, variable and all", loaders.some((l) => l.imported === "Inconsolata" && l.variable === "--font-label-code"));
     // #456 — the design's faces load in one place, the tools layout, and the first of
     // them is found there: the loader judgment below is asked against a real call.
     assert(

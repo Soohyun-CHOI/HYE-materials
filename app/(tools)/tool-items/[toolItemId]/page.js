@@ -10,13 +10,14 @@ import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { FACT_KIND, TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import Instant from "@/app/components/Instant";
-import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
+import { QR_SIDE_MODULES, buildToolItemLabel } from "@/lib/toolLabelQR";
 import { TOOL_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/lib/toolLabelPage";
 import { TOOL_LIST_COPY } from "@/lib/toolListView";
-import { TOOLS_PATH, labelCodeFor, toolItemLabelsPath, toolItemPath, toolPath } from "@/lib/toolRoutes";
+import { TOOLS_PATH, labelCodeFor, toolItemPath, toolPath } from "@/lib/toolRoutes";
 import { TOOL_EVENT } from "@/lib/toolStatus";
 import { planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
+import LabelsDialog from "../LabelsDialog";
 import RetireToolItemForm from "./RetireToolItemForm";
 import ToolTransitionForm from "./ToolTransitionForm";
 import { userName } from "@/lib/userName";
@@ -183,21 +184,24 @@ async function renderToolItemPage({ params }) {
     }));
 
     // The host the symbol encodes, from the public host behind Vercel's proxy —
-    // the same source both label screens read, so a symbol shown here and a symbol
-    // printed there encode the same string. No Airtable operation.
+    // the same source the labels' read takes its own from, so a symbol shown here and
+    // a label printed from a tool's page encode the same string. No Airtable
+    // operation. It is this tool item's LABEL that is built (#457) — its symbol and the
+    // code it prints — because the labels' dialog this page opens draws its page from
+    // the same object the symbol below is drawn from, so the two are built once.
     const headerList = await headers();
     const proto = headerList.get("x-forwarded-proto") ?? "http";
-    const symbol = await buildToolItemQR({
+    const label = await buildToolItemLabel({
         origin: `${proto}://${headerList.get("host") ?? ""}`,
         toolItemId: toolItem.toolItemId,
     });
     // Sized for today's version plus the label's headroom, then applied to the side
     // count this symbol actually came out at. Whether it FITS is asked here too
     // (#453): the label absorbs no version step, so a longer host builds a symbol the
-    // label screen refuses, and the line under it has to say that rather than that it
-    // is printed size.
+    // labels' dialog draws no page for, and the line under it has to say that rather
+    // than that it is printed size.
     const budget = labelBudget({ sideModules: QR_SIDE_MODULES });
-    const { boxMm: symbolMm, fits: symbolFits } = symbolBox({ sideModules: symbol.sideModules, budget });
+    const { boxMm: symbolMm, fits: symbolFits } = symbolBox({ sideModules: label.sideModules, budget });
 
     const tool = tools[0];
 
@@ -283,18 +287,26 @@ async function renderToolItemPage({ params }) {
                 label pages use: the budget sized once for the label, and the box
                 from THIS symbol's own side count. Passing `QR_SIDE_MODULES` to the
                 box instead would scale a larger version into today's box and thin
-                its modules, which is the defect #353 measured in a browser. */}
+                its modules, which is the defect #353 measured in a browser.
+
+                THE CONTROL UNDER IT OPENS THE LABELS' DIALOG ON THIS ONE LABEL
+                (#457), handed over as this render built it, so opening it reads
+                nothing; it linked to `/tool-items/labels` until then. It stands for
+                every status, `Retired` included, as the symbol does. */}
             <h2>{COPY.labelHeading}</h2>
             <div
                 style={{ width: `${symbolMm}mm`, height: `${symbolMm}mm` }}
-                dangerouslySetInnerHTML={{ __html: symbol.svg }}
+                dangerouslySetInnerHTML={{ __html: label.svg }}
             />
             <p>{symbolFits ? COPY.printedSizeNote : COPY.symbolTooLargeNote}</p>
-            <p>
-                <Link href={toolItemLabelsPath([toolItem.toolItemId])}>
-                    {LABEL_COPY.openFromToolItem}
-                </Link>
-            </p>
+            <div>
+                <LabelsDialog
+                    title={LABEL_COPY.openFromToolItem}
+                    toolName={tool?.toolName}
+                    run={{ sideModules: QR_SIDE_MODULES, labels: [label], missing: [] }}
+                    variant="bordered"
+                />
+            </div>
 
             <h2>{COPY.historyHeading}</h2>
             {log.length === 0 ? (

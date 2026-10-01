@@ -43,6 +43,17 @@ import { DIALOG_FRAME_COPY as COPY } from "@/lib/dialogFrame";
  * card a dialog holds up for reference. The landing's two dialogs are the first to say
  * and to list, and #458's confirmations say the same kind of sentence.
  *
+ * A DIALOG CAN HOLD A PREVIEW BESIDE WHAT IT SAYS (#457), which is the frame's second
+ * build and 1i's: a pane on the Field ground the dialog's full height and flush to its
+ * edges, where what it shows is drawn as it will print, and beside it a column that is
+ * the Compact build inside — the head, the body and the actions, 24 all round. 0l's
+ * Split takes the width its summary and its control need, and this is the same rule
+ * with a preview for the control: 780 by 520, the pane 440 and the column the rest. The
+ * column holds its width as the screen narrows and the pane gives way, and on a phone,
+ * which 1i does not draw, the two stack in reading order — the head, the preview, then
+ * what the dialog says and its actions. The labels are its one caller, and the pane is
+ * what they print; their stylesheet is what takes everything else off the paper.
+ *
  * ONE OF TWO FRAMES ON THE TOOLS AXIS UNTIL #458, AND THE ONLY ONE WHEN THAT LANDS. The tool
  * item page's two dialogs — the retirement and the check-out's name sheet — are still drawn
  * on `app/components/modalStyles.js`, and #458 is the issue that moves them here;
@@ -74,6 +85,22 @@ function focusPageHeading() {
     heading.focus();
 }
 
+/** The two builds' surfaces: 28 clear of every edge, the Surface corner and the Modal shadow. */
+const DIALOG = "m-auto max-h-[calc(100dvh-2*var(--spacing-dialog-gutter))] w-full overflow-hidden rounded-dialog bg-white font-ui text-foreground-default shadow-dialog backdrop:bg-dialog-overlay";
+
+/** Compact: 420 wide, 24 of room all round, one column. */
+const COMPACT = "max-w-[min(var(--container-dialog),calc(100vw-2*var(--spacing-dialog-gutter)))] flex-col p-dialog-inset open:flex";
+
+/**
+ * With a preview (#457): 780 by 520, the pane 440 and the column the rest, and below the
+ * phone's edge one column in reading order. The column's floor is what 780 leaves 440.
+ */
+const WITH_PREVIEW =
+    "max-w-[min(var(--container-dialog-preview),calc(100vw-2*var(--spacing-dialog-gutter)))] flex-col open:flex " +
+    "sm:h-[min(var(--height-dialog-preview),calc(100dvh-2*var(--spacing-dialog-gutter)))] sm:open:grid " +
+    "sm:grid-cols-[minmax(0,var(--width-dialog-preview-pane))_minmax(calc(var(--container-dialog-preview)-var(--width-dialog-preview-pane)),1fr)] " +
+    "sm:grid-rows-[auto_minmax(0,1fr)]";
+
 /**
  * A modal dialog of 0l's Compact build: 420 wide and 28 clear of every edge of the screen,
  * 24 of room all round, the title at the Section size with a line under it 2 below, and a
@@ -83,9 +110,11 @@ function focusPageHeading() {
  *
  * `onSubmit` makes what it holds a form, which is how a dialog of fields submits: its
  * actions are inside the form with the fields they submit. `unprompted` is for a dialog
- * no press opened, which hands focus to the page's heading when it closes.
+ * no press opened, which hands focus to the page's heading when it closes. `preview` is
+ * the second build (#457): what it holds is drawn in a pane beside the column, which is
+ * the Compact build's inside — see the header.
  */
-export function DialogFrame({ open, onClose, busy = false, unprompted = false, title, subtitle, onSubmit, children }) {
+export function DialogFrame({ open, onClose, busy = false, unprompted = false, title, subtitle, onSubmit, preview, children }) {
     const dialogRef = useRef(null);
     const titleId = useId();
 
@@ -105,6 +134,38 @@ export function DialogFrame({ open, onClose, busy = false, unprompted = false, t
         if (!busy) onClose();
     };
     const Content = onSubmit ? "form" : "div";
+    const withPreview = preview !== undefined;
+
+    // The head and what the dialog holds are one arrangement in both builds. With a
+    // preview they sit in the column beside the pane, so each takes the room the dialog
+    // itself takes in the Compact build — the head 24 above and either side, the rest 24
+    // either side and below — and they are placed in the column's two rows from the
+    // phone's edge up; below it they stack with the pane between them.
+    const head = (
+        <div
+            className={`flex shrink-0 items-start justify-between gap-dialog-header-inline ${withPreview ? "px-dialog-inset pt-dialog-inset sm:col-start-2 sm:row-start-1" : ""}`}
+        >
+            <div className="flex min-w-0 flex-col gap-dialog-title-stack">
+                <h2 id={titleId} className="text-heading font-semibold tabular-nums">
+                    {title}
+                </h2>
+                {subtitle && <p className="text-body-sm text-foreground-muted">{subtitle}</p>}
+            </div>
+            <div className="-mr-dialog-close-offset flex h-[var(--text-heading--line-height)] shrink-0 items-center">
+                <button
+                    type="button"
+                    aria-label={COPY.close}
+                    disabled={busy}
+                    onClick={ask}
+                    className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle enabled:hover:bg-hover enabled:hover:text-foreground-default"
+                >
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
+                        <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    );
 
     return (
         <dialog
@@ -117,32 +178,20 @@ export function DialogFrame({ open, onClose, busy = false, unprompted = false, t
             onClose={() => {
                 if (open) onClose();
             }}
-            className="m-auto max-h-[calc(100dvh-2*var(--spacing-dialog-gutter))] w-full max-w-[min(var(--container-dialog),calc(100vw-2*var(--spacing-dialog-gutter)))] flex-col overflow-hidden rounded-dialog bg-white p-dialog-inset font-ui text-foreground-default shadow-dialog backdrop:bg-dialog-overlay open:flex"
+            className={`${DIALOG} ${withPreview ? WITH_PREVIEW : COMPACT}`}
         >
             {open && (
                 <>
-                    <div className="flex shrink-0 items-start justify-between gap-dialog-header-inline">
-                        <div className="flex min-w-0 flex-col gap-dialog-title-stack">
-                            <h2 id={titleId} className="text-heading font-semibold tabular-nums">
-                                {title}
-                            </h2>
-                            {subtitle && <p className="text-body-sm text-foreground-muted">{subtitle}</p>}
+                    {head}
+                    {withPreview && (
+                        <div className="min-h-0 overflow-y-auto overscroll-contain bg-background-muted p-dialog-inset sm:col-start-1 sm:row-span-2 sm:row-start-1">
+                            {preview}
                         </div>
-                        <div className="-mr-dialog-close-offset flex h-[var(--text-heading--line-height)] shrink-0 items-center">
-                            <button
-                                type="button"
-                                aria-label={COPY.close}
-                                disabled={busy}
-                                onClick={ask}
-                                className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle enabled:hover:bg-hover enabled:hover:text-foreground-default"
-                            >
-                                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
-                                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <Content onSubmit={onSubmit} className="flex min-h-0 flex-col">
+                    )}
+                    <Content
+                        onSubmit={onSubmit}
+                        className={`flex min-h-0 flex-col ${withPreview ? "px-dialog-inset pb-dialog-inset sm:col-start-2 sm:row-start-2" : ""}`}
+                    >
                         {children}
                     </Content>
                 </>
@@ -155,7 +204,10 @@ export function DialogFrame({ open, onClose, busy = false, unprompted = false, t
  * What a dialog asks or says, under its head: 20 from the title's line, 14 between two
  * fields. When the screen is too short for it the body scrolls between a head and actions
  * that stay put, and a Rule marks each edge its content is hidden past — none while
- * everything fits, and none at an end the reader has reached (0l).
+ * everything fits, and none at an end the reader has reached (0l). It takes the room its
+ * column has to spare, which in a dialog with a preview (#457) is what keeps the actions at
+ * the column's foot; in the Compact build the column is its content's height, and there is
+ * none to take.
  */
 export function DialogBody({ children }) {
     const scrollerRef = useRef(null);
@@ -181,7 +233,7 @@ export function DialogBody({ children }) {
     }, []);
 
     return (
-        <div className="relative flex min-h-0 flex-col">
+        <div className="relative flex min-h-0 grow flex-col">
             <div ref={scrollerRef} className="flex min-h-0 flex-col gap-gap-lg overflow-y-auto pt-dialog-header-stack">
                 {children}
             </div>

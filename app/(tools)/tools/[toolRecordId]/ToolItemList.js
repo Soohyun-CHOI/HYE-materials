@@ -10,10 +10,11 @@ import {
     togglePage,
     toggleToolItem,
 } from "@/lib/toolListView";
-import { readToolItemIds, toolItemLabelsPath, toolItemPath, toolPath } from "@/lib/toolRoutes";
+import { readToolItemIds, toolItemPath, toolPath } from "@/lib/toolRoutes";
+import LabelsDialog from "../../tool-items/LabelsDialog";
 
 // One page of a tool's tool items, a box on each and one for the page, and the print
-// control that sends what they select (#443).
+// control that opens the labels' dialog on what they select (#443, #457).
 //
 // THE SELECTION IS READ HERE, OFF THE ADDRESS, AND NOT BY THE PAGE — THE OPPOSITE OF
 // #373, WHOSE PRECEDENT DOES NOT CARRY OVER. `/login` reads its destination on the
@@ -55,7 +56,10 @@ import { readToolItemIds, toolItemLabelsPath, toolItemPath, toolPath } from "@/l
 // hands this component the rows it read for its own page and nothing more; the ids
 // selected on other pages exist only in the address, and this file reaches no reader of
 // the base (`offline/client-import-safety.mjs`). The page box therefore reaches this
-// page and no further, by construction.
+// page and no further, by construction. **The labels' dialog is where the selection
+// is read (#457)**: its print control hands the selection to the dialog's read, which
+// is the one request a press of it makes — two operations for a run of fifty — and
+// which names any id the address carries that no tool item does.
 //
 // AN ADDRESS LONG ENOUGH TO BE REFUSED IS POSSIBLE AND HAS NOT BEEN SEEN. Each selected
 // id adds 21 bytes, so a page is about half a kilobyte and the most one print takes
@@ -67,7 +71,7 @@ import { readToolItemIds, toolItemLabelsPath, toolItemPath, toolPath } from "@/l
 //
 // EVERY WORD IS IN `TOOL_LIST_COPY` OR `TOOL_LABEL_PAGE_COPY` AND NONE IS IN JSX, this
 // axis's rule since #338, held by `offline/tool-list-view.mjs`.
-export default function ToolItemList({ toolRecordId, rows, page, pageCount }) {
+export default function ToolItemList({ toolRecordId, toolName, rows, page, pageCount }) {
     const params = useSearchParams();
     const selection = readToolItemIds(params.getAll("id"));
     const pageIds = rows.map((row) => row.toolItemId);
@@ -83,20 +87,22 @@ export default function ToolItemList({ toolRecordId, rows, page, pageCount }) {
         <>
             {/* The sentence, the way out and the control stand together (#443). The
                 control is drawn when it does not act, because it is what says the
-                boxes are for printing; the way out is absent with nothing to clear. */}
+                boxes are for printing, and the sentence beside it is why it does not
+                (0f); the way out is absent with nothing to clear. The control opens
+                the labels' dialog on the selection as it stands (#457), in the
+                list's order, under this tool's name. */}
             <p>{summary.sentence}</p>
             {summary.count > 0 && (
                 <button type="button" onClick={() => replaceSelection([])}>
                     {COPY.clearSelection}
                 </button>
             )}
-            {summary.printable ? (
-                <Link href={toolItemLabelsPath(selection)}>{LABEL_COPY.openFromTool}</Link>
-            ) : (
-                <span role="link" aria-disabled="true">
-                    {LABEL_COPY.openFromTool}
-                </span>
-            )}
+            <LabelsDialog
+                title={LABEL_COPY.openFromTool}
+                toolName={toolName}
+                toolItemIds={selection}
+                disabled={!summary.printable}
+            />
 
             {/* This page's box: its state is this page's alone, and a partly selected
                 page shows as mixed, which is a DOM property with no attribute. */}

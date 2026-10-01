@@ -93,6 +93,7 @@
     --color-foreground-muted: oklch(0.405 0.013 265); /* Ink 2: the sentence under a heading, a note beside a value, the breadcrumb above a title */
     --color-foreground-subtle: oklch(0.505 0.012 265); /* Ink 3: a column head, a block's name, a field label, a unit, a placeholder, a status mark */
     --color-foreground-faint: oklch(0.760 0.010 265); /* Ink 4: the dot between two clauses, the / between breadcrumb levels, a disabled pager arrow, a disabled control's glyph */
+    --spacing-separator-inline: 0.5625rem; /* Ink 4, 9: either side of the dot between two clauses, everywhere */
 
     --color-divider-subtle: oklch(0.946 0.005 265); /* Inner rule: between two item rows inside a card */
     --color-divider: oklch(0.928 0.006 265); /* Rule: between two table rows, and around a region */
@@ -156,7 +157,6 @@
     --color-elevation: oklch(0.22 0.025 265); /* Shadow ink */
     --color-background-translucent: oklch(1 0 0 / 0.82); /* Sticky: a surface that holds its place, while the page runs under it */
     --color-dialog-overlay: color-mix(in oklab, var(--color-elevation) 40%, transparent); /* Wash: what lies behind a Modal */
-    --color-drawer-overlay: color-mix(in oklab, var(--color-elevation) 10%, transparent); /* Wash: what lies behind a Panel */
     --shadow-popover: 0 8px 24px color-mix(in oklab, var(--color-elevation) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 6%, transparent); /* Raised: a surface that opens from a control */
     --shadow-drawer: 0 12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent); /* Panel: a surface that slides in from an edge */
     --shadow-dialog: 0 24px 60px color-mix(in oklab, var(--color-elevation) 24%, transparent); /* Modal: a surface that has to be answered or dismissed */
@@ -169,7 +169,8 @@
     --transition-delay-tooltip: 360ms; /* Tooltip: how long before it appears */
     --transition-duration-tooltip: 120ms; /* Tooltip: how long it takes to fade in — from the drawings' stylesheet, not the spec */
 
-    /* 0l · Modal — the frame every dialog shares. */
+    /* 0l · Modal — the frame every dialog shares, in the Compact build and, since #457,
+       with a preview beside it (1i). */
     --container-dialog: 26.25rem; /* Width, 420: a dialog of fields in one column */
     --spacing-dialog-gutter: 1.75rem; /* Position, 28: held clear on every side of the screen */
     --spacing-dialog-inset: 1.5rem; /* Compact, 24: the room all round, and from the last field to the actions */
@@ -181,6 +182,14 @@
     --spacing-dialog-summary-inset-y: 1rem; /* Split, 16: inside a dialog's summary, above and below */
     --spacing-dialog-summary-inset-x: 1.125rem; /* Split, 18: inside a dialog's summary, either side */
     --spacing-dialog-summary-stack: 0.25rem; /* 1k, 4: between two ids a dialog's summary lists, which the spec does not state */
+    --container-dialog-preview: 48.75rem; /* Width, 780: a dialog with a preview, which takes the width its pane and column need (1i) */
+    --height-dialog-preview: 32.5rem; /* 1i, 520: a dialog with a preview, which the spec does not state */
+    --width-dialog-preview-pane: 27.5rem; /* 1i, 440: the pane a preview is drawn in, beside the column */
+    --spacing-dialog-preview-stack: 1.25rem; /* 1i, 20: between two rows of label pages in the pane */
+    --spacing-dialog-preview-inline: 0.75rem; /* 1i, 12: between two label pages in a row */
+    --spacing-dialog-panel-stack: 1.5rem; /* 1i, 24: between the blocks of the column beside a preview */
+    --spacing-dialog-panel-list-stack: 0.25rem; /* 1i, 4: between two codes that column lists */
+    --size-dialog-step: 1.25rem; /* 1i, 20: the round mark a numbered step in a dialog takes */
 
     /* 0m · Navigation — the frame every screen sits in. From Tailwind's xl, the
        design's 1280 window, the expanded rail pushes the page. */

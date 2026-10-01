@@ -3,8 +3,8 @@
 // WHAT THIS FILE IS FOR. `app/components/DialogFrame.js` is Claude Design's 0l drawn once,
 // `app/components/Controls.js` and `app/components/Menu.js` are the 0a controls the
 // registration dialog is the first to use, and the landing's two dialogs call them (#459),
-// as #457 and #458 will, rather than drawing their own. So what they are held to is held
-// here, where each of those issues will run into it:
+// as the labels' does (#457) and #458's will, rather than drawing their own. So what they
+// are held to is held here, where each of those issues will run into it:
 //
 //   1. THE KEYS. WAI-ARIA's select-only combobox and its editable combobox with list
 //      autocomplete are the two patterns, and `lib/controls.js` says what each key does
@@ -18,7 +18,8 @@
 //      and the list put in the top layer through the Popover API — and since #459 a
 //      dialog no press opened handing focus to the page's heading as it closes, the
 //      sentence a dialog says describing that dialog, and the actions wrapping on a
-//      narrow dialog rather than running off it.
+//      narrow dialog rather than running off it — and since #457 the second build, a
+//      preview in a pane beside a column that is the Compact build inside.
 //   4. THE WORDS. Every string these three render comes from `lib/dialogFrame.js` or
 //      `lib/controls.js`, pinned by value, and none is in their markup — the rule
 //      `offline/tool-list-view.mjs` holds for every file under `app/(tools)/`, which these
@@ -335,6 +336,67 @@ export function run({ check, assert, log }) {
     check("  a dialog's sentence describes the dialog it stands in, and stops when it goes", frameRules.describes, "true true true");
     check("  and the actions wrap rather than run off a narrow dialog", frameRules.wraps, true);
 
+    // THE FRAME'S SECOND BUILD, A PREVIEW BESIDE WHAT THE DIALOG SAYS (#457). What it holds
+    // is drawn in a pane on the Field ground that scrolls, the dialog's full height and with
+    // no room of the dialog's own around it, and the head and the rest take the room the
+    // Compact build gives the whole dialog — so the column beside the pane is the Compact
+    // build inside. Where there is no preview the dialog keeps its 24 all round. Read off the
+    // source through one function, so the planted frame below is judged the same way.
+    const buildFacts = ({ ast, source }) => {
+        const constant = (name) => {
+            let text = "";
+            walk(ast, (n) => {
+                if (n.type === "VariableDeclarator" && n.id?.name === name && n.init) text = source.slice(n.init.start, n.init.end);
+            });
+            return text;
+        };
+        const compact = constant("COMPACT");
+        const withPreview = constant("WITH_PREVIEW");
+        const paneSource = (() => {
+            let found = "";
+            walk(ast, (n) => {
+                if (
+                    n.type === "JSXElement" &&
+                    n.children.some((child) => child.type === "JSXExpressionContainer" && child.expression?.name === "preview")
+                )
+                    found = source.slice(n.start, n.end);
+            });
+            return found;
+        })();
+        return {
+            compact: [/\bp-dialog-inset\b/.test(compact), /var\(--container-dialog\)/.test(compact)].join(" "),
+            withPreview: [
+                /var\(--container-dialog-preview\)/.test(withPreview),
+                /var\(--height-dialog-preview\)/.test(withPreview),
+                /var\(--width-dialog-preview-pane\)/.test(withPreview),
+                !/\bp-dialog-inset\b/.test(withPreview),
+            ].join(" "),
+            pane: [/\bbg-background-muted\b/.test(paneSource), /\boverflow-y-auto\b/.test(paneSource), /\bp-dialog-inset\b/.test(paneSource)].join(" "),
+            column: /px-dialog-inset pt-dialog-inset/.test(source) && /px-dialog-inset pb-dialog-inset/.test(source),
+            // The body's outermost box, which in a column taller than what it holds is what
+            // takes the room left over — and so what keeps the actions at the column's foot.
+            bodyGrows: (() => {
+                let grows = false;
+                walk(ast, (n) => {
+                    if (n.type !== "FunctionDeclaration" || n.id?.name !== "DialogBody") return;
+                    const returned = n.body.body.find((s) => s.type === "ReturnStatement")?.argument;
+                    const className = returned?.openingElement?.attributes.find((a) => a.name?.name === "className")?.value;
+                    grows = className?.type === "Literal" && /\bgrow\b/.test(className.value);
+                });
+                return grows;
+            })(),
+        };
+    };
+    const builds = buildFacts(frame);
+    check("  the Compact build keeps its 24 all round, at 420", builds.compact, "true true");
+    check("  a preview's build is 780 by 520 with a 440 pane, and no room of its own", builds.withPreview, "true true true true");
+    check("  its pane is on the Field ground, scrolls, and holds its own room", builds.pane, "true true true");
+    check("  and the column beside it takes the Compact build's room", builds.column, true);
+    // 1i STANDS THE ACTIONS AT THE COLUMN'S FOOT, 460 down a 520 dialog, whatever the body
+    // holds above them: the body takes the column's spare room. In the Compact build the
+    // column is its content's height, so there is none to take and nothing moves.
+    check("  the body takes the column's spare room, so the actions stand at its foot", builds.bodyGrows, true);
+
     // ── 4: the words ────────────────────────────────────────────────────────
     log("");
     log("every word they render comes from a constant:");
@@ -358,11 +420,12 @@ export function run({ check, assert, log }) {
     check("  the files", onOldFrame.join(", "), [...OLD_FRAME.keys()].sort().join(", "));
     check("  each waiting on #458", [...new Set(OLD_FRAME.values())].join(), "458");
     const onNewFrame = toolsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame")).sort();
-    // The registration's dialog (#456) and the landing's two (#459).
+    // The registration's dialog (#456), the landing's two (#459) and the labels' (#457).
     check(
-        "  and the frame's callers on the axis are the three dialogs drawn on it",
+        "  and the frame's callers on the axis are the four dialogs drawn on it",
         onNewFrame.join(", "),
         [
+            "app/(tools)/tool-items/LabelsDialog.js",
             "app/(tools)/tools/RegistrationDialog.js",
             "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js",
             "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js",
@@ -424,6 +487,25 @@ export function run({ check, assert, log }) {
     check("  a return to it on every close is seen", plantedFrame.onClose, false);
     check("  a sentence describing nothing is seen", plantedFrame.describes, "false false false");
     check("  and actions held on one line are seen", plantedFrame.wraps, false);
+    // The build reader is seen to fail on a frame that gives a preview the Compact build's
+    // room and width and draws it in a pane on white that does not scroll.
+    const plantedBuilds = buildFacts(
+        parseSource(
+            'const COMPACT = "max-w-[min(var(--container-dialog),100vw)] flex-col";\n' +
+                'const WITH_PREVIEW = "max-w-[min(var(--container-dialog),100vw)] p-dialog-inset";\n' +
+                'export function DialogFrame({ preview }) { return <dialog><div className="bg-white">{preview}</div></dialog>; }\n',
+            "<planted-builds>"
+        )
+    );
+    check("  a Compact build with no room of its own is seen", plantedBuilds.compact, "false true");
+    check("  a preview's build at the Compact width with its room is seen", plantedBuilds.withPreview, "false false false false");
+    check("  a pane on white that does not scroll is seen", plantedBuilds.pane, "false false false");
+    check("  and a column taking no room is seen", plantedBuilds.column, false);
+    check(
+        "  a body that takes no spare room is seen",
+        buildFacts(parseSource('export function DialogBody({ children }) { return <div className="relative flex min-h-0 flex-col">{children}</div>; }\n', "<planted-body>")).bodyGrows,
+        false
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);
