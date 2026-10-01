@@ -9,15 +9,18 @@ Who am I signed in as, and where do I go? That is all it does today, and it is
 important that a designer knows how little it is: **this screen is a stopgap, not a
 designed landing page.**
 
-Its own source says why it exists — the app has no navigation shell, so a new
-route is otherwise reachable only by typing its URL. Each of its links was added by
-the issue that added the screen behind it, one at a time, for that reason alone.
+Its own source says why it exists — the app had no navigation shell, so a new
+route was otherwise reachable only by typing its URL. The tools screens carry the
+design's rail since #460, and the other screens it links to still carry none. Each
+of its links was added by the issue that added the screen behind it, one at a time,
+for that reason alone.
 Before those links, a purchase order was reachable only through the request that
 generated it.
 
 **So this is the screen with the most design freedom in the app and the least
-existing content to preserve.** The absence of a navigation shell is the largest
-single gap a design will find, and this page is where it currently shows.
+existing content to preserve.** The absence of a navigation shell was the largest
+single gap a design would find; the design has drawn one, and until #258 gathers
+the screens above the tools axis under it, this page is where its absence shows.
 
 ## What it always carries
 

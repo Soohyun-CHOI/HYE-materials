@@ -34,10 +34,11 @@ async function renderHome() {
                     >
                         New Purchase Request
                     </Link>
-                    {/* Issue #19 — the app has no navigation shell, so a new
-                        route is otherwise reachable only by typing the URL.
-                        One link here rather than inventing a nav bar, which is
-                        a separate decision. */}
+                    {/* Issue #19 — the app had no navigation shell, so a new
+                        route was otherwise reachable only by typing the URL.
+                        One link here rather than inventing a nav bar, which was
+                        a separate decision: the design's rail, which only the
+                        tools screens carry until #258 (#460). */}
                     <Link
                         href="/materials"
                         className="rounded border border-zinc-300 px-4 py-2"

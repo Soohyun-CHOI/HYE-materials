@@ -33,15 +33,17 @@ scanned on site, on a phone, possibly by someone wearing gloves. Both
 widths are this axis's problem, and neither is the other axis's.
 
 **The width container for every tools screen lives in the layout, not on
-the page**, and it is empty: no width, no padding, no type, no color was
-chosen for it, deliberately (#336). The screen renders unstyled. There is
+the page**, and no width, no padding, no type, no color was chosen for it,
+deliberately (#336). Since #460 it holds the design's rail and still nothing
+of a screen's own, so this screen's content renders unstyled. There is
 nothing here to preserve and nothing to depart from.
 
 ## What it always carries
 
 **identity.** The heading `Tools`, which is the `Tools` table's name — the
 same rule that makes the other list screens `Purchase Requests`,
-`Purchase Orders`, `Invoices` and `Deliveries`.
+`Purchase Orders`, `Invoices` and `Deliveries`. The rail's section for this
+screen says the heading's own string, read from it (#460).
 
 **action.** The control that opens the registration dialog over this screen
 (#456), carrying that dialog's own heading as its word so the two cannot drift

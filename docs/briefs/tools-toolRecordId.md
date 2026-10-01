@@ -31,8 +31,9 @@ not a path. So the URL carries Airtable's own record id and says nothing a
 reader recognizes, which is why the browser tab says only `Tool`.
 
 **These are the only screens in the app used at a phone width** (#336), and
-the width container lives in the layout and is empty — no width, no
-padding, no type, no color. The screen renders unstyled.
+the width container lives in the layout with no width, no padding, no type
+and no color of a screen's own. Since #460 it holds the design's rail, and
+this screen's content renders unstyled beside it.
 
 ## What it always carries
 
@@ -40,8 +41,9 @@ padding, no type, no color. The screen renders unstyled.
 it — the shape the tool item's screen takes with its printed id and the
 four document detail screens take with theirs.
 
-**action.** A way back to `/tools`, carrying the same words the tool item's
-screen carries for the same trip.
+**action.** A way back to `/tools`: the breadcrumb's one level, `Tools`
+behind a chevron (#460), the word the tool item's screen opens its path with
+for the same trip.
 
 **action.** A control that opens the registration dialog on this tool,
 `New tools` — the design's word (#456), where it said `Create more of this

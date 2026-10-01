@@ -8,10 +8,12 @@ import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { getRecentCheckOuts, getToolLogByToolItem } from "@/lib/airtable/toolLog";
 import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { FACT_KIND, TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import Instant from "@/app/components/Instant";
 import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
 import { TOOL_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/lib/toolLabelPage";
-import { TOOLS_PATH, toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
+import { TOOL_LIST_COPY } from "@/lib/toolListView";
+import { TOOLS_PATH, labelCodeFor, toolItemLabelsPath, toolItemPath, toolPath } from "@/lib/toolRoutes";
 import { TOOL_EVENT } from "@/lib/toolStatus";
 import { planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -197,8 +199,20 @@ async function renderToolItemPage({ params }) {
     const budget = labelBudget({ sideModules: QR_SIDE_MODULES });
     const { boxMm: symbolMm, fits: symbolFits } = symbolBox({ sideModules: symbol.sideModules, budget });
 
+    const tool = tools[0];
+
     return (
         <div>
+            {/* WHERE THIS TOOL ITEM SITS UNDER ITS TOOL (#460): the list, the tool, and the
+                code its label prints, which is how the design ends the path (1c). The
+                tool is the row read above, so the path costs nothing. */}
+            <Breadcrumb
+                levels={[
+                    { label: TOOL_LIST_COPY.heading, href: TOOLS_PATH },
+                    ...(tool ? [{ label: tool.toolName, href: toolPath(tool.id) }] : []),
+                ]}
+                current={labelCodeFor(toolItem.toolItemId)}
+            />
             <h1>{toolItem.toolItemId}</h1>
 
             <dl>

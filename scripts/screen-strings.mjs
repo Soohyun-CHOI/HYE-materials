@@ -60,8 +60,19 @@ import { isMain } from "./tests/offline/_harness.mjs";
 
 const INVENTORY_DIR = "docs/briefs/strings";
 
-/** The root layout composes every tab title, so it belongs to every screen. */
-const SHARED_FILES = ["app/layout.js"];
+/**
+ * Every layout above a screen's own directory, which renders around it: the root
+ * layout composes every tab title, and since #460 the tools layout draws the rail on
+ * every tools screen. This was the root layout alone, which left the rail's words on
+ * no screen's list.
+ */
+function layoutsAbove(dir) {
+    const out = [];
+    for (let at = dirname(dir); at === "app" || at.startsWith("app/"); at = dirname(at)) {
+        if (existsSync(repoPath(`${at}/layout.js`))) out.push(`${at}/layout.js`);
+    }
+    return out;
+}
 
 /** Attributes whose string value a person reads. Everything else is machinery. */
 const READ_ATTRS = new Set(["placeholder", "title", "alt", "aria-label", "aria-description", "label"]);
@@ -132,7 +143,7 @@ function resolveImport(spec, fromRel) {
 /**
  * The files one screen is assembled from, and how much of each one counts.
  *
- * Its own directory's files, the shared layout, and every COMPONENT those reach —
+ * Its own directory's files, the layouts above it, and every COMPONENT those reach —
  * stopping at another screen's directory, which is what keeps `/invoices` from
  * swallowing `/invoices/new`. A component renders its own text, so all of it counts,
  * and `components/ConfirmDialog.js` is why: two of this app's dialog labels exist
@@ -154,7 +165,7 @@ export function filesForRoute(route) {
         .map((f) => `${dir}/${f}`);
     /** relPath -> Set of imported names, or "*" for a file counted whole. */
     const scope = new Map();
-    for (const rel of [...own, ...SHARED_FILES]) scope.set(rel, "*");
+    for (const rel of [...own, ...layoutsAbove(dir)]) scope.set(rel, "*");
     const queue = [...scope.keys()];
 
     while (queue.length) {
