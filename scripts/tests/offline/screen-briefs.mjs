@@ -111,9 +111,13 @@ const NON_SCREEN = new Set(["_shared.md", "README.md", "design-copy-findings.md"
  * it has to be named, and no page may carry the brief's name — so a dialog removed, moved
  * off a page it claims, given an opener the brief does not name, or put back as a page
  * fails here rather than leaving a brief that tells the design work something else.
- * #457's label sheet is the next row.
+ * #457's labels are the second row: they were `/tool-items/labels` and are a dialog over a
+ * tool's page and a tool item's.
  */
-const DIALOG_BRIEFS = new Map([["tools-new.md", "app/(tools)/tools/RegistrationDialog.js"]]);
+const DIALOG_BRIEFS = new Map([
+    ["tools-new.md", "app/(tools)/tools/RegistrationDialog.js"],
+    ["tool-items-labels.md", "app/(tools)/tool-items/LabelsDialog.js"],
+]);
 
 /** Each file's imports, parsed once however many pages' walks pass through it. */
 const importsOf = new Map();
@@ -825,8 +829,18 @@ export function run({ check, assert, log }) {
         reachedFrom(pageFileByRoute.get("/tools") ?? "").has("app/(tools)/tools/RegistrationDialog.js")
     );
     assert(
-        "  and not from the label screen, which never opens it",
-        !reachedFrom(pageFileByRoute.get("/tool-items/labels") ?? "").has("app/(tools)/tools/RegistrationDialog.js")
+        "  and not from a tool item's page, which never opens it",
+        !reachedFrom(pageFileByRoute.get("/tool-items/[toolItemId]") ?? "").has("app/(tools)/tools/RegistrationDialog.js")
+    );
+    // The labels' dialog (#457) the other way round: a tool item's page reaches it and
+    // the printed path's page, which only redirects, does not.
+    assert(
+        "the import walk reaches the labels' dialog from a tool item's page",
+        reachedFrom(pageFileByRoute.get("/tool-items/[toolItemId]") ?? "").has("app/(tools)/tool-items/LabelsDialog.js")
+    );
+    assert(
+        "  and not from the printed path's",
+        !reachedFrom(pageFileByRoute.get("/t/[labelCode]") ?? "").has("app/(tools)/tool-items/LabelsDialog.js")
     );
     check("the Opens from line is read route by route", (opensFrom("Opens from: `/a` and `/b/[c]`.") ?? []).join(" "), "/a /b/[c]");
     assert("  and a brief with none reads as none", opensFrom("Route: `/a`") === null);

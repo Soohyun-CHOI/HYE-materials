@@ -4,7 +4,8 @@
 // see: a `<Link>` to an address the app stopped serving renders exactly as it did
 // and is a 404 only when somebody clicks it. This issue moved three of them, so the
 // thing worth holding afterwards is that the builders in `lib/toolRoutes.js` and the
-// page files under `app/(tools)/` name the same five routes, in both directions.
+// page files under `app/(tools)/` name the same routes, in both directions — four since
+// #457 took the labels' screen into a dialog, as #456 took the registration's.
 //
 // THE SECOND CLAIM IS THE ONE WITH A REDIRECT BEHIND IT. `/t/` uppercases the id it
 // was handed so the tool item's own page does not have to redirect a second time,
@@ -35,9 +36,9 @@ import {
     canonicalToolItemId,
     labelCodeFor,
     labelPath,
+    namedCode,
     readToolItemIds,
     toolItemIdFromLabelCode,
-    toolItemLabelsPath,
     toolItemPath,
     toolPath,
 } from "../../../lib/toolRoutes.js";
@@ -62,8 +63,12 @@ const GROUP_DIR = "app/(tools)";
  * opens it. A link to it would not 404: the dynamic segment takes `new` as a record id
  * and answers with the tool page's not-found, so a stray `href` is a dead end that looks
  * like a missing tool, which is why it is held here and not left to a click.
+ *
+ * `/tool-items/labels` joined in #457 for the same reason one segment over: the labels
+ * are a dialog over the pages that open them, and a link to the old screen reaches the
+ * tool item page's not-found, `labels` taken for an id.
  */
-const RETIRED = ["/tools/tool/", "/tools/[toolItemId]", "/t/[toolItemId]", "/tools/new"];
+const RETIRED = ["/tools/tool/", "/tools/[toolItemId]", "/t/[toolItemId]", "/tools/new", "/tool-items/labels"];
 
 /** The token every `Tool Item ID` opens with, and what a label code drops (#411). */
 const TOOL_ITEM_TOKEN = "HYE-TL-";
@@ -160,17 +165,10 @@ export function run({ check, assert, log }) {
     );
     check("  an empty selection carries nothing", toolPath("recAbc", 2, []), "/tools/recAbc?page=2");
     check("  nor on the first page", toolPath("recAbc", 1, []), "/tools/recAbc");
-    // THE SAME NAME AND THE SAME VALUES THE LABEL SCREEN TAKES, which is the claim
-    // that lets the print control hand a selection over unchanged.
-    check(
-        "the label screen is handed the same query",
-        toolItemLabelsPath(two).split("?")[1],
-        toolPath("recAbc", 1, two).split("?")[1]
-    );
-
-    // ONE READING OF `id` FOR BOTH SCREENS. Canonical, blank dropped, each once, the
-    // first occurrence keeping its place — asserted on what each reader really hands
-    // it: a Server Component's string, its array, nothing, and `getAll`'s array.
+    // ONE READING OF `id` FOR THE LIST AND THE LABELS' READ (#443, #457). Canonical,
+    // blank dropped, each once, the first occurrence keeping its place — asserted on what
+    // each reader really hands it: a Server Component's string, its array, nothing, and
+    // `getAll`'s array. The labels' screen read its own address this way until #457.
     check("one id as a string", readToolItemIds("hye-tl-260909-004").join(), "HYE-TL-260909-004");
     check("  none at all", readToolItemIds(undefined).length, 0);
     check("  an empty value", readToolItemIds(["", "  "]).length, 0);
@@ -184,8 +182,8 @@ export function run({ check, assert, log }) {
         ]).join(),
         "HYE-TL-260909-007,HYE-TL-260909-004"
     );
-    // IT DOES NOT ASK WHETHER A STRING IS A TOOL ITEM — the label screen's read does,
-    // and names what it cannot find — so a string of any shape comes back canonical.
+    // IT DOES NOT ASK WHETHER A STRING IS A TOOL ITEM — the labels' read does, and
+    // names what it cannot find — so a string of any shape comes back canonical.
     check("  and a string that is no id is kept, canonical", readToolItemIds(["abc"]).join(), "ABC");
     // The write and the read agree: what `toolPath` puts in the address is what
     // `readToolItemIds` takes out of it, through the browser's own parser.
@@ -196,6 +194,31 @@ export function run({ check, assert, log }) {
         two.join()
     );
     check("  and still says which page", written.get("page"), "2");
+    // THE LIST HANDS THE LABELS' READ WHAT IT READ, AND THE READ READS IT AGAIN (#457),
+    // so reading a reading must change nothing — a second reading that dropped a repeat
+    // differently or re-cased an id would print a run the list did not show.
+    const listed = readToolItemIds(["hye-tl-260909-007", "HYE-TL-260909-004", "HYE-TL-260909-007"]);
+    check("  and reading what it read changes nothing", readToolItemIds(listed).join(), listed.join());
+
+    // ── 2a″: how the labels name an id no tool item carries (#457) ──────────
+    log("");
+    log("an id the labels' read does not find is named by its code, or as it came:");
+    // NOT `labelCodeFor`, WHICH THROWS ON A STRING THAT IS NOT A `Tool Item ID` — a
+    // tripwire for a stored id, where these came off an address somebody may have typed.
+    check("one shaped like a Tool Item ID is named by its code", namedCode("HYE-TL-260909-098"), "260909-098");
+    check("  whatever its case", namedCode("hye-tl-260909-098"), "260909-098");
+    check("  and the code it gives is the one labelCodeFor makes", namedCode("HYE-TL-260909-098"), labelCodeFor("HYE-TL-260909-098"));
+    check("one that is not is named as it came, canonical", namedCode(" foo "), "FOO");
+    check("  and a code typed on its own stays itself", namedCode("260909-098"), "260909-098");
+    // ANTI-VACUITY: the throw this function steps around is real, so the two above are
+    // the function's answer rather than the one function behind both.
+    let threw = false;
+    try {
+        labelCodeFor("foo");
+    } catch {
+        threw = true;
+    }
+    assert("  where labelCodeFor throws on the same string", threw);
 
     // ── 2a′: a registration's landing, and the address of the form it offers (#449) ─
     log("");

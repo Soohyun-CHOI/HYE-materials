@@ -194,10 +194,12 @@ async function renderToolPage({ params, searchParams }) {
                         keeps the page box to this page (#443): the list selects
                         among what it is handed and has no way to name a tool item
                         it was not. What a label run is for is the list's to read
-                        off the address, and the print control that sends it lives
-                        there with the boxes that make it. */}
+                        off the address, and the print control that opens the
+                        labels on it lives there with the boxes that make it; the
+                        tool's name is the line under that dialog's title (#457). */}
                     <ToolItemList
                         toolRecordId={tool.id}
+                        toolName={tool.toolName}
                         rows={toolItems.map((toolItem) => ({
                             id: toolItem.id,
                             toolItemId: toolItem.toolItemId,

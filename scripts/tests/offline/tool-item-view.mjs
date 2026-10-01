@@ -248,8 +248,11 @@ export function run({ check, assert, log }) {
     // this record — and the page has both in hand before the symbol exists, so the
     // import is the whole decision. A regression to an image would be silent: the
     // symbol looks identical and the page just costs two more operations.
+    // ITS LABEL, SINCE #457 — the symbol and the code it prints, through the builder the
+    // labels' read calls too — so the symbol drawn here and the page its dialog draws are
+    // one object built once.
     assert("the page imports the builder", imports.some((from) => from.endsWith("toolLabelQR")));
-    assert("  and calls it", called.has("buildToolItemQR"));
+    assert("  and calls it for its label", called.has("buildToolItemLabel"));
     check(
         "  naming no fetched address, since that route is gone",
         names.filter((name) => name === "toolItemQRPath" || name === "QR_ROUTE").length,
@@ -283,7 +286,7 @@ export function run({ check, assert, log }) {
         return found;
     };
     check("the module size is derived from the constant", sideModulesArgOf("labelBudget"), "QR_SIDE_MODULES");
-    check("  and the box from this symbol's own count", sideModulesArgOf("symbolBox"), "symbol.sideModules");
+    check("  and the box from this symbol's own count", sideModulesArgOf("symbolBox"), "label.sideModules");
     // AND THE BOX IS ASKED OF THE BUDGET THE PAGE SIZED (#467), since `fits` is whether
     // the symbol is no larger than the one that budget was sized for: handed anything
     // else, `symbolBox` throws as the page renders, which this tier would never see.
@@ -333,7 +336,7 @@ export function run({ check, assert, log }) {
     // place draws today's symbol exactly and stops following the stock and the version
     // the day either moves — #412's pinned count one screen over. And the label absorbs
     // no version step since #453, so a host past seventeen characters builds a symbol
-    // the label screen refuses: the line saying the drawing is printed size has to be
+    // the labels refuse: the line saying the drawing is printed size has to be
     // the one asked about `fits`, or it is false on every such host. This tier renders
     // neither, so both are read off the page.
     const symbolReading = (parsed) => {
@@ -395,11 +398,49 @@ export function run({ check, assert, log }) {
 
     // PRINTS NOTHING ITSELF, which is what keeps "the same physical object as the
     // original" true by construction rather than by comparison: the reprint is the
-    // label screen, so there is no second layout to drift. This said a print path
-    // here would also be a reprint without a start position, and a reprint the
-    // archetypal part-used sheet; a label is a page of its own since #467, so that
-    // reason went with the sheet and the first one is the whole of it.
-    assert("it links to the label screen", called.has("toolItemLabelsPath"));
+    // labels' dialog — the label screen until #457 — so there is no second layout to
+    // drift. This said a print path here would also be a reprint without a start
+    // position, and a reprint the archetypal part-used sheet; a label is a page of its
+    // own since #467, so that reason went with the sheet and the first one is the whole
+    // of it.
+    //
+    // AND IT OPENS THE DIALOG ON ITS OWN LABEL, AS IT BUILT IT (#457): the run is that
+    // one label and no code missing, so opening it reads nothing, and the words are the
+    // ones its control and the dialog's title share. Read off the opener's props.
+    const opener = (parsed) => {
+        let found = "none";
+        walk(parsed.ast, (n) => {
+            if (n.type !== "JSXOpeningElement" || n.name?.name !== "LabelsDialog") return;
+            const prop = (name) => n.attributes.find((a) => a.name?.name === name)?.value;
+            const run = prop("run")?.expression;
+            const part = (key) => {
+                const value = run?.properties?.find((p) => p.key?.name === key)?.value;
+                if (!value) return "none";
+                if (value.type === "ArrayExpression") return `[${value.elements.map((e) => e?.name ?? e?.type).join(", ")}]`;
+                return value.name ?? value.type;
+            };
+            const title = prop("title")?.expression;
+            found = [
+                title ? `${title.object?.name}.${title.property?.name}` : "none",
+                `sideModules ${part("sideModules")}`,
+                `labels ${part("labels")}`,
+                `missing ${part("missing")}`,
+                prop("toolItemIds") ? "reads ids" : "reads none",
+            ].join(" | ");
+        });
+        return found;
+    };
+    check(
+        "it opens the labels' dialog on the label it built",
+        opener(page),
+        "LABEL_COPY.openFromToolItem | sideModules QR_SIDE_MODULES | labels [label] | missing [] | reads none"
+    );
+    // ANTI-VACUITY: an opener handed ids to read, as a tool's page hands them, is seen so.
+    check(
+        "  where one handed ids to read is seen reading them",
+        opener(parseSource("const a = <LabelsDialog title={COPY.openFromTool} toolItemIds={ids} />;\n", "<planted-opener>")),
+        "COPY.openFromTool | sideModules none | labels none | missing none | reads ids"
+    );
     check(
         "  and implements no print path of its own",
         [
@@ -419,7 +460,7 @@ export function run({ check, assert, log }) {
     assert("the alt names the thing rather than the picture", TOOL_ITEM_COPY.symbolAlt.includes("this tool"));
     assert("and the printed-size note says so", TOOL_ITEM_COPY.printedSizeNote.includes("prints"));
     // Its place is taken when the symbol does not fit the stock (#453), and the words
-    // name the host for the reason the label screen's own sentence does.
+    // name the host for the reason the labels' dialog's own sentence does.
     check(
         "the line when the symbol does not fit",
         TOOL_ITEM_COPY.symbolTooLargeNote,

@@ -36,12 +36,15 @@ export const title = "The tools screens say `create`, never `register` (#455)";
 /** The verb the design replaced, in every form a sentence takes it. */
 const REGISTER = /regist/i;
 
-/** The tools axis's routes, typed out — what this file covers, pinned by value. */
+/**
+ * The tools axis's routes, typed out — what this file covers, pinned by value. The labels'
+ * screen left the list in #457; its words are the dialog's, which the two pages that open
+ * it render, so they are covered through those.
+ */
 const ROUTES = [
     "/tools",
     "/tools/[toolRecordId]",
     "/tool-items/[toolItemId]",
-    "/tool-items/labels",
     "/t/[labelCode]",
 ];
 

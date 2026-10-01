@@ -66,6 +66,8 @@ The Tools file's 0a gives the values the phone screen takes in place of the web 
 
 **#460 landed next and took its number out, which settled every name it held.** The rail, the breadcrumb, the tooltip and the column read theirs, and three of #457's first: `--height-control`, which a rail row and its toggle are; `--spacing-control-inline-inset-x`, a breadcrumb level's side room; and `--color-foreground-faint`, the `/` between two levels, which the files of 2026-10-01 give Ink 4. Three marks moved: `--spacing-tooltip-offset` to #463, since the rail's tooltip opens beside its icon and the 6 is for one above its target; `--spacing-scroll-inset-bottom` to #463, since how a column ends — 0i's End and its give-back — is the screen's; and `--color-drawer-overlay` to #457, since the files of 2026-10-01 put nothing behind a Panel and #457 takes out what the spec dropped. **0m's account was not drawn and its two names went** — `--height-account` and `--size-avatar` — because the read it needs would have reached the `/t/` hop a scan passes through (`tools.md`, `The navigation`); the issue that draws it declares them again with it. Five names came from the drawings rather than the spec, and the table and `What the drawings carry` mark them.
 
+**#457 landed third and took its number out.** It read the three names still marked for it — a step's number is Label, and a page in the pane sits at the Mark corner on the Preview shadow — and undeclared `--color-drawer-overlay`, the Panel's wash #460 left it, since nothing draws one. It declared nine names with their reader: the dot's 9 either side (answer 7), and 1i's dialog at 780 by 520, its 440 pane, the 20 and 12 between pages, the column's 24 and 4, and a step's 20 mark.
+
 ## Design's answers
 
 The values were read from Claude Design's `Tools - new direction` and `Invoices - new direction` files and their `support.js`, rendered in a browser. Four places in them disagreed with each other or with the app and Design answered each (2026-09-29); #456 read the files again as Design sent them after that, and took eight answers more (2026-09-30). **Design sent the files twice on 2026-10-01, and the second sending carries every answer** — the last two, 7 and 12, rendered and read by #460, which was built from it. Where this file says the files of 2026-10-01, it means that second sending. A reading of older files must take these answers over what those files say.
@@ -76,7 +78,7 @@ The values were read from Claude Design's `Tools - new direction` and `Invoices 
 4. **The tool item page's 336 column is right as drawn, and it is 0n's record rail.** The page is 0n's record page with its label block in the rail, which 0n draws 336 wide at the right edge of the 1080 content — 32 from the main column's text to its Rule and 28 from the Rule to its own — and 384 wide on Fill. #462 read it as a layout of its own holding the label in a 336 column, left the rail waiting for #258 and listed the 336 among what the spec does not state; all three were false, and #456 corrected them where they stood. The rail's rows are #463's, declared with the screen, beside 0n's header, which the page takes and whose five names are #463's already: 14 under the breadcrumb bar, 24 above and below its rule, 10 and 12 down the stack, 12 from a block's name. The file is not behind here.
 5. **A form field at rest is drawn on Edge, not on Field.** Design moved the fields from 0e's Field ground to an Edge border: 0f's Field row rests a form field — in a dialog or on a page of fields — white with an Edge border, and Edge's own row names it, `the border of a card, a button, a chip or a form field at rest`. The names did not move — `--color-border` is Edge and `--color-background-muted` Field — so Edge's comment took the field, and Field lost the registration dialog as a reader. What Field's row still holds is a search field, a field that is waiting, a dialog's summary and the ground under a print preview, and the last is #457's, so its mark went there. **A dialog's summary was drawn first**, in #459's notice, which read the name before #457 did.
 6. **A list that opens from a field takes the field's width.** Design added the sentence to 0a's Menu row, whose other figures hold: 6 under the control, 5 inside, each item the height of the control that opens it — 36 under a 36 field — and 0k's Raised, the shadow of a surface that opens from a control. So a field's list is 0a's Menu, and the registration dialog's two read the Menu's names. The row's widths, from 140 to 280 on the longest item, are for a menu a button opens, and they wait for #463's `More actions`.
-7. **The dot between two clauses is 9 either side, everywhere.** Design set 0e's Ink 4 row to `the dot between two clauses, 9 either side` and moved the line under a dialog's title from 8 to the same 9, since one mark does not take two values. The files of 2026-10-01 draw it at 9 in every caption. The breadcrumb's `/` keeps 8, and it is another mark. No name is for the dot; it is set with the text that holds it.
+7. **The dot between two clauses is 9 either side, everywhere.** Design set 0e's Ink 4 row to `the dot between two clauses, 9 either side` and moved the line under a dialog's title from 8 to the same 9, since one mark does not take two values. The files of 2026-10-01 draw it at 9 in every caption. The breadcrumb's `/` keeps 8, and it is another mark. **The dot's name is `--spacing-separator-inline`**, declared by #457 with its first reader, the dot between the labels' count and their size; it was set with the text that held it until then.
 8. **A dialog's head has two figures more, and both are names.** 0l's Head row now sets the close at least 16 from the title and a line under the title 2 under it — `--spacing-dialog-header-inline` and `--spacing-dialog-title-stack`, which the frame reads.
 9. **A refusal about the whole dialog is drawn.** 0l's Actions row gives it one line above the actions: a 16 alert mark in Red, 8 before one sentence at 13 in Red, 14 over the actions — the mark the sign-in screens draw (1p, 1r). Every figure is a name already: `--size-icon`, `--spacing-gap`, `--text-body-sm`, `--color-danger` and `--spacing-gap-lg`. 1j's `Create failed` is where a registration that wrote nothing stands, and its sentence is Design's: `Couldn't create the tools. Try again.`
 10. **A reader on no job meets every opener disabled, with why before it.** `Ask the office to assign you to a job` stands 14 before each of the three, on its line and at 13 in Ink 3 — 0f's Disabled row — and the dialog does not open for them. It is Design's answer to `Join a job to create tools`, which #455 sent back for naming an act nobody on this axis can take.
@@ -147,6 +149,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0e Ink 2 | `--color-foreground-muted` | oklch(0.405 0.013 265) |
 | 0e Ink 3 | `--color-foreground-subtle` | oklch(0.505 0.012 265) |
 | 0e Ink 4 | `--color-foreground-faint` | oklch(0.760 0.010 265) |
+| 0e Ink 4, the dot's room either side | `--spacing-separator-inline` | 0.5625rem (9) |
 | 0e Inner rule | `--color-divider-subtle` | oklch(0.946 0.005 265) |
 | 0e Rule | `--color-divider` | oklch(0.928 0.006 265) |
 | 0e Band | `--color-divider-strong` | oklch(0.896 0.007 265) |
@@ -182,7 +185,6 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0k Shadow ink | `--color-elevation` | oklch(0.22 0.025 265) |
 | 0k Sticky | `--color-background-translucent` | oklch(1 0 0 / 0.82) |
 | 0k Wash, behind a Modal | `--color-dialog-overlay` | the shadow ink at 40% |
-| 0k Wash, behind a Panel | `--color-drawer-overlay` | the shadow ink at 10% |
 | 0k Raised | `--shadow-popover` | 0 8px 24px at 10% over 0 1px 2px at 6% |
 | 0k Panel | `--shadow-drawer` | 0 12px 48px at 16% |
 | 0k Modal | `--shadow-dialog` | 0 24px 60px at 24% |
@@ -205,6 +207,14 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0l Split, the summary inside, above and below | `--spacing-dialog-summary-inset-y` | 1rem (16) |
 | 0l Split, the summary inside, either side | `--spacing-dialog-summary-inset-x` | 1.125rem (18) |
 | 1k, between two ids a summary lists | `--spacing-dialog-summary-stack` | 0.25rem (4) |
+| 1i, a dialog with a preview, across | `--container-dialog-preview` | 48.75rem (780) |
+| 1i, a dialog with a preview, down | `--height-dialog-preview` | 32.5rem (520) |
+| 1i, the pane a preview is drawn in | `--width-dialog-preview-pane` | 27.5rem (440) |
+| 1i, between two rows of pages in the pane | `--spacing-dialog-preview-stack` | 1.25rem (20) |
+| 1i, between two pages in a row | `--spacing-dialog-preview-inline` | 0.75rem (12) |
+| 1i, between the blocks of the column beside the pane | `--spacing-dialog-panel-stack` | 1.5rem (24) |
+| 1i, between two codes the column lists | `--spacing-dialog-panel-list-stack` | 0.25rem (4) |
+| 1i, a numbered step's mark | `--size-dialog-step` | 1.25rem (20) |
 | 0m Rail, collapsed | `--width-rail` | 3.5rem (56) |
 | 0m Rail, expanded | `--width-rail-expanded` | 15.5rem (248) |
 | 0m Rail, inside | `--spacing-rail-inset` | 0.75rem (12) |

@@ -81,8 +81,8 @@ whatever is selected on another.
 **action.** A control that prints labels for **what is selected** (#353, #443),
 `Print labels`. **It names no range, and that is the point:** the boxes and the
 count beside it show what a press sends, which is what the control's words had
-to say while it sent the page it was on. It opens the label screen with the
-selection, in the list's order.
+to say while it sent the page it was on. It opens the labels' dialog on the
+selection, in the list's order — it opened the label screen with it until #457.
 
 **evidence.** One sentence standing with the print control, saying what a
 press would send: how many are selected — `3 selected` — or, when nothing is,
@@ -171,9 +171,9 @@ one: registering more of a tool adds to the same list, and one registration
 can make up to a hundred. Both steps carry the selection, so what was
 selected on one page is still selected on the next.
 
-**When nothing is selected:** the sentence is the label screen's own for the
-same state, `Nothing is selected, so there is nothing to print.`, and the
-print control is drawn but does not act. Every arrival from the tool list
+**When nothing is selected:** the sentence is the one the label screen said for
+the same state until #457, `Nothing is selected, so there is nothing to print.`,
+and the print control is drawn but does not act. Every arrival from the tool list
 starts here; a registration's arrival does not, and neither does any other
 address carrying a selection. **It does not print
 the page instead** — that was the control's behavior until #443, and
@@ -192,12 +192,12 @@ their ends.
 many, `3 selected, 1 not on this page`, and says nothing of it otherwise. A
 selection outlives a page turn, so this is what reconciles the count with a
 page whose boxes show fewer — and it is the only place those tool items appear
-until the label screen lists them.
+until the labels' dialog draws them.
 
 **When more are selected than one print takes:** `101 selected, and one print
-takes at most 100.`, and the print control does not act. The label screen
-prints a hundred at a time and would print the first hundred of a longer run,
-so a press here would print less than it sent. It needs a tool with more than
+takes at most 100.`, and the print control does not act. The labels' dialog
+reads a hundred at most (#457), and the label screen printed the first hundred
+of a longer run, so a press here would have printed less than it sent. It needs a tool with more than
 a hundred tool items, selected across pages.
 
 **When the tool has no tool items at all:** one sentence in place of the
@@ -233,14 +233,13 @@ measurement — nobody has yet held this list on a phone with a real
 warehouse in it. **Two ceilings on it are not the design's.** Anything up
 to fifty costs the app exactly the same to fetch, and a fifty-first row is
 a second read; and a page is how many one press of the page box selects,
-where the print control acts on at most a hundred — what the label screen
-prints at once.
+where the print control acts on at most a hundred — what one print takes.
 
 **The selection rides in the address (#443), which is what lets it survive a
-page turn, a reload and a copied link.** It is the label screen's own
-parameter with its own values — printed ids — so the print control hands it
-over unchanged, and a copied address is a request to print those labels
-again rather than an account of anything. It is kept in the list's order,
+page turn, a reload and a copied link.** It was the label screen's own
+parameter with its own values — printed ids — until #457, and the print control
+hands it to the labels' dialog unchanged, so a copied address is a request to
+print those labels again rather than an account of anything. It is kept in the list's order,
 whatever order the boxes were pressed in, so the labels print in the order the
 list reads. **A design must not offer "select all of this tool"**, for the reason
 this screen never offered "print all": it is a read of every tool item under
@@ -260,17 +259,18 @@ selection alone**, and while either dialog stands the list behind it cannot be
 pressed, so the account leaves the address by being answered. A copied
 address carrying them shows them to whoever opens it.
 
-**The label screen still asks which labels to print, and that is not a second
-selection.** Arriving from here, every tool item this selection names starts
-included there. Excluding one there trims that run and does not reach back
-into this screen's selection — it is where the whole run is listed at once,
-beside the count of labels it prints, for a last decision about the tape. It
-stood beside the start position and the sheet count until #467. The two are
-different acts and take different words: `Select` here, `Include` there.
+**The label screen asked which labels to print until #457, and that was not a
+second selection.** Arriving from here, every tool item this selection named
+started included there. Excluding one there trimmed that run and did not reach
+back into this screen's selection — it was where the whole run was listed at
+once, beside the count of labels it printed, for a last decision about the tape.
+It stood beside the start position and the sheet count until #467. The two were
+different acts and took different words: `Select` here, `Include` there. The
+labels' dialog asks nothing, so the selection here is the run.
 
 **Every control that opens the registration dialog takes its words from that
 dialog's constant (#451)**, so none can drift from the dialog it opens — the
-arrangement the label screen has with the two screens that open it. Two say
+arrangement the labels' dialog has with the two pages that open it. Two say
 the dialog's heading, because both begin a registration: `/tools`' own, which
 opens it on no tool, and this screen's, which opens it on this tool. The
 fork's says `Create the rest`, because it finishes one, and opens it on this

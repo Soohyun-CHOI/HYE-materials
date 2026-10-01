@@ -1,9 +1,10 @@
-# Print tool labels
+# Print labels
 
-Route: `/tool-items/labels`
-Who reaches it: anyone signed in, with no Role and no Job scoping (#337). No tool
-item is one reader's rather than another's.
-Which width comes first: **desktop**. This screen is used at whatever machine the
+Opens from: `/tools/[toolRecordId]` and `/tool-items/[toolItemId]`, as a dialog
+over the page that opens it — it was the page `/tool-items/labels` until #457.
+Who reaches it: anyone signed in who is on either page, with no Role and no Job
+scoping (#337). No tool item is one reader's rather than another's.
+Which width comes first: **desktop**. This dialog is used at whatever machine the
 printer is attached to, which `docs/notes/tools.md` settled for the whole label
 step. Both widths must work; this one is drawn first.
 
@@ -13,30 +14,35 @@ We created some tools and now they need stickers. Print their QR labels on the
 label printer's tape, one label to a page.
 
 **A tool item with no label is a row nothing can reach.** The QR symbol is the
-only way a phone gets from a physical drill to its record, so this screen is the
+only way a phone gets from a physical drill to its record, so this dialog is the
 last step of registration rather than a convenience — and it is why a
 registration lands on its tool's own screen with what it wrote selected, one
 press of that screen's print control from here (#449). Until then the
 registration's own answer linked straight here.
 
-**The screen exists because paper is not a screen.** What it draws is each label
-at its true printed size, a page each, and the whole point of every dimension on
-it is that the ink lands inside the length of tape the printer cuts off. That
-makes it the one screen in this app whose correctness is physical.
+**The dialog exists because paper is not a screen.** What it prints is each
+label at its true size, a page each — it draws them at twice that (#457) — and
+the whole point of every dimension on it is that the ink lands inside the length
+of tape the printer cuts off. That makes it the one surface in this app whose
+correctness is physical.
 
 ## What it always carries
 
-**identity.** The heading, `Print tool labels`.
+**identity.** The title — `Print labels` from a tool's page and `Print label`
+from a tool item's, the word each page's control says — and under it the tool's
+name. It was the heading `Print tool labels` until #457.
 
-**evidence.** Two facts about the run, both screen-only and never printed:
+**evidence.** Two facts about the run on one line, both screen-only and never
+printed:
 
-- **Which stock**, by its tape: `Stock: 12 mm tape`. The length of tape a label
+- **How many labels**, one to a page — `4 labels`, or `3 of 5 labels` when some
+  of what was named does not print — which is the page count the print dialog
+  has to agree with. It was `4 labels, one to a page.` until #457, and it counted
+  the sheets they took until #467.
+- **Which stock**, by the label's size: `11 × 12 mm`. The length of tape a label
   takes is the page's, so the tape is the one thing a person loading the printer
-  has to get right (#467). It named a die-cut's two dimensions while the stock
-  was a sheet no product matched (#412).
-- **How many labels**, one to a page — `4 labels, one to a page.` — once a
-  selection exists, which is the page count the print dialog has to agree with.
-  It counted the sheets they took until #467.
+  has to get right (#467). It was `Stock: 12 mm tape` until #457, and it named a
+  die-cut's two dimensions while the stock was a sheet no product matched (#412).
 
 **The host each symbol will encode is not stated (#454).** It was the first of
 three facts here. A symbol carries the host it was printed from, so a run
@@ -45,7 +51,7 @@ stop resolving, and the screen spelled the host out with a warning saying so.
 **The warning was not conditional** — nothing in the app knows which host is the
 permanent one — so on the host the app keeps it would be false above every
 sheet, and #454 took it off with the host above it. What the two guarded is a
-rule kept outside this screen.
+rule kept outside this dialog.
 
 **THE WARNING WAS THE ONLY DEFENSE LEFT AFTER #411, AND IT WAS WRITTEN TO BE READ
 AT THE MOMENT OF PRESSING PRINT.** Until that issue a symbol built on a dev host
@@ -65,25 +71,25 @@ is drawn there at all. A host short enough to stay at today's size — a local
 server's is one — still looks exactly like the real one, and nothing on the
 screen says which host it is.
 
-**action.** Two controls — three until #467:
+**action.** Two controls, `Cancel` and the commitment — `Print 4 labels`,
+counting what prints, and the title's words drawn disabled when nothing does
+(0f). Above them, while anything prints, the two steps the browser's own print
+dialog needs: `Choose your label printer.` and `Keep scale at 100%.` The screen
+had three controls until #467, and two until #457:
 
-- **A per-label include**, one for every tool item the address named, all included
-  to begin with. Excluding one takes its page out of the run rather than printing
-  it blank, so a run of N prints N pages. **There is no select-all and no
-  select-none, and their absence is a decision rather than an omission**: every
-  label starts included, so select-all named the state the screen already opens
-  in, and select-none reached only the state the screen refuses to print from. A
-  run is a handful, so unchecking one or two is the whole interaction — **a design
-  should not add a bulk control back without a reader who needs one.** From a
-  tool's own page the address names only what was selected there (#443), and this
-  is the one place that whole run is listed together before the tape is spent.
+- **A per-label include went with the screen (#457).** It was one for every tool
+  item the address named, all included to begin with, and excluding one took its
+  page out of the run rather than printing it blank. There was no select-all and
+  no select-none, since every label started included. The run is now what a
+  tool's page has selected (#443), so that page's boxes are where a label is left
+  out, and the one place the whole run is listed before the tape is spent is the
+  dialog's pane.
 - **The first label position on the sheet went with the sheet (#467).** It took
   1 to however many a sheet held, for a part-used sheet, which was the ordinary
   case rather than an edge: a registration is usually a handful of tools, so
   printing always from the top would have thrown away most of a sheet every time.
   A label printer cuts after every page, so no run is ever printed into one
   somebody has already peeled from.
-- **Print.**
 
 **the labels.** One page per label, each the label's own size — one page-sized
 box per sheet, with each label placed at its stock's own corner, until #467. Each
@@ -99,47 +105,54 @@ not the same:
   is part of the label's arithmetic; see below.
 
 **The tool's name is not on the label (#431).** The design dropped it. The
-picker above the labels still names each tool item by its tool, because that is
-a screen naming a record and the person choosing labels chooses by it; the
-sticker carries the code alone.
+picker above the labels named each tool item by its tool until #457, because that
+was a screen naming a record and the person choosing labels chose by it; the
+dialog names the opening page's tool under its title, and the sticker carries the
+code alone.
 
 **The printed code is not the whole `Tool Item ID`, and the difference is the
-point (#411).** A tool item is `HYE-TL-260909-004` in the base, on this screen's
-own picker and on every other screen; the sticker carries `260909-004`. The
-seven characters dropped are on every tool item and separate none of them, so
-they cost the symbol its headroom and the label its width while confirming
-nothing. **A design must not put them back**, and must not treat the picker
-above the labels and the sticker below it as needing the same string: one is a
-screen naming a record, the other is a sticker a person reads in order to type.
+point (#411).** A tool item is `HYE-TL-260909-004` in the base and on every
+screen; the sticker carries `260909-004`. The seven characters dropped are on
+every tool item and separate none of them, so they cost the symbol its headroom
+and the label its width while confirming nothing. **A design must not put them
+back.** The picker named each tool item by the whole id until #457, a screen
+naming a record above a sticker a person reads in order to type; the dialog has
+no picker, and it names a code it did not find in the sticker's form,
+`260909-098`, as 1i draws it.
 
 ## What it carries only sometimes
 
-**When the address named no tool item:** the heading and one sentence saying so,
-pointing at a tool's own page, which is where a run is selected — `Nothing was
-named to print. Open this from a tool's own page.` It named a registration's
-answer as well until #449, which stopped a registration opening this screen. No
-label and no controls. It said `No tool item was named` until #455; the
-design's noun is `tool`, and a first `tool` meaning one of a tool's tools would
-stand for two things in a sentence that goes on to name the tool.
+**When nothing is selected, the dialog does not open:** a tool's page draws its
+control disabled with the reason beside it, `Nothing is selected, so there is
+nothing to print.` Until #457 the screen said `Nothing was named to print. Open
+this from a tool's own page.` to an address that named no tool item, pointing at
+the page where a run is selected. It named a registration's answer as well until
+#449, which stopped a registration opening this screen. It said `No tool item was
+named` until #455; the design's noun is `tool`, and a first `tool` meaning one of
+a tool's tools would stand for two things in a sentence that goes on to name the
+tool.
 
-**When none of the named ids is on the base:** the heading and one sentence
-saying none exists, `None of those tools exists.` This is reachable by
-hand-typing an address.
+**When none of the named ids is on the base:** `No labels to print.` in the pane,
+`0 of 3 labels`, the codes under `3 codes not found`, no steps, and the commitment
+drawn disabled. This is reachable by hand-typing a tool's address. It was the
+heading and `None of those tools exists.` until #457.
 
-**When some of them are not on the base:** those ids are named in a sentence of
-their own and no label is offered for them. **They are not folded into the
-run** — a label that cannot be printed is a different state from one that can,
-and printing a short run in silence would leave somebody counting stickers to
-find out.
+**When some of them are not on the base:** those codes are listed under how many
+— `2 codes not found` — and no label is drawn for them. **They are not folded
+into the run** — a label that cannot be printed is a different state from one
+that can, and printing a short run in silence would leave somebody counting
+stickers to find out.
 
-**When more ids were named than one request prints:** a sentence saying how many
-were named, that this prints 100 at a time, and that the first 100 are below. The
-cap is the largest registration's cap and the two are one number, and a tool's own
-page refuses to send a larger selection than this prints (#443), so nothing the
-app itself produces can reach this.
+**When the host is too long for the symbols (#453):** the shape of a run with
+nothing on record, with one sentence about the host where the codes not found
+stand. 1i draws no such state.
 
-**When nothing is selected:** a sentence saying there is nothing to print, and the
-print control does not act.
+**When more ids are selected than one print takes, the dialog does not open:** a
+tool's page refuses the selection, `101 selected, and one print takes at most
+100.` (#443), and the read behind the dialog throws on a longer run, which
+nothing the app draws can send. The screen printed the first 100 of a longer
+address and said so until #457. The cap is the largest registration's cap and the
+two are one number.
 
 **When the run did not fit one sheet**, until #467: more than one sheet was
 drawn, each on its own page, and blanks held open by the start position appeared
@@ -200,7 +213,7 @@ thinner than 0.65 mm. On a sheet it made the label taller by its own height.
 four modules per version as the address it encodes gets longer. So the printed
 size is a fixed millimeters PER MODULE, which makes a longer address a bigger
 symbol rather than a denser one — and since #453 a bigger symbol is one the
-label has no room for, so the screen says so instead of drawing it thinner.
+label has no room for, so the dialog says so instead of drawing it thinner.
 **A design that pins the symbol to a box in millimeters would undo this**, and
 the failure is invisible on screen: it only shows up as a symbol a phone cannot
 read.
@@ -219,7 +232,7 @@ face's measured advance — half its size per character — so a different face 
 a different number. **Changing the face is the design's to do and it reopens
 that figure**; what the label has room for without changing size is a face up
 to about 0.54 of its size per character, ten characters under the widest symbol.
-The face reaches the printed code and nothing else on this screen.
+The face reaches the printed code and nothing else in this dialog.
 
 **Both floors are measured since #467, where they were quoted figures (#412).**
 The module's 0.29 mm and the code's 5 pt are a label this printer printed and a
@@ -249,8 +262,8 @@ shrink to absorb that, because it is already at its floor, and the label no
 longer keeps room for a bigger one. **So the host's length decides whether a
 label prints**: a host of up to seventeen characters gives today's symbol — at
 exactly seventeen, only while a day's tool items stay under a thousand — and a
-longer one, which a Vercel domain is, gives a symbol the screen names instead of
-drawing, in a sentence that points at the host. A design must keep that sentence
+longer one, which a Vercel domain is, gives a symbol the dialog draws no page for,
+saying so in a sentence that points at the host. A design must keep that sentence
 where Print is pressed. **It is also why the host a label carries is settled
 before the first label is printed**: it is `app.hyeusa.com`, fourteen characters,
 which leaves three, and a permanent host past seventeen would build a symbol the
@@ -258,48 +271,55 @@ tape has no room for.
 
 **The screen words are the design's (#455).** A `Tools` row is a tool, and a
 `Tool Items` row — which this brief calls a tool item — is a `tool` in any
-sentence about one, as in `None of those tools exists.`, and never a `tool item`
-on screen. The same words govern `/tools`, the registration dialog over it, the
+sentence about one, and never a `tool item` on screen. The dialog's sentences
+name labels and codes; `None of those tools exists.` was this screen's until
+#457. The same words govern `/tools`, the registration dialog over it, the
 tool's own screen, where the tools under one are counted as `items`, and the tool
 item's. This said
 the pair was `tool` and `tool item` and never a bare `item`, which the design
 reversed.
 
-**Two screens open this one and their words come from here**, so the controls on
-a tool's own page and on a tool item's own page cannot drift from the screen they
-open. That is the arrangement the registration dialog has with the controls that
+**Two pages open this dialog and their words come from here** — `Print labels`
+and `Print label` — so the controls on a tool's own page and on a tool item's own
+page cannot drift from the dialog they open. That is the arrangement the registration dialog has with the controls that
 open it, which was `/tools`' control on `/tools/new` until #456. This
 said two until #443, which counted the tool item's, added in #352; it said three
 until #449, which moved a registration's run onto the tool's own page — the
 registration lands there with what it wrote selected, and that page's control is
 how its labels are printed.
 
-**A tool's page sends what its list has selected (#443)** — this screen's own
-parameter with its own values, in the list's order — and its control says only
-`Print labels`, because the boxes on that page show the range. It sent the page
-it was showing until then. Its page box still selects a page at a time, so a page
-fits inside the hundred this screen prints at once, and that screen refuses a
-selection larger than that rather than sending one whose tail this would drop.
-**A design offering "select all of this tool" there would be asking for a read
-that screen divided on purpose.** Excluding a label here trims this run and
-does not reach back into that selection.
+**A tool's page opens this on what its list has selected (#443)**, in the list's
+order, and its control says only `Print labels`, because the boxes on that page
+show the range. The selection went on this screen's address as its own parameter
+until #457, and the page it was showing went there before #443. Its page box
+still selects a page at a time, so a page fits inside the hundred one print
+takes, and that page refuses a selection larger than that rather than opening a
+run whose tail would not print. **A design offering "select all of this tool"
+there would be asking for a read that page divided on purpose.**
 
-**Each label is drawn at its true printed size, and since #467 that fits a
-phone.** A label is 11 mm across, about 42 px, so at a 375px width the controls
-and the labels fit and nothing scrolls sideways — measured. While a sheet was
-drawn the page scrolled sideways, since a US Letter sheet is 215.9 mm across and
+**Each label is drawn at twice its printed size and printed at its own
+(#457)** — 1i's 22 × 24 mm on screen, by a zoom the print takes back to 1, so
+nothing inside a label moves between the two. At a 375px width the dialog stacks
+— the head, the pane, then the rest — and two labels fit across the pane with
+nothing scrolling sideways, measured. Until then each was drawn at its true size,
+11 mm across, about 42 px, which fitted a phone as well. While a sheet was drawn
+the page scrolled sideways, since a US Letter sheet is 215.9 mm across and
 drawing it smaller would have stopped it being a preview of what comes out; how
 that narrow case read was left open, and no dimension forces the question now.
 
-**Nothing on the paper is a screen affordance.** The heading, the picker, the
-print button and every sentence about the run are hidden at print. What a reader
-sees on screen and what comes out of the printer are deliberately not the same
-thing, which is the one place in this app where that is true.
+**Nothing on the paper is a screen affordance.** The dialog's head, everything
+beside the pane — the count, the codes, the steps and the controls — its backdrop
+and the page behind it are hidden at print (#457), as the screen's heading,
+picker, print button and every sentence about the run were. What a reader sees
+on screen and what comes out of the printer are deliberately not the same thing,
+which is the one place in this app where that is true.
 
-**And that list has to be exhaustive rather than nearly so, because a label is
+**And what prints has to be the pages and nothing else, because a label is
 exactly one page** — a sheet was, until #467. The page box has no margin, so any
 ink above the first label takes a page of its own and pushes every label down by
 one. **This is not a
-hypothetical**: the heading was left out of the print rule and the first print
-put it alone on page one. A design adding anything to this screen — a caption, a
-back link, a count — has to put it on the screen side of that line.
+hypothetical**: the heading was left out of the screen's print rule and the first
+print put it alone on page one. Since #457 the rule keeps the pages and hides
+everything else, so what can still reach the paper is something added inside the
+pane beside a label. A design adding a caption, a page number or a count there
+has to put it on the screen side of that line.

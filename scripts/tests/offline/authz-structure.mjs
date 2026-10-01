@@ -123,6 +123,18 @@ const SESSION_ONLY_AXIS =
     "exists for — #385 sends one here from the request form when the address they need has no row yet. Compare " +
     "/api/quotations/upload, which is any-active-user on the same reading.";
 
+// #457's, AND THE SECOND WHOSE GATE IS A SESSION AND NOTHING ELSE. It is a constant of
+// its own rather than a second reader of SESSION_ONLY_AXIS, whose reason is about an
+// `Addresses` row; this one is about the tools axis's reader, and borrowing the other
+// would state something untrue about each.
+const TOOL_LABEL_READ_AXIS =
+    "Session and nothing else, which is the whole gate. Every signed-in reader may print any tool item's label: " +
+    "the tools axis has no Role and no Job scoping (#337), no tool item is one reader's rather than another's, and " +
+    "this action reads tool items and builds their labels and writes nothing. So requireUser() is the gate both pages " +
+    "that open the labels' dialog have, and with no field to select a reader by there is no per-record comparison " +
+    "to make — the property docs/notes/authorization.md records as what makes an exemption the whole coverage, left " +
+    "by #351's QR endpoint when #352 deleted it.";
+
 // #281's axis, and the third of this mixed shape after the two delivery ones.
 const PO_DOCUMENT_AXIS =
     "Session + either the requester of the order's purchase request or the office, not a role. " +
@@ -285,6 +297,12 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/(tools)/tools/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
+    {
+        file: "app/(tools)/tool-items/actions.js",
+        name: "readToolItemLabelsAction",
+        mustCall: "requireUser",
+        reason: TOOL_LABEL_READ_AXIS,
+    },
     {
         file: "app/(tools)/tool-items/[toolItemId]/actions.js",
         name: "recordToolItemEventAction",

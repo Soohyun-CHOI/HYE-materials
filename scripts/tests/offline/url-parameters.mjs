@@ -82,10 +82,10 @@ export const title = "Every URL parameter is read by the screen it lands on, and
  * the screen holding it renders the same with it and without it. Run it through the
  * reload test the four groups above are sorted by and it is idempotent: reopening
  * `/login?destination=…` offers the same sign-in for the same address. It is clear
- * of #321 on the same distinction `/tool-items/labels?id=` is — it says what the
- * next act is FOR rather than that an act happened, so a copied link is a good
- * request to sign in and go there, never somebody else's confirmation. And nothing
- * on either screen says a word about it, which is why no sentence can outlive it.
+ * of #321 on the same distinction a tool's `id` is — `/tool-items/labels?id=` was, until
+ * #457 — it says what the next act is FOR rather than that an act happened, so a copied
+ * link is a good request to sign in and go there, never somebody else's confirmation.
+ * And nothing on the screen says a word about it, which is why no sentence can outlive it.
  *
  * THE SLICE GROUP HAS ONE MEMBER AND IS THE APP'S FIRST PAGING (#339). It is its own
  * group rather than a filter because a filter narrows which rows a reader asked for
@@ -196,33 +196,27 @@ const CARRIED = [
     })),
 
     // ── a selection: which records the next act is for ────────────────────
-    // A FIFTH GROUP (#353). It is not a filter, because there is no list it narrows —
-    // without it the label screen has nothing to render at all; not a navigation,
-    // because that opens a form ON a record and this constitutes the whole page; not a
-    // slice, because it is not a part of something longer; and not an account,
-    // because it says what the next act is FOR rather than that an act happened. That
-    // last distinction is what keeps it clear of #321: a copied link is a perfectly
-    // good request to print those labels again, which is exactly what a confirmation
-    // must never be. **This called it the first plural parameter the app carries, and
-    // it was not** — `/prs`' `job` had been repeatable since #321; corrected by #443.
+    // A FIFTH GROUP (#353). It is not a filter, because it marks the rows it names
+    // rather than narrowing them — the list renders the same rows with the selection or
+    // without it; not a navigation, because that opens a form ON a record; not a slice,
+    // because it is not a part of something longer; and not an account, because it says
+    // what the next act is FOR rather than that an act happened. That last distinction
+    // is what keeps it clear of #321: a copied link is a perfectly good request to print
+    // those labels again, which is exactly what a confirmation must never be. **This
+    // called it the first plural parameter the app carries, and it was not** — `/prs`'
+    // `job` had been repeatable since #321; corrected by #443.
     //
-    // #443 GAVE IT A SECOND MEMBER RATHER THAN A SEVENTH GROUP, and the reload test
-    // these groups are sorted by is what decides that. A tool's list carries what it
-    // has selected for a label run under the same name and the same values, and the
-    // print control moves them to the label screen unchanged — so both answer a reload
-    // the same way: the same records come back named for the same act. Of the four
-    // exclusions above only the first changes its reason: the list renders the same
-    // rows with the selection or without it, so the parameter marks them rather than
-    // narrowing them. A group of its own would be a second name for one answer.
-    {
-        route: "/tool-items/labels",
-        param: "id",
-        note: "#353 — which tool items to print labels for; repeatable, a printed `Tool Item ID` each, read through `readToolItemIds` — canonical and each once — then capped at the largest registration. Written by a tool's page, which sends what its list has selected (#443), and by a tool item's own page. A registration's own answer linked here until #449, which lands a registration on its tool's page with what it wrote selected instead",
-    },
+    // IT HAS ONE MEMBER AGAIN SINCE #457, AND IT IS THE SECOND ONE. `/tool-items/labels`
+    // founded the group with the same name and values — the run it printed — and #443
+    // gave a tool's list the same parameter for what it has selected, so the print
+    // control handed them over unchanged. The labels are a dialog over that list now,
+    // opened on the selection as it stands, so the screen's own `id` went with the screen
+    // and no parameter came with the dialog: opening it writes nothing to the address
+    // (#456's shape), since a copied link already names the run.
     {
         route: "/tools/[toolRecordId]",
         param: "id",
-        note: "#443 — which of this tool's tool items the list has selected for a label run; repeatable, the label screen's own name and values, so the print control hands them over unchanged. Written by `toolPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn — and by a registration's redirect, which lands with every tool item it wrote selected (#449); read off the address by the list with `useSearchParams().getAll`, and never by the server, which is what keeps the page at four operations",
+        note: "#443 — which of this tool's tool items the list has selected for a label run; repeatable, a printed `Tool Item ID` each, the name and values `/tool-items/labels` took until #457, and the print control opens the labels' dialog on them unchanged. Written by `toolPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn — and by a registration's redirect, which lands with every tool item it wrote selected (#449); read off the address by the list with `useSearchParams().getAll`, and never by the page's server render, which is what keeps the page at four operations — the dialog's read is a request of its own",
     },
 
     // ── a one-time account of something the screen does not otherwise say ───

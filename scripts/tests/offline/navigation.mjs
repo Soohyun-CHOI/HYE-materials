@@ -86,7 +86,6 @@ const SECTION_OF_ROUTE = {
     "/prs/new": "purchase-requests",
     "/t/[labelCode]": "tools",
     "/tool-items/[toolItemId]": "tools",
-    "/tool-items/labels": "tools",
     "/tools": "tools",
     "/tools/[toolRecordId]": "tools",
 };
