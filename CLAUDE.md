@@ -95,6 +95,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
 - `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, and every word either says.
 - `lib/crossOrigin.js` — the login-CSRF refusal every sign-in POST makes.
+- `lib/cookieLifetime.js` — each sealed cookie's lifetime, one value for its seal and its cookie. A session lasts 30 days from sign-in and is never extended.
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373).
 - `lib/units.js` — `CANONICAL_UNITS`, the JS source of truth for the Unit select list.
 - `lib/editLogFields.js` — the labels a `PR Edit Log` row can be about. No call site may pass `createEditLogEntry` a string literal.
