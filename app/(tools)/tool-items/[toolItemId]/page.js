@@ -10,7 +10,7 @@ import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { FACT_KIND, TOOL_ITEM_COPY as COPY, logRowFacts } from "@/lib/toolItemView";
 import Instant from "@/app/components/Instant";
 import { QR_SIDE_MODULES, buildToolItemQR } from "@/lib/toolLabelQR";
-import { TOOL_LABEL_SHEET_COPY as SHEET_COPY, labelBudget, symbolBox } from "@/lib/toolLabelSheet";
+import { TOOL_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/lib/toolLabelPage";
 import { TOOLS_PATH, toolItemLabelsPath, toolItemPath } from "@/lib/toolRoutes";
 import { TOOL_EVENT } from "@/lib/toolStatus";
 import { planTransition } from "@/lib/toolTransition";
@@ -189,13 +189,13 @@ async function renderToolItemPage({ params }) {
         origin: `${proto}://${headerList.get("host") ?? ""}`,
         toolItemId: toolItem.toolItemId,
     });
-    // Derived against today's version plus the stock's headroom, then applied to
-    // the side count this symbol actually came out at. Whether it FITS is asked here
-    // too (#453): the stock absorbs no version step, so a longer host builds a symbol
-    // the sheet refuses, and the line under it has to say that rather than that it is
-    // printed size.
-    const { moduleMm } = labelBudget({ sideModules: QR_SIDE_MODULES });
-    const { boxMm: symbolMm, fits: symbolFits } = symbolBox({ sideModules: symbol.sideModules, moduleMm });
+    // Sized for today's version plus the label's headroom, then applied to the side
+    // count this symbol actually came out at. Whether it FITS is asked here too
+    // (#453): the label absorbs no version step, so a longer host builds a symbol the
+    // label screen refuses, and the line under it has to say that rather than that it
+    // is printed size.
+    const budget = labelBudget({ sideModules: QR_SIDE_MODULES });
+    const { boxMm: symbolMm, fits: symbolFits } = symbolBox({ sideModules: symbol.sideModules, budget });
 
     return (
         <div>
@@ -266,7 +266,7 @@ async function renderToolItemPage({ params }) {
                 no caller, so #352 deleted it.
 
                 IT IS DRAWN AT ITS PRINTED SIZE, from the same two functions the
-                sheet uses: the module size derived once for the stock, and the box
+                label pages use: the budget sized once for the label, and the box
                 from THIS symbol's own side count. Passing `QR_SIDE_MODULES` to the
                 box instead would scale a larger version into today's box and thin
                 its modules, which is the defect #353 measured in a browser. */}
@@ -278,7 +278,7 @@ async function renderToolItemPage({ params }) {
             <p>{symbolFits ? COPY.printedSizeNote : COPY.symbolTooLargeNote}</p>
             <p>
                 <Link href={toolItemLabelsPath([toolItem.toolItemId])}>
-                    {SHEET_COPY.openFromToolItem}
+                    {LABEL_COPY.openFromToolItem}
                 </Link>
             </p>
 

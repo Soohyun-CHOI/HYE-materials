@@ -117,7 +117,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
-- `lib/toolLabelSheet.js` — the sheet a tool label prints on (#353).
+- `lib/toolLabelPage.js` — the page a tool label prints as (#353, #467).
 - `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, the refusals, and every word it says.
 - `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, which tool items a label run is for (#443), the page a registration lands on (#449), and their own words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
