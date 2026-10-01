@@ -8,6 +8,7 @@ import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems, readRegistrationAccount } from "@/lib/toolRegistration";
 import { TOOLS_PATH } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
+import Breadcrumb from "@/app/components/Breadcrumb";
 import RegistrationDialog from "../RegistrationDialog";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
@@ -148,10 +149,12 @@ async function renderToolPage({ params, searchParams }) {
 
     return (
         <div>
+            {/* The way back is the breadcrumb's one level since #460, the list's own
+                heading behind a chevron (1b), where it was a link of this page's. */}
+            <Breadcrumb levels={[{ label: COPY.heading, href: TOOLS_PATH }]} />
             {/* The tool's name is the heading and there is no heading word, which
                 is the shape the tool item's page takes with its printed id. */}
             <h1>{tool.toolName}</h1>
-            <Link href={TOOLS_PATH}>{COPY.backToTools}</Link>
             {/* Registering more of this tool (#451), above the branch below so a tool
                 with nothing under it keeps it — there it is the way to write what a
                 registration did not. It is not one of the fork's answers, which stand

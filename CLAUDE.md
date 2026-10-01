@@ -166,6 +166,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`: the tool item page's two until #458, the rest until #258. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener, or to the page's heading when nothing opened it (#459).**
 - `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456); `lib/dialogFrame.js`, its word.
 - `app/components/Controls.js`, `Menu.js` — 0a's controls and the list a field opens (#456); `lib/controls.js`, their keys and words.
+- `app/components/Rail.js`, `Breadcrumb.js` — the rail and the column a screen scrolls in, and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, and their words. **Only the tools layout calls the rail until #258.**
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
 - `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
 - `app/components/PdfPages.js` — a PDF's pages, drawn by the app (#433). **The one module that draws a page, and the only one that loads PDF.js.**

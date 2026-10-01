@@ -129,7 +129,7 @@ None of the three passes the resolved user to the handler, because no Admin/Pres
 
 ### The destination a sign-in carries (#373)
 
-A reader who follows any address in this app while signed out is redirected to `/login`, signs in, and lands on the root screen; the address they asked for is gone and they have to type it again. **The scan is what made that expensive rather than annoying**: the person is holding a phone in front of a tool, the root screen is the app's only navigation and is drawn for a monitor, and there is no way back to the tool item from it except scanning the label again. The flow now carries the address through both of its steps and returns to it.
+A reader who follows any address in this app while signed out is redirected to `/login`, signs in, and lands on the root screen; the address they asked for is gone and they have to type it again. **The scan is what made that expensive rather than annoying**: the person is holding a phone in front of a tool, the root screen was then the app's only navigation and is drawn for a monitor, and there is no way back to the tool item from it except scanning the label again. The flow now carries the address through both of its steps and returns to it.
 
 **THE FLOW IS TWO STEPS AND THAT IS #203's DOING, so the destination has to survive a mail round trip.** `/login` requests the link, the link lands on `/login/confirm`, and only the button there mints the session — because a mail scanner following a link must not spend the token. Nothing between `requireUser()` and that button held the address.
 

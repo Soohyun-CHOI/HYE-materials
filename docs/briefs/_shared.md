@@ -681,7 +681,9 @@ this document only writes down what is there.
 The purchase order list's own heading is `Purchase Orders` and the link to it
 from the root screen says `Purchase orders`. One screen, two casings. Every
 other list heading is `Title Case` except `Material prices`, which is sentence
-case.
+case. The rail the tools screens carry (#460) says the design's words,
+`Purchase requests` and `Purchase orders`, so the request list's heading
+disagrees with its section too.
 
 `WITHDRAW_COPY` uses contractions (`hasn't`, `can't`) and `DELETE_COPY` uses
 `cannot`, in two modals that a reader can meet in the same week.
@@ -855,7 +857,7 @@ now, which is why the tools layout landed before the tokens rather than after.
 
 **The two axes also differ in how many places a width lands, and #336 is why.**
 Every screen outside the tools axis declares its own container inside its own
-page — eighteen of those twenty-one pages do, twenty-two declarations in all —
+page — twenty of those twenty-four pages do, twenty-four declarations in all —
 so a width settled there is an edit per page. The tools screens hold one
 container in the layout they share, so a width settled for that axis is one
 edit.
@@ -866,19 +868,21 @@ makes a width a search instead of an edit, and it costs more than the count
 suggests: the same class string appears twice in four of those pages, once per
 return path, so two branches of one screen can disagree about a width or a
 branch can be given none. Gathering them into a layout is the natural move when
-the values are named, and #336 did not do it — eighteen pages is a refactor
+the values are named, and #336 did not do it — twenty pages is a refactor
 rather than a layout — so it is #258's to make.
 
-**The tools container is deliberately empty**: those screens carry no width, no
-padding and no type of their own, so nothing there is a shape to depart from.
-The first of them renders unstyled at both widths today, and that is the honest
-state rather than a draft to match.
+**The tools container holds the rail and nothing of a screen's own** (#460):
+those screens carry no width, no padding and no type of their own, so nothing
+there is a shape to depart from. Their content renders unstyled at both widths
+today beside the rail drawn as the design drew it, and that is the honest state
+rather than a draft to match.
 
-**There is no navigation shell.** The root screen carries five links because a
-new route is otherwise reachable only by typing its URL. Every "back" affordance
-in the app is a per-page link written by whoever added the page. This is an
-absence rather than a decision, and it is the largest single gap a design will
-find.
+**The navigation shell is the tools screens' alone (#460).** The design drew a
+rail with every section on it and a breadcrumb above a record; the tools screens
+carry both, and the screens above them carry neither until #258 gathers them
+into one layout. There the root screen carries five links because a new route
+is otherwise reachable only by typing its URL, and every "back" affordance is a
+per-page link written by whoever added the page.
 
 ## How a screen brief reads
 

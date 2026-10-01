@@ -95,9 +95,12 @@ const TOOLS_DIR = "app/(tools)/";
  * its own out as well, and it was written here as waiting on nothing, which 1k's
  * drawing did not bear out: its notice lists ids in the id face on a dialog's summary,
  * so it was the first reader of three names marked for #457 and declared the three the
- * summary needed.
+ * summary needed. #460 took its own out with the rail, the breadcrumb and the tooltip:
+ * it read three of #457's first, handed the tooltip above a target and a column's End
+ * to #463, left the Panel's wash to #457, which takes out what the spec dropped, and
+ * undeclared the account's two with the account.
  */
-const READERS_TO_COME = [457, 458, 460, 463];
+const READERS_TO_COME = [457, 458, 463];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -108,13 +111,13 @@ const READERS_TO_COME = [457, 458, 460, 463];
 const VALUES = [
     // 0a · Control
     ["--height-control-lg", "2.25rem", null],
-    ["--height-control", "2rem", 457],
+    ["--height-control", "2rem", null],
     ["--height-control-sm", "1.875rem", null],
-    ["--height-control-inline", "1.625rem", 460],
+    ["--height-control-inline", "1.625rem", null],
     ["--height-dialog-close", "1.75rem", null],
     ["--size-icon", "1rem", null],
     ["--size-icon-sm", "0.875rem", null],
-    ["--spacing-control-inline-inset-x", "0.5rem", 457],
+    ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
     ["--spacing-control-lg-inset-x", "1rem", null],
     ["--min-width-menu", "8.75rem", 463],
@@ -123,10 +126,10 @@ const VALUES = [
     ["--spacing-menu-inset", "0.3125rem", null],
     // 0b · Layout
     ["--container-content", "67.5rem", 463],
-    ["--spacing-page-gutter", "2rem", 460],
+    ["--spacing-page-gutter", "2rem", null],
     ["--spacing-gap", "0.5rem", null],
     ["--spacing-gap-lg", "0.875rem", null],
-    ["--spacing-nav-gap", "0.6875rem", 460],
+    ["--spacing-nav-gap", "0.6875rem", null],
     ["--spacing-list-header-inset-top", "1.25rem", 463],
     ["--height-table-row", "2.5rem", 463],
     ["--spacing-table-bleed", "0.75rem", 463],
@@ -136,7 +139,7 @@ const VALUES = [
     ["--spacing-selection-bar-slide", "0.5rem", 463],
     ["--transition-duration-selection-bar", "160ms", 463],
     // 0c · Blue
-    ["--color-selected", "#F0F9FF", 460],
+    ["--color-selected", "#F0F9FF", null],
     ["--color-selected-hover", "#E6F5FF", 463],
     ["--color-primary", "oklch(0.487 0.216 257)", null],
     ["--color-primary-hover", "oklch(0.437 0.211 257)", null],
@@ -149,7 +152,7 @@ const VALUES = [
     ["--color-foreground-default", "oklch(0.255 0.013 265)", null],
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
     ["--color-foreground-subtle", "oklch(0.505 0.012 265)", null],
-    ["--color-foreground-faint", "oklch(0.760 0.010 265)", 457],
+    ["--color-foreground-faint", "oklch(0.760 0.010 265)", null],
     ["--color-divider-subtle", "oklch(0.946 0.005 265)", 458],
     ["--color-divider", "oklch(0.928 0.006 265)", null],
     ["--color-divider-strong", "oklch(0.896 0.007 265)", 463],
@@ -158,8 +161,8 @@ const VALUES = [
     ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", null],
     ["--color-background-muted", "color-mix(in oklab, var(--color-foreground-default) 4.5%, transparent)", null],
     ["--color-hover", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
-    ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", 460],
-    ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", 460],
+    ["--color-scrollbar-thumb", "color-mix(in oklab, var(--color-foreground-default) 20%, transparent)", null],
+    ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", null],
     // 0f · States
     ["--width-number-input", "7.5rem", null],
     ["--spacing-stepper-inset", "0.1875rem", null],
@@ -180,17 +183,19 @@ const VALUES = [
     ["--text-heading-sm", "0.75rem", 457],
     ["--text-heading-sm--line-height", "1rem"],
     ["--text-heading-sm--font-weight", "600"],
-    ["--text-brand", "1.0625rem", 460],
+    // The wordmark in the rail, Bricolage Grotesque since the files of 2026-10-01 (#460).
+    ["--text-brand", "1rem", null],
     ["--text-brand--line-height", "1.5rem"],
     ["--text-brand--font-weight", "500"],
     ["--tracking-id", "-0.02em", null],
+    ["--tracking-brand", "-0.03em", null],
     ["--font-ui", "var(--font-instrument-sans), system-ui, sans-serif", null],
     ["--font-id", "var(--font-fragment-mono), ui-monospace, monospace", null],
-    ["--font-brand", "var(--font-fraunces), Georgia, serif", 460],
-    // 0i · Scroll
-    ["--spacing-scrollbar", "8px", 460],
-    ["--spacing-scrollbar-inset", "2px", 460],
-    ["--spacing-scroll-inset-bottom", "2.5rem", 460],
+    ["--font-brand", "var(--font-bricolage-grotesque), sans-serif", null],
+    // 0i · Scroll — a column's End is the column's, and #463 draws the columns.
+    ["--spacing-scrollbar", "8px", null],
+    ["--spacing-scrollbar-inset", "2px", null],
+    ["--spacing-scroll-inset-bottom", "2.5rem", 463],
     // 0j · Radius
     ["--radius-preview", "0.125rem", 457],
     ["--radius-control", "0.5rem", null],
@@ -198,27 +203,31 @@ const VALUES = [
     ["--radius-dialog", "0.75rem", null],
     // 0k · Elevation
     ["--color-elevation", "oklch(0.22 0.025 265)", null],
-    ["--color-background-translucent", "oklch(1 0 0 / 0.82)", 460],
+    ["--color-background-translucent", "oklch(1 0 0 / 0.82)", null],
     ["--color-dialog-overlay", "color-mix(in oklab, var(--color-elevation) 40%, transparent)", null],
-    ["--color-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 10%, transparent)", 460],
+    // The files of 2026-10-01 put nothing behind a Panel; #457 takes out what the spec dropped.
+    ["--color-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 10%, transparent)", 457],
     [
         "--shadow-popover",
         "0 8px 24px color-mix(in oklab, var(--color-elevation) 10%, transparent), 0 1px 2px color-mix(in oklab, var(--color-elevation) 6%, transparent)",
         null,
     ],
-    ["--shadow-drawer", "0 12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", 460],
+    ["--shadow-drawer", "0 12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", null],
     ["--shadow-dialog", "0 24px 60px color-mix(in oklab, var(--color-elevation) 24%, transparent)", null],
     [
         "--shadow-preview",
         "0 0 0 1px color-mix(in oklab, var(--color-elevation) 6%, transparent), 0 2px 8px color-mix(in oklab, var(--color-elevation) 8%, transparent)",
         457,
     ],
-    ["--spacing-tooltip-inset-top", "0.1875rem", 460],
-    ["--spacing-tooltip-inset-x", "0.5625rem", 460],
-    ["--spacing-tooltip-inset-bottom", "0.25rem", 460],
-    ["--spacing-tooltip-offset", "0.375rem", 460],
-    ["--spacing-tooltip-rail-offset", "0.625rem", 460],
-    ["--transition-delay-tooltip", "360ms", 460],
+    ["--spacing-tooltip-inset-top", "0.1875rem", null],
+    ["--spacing-tooltip-inset-x", "0.5625rem", null],
+    ["--spacing-tooltip-inset-bottom", "0.25rem", null],
+    // Above a target, which no rail icon is; the next tooltip on the axis is #463's.
+    ["--spacing-tooltip-offset", "0.375rem", 463],
+    ["--spacing-tooltip-rail-offset", "0.625rem", null],
+    ["--transition-delay-tooltip", "360ms", null],
+    // From the drawings' stylesheet, not the spec (#460).
+    ["--transition-duration-tooltip", "120ms", null],
     // 0l · Modal
     ["--container-dialog", "26.25rem", null],
     ["--spacing-dialog-gutter", "1.75rem", null],
@@ -232,14 +241,18 @@ const VALUES = [
     ["--spacing-dialog-summary-inset-x", "1.125rem", null],
     ["--spacing-dialog-summary-stack", "0.25rem", null],
     // 0m · Navigation
-    ["--width-rail", "3.5rem", 460],
-    ["--width-rail-expanded", "15.5rem", 460],
-    ["--spacing-rail-inset", "0.75rem", 460],
-    ["--transition-duration-rail", "200ms", 460],
-    ["--ease-rail", "cubic-bezier(0.2, 0, 0, 1)", 460],
-    ["--height-account", "3rem", 460],
-    ["--size-avatar", "1.5rem", 460],
-    ["--height-breadcrumb", "3rem", 460],
+    ["--width-rail", "3.5rem", null],
+    ["--width-rail-expanded", "15.5rem", null],
+    ["--spacing-rail-inset", "0.75rem", null],
+    ["--transition-duration-rail", "200ms", null],
+    ["--ease-rail", "cubic-bezier(0.2, 0, 0, 1)", null],
+    // From the drawings, not the spec (#460).
+    ["--spacing-rail-stack", "0.125rem", null],
+    ["--spacing-rail-divider-stack", "0.625rem", null],
+    ["--height-breadcrumb", "3rem", null],
+    // From the drawings, not the spec (#460).
+    ["--spacing-breadcrumb-back-offset", "0.75rem", null],
+    ["--spacing-breadcrumb-back-gap", "0.125rem", null],
     // 0n · Record page
     ["--spacing-page-header-stack", "1.5rem", 463],
     ["--spacing-breadcrumb-stack", "0.875rem", 463],
@@ -328,7 +341,7 @@ const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar", "--spacing
 const FACES = {
     "--font-ui": { loader: "Instrument_Sans", variable: "--font-instrument-sans" },
     "--font-id": { loader: "Fragment_Mono", variable: "--font-fragment-mono" },
-    "--font-brand": { loader: "Fraunces", variable: "--font-fraunces" },
+    "--font-brand": { loader: "Bricolage_Grotesque", variable: "--font-bricolage-grotesque" },
 };
 
 /** The route files Next renders from, under `app/`. A file one of them reaches is on a page. */
