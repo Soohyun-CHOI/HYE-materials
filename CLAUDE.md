@@ -18,7 +18,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `app/addresses/**`, `lib/address*.js` | `docs/notes/addresses.md` |
 | `app/(tools)/**`, `lib/tool*.js` | `docs/notes/tools.md` |
 | `app/designValues.css`, `app/globals.css` | `docs/notes/design-system.md` |
-| `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
+| `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/airtable/**`, `scripts/import/**`, `scripts/demo/**`, `scripts/tests/verify-*.mjs`, adding or changing a field or a table | `docs/notes/data-model.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
 | `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
@@ -84,10 +84,11 @@ What that boundary implies keeps coming up: a decision made before a PR exists c
 
 One module per rule, and **one rule, one implementation** — see below. Each entry is the path and what it owns; why it owns it is in the `docs/notes/` file for its area.
 
-- `lib/airtable/client.js` — the shared connection, the table names, the batched readers and `withKeyLock()`. Throws at module load without `AIRTABLE_API_KEY`.
+- `lib/airtable/client.js` — the shared connection, the table names, the batched readers, the batched create and `withKeyLock()`. Throws at module load without `AIRTABLE_API_KEY`.
 - `lib/airtable/{table}.js` — one file per table, plain async functions.
 - `lib/airtableOps.js` — the Airtable operation counter and its attribution scope. Server-only; a forbidden root for client bundles.
 - `lib/airtableFormula.js` — `formulaString`, the one escape for an interpolated value, and the whole-formula builders.
+- `lib/airtableBatch.js` — rows created ten to a request, one request at a time, a failed request read back by its minted ids before it is counted (#470). Pure; `client.js:createRecords` gives it the base.
 - `lib/ids.js` — all ID generation: the lock, the query and the create.
 - `lib/idSequence.js` — the pure half: the daily ID families and the child relations.
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.

@@ -549,8 +549,8 @@ export function run({ check, assert, log }) {
     // so the no-typecast refusal never fires and the row lands with no `Event`. The
     // writer refuses anything outside the vocabulary, that included.
     for (const [what, guard] of [
-        ["a missing job", 'if (!jobRecordId) throw new Error("createToolLogEntry: a Job is required");'],
-        ["a missing recorder", 'if (!recordedByUserId) throw new Error("createToolLogEntry: a Recorded By is required");'],
+        ["a missing job", 'if (!jobRecordId) throw new Error("toolLog: a Job is required");'],
+        ["a missing recorder", 'if (!recordedByUserId) throw new Error("toolLog: a Recorded By is required");'],
         ["an event outside the vocabulary, a missing one included", "if (!TOOL_EVENT_VALUES.includes(event)) {"],
     ])
         assert(`the writer throws on ${what}`, writer.source.includes(guard));

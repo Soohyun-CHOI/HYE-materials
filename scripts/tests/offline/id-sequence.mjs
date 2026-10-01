@@ -22,11 +22,13 @@
 //      max-not-count sequence for both shapes, and the predicate prefixMatch
 //      builds.
 //   2. SOURCE SHAPE of lib/ids.js — that no daily counter reads a date field any
-//      more, and that generateChildId reads its siblings' IDs rather than the
-//      array's length. Parsed, not text-matched.
+//      more, that generateChildId reads its siblings' IDs rather than the
+//      array's length, and, since #470, that generateFirstChildIds reads nothing
+//      and takes no lock. Parsed, not text-matched.
 //   3. EVERY generateChildId CALL SITE under lib/, enumerated rather than listed,
 //      so a ninth child table cannot ship with an unregistered ID shape or still
-//      passing a shape of its own (which would now be silently ignored).
+//      passing a shape of its own (which would now be silently ignored) — and
+//      every generateFirstChildIds call site with them (#470).
 //
 // Parts 2 and 3 are here rather than in source-shape.mjs, which
 // docs/notes/verification.md names as the home for source-shape checks, and the
@@ -54,12 +56,13 @@ import {
     dailyIdPrefix,
     dailyStamp,
     formatSequentialId,
+    nextChildId,
     nextSequence,
     sequenceOf,
 } from "../../../lib/idSequence.js";
 import { prefixMatch } from "../../../lib/airtableFormula.js";
 import { isMain, standalone } from "./_harness.mjs";
-import { REPO_ROOT, listJsFiles, parseFile, repoPath, toPosix, walk } from "./_ast.mjs";
+import { REPO_ROOT, callsTo, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 
 export const title = "ID sequences — the counted population, for daily and child IDs (#164)";
 
@@ -393,6 +396,37 @@ export function run({ check, log, assert }) {
         check(`${link} (${first})`, back, 3);
     }
 
+    // #470: THE NEXT CHILD ID IS ONE COMPOSITION, asked with the siblings
+    // `generateChildId` read and with none by `generateFirstChildIds`, so a new tool
+    // item's unread first row and every later event share one sequence. Literals,
+    // because an assertion written in terms of the composition holds for any wrong one.
+    log("");
+    log("the next child ID — one composition, for a parent read and for one just made (#470):");
+    const TOOL_LOG = childKind("Tool Items", "Tool Log");
+    const QUOTATIONS = childKind("Purchase Requests", "Quotations");
+    check("a tool item with no history takes -001", nextChildId(TOOL_LOG, "HYE-TL-261001-005", []), "HYE-TL-261001-005-001");
+    check(
+        "  and after two events, -003",
+        nextChildId(TOOL_LOG, "HYE-TL-261001-005", ["HYE-TL-261001-005-001", "HYE-TL-261001-005-002"]),
+        "HYE-TL-261001-005-003"
+    );
+    check(
+        "  another tool item's rows are not its siblings",
+        nextChildId(TOOL_LOG, "HYE-TL-261001-005", ["HYE-TL-261001-004-007"]),
+        "HYE-TL-261001-005-001"
+    );
+    check("a quotation keeps its label", nextChildId(QUOTATIONS, "HYE-PR-260710-07", ["HYE-PR-260710-07-Q01"]), "HYE-PR-260710-07-Q02");
+    check(
+        "  and a plain child does not count toward it",
+        nextChildId(QUOTATIONS, "HYE-PR-260710-07", ["HYE-PR-260710-07-003"]),
+        "HYE-PR-260710-07-Q01"
+    );
+    for (const [link, kind] of Object.entries(CHILD_KINDS)) {
+        const first = nextChildId(kind, "PARENT-01", []);
+        const second = nextChildId(kind, "PARENT-01", [first]);
+        check(`  ${link}: a second child follows the first, and both read back`, nextSequence([first, second], "PARENT-01", { seqPrefix: kind.seqPrefix }), 3);
+    }
+
     log("");
     log("the child registry:");
     check("all nine child relations are registered", Object.keys(CHILD_KINDS).length, 9);
@@ -544,7 +578,10 @@ export function run({ check, log, assert }) {
     })();
     assert("generateChildId exists", Boolean(childBody));
     assert("it batches the siblings through findByRecordIds", /findByRecordIds\(/.test(childBody ?? ""));
-    assert("and takes the sequence from nextSequence", /nextSequence\(/.test(childBody ?? ""));
+    // #470 moved the composition into lib/idSequence.js, where the first child of a new
+    // parent asks it too — so the claim is that this asks it and builds none of its own.
+    assert("and takes its ID from nextChildId, the composition the first child shares", /nextChildId\(/.test(childBody ?? ""));
+    assert("  building no sequence or shape of its own", !/nextSequence\(|formatSequentialId\(/.test(childBody ?? ""));
     // The defect, as a shape: counting the link array's length is what produced a
     // duplicate, so `.length + 1` must not come back.
     assert(
@@ -555,6 +592,66 @@ export function run({ check, log, assert }) {
         "it asks CHILD_KINDS for the shape rather than defaulting one",
         /childKind\(/.test(childBody ?? "")
     );
+
+    // #470: THE FIRST CHILD OF A PARENT JUST MADE. No lock and no read are the point of
+    // it — a registration's `Created` rows go ten to a request because nothing is read
+    // first — and so are the two things that make that safe: the ID is `nextChildId`
+    // over NO siblings, and a parent whose link array is not empty is refused. Each is
+    // read as the expression that decides it, beside a planted copy doing all of it
+    // wrong, since naming the calls would be satisfied by every wrong version of them.
+    log("");
+    log("generateFirstChildIds — nextChildId over no siblings, with no lock and no read (#470):");
+    const firstChildFacts = ({ ast, source }) => {
+        let fn = null;
+        walk(ast, (node) => {
+            if (node.type === "FunctionDeclaration" && node.id?.name === "generateFirstChildIds") fn = node;
+        });
+        if (!fn) return { found: false };
+        const body = source.slice(fn.body.start, fn.body.end);
+        const text = (node) => (node ? source.slice(node.start, node.end) : "none");
+        let refuses = false;
+        walk(fn, (node) => {
+            if (node.type !== "IfStatement" || !/childRecordIds/.test(text(node.test)) || !/\.length/.test(text(node.test))) return;
+            walk(node.consequent, (inner) => {
+                if (inner.type === "ThrowStatement") refuses = true;
+            });
+        });
+        return {
+            found: true,
+            siblings: callsTo(fn, "nextChildId").map((call) => text(call.arguments[2])).join(", ") || "none",
+            kind: callsTo(fn, "childKind").length,
+            locks: /withKeyLock\(/.test(body),
+            reads: /\bbase\(|\.find\(|\.select\(|findByRecordIds\(|findChildRecords\(|getLinkedRecords\(/.test(body),
+            builds: /nextSequence\(|formatSequentialIds?\(|padStart\(|-0+1\b/.test(body),
+            refuses,
+            // What the create is handed, so one call per ID inside a loop reads as that.
+            creates: callsTo(fn, "createFn").map((call) => text(call.arguments[0])).join(", ") || "none",
+        };
+    };
+    const first = firstChildFacts(ids);
+    assert("lib/ids.js declares generateFirstChildIds", first.found);
+    check("  it mints with nextChildId over an empty sibling list", first.siblings, "[]");
+    check("  asking CHILD_KINDS for the shape", first.kind, 1);
+    check("  takes no lock", first.locks, false);
+    check("  reads nothing", first.reads, false);
+    check("  builds no ID of its own", first.builds, false);
+    check("  refuses a parent whose link array is not empty", first.refuses, true);
+    check("  and hands every ID to the create at once", first.creates, "childIds");
+    const plantedFirst = firstChildFacts(
+        parseSource(
+            "export async function generateFirstChildIds({ parentTableName, parents }, createFn) {\n" +
+                "  return withKeyLock('k', async () => {\n" +
+                "    await base(parentTableName).find(parents[0].recordId);\n" +
+                "    return createFn(parents.map(({ prefix }) => `${prefix}-001`));\n" +
+                "  });\n" +
+                "}\n",
+            "<planted-first-child>"
+        )
+    );
+    check("  a hand-written first ID is seen", `${plantedFirst.siblings} ${plantedFirst.builds}`, "none true");
+    check("  a lock and a read are seen", `${plantedFirst.locks} ${plantedFirst.reads}`, "true true");
+    check("  a parent with children let through is seen", plantedFirst.refuses, false);
+    check("  and a create handed anything but the minted list is seen", plantedFirst.creates, "parents.map(({ prefix }) => `${prefix}-001`)");
 
     // --- Part 3: every child call site, enumerated ------------------------
     // Fail-closed in authz-structure.mjs's shape: a new child table added later
@@ -591,6 +688,10 @@ export function run({ check, log, assert }) {
     };
 
     const callSites = [];
+    // #470: the first child of a parent just made is minted by `generateFirstChildIds`,
+    // which reads the same registry and is enumerated the same way — what it does not
+    // need is a child table, since it reads no siblings.
+    const firstCallSites = [];
     const problems = [];
     for (const rel of listJsFiles(repoPath("lib")).map((f) => toPosix(f.slice(REPO_ROOT.length + 1)))) {
         if (rel === "lib/ids.js") continue;
@@ -603,10 +704,12 @@ export function run({ check, log, assert }) {
         }
         walk(parsed.ast, (node) => {
             if (node.type !== "CallExpression") return;
-            if (node.callee?.type !== "Identifier" || node.callee.name !== "generateChildId") return;
+            if (node.callee?.type !== "Identifier") return;
+            const minter = node.callee.name;
+            if (minter !== "generateChildId" && minter !== "generateFirstChildIds") return;
             const config = node.arguments[0];
             if (config?.type !== "ObjectExpression") {
-                problems.push(`${rel}: generateChildId's first argument is not an object literal`);
+                problems.push(`${rel}: ${minter}'s first argument is not an object literal`);
                 return;
             }
             const props = new Map();
@@ -619,7 +722,7 @@ export function run({ check, log, assert }) {
             const link = linkNode?.type === "Literal" ? linkNode.value : null;
             const parent = resolveTable(props.get("parentTableName"));
             const key = parent && link ? childKeyFor(parent, link) : null;
-            callSites.push({ rel, key, link });
+            (minter === "generateChildId" ? callSites : firstCallSites).push({ rel, key, link });
 
             if (link === null) {
                 problems.push(`${rel}: parentLinkFieldName is not a string literal, so it cannot be checked`);
@@ -630,7 +733,7 @@ export function run({ check, log, assert }) {
             if (key !== null && !Object.prototype.hasOwnProperty.call(CHILD_KINDS, key)) {
                 problems.push(`${rel}: "${key}" is not registered in CHILD_KINDS (lib/idSequence.js)`);
             }
-            if (!props.has("childTableName")) {
+            if (minter === "generateChildId" && !props.has("childTableName")) {
                 problems.push(`${rel}: no childTableName — the siblings' IDs cannot be fetched`);
             }
             // The shape moved into the registry. A call site still passing one
@@ -660,6 +763,19 @@ export function run({ check, log, assert }) {
     for (const key of Object.keys(CHILD_KINDS)) {
         assert(`"${key}" is still created through generateChildId`, used.has(key));
     }
+
+    // #470: the first children's minter, enumerated by the walk above and held to the
+    // same registry. Its relations are a subset of `generateChildId`'s — a first child
+    // has later siblings — so a relation minted ONLY the unread way would be one whose
+    // second child nothing can write.
+    log(`found ${firstCallSites.length} generateFirstChildIds call site(s):`);
+    for (const site of firstCallSites) log(`    ${site.key ?? `UNRESOLVED (${site.rel})`}`);
+    assert("the walk found the first children's minter at all (else this part is inert)", firstCallSites.length > 0);
+    check(
+        "every relation it mints is one generateChildId mints the rest of",
+        firstCallSites.filter((site) => !used.has(site.key)).length,
+        0
+    );
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

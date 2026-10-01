@@ -19,10 +19,12 @@
 //      ids that run consecutively from wherever the query found the sequence.
 //   B  TWO BATCHES DO NOT OVERLAP. The second starts after the first and shares
 //      nothing with it — the property two people registering at once depend on.
-//   C  ONE SELECT PER BATCH, MEASURED. A batch of 3 and a batch of 6 must differ
-//      by EXACTLY 3 operations. "Fewer than 1 + N" would pass with two selects;
-//      an exact difference of 3 says the per-item cost is one create and the
-//      per-batch cost is one query, which is the whole claim.
+//   C  ONE SELECT AND ONE CREATE PER TEN, MEASURED. A batch of 3 and a batch of 6
+//      must each cost exactly 2 operations: equal figures say the creates no longer
+//      grow with the tool items below ten, and the 2 says the query is still one.
+//      Until #470 they differed by EXACTLY 3, one create per tool item, which was
+//      the claim then; the assertions were moved to the batched shape in that
+//      issue and not re-run there.
 //   D  WHAT HAPPENS WHEN THE HIGHEST ROW IS DELETED. This is the part worth
 //      running. `nextSequence` is MAX + 1, and every note in this repository
 //      about it discusses a gap in the MIDDLE — measured on invoices, where
@@ -31,7 +33,8 @@
 //      never been measured. Part D measures it rather than assuming either way.
 //
 // Fixtures are deleted within the run through scripts/tests/_fixtures.mjs.
-// Roughly 40-45 operations.
+// Roughly 40-45 operations until #470, which took seven creates off Parts A and B;
+// that is arithmetic on the old figure, not a measurement.
 //
 // Run from the repo root:
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs \
@@ -123,7 +126,7 @@ try {
         const a = await register(3);
         const opsA = snapshot().total;
         check("  created", a.created.length, 3);
-        check("  none failed", a.failed.length, 0);
+        check("  none failed", a.failure, null);
 
         const aIds = a.created.map((t) => t.toolItemId);
         log(`    ${aIds.join(", ")}`);
@@ -160,15 +163,16 @@ try {
             bIds.map((_, i) => seqOf(bIds[0]) + i).join(","));
 
         // ── Part C ──────────────────────────────────────────────────────────
-        // THE EXACT DIFFERENCE IS THE CLAIM. A bound like "under 1 + N" is
-        // satisfied by two selects per batch; a difference of exactly 3 between a
-        // 3-batch and a 6-batch says the only thing that grew is the creates.
+        // THE EXACT FIGURES ARE THE CLAIM. A bound like "under 1 + N" is satisfied
+        // by two selects per batch; both batches costing exactly 2 says the query is
+        // one and the creates are one request for anything up to ten (#470). Until
+        // that issue the claim was a difference of exactly 3, one create apiece.
         log();
-        log("Part C — one select per batch, whatever the batch size");
+        log("Part C — one select and one create, for any batch up to ten");
         log(`    batch of 3: ${opsA} operations    batch of 6: ${opsB} operations`);
-        check("  three more tool items cost exactly three more operations", opsB - opsA, 3);
-        check("  a batch of 3 is one select plus three creates", opsA, 4);
-        check("  a batch of 6 is one select plus six creates", opsB, 7);
+        check("  three more tool items cost nothing more", opsB - opsA, 0);
+        check("  a batch of 3 is one select and one create", opsA, 2);
+        check("  a batch of 6 is one select and one create", opsB, 2);
         // Anti-vacuity: two zeros also differ by zero, and equal batch sizes would
         // make the difference meaningless.
         assert("  both batches cost something (else the counter is not running)", opsA > 0 && opsB > 0);
