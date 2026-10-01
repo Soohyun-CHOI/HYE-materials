@@ -62,7 +62,7 @@ function diagnoseLoadFailure(err) {
             advice:
                 "This tier must run with no credentials. lib/airtable/client.js throws at module load " +
                 "without AIRTABLE_API_KEY, so anything importing it transitively belongs in the " +
-                "credentialed tier (scripts/tests/verify-*.mjs). See CLAUDE.md, Verification tiers.",
+                "credentialed tier (scripts/tests/verify-*.mjs). See docs/notes/verification.md, Verification tiers.",
         };
     }
     if (err?.code === "ERR_MODULE_NOT_FOUND") {

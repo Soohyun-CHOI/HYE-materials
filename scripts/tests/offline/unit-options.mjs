@@ -1,8 +1,8 @@
 // Canonical Unit list — the two hand-maintained copies must agree (#18).
 //
-// CLAUDE.md has recorded the risk since #83 in the only form available to it:
-// a sentence in lib/units.js and another in add_unit_options.py, each asking
-// the next author to remember the other. A plain Python script cannot import a
+// docs/notes/airtable-access.md records the risk, as CLAUDE.md did from #83,
+// in the only form available to it: a sentence in lib/units.js and another in
+// add_unit_options.py, each asking the next author to remember the other. A plain Python script cannot import a
 // JS module, so the duplication is structural and cannot be removed — but
 // "they still match" is checkable, and this is the check. #18 made it worth
 // having: Materials became the fourth table keyed on these values, and its

@@ -6,9 +6,10 @@
 //
 //   A — THE TWO FIELDS. `Delivery Items."Overage PR"` and
 //       `Delivery Items."Former PO Item"` plus both symmetric sides, none of
-//       which any file-only check can see. This is the third tier CLAUDE.md
-//       describes: a link field renamed in the UI makes `record.get()` return
-//       undefined and every banner silently empty. Also the SINGLE-RECORD
+//       which any file-only check can see. This is the third tier
+//       docs/notes/verification.md describes: a link field renamed in the UI
+//       makes `record.get()` return undefined and every banner silently empty.
+//       Also the SINGLE-RECORD
 //       INVARIANT, which is app-enforced rather than schema-enforced
 //       (`prefersSingleRecordLink` is refused on create AND on update, both
 //       measured) — so it is checked on the DATA, where drift would actually

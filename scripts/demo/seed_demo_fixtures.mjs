@@ -51,10 +51,10 @@ const VENDOR_NAME = "Lone Star Pipe & Supply";
 // THE SECOND PERMANENT FIXTURE ACCOUNT (#205), beside
 // authz-fixture@hanyangengusa.com rather than replacing it. That one is
 // non-Admin with an EMPTY Assigned Jobs, so it fails every role gate and every
-// row gate at once — which is its whole value, and why CLAUDE.md forbids giving
-// it Jobs. This one is the other half: non-Admin, Active, and inside one Job's
-// scope, so it can answer "does a row-scoped surface admit and render" where the
-// first can only answer "does a gate refuse".
+// row gate at once — which is its whole value, and why docs/notes/verification.md
+// forbids giving it Jobs. This one is the other half: non-Admin, Active, and
+// inside one Job's scope, so it can answer "does a row-scoped surface admit and
+// render" where the first can only answer "does a gate refuse".
 //
 // THE SEED CREATES IT, unlike DEMO_PIC_EMAIL above, and the difference is whose
 // address it is. The PIC is a real person's account, which this script must

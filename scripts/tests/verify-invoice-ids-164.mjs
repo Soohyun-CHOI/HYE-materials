@@ -8,10 +8,11 @@
 //   A — the live schema still holds the names the code counts on: the four daily ID
 //       fields, and the eight child relations' parent table + link field + child ID
 //       field. A rename in Airtable's UI is invisible to every file-only check —
-//       the third tier CLAUDE.md describes — and here it is not cosmetic: a renamed
-//       link field makes parentRecord.get() return undefined, which generateChildId
-//       reads as a childless parent, restarting a live sequence at 1. Part A also
-//       prints the link-field-name census behind CHILD_KINDS' composite key.
+//       the third tier docs/notes/verification.md describes — and here it is not
+//       cosmetic: a renamed link field makes parentRecord.get() return undefined,
+//       which generateChildId reads as a childless parent, restarting a live
+//       sequence at 1. Part A also prints the link-field-name census behind
+//       CHILD_KINDS' composite key.
 //   B — the defect, on the real rows: `IS_SAME({Issue Date}, TODAY(), 'day')`
 //       against the population the sequence actually has to be unique within, plus
 //       the `LEFT({Invoice ID}, 13)` the issue was filed with, which matches 0 rows
@@ -21,7 +22,7 @@
 //       condition that made the old counter hand out `-01` twice. The old filter is
 //       run again afterwards to show it still matches 0, i.e. it would have.
 //   D — the other three generators, since #164 made all four share one rule. The PO
-//       case reproduces the incident CLAUDE.md records for
+//       case reproduces the incident docs/notes/verification.md records for
 //       scripts/demo/seed_material_prices.mjs: a backdated `Created Date` hides a
 //       PO from the old count, and five POs came out sharing one PO ID. The new
 //       rule cannot see that field.

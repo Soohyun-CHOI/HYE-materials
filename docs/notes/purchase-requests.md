@@ -19,7 +19,7 @@ Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migr
   belongs to a request's own screen rather than to a row a reader scans.
 - **`Created At` was `Created Date` and was date-only until #105.** The migration is
   provenance rather than a rule — the rule is the `*At` convention itself, which
-  CLAUDE.md's ID-generation section states for every table — so it sits here after the
+  `id-generation.md` states for every table — so it sits here after the
   routing pass that followed #263. What it explains for a reader of old code: a
   same-day pair had no order before #105, and `lib/ids.js` no longer reads any date
   field at all (#164), so nothing now depends on this field's precision.

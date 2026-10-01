@@ -7,10 +7,10 @@ and it never removes an option -- Airtable has no API for that.
 
 TARGET_TABLES IS THE ONLY THING TO EDIT WHEN A TABLE JOINS THE LIST.
 Nothing else here names a table or counts them, so a new table costs one
-list entry and no other change. Which tables carry the field, and why each
-one does, is recorded in CLAUDE.md and in the Airtable field descriptions
-rather than restated here, where it would go stale the next time the list
-grows.
+list entry and no other change. Which tables carry the field is recorded in
+docs/notes/data-model.md, and why each one does in the Units section of
+docs/notes/airtable-access.md and in the Airtable field descriptions, rather
+than restated here, where it would go stale the next time the list grows.
 
 Where a target table's natural key includes Unit, the select does more
 than constrain input: a text variant ("ea" or "EA " against "EA") would
@@ -26,11 +26,11 @@ export needed for local dev):
     python3 add_unit_options.py --dry-run
     python3 add_unit_options.py
 
-Exit codes, per CLAUDE.md's convention for anything that computes a
-verdict: 0 everything matches, 1 something failed, 2 nothing failed but
-something could not be completed (see the color note below -- that state
-is reachable, so it needs a code of its own rather than a printed line a
-caller cannot see).
+Exit codes, per docs/notes/verification.md's convention for anything that
+computes a verdict: 0 everything matches, 1 something failed, 2 nothing
+failed but something could not be completed (see the color note below --
+that state is reachable, so it needs a code of its own rather than a
+printed line a caller cannot see).
 
 TWO WAYS A FIELD CAN GET ITS OPTIONS, and which one runs decides whether
 the CHOICE COLORS come out right:
@@ -457,10 +457,10 @@ def main():
     verb = "would be added" if args.dry_run else "added"
     print(f"Done: {total_added} choice(s) {verb} across {len(TARGET_TABLES)} table(s).")
 
-    # Exit codes per CLAUDE.md: 0 all clear, 1 something failed, 2 nothing
-    # failed but something could not be completed. A printed warning that
-    # returns 0 makes a problem indistinguishable from success to anything
-    # except a human reading the output.
+    # Exit codes per docs/notes/verification.md: 0 all clear, 1 something
+    # failed, 2 nothing failed but something could not be completed. A printed
+    # warning that returns 0 makes a problem indistinguishable from success to
+    # anything except a human reading the output.
     if failed:
         print(f"FAILED on: {', '.join(failed)}")
         return 1

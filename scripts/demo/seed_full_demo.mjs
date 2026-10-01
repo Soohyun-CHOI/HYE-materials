@@ -84,7 +84,7 @@
 // PICKER ENTIRELY from a reader assigned to nothing, so the President would lose the
 // filter bar and the brief's "assigned to no jobs" case would stop being a contrast
 // with anything. `authz-fixture@` is excluded on purpose and by name: its whole value
-// is failing every gate, and CLAUDE.md forbids giving it Jobs.
+// is failing every gate, and docs/notes/verification.md forbids giving it Jobs.
 
 import { put } from "@vercel/blob";
 import { PDFDocument, StandardFonts } from "pdf-lib";

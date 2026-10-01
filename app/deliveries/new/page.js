@@ -30,10 +30,10 @@ export const metadata = { title: "Record a delivery" };
  * an accurate preview with no extra endpoint to authorize. Nothing in the payload
  * is privileged: it is the ordered items of jobs the viewer is already scoped to.
  */
-// Labeled for #190 — see the note in app/prs/page.js. Measured because CLAUDE.md
-// makes a specific claim about it (~5 queries for all 36 jobs, batched across
-// jobs rather than per job), and confirming or falsifying a written claim is
-// worth more than a fresh number.
+// Labeled for #190 — see the note in app/prs/page.js. Measured because
+// lib/deliveryCandidates.js's header makes a specific claim about it (~5 queries
+// for all 36 jobs, batched across jobs rather than per job), and confirming or
+// falsifying a written claim is worth more than a fresh number.
 export default async function NewDeliveryPage() {
     return withOpsLabel("/deliveries/new", () => renderNewDeliveryPage());
 }

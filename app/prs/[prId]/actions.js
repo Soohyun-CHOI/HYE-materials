@@ -319,7 +319,7 @@ export async function editAndContinueAction(prevState, formData) {
 
         // Diff submitted values against what's actually on record — only
         // fields that really changed get an Edit Log entry and a write,
-        // matching Edit Log's per-field granularity (CLAUDE.md).
+        // matching Edit Log's per-field granularity (docs/notes/data-model.md).
         const changes = []; // { itemId, field, oldValue, newValue }
         // itemId -> the `Category` + `Item Name` pair to write with it, for the
         // rows whose pick actually moved. Built by `categoryItemFields` so the
@@ -742,7 +742,8 @@ export async function returnForCorrectionAction(prevState, formData) {
  * Distinct from a signer's "Return for correction": withdraw ENDS the
  * request rather than starting a correction cycle, and only the Requester
  * can do it (signers keep Return; modeling withdraw as a signer rejection
- * would break the deliberate "no Rejected status" design — see CLAUDE.md).
+ * would break the deliberate "no Rejected status" design — see the
+ * Withdrawn note in docs/notes/purchase-requests.md).
  *
  * Scope (issue #122): allowed ONLY from "In Review". Approved / PO Signed /
  * Draft / already-Withdrawn are all rejected here. Approved is deferred to

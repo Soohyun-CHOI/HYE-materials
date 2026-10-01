@@ -71,8 +71,11 @@ export function run({ check, assert, log }) {
     check("an empty job list is empty", accessibleJobs(admin, []).length, 0);
     check("a missing job list does not throw", accessibleJobs(admin, undefined).length, 0);
 
-    // The filter cannot widen past the row rule — the specific way the PR list's
-    // Job filter came to disagree with its own row rule (CLAUDE.md follow-up).
+    // The filter cannot widen past the row rule. The PR list's Job filter
+    // disagreed with its own row rule the other way: it re-derived the office
+    // short-circuit and offered only assigned jobs, so a signer's request on
+    // another job could not be filtered to — until #324 took every list's picker
+    // options from its visible rows (lib/listFilters.js:pickerOptions).
     assert(
         "every job the filter admits also passes the row rule",
         accessibleJobs(otherSite, jobs).every((j) => canAccessJobDeliveries(otherSite, j.id))

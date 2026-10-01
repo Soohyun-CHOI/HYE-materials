@@ -39,8 +39,8 @@
 // better off in the offline tier. It is here because `withKeyLock` lives in
 // `lib/airtable/client.js`, which throws at module load without credentials. A
 // credentialed script has credentials, so it can import it today; offline is the
-// ideal home, not the only one. CLAUDE.md records the client.js split as a
-// standing follow-up and this does not wait on it.
+// ideal home, not the only one. docs/notes/backlog.md records the client.js split
+// as a standing follow-up and this does not wait on it.
 //
 // WHAT THIS DELIBERATELY DOES NOT COVER, so the "covered elsewhere" claim is not
 // repeated in the other direction. The retired scripts also exercised the Phase 0
@@ -154,10 +154,10 @@ try {
         "the call queued AFTER the rejection still runs — the lock was released",
         third.status === "fulfilled" && third.value === "C-result"
     );
-    // Key-specific on purpose: CLAUDE.md notes that `_debugLockKeys()` is a
-    // PROCESS-GLOBAL count, so asserting its length would be a claim about
-    // everything else running concurrently. Asking whether THIS key is gone is
-    // local and stays true regardless.
+    // Key-specific on purpose: `_debugLockKeys()` reads client.js's module-level
+    // `keyQueues`, a PROCESS-GLOBAL count, so asserting its length would be a
+    // claim about everything else running concurrently. Asking whether THIS key
+    // is gone is local and stays true regardless.
     assert("and the key's queue entry is gone once the chain drains", !_debugLockKeys().includes(key));
 
     // -----------------------------------------------------------------------

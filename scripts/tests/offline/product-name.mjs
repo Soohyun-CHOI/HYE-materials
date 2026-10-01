@@ -10,8 +10,9 @@
 // SCOPE IS `app/` + `lib/`, THE SAME BOUNDARY offline/formula-escaping.mjs
 // DRAWS, and here it does a second job: it is what lets this check have NO
 // EXEMPTION LIST. Documentation legitimately has to spell a superseded name —
-// CLAUDE.md records what the names were, and a commit message quotes them — and
-// every one of those sites is outside the scope, so none of them needs excusing.
+// docs/notes/authorization.md records what the names were, and a commit message
+// quotes them — and every one of those sites is outside the scope, so none of
+// them needs excusing.
 // #171 records how fast an exemption list rots, and #174 records a blanket ban
 // blocking a legitimate use; a scope that makes both unnecessary beats either.
 // This file is under scripts/, so it does not scan itself and needs no

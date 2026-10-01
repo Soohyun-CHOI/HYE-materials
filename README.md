@@ -39,7 +39,8 @@ concurrent runs would create and delete records against each other.
 
 ## Where the reasoning is
 
-`CLAUDE.md` is the project's working memory: the data model and the rules that
-bind code across areas. Read it before changing anything. It carries an index
-binding each area to a file under `docs/notes/`, which is where the reasoning
-behind those rules lives — read the one for the area you are about to edit.
+`CLAUDE.md` is the project's working memory: the rules that bind code across
+areas. Read it before changing anything. It carries an index binding each area
+to a file under `docs/notes/`, which is where the reasoning behind those rules
+lives — read the one for the area you are about to edit. The data model is one
+of those files, `docs/notes/data-model.md`.

@@ -253,8 +253,9 @@ async function createInvoiceHandler(prevState, formData) {
 
             // One Invoice-PO Link row per distinct PO actually used across the
             // items, not one per item — a PO referenced by three invoice items still
-            // only needs a single join row (see CLAUDE.md's Invoice-PO Link
-            // entry: it's a plain relationship table, no per-item semantics).
+            // only needs a single join row (see the Invoice-PO Link entry in
+            // docs/notes/data-model.md: it's a plain relationship table, no
+            // per-item semantics).
             // Same distinctPoIds the withdrawn-PO guard above checked, so every
             // PO about to be joined here was verified invoiceable.
             for (const poId of distinctPoIds) {

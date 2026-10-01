@@ -25,8 +25,8 @@
 // not EXECUTION order. `callsBefore()` proves the gate call appears earlier in
 // the file than the work call. A gate inside `if (false)`, or after an early
 // return, satisfies it. Where a property can be reached behaviorally instead,
-// that is strictly better — see CLAUDE.md's note on converting the two
-// signPOAction/regeneratePDFAction placement checks to direct Server Action
+// that is strictly better — see docs/notes/backlog.md's note on converting the
+// guard-before-the-write checks in `source-shape.mjs` to direct Server Action
 // invocation.
 
 import { readdirSync, readFileSync } from "fs";

@@ -716,9 +716,10 @@ export function createFixtures({ tag, buckets }) {
         }
         // A KNOWN LEAK AND AN UNVERIFIED ONE GET DIFFERENT WORDS AND THE SAME EXIT
         // CODE. Both may need a hand, which is what makes 1 right for each and 2
-        // wrong for both: CLAUDE.md's 2 means a part could not run, and a run that
-        // may have left rows behind is not that. Only the sentence differs, so a
-        // reader knows whether to go delete something or to go check the token.
+        // wrong for both: docs/notes/verification.md's 2 means a part could not
+        // run, and a run that may have left rows behind is not that. Only the
+        // sentence differs, so a reader knows whether to go delete something or
+        // to go check the token.
         //
         // THREE UNITS NOW, NOT TWO. A never-searched bucket is counted in buckets
         // rather than records, because its whole point is that the number of
