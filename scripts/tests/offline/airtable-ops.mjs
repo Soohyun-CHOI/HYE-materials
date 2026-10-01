@@ -198,8 +198,8 @@ export async function run({ check, assert, log }) {
     // tables the render had to touch, and finding that out meant counting the rows
     // of the breakdown by hand. A page that needs a table should normally fetch it
     // once, so ops - tables is exactly the number of REPEAT reads. Pinned against
-    // the real renders #190 measured, so these numbers and CLAUDE.md's cannot
-    // drift apart.
+    // the real renders #190 measured, so these numbers and
+    // docs/notes/airtable-access.md's cannot drift apart.
     const countsFor = (entries) => {
         const m = new Map();
         for (const [table, kind, n] of entries) m.set(`${table}${OPS_KEY_SEP}${kind}`, n);

@@ -28,10 +28,11 @@
 //      so a ninth child table cannot ship with an unregistered ID shape or still
 //      passing a shape of its own (which would now be silently ignored).
 //
-// Parts 2 and 3 are here rather than in source-shape.mjs, which CLAUDE.md names
-// as the home for source-shape checks, and the reason is scope: that file is about
-// one KIND of claim (a guard runs before the side effect it protects, cleanup sits
-// outside a rollback) and shares one helper table for it. These assert things about
+// Parts 2 and 3 are here rather than in source-shape.mjs, which
+// docs/notes/verification.md names as the home for source-shape checks, and the
+// reason is scope: that file is about one KIND of claim (a guard runs before the
+// side effect it protects, cleanup sits outside a rollback) and shares one helper
+// table for it. These assert things about
 // one rule's implementation, and they belong next to that rule's behavior so a
 // reader sees both halves of what "the sequence is the highest one taken" means.
 //

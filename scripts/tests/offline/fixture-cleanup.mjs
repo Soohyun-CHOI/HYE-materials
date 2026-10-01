@@ -8,8 +8,8 @@
 // with scripts/tests/_fixtures.mjs. This check is what stops the seventeenth from
 // starting over.
 //
-// NO EXEMPTION LIST, DELIBERATELY. CLAUDE.md's reason for making the offline
-// runner SCAN its directory rather than list files applies here twice over:
+// NO EXEMPTION LIST, DELIBERATELY. run-all.mjs's reason for SCANNING its
+// directory rather than listing files applies here twice over:
 // anything that has to be registered somewhere gets forgotten, and a list of
 // exemptions-with-reasons is the first thing to rot. If a script genuinely cannot
 // use the helper, that is a signal the HELPER is wrong — stop and fix the helper,

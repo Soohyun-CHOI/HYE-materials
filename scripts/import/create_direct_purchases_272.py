@@ -18,8 +18,8 @@ which is read from `Delivery Items."Overage PR"`).
 RUN THIS ONCE. It is idempotent -- an existing table is reported and its
 missing fields are added, an existing field is left alone -- but the table
 it creates CANNOT be removed through any API: `DELETE` on a table is a 404
-with no endpoint behind it (measured, CLAUDE.md). The name has to be right
-the first time.
+with no endpoint behind it (measured, docs/notes/airtable-access.md). The
+name has to be right the first time.
 
 TWO THINGS THE API CANNOT DO, AND ONLY ONE OF THEM NEEDS A HUMAN:
 
@@ -64,9 +64,10 @@ repo root, same as add_unit_options.py and import_jobs.py):
     python3 scripts/import/create_direct_purchases_272.py --dry-run
     python3 scripts/import/create_direct_purchases_272.py
 
-Exit codes, per CLAUDE.md's convention for anything that computes a
-verdict: 0 the base matches the spec, 1 something failed, 2 nothing failed
-but something is incomplete (a dry run, or a description left unfixed).
+Exit codes, per docs/notes/verification.md's convention for anything that
+computes a verdict: 0 the base matches the spec, 1 something failed, 2
+nothing failed but something is incomplete (a dry run, or a description
+left unfixed).
 
 VERIFICATION IS PART OF THE RUN, not a follow-up. What was asked for and
 what exists can differ -- an option silently dropped, an inverse named

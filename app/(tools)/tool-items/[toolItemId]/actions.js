@@ -273,10 +273,11 @@ function refuse(error) {
  *
  * A FAILED CACHE WRITE IS NAMED ON SCREEN AND LOGGED WITH ITS RECORD ID, NEVER
  * SWALLOWED — and never written back to Airtable, which is what just failed.
- * That is CLAUDE.md's rule for a failed restore and the shape fits: the event is
- * on the record, the tool item's own status is not, and the person who caused it
- * is the only one who knows. Doing it again writes the same event and lands the
- * status, so the repair is the control they are already looking at.
+ * That is `lib/rollbackReport.js`'s rule for a failed restore and the shape
+ * fits: the event is on the record, the tool item's own status is not, and the
+ * person who caused it is the only one who knows. Doing it again writes the same
+ * event and lands the status, so the repair is the control they are already
+ * looking at.
  *
  * **AND IT REPORTS THROUGH `refuse`, WHICH IS THE CASE THAT MOST NEEDED IT
  * (#378).** This is the one answer here that means something was written, and

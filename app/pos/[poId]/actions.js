@@ -49,11 +49,12 @@ async function syncPRStatusToPOSigned(po) {
  * and attaches the PDF in the same action. The two are deliberately in
  * separate try/catches: a PDF failure must never roll back the signature
  * that was just committed — the signing action is real evidence, same
- * principle as PR approvals never being undone by a later step (see
- * CLAUDE.md's evidence model). If PDF generation fails here, the PO is
- * left "Signed" with no PO PDF File, and app/pos/[poId]/page.js surfaces a
- * "Regenerate PDF" retry (regeneratePDFAction below) rather than silently
- * leaving the gap unaddressed.
+ * principle as PR approvals never being undone by a later step (see the
+ * PR Signers section of docs/notes/purchase-requests.md: editing after
+ * signing does not invalidate approval). If PDF generation fails here, the
+ * PO is left "Signed" with no PO PDF File, and app/pos/[poId]/page.js
+ * surfaces a "Regenerate PDF" retry (regeneratePDFAction below) rather than
+ * silently leaving the gap unaddressed.
  */
 export const signPOAction = withPresidentAction(signPOHandler);
 

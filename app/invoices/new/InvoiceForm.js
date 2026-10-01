@@ -269,13 +269,13 @@ export default function InvoiceForm({ vendors, pos }) {
     const [poDetection, setPoDetection] = useState(null);
     // Issue #51 — { [poRecordId]: { status: "loading"|"done"|"error", items } }.
     // Keyed indefinitely, never evicted on remove: unlike posList above, PO
-    // Items are a frozen snapshot taken at PO-generation time (CLAUDE.md —
-    // no edit path exists anywhere in this codebase), so a PO that's
-    // removed and re-added mid-session can safely reuse what's already
-    // cached instead of re-fetching. The status field exists purely so a
-    // failed request doesn't get mistaken for "this PO genuinely has zero
-    // items" — an "error" entry is retried the next time that PO is
-    // assigned to a slot again.
+    // Items are a frozen snapshot taken at PO-generation time (the PO Items
+    // entry in docs/notes/data-model.md — no edit path exists anywhere in
+    // this codebase), so a PO that's removed and re-added mid-session can
+    // safely reuse what's already cached instead of re-fetching. The status
+    // field exists purely so a failed request doesn't get mistaken for "this
+    // PO genuinely has zero items" — an "error" entry is retried the next
+    // time that PO is assigned to a slot again.
     const [poItemsCache, setPoItemsCache] = useState({});
     // Issue #57 — Shipping Fee/Amount Due were plain uncontrolled inputs
     // (read only via FormData at submit) until now; they need to be

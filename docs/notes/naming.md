@@ -1,6 +1,6 @@
 # Naming — the reasoning
 
-Governs `lib/airtable/**` (with `airtable-access.md`), and any renaming of a field, a screen word or an identifier. **Read this before editing there** — CLAUDE.md carries only the rules that bind code outside this area; the derivation, the evidence and the alternatives weighed are here.
+Governs `lib/airtable/**` (with `airtable-access.md` and `data-model.md`), and any renaming of a field, a screen word or an identifier. **Read this before editing there** — CLAUDE.md carries only the rules that bind code outside this area; the derivation, the evidence and the alternatives weighed are here.
 
 Moved verbatim out of CLAUDE.md — nothing in this file was rewritten. The migration was audited line by line and the result is in the pull request that created this file.
 
