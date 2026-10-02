@@ -94,10 +94,11 @@ export function run({ check, assert, log }) {
     check("and it is the module that exports it", owners[0], NAME_OWNER);
 
     // ── the two surfaces that must say the same thing ───────────────────────
-    // The magic-link email's subject and /login's <h1> are one sentence. Both
-    // read SIGN_IN_TITLE, so the identity holds by construction rather than by
-    // anyone remembering — this pins that it is still DERIVED and not a second
-    // literal that happens to match today.
+    // The magic-link email's subject and the title its body opens with are one
+    // sentence — /login's <h1> was the other surface until #473, below. Both read
+    // SIGN_IN_TITLE, so the identity holds by construction rather than by anyone
+    // remembering — this pins that it is still DERIVED and not a second literal
+    // that happens to match today.
     log("");
     log("sign-in line — derived from the product name, not a second copy of it:");
     assert(`SIGN_IN_TITLE ("${SIGN_IN_TITLE}") contains the product name`, SIGN_IN_TITLE.includes(PRODUCT_NAME));
@@ -112,33 +113,31 @@ export function run({ check, assert, log }) {
         "  and the sender no longer names the sign-in line itself",
         !/SIGN_IN_TITLE/.test(sources.get("lib/email.js") ?? "")
     );
-    // THE HEADING MOVED FILE IN #373 AND THIS FOLLOWS THE SCREEN RATHER THAN THE
-    // FILE. `/login` became a Server Component so it could read the destination
-    // off the URL, which put its `<h1>` in the Client Component beside the page —
-    // a move that changed nothing about the sentence and would have failed an
-    // assertion naming `page.js`. What must not carry a literal is the SCREEN, so
-    // every file it is made of is searched, and the confirmation below it is
-    // excluded because it is a different screen with its own row in this check.
-    //
-    // AND #381 ADDED A THIRD SCREEN UNDER THE SAME PREFIX, so the partition has
-    // to name it. `app/login/name/` is the name step and has a brief of its own;
-    // leaving it inside the sign-in screen's file set would let this assertion
-    // pass on the wrong `<h1>` — three screens share this heading on purpose,
-    // and each one is asserted to carry it rather than any one of them standing
-    // in for the others.
-    const SCREENS_UNDER_LOGIN = [
-        ["/login", (rel) => rel.startsWith("app/login/") && !/^app\/login\/(confirm|name)\//.test(rel)],
-        ["/login/confirm", (rel) => rel.startsWith("app/login/confirm/")],
-        ["/login/name", (rel) => rel.startsWith("app/login/name/")],
-    ];
-    for (const [route, belongs] of SCREENS_UNDER_LOGIN) {
-        const screen = [...sources.entries()].filter(([rel]) => belongs(rel));
-        assert(`${route} is ${screen.length} file(s)`, screen.length >= 1);
-        assert(
-            `  its heading reads SIGN_IN_TITLE rather than a literal`,
-            screen.some(([, src]) => /<h1[^>]*>\{SIGN_IN_TITLE\}<\/h1>/.test(src))
-        );
-    }
+    // THE SIGN-IN SCREENS STOPPED HEADING THEMSELVES WITH THE LINE IN #473. Each step
+    // takes the design's own title — `Sign in`, `Check your email`, `Add your name` — and
+    // the product's name stands above every one of them as the wordmark, which the
+    // layout around the three steps draws from `WORDMARK`, the name split where this
+    // module splits it. So the line is the mail's alone, its subject and the title its
+    // body opens with, and the screens carry the name through the split: held here as
+    // the layout reading both halves and no screen under `app/login/` reading the line.
+    const signInLayout = sources.get("app/login/layout.js") ?? "";
+    assert("the sign-in steps' layout draws the wordmark from WORDMARK", /\{WORDMARK\.lead\}/.test(signInLayout) && /\{WORDMARK\.rest\}/.test(signInLayout));
+    assert(
+        "  and no sign-in screen heads itself with the sign-in line",
+        [...sources.entries()].filter(([rel]) => rel.startsWith("app/login/")).every(([, src]) => !/SIGN_IN_TITLE/.test(src))
+    );
+    assert(
+        "the mail's body opens with the line its subject carries",
+        />\$\{e\(SIGN_IN_TITLE\)\}<\/td>/.test(sources.get("lib/authTokenState.js") ?? "")
+    );
+    assert(
+        "  and so does the document it is",
+        /<title>\$\{e\(SIGN_IN_TITLE\)\}<\/title>/.test(sources.get("lib/authTokenState.js") ?? "")
+    );
+    assert(
+        "  and its head is the wordmark from the same split",
+        /\$\{e\(WORDMARK\.lead\)\}/.test(sources.get("lib/authTokenState.js") ?? "")
+    );
 
     // ── the legal name is not this constant ─────────────────────────────────
     // The product name and the company's legal name have different owners and

@@ -24,27 +24,23 @@ control the address, and the answer would then have to survive a mail round
 trip. Here the address is proven and the row already exists, so the question is
 being asked of a person the app can be sure of.
 
-**Two fields, both required, and the second one needs explaining on screen.**
-Screens name a person by their first name; the full name goes where a person is
-chosen from a list and onto what a vendor reads. The screen says so, because
-otherwise the last name reads as bureaucracy.
+**Two fields, both required.** Screens name a person by their first name; the full
+name goes where a person is chosen from a list and onto what a vendor reads. **The
+screen does not say so since #473**: the design titles the step for what it asks
+and draws no sentence under it, where until then two lines said why the step was in
+front of the reader and why a last name was asked at all.
 
 ## What it always carries
 
-**identity.** The heading `Sign in to HYE USA Portal` — the same line the
-sign-in screen and the confirm screen carry, from the same constant, so three
-steps of one flow read as one flow.
+**identity.** The product's name as the wordmark, the same as on the two screens
+before it, and the title `Add your name`.
 
-**evidence.** Two lines. `Before you go on, tell the app what to call you.` and,
-smaller under it, `Screens name you by your first name. Your full name goes on
-the purchase orders and order emails vendors receive.` The second is the only
-place a reader learns why both are asked.
+**action.** Two labelled text fields, `First name` and `Last name` — side by side at
+a desk, one above the other on a phone — and one full-width filled button,
+`Continue`.
 
-**action.** Two labelled text fields, `First name` and `Last name`, and one
-full-width filled button, `Save and continue`.
-
-That is the whole screen. Like the two before it, it is centered in the viewport
-and carries no navigation of any kind — there is nowhere else to go from here.
+That is the whole screen. Like the two before it, it carries no navigation of any
+kind — there is nowhere else to go from here.
 
 **It also carries one thing it never shows.** Where the reader was going travels
 with them into this screen and out the other side, so a person who scanned a
@@ -53,25 +49,28 @@ never in a sentence — the same silence the two screens before it keep.
 
 ## What it carries only sometimes
 
-**While saving:** the button reads `Saving...`, and both fields and the button
-are disabled.
+**While saving:** the button keeps its fill and takes no press, and if the wait
+passes a moment it shows a spinner before `Saving…` — on a phone, the spinner
+alone. The fields keep their look and take no typing.
 
-**When a name is missing:** one sentence, `Enter your first name.` or
-`Enter your last name.` The fields keep what was typed.
+**When a name is missing:** one sentence stands under that field,
+`Enter your first name.` or `Enter your last name.` — under both, when both are
+empty.
 
-**When a name is too long:** `Keep each name under 60 characters.`
+**When a name is too long:** `Max 60 characters.`, under that name. The field takes
+the longer name and refuses it, rather than cutting a paste short.
 
-**When the write fails:** `That could not be saved. Try again.` The fields keep
-what was typed — a person should never be made to type their own name twice to
-find out why it was refused.
+**When the write fails:** `Couldn't save your name. Try again.`, where the sign-in
+screens say a request did not happen. The fields keep what was typed — a person
+should never be made to type their own name twice to find out why it was refused.
 
 There is no success state on this screen. Saving lands the reader on the page
 they were going to, which is what says the save happened.
 
 ## What must agree elsewhere
 
-**The heading is the sign-in screen's and the confirm screen's**, so all three
-read as one flow.
+**The wordmark is the sign-in screen's and the confirm screen's**, all three under
+one frame, so they read as one flow.
 
 **Nothing else in the app asks for a name, and no screen edits one.** A reader
 who already has a name and opens this address is sent away rather than shown the

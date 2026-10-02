@@ -56,7 +56,7 @@ import {
     typeaheadIndex,
 } from "../../../lib/controls.js";
 import { DIALOG_FRAME_COPY } from "../../../lib/dialogFrame.js";
-import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
+import { listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "The dialog frame and the controls in it (#456, #459, #458)";
@@ -292,10 +292,14 @@ export function run({ check, assert, log }) {
     );
 
     // IN A SHEET BELOW THE PHONE'S EDGE THE CONTROLS TAKE THE PHONE'S SIZES (#458), and
-    // only there: every such class is `max-sm:in-data-[sheet]:`, so the width and the
-    // ancestor both decide it in CSS and a control in a desk's dialog keeps 0a's. A
-    // destructive commitment is filled red (0f Destructive). Read through one function, so
-    // the planted controls below are judged the same way.
+    // there or on a sign-in page only: every such class is `max-sm:in-data-[sheet]:`, so the
+    // width and the ancestor both decide it in CSS and a control in a desk's dialog keeps
+    // 0a's — or it sits where only a sign-in page's control goes (#473): the `xl` size's own
+    // classes, a branch on `xl`, `labelHidden` or `suffix`, or the clear × only `xl` draws.
+    // A destructive commitment is filled red (0f Destructive), and a busy action of any kind
+    // takes no hover and no press (0f Working). Read through one function, so the planted
+    // controls below are judged the same way.
+    const SIGN_IN_GATE = /\bxl\b|size === "xl"|\blabelHidden\b|\bsuffix\b/;
     const controlFacts = ({ ast, source }) => {
         const constant = (name) => {
             let text = "";
@@ -307,19 +311,42 @@ export function run({ check, assert, log }) {
         const sheetButton = constant("SHEET_BUTTON");
         const sheetVariants = constant("SHEET_BUTTON_VARIANT");
         const variants = constant("BUTTON_VARIANT");
-        const sheetField = functionNamed(ast, "SheetField");
-        const sheetFieldSource = sheetField ? source.slice(sheetField.start, sheetField.end) : "";
-        const phoneClasses = [...source.matchAll(/max-sm:(?!in-data-\[sheet\]:)[\w[\]-]+/g)].filter(([cls]) => !cls.startsWith("max-sm:hidden"));
+        const functionSource = (name) => {
+            const fn = functionNamed(ast, name);
+            return fn ? source.slice(fn.start, fn.end) : "";
+        };
+        const sheetFieldSource = functionSource("SheetField");
+        const parents = parentMap(ast);
+        const signInOnly = (node) => {
+            for (let child = node, cur = parents.get(node); cur; child = cur, cur = parents.get(cur)) {
+                if (cur.type === "Property" && (cur.key?.name ?? cur.key?.value) === "xl") return true;
+                if (cur.type === "ConditionalExpression" && child === cur.consequent && SIGN_IN_GATE.test(source.slice(cur.test.start, cur.test.end))) return true;
+                if (cur.type === "LogicalExpression" && cur.operator === "&&" && child === cur.right && SIGN_IN_GATE.test(source.slice(cur.left.start, cur.left.end))) return true;
+                if (cur.type === "FunctionDeclaration" && cur.id?.name === "ClearButton") return true;
+            }
+            return false;
+        };
+        const phoneClasses = [];
+        walk(ast, (n) => {
+            const text = n.type === "Literal" && typeof n.value === "string" ? n.value : n.type === "TemplateElement" ? (n.value.cooked ?? n.value.raw) : null;
+            if (text === null || signInOnly(n)) return;
+            for (const [cls] of text.matchAll(/max-sm:(?!in-data-\[sheet\]:)[\w[\]-]+/g)) if (!cls.startsWith("max-sm:hidden")) phoneClasses.push(cls);
+        });
         return {
-            danger: /danger: "bg-danger text-white enabled:hover:bg-danger-hover"/.test(variants),
+            danger: /danger: "bg-danger text-white not-disabled:not-data-busy:hover:bg-danger-hover"/.test(variants),
+            busyQuiet: !/(?<!not-data-busy:)(?:hover|active):/.test(variants + sheetVariants),
+            clearGate: /const clearable = size === "xl" &&/.test(source) && /\{clearable && \(\s*<ClearButton/.test(source),
             sheetButton: [
                 /max-sm:in-data-\[sheet\]:h-mobile-dialog-button/.test(sheetButton),
                 /max-sm:in-data-\[sheet\]:w-full/.test(sheetButton),
                 /max-sm:in-data-\[sheet\]:text-mobile-heading/.test(sheetButton),
             ].join(" "),
-            textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:active:opacity-mobile-pressed"/.test(sheetVariants),
-            applied: /\$\{BUTTON\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(source),
+            textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:not-data-busy:active:opacity-mobile-pressed"/.test(sheetVariants),
+            applied: ["Button", "ButtonLink"].every((name) =>
+                /\$\{BUTTON\} \$\{BUTTON_SIZE\[size\]\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
+            ),
             label: /const FIELD_LABEL = "[^"]*max-sm:in-data-\[sheet\]:text-mobile-body-sm"/.test(source),
+            refusal: /role="alert"[\s\S]*max-sm:in-data-\[sheet\]:text-mobile-body-sm/.test(functionSource("Refusal")),
             phoneOnlyInSheet: phoneClasses.length,
             sheetField: [
                 /\bsm:hidden\b/.test(sheetFieldSource),
@@ -332,11 +359,14 @@ export function run({ check, assert, log }) {
     };
     const controlRules = controlFacts(controls);
     check("a destructive commitment is filled red and hovers to Red's hover", controlRules.danger, true);
+    check("  and no busy action changes its fill under the pointer or a press, at a desk or in a sheet", controlRules.busyQuiet, true);
     check("in a sheet below the phone's edge a button is 48, full width and 17", controlRules.sheetButton, "true true true");
     check("  a bordered one a text button that dims while held", controlRules.textButton, true);
     check("  every button carrying both, which only a sheet's ancestor sets off", controlRules.applied, true);
     check("  and a field's label 15 there", controlRules.label, true);
-    check("no phone size reaches a control outside a sheet", controlRules.phoneOnlyInSheet, 0);
+    check("  and a refusal of the whole dialog 15 there, in the refusal every form shares", controlRules.refusal, true);
+    check("no phone size reaches a control outside a sheet but a sign-in page's", controlRules.phoneOnlyInSheet, 0);
+    check("  and the clear × that carries one is drawn only at a sign-in page's size", controlRules.clearGate, true);
     check(
         "the phone's own field is drawn only below its edge, opens a dialog and is named by its label and its value",
         controlRules.sheetField,
@@ -719,12 +749,19 @@ export function run({ check, assert, log }) {
     check("  and an opener focused without asking whether focus took is seen", plantedRemoval.backTo, "false false");
     const plantedControls2 = controlFacts(
         parseSource(
-            'const BUTTON_VARIANT = { danger: "bg-danger" };\nconst SHEET_BUTTON = "max-sm:h-mobile-dialog-button";\nexport function SheetField() { return <button />; }\n',
+            'const BUTTON_VARIANT = { danger: "bg-danger enabled:hover:bg-danger-hover" };\nconst SHEET_BUTTON = "max-sm:h-mobile-dialog-button";\n' +
+                'const BUTTON_SIZE = { xl: "max-sm:h-mobile-button" };\nconst LABEL = xl ? "max-sm:text-mobile-body-sm" : "";\nexport function SheetField() { return <button />; }\n',
             "<planted-sheet-controls>"
         )
     );
     check("  a red commitment that does not hover is seen", plantedControls2.danger, false);
-    check("  and a phone size outside a sheet is seen", plantedControls2.phoneOnlyInSheet, 1);
+    check("  and a hover a busy one would take is seen", plantedControls2.busyQuiet, false);
+    check(
+        "  and a refusal that keeps 13 in a sheet is seen",
+        controlFacts(parseSource('export function Refusal({ children }) { return <p role="alert" className="text-body-sm text-danger">{children}</p>; }\n', "<planted-refusal>")).refusal,
+        false
+    );
+    check("  and a phone size outside a sheet is seen, where a sign-in page's two are not", plantedControls2.phoneOnlyInSheet, 1);
     // The frame's #459 rules are seen to fail on a frame that keeps the browser's own return,
     // hands focus back on every close, names no description and holds its actions on a line.
     const plantedFrame = frameFacts(

@@ -2,7 +2,6 @@ import { requireUser } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { DEFAULT_DESTINATION, safeDestination } from "@/lib/loginDestination";
 import { needsName } from "@/lib/userName";
-import { SIGN_IN_TITLE } from "@/lib/productName";
 import { withOpsLabel } from "@/lib/airtableOps";
 import NameForm from "./NameForm";
 
@@ -45,16 +44,8 @@ async function renderNameStepPage({ searchParams }) {
 
     if (!needsName(user)) redirect(destination ?? DEFAULT_DESTINATION);
 
-    return (
-        <div className="flex flex-1 items-center justify-center p-8">
-            <div className="w-full max-w-sm">
-                {/* The line the two screens before this one carry, from the same
-                    constant (#201) — three steps of one flow reading as one
-                    flow, which is what `docs/briefs/login.md` records of the
-                    first two. */}
-                <h1 className="text-2xl font-semibold">{SIGN_IN_TITLE}</h1>
-                <NameForm destination={destination ?? ""} />
-            </div>
-        </div>
-    );
+    // The heading is the form's, from `lib/userName.js`, and the frame around it —
+    // the wordmark the steps before this one carry, which is what reads as one flow
+    // now — is `app/login/layout.js`'s (#473).
+    return <NameForm destination={destination ?? ""} />;
 }

@@ -15,7 +15,8 @@ failure path that needs Airtable to fail.
 
 **How each was judged.** By reading the control that would produce the state: an
 input's `required`, a submit's `disabled` expression, or the condition under which a
-control renders at all. Two were checked in a browser instead, and say so. **Where a
+control renders at all. One was checked in a browser instead, and says so — a second,
+on `/login`, left with that screen's entries (#473). **Where a
 screen's refusals were not all judged, the count says so** — a silence here would be
 the same false completeness the inventory this replaces was written to avoid.
 
@@ -32,20 +33,17 @@ reason.
 
 ## `/login`
 
-- **`Email is required`** — `app/api/auth/request/route.js:32`. The email input
-  carries `required`, so an empty submit never leaves the page. **Checked in a
-  browser**: with the field cleared the form reports invalid and the submit handler
-  does not run, so the standing message stays and this one never appears.
-- **`Cross-origin sign-in is not allowed`** (#471) — `lib/crossOrigin.js`, answered
-  by the request route and the code route and shown by the screen's error slot. The
-  screen posts to its own host, so its own requests never carry another origin; the
-  sentence is for a page elsewhere, which has no screen here to show it on.
-- **`A sign-in email needs a six-digit code`** and **`A sign-in email needs its
-  link`** (#471) — the mail builder's refusals in `lib/authTokenState.js`, thrown
-  inside `requestMagicLink` and serialized by the request route. The only caller
-  hands the builder the code and the link the row it just created carries, so
-  neither is ever missing; they exist so that a future caller who forgets one fails
-  instead of mailing `undefined`.
+**Nothing since #473, because the screen renders no sentence a server sends.** Its
+four entries here — `Email is required`, `Cross-origin sign-in is not allowed`, and
+the mail builder's `A sign-in email needs a six-digit code` and `A sign-in email needs
+its link` — were the routes' answers, shown by the screen's error slot. A request
+that did not go now reads the screen's own `Something went wrong. Try again.`, so the
+four are answers to a caller with no screen, and `unfindable.md` records the move.
+What made each unreachable still holds of the route — an empty field asks for
+nothing, the screen posts to its own host, and the only caller hands the builder the
+code and the link the row it just created carries — and the builder's two, with
+`A sign-in email needs the address it signs in` beside them since #473, exist so that
+a future caller who forgets a value fails instead of mailing `undefined`.
 
 ## `/invoices/new`
 

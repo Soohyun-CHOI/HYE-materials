@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { SIGN_IN_TITLE } from "@/lib/productName";
-import { canTryAgain, CODE_COPY, CODE_LENGTH, CODE_STATES, isCodeShaped, SIGN_IN_COPY } from "@/lib/authTokenState";
+import { Button, Field, TextInput } from "@/app/components/Controls";
+import { canTryAgain, CODE_COPY, CODE_STATES, isCodeShaped, RESENT_FOR_MS, SIGN_IN_COPY } from "@/lib/authTokenState";
+import { COMPANY_EMAIL_COPY, companyAddress, emailFieldValue, namesAnotherDomain } from "@/lib/companyEmail";
+import CodeField from "./CodeField";
+import { AddressChip, BottomBar, PageRefusal, SignInHeader } from "./SignInParts";
 
 // The `?error=` messages that used to live here are gone (#203). Their only two
 // producers were the redirects in app/api/auth/verify/route.js, and both went
@@ -17,265 +20,327 @@ import { canTryAgain, CODE_COPY, CODE_LENGTH, CODE_STATES, isCodeShaped, SIGN_IN
 // hook and the Suspense boundary above, for a value the page has already read
 // and already judged. So the page stays the only reader of the URL and this
 // component carries the value forward without knowing anything about it — which
-// is also why it is a hidden field and not a sentence. Nothing on this screen
+// is also why it is a request field and not a sentence. Nothing on this screen
 // says where the reader was going; `docs/briefs/login.md` records that silence
 // as deliberate.
 //
-// THE SECOND STEP TAKES THE CODE THE EMAIL CARRIES (#471). It replaced a
-// sentence telling the reader to go and open the link, which signs in whichever
-// device opens it — the wrong one for a person who asked on a phone and read the
-// email on a computer. The step opens with the page when the browser is still
-// waiting on an email (`pendingEmail`, read from the binding by the page), so a
-// reload lands back on it, and its two ways out — a new email to the same address,
-// or a different address — are what a reader had to reload and retype for before.
+// THE SECOND STEP TAKES THE CODE THE EMAIL CARRIES (#471), and opens with the page
+// when the browser is still waiting on an email (`pendingEmail`, read from the
+// binding by the page), so a reload lands back on it.
 //
-// EVERY WORD COMES FROM `lib/authTokenState.js`, not from this file, which is
-// `NameForm.js`'s arrangement: a string written into JSX is invisible to
-// `scripts/screen-strings.mjs` and to every vocabulary sweep this repository runs.
-export default function LoginForm({ destination = "", pendingEmail = "" }) {
+// THE FIRST STEP TAKES ONLY THE PART BEFORE THE COMPANY'S DOMAIN (#473), which it shows
+// fixed beside the field: `domain` is `ALLOWED_EMAIL_DOMAIN`, handed down by the page, and
+// what the field keeps, what it refuses and the sentence it refuses with are
+// `lib/companyEmail.js`'s — the same judgment the request is held to on the server. A
+// refused field sends nothing.
+//
+// A REQUEST THAT DID NOT HAPPEN SAYS ONE SENTENCE, WHEREVER IT WAS ASKED (#473): the
+// email step's, a code the server could not check, and a new email that did not go —
+// `SIGN_IN_COPY.failed`, in the place a refusal of the whole step stands.
+//
+// EVERY WORD COMES FROM `lib/authTokenState.js` and `lib/companyEmail.js`, not from this
+// file, which is `NameForm.js`'s arrangement: a string written into JSX cannot be pinned.
+export default function LoginForm({ destination = "", pendingEmail = "", domain }) {
     const [step, setStep] = useState(pendingEmail ? "code" : "email");
     const [email, setEmail] = useState(pendingEmail);
-    const [status, setStatus] = useState("idle"); // idle | submitting | error
-    const [errorMessage, setErrorMessage] = useState("");
 
-    // One request for both the first email and a new one, so the address step and
-    // the code step's `Send a new email` cannot ask for the email two ways.
-    async function requestEmail() {
-        const res = await fetch("/api/auth/request", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, destination }),
-        });
-        if (!res.ok) {
-            const data = await res.json().catch(() => ({}));
-            throw new Error(data.error || SIGN_IN_COPY.request.failed);
-        }
-    }
-
-    async function handleSubmit(e) {
-        e.preventDefault();
-        if (status === "submitting") return; // double-click / double-submit guard
-
-        setStatus("submitting");
-        setErrorMessage("");
-
+    // One request for the first email and every new one, so the three places that ask
+    // for an email cannot ask for it three ways. It answers whether the email went.
+    async function requestEmail(address) {
         try {
-            await requestEmail();
-            setStatus("idle");
-            setStep("code");
-        } catch (err) {
-            setStatus("error");
-            setErrorMessage(err.message);
+            const res = await fetch("/api/auth/request", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: address, destination }),
+            });
+            return res.ok;
+        } catch {
+            return false;
         }
     }
 
-    // The binding is forgotten on the server as well, or a reload would bring the
-    // code step back for the address being corrected. The address stays in the
-    // field either way, since correcting it is usually one character.
+    // The binding is forgotten on the server as well, or a reload would bring the code
+    // step back for the address being corrected. The address returns to the field, its
+    // domain taken off as the field always takes it, since correcting it is usually one
+    // character.
     async function changeEmail() {
         await fetch("/api/auth/request", { method: "DELETE" }).catch(() => {});
-        setStatus("idle");
-        setErrorMessage("");
         setStep("email");
     }
 
     if (step === "code") {
-        return <CodeStep email={email} destination={destination} onResend={requestEmail} onChangeEmail={changeEmail} />;
+        return <CodeStep email={email} destination={destination} requestEmail={requestEmail} onChangeEmail={changeEmail} />;
+    }
+    return (
+        <EmailStep
+            domain={domain}
+            initial={emailFieldValue(email, domain)}
+            requestEmail={requestEmail}
+            onSent={(address) => {
+                setEmail(address);
+                setStep("code");
+            }}
+        />
+    );
+}
+
+/**
+ * The first step: the part of the address before the company's domain (#473, 1a and 1d).
+ *
+ * WHAT A PASTE OR THE BROWSER'S FILLING BRINGS IS TAKEN APART AS IT ARRIVES. An address at
+ * the company's domain loses its domain in the field; one at any other domain stays whole,
+ * the fixed domain steps aside, and `Continue` refuses it under the field without asking
+ * for anything. The field is `text` rather than `email`, which a browser would refuse for
+ * having no `@`, and offers what the browser holds for an email address, since a full
+ * address is taken apart anyway.
+ *
+ * AN EMPTY FIELD ASKS FOR NOTHING AND SAYS NOTHING: `Continue` puts the caret in it.
+ */
+function EmailStep({ domain, initial, requestEmail, onSent }) {
+    const copy = SIGN_IN_COPY.request;
+    const [value, setValue] = useState(initial);
+    const [refusal, setRefusal] = useState(null); // "domain" | "failed" | null
+    const [busy, setBusy] = useState(false);
+    const fieldRef = useRef(null);
+
+    async function handleSubmit(event) {
+        event.preventDefault();
+        if (busy) return; // a second press while the first is on its way
+        if (!value.trim()) {
+            fieldRef.current?.focus();
+            return;
+        }
+        const address = companyAddress(value, domain);
+        if (!address) {
+            setRefusal("domain");
+            fieldRef.current?.focus();
+            return;
+        }
+        setBusy(true);
+        setRefusal(null);
+        const sent = await requestEmail(address);
+        setBusy(false);
+        if (sent) {
+            onSent(address);
+            return;
+        }
+        setRefusal("failed");
+        fieldRef.current?.focus();
     }
 
+    const otherDomain = namesAnotherDomain(value);
     return (
-        <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-4">
-            <div>
-                {/* The same line the magic-link email's subject carries, from
-                    the same constant (#201) — this is the screen that email
-                    lands on, so reading the sentence it was sent under is what
-                    says the link arrived where it claimed, and distinguishes
-                    this app from the group's other portals. */}
-                <h1 className="text-2xl font-semibold">{SIGN_IN_TITLE}</h1>
-                <p className="mt-1 text-zinc-600">{SIGN_IN_COPY.request.evidence}</p>
+        <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col">
+            <SignInHeader heading={copy.heading} sentence={copy.sentence} />
+            <div className="mt-sign-in-header-stack">
+                <Field label={copy.field} labelHidden size="xl" refusal={refusal === "domain" ? COMPANY_EMAIL_COPY.otherDomain(domain) : null}>
+                    <TextInput
+                        size="xl"
+                        inputRef={fieldRef}
+                        name="email"
+                        value={value}
+                        onChange={(typed) => {
+                            setValue(emailFieldValue(typed, domain));
+                            if (refusal === "domain") setRefusal(null);
+                        }}
+                        suffix={otherDomain ? null : `@${domain}`}
+                        placeholder={copy.placeholder}
+                        readOnly={busy}
+                        inputMode="email"
+                        autoComplete="email"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        enterKeyHint="go"
+                        autoFocus
+                    />
+                </Field>
             </div>
-
-            <input
-                type="email"
-                required
-                autoFocus
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={SIGN_IN_COPY.request.placeholder}
-                disabled={status === "submitting"}
-                className="w-full rounded border border-zinc-300 px-3 py-2 disabled:opacity-50"
-            />
-
-            {status === "error" && (
-                <p role="alert" className="text-sm text-red-600">
-                    {errorMessage}
-                </p>
-            )}
-
-            <button
-                type="submit"
-                disabled={status === "submitting"}
-                className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
-            >
-                {status === "submitting" ? SIGN_IN_COPY.request.sending : SIGN_IN_COPY.request.action}
-            </button>
+            {refusal === "failed" && <PageRefusal>{SIGN_IN_COPY.failed}</PageRefusal>}
+            <BottomBar stack={refusal === "failed" ? "refusal" : "form"}>
+                <Button type="submit" size="xl" busy={busy} busyLabel={copy.working}>
+                    {copy.action}
+                </Button>
+            </BottomBar>
         </form>
     );
 }
 
 /**
- * The code step (#471): the field the email's code goes in, and the two ways out.
+ * The code step (#471, drawn by #473 from 1a and 1e): the code the email carries, and the
+ * two ways out — a new email to the same address, and a different address.
  *
- * THE FIELD IS SHAPED FOR A PHONE, because this is where a scan that arrived
- * signed out types it. `inputMode="numeric"` raises the number pad and
- * `autoComplete="one-time-code"` lets the phone offer a code it has seen in a
- * message; it is `type="text"` because a number input drops a leading zero.
- * Anything but a digit is dropped as it is typed, and there is no `maxLength`:
- * that would cut a pasted `123 456` down to `123 45` before the digits could be
- * picked out of it.
+ * A REFUSAL ABOUT THE ROW ENDS THE CODE. After a malformed or a wrong code the boxes stay,
+ * with one sentence under them; after any other refusal no code can work, so the boxes go,
+ * the heading names why and the step's one action sends a new email (0o, Ended).
  *
- * A REFUSAL ABOUT THE ROW TAKES THE FIELD'S PLACE. After a malformed or a wrong
- * code the field stays, with one sentence under it; after any other refusal no
- * code can work, so the sentence stands where the field was and the new email is
- * the way on — the confirmation page's rule that a refused state has nothing to
- * press.
- *
- * A CODE THAT WORKS SAYS SO BY ARRIVING (#321): the screen goes where the route
- * says, and `requireUser()` there sends a first-time signer to the name step
- * exactly as it does after the link.
+ * A CODE THAT WORKS SAYS SO BY ARRIVING (#321): the screen goes where the route says, and
+ * `requireUser()` there sends a first-time signer to the name step exactly as it does
+ * after the link.
  */
-function CodeStep({ email, destination, onResend, onChangeEmail }) {
+function CodeStep({ email, destination, requestEmail, onChangeEmail }) {
     const copy = SIGN_IN_COPY.code;
     const [code, setCode] = useState("");
-    const [status, setStatus] = useState("idle"); // idle | checking | resending | leaving
+    const [shown, setShown] = useState(null); // the figures a refused code keeps on screen
     const [refusal, setRefusal] = useState(null); // { state, remaining } | null
-    const [notice, setNotice] = useState("");
-
-    const busy = status !== "idle";
-    const finished = refusal !== null && !canTryAgain(refusal.state);
-    const refusalCopy = refusal ? CODE_COPY[refusal.state] : null;
-    const refusalSentence = typeof refusalCopy === "function" ? refusalCopy(refusal.remaining) : refusalCopy;
-
-    // The field is disabled while a code is checked, and a disabled field loses
-    // focus — on a phone that closes the keyboard. So after a refusal that leaves
-    // something to try, the field takes focus back for the next code.
+    const [failed, setFailed] = useState(false);
+    const [checking, setChecking] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [resent, setResent] = useState(false);
     const codeField = useRef(null);
-    useEffect(() => {
-        if (status === "idle" && refusal && canTryAgain(refusal.state)) codeField.current?.focus();
-    }, [status, refusal]);
+    const heading = useRef(null);
 
-    async function handleSubmit(e) {
-        e.preventDefault();
+    const busy = checking || sending;
+    const ended = refusal !== null && !canTryAgain(refusal.state);
+    const refusalCopy = refusal ? CODE_COPY[refusal.state] : null;
+    const refusalWords = typeof refusalCopy === "function" ? refusalCopy(refusal.remaining) : refusalCopy;
+
+    // A code the step can go on taking gets the caret back after a refusal or a failure, as
+    // #471 had it — the field is read-only while a code is checked, so it never lost focus
+    // on a phone, and this is what puts it back after a press elsewhere. A code that ends
+    // hands focus to the heading instead, once, so the new heading is named.
+    useEffect(() => {
+        if (!busy && !ended && (refusal || failed)) codeField.current?.focus();
+    }, [busy, ended, refusal, failed]);
+    useEffect(() => {
+        if (ended) heading.current?.focus();
+    }, [ended]);
+
+    // `Email sent` stands for its 3 s and then gives way to the control again. The new
+    // email's code goes in the same field, and the control that asked for it has just given
+    // way, so the caret goes where the code will be typed.
+    useEffect(() => {
+        if (!resent) return;
+        codeField.current?.focus();
+        const timer = window.setTimeout(() => setResent(false), RESENT_FOR_MS);
+        return () => window.clearTimeout(timer);
+    }, [resent]);
+
+    async function check(typed) {
         if (busy) return;
-        setNotice("");
-        // Checked here as well as on the server so a short code costs no request;
-        // the server's check is the one that counts.
-        if (!isCodeShaped(code)) {
+        setFailed(false);
+        // Checked here as well as on the server so a short code costs no request; the
+        // server's check is the one that counts.
+        if (!isCodeShaped(typed)) {
+            setShown(null);
             setRefusal({ state: CODE_STATES.MALFORMED });
             return;
         }
-
-        setStatus("checking");
+        setChecking(true);
         setRefusal(null);
         try {
             const res = await fetch("/api/auth/code", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code, destination }),
+                body: JSON.stringify({ code: typed, destination }),
             });
             const data = await res.json().catch(() => ({}));
             if (res.ok && data.state === CODE_STATES.VALID) {
-                setStatus("leaving");
                 window.location.assign(data.destination);
-                return;
+                return; // the step stays busy while the browser leaves
             }
-            if (!data.state) throw new Error(data.error || SIGN_IN_COPY.request.failed);
-            setRefusal({ state: data.state, remaining: data.remaining });
-            setCode("");
-            setStatus("idle");
-        } catch (err) {
-            setNotice(err.message);
-            setStatus("idle");
+            if (data.state) {
+                setShown(data.state === CODE_STATES.WRONG ? typed : null);
+                setCode("");
+                setRefusal({ state: data.state, remaining: data.remaining });
+            } else {
+                // An answer with no state is a code the server did not check, which the
+                // step says as it says a request that never arrived.
+                setFailed(true);
+            }
+        } catch {
+            setFailed(true);
         }
+        setChecking(false);
     }
 
-    async function handleResend() {
+    async function sendNewEmail({ fromEnded }) {
         if (busy) return;
-        setStatus("resending");
-        setNotice("");
-        try {
-            await onResend();
-            setRefusal(null);
-            setCode("");
-            setNotice(copy.resent);
-        } catch (err) {
-            setNotice(err.message);
-        } finally {
-            setStatus("idle");
+        setSending(true);
+        setFailed(false);
+        const sent = await requestEmail(email);
+        setSending(false);
+        if (!sent) {
+            setFailed(true);
+            return;
         }
+        setCode("");
+        setShown(null);
+        setRefusal(null);
+        // From an ended code the field comes back, and takes focus as it appears.
+        if (!fromEnded) setResent(true);
+    }
+
+    const chip = <AddressChip email={email} onChange={onChangeEmail} disabled={busy} />;
+    if (ended) {
+        return (
+            <div className="flex flex-1 flex-col">
+                <SignInHeader heading={refusalWords} sentence={copy.endedSentence} chip={chip} headingRef={heading} />
+                {failed && <PageRefusal>{SIGN_IN_COPY.failed}</PageRefusal>}
+                <BottomBar stack={failed ? "refusal" : "header"}>
+                    <Button size="xl" busy={sending} busyLabel={SIGN_IN_COPY.sending} onClick={() => sendNewEmail({ fromEnded: true })}>
+                        {copy.endedAction}
+                    </Button>
+                </BottomBar>
+            </div>
+        );
     }
 
     return (
-        <div className="w-full max-w-sm space-y-4">
-            <div>
-                <h1 className="text-2xl font-semibold">{copy.heading}</h1>
-                <p className="mt-2 text-zinc-600">{copy.sent(email)}</p>
-                <p className="mt-1 text-zinc-600">{copy.how}</p>
+        <form
+            onSubmit={(event) => {
+                event.preventDefault();
+                check(code);
+            }}
+            noValidate
+            className="flex flex-1 flex-col"
+        >
+            <SignInHeader heading={copy.heading} sentence={copy.sentence} chip={chip} headingRef={heading} />
+            <div className="mt-sign-in-header-stack max-sm:mt-mobile-code-stack">
+                <Field label={copy.field} labelHidden size="xl" refusal={canTryAgain(refusal?.state) ? refusalWords : null}>
+                    <CodeField
+                        inputRef={codeField}
+                        value={code}
+                        shown={shown}
+                        refused={Boolean(refusal)}
+                        busy={busy}
+                        onChange={(typed) => {
+                            setCode(typed);
+                            setShown(null);
+                            setRefusal(null);
+                            setFailed(false);
+                        }}
+                        onComplete={check}
+                    />
+                </Field>
             </div>
-
-            {finished ? (
-                <p role="alert" className="text-sm text-red-600">
-                    {refusalSentence}
-                </p>
-            ) : (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <label className="block">
-                        <span className="text-sm text-zinc-600">{copy.label}</span>
-                        <input
-                            ref={codeField}
-                            type="text"
-                            name="code"
-                            inputMode="numeric"
-                            autoComplete="one-time-code"
-                            autoFocus
-                            required
-                            value={code}
-                            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH))}
-                            disabled={busy}
-                            className="mt-1 w-full rounded border border-zinc-300 px-3 py-2 tracking-widest disabled:opacity-50"
-                        />
-                    </label>
-
-                    {refusalSentence && (
-                        <p role="alert" className="text-sm text-red-600">
-                            {refusalSentence}
-                        </p>
-                    )}
-
+            {failed && <PageRefusal>{SIGN_IN_COPY.failed}</PageRefusal>}
+            <BottomBar stack={failed ? "refusal" : "form"}>
+                <Button type="submit" size="xl" busy={checking} busyLabel={copy.working}>
+                    {copy.action}
+                </Button>
+            </BottomBar>
+            <p
+                aria-live="polite"
+                className="mt-sign-in-form-stack text-center text-body-sm text-foreground-subtle max-sm:mt-mobile-code-help-stack max-sm:px-mobile-input-message-inset-x max-sm:text-left max-sm:text-mobile-body-sm"
+            >
+                {copy.resendLead}{" "}
+                {resent ? (
+                    <span className="font-semibold">{copy.resent}</span>
+                ) : (
+                    // Its room either side is pulled back out of the line, so the line is no
+                    // taller and no wider for it — on the left by only half, which leaves its
+                    // words that much further from the sentence they end (1e, 1a).
                     <button
-                        type="submit"
-                        disabled={busy}
-                        className="w-full rounded bg-foreground px-3 py-2 text-background disabled:opacity-50"
+                        type="button"
+                        aria-disabled={busy || undefined}
+                        onClick={() => sendNewEmail({ fromEnded: false })}
+                        className="-my-[calc((var(--height-control-inline)-var(--text-body-sm--line-height))/2)] -mr-control-inline-inset-x -ml-code-resend-offset inline-flex h-control-inline items-center rounded-control px-control-inline-inset-x align-baseline font-semibold text-primary hover:bg-selected aria-disabled:pointer-events-none max-sm:h-auto max-sm:-my-[calc((var(--spacing-mobile-touch-target)-var(--text-mobile-body-sm--line-height))/2)] max-sm:py-[calc((var(--spacing-mobile-touch-target)-var(--text-mobile-body-sm--line-height))/2)] max-sm:active:opacity-mobile-pressed"
                     >
-                        {status === "checking" || status === "leaving" ? copy.checking : copy.action}
+                        {copy.resend}
                     </button>
-                </form>
-            )}
-
-            {notice && (
-                <p role="status" className="text-sm text-zinc-600">
-                    {notice}
-                </p>
-            )}
-
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm">
-                <button type="button" onClick={handleResend} disabled={busy} className="underline disabled:opacity-50">
-                    {status === "resending" ? copy.resending : copy.resend}
-                </button>
-                <button type="button" onClick={onChangeEmail} disabled={busy} className="underline disabled:opacity-50">
-                    {copy.changeEmail}
-                </button>
-            </div>
-        </div>
+                )}
+            </p>
+        </form>
     );
 }

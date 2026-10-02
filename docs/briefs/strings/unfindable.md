@@ -198,23 +198,20 @@ the function returns a key, or accept that it lives only here.
 
 | String | Screen | Authored in |
 |---|---|---|
-| `Email must be a company address` | `/login` | `lib/auth.js:36`, thrown; serialized by `app/api/auth/request/route.js:43` |
-| `Email is required` | `/login` | `app/api/auth/request/route.js:32` |
 | `Not found.` | no screen | `app/api/files/[axis]/[documentId]/[filename]/route.js`, the body of its 404 |
-| `Cross-origin sign-in is not allowed` | `/login` | `lib/crossOrigin.js`, answered by the request and code routes (#471) |
-| `A sign-in email needs a six-digit code` | `/login` | `lib/authTokenState.js`, thrown by the mail builder; serialized by the request route (#471) |
-| `A sign-in email needs its link` | `/login` | the same builder (#471) |
 
-**Unclosable in principle.** The screen renders `{errorMessage}`; the words are two
-files away in a different entry point, and nothing that walks a route's own files
-will ever reach them. The second is also the clearest `unreachable` entry in the
-other file — the input is `required`, so no reader can produce it. **The last three
-are the first two's shape, from #471**: a module the screen does not name, a Route
-Handler that serializes it, and — `unreachable.md` says why — no reader who meets
-them.
+**`/login` had five rows here until #473**, and none of them is screen text now. The
+screen rendered `{errorMessage}`, the sentence the request route or the code route
+answered with — `Email must be a company address`, `Email is required`, the
+cross-origin refusal and the mail builder's two — so the words were two files away in
+a different entry point, where nothing that walks a route's own files reaches. Since
+#473 the screen renders no sentence a server sends: a request that did not go, however
+it was refused, reads the screen's own `Something went wrong. Try again.`, and a field
+holding another domain is refused before anything is sent. The five are the routes'
+answers to a caller with no screen, which is #331's row's case.
 
-**#331's row is unclosable for a stronger reason than the two above it: there is no
-screen to attribute it to at all.** `scripts/screen-strings.mjs` is a per-SCREEN
+**#331's row is unclosable for a stronger reason: there is no screen to attribute it
+to at all.** `scripts/screen-strings.mjs` is a per-SCREEN
 extractor and does not scan `app/api/**`, and widening it would not help — a Route
 Handler has no screen, so the tool's whole output shape has no slot to put the
 string in. It stays reachable rather than unreachable, and that is the distinction
@@ -282,8 +279,9 @@ returned by a lower-case module-level function.
 `info`, `warning`, `no-vendor`, `no-job` and `matched` on `/invoices/new`. Each is
 declared in an array or an object and never compared with `===`, so the extractor —
 which finds a closed vocabulary's compared members and its `key` properties — sees
-nothing of it. `idle` on `/login` was one until #471, whose code step compares it,
-and the extractor lists it now.
+nothing of it. `idle` on `/login` was one until #471, whose code step compared it and
+had the extractor list it, and the word left the screen with #473, whose steps keep no
+such status.
 
 **Nobody reads these, and that is exactly why they matter.** #274's `billed-more`,
 `order-billed`, `billed-short` and `billed-over` were four uses of a barred word
@@ -346,9 +344,10 @@ message reaches the framework's own default and never becomes copy. The signal i
 `"use server"` directive rather than a list of files, so a new Server Action inherits
 it; `unreachable.md` had already had to excuse one of the nine by hand, which is what
 a false entry looks like before anyone names the class. A CLIENT throw is still
-collected, and correctly: `/login` catches its own and renders `err.message`. Of the
-three left, that one is real copy and two are console-only — an over-reach named
-here rather than filtered by a list, which is this file's standing trade.
+collected, which was correct while `/login` caught its own and rendered `err.message`.
+#473 took that one out — the screen says its own sentence for a request that did not
+go, and throws nothing to say it — so the two left are console-only, an over-reach
+named here rather than filtered by a list, which is this file's standing trade.
 
 **And the rate is the thing to watch.** Three of the seven above were found on
 screens that had already been read twice, and the array case was found on a screen

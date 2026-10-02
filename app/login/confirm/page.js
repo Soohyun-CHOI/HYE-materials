@@ -1,9 +1,10 @@
-import Link from "next/link";
+import { Button, ButtonLink } from "@/app/components/Controls";
 import { getAuthTokenRecord } from "@/lib/airtable/authTokens";
-import { CONFIRM_COPY, describeToken, REQUEST_NEW_LINK, TOKEN_STATES } from "@/lib/authTokenState";
+import { CONFIRM_COPY, describeToken, TOKEN_STATES } from "@/lib/authTokenState";
 import { DESTINATION_PARAM, safeDestination, signInPath } from "@/lib/loginDestination";
-import { SIGN_IN_TITLE } from "@/lib/productName";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { AddressChip, BottomBar, SignInHeader } from "../SignInParts";
+import SendNewEmail from "./SendNewEmail";
 
 export const metadata = { title: "Confirm sign-in" };
 
@@ -45,9 +46,17 @@ export default async function ConfirmSignInPage(props) {
  * reaches the form, and judged again there, which is the call that protects
  * anything — that endpoint is reachable without this page.
  *
- * AND THE WAY BACK CARRIES IT TOO. A reader whose link expired presses
- * `Request a new sign-in link`, and that link holds the destination rather than
- * dropping it at the last step of a flow that exists to preserve it.
+ * AND THE WAY ON CARRIES IT TOO. A reader whose link expired or was used presses
+ * `Send new email`, and a reader whose link names no row `Go to sign in`; both hold
+ * the destination rather than dropping it at the last step of a flow that exists to
+ * preserve it.
+ *
+ * WHAT IT SHOWS IS THE DESIGN'S (#473, 1b and 1f): every state a heading and one way
+ * on, the address under the heading wherever the row names one. A used or expired link
+ * showing its address withholds nothing either — whoever holds the link holds the
+ * email it came in, which names the address — and the way on from those two is a new
+ * email to it, from this browser. A link that names no row has no address to show or
+ * send to, and goes back to the sign-in screen.
  */
 async function renderConfirmSignInPage({ searchParams }) {
     const { token, destination: asked } = await searchParams;
@@ -62,48 +71,34 @@ async function renderConfirmSignInPage({ searchParams }) {
     });
     const copy = CONFIRM_COPY[state];
     const email = record?.get("Email");
+    const chip = record ? <AddressChip email={email} /> : null;
 
     return (
-        <div className="flex flex-1 items-center justify-center p-8">
-            <div className="w-full max-w-sm">
-                <h1 className="text-2xl font-semibold">{SIGN_IN_TITLE}</h1>
+        <div className="flex flex-1 flex-col">
+            <SignInHeader heading={copy.heading} sentence={copy.sentence} chip={chip} />
 
-                {state === TOKEN_STATES.VALID ? (
-                    <>
-                        <p className="mt-2 text-zinc-600">
-                            Signing in as <strong className="font-medium">{email}</strong>.
-                        </p>
-                        <p className="mt-1 text-zinc-600">{copy.body}</p>
-
-                        {/* A plain HTML form, deliberately: no client component, no
-                            action id, no script of any kind, so it still works where
-                            scripts are blocked. It is also what makes the behavior
-                            reproducible with one request in a check. */}
-                        <form method="POST" action="/api/auth/verify" className="mt-6">
-                            <input type="hidden" name="token" value={token} />
-                            {destination && (
-                                <input type="hidden" name={DESTINATION_PARAM} value={destination} />
-                            )}
-                            <button
-                                type="submit"
-                                className="w-full rounded bg-foreground px-3 py-2 text-background"
-                            >
-                                {copy.action}
-                            </button>
-                        </form>
-                    </>
-                ) : (
-                    <>
-                        <p className="mt-2 text-zinc-600">{copy.body}</p>
-                        <Link
-                            href={signInPath(destination)}
-                            className="mt-6 inline-block text-sm underline"
-                        >
-                            {REQUEST_NEW_LINK}
-                        </Link>
-                    </>
-                )}
-            </div>
+            {state === TOKEN_STATES.VALID ? (
+                // A plain HTML form, deliberately: no action id and no script of any kind
+                // behind it, so it still works where scripts are blocked. It is also what
+                // makes the behavior reproducible with one request in a check.
+                <form method="POST" action="/api/auth/verify" className="flex flex-1 flex-col">
+                    <input type="hidden" name="token" value={token} />
+                    {destination && <input type="hidden" name={DESTINATION_PARAM} value={destination} />}
+                    <BottomBar stack="header">
+                        <Button type="submit" size="xl">
+                            {copy.action}
+                        </Button>
+                    </BottomBar>
+                </form>
+            ) : record ? (
+                <SendNewEmail email={email} destination={destination} label={copy.action} />
+            ) : (
+                <BottomBar stack="header">
+                    <ButtonLink size="xl" href={signInPath(destination)}>
+                        {copy.action}
+                    </ButtonLink>
+                </BottomBar>
+            )}
         </div>
     );
 }

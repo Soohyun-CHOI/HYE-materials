@@ -101,7 +101,7 @@ export function walk(node, visit) {
 }
 
 /** Map every node in a subtree to its parent, so ancestry can be asked about. */
-function parentMap(root) {
+export function parentMap(root) {
     const parents = new Map();
     (function visitNode(n, parent) {
         if (!n || typeof n !== "object") return;

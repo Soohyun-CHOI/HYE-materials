@@ -1,10 +1,12 @@
 // The design's values: declared once, pinned by value, and read by name only
-// where the tools axis is the only caller (#462).
+// where the design's two axes — the tools screens and the sign-in screens — are the
+// only callers (#462, #473).
 //
 // FOUR CLAIMS, AND THE ORDER IS THE ORDER THEY DEPEND ON EACH OTHER.
 //   1. `app/designValues.css` DECLARES AND DOES NOTHING ELSE: `@theme` blocks and
-//      comments, and no rule that selects an element. `app/globals.css` imports it
-//      right after Tailwind and reads none of it.
+//      comments, and no rule that selects an element — a block's keyframes aside,
+//      which select nothing and run an animation the block declares (#473).
+//      `app/globals.css` imports it right after Tailwind and reads none of it.
 //   2. EVERY DECLARATION IS THE DESIGN'S VALUE, typed out below rather than read
 //      back from the file, with the relations the design states held beside it —
 //      a wash is the foreground in an amount, every shadow and overlay is the
@@ -12,9 +14,11 @@
 //      grid — and the ones this repository adds: a length is rem, a whole number of
 //      the design's pixels over 16, outside the px kept by convention; no name
 //      carries a digit; and no name is a key Tailwind or the app already declares.
-//   3. A NAME IS READ ONLY BY A FILE THAT NOTHING OUTSIDE `app/(tools)/` CALLS.
+//   3. A NAME IS READ ONLY BY A FILE THAT NOTHING OUTSIDE `app/(tools)/` AND
+//      `app/login/` CALLS.
 //   4. EVERY NAME IS READ, OR WAITS ON AN ISSUE NAMED BESIDE IT — and a face that
-//      is read is loaded by its next/font call where it is read.
+//      is read on an axis is loaded by its next/font call in a module that axis
+//      reaches.
 //
 // BY LITERAL, WHICH IS #351's AND #353's LESSON APPLIED BEFORE IT COULD REPEAT.
 // A table built from the declaration would pass for any value it held, so the
@@ -48,11 +52,25 @@
 // WHO READS IS WHO CALLS, NOT WHERE THE FILE SITS. #460's rail is written where any
 // screen could call it and only the tools layout does, so a rule about directories
 // would refuse it. The boundary is the import graph instead, walked from every
-// route file under `app/`: a file that only `app/(tools)/` route files reach may
-// read a name, a file that any other route file reaches may not — wherever it
+// route file under `app/`: a file that only the route files of `DESIGN_AXES` reach
+// may read a name, a file that any other route file reaches may not — wherever it
 // lives — and a file that no route file reaches reads nothing, since nothing
 // renders it. Resolution is `unread-exports.mjs`'s `importedPairs`, the same
 // reading of a specifier that check makes, rather than a third copy of it.
+//
+//   THE BOUNDARY WIDENED ONCE, TO THE SIGN-IN SCREENS (#473), AND ON A CONDITION. The
+//   two axes may read the names because each has a layout of its own above all of its
+//   pages and neither shares a component with the screens above them, so nothing a
+//   name styles can reach a screen holding a width container of its own; a component
+//   both axes call — `app/components/Controls.js` — may read one, and one any other
+//   screen calls may not. **#258 is what widens it to every route file**: those
+//   screens take one layout, the root layout applies the faces on its element, and
+//   `DESIGN_AXES` gives way to every route file under `app/`, in the commit that does.
+//
+//   A FACE IS LOADED ON EACH AXIS THAT READS IT. The sign-in screens are outside the
+//   tools layout, so a face loaded there does not reach them; a face a file reads is
+//   loaded, for every axis whose routes reach that file, by a call in a module that
+//   axis reaches and only the design's axes do — `app/faces/`, one module a face.
 //
 // A NAME THAT IS NOT READ YET WAITS ON THE ISSUE THAT READS IT FIRST, written in
 // the table. A waiting name that something reads fails, so the pull request that
@@ -82,11 +100,22 @@ import { listJsFiles, parseFile, parseSource, REPO_ROOT, toPosix, walk } from ".
 import { isMain, standalone } from "./_harness.mjs";
 import { importedPairs } from "./unread-exports.mjs";
 
-export const title = "The design's values — declared once, read by name on the tools axis (#462)";
+export const title = "The design's values — declared once, read by name on the tools and sign-in screens (#462, #473)";
 
 const DECLARATION = "app/designValues.css";
 const STYLESHEET = "app/globals.css";
 const TOOLS_DIR = "app/(tools)/";
+const SIGN_IN_DIR = "app/login/";
+
+/**
+ * The screens the design is applied to before #258, each by the directory of its route
+ * files: the tools axis (#462) and the sign-in steps (#473). #258 replaces this with
+ * every route file.
+ */
+const DESIGN_AXES = [TOOLS_DIR, SIGN_IN_DIR];
+
+/** Tailwind's own keyframes, which an animation declared here may run without declaring them. */
+const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
 
 /**
  * The issues that read a name next. An issue that lands takes its number out, and
@@ -109,8 +138,14 @@ const TOOLS_DIR = "app/(tools)/";
  * went to the issues that draw one: its room, its 50 button and the pill to #473, whose
  * step pages draw them now, and the pill's chevron side and a field's icon to #463's
  * tool item page. The foot bar's shadow was undeclared, since 0a now draws it none.
+ * #473 took its own out with the sign-in steps: they read five of the six names #458
+ * marked for it — the foot bar's room above and below, its 50 button and the pill — and
+ * three of #463's first, the Page title at both widths and a phone field's gap, and the
+ * foot bar's 12 between its rows went to #463's tool item page, since no step page has
+ * two. The steps declared their own names with them and read the account's avatar for an
+ * address chip's.
  */
-const READERS_TO_COME = [463, 473];
+const READERS_TO_COME = [463];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -130,6 +165,10 @@ const VALUES = [
     ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
     ["--spacing-control-lg-inset-x", "1rem", null],
+    // A sign-in page's field and action, and the line under any field (#473).
+    ["--height-control-xl", "2.5rem", null],
+    ["--spacing-control-xl-inset-x", "0.75rem", null],
+    ["--spacing-input-message-stack", "0.375rem", null],
     ["--min-width-menu", "8.75rem", null],
     ["--max-width-menu", "17.5rem", null],
     ["--spacing-menu-offset", "0.375rem", null],
@@ -177,11 +216,16 @@ const VALUES = [
     // 0f · States
     ["--width-number-input", "7.5rem", null],
     ["--spacing-stepper-inset", "0.1875rem", null],
+    // A busy action (#473); its turn and its track are the drawings', not the spec's.
+    ["--transition-delay-busy", "300ms", null],
+    ["--size-spinner", "1rem", null],
+    ["--animate-spinner", "spin 0.7s linear infinite", null],
+    ["--color-spinner-track", "color-mix(in oklab, currentColor 35%, transparent)", null],
     // 0g · Status
     ["--size-status-indicator", "0.5625rem", 463],
     ["--stroke-width-status-ring", "1.5px", 463],
     // 0h · Type
-    ["--text-heading-lg", "1.5rem", 463],
+    ["--text-heading-lg", "1.5rem", null],
     ["--text-heading-lg--line-height", "2rem"],
     ["--text-heading-lg--letter-spacing", "-0.012em"],
     ["--text-heading-lg--font-weight", "600"],
@@ -198,6 +242,9 @@ const VALUES = [
     ["--text-brand", "1rem", null],
     ["--text-brand--line-height", "1.5rem"],
     ["--text-brand--font-weight", "500"],
+    ["--text-brand-lg", "1.25rem", null],
+    ["--text-brand-lg--line-height", "1.75rem"],
+    ["--text-brand-lg--font-weight", "500"],
     ["--tracking-id", "-0.02em", null],
     ["--tracking-brand", "-0.03em", null],
     ["--font-ui", "var(--font-instrument-sans), system-ui, sans-serif", null],
@@ -285,17 +332,42 @@ const VALUES = [
     ["--spacing-title-stack", "0.625rem", 463],
     ["--spacing-subtitle-stack", "0.75rem", 463],
     ["--spacing-heading-sm-stack", "0.75rem", 463],
-    // Tools 0a · App — #458's sheets read theirs; the foot bar is #473's step pages' first
-    // and #463's tool item page's after.
+    // 0o · Sign-in page (#473); the name fields' 12, the caret's height and the resend
+    // control's pull are the drawings'. Its chip's avatar is the account's, above.
+    ["--container-sign-in", "22.5rem", null],
+    ["--spacing-sign-in-inset-top", "16.75rem", null],
+    ["--spacing-sign-in-brand-stack", "2.5rem", null],
+    ["--spacing-sign-in-header-gap", "0.5rem", null],
+    ["--spacing-sign-in-header-stack", "2rem", null],
+    ["--spacing-sign-in-form-stack", "1.5rem", null],
+    ["--spacing-sign-in-form-inline", "0.75rem", null],
+    ["--spacing-avatar-chip-inset-left", "0.25rem", null],
+    ["--spacing-avatar-chip-inset-right", "0.75rem", null],
+    ["--size-code-slot", "3.25rem", null],
+    ["--spacing-code-group-inline", "1rem", null],
+    ["--spacing-code-slot-inset-top", "0.125rem", null],
+    ["--text-code-slot", "1.375rem", null],
+    ["--text-code-slot--line-height", "1.75rem"],
+    ["--text-code-slot--font-weight", "500"],
+    ["--width-code-caret", "0.125rem", null],
+    ["--height-code-caret", "1.5rem", null],
+    ["--animate-code-caret", "code-caret-blink 1s steps(1) infinite", null],
+    ["--spacing-code-resend-offset", "0.25rem", null],
+    // Tools 0a · App — #458's sheets and #473's step pages read theirs; the foot bar's 12
+    // between its rows waits on #463's tool item page.
     ["--spacing-mobile-gutter", "1rem", null],
     ["--height-mobile-top-bar", "3.5rem", 463],
     ["--spacing-mobile-top-bar-inset-right", "0.25rem", 463],
     ["--size-mobile-top-bar-icon", "1.5rem", 463],
-    ["--spacing-mobile-bottom-bar-inset-top", "1rem", 473],
-    ["--spacing-mobile-bottom-bar-inset-bottom", "1.25rem", 473],
-    ["--spacing-mobile-bottom-bar-stack", "0.75rem", 473],
+    ["--spacing-mobile-bottom-bar-inset-top", "1rem", null],
+    ["--spacing-mobile-bottom-bar-inset-bottom", "1.25rem", null],
+    ["--spacing-mobile-bottom-bar-stack", "0.75rem", 463],
+    // The bottom bar on the keyboard and its soft edge (#473); the fade is the drawings'.
+    ["--spacing-mobile-bottom-bar-keyboard-inset-bottom", "0.75rem", null],
+    ["--spacing-mobile-bottom-bar-bleed", "1.5rem", null],
+    ["--transition-duration-mobile-bottom-bar", "160ms", null],
     ["--spacing-mobile-touch-target", "3rem", null],
-    ["--text-mobile-heading-lg", "1.375rem", 463],
+    ["--text-mobile-heading-lg", "1.375rem", null],
     ["--text-mobile-heading-lg--line-height", "1.75rem"],
     ["--text-mobile-heading-lg--letter-spacing", "-0.012em"],
     ["--text-mobile-heading-lg--font-weight", "600"],
@@ -310,19 +382,33 @@ const VALUES = [
     ["--text-mobile-heading-sm", "0.8125rem", null],
     ["--text-mobile-heading-sm--line-height", "1.25rem"],
     ["--text-mobile-heading-sm--font-weight", "600"],
-    ["--height-mobile-button", "3.125rem", 473],
+    ["--text-mobile-brand", "1.0625rem", null],
+    ["--text-mobile-brand--line-height", "1.5rem"],
+    ["--text-mobile-brand--font-weight", "500"],
+    ["--height-mobile-button", "3.125rem", null],
     ["--height-mobile-dialog-button", "3rem", null],
+    ["--size-mobile-spinner", "1.25rem", null],
     ["--height-mobile-input", "3.125rem", null],
     ["--spacing-mobile-input-inset-x", "1rem", null],
     ["--size-mobile-input-icon", "1.125rem", 463],
-    ["--spacing-mobile-input-gap", "0.625rem", 463],
+    ["--spacing-mobile-input-gap", "0.625rem", null],
     ["--color-mobile-input-background", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
     ["--spacing-mobile-field-stack", "1.25rem", null],
     // From the drawings, not the spec (#458).
     ["--size-mobile-input-clear-icon", "0.9375rem", null],
-    ["--height-mobile-chip", "2.25rem", 473],
-    ["--spacing-mobile-chip-inset-x", "0.875rem", 473],
+    // The clear ×'s target, a phone field's refusal and the alert (#473); the target is the
+    // drawings'.
+    ["--spacing-mobile-input-clear-inset-right", "0.375rem", null],
+    ["--spacing-mobile-input-message-inset-x", "0.25rem", null],
+    ["--spacing-mobile-input-message-gap", "0.375rem", null],
+    ["--spacing-mobile-alert-inset-y", "0.875rem", null],
+    ["--spacing-mobile-alert-inset-x", "1rem", null],
+    ["--size-mobile-alert-icon", "1.125rem", null],
+    ["--spacing-mobile-alert-gap", "0.625rem", null],
+    ["--height-mobile-chip", "2.25rem", null],
+    ["--spacing-mobile-chip-inset-x", "0.875rem", null],
     ["--spacing-mobile-chip-inset-right", "0.75rem", 463],
+    ["--spacing-mobile-avatar-chip-inset-left", "0.375rem", null],
     ["--size-mobile-status-indicator", "0.625rem", 463],
     ["--radius-mobile-control", "0.75rem", null],
     ["--radius-mobile-drawer", "1.75rem", null],
@@ -330,6 +416,12 @@ const VALUES = [
     ["--spacing-mobile-top-bar-stack", "1rem", 463],
     ["--spacing-mobile-title-stack", "1.375rem", 463],
     ["--spacing-mobile-stack", "2rem", 463],
+    // A phone's sign-in page (#473); the caret's height is the drawings'.
+    ["--spacing-mobile-sign-in-inset-top", "4.5rem", null],
+    ["--spacing-mobile-sign-in-brand-stack", "2rem", null],
+    ["--spacing-mobile-code-stack", "1.5rem", null],
+    ["--spacing-mobile-code-help-stack", "1.25rem", null],
+    ["--height-mobile-code-caret", "1.625rem", null],
     ["--size-mobile-log-dot", "0.375rem", 463],
     ["--spacing-mobile-log-gap", "0.75rem", 463],
     ["--spacing-mobile-log-stack", "1.25rem", 463],
@@ -370,8 +462,8 @@ const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar", "--spacing
 
 /**
  * The three faces: the only names in `@theme inline`, each resolving to the
- * variable its next/font call sets. A face that is read needs that call, with
- * that `variable`, in a file only the tools axis reaches.
+ * variable its next/font call sets. A face that is read on an axis needs that call,
+ * with that `variable`, in a file that axis reaches and only the design's axes do.
  */
 const FACES = {
     "--font-ui": { loader: "Instrument_Sans", variable: "--font-instrument-sans" },
@@ -382,7 +474,10 @@ const FACES = {
 /** The route files Next renders from, under `app/`. A file one of them reaches is on a page. */
 const ROUTE_FILE = /^app\/(.*\/)?(page|layout|template|loading|error|not-found|default|global-error|route)\.js$/;
 
-const isToolsFile = (rel) => rel.startsWith(TOOLS_DIR);
+/** The design axis a route file is on, by its directory, or null for any other route. */
+const axisOf = (rel) => DESIGN_AXES.find((dir) => rel.startsWith(dir)) ?? null;
+const onDesignAxis = (rel) => axisOf(rel) !== null;
+const isToolsFile = (rel) => axisOf(rel) === TOOLS_DIR;
 
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -390,10 +485,27 @@ const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 // The declaration
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Where the brace opened at `open` closes, the index after it. */
+function blockEnd(text, open) {
+    let depth = 1;
+    let j = open + 1;
+    while (j < text.length && depth > 0) {
+        if (text[j] === "{") depth++;
+        else if (text[j] === "}") depth--;
+        j++;
+    }
+    return j;
+}
+
 /**
  * The top level of a declaration file: its `@theme` blocks with their
- * declarations, and anything else — which the file must not have. Comments are
- * stripped first, so a comment may say anything.
+ * declarations and the keyframes inside them, and anything else — which the file
+ * must not have. Comments are stripped first, so a comment may say anything.
+ *
+ * A KEYFRAMES BLOCK INSIDE `@theme` IS TAILWIND'S WAY TO DECLARE WHAT AN ANIMATION
+ * RUNS (#473): it selects no element, and Tailwind emits it only once an animation
+ * naming it is read. So it is taken out of the block whole and named, rather than
+ * read as a stray, and the run below holds every one to an animation that runs it.
  */
 export function parseDeclaration(css) {
     const text = withoutComments(css);
@@ -408,14 +520,16 @@ export function parseDeclaration(css) {
         const rest = text.slice(i);
         const theme = /^@theme(\s+inline)?\s*\{/.exec(rest);
         if (theme) {
-            let depth = 1;
-            let j = i + theme[0].length;
-            while (j < text.length && depth > 0) {
-                if (text[j] === "{") depth++;
-                else if (text[j] === "}") depth--;
-                j++;
+            const j = blockEnd(text, i + theme[0].length - 1);
+            let body = text.slice(i + theme[0].length, j - 1);
+            const keyframes = [];
+            for (let at = body.search(/@keyframes\s/); at !== -1; at = body.search(/@keyframes\s/)) {
+                const head = /^@keyframes\s+([A-Za-z0-9_-]+)\s*\{/.exec(body.slice(at));
+                if (!head) break;
+                const end = blockEnd(body, at + head[0].length - 1);
+                keyframes.push(head[1]);
+                body = body.slice(0, at) + body.slice(end);
             }
-            const body = text.slice(i + theme[0].length, j - 1);
             const declarations = [];
             for (const piece of body.split(";")) {
                 const trimmed = piece.trim();
@@ -429,7 +543,7 @@ export function parseDeclaration(css) {
             }
             // `@theme inline` bakes each value into its utility, so the value resolves
             // where the utility is used rather than at `:root`.
-            blocks.push({ resolvedAtUse: Boolean(theme[1]), declarations });
+            blocks.push({ resolvedAtUse: Boolean(theme[1]), declarations, keyframes });
             i = j;
             continue;
         }
@@ -586,14 +700,19 @@ function routesReaching(graph) {
 export function judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome }) {
     const failures = [];
     const read = new Set();
+    // For each face, the design axes whose routes reach a file that reads it.
+    const faceAxes = new Map(Object.keys(FACES).map((face) => [face, new Set()]));
     for (const [file, names] of readsByFile) {
         if (names.size === 0) continue;
         const routes = [...(routesByFile.get(file) ?? [])];
-        const above = routes.filter((r) => !isToolsFile(r));
+        const above = routes.filter((r) => !onDesignAxis(r));
         if (above.length > 0) {
             failures.push(`${file} reads ${[...names].join(", ")} and ${above.sort()[0]} calls it`);
         } else if (routes.length > 0) {
-            for (const name of names) read.add(name);
+            for (const name of names) {
+                read.add(name);
+                for (const route of routes) faceAxes.get(name)?.add(axisOf(route));
+            }
         }
     }
     // A value mixing another name in reads it, for as long as the value is read.
@@ -616,15 +735,19 @@ export function judge({ waiting, sources, readsByFile, routesByFile, loaders, re
         if (!read.has(name) && issue === null) failures.push(`${name} is declared and nothing reads it`);
     }
     for (const [face, { loader, variable }] of Object.entries(FACES)) {
-        if (!read.has(face)) continue;
-        const loaded = loaders.some(
-            (l) =>
-                l.imported === loader &&
-                l.variable === variable &&
-                [...(routesByFile.get(l.file) ?? [])].length > 0 &&
-                [...routesByFile.get(l.file)].every(isToolsFile)
-        );
-        if (!loaded) failures.push(`${face} is read and no file only the tools axis reaches loads ${loader} into ${variable}`);
+        for (const axis of faceAxes.get(face)) {
+            const loaded = loaders.some((l) => {
+                const routes = [...(routesByFile.get(l.file) ?? [])];
+                return (
+                    l.imported === loader &&
+                    l.variable === variable &&
+                    routes.length > 0 &&
+                    routes.every(onDesignAxis) &&
+                    routes.some((route) => axisOf(route) === axis)
+                );
+            });
+            if (!loaded) failures.push(`${face} is read on ${axis} and no file it reaches, and only the design's axes reach, loads ${loader} into ${variable}`);
+        }
     }
     return { read, failures };
 }
@@ -652,6 +775,24 @@ export async function run({ check, assert, log }) {
         }
     }
     check("  the names in @theme inline are the three faces", resolvedAtUse.sort().join(" "), Object.keys(FACES).sort().join(" "));
+
+    // #473 — a block's keyframes are what an animation it declares runs, and nothing else:
+    // each one is run by an animation declared here, and each animation runs keyframes
+    // declared here or Tailwind's own.
+    const keyframes = parsed.blocks.flatMap((b) => b.keyframes);
+    const animations = [...declared].filter(([name]) => name.startsWith("--animate-"));
+    const runs = (value) => value.split(/\s+/)[0];
+    check("  the keyframes declared are the caret's blink", keyframes.join(" "), "code-caret-blink");
+    check(
+        "  every keyframes is run by an animation declared here",
+        keyframes.filter((k) => !animations.some(([, value]) => runs(value) === k)).join(" "),
+        ""
+    );
+    check(
+        "  and every animation runs keyframes declared here or Tailwind's own",
+        animations.filter(([, value]) => !keyframes.includes(runs(value)) && !TAILWIND_KEYFRAMES.includes(runs(value))).map(([n]) => n).join(" "),
+        ""
+    );
 
     const globals = withoutComments(readFileSync(join(REPO_ROOT, STYLESHEET), "utf8"));
     const statements = globals.split(";").map((s) => s.trim()).filter(Boolean);
@@ -783,12 +924,22 @@ export async function run({ check, assert, log }) {
         return routes.some(isToolsFile) && routes.some((r) => !isToolsFile(r));
     })());
     assert("  the labels' face loader is found, variable and all", loaders.some((l) => l.imported === "Inconsolata" && l.variable === "--font-label-code"));
-    // #456 — the design's faces load in one place, the tools layout, and the first of
-    // them is found there: the loader judgment below is asked against a real call.
+    // #473 — the design's faces load in `app/faces/`, one module a face, and the first of
+    // them is found there and reached by both axes' layouts: the loader judgment below is
+    // asked against a real call, on each axis.
     assert(
-        "  and the tools layout's, where the design's faces load",
-        loaders.some((l) => l.file === "app/(tools)/layout.js" && l.imported === "Instrument_Sans" && l.variable === "--font-instrument-sans")
+        "  and the UI face's, in the module that loads it",
+        loaders.some((l) => l.file === "app/faces/ui.js" && l.imported === "Instrument_Sans" && l.variable === "--font-instrument-sans")
     );
+    assert(
+        "  which both axes' layouts reach",
+        ["app/(tools)/layout.js", "app/login/layout.js"].every((layout) => routesByFile.get("app/faces/ui.js")?.has(layout))
+    );
+    assert("  the sign-in layout is a route file that reaches itself", routesByFile.get("app/login/layout.js")?.has("app/login/layout.js"));
+    assert("  and the controls are reached from both axes and from no other", (() => {
+        const routes = [...(routesByFile.get("app/components/Controls.js") ?? [])];
+        return routes.some(isToolsFile) && routes.some((r) => axisOf(r) === SIGN_IN_DIR) && routes.every(onDesignAxis);
+    })());
 
     // ── 3 and 4: who reads, and every name read or waiting ───────────────────
     const waiting = new Map(tracked.map(([name, , issue]) => [name, issue]));
@@ -796,7 +947,7 @@ export async function run({ check, assert, log }) {
     const { read, failures } = judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome: READERS_TO_COME });
 
     log("");
-    log("a name is read only where the tools axis is the only caller, and every name is read or waits:");
+    log("a name is read only where the design's axes are the only callers, and every name is read or waits:");
     check("  failures", failures.join("\n    "), "");
     log(`  ${read.size} names read, ${[...waiting.values()].filter((i) => i !== null).length} waiting`);
     for (const issue of READERS_TO_COME) {
@@ -807,14 +958,14 @@ export async function run({ check, assert, log }) {
     log("");
     log("the judgment fails each planted case and passes its repair:");
     const plantedName = "--height-control-lg";
-    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null }) =>
+    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null, loaderRoutes = ["app/(tools)/layout.js"] }) =>
         judge({
             waiting: new Map(names.map((name) => [name, issue])),
             sources: new Map(),
             readsByFile: new Map([[file, new Set(names)]]),
             routesByFile: new Map([
                 [file, new Set(routes)],
-                ...(loaderFile ? [[loaderFile, new Set(["app/(tools)/layout.js"])]] : []),
+                ...(loaderFile ? [[loaderFile, new Set(loaderRoutes)]] : []),
             ]),
             loaders: loaderFile ? [{ file: loaderFile, imported: "Instrument_Sans", variable: "--font-instrument-sans" }] : [],
             readersToCome: READERS_TO_COME,
@@ -846,6 +997,56 @@ export async function run({ check, assert, log }) {
         plant({ file: shared, routes: ["app/(tools)/layout.js"], names: ["--font-ui"], issue: null, loaderFile: "app/(tools)/layout.js" }).join(" | "),
         ""
     );
+    // #473 — the second axis, held the same three ways and one more: a face is loaded on
+    // each axis that reads it, so one loaded for the tools screens alone does not reach a
+    // sign-in screen.
+    check(
+        "  a file only the sign-in screens call reads too",
+        plant({ file: shared, routes: ["app/login/page.js", "app/login/confirm/page.js"], issue: null }).join(" | "),
+        ""
+    );
+    assert(
+        "  and called by a screen above both axes as well, it fails",
+        plant({ file: shared, routes: ["app/login/page.js", "app/prs/page.js"], issue: null }).some((f) => f.includes("app/prs/page.js calls it"))
+    );
+    assert(
+        "  a face the sign-in screens read, loaded only where the tools axis reaches, fails",
+        plant({ file: shared, routes: ["app/login/page.js"], names: ["--font-ui"], issue: null, loaderFile: "app/faces/ui.js" }).some((f) =>
+            f.includes(`read on ${SIGN_IN_DIR}`)
+        )
+    );
+    check(
+        "  and loaded where the sign-in layout reaches too, it passes",
+        plant({
+            file: shared,
+            routes: ["app/login/page.js", "app/(tools)/tools/page.js"],
+            names: ["--font-ui"],
+            issue: null,
+            loaderFile: "app/faces/ui.js",
+            loaderRoutes: ["app/(tools)/layout.js", "app/login/layout.js"],
+        }).join(" | "),
+        ""
+    );
+    assert(
+        "  but a loader a screen above the axes reaches does not count",
+        plant({
+            file: shared,
+            routes: ["app/login/page.js"],
+            names: ["--font-ui"],
+            issue: null,
+            loaderFile: "app/faces/ui.js",
+            loaderRoutes: ["app/login/layout.js", "app/layout.js"],
+        }).some((f) => f.includes("loads Instrument_Sans"))
+    );
+
+    // The keyframes parser, seen to take a block's keyframes out whole and to leave a rule
+    // outside every block where claim 1 finds it.
+    const plantedCss = parseDeclaration(
+        "@theme {\n  --a: 1rem;\n  @keyframes blink {\n    50% { opacity: 0; }\n  }\n  --b: 2rem;\n}\n.page { color: red; }\n"
+    );
+    check("  a block's keyframes are named and taken out", plantedCss.blocks[0].keyframes.join(" "), "blink");
+    check("  the declarations either side survive", plantedCss.blocks[0].declarations.map((d) => d.name ?? d.stray).join(" "), "--a --b");
+    assert("  and a rule outside any block is still found", plantedCss.other.some((o) => o.startsWith(".page")));
 
     // A planted module read end to end, so the reading of strings is seen too.
     const planted = parseSource(`export const X = () => <div className="${cls("h-", "control-lg")} ${cls("max-", "sm", ":", "h-", "mobile-button")}" />;`, "<planted>").ast;

@@ -60,6 +60,8 @@ import { AWAITING_PO_COPY, AWAITING_SEND_COPY } from "../../../lib/poListView.js
 // than three, and all four briefs quote their own.
 import { FILTER_BAR_COPY, LIST_AXES, LIST_EMPTY_COPY } from "../../../lib/listFilters.js";
 import { CODE_COPY, CODE_STATES, CONFIRM_COPY, SIGN_IN_COPY } from "../../../lib/authTokenState.js";
+import { COMPANY_EMAIL_COPY } from "../../../lib/companyEmail.js";
+import { USER_NAME_COPY } from "../../../lib/userName.js";
 import { PO_DOCUMENTS_COPY } from "../../../lib/poDocuments.js";
 import { LINK_COPY } from "../../../lib/deliveryInvoiceLink.js";
 import { ALLOCATION_COPY } from "../../../lib/deliveryAllocation.js";
@@ -330,26 +332,35 @@ const PINNED = [
     // that has to survive a rewording: it is why the state matters, and #281 is the
     // only place a reader learns that sending IS placing the order.
     "received these, and sending one to the vendor is what places the order.",
-    "This sign-in link has already been used.",
-    "This sign-in link has expired. Sign-in links last 15 minutes.",
-    "Press the button to finish signing in on this device.",
-    "Confirm sign-in",
-    // #471 — the code step on `/login`. Its sentences are one closed set in
-    // `lib/authTokenState.js`, quoted in `login.md` for a designer who will redraw
-    // the step; the refusal with a figure is pinned at the figure the brief shows,
-    // which the loadable list below renders explicitly.
-    "We sent a sign-in link and a code to",
-    "or open the link and press Confirm sign-in",
-    "using one ends the other",
-    "Send a new email",
-    "Use a different email",
-    "We sent a new email. Use the code in the newest one.",
+    // #473 — THE SIGN-IN STEPS IN THE DESIGN'S WORDS, which replaced #471's: the
+    // confirmation's states, the code step's and the name step's. Pinned on the
+    // distinctive ones — `Sign in` and `Continue` are words other constants say, which
+    // is the matcher's `Paid` objection below — and the refusal with a figure at the
+    // figure the brief shows, which the loadable list renders explicitly.
+    "You're signing in as",
+    "This link no longer works",
+    "This link has expired",
+    "This link isn't valid",
+    "Get a new link sent to",
+    "Go to sign in",
+    "Enter your work email.",
+    "Check your email",
+    "Enter the code we sent to",
+    "Didn't get it?",
+    "Resend email",
+    "Email sent",
     "Enter the 6-digit code from the email.",
-    "That code does not match. 4 tries left.",
-    "This code was entered wrong 5 times, so it no longer works.",
-    "The code or the link in this email has already been used.",
-    "This code has expired. Codes last 15 minutes.",
-    "No sign-in code is waiting on this screen.",
+    "Wrong code. 4 tries left.",
+    "Too many tries",
+    "This code has expired",
+    "This code no longer works",
+    "Get a new code sent to",
+    "Send new email",
+    "Something went wrong. Try again.",
+    "Add your name",
+    "Use your @hanyangengusa.com address.",
+    "Max 60 characters.",
+    "Couldn't save your name. Try again.",
     "That invoice no longer exists.",
     "No invoice from this vendor has been entered yet, so there is nothing to attach.",
     "One invoice belongs to one delivery, so one already attached elsewhere is",
@@ -677,6 +688,11 @@ export function run({ check, assert, log }) {
         ...stringsFrom(SIGN_IN_COPY),
         ...stringsFrom(CODE_COPY),
         CODE_COPY[CODE_STATES.WRONG](4),
+        // #473 — the name step's words, and the email field's one refusal at the domain
+        // the briefs show, which is the one the environment holds: its builder takes the
+        // domain, so it is rendered here with it rather than probed.
+        ...stringsFrom(USER_NAME_COPY),
+        COMPANY_EMAIL_COPY.otherDomain("hanyangengusa.com"),
         ...stringsFrom(PO_DOCUMENTS_COPY),
         ...stringsFrom(LINK_COPY),
         ...stringsFrom(STATUS_COPY),
