@@ -4,6 +4,7 @@ import { Fragment, startTransition, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button, Choice, Combobox, Field, NoteEmphasis, NumberField } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame } from "@/app/components/DialogFrame";
+import { onlyJob } from "@/lib/toolJob";
 import { TOOL_LIST_COPY } from "@/lib/toolListView";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
@@ -135,8 +136,9 @@ export function RegistrationForm({ open, onClose, jobs, tool, quantity, tools = 
     const [state, formAction, pending] = useActionState(registerToolItemsAction, null);
     const [toolName, setToolName] = useState(tool ? tool.toolName : "");
     const [count, setCount] = useState(() => String(openingCount(quantity)));
-    // With one job it is already chosen, and with several nothing is (0l).
-    const [jobId, setJobId] = useState(jobs.length === 1 ? jobs[0].id : "");
+    // With one job it is already chosen, and with several nothing is (0l) — `onlyJob`, the
+    // one spelling of "one assignment" the transition's dialog starts from too (#458).
+    const [jobId, setJobId] = useState(onlyJob(jobs)?.id ?? "");
     const [listOpen, setListOpen] = useState(false);
     // The dialog's own refusal of the last press, or null when that press was sent.
     const [guarded, setGuarded] = useState(null);

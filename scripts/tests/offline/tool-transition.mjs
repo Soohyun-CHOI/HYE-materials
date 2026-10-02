@@ -23,6 +23,13 @@
 // no `{ error }` built outside the one helper — because the name half of it passes
 // with four calls to the helper standing beside a fifth branch doing it by hand.
 //
+// AND #458 PUT BOTH TRANSITIONS AND THE RETIREMENT IN DIALOGS, which is a fourth: the
+// dialog asks `readSubmission` before it sends, so what keeps the rule one
+// implementation is which function the dialog calls and what it reads into it — held
+// off the dialog's source the way the action's arguments are, beside what a check-in
+// asks first (`asksBeforeRecording`, by value) and the three parts of 1f's phone
+// screen the dialogs open, which #463's foot bar opens later as they are.
+//
 // WHAT IT CANNOT SEE. Whether any of it reaches a browser, which is this tier's
 // standing limit; whether the two Airtable writes actually land; source order is
 // not execution order, so "the log row is written before the cache" is a fact
@@ -44,8 +51,10 @@ import { TOOL_JOB_COPY } from "../../../lib/toolJob.js";
 import {
     RECENT_NAMES_SHOWN,
     TOOL_TRANSITION_COPY,
+    asksBeforeRecording,
     jobMoveNotice,
     narrowNames,
+    offeredNames,
     planTransition,
     readRetirement,
     readSubmission,
@@ -54,11 +63,14 @@ import {
 import { callsBefore, callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "What a person may record against a tool item (#362, #363)";
+export const title = "What a person may record against a tool item (#362, #363, #458)";
 
 const ACTION = "app/(tools)/tool-items/[toolItemId]/actions.js";
-const FORM = "app/(tools)/tool-items/[toolItemId]/ToolTransitionForm.js";
-const MODAL = "app/(tools)/tool-items/[toolItemId]/RetireToolItemForm.js";
+const DIALOG = "app/(tools)/tool-items/[toolItemId]/TransitionDialog.js";
+const OPENER = "app/(tools)/tool-items/[toolItemId]/RetirementDialog.js";
+const CONFIRM = "app/(tools)/tool-items/[toolItemId]/RetirementConfirm.js";
+const JOB_SHEET = "app/(tools)/tool-items/[toolItemId]/JobSheet.js";
+const NAME_SHEET = "app/(tools)/tool-items/[toolItemId]/NameSheet.js";
 const PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
 
 const JOB_A = { id: "recJobA", jobCode: "26-DEMO-01" };
@@ -94,6 +106,7 @@ function copyStrings() {
     }
     out.push(TOOL_TRANSITION_COPY.noTransition({ status: TOOL_STATUS.RETIRED }));
     out.push(TOOL_TRANSITION_COPY.movesJob({ from: JOB_B.jobCode, to: JOB_A.jobCode }));
+    out.push(TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-TL-261001-022" }));
     out.push(
         TOOL_TRANSITION_COPY.statusNotUpdated({
             toolItemId: "HYE-TL-260909-004",
@@ -132,6 +145,52 @@ function argumentSource({ ast, source }, fnName, propName) {
         }
     }
     return found;
+}
+
+/** The function declared under `name` anywhere in a file — a default export included — or null. */
+function functionNamed(ast, name) {
+    let found = null;
+    walk(ast, (n) => {
+        if (!found && n.type === "FunctionDeclaration" && n.id?.name === name) found = n;
+    });
+    return found;
+}
+
+/** The source text a variable named `name` is initialized to inside `scope`, or null. */
+function initSource(scope, source, name) {
+    let found = null;
+    walk(scope, (n) => {
+        if (!found && n.type === "VariableDeclarator" && n.id?.name === name && n.init) found = source.slice(n.init.start, n.init.end);
+    });
+    return found;
+}
+
+/**
+ * The source text of `attr` on every element named `tag` inside `scope` — `true` for an
+ * attribute with no value — so `{transition}` and `{transition.event}` read apart.
+ */
+function attributeSources(scope, source, tag, attr) {
+    const out = [];
+    walk(scope, (n) => {
+        if (n.type !== "JSXOpeningElement" || n.name?.name !== tag) return;
+        const found = n.attributes.find((a) => a.type === "JSXAttribute" && a.name?.name === attr);
+        if (found) out.push(found.value ? source.slice(found.value.start, found.value.end) : "true");
+    });
+    return out;
+}
+
+/** How many JSX attributes named `attr` a file carries anywhere, on any element. */
+function attributeCount(ast, attr) {
+    let count = 0;
+    walk(ast, (n) => {
+        if (n.type === "JSXAttribute" && n.name?.name === attr) count++;
+    });
+    return count;
+}
+
+/** The source of every argument the calls to `fnName` inside `scope` are handed, joined per call. */
+function callArguments(scope, source, fnName) {
+    return callsTo(scope, fnName).map((call) => call.arguments.map((a) => source.slice(a.start, a.end)).join(", "));
 }
 
 /** Where a named import comes from, or null if the module does not import it. */
@@ -360,8 +419,17 @@ export function run({ check, assert, log }) {
     // THE SHOWN COUNT IS A DISPLAY CHOICE OVER THE WHOLE LIST, which is what lets
     // the brief hand the number to Design: a name below the cut is one keystroke
     // away rather than absent, so the cut costs nothing that typing does not undo.
-    assert("the sheet shows a few before anybody types", RECENT_NAMES_SHOWN > 0);
-    assert("  fewer than a job will accumulate", RECENT_NAMES_SHOWN < 10);
+    // Three, which is what 1f's name sheet lists (#458).
+    check("a few are offered before anybody types", RECENT_NAMES_SHOWN, 3);
+    // AND WHAT IS OFFERED IS ONE FUNCTION FOR BOTH WIDTHS (#458): the dialog's
+    // suggestions and the name sheet's rows are `offeredNames` of one list.
+    const six = ["Ana P", "Ben Q", "Cal R", "Dee S", "Eli T", "Fae U"];
+    check("nothing typed offers the first few", offeredNames(six, "").join(" | "), "Ana P | Ben Q | Cal R");
+    check("  as does a field of spaces", offeredNames(six, "   ").join(" | "), "Ana P | Ben Q | Cal R");
+    // Four names carry an `e`, one more than the cut, so a cut applied to what typing
+    // narrowed would show here.
+    check("something typed offers every name it matches, past the cut", offeredNames(six, "e").join(" | "), "Ben Q | Dee S | Eli T | Fae U");
+    check("  and nothing typed into no list offers nothing", offeredNames(undefined, "").length, 0);
 
     // A refused plan is not re-litigated by a well-formed submission — which is
     // what a forged POST against a retired tool item looks like.
@@ -780,7 +848,7 @@ export function run({ check, assert, log }) {
 
     // ── 7: the page offers and refuses in one place ────────────────────────
     log("");
-    log("the page renders the refusal where the control would be:");
+    log("the page renders the refusal where the controls would be:");
     const page = parseFile(PAGE);
     const pageCalls = new Set();
     walk(page.ast, (n) => {
@@ -802,8 +870,7 @@ export function run({ check, assert, log }) {
         if (n.type !== "ConditionalExpression") return;
         const test = page.source.slice(n.test.start, n.test.end);
         const alternate = page.source.slice(n.alternate.start, n.alternate.end);
-        if (/refusal/.test(test) && /ToolTransitionForm/.test(alternate) && /RetireToolItemForm/.test(alternate))
-            guarded = true;
+        if (/refusal/.test(test) && /TransitionDialog/.test(alternate) && /RetirementDialog/.test(alternate)) guarded = true;
     });
     assert("both controls stand in the branch where there is no refusal", guarded);
     // AND EACH IS THEN ASKED FOR SEPARATELY, because the two answers come from two
@@ -811,43 +878,135 @@ export function run({ check, assert, log }) {
     // presence from the other's would be the coincidence lib/toolStatus.js records.
     assert("the transition control is gated on the offered event", /\{transition\.event && \(/.test(page.source));
     assert("  and the retire control on its own answer", /\{transition\.mayRetire && \(/.test(page.source));
-
-    // The form takes the event the page offered rather than deciding for itself,
-    // and takes the tool item's own job so it can say when the two differ.
-    const form = parseFile(FORM);
-    const formSource = form.source;
-    assert("the form is handed the offered event", /event=\{transition\.event\}/.test(page.source));
+    // THE TRANSITION IS HANDED THE PLAN THE PAGE REACHED (#458), which its dialog asks
+    // `readSubmission` of before it sends — the event the page offered and the jobs it
+    // narrowed, never a decision of the dialog's own — and the tool item's job so the
+    // dialog can say when the two differ. The retirement is handed the tool's name, which
+    // its question asks with.
+    check("the transition is handed the plan the page reached", attributeSources(page.ast, page.source, "TransitionDialog", "plan").join(), "{transition}");
     assert("  and the tool item's current job", /currentJobCode=\{/.test(page.source));
-    assert("the form names its word from the control map", /COPY\.control\[event\]/.test(formSource));
-    assert("  and asks jobMoveNotice rather than comparing inline", callsTo(form.ast, "jobMoveNotice").length === 1);
+    check("the retirement is handed the tool's name", attributeSources(page.ast, page.source, "RetirementDialog", "toolName").join(), "{tool?.toolName}");
 
-    // THE FORM REFUSES WITH THE APP'S SENTENCE RATHER THAN THE BROWSER'S. A
-    // `required` attribute would hand the refusal to a bubble this app does not
-    // word and Design cannot style, and the sentence would then exist only for a
-    // submission the screen did not produce.
-    // ASKED OF THE GUARD AND NOT OF THE FILE. A count over the whole component
-    // passed until the sheet's own key handler needed one too, which is the shape
-    // this file's header warns about one level down: an assertion phrased as a
-    // total is an assertion about whatever else the file happens to contain.
-    let guardFn = null;
-    walk(form.ast, (n) => {
-        if (n.type === "VariableDeclarator" && n.id?.name === "guard") guardFn = n.init;
+    // ── 7b: what a transition asks before it records (#458) ────────────────
+    // A CHECK-OUT RECORDS A NAME, SO IT ALWAYS ASKS; a check-in asks only a person on
+    // several jobs, and for a person on one it is the press it always was. The design
+    // draws exactly that split (1c, 1d, 1e), and it is #338's job rule and #376's name
+    // rule rather than a new one — so it is held by value, and the component is held
+    // to asking it.
+    log("");
+    log("a transition asks first only what the page cannot know:");
+    const outOnOne = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: TOOL_STATUS.OUT });
+    const inStockOnTwo = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: TOOL_STATUS.IN_STOCK });
+    check("a check-out asks, on one job", asksBeforeRecording(inStock), true);
+    check("  and on several", asksBeforeRecording(inStockOnTwo), true);
+    check("a check-in on one job records on the press", asksBeforeRecording(outOnOne), false);
+    check("  and on several asks which", asksBeforeRecording(out), true);
+
+    const dialog = parseFile(DIALOG);
+    const dialogFn = functionNamed(dialog.ast, "TransitionDialog");
+    const formFn = functionNamed(dialog.ast, "TransitionForm");
+    assert("the transition and its dialog were found", Boolean(dialogFn && formFn));
+    const dialogSource = dialog.source.slice(dialogFn.start, dialogFn.end);
+    const formSource = dialog.source.slice(formFn.start, formFn.end);
+    check("it asks that of the plan it was handed", callArguments(dialogFn, dialog.source, "asksBeforeRecording").join(" | "), "plan");
+    check("  and the press posts the one job there is", initSource(dialogFn, dialog.source, "one"), "onlyJob(plan.jobs)");
+    check("  through its own hidden field", attributeSources(dialogFn, dialog.source, "input", "value").join(" | "), "{toolItemId} | {plan.event} | {one.id}");
+    check("the press is bound to the action only when it records on the press", attributeSources(dialogFn, dialog.source, "form", "action").join(), "{asks ? undefined : formAction}");
+    // ONE BUTTON FOR THE PRESS AND THE OPENER, so a refusal that turns one into the other
+    // — it re-renders the page in place (#378) — leaves focus on the control the reader
+    // opened the dialog from. A landing's redirect throws the page's state away whichever.
+    check("the press and the opener are one button", attributeSources(dialogFn, dialog.source, "Button", "type").join(), '"submit"');
+    check("  saying the event's own word", [...dialogSource.matchAll(/COPY\.control\[([^\]]+)\]/g)].map((m) => m[1]).join(), "plan.event");
+    check("  and disabled while a press is sending", attributeSources(dialogFn, dialog.source, "Button", "disabled").join(), "{pending}");
+
+    // ── 7c: the dialog asks the action's own reader before it sends (#458) ─
+    // WHAT A SUBMISSION MAY BE IS ONE FUNCTION, ASKED TWICE — #456's rule for the
+    // registration, here for the transition. The form's own `name.trim()` guard was a
+    // second rule beside `readSubmission`; the dialog asks `readSubmission` of what it
+    // would send, and its commitment acts only when that answer refuses nothing.
+    log("");
+    log("the dialog asks readSubmission before it sends, and the action asks again:");
+    const submitSource = initSource(formFn, dialog.source, "submit") ?? "";
+    assert("its submit prevents the default", /event\.preventDefault\(\)/.test(submitSource));
+    assert(
+        "  reads what it would send with readSubmission",
+        /readSubmission\(plan, \{[\s\S]*formData\.get\("event"\)[\s\S]*formData\.get\("jobId"\)[\s\S]*formData\.get\("checkedOutTo"\)[\s\S]*\}\)/.test(submitSource)
+    );
+    const refusesAt = submitSource.indexOf("if (answer.refusal) return;");
+    assert("  and sends only after that refuses nothing", refusesAt > -1 && refusesAt < submitSource.indexOf("onSend(formData)"));
+    check("the frame submits through it", attributeSources(formFn, dialog.source, "DialogFrame", "onSubmit").join(), "{submit}");
+    check(
+        "the commitment acts only when readSubmission takes what is chosen",
+        attributeSources(formFn, dialog.source, "Button", "disabled").join(" | "),
+        "{pending} | {pending || Boolean(reading.refusal)}"
+    );
+    check("  reading the dialog's own choice and name", initSource(formFn, dialog.source, "reading"), "readSubmission(plan, { event: plan.event, jobId, checkedOutTo: name })");
+    let trims = 0;
+    walk(dialog.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.object?.name === "name" && n.callee.property?.name === "trim") trims++;
     });
-    assert("the form's guard was found", guardFn !== null);
-    assert("  and it cancels the submit", callsTo(guardFn, "preventDefault").length === 1);
-    assert("  which is what the form's action runs through", /onSubmit=\{guard\}/.test(formSource));
-    assert("  and says so in the app's own words", /COPY\.nameRequired/.test(formSource));
+    check("no rule of the dialog's own, and no required attribute either", `${trims} ${attributeCount(dialog.ast, "required")}`, "0 0");
+    check("the name is asked only of a check-out", initSource(formFn, dialog.source, "asksName"), "plan.event === TOOL_EVENT.CHECKED_OUT");
     assert(
-        "  with no `required` attribute doing it instead",
-        !/name="checkedOutTo"[\s\S]{0,200}?required/.test(formSource)
+        "  and both of its controls stand under that",
+        /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}>/.test(formSource) && /\{asksName && \(\s*<NameSheet/.test(formSource)
     );
-    // AND THE CONTROL IS ONLY THERE FOR THE EVENT THAT CARRIES A NAME, which is the
-    // page's own arrangement one level down: a check-in asks nobody.
-    assert("the control is gated on the event", /askingForName && \(/.test(formSource));
-    assert(
-        "  which is the check-out",
-        /const askingForName = event === TOOL_EVENT\.CHECKED_OUT;/.test(formSource)
+    check("the move notice is asked of jobMoveNotice", callArguments(formFn, dialog.source, "jobMoveNotice").join(), "{ from: currentJobCode, to: chosen?.jobCode }");
+    check("  and said under the job", attributeSources(formFn, dialog.source, "Field", "note").join(), "{jobMoveNotice({ from: currentJobCode, to: chosen?.jobCode })}");
+    // WITH ONE JOB IT IS ALREADY CHOSEN AND WITH SEVERAL NOTHING IS (0l), from the one
+    // spelling of "one assignment". The tool item's own job is not chosen for a person
+    // on several: they are asked because the app does not know which site they are at.
+    assert("the job starts on the one there is, or on none, from onlyJob", /useState\(\(\) => onlyJob\(plan\.jobs\)\?\.id \?\? ""\)/.test(formSource));
+
+    // ── 7d: open while it is what the page offers, and where a refusal stands ─
+    log("");
+    log("the dialog is open while the page still offers what it opened for:");
+    check("open while the offered event is the one it was opened for", initSource(dialogFn, dialog.source, "open"), "openedFor !== null && openedFor === plan.event");
+    // THE OPENING ENDS WITH ITS EVENT, so the same event offered again does not open it. A
+    // landing's redirect throws the page's state away, the opening with it; a refusal
+    // re-renders in place (#378), and two that flip the status out and back would find
+    // `openedFor` still naming the event and open the dialog with nobody asking.
+    const endsAt = dialogSource.indexOf("if (openedFor !== null && openedFor !== plan.event) setOpenedFor(null);");
+    assert("  and the opening ends with that event, before open is read", endsAt > -1 && endsAt < dialogSource.indexOf("const open ="));
+    // A REFUSAL IS THE ACTION'S LAST ANSWER, read as it is: a press that lands leaves no
+    // answer behind it to hide, since its redirect throws the state away.
+    check("a refusal is the action's last answer", initSource(dialogFn, dialog.source, "refusal"), "state?.error ?? null");
+    assert("a refusal stands where the control is only while the dialog is closed", /\{refusal && !open && <p role="alert">\{refusal\}<\/p>\}/.test(dialogSource));
+    check("  and above the dialog's actions while it is open", attributeSources(dialogFn, dialog.source, "TransitionForm", "refusal").join(), "{open ? refusal : null}");
+    check("  which the frame says there", attributeSources(formFn, dialog.source, "DialogActions", "refusal").join(), "{refusal}");
+    check(
+        "the dialog is a sheet below the phone's edge and busy while it sends",
+        `${attributeSources(formFn, dialog.source, "DialogFrame", "sheet").join()} ${attributeSources(formFn, dialog.source, "DialogFrame", "busy").join()}`,
+        "true {pending}"
     );
+    check("  and nothing behind it closes it, since it holds what was typed", attributeSources(formFn, dialog.source, "DialogFrame", "closesOnBackdrop").length, 0);
+    check("each opening starts from what the plan hands it", attributeSources(dialogFn, dialog.source, "TransitionForm", "key").join(), "{opening}");
+
+    // ── 7e: each width asks in its own drawing (#458) ──────────────────────
+    // AT A DESK the job is 0a's choice and the name the registration's combobox (1j),
+    // its suggestions this job's recent names under the name sheet's own head; BELOW
+    // THE PHONE'S EDGE each is a field that opens one of 1f's sheets. One state behind
+    // both, so what a sheet chose is what the dialog sends.
+    log("");
+    log("each width asks in its own drawing, from one state:");
+    assert("at a desk the job is 0a's choice, drawn only from the phone's edge up", /<div className="max-sm:hidden">\s*<Choice\s+name="jobId"/.test(formSource));
+    assert("  and the name the registration's combobox", /<div className="max-sm:hidden">\s*<Combobox\s+name="checkedOutTo"/.test(formSource));
+    check("  headed with the name sheet's own words", attributeSources(formFn, dialog.source, "Combobox", "heading").join(), "{COPY.recentHeading}");
+    check(
+        "below it each opens one of 1f's sheets",
+        attributeSources(formFn, dialog.source, "SheetField", "onOpen").join(" | "),
+        '{several ? () => setSheet("job") : undefined} | {() => setSheet("name")}'
+    );
+    check("  the job sheet only for a person on several jobs", /\{several && \(\s*<JobSheet/.test(formSource), true);
+    check("  each sheet open only while the dialog is", attributeSources(formFn, dialog.source, "JobSheet", "open").concat(attributeSources(formFn, dialog.source, "NameSheet", "open")).join(" | "), '{open && sheet === "job"} | {open && sheet === "name"}');
+    check(
+        "the names offered are one list on both widths",
+        `${attributeSources(formFn, dialog.source, "Combobox", "suggestions").join()} | ${attributeSources(formFn, dialog.source, "NameSheet", "names").join()}`,
+        "{offered.map((person) => ({ label: person }))} | {offered}"
+    );
+    check("  narrowed and cut by offeredNames", initSource(formFn, dialog.source, "offered"), "offeredNames(recent, name)");
+    check("  out of the chosen job's recent names", initSource(formFn, dialog.source, "recent"), "recentNamesFor(recentCheckOuts, { jobCode: chosen?.jobCode })");
+    check("one value behind the field and its sheet", `${attributeSources(formFn, dialog.source, "Combobox", "onChange").join()} ${attributeSources(formFn, dialog.source, "NameSheet", "onChange").join()}`, "{setName} {setName}");
 
     // ── 8: retiring — the second answer the plan carries (#363) ────────────
     log("");
@@ -911,35 +1070,52 @@ export function run({ check, assert, log }) {
         /if \(!plan\.mayRetire\)/.test(module_.source)
     );
 
-    // ── 9: the words the modal says ────────────────────────────────────────
+    // ── 9: the words the question says ─────────────────────────────────────
     log("");
-    log("what the modal says before it happens:");
-    // THE DESIGN'S WORDS (#455): `tool` for the object, and a confirm that names it too.
+    log("what the retirement's question says before it happens:");
+    // THE DESIGN'S WORDS (#455, #458): `tool` for the object, a title that asks and
+    // names the record — 0l's Confirm and Tools 0a's sheet that confirms, the same
+    // words at both widths — and a confirm that names what it retires.
     check("the opener names its object", TOOL_TRANSITION_COPY.retireOpener, "Retire this tool");
-    check("the heading repeats it as a question", TOOL_TRANSITION_COPY.retireHeading, "Retire this tool?");
+    const heading = TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-TL-261001-022" });
+    check("the title asks and names the tool", heading, "Retire DEMO Rotary Hammer?");
+    check(
+        "  and a tool item whose tool did not resolve is named by its id",
+        TOOL_TRANSITION_COPY.retireHeading({ toolName: undefined, toolItemId: "HYE-TL-261001-022" }),
+        "Retire HYE-TL-261001-022?"
+    );
     check("the confirm names what it retires", TOOL_TRANSITION_COPY.retireSubmit, "Retire tool");
-    check("and the way out is the app's own word", TOOL_TRANSITION_COPY.retireCancel, "Cancel");
+    check("and the way out is the app's own word", TOOL_TRANSITION_COPY.cancel, "Cancel");
     // THE OPENER AND THE TRANSITION CONTROL MAY NOT READ ALIKE, which is half of
     // what keeps a once-ever act from looking like a dozens-a-day one. The other
-    // half is structural and is asserted on the components below.
+    // half is what each opens, asserted on the components below.
     assert(
         "the opener does not read like the transition control",
         TOOL_TRANSITION_COPY.retireOpener !== TOOL_TRANSITION_COPY.control[TOOL_EVENT.CHECKED_OUT] &&
             TOOL_TRANSITION_COPY.retireOpener.includes("this tool")
     );
-    // THE BODY IS AN ACCOUNT OF WHAT BECOMES TRUE, which `_shared.md` names as the
-    // point of a confirmation. Three facts and the app's one ending.
+    // THE BODY IS AN ACCOUNT OF WHAT THE ACT ENDS, which `_shared.md` names as the point
+    // of a confirmation and 0l's Confirm asks for: the design's sentence (1c, 1f).
     const body = TOOL_TRANSITION_COPY.retireBody;
-    assert("the body says it leaves the count", body.includes("stops counting"));
-    assert("  that nothing more can be recorded", body.includes("nothing more can be"));
-    assert("  that the record stays", body.includes("history stay"));
-    assert("  and ends the way every irreversible act in this app ends", body.endsWith("This cannot be undone."));
+    check(
+        "the sentence is the design's",
+        body,
+        "It will be removed from inventory, and no more check-outs or check-ins can be recorded. This can't be undone."
+    );
     // IT ASKS FOR NO REASON, which is the rule #363 retired rather than
     // implemented. A field for one would be the first thing to come back, so the
     // absence is asserted rather than left to be noticed.
-    const retireStrings = [TOOL_TRANSITION_COPY.retireOpener, TOOL_TRANSITION_COPY.retireHeading, body];
+    const retireStrings = [TOOL_TRANSITION_COPY.retireOpener, heading, body];
     check("no word of it asks for a reason", retireStrings.filter((s) => /\breasons?\b/i.test(s)).length, 0);
     check("  and none asks for a note", retireStrings.filter((s) => /\bnotes?\b/i.test(s)).length, 0);
+
+    // THE TRANSITION'S OWN WORDS SINCE #458: the field's example and the name sheet's,
+    // which are the design's (1c, 1f), and the missing-name refusal, which is 1g's.
+    check("the name field's example", TOOL_TRANSITION_COPY.namePlaceholder, "e.g. Jane Doe");
+    check("the head of the recent names, on both widths", TOOL_TRANSITION_COPY.recentHeading, "Recently at this job");
+    check("the name sheet's end", TOOL_TRANSITION_COPY.sheetDone, "Done");
+    check("  and the name of its clear mark", TOOL_TRANSITION_COPY.clearName, "Clear");
+    check("a check-out with no name is answered in 1g's words", TOOL_TRANSITION_COPY.nameRequired, "Enter a name to check out.");
 
     // THE TERMINAL SENTENCE WIDENED WITH THE SCREEN. #362 wrote it as
     // `no check-out or check-in to record`, which enumerated two of three absent
@@ -949,55 +1125,100 @@ export function run({ check, assert, log }) {
     assert("  and states the end rather than listing what is missing", terminal.includes("nothing more can be recorded"));
     check("  naming no control", terminal.match(/check-(out|in)/g)?.length ?? 0, 0);
 
-    // ── 10: the modal, and the keyboard rule this axis is the second to keep ─
+    // ── 10: the question, on the design's frame (#458) ─────────────────────
+    // ONE COMPONENT FOR BOTH WIDTHS: 0l's Confirm at a desk and Tools 0a's sheet that
+    // confirms on a phone. Escape, focus back to the opener and nothing closing it while
+    // it sends are the frame's — `offline/dialog-frame.mjs` holds those once for every
+    // dialog — so what is held here is what this question hands the frame.
     log("");
-    log("the modal is a modal, and it closes the way CLAUDE.md requires:");
-    const modal = parseFile(MODAL);
-    const modalCalls = new Set();
-    walk(modal.ast, (n) => {
-        if (n.type === "CallExpression" && n.callee?.type === "Identifier") modalCalls.add(n.callee.name);
-    });
-    // AN OVERLAY RATHER THAN A PARAGRAPH. Without the shared chrome this would be
-    // inline content, which would quietly undo the decision that it is a modal at
-    // all — and the classes come from the app's single source rather than from a
-    // value invented on an axis that carries none.
-    assert("it uses the shared backdrop", /MODAL_BACKDROP/.test(modal.source));
-    assert("  and the shared card", /MODAL_CARD/.test(modal.source));
-    assert(
-        "  imported from the one place that holds them",
-        /from "@\/app\/components\/modalStyles"/.test(modal.source)
+    log("the retirement's question is 0l's Confirm, and a sheet that confirms on a phone:");
+    const confirm = parseFile(CONFIRM);
+    const opener = parseFile(OPENER);
+    check(
+        "its title asks with the tool's name and the line under it is the id",
+        `${attributeSources(confirm.ast, confirm.source, "DialogFrame", "title").join()} | ${attributeSources(confirm.ast, confirm.source, "DialogFrame", "recordId").join()}`,
+        "{COPY.retireHeading({ toolName, toolItemId })} | {toolItemId}"
     );
-    // THE KEYBOARD RULE, WHICH ONLY ONE OTHER OVERLAY IN THIS APP HONORS. Escape
-    // closes it, and focus goes back to the control that opened it. Read as three
-    // separate facts, because any one of them can be dropped on its own.
-    assert("`Escape` closes it", /e\.key === "Escape"/.test(modal.source));
-    assert("  through a keydown listener that is removed again", /removeEventListener\("keydown"/.test(modal.source));
-    assert("  focus goes back to the opener", /openerRef\.current\?\.focus\(\)/.test(modal.source));
-    assert("  and the card takes focus when it opens", /cardRef\.current\?\.focus\(\)/.test(modal.source));
-    assert("it is announced as a dialog", /role="dialog"/.test(modal.source) && /aria-modal="true"/.test(modal.source));
-    // AN OPENER RATHER THAN A SUBMIT, which is the structural half of the weight
-    // difference: pressing the control on the page acts on nothing.
-    assert("the opener is a button that opens rather than submits", /type="button"\s+ref=\{openerRef\}/.test(modal.source));
-    assert("  and the confirm is the submit inside the card", /type="submit"/.test(modal.source));
-    // Never yanked out from under a submit, which is WithdrawPOForm's rule and
-    // reaches `Escape` here as well as `Cancel`.
-    assert("it refuses to close while a submit is in flight", /if \(pending\) return;/.test(modal.source));
+    check(
+        "  a sheet that confirms below the phone's edge, which a press behind it closes there",
+        `${attributeSources(confirm.ast, confirm.source, "DialogFrame", "sheet").join()} ${attributeSources(confirm.ast, confirm.source, "DialogFrame", "closesOnBackdrop").join()}`,
+        "true true"
+    );
+    check("  and nothing closes it while it sends", attributeSources(confirm.ast, confirm.source, "DialogFrame", "busy").join(), "{pending}");
+    check(
+        "its commitment is filled red and submits, beside a way out",
+        attributeSources(confirm.ast, confirm.source, "Button", "variant").join(" | "),
+        '"bordered" | "danger"'
+    );
+    check("  the commitment the submit", attributeSources(confirm.ast, confirm.source, "Button", "type").join(), '"submit"');
+    check("  which sends through a transition", callsTo(confirm.ast, "startTransition").length, 1);
+    check("neither file draws on the old frame", [confirm, opener].filter((f) => /modalStyles/.test(f.source)).length, 0);
+    // THE WAY OUT IS ONE WORD ON ALL THREE DIALOGS — the check-out's and the check-in's,
+    // which are one component, and the retirement's — read off the button that says it,
+    // since the value alone holds whatever the screens print in its place.
+    check(
+        "the way out says it on all three dialogs",
+        [dialog, confirm].map((f) => /<Button variant="bordered"[^>]*>\s*\{COPY\.cancel\}\s*<\/Button>/.test(f.source)).join(" "),
+        "true true"
+    );
     // IT TAKES NO INPUT AT ALL, which is two decisions rather than one. No reason
     // — the rule requiring one was retired with its field. And no job — the row
     // inherits the tool item's own, so the page asks that question once instead
     // of twice, which is the defect that found the rule.
-    assert("it asks for no reason field", !/textarea/i.test(modal.source));
-    assert("  and offers no job picker", !/<select/.test(modal.source));
-    assert("  nor a hidden job", !/name="jobId"/.test(modal.source));
-    assert("  nor a label for one", !/COPY\.jobLabel|COPY\.jobUnchosen/.test(modal.source));
-    assert("  and shows no job-move line, which is the transition's", callsTo(modal.ast, "jobMoveNotice").length === 0);
+    assert("it asks for no reason field", !/textarea/i.test(confirm.source));
+    assert("  and offers no job control", !/<Choice|<select|<SheetField|<JobSheet/.test(confirm.source));
+    assert("  nor a hidden job", !/name="jobId"/.test(confirm.source));
+    assert("  nor a label for one", !/COPY\.jobLabel|COPY\.jobUnchosen/.test(confirm.source));
+    assert("  and shows no job-move line, which is the transition's", callsTo(confirm.ast, "jobMoveNotice").length === 0);
     // The only thing it posts is which tool item, so the action has nothing to
     // trust but the id it looks up.
-    const posted = [...modal.source.matchAll(/name="([^"]+)"/g)].map((m) => m[1]);
-    check(`the form posts only the tool item id (${posted.join()})`, posted.join(), "toolItemId");
-    // AND THE TRANSITION FORM STILL ASKS, because a scan is the actor handling
-    // the tool. One picker on the screen rather than none is the point.
-    assert("the transition form keeps its picker", /<select/.test(formSource));
+    check("it posts only the tool item id", [...confirm.source.matchAll(/name="([^"]+)"/g)].map((m) => m[1]).join(), "toolItemId");
+    // AN OPENER RATHER THAN A SUBMIT, and a bordered one beside the transition's filled
+    // press: pressing it acts on nothing, and the question it opens is the part as it is.
+    check("the opener is a bordered button that opens", attributeSources(opener.ast, opener.source, "Button", "onClick").join(), "{() => setOpen(true)}");
+    check("  bordered", attributeSources(opener.ast, opener.source, "Button", "variant").join(), '"bordered"');
+    check(
+        "  and the question opens over it as handed",
+        attributeSources(opener.ast, opener.source, "RetirementConfirm", "open").join() + " " + attributeSources(opener.ast, opener.source, "RetirementConfirm", "onClose").join(),
+        "{open} {() => setOpen(false)}"
+    );
+    // AND THE TRANSITION'S DIALOG STILL ASKS FOR A JOB, because a scan is the actor
+    // handling the tool. One question on the screen rather than none is the point.
+    assert("the transition's dialog keeps its job choice", /<Choice\s+name="jobId"/.test(dialog.source));
+
+    // ── 10b: 1f's job sheet and name sheet, the parts a foot bar opens (#458) ─
+    // DRAWN AS 1f DRAWS THEM AND OPENED BY WHATEVER HOLDS A JOB OR ASKS FOR A NAME —
+    // the check-out's dialog today, #463's foot bar later. So what is held is what each
+    // asks of its opener and does with an answer, and that each closes on a press behind
+    // it as 1f draws.
+    log("");
+    log("1f's job sheet and name sheet are parts any opener can open:");
+    const jobSheet = parseFile(JOB_SHEET);
+    const nameSheet = parseFile(NAME_SHEET);
+    check(
+        "the job sheet is a sheet that closes on a press behind it",
+        `${attributeSources(jobSheet.ast, jobSheet.source, "DialogFrame", "sheet").join()} ${attributeSources(jobSheet.ast, jobSheet.source, "DialogFrame", "closesOnBackdrop").join()}`,
+        "true true"
+    );
+    assert("  a row chooses and puts the sheet away", /onChoose\(option\.value\);\s*onClose\(\);/.test(jobSheet.source));
+    assert("  and the row already chosen is the one checked", /chosen: option\.value === value/.test(jobSheet.source));
+    check(
+        "the name sheet closes on a press behind it and on its handle, and ends in Done",
+        ["sheet", "closesOnBackdrop", "onHandlePress", "done"].map((a) => attributeSources(nameSheet.ast, nameSheet.source, "DialogFrame", a).join()).join(" | "),
+        "true | true | {onClose} | {{ label: COPY.sheetDone, onPress: onClose }}"
+    );
+    assert("  its field the one field in a sheet: filled, with an Accent caret", /bg-mobile-input-background/.test(nameSheet.source) && /caret-primary/.test(nameSheet.source));
+    assert("  the keyboard's done key puts it away", /if \(event\.key !== "Enter"\) return;\s*event\.preventDefault\(\);\s*onClose\(\);/.test(nameSheet.source));
+    assert("  with a clear mark once it holds a value, named for a screen reader", /\{value && \(\s*<button[\s\S]*?aria-label=\{COPY\.clearName\}/.test(nameSheet.source));
+    assert("  every keystroke handed back to the opener", /onChange=\{\(event\) => onChange\(event\.target\.value\)\}/.test(nameSheet.source));
+    // THE HEAD GOES WITH ITS ROWS. A typed name that matches none of them leaves no list,
+    // as the desk's closes on no suggestion, where a head over nothing was what a browser
+    // showed first; and the sentence for a job with none is for that job alone.
+    assert("  the list absent until a job is chosen, and once typing leaves it no row", /\{jobChosen && names\.length > 0 && \(/.test(nameSheet.source));
+    assert("  a job nothing has gone out on saying so in place of the rows", /\{jobChosen && !hasRecent && \(\s*<p[^>]*>\s*\{COPY\.noRecentNames\}/.test(nameSheet.source));
+    assert("  the rows headed as the dialog's suggestions are", /\{COPY\.recentHeading\}/.test(nameSheet.source));
+    assert("  and a name picked is the opener's and puts the sheet away", /onChange\(name\);\s*onClose\(\);/.test(nameSheet.source));
+    check("neither sheet draws on the old frame", [jobSheet, nameSheet].filter((f) => /modalStyles/.test(f.source)).length, 0);
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");
@@ -1031,7 +1252,20 @@ export function run({ check, assert, log }) {
     // The copy scanner is seen finding a planted bare noun, since zero is also what
     // a broken matcher reports.
     assert("the noun matcher finds `tool item`", TOOL_ITEM_NOUN.test("Retire this tool item?"));
-    assert("  and passes the design's `tool`", !TOOL_ITEM_NOUN.test(TOOL_TRANSITION_COPY.retireHeading));
+    assert("  and passes the design's `tool`", !TOOL_ITEM_NOUN.test(TOOL_TRANSITION_COPY.retireOpener) && !TOOL_ITEM_NOUN.test(heading));
+    // THE JSX READERS ARE SHOWN TELLING A PROP FROM ITS NEIGHBOUR (#458), because "it read
+    // `{transition}`" and "it read nothing" are one PASS otherwise: a planted page handing
+    // the dialog the event rather than the plan, and a dialog whose open rule is loosened.
+    {
+        const planted = parseSource(
+            "function TransitionDialog() { const open = openedFor !== null; return <TransitionForm key={opening} refusal={refusal} plan={transition.event} />; }",
+            "<planted-props>"
+        );
+        check("  a prop reads as its own source", attributeSources(planted.ast, planted.source, "TransitionForm", "plan").join(), "{transition.event}");
+        check("  a prop nothing passes reads as absent", attributeSources(planted.ast, planted.source, "TransitionForm", "busy").length, 0);
+        check("  and a loosened rule reads as loosened", initSource(planted.ast, planted.source, "open"), "openedFor !== null");
+        check("  a call's arguments read as their own source", callArguments(parseSource("asksBeforeRecording(plan.jobs);", "<planted-call>").ast, "asksBeforeRecording(plan.jobs);", "asksBeforeRecording").join(), "plan.jobs");
+    }
     // The pure half is shown producing two different answers from two statuses, so
     // the section-1 equalities are not one constant compared with itself.
     assert(

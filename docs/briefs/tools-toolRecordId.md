@@ -2,8 +2,8 @@
 
 Route: `/tools/[toolRecordId]`
 Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
-Which width comes first: **desktop**. Both widths must work; this one is
-drawn first and the phone is what it folds into.
+Which width comes first: **desktop**, and it is the only one: this screen is
+used at a desk and does not support a phone's width (`_shared.md`).
 
 ## What it answers
 
@@ -30,9 +30,9 @@ nobody quotes one; the name a person typed is the identity, and a name is
 not a path. So the URL carries Airtable's own record id and says nothing a
 reader recognizes, which is why the browser tab says only `Tool`.
 
-**These are the only screens in the app used at a phone width** (#336), and
-the width container lives in the layout with no width, no padding, no type
-and no color of a screen's own. Since #460 it holds the design's rail, and
+**It is used at a desk, and the tool item's screen is the one on this axis a
+phone shows** (#336). The width container lives in the layout with no width,
+no padding, no type and no color of a screen's own. Since #460 it holds the design's rail, and
 this screen's content renders unstyled beside it.
 
 ## What it always carries
@@ -224,13 +224,13 @@ for two.
 it drew it (#442), and how the position is expressed is still open.** This
 is the first paged list in the app. The screen currently states the
 position as a page number out of a count and offers one step in each
-direction; whether a reader on a phone is better served by that, by a
+direction; whether a reader is better served by that, by a
 count of what is left, or by something else entirely is a decision this
 screen has not made. **Twenty-five is the design's to move again** when
 the list is drawn again. It replaced ten, an estimate of a screenful made
 before any screen was drawn, and it is a design's figure rather than a
-measurement — nobody has yet held this list on a phone with a real
-warehouse in it. **Two ceilings on it are not the design's.** Anything up
+measurement — nobody has yet read this list with a real warehouse in
+it. **Two ceilings on it are not the design's.** Anything up
 to fifty costs the app exactly the same to fetch, and a fifty-first row is
 a second read; and a page is how many one press of the page box selects,
 where the print control acts on at most a hundred — what one print takes.

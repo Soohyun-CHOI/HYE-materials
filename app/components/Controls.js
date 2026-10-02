@@ -37,6 +37,15 @@ import Menu from "./Menu";
  * place and rings the control in red (0l) — and hands the control, through context, the
  * id its label points at, the id of that line and whether it refuses. So a control inside
  * a field is labeled, described and marked invalid without its caller wiring three ids.
+ *
+ * IN A SHEET ON A PHONE THEY TAKE THE PHONE'S SIZES, AND NOWHERE ELSE (#458). The tool item
+ * page's dialogs open as Tools 0a's sheets below the phone's edge, and there a button is
+ * 48 and full width, 17 at 600, a bordered one a text button, and a field's label 15. The
+ * frame marks such a dialog `data-sheet`, so those sizes are `max-sm:in-data-[sheet]:`
+ * classes — CSS decides both conditions, the width and the ancestor, and a control in any
+ * other dialog or on a page keeps 0a's at every width; the registration's and the labels'
+ * dialogs are a desk's. `SheetField` is the phone's own field: it opens one of 1f's sheets
+ * and shows what the sheet chose.
  */
 
 const FieldContext = createContext(null);
@@ -54,15 +63,29 @@ const BUTTON = "inline-flex h-control-lg shrink-0 items-center justify-center wh
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
 // cannot act yet keeps its fill at 40% and takes no hover; a bordered one fills at Wash
-// and leaves its Edge alone.
+// and leaves its Edge alone. A destructive commitment is filled red and hovers to Red's
+// Accent hover (0f Destructive, 0d) — the retirement's (#458).
 const BUTTON_VARIANT = {
     filled: "bg-primary text-white enabled:hover:bg-primary-hover disabled:bg-primary-disabled",
     bordered: "border border-border bg-white text-foreground-default enabled:hover:bg-hover-subtle",
+    danger: "bg-danger text-white enabled:hover:bg-danger-hover",
+};
+
+// In a sheet below the phone's edge (Tools 0a Button, #458): full width, 48, 17 at 600, at
+// the phone's Radius; a filled one takes its hover fill while held, and a bordered one is a
+// text button that dims to 0.5 while held ("Cancel under it as a text button").
+const SHEET_BUTTON =
+    "max-sm:in-data-[sheet]:h-mobile-dialog-button max-sm:in-data-[sheet]:w-full max-sm:in-data-[sheet]:rounded-mobile-control max-sm:in-data-[sheet]:text-mobile-heading";
+const SHEET_BUTTON_VARIANT = {
+    filled: "max-sm:in-data-[sheet]:active:bg-primary-hover",
+    bordered:
+        "max-sm:in-data-[sheet]:border-0 max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:active:opacity-mobile-pressed",
+    danger: "max-sm:in-data-[sheet]:active:bg-danger-hover",
 };
 
 /**
  * An action (0a's Commitment, 36): `filled` for the one a screen or a dialog exists for,
- * `bordered` for the rest.
+ * `danger` for a dialog's commitment that cannot be undone, `bordered` for the rest.
  *
  * A DISABLED ACTION SAYS WHY BEFORE IT, ON ITS OWN LINE (0f Disabled): the reason sits 14
  * before the button at 13 and Ink 3, and the button names it as its description, so a
@@ -78,7 +101,7 @@ export function Button({ variant = "filled", type = "button", disabled = false, 
             disabled={disabled}
             onClick={onClick}
             aria-describedby={explained ? reasonId : undefined}
-            className={`${BUTTON} ${BUTTON_VARIANT[variant]}`}
+            className={`${BUTTON} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
             {children}
         </button>
@@ -93,6 +116,10 @@ export function Button({ variant = "filled", type = "button", disabled = false, 
         </span>
     );
 }
+
+const FIELD_LABEL = "text-body-sm font-medium text-foreground-default max-sm:in-data-[sheet]:text-mobile-body-sm";
+const FIELD_MESSAGE =
+    "min-h-[var(--text-body-sm--line-height)] text-body-sm max-sm:in-data-[sheet]:min-h-[var(--text-mobile-body-sm--line-height)] max-sm:in-data-[sheet]:text-mobile-body-sm";
 
 /**
  * A labeled field and the line under it (0l Compact): the label at 13 and 500, 8 above
@@ -113,25 +140,23 @@ export function Field({ label, labelAs = "label", help, note, refusal, reserveMe
     const said = refusal || note || help;
     const context = { control, labelId, messageId: said ? messageId : undefined, refused: Boolean(refusal) };
 
+    // In a sheet below the phone's edge a label is 15 at 500, still 8 above its field (Tools
+    // 0a Field label), and what is said under it is 15 too (Beside) — #458.
     return (
         <FieldContext.Provider value={context}>
             <div className="flex min-w-0 flex-col gap-gap">
                 {labelAs === "label" ? (
-                    <label id={labelId} htmlFor={control} className="text-body-sm font-medium text-foreground-default">
+                    <label id={labelId} htmlFor={control} className={FIELD_LABEL}>
                         {label}
                     </label>
                 ) : (
-                    <span
-                        id={labelId}
-                        onClick={() => document.getElementById(control)?.focus()}
-                        className="text-body-sm font-medium text-foreground-default"
-                    >
+                    <span id={labelId} onClick={() => document.getElementById(control)?.focus()} className={FIELD_LABEL}>
                         {label}
                     </span>
                 )}
                 {children}
                 {(said || reserveMessage) && (
-                    <div id={messageId} aria-live="polite" className="min-h-[var(--text-body-sm--line-height)] text-body-sm">
+                    <div id={messageId} aria-live="polite" className={FIELD_MESSAGE}>
                         {refusal ? (
                             <p role="alert" className="text-danger">
                                 {refusal}
@@ -154,6 +179,49 @@ export function Field({ label, labelAs = "label", help, note, refusal, reserveMe
  */
 export function NoteEmphasis({ children }) {
     return <span className="text-foreground-default tabular-nums">{children}</span>;
+}
+
+/**
+ * A field on a phone that one of 1f's sheets sets (Tools 0a Field, #458): it shows what was
+ * chosen, or its placeholder at Ink 3, and a press opens the sheet that chooses. 50 tall,
+ * 16 inside, its value at 16, white with an Edge border at the phone's Radius, as every form
+ * field rests (0f); a chevron says it opens a list. With no `onOpen` it states its value and
+ * takes no press — 1f draws one job that way, for a person on one assignment.
+ *
+ * IT IS DRAWN BELOW THE PHONE'S EDGE AND NOWHERE ELSE, so its caller draws the desk's control
+ * beside it with `max-sm:hidden`. It takes its name from the field around it and its own
+ * value, so a screen reader hears `Job, 26-DEMO-01` and not the value alone; the id the label
+ * points at stays the desk control's.
+ */
+export function SheetField({ value, placeholder, onOpen, chevron = false }) {
+    const field = useField();
+    const valueId = useId();
+    const look =
+        "flex h-mobile-input w-full items-center justify-between gap-gap rounded-mobile-control border border-border bg-white px-mobile-input-inset-x text-mobile-body sm:hidden";
+    const said = (
+        <span id={valueId} className={`min-w-0 truncate ${value ? "text-foreground-default" : "text-foreground-subtle"}`}>
+            {value || placeholder}
+        </span>
+    );
+    if (!onOpen) {
+        return <div className={look}>{said}</div>;
+    }
+    return (
+        <button
+            type="button"
+            aria-haspopup="dialog"
+            aria-labelledby={field.labelId ? `${field.labelId} ${valueId}` : valueId}
+            onClick={onOpen}
+            className={`${look} text-left outline-none focus-visible:border-border-focus active:bg-hover-subtle`}
+        >
+            {said}
+            {chevron && (
+                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm shrink-0 text-foreground-subtle">
+                    <path d="M4 6.5 8 10.5l4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+            )}
+        </button>
+    );
 }
 
 const STEP =
@@ -349,9 +417,11 @@ export function Choice({ name, options, value, onChange, placeholder }) {
  * The list shows when it is open and there is something in it. Typing never selects a
  * suggestion: Down and Up move visual focus into the list, and Enter, Tab or a press
  * accepts one, which is the pattern's manual selection; `editableComboboxKey` says what
- * each key does.
+ * each key does. `heading` is a word the list carries above its suggestions — the
+ * check-out's `Recently at this job` (#458), the same words as the name sheet a phone
+ * types in.
  */
-export function Combobox({ name, value, onChange, suggestions, placeholder, listOpen, onListOpenChange }) {
+export function Combobox({ name, value, onChange, suggestions, heading, placeholder, listOpen, onListOpenChange }) {
     const field = useField();
     const listId = `${field.control}list`;
     const [active, setActive] = useState(-1);
@@ -416,6 +486,7 @@ export function Combobox({ name, value, onChange, suggestions, placeholder, list
                 anchorRef={anchorRef}
                 shown={shown}
                 labelId={field.labelId}
+                heading={heading}
                 options={suggestions.map((suggestion, index) => ({
                     key: suggestion.label,
                     label: suggestion.label,

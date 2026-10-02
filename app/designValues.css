@@ -227,8 +227,7 @@
     --spacing-mobile-bottom-bar-inset-top: 1rem; /* Foot bar, 16: above */
     --spacing-mobile-bottom-bar-inset-bottom: 1.25rem; /* Foot bar, 20: below */
     --spacing-mobile-bottom-bar-stack: 0.75rem; /* Foot bar, 12: between its rows */
-    --shadow-mobile-bottom-bar: 0 -1px 12px color-mix(in oklab, var(--color-elevation) 6%, transparent); /* Foot bar: cast upward while content runs under it */
-    --spacing-mobile-touch-target: 3rem; /* Target, 48: the least a touch target takes, square */
+    --spacing-mobile-touch-target: 3rem; /* Target, 48: the least a touch target takes, square — a sheet's Done among them */
 
     --text-mobile-heading-lg: 1.375rem; /* Title, 22: the record's name */
     --text-mobile-heading-lg--line-height: 1.75rem;
@@ -252,6 +251,9 @@
     --spacing-mobile-input-inset-x: 1rem; /* Field, 16: inside it */
     --size-mobile-input-icon: 1.125rem; /* Field, 18: its icon */
     --spacing-mobile-input-gap: 0.625rem; /* Field, 10: from its icon to its value */
+    --color-mobile-input-background: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Field, the one field in a sheet: filled, ink at 0.055, no edge */
+    --spacing-mobile-field-stack: 1.25rem; /* Field label, 20: from a field to the next label */
+    --size-mobile-input-clear-icon: 0.9375rem; /* Field, 15: the mark of the clear × at its end — from the drawings, not the spec */
     --height-mobile-chip: 2.25rem; /* Pill, 36: a chip */
     --spacing-mobile-chip-inset-x: 0.875rem; /* Pill, 14: either side */
     --spacing-mobile-chip-inset-right: 0.75rem; /* Pill, 12: on its chevron side */
@@ -278,11 +280,14 @@
     --spacing-mobile-drawer-inset-bottom: 1.25rem; /* Sheet, 20: at the foot, plus the device's safe area */
     --shadow-mobile-drawer: 0 -12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent); /* Sheet: cast upward */
     --color-mobile-drawer-overlay: color-mix(in oklab, var(--color-elevation) 24%, transparent); /* Sheet: what lies behind it */
+    --size-mobile-drawer-row-icon: 1.0625rem; /* Sheet, 17: the check at the end of the row already chosen — from the drawings, not the spec */
+    --spacing-mobile-drawer-heading-stack: 0.25rem; /* Sheet, 4: from a list's heading to its first row — from the drawings, not the spec */
+    --spacing-mobile-drawer-header-action-inset-x: 0.75rem; /* Sheet, 12: either side of the Done at its title's end, pulled back out — from the drawings, not the spec */
+    --spacing-mobile-drawer-body-stack: 1.25rem; /* Sheet that confirms, 20: the actions under the sentence — every sheet's actions under what it holds */
+    --spacing-mobile-drawer-action-stack: 0.75rem; /* Sheet that confirms, 12: between the stacked actions — every sheet's */
     --spacing-mobile-confirm-inset-top: 1.5rem; /* Sheet that confirms, 24: its title from its top */
     --spacing-mobile-confirm-title-stack: 0.25rem; /* Sheet that confirms, 4: the id under the title */
     --spacing-mobile-confirm-id-stack: 0.875rem; /* Sheet that confirms, 14: the sentence under the id */
-    --spacing-mobile-confirm-description-stack: 1.25rem; /* Sheet that confirms, 20: the actions under the sentence */
-    --spacing-mobile-confirm-action-stack: 0.75rem; /* Sheet that confirms, 12: between the stacked actions */
     --width-mobile-menu: 14.5rem; /* Menu, 232 */
     --spacing-mobile-menu-gutter: 0.75rem; /* Menu, 12: from the screen's right edge */
     --spacing-mobile-menu-offset: 0.25rem; /* Menu, 4: under the top bar */

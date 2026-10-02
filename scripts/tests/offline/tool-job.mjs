@@ -25,12 +25,19 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
+import { readFileSync } from "node:fs";
 import { canAccessJobDeliveries } from "../../../lib/deliveryAccess.js";
-import { TOOL_JOB_COPY, assignedJobsFor } from "../../../lib/toolJob.js";
+import { TOOL_JOB_COPY, assignedJobsFor, onlyJob } from "../../../lib/toolJob.js";
 import { TOOL_REGISTRATION_COPY } from "../../../lib/toolRegistration.js";
 import { TOOL_TRANSITION_COPY } from "../../../lib/toolTransition.js";
-import { parseFile, parseSource, walk } from "./_ast.mjs";
+import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
+
+/**
+ * The files on this axis that may spell "one assignment" — `onlyJob` itself, and nothing
+ * else (#458). A screen counting a job list for itself is the second copy of the rule.
+ */
+const SPELLS_ONE_JOB = /\bjobs\.length\s*===\s*1\b/;
 
 /**
  * The source text a copy constant's `key` is assigned, or null.
@@ -87,6 +94,24 @@ export function run({ check, assert, log }) {
         assignedJobsFor({ assignedJobs: ["job2", "job1"] }, JOBS).map((j) => j.jobCode).join(),
         "26-DEMO-01,26-DEMO-02"
     );
+
+    // ── 1b: one assignment, spelled once (#458) ────────────────────────────
+    // "One assignment is used without asking" is three screens' reading — the
+    // registration's choice starts on it, the transition's does, and a check-in
+    // records on the press only then — so it is one function, held by value at the
+    // edges, and nothing else on the axis counts a job list for itself.
+    log("");
+    log("one assignment is one job, and every other count is none:");
+    check("one job is that job", onlyJob([JOBS[1]])?.id, "job2");
+    check("two are none", onlyJob(JOBS), null);
+    check("none are none", onlyJob([]), null);
+    check("and a missing list is none", onlyJob(undefined), null);
+    const toolsFiles = [...listJsFiles(repoPath("app/(tools)")), ...listJsFiles(repoPath("lib")).filter((abs) => /\/tool[A-Z]\w*\.js$/.test(toPosix(abs)))]
+        .map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1))
+        .sort();
+    const spelling = toolsFiles.filter((rel) => SPELLS_ONE_JOB.test(readFileSync(repoPath(rel), "utf8")));
+    check("  the axis's files were read, lib/toolJob.js among them", toolsFiles.length > 20 && toolsFiles.includes("lib/toolJob.js"), true);
+    check("  and only lib/toolJob.js counts a job list for one", spelling.join(", "), "lib/toolJob.js");
 
     // ── 2: no office clause, and the disagreement is the assertion ─────────
     log("");
@@ -177,6 +202,10 @@ export function run({ check, assert, log }) {
     // expression, or every assertion in the loop passes on a constant that
     // dropped the property.
     check("  and a key nothing assigns reads null", propertySource(parseSource("const A = { other: 1 };", "<planted>"), "jobUnchosen"), null);
+    // The one-job scan is seen to catch a screen counting for itself, and to leave a
+    // count of something else alone.
+    assert("  a screen counting its jobs for one is seen", SPELLS_ONE_JOB.test("useState(jobs.length === 1 ? jobs[0].id : \"\")"));
+    assert("  and a count of two, or of rows, is not", !SPELLS_ONE_JOB.test("jobs.length === 12 || rows.length === 1"));
 }
 
 if (isMain(import.meta.url)) await standalone(title, run);

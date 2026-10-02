@@ -795,19 +795,19 @@ became a chip value in words. A meaning carried by color alone fails the same
 test one step further along, which is why the rule reads the way it does.
 
 **Modal styling had a single source until #456, and has two until #258.**
-`app/components/modalStyles.js` holds the backdrop and the card, imported at six
+`app/components/modalStyles.js` holds the backdrop and the card, imported at nine
 sites, and the screens above the tools axis keep it until #258. The tools axis
 opens its dialogs in the design's own frame, `app/components/DialogFrame.js` —
-the registration first, and the tool item page's two when #458 moves them off
-the old one. It was the one shape in the app that was already a primitive
+the registration first, and every one of them since #458 moved the tool item
+page's two off the old one. It was the one shape in the app that was already a primitive
 rather than a per-page reassembly, and #258 is where the rest joins the design's.
 
 **BUT THE BEHAVIOR HAS TWO, AND THAT IS AN INCONSISTENCY RATHER THAN A
 DISTINCTION.** Anything opening over the page is supposed to close on `Escape`
-as well as by its opener and hand focus back to it. **Three of about a dozen
-overlays do** — the file viewer (#331), the tool item page's retire dialog
-(#363) and the design's frame (#456), which is the browser's own modal dialog —
-and the rest close only by their own controls, so a reader who learns `Escape`
+as well as by its opener and hand focus back to it. **The file viewer (#331)
+and the design's frame (#456) do** — the frame is the browser's own modal
+dialog, and the tool item page's retire dialog (#363) has opened in it since
+#458 — and the rest close only by their own controls, so a reader who learns `Escape`
 on one meets a dead key on the next. Repairing the others was out of scope for
 every issue that got it right, so it is written down here instead of being
 discovered: **a design pass over modals should settle this for all of them**,
@@ -822,9 +822,11 @@ rather than widen it or add an exemption. A second appearance is not forbidden;
 it is deferred until every screen reads its look by name — #462 declares the
 names, and #258 brings the screens above the tools axis onto them.
 
-**The tools screens and the two sign-in screens are used at a phone width as
-well as at a monitor. Every other screen is used at a monitor.** A tool is
-entered and its labels printed at a desk; a tool item is scanned on site, on a
+**The tool item's screen and the two sign-in screens are used at a phone width
+as well as at a monitor. Every other screen is used at a monitor**, the rest of
+the tools axis among them. A tool is entered and its labels printed at a desk,
+so the tool list, the registration dialog, a tool's screen and the labels'
+dialog do not support a phone's width; a tool item is scanned on site, on a
 phone, possibly by someone wearing gloves (#336). **`/login` and
 `/login/confirm` joined that set in #373**, which is a consequence of the same
 scan rather than a second premise: a label followed while signed out lands on
@@ -842,13 +844,12 @@ overflow, the form 311px inside the page's padding.
 
 **Both widths does not mean both first, and each tools brief now says which
 one it is drawn for (#348).** `/tools`, the registration dialog over it and
-`/tools/[toolRecordId]` are DESKTOP first: a site has laptops and monitors
-too, entering a name and a quantity is typing, and printing the labels that
-follow happens at whatever machine the printer is attached to.
+`/tools/[toolRecordId]` are DESKTOP and nothing else: a site has laptops and
+monitors too, entering a name and a quantity is typing, and printing the
+labels that follow happens at whatever machine the printer is attached to.
 `/tool-items/[toolItemId]` is PHONE first, because a scan is what arrives
-there. The other width still has to work in both directions — the priority
-says which one is drawn first and how the other folds out of it, not which
-one is supported. **That
+there, and the desktop still has to work for it — the priority says which
+width is drawn first and how the other folds out of it. **That
 premise was decided rather than drifted into, and this is the constraint with
 the most bearing on #258**: breakpoints, touch targets and a spacing scale drawn
 for a monitor and widened for a phone afterwards are decided twice, and drawn

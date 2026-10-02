@@ -4,8 +4,8 @@ Opens from: `/tools` and `/tools/[toolRecordId]`, as a dialog over the page that
 opens it — it was the page `/tools/new` until #456.
 Who reaches it: anyone signed in who is on either page, with no Role and no Job
 scoping (#337) — but only somebody assigned to a job can open it.
-Which width comes first: **desktop**. Both widths must work; this one is
-drawn first and the phone is what it folds into.
+Which width comes first: **desktop**, and it is the only one: this dialog is
+used at a desk and does not support a phone's width (`_shared.md`).
 
 ## What it answers
 

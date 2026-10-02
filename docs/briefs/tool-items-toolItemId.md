@@ -64,23 +64,24 @@ values, never lists — a tool item is one unit of one tool and sits on one job.
 never a choice of transition: the status decides which one.
 
 **A CHECK-OUT ALSO ASKS WHO THE TOOL IS GOING TO, AND A CHECK-IN DOES NOT.**
-The field sits above the control that records it and carries no separate
-label: its placeholder is the label, and the words are `Checked out to`. The
-people it names have no account here, so it is free text rather than a
-picker over a list of users. **A check-out cannot be recorded without one** —
-pressing with the field empty produces `Checking out needs a name.` where
-every other refusal on this screen appears, and nothing is written. A field
-of nothing but spaces is the same refusal.
+The check-out's dialog asks it under the job, in a field labeled `Checked out
+to` that reads `e.g. Jane Doe` while it is empty (#458). The people it names
+have no account here, so it is free text rather than a picker over a list of
+users. **A check-out cannot be recorded without one** — the dialog's `Check
+out` cannot act until the field holds a name, a submission that arrives
+without one anyway is refused with `Enter a name to check out.`, and nothing
+is written. A field of nothing but spaces is the same refusal.
 
-**Touching the field opens a sheet**, titled with the same words, with the
-system keyboard up. A name can be typed there or picked from the list below
-it, and both are the same value as the field behind. It closes by picking, by
-its own `Done`, by `Escape` and on the backdrop, and focus returns to the
-field. **Opening it is a press rather than a focus** — returning focus to the
-field would otherwise reopen it — and the keyboard opens it with `Enter` or
-`ArrowDown`. **Whether it rises from the bottom with the keyboard or sits
-somewhere else is the design's**; the app supplies the structure and the
-app's shared modal chrome, and nothing here places it.
+**Below the phone's edge, touching the field opens a sheet**, titled with the
+same words, with the system keyboard up. A name can be typed there or picked
+from the list below it, and both are the same value as the field behind. It
+closes by picking, by its own `Done`, by the keyboard's done key, by `Escape`,
+on its handle and on what lies behind it, and focus returns to the field.
+**Opening it is a press rather than a focus** — returning focus to the field
+would otherwise reopen it — and the keyboard opens it as it presses any
+button. **It rises from the foot of the screen, as 1f draws it**, in the
+design's frame (#458). **At a desk there is no sheet**: the field is the one
+the registration types a name in (1j), and the list opens under it.
 
 **The list under it is headed `Recently at this job`** and holds the people
 that job has recently handed tools to, most recent first. **One entry per
@@ -93,17 +94,23 @@ choice over the whole list**, so a design may set it: a name below the cut is
 one keystroke away rather than absent.
 
 **When that job has handed out nothing yet:** one sentence in place of the
-entries, `No tools have gone out on this job yet.` **This is the first
-handout of a project rather than an error**, and it is the one screen that
-fills it. **Before a job is chosen the list is absent rather than empty** —
-heading and all — because it is about a job and there is not one yet.
+entries in the phone's sheet, `No tools have gone out on this job yet.`, and
+at a desk no list under the field. **This is the first handout of a project
+rather than an error**, and it is the one screen that fills it. **Before a
+job is chosen the list is absent rather than empty** — heading and all —
+because it is about a job and there is not one yet, and so is a list a typed
+name has narrowed to nothing (#458).
 
 **The confirmation is that arriving does not act.** A scan opens the page, the
 page states the id and the status, and one press is the transition. There is no
-dialog and there must not be one: this happens dozens of times a day, and every
-confirmation in this app that IS a dialog is for something that cannot be undone
-— a withdrawal, a deletion. A check-out is undone by the check-in the same
-control offers a moment later.
+confirming dialog and there must not be one: this happens dozens of times a day,
+and every confirmation in this app that IS a dialog is for something that cannot
+be undone — a withdrawal, a deletion. A check-out is undone by the check-in the
+same control offers a moment later. **The dialog a check-out opens asks and does
+not confirm** (#458): the job and the name are what its row needs, and a
+check-in on one job, which needs neither, still records on the press. A
+check-in on several jobs opens the same dialog for its job alone, with none
+chosen.
 
 **action.** `Retire this tool`, which opens a dialog and is the second and
 last control on the page. It is offered from `In Stock` and from `Out` alike —
@@ -112,9 +119,10 @@ first would put an event in the history that did not happen.
 
 **THE TWO CONTROLS MUST NOT READ AS THE SAME WEIGHT, AND TWO THINGS ALREADY
 STOP THEM.** One of them is pressed dozens of times a day and the other is that
-tool item's last. The first difference is structural: the transition control
-SUBMITS, so pressing it records; this one OPENS, so pressing it does nothing
-until a second press inside the dialog. The second is the wording: `Check out`
+tool item's last. The first difference is structural: the transition records on
+its press or opens the fields of an act the next scan undoes; this one OPENS a
+question naming the tool, with a red commitment (#458), so pressing it does
+nothing until a second press inside the dialog. The second is the wording: `Check out`
 names no object and `Retire this tool` does. **A design may do anything
 else it likes with them and may not undo either of those** — in particular it
 may not make the retire control a one-press submit, and it may not put the two
@@ -133,13 +141,17 @@ as harmless, because the first guard only helps somebody who stops and reads.
 What placement is actually for is making the mis-press less likely in the first
 place, and that is worth doing on its own terms rather than as a rescue.
 
-**What the dialog carries**, in this order: the heading `Retire this tool?`, an
-account of what becomes true, and the two ways out, `Retire tool` and `Cancel`
-— the confirm names what it retires, as the opener does (#455). The account is
-three facts and an ending — the tool item stops counting as something the
-company holds, nothing more can be recorded against it, its row and its whole
-history stay, and `This cannot be undone.` **That account is the point of the
-dialog rather than decoration**: it is the same voice the three deletion
+**What the dialog carries**, in this order: a heading that asks with the tool's
+name — `Retire DEMO Rotary Hammer?` for that tool — and the tool item's id under
+it (#458), an account of what becomes true, and the two ways out, `Retire tool`
+and `Cancel` — the confirm names what it retires, as the opener does (#455). The
+account is the design's since #458, `It will be removed from inventory, and no
+more check-outs or check-ins can be recorded. This can't be undone.`: the tool
+item stops counting as something the company holds, nothing more can be
+recorded against it, and nothing undoes it. That its row and its whole history
+stay, the third fact #363 wrote, is what the page goes on showing once the
+status is the end. **That account is the point of the dialog rather than
+decoration**: it is the same voice the three deletion
 confirmations use, and the shared brief calls it copy doing work a visual
 cannot.
 
@@ -153,8 +165,8 @@ one of its two grounds went when `Lost` left the status vocabulary, and the
 other — that the act cannot be undone — is what the dialog itself now bears.
 A design must not add a free-text field back; there is no field behind it.
 
-**THE JOB IS NOT ASKED FOR HERE, AND THE SCREEN ASKS IT ONCE.** The transition
-control has a job picker because a scan is the person handling the tool, so
+**THE JOB IS NOT ASKED FOR HERE, AND THE SCREEN ASKS IT ONCE.** The transition's
+dialog has a job choice because a scan is the person handling the tool, so
 where they are is where it goes. Retiring moves nothing, so the row records
 where the tool item already was — the page's header says it and nothing
 changes it. **A design must not put a second job control on this screen**: the
@@ -164,10 +176,11 @@ restate the inherited job either, and it carries no line about moving the tool
 item to another job — that sentence says the tool has gone somewhere, and a
 retirement is not a move.
 
-**The job is stated when the person has one and chosen when they have several,
-and it is the same control either way.** Nobody types a job anywhere on this
-axis. A person on one assignment must not be shown a picker, and the two cases
-must not become two layouts.
+**The job is already chosen when the person has one and chosen by them when they
+have several, and it is the same control either way** — at a desk a choice
+holding that one job, as the registration's is, and below the phone's edge the
+job stated with no sheet to open (#458). Nobody types a job anywhere on this
+axis, and the two cases must not become two layouts.
 
 **The section has no heading.** The two below it name things — `Label`,
 `History` — and a heading here would have to name the act in the abstract, which
@@ -187,10 +200,11 @@ instead, and the app then holds nothing. And the GAP matters here more than
 anywhere else in the app, because the two controls beside each other are a
 dozens-a-day act and an irreversible one.
 
-**The dialog is the exception to this screen carrying no styling, and it is a
-borrowed one.** It uses the app's single source for modal chrome, because an
-overlay with no positioning is not an unstyled dialog but an inline paragraph.
-Whatever the token layer does to the app's modals reaches this one.
+**The dialogs are the exception to this screen carrying no styling, and they are
+the design's** (#458). They open in the design's frame, styled from the names
+the design's values are declared under, because an overlay with no positioning
+is not an unstyled dialog but an inline paragraph; the page under them is
+still #463's to style.
 
 **evidence.** The QR symbol this tool item's label carries, **drawn at the size it
 prints at**, with a line saying so.
@@ -275,7 +289,8 @@ values sit on the page with different values under one word**, and the line is
 what stops that reading as a mistake. With a picker it appears and disappears as
 the choice changes. The rest of the time nothing stands there.
 
-**A refusal, in one slot, where every refusal this screen can produce arrives.**
+**A refusal, in one slot, where every refusal this screen can produce arrives**
+— or above the dialog's actions while a dialog stands open for it (#458).
 Those that reach it: somebody else has already recorded something, so the press
 recorded nothing; the job submitted is not one of the reader's; the tool item
 carries no such id; and the event was recorded but the tool item's own status was
@@ -298,8 +313,10 @@ phone in one hand, and it names no status because the status is stated directly
 above it and was just refreshed.
 
 **The dialog, which is closed until its opener is pressed.** The page behind it
-stays legible, and it closes three ways — the confirm, `Cancel`, and `Escape` —
-with focus returning to the control that opened it. It does not close while a
+stays legible, and it closes by `Cancel`, by `Escape`, by its close at a desk
+and on a press behind it as a phone's sheet, with focus returning to the
+control that opened it; the confirm takes it away with the page's offer, and
+focus goes to the page's heading (#458). It does not close while a
 confirmation is in flight. It carries a refusal slot of its own, in case a
 refusal ever lands while it is open. **What happens today when somebody else
 retires the tool item first is that the dialog goes** — the refusal re-renders
@@ -396,8 +413,8 @@ other. The verdict and the actions are about one fact, which is why they sit
 with the status rather than with the history.
 
 **This dialog closes on `Escape` and hands focus back, and most of the app's
-do not.** It is the second of about a dozen overlays to do so; the rest close
-only by their own controls. That is an inconsistency the app has rather than
+do not.** Every dialog on this axis does since #458, in the design's frame;
+the rest close only by their own controls. That is an inconsistency the app has rather than
 one this screen introduces, and the shared brief records it beside the
 modal-styling constraint — a design pass over modals should settle it for all
 of them rather than for this one.

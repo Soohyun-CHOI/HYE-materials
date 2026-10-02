@@ -13,8 +13,14 @@ import { menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
  * what a key does is `lib/controls.js`'s, applied by the control. What differs between the
  * two is what `aria-selected` marks — the chosen option in a choice, the one under visual
  * focus in a list of suggestions, which is what each pattern says — so the control decides
- * it per option and this renders it. #458's check-out job will be a choice too, and reach
- * this through `Choice`.
+ * it per option and this renders it. #458's two dialogs reach it at a desk: the job is a
+ * `Choice` in both, and the check-out's name a `Combobox` whose suggestions are that job's
+ * recent names.
+ *
+ * A LIST MAY CARRY A HEAD ABOVE ITS OPTIONS, THE CHECK-OUT'S `Recently at this job`
+ * (#458), which is what the name sheet a phone types in heads its rows with. It is 0h's
+ * Label in Ink 3 at an option's side room, and hidden from a screen reader: the list is
+ * already named by its field's label, and a listbox owns options and nothing else.
  *
  * IN THE TOP LAYER, THROUGH THE POPOVER API, SO NO DIALOG CLIPS IT. A dialog's body scrolls
  * when the screen is short (0l), and a list positioned inside it would be cut at the body's
@@ -33,7 +39,7 @@ import { menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
  * focus on the control: a blur would close the list before the click arrived, and a
  * choice closes on blur by choosing what is under visual focus (the pattern's rule).
  */
-export default function Menu({ id, anchorRef, shown, labelId, options, active, onPick }) {
+export default function Menu({ id, anchorRef, shown, labelId, heading, options, active, onPick }) {
     const listRef = useRef(null);
 
     useLayoutEffect(() => {
@@ -80,6 +86,11 @@ export default function Menu({ id, anchorRef, shown, labelId, options, active, o
             popover="manual"
             className="inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body text-foreground-default shadow-popover open:flex"
         >
+            {heading && (
+                <div aria-hidden="true" className="shrink-0 px-control-inset-x py-menu-inset text-heading-sm text-foreground-subtle">
+                    {heading}
+                </div>
+            )}
             {options.map((option, index) => (
                 <div
                     key={option.key}

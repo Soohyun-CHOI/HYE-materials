@@ -38,10 +38,11 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * per-record comparison is about the job.
  *
  * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
- * ToolTransitionForm.js reads this through `useActionState`, so every refusal
- * lands in the one slot that form has for them. **It goes through `refuse`, which
- * re-renders the page as it answers (#378)** — a returned sentence on a page
- * nothing re-rendered is true beside a screen that contradicts it.
+ * TransitionDialog.js reads this through `useActionState`, so every refusal lands
+ * in the one place it has for them — above the dialog's actions while the dialog
+ * stands open, and where the control is once it has gone (#458). **It goes through
+ * `refuse`, which re-renders the page as it answers (#378)** — a returned sentence
+ * on a page nothing re-rendered is true beside a screen that contradicts it.
  *
  * THE TWO WRITES ARE `writeEvent`'s, SHARED WITH THE RETIREMENT BELOW SINCE
  * #363. The ordering, the try boundary and the report of a cache that did not
@@ -133,15 +134,14 @@ export async function recordToolItemEventAction(prevState, formData) {
 /**
  * Retire one tool item (#363) — the transition with no way out.
  *
- * A MODAL RATHER THAN A PRESS, AND THE RULE WAS THE ONE #362 READ THE OTHER WAY.
- * CLAUDE.md held that a modal is for an act that cannot be undone and an act that
- * can is edited in place, until #459 dropped it; where a dialog goes is the
- * design's now, and #458 moves both transitions into dialogs. Under that rule a
- * check-out is undone by the check-in the same control offers a moment later, so
- * that one is one press; nothing undoes this, so the screen states what becomes
- * true before it happens. The frequency argument points the same way — a tool
- * item is retired once, ever, so a heavier confirmation costs nothing anybody
- * will meet twice.
+ * A QUESTION BEFORE IT HAPPENS, WHERE A SCAN ASKS ONLY WHAT IT NEEDS. CLAUDE.md held
+ * that a modal is for an act that cannot be undone and an act that can is edited in
+ * place, until #459 dropped it; where a dialog goes is the design's now, and since
+ * #458 a check-out opens a dialog too, for the name it records. What still differs
+ * is this one's: it asks a question naming the tool before an act nothing undoes,
+ * where the transition's is the fields of an act the next scan undoes. The
+ * frequency argument points the same way — a tool item is retired once, ever, so
+ * a heavier confirmation costs nothing anybody will meet twice.
  *
  * NO REASON IS ASKED FOR, AND THAT IS A RULE THIS ISSUE RETIRED RATHER THAN
  * IMPLEMENTED. A required note on this event was recorded as pending from #334,

@@ -2,8 +2,8 @@
 
 Route: `/tools`
 Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
-Which width comes first: **desktop**. Both widths must work; this one is
-drawn first and the phone is what it folds into.
+Which width comes first: **desktop**, and it is the only one: this screen is
+used at a desk and does not support a phone's width (`_shared.md`).
 
 ## What it answers
 
@@ -26,11 +26,12 @@ is why a row carries three counts and no total. A reader looking for one
 particular unit is looking for its printed id, and that is the tool item's
 own screen, reached by scanning it or from the tool's page one level down.
 
-**These are the only screens in the app used at a phone width**, and what
-that means for the whole design is the fifth constraint in the shared
-brief. A tool is entered and its labels printed at a desk; a tool item is
-scanned on site, on a phone, possibly by someone wearing gloves. Both
-widths are this axis's problem, and neither is the other axis's.
+**The tool item's screen is the only one on this axis used at a phone
+width**, with the sign-in a scan can arrive through, and what that means
+for the whole design is the fifth constraint in the shared brief. A tool is
+entered and its labels printed at a desk, so this screen is a desk's; a
+tool item is scanned on site, on a phone, possibly by someone wearing
+gloves. The phone is this axis's problem and no other's.
 
 **The width container for every tools screen lives in the layout, not on
 the page**, and no width, no padding, no type, no color was chosen for it,
