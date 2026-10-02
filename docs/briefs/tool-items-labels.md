@@ -6,7 +6,7 @@ Who reaches it: anyone signed in who is on either page, with no Role and no Job
 scoping (#337). No tool item is one reader's rather than another's.
 Which width comes first: **desktop**. This dialog is used at whatever machine the
 printer is attached to, which `docs/notes/tools.md` settled for the whole label
-step. Both widths must work; this one is drawn first.
+step, and it does not support a phone's width (`_shared.md`).
 
 ## What it answers
 

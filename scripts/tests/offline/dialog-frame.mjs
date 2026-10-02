@@ -3,8 +3,8 @@
 // WHAT THIS FILE IS FOR. `app/components/DialogFrame.js` is Claude Design's 0l drawn once,
 // `app/components/Controls.js` and `app/components/Menu.js` are the 0a controls the
 // registration dialog is the first to use, and the landing's two dialogs call them (#459),
-// as the labels' does (#457) and #458's will, rather than drawing their own. So what they
-// are held to is held here, where each of those issues will run into it:
+// as the labels' does (#457) and the tool item page's do (#458), rather than drawing their
+// own. So what they are held to is held here, where each of those issues ran into it:
 //
 //   1. THE KEYS. WAI-ARIA's select-only combobox and its editable combobox with list
 //      autocomplete are the two patterns, and `lib/controls.js` says what each key does
@@ -20,15 +20,18 @@
 //      dialog no press opened handing focus to the page's heading as it closes, the
 //      sentence a dialog says describing that dialog, and the actions wrapping on a
 //      narrow dialog rather than running off it — and since #457 the second build, a
-//      preview in a pane beside a column that is the Compact build inside.
+//      preview in a pane beside a column that is the Compact build inside — and since
+//      #458 0l's Confirm, the phone's sheet a dialog marked so becomes below the phone's
+//      edge, the sizes its controls take there, the backdrop that closes 1f's sheets
+//      only while they are sheets, and a dialog taken off the page handing focus on.
 //   4. THE WORDS. Every string these three render comes from `lib/dialogFrame.js` or
 //      `lib/controls.js`, pinned by value, and none is in their markup — the rule
 //      `offline/tool-list-view.mjs` holds for every file under `app/(tools)/`, which these
 //      do not sit under.
-//   5. THE SECOND FRAME, AND WHEN IT ENDS. Two dialogs on the tool item page are still drawn
-//      on `app/components/modalStyles.js`; #458 moves them onto this frame. They are named
-//      here, so a third drawn the old way fails and #458 empties the list — the measurable
-//      condition CLAUDE.md's "one rule, one implementation" asks for, made executable.
+//   5. ONE FRAME ON THE TOOLS AXIS. The tool item page's two dialogs were the last drawn on
+//      `app/components/modalStyles.js`, and #458 moved them onto this frame, so a file
+//      under `app/(tools)/` importing it fails — the measurable condition CLAUDE.md's "one
+//      rule, one implementation" asked for, met.
 //
 // WHAT IT CANNOT SEE. Anything rendered: whether the dialog is centered, whether the list
 // lands under its field, whether focus really returns to the opener, whether a screen
@@ -56,7 +59,7 @@ import { DIALOG_FRAME_COPY } from "../../../lib/dialogFrame.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The dialog frame and the controls in it (#456, #459)";
+export const title = "The dialog frame and the controls in it (#456, #459, #458)";
 
 const FRAME = "app/components/DialogFrame.js";
 const CONTROLS = "app/components/Controls.js";
@@ -64,13 +67,11 @@ const MENU = "app/components/Menu.js";
 const ACCOUNT = "app/components/RailAccount.js";
 
 /**
- * The tools files still drawing a dialog on `modalStyles.js`, and the issue that moves each
- * onto the frame. #458 empties this; a file added to it is a second frame growing.
+ * Whether a file draws a dialog on `modalStyles.js` — which no file under `app/(tools)/`
+ * does since #458 moved the tool item page's two onto the frame. One found is a second
+ * frame growing back.
  */
-const OLD_FRAME = new Map([
-    ["app/(tools)/tool-items/[toolItemId]/RetireToolItemForm.js", 458],
-    ["app/(tools)/tool-items/[toolItemId]/ToolTransitionForm.js", 458],
-]);
+const drawsOldFrame = (text) => text.includes("@/app/components/modalStyles");
 
 /** Attributes whose value a person reads or hears, and so must come from a constant. */
 const VISIBLE_ATTRIBUTES = new Set(["placeholder", "title", "alt", "aria-label"]);
@@ -290,6 +291,59 @@ export function run({ check, assert, log }) {
         Boolean(explainedButton) && "aria-describedby" in explainedButton
     );
 
+    // IN A SHEET BELOW THE PHONE'S EDGE THE CONTROLS TAKE THE PHONE'S SIZES (#458), and
+    // only there: every such class is `max-sm:in-data-[sheet]:`, so the width and the
+    // ancestor both decide it in CSS and a control in a desk's dialog keeps 0a's. A
+    // destructive commitment is filled red (0f Destructive). Read through one function, so
+    // the planted controls below are judged the same way.
+    const controlFacts = ({ ast, source }) => {
+        const constant = (name) => {
+            let text = "";
+            walk(ast, (n) => {
+                if (n.type === "VariableDeclarator" && n.id?.name === name && n.init) text = source.slice(n.init.start, n.init.end);
+            });
+            return text;
+        };
+        const sheetButton = constant("SHEET_BUTTON");
+        const sheetVariants = constant("SHEET_BUTTON_VARIANT");
+        const variants = constant("BUTTON_VARIANT");
+        const sheetField = functionNamed(ast, "SheetField");
+        const sheetFieldSource = sheetField ? source.slice(sheetField.start, sheetField.end) : "";
+        const phoneClasses = [...source.matchAll(/max-sm:(?!in-data-\[sheet\]:)[\w[\]-]+/g)].filter(([cls]) => !cls.startsWith("max-sm:hidden"));
+        return {
+            danger: /danger: "bg-danger text-white enabled:hover:bg-danger-hover"/.test(variants),
+            sheetButton: [
+                /max-sm:in-data-\[sheet\]:h-mobile-dialog-button/.test(sheetButton),
+                /max-sm:in-data-\[sheet\]:w-full/.test(sheetButton),
+                /max-sm:in-data-\[sheet\]:text-mobile-heading/.test(sheetButton),
+            ].join(" "),
+            textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:active:opacity-mobile-pressed"/.test(sheetVariants),
+            applied: /\$\{BUTTON\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(source),
+            label: /const FIELD_LABEL = "[^"]*max-sm:in-data-\[sheet\]:text-mobile-body-sm"/.test(source),
+            phoneOnlyInSheet: phoneClasses.length,
+            sheetField: [
+                /\bsm:hidden\b/.test(sheetFieldSource),
+                /aria-haspopup="dialog"/.test(sheetFieldSource),
+                /aria-labelledby=\{field\.labelId \? `\$\{field\.labelId\} \$\{valueId\}` : valueId\}/.test(sheetFieldSource),
+                /if \(!onOpen\) \{\s*return <div/.test(sheetFieldSource),
+            ].join(" "),
+            heading: /heading=\{heading\}/.test(source),
+        };
+    };
+    const controlRules = controlFacts(controls);
+    check("a destructive commitment is filled red and hovers to Red's hover", controlRules.danger, true);
+    check("in a sheet below the phone's edge a button is 48, full width and 17", controlRules.sheetButton, "true true true");
+    check("  a bordered one a text button that dims while held", controlRules.textButton, true);
+    check("  every button carrying both, which only a sheet's ancestor sets off", controlRules.applied, true);
+    check("  and a field's label 15 there", controlRules.label, true);
+    check("no phone size reaches a control outside a sheet", controlRules.phoneOnlyInSheet, 0);
+    check(
+        "the phone's own field is drawn only below its edge, opens a dialog and is named by its label and its value",
+        controlRules.sheetField,
+        "true true true true"
+    );
+    check("the combobox hands its list a head", controlRules.heading, true);
+
     const menu = parseFile(MENU);
     const [list] = elements(menu.ast, "div").filter((a) => a.role === "listbox");
     check("the list is a listbox in the top layer, dismissed only by its control", list?.popover, "manual");
@@ -302,6 +356,15 @@ export function run({ check, assert, log }) {
         ["list.showPopover", "list.hidePopover", "event.preventDefault"].filter((name) => !menuCalls.has(name)).join(", "),
         ""
     );
+    // A LIST'S HEAD (#458) is a word above its options that a screen reader does not
+    // hear: the list is named by its field's label, and a listbox owns options alone.
+    const headFacts = ({ ast, source }) => {
+        const fn = functionNamed(ast, "Menu") ?? ast;
+        const heads = elements(fn, "div").filter((a) => a["aria-hidden"] === "true");
+        const body = source.slice(fn.start, fn.end);
+        return `${heads.length} ${/\{heading && \(/.test(body)} ${body.indexOf("{heading && (") < body.indexOf("{options.map(")}`;
+    };
+    check("  a head above its options when it is handed one, hidden from a screen reader", headFacts(menu), "1 true true");
     // The other half of 0a's Menu (#478): a button's menu, which takes focus.
     const [actions] = elements(menu.ast, "div").filter((a) => a.role === "menu");
     check("a button's menu is a menu in the top layer, closed by its own handlers", actions?.popover, "manual");
@@ -447,6 +510,107 @@ export function run({ check, assert, log }) {
     // column is its content's height, so there is none to take and nothing moves.
     check("  the body takes the column's spare room, so the actions stand at its foot", builds.bodyGrows, true);
 
+    // THE PHONE'S SHEET, 0l's CONFIRM, AND A DIALOG TAKEN AWAY OPEN (#458). Below the phone's
+    // edge a dialog marked `sheet` is Tools 0a's: at the screen's foot and its width, the top
+    // corners 28, cast upward over its own wash, 20 at the foot plus the safe area, and
+    // marked `data-sheet` so what it holds takes the phone's sizes. A press behind it closes
+    // it only when it asked to and only while it is laid out as a sheet, and only past its
+    // box — a press in its own room at the foot is a press on it. `recordId` is the Confirm,
+    // its line under the title the id in the id face; a sheet that confirms draws no handle,
+    // and no sheet draws the close. And a dialog taken off the page while open hands focus
+    // back as its closing would — to the opener it kept, none for a dialog no press opened,
+    // or to the heading when the opener went with it or will not take focus — once the
+    // removal has run, so Strict Mode's put-back does not.
+    const sheetFacts = ({ ast, source }) => {
+        let sheet = "";
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === "SHEET" && n.init) sheet = source.slice(n.init.start, n.init.end);
+        });
+        const frameFn = functionNamed(ast, "DialogFrame");
+        const frameSource = frameFn ? source.slice(frameFn.start, frameFn.end) : "";
+        return {
+            sheet: [
+                /max-sm:mt-auto/.test(sheet),
+                /max-sm:mb-0/.test(sheet),
+                /max-sm:max-w-none/.test(sheet),
+                /max-sm:rounded-t-mobile-drawer/.test(sheet),
+                /max-sm:shadow-mobile-drawer/.test(sheet),
+                /max-sm:backdrop:bg-mobile-drawer-overlay/.test(sheet),
+                /var\(--spacing-mobile-drawer-inset-bottom\)\+env\(safe-area-inset-bottom\)/.test(sheet),
+                /max-sm:\[--dialog-sheet:1\]/.test(sheet),
+            ].join(" "),
+            marked: /data-sheet=\{sheet \? \(confirm \? "confirm" : "drawer"\) : undefined\}/.test(frameSource),
+            applied: /\$\{sheet \? ` \$\{SHEET\}` : ""\}/.test(frameSource),
+            backdrop: [
+                /onClick=\{closesOnBackdrop \? onBackdropPress : undefined\}/.test(frameSource),
+                /if \(event\.target !== dialog \|\| !laidOutAsSheet\(dialog\)\) return;/.test(frameSource),
+                /event\.clientX < box\.left \|\| event\.clientX > box\.right \|\| event\.clientY < box\.top \|\| event\.clientY > box\.bottom/.test(frameSource),
+                /getPropertyValue\("--dialog-sheet"\)\.trim\(\) === "1"/.test(source),
+            ].join(" "),
+            handle: /\{sheet && !confirm && \(/.test(frameSource),
+            noClose: /items-center max-sm:in-data-\[sheet\]:hidden/.test(frameSource),
+            confirm: [/const confirm = recordId !== undefined;/.test(frameSource), /"font-id text-body-sm tracking-id text-foreground-default /.test(frameSource)].join(" "),
+            done: /\{done \? \(/.test(frameSource) && /onClick=\{done\.onPress\}/.test(frameSource),
+            removed: [
+                /queueMicrotask\(\(\) => \{\s*if \(!dialog\.isConnected\) focusAfterRemoval\(opener\);/.test(frameSource),
+                /if \(!dialog\?\.open\) return;\s*const opener = openerRef\.current;/.test(frameSource),
+            ].join(" "),
+            opener: /openerRef\.current = unprompted \|\| document\.activeElement === document\.body \? null : document\.activeElement;\s*dialog\.showModal\(\);/.test(
+                frameSource
+            ),
+            backTo: (() => {
+                const fn = functionNamed(ast, "focusAfterRemoval");
+                const body = fn ? source.slice(fn.start, fn.end) : "";
+                return [
+                    /if \(opener\?\.isConnected\) \{\s*opener\.focus\(\);\s*if \(document\.activeElement === opener\) return;\s*\}/.test(body),
+                    /\}\s*focusPageHeading\(\);\s*\}$/.test(body),
+                ].join(" ");
+            })(),
+        };
+    };
+    const sheetRules = sheetFacts(frame);
+    check("below the phone's edge a sheet sits at the foot, full width, 28 at the top, over its wash", sheetRules.sheet, "true true true true true true true true");
+    check("  marked as a sheet, and which kind, for what it holds", sheetRules.marked, true);
+    check("  and only a dialog that says so", sheetRules.applied, true);
+    check("a press behind it closes it only when asked, as a sheet, past its box", sheetRules.backdrop, "true true true true");
+    check("a sheet that confirms draws no handle, and no sheet the close", `${sheetRules.handle} ${sheetRules.noClose}`, "true true");
+    check("the Confirm's line under the title is the record's id, in the id face", sheetRules.confirm, "true true");
+    check("a sheet holding a field ends its head in its own text button", sheetRules.done, true);
+    check("a dialog taken away open hands focus back, after the removal", sheetRules.removed, "true true");
+    check("  to the opener it kept as it opened, none for a dialog no press opened", sheetRules.opener, true);
+    check("  or to the heading when the opener is gone or will not take focus", sheetRules.backTo, "true true");
+    // WHAT A SHEET HOLDS TAKES THE PHONE'S SIZES FROM ITS MARK, never from the frame's own
+    // branch: the body's sides and 20 between fields, the sentence at 16, the actions
+    // stacked 12 apart under 20 — the sheet that confirms' arrangement for every sheet.
+    const partClass = (name, test) => {
+        const fn = functionNamed(frame.ast, name);
+        return Boolean(fn) && elements(fn, "div").concat(elements(fn, "p")).some((a) => typeof a.className === "string" && test(a.className));
+    };
+    check(
+        "a sheet's body, sentence and actions take the phone's sizes from its mark",
+        [
+            partClass("DialogBody", (c) => /max-sm:in-data-\[sheet=drawer\]:gap-mobile-field-stack/.test(c)),
+            partClass("DialogMessage", (c) => /max-sm:in-data-\[sheet\]:text-mobile-body/.test(c)),
+            partClass("DialogActions", (c) => /max-sm:in-data-\[sheet\]:flex-col-reverse max-sm:in-data-\[sheet\]:gap-mobile-drawer-action-stack/.test(c)),
+            partClass("DialogActions", (c) => /max-sm:in-data-\[sheet\]:pt-mobile-drawer-body-stack/.test(c)),
+        ].join(" "),
+        "true true true true"
+    );
+    // A SHEET'S ROWS (0a Sheet): 56 at least, 15 and 16 inside, an Inner rule 16 in between
+    // two, and the check on the row already chosen.
+    const rowsFn = functionNamed(frame.ast, "SheetRows");
+    const rowsSource = rowsFn ? frame.source.slice(rowsFn.start, rowsFn.end) : "";
+    check(
+        "a sheet's rows are 0a's, the one chosen checked",
+        [
+            /min-h-mobile-drawer-row/.test(rowsSource),
+            /px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y/.test(rowsSource),
+            /\{index > 0 && <div aria-hidden="true" className="ml-mobile-drawer-row-inset-x h-px bg-divider-subtle" \/>\}/.test(rowsSource),
+            /\{row\.chosen && \(/.test(rowsSource),
+        ].join(" "),
+        "true true true true"
+    );
+
     // ── 4: the words ────────────────────────────────────────────────────────
     log("");
     log("every word they render comes from a constant:");
@@ -462,20 +626,24 @@ export function run({ check, assert, log }) {
         check(`  no copy in ${label}'s markup${found.length ? ` (${found[0]})` : ""}`, found.length, 0);
     }
 
-    // ── 5: the second frame, and when it ends ───────────────────────────────
+    // ── 5: one frame on the tools axis ──────────────────────────────────────
     log("");
-    log("the tools files drawing a dialog on the old frame are the two #458 moves:");
+    log("no tools file draws a dialog on the old frame, since #458:");
     const toolsFiles = listJsFiles(repoPath("app/(tools)")).map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
-    const onOldFrame = toolsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/modalStyles")).sort();
-    check("  the files", onOldFrame.join(", "), [...OLD_FRAME.keys()].sort().join(", "));
-    check("  each waiting on #458", [...new Set(OLD_FRAME.values())].join(), "458");
+    const onOldFrame = toolsFiles.filter((rel) => drawsOldFrame(readFileSync(repoPath(rel), "utf8"))).sort();
+    check("  the files on it", onOldFrame.length, 0);
     const onNewFrame = toolsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame")).sort();
-    // The registration's dialog (#456), the landing's two (#459) and the labels' (#457).
+    // The registration's dialog (#456), the landing's two (#459), the labels' (#457), and the
+    // tool item page's transition, its retirement's question and 1f's two sheets (#458).
     check(
-        "  and the frame's callers on the axis are the four dialogs drawn on it",
+        "  and the frame's callers on the axis are the dialogs drawn on it",
         onNewFrame.join(", "),
         [
             "app/(tools)/tool-items/LabelsDialog.js",
+            "app/(tools)/tool-items/[toolItemId]/JobSheet.js",
+            "app/(tools)/tool-items/[toolItemId]/NameSheet.js",
+            "app/(tools)/tool-items/[toolItemId]/RetirementConfirm.js",
+            "app/(tools)/tool-items/[toolItemId]/TransitionDialog.js",
             "app/(tools)/tools/RegistrationDialog.js",
             "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js",
             "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js",
@@ -517,11 +685,46 @@ export function run({ check, assert, log }) {
         "  and a button naming no reason is seen",
         !("aria-describedby" in (elements(functionNamed(plantedControls, "Button") ?? {}, "button")[0] ?? {}))
     );
-    // The old-frame census is seen to read a file's imports rather than to list the table.
+    // The old-frame census is seen to find a file that imports the old frame, since an empty
+    // census and a census that reads nothing are one PASS, and to pass the frame's own source.
     assert(
         "  the census finds the old frame in a file that imports it",
-        onOldFrame.includes("app/(tools)/tool-items/[toolItemId]/RetireToolItemForm.js")
+        drawsOldFrame('import { MODAL_BACKDROP, MODAL_CARD } from "@/app/components/modalStyles";\n') && !drawsOldFrame(frame.source)
     );
+    // The sheet and control readers are seen to fail on a frame that marks every dialog a
+    // sheet, closes on any press behind it at any width and keeps the close on a sheet, and
+    // on controls that size a button for the phone outside any sheet.
+    const plantedSheet = sheetFacts(
+        parseSource(
+            'const SHEET = "max-sm:mt-auto";\n' +
+                'export function DialogFrame({ sheet }) { return <dialog data-sheet="drawer" onClick={ask} className={`${DIALOG} ${SHEET}`}><div className="items-center" /></dialog>; }\n',
+            "<planted-sheet>"
+        )
+    );
+    check("  a sheet missing its corners, its wash and its mark is seen", plantedSheet.sheet, "true false false false false false false false");
+    check("  every dialog marked a sheet is seen", `${plantedSheet.marked} ${plantedSheet.applied}`, "false false");
+    check("  a press anywhere behind closing it is seen", plantedSheet.backdrop, "false false false false");
+    check("  and a close kept on a sheet is seen", plantedSheet.noClose, false);
+    // The removal reader is seen to fail on the frame as it was before it kept the opener —
+    // every removal sent to the heading — and on one that focuses the opener without asking
+    // whether focus took, which an opener disabled under a landing would not let it.
+    const plantedRemoval = sheetFacts(
+        parseSource(
+            "function focusAfterRemoval(opener) { opener.focus(); }\n" +
+                "export function DialogFrame({ open }) { useLayoutEffect(() => { dialog.showModal(); }, [open]); useLayoutEffect(() => () => { if (!dialog?.open) return; queueMicrotask(() => { if (!dialog.isConnected) focusPageHeading(); }); }, []); }\n",
+            "<planted-removal>"
+        )
+    );
+    check("  a removal sent to the heading whatever opened it is seen", `${plantedRemoval.removed} ${plantedRemoval.opener}`, "false false false");
+    check("  and an opener focused without asking whether focus took is seen", plantedRemoval.backTo, "false false");
+    const plantedControls2 = controlFacts(
+        parseSource(
+            'const BUTTON_VARIANT = { danger: "bg-danger" };\nconst SHEET_BUTTON = "max-sm:h-mobile-dialog-button";\nexport function SheetField() { return <button />; }\n',
+            "<planted-sheet-controls>"
+        )
+    );
+    check("  a red commitment that does not hover is seen", plantedControls2.danger, false);
+    check("  and a phone size outside a sheet is seen", plantedControls2.phoneOnlyInSheet, 1);
     // The frame's #459 rules are seen to fail on a frame that keeps the browser's own return,
     // hands focus back on every close, names no description and holds its actions on a line.
     const plantedFrame = frameFacts(

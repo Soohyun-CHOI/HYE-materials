@@ -103,8 +103,14 @@ const TOOLS_DIR = "app/(tools)/";
  * wash, which nothing draws since the files of 2026-10-01 put nothing behind a Panel.
  * #478 drew the account and declared its two again, and its menu and avatar read three
  * names marked for #463 first: the menu's two widths and Face hover.
+ * #458 took its own out with the tool item page's dialogs and 1f's three sheets: they
+ * read the sheets' names and the phone's type, fields and buttons, and seven of #463's
+ * first — the sheet button, the sheet that confirms and Red's hover — and the foot bar
+ * went to the issues that draw one: its room, its 50 button and the pill to #473, whose
+ * step pages draw them now, and the pill's chevron side and a field's icon to #463's
+ * tool item page. The foot bar's shadow was undeclared, since 0a now draws it none.
  */
-const READERS_TO_COME = [458, 463];
+const READERS_TO_COME = [463, 473];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -151,14 +157,14 @@ const VALUES = [
     // 0d · Red
     ["--color-danger-subtle", "#FFF4F5", 463],
     ["--color-danger", "#DC0015", null],
-    ["--color-danger-hover", "oklch(0.512 0.205 27)", 463],
+    ["--color-danger-hover", "oklch(0.512 0.205 27)", null],
     // 0e · Ink
     ["--color-foreground-default", "oklch(0.255 0.013 265)", null],
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
     ["--color-foreground-subtle", "oklch(0.505 0.012 265)", null],
     ["--color-foreground-faint", "oklch(0.760 0.010 265)", null],
     ["--spacing-separator-inline", "0.5625rem", null],
-    ["--color-divider-subtle", "oklch(0.946 0.005 265)", 458],
+    ["--color-divider-subtle", "oklch(0.946 0.005 265)", null],
     ["--color-divider", "oklch(0.928 0.006 265)", null],
     ["--color-divider-strong", "oklch(0.896 0.007 265)", 463],
     ["--color-border", "oklch(0.888 0.008 265)", null],
@@ -279,44 +285,48 @@ const VALUES = [
     ["--spacing-title-stack", "0.625rem", 463],
     ["--spacing-subtitle-stack", "0.75rem", 463],
     ["--spacing-heading-sm-stack", "0.75rem", 463],
-    // Tools 0a · App
-    ["--spacing-mobile-gutter", "1rem", 458],
+    // Tools 0a · App — #458's sheets read theirs; the foot bar is #473's step pages' first
+    // and #463's tool item page's after.
+    ["--spacing-mobile-gutter", "1rem", null],
     ["--height-mobile-top-bar", "3.5rem", 463],
     ["--spacing-mobile-top-bar-inset-right", "0.25rem", 463],
     ["--size-mobile-top-bar-icon", "1.5rem", 463],
-    ["--spacing-mobile-bottom-bar-inset-top", "1rem", 458],
-    ["--spacing-mobile-bottom-bar-inset-bottom", "1.25rem", 458],
-    ["--spacing-mobile-bottom-bar-stack", "0.75rem", 458],
-    ["--shadow-mobile-bottom-bar", "0 -1px 12px color-mix(in oklab, var(--color-elevation) 6%, transparent)", 458],
-    ["--spacing-mobile-touch-target", "3rem", 458],
+    ["--spacing-mobile-bottom-bar-inset-top", "1rem", 473],
+    ["--spacing-mobile-bottom-bar-inset-bottom", "1.25rem", 473],
+    ["--spacing-mobile-bottom-bar-stack", "0.75rem", 473],
+    ["--spacing-mobile-touch-target", "3rem", null],
     ["--text-mobile-heading-lg", "1.375rem", 463],
     ["--text-mobile-heading-lg--line-height", "1.75rem"],
     ["--text-mobile-heading-lg--letter-spacing", "-0.012em"],
     ["--text-mobile-heading-lg--font-weight", "600"],
-    ["--text-mobile-heading", "1.0625rem", 458],
+    ["--text-mobile-heading", "1.0625rem", null],
     ["--text-mobile-heading--line-height", "1.5rem"],
-    ["--text-mobile-body", "1rem", 458],
+    ["--text-mobile-body", "1rem", null],
     ["--text-mobile-body--line-height", "1.5rem"],
-    ["--text-mobile-body-sm", "0.9375rem", 458],
+    ["--text-mobile-body-sm", "0.9375rem", null],
     ["--text-mobile-body-sm--line-height", "1.25rem"],
     ["--text-mobile-body-xs", "0.875rem", 463],
     ["--text-mobile-body-xs--line-height", "1.25rem"],
-    ["--text-mobile-heading-sm", "0.8125rem", 458],
+    ["--text-mobile-heading-sm", "0.8125rem", null],
     ["--text-mobile-heading-sm--line-height", "1.25rem"],
     ["--text-mobile-heading-sm--font-weight", "600"],
-    ["--height-mobile-button", "3.125rem", 458],
-    ["--height-mobile-dialog-button", "3rem", 463],
-    ["--height-mobile-input", "3.125rem", 458],
-    ["--spacing-mobile-input-inset-x", "1rem", 458],
-    ["--size-mobile-input-icon", "1.125rem", 458],
-    ["--spacing-mobile-input-gap", "0.625rem", 458],
-    ["--height-mobile-chip", "2.25rem", 458],
-    ["--spacing-mobile-chip-inset-x", "0.875rem", 458],
-    ["--spacing-mobile-chip-inset-right", "0.75rem", 458],
+    ["--height-mobile-button", "3.125rem", 473],
+    ["--height-mobile-dialog-button", "3rem", null],
+    ["--height-mobile-input", "3.125rem", null],
+    ["--spacing-mobile-input-inset-x", "1rem", null],
+    ["--size-mobile-input-icon", "1.125rem", 463],
+    ["--spacing-mobile-input-gap", "0.625rem", 463],
+    ["--color-mobile-input-background", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
+    ["--spacing-mobile-field-stack", "1.25rem", null],
+    // From the drawings, not the spec (#458).
+    ["--size-mobile-input-clear-icon", "0.9375rem", null],
+    ["--height-mobile-chip", "2.25rem", 473],
+    ["--spacing-mobile-chip-inset-x", "0.875rem", 473],
+    ["--spacing-mobile-chip-inset-right", "0.75rem", 463],
     ["--size-mobile-status-indicator", "0.625rem", 463],
-    ["--radius-mobile-control", "0.75rem", 458],
-    ["--radius-mobile-drawer", "1.75rem", 458],
-    ["--opacity-mobile-pressed", "50%", 458],
+    ["--radius-mobile-control", "0.75rem", null],
+    ["--radius-mobile-drawer", "1.75rem", null],
+    ["--opacity-mobile-pressed", "50%", null],
     ["--spacing-mobile-top-bar-stack", "1rem", 463],
     ["--spacing-mobile-title-stack", "1.375rem", 463],
     ["--spacing-mobile-stack", "2rem", 463],
@@ -324,21 +334,26 @@ const VALUES = [
     ["--spacing-mobile-log-gap", "0.75rem", 463],
     ["--spacing-mobile-log-stack", "1.25rem", 463],
     ["--size-mobile-log-icon", "0.875rem", 463],
-    ["--width-mobile-drawer-handle", "2.25rem", 458],
-    ["--height-mobile-drawer-handle", "0.25rem", 458],
-    ["--spacing-mobile-drawer-inset-top", "0.75rem", 458],
-    ["--spacing-mobile-drawer-title-inset-y", "0.875rem", 458],
-    ["--height-mobile-drawer-row", "3.5rem", 458],
-    ["--spacing-mobile-drawer-row-inset-y", "0.9375rem", 458],
-    ["--spacing-mobile-drawer-row-inset-x", "1rem", 458],
-    ["--spacing-mobile-drawer-inset-bottom", "1.25rem", 458],
-    ["--shadow-mobile-drawer", "0 -12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", 458],
-    ["--color-mobile-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 24%, transparent)", 458],
-    ["--spacing-mobile-confirm-inset-top", "1.5rem", 463],
-    ["--spacing-mobile-confirm-title-stack", "0.25rem", 463],
-    ["--spacing-mobile-confirm-id-stack", "0.875rem", 463],
-    ["--spacing-mobile-confirm-description-stack", "1.25rem", 463],
-    ["--spacing-mobile-confirm-action-stack", "0.75rem", 463],
+    ["--width-mobile-drawer-handle", "2.25rem", null],
+    ["--height-mobile-drawer-handle", "0.25rem", null],
+    ["--spacing-mobile-drawer-inset-top", "0.75rem", null],
+    ["--spacing-mobile-drawer-title-inset-y", "0.875rem", null],
+    ["--height-mobile-drawer-row", "3.5rem", null],
+    ["--spacing-mobile-drawer-row-inset-y", "0.9375rem", null],
+    ["--spacing-mobile-drawer-row-inset-x", "1rem", null],
+    ["--spacing-mobile-drawer-inset-bottom", "1.25rem", null],
+    ["--shadow-mobile-drawer", "0 -12px 48px color-mix(in oklab, var(--color-elevation) 16%, transparent)", null],
+    ["--color-mobile-drawer-overlay", "color-mix(in oklab, var(--color-elevation) 24%, transparent)", null],
+    // From the drawings, not the spec (#458).
+    ["--size-mobile-drawer-row-icon", "1.0625rem", null],
+    ["--spacing-mobile-drawer-heading-stack", "0.25rem", null],
+    ["--spacing-mobile-drawer-header-action-inset-x", "0.75rem", null],
+    // The sheet that confirms gives every sheet's actions their arrangement (#458).
+    ["--spacing-mobile-drawer-body-stack", "1.25rem", null],
+    ["--spacing-mobile-drawer-action-stack", "0.75rem", null],
+    ["--spacing-mobile-confirm-inset-top", "1.5rem", null],
+    ["--spacing-mobile-confirm-title-stack", "0.25rem", null],
+    ["--spacing-mobile-confirm-id-stack", "0.875rem", null],
     ["--width-mobile-menu", "14.5rem", 463],
     ["--spacing-mobile-menu-gutter", "0.75rem", 463],
     ["--spacing-mobile-menu-offset", "0.25rem", 463],
@@ -653,7 +668,14 @@ export async function run({ check, assert, log }) {
     check("  no name carries a digit", [...declaredNames].filter((n) => /\d/.test(n)).join(" "), "");
 
     const mixes = (value) => [...value.matchAll(/color-mix\(in oklab, var\((--[a-z0-9-]+)\) [\d.]+%, transparent\)/g)].map((m) => m[1]);
-    const washes = ["--color-hover-subtle", "--color-background-muted", "--color-hover", "--color-scrollbar-thumb", "--color-scrollbar-thumb-hover"];
+    const washes = [
+        "--color-hover-subtle",
+        "--color-background-muted",
+        "--color-hover",
+        "--color-scrollbar-thumb",
+        "--color-scrollbar-thumb-hover",
+        "--color-mobile-input-background",
+    ];
     for (const name of washes) check(`  ${name} is the foreground in an amount`, mixes(declared.get(name) ?? "").join(" "), "--color-foreground-default");
     const lifted = VALUES.filter(([n]) => n.startsWith("--shadow-") || /^--color-.*-overlay$/.test(n)).map(([n]) => n);
     for (const name of lifted) {

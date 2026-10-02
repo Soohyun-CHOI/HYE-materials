@@ -853,10 +853,12 @@ export async function run({ check, assert, log }) {
     );
     check("  with no action prop anywhere", dialog.actionProps, 0);
     check("  and says only what the reading or the action refused", dialog.saidReads, "error, fields");
+    // The one job there is comes from `onlyJob` since #458, the one spelling of "one
+    // assignment" the transition's dialog starts from too (`offline/tool-job.mjs`).
     check(
         "its fields start from what the opener handed over: the tool, the count, and the one job there is",
         `${dialog.starts.toolName} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
-        'tool ? tool.toolName : "" | String(openingCount(quantity)) | jobs.length === 1 ? jobs[0].id : ""'
+        'tool ? tool.toolName : "" | String(openingCount(quantity)) | onlyJob(jobs)?.id ?? ""'
     );
     check("opened on a tool, the tool is the line under the title", dialog.subtitle, "tool ? tool.toolName : COPY.intro");
     check("  and its name goes as it stands, with no field to type it in", dialog.nameField, "tool else: Combobox | tool then: input hidden");

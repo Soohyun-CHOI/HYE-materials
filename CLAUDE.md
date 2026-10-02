@@ -112,13 +112,13 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
-- `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), and the picker's words.
+- `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the suggestions, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
 - `lib/toolLabelPage.js` — the page a tool label prints as (#353, #467).
-- `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, the refusals, and every word it says.
+- `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, which of them asks first (#458), the refusals, and every word it says.
 - `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, which tool items a label run is for (#443), the page a registration lands on (#449), and their own words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
@@ -164,8 +164,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
 - `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` calls may read one.**
-- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`: the tool item page's two until #458, the rest until #258. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener, or to the page's heading when nothing opened it (#459).**
-- `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456); `lib/dialogFrame.js`, its word.
+- `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`, none of them on the tools axis since #458, until #258. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener, or to the page's heading when nothing opened it (#459) or the opener went with it (#458).**
+- `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456), and below the phone's edge Tools 0a's sheet for one marked so (#458); `lib/dialogFrame.js`, its word.
 - `app/components/Controls.js`, `Menu.js` — 0a's controls, the list a field opens (#456) and the menu a button opens (#478); `lib/controls.js`, their keys and words.
 - `app/components/Rail.js`, `RailAccount.js`, `Breadcrumb.js` — the rail, its account (#478) and the column a screen scrolls in, and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, what the account says, and their words. **Only the tools layout calls the rail until #258.**
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**

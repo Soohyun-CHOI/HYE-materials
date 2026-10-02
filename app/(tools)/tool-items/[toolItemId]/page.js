@@ -18,8 +18,8 @@ import { TOOL_EVENT } from "@/lib/toolStatus";
 import { planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
 import LabelsDialog from "../LabelsDialog";
-import RetireToolItemForm from "./RetireToolItemForm";
-import ToolTransitionForm from "./ToolTransitionForm";
+import RetirementDialog from "./RetirementDialog";
+import TransitionDialog from "./TransitionDialog";
 import { userName } from "@/lib/userName";
 
 // The param and no lookup, which is what all four document detail screens do and
@@ -176,7 +176,7 @@ async function renderToolItemPage({ params }) {
             ? await getRecentCheckOuts({ jobCodes: transition.jobs.map((job) => job.jobCode) })
             : [];
     // The reader hands back link arrays; the pure rule takes a job CODE, because
-    // the form narrows by the code its picker carries. Mapped from the job list
+    // the dialog narrows by the code its choice carries. Mapped from the job list
     // already in hand, so this costs nothing.
     const recentCheckOuts = recentRows.map((row) => ({
         ...row,
@@ -237,11 +237,13 @@ async function renderToolItemPage({ params }) {
                 head. Each control names itself.
 
                 TWO CONTROLS OF DIFFERENT KINDS, WHICH IS WHERE THE WEIGHT LIVES.
-                The transition SUBMITS — one press, because the next press undoes
-                it. The retirement OPENS a modal that says what becomes true, and
-                nothing undoes that one. A design may draw them however it likes;
-                what it may not do is make one look like the other, and the two
-                shapes are what stop it happening by accident.
+                The transition asks only what the page cannot know (#458): a
+                check-out opens a dialog for the job and the name, a check-in is
+                one press for a person on one job, and the next scan undoes
+                either. The retirement opens a question naming the tool, with a
+                red commitment, and nothing undoes that one. A design may draw
+                them however it likes; what it may not do is make one look like
+                the other.
 
                 A REFUSAL STANDS WHERE BOTH CONTROLS WOULD BE, never beside them.
                 A retired tool item allows nothing to anybody and somebody on no
@@ -256,11 +258,13 @@ async function renderToolItemPage({ params }) {
                 <p>{transition.refusal}</p>
             ) : (
                 <>
+                    {/* The plan as this render reached it: the dialog asks
+                        `readSubmission` of it before it sends, the function the
+                        action asks of a fresh one. */}
                     {transition.event && (
-                        <ToolTransitionForm
+                        <TransitionDialog
+                            plan={transition}
                             toolItemId={toolItem.toolItemId}
-                            event={transition.event}
-                            jobs={transition.jobs}
                             currentJobCode={jobCodeById[toolItem.job?.[0]]}
                             recentCheckOuts={recentCheckOuts}
                         />
@@ -268,9 +272,9 @@ async function renderToolItemPage({ params }) {
                     {/* No jobs are handed to this one: a retirement inherits the
                         tool item's own job rather than asking, so the page puts
                         the question once and the two controls cannot disagree
-                        about the answer. */}
+                        about the answer. Its question names the tool. */}
                     {transition.mayRetire && (
-                        <RetireToolItemForm toolItemId={toolItem.toolItemId} />
+                        <RetirementDialog toolItemId={toolItem.toolItemId} toolName={tool?.toolName} />
                     )}
                 </>
             )}
