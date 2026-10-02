@@ -2,6 +2,7 @@
 
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { DIALOG_FRAME_COPY as COPY } from "@/lib/dialogFrame";
+import { Refusal } from "./Controls";
 
 /*
  * The frame a dialog opens in — Claude Design's 0l, drawn once (#456).
@@ -95,17 +96,6 @@ import { DIALOG_FRAME_COPY as COPY } from "@/lib/dialogFrame";
  * above this axis keep `modalStyles.js` until #258, which is where they take the design's
  * frame and the file's own header says so.
  */
-
-/** The mark before a refusal about the whole dialog: a circle and an exclamation, in Red (0l Actions). */
-function AlertMark() {
-    return (
-        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="size-icon shrink-0">
-            <circle cx="9" cy="9" r="7.3" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M9 5.2v4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            <circle cx="9" cy="12.6" r="1" fill="currentColor" />
-        </svg>
-    );
-}
 
 /**
  * Where focus goes when a dialog no press opened closes: the page's heading (#459), made
@@ -473,12 +463,7 @@ export function SheetRows({ rows }) {
 export function DialogActions({ refusal, children }) {
     return (
         <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
-            {refusal && (
-                <p role="alert" className="flex items-center gap-gap text-body-sm text-danger max-sm:in-data-[sheet]:text-mobile-body-sm">
-                    <AlertMark />
-                    <span>{refusal}</span>
-                </p>
-            )}
+            {refusal && <Refusal>{refusal}</Refusal>}
             <div className="flex flex-wrap justify-end gap-gap max-sm:in-data-[sheet]:flex-col-reverse max-sm:in-data-[sheet]:gap-mobile-drawer-action-stack">
                 {children}
             </div>

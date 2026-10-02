@@ -21,25 +21,24 @@ the token first and leave the actual person with a dead link. The extra click is
 feature.
 
 It is also the app's clearest example of **one screen with five mutually exclusive
-states**, four of which are failures.
+states**, three of which are failures with words of their own.
 
 ## What it always carries
 
-**identity.** The heading `Sign in to HYE USA Portal`, the same line the sign-in
-screen carries. Centered, narrow, no navigation.
+**identity.** The product's name as the wordmark, the same as on the sign-in screen,
+and a title that names the link's state. Centered, narrow, no navigation.
 
-Everything else depends on the token's state.
+Everything else depends on the token's state, and every state has exactly one way
+forward.
 
 ## What it carries only sometimes
 
 **When the link is still valid — one state of five:**
 
-- **identity** — `Signing in as {email}`, with the address in bold. The reader is
-  told whose session they are about to create, which matters on a shared or family
-  device.
-- the line `Press the button to finish signing in on this device.` — `on this
-  device` is doing the work: it explains why a second step exists at all.
-- **action** — a full-width filled button, `Confirm sign-in`.
+- **identity** — the title `Sign in`, and `You're signing in as` leading into the
+  address, drawn as a chip with no control in it. The reader is told whose session
+  they are about to create, which matters on a shared or family device.
+- **action** — a full-width filled button, `Sign in`.
 
 **The button is a plain HTML form with no client-side code of any kind** — no
 script, no action identifier. So it still works where scripts are blocked, and its
@@ -52,34 +51,38 @@ it, a reader who arrived with a destination and one who arrived without see the
 same words.
 
 
-**When the link is not valid — four states, each one sentence and no button:**
+**When the link can no longer be used — four states, three voices:**
 
-| State | Sentence |
-|---|---|
-| no token in the link | `This sign-in link is not valid.` |
-| a token nobody issued | `This sign-in link is not valid.` |
-| already used | `This sign-in link has already been used.` |
-| expired | `This sign-in link has expired. Sign-in links last 15 minutes.` |
+| State | Title | Under it |
+|---|---|---|
+| expired | `This link has expired` | `Get a new link sent to` and the address |
+| already used | `This link no longer works` | `Get a new link sent to` and the address |
+| a token nobody issued | `This link isn't valid` | nothing |
+| no token in the link | `This link isn't valid` | nothing |
 
-The first two are **deliberately the same sentence**. A missing token and an unknown
+The last two are **deliberately the same words**. A missing token and an unknown
 one are one fact from the reader's side, and distinguishing them would tell whoever
 is holding the link something about what the app knows.
 
-Only the expired case explains itself, because only it has a cause the reader can
-act on — request another and use it sooner.
+**The way forward follows from whether the link names an address.** The two that do
+offer `Send new email`, which sends a new email to that address from this browser —
+the code in it works here — and then shows the sign-in screen's code step. The two
+that name none offer `Go to sign in`, back to the sign-in screen. Both carry the
+destination with them, so a reader whose link ended does not lose where they were
+going at the last step. While the new email is being sent the button keeps its fill
+and shows a spinner and `Sending…`; if it cannot be sent,
+`Something went wrong. Try again.`
 
-**In all four:** a link reading `Request a new sign-in link`, going back to the
-sign-in screen — carrying the destination with it, so a reader whose link expired
-does not lose where they were going at the last step. There is always exactly one
-way forward.
+**Showing the address on a dead link withholds nothing either.** Whoever holds the
+link holds the email it came in, which names the address.
 
 **A token whose expiry cannot be read counts as expired.** The state machine has no
 "unknown", so there is no sixth voice to design.
 
 ## What must agree elsewhere
 
-**The heading is the sign-in screen's and the name step's**, so the steps of one
-flow read as one.
+**The wordmark is the sign-in screen's and the name step's**, all three under one
+frame, so the steps of one flow read as one.
 
 **Pressing the button does not always land the reader on their destination.**
 Somebody whose `Users` row has no name yet — every first-time signer — is shown
@@ -87,26 +90,23 @@ Somebody whose `Users` row has no name yet — every first-time signer — is sh
 this screen says so, for the same reason nothing names the destination: a
 returning reader never meets that step.
 
-**`Confirm sign-in` is the exact phrase the sign-in screen promises**, in
-`open the link and press Confirm sign-in`, and the email says it too. The three are
-one instruction split across an email round trip; the sign-in screen and the email
-take the word from this screen's own constant, so a rename here reaches both, and a
-redesign that rewords either of them has to keep naming this button.
+**`Sign in` is the button the email names**, from this screen's own constant: the
+email's button and this page's are one word, so a rename here reaches the email.
 
 **This screen is one of two ways to finish a sign-in (#471).** The email also
 carries a code, which signs in only the screen that asked for the email, and using
-either one ends the other — so a link opened after its code was used lands on the
-`already been used` sentence. Nothing here mentions the code, and that is
+either one ends the other — so a link opened after its code was used lands on
+`This link no longer works`. Nothing here mentions the code, and that is
 deliberate: this screen is reached by opening the link, and it is the link's
-device that this screen signs in, which the button's line already says.
+device that this screen signs in.
 
-**The five states and their sentences are one closed set** in a single module, and
-the same module is what the page reads to reach its verdict without consuming the
-token. A design cannot add a sixth state, and should not merge two — the four
-failure voices are four because each leaves the reader in a different position.
+**The five states are one closed set** in a single module, and the same module is
+what the page reads to reach its verdict without consuming the token. A design
+cannot add a sixth state, and should not merge the three voices — each leaves the
+reader in a different position.
 
-**Fifteen minutes is stated on both screens and in the email** — here, twice on the
-sign-in screen's code step, and once in the email — from one constant.
+**Fifteen minutes is stated in the email**, from the one constant the validity rule
+uses. This screen names the state, not the figure.
 
 **The submission is refused across origins**, so this page's form must post to the
 app's own host. Nothing about that is visible, but it rules out hosting the button

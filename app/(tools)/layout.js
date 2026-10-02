@@ -1,5 +1,7 @@
-import { Bricolage_Grotesque, Fragment_Mono, Instrument_Sans } from "next/font/google";
 import Rail from "@/app/components/Rail";
+import { brandFace } from "@/app/faces/brand";
+import { idFace } from "@/app/faces/id";
+import { uiFace } from "@/app/faces/ui";
 import { takePageUser } from "@/lib/authz";
 import { accountOf } from "@/lib/navigation";
 
@@ -24,11 +26,11 @@ import { accountOf } from "@/lib/navigation";
  * column, its own root element an ordinary block. `flex-1` on a tools page's root
  * therefore does nothing, and anything about the axis's own box — filling the
  * height, for one — is decided here and in the rail. **Somebody will copy the two
- * screens that do it the other way:** `/` and `/login` put `flex-1` on their own
- * root div to fill the height, and it works there because on that axis the page's
- * root IS the flex item. This paragraph is reasoned from the rendered DOM rather
- * than measured — `body > div > h1` was read in a browser, and the rest follows
- * from it in CSS.
+ * that do it the other way:** `/` puts `flex-1` on its own root div to fill the
+ * height, and so does the sign-in steps' layout on its (#473), and it works there
+ * because on those the root IS the flex item. This paragraph is reasoned from the
+ * rendered DOM rather than measured — `body > div > h1` was read in a browser, and
+ * the rest follows from it in CSS.
  *
  * IT HOLDS THE RAIL, AND NO WIDTH, PADDING OR TYPE OF A SCREEN'S (#460). #336 settled
  * WHERE the width is decided and decided no value, so that a value chosen here would
@@ -50,39 +52,25 @@ import { accountOf } from "@/lib/navigation";
  * on every screen but the list (`tools.md`). The address a label prints sits outside this
  * group for the same economy: a redirect has no use for a rail.
  *
- * THE DESIGN'S FACES ARE LOADED HERE, AND LOADING ONE STYLES NOTHING (#456). Each
- * `next/font` call below defines the variable its face resolves to — `--font-ui`
- * reads `--font-instrument-sans` — on this one element, so everything on the axis
- * can take the face and nothing does until it asks for it: the dialogs and the rail
- * set `font-ui`, and the screens behind them keep the face they have until #463
- * gives them the look. **This is the one place a face is loaded for the tools
- * screens**: #459's Fragment Mono joined it here, for the ids a landing's notice
- * lists, rather than in the file that first reads it, and #460's Bricolage Grotesque,
- * the wordmark's, joined it the same way; `offline/design-values.mjs` holds that a
- * face read on this axis has a loader only this axis reaches, and #258 moves the lot
- * to the root layout, where Geist's two calls are today. What reaches past this element
- * is only what is a DOM descendant of it — a dialog or a list in the top layer is still
- * one, which is why a face reaches them. The label's Inconsolata stays with the labels'
- * dialog, which loads it (#457): it is the label's measured face and not the design's
- * (`tools.md`).
+ * THE DESIGN'S FACES ARE APPLIED HERE, AND APPLYING ONE STYLES NOTHING (#456). Each
+ * face's variable — `--font-ui` reads `--font-instrument-sans` — is defined on this one
+ * element, so everything on the axis can take the face and nothing does until it asks
+ * for it: the dialogs and the rail set `font-ui`, and the screens behind them keep the
+ * face they have until #463 gives them the look. **The faces load in `app/faces/`, one
+ * module a face, since #473** gave the sign-in screens a layout that draws two of them:
+ * this layout imports all three — #459's Fragment Mono for the ids a landing's notice
+ * lists, #460's Bricolage Grotesque for the wordmark — and `offline/design-values.mjs`
+ * holds that a face read on this axis is loaded by a module only the design's axes
+ * reach. #258 applies them on the root layout's element instead, where Geist's two calls
+ * are today. What reaches past this element is only what is a DOM descendant of it — a
+ * dialog or a list in the top layer is still one, which is why a face reaches them. The
+ * label's Inconsolata stays with the labels' dialog, which loads it (#457): it is the
+ * label's measured face and not the design's (`tools.md`).
  *
  * These screens are the only ones in the app used at a phone width as well as at
  * a monitor: a tool is entered and its labels printed at a desk, and a tool item
  * is scanned on site. `docs/notes/tools.md` carries that derivation.
  */
-
-// The design's UI face, all of its weights at once: it is a variable font, so the
-// three the design uses — 400, 500 and 600 — are one file.
-const uiFace = Instrument_Sans({ subsets: ["latin"], variable: "--font-instrument-sans" });
-
-// The design's id face, in the one weight the design sets it at (#459). It is not a
-// variable font, so the weight is named.
-const idFace = Fragment_Mono({ subsets: ["latin"], weight: "400", variable: "--font-fragment-mono" });
-
-// The wordmark's face (#460), with its optical size: the design asks for 500 and 700 at
-// optical sizes 12 to 96, and `next/font` takes an axis only with the variable weight,
-// so this is the variable face, both of its axes, in one file.
-const brandFace = Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz"], variable: "--font-bricolage-grotesque" });
 
 export default async function ToolsLayout({ children }) {
     const user = await takePageUser();

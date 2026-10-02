@@ -16,6 +16,7 @@
 // it once. All of those are run-time facts and live in the credentialed check,
 // `verify-token-and-lock-174.mjs`.
 
+import { readFileSync } from "node:fs";
 import { isMain, standalone } from "./_harness.mjs";
 import {
     afterAttempt,
@@ -31,12 +32,12 @@ import {
     MAX_CODE_ATTEMPTS,
     normalizeCode,
     precheckCode,
-    REQUEST_NEW_LINK,
+    RESENT_FOR_MS,
     SIGN_IN_COPY,
     TOKEN_STATES,
     TOKEN_TTL_MINUTES,
 } from "../../../lib/authTokenState.js";
-import { SIGN_IN_TITLE } from "../../../lib/productName.js";
+import { SIGN_IN_TITLE, WORDMARK } from "../../../lib/productName.js";
 
 export const title = "Sign-in state — the link's verdicts, the code's, and their copy (#203, #471)";
 
@@ -133,46 +134,37 @@ export function run({ check, assert, log }) {
     check("an omitted `used` field reads as not used", describeToken({ ...usable, used: undefined }, NOW), TOKEN_STATES.VALID);
 
     // ── copy ────────────────────────────────────────────────────────────────
+    // THE DESIGN'S WORDS SINCE #473 (1b, 1f), typed out here rather than read back, so a
+    // rewording is a change to this file too. Every state is a heading and one action;
+    // a state whose row names an address leads into it with a sentence.
     log("");
-    log("copy — one entry per state, and a control only where there is one:");
+    log("the confirmation's words — a heading and one way on per state:");
     const states = Object.values(TOKEN_STATES);
-    check("every state has copy", states.every((s) => Boolean(CONFIRM_COPY[s]?.body)), true);
     check("and there are no extra entries", Object.keys(CONFIRM_COPY).length, states.length);
-    check("only `valid` offers an action", Object.entries(CONFIRM_COPY).filter(([, c]) => c.action).map(([s]) => s).join(), TOKEN_STATES.VALID);
-    // THE INSTRUCTION LIVES IN THE LINK, NOT IN THE BODIES. Asserted as an
-    // absence, which is the direction that stays true as states are added: a body
-    // repeating what the link under it already says is the duplication this
-    // separation exists to make unrepeatable, and it is what the first version of
-    // this copy did in three of four states while omitting it in the fourth.
-    assert(
-        "no refused body repeats the instruction the link carries",
-        states
-            .filter((s) => s !== TOKEN_STATES.VALID)
-            .every((s) => !/request a new/i.test(CONFIRM_COPY[s].body))
-    );
-    assert("and the link is where it is said", /request a new sign-in link/i.test(REQUEST_NEW_LINK));
-    // Each refused body still has to say something about the link's own state,
-    // or it would be an empty box with a link under it.
-    assert(
-        "every refused body names the sign-in link's state",
-        states.filter((s) => s !== TOKEN_STATES.VALID).every((s) => /sign-in link/i.test(CONFIRM_COPY[s].body))
+    const confirmWords = (s) => [CONFIRM_COPY[s].heading, CONFIRM_COPY[s].sentence ?? "-", CONFIRM_COPY[s].action].join(" / ");
+    check("a good link", confirmWords(TOKEN_STATES.VALID), "Sign in / You're signing in as / Sign in");
+    check("a used one", confirmWords(TOKEN_STATES.USED), "This link no longer works / Get a new link sent to / Send new email");
+    check("an expired one", confirmWords(TOKEN_STATES.EXPIRED), "This link has expired / Get a new link sent to / Send new email");
+    check("one naming no row", confirmWords(TOKEN_STATES.INVALID), "This link isn't valid / - / Go to sign in");
+    // A MISSING TOKEN AND AN UNKNOWN ONE SAY ONE THING: telling them apart would tell
+    // whoever holds the link something about what the app knows.
+    check("  and one with no token says the same", confirmWords(TOKEN_STATES.MISSING), confirmWords(TOKEN_STATES.INVALID));
+    // Only a state with a row has an address to lead into, which is what the page draws
+    // under the sentence; a state with none has no sentence to hang it from.
+    check(
+        "a sentence leads into an address exactly where the row names one",
+        states.filter((s) => CONFIRM_COPY[s].sentence).sort().join(","),
+        [TOKEN_STATES.EXPIRED, TOKEN_STATES.USED, TOKEN_STATES.VALID].sort().join(",")
     );
 
-    // THE TTL IS NOT SPELLED IN PROSE. It was 15 in four places — the constant
-    // plus three copy strings — so the expiry sentence now interpolates it and
-    // changing the lifetime cannot leave a screen claiming the old one.
     log("");
-    log("the lifetime is one number, interpolated rather than spelled:");
+    log("the lifetime is one number, and the mail is where it is said:");
     check("TOKEN_TTL_MINUTES", TOKEN_TTL_MINUTES, 15);
-    assert(
-        "the expired message carries that number",
-        CONFIRM_COPY[TOKEN_STATES.EXPIRED].body.includes(String(TOKEN_TTL_MINUTES))
-    );
 
     // A verdict is never a scolding, and never says what the reader did wrong.
     assert(
         "no message blames the reader",
-        states.every((s) => !/you (?:waited|failed|should)/i.test(CONFIRM_COPY[s].body))
+        states.every((s) => !/you (?:waited|failed|should)/i.test(confirmWords(s)))
     );
 
     runCode({ check, assert, log });
@@ -341,68 +333,152 @@ function runCode({ check, assert, log }) {
     }
 
     // ── the code step's words ───────────────────────────────────────────────
+    // THE DESIGN'S WORDS SINCE #473 (1a, 1e), typed out. A refusal that leaves something
+    // to try is one sentence under the field; any other is the heading the step takes
+    // when the field goes, so `canTryAgain` decides which kind each entry is.
     log("");
     log("the code step's words — one per refusal, and none for success:");
     const refusals = Object.values(CODE_STATES).filter((s) => s !== CODE_STATES.VALID);
     const sentence = (s) => (typeof CODE_COPY[s] === "function" ? CODE_COPY[s](2) : CODE_COPY[s]);
-    check("every refusal has a sentence", refusals.filter((s) => !sentence(s)).join(), "");
+    check("every refusal has words", refusals.filter((s) => !sentence(s)).join(), "");
     check("  and success has none — it says so by arriving (#321)", CODE_COPY[CODE_STATES.VALID], undefined);
     check("  and there are no extra entries", Object.keys(CODE_COPY).length, refusals.length);
-    check("a missing browser and a missing row say one thing", CODE_COPY[CODE_STATES.MISSING], CODE_COPY[CODE_STATES.INVALID]);
-    check("one try left is singular", CODE_COPY[CODE_STATES.WRONG](1), "That code does not match. 1 try left.");
-    check("  two are plural", CODE_COPY[CODE_STATES.WRONG](2), "That code does not match. 2 tries left.");
-    // THE INSTRUCTION LIVES IN THE CONTROL, as the confirmation's does: every
-    // refused sentence stands over `Send a new email`, so none of them says it.
+    check("one try left is singular", CODE_COPY[CODE_STATES.WRONG](1), "Wrong code. 1 try left.");
+    check("  two are plural", CODE_COPY[CODE_STATES.WRONG](2), "Wrong code. 2 tries left.");
+    check("  and four, as the design draws it", CODE_COPY[CODE_STATES.WRONG](4), "Wrong code. 4 tries left.");
+    check("a short code, which the design does not draw, keeps #471's sentence", CODE_COPY[CODE_STATES.MALFORMED], "Enter the 6-digit code from the email.");
+    // Read off the source, since a figure spelled out renders the same until the length moves.
+    const stateSource = readFileSync(new URL("../../../lib/authTokenState.js", import.meta.url), "utf8");
+    assert("  its figure interpolated rather than spelled", /\[CODE_STATES\.MALFORMED\]:\s*`[^`]*\$\{CODE_LENGTH\}[^`]*`/.test(stateSource));
+    check("five wrong ones end the code", CODE_COPY[CODE_STATES.LOCKED], "Too many tries");
+    check("  and so do fifteen minutes", CODE_COPY[CODE_STATES.EXPIRED], "This code has expired");
+    // THE THREE STATES THE DESIGN DID NOT DRAW SHARE ONE HEADING, the link's `used` in the
+    // code's word: a row spent somewhere else, a browser no longer waiting, a row gone.
+    check("a code spent somewhere else no longer works", CODE_COPY[CODE_STATES.USED], "This code no longer works");
+    check(
+        "  and neither does one this browser stopped waiting for, nor one whose row is gone",
+        [CODE_COPY[CODE_STATES.MISSING], CODE_COPY[CODE_STATES.INVALID]].join(" | "),
+        "This code no longer works | This code no longer works"
+    );
+    // NONE OF THEM SAYS ANYTHING ABOUT AN ADDRESS: each describes the row this browser
+    // asked for, so no refusal names an account, a person or a sign-in that happened.
     assert(
-        "no refused sentence repeats what the control under it says",
+        "no refusal names an account or says somebody signed in",
+        refusals.every((s) => !/account|signed in|registered|exists/i.test(sentence(s)))
+    );
+    // THE INSTRUCTION LIVES IN THE CONTROL: an ended code's one action sends a new email,
+    // and no refusal says so itself.
+    assert(
+        "no refusal repeats what the action under it says",
         refusals.every((s) => !/new email|send a new|request a new/i.test(sentence(s)))
     );
-    assert("  and the control is where it is said", /send a new email/i.test(SIGN_IN_COPY.code.resend));
-    assert(
-        "the figures in the sentences are interpolated, not spelled",
-        CODE_COPY[CODE_STATES.MALFORMED].includes(String(CODE_LENGTH)) &&
-            CODE_COPY[CODE_STATES.LOCKED].includes(String(MAX_CODE_ATTEMPTS)) &&
-            CODE_COPY[CODE_STATES.EXPIRED].includes(String(TOKEN_TTL_MINUTES))
-    );
+    check("  and the action is where it is said", SIGN_IN_COPY.code.endedAction, "Send new email");
+    check("  the same words the expired link's action says", SIGN_IN_COPY.code.endedAction, CONFIRM_COPY[TOKEN_STATES.EXPIRED].action);
     assert(
         "no code sentence blames the reader",
         refusals.every((s) => !/you (?:waited|failed|should|typed|entered)/i.test(sentence(s)))
     );
-    // `used` has to name both, because the row does not say which one spent it.
-    assert("a spent row's sentence names the link as well as the code", /code/i.test(sentence(CODE_STATES.USED)) && /link/i.test(sentence(CODE_STATES.USED)));
-    // The step's instruction names the confirmation's button by its constant.
-    const confirmAction = CONFIRM_COPY[TOKEN_STATES.VALID].action;
-    assert(`the code step names ${confirmAction} for the link`, SIGN_IN_COPY.code.how.includes(confirmAction));
-    assert("  and the lifetime by its constant", SIGN_IN_COPY.code.how.includes(`${TOKEN_TTL_MINUTES} minutes`));
-    check("the step names the address it sent to", SIGN_IN_COPY.code.sent("soo@example.com"), "We sent a sign-in link and a code to soo@example.com.");
+    check(
+        "the step's own words",
+        [
+            SIGN_IN_COPY.code.heading,
+            SIGN_IN_COPY.code.sentence,
+            SIGN_IN_COPY.code.action,
+            SIGN_IN_COPY.code.working,
+            SIGN_IN_COPY.code.resendLead,
+            SIGN_IN_COPY.code.resend,
+            SIGN_IN_COPY.code.resent,
+            SIGN_IN_COPY.code.endedSentence,
+        ].join(" / "),
+        "Check your email / Enter the code we sent to / Sign in / Signing in… / Didn't get it? / Resend email / Email sent / Get a new code sent to"
+    );
+    check("  and `Email sent` stands for the design's 3 s", RESENT_FOR_MS, 3000);
+    check(
+        "the email step's words",
+        [SIGN_IN_COPY.request.heading, SIGN_IN_COPY.request.sentence, SIGN_IN_COPY.request.placeholder, SIGN_IN_COPY.request.action, SIGN_IN_COPY.request.working].join(" / "),
+        "Sign in / Enter your work email. / name / Continue / Sending…"
+    );
+    check("a request that did not happen says one sentence wherever it was asked", SIGN_IN_COPY.failed, "Something went wrong. Try again.");
+    check("  and a new email on its way one word wherever it was asked", [SIGN_IN_COPY.request.working, SIGN_IN_COPY.sending].join(" "), "Sending… Sending…");
 
     // ── the email ───────────────────────────────────────────────────────────
+    // THE DESIGN'S OWN MAIL SINCE #473 (1h, 0a Email): one builder for the HTML and the
+    // plain text, every value it puts into markup escaped, and every fact it needs refused
+    // rather than mailed as `undefined`.
     log("");
-    log("the email carries the code, the link and the words the screens use:");
+    log("the email carries the address, the link and the code, in the design's words:");
     check("its subject is the sign-in line (#201)", SIGN_IN_COPY.mail.subject, SIGN_IN_TITLE);
-    const html = SIGN_IN_COPY.mail.html({
+    check("its hidden first line", SIGN_IN_COPY.mail.preheader, "Use the link or the code to sign in. Both expire in 15 minutes.");
+    assert("  carrying the lifetime from the constant", SIGN_IN_COPY.mail.preheader.includes(`${TOKEN_TTL_MINUTES} minutes`));
+    const facts = {
+        email: "soo+code471@hanyang.example",
         confirmUrl: "https://portal.example.com/login/confirm?token=abc&destination=%2Ftool-items%2FX",
         code: "012345",
-    });
+    };
+    const html = SIGN_IN_COPY.mail.html(facts);
     assert("it carries the code, leading zero and all", html.includes(">012345<"));
     check("it carries one link", [...html.matchAll(/href="/g)].length, 1);
     assert("  with its separator escaped", html.includes("token=abc&amp;destination="));
-    assert(`it names ${confirmAction}, from the confirmation's own constant`, html.includes(confirmAction));
-    assert("it states the lifetime from the constant", html.includes(`${TOKEN_TTL_MINUTES} minutes`));
+    assert("it names the address it signs in", html.includes(">soo+code471@hanyang.example<"));
+    const confirmAction = CONFIRM_COPY[TOKEN_STATES.VALID].action;
+    assert(`its button is ${confirmAction}, the confirmation's own action`, html.includes(`>${confirmAction}</a>`));
+    assert("it states the lifetime from the constant", html.includes(`expire in ${TOKEN_TTL_MINUTES} minutes`));
+    assert("its title is the sign-in line", html.includes(`>${SIGN_IN_TITLE}</td>`) && html.includes(`<title>${SIGN_IN_TITLE}</title>`));
+    assert("its head is the wordmark, split where the product's name splits", html.includes(`>${WORDMARK.lead}</span> <span`) && html.includes(`>${WORDMARK.rest.trim()}</span>`));
+    // NO CODE WHERE A LOCK SCREEN SHOWS IT: the subject and the hidden first line.
+    assert("the code is in neither the subject nor the hidden first line", !SIGN_IN_COPY.mail.subject.includes("012345") && !/>Use the link[^<]*012345/.test(html));
+    // A LONG ADDRESS BREAKS RATHER THAN RUNNING PAST A NARROW PHONE'S EDGE, which the
+    // design's own mail held to one line.
+    const addressSpan = html.match(/<span class="ink"[^>]*>soo\+code471@hanyang\.example<\/span>/)?.[0] ?? "";
+    assert("the address is no longer held to one line", addressSpan.length > 0 && !addressSpan.includes("nowrap") && addressSpan.includes("overflow-wrap: anywhere"));
+    // EVERY VALUE IN THE MARKUP IS ESCAPED (#473), the address and the link as well as the
+    // link's `&`, so a value cannot become markup.
+    const hostile = SIGN_IN_COPY.mail.html({
+        email: 'a"b<c>&d@hanyang.example',
+        confirmUrl: 'https://x.test/login/confirm?token=a"><script>',
+        code: "012345",
+    });
+    assert("an address's markup characters are escaped", hostile.includes("a&quot;b&lt;c&gt;&amp;d@hanyang.example") && !hostile.includes("<c>"));
+    assert("  and a link's", hostile.includes('href="https://x.test/login/confirm?token=a&quot;&gt;&lt;script&gt;"') && !hostile.includes("<script>"));
+    // THE PLAIN-TEXT PART IS THE SAME WORDS IN THE SAME ORDER, the button a sentence and
+    // its URL — read whole, so a sentence dropped from one part fails here.
+    check(
+        "the plain-text part",
+        SIGN_IN_COPY.mail.text(facts),
+        [
+            SIGN_IN_TITLE,
+            "",
+            "Use this link to sign in as soo+code471@hanyang.example:",
+            "https://portal.example.com/login/confirm?token=abc&destination=%2Ftool-items%2FX",
+            "",
+            "Or enter this code on the sign-in page: 012345",
+            "",
+            "This link and code work once and expire in 15 minutes.",
+            "",
+            "If you didn't try to sign in, you can safely ignore this email.",
+            "",
+        ].join("\n")
+    );
+    for (const words of ["Or enter this code on the sign-in page:", "This link and code work once and expire in 15 minutes.", "If you didn&#39;t try to sign in, you can safely ignore this email."]) {
+        assert(`  and the HTML says it too: ${words.slice(0, 40)}`, html.includes(words));
+    }
     // THE MUTANT #290 WAS ABOUT, one mail over: a caller that forgets a value.
     for (const [label, args] of [
-        ["no code at all", { confirmUrl: "https://x.test/login/confirm?token=a" }],
-        ["a code that is not six digits", { confirmUrl: "https://x.test/login/confirm?token=a", code: "12345" }],
-        ["a code as a number", { confirmUrl: "https://x.test/login/confirm?token=a", code: 12345 }],
-        ["no link", { code: "012345" }],
+        ["no code at all", { email: facts.email, confirmUrl: facts.confirmUrl }],
+        ["a code that is not six digits", { ...facts, code: "12345" }],
+        ["a code as a number", { ...facts, code: 12345 }],
+        ["no link", { email: facts.email, code: "012345" }],
+        ["no address", { confirmUrl: facts.confirmUrl, code: "012345" }],
     ]) {
-        let threw = false;
-        try {
-            SIGN_IN_COPY.mail.html(args);
-        } catch {
-            threw = true;
+        for (const part of ["html", "text"]) {
+            let threw = false;
+            try {
+                SIGN_IN_COPY.mail[part](args);
+            } catch {
+                threw = true;
+            }
+            assert(`the ${part} builder refuses ${label} rather than mailing it`, threw);
         }
-        assert(`the builder refuses ${label} rather than mailing it`, threw);
     }
 }
 

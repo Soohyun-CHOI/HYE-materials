@@ -17,9 +17,10 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * Every one of this app's `requireUser()` actions is the same shape: a session
  * plus an ownership that is structural rather than compared.
  *
- * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
- * `NameForm.js` reads this through `useActionState`, so a refusal lands in
- * `state` and the form renders it in the slot it already has.
+ * REFUSES BY RETURNING BECAUSE THE CALL SITE BINDS (#185). `NameForm.js` reads
+ * this through `useActionState`, so a refusal lands in `state`: `{ refusals }`, a
+ * sentence under each name that is wrong, and `{ error }` for a write that did not
+ * happen, which the form says where a refusal of the whole step stands (#473).
  *
  * IT JUDGES THE DESTINATION AGAIN, and that is the call that protects anything:
  * a Server Action is reachable without the page that renders the form, so a
@@ -31,28 +32,27 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * same two values twice. The page sends a reader who already has a name away
  * before the form is drawn, which is where that case is answered.
  *
- * THE TYPED VALUES COME BACK WITH A REFUSAL so the reader is not made to type
- * their name again to read why it was refused. On success nothing comes back at
- * all — the redirect is the answer, which is #321's rule that an action says what
- * it did by arriving. They are `typedFirst`/`typedLast` rather than the field
- * names: what comes back is what somebody typed and had refused, which is not a
- * name this app holds, and `offline/user-name.mjs` reads a `.firstName` anywhere
- * outside one module as a screen reaching past the rule.
+ * NOTHING TYPED COMES BACK. The form's fields are its own state since #473, so what
+ * the reader typed stays in them through a refusal and a failed write alike; until
+ * then they were reset with the form and this handed the typed values back. On
+ * success nothing comes back at all — the redirect is the answer, which is #321's
+ * rule that an action says what it did by arriving.
  */
 export async function setUserNameAction(prevState, formData) {
     const { destination, ...result } = await withOpsLabel("setUserNameAction", async () => {
         const user = await requireUser();
 
-        const firstName = String(formData.get("firstName") ?? "");
-        const lastName = String(formData.get("lastName") ?? "");
-        const judged = judgeName({ firstName, lastName });
-        if (judged.error) return { error: judged.error, typedFirst: firstName, typedLast: lastName };
+        const judged = judgeName({
+            firstName: String(formData.get("firstName") ?? ""),
+            lastName: String(formData.get("lastName") ?? ""),
+        });
+        if (judged.refusals) return { refusals: judged.refusals };
 
         try {
             await setUserName(user.id, judged);
         } catch (err) {
             console.error("setUserNameAction could not store the name", err);
-            return { error: USER_NAME_COPY.refusal.failed, typedFirst: firstName, typedLast: lastName };
+            return { error: USER_NAME_COPY.refusal.failed };
         }
 
         return { destination: safeDestination(formData.get(DESTINATION_PARAM)) ?? DEFAULT_DESTINATION };

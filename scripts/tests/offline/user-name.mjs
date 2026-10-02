@@ -135,7 +135,12 @@ export function run({ check, assert, log }) {
     check("whitespace is not a name", needsName({ firstName: "   " }), true);
     check("no user at all renders nothing", userName(null), "");
     check("  rather than the word undefined", fullUserName(undefined), "");
-    check("a refused pair says which field", judgeName({ firstName: " ", lastName: "Choi" }).error.includes("first"), true);
+    // A REFUSAL STANDS UNDER THE NAME IT IS ABOUT (#473), so the judgment says which, and
+    // both at once — in the design's words, typed out here.
+    check("a refused pair says which name", JSON.stringify(judgeName({ firstName: " ", lastName: "Choi" }).refusals), '{"first":"Enter your first name."}');
+    check("  and both when both are wrong", JSON.stringify(judgeName({ firstName: "", lastName: "" }).refusals), '{"first":"Enter your first name.","last":"Enter your last name."}');
+    check("  and one too long by the design's figure", judgeName({ firstName: "Soo", lastName: "x".repeat(61) }).refusals?.last, "Max 60 characters.");
+    check("  while sixty is a name", judgeName({ firstName: "Soo", lastName: "x".repeat(60) }).lastName, "x".repeat(60));
     check("  and a good pair comes back trimmed", judgeName({ firstName: "  Soo  ", lastName: "Choi " }).firstName, "Soo");
     // The third rendering (#478): a reader naming themselves gets their address's local
     // part whether or not they have a name, which is what sets it apart from the fallback.

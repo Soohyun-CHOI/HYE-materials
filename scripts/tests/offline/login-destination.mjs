@@ -429,7 +429,7 @@ export function run({ check, assert, log }) {
     );
     assert("  and hands that URL to the mail's builder", handsOver);
     const built = confirmPath({ token: "abc", destination: "/tool-items/X" });
-    const html = SIGN_IN_COPY.mail.html({ confirmUrl: `https://portal.example.com${built}`, code: "012345" });
+    const html = SIGN_IN_COPY.mail.html({ email: "soo@portal.example.com", confirmUrl: `https://portal.example.com${built}`, code: "012345" });
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
     check("it writes one href", hrefs.length, 1);
     check(
@@ -475,11 +475,26 @@ export function run({ check, assert, log }) {
         "  valued from the judged local",
         reaches(confirm.ast, attrValue(carriers[0], "value"), "safeDestination")
     );
-    // And the way back keeps it, so an expired link does not cost the destination.
+    // And both ways on keep it, so a link that can no longer be used does not cost the
+    // destination (#473): `Go to sign in` goes back to the sign-in screen through the
+    // builder, and `Send new email` is handed the judged value, asks for the email with it
+    // and lands on the sign-in screen through the same builder.
     assert(
-        "  and `Request a new sign-in link` keeps it",
-        jsxElements(confirm.ast, "Link").some((el) => reaches(confirm.ast, attrValue(el, "href"), "signInPath"))
+        "  and `Go to sign in` keeps it",
+        jsxElements(confirm.ast, "ButtonLink").some((el) => reaches(confirm.ast, attrValue(el, "href"), "signInPath"))
     );
+    const [sendNew] = jsxElements(confirm.ast, "SendNewEmail");
+    assert("  and `Send new email` is handed the judged one", Boolean(sendNew) && reaches(confirm.ast, attrValue(sendNew, "destination"), "safeDestination"));
+    const resend = parseFile("app/login/confirm/SendNewEmail.js");
+    // Read off the request itself — the one `fetch`, and the fields its JSON body sends —
+    // since the component's own prop spells the word whether or not the body carries it.
+    const asks = callsTo(resend.ast, "fetch");
+    const sentFields = (call) => {
+        const body = call?.arguments[1]?.properties?.find((p) => p.key?.name === "body")?.value;
+        return body?.type === "CallExpression" ? (body.arguments[0]?.properties ?? []).map((p) => p.key?.name) : [];
+    };
+    assert("  which it asks for the email with", asks.length === 1 && sentFields(asks[0]).includes("destination"));
+    assert("  and lands on the sign-in screen through the builder", callsTo(resend.ast, "signInPath").length === 1);
 
     // ── 7: the detectors, seen finding what they look for ───────────────────
     // ANTI-VACUITY. Every zero above is also what a walk that visits nothing

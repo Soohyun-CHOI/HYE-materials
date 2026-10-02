@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
-import { PRODUCT_NAME } from "@/lib/productName";
+import { WORDMARK } from "@/lib/productName";
 import RailAccount from "./RailAccount";
 
 /*
@@ -113,13 +113,6 @@ const SECTION_ICONS = {
         </>
     ),
 };
-
-// The wordmark sets its first word at 700 and the rest at 500 in Ink 2 (0h). The split
-// is the drawing's, of the one name `lib/productName.js` owns; #473's sign-in wordmark
-// is its second reader, and the split moves to that module when it arrives.
-const WORDMARK_BREAK = PRODUCT_NAME.indexOf(" ");
-const WORDMARK_LEAD = PRODUCT_NAME.slice(0, WORDMARK_BREAK);
-const WORDMARK_REST = PRODUCT_NAME.slice(WORDMARK_BREAK);
 
 // The column a screen sits in (0i): it scrolls from the phone's edge up, its lane is
 // reserved whether or not the bar shows, and the thumb is round with 2 of clearance,
@@ -271,10 +264,12 @@ export default function Rail({ account, children }) {
                             </svg>
                         </button>
                         {/* The wordmark stays drawn until the rail has closed over it, and is
-                            not drawn at all while it is collapsed (0h, 0m). */}
+                            not drawn at all while it is collapsed (0h, 0m). Its first word is
+                            set at 700 and the rest at 500 in Ink 2, split where
+                            `lib/productName.js` splits it. */}
                         <span className="invisible whitespace-nowrap font-brand text-brand tracking-brand text-foreground-default transition-[visibility] delay-(--transition-duration-rail) duration-0 group-data-expanded:visible group-data-expanded:delay-0">
-                            <span className="font-bold">{WORDMARK_LEAD}</span>
-                            <span className="text-foreground-muted">{WORDMARK_REST}</span>
+                            <span className="font-bold">{WORDMARK.lead}</span>
+                            <span className="text-foreground-muted">{WORDMARK.rest}</span>
                         </span>
                     </div>
                     <div aria-hidden="true" className="my-rail-divider-stack h-px shrink-0 bg-divider" />

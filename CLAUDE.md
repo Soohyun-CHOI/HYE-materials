@@ -93,7 +93,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/idSequence.js` — the pure half: the daily ID families and the child relations.
 - `lib/productName.js` — the product's name. Not the company's legal name, which is `lib/poPdf.js:HYE_BUYER_NAME`.
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
-- `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, and every word either says.
+- `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, every word either says, and the email carrying both (#473).
+- `lib/companyEmail.js` — the company's address as the sign-in field takes it and the server admits it (#473).
 - `lib/crossOrigin.js` — the login-CSRF refusal every sign-in POST makes.
 - `lib/cookieLifetime.js` — each sealed cookie's lifetime, one value for its seal and its cookie. A session lasts 30 days from sign-in and is never extended.
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373).
@@ -163,7 +164,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
-- `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` calls may read one.**
+- `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` and `app/login/` calls may read one.**
+- `app/faces/` — the design's faces, a module each (#473).
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`, none of them on the tools axis since #458, until #258. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener, or to the page's heading when nothing opened it (#459) or the opener went with it (#458).**
 - `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456), and below the phone's edge Tools 0a's sheet for one marked so (#458); `lib/dialogFrame.js`, its word.
 - `app/components/Controls.js`, `Menu.js` — 0a's controls, the list a field opens (#456) and the menu a button opens (#478); `lib/controls.js`, their keys and words.
@@ -236,7 +238,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 - A magic link, or the code beside it in the same email, restricted to the company email domain. `requestMagicLink()` domain-checks then emails both; **a code works only in the browser that asked (#471)**, and `consumeAuthToken` and `consumeAuthCode` spend the one row under one `withKeyLock` key. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
 - **Every sign-in POST refuses a cross-origin submission** — `Origin` against `Host`, and absence fails open.
 - `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out.
-- Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too.
+- Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too. **`lib/auth.js` alone reads `ALLOWED_EMAIL_DOMAIN`**; a screen showing the domain is handed its export (#473).
 - **There is no user-creation screen.** A Users record appears as a side effect of a first magic-link sign-in and in no other way. `lib/airtable/users.js:addAssignedJob` is the only writer of `Assigned Jobs` and is additive.
 - The product is named in one place, `lib/productName.js`. `offline/product-name.mjs` fails on any superseded name under `app/` or `lib/`, and on `PRODUCT_NAME`'s value appearing as a literal outside its own module.
 

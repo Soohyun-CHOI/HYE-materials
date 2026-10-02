@@ -11,14 +11,17 @@
  * DECLARED HERE AND APPLIED NOWHERE, WHICH IS WHAT THIS FILE IS FOR. It holds
  * `@theme` blocks and comments, and nothing that selects an element: a rule here
  * would style every page, the ones above the tools axis included, and those each
- * hold a width container of their own. `app/globals.css` imports it, so every
- * page's stylesheet carries the names, and until #258 a name is read only by a
- * file that nothing outside `app/(tools)/` calls. `offline/design-values.mjs`
- * holds all three.
+ * hold a width container of their own. The one other thing a block may hold is
+ * the keyframes an animation it declares runs, which select nothing and which
+ * Tailwind emits only once that animation is read (#473). `app/globals.css`
+ * imports it, so every page's stylesheet carries the names, and until #258 a name
+ * is read only by a file that nothing outside `app/(tools)/` and `app/login/`
+ * calls. `offline/design-values.mjs` holds all three.
  *
- * WHAT IS HERE IS WHAT THE TOOLS SCREENS DRAW. A row of the design's spec that
- * only the screens above this axis draw is declared with the first of them to
- * read it; `docs/notes/design-system.md` lists those rows and why each waits.
+ * WHAT IS HERE IS WHAT THE TOOLS SCREENS AND THE SIGN-IN SCREENS DRAW. A row of
+ * the design's spec that only the screens above those draw is declared with the
+ * first of them to read it; `docs/notes/design-system.md` lists those rows and why
+ * each waits.
  *
  * A NAME IS THE WORD DESIGN SYSTEMS USE FOR THE KIND, NEVER A NUMBER, AND NEVER A
  * KEY TAILWIND OR THE APP ALREADY DECLARES. The design's own word for each row
@@ -55,6 +58,9 @@
     --spacing-control-inline-inset-x: 0.5rem; /* Side room, 8: either side of an inline summary's words, and of a 26 pill (0f) */
     --spacing-control-inset-x: 0.625rem; /* Side room, 10: either side of a chip's or a menu option's words */
     --spacing-control-lg-inset-x: 1rem; /* Side room, 16: either side of a 36px control's words */
+    --height-control-xl: 2.5rem; /* 0o, 40: a field or an action on a sign-in page, one step above a dialog's */
+    --spacing-control-xl-inset-x: 0.75rem; /* 0o, 12: inside a 40px field, either side, and a fixed suffix from its edge */
+    --spacing-input-message-stack: 0.375rem; /* 0l and 0o, 6: a field's help or refusal under it */
     --min-width-menu: 8.75rem; /* Menu, 140: its longest item's width, from here */
     --max-width-menu: 17.5rem; /* Menu, 280: to here */
     --spacing-menu-offset: 0.375rem; /* Menu, 6: under the control that opens it */
@@ -108,9 +114,13 @@
     --color-scrollbar-thumb: color-mix(in oklab, var(--color-foreground-default) 20%, transparent); /* 0i Bar: a scrollbar's thumb */
     --color-scrollbar-thumb-hover: color-mix(in oklab, var(--color-foreground-default) 34%, transparent); /* Thumb hover: a scrollbar under the pointer */
 
-    /* 0f · States — a number field with steps. */
+    /* 0f · States — a number field with steps, and an action that is busy. */
     --width-number-input: 7.5rem; /* Field, 120: a number field */
     --spacing-stepper-inset: 0.1875rem; /* Field, 3: its − and + from its ends */
+    --transition-delay-busy: 300ms; /* 0f, 300ms: how long an action that has started waits before it shows it is busy */
+    --size-spinner: 1rem; /* 0f, 16: the spinner a busy action shows before its -ing label */
+    --animate-spinner: spin 0.7s linear infinite; /* 0f: the spinner's turn — from the drawings' stylesheet, not the spec */
+    --color-spinner-track: color-mix(in oklab, currentColor 35%, transparent); /* 0f: the spinner's track, its label's ink at 35% — from the drawings' stylesheet, not the spec */
 
     /* 0g · Status — the mark carries the state. */
     --size-status-indicator: 0.5625rem; /* Status, 9: the mark */
@@ -135,6 +145,9 @@
     --text-brand: 1rem; /* Wordmark, 16: in the rail. A logo, outside the ladder; `USA Portal` takes this weight and `HYE` 700 */
     --text-brand--line-height: 1.5rem;
     --text-brand--font-weight: 500;
+    --text-brand-lg: 1.25rem; /* 0h, 20: the wordmark on a sign-in page */
+    --text-brand-lg--line-height: 1.75rem;
+    --text-brand-lg--font-weight: 500;
     --tracking-id: -0.02em; /* Tracking: a Fragment Mono id under 21px */
     --tracking-brand: -0.03em; /* Tracking: the wordmark, at any size */
 
@@ -201,7 +214,7 @@
     --spacing-rail-stack: 0.125rem; /* Rail, 2: between two sections — from the drawings, not the spec */
     --spacing-rail-divider-stack: 0.625rem; /* Rail, 10: above and below the rule under its toggle — from the drawings, not the spec */
     --height-account: 3rem; /* Account, 48: the account row at the rail's foot */
-    --size-avatar: 1.5rem; /* Account, 24: the avatar */
+    --size-avatar: 1.5rem; /* Account, 24: the avatar, and the one an address chip leads with on a sign-in page (0o) */
     --spacing-account-gap: 0.625rem; /* Account, 10: from the avatar to the name — from the drawings, not the spec */
     --spacing-account-inset-right: 0.75rem; /* Account, 12: inside the row's right end — from the drawings, not the spec */
     --spacing-account-name-stack: 0.0625rem; /* Account, 1: between the name and the role — from the drawings, not the spec */
@@ -218,6 +231,32 @@
     --spacing-subtitle-stack: 0.75rem; /* Header stack, 12: from the line of text under the title to the status */
     --spacing-heading-sm-stack: 0.75rem; /* Rail blocks, 12: from a block's name to what it heads, the phone's Block name too */
 
+    /* 0o · Sign-in page — one column, centered, with the wordmark at its head (#473). */
+    --container-sign-in: 22.5rem; /* 0o, 360: the page's one column */
+    --spacing-sign-in-inset-top: 16.75rem; /* 0o, 268: the wordmark from the page's top, the same in every state */
+    --spacing-sign-in-brand-stack: 2.5rem; /* 0o, 40: from the wordmark to the title */
+    --spacing-sign-in-header-gap: 0.5rem; /* 0o, 8: between a header's title, its sentence and an address chip */
+    --spacing-sign-in-header-stack: 2rem; /* 0o, 32: under the header, to the first field or the action */
+    --spacing-sign-in-form-stack: 1.5rem; /* 0o, 24: from a field to the action or to a refusal of the page, and from the action to the line under it */
+    --spacing-sign-in-form-inline: 0.75rem; /* 1g, 12: between two fields sharing a row — from the drawings, not the spec */
+    --spacing-avatar-chip-inset-left: 0.25rem; /* 0o, 4: the avatar from the chip's round end */
+    --spacing-avatar-chip-inset-right: 0.75rem; /* 0o, 12: the chip's words from its other end */
+    --size-code-slot: 3.25rem; /* 0o, 52: the box one figure of a sign-in code is drawn in */
+    --spacing-code-group-inline: 1rem; /* 0o, 16: between the code's two groups of three boxes */
+    --spacing-code-slot-inset-top: 0.125rem; /* 0o, 2: over a figure, which sets it 1 below its box's center */
+    --text-code-slot: 1.375rem; /* 0o, 22: a figure in a code's box */
+    --text-code-slot--line-height: 1.75rem;
+    --text-code-slot--font-weight: 500;
+    --width-code-caret: 0.125rem; /* 0o, 2: the caret drawn in the box that takes the next figure */
+    --height-code-caret: 1.5rem; /* 1e, 24: that caret's height — from the drawings, not the spec */
+    --animate-code-caret: code-caret-blink 1s steps(1) infinite; /* 0o: the caret's blink, once a second */
+    @keyframes code-caret-blink {
+        50% {
+            opacity: 0;
+        }
+    }
+    --spacing-code-resend-offset: 0.25rem; /* 1e and 1a, 4: how far the resend control in the line under a code pulls left into the space before it, where it pulls 8 right — from the drawings, not the spec */
+
     /* Tools 0a · App — what the phone screen takes in place of the web values, read
        under max-sm, whose 40rem is this repository's edge rather than the design's. */
     --spacing-mobile-gutter: 1rem; /* Screen, 16: either side of the screen */
@@ -227,6 +266,9 @@
     --spacing-mobile-bottom-bar-inset-top: 1rem; /* Foot bar, 16: above */
     --spacing-mobile-bottom-bar-inset-bottom: 1.25rem; /* Foot bar, 20: below */
     --spacing-mobile-bottom-bar-stack: 0.75rem; /* Foot bar, 12: between its rows */
+    --spacing-mobile-bottom-bar-keyboard-inset-bottom: 0.75rem; /* Tools 0a, 12: under the bottom bar while it rides on the keyboard */
+    --spacing-mobile-bottom-bar-bleed: 1.5rem; /* Tools 0a, 24: how far the bottom bar's soft edge reaches above it */
+    --transition-duration-mobile-bottom-bar: 160ms; /* the bottom bar's soft edge fading in — from the drawings' stylesheet, not the spec */
     --spacing-mobile-touch-target: 3rem; /* Target, 48: the least a touch target takes, square — a sheet's Done among them */
 
     --text-mobile-heading-lg: 1.375rem; /* Title, 22: the record's name */
@@ -244,19 +286,31 @@
     --text-mobile-heading-sm: 0.8125rem; /* Block name, 13 */
     --text-mobile-heading-sm--line-height: 1.25rem;
     --text-mobile-heading-sm--font-weight: 600;
+    --text-mobile-brand: 1.0625rem; /* Tools 0a, 17: the wordmark on a sign-in page */
+    --text-mobile-brand--line-height: 1.5rem;
+    --text-mobile-brand--font-weight: 500;
 
     --height-mobile-button: 3.125rem; /* Button, 50: full width, in the foot bar */
     --height-mobile-dialog-button: 3rem; /* Button, 48: full width, in a dialog */
+    --size-mobile-spinner: 1.25rem; /* Tools 0a, 20: the spinner a busy action shows in place of its label */
     --height-mobile-input: 3.125rem; /* Field, 50 */
     --spacing-mobile-input-inset-x: 1rem; /* Field, 16: inside it */
     --size-mobile-input-icon: 1.125rem; /* Field, 18: its icon */
-    --spacing-mobile-input-gap: 0.625rem; /* Field, 10: from its icon to its value */
+    --spacing-mobile-input-gap: 0.625rem; /* Field, 10: from its icon to its value, and between any two parts inside it */
     --color-mobile-input-background: color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent); /* Field, the one field in a sheet: filled, ink at 0.055, no edge */
     --spacing-mobile-field-stack: 1.25rem; /* Field label, 20: from a field to the next label */
     --size-mobile-input-clear-icon: 0.9375rem; /* Field, 15: the mark of the clear × at its end — from the drawings, not the spec */
+    --spacing-mobile-input-clear-inset-right: 0.375rem; /* 1a, 6: that ×'s target from the field's inside edge — from the drawings, not the spec */
+    --spacing-mobile-input-message-inset-x: 0.25rem; /* Tools 0a, 4: a field's refusal in from the field's edge, and — from 1a's drawing, not the spec — the line under a code */
+    --spacing-mobile-input-message-gap: 0.375rem; /* Tools 0a, 6: from a refusal's mark to its sentence */
+    --spacing-mobile-alert-inset-y: 0.875rem; /* Tools 0a, 14: inside an alert, above and below */
+    --spacing-mobile-alert-inset-x: 1rem; /* Tools 0a, 16: inside an alert, either side */
+    --size-mobile-alert-icon: 1.125rem; /* Tools 0a, 18: an alert's mark */
+    --spacing-mobile-alert-gap: 0.625rem; /* Tools 0a, 10: from an alert's mark to its sentence */
     --height-mobile-chip: 2.25rem; /* Pill, 36: a chip */
     --spacing-mobile-chip-inset-x: 0.875rem; /* Pill, 14: either side */
     --spacing-mobile-chip-inset-right: 0.75rem; /* Pill, 12: on its chevron side */
+    --spacing-mobile-avatar-chip-inset-left: 0.375rem; /* Tools 0a, 6: the avatar from an address chip's round end */
     --size-mobile-status-indicator: 0.625rem; /* Status, 10: the mark */
     --radius-mobile-control: 0.75rem; /* Radius, 12: a button, a field, a menu and a dialog */
     --radius-mobile-drawer: 1.75rem; /* Radius, 28: a sheet's top corners */
@@ -265,6 +319,11 @@
     --spacing-mobile-top-bar-stack: 1rem; /* Title block, 16: under the top bar */
     --spacing-mobile-title-stack: 1.375rem; /* Title block, 22: below it */
     --spacing-mobile-stack: 2rem; /* Section, 32: between two sections */
+    --spacing-mobile-sign-in-inset-top: 4.5rem; /* Tools 0a, 72: the wordmark from the top of a sign-in page */
+    --spacing-mobile-sign-in-brand-stack: 2rem; /* Tools 0a, 32: from the wordmark to the title */
+    --spacing-mobile-code-stack: 1.5rem; /* Tools 0a, 24: a code under the address chip that leads into it */
+    --spacing-mobile-code-help-stack: 1.25rem; /* Tools 0a, 20: the line under a code that offers a new email */
+    --height-mobile-code-caret: 1.625rem; /* 1a, 26: the caret's height in a phone's box — from the drawings, not the spec */
     --size-mobile-log-dot: 0.375rem; /* Log, 6: the dot */
     --spacing-mobile-log-gap: 0.75rem; /* Log, 12: beside the dot */
     --spacing-mobile-log-stack: 1.25rem; /* Log, 20: between entries */

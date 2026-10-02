@@ -586,19 +586,24 @@ was sweeping the word one of them carried.
 
 `HYE USA Portal` is the product name and lives in exactly one module; the
 company's legal name is a different constant and belongs on the purchase order
-PDF, not on a screen. The five token states:
-`Press the button to finish signing in on this device.` / `Confirm sign-in` /
-`This sign-in link is not valid.` (twice, deliberately — a missing token and an
-unknown one say the same thing) / `This sign-in link has already been used.` /
-`This sign-in link has expired. Sign-in links last 15 minutes.`
+PDF, not on a screen. The sign-in steps carry it as their wordmark, and the
+email's subject is `Sign in to HYE USA Portal`. The words are the design's since
+#473. The confirmation's five token states: `Sign in` with `You're signing in as`
+and the button `Sign in` / `This link has expired` and `This link no longer
+works`, each with `Get a new link sent to` and `Send new email` / `This link isn't
+valid` (twice, deliberately — a missing token and an unknown one say the same
+thing) with `Go to sign in`.
 
-The code step on `/login` (#471), from the same module: `Check your email`, `Code`,
-`Sign in`, `Send a new email`, `Use a different email`, and one sentence per
-refusal — `Enter the 6-digit code from the email.` / `That code does not match.
-4 tries left.` / `This code was entered wrong 5 times, so it no longer works.` /
-`The code or the link in this email has already been used.` / `This code has
-expired. Codes last 15 minutes.` / `No sign-in code is waiting on this screen.` The
-figures come from the constants that decide them, as the link's do.
+The first step: `Sign in`, `Enter your work email.`, the placeholder `name`,
+`Continue`, and `Use your @hanyangengusa.com address.` for an address at another
+domain. The code step: `Check your email`, `Enter the code we sent to`, `Change`,
+`Sign in`, `Didn't get it?`, `Resend email` and `Email sent`. A code that can
+still work is refused under the boxes — `Enter the 6-digit code from the email.` /
+`Wrong code. 4 tries left.` — and one that cannot is the step's title: `Too many
+tries` / `This code has expired` / `This code no longer works`, with `Get a new code
+sent to` and `Send new email`. A request that did not happen, on any step, is
+`Something went wrong. Try again.` The figures come from the constants that decide
+them.
 
 ### Uploaded files (tier 1, `lib/fileLinks.js`)
 
@@ -833,14 +838,12 @@ scan rather than a second premise: a label followed while signed out lands on
 the sign-in screen, so both steps of signing in happen on the phone before the
 tool item is ever drawn.
 
-**Those two name no width priority, and that is decided rather than left
-open.** Each tools brief says which width it is drawn for; these two say
-neither, because each step is one field and one button, with at most two small
-controls under them, and nothing to fold — there is no layout for a priority to
-decide today. It becomes a real question when
-#258 gives them a scale, and both cases are on the table when it does. What is
-measured rather than assumed: at 375px both screens render with no horizontal
-overflow, the form 311px inside the page's padding.
+**Those two, and the name step after them, are drawn at both widths, and #473 is
+where that was settled.** Each tools brief says which width it is drawn for; these
+are one page in two looks — a centered column at a desk, and the phone's step page
+with the action at its foot, riding on the keyboard — because each step is one
+field and one button with nothing to fold, so neither width is the other folded
+down.
 
 **Both widths does not mean both first, and each tools brief now says which
 one it is drawn for (#348).** `/tools`, the registration dialog over it and

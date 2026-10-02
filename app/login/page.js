@@ -1,3 +1,4 @@
+import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth";
 import { safeDestination } from "@/lib/loginDestination";
 import { readPendingSignIn } from "@/lib/session";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -36,6 +37,12 @@ import LoginForm from "./LoginForm";
  * blank address. It reads a cookie and not the row: the address is in the
  * binding, and what the row says is the code's own answer when one is typed —
  * so the page still makes no Airtable call.
+ *
+ * AND IT HANDS THE FORM THE COMPANY'S DOMAIN (#473), which the email field shows
+ * fixed beside it and says in its one refusal. It is `lib/auth.js`'s
+ * `ALLOWED_EMAIL_DOMAIN`, the value every request is judged against, so the screen
+ * spells no domain of its own. The page draws nothing around the form: the column,
+ * the wordmark and the faces are `app/login/layout.js`'s, for all three steps.
  */
 export default async function LoginPage(props) {
     return withOpsLabel("/login", () => renderLoginPage(props));
@@ -46,8 +53,10 @@ async function renderLoginPage({ searchParams }) {
     const pending = await readPendingSignIn();
 
     return (
-        <div className="flex flex-1 items-center justify-center p-8">
-            <LoginForm destination={safeDestination(destination) ?? ""} pendingEmail={pending?.email ?? ""} />
-        </div>
+        <LoginForm
+            destination={safeDestination(destination) ?? ""}
+            pendingEmail={pending?.email ?? ""}
+            domain={ALLOWED_EMAIL_DOMAIN}
+        />
     );
 }

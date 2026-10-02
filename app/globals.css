@@ -1,6 +1,6 @@
 @import "tailwindcss";
 /* The design's values under their names (#462): declared for every page here,
-   and read only on the tools axis until #258. */
+   and read only on the tools axis and the sign-in screens until #258. */
 @import "./designValues.css";
 
 :root {
