@@ -19,7 +19,7 @@ import LoginForm from "./LoginForm";
  * the only Client Component page and `lib/airtableOps.js` is a forbidden root for
  * the browser bundle. That ground no longer exists, so the exemption was deleted
  * rather than left standing with a reason that had become false. The page still
- * makes no Airtable call — the scope opens anyway, which is `/t/[toolItemId]`'s
+ * makes no Airtable call — the scope opens anyway, which is `/t/[labelCode]`'s
  * precedent: `withOpsLabel` logs in a `finally`, so a read added here later is
  * counted without anyone remembering to.
  *

@@ -1,5 +1,7 @@
 import { Bricolage_Grotesque, Fragment_Mono, Instrument_Sans } from "next/font/google";
 import Rail from "@/app/components/Rail";
+import { takePageUser } from "@/lib/authz";
+import { accountOf } from "@/lib/navigation";
 
 /**
  * The layout every tools screen renders inside (#336).
@@ -36,6 +38,18 @@ import Rail from "@/app/components/Rail";
  * `app/designValues.css` declares (#462), and this one element is still the whole of
  * what that issue has to reach for the axis's width.
  *
+ * THE ACCOUNT AT THE RAIL'S FOOT IS DRAWN FROM THE PAGE'S READ, AND THIS FILE MAKES
+ * NONE (#478). It waits on `takePageUser()` — the user the page's own gate read, or
+ * null — and hands the rail `accountOf`'s words, and it never gates: a layout is
+ * rendered once and kept across the navigations under it, so a gate here would stand in
+ * front of the first page only, and a read here would land outside every page's ops
+ * scope. **It waits rather than handing the rail a promise**, and the wait costs nothing:
+ * the page waits on the same read, and with no `loading.js` nothing is sent before the
+ * page is done. A promise streamed the account in a segment of its own after the page,
+ * put in place by a script on a later frame — a late arrival at the rail's foot, measured
+ * on every screen but the list (`tools.md`). The address a label prints sits outside this
+ * group for the same economy: a redirect has no use for a rail.
+ *
  * THE DESIGN'S FACES ARE LOADED HERE, AND LOADING ONE STYLES NOTHING (#456). Each
  * `next/font` call below defines the variable its face resolves to — `--font-ui`
  * reads `--font-instrument-sans` — on this one element, so everything on the axis
@@ -70,10 +84,11 @@ const idFace = Fragment_Mono({ subsets: ["latin"], weight: "400", variable: "--f
 // so this is the variable face, both of its axes, in one file.
 const brandFace = Bricolage_Grotesque({ subsets: ["latin"], axes: ["opsz"], variable: "--font-bricolage-grotesque" });
 
-export default function ToolsLayout({ children }) {
+export default async function ToolsLayout({ children }) {
+    const user = await takePageUser();
     return (
         <div className={`${uiFace.variable} ${idFace.variable} ${brandFace.variable}`}>
-            <Rail>{children}</Rail>
+            <Rail account={user ? accountOf(user) : null}>{children}</Rail>
         </div>
     );
 }

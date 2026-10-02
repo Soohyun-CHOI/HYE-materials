@@ -101,6 +101,8 @@ const TOOLS_DIR = "app/(tools)/";
  * undeclared the account's two with the account. #457 took its own out with the labels'
  * dialog, which read the three names still marked for it, and undeclared the Panel's
  * wash, which nothing draws since the files of 2026-10-01 put nothing behind a Panel.
+ * #478 drew the account and declared its two again, and its menu and avatar read three
+ * names marked for #463 first: the menu's two widths and Face hover.
  */
 const READERS_TO_COME = [458, 463];
 
@@ -122,8 +124,8 @@ const VALUES = [
     ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
     ["--spacing-control-lg-inset-x", "1rem", null],
-    ["--min-width-menu", "8.75rem", 463],
-    ["--max-width-menu", "17.5rem", 463],
+    ["--min-width-menu", "8.75rem", null],
+    ["--max-width-menu", "17.5rem", null],
     ["--spacing-menu-offset", "0.375rem", null],
     ["--spacing-menu-inset", "0.3125rem", null],
     // 0b · Layout
@@ -142,7 +144,7 @@ const VALUES = [
     ["--transition-duration-selection-bar", "160ms", 463],
     // 0c · Blue
     ["--color-selected", "#F0F9FF", null],
-    ["--color-selected-hover", "#E6F5FF", 463],
+    ["--color-selected-hover", "#E6F5FF", null],
     ["--color-primary", "oklch(0.487 0.216 257)", null],
     ["--color-primary-hover", "oklch(0.437 0.211 257)", null],
     ["--color-primary-disabled", "color-mix(in oklab, var(--color-primary) 40%, transparent)", null],
@@ -258,6 +260,15 @@ const VALUES = [
     // From the drawings, not the spec (#460).
     ["--spacing-rail-stack", "0.125rem", null],
     ["--spacing-rail-divider-stack", "0.625rem", null],
+    // The account at the rail's foot (#478), declared again with its first reader.
+    ["--height-account", "3rem", null],
+    ["--size-avatar", "1.5rem", null],
+    // From the drawings, not the spec (#478).
+    ["--spacing-account-gap", "0.625rem", null],
+    ["--spacing-account-inset-right", "0.75rem", null],
+    ["--spacing-account-name-stack", "0.0625rem", null],
+    ["--size-account-chevron", "0.8125rem", null],
+    ["--transition-duration-avatar", "90ms", null],
     ["--height-breadcrumb", "3rem", null],
     // From the drawings, not the spec (#460).
     ["--spacing-breadcrumb-back-offset", "0.75rem", null],

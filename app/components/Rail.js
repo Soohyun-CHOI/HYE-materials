@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
 import { PRODUCT_NAME } from "@/lib/productName";
+import RailAccount from "./RailAccount";
 
 /*
  * The rail, and the column it holds a screen in — Claude Design's 0m, "the frame every
@@ -53,6 +54,13 @@ import { PRODUCT_NAME } from "@/lib/productName";
  * 360ms, beside the icon, on hover and on keyboard focus, gone on Escape, and only while
  * the rail is collapsed. It is in the top layer, so nothing the rail clips can clip it,
  * and it is hidden from assistive tech, which has the name already.
+ *
+ * AND AT ITS FOOT, THE ACCOUNT (0m, #478) — `RailAccount`, held to the rail's bottom at
+ * either width by an auto margin. The caller hands over `account`, the words the page's
+ * own read gives (`accountOf`), or null, and then nothing is drawn. Its menu is a
+ * popover inside the nav, so a press on the menu is a press inside a Panel and focus in
+ * the menu is focus in the rail; an Escape the menu takes is marked handled, so a Panel
+ * closes on the next one rather than with the menu.
  *
  * THE FRAME NEVER SCROLLS; THE COLUMN DOES (0i). The column holds the bar, the stable
  * gutter and the chain; how a column ends — its End and its give-back — is the column's,
@@ -194,7 +202,7 @@ function useRailTooltip(enabled) {
  * The rail beside the column `children` render in. Whether the reader has it expanded is
  * kept here, so it lasts as long as the layout that holds it.
  */
-export default function Rail({ children }) {
+export default function Rail({ account, children }) {
     const pathname = usePathname();
     const [expanded, setExpanded] = useState(false);
     const navRef = useRef(null);
@@ -222,7 +230,7 @@ export default function Rail({ children }) {
             if (!navRef.current?.contains(event.target)) closePanel();
         };
         const onKeyDown = (event) => {
-            if (event.key !== "Escape" || !isPanel()) return;
+            if (event.key !== "Escape" || event.defaultPrevented || !isPanel()) return;
             setExpanded(false);
             toggleRef.current?.focus();
         };
@@ -309,6 +317,7 @@ export default function Rail({ children }) {
                             );
                         })}
                     </ul>
+                    {account ? <RailAccount account={account} tip={tip} /> : null}
                 </nav>
                 {tip.element}
             </div>

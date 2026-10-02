@@ -10,6 +10,7 @@
 //      autocomplete are the two patterns, and `lib/controls.js` says what each key does
 //      as pure functions — held by value, key by key, open and shut, at the ends of a
 //      list. The keyboard is the whole of what makes either usable without a pointer.
+//      Since #478 the menu button is the third, for the menu the rail's account opens.
 //   2. THE WIRING. Which role, which `aria-*` and which reader each control applies is
 //      read off the source, because a combobox that looks right and names no listbox is
 //      silent to a screen reader and moves no figure this tier can read.
@@ -42,6 +43,9 @@ import { readFileSync } from "node:fs";
 import {
     CONTROLS_COPY,
     editableComboboxKey,
+    menuButtonKey,
+    menuIndex,
+    menuKey,
     movedIndex,
     numberFieldText,
     selectOnlyKey,
@@ -57,6 +61,7 @@ export const title = "The dialog frame and the controls in it (#456, #459)";
 const FRAME = "app/components/DialogFrame.js";
 const CONTROLS = "app/components/Controls.js";
 const MENU = "app/components/Menu.js";
+const ACCOUNT = "app/components/RailAccount.js";
 
 /**
  * The tools files still drawing a dialog on `modalStyles.js`, and the issue that moves each
@@ -204,6 +209,30 @@ export function run({ check, assert, log }) {
     check("  and a letter is the textbox's own", answer("a", onSecond), "null");
 
     log("");
+    log("a menu button's keys are the menu button pattern's (#478):");
+    check("  shut, Down opens it on its first item", menuButtonKey(key("ArrowDown")), "first");
+    check("  and Up on its last", menuButtonKey(key("ArrowUp")), "last");
+    check("  Enter and Space are the button's own press", `${menuButtonKey(key("Enter"))} ${menuButtonKey(key(" "))}`, "null null");
+    for (const [name, mods, expected] of [
+        ["ArrowDown", {}, "next"],
+        ["ArrowUp", {}, "previous"],
+        ["Home", {}, "first"],
+        ["End", {}, "last"],
+        ["Escape", {}, "close"],
+        ["Tab", {}, "leave"],
+        ["s", {}, "type"],
+        ["s", { ctrlKey: true }, null],
+        ["Enter", {}, null],
+        [" ", {}, null],
+    ])
+        check(`  open, ${JSON.stringify(name)}${mods.ctrlKey ? " with Ctrl" : ""}`, menuKey(key(name, mods)), expected);
+    log("and it moves among its items, wrapping at both ends:");
+    check("  down from the last reaches the first", menuIndex(2, 3, "next"), 0);
+    check("  up from the first reaches the last", menuIndex(0, 3, "previous"), 2);
+    check("  and the ends are the ends", `${menuIndex(1, 3, "first")} ${menuIndex(1, 3, "last")}`, "0 2");
+    check("  one item is every end", `${menuIndex(0, 1, "next")} ${menuIndex(0, 1, "previous")}`, "0 0");
+
+    log("");
     log("a number field's steps and what it keeps of a keystroke:");
     const range = { min: 1, max: 100 };
     check("  a step up", stepNumber("4", 1, range), "5");
@@ -273,6 +302,27 @@ export function run({ check, assert, log }) {
         ["list.showPopover", "list.hidePopover", "event.preventDefault"].filter((name) => !menuCalls.has(name)).join(", "),
         ""
     );
+    // The other half of 0a's Menu (#478): a button's menu, which takes focus.
+    const [actions] = elements(menu.ast, "div").filter((a) => a.role === "menu");
+    check("a button's menu is a menu in the top layer, closed by its own handlers", actions?.popover, "manual");
+    assert("  named by the button that opens it", "aria-labelledby" in (actions ?? {}));
+    let itemTabIndex = null;
+    walk(menu.ast, (n) => {
+        if (n.type !== "JSXOpeningElement" || !n.attributes.some((a) => a.name?.name === "role" && a.value?.value === "menuitem")) return;
+        const value = n.attributes.find((a) => a.name?.name === "tabIndex")?.value?.expression;
+        itemTabIndex = value?.type === "UnaryExpression" && value.operator === "-" ? -value.argument.value : value?.value ?? null;
+    });
+    check("  holding items that take focus by script and never by Tab", itemTabIndex, -1);
+    check("  and applying the menu's keys", ["menuKey", "menuIndex"].filter((name) => !menuCalls.has(name)).join(", "), "");
+    const account = parseFile(ACCOUNT);
+    const [opener] = elements(account.ast, "button").filter((a) => a["aria-haspopup"] === "menu");
+    assert("its opener says it opens a menu", Boolean(opener));
+    check(
+        "  and says whether, which, and whose it is",
+        ["aria-expanded", "aria-controls", "aria-label"].filter((name) => !(name in (opener ?? {}))).join(", "),
+        ""
+    );
+    assert("  applying the button's keys", calls(account.ast).has("menuButtonKey"));
 
     // ── 3: the frame ────────────────────────────────────────────────────────
     log("");

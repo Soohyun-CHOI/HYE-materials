@@ -36,6 +36,14 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * page calls `requireUser()` and sends a reader with no session to `/login`. One
  * gate, at the screen.
  *
+ * IT SITS OUTSIDE `app/(tools)/`, UNDER THE ROOT LAYOUT ALONE (#478), AT THE ADDRESS IT
+ * ALWAYS HAD. The tools layout draws the rail and its account and loads the design's
+ * three faces, and none of that is for a page that draws nothing: every scan would pay
+ * for a frame nobody sees. A route group buys a layout and nothing else, so leaving the
+ * group is what this route takes — a directory is not a segment, and `/t/[labelCode]`
+ * is the path either way. `offline/tool-routes.mjs` holds both halves: the page answers
+ * at exactly that address, and no layout but the root's stands above it.
+ *
  * IT NORMALIZES THE CASE SO THE NEXT HOP DOES NOT HAVE TO. The destination
  * redirects when the id it was handed is not the stored spelling, so passing a
  * typed `260909-004` through unchanged would cost two hops.

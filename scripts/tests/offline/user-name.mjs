@@ -40,7 +40,7 @@
 import { callsTo, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isPageFile } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
-import { FULL_NAME_SURFACES, fullUserName, isNameStep, judgeName, namePath, needsName, userName } from "../../../lib/userName.js";
+import { FULL_NAME_SURFACES, fullUserName, isNameStep, judgeName, namePath, needsName, selfName, userName } from "../../../lib/userName.js";
 
 export const title = "One rule for a person's name, and two audiences (#381)";
 
@@ -137,6 +137,11 @@ export function run({ check, assert, log }) {
     check("  rather than the word undefined", fullUserName(undefined), "");
     check("a refused pair says which field", judgeName({ firstName: " ", lastName: "Choi" }).error.includes("first"), true);
     check("  and a good pair comes back trimmed", judgeName({ firstName: "  Soo  ", lastName: "Choi " }).firstName, "Soo");
+    // The third rendering (#478): a reader naming themselves gets their address's local
+    // part whether or not they have a name, which is what sets it apart from the fallback.
+    check("a reader naming themselves gets the local part, named or not", selfName(person), "soohyun.c");
+    check("  and so does a nameless one", selfName(nameless), "bsws9803");
+    check("  and nobody is nothing", selfName(null), "");
 
     // ── 1: nothing outside the owner reads either field ─────────────────────
     log("");

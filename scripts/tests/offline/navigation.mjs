@@ -1,7 +1,7 @@
 // The navigation the design settled (#460): the sections the rail carries, which one a
 // screen is in, the one string a collapsed icon says twice, and the frame's edges.
 //
-// FIVE CLAIMS.
+// SIX CLAIMS.
 //   1. THE SECTIONS ARE THE DESIGN'S, IN ITS ORDER, LESS THE ONE WITH NO SCREEN. Typed
 //      out here — word, address and order — and every address one the app serves.
 //      `Office` is not among them: `app/admin/` holds four forms and no page listing
@@ -22,17 +22,23 @@
 //      nothing in the browser and spells no breakpoint — and its print rules are three
 //      named ones, none of them a `display`, which is what lets #457's print change a
 //      dialog's ancestors' display without meeting a rule of this file's.
+//   6. THE ACCOUNT AT THE RAIL'S FOOT SAYS WHO IS READING, FROM THE PAGE'S OWN READ
+//      (#478). What it says, by value, for each kind of reader the base holds; its
+//      button's name and tooltip one expression, read off its AST as the icons' are;
+//      the tools layout handing it `takePageUser()` and reading no user of its own; and
+//      its one item posting where the root screen's `Sign out` posts.
 //
 // WHAT IT CANNOT SEE: anything rendered — a width, the Panel over the screen, the
-// tooltip's delay, focus, a print. Those were measured in a browser and in PDFs, and
-// `docs/notes/tools.md` carries the figures. It reads source.
+// tooltip's delay, focus, a print — and the order the account's take depends on, which
+// is the framework's at run time. Those were measured in a browser, in PDFs and on a
+// production build, and `docs/notes/tools.md` carries the figures. It reads source.
 //
 // TAILWIND READS THIS FILE FOR CLASS NAMES, so every class it names is assembled while
 // it runs (`offline/design-values.mjs` has why).
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { NAVIGATION_COPY, NAVIGATION_SECTIONS, currentOf } from "../../../lib/navigation.js";
+import { NAVIGATION_COPY, NAVIGATION_SECTIONS, accountOf, currentOf } from "../../../lib/navigation.js";
 import { TOOLS_PATH, TOOLS_ROUTES } from "../../../lib/toolRoutes.js";
 import { TOOL_LIST_COPY } from "../../../lib/toolListView.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
@@ -43,7 +49,9 @@ import { importedPairs } from "./unread-exports.mjs";
 export const title = "The navigation the design settled — sections, the current one, one name per icon (#460)";
 
 const RAIL = "app/components/Rail.js";
+const ACCOUNT = "app/components/RailAccount.js";
 const BREADCRUMB = "app/components/Breadcrumb.js";
+const ROOT_PAGE = "app/page.js";
 const TOOLS_LAYOUT = "app/(tools)/layout.js";
 const TOOL_PAGE = "app/(tools)/tools/[toolRecordId]/page.js";
 const TOOL_ITEM_PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
@@ -84,7 +92,8 @@ const SECTION_OF_ROUTE = {
     "/prs": "purchase-requests",
     "/prs/[prId]": "purchase-requests",
     "/prs/new": "purchase-requests",
-    "/t/[labelCode]": "tools",
+    // The address a label prints draws nothing and sits outside the rail's layout (#478).
+    "/t/[labelCode]": null,
     "/tool-items/[toolItemId]": "tools",
     "/tools": "tools",
     "/tools/[toolRecordId]": "tools",
@@ -113,6 +122,39 @@ function servedRoutes() {
 const jsxName = (el) => el.openingElement?.name?.name;
 const attrOf = (el, name) => el.openingElement.attributes.find((a) => a.type === "JSXAttribute" && a.name?.name === name);
 const identIn = (attr) => (attr?.value?.type === "JSXExpressionContainer" && attr.value.expression.type === "Identifier" ? attr.value.expression.name : null);
+
+/** A name or a member chain as its source spells it — `words.label` — or null. */
+function chainOf(node) {
+    if (node?.type === "Identifier") return node.name;
+    if (node?.type === "MemberExpression" && !node.computed) {
+        const object = chainOf(node.object);
+        return object ? `${object}.${node.property.name}` : null;
+    }
+    return null;
+}
+
+/**
+ * The account's one-string rule, judged on a parsed `RailAccount`: the menu button's
+ * `aria-label` and the argument its tooltip is shown with are one expression. Returns
+ * a sentence per failure.
+ */
+export function judgeAccountName(ast) {
+    let button = null;
+    walk(ast, (n) => {
+        if (n.type === "JSXElement" && jsxName(n) === "button" && attrOf(n, "aria-haspopup")) button = n;
+    });
+    if (!button) return ["no menu button found"];
+    const failures = [];
+    const label = attrOf(button, "aria-label")?.value;
+    const name = label?.type === "JSXExpressionContainer" ? chainOf(label.expression) : null;
+    if (!name) failures.push("the menu button's aria-label is not one expression");
+    let tip = null;
+    walk(button.openingElement, (n) => {
+        if (n.type === "CallExpression" && n.callee?.property?.name === "targetProps") tip = chainOf(n.arguments[0]) ?? "(not one expression)";
+    });
+    if (tip !== name) failures.push(`its tooltip reads ${tip} where its name reads ${name}`);
+    return failures;
+}
 
 /** The argument a `{...x.targetProps(arg)}` spread hands over, as an identifier name. */
 function tooltipArg(el) {
@@ -213,11 +255,14 @@ export async function run({ check, assert, log }) {
     check("  Tools says the list's own heading", NAVIGATION_COPY.sections.tools, TOOL_LIST_COPY.heading);
     check("  and opens the list", NAVIGATION_SECTIONS.find((s) => s.key === "tools").href, TOOLS_PATH);
     check(
-        "  and owns the first segment of every tools route",
+        "  and owns the first segment of every tools screen",
         NAVIGATION_SECTIONS.find((s) => s.key === "tools").segments.join(" "),
-        "tools tool-items t"
+        "tools tool-items"
     );
-    assert("  and TOOLS_ROUTES really starts with those", TOOLS_ROUTES.some((r) => r.startsWith("/t/")) && TOOLS_ROUTES.some((r) => r.startsWith("/tool-items/")));
+    assert(
+        "  and TOOLS_ROUTES really starts with those, the printed address not among them",
+        TOOLS_ROUTES.some((r) => r.startsWith("/tool-items/")) && !TOOLS_ROUTES.some((r) => r.startsWith("/t/"))
+    );
 
     const routes = servedRoutes();
     assert(`  the app's routes were read (${routes.length})`, routes.length > 20 && routes.includes("/tools"));
@@ -325,6 +370,60 @@ export async function run({ check, assert, log }) {
     assert("  a planted store is seen", planted5.includes("localStorage"));
     assert("  a planted breakpoint is seen", planted5.filter(breakpoint).length === 2);
     check("  a planted print rule is seen", printRules(planted5).join(" "), cls("print", ":block"));
+
+    // ── 6: the account at the rail's foot (#478) ─────────────────────────────
+    log("");
+    log("the account says who is reading, in one string, from the page's own read:");
+    // Each kind of reader the base holds — `soo@` is the President and the office both.
+    const reader = (email, role, isAdmin) => accountOf({ email, role, isAdmin });
+    check(
+        "  an office reader, as the design draws one",
+        JSON.stringify(reader("lee@hanyangengusa.com", "Employee", true)),
+        JSON.stringify({ name: "lee", initial: "l", role: "Admin", label: "lee, Admin" })
+    );
+    check("  the President who is the office too", reader("soo@hanyangengusa.com", "President", true).label, "soo, President, Admin");
+    check("  the President alone", reader("soo@hanyangengusa.com", "President", false).role, "President");
+    check("  a reader who is neither", reader("minjae.seo@hanyangengusa.com", "Employee", false).label, "minjae.seo, Employee");
+    check("  the avatar takes the address's first letter as it is spelled", reader("Kji9408@hanyangengusa.com", "Employee", false).initial, "K");
+    check("  the menu's one word", NAVIGATION_COPY.account.signOut, "Sign out");
+    check("  the office's word", NAVIGATION_COPY.account.admin, "Admin");
+
+    const accountAst = parseFile(ACCOUNT).ast;
+    check("  the account's name and its tooltip", judgeAccountName(accountAst).join(" | "), "");
+    const plantedAccount = (tip) =>
+        judgeAccountName(
+            parseSource(`const b = <button aria-haspopup="menu" aria-label={words.label} {...tip.targetProps(${tip})} />;`, "<planted>").ast
+        );
+    check("  a planted button that agrees passes", plantedAccount("words.label").join(" | "), "");
+    assert("  one whose tooltip reads another expression fails", plantedAccount("words.name").length > 0);
+    check("  only the rail draws it", importers(ACCOUNT).join(" "), RAIL);
+
+    // The layout hands the rail the page's read and reads nobody itself.
+    const layoutCalls = [];
+    walk(parseFile(TOOLS_LAYOUT).ast, (n) => {
+        if (n.type === "CallExpression" && n.callee.type === "Identifier") layoutCalls.push(n.callee.name);
+    });
+    check("  the tools layout takes the page's read", layoutCalls.filter((name) => name === "takePageUser").length, 1);
+    check(
+        "  and calls no reader or gate of its own",
+        layoutCalls.filter((name) => ["getActiveUser", "getCurrentUser", "requireUser", "requireAdmin"].includes(name)).join(" "),
+        ""
+    );
+
+    // Its one item posts where the root screen's `Sign out` does.
+    const formActions = (rel) => {
+        const out = [];
+        walk(parseFile(rel).ast, (n) => {
+            if (n.type === "JSXElement" && jsxName(n) === "form") {
+                const action = attrOf(n, "action")?.value?.value;
+                const method = attrOf(n, "method")?.value?.value;
+                if (action) out.push(`${method} ${action}`);
+            }
+        });
+        return out;
+    };
+    check("  the account's form", formActions(ACCOUNT).join(" | "), "POST /api/auth/logout");
+    check("  is the root screen's", formActions(ROOT_PAGE).join(" | "), formActions(ACCOUNT).join(" | "));
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

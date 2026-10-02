@@ -351,9 +351,10 @@ screen is a pass over that section rather than part of an issue that adds one pa
 **The scan's hop renders nothing, so every string the census gives it is one no
 reader meets there.** Its page reads the code and redirects to the tool item's page
 before anything is drawn. The census counts the layouts above a screen as part of
-it, so the hop lists the root layout's title template and the product's name and,
-since #460, the words the rail imports from `lib/navigation.js`. Eleven strings a
-reader reads, each met on another screen and none here. None is a refusal, so
+it, so the hop lists the root layout's title template and the product's name — two
+strings a reader reads, each met on another screen and none here. From #460 it also
+listed the words the rail imports from `lib/navigation.js`, eleven in all, until #478
+took the page out of the tools layout, which it had no use for. None is a refusal, so
 `Coverage` below does not move; the hop is listed because a census reader meets its
 count.
 

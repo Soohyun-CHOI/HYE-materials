@@ -38,7 +38,7 @@ export const metadata = { title: "Tool" };
  * IT STOOD AT `/tools/tool/[toolRecordId]` UNTIL #348, AND THE HALF THAT SURVIVES
  * THE MOVE IS THE HALF WORTH KNOWING. What forced the extra segment was that the
  * flat slot under `/tools` held the tool item, because a QR code encodes the whole
- * address and the symbol's version grows with it. `/t/[toolItemId]` carries the
+ * address and the symbol's version grows with it. `/t/[labelCode]` carries the
  * printed address now, so the slot came free and this page took it. **What did not
  * change is why this is a route at all rather than `/tools?tool=rec…`**: every
  * parameter this app carries narrows which rows appear, opens a form on a record
