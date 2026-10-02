@@ -32,6 +32,14 @@
 //      `app/components/modalStyles.js`, and #458 moved them onto this frame, so a file
 //      under `app/(tools)/` importing it fails — the measurable condition CLAUDE.md's "one
 //      rule, one implementation" asked for, met.
+//   6. A DIALOG THAT SUBMITS (#469). The frame hands its `busy` to everything it holds: the
+//      form's submit draws 0f's Working and every other control locks, none disabled, and
+//      while it is open the frame puts back focus it let fall. What a button is under a busy
+//      form and whether focus has fallen are pure functions, held by value; that each control
+//      applies the first, that the frame asks the second and where it puts focus are read
+//      off the source; and every dialog on the axis that submits is found and held to
+//      handing its frame its busy state and its commitment a word, with nothing disabled
+//      for the sending.
 //
 // WHAT IT CANNOT SEE. Anything rendered: whether the dialog is centered, whether the list
 // lands under its field, whether focus really returns to the opener, whether a screen
@@ -45,6 +53,7 @@
 import { readFileSync } from "node:fs";
 import {
     CONTROLS_COPY,
+    buttonBusyState,
     editableComboboxKey,
     menuButtonKey,
     menuIndex,
@@ -55,11 +64,11 @@ import {
     stepNumber,
     typeaheadIndex,
 } from "../../../lib/controls.js";
-import { DIALOG_FRAME_COPY } from "../../../lib/dialogFrame.js";
+import { DIALOG_FRAME_COPY, focusLost } from "../../../lib/dialogFrame.js";
 import { listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The dialog frame and the controls in it (#456, #459, #458)";
+export const title = "The dialog frame and the controls in it (#456, #459, #458, #469)";
 
 const FRAME = "app/components/DialogFrame.js";
 const CONTROLS = "app/components/Controls.js";
@@ -297,8 +306,9 @@ export function run({ check, assert, log }) {
     // 0a's — or it sits where only a sign-in page's control goes (#473): the `xl` size's own
     // classes, a branch on `xl`, `labelHidden` or `suffix`, or the clear × only `xl` draws.
     // A destructive commitment is filled red (0f Destructive), and a busy action of any kind
-    // takes no hover and no press (0f Working). Read through one function, so the planted
-    // controls below are judged the same way.
+    // takes no hover and no press (0f Working), nor does one locked with it (#469) — both are
+    // `aria-disabled`, which every hover and press is written against. Read through one
+    // function, so the planted controls below are judged the same way.
     const SIGN_IN_GATE = /\bxl\b|size === "xl"|\blabelHidden\b|\bsuffix\b/;
     const controlFacts = ({ ast, source }) => {
         const constant = (name) => {
@@ -333,15 +343,15 @@ export function run({ check, assert, log }) {
             for (const [cls] of text.matchAll(/max-sm:(?!in-data-\[sheet\]:)[\w[\]-]+/g)) if (!cls.startsWith("max-sm:hidden")) phoneClasses.push(cls);
         });
         return {
-            danger: /danger: "bg-danger text-white not-disabled:not-data-busy:hover:bg-danger-hover"/.test(variants),
-            busyQuiet: !/(?<!not-data-busy:)(?:hover|active):/.test(variants + sheetVariants),
+            danger: /danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover"/.test(variants),
+            busyQuiet: !/(?<!not-aria-disabled:)(?:hover|active):/.test(variants + sheetVariants),
             clearGate: /const clearable = size === "xl" &&/.test(source) && /\{clearable && \(\s*<ClearButton/.test(source),
             sheetButton: [
                 /max-sm:in-data-\[sheet\]:h-mobile-dialog-button/.test(sheetButton),
                 /max-sm:in-data-\[sheet\]:w-full/.test(sheetButton),
                 /max-sm:in-data-\[sheet\]:text-mobile-heading/.test(sheetButton),
             ].join(" "),
-            textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:not-data-busy:active:opacity-mobile-pressed"/.test(sheetVariants),
+            textButton: /bordered:\s*"max-sm:in-data-\[sheet\]:border-0 max-sm:in-data-\[sheet\]:bg-transparent max-sm:in-data-\[sheet\]:not-aria-disabled:active:opacity-mobile-pressed"/.test(sheetVariants),
             applied: ["Button", "ButtonLink"].every((name) =>
                 /\$\{BUTTON\} \$\{BUTTON_SIZE\[size\]\} \$\{BUTTON_VARIANT\[variant\]\} \$\{SHEET_BUTTON\} \$\{SHEET_BUTTON_VARIANT\[variant\]\}/.test(functionSource(name))
             ),
@@ -359,7 +369,7 @@ export function run({ check, assert, log }) {
     };
     const controlRules = controlFacts(controls);
     check("a destructive commitment is filled red and hovers to Red's hover", controlRules.danger, true);
-    check("  and no busy action changes its fill under the pointer or a press, at a desk or in a sheet", controlRules.busyQuiet, true);
+    check("  and no busy or locked action changes its fill under the pointer or a press, at a desk or in a sheet", controlRules.busyQuiet, true);
     check("in a sheet below the phone's edge a button is 48, full width and 17", controlRules.sheetButton, "true true true");
     check("  a bordered one a text button that dims while held", controlRules.textButton, true);
     check("  every button carrying both, which only a sheet's ancestor sets off", controlRules.applied, true);
@@ -456,14 +466,21 @@ export function run({ check, assert, log }) {
             const fn = functionNamed(ast, name);
             return fn ? source.slice(fn.start, fn.end) : "";
         };
-        const heading = body("focusPageHeading");
+        // The page's heading, focused through the helper the dialog's title is focused through
+        // too (#469), which is where it is made focusable.
+        const pageHeading = body("focusPageHeading");
+        const heading = body("focusHeading");
         const message = body("DialogMessage");
         const actionRow =
             elements(functionNamed(ast, "DialogActions") ?? {}, "div")
                 .map((a) => a.className)
                 .find((c) => typeof c === "string" && c.includes("justify-end")) ?? "";
         return {
-            heading: [/querySelector\("h1"\)/.test(heading), /tabIndex = -1/.test(heading), /\.focus\(\)/.test(heading)].join(" "),
+            heading: [
+                /focusHeading\(document\.querySelector\("h1"\)\)/.test(pageHeading),
+                /if \(!heading\.hasAttribute\("tabindex"\)\) heading\.tabIndex = -1;/.test(heading),
+                /heading\.focus\(\)/.test(heading),
+            ].join(" "),
             onClose: /dialog\.close\(\);\s*if \(unprompted\) focusPageHeading\(\);/.test(source),
             describes: [
                 /closest\("dialog"\)/.test(message),
@@ -682,6 +699,216 @@ export function run({ check, assert, log }) {
             .join(", ")
     );
 
+    // ── 6: a dialog that submits (#469) ─────────────────────────────────────
+    log("");
+    log("a dialog that submits says so, and keeps focus where the press found it (#469):");
+    // WHAT A BUTTON IS WHILE ITS FORM WAITS, by value. The form's submit is the work being
+    // done and every other button locks with it; a button outside a busy form is what its own
+    // `busy` says, which is a sign-in step's; and a disabled one is neither, since it holds no
+    // focus to keep. Neither state is disabled — that is the rule the frame's focus rests on.
+    for (const [args, expected, why] of [
+        [{}, null, "a button with nothing to wait on is itself"],
+        [{ busy: true }, "working", "  one its caller says is busy works, in no busy form — a sign-in step's"],
+        [{ formBusy: true, submits: true }, "working", "  a busy form's submit is the work being done"],
+        [{ formBusy: true }, "locked", "  and every other button of that form locks with it"],
+        [{ busy: true, formBusy: true }, "working", "  a button its caller says is busy works in one too"],
+        [{ formBusy: true, submits: true, disabled: true }, null, "  and a disabled one is neither, even a busy form's submit"],
+        [{ busy: true, disabled: true }, null, "  nor one its caller says is busy"],
+    ])
+        check(why, buttonBusyState(args), expected);
+
+    // WHETHER AN OPEN DIALOG HAS LET FOCUS FALL, by value. The browser drops focus from a
+    // control disabled or taken away under it with no event, so this is asked of facts.
+    const fell = (facts) => focusLost({ open: true, held: true, heldCanHold: false, onHeld: false, onDocument: false, ...facts });
+    check("a commitment disabled while it still holds focus has let it fall", fell({ onHeld: true }), true);
+    check("  and so has one taken off the page, with focus on the document", fell({ onDocument: true }), true);
+    check("  but focus on the document with what held it still able to is left where it is", fell({ onDocument: true, heldCanHold: true }), false);
+    check("  focus in a sheet opened over the dialog went there on purpose", fell({}), false);
+    check("  a dialog that is shut has nothing to keep", fell({ open: false, onHeld: true }), false);
+    check("  nor one in which nothing held focus", fell({ held: false, onDocument: true }), false);
+    check("  and focus on what can still hold it stays", fell({ onHeld: true, heldCanHold: true }), false);
+
+    // EACH CONTROL APPLIES THE FORM'S BUSY STATE, read off the source as the expression
+    // that decides it. `FormBusy` provides it; the button asks `buttonBusyState` and draws the
+    // answer — a press turned away, `aria-disabled`, and `aria-busy` with `data-busy` only
+    // while working; every field locks without being disabled; and the steps and the choice
+    // take no hover while locked. In a sheet below the phone's edge a busy action is Tools
+    // 0a's Busy: the phone's spinner, and the word kept for assistive tech.
+    const busyFacts = ({ ast, source }) => {
+        const fnSource = (name) => {
+            const fn = functionNamed(ast, name);
+            return fn ? source.slice(fn.start, fn.end) : "";
+        };
+        const reads = (name) => /const formBusy = useContext\(FormBusyContext\);/.test(fnSource(name));
+        const button = fnSource("Button");
+        const text = fnSource("TextInput");
+        const number = fnSource("NumberField");
+        const choice = fnSource("Choice");
+        const combobox = fnSource("Combobox");
+        const sheetField = fnSource("SheetField");
+        const constant = (name) => {
+            let found = "";
+            walk(ast, (n) => {
+                if (n.type === "VariableDeclarator" && n.id?.name === name && n.init) found = source.slice(n.init.start, n.init.end);
+            });
+            return found;
+        };
+        return {
+            provider: /export function FormBusy\(\{ busy, children \}\) \{\s*return <FormBusyContext\.Provider value=\{busy\}>\{children\}<\/FormBusyContext\.Provider>;/.test(source),
+            button: [
+                reads("Button"),
+                /buttonBusyState\(\{ busy, formBusy, submits: type === "submit", disabled \}\)/.test(button),
+                /onClick=\{state \? \(event\) => event\.preventDefault\(\) : onClick\}/.test(button),
+                /aria-disabled=\{state \? true : undefined\}/.test(button),
+                /aria-busy=\{working \|\| undefined\}/.test(button) && /data-busy=\{working \|\| undefined\}/.test(button),
+            ].join(" "),
+            text: [reads("TextInput"), /const locked = readOnly \|\| formBusy;/.test(text), /readOnly=\{locked\}/.test(text)].join(" "),
+            number: [
+                reads("NumberField"),
+                /readOnly=\{formBusy\}/.test(number),
+                /if \(!formBusy\) onChange\(stepNumber\(value, delta, \{ min, max \}\)\);/.test(number),
+                (number.match(/aria-disabled=\{formBusy \|\| undefined\}/g) ?? []).length === 2,
+                /not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default/.test(constant("STEP")) && !/(?<!not-aria-disabled:)hover:/.test(constant("STEP")),
+            ].join(" "),
+            choice: [
+                reads("Choice"),
+                /aria-readonly=\{formBusy \|\| undefined\}/.test(choice),
+                /const onKeyDown = \(event\) => \{\s*if \(formBusy\) return;/.test(choice),
+                /onClick=\{\(\) => \{\s*if \(formBusy\) return;/.test(choice),
+                /not-aria-readonly:hover:bg-hover-subtle/.test(choice) && !/(?<!not-aria-readonly:)hover:/.test(choice),
+            ].join(" "),
+            combobox: [
+                reads("Combobox"),
+                /readOnly=\{formBusy\}/.test(combobox),
+                /const shown = listOpen && suggestions\.length > 0 && !formBusy;/.test(combobox),
+                /const onKeyDown = \(event\) => \{\s*if \(formBusy\) return;/.test(combobox),
+                /onFocus=\{\(\) => \{\s*if \(!formBusy\) onListOpenChange\(true\);/.test(combobox),
+            ].join(" "),
+            sheetField: [
+                reads("SheetField"),
+                /aria-disabled=\{formBusy \|\| undefined\}/.test(sheetField),
+                /onClick=\{formBusy \? undefined : onOpen\}/.test(sheetField),
+                /not-aria-disabled:active:bg-hover-subtle/.test(sheetField),
+            ].join(" "),
+            sheetBusy: [
+                /size === "xl" \? "max-sm:size-mobile-spinner" : "max-sm:in-data-\[sheet\]:size-mobile-spinner"/.test(fnSource("Spinner")),
+                /size === "xl" \? "max-sm:sr-only" : "max-sm:in-data-\[sheet\]:sr-only"/.test(fnSource("ButtonLabel")),
+            ].join(" "),
+        };
+    };
+    const busyRules = busyFacts(controls);
+    check("a busy form's state is provided to what it holds", busyRules.provider, true);
+    check("  and the button asks what it is under it, and draws the answer", busyRules.button, "true true true true true");
+    check("  a text field locks read-only", busyRules.text, "true true true");
+    check("  a number field's figure locks and its steps take no press and no hover", busyRules.number, "true true true true true");
+    check("  a choice locks read-only, opening and changing nothing, with no hover", busyRules.choice, "true true true true true");
+    check("  a typed value locks read-only and its list does not show", busyRules.combobox, "true true true true true");
+    check("  and the phone's field opens no sheet", busyRules.sheetField, "true true true true");
+    check("in a sheet below the phone's edge a busy action is Tools 0a's Busy, its word kept for assistive tech", busyRules.sheetBusy, "true true");
+
+    // THE FRAME HANDS ITS BUSY STATE TO WHAT IT HOLDS AND KEEPS FOCUS INSIDE WHILE IT IS
+    // OPEN. Its close locks rather than disabling. While it is open an observer is told of
+    // what can take focus away — a control disabled, hidden or made inert, or taken off the
+    // page — and `focusin` follows what holds focus; each change asks `focusLost`, and focus
+    // that fell goes to the first thing the body holds that can take it, or to the title.
+    const keeperFacts = ({ ast, source }) => {
+        const fnSource = (name) => {
+            const fn = functionNamed(ast, name);
+            return fn ? source.slice(fn.start, fn.end) : "";
+        };
+        const frameSource = fnSource("DialogFrame");
+        let keeper = "";
+        walk(functionNamed(ast, "DialogFrame") ?? {}, (n) => {
+            if (n.type === "CallExpression" && n.callee?.name === "useLayoutEffect" && /new MutationObserver\(/.test(source.slice(n.start, n.end)))
+                keeper = source.slice(n.start, n.end);
+        });
+        const inside = fnSource("focusInside");
+        const hold = fnSource("canHoldFocus");
+        // The body's own outermost box, which is the one the frame looks for.
+        const returned = functionNamed(ast, "DialogBody")?.body.body.find((s) => s.type === "ReturnStatement")?.argument;
+        const bodyMarked = returned?.openingElement?.attributes.some((a) => a.name?.name === "data-dialog-body") ?? false;
+        return {
+            handsBusy: /<FormBusy busy=\{busy\}>\{children\}<\/FormBusy>/.test(frameSource),
+            close: [/aria-disabled=\{busy \|\| undefined\}/.test(frameSource), !/\sdisabled=\{busy\}/.test(frameSource), /not-aria-disabled:hover:bg-hover/.test(frameSource)].join(" "),
+            keeper: [
+                /if \(!open \|\| !dialog\) return undefined;/.test(keeper),
+                /observer\.observe\(dialog, \{ subtree: true, childList: true, attributes: true, attributeFilter: \["disabled", "hidden", "inert"\] \}\);/.test(keeper),
+                /dialog\.addEventListener\("focusin", onFocusIn\);/.test(keeper) && /held = event\.target;/.test(keeper),
+                /if \(!onDocument && active !== held && dialog\.contains\(active\)\) held = active;/.test(keeper),
+                /observer\.disconnect\(\);/.test(keeper) && /\}, \[open\]\)$/.test(keeper),
+            ].join(" "),
+            asks: /const lost = focusLost\(\{\s*open: dialog\.open,\s*held: held !== null,\s*heldCanHold: held !== null && canHoldFocus\(held\),\s*onHeld: held !== null && active === held,\s*onDocument,\s*\}\);\s*if \(lost\) held = focusInside\(dialog, titleRef\.current\);/.test(
+                keeper
+            ),
+            target: [
+                /dialog\.querySelector\("\[data-dialog-body\]"\)/.test(inside),
+                /\.find\(\(element\) => element\.tabIndex >= 0 && canHoldFocus\(element\)\)/.test(inside),
+                /focusHeading\(title\);/.test(inside) && inside.indexOf("control.focus()") < inside.indexOf("focusHeading(title)"),
+                /<h2 ref=\{titleRef\}/.test(frameSource),
+                bodyMarked,
+            ].join(" "),
+            canHold: [/element\.isConnected/.test(hold), /!element\.disabled/.test(hold), /!element\.closest\("\[inert\]"\)/.test(hold), /element\.checkVisibility\(\)/.test(hold)].join(" "),
+        };
+    };
+    const keeper = keeperFacts(frame);
+    check("the frame hands its busy state to everything it holds", keeper.handsBusy, true);
+    check("  and its close locks rather than disabling", keeper.close, "true true true");
+    check("while it is open it watches what can take focus away, and follows what holds focus", keeper.keeper, "true true true true true");
+    check("  and asks focusLost of each change, putting fallen focus back inside", keeper.asks, true);
+    check("  on the first thing its body holds that can take focus, or its title", keeper.target, "true true true true true");
+    check("  where taking focus means on the page, enabled, not inert, and drawn", keeper.canHold, "true true true true");
+
+    // EVERY DIALOG ON THE AXIS THAT SUBMITS IS HELD TO IT, found rather than listed: each
+    // component drawing the frame, whether it submits, the busy state it hands the frame, a
+    // working word on its submit, and any button disabled while it sends. A dialog that asks
+    // nothing hands no busy state, since locking a dialog that sends nothing would freeze it.
+    const submitFacts = ({ ast, source }) => {
+        const found = [];
+        walk(ast, (n) => {
+            if (n.type !== "FunctionDeclaration") return;
+            const frames = [];
+            const commitments = [];
+            let disabledBySending = 0;
+            walk(n, (inner) => {
+                if (inner.type !== "JSXOpeningElement") return;
+                const attribute = (name) => inner.attributes.find((a) => a.type === "JSXAttribute" && a.name?.name === name);
+                const valueOf = (name) => {
+                    const a = attribute(name);
+                    return a ? (a.value ? source.slice(a.value.start, a.value.end) : "true") : null;
+                };
+                if (inner.name?.name === "DialogFrame") frames.push({ submits: attribute("onSubmit") !== undefined, busy: valueOf("busy") });
+                if (inner.name?.name === "Button") {
+                    if (valueOf("type") === '"submit"') commitments.push(valueOf("busyLabel") ? "named" : "unnamed");
+                    if (/\bpending\b/.test(valueOf("disabled") ?? "")) disabledBySending++;
+                }
+            });
+            for (const f of frames)
+                found.push(
+                    `${n.id?.name}: ${f.submits ? "submits" : "asks nothing"} · busy ${f.busy ?? "none"} · ${commitments.join(", ") || "no submit"} · ${disabledBySending} disabled by sending`
+                );
+        });
+        return found;
+    };
+    const dialogs = toolsFiles
+        .filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame"))
+        .flatMap((rel) => submitFacts(parseFile(rel)))
+        .sort();
+    check(
+        "every dialog on the axis that submits hands its frame its busy state and its commitment a word, with nothing disabled for it",
+        dialogs.filter((d) => d.includes(": submits")).join(" | "),
+        [
+            "RegistrationForm: submits · busy {pending} · named · 0 disabled by sending",
+            "RetirementConfirm: submits · busy {pending} · named · 0 disabled by sending",
+            "TransitionForm: submits · busy {pending} · named · 0 disabled by sending",
+        ].join(" | ")
+    );
+    check(
+        "  and every one that asks nothing hands it none",
+        dialogs.filter((d) => d.includes(": asks nothing") && !d.includes("busy none")).join(" | "),
+        ""
+    );
+    check("  across the dialogs drawn on the frame", dialogs.length, onNewFrame.length);
+
     // ── anti-vacuity ────────────────────────────────────────────────────────
     log("");
     log("anti-vacuity — this check is seen to be able to fail:");
@@ -766,7 +993,8 @@ export function run({ check, assert, log }) {
     // hands focus back on every close, names no description and holds its actions on a line.
     const plantedFrame = frameFacts(
         parseSource(
-            'function focusPageHeading() { document.querySelector("main")?.focus(); }\n' +
+            "function focusHeading(heading) { heading.focus(); }\n" +
+                'function focusPageHeading() { focusHeading(document.querySelector("main")); }\n' +
                 "export function DialogFrame({ open }) { useLayoutEffect(() => { if (!open) { dialog.close(); focusPageHeading(); } }, [open]); }\n" +
                 "export function DialogMessage({ children }) { return <p>{children}</p>; }\n" +
                 'export function DialogActions({ children }) { return <div className="flex justify-end gap-gap">{children}</div>; }\n',
@@ -795,6 +1023,64 @@ export function run({ check, assert, log }) {
         "  a body that takes no spare room is seen",
         buildFacts(parseSource('export function DialogBody({ children }) { return <div className="relative flex min-h-0 flex-col">{children}</div>; }\n', "<planted-body>")).bodyGrows,
         false
+    );
+    // #469's readers are seen to fail on controls that disable a button while its form
+    // waits and read no busy state, and that leave the choice hovering and the steps
+    // pressable; on a frame that disables its close, watches nothing and puts fallen focus
+    // on the dialog itself; and on a dialog that submits with no busy state, an unnamed
+    // commitment and a button disabled while it sends, beside one that asks nothing and is
+    // handed busy anyway.
+    const plantedBusy = busyFacts(
+        parseSource(
+            "export function FormBusy({ busy, children }) { return <Context.Provider value={busy}>{children}</Context.Provider>; }\n" +
+                "export function Button({ busy }) { return <button disabled={busy} aria-busy={busy}>{x}</button>; }\n" +
+                "export function TextInput({ readOnly }) { return <input readOnly={readOnly} />; }\n" +
+                'const STEP = "hover:bg-hover";\n' +
+                "export function NumberField() { const formBusy = useContext(FormBusyContext); return <input readOnly={formBusy} />; }\n" +
+                'export function Choice() { const formBusy = useContext(FormBusyContext); return <div aria-readonly={formBusy || undefined} className="hover:bg-hover-subtle" />; }\n' +
+                "export function Combobox() { const shown = listOpen; return <input />; }\n" +
+                "export function SheetField({ onOpen }) { return <button onClick={onOpen} />; }\n" +
+                'function Spinner({ size }) { return <span className={size === "xl" ? "max-sm:size-mobile-spinner" : ""} />; }\n',
+            "<planted-busy>"
+        )
+    );
+    check("  a provider that is not the busy state's is seen", plantedBusy.provider, false);
+    check("  a button disabled while busy, asking nothing, is seen", plantedBusy.button, "false false false false false");
+    check("  a text field the lock does not reach is seen", plantedBusy.text, "false false false");
+    check("  steps that take a press and a hover while locked are seen", plantedBusy.number, "true true false false false");
+    check("  a choice that opens and hovers while locked is seen", plantedBusy.choice, "true true false false false");
+    check("  a typed value whose list shows while locked is seen", plantedBusy.combobox, "false false false false false");
+    check("  a sheet field that opens while locked is seen", plantedBusy.sheetField, "false false false false");
+    check("  and a sheet keeping the desk's spinner and word is seen", plantedBusy.sheetBusy, "false false");
+    const plantedKeeper = keeperFacts(
+        parseSource(
+            "function canHoldFocus(element) { return element.isConnected; }\n" +
+                "function focusInside(dialog) { dialog.focus(); return dialog; }\n" +
+                "export function DialogFrame({ busy, children }) { useLayoutEffect(() => { dialog.showModal(); }, [open]); " +
+                "useLayoutEffect(() => { const observer = new MutationObserver(() => {}); observer.observe(dialog, { childList: true }); }, []); " +
+                "return <dialog><h2>{title}</h2><button disabled={busy} className=\"enabled:hover:bg-hover\" />{children}</dialog>; }\n" +
+                "export function DialogBody({ children }) { return <div className=\"relative flex\">{children}</div>; }\n",
+            "<planted-keeper>"
+        )
+    );
+    check("  a frame that keeps its busy state to itself is seen", plantedKeeper.handsBusy, false);
+    check("  a close disabled while busy is seen", plantedKeeper.close, "false false false");
+    check("  a keeper that watches nothing that takes focus away, and follows nothing, is seen", plantedKeeper.keeper, "false false false false false");
+    check("  one that asks nothing is seen", plantedKeeper.asks, false);
+    check("  focus put back on the dialog itself, in no marked body and on no title, is seen", plantedKeeper.target, "false false false false false");
+    check("  and a reading of focus that checks only the page is seen", plantedKeeper.canHold, "true false false false");
+    const plantedDialogs = submitFacts(
+        parseSource(
+            "export function Asking() { return <DialogFrame open={open} onSubmit={submit}><Button>{COPY.cancel}</Button>" +
+                '<Button type="submit" disabled={pending || refused}>{COPY.go}</Button></DialogFrame>; }\n' +
+                "export function Telling() { return <DialogFrame open={open} busy={pending}><Button>{COPY.ok}</Button></DialogFrame>; }\n",
+            "<planted-dialogs>"
+        )
+    ).sort();
+    check(
+        "  and a dialog sending with no busy state, an unnamed commitment and a button disabled for it is seen, beside one telling and handed busy",
+        plantedDialogs.join(" | "),
+        "Asking: submits · busy none · unnamed · 1 disabled by sending | Telling: asks nothing · busy {pending} · no submit · 0 disabled by sending"
     );
 }
 

@@ -49,7 +49,8 @@ import NameSheet from "./NameSheet";
  * place: one that somebody else scanned first flips the status under the open dialog, the
  * page offers the other event, and the dialog is gone while its sentence stands on the page
  * where the control is, as every refusal on this screen did; one the dialog can stand open
- * for — the status left unwritten — is said above its actions.
+ * for — a job the reader is no longer assigned to, or the status left unwritten — is said
+ * above its actions, and a job taken away takes the opening's start again (#469).
  *
  * A PRESS THAT LANDS LEAVES FOCUS ON THE DOCUMENT, by the mechanism #362's form had too: the
  * press is disabled while it sends, which takes focus off it, and the remount brings nothing
@@ -63,10 +64,14 @@ import NameSheet from "./NameSheet";
  * opens later, as they are. One state behind both, so the field behind a sheet and the sheet
  * are one value.
  *
- * NOTHING HERE MARKS A SUBMISSION IN FLIGHT BEYOND REFUSING A SECOND ONE: the press and the
- * commitment are disabled while pending and the frame will not close, which is the frontend
- * half of every double-write argument on this axis — `withKeyLock` serializes within one
- * invocation only. Saying that a dialog is submitting is #469's.
+ * A SUBMISSION IN FLIGHT IS SAID IN THE DIALOG AND NOWHERE ELSE (#469). The frame is `busy`
+ * while the dialog's event is on its way, so the commitment keeps its fill and after 300ms
+ * gives its label way to `Checking out…` or `Checking in…`, every other control locks with
+ * it, and the frame will not close — the frontend half of every double-write argument on this
+ * axis, since `withKeyLock` serializes within one invocation only. None of it is disabled, so
+ * focus stays on the commitment the reader pressed. **The press itself stays disabled while it
+ * sends** (`disabled={pending}`) — the check-in on one job, which records with no dialog — as
+ * #362's form had it; #469 is about a dialog's commitment and left the press as it was.
  *
  * EVERY STRING COMES FROM `TOOL_TRANSITION_COPY`, which `offline/tool-list-view.mjs` holds by
  * failing on any JSX text under app/(tools)/.
@@ -139,6 +144,15 @@ function TransitionForm({ open, onClose, plan, toolItemId, currentJobCode, recen
     const [name, setName] = useState("");
     const [listOpen, setListOpen] = useState(false);
     const [sheet, setSheet] = useState(null);
+    // A CHOSEN JOB THE PLAN NO LONGER HOLDS STARTS AGAIN WHERE AN OPENING STARTS (#469). A
+    // refusal re-renders the page in place (#378), and the jobs the page plans with can be
+    // fewer than the dialog opened with — the office took the chosen one away between the
+    // opening and the press. A choice they no longer hold takes the opening's start again: the
+    // one job there is, or none of several (0l). Kept, it was no choice at all, and below the
+    // phone's edge with one job left it was a stated field saying `Choose a job` that nothing
+    // could open, over a commitment that could not act — seen in a browser.
+    const start = onlyJob(plan.jobs)?.id ?? "";
+    if (jobId !== start && !plan.jobs.some((job) => job.id === jobId)) setJobId(start);
 
     const asksName = plan.event === TOOL_EVENT.CHECKED_OUT;
     const several = onlyJob(plan.jobs) === null;
@@ -203,10 +217,10 @@ function TransitionForm({ open, onClose, plan, toolItemId, currentJobCode, recen
                     )}
                 </DialogBody>
                 <DialogActions refusal={refusal}>
-                    <Button variant="bordered" onClick={onClose} disabled={pending}>
+                    <Button variant="bordered" onClick={onClose}>
                         {COPY.cancel}
                     </Button>
-                    <Button type="submit" disabled={pending || Boolean(reading.refusal)}>
+                    <Button type="submit" disabled={Boolean(reading.refusal)} busyLabel={COPY.working[plan.event]}>
                         {COPY.control[plan.event]}
                     </Button>
                 </DialogActions>

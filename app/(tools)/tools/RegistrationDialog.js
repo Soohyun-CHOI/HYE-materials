@@ -11,6 +11,7 @@ import {
     TOOL_REGISTRATION_COPY as COPY,
     matchExistingTool,
     openingCount,
+    readQuantity,
     readRegistration,
     suggestTools,
 } from "@/lib/toolRegistration";
@@ -55,6 +56,14 @@ import { registerToolItemsAction } from "./actions";
  * the form (#449 read that in react-dom). The form carries no `action` prop: #449 kept one
  * for a press landing before hydration, and a dialog cannot be open before hydration —
  * the opener is a button whose press is a script — so there is no such press to catch.
+ *
+ * ITS COMMITMENT NAMES WHAT IT WILL CREATE, AND SAYS SO WHILE IT DOES (#469). The words
+ * follow the count as it is typed, through `readQuantity` — the reading the press itself
+ * makes — so `Create 5 tools` stands only over a count the press would take, and
+ * `Create tools` over one it would refuse (1j). While the registration is on its way the
+ * frame is `busy`: the commitment gives way to `Creating…` after 300ms, every other
+ * control locks, and nothing is disabled, so focus stays where the press found it — and
+ * stays there through a refusal, since the commitment can act again at once.
  *
  * IT CLOSES WHEN THE PAGE IT WAS OPENED ON MOVES, which is how a registration that lands
  * on the same tool's page — the page it was opened from — takes the dialog away: it is
@@ -228,11 +237,11 @@ export function RegistrationForm({ open, onClose, jobs, tool, quantity, tools = 
                 </div>
             </DialogBody>
             <DialogActions refusal={said?.error}>
-                <Button variant="bordered" onClick={onClose} disabled={pending}>
+                <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button type="submit" disabled={pending}>
-                    {COPY.submit}
+                <Button type="submit" busyLabel={COPY.working}>
+                    {COPY.submit(readQuantity(count).count)}
                 </Button>
             </DialogActions>
         </DialogFrame>

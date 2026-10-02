@@ -55,6 +55,11 @@
 // is the sweep's own claim, that no string in the constant says `tool item`.
 // `offline/tool-screen-words.mjs` holds the verb across every tools screen.
 //
+// AND SINCE #469 WHAT THE COMMITMENT SAYS: the count it will create, by value through the
+// reading the press makes, and `Creating…` while it sends — read off the dialog as the
+// expressions that decide them, with no button disabled for the sending. What the frame
+// does with its busy state is `offline/dialog-frame.mjs`'s.
+//
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { normalizeItemText } from "../../../lib/itemNaming.js";
@@ -81,7 +86,7 @@ import { fakeBase } from "./_fakeBase.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
-    "Registering tool items — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #470)";
+    "Registering tool items — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(tools)/tools/actions.js";
@@ -102,6 +107,7 @@ function copyStrings() {
     out.push(joined(TOOL_REGISTRATION_COPY.matchesExisting({ toolName: "Impact Driver", items: "13 items" })));
     out.push(TOOL_REGISTRATION_COPY.quantityHelp(100));
     out.push(TOOL_REGISTRATION_COPY.quantityInvalid(100), TOOL_REGISTRATION_COPY.quantityTooMany(100));
+    out.push(TOOL_REGISTRATION_COPY.submit(null), TOOL_REGISTRATION_COPY.submit(1), TOOL_REGISTRATION_COPY.submit(5));
     out.push(TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }));
     for (const n of [1, 4]) {
         out.push(TOOL_REGISTRATION_COPY.shortfall(n));
@@ -287,7 +293,24 @@ export async function run({ check, assert, log }) {
     check("  and its help", TOOL_REGISTRATION_COPY.quantityHelp(100), "Up to 100");
     check("  the job's label", TOOL_REGISTRATION_COPY.jobLabel, "Job");
     check("  and its choice left empty, the picker's own word", TOOL_REGISTRATION_COPY.jobUnchosen, TOOL_JOB_COPY.unchosen);
-    check("  the submit", TOOL_REGISTRATION_COPY.submit, "Create tools");
+    // THE SUBMIT NAMES WHAT IT MAKES BY ITS COUNT (#469, 1j) — and only a count the press
+    // takes: the dialog hands it `readQuantity`'s count for what the field holds, so the
+    // words over a count the press would refuse say the act alone, as 1j's Refused does.
+    check("  the submit, for one", TOOL_REGISTRATION_COPY.submit(1), "Create 1 tool");
+    check("  for several", TOOL_REGISTRATION_COPY.submit(5), "Create 5 tools");
+    check("  at the ceiling", TOOL_REGISTRATION_COPY.submit(100), "Create 100 tools");
+    check("  and over a count the press would refuse", TOOL_REGISTRATION_COPY.submit(null), "Create tools");
+    for (const [raw, expected, why] of [
+        ["1", "Create 1 tool", "  the field's 1, read as the press reads it"],
+        [" 12 ", "Create 12 tools", "  a dozen, its spaces trimmed as the press trims them"],
+        ["100", "Create 100 tools", "  the ceiling, typed"],
+        ["", "Create tools", "  nothing typed"],
+        ["0", "Create tools", "  zero"],
+        ["101", "Create tools", "  one past the ceiling"],
+        ["140", "Create tools", "  1j's refused 140"],
+    ])
+        check(why, TOOL_REGISTRATION_COPY.submit(readQuantity(raw).count), expected);
+    check("  and while it is on its way, 0f's -ing word with no count", TOOL_REGISTRATION_COPY.working, "Creating…");
     check("  and the way out", TOOL_REGISTRATION_COPY.cancel, "Cancel");
     // THE PREVIEW (#456): a tool that exists, with its count in the words its own page
     // heads its list with, and a name that coins one.
@@ -754,9 +777,21 @@ export async function run({ check, assert, log }) {
             gate: null,
             nameField: [],
             totals: [],
+            commitment: null,
+            disabledBySending: 0,
         };
         walk(ast, (n) => {
             if (n.type === "JSXAttribute" && n.name?.name === "action") facts.actionProps++;
+            // The commitment (#469): what it says, and the word it gives way to while the frame
+            // is busy — and any button made to wait by being disabled while the dialog sends.
+            if (n.type === "JSXElement" && n.openingElement.name?.name === "Button") {
+                const attribute = (name) => n.openingElement.attributes.find((a) => a.name?.name === name);
+                if (attribute("type")?.value?.value === "submit") {
+                    const said = n.children.find((child) => child.type === "JSXExpressionContainer")?.expression;
+                    facts.commitment = `${text(said) || "nothing"} · ${text(attribute("busyLabel")?.value?.expression) || "no working word"}`;
+                }
+                if (/\bpending\b/.test(text(attribute("disabled")?.value?.expression))) facts.disabledBySending++;
+            }
             if (n.type === "JSXOpeningElement" && n.name?.name === "DialogFrame") {
                 const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
                 facts.submitsThrough = nameOf(attribute("onSubmit") ?? {});
@@ -873,6 +908,16 @@ export async function run({ check, assert, log }) {
         `${dialog.openWhile} where address = ${dialog.address}`,
         "openedAt !== null && openedAt === address where address = useSearchParams().toString()"
     );
+    // ITS COMMITMENT NAMES ITS COUNT AS THE PRESS WILL READ IT, AND SAYS IT IS SENDING (#469):
+    // the words through `readQuantity`, the one reading of a count, and 1j's `Creating…`
+    // handed over for the frame's busy state, with no button disabled while the dialog sends —
+    // a disabled one gives focus up to the document, which the frame's state exists to stop.
+    check(
+        "its commitment names the count the press would take, and gives way to its working word",
+        dialog.commitment,
+        "COPY.submit(readQuantity(count).count) · COPY.working"
+    );
+    check("  and no button of it is disabled while it sends", dialog.disabledBySending, 0);
     // ANTI-VACUITY: a planted dialog bound through `action`, sending before it reads,
     // reading the action's old account, starting its fields from literals, naming no tool,
     // asking a name it was handed, counting in another figure, gating on something else and
@@ -893,6 +938,7 @@ export async function run({ check, assert, log }) {
                 "  const submit = (event) => { startTransition(() => formAction(new FormData(event.currentTarget))); const reading = readRegistration({}, []); };\n" +
                 "  return <DialogFrame onSubmit={submit} subtitle={COPY.intro}><form action={formAction}>{said?.error}{said?.toolItemIds}" +
                 '{false ? <input type="hidden" name="toolName" /> : <Combobox name="toolName" suggestions={s.map((x) => ({ detail: String(x.count) }))} />}' +
+                '<Button type="submit" disabled={pending}>{COPY.submit(Number(count))}</Button>' +
                 "</form></DialogFrame>;\n" +
                 "}\n",
             "<planted-dialog>"
@@ -915,6 +961,8 @@ export async function run({ check, assert, log }) {
         `${plantedDialog.openWhile} where address = ${plantedDialog.address}`,
         "openedAt !== null where address = useSearchParams().toString()"
     );
+    check("  a commitment naming a count the press never read, with no working word, is seen", plantedDialog.commitment, "COPY.submit(Number(count)) · no working word");
+    check("  and one disabled while the dialog sends is seen", plantedDialog.disabledBySending, 1);
 
     // ── 9: a registration's failures, run against a fake base (#470) ─────────
     // What a landing says after a batch fails is decided by `lib/airtableBatch.js`, which

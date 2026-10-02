@@ -26,10 +26,12 @@ import { retireToolItemAction } from "./actions";
  *
  * NOTHING CLOSES IT WHILE IT IS SENDING (the frame's `busy`), and a press on what lies
  * behind it closes it only as 1f's sheet, where the design draws that — never as 0l's
- * dialog. A refusal it can stand open for — the status left unwritten — is said above its
- * actions; one that ends the offer, somebody having retired the tool item first, takes the
- * dialog away with its opener, and the page says the status is the end (#378). A landing
- * does the same, and the frame then hands focus to the page's heading.
+ * dialog. While it sends, the red commitment keeps its fill and after 300ms says
+ * `Retiring…`, and `Cancel` locks with it (#469); neither is disabled, so focus stays on the
+ * commitment that was pressed. A refusal it can stand open for — the status left unwritten —
+ * is said above its actions; one that ends the offer, somebody having retired the tool item
+ * first, takes the dialog away with its opener, and the page says the status is the end
+ * (#378). A landing does the same, and the frame then hands focus to the page's heading.
  */
 export default function RetirementConfirm({ open, onClose, toolItemId, toolName }) {
     const [state, formAction, pending] = useActionState(retireToolItemAction, null);
@@ -56,10 +58,10 @@ export default function RetirementConfirm({ open, onClose, toolItemId, toolName 
                 <DialogMessage>{COPY.retireBody}</DialogMessage>
             </DialogBody>
             <DialogActions refusal={state?.error}>
-                <Button variant="bordered" onClick={onClose} disabled={pending}>
+                <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button variant="danger" type="submit" disabled={pending}>
+                <Button variant="danger" type="submit" busyLabel={COPY.retireWorking}>
                     {COPY.retireSubmit}
                 </Button>
             </DialogActions>

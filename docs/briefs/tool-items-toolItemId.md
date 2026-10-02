@@ -112,6 +112,12 @@ check-in on one job, which needs neither, still records on the press. A
 check-in on several jobs opens the same dialog for its job alone, with none
 chosen.
 
+**While the event is on its way the dialog says so (#469):** its commitment
+keeps its color and, after a moment, says `Checking out…` or `Checking in…`,
+and nothing in the dialog takes a press. That is not the commitment that cannot
+act yet — drawn faded until the job and the name are given — and a design must
+keep the two apart.
+
 **action.** `Retire this tool`, which opens a dialog and is the second and
 last control on the page. It is offered from `In Stock` and from `Out` alike —
 a tool that broke on a site is retired from there, and requiring a check-in
@@ -180,7 +186,10 @@ retirement is not a move.
 have several, and it is the same control either way** — at a desk a choice
 holding that one job, as the registration's is, and below the phone's edge the
 job stated with no sheet to open (#458). Nobody types a job anywhere on this
-axis, and the two cases must not become two layouts.
+axis, and the two cases must not become two layouts. **If the office takes
+away the job a reader chose while the dialog is open**, the press is refused
+above the actions and the job starts again as the dialog started — the one job
+left already chosen, or none of several (#469).
 
 **The section has no heading.** The two below it name things — `Label`,
 `History` — and a heading here would have to name the act in the abstract, which
@@ -317,8 +326,10 @@ stays legible, and it closes by `Cancel`, by `Escape`, by its close at a desk
 and on a press behind it as a phone's sheet, with focus returning to the
 control that opened it; the confirm takes it away with the page's offer, and
 focus goes to the page's heading (#458). It does not close while a
-confirmation is in flight. It carries a refusal slot of its own, in case a
-refusal ever lands while it is open. **What happens today when somebody else
+confirmation is in flight, and while it is, the commitment keeps its red and
+says `Retiring…` and nothing else in it takes a press (#469). It carries a
+refusal slot of its own, in case a refusal ever lands while it is open.
+**What happens today when somebody else
 retires the tool item first is that the dialog goes** — the refusal re-renders
 the page, the page has no controls to offer a retired tool item, and the dialog
 disappears with them; what the reader is left looking at is the sentence saying
