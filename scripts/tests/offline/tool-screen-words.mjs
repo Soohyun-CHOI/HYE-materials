@@ -78,17 +78,20 @@ export function run({ check, assert, log }) {
         "is a tool nobody has registered yet.",
     ])
         assert(`  the matcher catches ${JSON.stringify(planted)}`, REGISTER.test(planted));
-    for (const passed of ["New tools", "Create tools", "Create the rest", "Created"])
+    for (const passed of ["New tools", "Create tools", "Create 5 tools", "Creating…", "Create the rest", "Created"])
         assert(`  and passes ${JSON.stringify(passed)}`, !REGISTER.test(passed));
     // The collector reaches the constant that says the verb most: "nothing says it" is
     // also what a collector reading nothing reports. The registration has no route of
     // its own since #456, so its words are the list's, reached through the dialog the
-    // list imports.
+    // list imports. The submit is a builder since #469, naming its count, and the collector
+    // reads the words it is built of: the act alone, and the act with one.
     const list = stringsForRoute("/tools").strings.map((s) => s.text);
     assert(
         "  the collector reaches the registration dialog's own words from the list",
         list.includes(TOOL_REGISTRATION_COPY.heading) &&
-            list.includes(TOOL_REGISTRATION_COPY.submit) &&
+            list.includes(TOOL_REGISTRATION_COPY.submit(null)) &&
+            list.includes(TOOL_REGISTRATION_COPY.submit(1)) &&
+            list.includes(TOOL_REGISTRATION_COPY.working) &&
             list.includes(TOOL_REGISTRATION_COPY.newTool)
     );
     const landing = stringsForRoute("/tools/[toolRecordId]").strings.map((s) => s.text);

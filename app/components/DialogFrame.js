@@ -1,8 +1,8 @@
 "use client";
 
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { DIALOG_FRAME_COPY as COPY } from "@/lib/dialogFrame";
-import { Refusal } from "./Controls";
+import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
+import { FormBusy, Refusal } from "./Controls";
 
 /*
  * The frame a dialog opens in — Claude Design's 0l, drawn once (#456).
@@ -25,6 +25,30 @@ import { Refusal } from "./Controls";
  * not draw one closing, and a dialog of fields that shut on a stray press would lose what
  * was typed into it. The one exception is 1f's sheets, below, which the design draws
  * closing on what lies behind them and which hold nothing a press could lose.
+ *
+ * WHILE IT IS BUSY IT SAYS SO, AND SO DOES EVERYTHING IT HOLDS (#469). The frame wraps what
+ * it holds in `FormBusy`, so the form's submit draws 0f's Working — its fill kept, after
+ * 300ms a spinner and its `-ing` word — and every other control locks with it, its look kept
+ * and no press or keystroke taken; the close locks the same way. Nothing is disabled, which
+ * is the rule that keeps focus where the submission found it: on the commitment that was
+ * pressed, or in the field Enter was pressed in. A dialog that submits hands the frame its
+ * `busy` and its commitment its word, and nothing more.
+ *
+ * FOCUS STAYS IN A DIALOG THAT STAYS OPEN (#469). A refusal that leaves a dialog open can
+ * take away what held focus — the transition's commitment cannot act once the job it was
+ * pressed with is no longer one the reader holds and several are left to choose from — and
+ * the browser then drops focus on the document without an event: measured in this
+ * repository's browser, a focused button disabled gives focus up after the next style
+ * update with no `blur` and no `focusout`, and one taken off the page gives it up at once.
+ * So while it is open the frame watches what it holds and asks
+ * `lib/dialogFrame.js:focusLost` whenever that changes, and when focus has fallen it goes
+ * to the first thing the dialog's body holds that can take it — where the dialog asks, in
+ * reading order — or to the dialog's title when the body holds none, which is where the
+ * dialog begins, as the page's heading is where a page does. Focus that went into a sheet
+ * opened over the dialog went there on purpose and is left alone. **What it does not watch
+ * is an element hidden by its class or by the screen's width**, which is not a change the
+ * observer is told of; nothing on this axis hides what holds focus that way, and none has
+ * been seen to.
  *
  * WHAT IT HOLDS IS RENDERED ONLY WHILE IT IS OPEN, so a dialog opened again starts from
  * what its opener hands it rather than from whatever it was left holding.
@@ -98,15 +122,45 @@ import { Refusal } from "./Controls";
  */
 
 /**
- * Where focus goes when a dialog no press opened closes: the page's heading (#459), made
- * focusable if the page did not make it so. A page with no heading keeps what the browser
- * gave back.
+ * Focus on a heading, made focusable if nothing made it so — where a page or a dialog
+ * begins (#459, #469). With no heading, focus stays where it is.
  */
-function focusPageHeading() {
-    const heading = document.querySelector("h1");
+function focusHeading(heading) {
     if (!heading) return;
     if (!heading.hasAttribute("tabindex")) heading.tabIndex = -1;
     heading.focus();
+}
+
+/**
+ * Where focus goes when a dialog no press opened closes: the page's heading (#459). A page
+ * with no heading keeps what the browser gave back.
+ */
+function focusPageHeading() {
+    focusHeading(document.querySelector("h1"));
+}
+
+/** Whether an element can hold focus now: still on the page, not disabled, not inert, and drawn. */
+function canHoldFocus(element) {
+    return element.isConnected && !element.disabled && !element.closest("[inert]") && element.checkVisibility();
+}
+
+/** What can take focus, as the browser's own order through a page finds it. */
+const FOCUSABLE = 'a[href], button, input:not([type="hidden"]), select, textarea, [tabindex]';
+
+/**
+ * Where focus goes when an open dialog let it fall (#469): the first thing its body holds
+ * that can take focus — where the dialog asks, in reading order — or its title when the
+ * body holds none. Returns what took it.
+ */
+function focusInside(dialog, title) {
+    const body = dialog.querySelector("[data-dialog-body]");
+    const control = body ? [...body.querySelectorAll(FOCUSABLE)].find((element) => element.tabIndex >= 0 && canHoldFocus(element)) : undefined;
+    if (control) {
+        control.focus();
+        return control;
+    }
+    focusHeading(title);
+    return title;
 }
 
 /**
@@ -162,7 +216,8 @@ function laidOutAsSheet(dialog) {
  * sets every figure.
  *
  * `onSubmit` makes what it holds a form, which is how a dialog of fields submits: its
- * actions are inside the form with the fields they submit. `unprompted` is for a dialog
+ * actions are inside the form with the fields they submit, and `busy` says its submission
+ * is in flight, which the frame hands to all of them (#469). `unprompted` is for a dialog
  * no press opened, which hands focus to the page's heading when it closes. `preview` is
  * the second build (#457): what it holds is drawn in a pane beside the column, which is
  * the Compact build's inside — see the header. `recordId` is 0l's Confirm, and `sheet`,
@@ -189,6 +244,7 @@ export function DialogFrame({
     // What held focus as the dialog opened — its opener — and none for a dialog no press
     // opened, whose focus goes to the heading however it leaves.
     const openerRef = useRef(null);
+    const titleRef = useRef(null);
     const titleId = useId();
 
     useLayoutEffect(() => {
@@ -203,6 +259,39 @@ export function DialogFrame({
             if (unprompted) focusPageHeading();
         }
     }, [open, unprompted]);
+
+    // While it is open, focus that falls out of it comes back in (#469 — the header). What
+    // held focus is followed by `focusin` and, since a document with no focus of its own
+    // fires none, by what is focused each time the dialog changes; and each change asks
+    // `focusLost` whether that thing has let focus fall. The observer is told of what can
+    // take focus away — a control disabled, hidden or made inert, or taken off the page.
+    useLayoutEffect(() => {
+        const dialog = dialogRef.current;
+        if (!open || !dialog) return undefined;
+        let held = dialog.contains(document.activeElement) ? document.activeElement : null;
+        const onFocusIn = (event) => {
+            held = event.target;
+        };
+        const observer = new MutationObserver(() => {
+            const active = document.activeElement;
+            const onDocument = active === null || active === document.body;
+            if (!onDocument && active !== held && dialog.contains(active)) held = active;
+            const lost = focusLost({
+                open: dialog.open,
+                held: held !== null,
+                heldCanHold: held !== null && canHoldFocus(held),
+                onHeld: held !== null && active === held,
+                onDocument,
+            });
+            if (lost) held = focusInside(dialog, titleRef.current);
+        });
+        dialog.addEventListener("focusin", onFocusIn);
+        observer.observe(dialog, { subtree: true, childList: true, attributes: true, attributeFilter: ["disabled", "hidden", "inert"] });
+        return () => {
+            observer.disconnect();
+            dialog.removeEventListener("focusin", onFocusIn);
+        };
+    }, [open]);
 
     // Taken off the page while open: once the removal has run, focus goes back to the
     // opener or to the heading. A dialog React only pretends to take away and puts back,
@@ -247,7 +336,7 @@ export function DialogFrame({
             className={`flex shrink-0 items-start justify-between gap-dialog-header-inline ${withPreview ? "px-dialog-inset pt-dialog-inset sm:col-start-2 sm:row-start-1" : ""} max-sm:in-data-[sheet=drawer]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:py-mobile-drawer-title-inset-y max-sm:in-data-[sheet=confirm]:px-mobile-gutter max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-inset-top`}
         >
             <div className="flex min-w-0 flex-col gap-dialog-title-stack max-sm:in-data-[sheet=confirm]:gap-mobile-confirm-title-stack">
-                <h2 id={titleId} className="text-heading font-semibold tabular-nums max-sm:in-data-[sheet]:text-mobile-heading">
+                <h2 ref={titleRef} id={titleId} className="text-heading font-semibold tabular-nums max-sm:in-data-[sheet]:text-mobile-heading">
                     {title}
                 </h2>
                 {confirm ? (
@@ -273,9 +362,9 @@ export function DialogFrame({
                     <button
                         type="button"
                         aria-label={COPY.close}
-                        disabled={busy}
+                        aria-disabled={busy || undefined}
                         onClick={ask}
-                        className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle enabled:hover:bg-hover enabled:hover:text-foreground-default"
+                        className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle aria-disabled:cursor-default not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default"
                     >
                         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
                             <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -320,7 +409,7 @@ export function DialogFrame({
                         onSubmit={onSubmit}
                         className={`flex min-h-0 flex-col ${withPreview ? "px-dialog-inset pb-dialog-inset sm:col-start-2 sm:row-start-2" : ""}`}
                     >
-                        {children}
+                        <FormBusy busy={busy}>{children}</FormBusy>
                     </Content>
                 </>
             )}
@@ -337,7 +426,8 @@ export function DialogFrame({
  * the column's foot; in the Compact build the column is its content's height, and there is
  * none to take. As a sheet (#458) it takes the phone's sides and its fields stand 20 apart
  * right under the title's block (Tools 0a Field label) — or, confirming, the sentence 14
- * under the id.
+ * under the id. It is marked `data-dialog-body`, which is where the frame finds the first
+ * thing to put focus back on when the dialog let it fall (#469).
  */
 export function DialogBody({ children }) {
     const scrollerRef = useRef(null);
@@ -363,7 +453,7 @@ export function DialogBody({ children }) {
     }, []);
 
     return (
-        <div className="relative flex min-h-0 grow flex-col">
+        <div data-dialog-body="" className="relative flex min-h-0 grow flex-col">
             <div
                 ref={scrollerRef}
                 className="flex min-h-0 flex-col gap-gap-lg overflow-y-auto pt-dialog-header-stack max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack"

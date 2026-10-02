@@ -41,7 +41,9 @@ the one that is already there.
 **identity.** The heading, `New tools` — the word `/tools` and a tool's own
 screen open it with, so the two cannot drift.
 
-**action.** Three controls, and the submit `Create tools` beside `Cancel`:
+**action.** Three controls, and the submit beside `Cancel`, which names what it
+will create by its count — `Create 1 tool`, `Create 5 tools` — and says
+`Create tools` while the count is one a submission would refuse (#469):
 
 - The tool's name, typed. Any name may be typed — the name is the identity,
   and a person buying a kind nobody has registered has to be able to name it —
@@ -108,6 +110,13 @@ what each says. Neither is in this dialog. **The rows already written are never
 undone** in either case, because their ids are spent and a later registration
 would re-issue them onto different tools.
 
+**While a registration is on its way (#469):** the submit keeps its color and,
+after a moment, says `Creating…` beside a spinner; nothing in the dialog takes a
+press or a keystroke, and it does not close. **That is the submit at work and
+not a submit that cannot act**, and a design must keep the two apart: one that
+cannot act is drawn faded with why before it, and this one keeps its full
+color, because the press it is waiting on has happened.
+
 **When nothing was written:** one sentence on the line above the actions —
 `Couldn't create the tools. Try again.` The dialog stays, and **everything
 typed stays with it** — the name, the count and the job — because what the
@@ -139,11 +148,14 @@ too, from the same constant. This said "the control that opens this screen",
 which stopped being the only one at #449, and a tool's own screen said `Create
 more of this tool` until #456 took the design's word for it.
 
-**The cap of 100 is a fact about one submission, not about a tool.** It comes
-from what one server invocation can write — three Airtable operations per tool
-item — and the refusal's `at a time` says the rest can follow in another. A
-design that reads it as a limit on how many of a kind the company may own would
-be wrong.
+**The cap of 100 is a fact about one submission, not about a tool.** It was
+set from what one server invocation could write when each tool item cost three
+Airtable operations, and since a registration writes in batches a hundred costs
+far fewer (#470); what holds it at 100 is what says it — `Up to 100`, `Max 100
+at a time.` and the labels' dialog, which prints the largest registration in one
+press. The refusal's `at a time` says the rest can follow in another. A design
+that reads it as a limit on how many of a kind the company may own would be
+wrong.
 
 **What a registration wrote is said by the tool's own screen, where it lands
 (#449).** The ids appear together there as a selection, on a screen somebody can

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { createContext, useContext, useId, useRef, useState } from "react";
 import {
     CONTROLS_COPY as COPY,
+    buttonBusyState,
     editableComboboxKey,
     movedIndex,
     numberFieldText,
@@ -43,9 +44,18 @@ import Menu from "./Menu";
  * A BUSY ACTION IS DRAWN HERE AND NOWHERE ELSE (0f Working, #473). An action whose work has
  * started keeps its fill and its ink, takes no press, and after 300ms gives its label way to
  * a spinner before the work's own `-ing` word — the delay is a name and the switch is CSS,
- * so an answer inside it changes nothing on the screen. Its caller says when it is busy and
- * what that word is, and locks the rest of its form; the sign-in screens are the first
- * caller, and the dialogs take it when #469 hands their frame the same state.
+ * so an answer inside it changes nothing on the screen. The sign-in steps say when an action
+ * is busy themselves, and lock their own fields.
+ *
+ * A DIALOG'S FRAME SAYS IT FOR EVERYTHING IT HOLDS (#469). The frame takes `busy` while a
+ * dialog's submission is in flight, as it has since #456 so as not to close, and wraps what
+ * it holds in `FormBusy`: the form's submit draws Working, and every other control locks —
+ * it keeps its look and takes no press and no keystroke (0f: "the other controls of its form
+ * or dialog lock with it"). NOTHING IN IT IS DISABLED, which is what keeps focus where the
+ * submission found it: a disabled control gives focus up to the document, which is what the
+ * dialogs' commitments did while they sent until this issue (#458). What a button is under it
+ * is `lib/controls.js:buttonBusyState`. A dialog names its commitment's `-ing` word, as
+ * `busyLabel`, and does nothing else.
  *
  * A FIELD SAYS WHO IT IS TO WHAT IT HOLDS. `Field` renders the label and the one line
  * under the control — help, a note, or a refusal about this field, which takes the help's
@@ -60,10 +70,24 @@ import Menu from "./Menu";
  * classes — CSS decides both conditions, the width and the ancestor, and a control in any
  * other dialog or on a page keeps 0a's at every width; the registration's and the labels'
  * dialogs are a desk's. `SheetField` is the phone's own field: it opens one of 1f's sheets
- * and shows what the sheet chose.
+ * and shows what the sheet chose. **A busy action in a sheet is Tools 0a's Busy (#469)** —
+ * the phone's spinner alone, the word left for assistive tech — as it is on a sign-in step.
  */
 
 const FieldContext = createContext(null);
+
+// Whether the form these controls stand in waits on its submission (#469).
+const FormBusyContext = createContext(false);
+
+/**
+ * The controls of a form whose submission is in flight (0f Working, #469) — what the dialog
+ * frame wraps around everything it holds, with its own `busy`. Inside it the form's submit
+ * draws Working and every other control locks, keeping its look and taking no press and no
+ * keystroke; none is disabled, so focus stays where the submission found it.
+ */
+export function FormBusy({ busy, children }) {
+    return <FormBusyContext.Provider value={busy}>{children}</FormBusyContext.Provider>;
+}
 
 /**
  * Everything a control inside a `Field` needs of it — and outside one, an id of its own
@@ -111,7 +135,7 @@ export function Refusal({ align = "start", children }) {
     );
 }
 
-const BUTTON = "items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold disabled:cursor-default data-busy:cursor-default";
+const BUTTON = "items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold disabled:cursor-default aria-disabled:cursor-default";
 
 // 0a's Commitment, 36, and a sign-in page's action, 40 and its column's width — and below
 // the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button).
@@ -124,34 +148,38 @@ const BUTTON_SIZE = {
 // cannot act yet keeps its fill at 40% and takes no hover; a bordered one fills at Wash
 // and leaves its Edge alone. A destructive commitment is filled red and hovers to Red's
 // Accent hover (0f Destructive, 0d) — the retirement's (#458). A busy one of any kind takes
-// no hover (0f Working), and the hover is written against what is NOT disabled rather than
-// what is enabled, so a link drawn as an action hovers too.
+// no hover (0f Working), and neither does one locked with it (#469): both are
+// `aria-disabled`, which is what the hover is written against. It is written against what is
+// NOT disabled rather than what is enabled, so a link drawn as an action hovers too.
 const BUTTON_VARIANT = {
-    filled: "bg-primary text-white not-disabled:not-data-busy:hover:bg-primary-hover disabled:bg-primary-disabled",
-    bordered: "border border-border bg-white text-foreground-default not-disabled:not-data-busy:hover:bg-hover-subtle",
-    danger: "bg-danger text-white not-disabled:not-data-busy:hover:bg-danger-hover",
+    filled: "bg-primary text-white not-disabled:not-aria-disabled:hover:bg-primary-hover disabled:bg-primary-disabled",
+    bordered: "border border-border bg-white text-foreground-default not-disabled:not-aria-disabled:hover:bg-hover-subtle",
+    danger: "bg-danger text-white not-disabled:not-aria-disabled:hover:bg-danger-hover",
 };
 
 // In a sheet below the phone's edge (Tools 0a Button, #458): full width, 48, 17 at 600, at
 // the phone's Radius; a filled one takes its hover fill while held, and a bordered one is a
 // text button that dims to 0.5 while held ("Cancel under it as a text button") — neither
-// while it is busy, which takes no press.
+// while it is busy or locked, which takes no press.
 const SHEET_BUTTON =
     "max-sm:in-data-[sheet]:h-mobile-dialog-button max-sm:in-data-[sheet]:w-full max-sm:in-data-[sheet]:rounded-mobile-control max-sm:in-data-[sheet]:text-mobile-heading";
 const SHEET_BUTTON_VARIANT = {
-    filled: "max-sm:in-data-[sheet]:not-data-busy:active:bg-primary-hover",
+    filled: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-primary-hover",
     bordered:
-        "max-sm:in-data-[sheet]:border-0 max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:not-data-busy:active:opacity-mobile-pressed",
-    danger: "max-sm:in-data-[sheet]:not-data-busy:active:bg-danger-hover",
+        "max-sm:in-data-[sheet]:border-0 max-sm:in-data-[sheet]:bg-transparent max-sm:in-data-[sheet]:not-aria-disabled:active:opacity-mobile-pressed",
+    danger: "max-sm:in-data-[sheet]:not-aria-disabled:active:bg-danger-hover",
 };
 
-/** 0f's spinner, in the ink of the label it stands for: 16, and the phone's 20 on a sign-in page. */
+/**
+ * 0f's spinner, in the ink of the label it stands for: 16, and the phone's 20 on a sign-in
+ * page or in a sheet (Tools 0a Busy, #469).
+ */
 function Spinner({ size }) {
     return (
         <span
             aria-hidden="true"
             className={`block size-spinner shrink-0 animate-spinner rounded-full border-2 border-spinner-track border-t-current ${
-                size === "xl" ? "max-sm:size-mobile-spinner" : ""
+                size === "xl" ? "max-sm:size-mobile-spinner" : "max-sm:in-data-[sheet]:size-mobile-spinner"
             }`}
         />
     );
@@ -162,6 +190,18 @@ function Spinner({ size }) {
  * is as wide as the wider of the two and does not move when one gives way to the other (0f).
  * The switch waits `--transition-delay-busy` either way it is entered and none on the way
  * back, and what is not shown is not read: an invisible label leaves the accessibility tree.
+ *
+ * THE ONE CELL IS 0f's MINIMUM WIDTH, and it is why no name holds one (#469). 0f's Working
+ * holds a busy action at least as wide as its working label in its padding and otherwise at
+ * its resting label's width, so a label that changes with a count moves it only when the
+ * count needs more room: 1j's `min-width: 124px` is that sum for `Creating…` — 16, 8, the
+ * word and 32 — measured at 123.77, and the cell reaches it from the words themselves.
+ *
+ * BELOW THE PHONE'S EDGE THE SPINNER STANDS ALONE, on a sign-in step and in a sheet alike
+ * (Tools 0a Busy, #469), and the word stays for assistive tech. #473 kept the desk's word in
+ * a sheet on the reading that 0a draws Busy only for a step; a sheet's button is 0a's Button
+ * already — its height, width and type are the phone's — and the design hands the app
+ * frame's Busy to the phone (`docs/notes/design-system.md` has the argument).
  */
 function ButtonLabel({ size, busyLabel, children }) {
     if (!busyLabel) return children;
@@ -172,7 +212,7 @@ function ButtonLabel({ size, busyLabel, children }) {
             </span>
             <span className="invisible col-start-1 row-start-1 flex items-center justify-center gap-gap transition-[visibility] duration-0 group-data-busy/button:visible group-data-busy/button:delay-busy">
                 <Spinner size={size} />
-                <span className={size === "xl" ? "max-sm:sr-only" : undefined}>{busyLabel}</span>
+                <span className={size === "xl" ? "max-sm:sr-only" : "max-sm:in-data-[sheet]:sr-only"}>{busyLabel}</span>
             </span>
         </span>
     );
@@ -189,25 +229,32 @@ function ButtonLabel({ size, busyLabel, children }) {
  * is drawn, so every opener that cannot act says so the same way.
  *
  * A BUSY ACTION IS NOT A DISABLED ONE (0f Working). `busy` keeps the fill, turns a press
- * away — a submit included, so a second press cannot send the form twice — and says it is
- * busy to assistive tech; `busyLabel` is the `-ing` word it shows once the wait passes the
- * delay. On a phone at `xl` the spinner alone stands in the label's place (Tools 0a Busy),
- * and the word stays for assistive tech. A `danger` commitment keeps its red the same way,
- * and in a sheet an action keeps 0f's spinner and word: Tools 0a draws a busy action on a
- * step page and in no sheet.
+ * away — a submit included, so a second press cannot send the form twice, and Enter in a
+ * field cannot either, since the press it makes on the form's submit is turned away too —
+ * and says it is busy to assistive tech; `busyLabel` is the `-ing` word it shows once the
+ * wait passes the delay. Below the phone's edge, at `xl` and in a sheet, the spinner alone
+ * stands in the label's place (Tools 0a Busy, #469) and the word stays for assistive tech.
+ * A `danger` commitment keeps its red the same way.
+ *
+ * INSIDE A BUSY FORM IT NEEDS NO `busy` OF ITS OWN (#469): the form's submit is the one
+ * working, and any other button is locked — `aria-disabled`, its look kept, its press turned
+ * away — which is `lib/controls.js:buttonBusyState`'s answer to the two.
  */
 export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, busy = false, busyLabel, onClick, children }) {
     const reasonId = useId();
+    const formBusy = useContext(FormBusyContext);
+    const state = buttonBusyState({ busy, formBusy, submits: type === "submit", disabled });
+    const working = state === "working";
     const explained = disabled && Boolean(disabledReason);
     const button = (
         <button
             type={type}
             disabled={disabled}
-            onClick={busy ? (event) => event.preventDefault() : onClick}
+            onClick={state ? (event) => event.preventDefault() : onClick}
             aria-describedby={explained ? reasonId : undefined}
-            aria-busy={busy || undefined}
-            aria-disabled={busy || undefined}
-            data-busy={busy || undefined}
+            aria-busy={working || undefined}
+            aria-disabled={state ? true : undefined}
+            data-busy={working || undefined}
             className={`group/button ${BUTTON} ${BUTTON_SIZE[size]} ${BUTTON_VARIANT[variant]} ${SHEET_BUTTON} ${SHEET_BUTTON_VARIANT[variant]}`}
         >
             <ButtonLabel size={size} busyLabel={busyLabel}>
@@ -337,14 +384,17 @@ const TEXT_INPUT_SIZE = {
  * AT `xl`, BELOW THE PHONE'S EDGE, A FIELD THAT HOLDS A VALUE CARRIES A CLEAR × AT ITS END
  * (Tools 0a Field), its target the least a touch target takes and pulled into the field's
  * own room as the drawings place it. A read-only field — one whose form is busy — has none.
+ * A field inside a busy form is read-only whatever its caller says (#469).
  */
 export function TextInput({ size = "lg", suffix, value, onChange, readOnly = false, inputRef, placeholder, ...input }) {
     const field = useField();
+    const formBusy = useContext(FormBusyContext);
+    const locked = readOnly || formBusy;
     const ownRef = useRef(null);
     const ref = inputRef ?? ownRef;
     const suffixId = `${field.control}suffix`;
     const describedBy = [field.messageId, suffix ? suffixId : null].filter(Boolean).join(" ") || undefined;
-    const clearable = size === "xl" && !readOnly && value !== "";
+    const clearable = size === "xl" && !locked && value !== "";
 
     return (
         <div
@@ -367,7 +417,7 @@ export function TextInput({ size = "lg", suffix, value, onChange, readOnly = fal
                     value={value}
                     placeholder={placeholder}
                     onChange={(event) => onChange(event.target.value)}
-                    readOnly={readOnly}
+                    readOnly={locked}
                     aria-describedby={describedBy}
                     aria-invalid={field.refused || undefined}
                     className="col-start-1 row-start-1 w-full min-w-0 bg-transparent text-foreground-default caret-primary outline-none placeholder:text-foreground-subtle"
@@ -428,10 +478,11 @@ export function NoteEmphasis({ children }) {
  * IT IS DRAWN BELOW THE PHONE'S EDGE AND NOWHERE ELSE, so its caller draws the desk's control
  * beside it with `max-sm:hidden`. It takes its name from the field around it and its own
  * value, so a screen reader hears `Job, 26-DEMO-01` and not the value alone; the id the label
- * points at stays the desk control's.
+ * points at stays the desk control's. Inside a busy form it opens nothing (#469).
  */
 export function SheetField({ value, placeholder, onOpen, chevron = false }) {
     const field = useField();
+    const formBusy = useContext(FormBusyContext);
     const valueId = useId();
     const look =
         "flex h-mobile-input w-full items-center justify-between gap-gap rounded-mobile-control border border-border bg-white px-mobile-input-inset-x text-mobile-body sm:hidden";
@@ -448,8 +499,9 @@ export function SheetField({ value, placeholder, onOpen, chevron = false }) {
             type="button"
             aria-haspopup="dialog"
             aria-labelledby={field.labelId ? `${field.labelId} ${valueId}` : valueId}
-            onClick={onOpen}
-            className={`${look} text-left outline-none focus-visible:border-border-focus active:bg-hover-subtle`}
+            aria-disabled={formBusy || undefined}
+            onClick={formBusy ? undefined : onOpen}
+            className={`${look} text-left outline-none focus-visible:border-border-focus not-aria-disabled:active:bg-hover-subtle`}
         >
             {said}
             {chevron && (
@@ -462,7 +514,7 @@ export function SheetField({ value, placeholder, onOpen, chevron = false }) {
 }
 
 const STEP =
-    "flex h-control-sm aspect-square shrink-0 items-center justify-center rounded-control text-foreground-muted hover:bg-hover hover:text-foreground-default";
+    "flex h-control-sm aspect-square shrink-0 items-center justify-center rounded-control text-foreground-muted not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default";
 
 /**
  * A number field with its steps (0f Field): 120 wide, a 30 − and + inside it 3 from its
@@ -473,17 +525,22 @@ const STEP =
  * The figure is text rather than `type="number"`, as the design draws it: the browser's
  * own spinner and its own refusal bubble are neither this app's nor the design's, so what
  * a count may be is `lib/toolRegistration.js:readQuantity`'s to say in the field's own
- * line. What it keeps of a keystroke and what a step does are `lib/controls.js`'s.
+ * line. What it keeps of a keystroke and what a step does are `lib/controls.js`'s. Inside a
+ * busy form the figure is read-only and the steps take no press (#469).
  */
 export function NumberField({ name, value, onChange, min, max }) {
     const field = useField();
+    const formBusy = useContext(FormBusyContext);
+    const step = (delta) => () => {
+        if (!formBusy) onChange(stepNumber(value, delta, { min, max }));
+    };
     return (
         <div
             className={`flex h-control-lg w-number-input items-center rounded-control bg-white px-stepper-inset inset-ring ${
                 field.refused ? "inset-ring-danger" : "inset-ring-border focus-within:inset-ring-border-focus"
             }`}
         >
-            <button type="button" aria-label={COPY.fewer} onClick={() => onChange(stepNumber(value, -1, { min, max }))} className={STEP}>
+            <button type="button" aria-label={COPY.fewer} aria-disabled={formBusy || undefined} onClick={step(-1)} className={STEP}>
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
                     <path d="M3.5 8h9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
                 </svg>
@@ -496,11 +553,12 @@ export function NumberField({ name, value, onChange, min, max }) {
                 autoComplete="off"
                 value={value}
                 onChange={(event) => onChange(numberFieldText(event.target.value, max))}
+                readOnly={formBusy}
                 aria-describedby={field.messageId}
                 aria-invalid={field.refused || undefined}
                 className="h-control-sm min-w-0 flex-1 bg-transparent text-center text-body tabular-nums text-foreground-default caret-primary outline-none"
             />
-            <button type="button" aria-label={COPY.more} onClick={() => onChange(stepNumber(value, 1, { min, max }))} className={STEP}>
+            <button type="button" aria-label={COPY.more} aria-disabled={formBusy || undefined} onClick={step(1)} className={STEP}>
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
                     <path d="M3.5 8h9M8 3.5v9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
                 </svg>
@@ -525,9 +583,13 @@ const TYPEAHEAD_MS = 500;
  * WITH ONE OPTION IT IS ALREADY CHOSEN, AND WITH SEVERAL IT STARTS EMPTY (0l): that is the
  * caller's `value`, and the placeholder is what it shows while nothing is chosen, at Ink 3.
  * What submits is the hidden input under `name`, carrying the chosen option's value.
+ *
+ * INSIDE A BUSY FORM IT IS READ-ONLY (#469): it keeps focus and its look, and no key and no
+ * press opens it or changes what it holds. Tab still leaves.
  */
 export function Choice({ name, options, value, onChange, placeholder }) {
     const field = useField();
+    const formBusy = useContext(FormBusyContext);
     const listId = `${field.control}list`;
     const chosen = options.findIndex((option) => option.value === value);
     const [open, setOpen] = useState(false);
@@ -544,6 +606,7 @@ export function Choice({ name, options, value, onChange, placeholder }) {
     };
 
     const onKeyDown = (event) => {
+        if (formBusy) return;
         const action = selectOnlyKey(event, open);
         if (!action) return;
         event.preventDefault();
@@ -603,14 +666,19 @@ export function Choice({ name, options, value, onChange, placeholder }) {
                 aria-activedescendant={open && active >= 0 ? `${listId}-${active}` : undefined}
                 aria-describedby={field.messageId}
                 aria-invalid={field.refused || undefined}
+                aria-readonly={formBusy || undefined}
                 onKeyDown={onKeyDown}
-                onClick={() => (open ? setOpen(false) : show())}
+                onClick={() => {
+                    if (formBusy) return;
+                    if (open) setOpen(false);
+                    else show();
+                }}
                 onBlur={() => {
                     if (!open) return;
                     choose(active);
                     setOpen(false);
                 }}
-                className={`flex h-control-lg w-full cursor-pointer items-center justify-between gap-gap rounded-control border bg-white px-control-lg-inset-x text-body font-medium outline-none hover:bg-hover-subtle ${
+                className={`flex h-control-lg w-full cursor-pointer items-center justify-between gap-gap rounded-control border bg-white px-control-lg-inset-x text-body font-medium outline-none aria-readonly:cursor-default not-aria-readonly:hover:bg-hover-subtle ${
                     field.refused ? "border-danger" : "border-border focus:border-border-focus"
                 }`}
             >
@@ -656,14 +724,15 @@ export function Choice({ name, options, value, onChange, placeholder }) {
  * accepts one, which is the pattern's manual selection; `editableComboboxKey` says what
  * each key does. `heading` is a word the list carries above its suggestions — the
  * check-out's `Recently at this job` (#458), the same words as the name sheet a phone
- * types in.
+ * types in. Inside a busy form it is read-only and its list does not show (#469).
  */
 export function Combobox({ name, value, onChange, suggestions, heading, placeholder, listOpen, onListOpenChange }) {
     const field = useField();
+    const formBusy = useContext(FormBusyContext);
     const listId = `${field.control}list`;
     const [active, setActive] = useState(-1);
     const anchorRef = useRef(null);
-    const shown = listOpen && suggestions.length > 0;
+    const shown = listOpen && suggestions.length > 0 && !formBusy;
 
     const accept = (index) => {
         onChange(suggestions[index].label);
@@ -672,6 +741,7 @@ export function Combobox({ name, value, onChange, suggestions, heading, placehol
     };
 
     const onKeyDown = (event) => {
+        if (formBusy) return;
         const answer = editableComboboxKey(event, { shown, active, count: suggestions.length });
         if (!answer) return;
         if (answer.stop) {
@@ -703,12 +773,15 @@ export function Combobox({ name, value, onChange, suggestions, heading, placehol
                 autoComplete="off"
                 placeholder={placeholder}
                 value={value}
+                readOnly={formBusy}
                 onChange={(event) => {
                     onChange(event.target.value);
                     setActive(-1);
                     onListOpenChange(true);
                 }}
-                onFocus={() => onListOpenChange(true)}
+                onFocus={() => {
+                    if (!formBusy) onListOpenChange(true);
+                }}
                 onBlur={() => {
                     setActive(-1);
                     onListOpenChange(false);

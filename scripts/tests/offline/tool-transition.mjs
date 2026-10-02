@@ -518,6 +518,17 @@ export function run({ check, assert, log }) {
         "  which is not the string the log stores",
         TOOL_TRANSITION_COPY.control[TOOL_EVENT.CHECKED_OUT] !== TOOL_EVENT.CHECKED_OUT
     );
+    // WHAT THE DIALOG'S COMMITMENT SAYS WHILE ITS EVENT IS ON ITS WAY (#469), keyed by the
+    // event as the control is, so a fifth event cannot arrive without one either: 0f's
+    // Working, the control's own verb in its `-ing` form with an ellipsis, the particle kept.
+    check("every offerable event has a working word", offerable.filter((e) => !TOOL_TRANSITION_COPY.working[e]).join(", "), "");
+    check(
+        "  and no working word for an event no status offers",
+        Object.keys(TOOL_TRANSITION_COPY.working).filter((e) => !offerable.includes(e)).join(", "),
+        ""
+    );
+    check("a check-out on its way", TOOL_TRANSITION_COPY.working[TOOL_EVENT.CHECKED_OUT], "Checking out…");
+    check("  and a check-in", TOOL_TRANSITION_COPY.working[TOOL_EVENT.CHECKED_IN], "Checking in…");
 
     // IMPORTED RATHER THAN RE-SPELLED. Three words are the same control and the
     // same rule on two screens, so a second copy is a second word for one fact the
@@ -935,10 +946,18 @@ export function run({ check, assert, log }) {
     const refusesAt = submitSource.indexOf("if (answer.refusal) return;");
     assert("  and sends only after that refuses nothing", refusesAt > -1 && refusesAt < submitSource.indexOf("onSend(formData)"));
     check("the frame submits through it", attributeSources(formFn, dialog.source, "DialogFrame", "onSubmit").join(), "{submit}");
+    // NOTHING IN IT IS DISABLED FOR THE SENDING (#469): the frame's `busy` draws the
+    // commitment's Working and locks `Cancel`, so the one `disabled` left is the commitment's
+    // own — it cannot act until `readSubmission` takes what is chosen (0f Disabled).
     check(
         "the commitment acts only when readSubmission takes what is chosen",
         attributeSources(formFn, dialog.source, "Button", "disabled").join(" | "),
-        "{pending} | {pending || Boolean(reading.refusal)}"
+        "{Boolean(reading.refusal)}"
+    );
+    check(
+        "  and gives way to its event's working word while it sends",
+        attributeSources(formFn, dialog.source, "Button", "busyLabel").join(" | "),
+        "{COPY.working[plan.event]}"
     );
     check("  reading the dialog's own choice and name", initSource(formFn, dialog.source, "reading"), "readSubmission(plan, { event: plan.event, jobId, checkedOutTo: name })");
     let trims = 0;
@@ -957,6 +976,16 @@ export function run({ check, assert, log }) {
     // spelling of "one assignment". The tool item's own job is not chosen for a person
     // on several: they are asked because the app does not know which site they are at.
     assert("the job starts on the one there is, or on none, from onlyJob", /useState\(\(\) => onlyJob\(plan\.jobs\)\?\.id \?\? ""\)/.test(formSource));
+    // A CHOSEN JOB THE PLAN NO LONGER HOLDS STARTS THERE AGAIN (#469): a refusal re-renders
+    // the page in place (#378), and the jobs it plans with can be fewer than the dialog opened
+    // with. Seen in a browser before this: below the phone's edge with one job left, a stated
+    // field saying `Choose a job` that nothing could open, over a commitment that could not act.
+    check("  and a chosen job the plan no longer holds takes the same start again", initSource(formFn, dialog.source, "start"), 'onlyJob(plan.jobs)?.id ?? ""');
+    assert(
+        "    whenever the plan stops holding it, before the choice is read",
+        /if \(jobId !== start && !plan\.jobs\.some\(\(job\) => job\.id === jobId\)\) setJobId\(start\);/.test(formSource) &&
+            formSource.indexOf("setJobId(start)") < formSource.indexOf("const chosen =")
+    );
 
     // ── 7d: open while it is what the page offers, and where a refusal stands ─
     log("");
@@ -1085,6 +1114,7 @@ export function run({ check, assert, log }) {
         "Retire HYE-TL-261001-022?"
     );
     check("the confirm names what it retires", TOOL_TRANSITION_COPY.retireSubmit, "Retire tool");
+    check("  and says the verb alone, -ing, while it is on its way (#469)", TOOL_TRANSITION_COPY.retireWorking, "Retiring…");
     check("and the way out is the app's own word", TOOL_TRANSITION_COPY.cancel, "Cancel");
     // THE OPENER AND THE TRANSITION CONTROL MAY NOT READ ALIKE, which is half of
     // what keeps a once-ever act from looking like a dozens-a-day one. The other
@@ -1151,6 +1181,8 @@ export function run({ check, assert, log }) {
         '"bordered" | "danger"'
     );
     check("  the commitment the submit", attributeSources(confirm.ast, confirm.source, "Button", "type").join(), '"submit"');
+    check("  giving way to its working word while it sends", attributeSources(confirm.ast, confirm.source, "Button", "busyLabel").join(), "{COPY.retireWorking}");
+    check("  and neither button disabled for the sending (#469)", attributeSources(confirm.ast, confirm.source, "Button", "disabled").join(" | "), "");
     check("  which sends through a transition", callsTo(confirm.ast, "startTransition").length, 1);
     check("neither file draws on the old frame", [confirm, opener].filter((f) => /modalStyles/.test(f.source)).length, 0);
     // THE WAY OUT IS ONE WORD ON ALL THREE DIALOGS — the check-out's and the check-in's,
