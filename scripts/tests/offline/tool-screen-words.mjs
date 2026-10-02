@@ -37,15 +37,15 @@ export const title = "The tools screens say `create`, never `register` (#455)";
 const REGISTER = /regist/i;
 
 /**
- * The tools axis's routes, typed out — what this file covers, pinned by value. The labels'
+ * The tools axis's screens, typed out — what this file covers, pinned by value. The labels'
  * screen left the list in #457; its words are the dialog's, which the two pages that open
- * it render, so they are covered through those.
+ * it render, so they are covered through those. The address a label prints left it in
+ * #478; it draws nothing, so it says nothing.
  */
 const ROUTES = [
     "/tools",
     "/tools/[toolRecordId]",
     "/tool-items/[toolItemId]",
-    "/t/[labelCode]",
 ];
 
 export function run({ check, assert, log }) {

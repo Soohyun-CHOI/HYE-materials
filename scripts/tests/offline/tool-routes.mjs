@@ -4,8 +4,16 @@
 // see: a `<Link>` to an address the app stopped serving renders exactly as it did
 // and is a 404 only when somebody clicks it. This issue moved three of them, so the
 // thing worth holding afterwards is that the builders in `lib/toolRoutes.js` and the
-// page files under `app/(tools)/` name the same routes, in both directions — four since
-// #457 took the labels' screen into a dialog, as #456 took the registration's.
+// page files under `app/(tools)/` name the same routes, in both directions — three since
+// #457 took the labels' screen into a dialog, as #456 took the registration's, and #478
+// took the printed address out of the group.
+//
+// AND THE PRINTED ADDRESS IS HELD ON ITS OWN SINCE #478, which took its page out of the
+// group so that a scan renders no rail. A directory is not a segment, so the move left
+// the address alone — and a label already glued to a tool carries it, so that is the
+// one thing here that may never change. The check pins the template by value, finds the
+// one page that answers it, and holds that page outside the group with no layout but the
+// root's above it.
 //
 // THE SECOND CLAIM IS THE ONE WITH A REDIRECT BEHIND IT. `/t/` uppercases the id it
 // was handed so the tool item's own page does not have to redirect a second time,
@@ -27,10 +35,12 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { posix } from "node:path";
 import { ID_KINDS, dailyIdPrefix, formatSequentialId } from "../../../lib/idSequence.js";
 import {
     LABEL_REWRITE,
+    LABEL_ROUTE,
     TOOLS_PATH,
     TOOLS_ROUTES,
     canonicalToolItemId,
@@ -80,6 +90,15 @@ function appFiles() {
     return out.map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1));
 }
 
+/** Every layout file above a page, nearest first, the root's last. */
+function layoutsAbove(rel) {
+    const out = [];
+    for (let dir = posix.dirname(rel); dir === "app" || dir.startsWith("app/"); dir = posix.dirname(dir)) {
+        if (existsSync(repoPath(`${dir}/layout.js`))) out.push(`${dir}/layout.js`);
+    }
+    return out;
+}
+
 /** Every string literal, template quasi and JSX text in a file. */
 function allText(ast) {
     const out = [];
@@ -121,6 +140,30 @@ export function run({ check, assert, log }) {
     );
     check("  and leaves a route with none alone", routeTemplate("app/pos/[poId]/page.js"), "/pos/[poId]");
     check("  and still answers for the root", routeTemplate("app/page.js"), "/");
+
+    // ── 1b: the printed address, outside the group (#478) ───────────────────
+    log("");
+    log("the address a label prints answers where it always did, under the root layout alone:");
+    check("the printed route is the one every label carries", LABEL_ROUTE, "/t/[labelCode]");
+    const labelPages = appFiles()
+        .filter(isPageFile)
+        .filter((rel) => routeTemplate(rel) === LABEL_ROUTE);
+    check("  one page answers it", labelPages.length, 1);
+    const LABEL_PAGE = labelPages[0] ?? "";
+    check(
+        "  and it sits outside the tools group",
+        LABEL_PAGE === "" || LABEL_PAGE.startsWith(`${GROUP_DIR}/`) ? LABEL_PAGE || "no page" : "outside",
+        "outside"
+    );
+    check("  and no layout but the root's stands above it", layoutsAbove(LABEL_PAGE).join(" "), "app/layout.js");
+    assert("  and it is none of the screens'", !TOOLS_ROUTES.includes(LABEL_ROUTE));
+    // ANTI-VACUITY: the same walk finds the tools layout above a tools screen, so the
+    // root-only answer above is a fact about where the page sits.
+    check(
+        "  the walk finds the tools layout above a tool's page",
+        layoutsAbove(`${GROUP_DIR}/tools/[toolRecordId]/page.js`).join(" "),
+        `${GROUP_DIR}/layout.js app/layout.js`
+    );
 
     // ── 2: the builders build those routes ──────────────────────────────────
     log("");
@@ -363,9 +406,9 @@ export function run({ check, assert, log }) {
     // The destination has to be a route the app serves, or the alias is a 404 that
     // only a scan of an uppercase label would ever find.
     check(
-        "  and that destination is one of the routes above",
+        "  and that destination is the printed route",
         LABEL_REWRITE.destination.replace(/:(\w+)/g, "[$1]"),
-        "/t/[labelCode]"
+        LABEL_ROUTE
     );
     // Uppercasing the whole URL is what the alias buys, so the source has to BE the
     // uppercase of the route rather than merely differ from it.
@@ -431,7 +474,7 @@ export function run({ check, assert, log }) {
     // #353 each fell into once. A segment passed undecoded turns an encoded
     // character into a lookup miss, and a call swapped back to `canonicalToolItemId`
     // sends every scan to an id the base does not hold.
-    const ENTRY_PAGE = `${GROUP_DIR}/t/[labelCode]/page.js`;
+    const ENTRY_PAGE = LABEL_PAGE;
     const calls = [];
     walk(parseFile(ENTRY_PAGE).ast, (n) => {
         if (n.type !== "CallExpression" || n.callee.type !== "Identifier") return;

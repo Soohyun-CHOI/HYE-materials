@@ -51,7 +51,7 @@
 // tool axes, which compare a job, are still held by nothing but their exemptions here.
 // ---------------------------------------------------------------------------
 
-import { callsFunction } from "./_ast.mjs";
+import { REPO_ROOT, callsFunction, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { collectExports, listEntryPoints } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
@@ -460,7 +460,41 @@ export function run({ check, assert, log }) {
     }
 
     log(`summary: ${wrappedCount} wrapped, ${EXEMPTIONS.length} exempt, ${inventory.length} total`);
+
+    // ── A LAYOUT GATES NOTHING AND STARTS NO USER READ (#478) ───────────────
+    // Next renders a layout once and keeps it across every navigation under it, so a
+    // gate in one stands in front of the first page only — the gate is each page's own
+    // `requireUser()`. And a read a layout starts is made outside every page's ops scope,
+    // counted and attributed to nobody. A layout that draws who is reading takes the read
+    // the page's gate already made, through `takePageUser`, which reads nothing.
+    log("");
+    log("no layout gates or reads a user; one that draws the reader takes the page's read:");
+    const sessionCalls = (ast) => {
+        const out = [];
+        walk(ast, (n) => {
+            if (n.type === "CallExpression" && n.callee?.type === "Identifier" && SESSION_CALLS.includes(n.callee.name)) {
+                out.push(n.callee.name);
+            }
+        });
+        return out;
+    };
+    const layouts = listJsFiles(repoPath("app"))
+        .map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1))
+        .filter((rel) => /(^|\/)layout\.js$/.test(rel));
+    assert("  the layouts were found, the root's among them", layouts.includes("app/layout.js") && layouts.length > 1);
+    for (const rel of layouts) {
+        if (!check(`  ${rel} calls no gate and no reader`, sessionCalls(parseFile(rel).ast).join(" "), "")) ok = false;
+    }
+    // ANTI-VACUITY: the walk sees a gate and a reader planted in a layout's body.
+    check(
+        "  a planted gate and reader are seen",
+        sessionCalls(parseSource("export default async function L() { await requireUser(); return getActiveUser(); }", "<planted>").ast).join(" "),
+        "requireUser getActiveUser"
+    );
     return ok;
 }
+
+/** The gates and readers that resolve a session — what a layout may not call (#478). */
+const SESSION_CALLS = ["requireUser", "requireAdmin", "requireAdminApi", "getActiveUser", "getCurrentUser"];
 
 if (isMain(import.meta.url)) standalone(title, run);

@@ -200,6 +200,13 @@
     --ease-rail: cubic-bezier(0.2, 0, 0, 1); /* Rail: how it widens */
     --spacing-rail-stack: 0.125rem; /* Rail, 2: between two sections — from the drawings, not the spec */
     --spacing-rail-divider-stack: 0.625rem; /* Rail, 10: above and below the rule under its toggle — from the drawings, not the spec */
+    --height-account: 3rem; /* Account, 48: the account row at the rail's foot */
+    --size-avatar: 1.5rem; /* Account, 24: the avatar */
+    --spacing-account-gap: 0.625rem; /* Account, 10: from the avatar to the name — from the drawings, not the spec */
+    --spacing-account-inset-right: 0.75rem; /* Account, 12: inside the row's right end — from the drawings, not the spec */
+    --spacing-account-name-stack: 0.0625rem; /* Account, 1: between the name and the role — from the drawings, not the spec */
+    --size-account-chevron: 0.8125rem; /* Account, 13: the chevron at the row's end — from the drawings, not the spec */
+    --transition-duration-avatar: 90ms; /* Account: how long the avatar takes to darken under the pointer — from the drawings, not the spec */
     --height-breadcrumb: 3rem; /* Breadcrumb, 48: the way back and a record's pager */
     --spacing-breadcrumb-back-offset: 0.75rem; /* Breadcrumb, 12: how far one level pulls left so its chevron's stroke meets the Margin — from the drawings, not the spec */
     --spacing-breadcrumb-back-gap: 0.125rem; /* Breadcrumb, 2: between that chevron and its word — from the drawings, not the spec */

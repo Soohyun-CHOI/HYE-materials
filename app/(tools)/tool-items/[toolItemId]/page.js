@@ -38,7 +38,7 @@ export async function generateMetadata({ params }) {
  * A SCAN ARRIVES HERE AND THE LABEL DOES NOT CARRY THIS ADDRESS (#348). It used
  * to: the page stood at `/tools/[toolItemId]` because a QR encodes the whole URL
  * and every character pushes the symbol toward a finer grid, so the shortest slot
- * on the axis was spent on it. `/t/[toolItemId]` carries that budget now and
+ * on the axis was spent on it. `/t/[labelCode]` carries that budget now and
  * redirects here, which frees this page to take the name its collection gives it
  * and frees the flat slot under `/tools` for one tool. Nothing had been printed,
  * so the move cost code and no reprinting; from Phase 2 onward it would cost both.
