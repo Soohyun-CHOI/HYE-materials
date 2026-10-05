@@ -60,7 +60,7 @@ import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchase
 import { createItem } from "../../lib/airtable/prItems.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getItemsByPO } from "../../lib/airtable/poItems.js";
-import { createInvoice, linkInvoiceToPO, getInvoiceById } from "../../lib/airtable/invoices.js";
+import { createInvoice, getInvoiceById } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
@@ -122,9 +122,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable: an Invoice-PO Link row's primary is an autoNumber and
-                // it carries no text at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
         // No tagField: written by generatePOForApprovedPR, and this script sets no
@@ -321,8 +318,6 @@ try {
         shippingFee: 0,
     });
     track("invoices", invoice.id);
-    await linkInvoiceToPO(invoice.id, generated.poRecordId);
-    await linkInvoiceToPO(invoice.id, secondGenerated.poRecordId);
 
     const charges = [
         { orderedItem: orderedItems[0], po: generated.poRecordId, qty: FIRST.chargedA },

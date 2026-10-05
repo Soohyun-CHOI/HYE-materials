@@ -156,6 +156,16 @@ const RETIRED = {
     // docs/notes/purchase-orders.md. The field is deleted by hand and the fact moved
     // to another field, not to another name.
     "Delivery Address Used": "#386 — the order freezes `Purchase Orders.\"Delivery Address\"`",
+    // #492 — THE FIRST TABLE DELETED RATHER THAN RENAMED, AND ONE NAME COVERS THE
+    // TABLE AND TWO FIELDS. `Invoice-PO Link` held a second copy of which orders an
+    // invoice charges, which each invoice item already names through its own `PO`
+    // link; the table goes by hand once nothing reads it. Its two link fields gave
+    // `Purchase Orders` and `Invoices` a reverse link of the same name, and a table
+    // deletion leaves those standing as empty text fields (#335's measurement in
+    // `airtable-access.md`), so this entry keeps a reference off them whether or not
+    // they have gone. No successor name, like #334's three: the pairing is read off
+    // `Invoice Items."PO"` and its reverse `Purchase Orders."Invoice Items"`.
+    "Invoice-PO Link": "#492 — read `Invoice Items.\"PO\"`, or its reverse `Purchase Orders.\"Invoice Items\"`",
 };
 
 /**

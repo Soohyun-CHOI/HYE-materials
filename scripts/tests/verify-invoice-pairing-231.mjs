@@ -38,9 +38,9 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs \
 //     scripts/tests/verify-invoice-pairing-231.mjs
 //
-// Fixtures: one Invoice, its Invoice Items and its Invoice-PO Link rows, all
-// created by the real action and DELETED in this same run through
-// scripts/tests/_fixtures.mjs. One Auth Tokens row is spent to mint the session.
+// Fixtures: one Invoice and its Invoice Items, all created by the real action and
+// DELETED in this same run through scripts/tests/_fixtures.mjs. One Auth Tokens
+// row is spent to mint the session.
 // One Vercel Blob object is uploaded; the action's own `after()` cleanup deletes
 // it once Airtable has ingested it, and this script reports what it finds rather
 // than assuming. Reuses (never modifies, never deletes) one Delivery, one PO Item
@@ -91,8 +91,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable — an autoNumber primary and no text field at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
     ],

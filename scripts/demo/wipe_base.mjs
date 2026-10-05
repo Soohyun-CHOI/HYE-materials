@@ -63,7 +63,6 @@ const CONFIRM = process.argv.includes("--confirm");
 const ORDER = [
     // The invoice side, deepest first.
     TABLES.INVOICE_ITEMS,
-    TABLES.INVOICE_PO_LINK,
     TABLES.INVOICES,
     // The delivery side.
     TABLES.DELIVERY_ITEMS,

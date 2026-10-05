@@ -23,7 +23,7 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-materials-cache-18.mjs
 //
 // Fixtures: creates Materials, Material Prices, 3 PRs + PR Items, 3 POs + PO
-// Items, 1 Invoice + Invoice Items + its join row, and deletes all of them in
+// Items, 1 Invoice + Invoice Items, and deletes all of them in
 // this same run through scripts/tests/_fixtures.mjs (#171). Creates nothing in
 // Vercel Blob. Reuses (never modifies, never deletes) two existing Vendors and
 // one existing Line.
@@ -44,7 +44,7 @@ import {
 } from "../../lib/airtable/poItems.js";
 import { updatePO, getPOByRecordId } from "../../lib/airtable/purchaseOrders.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
-import { createInvoice, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
+import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
 import { uninvoicedQty, hasUninvoicedItems } from "../../lib/poItemQty.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
@@ -116,9 +116,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable: an Invoice-PO Link row's primary field is an
-                // autoNumber and it carries no text at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
         // No tagField: written by generatePOForApprovedPR, and this script sets
@@ -606,7 +603,6 @@ if (!requester || !vendorA || !vendorB || !discipline) {
         issueDate: "2026-07-29", dueDate: "2026-08-29", amountDue: 90, shippingFee: 0,
     });
     track("invoices", invoice.id);
-    await linkInvoiceToPO(invoice.id, gen1.poRecordId);
 
     const targetOrderedItem = xItems[0]; // qty 10
     const ii = await createInvoiceItem({

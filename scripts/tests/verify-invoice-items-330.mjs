@@ -27,12 +27,12 @@
 //   F — the update refusal, which must fire on the RECORD's words and write
 //       nothing — the header field it was given has to come back unchanged.
 //   G — the delete, which must still work on an invoice in this state, because
-//       that is the only way out of it. Then the orphan count.
+//       that is the only way out of it.
 //
-// Fixtures: one Invoice, its Invoice Item and its Invoice-PO Link row, created by
-// the real action and deleted in this same run — the item by this script to build
-// the state, the rest by the app's own delete — with `scripts/tests/_fixtures.mjs`
-// as the net behind it. Two Auth Tokens rows are spent. One Vercel Blob object is
+// Fixtures: one Invoice and its Invoice Item, created by the real action and
+// deleted in this same run — the item by this script to build the state, the
+// invoice by the app's own delete — with `scripts/tests/_fixtures.mjs` as the net
+// behind it. Two Auth Tokens rows are spent. One Vercel Blob object is
 // uploaded and the action's own `after()` removes it. Reuses — never modifies,
 // never deletes — one PO, one PO Item and one Vendor.
 //
@@ -85,8 +85,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable — an autoNumber primary and no text field at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
     ],
@@ -171,7 +169,6 @@ let blobUrl = null;
 let invoiceRecordId = null;
 let invoiceId = null;
 let childItemIds = [];
-let childLinkIds = [];
 
 try {
     // --- A -----------------------------------------------------------------
@@ -272,7 +269,6 @@ try {
         } else {
             invoiceRecordId = fixtures.track("invoices", invoice.id);
             childItemIds = (invoice.invoiceItems || []).slice();
-            childLinkIds = ((await base(TABLES.INVOICES).find(invoice.id)).get("Invoice-PO Link") || []).slice();
             ok("it holds one invoice item", childItemIds.length === 1, `${childItemIds.length}`);
 
             // --- E, first half ---------------------------------------------
@@ -359,7 +355,7 @@ try {
     console.error("\nverify-invoice-items-330 threw:", err);
 } finally {
     // --- G -----------------------------------------------------------------
-    console.log("\nG — the way out, which must stay open, and the orphan count");
+    console.log("\nG — the way out, which must stay open");
 
     let deleteRan = false;
     let cleanupCookie = "";
@@ -396,15 +392,6 @@ try {
     }
 
     if (deleteRan) {
-        const survivors = [];
-        for (const id of childLinkIds) {
-            if (await stillOnBase(TABLES.INVOICE_PO_LINK, id)) survivors.push(`Invoice-PO Link ${id}`);
-        }
-        ok(
-            `no child of the deleted invoice survived it (${childLinkIds.length} checked)`,
-            survivors.length === 0,
-            survivors.join("; ")
-        );
         const parentGone = !(await stillOnBase(TABLES.INVOICES, invoiceRecordId));
         ok("and the invoice itself is gone", parentGone);
         // Untracked only because it is already gone — see #382's script for why the

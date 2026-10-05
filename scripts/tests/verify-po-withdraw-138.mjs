@@ -29,8 +29,8 @@
 // Part C exercises the real searchPOs()/getPOsExceptWithdrawn() to prove a withdrawn PO
 // drops out of the invoice-side candidate set, before and after withdrawal.
 //
-// Fixtures: 6 throwaway PRs + POs and 1 invoice, all deleted afterward
-// (scripts/tests convention).
+// Fixtures: 6 throwaway PRs + POs, and 1 invoice with one invoice item, all
+// deleted afterward (scripts/tests convention).
 //
 // Prerequisites for Parts B2/C, both added by hand in Airtable outside the
 // repo: the `Withdrawn` option on Purchase Orders.Status, and the `Withdrawn
@@ -59,7 +59,8 @@ import {
 import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchaseRequests.js";
 import { createItem } from "../../lib/airtable/prItems.js";
 import { resolveVerifyCategories } from "./_categories.mjs";
-import { createInvoice, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
+import { createInvoice } from "../../lib/airtable/invoices.js";
+import { createInvoiceItem } from "../../lib/airtable/invoiceItems.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { base, TABLES } from "../../lib/airtable/client.js";
@@ -84,7 +85,7 @@ console.log("\nPart B — the production predicate's decisions (pure, no DB):");
 check("withdrawable statuses are exactly the two in scope", PO_WITHDRAWABLE_STATUSES.join(","), "Awaiting Signature,Signed");
 check(
     "Awaiting Signature + no invoice is eligible",
-    getPOWithdrawEligibility({ status: "Awaiting Signature", invoicePoLinks: [], invoiceItems: [] }).eligible,
+    getPOWithdrawEligibility({ status: "Awaiting Signature", invoiceItems: [] }).eligible,
     true
 );
 check(
@@ -102,13 +103,10 @@ check(
     getPOWithdrawEligibility({ status: "Not A Real Status" }).reason,
     "wrong-status"
 );
+// #492 — an invoice item charging the order is the whole of "an invoice is
+// linked": the order's own `Invoice Items` reverse-link, read and nothing else.
 check(
-    "linked invoice reports invoice-linked",
-    getPOWithdrawEligibility({ status: "Signed", invoicePoLinks: ["recLink"] }).reason,
-    "invoice-linked"
-);
-check(
-    "a stranded Invoice Item alone also blocks",
+    "an invoice item charging the order reports invoice-linked",
     getPOWithdrawEligibility({ status: "Signed", invoiceItems: ["recItem"] }).reason,
     "invoice-linked"
 );
@@ -117,16 +115,16 @@ check(
 // help.
 check(
     "wrong-status wins over invoice-linked",
-    getPOWithdrawEligibility({ status: "Not A Real Status", invoicePoLinks: ["recLink"] }).reason,
+    getPOWithdrawEligibility({ status: "Not A Real Status", invoiceItems: ["recItem"] }).reason,
     "wrong-status"
 );
 check("isPOWithdrawn recognizes the status", isPOWithdrawn({ status: PO_WITHDRAWN_STATUS }), true);
 check("isPOWithdrawn ignores an unknown status", isPOWithdrawn({ status: "Not A Real Status" }), false);
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. Bucket order IS deletion
-// order. The Invoice-PO Link row is a DISCOVERED CHILD of its Invoice rather than
-// a bucket, because it cannot be tagged at all: its primary field is an
-// autoNumber and it carries no text.
+// order. Case 4's invoice item is a DISCOVERED CHILD of its Invoice rather than a
+// bucket, reached through the invoice's own `Invoice Items` link, and it goes
+// before the order it names.
 //
 // No Materials bucket, measured rather than assumed. Every PO here comes from
 // generatePOForApprovedPR, which writes the item axis as a side effect (#18), and
@@ -143,7 +141,7 @@ const fixtures = createFixtures({
             table: TABLES.INVOICES,
             label: "Invoice",
             tagField: "Vendor Invoice Code",
-            children: [{ link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" }],
+            children: [{ link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" }],
         },
         // No tagField: written by generatePOForApprovedPR, and this script sets no
         // text field on it. Tracked, so a tracked-id re-read is the residue check.
@@ -268,8 +266,10 @@ try {
     // B above, against a sentinel rather than a real option. The gap in the
     // numbering is deliberate; the remaining cases keep the numbers they had.
 
-    // Case 4 — a real linked invoice via the join table. Ordered before case
-    // 3 on purpose: cases 1 and 4 need no new Airtable schema, so they still
+    // Case 4 — a real invoice charging the order: one invoice item naming it and
+    // its one ordered item, which is what the order's `Invoice Items` reverse-link
+    // reads and, since #492, the whole of what the predicate asks. Ordered before
+    // case 3 on purpose: cases 1 and 4 need no new Airtable schema, so they still
     // run (and still have to pass) while the `Withdrawn` option is pending.
     const po4 = await makePO(owner.id, "Signed");
     const invoice = await createInvoice({
@@ -281,9 +281,21 @@ try {
         file: [], // fixture only — the app requires a file, Airtable doesn't
     });
     track("invoices", invoice.id);
-    await linkInvoiceToPO(invoice.id, po4.id);
+    // makePO's own item, frozen onto the order's one ordered item.
+    await createInvoiceItem({
+        invoiceRecordId: invoice.id,
+        invoiceId: invoice.invoiceId,
+        poRecordId: po4.id,
+        poItemRecordId: po4.poItems[0],
+        itemName: "Verification fixture item",
+        size: '2"',
+        unit: "EA",
+        qty: 4,
+        unitPrice: 50,
+        remark: "",
+    });
     const po4Fresh = await getPOByRecordId(po4.id);
-    check("case 4 fixture PO reads its join row with no lag", po4Fresh.invoicePoLinks.length, 1);
+    check("case 4 fixture PO reads its invoice item with no lag", po4Fresh.invoiceItems.length, 1);
     const r4 = await withdrawPOAsRequester({ poId: po4.poId, actingUserId: owner.id });
     check("case 4 linked-invoice rejected", r4.reason, "invoice-linked");
     check("case 4 PO status unchanged", await statusOf(po4.id), "Signed");

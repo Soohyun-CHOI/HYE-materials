@@ -80,7 +80,7 @@ async function updatePaidHandler(prevState, formData) {
 
 // Issue #117 — edit an invoice's own header fields and its existing invoice-item
 // values (Tier 1: no adding/removing invoice items and no PO/PO Item relink, so the
-// Invoice-PO Link join set never changes). Admin-only, re-checked here since
+// orders an invoice charges never change). Admin-only, re-checked here since
 // Server Actions are directly callable. Amount Due is an editable human entry
 // (a mistyped vendor total is correctable) — "never overwritten" means the
 // backend never auto-derives it, and any money change here recomputes the
@@ -236,13 +236,13 @@ async function updateInvoiceHandler(prevState, formData) {
 }
 
 // Issue #117 — delete an invoice and its children. Admin-only, re-checked
-// here. Removes the Invoice Items and the Invoice-PO Link join rows, then the
-// Invoice. The linked POs and their PO Items are never touched: deleting an
-// Invoice Item / join row only detaches this invoice via reverse-links, so
-// partial-invoicing tracking on the PO side stays intact. Children and join
-// rows go first so a mid-failure can only leave harmless orphan rows, never a
-// corrupted PO. Vercel Blob originals of the attached file are intentionally
-// left (separate file-lifecycle work).
+// here. Removes the Invoice Items, then the Invoice. The linked POs and their
+// PO Items are never touched: deleting an Invoice Item only detaches this
+// invoice via reverse-links, so partial-invoicing tracking on the PO side stays
+// intact. Children go first so a mid-failure can only leave harmless orphan
+// rows, never a corrupted PO. There is no Vercel Blob original of the attached
+// file to delete: `createInvoiceAction` removes it once Airtable has ingested
+// the file (#140).
 export const deleteInvoiceAction = withAdminAction(
     () => ({ error: "Only an Admin can delete invoices." }),
     deleteInvoiceHandler
@@ -254,14 +254,13 @@ async function deleteInvoiceHandler(invoiceId) {
         if (!invoice) return { error: "That invoice no longer exists." };
 
         try {
-            const [items, links] = await Promise.all([
-                getLinkedRecords(TABLES.INVOICES, invoice.id, "Invoice Items", TABLES.INVOICE_ITEMS),
-                getLinkedRecords(TABLES.INVOICES, invoice.id, "Invoice-PO Link", TABLES.INVOICE_PO_LINK),
-            ]);
-            await Promise.allSettled([
-                ...items.map((r) => base(TABLES.INVOICE_ITEMS).destroy([r.id])),
-                ...links.map((r) => base(TABLES.INVOICE_PO_LINK).destroy([r.id])),
-            ]);
+            const items = await getLinkedRecords(
+                TABLES.INVOICES,
+                invoice.id,
+                "Invoice Items",
+                TABLES.INVOICE_ITEMS
+            );
+            await Promise.allSettled(items.map((r) => base(TABLES.INVOICE_ITEMS).destroy([r.id])));
             await base(TABLES.INVOICES).destroy([invoice.id]);
         } catch (err) {
             console.error("deleteInvoiceAction failed", err);

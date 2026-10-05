@@ -64,10 +64,6 @@ function assert(label, ok) {
 // before writing an identity row, a price row or an ordered item's `Material`
 // link. The Invoice below does name a vendor — an Invoice needs one — but no
 // code path writes the item axis from an invoice.
-//
-// No Invoice-PO Link bucket, because this script never calls linkInvoiceToPO.
-// The rollup under test travels `Invoice Items.PO Item`, not the join table, so
-// the join would add rows to clean up and prove nothing extra.
 const fixtures = createFixtures({
     tag: "V244",
     buckets: [

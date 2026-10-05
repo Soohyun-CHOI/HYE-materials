@@ -576,9 +576,7 @@ whole paragraph exists to avoid.
 
 Also created as side effects, by the app rather than by this file: one
 Quotation on the correction request (the invoice's own file, re-uploaded),
-the corrective order's PO PDF, three Materials rows and their Material
-Prices (#18's cache, on PO generation), and the Invoice-PO Link row the
-overage split writes for the corrective order. This file writes no join
-row itself, so the B invoice has none.
+the corrective order's PO PDF, and three Materials rows and their Material
+Prices (#18's cache, on PO generation).
 `);
 }

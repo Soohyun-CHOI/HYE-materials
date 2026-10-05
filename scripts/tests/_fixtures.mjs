@@ -98,8 +98,6 @@
 // WHERE THE TAG CANNOT REACH, named rather than left to be discovered:
 //   - `Purchase Orders` — written by generatePOForApprovedPR, and a script sets
 //     no text field on it. Always tracked, so tracked-id re-reads cover it.
-//   - `Invoice-PO Link` — its primary field is an autoNumber and it carries no
-//     text at all, so nothing can be tagged. Reached only as a discovered child.
 //   - `PO Items`, `Materials`, `Material Prices` — written by production code, so
 //     a tag reaches them only by flowing through a field the script does control
 //     (an item name on the PR), which is what 162 does. Where a caller declares

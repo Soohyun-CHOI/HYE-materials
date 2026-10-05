@@ -71,9 +71,9 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs \
 //     scripts/tests/verify-invoice-recorder-382.mjs
 //
-// Fixtures: one Invoice, its Invoice Items and its Invoice-PO Link rows, all
-// created by the real action and deleted in this same run by the real action, with
-// scripts/tests/_fixtures.mjs as the net behind it. TWO Auth Tokens rows are spent,
+// Fixtures: one Invoice and its Invoice Items, all created by the real action and
+// deleted in this same run by the real action, with scripts/tests/_fixtures.mjs as
+// the net behind it. TWO Auth Tokens rows are spent,
 // one per session — part G mints its own so the cleanup does not depend on how far
 // the body got, and this said one. One Vercel Blob object is uploaded; the action's own `after()`
 // cleanup deletes it once Airtable has ingested it, and the helper reports what it
@@ -127,8 +127,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable — an autoNumber primary and no text field at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
     ],
@@ -179,7 +177,6 @@ let blobUrl = null;
 let invoiceRecordId = null;
 let invoiceId = null;
 let childItemIds = [];
-let childLinkIds = [];
 
 try {
     // --- A -----------------------------------------------------------------
@@ -289,13 +286,10 @@ try {
             // THE CHILDREN, CAPTURED NOW AND BY ID. After the delete a survivor has
             // an empty `Invoice` link, so nothing asked from the parent's side would
             // find it — which is exactly why the handler's discarded batch is
-            // invisible from inside the app. Both reverse-link arrays are on the
-            // record the mapper already read plus one raw read for the join rows,
-            // which `recordToInvoice` has no reason to carry.
+            // invisible from inside the app. The reverse-link array is on the record
+            // the mapper already read.
             childItemIds = (invoice.invoiceItems || []).slice();
-            childLinkIds = ((await base(TABLES.INVOICES).find(invoice.id)).get("Invoice-PO Link") || []).slice();
             ok("the action created the invoice item", childItemIds.length > 0, `${childItemIds.length}`);
-            ok("  and the Invoice-PO Link row", childLinkIds.length > 0, `${childLinkIds.length}`);
         }
 
         // --- D -------------------------------------------------------------
@@ -459,11 +453,8 @@ try {
         for (const id of childItemIds) {
             if (await stillOnBase(TABLES.INVOICE_ITEMS, id)) survivors.push(`Invoice Item ${id}`);
         }
-        for (const id of childLinkIds) {
-            if (await stillOnBase(TABLES.INVOICE_PO_LINK, id)) survivors.push(`Invoice-PO Link ${id}`);
-        }
         ok(
-            `no child of the deleted invoice survived it (${childItemIds.length + childLinkIds.length} checked)`,
+            `no child of the deleted invoice survived it (${childItemIds.length} checked)`,
             survivors.length === 0,
             survivors.join("; ")
         );
@@ -473,7 +464,7 @@ try {
         // its delete loop reads each tracked parent first, and a read that throws is
         // recorded as a leak — which is the right reading when the helper is the
         // deleter and the wrong one here, where the app already did it. The evidence
-        // that this run left nothing is the three `stillOnBase` reads above, not the
+        // that this run left nothing is the `stillOnBase` reads above, not the
         // census below; the census is what catches a run that threw before part G.
         if (parentGone) fixtures.untrack("invoices", invoiceRecordId);
     }
