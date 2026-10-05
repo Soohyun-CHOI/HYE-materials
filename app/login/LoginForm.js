@@ -5,7 +5,8 @@ import { Button, Field, TextInput } from "@/app/components/Controls";
 import { canTryAgain, CODE_COPY, CODE_STATES, isCodeShaped, RESENT_FOR_MS, SIGN_IN_COPY } from "@/lib/authTokenState";
 import { COMPANY_EMAIL_COPY, companyAddress, emailFieldValue, namesAnotherDomain } from "@/lib/companyEmail";
 import CodeField from "./CodeField";
-import { AddressChip, BottomBar, PageRefusal, SignInHeader } from "./SignInParts";
+import BottomBar from "@/app/components/BottomBar";
+import { AddressChip, PageRefusal, SignInHeader } from "./SignInParts";
 
 // The `?error=` messages that used to live here are gone (#203). Their only two
 // producers were the redirects in app/api/auth/verify/route.js, and both went

@@ -361,8 +361,11 @@ export function run({ check, assert, log }) {
             sheetField: [
                 /\bsm:hidden\b/.test(sheetFieldSource),
                 /aria-haspopup="dialog"/.test(sheetFieldSource),
-                /aria-labelledby=\{field\.labelId \? `\$\{field\.labelId\} \$\{valueId\}` : valueId\}/.test(sheetFieldSource),
-                /if \(!onOpen\) \{\s*return <div/.test(sheetFieldSource),
+                // Named by its label and its value — by its label alone while a field with an
+                // icon holds nothing, since its placeholder is then the label's own words (#463).
+                /const named = icon && !value \? field\.labelId : field\.labelId \? `\$\{field\.labelId\} \$\{valueId\}` : valueId;/.test(sheetFieldSource) &&
+                    /aria-labelledby=\{named\}/.test(sheetFieldSource),
+                /if \(!onOpen\) \{\s*return \(?\s*<div/.test(sheetFieldSource),
             ].join(" "),
             heading: /heading=\{heading\}/.test(source),
         };
@@ -790,6 +793,14 @@ export function run({ check, assert, log }) {
                 /onClick=\{formBusy \? undefined : onOpen\}/.test(sheetField),
                 /not-aria-disabled:active:bg-hover-subtle/.test(sheetField),
             ].join(" "),
+            // The foot bar's job pill (#463), which locks the same way and takes the Wash under
+            // a press only while it can act.
+            sheetChip: [
+                reads("SheetChip"),
+                /aria-disabled=\{formBusy \|\| undefined\}/.test(fnSource("SheetChip")),
+                /onClick=\{formBusy \? undefined : onOpen\}/.test(fnSource("SheetChip")),
+                /\[&:not\(\[aria-disabled\]\):active>span\]:bg-hover-subtle/.test(fnSource("SheetChip")),
+            ].join(" "),
             sheetBusy: [
                 /size === "xl" \? "max-sm:size-mobile-spinner" : "max-sm:in-data-\[sheet\]:size-mobile-spinner"/.test(fnSource("Spinner")),
                 /size === "xl" \? "max-sm:sr-only" : "max-sm:in-data-\[sheet\]:sr-only"/.test(fnSource("ButtonLabel")),
@@ -804,6 +815,7 @@ export function run({ check, assert, log }) {
     check("  a choice locks read-only, opening and changing nothing, with no hover", busyRules.choice, "true true true true true");
     check("  a typed value locks read-only and its list does not show", busyRules.combobox, "true true true true true");
     check("  and the phone's field opens no sheet", busyRules.sheetField, "true true true true");
+    check("  nor does the foot bar's job pill (#463)", busyRules.sheetChip, "true true true true");
     check("in a sheet below the phone's edge a busy action is Tools 0a's Busy, its word kept for assistive tech", busyRules.sheetBusy, "true true");
 
     // THE FRAME HANDS ITS BUSY STATE TO WHAT IT HOLDS AND KEEPS FOCUS INSIDE WHILE IT IS
@@ -908,6 +920,43 @@ export function run({ check, assert, log }) {
         ""
     );
     check("  across the dialogs drawn on the frame", dialogs.length, onNewFrame.length);
+
+    // AND EVERY FORM THAT SUBMITS OUTSIDE A FRAME IS HELD TO THE SAME (#463): the tool item
+    // page's foot bar, which wraps what it holds in `FormBusy` itself, and the desk's press,
+    // whose button says its own busy state. Found rather than listed — each function under
+    // the axis handing `FormBusy` a state or a button a `busy` — and read as the state it is
+    // handed, its submit's word and anything disabled while it sends.
+    const formFacts = ({ ast, source }) => {
+        const found = [];
+        walk(ast, (n) => {
+            if (n.type !== "FunctionDeclaration") return;
+            const states = [];
+            const commitments = [];
+            let disabledBySending = 0;
+            walk(n, (inner) => {
+                if (inner.type !== "JSXOpeningElement") return;
+                const valueOf = (name) => {
+                    const a = inner.attributes.find((x) => x.type === "JSXAttribute" && x.name?.name === name);
+                    return a ? (a.value ? source.slice(a.value.start, a.value.end) : "true") : null;
+                };
+                if (inner.name?.name === "FormBusy") states.push(`form ${valueOf("busy")}`);
+                if (inner.name?.name === "Button" && valueOf("busy")) states.push(`button ${valueOf("busy")}`);
+                if (inner.name?.name === "Button" && valueOf("type") === '"submit"') commitments.push(valueOf("busyLabel") ? "named" : "unnamed");
+                if (inner.name?.name === "Button" && /pending/.test(valueOf("disabled") ?? "")) disabledBySending++;
+            });
+            if (states.length > 0) found.push(`${n.id?.name}: ${states.join(", ")} · ${commitments.join(", ")} · ${disabledBySending} disabled by sending`);
+        });
+        return found;
+    };
+    const forms = toolsFiles.flatMap((rel) => formFacts(parseFile(rel))).sort();
+    check(
+        "every form on the axis that submits outside a frame says it is busy, and names its submit's word",
+        forms.join(" | "),
+        [
+            "TransitionBar: form {pending} · named · 0 disabled by sending",
+            "TransitionDialog: button {!asks && pending} · named · 0 disabled by sending",
+        ].join(" | ")
+    );
 
     // ── anti-vacuity ────────────────────────────────────────────────────────
     log("");

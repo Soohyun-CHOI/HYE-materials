@@ -3,7 +3,8 @@ import { getAuthTokenRecord } from "@/lib/airtable/authTokens";
 import { CONFIRM_COPY, describeToken, TOKEN_STATES } from "@/lib/authTokenState";
 import { DESTINATION_PARAM, safeDestination, signInPath } from "@/lib/loginDestination";
 import { withOpsLabel } from "@/lib/airtableOps";
-import { AddressChip, BottomBar, SignInHeader } from "../SignInParts";
+import BottomBar from "@/app/components/BottomBar";
+import { AddressChip, SignInHeader } from "../SignInParts";
 import SendNewEmail from "./SendNewEmail";
 
 export const metadata = { title: "Confirm sign-in" };

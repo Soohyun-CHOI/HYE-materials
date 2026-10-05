@@ -478,14 +478,15 @@ const PINNED = [
     // this app uses elsewhere, so a pin on either fails on a rewording. The first
     // is the state #338 can leave behind — a tool item written whose first log row
     // was not — and its brief quotes it as reachable rather than as an error, which
-    // is the reading a redesign is most likely to lose.
+    // is the reading a redesign is most likely to lose. Both are the design's since
+    // #463, which replaced `Nothing has been recorded against this tool, …` and
+    // `Tool item not found`; the second is pinned on the phone's sentence, since the
+    // heading it stands under is the tool page's heading too.
     // Pinned on a clause that fits inside a brief's own 72-character wrap, which
     // is the constraint the #272 note above records the hard way, and on a clause
-    // unique to THIS constant. The comma is part of the pin since #455: the noun
-    // became `tool`, and without it the pin would also match the sentence it
-    // replaced, which said `this tool item`.
-    "Nothing has been recorded against this tool,",
-    "Tool item not found",
+    // unique to THIS constant.
+    "No history yet",
+    "No tool has this code.",
     // #146 — the one refusal five screens share, pinned WITHOUT either figure for the
     // reason the threshold sentence above is: the briefs write where the sizes go, and
     // both of them are meant to move. The file's size moves per file; the limit moves

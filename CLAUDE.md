@@ -113,7 +113,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
-- `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
+- `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), the one assignment used without asking (#458), where a choice starts again (#469), and the picker's words.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the suggestions, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
@@ -164,16 +164,17 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/prVisibility.js` — `canViewPR`, the one row-visibility rule for a PR.
 - `lib/invoiceVisibility.js` — `seesEveryInvoice` and `getVisibleInvoiceIds`, the walk that reaches `canViewPR` from an invoice. Credentialed. **`seesEveryInvoice` answers only whether the walk can be skipped (#309): payment carries no gate.**
 - `lib/authzWrap.js` — the guard-wrapper factories. Nothing here imports `next/*`.
-- `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` and `app/login/` calls may read one.**
+- `app/designValues.css` — the design's values under conventional names, in rem (#462). **A screen taking its look from the design reads a name, never the value — Tailwind's own for the weights, the breakpoints, the blur and the full radius — and until #258 only a file nothing outside `app/(tools)/` and `app/login/` calls may read one, the date's four aside (#463).**
 - `app/faces/` — the design's faces, a module each (#473).
 - `app/components/modalStyles.js` — `MODAL_BACKDROP` / `MODAL_CARD`, the styling of every modal not on `DialogFrame.js`, none of them on the tools axis since #458, until #258. **Anything that opens over the page — modal or not — opens from the keyboard, closes on `Escape` as well as by its opener, and hands focus back to that opener, or to the page's heading when nothing opened it (#459) or the opener went with it (#458).**
 - `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456), and below the phone's edge Tools 0a's sheet for one marked so (#458); `lib/dialogFrame.js`, its word and when focus fell. **A submission in flight is the frame's `busy`, handed to all it holds (#469): its submit works, the rest lock, nothing is disabled, and focus never falls out of a dialog left open.**
 - `app/components/Controls.js`, `Menu.js` — 0a's controls, the list a field opens (#456) and the menu a button opens (#478); `lib/controls.js`, their keys and words, and what a button is under a busy form (#469).
 - `app/components/Rail.js`, `RailAccount.js`, `Breadcrumb.js` — the rail, its account (#478) and the column a screen scrolls in, and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, what the account says, and their words. **Only the tools layout calls the rail until #258.**
+- `app/components/TopBar.js`, `BottomBar.js`, `Tooltip.js`, `Space.js` — a phone screen's top bar and foot bar (#463, #473), 0k's tooltip beside an icon or above it, and a space the text holds at a design width.
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
 - `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
 - `app/components/PdfPages.js` — a PDF's pages, drawn by the app (#433). **The one module that draws a page, and the only one that loads PDF.js.**
-- `app/components/Instant.js` — a stored instant, drawn in the reader's own zone (#374). **A time renders in the reader's zone and names none; the one surface with no reader — the order document — names the zone it used.** No Server Component may format one.
+- `app/components/Instant.js` — a stored instant, drawn in the reader's own zone (#374) in the design's notation (#463). **A time renders in the reader's zone and names none; the one surface with no reader — the order document — names the zone it used.** No Server Component may format one.
 - `app/components/CategoryPicker.js` — the four-level category control, on both screens that reach an item (#367). No state and no sentence of its own.
 - `app/components/DeliveryStatusMarks.js` — `StatusChip` / `QualifierMarker`. Presentational only; the semantic tone comes from `lib/deliveryStatus.js`.
 - `AIRTABLE_API_KEY` is server-side only and never in the client bundle.

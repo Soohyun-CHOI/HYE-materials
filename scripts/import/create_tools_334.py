@@ -5,7 +5,7 @@ Creates the three tables a tool and its history live in (issue #334):
 WHAT THEY ARE FOR. The company buys drills, grinders and the like, hands
 them out to sites, and gets them back when a project ends -- and none of
 that is recorded anywhere today. Each physical tool gets a QR label; a
-scan on a phone moves it between `In Stock` and `Out`, and the app can
+scan on a phone moves it between `In stock` and `Out`, and the app can
 then answer what is where. A tool is bought BY THE KIND and tracked ONE
 AT A TIME, so the kind and the object are separate tables: `Tools` holds
 the name a person types, `Tool Items` holds the thing the sticker is
@@ -56,6 +56,9 @@ The same pass brought the rest of the spec back to what the base holds --
 `Notes`, deleted by hand in #363, is gone from it, so a run no longer
 reads it as missing and creates it again; `Checked Out To`, added in #376
 outside this script, is in it; and every description is the base's own.
+#463 renamed three more options the same way, when the design set the
+tools screens' words in sentence case: `In Stock` became `In stock`, and
+`Checked Out` and `Checked In` became `Checked out` and `Checked in`.
 
 THE COLOR RULE, stated so it can be checked rather than admired: walk
 Airtable's light palette in declaration order, and give the terminal
@@ -139,15 +142,15 @@ DATETIME_OPTIONS = {
 # lists out of THIS FILE and asserts they are the JS values, in order, with the
 # colors. Editing one without the other fails CI.
 TOOL_STATUS_CHOICES = [
-    {"name": "In Stock", "color": "blueLight2"},
+    {"name": "In stock", "color": "blueLight2"},
     {"name": "Out", "color": "cyanLight2"},
     {"name": "Retired", "color": "grayLight2"},
 ]
 
 TOOL_EVENT_CHOICES = [
     {"name": "Created", "color": "blueLight2"},
-    {"name": "Checked Out", "color": "cyanLight2"},
-    {"name": "Checked In", "color": "tealLight2"},
+    {"name": "Checked out", "color": "cyanLight2"},
+    {"name": "Checked in", "color": "tealLight2"},
     {"name": "Retired", "color": "grayLight2"},
 ]
 
@@ -238,9 +241,13 @@ def tool_items(tools_table_id):
                 "type": "singleSelect",
                 "options": {"choices": TOOL_STATUS_CHOICES},
                 "description": (
-                    "Issue #334, narrowed in #335 -- where this tool is now. In Stock "
-                    "and Out are the pair a scan moves between; Retired is designated "
-                    "from a screen and is the only end.\n\n"
+                    "Issue #334, narrowed in #335, renamed in #463 -- where this tool "
+                    "is now. In stock and Out are the pair a scan moves between; "
+                    "Retired is designated from a screen and is the only end.\n\n"
+                    "IT WAS In Stock UNTIL #463, which took the design's sentence "
+                    "case. A screen prints the value as stored, so the option was "
+                    "renamed in place and not replaced: a cell holds its choice by "
+                    "id, so every row that held In Stock reads In stock.\n\n"
                     "THREE VALUES, AND THE ONES THAT ARE NOT HERE WERE REMOVED ON "
                     "PURPOSE. In Repair and Lost are absent because those things do "
                     "not happen here: a broken tool is thrown away and replaced rather "
@@ -251,7 +258,7 @@ def tool_items(tools_table_id):
                     "CHECK, because on this axis they are one fact -- the company no "
                     "longer holds it -- and nothing records which of the two it was: "
                     "#363 weighed that and deleted the Tool Log.Notes field it would "
-                    "have lived in. Without it a discarded tool sits In Stock forever "
+                    "have lived in. Without it a discarded tool sits In stock forever "
                     "and the count is wrong, and the only other correction is deleting "
                     "the record, which takes its whole log with it.\n\n"
                     "A DERIVED CACHE OF Tool Log, WRITTEN BY THE APP -- DO NOT EDIT "
@@ -367,30 +374,32 @@ def tool_log(tool_items_table_id):
                 "type": "singleSelect",
                 "options": {"choices": TOOL_EVENT_CHOICES},
                 "description": (
-                    "Issue #334, narrowed in #335, renamed in #455 -- what happened. "
-                    "Four values against Status's three, which is why Tool "
+                    "Issue #334, narrowed in #335, renamed in #455 and #463 -- what "
+                    "happened. Four values against Status's three, which is why Tool "
                     "Items.Status is a mapping of this rather than a copy of it.\n\n"
                     "Created IS THE FIRST ROW OF EVERY TOOL ITEM'S HISTORY, and it "
                     "exists because Tool Items carries no Created At. That field was "
                     "left off on the ground that this log's first row holds the "
                     "instant, so without an event naming the act there would be "
                     "nowhere at all answering when a tool item came into existence. "
-                    "Checked In was the alternative and reads wrong: it means a tool "
+                    "Checked in was the alternative and reads wrong: it means a tool "
                     "came back into stock, and one just created has never been out. "
                     "It is not a fiction either -- the label still has to be printed "
-                    "and stuck on, so the In Stock it leaves behind describes a real "
+                    "and stuck on, so the In stock it leaves behind describes a real "
                     "tool sitting on a bench.\n\n"
                     "IT WAS Registered UNTIL #455, which took the design's word for "
                     "the act. The option was renamed in place and not replaced: a "
                     "cell holds its choice by id, so every row that held Registered "
                     "reads Created, where deleting the old option would have emptied "
-                    "each of them.\n\n"
+                    "each of them. #463 renamed Checked Out and Checked In to Checked "
+                    "out and Checked in the same way, for the design's sentence "
+                    "case.\n\n"
                     "TWO NAMING SHAPES. A transition a person designates on a screen "
                     "is named for the state it leaves the tool in, so the event and "
                     "the status are the same string: Retired, the only one of that "
                     "kind left. A transition that happens by SCANNING carries an "
                     "action name, because the person is performing an act rather than "
-                    "declaring a state: Checked Out, Checked In. Created is a third "
+                    "declaring a state: Checked out, Checked in. Created is a third "
                     "case -- an act with no status of its own name.\n\n"
                     "WHAT #335 REMOVED: Sent to Repair, Returned from Repair, Lost "
                     "and Found, because a broken tool here is thrown away rather than "
@@ -499,8 +508,8 @@ def tool_log(tool_items_table_id):
                 "name": "Checked Out To",
                 "type": "singleLineText",
                 "description": (
-                    "The person this tool item was handed to. Written on Checked Out "
-                    "rows only and blank on Created, Checked In and Retired; "
+                    "The person this tool item was handed to. Written on Checked out "
+                    "rows only and blank on Created, Checked in and Retired; "
                     "app-enforced in both directions, since the people who receive "
                     "tools have no account here. Trimmed with runs of spaces "
                     "collapsed and case kept, matched without case."

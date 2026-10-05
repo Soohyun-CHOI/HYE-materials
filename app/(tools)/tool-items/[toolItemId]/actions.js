@@ -5,8 +5,10 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemByToolItemId, updateToolItemCache } from "@/lib/airtable/toolItems";
-import { createToolLogEntry } from "@/lib/airtable/toolLog";
+import { createToolLogEntry, getToolLogByToolItem } from "@/lib/airtable/toolLog";
+import { getUsersByRecordIds } from "@/lib/airtable/users";
 import { TOOL_ITEM_COPY } from "@/lib/toolItemView";
+import { actorName } from "@/lib/userName";
 import { TOOL_EVENT, statusAfterEvent } from "@/lib/toolStatus";
 import {
     TOOL_TRANSITION_COPY,
@@ -38,11 +40,12 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * per-record comparison is about the job.
  *
  * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
- * TransitionDialog.js reads this through `useActionState`, so every refusal lands
- * in the one place it has for them — above the dialog's actions while the dialog
- * stands open, and where the control is once it has gone (#458). **It goes through
- * `refuse`, which re-renders the page as it answers (#378)** — a returned sentence
- * on a page nothing re-rendered is true beside a screen that contradicts it.
+ * `ToolItemTransition.js` reads this through `useActionState` for both of the page's
+ * drawings (#463), so every refusal lands in the one place it has for them — above
+ * the desk's dialog's actions while it stands open, and under the status otherwise,
+ * where 1g says a refused press. **It goes through `refuse`, which re-renders the
+ * page as it answers (#378)** — a returned sentence on a page nothing re-rendered is
+ * true beside a screen that contradicts it.
  *
  * THE TWO WRITES ARE `writeEvent`'s, SHARED WITH THE RETIREMENT BELOW SINCE
  * #363. The ordering, the try boundary and the report of a cache that did not
@@ -57,7 +60,10 @@ import { withOpsLabel } from "@/lib/airtableOps";
  *
  * A REFUSAL COSTS THREE AND WRITES NOTHING, also measured: the session, the tool
  * item and the job list, which are what the verdict is reached from. The two
- * writes are downstream of it.
+ * writes are downstream of it. **One that somebody else's scan got in front of
+ * costs five (#463)**: the design's sentence names who recorded first and when
+ * (1g), so `refuseStale` reads the tool item's latest `Tool Log` row and the person
+ * who recorded it, one operation each.
  *
  * SIX ON THE FIRST EVENT AFTER A REGISTRATION THAT LOST ITS LOG ROW, because
  * `findChildRecords` on an empty link array costs nothing. That is #338's
@@ -107,11 +113,14 @@ export async function recordToolItemEventAction(prevState, formData) {
             jobs: await getAllJobs(),
             status: toolItem.status,
         });
-        const { event, job, checkedOutTo, refusal } = readSubmission(plan, {
+        const { event, job, checkedOutTo, refusal, stale } = readSubmission(plan, {
             event: String(formData.get("event") ?? ""),
             jobId: String(formData.get("jobId") ?? ""),
             checkedOutTo: String(formData.get("checkedOutTo") ?? ""),
         });
+        // The page was looking at a status somebody else has moved since: say who, and
+        // when, and what the press was (#463).
+        if (stale) return refuseStale({ toolItem, refusal, attempted: String(formData.get("event") ?? "") });
         if (refusal) return refuse(refusal);
 
         // The actor's own job, because a scan is the actor handling the tool. The
@@ -244,10 +253,44 @@ export async function retireToolItemAction(prevState, formData) {
  *
  * NOT EXPORTED, for `writeEvent`'s reason — an export of a `"use server"` module
  * is an entry point callable from a browser.
+ *
+ * `moved` RIDES BESIDE THE SENTENCE FOR A STALE PRESS (#463): who recorded the latest
+ * entry, what it was, and when, which the page turns into 1g's sentence in the reader's
+ * own zone. `error` is still the whole sentence without them, so nothing that reads
+ * only `error` says less than it did.
  */
-function refuse(error) {
+function refuse(error, moved = null) {
     refresh();
-    return { error };
+    return moved ? { error, moved } : { error };
+}
+
+/**
+ * The refusal for a press somebody else's scan got in front of (#463): the design names
+ * them and the moment — `Jisoo Park checked this out a moment ago. Your checkout wasn't
+ * saved.` (1g) — so this reads the tool item's latest `Tool Log` row and who recorded it.
+ *
+ * THE LATEST ROW IS THE LINK ARRAY'S LAST, which is creation order and for an append-only
+ * table the newest; read through `findChildRecords` as one id, so one operation, and the
+ * recorder is one more. That row is what flipped the status the page was looking at — or,
+ * rarer, a row whose cache write failed (`statusNotUpdated`), and either way it is the scan
+ * the reader's press came after. The person is named in full (`actorName`), the moment is
+ * the row's own `Event At`, and the page writes it in the reader's zone.
+ *
+ * A READ THAT FAILS DOES NOT TURN A REFUSAL INTO AN ERROR: the press was refused either way,
+ * so it says the sentence `readSubmission` gave, which names nobody, and logs why.
+ */
+async function refuseStale({ toolItem, refusal, attempted }) {
+    try {
+        const latestId = toolItem.toolLog?.at(-1);
+        const [latest] = latestId ? await getToolLogByToolItem(toolItem.id, { rowIds: [latestId] }) : [];
+        if (!latest) return refuse(refusal);
+        const recorderId = latest.recordedBy?.[0];
+        const [recorder] = recorderId ? await getUsersByRecordIds([recorderId]) : [];
+        return refuse(refusal, { by: actorName(recorder) || null, event: latest.event, at: latest.eventAt ?? null, attempted });
+    } catch (error) {
+        console.error("The latest Tool Log row was not read for a stale press (#463)", { toolItemId: toolItem.toolItemId, error });
+        return refuse(refusal);
+    }
 }
 
 /**

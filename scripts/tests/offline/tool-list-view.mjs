@@ -3,7 +3,7 @@
 // THREE THINGS LIVE HERE AND THE THIRD IS WIDER THAN THE OTHER TWO.
 //
 //   THE COUNT PER STATUS IS DERIVED FROM THE VOCABULARY, NOT WRITTEN OUT. A tool's
-//   row carries `In Stock`, `Out` and `Retired` whatever the tool items under it
+//   row carries `In stock`, `Out` and `Retired` whatever the tool items under it
 //   are, so a status nobody has designated reads `0` rather than going missing —
 //   the app's own distinction between nothing and no measurement. Writing the
 //   three out would make a fourth status appear on no screen and fail nothing;
@@ -52,7 +52,7 @@
 // standing limit — a page renders no rows in a check. In particular it cannot see
 // that the counts are right about the base: `summarizeTools` is exercised on
 // literal tool items here. **This went on to say `Out` depended on a screen that
-// writes a `Checked Out` row, which the app did not have; #362 wrote one, and a
+// writes a `Checked out` row, which the app did not have; #362 wrote one, and a
 // browser has shown the figure since.**
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.

@@ -13,7 +13,7 @@
 // each wrote an assertion in terms of the constant it was checking, and each
 // time a mutation moved the constant and the assertion with it. Naming the
 // functions the action must call has the same weakness one level up: `event`,
-// `formData.get("event")` and `"Checked Out"` are all "an argument to
+// `formData.get("event")` and `"Checked out"` are all "an argument to
 // createToolLogEntry", and only reading the ARGUMENT tells them apart. So the
 // call sites are parsed and the argument's own source text is compared.
 //
@@ -30,6 +30,12 @@
 // asks first (`asksBeforeRecording`, by value) and the three parts of 1f's phone
 // screen the dialogs open, which #463's foot bar opens later as they are.
 //
+// AND #463 GAVE THE PAGE TWO DRAWINGS OF ONE TRANSITION — a desk's header and a phone's
+// foot bar — one answer between them (`ToolItemTransition.js`), and a refusal for a press
+// somebody else's scan got in front of that names them. So the foot bar is held to the same
+// reader the dialog is, the provider to the open rule the dialog had, the menu that holds
+// the retirement to handing focus back, and the action to reading the row it names.
+//
 // WHAT IT CANNOT SEE. Whether any of it reaches a browser, which is this tier's
 // standing limit; whether the two Airtable writes actually land; source order is
 // not execution order, so "the log row is written before the cache" is a fact
@@ -45,13 +51,14 @@
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { TOOL_EVENT, TOOL_STATUS, EVENT_OFFERED_BY_STATUS } from "../../../lib/toolStatus.js";
+import { TOOL_EVENT, TOOL_STATUS, TOOL_STATUS_VALUES, EVENT_OFFERED_BY_STATUS } from "../../../lib/toolStatus.js";
 import { TOOL_ITEM_COPY } from "../../../lib/toolItemView.js";
-import { TOOL_JOB_COPY } from "../../../lib/toolJob.js";
+import { TOOL_JOB_COPY, chosenJobId } from "../../../lib/toolJob.js";
 import {
     RECENT_NAMES_SHOWN,
     TOOL_TRANSITION_COPY,
     asksBeforeRecording,
+    fieldRefusals,
     jobMoveNotice,
     narrowNames,
     offeredNames,
@@ -63,11 +70,14 @@ import {
 import { callsBefore, callsTo, insideTry, parseFile, parseSource, resolveFunction, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "What a person may record against a tool item (#362, #363, #458)";
+export const title = "What a person may record against a tool item (#362, #363, #458, #463)";
 
 const ACTION = "app/(tools)/tool-items/[toolItemId]/actions.js";
 const DIALOG = "app/(tools)/tool-items/[toolItemId]/TransitionDialog.js";
-const OPENER = "app/(tools)/tool-items/[toolItemId]/RetirementDialog.js";
+const PROVIDER = "app/(tools)/tool-items/[toolItemId]/ToolItemTransition.js";
+const BAR = "app/(tools)/tool-items/[toolItemId]/TransitionBar.js";
+const REFUSAL = "app/(tools)/tool-items/[toolItemId]/TransitionRefusal.js";
+const OPENER = "app/(tools)/tool-items/[toolItemId]/MoreActions.js";
 const CONFIRM = "app/(tools)/tool-items/[toolItemId]/RetirementConfirm.js";
 const JOB_SHEET = "app/(tools)/tool-items/[toolItemId]/JobSheet.js";
 const NAME_SHEET = "app/(tools)/tool-items/[toolItemId]/NameSheet.js";
@@ -89,7 +99,7 @@ const actor = (...jobs) => ({ id: "recUser", assignedJobs: jobs.map((j) => j.id)
  */
 const CHECKING_OUT = { event: TOOL_EVENT.CHECKED_OUT, checkedOutTo: "Dana K" };
 
-/** One `Checked Out` row as `recentNamesFor` reads them. */
+/** One `Checked out` row as `recentNamesFor` reads them. */
 const checkOut = (checkedOutTo, jobCode, eventAt) => ({
     event: TOOL_EVENT.CHECKED_OUT,
     jobCode,
@@ -104,7 +114,8 @@ function copyStrings() {
         if (typeof value === "string") out.push(value);
         else if (typeof value === "object" && value) out.push(...Object.values(value));
     }
-    out.push(TOOL_TRANSITION_COPY.noTransition({ status: TOOL_STATUS.RETIRED }));
+    out.push(TOOL_TRANSITION_COPY.moved({ by: "Jisoo Park", event: TOOL_EVENT.CHECKED_OUT, when: "09/25/2026 2:14 PM", attempted: TOOL_EVENT.CHECKED_OUT }));
+    out.push(TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }));
     out.push(TOOL_TRANSITION_COPY.movesJob({ from: JOB_B.jobCode, to: JOB_A.jobCode }));
     out.push(TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-TL-261001-022" }));
     out.push(
@@ -133,7 +144,7 @@ const TOOL_ITEM_NOUN = /\btool items?\b/i;
  * THE ARGUMENT AND NOT THE NAME, which is the whole point of this file's AST half.
  * A check asserting that `createToolLogEntry` is CALLED passes with the event
  * taken straight off the form, which is the defect. Returning the value's own
- * source distinguishes `event` from `formData.get("event")` from `"Checked Out"`.
+ * source distinguishes `event` from `formData.get("event")` from `"Checked out"`.
  */
 function argumentSource({ ast, source }, fnName, propName) {
     let found = null;
@@ -245,7 +256,7 @@ export function run({ check, assert, log }) {
     log("and the two refusals:");
     const retired = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: TOOL_STATUS.RETIRED });
     check("a retired tool item offers nothing", retired.event, null);
-    assert("  and says so, naming the status", retired.refusal.includes(TOOL_STATUS.RETIRED));
+    check("  and says so, in the design's sentence (#463)", retired.refusal, TOOL_TRANSITION_COPY.noTransition);
     check("  with no jobs to choose from", retired.jobs.length, 0);
 
     const noJob = planTransition({ user: actor(), jobs: ALL_JOBS, status: TOOL_STATUS.IN_STOCK });
@@ -260,7 +271,7 @@ export function run({ check, assert, log }) {
     // and get one, in front of a tool item that would refuse them anyway, is a
     // true sentence pointing at the wrong problem.
     const both = planTransition({ user: actor(), jobs: ALL_JOBS, status: TOOL_STATUS.RETIRED });
-    assert("a retired tool item answers before the reader is asked about", both.refusal.includes(TOOL_STATUS.RETIRED));
+    check("a retired tool item answers before the reader is asked about", both.refusal, TOOL_TRANSITION_COPY.noTransition);
     assert("  rather than the no-job sentence", both.refusal !== TOOL_TRANSITION_COPY.noJob);
 
     // A status the vocabulary does not hold throws rather than silently offering
@@ -289,15 +300,19 @@ export function run({ check, assert, log }) {
     // the first two are what tell them apart; the third is this issue's own point,
     // and without it the instruction could come back with nothing failing. The
     // status is deliberately NOT named — the header above it says so, freshly.
-    assert("  saying that nothing was recorded", /nothing was recorded/i.test(stale.refusal));
+    assert("  saying that the press was not saved", /wasn't saved/i.test(stale.refusal));
     assert("  and that the change on screen is somebody else's", /somebody else/i.test(stale.refusal));
+    // AND IT SAYS IT IS THE STALE ONE (#463), which is what the action reads the latest entry
+    // for: the design names who recorded first and when (1g), which this function cannot know.
+    check("  marked as the stale refusal", stale.stale, true);
+    check("  naming the press it refused", stale.refusal, TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }));
     assert(
         "  and asking for no reload, because the action refreshes as it refuses",
         !/(reload|refresh|open it again|out of date)/i.test(stale.refusal)
     );
     assert("  and naming no status, which the page states directly above it", !stale.refusal.includes(TOOL_STATUS.IN_STOCK));
     // THE POINT OF THAT REFUSAL, stated as an assertion rather than only in prose:
-    // without it the action would derive `Checked In` from the stored status and
+    // without it the action would derive `Checked in` from the stored status and
     // record the opposite of what the button said.
     check("  never falling through to the derived event", stale.job, null);
 
@@ -306,7 +321,10 @@ export function run({ check, assert, log }) {
 
     const otherJob = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id });
     check("a job the actor is not on is refused", otherJob.refusal, TOOL_JOB_COPY.notYours);
-    check("  as is no job at all", readSubmission(inStock, { ...CHECKING_OUT, jobId: "" }).refusal, TOOL_JOB_COPY.notYours);
+    // A JOB NOT CHOSEN IS NOT A JOB REFUSED (#463): the foot bar's press can arrive with none,
+    // and its answer is the design's word for a field left at its placeholder (1j).
+    check("  while no job at all is one not chosen yet", readSubmission(inStock, { ...CHECKING_OUT, jobId: "" }).refusal, TOOL_JOB_COPY.noneChosen);
+    check("  and neither is the stale refusal", readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id }).stale, false);
 
     // ── 3b: a check-out cannot be recorded without a name (#376) ───────────
     log("");
@@ -365,13 +383,35 @@ export function run({ check, assert, log }) {
     check(
         "a stale page is answered before a missing name",
         readSubmission(inStock, { event: TOOL_EVENT.CHECKED_IN, jobId: JOB_A.id, checkedOutTo: "" }).refusal,
-        TOOL_TRANSITION_COPY.moved
+        TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN })
     );
     check(
         "  and so is a job that is not the actor's",
         readSubmission(inStock, { ...CHECKING_OUT, checkedOutTo: "", jobId: JOB_B.id }).refusal,
         TOOL_JOB_COPY.notYours
     );
+
+    // ── 3b': both fields at once, for the foot bar (#463) ─────────────────
+    // A PHONE'S PRESS IS ANSWERED UNDER THE FIELD IT IS ABOUT, both when both are missing (1g),
+    // and the reader is the one `readSubmission` reads — so the two cannot disagree.
+    log("");
+    log("what is wrong with each field, both at once:");
+    const onTwo = planTransition({ user: actor(JOB_A, JOB_B), jobs: ALL_JOBS, status: TOOL_STATUS.IN_STOCK });
+    const bothMissing = fieldRefusals(onTwo, { jobId: "", checkedOutTo: "  " });
+    check(
+        "nothing chosen and no name are both answered",
+        `${bothMissing.jobRefusal} | ${bothMissing.nameRefusal}`,
+        `${TOOL_JOB_COPY.noneChosen} | ${TOOL_TRANSITION_COPY.nameRequired}`
+    );
+    check("  a job that is not the reader's says so", fieldRefusals(onTwo, { jobId: "recJobZ", checkedOutTo: "Dana K" }).jobRefusal, TOOL_JOB_COPY.notYours);
+    const bothGiven = fieldRefusals(onTwo, { jobId: JOB_B.id, checkedOutTo: "  Dana   K " });
+    check(
+        "  and both given refuse nothing, the job resolved and the name normalized",
+        `${bothGiven.jobRefusal} | ${bothGiven.nameRefusal} | ${bothGiven.job?.jobCode} | ${bothGiven.name}`,
+        "null | null | 26-DEMO-02 | Dana K"
+    );
+    check("  a check-in asks no name", fieldRefusals(out, { jobId: JOB_A.id, checkedOutTo: "" }).nameRefusal, null);
+    check("  and readSubmission reads the same two", callsTo(resolveFunction(parseFile("lib/toolTransition.js").ast, "readSubmission"), "fieldRefusals").length, 1);
 
     // ── 3c: the names a job offers, folded and narrowed (#376) ─────────────
     log("");
@@ -394,7 +434,7 @@ export function run({ check, assert, log }) {
     assert("  one entry per person however it was typed", names.length === 3);
     check("  and the spelling is the most recent", names[1], "mike r");
     check("  with its inner run collapsed", names.filter((n) => n.includes("  ")).length, 0);
-    // ONLY THIS JOB, AND ONLY `Checked Out` ROWS. The other job's name is in the
+    // ONLY THIS JOB, AND ONLY `Checked out` ROWS. The other job's name is in the
     // same list the page loaded, because a picker can move between them; a row of
     // another event with a name is a defect upstream and is ignored rather than
     // shown.
@@ -488,10 +528,23 @@ export function run({ check, assert, log }) {
         0
     );
     // The two sentences the sweep carried the noun into, by value.
+    check("the terminal sentence, the design's (1f)", TOOL_TRANSITION_COPY.noTransition, "Nothing more can be recorded here.");
+    // THE STALE PRESS IN 1g's WORDS (#463), the person in full and the moment in the app's
+    // notation where the design says `a moment ago`, the noun hyphenated and the verb not.
     check(
-        "the terminal sentence",
-        TOOL_TRANSITION_COPY.noTransition({ status: TOOL_STATUS.RETIRED }),
-        "This tool is Retired, so nothing more can be recorded against it."
+        "  the press somebody else's scan got in front of",
+        TOOL_TRANSITION_COPY.moved({ by: "Jisoo Park", event: TOOL_EVENT.CHECKED_OUT, when: "09/25/2026 2:14 PM", attempted: TOOL_EVENT.CHECKED_OUT }),
+        "Jisoo Park checked this out on 09/25/2026 2:14 PM. Your check-out wasn't saved."
+    );
+    check(
+        "  naming nobody when nobody resolved",
+        TOOL_TRANSITION_COPY.moved({ by: null, event: TOOL_EVENT.CHECKED_IN, when: "09/25/2026 2:14 PM", attempted: TOOL_EVENT.CHECKED_OUT }),
+        "Somebody else checked this in on 09/25/2026 2:14 PM. Your check-out wasn't saved."
+    );
+    check(
+        "  and no entry at all when none was read",
+        TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }),
+        "Somebody else scanned this first. Your check-in wasn't saved."
     );
     check(
         "  and the one for a move",
@@ -529,6 +582,15 @@ export function run({ check, assert, log }) {
     );
     check("a check-out on its way", TOOL_TRANSITION_COPY.working[TOOL_EVENT.CHECKED_OUT], "Checking out…");
     check("  and a check-in", TOOL_TRANSITION_COPY.working[TOOL_EVENT.CHECKED_IN], "Checking in…");
+    // WHAT THE LATEST ENTRY DID AND WHAT THE PRESS WAS (#463), keyed by the event as the
+    // control is, so a fifth event cannot arrive without them.
+    check(
+        "every offerable event has an act and a noun",
+        offerable.filter((e) => !TOOL_TRANSITION_COPY.movedAct[e] || !TOOL_TRANSITION_COPY.eventNoun[e]).join(", "),
+        ""
+    );
+    check("  the noun hyphenated, as the design's checkout is not", Object.values(TOOL_TRANSITION_COPY.eventNoun).join(" | "), "check-out | check-in");
+    check("  and the act a verb with none", Object.values(TOOL_TRANSITION_COPY.movedAct).join(" | "), "checked this out | checked this in");
 
     // IMPORTED RATHER THAN RE-SPELLED. Three words are the same control and the
     // same rule on two screens, so a second copy is a second word for one fact the
@@ -602,7 +664,7 @@ export function run({ check, assert, log }) {
 
     // THE LOG ROW'S EVENT IS THE ONE IT WAS HANDED. This is the assertion the
     // whole AST half exists for: `event`, `formData.get("event")` and
-    // `"Checked Out"` are all arguments to this call, and only the argument's
+    // `"Checked out"` are all arguments to this call, and only the argument's
     // source tells them apart.
     const written = argumentSource(action, "createToolLogEntry", "event");
     check("the log row records the event it was handed", written, "event");
@@ -857,6 +919,31 @@ export function run({ check, assert, log }) {
     assert("  newest first", /direction: "desc"/.test(readerSource));
     assert("  and capped, which is what keeps it one operation", /maxRecords: RECENT_CHECK_OUT_ROWS/.test(readerSource));
 
+    // ── 6f: a stale press names who recorded first, read as it refuses (#463) ─
+    // THE DESIGN'S SENTENCE NAMES THE PERSON AND THE MOMENT (1g), which only the latest entry
+    // knows, so the action reads it for the stale refusal and for nothing else — two
+    // operations on a path a person meets rarely, and none on any other.
+    log("");
+    log("a stale press is answered with who recorded first, read off the latest entry:");
+    const scanFn = resolveFunction(action.ast, "recordToolItemEventAction");
+    const scanSource = action.source.slice(scanFn.start, scanFn.end);
+    const staleAt = scanSource.indexOf('if (stale) return refuseStale({ toolItem, refusal, attempted: String(formData.get("event") ?? "") });');
+    assert("the scan action answers a stale press through refuseStale, naming the press", staleAt > -1);
+    assert("  before any other refusal is said", staleAt > -1 && staleAt < scanSource.indexOf("if (refusal) return refuse(refusal);"));
+    const staleFn = resolveFunction(action.ast, "refuseStale");
+    assert("refuseStale was found", staleFn !== null);
+    assert("  and is not exported, so it is no Server Action", !/export\s+(async\s+)?function\s+refuseStale/.test(action.source));
+    const staleSource = staleFn ? action.source.slice(staleFn.start, staleFn.end) : "";
+    assert(
+        "  it reads the latest row, the link array's last, as one id",
+        staleSource.includes("const latestId = toolItem.toolLog?.at(-1);") &&
+            staleSource.includes("getToolLogByToolItem(toolItem.id, { rowIds: [latestId] })")
+    );
+    assert("  names who recorded it in full", staleSource.includes("by: actorName(recorder) || null"));
+    assert("  hands over the row's own event and moment", staleSource.includes("event: latest.event, at: latest.eventAt ?? null, attempted"));
+    check("  and says every answer through refuse", callsTo(staleFn ?? {}, "refuse").length, 3);
+    check("  where retireToolItemAction asks no such read", callsTo(resolveFunction(action.ast, "retireToolItemAction"), "refuseStale").length, 0);
+
     // ── 7: the page offers and refuses in one place ────────────────────────
     log("");
     log("the page renders the refusal where the controls would be:");
@@ -881,22 +968,35 @@ export function run({ check, assert, log }) {
         if (n.type !== "ConditionalExpression") return;
         const test = page.source.slice(n.test.start, n.test.end);
         const alternate = page.source.slice(n.alternate.start, n.alternate.end);
-        if (/refusal/.test(test) && /TransitionDialog/.test(alternate) && /RetirementDialog/.test(alternate)) guarded = true;
+        if (/refusal/.test(test) && /TransitionDialog/.test(alternate) && /MoreActions/.test(alternate)) guarded = true;
     });
     assert("both controls stand in the branch where there is no refusal", guarded);
     // AND EACH IS THEN ASKED FOR SEPARATELY, because the two answers come from two
     // maps that agree only on today's three statuses. Deriving one control's
     // presence from the other's would be the coincidence lib/toolStatus.js records.
-    assert("the transition control is gated on the offered event", /\{transition\.event && \(/.test(page.source));
-    assert("  and the retire control on its own answer", /\{transition\.mayRetire && \(/.test(page.source));
+    assert("the transition control is gated on the offered event", /\{transition\.event && <TransitionDialog /.test(page.source));
+    // `More actions` holds the retirement at both widths (#463): beside the transition at a
+    // desk, in the top bar on a phone — each asked of the plan's own answer.
+    check(
+        "  and More actions, which holds the retirement, on its own answer at both widths",
+        (page.source.match(/\{transition\.mayRetire && <MoreActions( phone)? \/>\}/g) ?? []).join(" | "),
+        "{transition.mayRetire && <MoreActions phone />} | {transition.mayRetire && <MoreActions />}"
+    );
+    // A RETIRED TOOL SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1c); any other refusal is
+    // said there, and a phone's foot bar says the terminal one.
+    assert(
+        "  a desk says the refusal where the controls would be, but for a status that allows nothing",
+        /transition\.refusal !== TRANSITION_COPY\.noTransition && \(\s*<p[^>]*>\{transition\.refusal\}<\/p>/.test(page.source)
+    );
     // THE TRANSITION IS HANDED THE PLAN THE PAGE REACHED (#458), which its dialog asks
     // `readSubmission` of before it sends — the event the page offered and the jobs it
     // narrowed, never a decision of the dialog's own — and the tool item's job so the
     // dialog can say when the two differ. The retirement is handed the tool's name, which
     // its question asks with.
-    check("the transition is handed the plan the page reached", attributeSources(page.ast, page.source, "TransitionDialog", "plan").join(), "{transition}");
+    // THE PROVIDER IS HANDED THE PLAN (#463), which both drawings and the question read.
+    check("the transition is handed the plan the page reached", attributeSources(page.ast, page.source, "ToolItemTransition", "plan").join(), "{transition}");
     assert("  and the tool item's current job", /currentJobCode=\{/.test(page.source));
-    check("the retirement is handed the tool's name", attributeSources(page.ast, page.source, "RetirementDialog", "toolName").join(), "{tool?.toolName}");
+    check("the retirement is handed the tool's name", attributeSources(page.ast, page.source, "ToolItemTransition", "toolName").join(), "{tool?.toolName}");
 
     // ── 7b: what a transition asks before it records (#458) ────────────────
     // A CHECK-OUT RECORDS A NAME, SO IT ALWAYS ASKS; a check-in asks only a person on
@@ -928,7 +1028,10 @@ export function run({ check, assert, log }) {
     // opened the dialog from. A landing's redirect throws the page's state away whichever.
     check("the press and the opener are one button", attributeSources(dialogFn, dialog.source, "Button", "type").join(), '"submit"');
     check("  saying the event's own word", [...dialogSource.matchAll(/COPY\.control\[([^\]]+)\]/g)].map((m) => m[1]).join(), "plan.event");
-    check("  and disabled while a press is sending", attributeSources(dialogFn, dialog.source, "Button", "disabled").join(), "{pending}");
+    // BUSY WHILE IT SENDS, NEVER DISABLED (#463): 0f's Working on the press, so focus stays on it
+    // until the answer comes, where a disabled press gave focus up to the document.
+    check("  and busy while a press is sending, never disabled", `${attributeSources(dialogFn, dialog.source, "Button", "busy").join()} ${attributeSources(dialogFn, dialog.source, "Button", "disabled").length}`, "{!asks && pending} 0");
+    check("  saying its event's working word", attributeSources(dialogFn, dialog.source, "Button", "busyLabel").join(), "{asks ? undefined : COPY.working[plan.event]}");
 
     // ── 7c: the dialog asks the action's own reader before it sends (#458) ─
     // WHAT A SUBMISSION MAY BE IS ONE FUNCTION, ASKED TWICE — #456's rule for the
@@ -959,7 +1062,7 @@ export function run({ check, assert, log }) {
         attributeSources(formFn, dialog.source, "Button", "busyLabel").join(" | "),
         "{COPY.working[plan.event]}"
     );
-    check("  reading the dialog's own choice and name", initSource(formFn, dialog.source, "reading"), "readSubmission(plan, { event: plan.event, jobId, checkedOutTo: name })");
+    check("  reading the dialog's own choice and name", initSource(formFn, dialog.source, "reading"), "readSubmission(plan, { event: plan.event, jobId: kept, checkedOutTo: name })");
     let trims = 0;
     walk(dialog.ast, (n) => {
         if (n.type === "CallExpression" && n.callee?.type === "MemberExpression" && n.callee.object?.name === "name" && n.callee.property?.name === "trim") trims++;
@@ -980,27 +1083,52 @@ export function run({ check, assert, log }) {
     // the page in place (#378), and the jobs it plans with can be fewer than the dialog opened
     // with. Seen in a browser before this: below the phone's edge with one job left, a stated
     // field saying `Choose a job` that nothing could open, over a commitment that could not act.
-    check("  and a chosen job the plan no longer holds takes the same start again", initSource(formFn, dialog.source, "start"), 'onlyJob(plan.jobs)?.id ?? ""');
+    // THE RULE IS `chosenJobId` SINCE #463, which the foot bar asks of its own choice too.
+    check("  and a chosen job the plan no longer holds takes the same start again", initSource(formFn, dialog.source, "kept"), "chosenJobId(plan.jobs, jobId)");
     assert(
         "    whenever the plan stops holding it, before the choice is read",
-        /if \(jobId !== start && !plan\.jobs\.some\(\(job\) => job\.id === jobId\)\) setJobId\(start\);/.test(formSource) &&
-            formSource.indexOf("setJobId(start)") < formSource.indexOf("const chosen =")
+        /if \(kept !== jobId\) setJobId\(kept\);/.test(formSource) && formSource.indexOf("setJobId(kept)") < formSource.indexOf("const chosen =")
     );
+    check("    a choice still held is kept", chosenJobId(ALL_JOBS, JOB_B.id), JOB_B.id);
+    check("    one taken away goes back to the one job there is", chosenJobId([JOB_A], JOB_B.id), JOB_A.id);
+    check("    or to none of several", chosenJobId(ALL_JOBS, "recGone"), "");
+    check("    and nothing chosen of one job is that job", chosenJobId([JOB_A], ""), JOB_A.id);
 
     // ── 7d: open while it is what the page offers, and where a refusal stands ─
     log("");
     log("the dialog is open while the page still offers what it opened for:");
-    check("open while the offered event is the one it was opened for", initSource(dialogFn, dialog.source, "open"), "openedFor !== null && openedFor === plan.event");
+    // THE OPEN RULE AND THE ANSWER ARE THE PROVIDER'S SINCE #463, which both drawings read.
+    const provider = parseFile(PROVIDER);
+    const providerFn = functionNamed(provider.ast, "ToolItemTransition");
+    assert("the provider was found", providerFn !== null);
+    const providerSource = providerFn ? provider.source.slice(providerFn.start, providerFn.end) : "";
+    check("open while the offered event is the one it was opened for", initSource(providerFn ?? {}, provider.source, "open"), "openedFor !== null && openedFor === plan.event");
     // THE OPENING ENDS WITH ITS EVENT, so the same event offered again does not open it. A
     // landing's redirect throws the page's state away, the opening with it; a refusal
     // re-renders in place (#378), and two that flip the status out and back would find
     // `openedFor` still naming the event and open the dialog with nobody asking.
-    const endsAt = dialogSource.indexOf("if (openedFor !== null && openedFor !== plan.event) setOpenedFor(null);");
-    assert("  and the opening ends with that event, before open is read", endsAt > -1 && endsAt < dialogSource.indexOf("const open ="));
+    const endsAt = providerSource.indexOf("if (openedFor !== null && openedFor !== plan.event) setOpenedFor(null);");
+    assert("  and the opening ends with that event, before open is read", endsAt > -1 && endsAt < providerSource.indexOf("const open ="));
+    assert("  holding the one answer both drawings read", providerSource.includes("const [answer, formAction, pending] = useActionState(recordToolItemEventAction, null);"));
     // A REFUSAL IS THE ACTION'S LAST ANSWER, read as it is: a press that lands leaves no
-    // answer behind it to hide, since its redirect throws the state away.
-    check("a refusal is the action's last answer", initSource(dialogFn, dialog.source, "refusal"), "state?.error ?? null");
-    assert("a refusal stands where the control is only while the dialog is closed", /\{refusal && !open && <p role="alert">\{refusal\}<\/p>\}/.test(dialogSource));
+    // answer behind it to hide, since its redirect throws the state away. A stale one is
+    // turned into 1g's sentence in the reader's zone; any other is the action's sentence.
+    const sentenceFn = functionNamed(provider.ast, "useRefusalSentence");
+    const sentenceSource = sentenceFn ? provider.source.slice(sentenceFn.start, sentenceFn.end) : "";
+    assert(
+        "a refusal is the action's last answer, a stale one named in the reader's zone",
+        /const when = useReaderInstant\(answer\?\.moved\?\.at \?\? null\);/.test(sentenceSource) &&
+            /if \(answer\.moved\) return COPY\.moved\(\{ \.\.\.answer\.moved, when \}\);/.test(sentenceSource) &&
+            /return answer\.error \?\? null;/.test(sentenceSource)
+    );
+    check("  which the dialog reads", initSource(dialogFn, dialog.source, "refusal"), "useRefusalSentence(answer)");
+    const refusalFile = parseFile(REFUSAL);
+    assert("a refusal stands under the status only while the dialog is closed", /if \(!sentence \|\| open\) return null;/.test(refusalFile.source));
+    check(
+        "  as a desk's refusal line and a phone's notice, one at each width",
+        `${/<div className="max-sm:hidden">\s*<Refusal>\{sentence\}<\/Refusal>/.test(refusalFile.source)} ${/sm:hidden">\s*<Notice>\{sentence\}<\/Notice>/.test(refusalFile.source)}`,
+        "true true"
+    );
     check("  and above the dialog's actions while it is open", attributeSources(dialogFn, dialog.source, "TransitionForm", "refusal").join(), "{open ? refusal : null}");
     check("  which the frame says there", attributeSources(formFn, dialog.source, "DialogActions", "refusal").join(), "{refusal}");
     check(
@@ -1037,6 +1165,43 @@ export function run({ check, assert, log }) {
     check("  out of the chosen job's recent names", initSource(formFn, dialog.source, "recent"), "recentNamesFor(recentCheckOuts, { jobCode: chosen?.jobCode })");
     check("one value behind the field and its sheet", `${attributeSources(formFn, dialog.source, "Combobox", "onChange").join()} ${attributeSources(formFn, dialog.source, "NameSheet", "onChange").join()}`, "{setName} {setName}");
 
+    // ── 7f: the phone's foot bar, which asks the same reader (#463) ───────
+    // 1f's FOOT BAR KEEPS ITS PRESS AND ANSWERS UNDER THE FIELDS (1g): what a submission may be
+    // is `readSubmission` before anything is sent, the field refusals are `fieldRefusals`, and
+    // they show once a press asked for that event. The bar is busy while it sends and never
+    // disabled, takes the dialog's job rule, and draws no move notice.
+    log("");
+    log("the phone's foot bar asks the same reader and answers under its fields:");
+    const bar = parseFile(BAR);
+    const barFn = functionNamed(bar.ast, "TransitionBar");
+    assert("the foot bar was found", barFn !== null);
+    const barSource = barFn ? bar.source.slice(barFn.start, barFn.end) : "";
+    const barSubmit = initSource(barFn ?? {}, bar.source, "submit") ?? "";
+    assert(
+        "its submit reads what it would send with readSubmission",
+        /readSubmission\(plan, \{[\s\S]*formData\.get\("event"\)[\s\S]*formData\.get\("jobId"\)[\s\S]*formData\.get\("checkedOutTo"\)[\s\S]*\}\)/.test(barSubmit)
+    );
+    const barRefusesAt = barSubmit.indexOf("if (answer.refusal) {");
+    assert("  and sends only after that refuses nothing", barRefusesAt > -1 && barRefusesAt < barSubmit.indexOf("send(formData)"));
+    check("its field refusals are fieldRefusals of its own choice and name", initSource(barFn ?? {}, bar.source, "refusals"), "fieldRefusals(plan, { jobId: kept, checkedOutTo: name })");
+    check(
+        "  each said under its field once a press asked for this event",
+        attributeSources(barFn ?? {}, bar.source, "Field", "refusal").join(" | "),
+        "{pressed ? refusals.jobRefusal : null} | {pressed ? refusals.nameRefusal : null}"
+    );
+    check("  where pressed is a press for the event offered now", initSource(barFn ?? {}, bar.source, "pressed"), "pressedFor === plan.event");
+    check("its press submits, is never disabled, and says its event's working word", `${attributeSources(barFn ?? {}, bar.source, "Button", "type").join()} ${attributeSources(barFn ?? {}, bar.source, "Button", "disabled").length} ${attributeSources(barFn ?? {}, bar.source, "Button", "busyLabel").join()}`, '"submit" 0 {COPY.working[plan.event]}');
+    check("  at the phone's size", attributeSources(barFn ?? {}, bar.source, "Button", "size").join(), '"xl"');
+    check("  while what it holds is busy with it", attributeSources(barFn ?? {}, bar.source, "FormBusy", "busy").join(), "{pending}");
+    check("its job takes the dialog's rule", initSource(barFn ?? {}, bar.source, "kept"), "chosenJobId(plan.jobs, jobId)");
+    assert("  restarted whenever the plan stops holding it, before the choice is read", /if \(kept !== jobId\) setJobId\(kept\);/.test(barSource) && barSource.indexOf("setJobId(kept)") < barSource.indexOf("const chosen ="));
+    check("it draws no move notice, which is the desk's dialog's", callsTo(barFn ?? {}, "jobMoveNotice").length, 0);
+    check("its pill opens the job sheet only for a person on several jobs", attributeSources(barFn ?? {}, bar.source, "SheetChip", "onOpen").join(), '{several ? () => setSheet("job") : undefined}');
+    check("  and its name field the name sheet", attributeSources(barFn ?? {}, bar.source, "SheetField", "onOpen").join(), '{() => setSheet("name")}');
+    assert("  the name asked only of a check-out", /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}/.test(barSource) && /\{asksName && \(\s*<NameSheet/.test(barSource));
+    check("with nothing to record it says the plan's refusal in the press's place", /\{plan\.refusal\}<\/p>/.test(barSource), true);
+    check("  drawn below the phone's edge alone", attributeSources(barFn ?? {}, bar.source, "BottomBar", "phoneOnly").join(" | "), "true | true");
+
     // ── 8: retiring — the second answer the plan carries (#363) ────────────
     log("");
     log("which statuses offer a retirement, and to whom:");
@@ -1044,7 +1209,7 @@ export function run({ check, assert, log }) {
     check("one that is out may be too", out.mayRetire, true);
     // THE `Out` CASE IS COVERED HERE RATHER THAN IN A BROWSER, and that is a
     // conclusion rather than a shortcut: the page renders both controls under one
-    // test on `refusal` and never reads the status, so `In Stock` and `Out` take a
+    // test on `refusal` and never reads the status, so `In stock` and `Out` take a
     // provably identical path. Retiring a second tool item to watch it would have
     // recorded a check-out that never happened.
     check(
@@ -1150,10 +1315,12 @@ export function run({ check, assert, log }) {
     // THE TERMINAL SENTENCE WIDENED WITH THE SCREEN. #362 wrote it as
     // `no check-out or check-in to record`, which enumerated two of three absent
     // controls once a retire control stood beside them.
-    const terminal = TOOL_TRANSITION_COPY.noTransition({ status: TOOL_STATUS.RETIRED });
-    assert("the terminal sentence names the status", terminal.includes(TOOL_STATUS.RETIRED));
-    assert("  and states the end rather than listing what is missing", terminal.includes("nothing more can be recorded"));
+    // AND SINCE #463 IT NAMES NO STATUS EITHER: the design's sentence states the end, and the
+    // status stands directly above it.
+    const terminal = TOOL_TRANSITION_COPY.noTransition;
+    assert("the terminal sentence states the end rather than listing what is missing", /nothing more can be recorded/i.test(terminal));
     check("  naming no control", terminal.match(/check-(out|in)/g)?.length ?? 0, 0);
+    check("  and no status", TOOL_STATUS_VALUES.filter((status) => terminal.includes(status)).length, 0);
 
     // ── 10: the question, on the design's frame (#458) ─────────────────────
     // ONE COMPONENT FOR BOTH WIDTHS: 0l's Confirm at a desk and Tools 0a's sheet that
@@ -1185,6 +1352,7 @@ export function run({ check, assert, log }) {
     check("  and neither button disabled for the sending (#469)", attributeSources(confirm.ast, confirm.source, "Button", "disabled").join(" | "), "");
     check("  which sends through a transition", callsTo(confirm.ast, "startTransition").length, 1);
     check("neither file draws on the old frame", [confirm, opener].filter((f) => /modalStyles/.test(f.source)).length, 0);
+    check("the question is the provider's, opened from either More actions", `${attributeSources(provider.ast, provider.source, "RetirementConfirm", "open").join()} ${attributeSources(provider.ast, provider.source, "RetirementConfirm", "onClose").join()}`, "{retiring} {() => setRetiring(false)}");
     // THE WAY OUT IS ONE WORD ON ALL THREE DIALOGS — the check-out's and the check-in's,
     // which are one component, and the retirement's — read off the button that says it,
     // since the value alone holds whatever the screens print in its place.
@@ -1205,15 +1373,13 @@ export function run({ check, assert, log }) {
     // The only thing it posts is which tool item, so the action has nothing to
     // trust but the id it looks up.
     check("it posts only the tool item id", [...confirm.source.matchAll(/name="([^"]+)"/g)].map((m) => m[1]).join(), "toolItemId");
-    // AN OPENER RATHER THAN A SUBMIT, and a bordered one beside the transition's filled
-    // press: pressing it acts on nothing, and the question it opens is the part as it is.
-    check("the opener is a bordered button that opens", attributeSources(opener.ast, opener.source, "Button", "onClick").join(), "{() => setOpen(true)}");
-    check("  bordered", attributeSources(opener.ast, opener.source, "Button", "variant").join(), '"bordered"');
-    check(
-        "  and the question opens over it as handed",
-        attributeSources(opener.ast, opener.source, "RetirementConfirm", "open").join() + " " + attributeSources(opener.ast, opener.source, "RetirementConfirm", "onClose").join(),
-        "{open} {() => setOpen(false)}"
-    );
+    // A MENU ITEM BEHIND `More actions` (#463), the design's place for an act a scan is not
+    // for: 0f's Destructive, saying the opener's words, and handing focus to its button before
+    // the question opens, so every way out of the question comes back to the button.
+    check("the opener is a menu button named More actions", `${attributeSources(opener.ast, opener.source, "button", "aria-haspopup").join()} ${attributeSources(opener.ast, opener.source, "button", "aria-label").join()}`, '"menu" {word}');
+    check("  its name the copy's own", initSource(opener.ast, opener.source, "word"), "TOOL_ITEM_COPY.moreActions");
+    assert("  its one item the opener's words, a destructive one", /label: TOOL_TRANSITION_COPY\.retireOpener,\s*tone: "danger",/.test(opener.source));
+    assert("  which hands focus to its button before the question opens", /buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*openRetirement\(\);/.test(opener.source));
     // AND THE TRANSITION'S DIALOG STILL ASKS FOR A JOB, because a scan is the actor
     // handling the tool. One question on the screen rather than none is the point.
     assert("the transition's dialog keeps its job choice", /<Choice\s+name="jobId"/.test(dialog.source));
@@ -1251,6 +1417,12 @@ export function run({ check, assert, log }) {
     assert("  the rows headed as the dialog's suggestions are", /\{COPY\.recentHeading\}/.test(nameSheet.source));
     assert("  and a name picked is the opener's and puts the sheet away", /onChange\(name\);\s*onClose\(\);/.test(nameSheet.source));
     check("neither sheet draws on the old frame", [jobSheet, nameSheet].filter((f) => /modalStyles/.test(f.source)).length, 0);
+    // AND THE FOOT BAR OPENS THEM AS THEY ARE (#463), which is what #458 built them for.
+    check(
+        "the foot bar opens both, as they are",
+        `${attributeSources(barFn ?? {}, bar.source, "JobSheet", "open").join()} | ${attributeSources(barFn ?? {}, bar.source, "NameSheet", "open").join()}`,
+        '{sheet === "job"} | {sheet === "name"}'
+    );
 
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");

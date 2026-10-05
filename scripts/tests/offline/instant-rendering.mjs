@@ -27,15 +27,37 @@
 // resolution, and the screen that wanted a day would silently print an hour.
 
 import { join } from "node:path";
-import { listJsFiles, parseFile, REPO_ROOT, toPosix, walk } from "./_ast.mjs";
+import { listJsFiles, parseFile, parseSource, REPO_ROOT, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
-import { DAY_FORMAT, INSTANT_FORMAT, formatInstant, readInstant } from "../../../lib/format.js";
+import { DAY_FORMAT, INSTANT_FORMAT, formatInstant, instantParts, instantText, readInstant } from "../../../lib/format.js";
 
 export const title = "Instants render in the reader's own zone (#374)";
 
 const FORMATTER = "lib/format.js";
 const COMPONENT = "app/components/Instant.js";
+const SPACE = "app/components/Space.js";
 const SCAN_ROOTS = ["app", "lib"];
+
+/**
+ * What a `Space` renders: its span's classes, the template's own text, and what the span
+ * holds, each string child quoted so a space reads as one.
+ */
+function spaceReading(parsed) {
+    let found = "none";
+    walk(parsed.ast, (n) => {
+        if (found !== "none" || n.type !== "JSXElement" || n.openingElement.name?.name !== "span") return;
+        const value = n.openingElement.attributes.find((a) => a.name?.name === "className")?.value;
+        const template = value?.type === "JSXExpressionContainer" && value.expression.type === "TemplateLiteral" ? value.expression : null;
+        const classes = template ? parsed.source.slice(template.start + 1, template.end - 1) : (value?.value ?? "none");
+        const held = n.children.map((c) => {
+            if (c.type === "JSXExpressionContainer" && c.expression.type === "Literal") return JSON.stringify(c.expression.value);
+            if (c.type === "JSXText") return JSON.stringify(c.value);
+            return c.type;
+        });
+        found = `${classes} | ${held.join(" ")}`;
+    });
+    return found;
+}
 
 /**
  * The one file allowed to resolve an instant outside a browser, and the reason.
@@ -108,12 +130,53 @@ export function run({ check, log, assert }) {
     // The five parts `EVENT_AT_FORMAT` and `/prs/[prId]`'s history each wrote out
     // before this issue gathered them. Pinned by value, not by reference to the
     // constant: an assertion over the object it is checking holds for any object.
+    // The month and the day are two figures since #463, the design's `09/14/2026`.
     check(
         "  the instant's parts",
         JSON.stringify(INSTANT_FORMAT),
-        '{"year":"numeric","month":"numeric","day":"numeric","hour":"numeric","minute":"2-digit"}'
+        '{"year":"numeric","month":"2-digit","day":"2-digit","hour":"numeric","minute":"2-digit"}'
     );
-    check("  the day's", JSON.stringify(DAY_FORMAT), '{"year":"numeric","month":"numeric","day":"numeric"}');
+    check("  the day's", JSON.stringify(DAY_FORMAT), '{"year":"numeric","month":"2-digit","day":"2-digit"}');
+
+    // ── the design's notation, which a screen draws from parts (#463) ────────
+    // Noon UTC, so the day is the same in every zone a runner can be in from UTC-11 to
+    // UTC+11 and the figures can be pinned: the zone is the reader's and the notation is
+    // the design's, whatever language the runtime speaks.
+    log("");
+    log("a screen writes the design's notation, in parts, whatever its locale:");
+    const noon = "2026-09-04T12:00:00.000Z";
+    check("  the date is month, day and year, two figures each but the year", instantParts(noon)?.date.join("/"), "09/04/2026");
+    assert("  the time is a twelve-hour clock to the minute", /^\d{1,2}:\d{2} (AM|PM)$/.test(instantParts(noon)?.time ?? ""));
+    check("  a day's format carries no time", instantParts(noon, DAY_FORMAT)?.time, null);
+    check("  and a sentence takes the same notation as one string", instantText(noon, DAY_FORMAT), "09/04/2026");
+    assert("  with the time after a space and no comma", /^09\/04\/2026 \d{1,2}:\d{2} (AM|PM)$/.test(instantText(noon) ?? ""));
+    check("  a value that is not an instant has no parts", instantParts("not a date"), null);
+    check("  nor any text", instantText(""), null);
+    // THE COMPONENT DRAWS THE SLASHES APART, which is the half of the notation a string
+    // cannot carry: each is a span reading the design's separator names, so a component
+    // printing `instantText` instead would pass every value above and draw them in full.
+    const separators = [];
+    walk(parseFile(COMPONENT).ast, (n) => {
+        if (n.type !== "JSXOpeningElement" || n.name?.name !== "span") return;
+        const cls = n.attributes.find((a) => a.name?.name === "className")?.value?.value ?? "";
+        if (/date-separator/.test(cls)) separators.push(cls);
+    });
+    check("  the component draws each slash in a span of the separator's own", separators.join(" | "), "px-date-separator-inline opacity-date-separator");
+    // AND THE TIME AFTER A SPACE THE TEXT HOLDS. Padding set the 9 first, and the text read
+    // `10/05/20268:55 AM` — a copy and an assistive reader both — so the 9 is a `Space` of
+    // the date-time width, and a `Space` is a real space in a box that keeps it.
+    const spaces = [];
+    walk(parseFile(COMPONENT).ast, (n) => {
+        if (n.type === "JSXOpeningElement" && n.name?.name === "Space") spaces.push(n.attributes.find((a) => a.name?.name === "className")?.value?.value ?? "");
+    });
+    check("  and sets the time after a Space of the date-time width", spaces.join(" | "), "w-date-time-inline max-sm:w-mobile-date-time-inline");
+    check("  a Space being a real space the text keeps, in a box of its caller's width", spaceReading(parseFile(SPACE)), 'inline-block whitespace-pre ${className} | " "');
+    // ANTI-VACUITY: the padding this replaced, and a box holding nothing, are read so.
+    check(
+        "  where an empty box is read as holding nothing",
+        spaceReading(parseSource('export default function Space({ className }) {\n    return <span className={`inline-block ${className}`} />;\n}\n', "<planted-space>")),
+        "inline-block ${className} | "
+    );
 
     // ── nobody formats a time but the formatter ─────────────────────────────
     log("");
@@ -142,7 +205,7 @@ export function run({ check, log, assert }) {
     // ── and the formatter is reached only from a browser ────────────────────
     log("");
     log("only a file that runs in a browser resolves an instant against its reader:");
-    const readers = importersOf(["formatInstant", "useReaderInstant"]);
+    const readers = importersOf(["formatInstant", "instantParts", "instantText", "useReaderInstant"]);
     assert("  the import walk found readers", readers.length > 0);
     const serverSide = readers.filter((r) => !r.client && !(r.rel in OFF_BROWSER)).map((r) => r.rel);
     // THE DEFECT, STATED AS A CHECK. A Server Component calling this resolves the

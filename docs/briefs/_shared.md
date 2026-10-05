@@ -143,6 +143,15 @@ takes them away. They are not a layout to preserve.
    rather than a break in it — a time in a zone the reader did not choose must
    say which zone it is.
 
+   **And every screen writes one the design's way since #463**: `09/14/2026` —
+   the month and the day in two figures, the slashes dimmed — and the time after
+   it with no comma, `4:31 PM`, in that order whatever language the reader's
+   browser is set to. A moment inside a sentence takes the same figures with
+   plain slashes. The order document takes the two-figure month and day too, with
+   its zone named. A calendar date a person typed — an invoice's due date, a
+   delivery's received date — is the stored string and not a moment, and keeps
+   its own form until the screen that shows it is drawn.
+
 ## The four levels
 
 Every screen brief tags what it carries with one of four levels. They say what
@@ -876,10 +885,11 @@ the values are named, and #336 did not do it — twenty pages is a refactor
 rather than a layout — so it is #258's to make.
 
 **The tools container holds the rail and nothing of a screen's own** (#460):
-those screens carry no width, no padding and no type of their own, so nothing
-there is a shape to depart from. Their content renders unstyled at both widths
-today beside the rail drawn as the design drew it, and that is the honest state
-rather than a draft to match.
+a screen's measure, room and type are its own, read from the names the design's
+values are declared under. **The tool item's screen is drawn the design's way
+since #463** — 0n's record page at a desk, 1f's app screen on a phone — and the
+tool list and a tool's screen render unstyled beside the rail, which is the
+honest state rather than a draft to match.
 
 **The navigation shell is the tools screens' alone (#460).** The design drew a
 rail with every section on it and a breadcrumb above a record; the tools screens

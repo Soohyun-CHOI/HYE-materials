@@ -99,7 +99,7 @@ retired tool still counts.
 
 **evidence.** One entry per tool item, **oldest first**, each carrying
 three facts: its printed `Tool Item ID`, which is the way into that tool
-item's own screen; its status, one of `In Stock`, `Out` or `Retired`; and
+item's own screen; its status, one of `In stock`, `Out` or `Retired`; and
 the job it is on. Each carries its box as well; see above.
 
 **Oldest first is load-bearing rather than a default.** A link array is
@@ -288,7 +288,7 @@ cannot disagree about where a tool item is.
 
 **All three statuses reach this column.** A check-out, a check-in and a
 retirement each write the status it shows (#362, #363), so an entry reads
-`In Stock`, `Out` or `Retired`, and a design draws for three. This said every
+`In stock`, `Out` or `Retired`, and a design draws for three. This said every
 entry would read `In Stock` until a later phase, which stopped being true
 when those issues wrote the other two; corrected by #443.
 

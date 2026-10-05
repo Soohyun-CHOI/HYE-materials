@@ -83,46 +83,42 @@ export function run({ check, log, assert }) {
     // that reads its subject asserts nothing. These are the strings printed into
     // Airtable's option lists, and after field CREATE no API can change them.
     log("the three statuses, in order:");
-    check("TOOL_STATUS_VALUES", TOOL_STATUS_VALUES.join(" | "), "In Stock | Out | Retired");
+    check("TOOL_STATUS_VALUES", TOOL_STATUS_VALUES.join(" | "), "In stock | Out | Retired");
     check("three and no more", TOOL_STATUS_VALUES.length, 3);
     assert("no duplicates", new Set(TOOL_STATUS_VALUES).size === TOOL_STATUS_VALUES.length);
 
     log("");
     log("the four events, in order:");
-    // `Created` WAS `Registered` UNTIL #455, renamed in the Airtable UI with the rows
+    // `Created` WAS `Registered` UNTIL #455, and the two scans were `Checked Out` and
+    // `Checked In` until #463, each renamed in the Airtable UI with the rows
     // following it — see lib/toolStatus.js's header.
     check("TOOL_EVENT_VALUES", TOOL_EVENT_VALUES.join(" | "),
-        "Created | Checked Out | Checked In | Retired");
+        "Created | Checked out | Checked in | Retired");
     check("four and no more", TOOL_EVENT_VALUES.length, 4);
     assert("no duplicates", new Set(TOOL_EVENT_VALUES).size === TOOL_EVENT_VALUES.length);
 
-    // ── title case with lowercase particles ─────────────────────────────────
-    // The base's own convention, read off `Purchase Orders."Status"` (`Sent to
-    // Vendor`) rather than invented here: every word is capitalized except a
-    // preposition that is neither first nor last. Held by value because the option
-    // list cannot be corrected through the API — a casing slip is a hand edit in
-    // the UI. It said "plus a rewrite of every row that carries the old string",
-    // which #455 measured false: a cell holds its choice by id, so an option renamed
-    // in place carries every row with it (docs/notes/airtable-access.md). What this
-    // guards is the hand edit, which is still one nobody should have to make.
+    // ── sentence case, the design's (#463) ──────────────────────────────────
+    // The first word capitalized and every later one lowercase, which is how the
+    // design writes a status and an event on every tools screen. It was the base's
+    // title case until #463 (`Sent to Vendor`, read off `Purchase Orders."Status"`),
+    // and the materials axis still is: the axis whose words the design settles
+    // takes them, and `docs/notes/naming.md` says so. Held by value because the
+    // option list cannot be corrected through the API — a casing slip is a hand
+    // edit in the UI, though an option renamed in place carries every row with it
+    // (#455, docs/notes/airtable-access.md). What this guards is the hand edit,
+    // which is still one nobody should have to make.
     log("");
-    log("title case, particles lowercase (the base's own convention):");
-    const PARTICLES = new Set(["to", "from", "of", "on", "in", "for", "with", "at", "by"]);
-    const miscased = [];
-    for (const value of [...TOOL_STATUS_VALUES, ...TOOL_EVENT_VALUES]) {
-        const words = value.split(" ");
-        words.forEach((word, i) => {
-            const isEdge = i === 0 || i === words.length - 1;
-            const shouldBeLower = !isEdge && PARTICLES.has(word.toLowerCase());
-            const ok = shouldBeLower ? word === word.toLowerCase() : /^[A-Z]/.test(word);
-            if (!ok) miscased.push(`${value}: "${word}"`);
-        });
-    }
-    check("words cased against the convention", miscased.length, 0);
+    log("sentence case (the design's, since #463):");
+    const sentenceCased = (value) =>
+        value.split(" ").every((word, i) =>
+            i === 0 ? /^[A-Z][a-z]*$/.test(word) : word === word.toLowerCase());
+    const miscased = [...TOOL_STATUS_VALUES, ...TOOL_EVENT_VALUES]
+        .filter((value) => !sentenceCased(value));
+    check("values cased against the convention", miscased.length, 0);
     for (const m of miscased) log(`    ${m}`);
     assert(
         "  and the rule is seen to say NO (else it is an empty predicate)",
-        !/^[A-Z]/.test("to") && PARTICLES.has("to")
+        !sentenceCased("Checked Out") && !sentenceCased("in stock") && sentenceCased("In stock")
     );
 
     // ── the mapping ─────────────────────────────────────────────────────────
@@ -236,8 +232,8 @@ export function run({ check, log, assert }) {
     // are a second path, so a rename has to reach this file in the same commit.
     log("");
     log("what each status offers next, by value:");
-    check("In Stock offers", EVENT_OFFERED_BY_STATUS["In Stock"], "Checked Out");
-    check("Out offers", EVENT_OFFERED_BY_STATUS["Out"], "Checked In");
+    check("In stock offers", EVENT_OFFERED_BY_STATUS["In stock"], "Checked out");
+    check("Out offers", EVENT_OFFERED_BY_STATUS["Out"], "Checked in");
     check("Retired offers", EVENT_OFFERED_BY_STATUS["Retired"], null);
     check("three entries and no more", Object.keys(EVENT_OFFERED_BY_STATUS).length, 3);
 
@@ -261,7 +257,7 @@ export function run({ check, log, assert }) {
     check("entries offering an event that does not exist", badOffer.length, 0);
 
     // THE TWO MAPS ARE NOT INVERSES, WHICH IS WHY BOTH EXIST. Two events land on
-    // `In Stock`, so inverting `STATUS_AFTER_EVENT` is not a function; and
+    // `In stock`, so inverting `STATUS_AFTER_EVENT` is not a function; and
     // `Created` is offered by no status, because creating a tool item makes the row
     // rather than moving one. A later pass tempted to derive one map from the other
     // fails here rather than shipping a screen that offers `Created`.
@@ -270,7 +266,7 @@ export function run({ check, log, assert }) {
     const intoInStock = Object.entries(STATUS_AFTER_EVENT)
         .filter(([, s]) => s === TOOL_STATUS.IN_STOCK)
         .map(([e]) => e);
-    check("events landing on In Stock", intoInStock.length, 2);
+    check("events landing on In stock", intoInStock.length, 2);
     const offered = new Set(Object.values(EVENT_OFFERED_BY_STATUS).filter(Boolean));
     assert("  so no status can offer both of them", offered.size === 2);
     assert("`Created` is offered by no status", !offered.has(TOOL_EVENT.CREATED));
@@ -328,7 +324,7 @@ export function run({ check, log, assert }) {
     // terms of `TOOL_STATUS` is an expression over the constant under test.
     log("");
     log("which statuses a person may retire from, by value:");
-    check("In Stock", MAY_RETIRE_FROM_STATUS["In Stock"], true);
+    check("In stock", MAY_RETIRE_FROM_STATUS["In stock"], true);
     check("Out", MAY_RETIRE_FROM_STATUS["Out"], true);
     check("Retired", MAY_RETIRE_FROM_STATUS["Retired"], false);
     check("three entries and no more", Object.keys(MAY_RETIRE_FROM_STATUS).length, 3);
@@ -435,15 +431,15 @@ export function run({ check, log, assert }) {
     // the rule rather than an accident: a red option would claim a meaning this
     // vocabulary does not have.
     const paletteRule = [
-        ["In Stock", "blueLight2"], ["Out", "cyanLight2"], ["Retired", "grayLight2"],
+        ["In stock", "blueLight2"], ["Out", "cyanLight2"], ["Retired", "grayLight2"],
     ];
     check(
         "status colors walk the palette, gray for the end",
         JSON.stringify(pyStatus), JSON.stringify(paletteRule)
     );
     const eventRule = [
-        ["Created", "blueLight2"], ["Checked Out", "cyanLight2"],
-        ["Checked In", "tealLight2"], ["Retired", "grayLight2"],
+        ["Created", "blueLight2"], ["Checked out", "cyanLight2"],
+        ["Checked in", "tealLight2"], ["Retired", "grayLight2"],
     ];
     check("event colors do the same", JSON.stringify(pyEvent), JSON.stringify(eventRule));
     check("  gray marks the terminal value and nothing else",

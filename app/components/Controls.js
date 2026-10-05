@@ -117,6 +117,41 @@ function AlertMark() {
     );
 }
 
+/** The mark before what a notice says: a circle with an i in it, in Ink 2 (Tools 0a Notice). */
+function InfoMark() {
+    return (
+        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="size-mobile-alert-icon shrink-0 text-foreground-muted">
+            <circle cx="9" cy="9" r="7.3" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M9 8v4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="9" cy="5.4" r="1" fill="currentColor" />
+        </svg>
+    );
+}
+
+/**
+ * Tools 0a's Notice — something the reader did not cause and cannot fix in place: the ink
+ * at 4.5% on the phone's Radius, 14 and 16 inside, the 18 info mark 10 before one sentence
+ * at 16 in Ink. It is a refusal, so assistive tech hears it as one.
+ *
+ * MOVED HERE FROM THE SIGN-IN STEPS IN #463, which drew it for a request that did not go
+ * through; the tool item page draws it for a press somebody else's scan got in front of
+ * (1g). Where it stands, and whether a desk draws something else in its place, is its
+ * caller's.
+ */
+export function Notice({ children }) {
+    return (
+        <div
+            role="alert"
+            className="flex gap-mobile-alert-gap rounded-mobile-control bg-background-muted px-mobile-alert-inset-x py-mobile-alert-inset-y text-mobile-body text-pretty text-foreground-default"
+        >
+            <span className="flex h-[var(--text-mobile-body--line-height)] items-center">
+                <InfoMark />
+            </span>
+            <span>{children}</span>
+        </div>
+    );
+}
+
 /**
  * A refusal about the whole of what a form asks — a dialog's (0l Actions) or a sign-in
  * page's (0o Refusal): the alert mark 8 before one sentence at 13, both in Red, and at 15 in
@@ -479,30 +514,47 @@ export function NoteEmphasis({ children }) {
  * beside it with `max-sm:hidden`. It takes its name from the field around it and its own
  * value, so a screen reader hears `Job, 26-DEMO-01` and not the value alone; the id the label
  * points at stays the desk control's. Inside a busy form it opens nothing (#469).
+ *
+ * AN `icon` STANDS 10 BEFORE ITS VALUE, AT 18 IN INK 3 (Tools 0a Field: "an 18 icon 10
+ * before it unless the field carries a label") — the foot bar's name field, whose label is
+ * for assistive tech alone (#463). There its placeholder is the label's own words, so while
+ * it holds nothing it is named by the label alone rather than by the same words twice. A
+ * field that refuses takes the Red edge (Tools 0a Field error), the line under it its
+ * `Field`'s.
  */
-export function SheetField({ value, placeholder, onOpen, chevron = false }) {
+export function SheetField({ value, placeholder, onOpen, chevron = false, icon }) {
     const field = useField();
     const formBusy = useContext(FormBusyContext);
     const valueId = useId();
-    const look =
-        "flex h-mobile-input w-full items-center justify-between gap-gap rounded-mobile-control border border-border bg-white px-mobile-input-inset-x text-mobile-body sm:hidden";
+    const look = `flex h-mobile-input w-full items-center gap-mobile-input-gap rounded-mobile-control border bg-white px-mobile-input-inset-x text-mobile-body sm:hidden ${
+        field.refused ? "border-danger" : "border-border"
+    } ${icon ? "" : "justify-between"}`;
     const said = (
-        <span id={valueId} className={`min-w-0 truncate ${value ? "text-foreground-default" : "text-foreground-subtle"}`}>
+        <span id={valueId} className={`min-w-0 truncate ${icon ? "flex-1" : ""} ${value ? "text-foreground-default" : "text-foreground-subtle"}`}>
             {value || placeholder}
         </span>
     );
+    const mark = icon && <span className="flex size-mobile-input-icon shrink-0 items-center justify-center text-foreground-subtle">{icon}</span>;
     if (!onOpen) {
-        return <div className={look}>{said}</div>;
+        return (
+            <div className={look}>
+                {mark}
+                {said}
+            </div>
+        );
     }
+    const named = icon && !value ? field.labelId : field.labelId ? `${field.labelId} ${valueId}` : valueId;
     return (
         <button
             type="button"
             aria-haspopup="dialog"
-            aria-labelledby={field.labelId ? `${field.labelId} ${valueId}` : valueId}
+            aria-labelledby={named}
+            aria-describedby={field.messageId}
             aria-disabled={formBusy || undefined}
             onClick={formBusy ? undefined : onOpen}
-            className={`${look} text-left outline-none focus-visible:border-border-focus not-aria-disabled:active:bg-hover-subtle`}
+            className={`${look} text-left outline-none ${field.refused ? "" : "focus-visible:border-border-focus"} not-aria-disabled:active:bg-hover-subtle`}
         >
+            {mark}
             {said}
             {chevron && (
                 <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm shrink-0 text-foreground-subtle">
@@ -510,6 +562,62 @@ export function SheetField({ value, placeholder, onOpen, chevron = false }) {
                 </svg>
             )}
         </button>
+    );
+}
+
+/**
+ * Tools 0a's Pill as a field (#463) — the foot bar's job: 36 tall and round, 14 inside, an
+ * Edge border on no ground, its icon 8 before its value at 15, and a chevron 12 inside its end
+ * when a press opens the sheet that chooses. With no `onOpen` it states its value and takes
+ * no press, which is the one job of a person on one assignment (1f-b).
+ *
+ * ITS TARGET IS TALLER THAN ITS PILL: it reaches up into the bar's room above it, as 1f
+ * draws it, so a press anywhere in the 52 above the pill's foot opens it — more than the 48
+ * the phone's Target asks for, without the pill growing. Held, it takes the Wash, which is
+ * what any control but a text button does under a press (Tools 0a Field). It is named by the
+ * field around it and its value, and inside a busy form it opens nothing (#469).
+ */
+export function SheetChip({ value, placeholder, onOpen, icon }) {
+    const field = useField();
+    const formBusy = useContext(FormBusyContext);
+    const valueId = useId();
+    const pill = `inline-flex h-mobile-chip max-w-full items-center gap-gap rounded-full border pl-mobile-chip-inset-x text-mobile-body-sm ${
+        onOpen ? "pr-mobile-chip-inset-right" : "pr-mobile-chip-inset-x"
+    } ${field.refused ? "border-danger" : "border-border"}`;
+    const content = (
+        <>
+            <span className="flex size-icon-sm shrink-0 items-center justify-center text-foreground-subtle">{icon}</span>
+            <span id={valueId} className={`min-w-0 truncate ${value ? "text-foreground-default" : "text-foreground-subtle"}`}>
+                {value || placeholder}
+            </span>
+        </>
+    );
+    if (!onOpen) {
+        return (
+            <div className="flex sm:hidden">
+                <span className={pill}>{content}</span>
+            </div>
+        );
+    }
+    return (
+        <div className="flex sm:hidden">
+            <button
+                type="button"
+                aria-haspopup="dialog"
+                aria-labelledby={field.labelId ? `${field.labelId} ${valueId}` : valueId}
+                aria-describedby={field.messageId}
+                aria-disabled={formBusy || undefined}
+                onClick={formBusy ? undefined : onOpen}
+                className="group/chip -mt-mobile-bottom-bar-inset-top inline-flex max-w-full pt-mobile-bottom-bar-inset-top text-left outline-none [&:not([aria-disabled]):active>span]:bg-hover-subtle"
+            >
+                <span className={`${pill} ${field.refused ? "" : "group-focus-visible/chip:border-border-focus"}`}>
+                    {content}
+                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-mobile-chip-chevron shrink-0 text-foreground-subtle">
+                        <path d="M4.5 6.5 8 10l3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                </span>
+            </button>
+        </div>
     );
 }
 

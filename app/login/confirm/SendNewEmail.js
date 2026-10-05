@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Button } from "@/app/components/Controls";
 import { SIGN_IN_COPY } from "@/lib/authTokenState";
 import { signInPath } from "@/lib/loginDestination";
-import { BottomBar, PageRefusal } from "../SignInParts";
+import BottomBar from "@/app/components/BottomBar";
+import { PageRefusal } from "../SignInParts";
 
 /**
  * `Send new email`, on a link that can no longer be used (#473, 1b and 1f).

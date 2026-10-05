@@ -58,7 +58,7 @@ with `Ask the office to assign you to a job` before it.
 identity and is the way into that tool's own screen.
 
 **verdict.** Three counts on every row: how many of that tool are
-`In Stock`, how many are `Out`, how many are `Retired`. This is what the
+`In stock`, how many are `Out`, how many are `Retired`. This is what the
 reader came for.
 
 **All three are always there, a zero included, and a design may not drop
@@ -104,7 +104,7 @@ shows.** `Tool Items."Status"` is maintained by the app, not computed on
 either screen, so this list and `/tool-items/[toolItemId]` cannot disagree
 about where a tool item is.
 
-**`In Stock`, `Out` and `Retired` are the three statuses this axis has,
+**`In stock`, `Out` and `Retired` are the three statuses this axis has,
 and they are not status tones.** The tones in the shared brief are one
 closed vocabulary for how far something has got on an axis; reusing one
 here would make a word mean a stage on one screen and a location on

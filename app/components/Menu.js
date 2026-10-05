@@ -146,8 +146,17 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * ABOVE ITS OPENER WHEN `placement` SAYS SO. The account sits at the foot of the rail with
  * no room under it, so 0a's "6 under it" is 6 above, and the upward chevron the expanded
  * row draws says which way it opens.
+ *
+ * `look="record"` IS THE TOOL ITEM PAGE'S `More actions` (#463, 1c and 1f): set against its
+ * opener's right end, since the opener stands at the content's edge, and drawn two ways. At
+ * a desk it is this frame with the dots' ink meeting its right edge and items at 13, the
+ * Beside size 1c draws them at; below the phone's edge it is Tools 0a's Menu — 232 wide, 12
+ * from the screen's right edge and 4 under the top bar, the phone's Radius and no room of its
+ * own, rows 48 with 16 inside at 17. An item of `tone: "danger"` is 0f's Destructive: red
+ * on red's Face under the pointer at a desk, and red at rest on a phone, which 1f draws
+ * taking the Face while held. The account's menu keeps the look it had.
  */
-export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", focusOn = "first", items, onClose }) {
+export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", items, onClose }) {
     const listRef = useRef(null);
 
     useLayoutEffect(() => {
@@ -161,7 +170,14 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             const opener = anchorRef.current;
             if (!opener) return;
             const box = opener.getBoundingClientRect();
-            list.style.left = `${box.left}px`;
+            // A record's menu is set against its opener's right end, the class's margin
+            // pulling it in from there; every other is set from its left.
+            if (look === "record") {
+                list.style.left = "auto";
+                list.style.right = `${document.documentElement.clientWidth - box.right}px`;
+            } else {
+                list.style.left = `${box.left}px`;
+            }
             if (placement === "above") {
                 list.style.top = "auto";
                 list.style.bottom = `${window.innerHeight - box.top}px`;
@@ -180,7 +196,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             window.removeEventListener("resize", place);
             document.removeEventListener("scroll", place, true);
         };
-    }, [shown, anchorRef, placement, focusOn]);
+    }, [shown, anchorRef, placement, look, focusOn]);
 
     const onKeyDown = (event) => {
         const action = menuKey(event);
@@ -220,7 +236,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             popover="manual"
             onKeyDown={onKeyDown}
             onBlur={onBlur}
-            className={`inset-auto mx-0 w-max min-w-menu max-w-menu flex-col rounded-card border border-border bg-white p-menu-inset font-ui text-body text-foreground-default shadow-popover open:flex ${
+            className={`inset-auto flex-col border border-border bg-white font-ui text-body text-foreground-default shadow-popover open:flex ${MENU_LOOK[look]} ${
                 placement === "above" ? "mt-0 mb-menu-offset" : "mt-menu-offset mb-0"
             }`}
         >
@@ -232,7 +248,9 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
                     role="menuitem"
                     tabIndex={-1}
                     onClick={item.onSelect}
-                    className="flex h-control w-full shrink-0 items-center rounded-control px-control-inset-x text-left outline-none hover:bg-hover focus:bg-hover"
+                    className={`flex w-full shrink-0 items-center text-left outline-none ${ITEM_LOOK[look]} ${
+                        item.tone === "danger" ? DANGER_ITEM[look] : "hover:bg-hover focus:bg-hover"
+                    }`}
                 >
                     <span className="min-w-0 truncate">{item.label}</span>
                 </button>
@@ -240,3 +258,37 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
         </div>
     );
 }
+
+// The frame each look draws, and its offset from its opener below it. A record's margins
+// are written as the differences they are: at a desk the 8 between its opener's box and the
+// dots' ink, so the menu meets the content's edge; on a phone the 12 from the screen's edge
+// less the top bar's 4 on the right, and the 4 under the top bar plus the 4 between the 48
+// button and the bar's foot.
+const MENU_LOOK = {
+    account: "mx-0 w-max min-w-menu max-w-menu rounded-card p-menu-inset",
+    record:
+        "ml-0 w-max min-w-menu max-w-menu rounded-card p-menu-inset mr-[calc((var(--height-control)-var(--size-icon))/2)] " +
+        "max-sm:w-mobile-menu max-sm:min-w-0 max-sm:max-w-none max-sm:overflow-hidden max-sm:rounded-mobile-control max-sm:p-0 " +
+        "max-sm:mt-[calc(var(--spacing-mobile-menu-offset)+(var(--height-mobile-top-bar)-var(--spacing-mobile-touch-target))/2)] " +
+        "max-sm:mr-[calc(var(--spacing-mobile-menu-gutter)-var(--spacing-mobile-top-bar-inset-right))]",
+};
+
+// An item at each look: the Control's height and the Group corner at a desk, and on a phone
+// 0a's 48 row at 17 with nothing rounded, the menu's own corner clipping it.
+const ITEM_LOOK = {
+    account: "h-control rounded-control px-control-inset-x",
+    record:
+        "h-control rounded-control px-control-inset-x text-body-sm " +
+        "max-sm:h-mobile-touch-target max-sm:rounded-none max-sm:px-mobile-menu-row-inset-x max-sm:text-mobile-heading",
+};
+
+// 0f's Destructive item: red on red's Face under the pointer or the keyboard at a desk, and
+// on a phone red at rest, taking the Face while held. The keyboard's is `focus-visible`, since
+// the menu puts focus on its first item as it opens and a press that opened it should meet
+// that item at rest, as 1c draws it.
+const DANGER_ITEM = {
+    account: "hover:bg-danger-subtle hover:text-danger focus:bg-danger-subtle focus:text-danger",
+    record:
+        "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger " +
+        "max-sm:text-danger max-sm:hover:bg-transparent max-sm:focus-visible:bg-transparent max-sm:active:bg-danger-subtle",
+};

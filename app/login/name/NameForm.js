@@ -4,7 +4,8 @@ import { startTransition, useActionState, useRef, useState } from "react";
 import { Button, Field, TextInput } from "@/app/components/Controls";
 import { DESTINATION_PARAM } from "@/lib/loginDestination";
 import { judgeName, USER_NAME_COPY } from "@/lib/userName";
-import { BottomBar, PageRefusal, SignInHeader } from "../SignInParts";
+import BottomBar from "@/app/components/BottomBar";
+import { PageRefusal, SignInHeader } from "../SignInParts";
 import { setUserNameAction } from "./actions";
 
 /**

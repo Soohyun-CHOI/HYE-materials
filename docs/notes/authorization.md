@@ -224,7 +224,7 @@ Eleven rows, every one holding its own email's local part. `scripts/import/clear
 
 #### Two renderings, and where the line is drawn
 
-A screen that NAMES a person prints the first name. Two kinds of place print both: where a person is CHOSEN from a list, and where somebody outside this company reads the result.
+A screen that NAMES a person prints the first name. Three kinds of place print both: where a person is CHOSEN from a list, where somebody outside this company reads the result, and — since #463 — where a person is named as the one who DID something, which the tools axis reaches first: a tool item's history and the refusal naming who recorded first. That third is `actorName`, which prints the address's local part for a row missing either name where the first two print a first name alone; a request's history and `Recorded by` on a delivery or an invoice still print the first name until their screens take the design.
 
 **The collision is real and is already in the data.** Two addresses on this base would produce one first name, and `/login/confirm`'s own note records that one person can hold two addresses here. What the split does is put the full name exactly where the ambiguity is expensive: picking the wrong signer routes an approval chain to them and is awkward to undo, while a first name on a REPORTING surface is recoverable — the reader clicks the row. So there is no collision detection, no conditional label and nothing to go stale.
 
@@ -232,7 +232,7 @@ A screen that NAMES a person prints the first name. Two kinds of place print bot
 
 **The residual risk is named in `lib/userName.js`'s header rather than filed**, because nobody has observed it: two Active users sharing a first name make a reporting surface ambiguous. Nine accounts, no such pair today, and if one appears the change is to that module and to nothing else — which is the property the split buys.
 
-**`offline/user-name.mjs` holds all of it structurally.** Nothing outside `lib/userName.js` reads either name field off a user; the files allowed to print a full name are declared in that module and compared against the files that actually import `fullUserName`, in two places that have to agree (`offline/file-route.mjs`'s shape); the gate reaches the name step through imported identifiers and the literal is barred from `lib/authz.js`; and `createUser`'s payload carries neither field, which is the signal that makes the step reachable at all. Five mutations were run against it and all five failed it, including two that leave the app working: the PO PDF quietly narrowed to a first name, and a list quietly widened to both.
+**`offline/user-name.mjs` holds all of it structurally.** Nothing outside `lib/userName.js` reads either name field off a user; the files allowed to print a full name are declared in that module and compared against the files that actually import `fullUserName` or `actorName`, in two places that have to agree (`offline/file-route.mjs`'s shape); the gate reaches the name step through imported identifiers and the literal is barred from `lib/authz.js`; and `createUser`'s payload carries neither field, which is the signal that makes the step reachable at all. Five mutations were run against it and all five failed it, including two that leave the app working: the PO PDF quietly narrowed to a first name, and a list quietly widened to both.
 
 ---
 

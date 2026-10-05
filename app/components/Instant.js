@@ -1,10 +1,12 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
-import { INSTANT_FORMAT, formatInstant, readInstant } from "@/lib/format";
+import { Fragment, useSyncExternalStore } from "react";
+import { INSTANT_FORMAT, formatInstant, instantParts, instantText, readInstant } from "@/lib/format";
+import Space from "@/app/components/Space";
 
 /**
- * A stored instant, drawn in the reader's own zone (#374).
+ * A stored instant, drawn in the reader's own zone (#374), in the design's notation
+ * (#463).
  *
  * WHY THIS CROSSES A CLIENT BOUNDARY AT ALL. Every screen that shows an instant
  * is a Server Component, so `toLocaleString` resolved against wherever the render
@@ -32,10 +34,21 @@ import { INSTANT_FORMAT, formatInstant, readInstant } from "@/lib/format";
  * before and after hydration. A brief blank says nothing false at any moment, and
  * `dateTime` carries the instant in the markup throughout.
  *
- * `useReaderInstant` IS EXPORTED BECAUSE ONE INSTANT IS INSIDE A SENTENCE.
+ * THE DESIGN'S NOTATION ON EVERY SCREEN, AND THIS IS THE ONE PLACE IT IS DRAWN (#463).
+ * Every date the Tools and Invoices files draw reads `09/14/2026`, its slashes at 45%
+ * with 1.5 of room either side, and a time is set 9 past its date with no comma — 8
+ * below the phone's edge — in tabular figures. The 9 is a `Space`, so the date and the
+ * time copy and are read as two words. So the materials screens take it from
+ * the same commit as the tools axis, which is the decision that issue recorded, and
+ * this is the one component `offline/design-values.mjs` lets read the design's names
+ * from a file the screens above the tools axis reach. Its ink is the line it stands in;
+ * a history draws it at Ink 2, a caption at whatever the caption is.
+ *
+ * `useReaderInstant` IS EXPORTED BECAUSE SOME INSTANTS ARE INSIDE A SENTENCE.
  * `SEND_COPY.sent` builds a whole sentence around the moment an order went to its
  * vendor, so there is no element to wrap; that caller takes the string and builds
- * its own line, and renders nothing until this hook has one.
+ * its own line, and renders nothing until this hook has one. The string is the same
+ * notation with plain slashes, since a sentence is one string.
  */
 
 // Whether this render is the browser's. The three arguments ARE the hydration
@@ -51,6 +64,13 @@ const noSubscription = () => () => {};
 const inTheBrowser = () => true;
 const onTheServer = () => false;
 
+/** The instant's parts once the browser can say what zone it is in, and `null` until then. */
+function useReaderParts(at, format) {
+    const hydrated = useSyncExternalStore(noSubscription, inTheBrowser, onTheServer);
+    if (!hydrated) return null;
+    return instantParts(at, format);
+}
+
 /**
  * The formatted instant once the browser can say what zone it is in, and `null`
  * until then. `null` is also the answer for a value that is not an instant, so a
@@ -59,17 +79,35 @@ const onTheServer = () => false;
 export function useReaderInstant(at, format = INSTANT_FORMAT) {
     const hydrated = useSyncExternalStore(noSubscription, inTheBrowser, onTheServer);
     if (!hydrated) return null;
-    if (readInstant(at) === null) return null;
-    return formatInstant(at, format);
+    return instantText(at, format);
 }
 
 export default function Instant({ at, format = INSTANT_FORMAT }) {
-    const shown = useReaderInstant(at, format);
+    const parts = useReaderParts(at, format);
 
     // A blank stays blank and a string no parser can read stays itself, which is
     // `formatInstant`'s rule reaching the markup: such a value gets no `<time>`,
     // since the attribute would then carry something no machine can read either.
     if (readInstant(at) === null) return formatInstant(at, format) ?? null;
 
-    return <time dateTime={at}>{shown}</time>;
+    return (
+        <time dateTime={at} className="tabular-nums">
+            {parts && (
+                <>
+                    {parts.date.map((figures, index) => (
+                        <Fragment key={index}>
+                            {index > 0 && <span className="px-date-separator-inline opacity-date-separator">/</span>}
+                            {figures}
+                        </Fragment>
+                    ))}
+                    {parts.time && (
+                        <>
+                            <Space className="w-date-time-inline max-sm:w-mobile-date-time-inline" />
+                            {parts.time}
+                        </>
+                    )}
+                </>
+            )}
+        </time>
+    );
 }

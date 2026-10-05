@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
 import { WORDMARK } from "@/lib/productName";
 import RailAccount from "./RailAccount";
+import { useTooltip } from "./Tooltip";
 
 /*
  * The rail, and the column it holds a screen in — Claude Design's 0m, "the frame every
@@ -35,8 +36,10 @@ import RailAccount from "./RailAccount";
  * BELOW THE PHONE'S EDGE THERE IS NO RAIL. The phone frame draws a top bar in its place
  * — on the tool item page, 1f's, with the id and one 48 button — and no rail at any
  * width, so the two never meet: they divide at `max-sm`, the edge every phone name
- * already divides at. The top bar is #463's. Below that edge the document scrolls
- * rather than this column.
+ * already divides at. The top bar is `TopBar.js` (#463). Below that edge the document
+ * scrolls rather than this column, which is at least the screen's height there and lays
+ * its screen out down it, so a foot bar can stand at the foot of a page shorter than the
+ * screen.
  *
  * THE EXPANDED STATE IS THIS COMPONENT'S, AND NOTHING STORES IT. A layout does not render
  * again on a navigation, so a rail held by the tools layout keeps what the reader set
@@ -53,7 +56,8 @@ import RailAccount from "./RailAccount";
  * `offline/navigation.mjs` reads all three off this file. The tooltip is 0k's: after
  * 360ms, beside the icon, on hover and on keyboard focus, gone on Escape, and only while
  * the rail is collapsed. It is in the top layer, so nothing the rail clips can clip it,
- * and it is hidden from assistive tech, which has the name already.
+ * and it is hidden from assistive tech, which has the name already. It is `Tooltip.js`'s
+ * since #463, which drew a second, above the tool item page's `More actions`.
  *
  * AND AT ITS FOOT, THE ACCOUNT (0m, #478) — `RailAccount`, held to the rail's bottom at
  * either width by an auto margin. The caller hands over `account`, the words the page's
@@ -69,9 +73,10 @@ import RailAccount from "./RailAccount";
  * AND THE RAIL NEVER PRINTS. A print is a page the browser lays out once, so under
  * `print:` the rail is not drawn and the frame and its column give up the window's height
  * and their own scroll: a column held to the window would print one window of it. A
- * label prints on a page 11 mm wide, where `sm:` does not match and the frame and its
- * column set no `display` at all — so a print rule that makes a dialog's ancestors
- * `display: contents` (#457) meets nothing here to override.
+ * label prints on a page 11 mm wide, where `sm:` does not match and the frame sets no
+ * `display` at all. The column does since #463 — a flex column below the phone's edge —
+ * and the labels' print rule that makes a dialog's ancestors `display: contents` (#457)
+ * outranks it, its selector being the more specific.
  */
 
 // 0m's icons, 16 in a 32 box, drawn as the design draws them.
@@ -117,79 +122,17 @@ const SECTION_ICONS = {
 // The column a screen sits in (0i): it scrolls from the phone's edge up, its lane is
 // reserved whether or not the bar shows, and the thumb is round with 2 of clearance,
 // going darker under the pointer. Firefox draws its own bar; these rules are WebKit's.
+// Below the phone's edge the document scrolls instead, and the column is at least the
+// screen's height and lays out down it, so a screen's foot bar can stand at the foot of a
+// short page (#463).
 const COLUMN = [
-    "min-w-0 flex-1 sm:overflow-y-auto sm:overscroll-y-contain sm:[scrollbar-gutter:stable] print:overflow-visible",
+    "min-w-0 flex-1 sm:overflow-y-auto sm:overscroll-y-contain sm:[scrollbar-gutter:stable] print:overflow-visible max-sm:flex max-sm:min-h-dvh max-sm:flex-col",
     "[&::-webkit-scrollbar]:w-scrollbar [&::-webkit-scrollbar]:h-scrollbar [&::-webkit-scrollbar-track]:bg-transparent",
     "[&::-webkit-scrollbar-button]:hidden [&::-webkit-scrollbar-corner]:bg-transparent",
     "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-scrollbar-thumb [&::-webkit-scrollbar-thumb]:bg-clip-content",
     "[&::-webkit-scrollbar-thumb]:[border:var(--spacing-scrollbar-inset)_solid_transparent]",
     "[&::-webkit-scrollbar-thumb:hover]:bg-scrollbar-thumb-hover",
 ].join(" ");
-
-/**
- * 0k's tooltip beside an icon in the collapsed rail: one for the whole rail, placed
- * beside whichever target asked, in the top layer. `enabled` is false while the rail is
- * expanded, when every word is on the screen already.
- */
-function useRailTooltip(enabled) {
-    const tipRef = useRef(null);
-    const [word, setWord] = useState("");
-
-    const hide = useCallback(() => {
-        const tip = tipRef.current;
-        if (tip?.matches(":popover-open")) tip.hidePopover();
-    }, []);
-
-    const show = useCallback(
-        (target, text) => {
-            const tip = tipRef.current;
-            if (!tip || !enabled) return;
-            setWord(text);
-            const box = target.getBoundingClientRect();
-            tip.style.left = `${box.right}px`;
-            tip.style.top = `${box.top + box.height / 2}px`;
-            if (!tip.matches(":popover-open")) tip.showPopover();
-        },
-        [enabled]
-    );
-
-    // Escape takes it away wherever focus is, which is how a reader dismisses something
-    // the pointer opened without moving the pointer.
-    useEffect(() => {
-        const onKeyDown = (event) => {
-            if (event.key === "Escape") hide();
-        };
-        document.addEventListener("keydown", onKeyDown);
-        return () => document.removeEventListener("keydown", onKeyDown);
-    }, [hide]);
-
-    useEffect(() => {
-        if (!enabled) hide();
-    }, [enabled, hide]);
-
-    /** What a target needs to show it: on hover, and on focus from the keyboard. */
-    const targetProps = (text) => ({
-        onPointerEnter: (event) => show(event.currentTarget, text),
-        onPointerLeave: hide,
-        onFocus: (event) => {
-            if (event.currentTarget.matches(":focus-visible")) show(event.currentTarget, text);
-        },
-        onBlur: hide,
-    });
-
-    const element = (
-        <div
-            ref={tipRef}
-            popover="manual"
-            aria-hidden="true"
-            className="pointer-events-none inset-auto my-0 mr-0 ml-tooltip-rail-offset -translate-y-1/2 whitespace-nowrap rounded-control bg-foreground-default px-tooltip-inset-x pt-tooltip-inset-top pb-tooltip-inset-bottom font-ui text-body-sm font-medium text-white shadow-popover transition-opacity delay-tooltip duration-tooltip starting:open:opacity-0"
-        >
-            {word}
-        </div>
-    );
-
-    return { targetProps, hide, element };
-}
 
 /**
  * The rail beside the column `children` render in. Whether the reader has it expanded is
@@ -200,7 +143,7 @@ export default function Rail({ account, children }) {
     const [expanded, setExpanded] = useState(false);
     const navRef = useRef(null);
     const toggleRef = useRef(null);
-    const tip = useRailTooltip(!expanded);
+    const tip = useTooltip({ enabled: !expanded });
     const toggleWord = expanded ? COPY.collapse : COPY.expand;
 
     // A Panel is the expanded rail below the 1280 window, which the classes lay out over
