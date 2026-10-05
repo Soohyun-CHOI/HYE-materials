@@ -12,7 +12,8 @@
 //
 // SO THE RULE IS STRUCTURAL: nothing outside `lib/userName.js` reads either name
 // field off a user, and the files allowed to print both are DECLARED in that
-// module and compared against the files that actually import `fullUserName`.
+// module and compared against the files that actually import `fullUserName` or,
+// since #463, `actorName` — the full name a place naming who DID something prints.
 // That is `offline/file-route.mjs`'s shape, and for its reason — a list that
 // only described what the code does would pass whatever the code did, so the
 // declaration and the imports are two places that have to agree.
@@ -40,7 +41,7 @@
 import { callsTo, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isPageFile } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
-import { FULL_NAME_SURFACES, fullUserName, isNameStep, judgeName, namePath, needsName, selfName, userName } from "../../../lib/userName.js";
+import { FULL_NAME_SURFACES, actorName, fullUserName, isNameStep, judgeName, namePath, needsName, selfName, userName } from "../../../lib/userName.js";
 
 export const title = "One rule for a person's name, and two audiences (#381)";
 
@@ -147,6 +148,15 @@ export function run({ check, assert, log }) {
     check("a reader naming themselves gets the local part, named or not", selfName(person), "soohyun.c");
     check("  and so does a nameless one", selfName(nameless), "bsws9803");
     check("  and nobody is nothing", selfName(null), "");
+    // THE FOURTH (#463): a place naming the person who DID something prints both names,
+    // and a row missing either prints the local part where a picker prints a first name
+    // alone — which is the one input telling it from `fullUserName`, so it is asserted.
+    const halfNamed = { firstName: "Soo", email: "soo@x.com" };
+    check("a doer is named in full", actorName(person), "Soo Choi");
+    check("  and a row with half a name by its local part", actorName(halfNamed), "soo");
+    check("  where a picker prints the first name alone", fullUserName(halfNamed), "Soo");
+    check("  and a nameless row by its local part too", actorName(nameless), "bsws9803");
+    check("  and nobody is nothing", actorName(undefined), "");
 
     // ── 1: nothing outside the owner reads either field ─────────────────────
     log("");
@@ -174,8 +184,11 @@ export function run({ check, assert, log }) {
         "  and every reason says something",
         Object.values(FULL_NAME_SURFACES).every((why) => typeof why === "string" && why.length > 20)
     );
+    // EITHER FULL RENDERING (#463): `fullUserName` for a picker and a vendor, `actorName`
+    // for a place naming who did something.
+    const FULL_RENDERINGS = ["fullUserName", "actorName"];
     const importers = new Set(
-        files.filter((rel) => rel !== OWNER && importsFromOwner(rel).has("fullUserName"))
+        files.filter((rel) => rel !== OWNER && FULL_RENDERINGS.some((name) => importsFromOwner(rel).has(name)))
     );
     const undeclared = [...importers].filter((rel) => !declared.has(rel));
     const unused = [...declared].filter((rel) => !importers.has(rel));
@@ -187,7 +200,8 @@ export function run({ check, assert, log }) {
     // behind by an edit is exactly the half-removal this pairing exists to catch.
     const notCalling = [...declared].filter((rel) => {
         try {
-            return callsTo(parseFile(rel).ast, "fullUserName").length === 0;
+            const { ast } = parseFile(rel);
+            return FULL_RENDERINGS.every((name) => callsTo(ast, name).length === 0);
         } catch {
             return true;
         }

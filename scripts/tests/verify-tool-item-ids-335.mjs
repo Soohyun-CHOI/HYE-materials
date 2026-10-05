@@ -142,7 +142,7 @@ try {
         );
 
         // The fields registration fills, read back off what createToolItems returned.
-        check("  status is In Stock", a.created[0].status, TOOL_STATUS.IN_STOCK);
+        check("  status is In stock", a.created[0].status, TOOL_STATUS.IN_STOCK);
         check("  the job is set", (a.created[0].job || [])[0], job.id);
         check("  the kind is set", (a.created[0].tool || [])[0], toolRecord.id);
 

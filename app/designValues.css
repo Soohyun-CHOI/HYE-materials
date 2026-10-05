@@ -16,7 +16,9 @@
  * Tailwind emits only once that animation is read (#473). `app/globals.css`
  * imports it, so every page's stylesheet carries the names, and until #258 a name
  * is read only by a file that nothing outside `app/(tools)/` and `app/login/`
- * calls. `offline/design-values.mjs` holds all three.
+ * calls — with one exception, the date, which #463 had drawn on every screen and
+ * `app/components/Instant.js` alone draws. `offline/design-values.mjs` holds all
+ * three.
  *
  * WHAT IS HERE IS WHAT THE TOOLS SCREENS AND THE SIGN-IN SCREENS DRAW. A row of
  * the design's spec that only the screens above those draw is declared with the
@@ -33,8 +35,9 @@
  *
  * A LENGTH IS REM, THE DESIGN'S PX OVER 16, so a reader's text size moves every
  * length together; each comment gives the design's figure. What stays px is what
- * is drawn in px by convention: the ring, the shadows, and the scrollbar, whose
- * lane is the browser's own.
+ * is drawn in px by convention: the ring, the shadows, the scrollbar, whose lane is
+ * the browser's own, and the room either side of a date's slash, a fraction of a
+ * pixel that no whole number of them states.
  *
  * `@theme` AND NOT `@theme inline`, so every utility reads `var(--name)` and a
  * second set of values later is values behind these names rather than a rebuild.
@@ -54,6 +57,7 @@
     --height-control-inline: 1.625rem; /* Inline, 26: a control inside a running sentence, which 0f calls In text */
     --height-dialog-close: 1.75rem; /* Icon box, 28: the smaller square, which holds a dialog's close (0l Head) */
     --size-icon: 1rem; /* Icon box, 16: the mark a 32 square holds */
+    --size-checkbox-mark: 0.75rem; /* 1b, 12: the check or the dash a checkbox draws in its 16 — from the drawings, not the spec */
     --size-icon-sm: 0.875rem; /* Icon box, 14: the mark a 28 square holds, and a Nested 30 inside a field */
     --spacing-control-inline-inset-x: 0.5rem; /* Side room, 8: either side of an inline summary's words, and of a 26 pill (0f) */
     --spacing-control-inset-x: 0.625rem; /* Side room, 10: either side of a chip's or a menu option's words */
@@ -80,6 +84,19 @@
     --spacing-selection-bar-inset: 0.5rem; /* Selection bar, 8: inside it */
     --spacing-selection-bar-slide: 0.5rem; /* Selection bar, 8: how far it rises as it appears */
     --transition-duration-selection-bar: 160ms; /* Selection bar: how long it takes to fade in */
+    --spacing-list-header-inset-bottom: 1.25rem; /* 1b, 20: under a list's head, to its column head — from the drawings, not the spec */
+    --spacing-list-header-inline: 2.5rem; /* 1a, 40: the least room between a list head's title block and its control — from the drawings, not the spec */
+    --spacing-list-count-inline: 0.3125rem; /* 1a and 1b, 5: from a list head's count to its noun — from the drawings, not the spec */
+    --spacing-table-column-gap: 1.25rem; /* 1a and 1b, 20: between two columns — from the drawings, not the spec */
+    --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
+    --width-table-id: 15rem; /* 1b, 240: a column of printed ids — from the drawings, not the spec */
+    --width-table-status: 10rem; /* 1b, 160: a column of statuses — from the drawings, not the spec */
+    --spacing-pager-inset-top: 1rem; /* 1a and 1b, 16: above a pager's controls — from the drawings, not the spec */
+    --spacing-pager-inset-bottom: 1.25rem; /* 1a and 1b, 20: under them — from the drawings, not the spec */
+    --spacing-pager-gap: 1.5rem; /* 1a and 1b, 24: between the rows a pager counts and its page — from the drawings, not the spec */
+    --spacing-pager-step-gap: 0.625rem; /* 1a and 1b, 10: from the page to its two steps — from the drawings, not the spec */
+    --spacing-pager-step-offset: 0.8125rem; /* 1a and 1b, 13: how far the steps pull out so the last chevron's ink meets the text's edge — from the drawings, not the spec */
+    --spacing-list-empty-inset-top: 15rem; /* 1a and 1b, 240: above a list's empty state — from the drawings, not the spec */
 
     /* 0c · Blue — a face pair and an accent. Blue marks what is chosen: what is
        selected, current, or the single action a screen exists for (0f Chosen). */
@@ -99,6 +116,7 @@
     --color-foreground-muted: oklch(0.405 0.013 265); /* Ink 2: the sentence under a heading, a note beside a value, the breadcrumb above a title */
     --color-foreground-subtle: oklch(0.505 0.012 265); /* Ink 3: a column head, a block's name, a field label, a unit, a placeholder, a status mark */
     --color-foreground-faint: oklch(0.760 0.010 265); /* Ink 4: the dot between two clauses, the / between breadcrumb levels, a disabled pager arrow, a disabled control's glyph */
+    --color-skeleton: oklch(0.800 0.010 265); /* Ink 5: a bar standing in for a line of text, the edge of an empty checkbox */
     --spacing-separator-inline: 0.5625rem; /* Ink 4, 9: either side of the dot between two clauses, everywhere */
 
     --color-divider-subtle: oklch(0.946 0.005 265); /* Inner rule: between two item rows inside a card */
@@ -151,6 +169,15 @@
     --tracking-id: -0.02em; /* Tracking: a Fragment Mono id under 21px */
     --tracking-brand: -0.03em; /* Tracking: the wordmark, at any size */
 
+    /* A date — month, day and year in two figures but the year, the slashes dimmed, and
+       a time set past it with no comma, on every screen that shows one (#463). From the
+       drawings, not the spec: the Tools and Invoices files draw every date this way and
+       no row states it. `app/components/Instant.js` is its one reader, on every screen. */
+    --opacity-date-separator: 45%; /* 1c, 1f: a date's slashes */
+    --spacing-date-separator-inline: 1.5px; /* 1c, 1f: either side of a slash, a fraction of a pixel kept in px */
+    --spacing-date-time-inline: 0.5625rem; /* 1c, 9: from a date to its time */
+    --spacing-mobile-date-time-inline: 0.5rem; /* 1f, 8: from a date to its time on a phone */
+
     /* 0i · Scroll — the bar, and the room it is given. The lane is the browser's own
        scrollbar, whose width follows no text size, so it and its clearance stay px. */
     --spacing-scrollbar: 8px; /* Bar, 8: its lane, reserved whether or not it shows */
@@ -160,6 +187,7 @@
     /* 0j · Radius — a corner is a step of one ladder, named for what the thing is.
        Pill is Tailwind's full radius. */
     --radius-preview: 0.125rem; /* Mark, 2: a thing drawn rather than read */
+    --radius-badge: 0.25rem; /* Badge, 4: a box the size of the type inside it — a checkbox */
     --radius-control: 0.5rem; /* Control, 8: every button, field, menu item and hover pill */
     --radius-card: 0.625rem; /* Group, 10: a small box that holds controls or a summary */
     --radius-dialog: 0.75rem; /* Surface, 12: a large face that holds a layout */
@@ -230,6 +258,24 @@
     --spacing-title-stack: 0.625rem; /* Header stack, 10: from the title to the line of text under it */
     --spacing-subtitle-stack: 0.75rem; /* Header stack, 12: from the line of text under the title to the status */
     --spacing-heading-sm-stack: 0.75rem; /* Rail blocks, 12: from a block's name to what it heads, the phone's Block name too */
+    --spacing-record-header-inline: 3.5rem; /* 1c, 56: between the header's title block and its actions — from the drawings, not the spec */
+    --width-record-rail: 21rem; /* Record rail, 336: on 1080, at the content's right edge */
+    --spacing-record-rail-inline: 2rem; /* Record rail, 32: from the main column's text to the rail's Rule */
+    --spacing-record-rail-inset-left: 1.75rem; /* Record rail, 28: from the Rule to the rail's own text */
+    --spacing-label-block-stack: 1rem; /* 1c, 16: between the label, its size and the print control — from the drawings, not the spec */
+    --spacing-label-preview-inset-x: 1rem; /* 1c, 16: inside the Field ground the label is drawn on, either side — from the drawings, not the spec */
+    --spacing-label-preview-inset-y: 1.75rem; /* 1c, 28: inside it, above and below — from the drawings, not the spec */
+    --width-label-fact-term: 4rem; /* 1c, 64: the column a label's Size and Symbol stand in — from the drawings, not the spec */
+    --spacing-label-fact-inline: 0.75rem; /* 1c, 12: from that column to the figure — from the drawings, not the spec */
+    --spacing-label-fact-stack: 0.25rem; /* 1c, 4: between the two — from the drawings, not the spec */
+    --width-log-track: 1.25rem; /* 1c, 20: the column a history's dots and rule stand in — from the drawings, not the spec */
+    --size-log-dot: 0.375rem; /* 1c, 6: a history entry's dot — from the drawings, not the spec */
+    --spacing-log-dot-inset-top: 0.4375rem; /* 1c, 7: the dot from its entry's top — from the drawings, not the spec */
+    --spacing-log-rule-inset-top: 1.25rem; /* 1c, 20: where the rule under a dot starts — from the drawings, not the spec */
+    --spacing-log-rule-overhang: 0.1875rem; /* 1c, 3: how far the rule runs into the next entry — from the drawings, not the spec */
+    --spacing-log-line-stack: 0.1875rem; /* 1c and 1f, 3: between an entry's lines — from the drawings, not the spec */
+    --spacing-log-stack: 1.5rem; /* 1c, 24: between entries — from the drawings, not the spec */
+    --max-width-empty-state: 27.5rem; /* 1l, 440: the sentence of a screen saying a record is not there — from the drawings, not the spec */
 
     /* 0o · Sign-in page — one column, centered, with the wordmark at its head (#473). */
     --container-sign-in: 22.5rem; /* 0o, 360: the page's one column */
@@ -263,6 +309,8 @@
     --height-mobile-top-bar: 3.5rem; /* Top bar, 56 */
     --spacing-mobile-top-bar-inset-right: 0.25rem; /* Top bar, 4: its right side */
     --size-mobile-top-bar-icon: 1.5rem; /* Top bar, 24: the mark on its round button */
+    --spacing-mobile-top-bar-bleed: 1.5rem; /* Top bar, 24: how far its soft edge reaches below it */
+    --transition-duration-mobile-top-bar: 160ms; /* the top bar's soft edge fading in — from the drawings' stylesheet, not the spec */
     --spacing-mobile-bottom-bar-inset-top: 1rem; /* Foot bar, 16: above */
     --spacing-mobile-bottom-bar-inset-bottom: 1.25rem; /* Foot bar, 20: below */
     --spacing-mobile-bottom-bar-stack: 0.75rem; /* Foot bar, 12: between its rows */
@@ -310,6 +358,7 @@
     --height-mobile-chip: 2.25rem; /* Pill, 36: a chip */
     --spacing-mobile-chip-inset-x: 0.875rem; /* Pill, 14: either side */
     --spacing-mobile-chip-inset-right: 0.75rem; /* Pill, 12: on its chevron side */
+    --size-mobile-chip-chevron: 0.6875rem; /* 1f, 11: a pill's chevron — from the drawings, not the spec */
     --spacing-mobile-avatar-chip-inset-left: 0.375rem; /* Tools 0a, 6: the avatar from an address chip's round end */
     --size-mobile-status-indicator: 0.625rem; /* Status, 10: the mark */
     --radius-mobile-control: 0.75rem; /* Radius, 12: a button, a field, a menu and a dialog */
@@ -328,6 +377,15 @@
     --spacing-mobile-log-gap: 0.75rem; /* Log, 12: beside the dot */
     --spacing-mobile-log-stack: 1.25rem; /* Log, 20: between entries */
     --size-mobile-log-icon: 0.875rem; /* Log, 14: before the person and the job */
+    --width-mobile-log-track: 0.75rem; /* 1f, 12: the column the dots and rule stand in — from the drawings, not the spec */
+    --spacing-mobile-log-dot-inset-top: 0.5625rem; /* 1f, 9: the dot from its entry's top — from the drawings, not the spec */
+    --spacing-mobile-log-rule-inset-top: 1.375rem; /* 1f, 22: where the rule under a dot starts — from the drawings, not the spec */
+    --spacing-mobile-log-rule-overhang: 0.25rem; /* 1f, 4: how far the rule runs into the next entry — from the drawings, not the spec */
+    --spacing-mobile-title-notice-offset: 0.25rem; /* 1g, 4: a notice in the title block, past the block's 12 — from the drawings, not the spec */
+    --size-mobile-empty-icon: 2.5rem; /* 1g, 40: the mark over a screen saying a record is not there — from the drawings, not the spec */
+    --spacing-mobile-empty-inset-x: 2rem; /* 1g, 32: either side of that screen's words — from the drawings, not the spec */
+    --spacing-mobile-empty-inset-bottom: 6rem; /* 1g, 96: under them, which sets them above the middle — from the drawings, not the spec */
+    --max-width-mobile-empty-state: 17.5rem; /* 1g, 280: that screen's sentence — from the drawings, not the spec */
 
     --width-mobile-drawer-handle: 2.25rem; /* Sheet, 36: the handle */
     --height-mobile-drawer-handle: 0.25rem; /* Sheet, 4: the handle */

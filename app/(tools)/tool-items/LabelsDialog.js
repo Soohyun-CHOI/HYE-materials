@@ -122,7 +122,7 @@ const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-
  * item's page hands over; `toolItemIds` is what a tool's page has selected, read when
  * pressed. `toolName` is the line under the title.
  */
-export default function LabelsDialog({ title, toolName, run: handed, toolItemIds, disabled = false, variant = "filled" }) {
+export default function LabelsDialog({ title, toolName, run: handed, toolItemIds, disabled = false, disabledReason, variant = "filled" }) {
     const [open, setOpen] = useState(false);
     const [run, setRun] = useState(handed ?? null);
     const [pending, startTransition] = useTransition();
@@ -143,7 +143,7 @@ export default function LabelsDialog({ title, toolName, run: handed, toolItemIds
 
     return (
         <>
-            <Button variant={variant} disabled={disabled} onClick={press}>
+            <Button variant={variant} disabled={disabled} disabledReason={disabledReason} onClick={press}>
                 {title}
             </Button>
             {run && <LabelsFrame open={open} onClose={() => setOpen(false)} title={title} toolName={toolName} run={run} />}
@@ -262,6 +262,34 @@ function LabelsFrame({ open, onClose, title, toolName, run }) {
                 </Button>
             </DialogActions>
         </DialogFrame>
+    );
+}
+
+/**
+ * One label as the tool item page's record rail draws it (#463): the label's own page, the
+ * one the dialog draws and prints, at the dialog's preview scale on the Preview's face —
+ * so the page and the dialog show the same drawing, as 1c and 1i do. `name` is what an
+ * image takes for assistive tech; the code under the symbol is nothing a heading says.
+ *
+ * THE PREVIEW'S FACE AND NOT 1c's. The design draws this one on a 1 corner with an 8% ring
+ * over a 1 2 shadow, and the dialog's on 0k's Preview — the Mark corner, a 6% ring over 2 8
+ * at 8% — which the spec gives a print shown on the page; the frame takes the spec's, the
+ * one the dialog has worn since #457, so the two drawings stay one.
+ */
+export function LabelPreview({ label, budget, name }) {
+    const pageStyle = {
+        width: `${LABEL_STOCK.labelWidthMm}mm`,
+        height: `${LABEL_STOCK.tapeWidthMm}mm`,
+    };
+    return (
+        <div
+            role="img"
+            aria-label={name}
+            className={`label-frame overflow-hidden rounded-preview bg-white shadow-preview ${labelCodeFont.variable}`}
+            style={{ "--label-preview-scale": LABEL_PREVIEW_SCALE }}
+        >
+            <LabelPage label={label} budget={budget} pageStyle={pageStyle} />
+        </div>
     );
 }
 

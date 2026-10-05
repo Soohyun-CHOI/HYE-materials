@@ -184,6 +184,11 @@ const CARRIED = [
         param: "page",
         note: "#339 — which page of this tool's tool items, 1-based. Written by the two steps at the foot of the list and by `toolPath`; a value that is not a page resolves to one rather than rendering nothing",
     },
+    {
+        route: "/tools",
+        param: "page",
+        note: "#463 — which page of the tools, 1-based, 0b's 25 to a page. Written by the two steps at the foot of the list through `toolsPath`, absent on the first page; a value that is not a page resolves to one rather than rendering nothing, by the clamp the tool's own list uses (`pageOfTools`). It slices rows the page has built and divides no read",
+    },
     // THE FOUR DOCUMENT LISTS TOOK THE SAME NAME IN #326, which is what the reservation
     // in `lib/listFilters.js` was holding it for. One note serves all four because the
     // rule is one: the parameter is resolved against the rows that survived the BAR, not

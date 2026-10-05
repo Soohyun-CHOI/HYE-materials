@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireUser } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemsByTool } from "@/lib/airtable/toolItems";
@@ -9,6 +8,9 @@ import { TOOL_REGISTRATION_COPY, canRegisterToolItems, readRegistrationAccount }
 import { TOOLS_PATH } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import Breadcrumb from "@/app/components/Breadcrumb";
+import { ButtonLink } from "@/app/components/Controls";
+import ListFrame from "@/app/components/ListFrame";
+import { ListHeader } from "@/app/components/ListTable";
 import RegistrationDialog from "../RegistrationDialog";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
@@ -90,9 +92,15 @@ export const metadata = { title: "Tool" };
  * comes from a rollup, under the same measured condition docs/notes/tools.md
  * already states for the list.
  *
- * NO WIDTH, NO COLOR, NO SPACING, AND NO TEXT IN THE MARKUP — see the layout
- * (#336), lib/toolListView.js for the rules and lib/toolRoutes.js for the
- * addresses.
+ * DRAWN AS 1b (#463): the breadcrumb and the list's head with how many items the tool has,
+ * held still over the rows, the selection bar floating over the pinned pager while anything
+ * is selected — `ListFrame.js` and `ListTable.js` for the parts, `ToolItemList.js` for the
+ * rows, the boxes and the bar, which read the selection off the address. **Newest first,
+ * as 1b draws it** (`pageOfToolItems`), so a registration moves every page's edges, which
+ * was accepted: the selection is printed ids and moves with nothing.
+ *
+ * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — see the layout (#336), lib/toolListView.js
+ * for the rules and lib/toolRoutes.js for the addresses.
  */
 // Labeled for #190 by #224's rule that every entry point opens a scope. An outer
 // wrapper and the route template, so every page of every tool aggregates into one
@@ -113,10 +121,17 @@ async function renderToolPage({ params, searchParams }) {
     // which escapes it.
     const [tool] = await getToolsByRecordIds([toolRecordId]);
     if (!tool) {
+        // 1l's shape, which the tool item page draws for a code no tool item carries: the
+        // heading centered in the column and the way back under it. An address carries a
+        // record id here, which says nothing to a reader, so there is no sentence naming it.
         return (
-            <div>
-                <h1>{COPY.notFoundHeading}</h1>
-                <Link href={TOOLS_PATH}>{COPY.backToTools}</Link>
+            <div className="flex min-h-full flex-col items-center justify-center px-page-gutter text-center font-ui text-foreground-default">
+                <h1 className="text-heading font-semibold">{COPY.notFoundHeading}</h1>
+                <div className="mt-gap-lg">
+                    <ButtonLink variant="bordered" href={TOOLS_PATH}>
+                        {COPY.backToTools}
+                    </ButtonLink>
+                </div>
             </div>
         );
     }
@@ -147,70 +162,61 @@ async function renderToolPage({ params, searchParams }) {
     const canRegister = canRegisterToolItems(user, jobs);
     const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));
 
+    // The way back is the breadcrumb's one level since #460, the list's own heading behind a
+    // chevron (1b). The tool's name is the heading and there is no heading word, which is
+    // the shape the tool item's page takes. Registering more of this tool (#451) is the
+    // head's one control, so a tool with nothing under it keeps it — there it is the way to
+    // write what a registration did not. It opens the dialog on this tool (#456).
+    const top = <Breadcrumb levels={[{ label: COPY.heading, href: TOOLS_PATH }]} />;
+    const registration = { opener: TOOL_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, tool: { toolName: tool.toolName } };
+    const header = (
+        <ListHeader title={tool.toolName} count={page.total} noun={COPY.itemNoun(page.total)}>
+            <RegistrationDialog {...registration} />
+        </ListHeader>
+    );
+
+    if (page.total === 0) {
+        return (
+            <ListFrame top={top} header={header}>
+                <div className="flex flex-col items-center pt-list-empty-inset-top text-center">
+                    <h2 className="text-heading font-semibold">{COPY.noToolItemsHeading}</h2>
+                    <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noToolItems}</p>
+                    <div className="mt-gap-lg">
+                        <RegistrationDialog {...registration} variant="bordered" />
+                    </div>
+                </div>
+            </ListFrame>
+        );
+    }
+
+    // The rows this render read, and only those, which is what keeps the page box to this
+    // page (#443): the list selects among what it is handed and has no way to name a tool
+    // item it was not. What a label run is for is the list's to read off the address, and
+    // the print control that opens the labels on it stands in the selection bar with the
+    // count; the tool's name is the line under that dialog's title (#457).
     return (
-        <div>
-            {/* The way back is the breadcrumb's one level since #460, the list's own
-                heading behind a chevron (1b), where it was a link of this page's. */}
-            <Breadcrumb levels={[{ label: COPY.heading, href: TOOLS_PATH }]} />
-            {/* The tool's name is the heading and there is no heading word, which
-                is the shape the tool item's page takes with its printed id. */}
-            <h1>{tool.toolName}</h1>
-            {/* Registering more of this tool (#451), above the branch below so a tool
-                with nothing under it keeps it — there it is the way to write what a
-                registration did not. It is not one of the fork's answers, which stand
-                apart inside that branch. It opens the dialog on this tool (#456). */}
-            <RegistrationDialog
-                opener={TOOL_REGISTRATION_COPY.heading}
-                canRegister={canRegister}
-                jobs={assignedJobs}
-                tool={{ toolName: tool.toolName }}
-            />
-
-            {page.total === 0 ? (
-                <p>{COPY.noToolItems}</p>
-            ) : (
-                <>
-                    {/* A registration's account, which only a list with rows in it can
-                        carry: one that wrote nothing stays in the dialog (#449, #456). The fork
-                        asks a question and the notice states a fact nothing repairs, so
-                        the fork's two controls answer it and the notice's one only takes
-                        it away (#455), and the fork's count never includes the notice's
-                        tool items, which were written. Each is a dialog since #459, one at
-                        a time and the notice first; it stands first here too, so when its
-                        answer hands over to the fork the one closes before the other opens. */}
-                    {account.unlogged.length > 0 && <RegistrationUnlogged toolName={tool.toolName} account={account} />}
-                    {account.unwritten > 0 && (
-                        <RegistrationShortfall
-                            toolName={tool.toolName}
-                            account={account}
-                            canRegister={canRegister}
-                            jobs={assignedJobs}
-                        />
-                    )}
-
-                    <p>{COPY.total(page.total)}</p>
-
-                    {/* The rows this render read, and only those, which is what
-                        keeps the page box to this page (#443): the list selects
-                        among what it is handed and has no way to name a tool item
-                        it was not. What a label run is for is the list's to read
-                        off the address, and the print control that opens the
-                        labels on it lives there with the boxes that make it; the
-                        tool's name is the line under that dialog's title (#457). */}
-                    <ToolItemList
-                        toolRecordId={tool.id}
-                        toolName={tool.toolName}
-                        rows={toolItems.map((toolItem) => ({
-                            id: toolItem.id,
-                            toolItemId: toolItem.toolItemId,
-                            status: toolItem.status,
-                            jobCode: jobCodeById[toolItem.job?.[0]],
-                        }))}
-                        page={page.page}
-                        pageCount={page.pageCount}
-                    />
-                </>
-            )}
-        </div>
+        <ToolItemList
+            toolRecordId={tool.id}
+            toolName={tool.toolName}
+            rows={toolItems.map((toolItem) => ({
+                id: toolItem.id,
+                toolItemId: toolItem.toolItemId,
+                status: toolItem.status,
+                jobCode: jobCodeById[toolItem.job?.[0]],
+            }))}
+            page={page}
+            top={top}
+            header={header}
+        >
+            {/* A registration's account, which only a list with rows in it can carry: one
+                that wrote nothing stays in the dialog (#449, #456). The fork asks a question
+                and the notice states a fact nothing repairs, so the fork's two controls answer
+                it and the notice's one only takes it away (#455), and the fork's count never
+                includes the notice's tool items, which were written. Each is a dialog since
+                #459, one at a time and the notice first; it stands first here too, so when
+                its answer hands over to the fork the one closes before the other opens. */}
+            {account.unlogged.length > 0 && <RegistrationUnlogged toolName={tool.toolName} account={account} />}
+            {account.unwritten > 0 && <RegistrationShortfall toolName={tool.toolName} account={account} canRegister={canRegister} jobs={assignedJobs} />}
+        </ToolItemList>
     );
 }

@@ -36,15 +36,18 @@ gloves. The phone is this axis's problem and no other's.
 **The width container for every tools screen lives in the layout, not on
 the page**, and no width, no padding, no type, no color was chosen for it,
 deliberately (#336). Since #460 it holds the design's rail and still nothing
-of a screen's own, so this screen's content renders unstyled. There is
-nothing here to preserve and nothing to depart from.
+of a screen's own; **since #463 this screen is drawn as 1a** — the list's head
+over a table whose column head holds while the rows scroll, and a pager pinned
+at the foot.
 
 ## What it always carries
 
 **identity.** The heading `Tools`, which is the `Tools` table's name — the
 same rule that makes the other list screens `Purchase Requests`,
 `Purchase Orders`, `Invoices` and `Deliveries`. The rail's section for this
-screen says the heading's own string, read from it (#460).
+screen says the heading's own string, read from it (#460). Under it, how many
+tools there are, `17 tools` (1a, #463) — a count of the list, which says
+nothing about what any tool holds.
 
 **action.** The control that opens the registration dialog over this screen
 (#456), carrying that dialog's own heading as its word so the two cannot drift
@@ -54,11 +57,14 @@ the list rather than inside it, because the reader with no tools at all is the
 one who needs it most. For a reader assigned to no job it is drawn disabled,
 with `Ask the office to assign you to a job` before it.
 
-**evidence.** One row per tool, ordered by name. The name is the row's
-identity and is the way into that tool's own screen.
+**evidence.** One row per tool, ordered by name, twenty-five to a page
+(0b's page of rows, #463) with the pager under them: which rows the page
+shows of how many, `1–17 of 17`, which page of how many, and a step each
+way that a page at its end draws and does not act. The name is the row's
+identity and the whole row is the way into that tool's own screen.
 
 **verdict.** Three counts on every row: how many of that tool are
-`In Stock`, how many are `Out`, how many are `Retired`. This is what the
+`In stock`, how many are `Out`, how many are `Retired`. This is what the
 reader came for.
 
 **All three are always there, a zero included, and a design may not drop
@@ -75,9 +81,11 @@ A design that adds the three together is making that choice.
 
 ## What it carries only sometimes
 
-**When there are no tools at all:** one sentence in place of the rows,
-`No tools yet. One appears here when somebody creates it.` The control
-above it is still there and is the way to do that.
+**When there are no tools at all:** in place of the rows, a heading and a
+sentence, `No tools yet` and `Each tool shows here with how many are in
+stock, out and retired.`, and under them a second, bordered `New tools`
+(1a, #463). The control in the head is still there, and both are the way to
+make one. No pager stands under an empty list.
 
 **This is the only empty state this screen can reach**, which is worth
 saying because the shared brief describes three. The other two are
@@ -104,7 +112,7 @@ shows.** `Tool Items."Status"` is maintained by the app, not computed on
 either screen, so this list and `/tool-items/[toolItemId]` cannot disagree
 about where a tool item is.
 
-**`In Stock`, `Out` and `Retired` are the three statuses this axis has,
+**`In stock`, `Out` and `Retired` are the three statuses this axis has,
 and they are not status tones.** The tones in the shared brief are one
 closed vocabulary for how far something has got on an axis; reusing one
 here would make a word mean a stage on one screen and a location on

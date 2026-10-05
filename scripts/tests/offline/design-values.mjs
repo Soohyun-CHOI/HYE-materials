@@ -15,7 +15,8 @@
 //      the design's pixels over 16, outside the px kept by convention; no name
 //      carries a digit; and no name is a key Tailwind or the app already declares.
 //   3. A NAME IS READ ONLY BY A FILE THAT NOTHING OUTSIDE `app/(tools)/` AND
-//      `app/login/` CALLS.
+//      `app/login/` CALLS — but for the date, which #463 had drawn on every screen
+//      and one component draws (`APP_WIDE`).
 //   4. EVERY NAME IS READ, OR WAITS ON AN ISSUE NAMED BESIDE IT — and a face that
 //      is read on an axis is loaded by its next/font call in a module that axis
 //      reaches.
@@ -114,6 +115,24 @@ const SIGN_IN_DIR = "app/login/";
  */
 const DESIGN_AXES = [TOOLS_DIR, SIGN_IN_DIR];
 
+/**
+ * THE ONE FILE A SCREEN ABOVE THE DESIGN'S AXES MAY REACH AND STILL READ A NAME, AND THE NAMES
+ * IT MAY READ (#463). The date's notation — its dimmed slashes and the room before its time —
+ * is drawn on every screen by that issue's decision, and `app/components/Instant.js` is the one
+ * component that draws a date, on the materials screens as on the tools axis. So it reads the
+ * four date names and nothing else, the check holds both halves, and an entry that no screen
+ * above the axes reaches, or that reads none of its names, fails as stale. **#258 is what makes
+ * it redundant**: the boundary becomes every route file, and this goes with it.
+ */
+const APP_WIDE = {
+    "app/components/Instant.js": [
+        "--opacity-date-separator",
+        "--spacing-date-separator-inline",
+        "--spacing-date-time-inline",
+        "--spacing-mobile-date-time-inline",
+    ],
+};
+
 /** Tailwind's own keyframes, which an animation declared here may run without declaring them. */
 const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
 
@@ -144,8 +163,13 @@ const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
  * foot bar's 12 between its rows went to #463's tool item page, since no step page has
  * two. The steps declared their own names with them and read the account's avatar for an
  * address chip's.
+ * #463 took its own out with the tool item page and the two lists, which read the eight
+ * names still marked for it — 0b's row, column head and bleed, a list head's 20 above it,
+ * and the selection bar's four — and declared the lists' own with them, 1a and 1b's
+ * figures where the spec states none, and 0j's Badge and 0e's Ink 5 for the checkbox.
+ * No issue is marked to read a name next.
  */
-const READERS_TO_COME = [463];
+const READERS_TO_COME = [];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -161,6 +185,7 @@ const VALUES = [
     ["--height-control-inline", "1.625rem", null],
     ["--height-dialog-close", "1.75rem", null],
     ["--size-icon", "1rem", null],
+    ["--size-checkbox-mark", "0.75rem", null],
     ["--size-icon-sm", "0.875rem", null],
     ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
@@ -174,19 +199,33 @@ const VALUES = [
     ["--spacing-menu-offset", "0.375rem", null],
     ["--spacing-menu-inset", "0.3125rem", null],
     // 0b · Layout
-    ["--container-content", "67.5rem", 463],
+    ["--container-content", "67.5rem", null],
     ["--spacing-page-gutter", "2rem", null],
     ["--spacing-gap", "0.5rem", null],
     ["--spacing-gap-lg", "0.875rem", null],
     ["--spacing-nav-gap", "0.6875rem", null],
-    ["--spacing-list-header-inset-top", "1.25rem", 463],
-    ["--height-table-row", "2.5rem", 463],
-    ["--spacing-table-bleed", "0.75rem", 463],
-    ["--height-table-header", "2.25rem", 463],
-    ["--spacing-selection-bar-offset", "0.75rem", 463],
-    ["--spacing-selection-bar-inset", "0.5rem", 463],
-    ["--spacing-selection-bar-slide", "0.5rem", 463],
-    ["--transition-duration-selection-bar", "160ms", 463],
+    ["--spacing-list-header-inset-top", "1.25rem", null],
+    ["--height-table-row", "2.5rem", null],
+    ["--spacing-table-bleed", "0.75rem", null],
+    ["--height-table-header", "2.25rem", null],
+    ["--spacing-selection-bar-offset", "0.75rem", null],
+    ["--spacing-selection-bar-inset", "0.5rem", null],
+    ["--spacing-selection-bar-slide", "0.5rem", null],
+    ["--transition-duration-selection-bar", "160ms", null],
+    // 1a and 1b's drawings, where the spec states no figure — #463's lists.
+    ["--spacing-list-header-inset-bottom", "1.25rem", null],
+    ["--spacing-list-header-inline", "2.5rem", null],
+    ["--spacing-list-count-inline", "0.3125rem", null],
+    ["--spacing-table-column-gap", "1.25rem", null],
+    ["--width-table-count", "6rem", null],
+    ["--width-table-id", "15rem", null],
+    ["--width-table-status", "10rem", null],
+    ["--spacing-pager-inset-top", "1rem", null],
+    ["--spacing-pager-inset-bottom", "1.25rem", null],
+    ["--spacing-pager-gap", "1.5rem", null],
+    ["--spacing-pager-step-gap", "0.625rem", null],
+    ["--spacing-pager-step-offset", "0.8125rem", null],
+    ["--spacing-list-empty-inset-top", "15rem", null],
     // 0c · Blue
     ["--color-selected", "#F0F9FF", null],
     ["--color-selected-hover", "#E6F5FF", null],
@@ -194,7 +233,7 @@ const VALUES = [
     ["--color-primary-hover", "oklch(0.437 0.211 257)", null],
     ["--color-primary-disabled", "color-mix(in oklab, var(--color-primary) 40%, transparent)", null],
     // 0d · Red
-    ["--color-danger-subtle", "#FFF4F5", 463],
+    ["--color-danger-subtle", "#FFF4F5", null],
     ["--color-danger", "#DC0015", null],
     ["--color-danger-hover", "oklch(0.512 0.205 27)", null],
     // 0e · Ink
@@ -202,10 +241,11 @@ const VALUES = [
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
     ["--color-foreground-subtle", "oklch(0.505 0.012 265)", null],
     ["--color-foreground-faint", "oklch(0.760 0.010 265)", null],
+    ["--color-skeleton", "oklch(0.800 0.010 265)", null],
     ["--spacing-separator-inline", "0.5625rem", null],
     ["--color-divider-subtle", "oklch(0.946 0.005 265)", null],
     ["--color-divider", "oklch(0.928 0.006 265)", null],
-    ["--color-divider-strong", "oklch(0.896 0.007 265)", 463],
+    ["--color-divider-strong", "oklch(0.896 0.007 265)", null],
     ["--color-border", "oklch(0.888 0.008 265)", null],
     ["--color-border-focus", "oklch(0.640 0.010 265)", null],
     ["--color-hover-subtle", "color-mix(in oklab, var(--color-foreground-default) 3%, transparent)", null],
@@ -222,8 +262,8 @@ const VALUES = [
     ["--animate-spinner", "spin 0.7s linear infinite", null],
     ["--color-spinner-track", "color-mix(in oklab, currentColor 35%, transparent)", null],
     // 0g · Status
-    ["--size-status-indicator", "0.5625rem", 463],
-    ["--stroke-width-status-ring", "1.5px", 463],
+    ["--size-status-indicator", "0.5625rem", null],
+    ["--stroke-width-status-ring", "1.5px", null],
     // 0h · Type
     ["--text-heading-lg", "1.5rem", null],
     ["--text-heading-lg--line-height", "2rem"],
@@ -247,15 +287,22 @@ const VALUES = [
     ["--text-brand-lg--font-weight", "500"],
     ["--tracking-id", "-0.02em", null],
     ["--tracking-brand", "-0.03em", null],
+    // A date, on every screen (#463), and the one name group a file the screens above the
+    // tools axis reach may read — `APP_WIDE` below. From the drawings, not the spec.
+    ["--opacity-date-separator", "45%", null],
+    ["--spacing-date-separator-inline", "1.5px", null],
+    ["--spacing-date-time-inline", "0.5625rem", null],
+    ["--spacing-mobile-date-time-inline", "0.5rem", null],
     ["--font-ui", "var(--font-instrument-sans), system-ui, sans-serif", null],
     ["--font-id", "var(--font-fragment-mono), ui-monospace, monospace", null],
     ["--font-brand", "var(--font-bricolage-grotesque), sans-serif", null],
     // 0i · Scroll — a column's End is the column's, and #463 draws the columns.
     ["--spacing-scrollbar", "8px", null],
     ["--spacing-scrollbar-inset", "2px", null],
-    ["--spacing-scroll-inset-bottom", "2.5rem", 463],
+    ["--spacing-scroll-inset-bottom", "2.5rem", null],
     // 0j · Radius
     ["--radius-preview", "0.125rem", null],
+    ["--radius-badge", "0.25rem", null],
     ["--radius-control", "0.5rem", null],
     ["--radius-card", "0.625rem", null],
     ["--radius-dialog", "0.75rem", null],
@@ -279,7 +326,7 @@ const VALUES = [
     ["--spacing-tooltip-inset-x", "0.5625rem", null],
     ["--spacing-tooltip-inset-bottom", "0.25rem", null],
     // Above a target, which no rail icon is; the next tooltip on the axis is #463's.
-    ["--spacing-tooltip-offset", "0.375rem", 463],
+    ["--spacing-tooltip-offset", "0.375rem", null],
     ["--spacing-tooltip-rail-offset", "0.625rem", null],
     ["--transition-delay-tooltip", "360ms", null],
     // From the drawings' stylesheet, not the spec (#460).
@@ -327,11 +374,31 @@ const VALUES = [
     ["--spacing-breadcrumb-back-offset", "0.75rem", null],
     ["--spacing-breadcrumb-back-gap", "0.125rem", null],
     // 0n · Record page
-    ["--spacing-page-header-stack", "1.5rem", 463],
-    ["--spacing-breadcrumb-stack", "0.875rem", 463],
-    ["--spacing-title-stack", "0.625rem", 463],
-    ["--spacing-subtitle-stack", "0.75rem", 463],
-    ["--spacing-heading-sm-stack", "0.75rem", 463],
+    ["--spacing-page-header-stack", "1.5rem", null],
+    ["--spacing-breadcrumb-stack", "0.875rem", null],
+    ["--spacing-title-stack", "0.625rem", null],
+    ["--spacing-subtitle-stack", "0.75rem", null],
+    ["--spacing-heading-sm-stack", "0.75rem", null],
+    // The record rail on 1080 (#463), which #462 left undeclared, its label block and the
+    // history beside it; all but the rail's three from the drawings, not the spec.
+    ["--spacing-record-header-inline", "3.5rem", null],
+    ["--width-record-rail", "21rem", null],
+    ["--spacing-record-rail-inline", "2rem", null],
+    ["--spacing-record-rail-inset-left", "1.75rem", null],
+    ["--spacing-label-block-stack", "1rem", null],
+    ["--spacing-label-preview-inset-x", "1rem", null],
+    ["--spacing-label-preview-inset-y", "1.75rem", null],
+    ["--width-label-fact-term", "4rem", null],
+    ["--spacing-label-fact-inline", "0.75rem", null],
+    ["--spacing-label-fact-stack", "0.25rem", null],
+    ["--width-log-track", "1.25rem", null],
+    ["--size-log-dot", "0.375rem", null],
+    ["--spacing-log-dot-inset-top", "0.4375rem", null],
+    ["--spacing-log-rule-inset-top", "1.25rem", null],
+    ["--spacing-log-rule-overhang", "0.1875rem", null],
+    ["--spacing-log-line-stack", "0.1875rem", null],
+    ["--spacing-log-stack", "1.5rem", null],
+    ["--max-width-empty-state", "27.5rem", null],
     // 0o · Sign-in page (#473); the name fields' 12, the caret's height and the resend
     // control's pull are the drawings'. Its chip's avatar is the account's, above.
     ["--container-sign-in", "22.5rem", null],
@@ -356,12 +423,15 @@ const VALUES = [
     // Tools 0a · App — #458's sheets and #473's step pages read theirs; the foot bar's 12
     // between its rows waits on #463's tool item page.
     ["--spacing-mobile-gutter", "1rem", null],
-    ["--height-mobile-top-bar", "3.5rem", 463],
-    ["--spacing-mobile-top-bar-inset-right", "0.25rem", 463],
-    ["--size-mobile-top-bar-icon", "1.5rem", 463],
+    ["--height-mobile-top-bar", "3.5rem", null],
+    ["--spacing-mobile-top-bar-inset-right", "0.25rem", null],
+    ["--size-mobile-top-bar-icon", "1.5rem", null],
+    // The top bar's soft edge (#463), the bottom bar's again on the bar above; the fade is the drawings'.
+    ["--spacing-mobile-top-bar-bleed", "1.5rem", null],
+    ["--transition-duration-mobile-top-bar", "160ms", null],
     ["--spacing-mobile-bottom-bar-inset-top", "1rem", null],
     ["--spacing-mobile-bottom-bar-inset-bottom", "1.25rem", null],
-    ["--spacing-mobile-bottom-bar-stack", "0.75rem", 463],
+    ["--spacing-mobile-bottom-bar-stack", "0.75rem", null],
     // The bottom bar on the keyboard and its soft edge (#473); the fade is the drawings'.
     ["--spacing-mobile-bottom-bar-keyboard-inset-bottom", "0.75rem", null],
     ["--spacing-mobile-bottom-bar-bleed", "1.5rem", null],
@@ -377,7 +447,7 @@ const VALUES = [
     ["--text-mobile-body--line-height", "1.5rem"],
     ["--text-mobile-body-sm", "0.9375rem", null],
     ["--text-mobile-body-sm--line-height", "1.25rem"],
-    ["--text-mobile-body-xs", "0.875rem", 463],
+    ["--text-mobile-body-xs", "0.875rem", null],
     ["--text-mobile-body-xs--line-height", "1.25rem"],
     ["--text-mobile-heading-sm", "0.8125rem", null],
     ["--text-mobile-heading-sm--line-height", "1.25rem"],
@@ -390,7 +460,7 @@ const VALUES = [
     ["--size-mobile-spinner", "1.25rem", null],
     ["--height-mobile-input", "3.125rem", null],
     ["--spacing-mobile-input-inset-x", "1rem", null],
-    ["--size-mobile-input-icon", "1.125rem", 463],
+    ["--size-mobile-input-icon", "1.125rem", null],
     ["--spacing-mobile-input-gap", "0.625rem", null],
     ["--color-mobile-input-background", "color-mix(in oklab, var(--color-foreground-default) 5.5%, transparent)", null],
     ["--spacing-mobile-field-stack", "1.25rem", null],
@@ -407,25 +477,37 @@ const VALUES = [
     ["--spacing-mobile-alert-gap", "0.625rem", null],
     ["--height-mobile-chip", "2.25rem", null],
     ["--spacing-mobile-chip-inset-x", "0.875rem", null],
-    ["--spacing-mobile-chip-inset-right", "0.75rem", 463],
+    ["--spacing-mobile-chip-inset-right", "0.75rem", null],
+    ["--size-mobile-chip-chevron", "0.6875rem", null],
     ["--spacing-mobile-avatar-chip-inset-left", "0.375rem", null],
-    ["--size-mobile-status-indicator", "0.625rem", 463],
+    ["--size-mobile-status-indicator", "0.625rem", null],
     ["--radius-mobile-control", "0.75rem", null],
     ["--radius-mobile-drawer", "1.75rem", null],
     ["--opacity-mobile-pressed", "50%", null],
-    ["--spacing-mobile-top-bar-stack", "1rem", 463],
-    ["--spacing-mobile-title-stack", "1.375rem", 463],
-    ["--spacing-mobile-stack", "2rem", 463],
+    ["--spacing-mobile-top-bar-stack", "1rem", null],
+    ["--spacing-mobile-title-stack", "1.375rem", null],
+    ["--spacing-mobile-stack", "2rem", null],
     // A phone's sign-in page (#473); the caret's height is the drawings'.
     ["--spacing-mobile-sign-in-inset-top", "4.5rem", null],
     ["--spacing-mobile-sign-in-brand-stack", "2rem", null],
     ["--spacing-mobile-code-stack", "1.5rem", null],
     ["--spacing-mobile-code-help-stack", "1.25rem", null],
     ["--height-mobile-code-caret", "1.625rem", null],
-    ["--size-mobile-log-dot", "0.375rem", 463],
-    ["--spacing-mobile-log-gap", "0.75rem", 463],
-    ["--spacing-mobile-log-stack", "1.25rem", 463],
-    ["--size-mobile-log-icon", "0.875rem", 463],
+    ["--size-mobile-log-dot", "0.375rem", null],
+    ["--spacing-mobile-log-gap", "0.75rem", null],
+    ["--spacing-mobile-log-stack", "1.25rem", null],
+    ["--size-mobile-log-icon", "0.875rem", null],
+    // 1f's history, 1g's notice and its screen for a code no tool carries (#463), from the
+    // drawings, not the spec.
+    ["--width-mobile-log-track", "0.75rem", null],
+    ["--spacing-mobile-log-dot-inset-top", "0.5625rem", null],
+    ["--spacing-mobile-log-rule-inset-top", "1.375rem", null],
+    ["--spacing-mobile-log-rule-overhang", "0.25rem", null],
+    ["--spacing-mobile-title-notice-offset", "0.25rem", null],
+    ["--size-mobile-empty-icon", "2.5rem", null],
+    ["--spacing-mobile-empty-inset-x", "2rem", null],
+    ["--spacing-mobile-empty-inset-bottom", "6rem", null],
+    ["--max-width-mobile-empty-state", "17.5rem", null],
     ["--width-mobile-drawer-handle", "2.25rem", null],
     ["--height-mobile-drawer-handle", "0.25rem", null],
     ["--spacing-mobile-drawer-inset-top", "0.75rem", null],
@@ -446,19 +528,20 @@ const VALUES = [
     ["--spacing-mobile-confirm-inset-top", "1.5rem", null],
     ["--spacing-mobile-confirm-title-stack", "0.25rem", null],
     ["--spacing-mobile-confirm-id-stack", "0.875rem", null],
-    ["--width-mobile-menu", "14.5rem", 463],
-    ["--spacing-mobile-menu-gutter", "0.75rem", 463],
-    ["--spacing-mobile-menu-offset", "0.25rem", 463],
-    ["--spacing-mobile-menu-row-inset-x", "1rem", 463],
+    ["--width-mobile-menu", "14.5rem", null],
+    ["--spacing-mobile-menu-gutter", "0.75rem", null],
+    ["--spacing-mobile-menu-offset", "0.25rem", null],
+    ["--spacing-mobile-menu-row-inset-x", "1rem", null],
 ];
 
 /**
  * The lengths that stay px: what is drawn in px by convention. The ring is a
  * stroke, and the scrollbar's lane is the browser's own, whose width follows no
- * text size, so the clearance inside it follows it. Every shadow stays px too,
- * and is not a length.
+ * text size, so the clearance inside it follows it. The room either side of a
+ * date's slash is a fraction of a pixel, which no whole number of the design's
+ * pixels over 16 states (#463). Every shadow stays px too, and is not a length.
  */
-const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar", "--spacing-scrollbar-inset"];
+const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar", "--spacing-scrollbar-inset", "--spacing-date-separator-inline"];
 
 /**
  * The three faces: the only names in `@theme inline`, each resolving to the
@@ -697,7 +780,7 @@ function routesReaching(graph) {
  * `sources` maps a name to the names its value mixes in. Returns what was read
  * and every failure, each a sentence naming the file.
  */
-export function judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome }) {
+export function judge({ waiting, sources, readsByFile, routesByFile, loaders, readersToCome, appWide = APP_WIDE }) {
     const failures = [];
     const read = new Set();
     // For each face, the design axes whose routes reach a file that reads it.
@@ -706,7 +789,13 @@ export function judge({ waiting, sources, readsByFile, routesByFile, loaders, re
         if (names.size === 0) continue;
         const routes = [...(routesByFile.get(file) ?? [])];
         const above = routes.filter((r) => !onDesignAxis(r));
-        if (above.length > 0) {
+        // #463 — the one file every screen may reach and read the names it is allowed.
+        const allowed = appWide[file];
+        if (above.length > 0 && allowed) {
+            const beyond = [...names].filter((name) => !allowed.includes(name));
+            if (beyond.length > 0) failures.push(`${file} reads ${beyond.join(", ")}, which it is not allowed on every screen`);
+            for (const name of names) if (allowed.includes(name)) read.add(name);
+        } else if (above.length > 0) {
             failures.push(`${file} reads ${[...names].join(", ")} and ${above.sort()[0]} calls it`);
         } else if (routes.length > 0) {
             for (const name of names) {
@@ -728,6 +817,13 @@ export function judge({ waiting, sources, readsByFile, routesByFile, loaders, re
                 }
             }
         }
+    }
+    // A stale exception: a file no screen above the axes reaches needs none, and one that
+    // reads none of its names has nothing to be excepted for.
+    for (const [file, allowed] of Object.entries(appWide)) {
+        const routes = [...(routesByFile.get(file) ?? [])];
+        if (!routes.some((r) => !onDesignAxis(r))) failures.push(`${file} is excepted for every screen and no screen above the axes reaches it`);
+        if (!allowed.some((name) => readsByFile.get(file)?.has(name))) failures.push(`${file} is excepted for every screen and reads none of its names`);
     }
     for (const [name, issue] of waiting) {
         if (issue !== null && !readersToCome.includes(issue)) failures.push(`${name} waits on #${issue}, which is not an issue still to come`);
@@ -958,8 +1054,9 @@ export async function run({ check, assert, log }) {
     log("");
     log("the judgment fails each planted case and passes its repair:");
     const plantedName = "--height-control-lg";
-    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null, loaderRoutes = ["app/(tools)/layout.js"] }) =>
+    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null, loaderRoutes = ["app/(tools)/layout.js"], appWide = {} }) =>
         judge({
+            appWide,
             waiting: new Map(names.map((name) => [name, issue])),
             sources: new Map(),
             readsByFile: new Map([[file, new Set(names)]]),
@@ -1037,6 +1134,35 @@ export async function run({ check, assert, log }) {
             loaderFile: "app/faces/ui.js",
             loaderRoutes: ["app/login/layout.js", "app/layout.js"],
         }).some((f) => f.includes("loads Instrument_Sans"))
+    );
+
+    // #463 — THE ONE EXCEPTION, held both ways: a file excepted for every screen reads its own
+    // names wherever it is called, a name outside its list still fails, and an exception
+    // nothing above the axes reaches, or one that reads none of its names, is stale.
+    const dateName = "--opacity-date-separator";
+    const plantedDate = "app/components/PlantedDate.js";
+    check(
+        "  a file excepted for every screen reads its own names, called by a screen above the axes",
+        plant({ file: plantedDate, routes: ["app/(tools)/layout.js", "app/prs/page.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).join(" | "),
+        ""
+    );
+    assert(
+        "  and a name outside its list still fails",
+        plant({ file: plantedDate, routes: ["app/prs/page.js"], names: [dateName, plantedName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
+            f.includes("not allowed on every screen")
+        )
+    );
+    assert(
+        "  an exception no screen above the axes reaches is stale",
+        plant({ file: plantedDate, routes: ["app/(tools)/layout.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
+            f.includes("no screen above the axes reaches it")
+        )
+    );
+    assert(
+        "  as is one that reads none of its names",
+        plant({ file: plantedDate, routes: ["app/prs/page.js"], names: [plantedName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
+            f.includes("reads none of its names")
+        )
     );
 
     // The keyframes parser, seen to take a block's keyframes out whole and to leave a rule

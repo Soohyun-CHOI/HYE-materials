@@ -4,15 +4,21 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllTools } from "@/lib/airtable/tools";
 import { getToolItemsByRecordIds } from "@/lib/airtable/toolItems";
 import { assignedJobsFor } from "@/lib/toolJob";
-import { TOOL_LIST_COPY as COPY, summarizeTools } from "@/lib/toolListView";
-import { toolPath } from "@/lib/toolRoutes";
+import { TOOL_LIST_COPY as COPY, pageOfTools, summarizeTools } from "@/lib/toolListView";
+import { toolPath, toolsPath } from "@/lib/toolRoutes";
+import { TOOL_STATUS_VALUES } from "@/lib/toolStatus";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
+import ListFrame from "@/app/components/ListFrame";
+import { ListHeader, Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK } from "@/app/components/ListTable";
 import RegistrationDialog from "./RegistrationDialog";
 
 // The constant rather than a second spelling of the word: the tab and the
 // heading are both the table's name and must not drift apart.
 export const metadata = { title: COPY.heading };
+
+// 1a's columns: the name, then a count for each status at 96, right-aligned.
+const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
 
 /**
  * Every tool the company owns, with a count per status (#339).
@@ -42,73 +48,115 @@ export const metadata = { title: COPY.heading };
  * Five rollups nothing reads today would be five fields to keep in step for
  * nothing. docs/notes/tools.md carries the arithmetic.
  *
+ * DRAWN AS 1a (#463): the list's head with how many tools there are, the table under a
+ * column head that holds while the rows scroll, and the pager pinned at the foot —
+ * `ListFrame.js` and `ListTable.js` for the parts. **It pages at 25 since that issue**,
+ * 0b's page of rows, and paging costs nothing: every tool's counts need every tool item,
+ * so the page reads them all whichever page it draws and slices what it built
+ * (`pageOfTools`). The suggestions the registration offers are every tool, not the page's.
+ *
  * ONE EMPTY STATE, NOT THREE. The shared brief's three empties tell "nothing
  * exists yet" from "nothing you can see" and "nothing matching your filters";
  * nothing on this axis is scoped by role or job (#337) and this list has no
- * filters, so only the first has a producer here.
+ * filters, so only the first has a producer here. It draws a second opener under its
+ * sentence, and no pager: there is nothing to page.
  *
- * NO WIDTH, NO COLOR, NO SPACING, AND NO TEXT IN THE MARKUP — #336 put this
- * axis's only container in the layout and left it empty, and every string here
- * comes from a constant so a vocabulary sweep can reach it.
+ * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — #336 put this axis's only container
+ * in the layout, the 1080 here is the content's measure inside it (0b), and every
+ * string comes from a constant so a vocabulary sweep can reach it.
  */
 // Labeled for #190 by #224's rule that every entry point opens a scope. An outer
 // wrapper and the route template, so repeated loads aggregate into one row.
-export default async function ToolsPage() {
-    return withOpsLabel("/tools", () => renderToolsPage());
+export default async function ToolsPage(props) {
+    return withOpsLabel("/tools", () => renderToolsPage(props));
 }
 
 // Every signed-in user, with no Role and no Job scoping (#337): a scan needs an
 // account only because it records who performed it, and a tool item moves between
 // jobs, so the person scanning one is not always assigned to the job it is on.
-async function renderToolsPage() {
+async function renderToolsPage({ searchParams }) {
     const user = await requireUser();
+    const sp = (await searchParams) ?? {};
 
     const [tools, allJobs] = await Promise.all([getAllTools(), getAllJobs()]);
     // The link arrays the tools already carry, flattened into one batched read.
     const toolItems = await getToolItemsByRecordIds(tools.flatMap((tool) => tool.toolItems));
     const rows = summarizeTools(tools, toolItems);
+    const page = pageOfTools(rows, sp.page);
     // How many a tool has is its link array's length — the figure its own page heads
     // its list with — and never a sum of statuses, so one word says one number on both.
     const itemCount = Object.fromEntries(tools.map((tool) => [tool.id, tool.toolItems.length]));
 
+    // The control that opens the registration dialog, carrying that dialog's own title so
+    // the two cannot drift (#338). It is in the list's head rather than under it because a
+    // reader with no tools yet needs it most, and it opens on no tool (#456).
+    const registration = {
+        opener: TOOL_REGISTRATION_COPY.heading,
+        canRegister: canRegisterToolItems(user, allJobs),
+        jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),
+        tools: rows.map((row) => ({ toolName: row.toolName, count: itemCount[row.id] })),
+    };
+
     return (
-        <div>
-            <h1>{COPY.heading}</h1>
-
-            {/* The control that opens the registration dialog, carrying that
-                dialog's own title so the two cannot drift (#338). It is above
-                the list rather than inside it because a reader with no tools yet
-                needs it most, and it opens on no tool (#456). */}
-            <RegistrationDialog
-                opener={TOOL_REGISTRATION_COPY.heading}
-                canRegister={canRegisterToolItems(user, allJobs)}
-                jobs={assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode }))}
-                tools={rows.map((row) => ({ toolName: row.toolName, count: itemCount[row.id] }))}
-            />
-
+        <ListFrame
+            header={
+                <ListHeader title={COPY.heading} count={rows.length} noun={COPY.toolNoun(rows.length)}>
+                    <RegistrationDialog {...registration} />
+                </ListHeader>
+            }
+            footer={
+                rows.length > 0 && (
+                    <Pager
+                        range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
+                        position={COPY.pagePosition(page)}
+                        previous={{ href: page.page > 1 ? toolsPath(page.page - 1) : null, label: COPY.previous }}
+                        next={{ href: page.page < page.pageCount ? toolsPath(page.page + 1) : null, label: COPY.next }}
+                    />
+                )
+            }
+        >
             {rows.length === 0 ? (
-                <p>{COPY.noTools}</p>
+                <div className="flex flex-col items-center pt-list-empty-inset-top text-center">
+                    <h2 className="text-heading font-semibold">{COPY.noToolsHeading}</h2>
+                    <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noTools}</p>
+                    <div className="mt-gap-lg">
+                        <RegistrationDialog {...registration} variant="bordered" />
+                    </div>
+                </div>
             ) : (
-                <ul>
-                    {rows.map((row) => (
-                        <li key={row.id}>
-                            <Link href={toolPath(row.id)}>{row.toolName}</Link>
-                            {/* All three statuses on every row, a zero included:
-                                an absent one would read as "not known" where a
-                                `0` reads as "none". The word is the label, so the
+                <div role="table" aria-label={COPY.heading}>
+                    <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
+                        <span role="columnheader">{COPY.toolLabel}</span>
+                        {TOOL_STATUS_VALUES.map((status) => (
+                            <span key={status} role="columnheader" className="text-right">
+                                {status}
+                            </span>
+                        ))}
+                    </div>
+                    {page.rows.map((row) => (
+                        <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS}`}>
+                            <span role="cell" className="min-w-0 truncate">
+                                <Link href={toolPath(row.id)} className={TABLE_ROW_LINK}>
+                                    {row.toolName}
+                                </Link>
+                            </span>
+                            {/* All three statuses on every row, a zero included: an absent
+                                one would read as "not known" where a `0` reads as "none",
+                                and a zero takes Ink 3. The column head is the label, so a
                                 count is never carried by color alone. */}
-                            <dl>
-                                {row.counts.map((entry) => (
-                                    <div key={entry.status}>
-                                        <dt>{entry.status}</dt>
-                                        <dd>{entry.count}</dd>
-                                    </div>
-                                ))}
-                            </dl>
-                        </li>
+                            {row.counts.map((entry) => (
+                                <span
+                                    key={entry.status}
+                                    role="cell"
+                                    className={`text-right tabular-nums ${entry.count === 0 ? "text-foreground-subtle" : ""}`}
+                                >
+                                    {entry.count}
+                                </span>
+                            ))}
+                        </div>
                     ))}
-                </ul>
+                </div>
             )}
-        </div>
+        </ListFrame>
     );
 }
