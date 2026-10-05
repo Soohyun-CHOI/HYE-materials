@@ -11,7 +11,7 @@ import { TOOL_ITEM_COPY as COPY, currentHolder, logRowFacts, newestFirst, retire
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
 import Instant from "@/app/components/Instant";
-import Space from "@/app/components/Space";
+import Dot from "@/app/components/Dot";
 import TopBar from "@/app/components/TopBar";
 import { QR_SIDE_MODULES, buildToolItemLabel } from "@/lib/toolLabelQR";
 import { TOOL_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/lib/toolLabelPage";
@@ -333,36 +333,40 @@ async function renderToolItemPage({ params }) {
                             the print size in text under it; the control opens that dialog on
                             this one label, handed over as this render built it, so opening it
                             reads nothing. It stands for every status, `Retired` included. A
-                            phone draws no label: one is printed at a desk. */}
-                        <aside className="border-l border-divider pt-page-header-stack pl-record-rail-inset-left max-sm:hidden">
-                            <h2 className="pb-heading-sm-stack text-heading-sm text-foreground-subtle">{COPY.labelHeading}</h2>
-                            <div className="flex flex-col gap-label-block-stack">
-                                {symbolFits ? (
-                                    <>
-                                        <div className="flex items-center justify-center rounded-card bg-background-muted px-label-preview-inset-x py-label-preview-inset-y">
-                                            <LabelPreview label={label} budget={budget} name={COPY.symbolAlt} />
-                                        </div>
-                                        <dl className="flex flex-col gap-label-fact-stack text-body-sm">
-                                            <div className="grid grid-cols-[var(--width-label-fact-term)_minmax(0,1fr)] items-baseline gap-x-label-fact-inline">
-                                                <dt className="text-foreground-subtle">{COPY.sizeLabel}</dt>
-                                                <dd className="tabular-nums">{LABEL_COPY.size}</dd>
+                            phone draws no label: one is printed at a desk. THE RAIL HOLDS UNDER
+                            THE BREADCRUMB BAR WHILE IT FITS (0i), 24 under it as it stands under
+                            the header's Band, and its Rule runs the whole column. */}
+                        <aside className="border-l border-divider pl-record-rail-inset-left max-sm:hidden">
+                            <div className="sticky top-(--height-breadcrumb) pt-page-header-stack">
+                                <h2 className="pb-heading-sm-stack text-heading-sm text-foreground-subtle">{COPY.labelHeading}</h2>
+                                <div className="flex flex-col gap-label-block-stack">
+                                    {symbolFits ? (
+                                        <>
+                                            <div className="flex items-center justify-center rounded-card bg-background-muted px-label-preview-inset-x py-label-preview-inset-y">
+                                                <LabelPreview label={label} budget={budget} name={COPY.symbolAlt} />
                                             </div>
-                                            <div className="grid grid-cols-[var(--width-label-fact-term)_minmax(0,1fr)] items-baseline gap-x-label-fact-inline">
-                                                <dt className="text-foreground-subtle">{COPY.symbolLabel}</dt>
-                                                <dd className="tabular-nums">{COPY.symbolSize(symbolMm)}</dd>
-                                            </div>
-                                        </dl>
-                                    </>
-                                ) : (
-                                    <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLargeNote}</p>
-                                )}
-                                <div>
-                                    <LabelsDialog
-                                        title={LABEL_COPY.openFromToolItem}
-                                        toolName={tool?.toolName}
-                                        run={{ sideModules: QR_SIDE_MODULES, labels: [label], missing: [] }}
-                                        variant="bordered"
-                                    />
+                                            <dl className="flex flex-col gap-label-fact-stack text-body-sm">
+                                                <div className="grid grid-cols-[var(--width-label-fact-term)_minmax(0,1fr)] items-baseline gap-x-label-fact-inline">
+                                                    <dt className="text-foreground-subtle">{COPY.sizeLabel}</dt>
+                                                    <dd className="tabular-nums">{LABEL_COPY.size}</dd>
+                                                </div>
+                                                <div className="grid grid-cols-[var(--width-label-fact-term)_minmax(0,1fr)] items-baseline gap-x-label-fact-inline">
+                                                    <dt className="text-foreground-subtle">{COPY.symbolLabel}</dt>
+                                                    <dd className="tabular-nums">{COPY.symbolSize(symbolMm)}</dd>
+                                                </div>
+                                            </dl>
+                                        </>
+                                    ) : (
+                                        <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLargeNote}</p>
+                                    )}
+                                    <div>
+                                        <LabelsDialog
+                                            title={LABEL_COPY.openFromToolItem}
+                                            toolName={tool?.toolName}
+                                            run={{ sideModules: QR_SIDE_MODULES, labels: [label], missing: [] }}
+                                            variant="bordered"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </aside>
@@ -447,22 +451,6 @@ function History({ rows, nameById, jobCodeById }) {
                 );
             })}
         </ol>
-    );
-}
-
-/**
- * The dot between two clauses (0e): Ink 4, 9 either side. The 9s are `Space`s, so the two
- * clauses copy and are read apart; the dot itself is not read.
- */
-function Dot() {
-    return (
-        <>
-            <Space className="w-separator-inline" />
-            <span aria-hidden="true" className="text-foreground-faint">
-                {COPY.between}
-            </span>
-            <Space className="w-separator-inline" />
-        </>
     );
 }
 

@@ -52,6 +52,7 @@ import { isMain, standalone } from "./_harness.mjs";
 
 /** The screen this file is about, read off the AST for section 5. */
 const PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
+const DOT = "app/components/Dot.js";
 const STATUS_MARK_FILE = "app/(tools)/StatusMark.js";
 
 export const title = "What one tool item's page shows (#340, #463)";
@@ -227,7 +228,7 @@ export function run({ check, assert, log }) {
     check("  and after a scan", TOOL_ITEM_COPY.notFoundScanned, "No tool has this code. Check it against the label and scan again.");
     check("  with the way back", TOOL_ITEM_COPY.backToTools, "Back to Tools");
     check("the label's print size, in text", `${TOOL_ITEM_COPY.sizeLabel} | ${TOOL_ITEM_COPY.symbolLabel} ${TOOL_ITEM_COPY.symbolSize(9.57)}`, "Size | Symbol 9.57 mm");
-    check("an entry's two words", `${TOOL_ITEM_COPY.historyTo} | ${TOOL_ITEM_COPY.historyBy} | ${TOOL_ITEM_COPY.between}`, "to | by | ·");
+    check("an entry's two words", `${TOOL_ITEM_COPY.historyTo} | ${TOOL_ITEM_COPY.historyBy}`, "to | by");
     check("the retirement's button, at both widths", TOOL_ITEM_COPY.moreActions, "More actions");
     check("  and the label's name for assistive tech", TOOL_ITEM_COPY.symbolAlt, "QR label for this tool");
     // `kind` is the notes' explanatory word for what separates `Tools` from
@@ -298,7 +299,8 @@ export function run({ check, assert, log }) {
     // THE CLAUSES A LINE SETS APART ARE APART IN THE TEXT TOO (#463): the dot's 9 either side
     // is a `Space` each, so the id and the job, and an entry's moment, job and recorder, copy
     // and are read as words — padding alone read `HYE-TL-260909-00726-DEMO-01`. Read off
-    // `Dot`, and the page draws the dot nowhere else.
+    // `app/components/Dot.js`, which the selection bar draws too, and the page draws that dot
+    // and no mark of its own.
     const dotReading = (parsed) => {
         let found = "none";
         walk(parsed.ast, (n) => {
@@ -314,8 +316,12 @@ export function run({ check, assert, log }) {
         });
         return found;
     };
-    check("the dot between two clauses is a Space either side of a dot nobody reads", dotReading(page), "Space w-separator-inline + span text-foreground-faint hidden + Space w-separator-inline");
-    check("  and the page draws the dot nowhere else", page.source.split("COPY.between").length - 1, 1);
+    check("the dot between two clauses is a Space either side of a dot nobody reads", dotReading(parseFile(DOT)), "Space w-separator-inline + span text-foreground-faint hidden + Space w-separator-inline");
+    check(
+        "  and the page draws that dot, three times, and no mark of its own",
+        `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1}`,
+        "true 3 0"
+    );
     // ANTI-VACUITY: the padded dot this replaced is read as one.
     check(
         "  where a padded dot is read so",
@@ -427,6 +433,24 @@ export function run({ check, assert, log }) {
     const rail = railReading(page);
     check("the box and the verdict both come from symbolBox", rail.binding, "boxMm: symbolMm, fits: symbolFits");
     check("  the rail draws the label as the dialog does, from this render's label and budget", rail.preview, "label={label} budget={budget} name={COPY.symbolAlt}");
+    // THE RAIL HOLDS UNDER THE BREADCRUMB BAR WHILE IT FITS (0i, #463): its block is sticky 24
+    // under the bar inside an aside whose Rule runs the whole column, so the hold is read off
+    // the aside's first child rather than off the aside, whose own stretch the Rule needs.
+    const railHold = (parsed) => {
+        let found = "none";
+        walk(parsed.ast, (n) => {
+            if (n.type !== "JSXElement" || n.openingElement.name?.name !== "aside") return;
+            const first = n.children.find((child) => child.type === "JSXElement");
+            const cls = (element) => element?.openingElement.attributes.find((a) => a.name?.name === "className")?.value?.value ?? "";
+            found = `${cls(n)} > ${cls(first)}`;
+        });
+        return found;
+    };
+    check(
+        "  and holds under the breadcrumb bar while the column scrolls, its Rule the column's height",
+        railHold(page),
+        "border-l border-divider pl-record-rail-inset-left max-sm:hidden > sticky top-(--height-breadcrumb) pt-page-header-stack"
+    );
     check("  says the symbol's size from the box", rail.symbol, "symbolMm");
     check("  and draws both only when it fits, the host's sentence otherwise", rail.verdict, "true true");
     // ANTI-VACUITY: a page typing the size and drawing whatever the verdict is read so.

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
 import { WORDMARK } from "@/lib/productName";
 import RailAccount from "./RailAccount";
+import { SCROLL_LANE } from "./scrollLane";
 import { useTooltip } from "./Tooltip";
 
 /*
@@ -119,19 +120,20 @@ const SECTION_ICONS = {
     ),
 };
 
-// The column a screen sits in (0i): it scrolls from the phone's edge up, its lane is
-// reserved whether or not the bar shows, and the thumb is round with 2 of clearance,
-// going darker under the pointer. Firefox draws its own bar; these rules are WebKit's.
-// Below the phone's edge the document scrolls instead, and the column is at least the
-// screen's height and lays out down it, so a screen's foot bar can stand at the foot of a
-// short page (#463).
+// The column a screen sits in (0i): it scrolls from the phone's edge up and its lane is
+// reserved whether or not the bar shows, the bar drawn `scrollLane.js`'s way. Below the
+// phone's edge the document scrolls instead, and the column is at least the screen's height
+// and lays out down it, so a screen's foot bar can stand at the foot of a short page (#463).
+//
+// A LIST SCROLLS ITS OWN ROWS, SO THE COLUMN STEPS ASIDE FOR ONE (#463). 1a and 1b hold
+// their head still and scroll the rows under it in a lane of their own (`ListFrame.js`), so
+// a column holding one scrolls nothing and reserves no lane — the list's is the one at the
+// window's edge. It is the column's to decide because only the column scrolls itself; the
+// list marks its root, and this reads the mark.
 const COLUMN = [
     "min-w-0 flex-1 sm:overflow-y-auto sm:overscroll-y-contain sm:[scrollbar-gutter:stable] print:overflow-visible max-sm:flex max-sm:min-h-dvh max-sm:flex-col",
-    "[&::-webkit-scrollbar]:w-scrollbar [&::-webkit-scrollbar]:h-scrollbar [&::-webkit-scrollbar-track]:bg-transparent",
-    "[&::-webkit-scrollbar-button]:hidden [&::-webkit-scrollbar-corner]:bg-transparent",
-    "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-scrollbar-thumb [&::-webkit-scrollbar-thumb]:bg-clip-content",
-    "[&::-webkit-scrollbar-thumb]:[border:var(--spacing-scrollbar-inset)_solid_transparent]",
-    "[&::-webkit-scrollbar-thumb:hover]:bg-scrollbar-thumb-hover",
+    "sm:has-[>[data-list-frame]]:overflow-y-hidden sm:has-[>[data-list-frame]]:[scrollbar-gutter:auto]",
+    SCROLL_LANE,
 ].join(" ");
 
 /**

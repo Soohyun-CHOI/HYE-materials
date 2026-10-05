@@ -621,6 +621,43 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
     );
 }
 
+/**
+ * A row's box (0b, 1b; #463): 16 at the Badge radius in a 32 target that gives its room back,
+ * so the box keeps the 16 column it is drawn in and a row's text stays where it was. Empty,
+ * it is white on an Ink 5 edge and takes the Wash under the pointer; checked, the Accent with
+ * a white check, and mixed — some of a page — the Accent with a dash, both going to the
+ * Accent hover under the pointer.
+ *
+ * A NATIVE CHECKBOX UNDER THE DRAWING, where the design's is a button with a checkbox's
+ * role. The browser already says checked, unchecked and mixed, toggles on Space and joins a
+ * form, so what is drawn over it is the look alone; `indeterminate` is a property with no
+ * attribute and is set on the element. It stands above a row whose link covers the row
+ * (`ListTable.js`), so a press on the box selects rather than opening the row. It is named
+ * by `label`, since a box in a column carries no words of its own.
+ */
+export function Checkbox({ label, checked, indeterminate = false, onChange }) {
+    return (
+        <label className="group/checkbox relative z-10 -mx-[calc((var(--height-control)-var(--size-icon))/2)] -my-[calc((var(--height-control)-var(--text-body--line-height))/2)] flex aspect-square h-control shrink-0 cursor-pointer items-center justify-center self-center rounded-control">
+            <input
+                type="checkbox"
+                aria-label={label}
+                checked={checked}
+                onChange={onChange}
+                ref={(box) => {
+                    if (box) box.indeterminate = indeterminate;
+                }}
+                className="peer size-icon cursor-pointer appearance-none rounded-badge border border-skeleton bg-white group-hover/checkbox:bg-[linear-gradient(var(--color-hover-subtle),var(--color-hover-subtle))] checked:border-primary checked:bg-primary group-hover/checkbox:checked:border-primary-hover group-hover/checkbox:checked:bg-primary-hover indeterminate:border-primary indeterminate:bg-primary group-hover/checkbox:indeterminate:border-primary-hover group-hover/checkbox:indeterminate:bg-primary-hover"
+            />
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-checked:block">
+                <path d="M3.4 8.4 6.5 11.5l6.1-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-indeterminate:block">
+                <path d="M4 8h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+        </label>
+    );
+}
+
 const STEP =
     "flex h-control-sm aspect-square shrink-0 items-center justify-center rounded-control text-foreground-muted not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default";
 

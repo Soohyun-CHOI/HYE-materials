@@ -38,6 +38,10 @@ import { registerToolItemsAction } from "./actions";
  * `RegistrationForm` for the dialog — and this default export is them assembled for an
  * opener that stands on a page. Each is one implementation, whichever of the two draws it.
  *
+ * AN EMPTY LIST DRAWS A SECOND OPENER, BORDERED, UNDER ITS SENTENCE (1a, 1b; #463) — another
+ * of these beside the head's, `variant` its one difference — since a list with nothing in it
+ * is where the reader who needs the dialog most is looking.
+ *
  * A READER ON NO JOB MEETS EVERY OPENER DRAWN AND DISABLED, WITH WHY BEFORE IT (0f), and
  * the dialog never opens for them. What #451 kept is kept: no opener is hidden, and all
  * three ask one predicate, `canRegisterToolItems`, which the page asks and hands down as
@@ -71,12 +75,12 @@ import { registerToolItemsAction } from "./actions";
  * while it is open, because a modal dialog leaves the page behind it inert. Each opening
  * starts from what the opener hands over, and not from what the last one was left holding.
  */
-export default function RegistrationDialog({ opener, canRegister, jobs, tool = null, quantity, tools = [] }) {
+export default function RegistrationDialog({ opener, variant, canRegister, jobs, tool = null, quantity, tools = [] }) {
     const registration = useRegistrationOpening();
 
     return (
         <>
-            <RegistrationOpener canRegister={canRegister} onOpen={registration.start}>
+            <RegistrationOpener variant={variant} canRegister={canRegister} onOpen={registration.start}>
                 {opener}
             </RegistrationOpener>
             {canRegister && (
@@ -120,15 +124,19 @@ export function useRegistrationOpening() {
  * The control that opens the dialog — or, for a reader who may not register, the same
  * control drawn disabled with why before it (0f), and the dialog never opens for them.
  */
-export function RegistrationOpener({ canRegister, onOpen, children }) {
+export function RegistrationOpener({ variant = "filled", canRegister, onOpen, children }) {
     if (!canRegister) {
         return (
-            <Button disabled disabledReason={COPY.noJob}>
+            <Button variant={variant} disabled disabledReason={COPY.noJob}>
                 {children}
             </Button>
         );
     }
-    return <Button onClick={onOpen}>{children}</Button>;
+    return (
+        <Button variant={variant} onClick={onOpen}>
+            {children}
+        </Button>
+    );
 }
 
 /** The note under a typed name: the preview, with the tool and its count in Ink. */

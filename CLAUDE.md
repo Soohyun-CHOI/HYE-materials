@@ -113,7 +113,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialIdentity.js` — what makes two ordered items the same material (#356). The lock key, the cache's grouping key and `getMaterialByKey`'s values all come from here.
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
-- `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), the one assignment used without asking (#458), where a choice starts again (#469), and the picker's words.
+- `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
 - `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the suggestions, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
@@ -170,7 +170,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/components/DialogFrame.js` — the frame a tools dialog opens in (#456), and below the phone's edge Tools 0a's sheet for one marked so (#458); `lib/dialogFrame.js`, its word and when focus fell. **A submission in flight is the frame's `busy`, handed to all it holds (#469): its submit works, the rest lock, nothing is disabled, and focus never falls out of a dialog left open.**
 - `app/components/Controls.js`, `Menu.js` — 0a's controls, the list a field opens (#456) and the menu a button opens (#478); `lib/controls.js`, their keys and words, and what a button is under a busy form (#469).
 - `app/components/Rail.js`, `RailAccount.js`, `Breadcrumb.js` — the rail, its account (#478) and the column a screen scrolls in, and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, what the account says, and their words. **Only the tools layout calls the rail until #258.**
-- `app/components/TopBar.js`, `BottomBar.js`, `Tooltip.js`, `Space.js` — a phone screen's top bar and foot bar (#463, #473), 0k's tooltip beside an icon or above it, and a space the text holds at a design width.
+- `app/components/TopBar.js`, `BottomBar.js`, `Tooltip.js`, `Space.js`, `Dot.js` — a phone screen's top bar and foot bar (#463, #473), 0k's tooltip, a space the text holds at a design width, and 0e's dot.
+- `app/components/ListFrame.js`, `ListTable.js`, `scrollLane.js` — a list's frame and parts (#463), and the bar every lane draws.
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
 - `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**
 - `app/components/PdfPages.js` — a PDF's pages, drawn by the app (#433). **The one module that draws a page, and the only one that loads PDF.js.**

@@ -2,6 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Checkbox } from "@/app/components/Controls";
+import ListFrame, { SelectionBar } from "@/app/components/ListFrame";
+import { Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
 import { TOOL_LABEL_PAGE_COPY as LABEL_COPY } from "@/lib/toolLabelPage";
 import {
     TOOL_LIST_COPY as COPY,
@@ -11,10 +14,16 @@ import {
     toggleToolItem,
 } from "@/lib/toolListView";
 import { readToolItemIds, toolItemPath, toolPath } from "@/lib/toolRoutes";
+import StatusMark from "../../StatusMark";
 import LabelsDialog from "../../tool-items/LabelsDialog";
 
-// One page of a tool's tool items, a box on each and one for the page, and the print
-// control that opens the labels' dialog on what they select (#443, #457).
+// 1b's columns: the box, the printed id at 240, the status at 160, and the job.
+const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)]";
+
+// One page of a tool's tool items, drawn as 1b's table (#463): a box on each and one for the
+// page in the column head, and the selection bar that opens the labels' dialog on what they
+// select (#443, #457), over the pager. The page hands down the breadcrumb and the list's head,
+// which this frames with the rows.
 //
 // THE SELECTION IS READ HERE, OFF THE ADDRESS, AND NOT BY THE PAGE — THE OPPOSITE OF
 // #373, WHOSE PRECEDENT DOES NOT CARRY OVER. `/login` reads its destination on the
@@ -71,93 +80,106 @@ import LabelsDialog from "../../tool-items/LabelsDialog";
 //
 // EVERY WORD IS IN `TOOL_LIST_COPY` OR `TOOL_LABEL_PAGE_COPY` AND NONE IS IN JSX, this
 // axis's rule since #338, held by `offline/tool-list-view.mjs`.
-export default function ToolItemList({ toolRecordId, toolName, rows, page, pageCount }) {
+export default function ToolItemList({ toolRecordId, toolName, rows, page, top, header, children }) {
     const params = useSearchParams();
     const selection = readToolItemIds(params.getAll("id"));
     const pageIds = rows.map((row) => row.toolItemId);
     const pageState = pageSelection(selection, pageIds);
     const summary = describeSelection(selection, pageIds);
+    const selecting = summary.count > 0;
 
     // THE ONE WRITE, AND IT IS NOT A NAVIGATION — see the header. It keeps the page
     // the reader is on, resolved rather than as typed.
-    const replaceSelection = (next) =>
-        window.history.replaceState(null, "", toolPath(toolRecordId, page, next));
+    const replaceSelection = (next) => window.history.replaceState(null, "", toolPath(toolRecordId, page.page, next));
+    const clear = () => replaceSelection([]);
 
     return (
-        <>
-            {/* The sentence, the way out and the control stand together (#443). The
-                control is drawn when it does not act, because it is what says the
-                boxes are for printing, and the sentence beside it is why it does not
-                (0f); the way out is absent with nothing to clear. The control opens
-                the labels' dialog on the selection as it stands (#457), in the
-                list's order, under this tool's name. */}
-            <p>{summary.sentence}</p>
-            {summary.count > 0 && (
-                <button type="button" onClick={() => replaceSelection([])}>
-                    {COPY.clearSelection}
-                </button>
-            )}
-            <LabelsDialog
-                title={LABEL_COPY.openFromTool}
-                toolName={toolName}
-                toolItemIds={selection}
-                disabled={!summary.printable}
-            />
-
-            {/* This page's box: its state is this page's alone, and a partly selected
-                page shows as mixed, which is a DOM property with no attribute. */}
-            <p>
-                <label>
-                    <input
-                        type="checkbox"
-                        checked={pageState === "all"}
-                        ref={(box) => {
-                            if (box) box.indeterminate = pageState === "some";
-                        }}
-                        onChange={() => replaceSelection(togglePage(selection, pageIds))}
+        <ListFrame
+            top={top}
+            header={header}
+            // Which rows this page shows and which page it is, stated whether or not there
+            // is a second one: #326 names "nothing on screen says whether a reader is looking
+            // at everything or at the beginning of it" as the defect. Both steps carry the
+            // selection.
+            footer={
+                <Pager
+                    range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
+                    position={COPY.pagePosition(page)}
+                    previous={{ href: page.page > 1 ? toolPath(toolRecordId, page.page - 1, selection) : null, label: COPY.previous }}
+                    next={{ href: page.page < page.pageCount ? toolPath(toolRecordId, page.page + 1, selection) : null, label: COPY.next }}
+                />
+            }
+            // The bar comes with the first box pressed and goes with the last (0b): the count,
+            // how many are on other pages, the way out, and the print control, which opens the
+            // labels' dialog on the selection as it stands, in the list's order, under this
+            // tool's name (#457) — and says why it does not act on more than one print takes.
+            overlay={
+                <SelectionBar
+                    shown={selecting}
+                    label={COPY.selectionBar}
+                    count={summary.count}
+                    notOnPage={summary.notOnPage}
+                    words={{ count: COPY.selectedCount, notOnPage: COPY.notOnPage }}
+                    clearLabel={COPY.clearSelection}
+                    onClear={clear}
+                >
+                    <LabelsDialog
+                        title={LABEL_COPY.openFromTool}
+                        toolName={toolName}
+                        toolItemIds={selection}
+                        disabled={!summary.printable}
+                        disabledReason={summary.reason}
                     />
-                    {COPY.selectPage}
-                </label>
-            </p>
-
-            {/* Oldest first, which is the link array's own order and so ascending
-                `Tool Item ID` — the number a person reads off a label. Nothing sorts. */}
-            <ol>
-                {rows.map((row) => (
-                    <li key={row.id}>
-                        <input
-                            type="checkbox"
-                            aria-label={COPY.selectToolItem(row.toolItemId)}
-                            checked={selection.includes(row.toolItemId)}
-                            onChange={() => replaceSelection(toggleToolItem(selection, row.toolItemId))}
+                </SelectionBar>
+            }
+            overlayShown={selecting}
+        >
+            <div role="table" aria-label={toolName}>
+                {/* This page's box: its state is this page's alone, and a partly selected
+                    page shows as mixed, which is a DOM property with no attribute. */}
+                <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
+                    <span role="columnheader" className="flex self-center">
+                        <Checkbox
+                            label={COPY.selectPage}
+                            checked={pageState === "all"}
+                            indeterminate={pageState === "some"}
+                            onChange={() => replaceSelection(togglePage(selection, pageIds))}
                         />
-                        <dl>
-                            <div>
-                                <dt>{COPY.toolItemLabel}</dt>
-                                <dd>
-                                    <Link href={toolItemPath(row.toolItemId)}>{row.toolItemId}</Link>
-                                </dd>
-                            </div>
-                            <div>
-                                <dt>{COPY.statusLabel}</dt>
-                                <dd>{row.status}</dd>
-                            </div>
-                            <div>
-                                <dt>{COPY.jobLabel}</dt>
-                                <dd>{row.jobCode}</dd>
-                            </div>
-                        </dl>
-                    </li>
-                ))}
-            </ol>
-
-            {/* Which page this is, stated whether or not there is a second one: #326
-                names "nothing on screen says whether a reader is looking at everything
-                or at the beginning of it" as the defect. The two steps are absent at
-                the ends rather than drawn dead, and both carry the selection. */}
-            <p>{COPY.pagePosition({ page, pageCount })}</p>
-            {page > 1 && <Link href={toolPath(toolRecordId, page - 1, selection)}>{COPY.previous}</Link>}
-            {page < pageCount && <Link href={toolPath(toolRecordId, page + 1, selection)}>{COPY.next}</Link>}
-        </>
+                    </span>
+                    <span role="columnheader">{COPY.toolItemLabel}</span>
+                    <span role="columnheader">{COPY.statusLabel}</span>
+                    <span role="columnheader">{COPY.jobLabel}</span>
+                </div>
+                {/* Oldest first, which is the link array's own order and so ascending
+                    `Tool Item ID` — the number a person reads off a label. Nothing sorts. */}
+                {rows.map((row) => {
+                    const selected = selection.includes(row.toolItemId);
+                    return (
+                        <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS} ${selected ? TABLE_ROW_SELECTED : ""}`}>
+                            <span role="cell" className="flex self-center">
+                                <Checkbox
+                                    label={COPY.selectToolItem(row.toolItemId)}
+                                    checked={selected}
+                                    onChange={() => replaceSelection(toggleToolItem(selection, row.toolItemId))}
+                                />
+                            </span>
+                            <span role="cell" className="min-w-0 truncate font-id text-body-sm tracking-id">
+                                <Link href={toolItemPath(row.toolItemId)} className={TABLE_ROW_LINK}>
+                                    {row.toolItemId}
+                                </Link>
+                            </span>
+                            <span role="cell" className="flex items-baseline gap-gap">
+                                <StatusMark status={row.status} />
+                                {row.status}
+                            </span>
+                            <span role="cell" className="min-w-0 truncate">
+                                {row.jobCode}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+            {children}
+        </ListFrame>
     );
 }

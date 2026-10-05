@@ -886,10 +886,10 @@ rather than a layout — so it is #258's to make.
 
 **The tools container holds the rail and nothing of a screen's own** (#460):
 a screen's measure, room and type are its own, read from the names the design's
-values are declared under. **The tool item's screen is drawn the design's way
-since #463** — 0n's record page at a desk, 1f's app screen on a phone — and the
-tool list and a tool's screen render unstyled beside the rail, which is the
-honest state rather than a draft to match.
+values are declared under. **Every tools screen is drawn the design's way since
+#463** — the tool item's as 0n's record page at a desk and 1f's app screen on a
+phone, the tool list and a tool's screen as 1a and 1b's lists, which hold their
+head still and scroll their rows under it.
 
 **The navigation shell is the tools screens' alone (#460).** The design drew a
 rail with every section on it and a breadcrumb above a record; the tools screens

@@ -901,7 +901,8 @@ export async function run({ check, assert, log }) {
     check(
         "a reader who may not register meets the opener disabled, with why before it",
         dialog.gate,
-        "!canRegister → Button disabled, disabledReason: COPY.noJob"
+        // In the look its opener asks for (#463): an empty list's second opener is bordered.
+        "!canRegister → Button variant: variant, disabled, disabledReason: COPY.noJob"
     );
     check(
         "and it is open only while the address is the one it was opened at",

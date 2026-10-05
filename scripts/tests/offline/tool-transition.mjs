@@ -589,7 +589,7 @@ export function run({ check, assert, log }) {
         offerable.filter((e) => !TOOL_TRANSITION_COPY.movedAct[e] || !TOOL_TRANSITION_COPY.eventNoun[e]).join(", "),
         ""
     );
-    check("  the noun hyphenated, as the design's checkout is not", Object.values(TOOL_TRANSITION_COPY.eventNoun).join(" | "), "check-out | check-in");
+    check("  the noun hyphenated, as the design writes it since 2026-10-05", Object.values(TOOL_TRANSITION_COPY.eventNoun).join(" | "), "check-out | check-in");
     check("  and the act a verb with none", Object.values(TOOL_TRANSITION_COPY.movedAct).join(" | "), "checked this out | checked this in");
 
     // IMPORTED RATHER THAN RE-SPELLED. Three words are the same control and the

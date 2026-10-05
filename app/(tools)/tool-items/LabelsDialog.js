@@ -122,7 +122,7 @@ const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-
  * item's page hands over; `toolItemIds` is what a tool's page has selected, read when
  * pressed. `toolName` is the line under the title.
  */
-export default function LabelsDialog({ title, toolName, run: handed, toolItemIds, disabled = false, variant = "filled" }) {
+export default function LabelsDialog({ title, toolName, run: handed, toolItemIds, disabled = false, disabledReason, variant = "filled" }) {
     const [open, setOpen] = useState(false);
     const [run, setRun] = useState(handed ?? null);
     const [pending, startTransition] = useTransition();
@@ -143,7 +143,7 @@ export default function LabelsDialog({ title, toolName, run: handed, toolItemIds
 
     return (
         <>
-            <Button variant={variant} disabled={disabled} onClick={press}>
+            <Button variant={variant} disabled={disabled} disabledReason={disabledReason} onClick={press}>
                 {title}
             </Button>
             {run && <LabelsFrame open={open} onClose={() => setOpen(false)} title={title} toolName={toolName} run={run} />}

@@ -13,8 +13,8 @@ Which units of this tool exist, and where is each of them?
 name somebody typed once — and each row here is one drill with one printed
 id stuck to it, a `Tool Items` row, which this brief calls a tool item.
 **The screen calls each one an `item`, the design's (#455)**: it counts
-`13 items` and heads their column `Item`, and a sentence about one elsewhere
-calls it a `tool`. Six of one drill is one tool and six items on this
+`13 items` and heads the column of their codes `Tool ID` (#463), and a
+sentence about one elsewhere calls it a `tool`. Six of one drill is one tool and six items on this
 screen.
 
 **It is reached from the tool list, and a registration lands on it (#449).**
@@ -32,8 +32,11 @@ reader recognizes, which is why the browser tab says only `Tool`.
 
 **It is used at a desk, and the tool item's screen is the one on this axis a
 phone shows** (#336). The width container lives in the layout with no width,
-no padding, no type and no color of a screen's own. Since #460 it holds the design's rail, and
-this screen's content renders unstyled beside it.
+no padding, no type and no color of a screen's own. Since #460 it holds the
+design's rail, and **since #463 this screen is drawn as 1b**: the breadcrumb
+and the list's head held still over a table whose column head holds while the
+rows scroll, the pager pinned at the foot and the selection bar floating over
+it while anything is selected.
 
 ## What it always carries
 
@@ -71,7 +74,9 @@ leaves this standing.
 item or takes it out. The page box selects every entry on this page, or, when
 all of them are selected already, takes this page out — and a page partly
 selected is completed rather than cleared. **The page box reaches this page and
-no further, and its own words say so:** `Select all on this page`. This screen
+no further, and its name says so:** `Select this page`, Design's (#463), where
+it said `Select all on this page` beside the box until the box moved into the
+column head with no words of its own. This screen
 reads its tool items a page at a time, so a render holds one page of printed
 ids and no more, and selecting the whole tool would need a read of every tool
 item under it — the cost the paging exists to avoid. It shows whether **none,
@@ -79,18 +84,18 @@ some or all of this page** is selected, and that is this page's answer alone,
 whatever is selected on another.
 
 **action.** A control that prints labels for **what is selected** (#353, #443),
-`Print labels`. **It names no range, and that is the point:** the boxes and the
-count beside it show what a press sends, which is what the control's words had
-to say while it sent the page it was on. It opens the labels' dialog on the
-selection, in the list's order — it opened the label screen with it until #457.
+`Print labels`, in the selection bar (0b, #463). **It names no range, and that
+is the point:** the boxes and the count beside it show what a press sends,
+which is what the control's words had to say while it sent the page it was on.
+It opens the labels' dialog on the selection, in the list's order — it opened
+the label screen with it until #457.
 
-**evidence.** One sentence standing with the print control, saying what a
-press would send: how many are selected — `3 selected` — or, when nothing is,
-why the control does not act (below). The words name no noun for what is
+**evidence.** The selection bar's count, saying what a press would send —
+`3 selected` — with a way out beside it. The words name no noun for what is
 selected; see below.
 
-**evidence.** How many tool items this tool has in total, `13 items`. #326 names this
-as the fact every list in this app is missing: without it nothing on
+**evidence.** How many tool items this tool has in total, `13 items`, under the
+heading. #326 names this as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
 holds** — which is why a single figure is right here and deliberately
@@ -102,15 +107,18 @@ three facts: its printed `Tool Item ID`, which is the way into that tool
 item's own screen; its status, one of `In stock`, `Out` or `Retired`; and
 the job it is on. Each carries its box as well; see above.
 
-**Oldest first is load-bearing rather than a default.** A link array is
-creation order and the ids in one registration are contiguous, so oldest
-first is also ascending id — the number a person reads off a label.
-Newest first would push every row along at each registration, so a link to
-a later page would name different tool items tomorrow.
+**Oldest first is load-bearing rather than a default, and stays where 1b
+draws the newest first (#463).** A link array is creation order and the ids in
+one registration are contiguous, so oldest first is also ascending id — the
+number a person reads off a label. Newest first would push every row along at
+each registration, so a link to a later page would name different tool items
+tomorrow.
 
 **evidence.** Which page of the list this is, and how many there are —
 stated whether or not there is a second page, because a position that
-appears only once a list is long leaves the short case saying nothing.
+appears only once a list is long leaves the short case saying nothing. The
+pager says which rows the page shows of how many, `1–25 of 38`, and which page
+of how many, `Page 1 of 2` (1b, #463).
 
 ## What it carries only sometimes
 
@@ -162,48 +170,47 @@ tools, which were written. `Not now` answers the first alone and `Got it` the
 second alone, so either can go and leave the other — after `Got it` the
 shortfall follows, and a reload between them opens whichever is left.
 
-**A step to the previous page**, when this is not the first one, and **a
-step to the next**, when this is not the last. Each is absent at its own
-end rather than drawn and dead, so a tool with one page carries neither.
+**A step to the previous page** and **a step to the next**, each acting
+when there is a page that way and drawn without acting at its own end — 1b's,
+where until #463 each was absent at its end.
 **A second page exists only for a tool with more than twenty-five tool
 items**, and that number counts every registration of the tool rather than
 one: registering more of a tool adds to the same list, and one registration
 can make up to a hundred. Both steps carry the selection, so what was
 selected on one page is still selected on the next.
 
-**When nothing is selected:** the sentence is the one the label screen said for
-the same state until #457, `Nothing is selected, so there is nothing to print.`,
-and the print control is drawn but does not act. Every arrival from the tool list
+**When nothing is selected:** no selection bar, 0b's (#463), where until
+then a sentence, `Nothing is selected, so there is nothing to print.`, stood
+beside a print control drawn and not acting. Every arrival from the tool list
 starts here; a registration's arrival does not, and neither does any other
-address carrying a selection. **It does not print
-the page instead** — that was the control's behavior until #443, and
-it is exactly what made its range a sentence rather than something on the
-screen. The page is one press of the page box away, and that press shows it.
-**The control stays drawn while it does not act**, because it is what tells a
-reader what the boxes are for; how an inactive control looks is the design's.
+address carrying a selection. **It does not print the page instead** — that
+was the control's behavior until #443, and it is exactly what made its range a
+sentence rather than something on the screen. The page is one press of the
+page box away, and that press brings the bar.
 
-**When something is selected:** a way to clear it, `Clear selection`, which
-empties the selection on every page at once. The page box already clears one
-page; this is the way out of a selection made on pages the reader is no longer
-on. Absent when there is nothing to clear, the way the steps are absent at
-their ends.
+**When something is selected:** the selection bar, 12 above the pager — its
+count, a way to clear it, and `Print labels`. The clear, named and tooltipped
+`Clear selection`, empties the selection on every page at once, and so does
+`Escape` while no dialog is open. The page box already clears one page; this
+is the way out of a selection made on pages the reader is no longer on.
 
-**When some of what is selected is not on this page:** the sentence says how
-many, `3 selected, 1 not on this page`, and says nothing of it otherwise. A
-selection outlives a page turn, so this is what reconciles the count with a
-page whose boxes show fewer — and it is the only place those tool items appear
-until the labels' dialog draws them.
+**When some of what is selected is not on this page:** the bar says how many
+after its count, `3 selected · 1 not on this page`, and says nothing of it
+otherwise. A selection outlives a page turn, so this is what reconciles the
+count with a page whose boxes show fewer — and it is the only place those tool
+items appear until the labels' dialog draws them.
 
-**When more are selected than one print takes:** `101 selected, and one print
-takes at most 100.`, and the print control does not act. The labels' dialog
+**When more are selected than one print takes:** the bar counts them,
+`101 selected`, and the print control does not act, with `One print takes at
+most 100.` before it. The labels' dialog
 reads a hundred at most (#457), and the label screen printed the first hundred
 of a longer run, so a press here would have printed less than it sent. It needs a tool with more than
 a hundred tool items, selected across pages.
 
-**When the tool has no tool items at all:** one sentence in place of the
-entries, `Nothing is recorded under this tool.` and then why that can
-happen — `Creating writes the tool before its items, so one that failed in
-between leaves the tool with none.` **This is
+**When the tool has no tool items at all:** in place of the entries, a
+heading and a sentence, `No items under this tool` and `If you were creating
+some, it stopped before any were saved.`, and under them a second, bordered
+`New tools` (1b, #463). **This is
 reachable and is not an error state**, the same way the tool item screen's
 missing history is: nothing rolls back, and the row that stands is sound.
 The total, the page position, the boxes and the print control are absent
@@ -221,12 +228,9 @@ for two.
 ## What must agree elsewhere
 
 **A page holds twenty-five tool items, the design's figure for the list as
-it drew it (#442), and how the position is expressed is still open.** This
-is the first paged list in the app. The screen currently states the
-position as a page number out of a count and offers one step in each
-direction; whether a reader is better served by that, by a
-count of what is left, or by something else entirely is a decision this
-screen has not made. **Twenty-five is the design's to move again** when
+it drew it (#442), and the design settled how the position is expressed
+(#463):** which rows the page shows of how many, which page of how many, and
+one step in each direction (1b). This is the first paged list in the app. **Twenty-five is the design's to move again** when
 the list is drawn again. It replaced ten, an estimate of a screenful made
 before any screen was drawn, and it is a design's figure rather than a
 measurement — nobody has yet read this list with a real warehouse in
@@ -298,13 +302,10 @@ here would mean reading every tool item under the tool, which is the cost
 the paging exists to avoid — this page reads only the entries it draws,
 whatever the tool's size.
 
-**The column over each code is `Item`, beside `Status` and `Job` (#455).** It
-said `Tool item` until then, on the ground that four other tables on this base
-hold item rows and a bare `item` names four things — stricter than the app's
-own rule, under which the modifier drops where nothing on the screen offers a
-second kind of item row. No tools screen shows a request's, an order's, an
-invoice's or a delivery's. `Status` and `Job` name one field each and are the
-words the tool item's own screen already uses for them.
+**The column over each code is `Tool ID`, beside `Status` and `Job` (#463).**
+It was `Item` from #455, the design's word then, and `Tool item` before it.
+`Status` and `Job` name one field each and are the words the tool item's own
+screen already uses for them.
 
 **Every id here links to `/tool-items/[toolItemId]`, and this is where a
 registration's ids are listed (#449).** The registration form listed them

@@ -65,6 +65,7 @@ import {
     describeSelection,
     pageHolding,
     pageOfToolItems,
+    pageOfTools,
     pageSelection,
     summarizeTools,
     togglePage,
@@ -100,7 +101,7 @@ function copyStrings() {
     for (const value of Object.values(TOOL_LIST_COPY)) {
         if (typeof value === "string") out.push(value);
         else if (typeof value === "function") {
-            out.push(value(2), value({ page: 2, pageCount: 3 }));
+            out.push(value(2), value({ page: 2, pageCount: 3, from: 26, to: 40, total: 40 }));
         }
     }
     return out.filter((s) => typeof s === "string");
@@ -125,6 +126,32 @@ const TOOL_ITEM_LIST = "app/(tools)/tools/[toolRecordId]/ToolItemList.js";
 /** The tool list, whose opener of the registration dialog section 2b reads off the AST (#456). */
 const LIST_SCREEN = "app/(tools)/tools/page.js";
 
+/** The frame both lists are drawn in, its parts, the box and the rail's column (#463). */
+const LIST_FRAME = "app/components/ListFrame.js";
+const LIST_TABLE = "app/components/ListTable.js";
+const CONTROLS = "app/components/Controls.js";
+const RAIL = "app/components/Rail.js";
+
+/** The source of the function `name` declares in a parsed file, or "" when there is none. */
+function functionSource(parsed, name) {
+    let found = "";
+    walk(parsed.ast, (n) => {
+        if (!found && n.type === "FunctionDeclaration" && n.id?.name === name) found = parsed.source.slice(n.start, n.end);
+    });
+    return found;
+}
+
+/** What a JSX element named `name` is handed for `prop`, as written, each occurrence once. */
+function propSources(parsed, name, prop) {
+    const out = [];
+    walk(parsed.ast, (n) => {
+        if (n.type !== "JSXOpeningElement" || n.name?.name !== name) return;
+        const attribute = n.attributes.find((a) => a.name?.name === prop);
+        if (attribute) out.push(attribute.value ? parsed.source.slice(attribute.value.start, attribute.value.end) : "true");
+    });
+    return out;
+}
+
 /** `(await searchParams) ?? {}`, `await searchParams` or `searchParams` — a page's address. */
 function isSearchParams(init) {
     let e = init;
@@ -141,12 +168,32 @@ function nameOf(node) {
 }
 
 /**
+ * A JSX element's attributes as name and value, a spread of an object the same file binds
+ * read as that object's own props (#463): two openers on one page hand one object, so what
+ * each is handed is read off the object rather than lost behind the spread.
+ */
+function attributesOf(openingElement, ast) {
+    const out = [];
+    for (const attribute of openingElement.attributes) {
+        if (attribute.type === "JSXSpreadAttribute" && attribute.argument?.type === "Identifier") {
+            let bound = null;
+            walk(ast, (n) => {
+                if (!bound && n.type === "VariableDeclarator" && n.id?.name === attribute.argument.name && n.init?.type === "ObjectExpression") bound = n.init;
+            });
+            for (const p of bound?.properties ?? [])
+                out.push({ name: p.key?.name, value: p.shorthand ? { type: "Identifier", name: p.key.name } : p.value });
+        } else out.push({ name: attribute.name?.name, value: attribute.value });
+    }
+    return out;
+}
+
+/**
  * What a `<RegistrationDialog>` is handed (#456), prop by prop and sorted: a name or a
  * member as `nameOf` reads it, a literal as its value, an object as its own props, and a
  * bare attribute as `true`. The opener carries what the registration's address carried
  * until #456, so these are what the three openers are held to.
  */
-function dialogProps(openingElement) {
+function dialogProps(openingElement, ast) {
     // A call reads as its callee and its arguments, so `canRegisterToolItems(user, jobs)`
     // is told from a literal `true` and from the same predicate asked of another list;
     // a function handed as an argument reads as `…`, since only its caller matters here.
@@ -168,8 +215,8 @@ function dialogProps(openingElement) {
                 .join(", ")} }`;
         return sourceOf(expression);
     };
-    return openingElement.attributes
-        .map((attribute) => `${attribute.name?.name}: ${valueOf(attribute.value)}`)
+    return attributesOf(openingElement, ast)
+        .map((attribute) => `${attribute.name}: ${valueOf(attribute.value)}`)
         .sort()
         .join(", ");
 }
@@ -910,9 +957,10 @@ export function run({ check, assert, log }) {
             if (Array.isArray(node)) return node.forEach((child) => visit(child, conditions));
             if (typeof node.type !== "string") return;
             if (node.type === "JSXOpeningElement" && node.name?.name === "RegistrationDialog") {
-                const canRegister = node.attributes.find((a) => a.name?.name === "canRegister")?.value?.expression;
+                const raw = attributesOf(node, ast).find((a) => a.name === "canRegister")?.value;
+                const canRegister = raw?.type === "JSXExpressionContainer" ? raw.expression : raw;
                 found.push({
-                    handed: dialogProps(node),
+                    handed: dialogProps(node, ast),
                     // What decides whether it may act, followed through a binding the page
                     // asked it into, so a literal and a second predicate both show.
                     asks:
@@ -931,8 +979,10 @@ export function run({ check, assert, log }) {
         })(ast, 0);
         return found;
     };
+    // TWO OPENERS EACH SINCE #463, HANDED ONE OBJECT: the head's, under no condition, and an
+    // empty list's second one, bordered, under the branch that draws the empty state (1a, 1b).
     const openers = dialogOpeners(parseFile(TOOL_SCREEN).ast);
-    check("the tool's page opens the registration dialog from one opener", openers.length, 1);
+    check("the tool's page opens the registration dialog from its head, and from an empty list", openers.length, 2);
     check(
         "  on this tool, with no count, in the dialog's own title",
         openers[0]?.handed,
@@ -940,8 +990,13 @@ export function run({ check, assert, log }) {
     );
     check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterToolItems");
     check("  and under no condition — not the list's, not the reader's", openers[0]?.conditions, 0);
+    check(
+        "  the empty list's the same opener, bordered, under the empty branch alone",
+        `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.conditions}`,
+        "canRegister: canRegister, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: { toolName: tool.toolName }, variant: bordered | canRegisterToolItems | 1"
+    );
     const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
-    check("the tool list opens it from one opener", listOpeners.length, 1);
+    check("the tool list opens it from its head, and from an empty list", listOpeners.length, 2);
     check(
         "  on no tool, in the same title, with the list's tools to suggest",
         listOpeners[0]?.handed,
@@ -949,6 +1004,11 @@ export function run({ check, assert, log }) {
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterToolItems");
     check("  and under no condition either", listOpeners[0]?.conditions, 0);
+    check(
+        "  the empty list's the same opener, bordered, under the empty branch alone",
+        `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.conditions}`,
+        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: rows.map(…), variant: bordered | canRegisterToolItems | 1"
+    );
     // THE COUNT BESIDE A SUGGESTED TOOL IS ITS LINK ARRAY'S LENGTH (#456) — the figure its
     // own page heads its list with — and never a sum of statuses, so one word says one
     // number on both screens. Read off the object the list hands the dialog for each tool
@@ -959,7 +1019,8 @@ export function run({ check, assert, log }) {
         let from = null;
         walk(parsed.ast, (n) => {
             if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationDialog") {
-                const tools = n.attributes.find((a) => a.name?.name === "tools")?.value?.expression;
+                const raw = attributesOf(n, parsed.ast).find((a) => a.name === "tools")?.value;
+                const tools = raw?.type === "JSXExpressionContainer" ? raw.expression : raw;
                 const body = tools?.type === "CallExpression" ? tools.arguments[0]?.body : null;
                 const property = body?.type === "ObjectExpression" ? body.properties.find((p) => p.key?.name === "count") : null;
                 if (property) count = parsed.source.slice(property.value.start, property.value.end);
@@ -1132,22 +1193,21 @@ export function run({ check, assert, log }) {
         `${ELSEWHERE},${LATER}`
     );
 
+    // NOTHING SELECTED DRAWS NO BAR (#463, 0b), so there is no sentence for it and no reason:
+    // the bar comes with the first box pressed.
     const noneSelected = describeSelection([], thisPage);
     check("nothing selected: print does not act", noneSelected.printable, false);
-    check(
-        "  and says this page's sentence for it, the label screen's until #457",
-        noneSelected.sentence,
-        "Nothing is selected, so there is nothing to print."
-    );
+    check("  and there is no bar to say anything", `${noneSelected.count} ${noneSelected.reason}`, "0 null");
     check("one selected: print acts", describeSelection([B], thisPage).printable, true);
-    check("  and says how many", describeSelection([B], thisPage).sentence, "1 selected");
+    check("  and the bar says how many", TOOL_LIST_COPY.selectedCount(describeSelection([B], thisPage).count), "1 selected");
     // Two on this page and one not, so the two counts differ: with one of each, a count
     // of the entries ON this page would read the same here — the one-selected case
     // above catches that swap too, so this is a second path to the claim.
+    const across = describeSelection([A, ELSEWHERE, B], thisPage);
     check(
-        "some of them not on this page: it says how many are not",
-        describeSelection([A, ELSEWHERE, B], thisPage).sentence,
-        "3 selected, 1 not on this page"
+        "some of them not on this page: it says how many are not, after the count",
+        `${TOOL_LIST_COPY.selectedCount(across.count)} · ${TOOL_LIST_COPY.notOnPage(across.notOnPage)}`,
+        "3 selected · 1 not on this page"
     );
     check("  and counts them", describeSelection([A, ELSEWHERE, B], thisPage).notOnPage, 1);
 
@@ -1164,11 +1224,8 @@ export function run({ check, assert, log }) {
     check("  and a hundred and one as a hundred and one", hundredAndOne.length, 101);
     check("a selection of a hundred prints", describeSelection(hundred, thisPage).printable, true);
     check("  and one of a hundred and one does not", describeSelection(hundredAndOne, thisPage).printable, false);
-    check(
-        "  and says why",
-        describeSelection(hundredAndOne, thisPage).sentence,
-        "101 selected, and one print takes at most 100."
-    );
+    check("  and says why before the control", describeSelection(hundredAndOne, thisPage).reason, "One print takes at most 100.");
+    check("  where one it takes has no reason", describeSelection(hundred, thisPage).reason, null);
     // The same edge from the address's side: a hundred and one values holding a repeat
     // are a hundred tool items, and print.
     const withRepeat = readToolItemIds([...hundred, hundred[0].toLowerCase()]);
@@ -1178,6 +1235,120 @@ export function run({ check, assert, log }) {
     // The address a page of this list lives at moved to lib/toolRoutes.js in
     // #348, with every other address on the axis; `offline/tool-routes.mjs`
     // holds it now.
+
+    // ── 2e: the tool list's pages, and the frame both lists are drawn in (#463) ─
+    log("");
+    log("the tool list pages its rows as a tool's own list does, and both are drawn in one frame:");
+    // THE TOOL LIST PAGES AT THE SAME 25 BY THE SAME CLAMP, over rows the page already built:
+    // reassembly over the lengths around both edges, and the window both lists share.
+    const rowsOf = (n) => Array.from({ length: n }, (_, at) => ({ id: `rec${at}` }));
+    const toolLengths = [0, 1, 24, 25, 26, 49, 50, 51];
+    const reassembled = toolLengths.filter((n) => {
+        const first = pageOfTools(rowsOf(n), 1);
+        const pages = Array.from({ length: first.pageCount }, (_, at) => pageOfTools(rowsOf(n), at + 1).rows.map((row) => row.id));
+        return pages.flat().join() === rowsOf(n).map((row) => row.id).join() && first.pageCount === Math.max(1, Math.ceil(n / 25));
+    });
+    check("the tool list's pages are the whole list, at every length around the edges", reassembled.join(), toolLengths.join());
+    const second = pageOfTools(rowsOf(40), "2");
+    check("  page 2 of 40 shows the 26th to the 40th", `${second.page}/${second.pageCount} ${second.from}–${second.to} of ${second.total}`, "2/2 25–40 of 40");
+    check("  a page past the end is the last, and an unreadable one the first", `${pageOfTools(rowsOf(26), "9").page} ${pageOfTools(rowsOf(26), "x").page}`, "2 1");
+    const disagreements = [];
+    for (const n of [0, 1, 25, 26, 51])
+        for (const asked of ["1", "2", "3", "x"]) {
+            const tools = pageOfTools(rowsOf(n), asked);
+            const items = pageOfToolItems(rowsOf(n).map((row) => row.id), asked);
+            if (`${tools.page} ${tools.pageCount} ${tools.from} ${tools.to}` !== `${items.page} ${items.pageCount} ${items.from} ${items.to}`) disagreements.push(`${n}/${asked}`);
+        }
+    check("  and the two lists' windows agree at every length and page asked", disagreements.join(), "");
+
+    // THE LIST PAGE READS ITS PAGE OFF THE ADDRESS AND DRAWS THAT PAGE'S ROWS, its steps
+    // through `toolsPath`, and no pager over an empty list.
+    const listScreen = parseFile(LIST_SCREEN);
+    let pagedWith = "none";
+    walk(listScreen.ast, (n) => {
+        if (n.type === "CallExpression" && n.callee?.name === "pageOfTools") pagedWith = n.arguments.map((a) => listScreen.source.slice(a.start, a.end)).join(", ");
+    });
+    check("the tool list cuts its built rows by the page asked for", pagedWith, "rows, sp.page");
+    check(
+        "  draws the page's rows, and steps through toolsPath",
+        `${/\{page\.rows\.map\(\(row\) =>/.test(listScreen.source)} ${propSources(listScreen, "Pager", "previous").join()} ${propSources(listScreen, "Pager", "next").join()}`,
+        "true {{ href: page.page > 1 ? toolsPath(page.page - 1) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? toolsPath(page.page + 1) : null, label: COPY.next }}"
+    );
+    check(
+        "  and draws no pager over an empty list",
+        propSources(listScreen, "ListFrame", "footer").map((f) => /^\{\s*rows\.length > 0 && \(\s*<Pager/.test(f)).join(),
+        "true"
+    );
+
+    // THE TOOL'S LIST FLOATS THE BAR WHILE ANYTHING IS SELECTED, and hands the print control
+    // what the selection makes of it, the reason with it.
+    const itemList = parseFile(TOOL_ITEM_LIST);
+    check(
+        "the tool's list shows the bar while anything is selected, and the end room with it",
+        `${propSources(itemList, "SelectionBar", "shown").join()} ${propSources(itemList, "ListFrame", "overlayShown").join()} ${/const selecting = summary\.count > 0;/.test(itemList.source)}`,
+        "{selecting} {selecting} true"
+    );
+    check(
+        "  and its print control acts on what one print takes, saying why it does not",
+        `${propSources(itemList, "LabelsDialog", "disabled").join()} ${propSources(itemList, "LabelsDialog", "disabledReason").join()} ${propSources(itemList, "LabelsDialog", "toolItemIds").join()}`,
+        "{!summary.printable} {summary.reason} {selection}"
+    );
+    check(
+        "  the page box shows this page all, some or none, by the page box's name",
+        `${propSources(itemList, "Checkbox", "checked").join(" | ")} ~ ${propSources(itemList, "Checkbox", "indeterminate").join()} ~ ${propSources(itemList, "Checkbox", "label").join(" | ")}`,
+        "{pageState === \"all\"} | {selected} ~ {pageState === \"some\"} ~ {COPY.selectPage} | {COPY.selectToolItem(row.toolItemId)}"
+    );
+    check(
+        "  and both steps carry the selection",
+        `${propSources(itemList, "Pager", "previous").join()} ${propSources(itemList, "Pager", "next").join()}`,
+        "{{ href: page.page > 1 ? toolPath(toolRecordId, page.page - 1, selection) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? toolPath(toolRecordId, page.page + 1, selection) : null, label: COPY.next }}"
+    );
+
+    // THE FRAME: one lane that holds the rows and stops at its end, a pager whose ground
+    // says whether rows run beneath it, and end room that grows by the bar's height.
+    const frame = parseFile(LIST_FRAME);
+    const frameSource = functionSource(frame, "ListFrame");
+    check(
+        "the frame marks its root for the column, and scrolls its rows in a lane of their own that stops at its end",
+        `${/data-list-frame=""/.test(frameSource)} ${/overflow-y-auto overscroll-y-contain \[scrollbar-gutter:stable\] \$\{SCROLL_LANE\}/.test(frameSource)}`,
+        "true true"
+    );
+    check(
+        "  rows run beneath the pager until the lane is at its end",
+        /setBeneath\(lane\.scrollTop \+ lane\.clientHeight < lane\.scrollHeight - 1\)/.test(frameSource),
+        true
+    );
+    check(
+        "  which is when its ground is the Sticky one under a Band, and plain white with no rule otherwise",
+        /beneath \? "border-divider-strong bg-background-translucent backdrop-blur-sm" : "border-transparent bg-white"/.test(frameSource),
+        true
+    );
+    check("  and the rows end on the pager's height, and the bar's too while it stands", /className=\{overlayShown \? END_ROOM_WITH_BAR : END_ROOM\}/.test(frameSource), true);
+    const rail = parseFile(RAIL);
+    check(
+        "the column holding a list scrolls nothing and reserves no lane",
+        /sm:has-\[>\[data-list-frame\]\]:overflow-y-hidden sm:has-\[>\[data-list-frame\]\]:\[scrollbar-gutter:auto\]/.test(rail.source),
+        true
+    );
+    const barSource = functionSource(frame, "SelectionBar");
+    check(
+        "the bar clears the selection on Escape, unless a dialog is open to close first",
+        /if \(event\.key !== "Escape" \|\| event\.defaultPrevented \|\| document\.querySelector\("dialog\[open\]"\)\) return;\s*onClear\(\);/.test(barSource),
+        true
+    );
+    check("  and while it does not show it cannot be reached", /inert=\{!shown\}/.test(barSource), true);
+    const table = parseFile(LIST_TABLE);
+    check(
+        "a step at its end is drawn and does not act, and a step with somewhere to go is a link",
+        /if \(!href\) \{\s*return \(\s*<button type="button" disabled aria-label=\{label\}/.test(functionSource(table, "PagerStep")) && /<Link href=\{href\} aria-label=\{label\}/.test(functionSource(table, "PagerStep")),
+        true
+    );
+    const checkbox = functionSource(parseFile(CONTROLS), "Checkbox");
+    check(
+        "the box is the browser's own checkbox under the drawing, named, its mixed state set on the element",
+        `${/type="checkbox"/.test(checkbox)} ${/aria-label=\{label\}/.test(checkbox)} ${/if \(box\) box\.indeterminate = indeterminate;/.test(checkbox)}`,
+        "true true true"
+    );
 
     // ── 3: the words ────────────────────────────────────────────────────────
     log("");
@@ -1218,15 +1389,29 @@ export function run({ check, assert, log }) {
     check("one item is singular", TOOL_LIST_COPY.total(1), "1 item");
     check("  and two are plural", TOOL_LIST_COPY.total(2), "2 items");
     check("  and none is plural too", TOOL_LIST_COPY.total(0), "0 items");
-    check("  the column over each one's code", TOOL_LIST_COPY.toolItemLabel, "Item");
+    check("  the column over each one's code, the design's since #463", TOOL_LIST_COPY.toolItemLabel, "Tool ID");
+    check(
+        "  and the head counts each list in its own noun",
+        `${TOOL_LIST_COPY.toolNoun(1)} ${TOOL_LIST_COPY.toolNoun(17)} ${TOOL_LIST_COPY.itemNoun(1)} ${TOOL_LIST_COPY.itemNoun(0)}`,
+        "tool tools item items"
+    );
     // THE TWO EMPTY STATES, which the sweep carried the verb and the noun into. The
     // second names the tool and what is under it, so it says `its items` rather than a
     // second `tool` meaning something else in one sentence.
-    check("no tool at all", TOOL_LIST_COPY.noTools, "No tools yet. One appears here when somebody creates it.");
     check(
-        "  and a tool with nothing under it",
-        TOOL_LIST_COPY.noToolItems,
-        "Nothing is recorded under this tool. Creating writes the tool before its items, so one that failed in between leaves the tool with none."
+        "no tool at all, a heading and a sentence (1a)",
+        `${TOOL_LIST_COPY.noToolsHeading} | ${TOOL_LIST_COPY.noTools}`,
+        "No tools yet | Each tool shows here with how many are in stock, out and retired."
+    );
+    check(
+        "  and a tool with nothing under it (1b)",
+        `${TOOL_LIST_COPY.noToolItemsHeading} | ${TOOL_LIST_COPY.noToolItems}`,
+        "No items under this tool | If you were creating some, it stopped before any were saved."
+    );
+    check(
+        "the pager's two figures, and its steps' names",
+        `${TOOL_LIST_COPY.range({ from: 26, to: 40, total: 40 })} | ${TOOL_LIST_COPY.pagePosition({ page: 2, pageCount: 2 })} | ${TOOL_LIST_COPY.previous} | ${TOOL_LIST_COPY.next}`,
+        "26–40 of 40 | Page 2 of 2 | Previous page | Next page"
     );
     assert(
         "the position names both figures",
@@ -1237,16 +1422,18 @@ export function run({ check, assert, log }) {
     // while `tool item` was decided against showing with its replacement still open, so
     // they said neither that nor `item`; #455 settled the word and left them alone. The
     // sentences are pinned in 2d; these are the controls'.
-    check("the page box", TOOL_LIST_COPY.selectPage, "Select all on this page");
+    check("the page box, Design's name for it", TOOL_LIST_COPY.selectPage, "Select this page");
     check("  an entry's box, named by its id", TOOL_LIST_COPY.selectToolItem(A), `Select ${A}`);
     check("  the way out", TOOL_LIST_COPY.clearSelection, "Clear selection");
+    check("  and the bar's name", TOOL_LIST_COPY.selectionBar, "Selected items");
     check(
-        "  and not one of the selection's words says `item`",
+        "  and not one of the selection's words says an item, the bar's name aside",
         [
             TOOL_LIST_COPY.selectPage,
             TOOL_LIST_COPY.clearSelection,
-            TOOL_LIST_COPY.selected({ count: 3, notOnPage: 1 }),
-            TOOL_LIST_COPY.selectionOverCap({ count: 101, cap: 100 }),
+            TOOL_LIST_COPY.selectedCount(3),
+            TOOL_LIST_COPY.notOnPage(1),
+            TOOL_LIST_COPY.printCap(100),
         ].filter((text) => /\bitems?\b/i.test(text)).length,
         0
     );

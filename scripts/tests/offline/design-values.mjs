@@ -163,8 +163,13 @@ const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
  * foot bar's 12 between its rows went to #463's tool item page, since no step page has
  * two. The steps declared their own names with them and read the account's avatar for an
  * address chip's.
+ * #463 took its own out with the tool item page and the two lists, which read the eight
+ * names still marked for it — 0b's row, column head and bleed, a list head's 20 above it,
+ * and the selection bar's four — and declared the lists' own with them, 1a and 1b's
+ * figures where the spec states none, and 0j's Badge and 0e's Ink 5 for the checkbox.
+ * No issue is marked to read a name next.
  */
-const READERS_TO_COME = [463];
+const READERS_TO_COME = [];
 
 /**
  * Every declaration in `app/designValues.css`, by value, with the issue that reads
@@ -180,6 +185,7 @@ const VALUES = [
     ["--height-control-inline", "1.625rem", null],
     ["--height-dialog-close", "1.75rem", null],
     ["--size-icon", "1rem", null],
+    ["--size-checkbox-mark", "0.75rem", null],
     ["--size-icon-sm", "0.875rem", null],
     ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
@@ -198,14 +204,28 @@ const VALUES = [
     ["--spacing-gap", "0.5rem", null],
     ["--spacing-gap-lg", "0.875rem", null],
     ["--spacing-nav-gap", "0.6875rem", null],
-    ["--spacing-list-header-inset-top", "1.25rem", 463],
-    ["--height-table-row", "2.5rem", 463],
-    ["--spacing-table-bleed", "0.75rem", 463],
-    ["--height-table-header", "2.25rem", 463],
-    ["--spacing-selection-bar-offset", "0.75rem", 463],
-    ["--spacing-selection-bar-inset", "0.5rem", 463],
-    ["--spacing-selection-bar-slide", "0.5rem", 463],
-    ["--transition-duration-selection-bar", "160ms", 463],
+    ["--spacing-list-header-inset-top", "1.25rem", null],
+    ["--height-table-row", "2.5rem", null],
+    ["--spacing-table-bleed", "0.75rem", null],
+    ["--height-table-header", "2.25rem", null],
+    ["--spacing-selection-bar-offset", "0.75rem", null],
+    ["--spacing-selection-bar-inset", "0.5rem", null],
+    ["--spacing-selection-bar-slide", "0.5rem", null],
+    ["--transition-duration-selection-bar", "160ms", null],
+    // 1a and 1b's drawings, where the spec states no figure — #463's lists.
+    ["--spacing-list-header-inset-bottom", "1.25rem", null],
+    ["--spacing-list-header-inline", "2.5rem", null],
+    ["--spacing-list-count-inline", "0.3125rem", null],
+    ["--spacing-table-column-gap", "1.25rem", null],
+    ["--width-table-count", "6rem", null],
+    ["--width-table-id", "15rem", null],
+    ["--width-table-status", "10rem", null],
+    ["--spacing-pager-inset-top", "1rem", null],
+    ["--spacing-pager-inset-bottom", "1.25rem", null],
+    ["--spacing-pager-gap", "1.5rem", null],
+    ["--spacing-pager-step-gap", "0.625rem", null],
+    ["--spacing-pager-step-offset", "0.8125rem", null],
+    ["--spacing-list-empty-inset-top", "15rem", null],
     // 0c · Blue
     ["--color-selected", "#F0F9FF", null],
     ["--color-selected-hover", "#E6F5FF", null],
@@ -221,6 +241,7 @@ const VALUES = [
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
     ["--color-foreground-subtle", "oklch(0.505 0.012 265)", null],
     ["--color-foreground-faint", "oklch(0.760 0.010 265)", null],
+    ["--color-skeleton", "oklch(0.800 0.010 265)", null],
     ["--spacing-separator-inline", "0.5625rem", null],
     ["--color-divider-subtle", "oklch(0.946 0.005 265)", null],
     ["--color-divider", "oklch(0.928 0.006 265)", null],
@@ -281,6 +302,7 @@ const VALUES = [
     ["--spacing-scroll-inset-bottom", "2.5rem", null],
     // 0j · Radius
     ["--radius-preview", "0.125rem", null],
+    ["--radius-badge", "0.25rem", null],
     ["--radius-control", "0.5rem", null],
     ["--radius-card", "0.625rem", null],
     ["--radius-dialog", "0.75rem", null],
@@ -370,8 +392,8 @@ const VALUES = [
     ["--spacing-label-fact-inline", "0.75rem", null],
     ["--spacing-label-fact-stack", "0.25rem", null],
     ["--width-log-track", "1.25rem", null],
-    ["--size-log-dot", "0.3125rem", null],
-    ["--spacing-log-dot-inset-top", "0.5rem", null],
+    ["--size-log-dot", "0.375rem", null],
+    ["--spacing-log-dot-inset-top", "0.4375rem", null],
     ["--spacing-log-rule-inset-top", "1.25rem", null],
     ["--spacing-log-rule-overhang", "0.1875rem", null],
     ["--spacing-log-line-stack", "0.1875rem", null],
