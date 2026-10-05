@@ -71,6 +71,12 @@ field shows. Nothing is sent.
 **When the request fails:** `Something went wrong. Try again.`, the one sentence
 this flow says for a request that did not happen.
 
+**When too many emails have been asked for:** `Too many requests. Try again later.`,
+in the same place (#148). The address stays in the field and `Continue` stays live.
+It says no time and reads the same for every address — a limit counts every
+company address alike, so the sentence tells nobody whether an address has an
+account, and a redesign must not make it say more.
+
 **When the email has been sent — the code step.** The first step is **replaced**,
 not supplemented, by:
 
@@ -99,9 +105,15 @@ for, so a phone that drops the tab while its owner reads the email comes back to
 the code step rather than to an empty address. `Change` is what ends that, and it
 is the only way back to the first step short of waiting out the fifteen minutes.
 
-**After `Resend email`:** the control reads `Email sent` for a few seconds and
-cannot be pressed meanwhile. The newest email's code is the only one this screen
-accepts — an earlier email's link still works, but its code does not.
+**`Resend email` waits a minute after every email (#148)**, the one `Continue` sent
+included, counted from the press. After a resend the control reads `Email sent`
+for a few seconds; then, and straight away when the step opens, it reads the time
+left — `Resend in 0:57` — which takes no press and is not read aloud; then the
+control comes back, which is. The step remembers when the email was asked for, so a
+reload counts on rather than starting over. A minute is what keeps somebody who
+presses the control each time it comes back from ever reaching the limit below. The
+newest email's code is the only one this screen accepts — an earlier email's link
+still works, but its code does not.
 
 **When a code is refused — two kinds.** Two refusals leave the boxes where they
 are, with the figures kept and one sentence under them, because another code can
@@ -133,6 +145,14 @@ told only to the screen that asked.
 **When checking a code or sending a new email fails** — not a wrong code, but a
 request that did not happen: `Something went wrong. Try again.`, where the first
 step says it. The figures stay, so `Sign in` tries again.
+
+**When too many emails have been asked for**, `Too many requests. Try again later.`
+by the control that asked. For `Resend email` it is the line under `Sign in`: at a
+desk between `Sign in` and `Didn't get it?`, on a phone in the place of that line,
+so the step still fits above the number pad. For `Send new email` on an ended code
+it stands where that step's refusal does. The control starts no wait, the step
+keeps everything it holds, the code of the email already sent still works, and the
+sentence goes at the next request.
 
 **A code that works says nothing.** The reader lands where they were going — or on
 the name step first, if this is their first sign-in — exactly as after the link.

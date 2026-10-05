@@ -357,6 +357,10 @@ const PINNED = [
     "Get a new code sent to",
     "Send new email",
     "Something went wrong. Try again.",
+    // #148 — what every control that asks for an email says when a ceiling holds it back,
+    // and `Resend email` while its wait runs, at the figure the brief shows.
+    "Too many requests. Try again later.",
+    "Resend in 0:57",
     "Add your name",
     "Use your @hanyangengusa.com address.",
     "Max 60 characters.",
@@ -689,6 +693,8 @@ export function run({ check, assert, log }) {
         ...stringsFrom(SIGN_IN_COPY),
         ...stringsFrom(CODE_COPY),
         CODE_COPY[CODE_STATES.WRONG](4),
+        // #148 — the wait's count takes a length, rendered at the figure the brief shows.
+        SIGN_IN_COPY.code.resendIn(57_000),
         // #473 — the name step's words, and the email field's one refusal at the domain
         // the briefs show, which is the one the environment holds: its builder takes the
         // domain, so it is rendered here with it rather than probed.

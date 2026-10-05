@@ -104,8 +104,9 @@ export function useField() {
 
 /**
  * The mark before a refusal: a circle and an exclamation, 16, in the ink of the sentence it
- * stands before (0l Actions, 0o, Tools 0a Field error). It was the dialog frame's own until
- * #473, when the sign-in screens drew the same mark before their refusals.
+ * stands before (0l Actions, Tools 0a Field error). It was the dialog frame's own until
+ * #473, when the sign-in screens drew the same mark before their refusals; #148's drawings
+ * gave a sign-in page's own refusal the info mark instead.
  */
 function AlertMark() {
     return (
@@ -117,11 +118,15 @@ function AlertMark() {
     );
 }
 
-/** The mark before what a notice says: a circle with an i in it, in Ink 2 (Tools 0a Notice). */
-function InfoMark() {
+/**
+ * The mark before what a notice says: a circle with an i in it, in Ink 2 — 18 in Tools 0a's
+ * Notice, and 16 beside a sentence on a sign-in page (#148), where the design draws its ring
+ * a touch heavier.
+ */
+export function InfoMark({ size = "size-mobile-alert-icon", ring = 1.4 }) {
     return (
-        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="size-mobile-alert-icon shrink-0 text-foreground-muted">
-            <circle cx="9" cy="9" r="7.3" stroke="currentColor" strokeWidth="1.4" />
+        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className={`${size} shrink-0 text-foreground-muted`}>
+            <circle cx="9" cy="9" r="7.3" stroke="currentColor" strokeWidth={ring} />
             <path d="M9 8v4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             <circle cx="9" cy="5.4" r="1" fill="currentColor" />
         </svg>
@@ -153,17 +158,14 @@ export function Notice({ children }) {
 }
 
 /**
- * A refusal about the whole of what a form asks — a dialog's (0l Actions) or a sign-in
- * page's (0o Refusal): the alert mark 8 before one sentence at 13, both in Red, and at 15 in
- * a sheet below the phone's edge (#458). The two were drawn alike and are one component
- * since #473; a sign-in page centers it under its fields.
+ * A refusal about the whole of what a form asks — a dialog's (0l Actions), and a tool item
+ * page's at a desk (#463): the alert mark 8 before one sentence at 13, both in Red, and at 15
+ * in a sheet below the phone's edge (#458). A sign-in page drew it too, centered under its
+ * fields, from #473 until #148's drawings set that refusal in Ink 2 behind the info mark.
  */
-export function Refusal({ align = "start", children }) {
+export function Refusal({ children }) {
     return (
-        <p
-            role="alert"
-            className={`flex items-center gap-gap text-body-sm text-danger max-sm:in-data-[sheet]:text-mobile-body-sm ${align === "center" ? "justify-center" : ""}`}
-        >
+        <p role="alert" className="flex items-center gap-gap text-body-sm text-danger max-sm:in-data-[sheet]:text-mobile-body-sm">
             <AlertMark />
             <span>{children}</span>
         </p>

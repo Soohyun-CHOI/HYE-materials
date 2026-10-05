@@ -1,6 +1,6 @@
 "use client";
 
-import { Notice, Refusal } from "@/app/components/Controls";
+import { InfoMark, Notice } from "@/app/components/Controls";
 import { SIGN_IN_COPY } from "@/lib/authTokenState";
 
 /*
@@ -69,21 +69,57 @@ export function AddressChip({ email, onChange, disabled = false }) {
 }
 
 /**
- * A refusal about the whole step — a request that did not happen. At a desk it is 0o's
- * line, the alert mark before one sentence in red, centered, 24 under the fields and 14 over
- * the action; on a phone it is the alert Tools 0a draws for what the reader did not cause
- * and cannot fix in place, 24 under the content. One of the two is drawn at any width, so
- * assistive tech hears the sentence once.
+ * A refusal of the page at a desk (0o's Refusal since #148's drawings): the 16 info mark 6
+ * before one sentence at 13, both in Ink 2, centered. It was the alert mark in red until
+ * then; red stays a field's refusal, and this is for what the reader did not cause and
+ * cannot fix in place — a request that did not happen, or one a ceiling held back.
+ */
+function DeskRefusal({ children }) {
+    return (
+        <p role="status" className="flex items-center justify-center gap-sign-in-refusal-gap text-body-sm text-foreground-muted">
+            <InfoMark size="size-icon" ring={1.5} />
+            <span>{children}</span>
+        </p>
+    );
+}
+
+/**
+ * A refusal about the whole step — a request that did not happen, or one #148's ceilings
+ * held back. At a desk it is 0o's line, 24 under the fields and 14 over the action; on a
+ * phone it is the alert Tools 0a draws for what the reader did not cause and cannot fix in
+ * place, 24 under the content. One of the two is drawn at any width, so assistive tech
+ * hears the sentence once.
  */
 export function PageRefusal({ children }) {
     return (
         <div className="mt-sign-in-form-stack">
             <div className="max-sm:hidden">
-                <Refusal align="center">{children}</Refusal>
+                <DeskRefusal>{children}</DeskRefusal>
             </div>
             <div className="sm:hidden">
                 <Notice>{children}</Notice>
             </div>
         </div>
+    );
+}
+
+/**
+ * A ceiling's refusal where `Resend email` asked (#148), by the control that asked rather
+ * than over the step's action. At a desk it is the same line as `PageRefusal`'s, 24 under
+ * `Sign in`, and the line it answers follows 14 under it; on a phone it stands in that
+ * line's place, its 16 mark 6 before the sentence at 15 in Ink 2, so the code step still
+ * fits above the keypad. One element at both widths, so it is heard once.
+ */
+export function ResendRefusal({ children }) {
+    return (
+        <p
+            role="status"
+            className="mt-sign-in-form-stack flex items-center justify-center gap-sign-in-refusal-gap text-body-sm text-foreground-muted max-sm:mt-mobile-code-help-stack max-sm:items-start max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"
+        >
+            <span className="flex h-[var(--text-body-sm--line-height)] items-center max-sm:h-[var(--text-mobile-body-sm--line-height)]">
+                <InfoMark size="size-icon" ring={1.5} />
+            </span>
+            <span>{children}</span>
+        </p>
     );
 }

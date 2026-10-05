@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requestMagicLink } from "@/lib/auth";
 import { CROSS_ORIGIN_REFUSAL, isCrossOrigin } from "@/lib/crossOrigin";
 import { clearPendingSignIn } from "@/lib/session";
+import { retryAfterSeconds } from "@/lib/signInLimit";
 import { withOpsLabel } from "@/lib/airtableOps";
 
 /**
@@ -15,10 +16,16 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * describes. The code route refuses the second half; refusing both is what keeps
  * one of them from being the only line.
  *
- * THE ANSWER SAYS NOTHING ABOUT THE ADDRESS. It is the same `{ ok: true }` for
+ * THE ANSWER SAYS NOTHING ABOUT WHO HAS AN ACCOUNT. It is the same `{ ok: true }` for
  * every company address, since the row is made whether or not anybody has signed
- * in with it — which is what keeps this route from telling a caller who has an
- * account. It carries neither the token nor the code, and nor does the cookie.
+ * in with it. Since #148 a request over a ceiling is answered `429` with
+ * `{ limited: true, retryAt }` instead — and the ceilings count those same rows, so
+ * every company address reaches them alike and the refusal says nothing about an
+ * account either. Neither answer carries the token or the code, and nor does the
+ * cookie.
+ *
+ * IT HANDS ON `x-forwarded-for` AS IT ARRIVED, the header Vercel overwrites with the
+ * address that connected — `lib/signInLimit.js:ipKeyOf` is what reads it.
  */
 export async function POST(request) {
     return withOpsLabel("POST /api/auth/request", async () => {
@@ -33,16 +40,24 @@ export async function POST(request) {
         }
 
         const baseUrl = new URL(request.url).origin;
+        const forwardedFor = request.headers.get("x-forwarded-for");
 
         // The destination is passed on unjudged and judged where the link is
         // built (#373): `confirmPath` calls the predicate itself, so no caller
         // of it — this one included — can put an unjudged value into a URL.
+        let asked;
         try {
-            await requestMagicLink(email, { baseUrl, destination });
+            asked = await requestMagicLink(email, { baseUrl, destination, forwardedFor });
         } catch (err) {
             return NextResponse.json({ error: err.message }, { status: 400 });
         }
 
+        if (asked.limited) {
+            return NextResponse.json(
+                { limited: true, retryAt: asked.retryAt },
+                { status: 429, headers: { "Retry-After": String(retryAfterSeconds(asked.retryAt)) } }
+            );
+        }
         return NextResponse.json({ ok: true });
     });
 }

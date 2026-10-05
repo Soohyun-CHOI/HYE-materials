@@ -408,6 +408,7 @@ const VALUES = [
     ["--spacing-sign-in-header-stack", "2rem", null],
     ["--spacing-sign-in-form-stack", "1.5rem", null],
     ["--spacing-sign-in-form-inline", "0.75rem", null],
+    ["--spacing-sign-in-refusal-gap", "0.375rem", null],
     ["--spacing-avatar-chip-inset-left", "0.25rem", null],
     ["--spacing-avatar-chip-inset-right", "0.75rem", null],
     ["--size-code-slot", "3.25rem", null],
