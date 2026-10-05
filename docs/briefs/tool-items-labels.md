@@ -288,9 +288,9 @@ until #449, which moved a registration's run onto the tool's own page — the
 registration lands there with what it wrote selected, and that page's control is
 how its labels are printed.
 
-**A tool's page opens this on what its list has selected (#443)**, in the list's
-order, and its control says only `Print labels`, because the boxes on that page
-show the range. The selection went on this screen's address as its own parameter
+**A tool's page opens this on what its list has selected (#443)**, in ascending
+id, the list's order until the list turned newest first (#463), and its control
+says only `Print labels`, because the boxes on that page show the range. The selection went on this screen's address as its own parameter
 until #457, and the page it was showing went there before #443. Its page box
 still selects a page at a time, so a page fits inside the hundred one print
 takes, and that page refuses a selection larger than that rather than opening a

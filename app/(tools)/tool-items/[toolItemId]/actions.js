@@ -266,7 +266,7 @@ function refuse(error, moved = null) {
 
 /**
  * The refusal for a press somebody else's scan got in front of (#463): the design names
- * them and the moment — `Jisoo Park checked this out a moment ago. Your checkout wasn't
+ * them and the moment — `Jisoo Park checked this out a moment ago. Your check-out wasn't
  * saved.` (1g) — so this reads the tool item's latest `Tool Log` row and who recorded it.
  *
  * THE LATEST ROW IS THE LINK ARRAY'S LAST, which is creation order and for an append-only

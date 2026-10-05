@@ -29,10 +29,11 @@
 //   that a press rewrites the address without a render — so those are read off the
 //   AST of the page and of the list, each beside a planted screen doing it wrong.
 //
-//   AND A REGISTRATION LANDS HERE (#449), which splits the same way once more. Which
-//   page it lands on is `pageHolding`, held by value at the edges a page of
-//   twenty-five has inside a hundred, with those edges first read off
-//   `pageOfToolItems`; what the page reads for the account it lands with, what it
+//   AND A REGISTRATION LANDS HERE (#449), which splits the same way once more. That
+//   what it wrote opens the first page is `pageOfToolItems`' newest first, held by
+//   value over a tool that already fills pages (#463), where `pageHolding` held the
+//   page by its edges while the list read oldest first; what the page reads for the
+//   account it lands with, what it
 //   hands the fork, and what the fork's dismissal does to the address are read off
 //   the AST beside planted versions doing each wrong. So is the control that opens
 //   the form from the page (#451): what it is handed, what it says, and that no
@@ -63,7 +64,6 @@ import {
     TOOL_LIST_COPY,
     TOOL_PAGE_SIZE,
     describeSelection,
-    pageHolding,
     pageOfToolItems,
     pageOfTools,
     pageSelection,
@@ -78,11 +78,14 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "What the two tools list screens show (#339)";
 
-/** Three tools, one of them with nothing under it, named out of alphabetical order. */
+/**
+ * Three tools, one of them with nothing under it, named out of alphabetical order and made
+ * in an order that is neither the array's nor the names', either way round (#463).
+ */
 const TOOLS = [
-    { id: "recGrinder", toolName: "angle grinder", toolItems: ["i1", "i2", "i3"] },
-    { id: "recDriver", toolName: "Impact Driver", toolItems: ["i4"] },
-    { id: "recNothing", toolName: "Cordless Drill", toolItems: [] },
+    { id: "recGrinder", toolName: "angle grinder", createdTime: "2026-09-10T15:04:05.000Z", toolItems: ["i1", "i2", "i3"] },
+    { id: "recDriver", toolName: "Impact Driver", createdTime: "2026-09-20T08:00:00.000Z", toolItems: ["i4"] },
+    { id: "recNothing", toolName: "Cordless Drill", createdTime: "2026-09-01T23:59:59.000Z", toolItems: [] },
 ];
 
 const ITEMS = [
@@ -125,6 +128,9 @@ const TOOL_ITEM_LIST = "app/(tools)/tools/[toolRecordId]/ToolItemList.js";
 
 /** The tool list, whose opener of the registration dialog section 2b reads off the AST (#456). */
 const LIST_SCREEN = "app/(tools)/tools/page.js";
+
+/** Where a `Tools` row becomes the object the list orders, read for the time it carries (#463). */
+const TOOLS_TABLE = "lib/airtable/tools.js";
 
 /** The frame both lists are drawn in, its parts, the box and the rail's column (#463). */
 const LIST_FRAME = "app/components/ListFrame.js";
@@ -297,10 +303,56 @@ export function run({ check, assert, log }) {
     assert("a tool with no tool items is still a row", Boolean(nothing));
     check("  and its counts are three zeros", nothing.counts.map((c) => c.count).join(), "0,0,0");
 
+    // NEWEST FIRST, BY WHEN EACH ROW WAS MADE (#463), where it was by name until then. The
+    // input is first seen to be in an order that is none of the wrong answers — the array's
+    // either way round, the names' either way round — so the expected order cannot be any
+    // of them arrived at by accident.
+    const orderOf = (list) => list.map((t) => t.toolName).join(" | ");
+    const byName = [...TOOLS].sort((a, b) => a.toolName.localeCompare(b.toolName, "en", { sensitivity: "base" }));
+    const wrongAnswers = [TOOLS, [...TOOLS].reverse(), byName, [...byName].reverse()].map(orderOf);
+    check("the fixture's four wrong orders are four", new Set(wrongAnswers).size, 4);
+    check("the newest tool first, by when its row was made", orderOf(rows), "Impact Driver | angle grinder | Cordless Drill");
+    assert("  which is none of the four", !wrongAnswers.includes(orderOf(rows)));
+    // Two rows made at one instant go by name, case-insensitively; a row with no time,
+    // which no read produces, goes after every one that has one.
+    const sameInstant = summarizeTools(
+        [
+            { id: "recB", toolName: "band saw", createdTime: "2026-09-20T08:00:00.000Z", toolItems: [] },
+            { id: "recUntimed", toolName: "Anvil", toolItems: [] },
+            { id: "recA", toolName: "Arc Welder", createdTime: "2026-09-20T08:00:00.000Z", toolItems: [] },
+            { id: "recOld", toolName: "Chisel", createdTime: "2026-01-02T00:00:00.000Z", toolItems: [] },
+        ],
+        []
+    );
     check(
-        "the order is by name, case-insensitively",
-        rows.map((r) => r.toolName).join(" | "),
-        "angle grinder | Cordless Drill | Impact Driver"
+        "  two made at one instant go by name, and one with no time goes last",
+        orderOf(sameInstant),
+        "Arc Welder | band saw | Chisel | Anvil"
+    );
+
+    // THE TIME THE ORDER READS COMES OFF EVERY RECORD (#463). A mapper that dropped it would
+    // leave every row at no time, and the list would fall back to names with nothing on the
+    // screen to say so. The mapper reaches lib/airtable/client.js, so it is read off its
+    // source, beside a planted one reading a field `Tools` does not carry.
+    const madeAtRead = ({ ast, source }) => {
+        let value = "none";
+        walk(ast, (n) => {
+            if (n.type !== "FunctionDeclaration" || n.id?.name !== "recordToTool") return;
+            walk(n, (p) => {
+                if (p.type === "Property" && p.key?.name === "createdTime") value = source.slice(p.value.start, p.value.end);
+            });
+        });
+        return value;
+    };
+    check(
+        "every tool carries when its row was made, off the record itself",
+        madeAtRead(parseFile(TOOLS_TABLE)),
+        "record._rawJson?.createdTime ?? null"
+    );
+    check(
+        "  and a mapper reading a field the table does not carry is seen",
+        madeAtRead(parseSource('function recordToTool(record) { return { id: record.id, createdTime: record.get("Created At") }; }', "<planted-mapper>")),
+        'record.get("Created At")'
     );
 
     // ANTI-VACUITY: the summarizer is seen counting something other than zero for
@@ -364,10 +416,11 @@ export function run({ check, assert, log }) {
         const first = pageOfToolItems(all, 1);
         check(`  ${n} tool items make ${pages} page${pages === 1 ? "" : "s"}`, first.pageCount, pages);
 
-        // THE ASSERTION THIS FILE IS FOR: every page, in order, is the whole list.
+        // THE ASSERTION THIS FILE IS FOR: every page, in order, is the whole list — newest
+        // first since #463, the link array turned over.
         const reassembled = [];
         for (let p = 1; p <= first.pageCount; p++) reassembled.push(...pageOfToolItems(all, p).ids);
-        check(`    and the pages reassemble into it`, reassembled.join(), all.join());
+        check(`    and the pages reassemble into it, newest first`, reassembled.join(), [...all].reverse().join());
         check(`    with the total stating the whole list`, first.total, n);
     }
 
@@ -380,11 +433,14 @@ export function run({ check, assert, log }) {
     // page 1 three times.
     const fiftyTwo = idsOfLength(52);
     check("fifty-two tool items make three pages", pageOfToolItems(fiftyTwo, 1).pageCount, 3);
-    check("  page 1 holds the first twenty-five", pageOfToolItems(fiftyTwo, 1).ids.length, 25);
-    check("  page 2 opens on the twenty-sixth", pageOfToolItems(fiftyTwo, 2).ids[0], "rec025");
-    check("  and closes on the fiftieth", pageOfToolItems(fiftyTwo, 2).ids.at(-1), "rec049");
+    // NEWEST FIRST (#463): the array's last opens page 1, and its first closes the list.
+    check("  page 1 holds the newest twenty-five", pageOfToolItems(fiftyTwo, 1).ids.length, 25);
+    check("  opening on the newest of all", pageOfToolItems(fiftyTwo, 1).ids[0], "rec051");
+    check("  page 2 opens on the twenty-sixth newest", pageOfToolItems(fiftyTwo, 2).ids[0], "rec026");
+    check("  and closes on the fiftieth", pageOfToolItems(fiftyTwo, 2).ids.at(-1), "rec002");
     check("  and page 3 holds the remaining two", pageOfToolItems(fiftyTwo, 3).ids.length, 2);
-    check("  which are the last two, in order", pageOfToolItems(fiftyTwo, 3).ids.join(), "rec050,rec051");
+    check("  which are the oldest two, newest first", pageOfToolItems(fiftyTwo, 3).ids.join(), "rec001,rec000");
+    check("  and the link array it was handed is left as it was", fiftyTwo[0], "rec000");
 
     log("");
     log("a page nobody can be on resolves to one they can:");
@@ -403,47 +459,30 @@ export function run({ check, assert, log }) {
     check("an empty tool has one page, not none", pageOfToolItems([], 1).pageCount, 1);
     check("  and that page is empty", pageOfToolItems([], 1).ids.length, 0);
 
-    // WHERE A REGISTRATION LANDS (#449): the page holding the first tool item it wrote,
-    // whose position is the length the tool's link array had before the batch. THE
-    // INPUTS ARE SEEN TO BE EDGES BEFORE ANYTHING IS ASKED OF `pageHolding` — read off
-    // `pageOfToolItems`, the other function that decides where a page begins — so each
-    // literal below is a claim about a boundary rather than a number that happens to
-    // agree, which is what #442 found a twelve-row fixture failing to be.
+    // WHERE A REGISTRATION LANDS (#449): the first page since #463, because the list reads
+    // newest first and what a registration wrote is the newest its tool holds. Its tool
+    // items are appended to the tool's link array, so they are seen opening page 1 of a tool
+    // that already fills a page, the last written first, and a run longer than a page going
+    // on to page 2 — which is what the action's landing on page 1 rests on, and
+    // `offline/tool-registration.mjs` reads that 1 off its redirect. Until #463 the landing
+    // was `pageHolding`'s page, held here by its edges.
     log("");
-    log("a registration lands on the page holding the first tool item it wrote:");
-    const positions = idsOfLength(100);
-    check("position 24 is the last page 1 holds", pageOfToolItems(positions, 1).ids.at(-1), positions[24]);
-    check("  and 25 the first page 2 holds", pageOfToolItems(positions, 2).ids[0], positions[25]);
+    log("what a registration wrote opens the first page, newest first:");
+    const before = idsOfLength(30);
+    const written = Array.from({ length: 14 }, (_, i) => `new${String(i).padStart(3, "0")}`);
+    check("  the tool already fills a page", pageOfToolItems(before, 1).pageCount, 2);
     check(
-        "  49 the last of page 2, and 50 the first of page 3",
-        `${pageOfToolItems(positions, 2).ids.at(-1)} ${pageOfToolItems(positions, 3).ids[0]}`,
-        `${positions[49]} ${positions[50]}`
+        "  a registration's fourteen open page 1, the last written first",
+        pageOfToolItems([...before, ...written], 1).ids.slice(0, 14).join(),
+        [...written].reverse().join()
     );
-    check("  and 99 the last of page 4", pageOfToolItems(positions, 4).ids.at(-1), positions[99]);
-    for (const [position, want] of [
-        [0, 1],
-        [24, 1],
-        [25, 2],
-        [49, 2],
-        [50, 3],
-        [99, 4],
-    ])
-        check(`  a tool item at position ${position} is on page ${want}`, pageHolding(position), want);
-    // A SECOND PATH TO THE SAME ANSWER: every one of a hundred positions is on the page
-    // `pageHolding` names, found through `pageOfToolItems`' own slice rather than its
-    // arithmetic — which is what fails a divisor or a base drifting from the list's.
+    check("  and the tool's newest before them follows", pageOfToolItems([...before, ...written], 1).ids[14], "rec029");
+    const run = Array.from({ length: 30 }, (_, i) => `run${String(i).padStart(3, "0")}`);
     check(
-        "  and every one of a hundred is on the page it names",
-        positions.filter((id, position) => !pageOfToolItems(positions, pageHolding(position)).ids.includes(id)).length,
-        0
+        "  a run longer than a page fills page 1 and goes on to page 2",
+        `${pageOfToolItems([...before, ...run], 1).ids.every((id) => id.startsWith("run"))} ${pageOfToolItems([...before, ...run], 2).ids.slice(0, 5).join()}`,
+        "true run004,run003,run002,run001,run000"
     );
-    for (const [raw, why] of [
-        [-1, "a negative"],
-        [2.5, "a fraction"],
-        [undefined, "nothing"],
-        ["25", "a string"],
-    ])
-        check(`  ${why} is page 1`, pageHolding(raw), 1);
 
     // ── 2b: the screen reads one page, and its list selects among it (#442, #443) ─
     log("");
@@ -1149,12 +1188,13 @@ export function run({ check, assert, log }) {
     const ELSEWHERE = "HYE-TL-260910-001";
     const thisPage = [A, B, C];
 
-    // THE LIST'S ORDER, WHATEVER ORDER THE BOXES WERE PRESSED IN — oldest first, so the
-    // labels print the way the list reads. ELSEWHERE is a later day, so it sorts after
-    // the page even when it was selected first.
-    check("a press adds an entry, in the list's order", toggleToolItem([ELSEWHERE], B).join(), `${B},${ELSEWHERE}`);
+    // ASCENDING ID, WHATEVER ORDER THE BOXES WERE PRESSED IN — the order a run prints in,
+    // which was the list's own until #463 turned the list newest first and left the
+    // selection as it was. ELSEWHERE is a later day, so it sorts after the page even when
+    // it was selected first.
+    check("a press adds an entry, in ascending id", toggleToolItem([ELSEWHERE], B).join(), `${B},${ELSEWHERE}`);
     check("  a second press takes it out again", toggleToolItem([B, ELSEWHERE], B).join(), ELSEWHERE);
-    check("  and what is left is in the list's order too", toggleToolItem([C, A, B], A).join(), `${B},${C}`);
+    check("  and what is left is in ascending id too", toggleToolItem([C, A, B], A).join(), `${B},${C}`);
     // BY THE SEQUENCE AS A NUMBER: a day's thousandth tool item follows its 999th, where
     // a sort of the strings would put `-1000` first.
     check(
@@ -1188,7 +1228,7 @@ export function run({ check, assert, log }) {
     // what is left is a fact this asserts rather than one a single survivor hides.
     const LATER = "HYE-TL-260911-001";
     check(
-        "  and what it keeps is in the list's order",
+        "  and what it keeps is in ascending id",
         togglePage([LATER, A, B, C, ELSEWHERE], thisPage).join(),
         `${ELSEWHERE},${LATER}`
     );

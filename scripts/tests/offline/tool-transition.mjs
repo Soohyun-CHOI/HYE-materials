@@ -301,7 +301,7 @@ export function run({ check, assert, log }) {
     // and without it the instruction could come back with nothing failing. The
     // status is deliberately NOT named — the header above it says so, freshly.
     assert("  saying that the press was not saved", /wasn't saved/i.test(stale.refusal));
-    assert("  and that the change on screen is somebody else's", /somebody else/i.test(stale.refusal));
+    assert("  and that the change on screen is someone else's", /someone else/i.test(stale.refusal));
     // AND IT SAYS IT IS THE STALE ONE (#463), which is what the action reads the latest entry
     // for: the design names who recorded first and when (1g), which this function cannot know.
     check("  marked as the stale refusal", stale.stale, true);
@@ -539,12 +539,12 @@ export function run({ check, assert, log }) {
     check(
         "  naming nobody when nobody resolved",
         TOOL_TRANSITION_COPY.moved({ by: null, event: TOOL_EVENT.CHECKED_IN, when: "09/25/2026 2:14 PM", attempted: TOOL_EVENT.CHECKED_OUT }),
-        "Somebody else checked this in on 09/25/2026 2:14 PM. Your check-out wasn't saved."
+        "Someone else checked this in on 09/25/2026 2:14 PM. Your check-out wasn't saved."
     );
     check(
         "  and no entry at all when none was read",
         TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }),
-        "Somebody else scanned this first. Your check-in wasn't saved."
+        "Someone else scanned this first. Your check-in wasn't saved."
     );
     check(
         "  and the one for a move",

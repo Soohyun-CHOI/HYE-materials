@@ -120,7 +120,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
 - `lib/toolLabelPage.js` — the page a tool label prints as (#353, #467).
 - `lib/toolTransition.js` — what a person may record against a tool item (#362, #363): the two transitions, which of them asks first (#458), the refusals, and every word it says.
-- `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, which tool items a label run is for (#443), the page a registration lands on (#449), and their own words.
+- `lib/toolListView.js` — the two tools list screens (#339), the app's first paging, which tool items a label run is for (#443), and their own words.
 - `lib/materialHistory.js` — the two queries behind `/materials` and `/materials/[materialId]`, and the per-row identifier gate.
 - `lib/materialPriceView.js` — the view rules for those screens: row ordering, the lowest-price mark, the quantity caveat, and `MATERIAL_SEARCH_COPY` (#357).
 - `lib/poItemQty.js` — what leaves an order open: `uninvoicedQty`, `hasUninvoicedQty`, `countsAsOrdered`, and `hasUninvoicedItems` per order.

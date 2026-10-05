@@ -95,9 +95,9 @@ export const metadata = { title: "Tool" };
  * DRAWN AS 1b (#463): the breadcrumb and the list's head with how many items the tool has,
  * held still over the rows, the selection bar floating over the pinned pager while anything
  * is selected — `ListFrame.js` and `ListTable.js` for the parts, `ToolItemList.js` for the
- * rows, the boxes and the bar, which read the selection off the address. **Oldest first
- * still**, where 1b draws the newest first: a page's edges must not move under a link to it
- * (`pageOfToolItems`), which the drawing does not weigh.
+ * rows, the boxes and the bar, which read the selection off the address. **Newest first,
+ * as 1b draws it** (`pageOfToolItems`), so a registration moves every page's edges, which
+ * was accepted: the selection is printed ids and moves with nothing.
  *
  * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — see the layout (#336), lib/toolListView.js
  * for the rules and lib/toolRoutes.js for the addresses.

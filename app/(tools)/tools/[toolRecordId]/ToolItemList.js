@@ -111,7 +111,7 @@ export default function ToolItemList({ toolRecordId, toolName, rows, page, top, 
             }
             // The bar comes with the first box pressed and goes with the last (0b): the count,
             // how many are on other pages, the way out, and the print control, which opens the
-            // labels' dialog on the selection as it stands, in the list's order, under this
+            // labels' dialog on the selection as it stands, in ascending id, under this
             // tool's name (#457) — and says why it does not act on more than one print takes.
             overlay={
                 <SelectionBar
@@ -150,8 +150,8 @@ export default function ToolItemList({ toolRecordId, toolName, rows, page, top, 
                     <span role="columnheader">{COPY.statusLabel}</span>
                     <span role="columnheader">{COPY.jobLabel}</span>
                 </div>
-                {/* Oldest first, which is the link array's own order and so ascending
-                    `Tool Item ID` — the number a person reads off a label. Nothing sorts. */}
+                {/* Newest first, the link array turned over by `pageOfToolItems` (#463).
+                    Nothing here sorts. */}
                 {rows.map((row) => {
                     const selected = selection.includes(row.toolItemId);
                     return (

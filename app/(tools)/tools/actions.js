@@ -7,7 +7,6 @@ import { upsertTool } from "@/lib/airtable/tools";
 import { createToolItems } from "@/lib/airtable/toolItems";
 import { createFirstToolLogEntries } from "@/lib/airtable/toolLog";
 import { assignedJobsFor } from "@/lib/toolJob";
-import { pageHolding } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY, readRegistration } from "@/lib/toolRegistration";
 import { toolPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -39,16 +38,20 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * it sends anything, so the two cannot refuse differently.
  *
  * WHAT IT WROTE IS SAID BY LANDING ON IT (#449). A registration that writes a tool
- * item redirects to its tool's page, on the page of that list holding the first tool
- * item it wrote, with every one it wrote selected — so the ids survive a reload and
- * their labels are one press of that page's print control. The address also carries
- * the two things the landing cannot show: how many were asked for and not written —
- * with how many were asked for beside it, since #455's `3 of 5 tools created` needs
- * both — and which of those written have no `Created` row (`toolPath`'s fourth
- * argument, read back by `readRegistrationAccount`). Both halves of the address
- * were in hand without a read: `upsertTool` returns the row it found or made, and
- * that row's `Tool Items` array is the one it had before this batch, so its length
- * is the position the first new tool item takes.
+ * item redirects to its tool's page, on the list's first page, with every one it wrote
+ * selected — so the ids survive a reload and their labels are one press of that page's
+ * print control. The address also carries the two things the landing cannot show: how
+ * many were asked for and not written — with how many were asked for beside it, since
+ * #455's `3 of 5 tools created` needs both — and which of those written have no
+ * `Created` row (`toolPath`'s fourth argument, read back by `readRegistrationAccount`).
+ * The record id was in hand without a read: `upsertTool` returns the row it found or
+ * made.
+ *
+ * THE FIRST PAGE, BECAUSE THE LIST READS NEWEST FIRST (#463). What a registration wrote
+ * is the newest the tool holds, so it begins the list whatever the tool held before,
+ * and a run longer than a page goes on to the next. Until #463 the list read oldest
+ * first and the landing was the page holding the first tool item written, at the
+ * position the row's `Tool Items` array had reached before this batch.
  *
  * THE TOOL IS FOUND BY THE NAME SUBMITTED, FROM EVERY OPENER. A tool's page and the offer
  * open the dialog on that tool and submit its name as a hidden field, and the list's
@@ -78,13 +81,13 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * is why the landing selects every minted id rather than counting them.
  *
  * TWO THINGS NOBODY HAS OBSERVED, RECORDED WHERE THEY WOULD BE MET. A registration of
- * the same tool in another invocation, landing between `upsertTool`'s read and this
- * batch, moves where this one's tool items sit, so the landing can open a page early;
- * the selection is by id, so the list's own sentence still says how many are not on
- * it. And a THROW — from `upsertTool`, or from the day-prefix query `createToolItems`
- * makes before its first create — reaches no line in the dialog, as it reached none on
- * the form before #449: it fails before anything this action could word, where the
- * refusal below is for a batch that ran and wrote none.
+ * the same tool in another invocation, writing after this batch and before the landing
+ * renders, puts its tool items above this one's, so some of what this one wrote can
+ * stand on the next page; the selection is by id, so the selection bar still says how
+ * many are not on this one. And a THROW — from `upsertTool`, or from the day-prefix
+ * query `createToolItems` makes before its first create — reaches no line in the
+ * dialog, as it reached none on the form before #449: it fails before anything this
+ * action could word, where the refusal below is for a batch that ran and wrote none.
  */
 export async function registerToolItemsAction(prevState, formData) {
     return withOpsLabel("registerToolItemsAction", async () => {
@@ -142,7 +145,7 @@ export async function registerToolItemsAction(prevState, formData) {
         redirect(
             toolPath(
                 tool.id,
-                pageHolding(tool.toolItems.length),
+                1,
                 created.map((toolItem) => toolItem.toolItemId),
                 { asked: count, unwritten: count - created.length, unlogged }
             )

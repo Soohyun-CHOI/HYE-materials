@@ -311,7 +311,7 @@ one job the event goes on.
 
 **A refusal of the press, under the status in the title block** — a phone's
 notice and a desk's refusal line (1g) — or above the dialog's actions while a
-dialog stands open for it (#458). Those that reach it: somebody else has
+dialog stands open for it (#458). Those that reach it: someone else has
 already recorded something, so the press was not saved; the job submitted is
 not one of the reader's; the tool item carries no such id; and the event was
 recorded but the tool item's own status was not updated. The last is the only

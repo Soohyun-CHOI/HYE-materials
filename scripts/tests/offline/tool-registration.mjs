@@ -557,8 +557,13 @@ export async function run({ check, assert, log }) {
         facts.target = nameOf(path?.callee ?? {});
         const [record, page, selected, account] = path?.arguments ?? [];
         facts.record = nameOf(record ?? {});
+        // A number is read as its value, since a landing names its page with one (#463).
         facts.page =
-            page?.type === "CallExpression" ? `${nameOf(page.callee)}(${nameOf(page.arguments[0] ?? {})})` : nameOf(page ?? {});
+            page?.type === "Literal"
+                ? String(page.value)
+                : page?.type === "CallExpression"
+                  ? `${nameOf(page.callee)}(${nameOf(page.arguments[0] ?? {})})`
+                  : nameOf(page ?? {});
         facts.selected =
             selected?.type === "CallExpression" && selected.callee?.property?.name === "map"
                 ? `${nameOf(selected.callee.object)} → ${nameOf(selected.arguments[0]?.body ?? {})}`
@@ -605,7 +610,7 @@ export async function run({ check, assert, log }) {
     check("it redirects once", land.redirects, 1);
     check("  to a tool's page", land.target, "toolPath");
     check("  the tool upsertTool found or made", `${land.record} from ${land.toolFrom}`, "tool.id from upsertTool");
-    check("  on the page holding the first tool item it wrote", land.page, "pageHolding(tool.toolItems.length)");
+    check("  on the list's first page, where what it wrote begins (#463)", land.page, "1");
     check("  selecting every tool item it created, by printed id", land.selected, "created → toolItem.toolItemId");
     check("  carrying as asked what the submission asked for (#455)", land.asked, "count");
     check("  counting as unwritten what was asked for less what was created", land.unwritten, "count - created.length");
@@ -616,7 +621,7 @@ export async function run({ check, assert, log }) {
     // nothing, and the one about the whole dialog when the batch wrote nothing.
     check("  and every value the action returns is a refusal", [...new Set(land.returns)].join(", "), "reading, error");
     // ANTI-VACUITY: a planted action doing each of those wrong is seen doing it — the
-    // record from another reader and another binding, the page from the count, a
+    // record from another reader and another binding, a page past the first, a
     // selection of another list, a shortfall of the whole count, an unlogged list read
     // off something other than the log pass, a log pass handed another list, job and
     // reader and run after the redirect, the redirect inside a try, the refusal after
@@ -633,7 +638,7 @@ export async function run({ check, assert, log }) {
                 "    const logged = [];\n" +
                 "    const { unlogged } = await readUnlogged(created);\n" +
                 "    try {\n" +
-                "      redirect(toolPath(job.id, pageHolding(count), logged, { asked: created.length, unwritten: count, unlogged: created }));\n" +
+                "      redirect(toolPath(job.id, 2, logged, { asked: created.length, unwritten: count, unlogged: created }));\n" +
                 "    } catch { logged.push(1); }\n" +
                 "    await createFirstToolLogEntries({ toolItems: logged, jobRecordId: tool.id, recordedByUserId: job.id });\n" +
                 "    if (created.length === 0) return { error: 'x' };\n" +
@@ -648,7 +653,7 @@ export async function run({ check, assert, log }) {
     check("  a log pass handed another list, job and reader is seen", plantedLanding.logged, "logged tool.id job.id");
     check("  a log pass after the redirect is seen", plantedLanding.logBetween, false);
     check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.toolFrom}`, "job.id from getToolByName");
-    check("  a page from another figure is seen", plantedLanding.page, "pageHolding(count)");
+    check("  a page from another figure is seen", plantedLanding.page, "2");
     check("  a selection of anything but what was created is seen", plantedLanding.selected, "logged");
     check("  an asked figure that is what was created is seen", plantedLanding.asked, "created.length");
     check("  a shortfall of the whole count is seen", plantedLanding.unwritten, "count");

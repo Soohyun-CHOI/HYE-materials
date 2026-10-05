@@ -87,7 +87,7 @@ whatever is selected on another.
 `Print labels`, in the selection bar (0b, #463). **It names no range, and that
 is the point:** the boxes and the count beside it show what a press sends,
 which is what the control's words had to say while it sent the page it was on.
-It opens the labels' dialog on the selection, in the list's order — it opened
+It opens the labels' dialog on the selection, in ascending id — it opened
 the label screen with it until #457.
 
 **evidence.** The selection bar's count, saying what a press would send —
@@ -102,17 +102,15 @@ holds** — which is why a single figure is right here and deliberately
 absent from the tool list, where a total would have to decide whether a
 retired tool still counts.
 
-**evidence.** One entry per tool item, **oldest first**, each carrying
+**evidence.** One entry per tool item, **newest first** (1b), each carrying
 three facts: its printed `Tool Item ID`, which is the way into that tool
 item's own screen; its status, one of `In stock`, `Out` or `Retired`; and
 the job it is on. Each carries its box as well; see above.
 
-**Oldest first is load-bearing rather than a default, and stays where 1b
-draws the newest first (#463).** A link array is creation order and the ids in
-one registration are contiguous, so oldest first is also ascending id — the
-number a person reads off a label. Newest first would push every row along at
-each registration, so a link to a later page would name different tool items
-tomorrow.
+**Newest first moves every row along at each registration, and that was
+accepted (#463).** A registration's tool items go to the top, so a link to a
+later page names different tool items after one. The selection is printed ids
+and moves with nothing. It read oldest first until #463, for that reason.
 
 **evidence.** Which page of the list this is, and how many there are —
 stated whether or not there is a second page, because a position that
@@ -124,8 +122,8 @@ of how many, `Page 1 of 2` (1b, #463).
 
 **When a registration has just written tool items of this tool (#449):** the
 reader lands here with every tool item it wrote selected — those and no others
-— on the page where they begin. A registration makes up to a hundred, so what it
-wrote can run past this page; the sentence beside the print control then says
+— on the first page, where they begin. A registration makes up to a hundred,
+so what it wrote can run past this page; the sentence beside the print control then says
 how many are not on it, exactly as it does for any selection, and the steps
 carry the selection on. **Nothing here says the registration happened**: the
 selection is what says it (#321; `_shared.md`, "The arrival is the
@@ -243,12 +241,14 @@ where the print control acts on at most a hundred — what one print takes.
 page turn, a reload and a copied link.** It was the label screen's own
 parameter with its own values — printed ids — until #457, and the print control
 hands it to the labels' dialog unchanged, so a copied address is a request to
-print those labels again rather than an account of anything. It is kept in the list's order,
-whatever order the boxes were pressed in, so the labels print in the order the
-list reads. **A design must not offer "select all of this tool"**, for the reason
-this screen never offered "print all": it is a read of every tool item under
-the tool. **A registration's arrival is such an address (#449)**: it carries
-what the registration wrote, which is why what it wrote survives a reload.
+print those labels again rather than an account of anything. It is kept in
+ascending id, whatever order the boxes were pressed in, so the labels print as
+their ids count up — the list's own order until #463, which turned the list
+newest first and left the selection as it was. **A design must not offer
+"select all of this tool"**, for the reason this screen never offered
+"print all": it is a read of every tool item under the tool. **A
+registration's arrival is such an address (#449)**: it carries what the
+registration wrote, which is why what it wrote survives a reload.
 
 **A registration's account rides beside the selection on the address it lands
 on, and on no other (#449).** It is the two entries above — how many were asked
