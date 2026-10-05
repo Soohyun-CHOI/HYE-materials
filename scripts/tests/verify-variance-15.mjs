@@ -33,7 +33,7 @@
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs scripts/tests/verify-variance-15.mjs
 
 import { TABLES } from "../../lib/airtable/client.js";
-import { createInvoice, linkInvoiceToPO, getInvoiceByRecordId, updateInvoice } from "../../lib/airtable/invoices.js";
+import { createInvoice, getInvoiceByRecordId, updateInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, updateInvoiceItem, getItemsByPOItem } from "../../lib/airtable/invoiceItems.js";
 import { getPOItemByRecordId, getInvoicedQtyForPOItem, getItemsByPO } from "../../lib/airtable/poItems.js";
 import { getOpenPOs } from "../../lib/airtable/purchaseOrders.js";
@@ -126,9 +126,7 @@ const ITEM_UNIT_PRICE = Math.round((PO_ITEM_UNIT_PRICE + 18) * 100) / 100;
 const CENT = 0.005;
 
 // Fixtures (#171) — see scripts/tests/_fixtures.mjs. One bucket: the Invoice
-// Item and the Invoice-PO Link both hang off the Invoice, so both are discovered
-// children. The Link cannot be tagged in any case — its primary field is an
-// autoNumber and it carries no text.
+// Item hangs off the Invoice, so it is a discovered child.
 //
 // This file was the worst of the sixteen on one axis: all three of its destroys
 // were `.catch(() => {})`, so a failed delete was invisible AND there was no
@@ -144,7 +142,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
     ],
@@ -153,7 +150,6 @@ const TAG = fixtures.TAG;
 
 let invoice;
 let createdItemId;
-let createdLinkId;
 let complete = false;
 
 try {
@@ -193,9 +189,6 @@ try {
     });
     createdItemId = created.id;
     console.log("Created invoice item", created.invoiceItemId);
-
-    const link = await linkInvoiceToPO(invoice.id, PO_RECORD_ID);
-    createdLinkId = link.id;
 
     // Same sequence as createInvoiceAction.
     const poItem = await getPOItemByRecordId(PO_ITEM_RECORD_ID);
@@ -330,7 +323,7 @@ try {
 // teardown call. It caught the first version of these very lines, where the
 // SKIP_CLEANUP branch exited before teardown was reached.
 if (process.env.SKIP_CLEANUP) {
-    console.log("SKIP_CLEANUP set — leaving records in place:", { invoiceId: invoice?.id, createdItemId, createdLinkId });
+    console.log("SKIP_CLEANUP set — leaving records in place:", { invoiceId: invoice?.id, createdItemId });
     process.exitCode = 0;
 } else {
     console.log("\nCleaning up fixtures:");

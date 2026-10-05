@@ -126,8 +126,7 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
 
     // Linked PO(s): each Invoice Item carries the PO it reconciles against
     // (a multi-PO invoice is real), so the distinct POs are derived from the
-    // items rather than reading the Invoice-PO Link join table separately —
-    // the two are equivalent by construction (see invoices/new/actions.js).
+    // items — the one record of which orders an invoice charges.
     const poRecordIds = [...new Set(items.map((it) => it.po?.[0]).filter(Boolean))];
     // #382 — the person who entered this invoice, read BESIDE the orders rather than
     // before the gate above: a reader who is refused the record pays nothing for a
@@ -381,12 +380,12 @@ async function renderInvoiceDetailPage({ params, searchParams }) {
                 <h2 className="text-lg font-semibold">Purchase Order{poRecords.length === 1 ? "" : "s"}</h2>
                 {/* A `None linked.` empty state stood here (#278), on the ground that
                     every invoice links at least one order: `createInvoiceAction`
-                    requires a `PO` per item and writes one `Invoice-PO Link` per
-                    distinct PO used. **#330 is the counter-example that ground did not
-                    have** — the two invoices which rendered it were hand-entered, and a
-                    hand edit can still empty an invoice today. What replaced the
-                    sentence is not another sentence here: the absence is stated once,
-                    where the rows would be, and this section is simply not drawn. */}
+                    requires a `PO` per item. **#330 is the counter-example that
+                    ground did not have** — the two invoices which rendered it were
+                    hand-entered, and a hand edit can still empty an invoice today.
+                    What replaced the sentence is not another sentence here: the
+                    absence is stated once, where the rows would be, and this section
+                    is simply not drawn. */}
                 {poRecords.length > 0 && (
                     <ul className={`mt-2 text-sm ${orderBreakdown.shown ? "space-y-2" : "space-y-1"}`}>
                         {poRecords.map((po) => {

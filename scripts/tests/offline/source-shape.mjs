@@ -219,6 +219,31 @@ function propsReadOff(node, objName) {
 }
 
 /**
+ * The field a mapper reads into one key: the literal handed to `record.get(...)`
+ * inside that key's value (#492). "" when the key is absent or reads no literal, so
+ * a call site compares it with `check` and states the whole answer, as with
+ * `propsReadOff` above.
+ */
+function fieldReadFor(node, key) {
+    let field = "";
+    walk(node, (n) => {
+        if (n.type !== "Property" || (n.key?.name ?? n.key?.value) !== key) return;
+        walk(n.value, (c) => {
+            if (
+                !field &&
+                c.type === "CallExpression" &&
+                c.callee?.type === "MemberExpression" &&
+                c.callee.property?.name === "get" &&
+                c.arguments?.[0]?.type === "Literal"
+            ) {
+                field = c.arguments[0].value;
+            }
+        });
+    });
+    return field;
+}
+
+/**
  * Resolve a function, failing loudly rather than returning an empty body. The
  * old text extractor returned "" for an unresolvable name and every assertion
  * built on it quietly became false; that is the bug this file exists to not
@@ -676,6 +701,40 @@ export function run(reporter) {
         "PO page hardcodes no withdrawable-status literal",
         firstPositionOf(poPage.ast, (n) => n.type === "Literal" && n.value === "Awaiting Signature") === -1
     );
+
+    // THE WITHDRAWAL JUDGMENT STANDS ON ONE LINK (#492). The predicate reads the
+    // order's status and its `Invoice Items` reverse-link and nothing else, and the
+    // mapper fills that key from the order's own field — so "an invoice charges this
+    // order" is the far side of `Invoice Items."PO"`, with no second copy beside it.
+    // lib/poWithdraw.js reaches lib/airtable/ and cannot be loaded here, so what the
+    // predicate DECIDES is verify-po-withdraw-138.mjs's; what it READS is held here.
+    // Positive equalities, so a walk that found nothing fails them.
+    const eligibilityFn = bodyOf(
+        fileOf("lib/poWithdraw.js"),
+        "getPOWithdrawEligibility",
+        "lib/poWithdraw.js",
+        reporter
+    );
+    if (eligibilityFn) {
+        check(
+            "getPOWithdrawEligibility reads exactly this off the order",
+            propsReadOff(eligibilityFn, eligibilityFn.params?.[0]?.name),
+            "invoiceItems,status"
+        );
+    }
+    const poMapper = bodyOf(
+        fileOf("lib/airtable/purchaseOrders.js"),
+        "recordToPO",
+        "lib/airtable/purchaseOrders.js",
+        reporter
+    );
+    if (poMapper) {
+        check(
+            "recordToPO fills invoiceItems from the order's own field",
+            fieldReadFor(poMapper, "invoiceItems"),
+            "Invoice Items"
+        );
+    }
 
     // THE STATUS CONDITION IS BUILT ONCE AND READ BY EVERY INVOICE-SIDE QUERY
     // (#168). This used to require the opposite — PO_WITHDRAWN_STATUS interpolated

@@ -29,11 +29,11 @@
 //
 // FIXTURES, ALL DELETED IN THIS RUN BY scripts/tests/_fixtures.mjs: one Draft and
 // its PR Items, PR Signers and one Quotations row (E); one Invoice with its Invoice
-// Items and Invoice-PO Link rows (F); one Delivery with its Delivery Items (G). Three
-// Vercel Blob objects, which each action's own after() deletes once Airtable has
-// taken the file; the helper judges what is left. TWO Auth Tokens rows are spent and
-// left, one per session, as every script in this tier does. No mail is sent: nothing
-// here submits a request or moves a signing turn. Reuses without writing: #382's
+// Items (F); one Delivery with its Delivery Items (G). Three Vercel Blob objects,
+// which each action's own after() deletes once Airtable has taken the file; the
+// helper judges what is left. TWO Auth Tokens rows are spent and left, one per
+// session, as every script in this tier does. No mail is sent: nothing here
+// submits a request or moves a signing turn. Reuses without writing: #382's
 // order `HYE-PO-260911-34` and its one ordered item, which nothing has invoiced and
 // no delivery has touched, so the only pairing this run can write is between its
 // own invoice and its own delivery.
@@ -111,8 +111,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable — an autoNumber primary and no text field at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
         {

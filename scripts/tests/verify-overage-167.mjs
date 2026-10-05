@@ -31,11 +31,11 @@
 //
 // Fixtures: PRs + PR Items, POs + PO Items through the real approve-and-generate
 // flow (which is what gives each ordered item its `Material` link), Deliveries +
-// Delivery Items, Invoices + Invoice Items + Invoice-PO Link rows, and the
-// Quotations the correction creates. DELETES ALL OF THEM in this same run,
-// children before parents, with the whole body in a try/catch so a mid-run throw
-// cannot skip that. UNLIKE the other verify scripts this one DOES write to Vercel
-// Blob — the quotation path is the feature — and deletes those objects too.
+// Delivery Items, Invoices + Invoice Items, and the Quotations the correction
+// creates. DELETES ALL OF THEM in this same run, children before parents, with
+// the whole body in a try/catch so a mid-run throw cannot skip that. UNLIKE the
+// other verify scripts this one DOES write to Vercel Blob — the quotation path is
+// the feature — and deletes those objects too.
 //
 // Exit codes: 0 all clear, 1 something failed, 2 clean but incomplete.
 
@@ -99,8 +99,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable — an autoNumber primary and no text field at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
         { name: "deliveryItems", table: TABLES.DELIVERY_ITEMS, label: "Delivery Item", tagField: "Item Name" },

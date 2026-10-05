@@ -10,7 +10,7 @@ Moved verbatim out of CLAUDE.md, and three lines have changed since. The `PR Sig
 
 **If the Airtable MCP connector is available, prefer querying the live base schema over trusting this document for exact field types — this file can drift, but the rules below stay authoritative.**
 
-## Data model (26 tables)
+## Data model (25 tables)
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index in CLAUDE.md.
 
@@ -39,8 +39,6 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 **Quotations**: Quotation ID ({PR ID}-Q{seq}), Vendor Quotation Code (human-entered), Vendor/PR (links, single), File (attachment, required at creation in-app). At least one required per PR; can have more than one over its lifetime (dynamic list on PR form, or later via Edit and continue).
 
 **Invoices**: Invoice ID (HYE-INV-YYMMDD-##), Vendor Invoice Code (human-entered), Vendor (link), Issue/Due Date, Amount Due ("Vendor's Stated Total" — never auto-overwritten by the backend; human edits allowed and recompute variance, #117), Shipping Fee, Tariff (optional), Sales Tax (optional currency, #283 — on `Invoices` only), Items Subtotal (rollup), Calculated Total (formula = Items Subtotal + Shipping Fee + Tariff + Sales Tax, blank = 0), Variance Flag (checkbox, backend-set), Paid Date (calendar — its presence IS the payment, `Sent At`'s shape; the `Paid` checkbox went in #318), File (attachment, required), Delivery (link -> Deliveries, single, optional — app-enforced, #210), Recorded By (link -> Users, #382).
-
-**Invoice-PO Link**: join table, many-to-many. Primary = plain autoNumber. Both link fields single-record.
 
 **Invoice Items**: Invoice Item ID, Invoice + PO (links, single), PO Item (link, single, app-enforced — #278), Item Name, Size, Unit (single select, same list), Qty, Unit Price, Amount = live formula, Variance Flag (checkbox, backend-set), Remark (shared, Unit Price/Qty discrepancies). Size/Unit are frozen copies from the linked PO Item, reference-only, no edit path (mismatch = wrong PO Item picked). Only a PR takes typed items, so a charge with no ordered item behind it is not a state this app has.
 

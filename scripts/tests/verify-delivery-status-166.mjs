@@ -182,10 +182,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable: an Invoice-PO Link row's primary field is an
-                // autoNumber and it carries no text at all, so it is reachable
-                // only as a discovered child.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
         { name: "deliveryItems", table: TABLES.DELIVERY_ITEMS, label: "Delivery Item", tagField: "Item Name" },

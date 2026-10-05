@@ -103,7 +103,6 @@ import {
     createInvoice,
     getInvoiceByRecordId,
     updateInvoice,
-    linkInvoiceToPO,
     setInvoiceDelivery,
 } from "../../lib/airtable/invoices.js";
 import {
@@ -505,7 +504,6 @@ async function invoice({
         file,
     });
 
-    const poRecordIds = new Set();
     for (const r of rows) {
         await createInvoiceItem({
             invoiceRecordId: invoice.id,
@@ -519,9 +517,7 @@ async function invoice({
             unitPrice: r.unitPrice,
             remark: r.remark || "",
         });
-        if (r.poItem) poRecordIds.add(r.po.id);
     }
-    for (const poRecordId of poRecordIds) await linkInvoiceToPO(invoice.id, poRecordId);
 
     // The action's own variance pass, in its own order.
     for (const created of await getItemsByInvoice(invoice.id)) {
@@ -603,16 +599,10 @@ if (CLEANUP) {
         .filter((r) => (r.get("Invoice") || []).some((id) => invoiceIds.includes(id)))
         .map((r) => r.id);
 
-    const links = await base(TABLES.INVOICE_PO_LINK).select().all();
-    const linkIds = links
-        .filter((r) => (r.get("PO") || []).some((id) => poRecordIds.includes(id)))
-        .map((r) => r.id);
-
     // Every child level is already on the PR record as a reverse-link array (#193),
     // so none of these costs a read.
     const plan = [
         ["Invoice Items", TABLES.INVOICE_ITEMS, [...new Set([...invoiceItemIds, ...orphanItemIds])]],
-        ["Invoice-PO Link", TABLES.INVOICE_PO_LINK, linkIds],
         ["Invoices", TABLES.INVOICES, invoiceIds],
         ["Delivery Items", TABLES.DELIVERY_ITEMS, deliveryItemIds],
         ["Deliveries", TABLES.DELIVERIES, deliveryIds],

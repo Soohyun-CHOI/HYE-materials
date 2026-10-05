@@ -55,7 +55,7 @@ import { createPR, updatePR, getPRByRecordId } from "../../lib/airtable/purchase
 import { createItem } from "../../lib/airtable/prItems.js";
 import { generatePOForApprovedPR } from "../../lib/poGeneration.js";
 import { getItemsByPO } from "../../lib/airtable/poItems.js";
-import { createInvoice, linkInvoiceToPO } from "../../lib/airtable/invoices.js";
+import { createInvoice } from "../../lib/airtable/invoices.js";
 import { createInvoiceItem, getItemsByInvoice } from "../../lib/airtable/invoiceItems.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
 import { getAllDisciplines } from "../../lib/airtable/disciplines.js";
@@ -113,8 +113,6 @@ const fixtures = createFixtures({
             tagField: "Vendor Invoice Code",
             children: [
                 { link: "Invoice Items", table: TABLES.INVOICE_ITEMS, label: "Invoice Item" },
-                // Untaggable: an autoNumber primary and no text field at all.
-                { link: "Invoice-PO Link", table: TABLES.INVOICE_PO_LINK, label: "Invoice-PO Link" },
             ],
         },
         {
@@ -198,7 +196,6 @@ async function buildInvoice(label, amountDue, charges) {
         shippingFee: 0,
     });
     track("invoices", invoice.id);
-    for (const po of new Set(charges.map((c) => c.po))) await linkInvoiceToPO(invoice.id, po);
     for (const c of charges) {
         const created = await createInvoiceItem({
             invoiceRecordId: invoice.id,

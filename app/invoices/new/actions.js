@@ -6,7 +6,6 @@ import { withAdminAction, requireUser } from "@/lib/authz";
 import { base, TABLES } from "@/lib/airtable/client";
 import {
     createInvoice,
-    linkInvoiceToPO,
     getInvoiceByRecordId,
     updateInvoice,
     setInvoiceDelivery,
@@ -199,7 +198,6 @@ async function createInvoiceHandler(prevState, formData) {
 
         let invoice;
         const createdItemIds = [];
-        const createdLinkIds = [];
 
         try {
             // The file is written as part of this same create() call, not a
@@ -251,18 +249,6 @@ async function createInvoiceHandler(prevState, formData) {
                 createdItems.push(created);
             }
 
-            // One Invoice-PO Link row per distinct PO actually used across the
-            // items, not one per item — a PO referenced by three invoice items still
-            // only needs a single join row (see the Invoice-PO Link entry in
-            // docs/notes/data-model.md: it's a plain relationship table, no
-            // per-item semantics).
-            // Same distinctPoIds the withdrawn-PO guard above checked, so every
-            // PO about to be joined here was verified invoiceable.
-            for (const poId of distinctPoIds) {
-                const link = await linkInvoiceToPO(invoice.id, poId);
-                createdLinkIds.push(link.id);
-            }
-
             // Variance checking (#15), per the tolerance rules decided in #17. Qty
             // is a creation-time snapshot: it reads the cumulative invoiced Qty
             // (already including this invoice item, since it's linked by now) and is
@@ -300,12 +286,11 @@ async function createInvoiceHandler(prevState, formData) {
             // Same create-then-delete rollback pattern as #5/#10: Airtable has
             // no cross-table transactions, so a failure partway through would
             // otherwise leave a half-built Invoice behind. Reverse creation
-            // order — Links, then Items, then the Invoice itself.
+            // order — Items, then the Invoice itself.
             if (invoice) {
-                await Promise.allSettled([
-                    ...createdLinkIds.map((id) => base(TABLES.INVOICE_PO_LINK).destroy([id])),
-                    ...createdItemIds.map((id) => base(TABLES.INVOICE_ITEMS).destroy([id])),
-                ]);
+                await Promise.allSettled(
+                    createdItemIds.map((id) => base(TABLES.INVOICE_ITEMS).destroy([id]))
+                );
                 await base(TABLES.INVOICES).destroy([invoice.id]).catch(() => {});
             }
 
