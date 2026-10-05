@@ -57,18 +57,11 @@ the list rather than inside it, because the reader with no tools at all is the
 one who needs it most. For a reader assigned to no job it is drawn disabled,
 with `Ask the office to assign you to a job` before it.
 
-**evidence.** One row per tool, the newest first, twenty-five to a page
+**evidence.** One row per tool, ordered by name, twenty-five to a page
 (0b's page of rows, #463) with the pager under them: which rows the page
 shows of how many, `1–17 of 17`, which page of how many, and a step each
 way that a page at its end draws and does not act. The name is the row's
 identity and the whole row is the way into that tool's own screen.
-
-**Newest first means the tool created last, and a registration of more of a
-tool does not move it (#463).** `Tools` holds no date of its own, so the order
-is when the base made the row, which is the first registration under that
-name. Ordering by the latest registration instead would lift a tool to the top
-each time units are added to it and reorder the rows a reader has learned the
-places of. 1a draws the list by name, which is how it read until #463.
 
 **verdict.** Three counts on every row: how many of that tool are
 `In stock`, how many are `Out`, how many are `Retired`. This is what the

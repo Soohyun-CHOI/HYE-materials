@@ -78,14 +78,11 @@ import { isMain, standalone } from "./_harness.mjs";
 
 export const title = "What the two tools list screens show (#339)";
 
-/**
- * Three tools, one of them with nothing under it, named out of alphabetical order and made
- * in an order that is neither the array's nor the names', either way round (#463).
- */
+/** Three tools, one of them with nothing under it, named out of alphabetical order. */
 const TOOLS = [
-    { id: "recGrinder", toolName: "angle grinder", createdTime: "2026-09-10T15:04:05.000Z", toolItems: ["i1", "i2", "i3"] },
-    { id: "recDriver", toolName: "Impact Driver", createdTime: "2026-09-20T08:00:00.000Z", toolItems: ["i4"] },
-    { id: "recNothing", toolName: "Cordless Drill", createdTime: "2026-09-01T23:59:59.000Z", toolItems: [] },
+    { id: "recGrinder", toolName: "angle grinder", toolItems: ["i1", "i2", "i3"] },
+    { id: "recDriver", toolName: "Impact Driver", toolItems: ["i4"] },
+    { id: "recNothing", toolName: "Cordless Drill", toolItems: [] },
 ];
 
 const ITEMS = [
@@ -128,9 +125,6 @@ const TOOL_ITEM_LIST = "app/(tools)/tools/[toolRecordId]/ToolItemList.js";
 
 /** The tool list, whose opener of the registration dialog section 2b reads off the AST (#456). */
 const LIST_SCREEN = "app/(tools)/tools/page.js";
-
-/** Where a `Tools` row becomes the object the list orders, read for the time it carries (#463). */
-const TOOLS_TABLE = "lib/airtable/tools.js";
 
 /** The frame both lists are drawn in, its parts, the box and the rail's column (#463). */
 const LIST_FRAME = "app/components/ListFrame.js";
@@ -303,56 +297,10 @@ export function run({ check, assert, log }) {
     assert("a tool with no tool items is still a row", Boolean(nothing));
     check("  and its counts are three zeros", nothing.counts.map((c) => c.count).join(), "0,0,0");
 
-    // NEWEST FIRST, BY WHEN EACH ROW WAS MADE (#463), where it was by name until then. The
-    // input is first seen to be in an order that is none of the wrong answers — the array's
-    // either way round, the names' either way round — so the expected order cannot be any
-    // of them arrived at by accident.
-    const orderOf = (list) => list.map((t) => t.toolName).join(" | ");
-    const byName = [...TOOLS].sort((a, b) => a.toolName.localeCompare(b.toolName, "en", { sensitivity: "base" }));
-    const wrongAnswers = [TOOLS, [...TOOLS].reverse(), byName, [...byName].reverse()].map(orderOf);
-    check("the fixture's four wrong orders are four", new Set(wrongAnswers).size, 4);
-    check("the newest tool first, by when its row was made", orderOf(rows), "Impact Driver | angle grinder | Cordless Drill");
-    assert("  which is none of the four", !wrongAnswers.includes(orderOf(rows)));
-    // Two rows made at one instant go by name, case-insensitively; a row with no time,
-    // which no read produces, goes after every one that has one.
-    const sameInstant = summarizeTools(
-        [
-            { id: "recB", toolName: "band saw", createdTime: "2026-09-20T08:00:00.000Z", toolItems: [] },
-            { id: "recUntimed", toolName: "Anvil", toolItems: [] },
-            { id: "recA", toolName: "Arc Welder", createdTime: "2026-09-20T08:00:00.000Z", toolItems: [] },
-            { id: "recOld", toolName: "Chisel", createdTime: "2026-01-02T00:00:00.000Z", toolItems: [] },
-        ],
-        []
-    );
     check(
-        "  two made at one instant go by name, and one with no time goes last",
-        orderOf(sameInstant),
-        "Arc Welder | band saw | Chisel | Anvil"
-    );
-
-    // THE TIME THE ORDER READS COMES OFF EVERY RECORD (#463). A mapper that dropped it would
-    // leave every row at no time, and the list would fall back to names with nothing on the
-    // screen to say so. The mapper reaches lib/airtable/client.js, so it is read off its
-    // source, beside a planted one reading a field `Tools` does not carry.
-    const madeAtRead = ({ ast, source }) => {
-        let value = "none";
-        walk(ast, (n) => {
-            if (n.type !== "FunctionDeclaration" || n.id?.name !== "recordToTool") return;
-            walk(n, (p) => {
-                if (p.type === "Property" && p.key?.name === "createdTime") value = source.slice(p.value.start, p.value.end);
-            });
-        });
-        return value;
-    };
-    check(
-        "every tool carries when its row was made, off the record itself",
-        madeAtRead(parseFile(TOOLS_TABLE)),
-        "record._rawJson?.createdTime ?? null"
-    );
-    check(
-        "  and a mapper reading a field the table does not carry is seen",
-        madeAtRead(parseSource('function recordToTool(record) { return { id: record.id, createdTime: record.get("Created At") }; }', "<planted-mapper>")),
-        'record.get("Created At")'
+        "the order is by name, case-insensitively",
+        rows.map((r) => r.toolName).join(" | "),
+        "angle grinder | Cordless Drill | Impact Driver"
     );
 
     // ANTI-VACUITY: the summarizer is seen counting something other than zero for
