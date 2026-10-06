@@ -49,8 +49,8 @@ behind a chevron (#460), the word the tool item's screen opens its path with
 for the same trip.
 
 **action.** A control that opens the registration dialog on this tool,
-`New tools` — the design's word (#456), where it said `Create more of this
-tool` from #451. Buying more of a tool the company already has is the same
+`Add tools` (#485) — the design's `New tools` from #456, and
+`Create more of this tool` from #451. Buying more of a tool the company already has is the same
 registration as buying the first, and the dialog puts them under this tool,
 which it names under its title — so somebody who knows which tool they bought
 starts here rather than typing its name again. **It carries no count**:
@@ -65,8 +65,8 @@ they would on `/tools`.
 **It is not one of the answers a registration that fell short offers, and a
 design must not draw it as one.** Those two are a pair about the registration
 the reader has just made (below); this one begins another. Both open one
-dialog — `Create the rest` with the count that was not written, this one with
-none — and `Not now` takes the pair away with the dialog they stand in and
+dialog — `Add 2 more` with the count that was not written, which it names, this
+one with none — and `Not now` takes the pair away with the dialog they stand in and
 leaves this standing.
 
 **action.** A box on every entry and one for the page, and together they say
@@ -131,18 +131,19 @@ confirmation"). What the registration could not do is said by the next two
 entries, and only when it happened.
 
 **When the registration wrote fewer than were asked for:** a dialog over the
-screen, the design's (#455, #459) — how many of how many were created as its
-title, `3 of 5 tools created`, the tool's name under it, and how many were not,
-`2 couldn't be created.` — and two controls that answer them. `Create the rest`
-puts the dialog away and opens the registration dialog on this tool, with the
-count that was not written filled in and still the reader's to change there;
-canceling that brings this dialog back, since nothing answered it. `Not now`
-takes the dialog away, and so do its close and `Escape`. **The two are a pair,
-and the pairing is what says what the choice is about**: one goes on creating
-and the other ends it, so neither can be read as being about the entry below.
-It is a choice rather than a confirmation — `Not now` acts on nothing in
-the base. The first sentence always says `tools`: a shortfall has at least one
-created and one not, so what was asked for is at least two.
+screen, the design's (#455, #459) — how many of how many were added as its
+title, `3 of 5 tools added`, the tool's name under it, and how many were not,
+`2 couldn't be added.` — and two controls that answer them, in the act's verb
+since #485. `Add 2 more` names how many were not written — `Add 1 more` at one
+— and puts the dialog away and opens the registration dialog on this tool,
+with that count filled in and still the reader's to change there; canceling
+that brings this dialog back, since nothing answered it. `Not now` takes the
+dialog away, and so do its close and `Escape`. **The two are a pair, and the
+pairing is what says what the choice is about**: one goes on adding and the
+other ends it, so neither can be read as being about the entry below. It is a
+choice rather than a confirmation — `Not now` acts on nothing in the base. The
+first sentence always says `tools`: a shortfall has at least one added and one
+not, so what was asked for is at least two.
 
 **When some of what it wrote has no first history entry:** a dialog over the
 screen (#459) — `2 tools have no creation date` as its title, the tool's name
@@ -161,7 +162,7 @@ answers**, since there is nothing to choose. It can name a tool on another page
 of the list.
 
 **When both happened:** each whole, one dialog at a time and the tools with no
-creation date first (#459): `Create the rest` can end on another landing, which
+creation date first (#459): `Add 2 more` can end on another landing, which
 carries only its own registration's account, so the notice is read before the
 shortfall is answered. The counts the first gives do not include the second's
 tools, which were written. `Not now` answers the first alone and `Got it` the
@@ -208,7 +209,8 @@ a hundred tool items, selected across pages.
 **When the tool has no tool items at all:** in place of the entries, a
 heading and a sentence, `No items under this tool` and `If you were creating
 some, it stopped before any were saved.`, and under them a second, bordered
-`New tools` (1b, #463). **This is
+`Add tools` (1b, #463, #485). The sentence still says `creating`: #485 changed
+the words its issue named and this was not one. **This is
 reachable and is not an error state**, the same way the tool item screen's
 missing history is: nothing rolls back, and the row that stands is sound.
 The total, the page position, the boxes and the print control are absent
@@ -277,8 +279,8 @@ dialog's constant (#451)**, so none can drift from the dialog it opens — the
 arrangement the labels' dialog has with the two pages that open it. Two say
 the dialog's heading, because both begin a registration: `/tools`' own, which
 opens it on no tool, and this screen's, which opens it on this tool. The
-fork's says `Create the rest`, because it finishes one, and opens it on this
-tool and a count (#456).
+fork's says how many it will add, `Add 2 more`, because it finishes one, and
+opens it on this tool at that count (#456, #485).
 
 **No word the selection adds names what is selected** — the way the document
 lists' pickers say `N selected`. It was written while `tool item` was decided

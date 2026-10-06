@@ -18,8 +18,8 @@ import {
 import { registerToolItemsAction } from "./actions";
 
 /**
- * The registration — creating tools — as a dialog over the page that opens it (#456), and
- * the control that opens it. It was the form at `/tools/new` from #338 to #456.
+ * The registration — adding tools to stock (#485) — as a dialog over the page that opens it
+ * (#456), and the control that opens it. It was the form at `/tools/new` from #338 to #456.
  *
  * THREE OPENERS, AND EACH HANDS OVER WHAT THE ADDRESS USED TO CARRY. The tool list opens
  * it on no tool, so the name is typed; a tool's own page opens it on that tool; and the
@@ -61,11 +61,11 @@ import { registerToolItemsAction } from "./actions";
  * for a press landing before hydration, and a dialog cannot be open before hydration —
  * the opener is a button whose press is a script — so there is no such press to catch.
  *
- * ITS COMMITMENT NAMES WHAT IT WILL CREATE, AND SAYS SO WHILE IT DOES (#469). The words
+ * ITS COMMITMENT NAMES WHAT IT WILL ADD, AND SAYS SO WHILE IT DOES (#469, #485). The words
  * follow the count as it is typed, through `readQuantity` — the reading the press itself
- * makes — so `Create 5 tools` stands only over a count the press would take, and
- * `Create tools` over one it would refuse (1j). While the registration is on its way the
- * frame is `busy`: the commitment gives way to `Creating…` after 300ms, every other
+ * makes — so `Add 5 tools` stands only over a count the press would take, and `Add tools`
+ * over one it would refuse (1j). While the registration is on its way the frame is
+ * `busy`: the commitment gives way to `Adding…` after 300ms, every other
  * control locks, and nothing is disabled, so focus stays where the press found it — and
  * stays there through a refusal, since the commitment can act again at once.
  *

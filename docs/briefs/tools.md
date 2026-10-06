@@ -14,7 +14,7 @@ are out?
 once — and a `Tool Items` row is one physical object carrying a printed
 id.** #338 settled the pair and this brief calls the second a `tool item`,
 which is the base's word for it. **The screens call it what the design
-does (#455)**: a `tool` in any sentence about one — `Create tools`,
+does (#455)**: a `tool` in any sentence about one — `Add tools`,
 `Retire this tool` — and an `item` where a tool's own screen counts what is
 under it. So six of one drill is one tool, six items on its screen, and a
 tool in every sentence about any one of them; this screen has one row per
@@ -51,7 +51,9 @@ nothing about what any tool holds.
 
 **action.** The control that opens the registration dialog over this screen
 (#456), carrying that dialog's own heading as its word so the two cannot drift
-(#338) — `New tools`, the design's (#455). Every other list screen in the
+(#338) — `Add tools` (#485), where it was the design's `New tools` from #455,
+because most registrations add to a tool the company already has, and the line
+under a typed name says when one is new. Every other list screen in the
 app opens its create form the same way, as a screen of its own. It is above
 the list rather than inside it, because the reader with no tools at all is the
 one who needs it most. For a reader assigned to no job it is drawn disabled,
@@ -83,7 +85,7 @@ A design that adds the three together is making that choice.
 
 **When there are no tools at all:** in place of the rows, a heading and a
 sentence, `No tools yet` and `Each tool shows here with how many are in
-stock, out and retired.`, and under them a second, bordered `New tools`
+stock, out and retired.`, and under them a second, bordered `Add tools`
 (1a, #463). The control in the head is still there, and both are the way to
 make one. No pager stands under an empty list.
 

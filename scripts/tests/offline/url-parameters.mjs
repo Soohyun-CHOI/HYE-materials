@@ -239,7 +239,7 @@ const CARRIED = [
     {
         route: "/tools/[toolRecordId]",
         param: "asked",
-        note: "#455 — how many that registration was asked for, beside `unwritten` and only with it, because the design's `3 of 5 tools created` needs both halves and the page may not count the selection (`id`) to find the first. Read as one pair with it — `1 ≤ unwritten < asked ≤ the ceiling` or neither — so a hand-edited address cannot make the sentence false. Written, repeated and deleted exactly as `unwritten` is",
+        note: "#455 — how many that registration was asked for, beside `unwritten` and only with it, because the fork's title, `3 of 5 tools added`, needs both halves and the page may not count the selection (`id`) to find the first. Read as one pair with it — `1 ≤ unwritten < asked ≤ the ceiling` or neither — so a hand-edited address cannot make the sentence false. Written, repeated and deleted exactly as `unwritten` is",
     },
     {
         route: "/tools/[toolRecordId]",

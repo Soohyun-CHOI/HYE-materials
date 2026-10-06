@@ -44,10 +44,12 @@ move once and land on the tool item.
 ## What it carries only sometimes
 
 Nothing, and there is no branch. Every string is redirected alike — a code no
-tool item carries reaches the tool item screen and is answered there with
-`Tool item not found`, which is the one place that sentence belongs.
+tool item carries reaches the tool item screen and is answered there,
+`Tool not found` over a sentence asking for the code to be checked against the
+label, which is the one place that answer belongs. This said
+`Tool item not found`, the heading #463 replaced; corrected per #181 by #485.
 
-**A whole `Tool Item ID` typed here reaches that same sentence.** The old form
+**A whole `Tool Item ID` typed here reaches that same answer.** The old form
 of this address is not accepted: no label was ever printed with it and every
 symbol is built as a page renders, so nothing anywhere carries one. The token
 is simply put in front of whatever arrives, which for a string that already has

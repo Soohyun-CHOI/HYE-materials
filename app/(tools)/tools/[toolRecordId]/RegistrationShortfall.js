@@ -12,10 +12,10 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // naming tool items with no history, carries one control that answers nothing, because
 // nothing repairs those.
 //
-// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1k: how many of how many were created
-// is its title (#455), the tool is the line under it, and how many were not is its one
-// sentence. The first needs `asked`, which the landing's address carries beside
-// `unwritten` for exactly this, and what was created is the one less the other. It is
+// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1k: how many of how many were added
+// is its title (#455, #485), the tool is the line under it, and how many were not is its
+// one sentence. The first needs `asked`, which the landing's address carries beside
+// `unwritten` for exactly this, and what was added is the one less the other. It is
 // told after the notice when a landing carries both — `accountToTell` has why — and it
 // is open while the page found a shortfall and `unwritten` is still on the address, so
 // the address stays the one account of whether the question is asked.
@@ -29,9 +29,11 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // failing. Read off the address, a new landing asks again because it carries the
 // question again.
 //
-// `Create the rest` PUTS THE FORK AWAY AND OPENS THE REGISTRATION DIALOG ON THIS TOOL WITH
-// THE COUNT FILLED IN, the count still the person's to change there — 1k's own answer,
-// which closes the one before it opens the other rather than stacking them. The
+// `Add 2 more` PUTS THE FORK AWAY AND OPENS THE REGISTRATION DIALOG ON THIS TOOL AT THE
+// COUNT IT NAMES, the count still the person's to change there — 1k's own answer, which
+// closes the one before it opens the other rather than stacking them. The words and the
+// dialog are handed one value, `account.unwritten`, so they cannot name two numbers
+// (#485); it said `Create the rest` until then and named none. The
 // registration's rule is #456's and is not repeated here: it is open while the address
 // is the one it was opened at (`useRegistrationOpening`). Canceling it brings the fork
 // back, because nothing answered it — the question stands until `Not now`, and the
@@ -44,7 +46,7 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // the address, so a reload does not ask again. The close and Escape answer it too — the
 // design sends its close to the same place, and the frame makes Escape the close — so no
 // way out of the dialog leaves the question on the address with nothing on the screen.
-// The two answers are a pair on purpose — one goes on creating and one stops — which is
+// The two answers are a pair on purpose — one goes on adding and one stops — which is
 // what says the choice is about the shortfall and not about the notice.
 //
 // THE DISMISSAL EDITS THE CURRENT ADDRESS AND THE FORK'S TWO KEYS OF IT. The list's
@@ -90,7 +92,7 @@ export default function RegistrationShortfall({ toolName, account, canRegister, 
                         {COPY.doneRegistering}
                     </Button>
                     <RegistrationOpener canRegister={canRegister} onOpen={registration.start}>
-                        {COPY.registerOthers}
+                        {COPY.registerOthers(account.unwritten)}
                     </RegistrationOpener>
                 </DialogActions>
             </DialogFrame>
