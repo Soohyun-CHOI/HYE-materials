@@ -106,10 +106,12 @@ the code step rather than to an empty address. `Change` is what ends that, and i
 is the only way back to the first step short of waiting out the fifteen minutes.
 
 **`Resend email` waits a minute after every email (#148)**, the one `Continue` sent
-included, counted from the press. After a resend the control reads `Email sent`
-for a few seconds; then, and straight away when the step opens, it reads the time
-left — `Resend in 0:57` — which takes no press and is not read aloud; then the
-control comes back, which is. The step remembers when the email was asked for, so a
+included, counted from the press. While a resend is asked for, the control keeps
+its place and, after a moment, draws a spinner where its words were, saying
+`Sending…` to assistive tech (#495). After a resend it reads `Email sent` for a few
+seconds; then, and straight away when the step opens, it reads the time left —
+`Resend in 0:57` — which takes no press and is not read aloud; then the control
+comes back, which is. The step remembers when the email was asked for, so a
 reload counts on rather than starting over. A minute is what keeps somebody who
 presses the control each time it comes back from ever reaching the limit below. The
 newest email's code is the only one this screen accepts — an earlier email's link

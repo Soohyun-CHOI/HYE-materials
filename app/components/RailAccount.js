@@ -34,9 +34,17 @@ import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
  * here. Its one item submits the same `POST /api/auth/logout` the root screen's control
  * does, which ends the session and lands on `/login`.
  *
- * Below the phone's edge there is none, because there is no rail.
+ * ITS MENU IS 0m's ACCOUNT MENU SINCE #495: a head holding the reader's email over `Sign out`,
+ * 224 wide whatever the button. Expanded, it stands 6 above the row and as wide as it;
+ * collapsed, 8 beside the button with their bottoms aligned. It grows from the corner by the button,
+ * and while it is open the button holds its hover — the avatar on Face hover, the row on
+ * Hover — so the reader sees what opened it. The row's corner is the Control's 8 since
+ * #495, where it was the Group's 10.
+ *
+ * Below the phone's edge there is none, because there is no rail; the phone's top bar ends
+ * its menu on the account instead (`MoreActions`, #495).
  */
-export default function RailAccount({ account: words, tip }) {
+export default function RailAccount({ account: words, expanded = false, tip }) {
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
     const buttonRef = useRef(null);
@@ -75,11 +83,11 @@ export default function RailAccount({ account: words, tip }) {
                     openOn(where);
                 }}
                 {...(open ? {} : tip.targetProps(words.label))}
-                className="group/account mb-[calc((var(--height-account)-var(--height-control))/2)] flex aspect-square h-control shrink-0 items-center justify-center self-start rounded-full text-foreground-default group-data-expanded:mb-0 group-data-expanded:aspect-auto group-data-expanded:h-account group-data-expanded:justify-start group-data-expanded:gap-account-gap group-data-expanded:self-stretch group-data-expanded:rounded-card group-data-expanded:pr-account-inset-right group-data-expanded:pl-[calc((var(--height-control)-var(--size-avatar))/2)] group-data-expanded:hover:bg-hover"
+                className="group/account mb-[calc((var(--height-account)-var(--height-control))/2)] flex aspect-square h-control shrink-0 items-center justify-center self-start rounded-full text-foreground-default group-data-expanded:mb-0 group-data-expanded:aspect-auto group-data-expanded:h-account group-data-expanded:justify-start group-data-expanded:gap-account-gap group-data-expanded:self-stretch group-data-expanded:rounded-control group-data-expanded:pr-account-inset-right group-data-expanded:pl-[calc((var(--height-control)-var(--size-avatar))/2)] group-data-expanded:hover:bg-hover group-data-expanded:aria-expanded:bg-hover"
             >
                 <span
                     aria-hidden="true"
-                    className="flex size-avatar shrink-0 items-center justify-center rounded-full bg-selected text-body-sm font-semibold text-primary transition-colors duration-avatar ease-linear group-hover/account:bg-selected-hover group-data-expanded:group-hover/account:bg-selected"
+                    className="flex size-avatar shrink-0 items-center justify-center rounded-full bg-selected text-body-sm font-semibold text-primary transition-colors duration-avatar ease-linear group-hover/account:bg-selected-hover group-aria-expanded/account:bg-selected-hover group-data-expanded:group-hover/account:bg-selected group-data-expanded:group-aria-expanded/account:bg-selected"
                 >
                     {words.initial}
                 </span>
@@ -101,7 +109,8 @@ export default function RailAccount({ account: words, tip }) {
                 anchorRef={buttonRef}
                 shown={open}
                 labelledBy={buttonId}
-                placement="above"
+                placement={expanded ? "above" : "beside"}
+                heading={words.email}
                 focusOn={focusOn}
                 items={[{ key: "sign-out", label: COPY.account.signOut, type: "submit", form: formId }]}
                 onClose={close}

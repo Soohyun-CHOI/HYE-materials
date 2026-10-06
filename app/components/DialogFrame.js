@@ -1,8 +1,9 @@
 "use client";
 
-import { useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { FormBusy, Refusal } from "./Controls";
+import { SCROLL_LANE } from "./scrollLane";
 
 /*
  * The frame a dialog opens in — Claude Design's 0l, drawn once (#456).
@@ -89,9 +90,10 @@ import { FormBusy, Refusal } from "./Controls";
  * and the name sheet beside the tool item page, and the retirement's Confirm, close on a
  * press on what lies behind them while drawn as sheets (`closesOnBackdrop`), the name
  * sheet on its handle too (`onHandlePress`), and the name sheet ends in `done`, a text
- * button at its head's end in place of the close, since it holds a field (0a Sheet). They
- * open from the page's dialogs today, and from #463's foot bar — 1f's — with nothing about
- * them changed.
+ * button at its head's end in place of the close, since it holds a field (0a Sheet). The job
+ * and name sheets open from #463's foot bar — 1f's — and the Confirm from the phone's
+ * `More actions`, with nothing about them changed; the fields in the page's dialog that
+ * open them stand below the phone's edge, where that dialog is not drawn.
  *
  * A DIALOG TAKEN OFF THE PAGE WHILE OPEN HANDS FOCUS BACK AS ITS CLOSING WOULD (#458). The
  * browser restores focus when it is asked to close a dialog and not when the dialog is
@@ -103,6 +105,18 @@ import { FormBusy, Refusal } from "./Controls";
  * called it, and the retirement's question leaves with its opener. The heading is where
  * #459 sends a dialog nothing opened.
  *
+ * A DIALOG ITS PAGE STOPS DRAWING CLOSES (#495). A page can draw an opener on one side of
+ * the phone's edge alone — the tool item page's header row at a desk, its foot bar on a
+ * phone — and a modal dialog inside a box the page has hidden stays modal and draws
+ * nothing: measured at 375, `:modal` with no box and the page behind it inert, on a phone
+ * with no `Escape` to leave by. Turning a phone is all it takes, since one on its side is
+ * wider than the edge. So while it is open the frame asks, whenever the window changes size,
+ * whether it is still drawn, and when it is not it closes — busy or not, since nothing it
+ * holds can be seen — after `onHidden`, where an owner carries what was typed to the side
+ * that is drawn. The browser then hands focus back to an opener it cannot focus, so a
+ * closing that leaves focus anywhere but its opener puts it on the page's heading, as an
+ * opener gone with its dialog does (#458).
+ *
  * A DIALOG CAN HOLD A PREVIEW BESIDE WHAT IT SAYS (#457), which is the frame's second
  * build and 1i's: a pane on the Field ground the dialog's full height and flush to its
  * edges, where what it shows is drawn as it will print, and beside it a column that is
@@ -113,6 +127,15 @@ import { FormBusy, Refusal } from "./Controls";
  * which 1i does not draw, the two stack in reading order — the head, the preview, then
  * what the dialog says and its actions. The labels are its one caller, and the pane is
  * what they print; their stylesheet is what takes everything else off the paper.
+ *
+ * EACH OF THE TWO SCROLLS AS 1i DRAWS IT SINCE #495. The pane reserves 0i's 8 lane and
+ * draws 0i's bar in it, its room 24 16 24 24 so the pages stand 24 from the lane as from
+ * every other edge, and it stops at its end; the column scrolls as one lane between its
+ * head and its actions, across the column's whole width, so its Rules run edge to edge at
+ * the head's foot and the actions' top. Until then the pane scrolled in the browser's own
+ * bar with no lane, which moved the pages when it came, and the column's body scrolled
+ * inside the column's 24 with its Rules as narrow as the body. The dialog is marked
+ * `data-preview` for what it holds to take the column's sides.
  *
  * THE ONLY FRAME ON THE TOOLS AXIS SINCE #458. The tool item page's retirement and the
  * check-out's name sheet were drawn on `app/components/modalStyles.js` until then, and
@@ -222,11 +245,12 @@ function laidOutAsSheet(dialog) {
  * the second build (#457): what it holds is drawn in a pane beside the column, which is
  * the Compact build's inside — see the header. `recordId` is 0l's Confirm, and `sheet`,
  * `closesOnBackdrop`, `onHandlePress` and `done` are the phone's sheet (#458), the header
- * again.
+ * again. `onHidden` runs before the frame closes a dialog its page stopped drawing (#495).
  */
 export function DialogFrame({
     open,
     onClose,
+    onHidden,
     busy = false,
     unprompted = false,
     title,
@@ -255,10 +279,26 @@ export function DialogFrame({
             dialog.showModal();
             dialog.querySelector("input:not([type=hidden])")?.focus();
         } else if (!open && dialog.open) {
+            const opener = openerRef.current;
             dialog.close();
-            if (unprompted) focusPageHeading();
+            // An opener its page has hidden cannot take focus back (#495 — the header).
+            if (unprompted || (opener !== null && document.activeElement !== opener)) focusPageHeading();
         }
     }, [open, unprompted]);
+
+    // Drawn no longer, it closes (#495 — the header). A modal dialog is drawn unless a box
+    // around it is not, which only the window's size changes on these pages.
+    useEffect(() => {
+        const dialog = dialogRef.current;
+        if (!open || !dialog) return undefined;
+        const onResize = () => {
+            if (!dialog.open || dialog.checkVisibility()) return;
+            onHidden?.();
+            onClose();
+        };
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, [open, onClose, onHidden]);
 
     // While it is open, focus that falls out of it comes back in (#469 — the header). What
     // held focus is followed by `focusin` and, since a document with no focus of its own
@@ -380,6 +420,7 @@ export function DialogFrame({
             ref={dialogRef}
             aria-labelledby={titleId}
             data-sheet={sheet ? (confirm ? "confirm" : "drawer") : undefined}
+            data-preview={withPreview ? "" : undefined}
             onCancel={(event) => {
                 event.preventDefault();
                 ask();
@@ -401,13 +442,15 @@ export function DialogFrame({
                     )}
                     {head}
                     {withPreview && (
-                        <div className="min-h-0 overflow-y-auto overscroll-contain bg-background-muted p-dialog-inset sm:col-start-1 sm:row-span-2 sm:row-start-1">
+                        <div
+                            className={`min-h-0 overflow-y-auto overscroll-contain bg-background-muted py-dialog-inset pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar))] pl-dialog-inset [scrollbar-gutter:stable] sm:col-start-1 sm:row-span-2 sm:row-start-1 ${SCROLL_LANE}`}
+                        >
                             {preview}
                         </div>
                     )}
                     <Content
                         onSubmit={onSubmit}
-                        className={`flex min-h-0 flex-col ${withPreview ? "px-dialog-inset pb-dialog-inset sm:col-start-2 sm:row-start-2" : ""}`}
+                        className={`flex min-h-0 flex-col ${withPreview ? "pb-dialog-inset sm:col-start-2 sm:row-start-2" : ""}`}
                     >
                         <FormBusy busy={busy}>{children}</FormBusy>
                     </Content>
@@ -428,6 +471,10 @@ export function DialogFrame({
  * right under the title's block (Tools 0a Field label) — or, confirming, the sentence 14
  * under the id. It is marked `data-dialog-body`, which is where the frame finds the first
  * thing to put focus back on when the dialog let it fall (#469).
+ *
+ * IT STOPS AT ITS END (0i Chain, #495): a scroll past its last line does not move the page
+ * behind the dialog. Beside a preview it holds the column's 24 either side inside itself, so
+ * it scrolls across the column's whole width and its Rules run edge to edge (1i).
  */
 export function DialogBody({ children }) {
     const scrollerRef = useRef(null);
@@ -456,7 +503,7 @@ export function DialogBody({ children }) {
         <div data-dialog-body="" className="relative flex min-h-0 grow flex-col">
             <div
                 ref={scrollerRef}
-                className="flex min-h-0 flex-col gap-gap-lg overflow-y-auto pt-dialog-header-stack max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack"
+                className="flex min-h-0 flex-col gap-gap-lg overflow-y-auto overscroll-contain pt-dialog-header-stack in-data-preview:px-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet=drawer]:gap-mobile-field-stack max-sm:in-data-[sheet=drawer]:pt-0 max-sm:in-data-[sheet=confirm]:pt-mobile-confirm-id-stack"
             >
                 {children}
             </div>
@@ -508,11 +555,13 @@ export function DialogSummary({ children }) {
  * Ink with 15 and 16 inside, an Inner rule between two that starts 16 in and runs to the
  * sheet's edge, and a check in Accent at the end of the one already chosen. A row takes
  * the Wash while held, as a control does under a press (0a). 1f's job sheet and name sheet
- * list theirs this way; a press on a row is the row's `onPress`.
+ * list theirs this way; a press on a row is the row's `onPress`. The rows stop at their end
+ * (0i Chain, #495), so a scroll past the last does not move the page behind the sheet. A row
+ * may name the part of it a typed value matched (`match`), set at 600 (1f).
  */
 export function SheetRows({ rows }) {
     return (
-        <ul role="list" className="flex min-h-0 flex-col overflow-y-auto">
+        <ul role="list" className="flex min-h-0 flex-col overflow-y-auto overscroll-contain">
             {rows.map((row, index) => (
                 <li key={row.key} className="flex shrink-0 flex-col">
                     {index > 0 && <div aria-hidden="true" className="ml-mobile-drawer-row-inset-x h-px bg-divider-subtle" />}
@@ -522,7 +571,17 @@ export function SheetRows({ rows }) {
                         onClick={row.onPress}
                         className="flex min-h-mobile-drawer-row items-center justify-between gap-gap px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y text-left text-mobile-body text-foreground-default outline-none focus-visible:bg-hover-subtle active:bg-hover-subtle"
                     >
-                        <span className="min-w-0 truncate">{row.label}</span>
+                        <span className="min-w-0 truncate">
+                            {row.match ? (
+                                <>
+                                    {row.match.before}
+                                    <span className="font-semibold">{row.match.match}</span>
+                                    {row.match.after}
+                                </>
+                            ) : (
+                                row.label
+                            )}
+                        </span>
                         {row.chosen && (
                             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-mobile-drawer-row-icon shrink-0 text-primary">
                                 <path d="M3 8.5 6.2 11.7 13 4.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -537,8 +596,9 @@ export function SheetRows({ rows }) {
 
 /**
  * The dialog's actions, on the right 8 apart and 24 under what it asks — and above them,
- * 14 over, the one line a refusal about the whole dialog takes: a 16 alert mark 8 before
- * one sentence at 13, both in Red (0l). A refusal about one field is that field's to say.
+ * 14 over, the one line a refusal about the whole dialog takes: a 16 info mark 6 before one
+ * sentence at 13, both in Ink 2 (0l, Red until #495 — `Refusal` has why). A refusal about
+ * one field is that field's to say, in Red.
  *
  * THEY WRAP, still on the right, when they do not fit one line (#459). An action that
  * cannot act carries its reason before it (0f), and in a dialog 319 wide on a phone the
@@ -552,7 +612,7 @@ export function SheetRows({ rows }) {
  */
 export function DialogActions({ refusal, children }) {
     return (
-        <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
+        <div className="flex shrink-0 flex-col gap-gap-lg pt-dialog-inset in-data-preview:px-dialog-inset max-sm:in-data-[sheet]:px-mobile-gutter max-sm:in-data-[sheet]:pt-mobile-drawer-body-stack">
             {refusal && <Refusal>{refusal}</Refusal>}
             <div className="flex flex-wrap justify-end gap-gap max-sm:in-data-[sheet]:flex-col-reverse max-sm:in-data-[sheet]:gap-mobile-drawer-action-stack">
                 {children}

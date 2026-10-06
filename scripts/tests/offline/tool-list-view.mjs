@@ -873,7 +873,7 @@ export function run({ check, assert, log }) {
     check(
         "its title and its sentence, from the account it was handed",
         `${fork.titled} · ${fork.message}`,
-        "COPY.shortfallHeading({ created: account.asked - account.unwritten, asked: account.asked }) · COPY.shortfall(account.unwritten)"
+        "COPY.shortfallHeading(account.unwritten) · COPY.shortfall(account.asked - account.unwritten)"
     );
     // ANTI-VACUITY: a planted fork doing each of those wrong is seen doing it.
     const plantedFork = forkFacts(
@@ -890,8 +890,8 @@ export function run({ check, assert, log }) {
                 "    router.replace(`${address.pathname}${address.search}`);\n" +
                 "  };\n" +
                 "  return (<>\n" +
-                "    <DialogFrame open={told} onClose={() => {}} title={COPY.shortfallHeading({ created: account.asked, asked: account.asked })}>\n" +
-                "      <DialogMessage>{COPY.shortfall(account.asked)}</DialogMessage>\n" +
+                "    <DialogFrame open={told} onClose={() => {}} title={COPY.shortfallHeading(account.asked)}>\n" +
+                "      <DialogMessage>{COPY.shortfall(account.unwritten)}</DialogMessage>\n" +
                 "      <Button onClick={finish}>{COPY.doneRegistering}</Button>\n" +
                 "      <RegistrationOpener canRegister={true} onOpen={() => {}}>{COPY.registerOthers(account.asked)}</RegistrationOpener>\n" +
                 "    </DialogFrame>\n" +
@@ -927,7 +927,7 @@ export function run({ check, assert, log }) {
     check(
         "  and a title and a sentence counting the wrong things are seen",
         `${plantedFork.titled} · ${plantedFork.message}`,
-        "COPY.shortfallHeading({ created: account.asked, asked: account.asked }) · COPY.shortfall(account.asked)"
+        "COPY.shortfallHeading(account.asked) · COPY.shortfall(account.unwritten)"
     );
 
     // THE NOTICE'S HALF (#455, #459). `Got it` is the same act on the other key: the
@@ -1271,7 +1271,7 @@ export function run({ check, assert, log }) {
     check("  and a hundred and one as a hundred and one", hundredAndOne.length, 101);
     check("a selection of a hundred prints", describeSelection(hundred, thisPage).printable, true);
     check("  and one of a hundred and one does not", describeSelection(hundredAndOne, thisPage).printable, false);
-    check("  and says why before the control", describeSelection(hundredAndOne, thisPage).reason, "One print takes at most 100.");
+    check("  and says why before the control", describeSelection(hundredAndOne, thisPage).reason, "Up to 100 labels per print.");
     check("  where one it takes has no reason", describeSelection(hundred, thisPage).reason, null);
     // The same edge from the address's side: a hundred and one values holding a repeat
     // are a hundred tool items, and print.
@@ -1336,9 +1336,14 @@ export function run({ check, assert, log }) {
         "{selecting} {selecting} true"
     );
     check(
-        "  and its print control acts on what one print takes, saying why it does not",
-        `${propSources(itemList, "LabelsDialog", "disabled").join()} ${propSources(itemList, "LabelsDialog", "disabledReason").join()} ${propSources(itemList, "LabelsDialog", "toolItemIds").join()}`,
-        "{!summary.printable} {summary.reason} {selection}"
+        "  and its print control acts on what one print takes, pointing at the reason the bar draws (#495)",
+        `${propSources(itemList, "LabelsDialog", "disabled").join()} ${propSources(itemList, "LabelsDialog", "describedBy").join()} ${propSources(itemList, "LabelsDialog", "toolItemIds").join()} ${propSources(itemList, "LabelsDialog", "disabledReason").length}`,
+        "{!summary.printable} {summary.reason ? reasonId : undefined} {selection} 0"
+    );
+    check(
+        "  which the bar is handed with the id it draws it under",
+        `${propSources(itemList, "SelectionBar", "reason").join()} ${propSources(itemList, "SelectionBar", "reasonId").join()}`,
+        "{summary.reason} {reasonId}"
     );
     check(
         "  the page box shows this page all, some or none, by the page box's name",
@@ -1384,6 +1389,30 @@ export function run({ check, assert, log }) {
         true
     );
     check("  and while it does not show it cannot be reached", /inert=\{!shown\}/.test(barSource), true);
+    // CENTERED FROM THE LIST'S MIDDLE, IT TAKES ITS CONTENT'S WIDTH (#495): a box set from the
+    // middle and left to size itself is held to the half beyond it, which cut a past-100 bar.
+    check("  at its content's width, which a box set from the list's middle does not take by itself (#495)", /absolute bottom-full left-1\/2 mb-selection-bar-offset flex w-max -translate-x-1\/2/.test(barSource), true);
+    // AN ACTION THE SELECTION IS TOO LARGE FOR SAYS WHY BEFORE IT (0b, #495): 14 before the
+    // actions, led by a 16 info mark 6 before it in Ink 3, in a column that opens and closes
+    // as the second clause does and keeps its words while it closes.
+    check(
+        "the bar draws an action's reason 14 before the actions, led by the info mark in Ink 3, 6 from it (#495)",
+        [
+            /gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg/.test(barSource),
+            /<InfoMark size="size-icon" ring=\{1\.5\} tone="subtle" \/>/.test(barSource),
+            /<span id=\{reasonId\} className="text-body-sm text-foreground-subtle">\s*\{lastReason\}/.test(barSource),
+        ].join(" "),
+        "true true true"
+    );
+    check(
+        "  opening and closing as the second clause does, its words kept while it closes",
+        [
+            /reason \? "grid-cols-\[1fr\] opacity-100" : "grid-cols-\[0fr\] opacity-0"/.test(barSource),
+            /aria-hidden=\{reason \? undefined : true\}/.test(barSource),
+            /if \(reason && reason !== lastReason\) setLastReason\(reason\);/.test(barSource),
+        ].join(" "),
+        "true true true"
+    );
     const table = parseFile(LIST_TABLE);
     check(
         "a step at its end is drawn and does not act, and a step with somewhere to go is a link",
@@ -1453,7 +1482,7 @@ export function run({ check, assert, log }) {
     check(
         "  and a tool with nothing under it (1b)",
         `${TOOL_LIST_COPY.noToolItemsHeading} | ${TOOL_LIST_COPY.noToolItems}`,
-        "No items under this tool | If you were creating some, it stopped before any were saved."
+        "No items under this tool | If you were adding some, it stopped before any were saved."
     );
     check(
         "the pager's two figures, and its steps' names",

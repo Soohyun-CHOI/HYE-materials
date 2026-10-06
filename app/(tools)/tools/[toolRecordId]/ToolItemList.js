@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useId } from "react";
 import { Checkbox } from "@/app/components/Controls";
 import ListFrame, { SelectionBar } from "@/app/components/ListFrame";
 import { Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK, TABLE_ROW_SELECTED } from "@/app/components/ListTable";
@@ -87,6 +88,7 @@ export default function ToolItemList({ toolRecordId, toolName, rows, page, top, 
     const pageState = pageSelection(selection, pageIds);
     const summary = describeSelection(selection, pageIds);
     const selecting = summary.count > 0;
+    const reasonId = useId();
 
     // THE ONE WRITE, AND IT IS NOT A NAVIGATION — see the header. It keeps the page
     // the reader is on, resolved rather than as typed.
@@ -112,7 +114,8 @@ export default function ToolItemList({ toolRecordId, toolName, rows, page, top, 
             // The bar comes with the first box pressed and goes with the last (0b): the count,
             // how many are on other pages, the way out, and the print control, which opens the
             // labels' dialog on the selection as it stands, in ascending id, under this
-            // tool's name (#457) — and says why it does not act on more than one print takes.
+            // tool's name (#457) — and says why it does not act on more than one print takes,
+            // in a column of the bar's own that the control points at (#495).
             overlay={
                 <SelectionBar
                     shown={selecting}
@@ -122,13 +125,15 @@ export default function ToolItemList({ toolRecordId, toolName, rows, page, top, 
                     words={{ count: COPY.selectedCount, notOnPage: COPY.notOnPage }}
                     clearLabel={COPY.clearSelection}
                     onClear={clear}
+                    reason={summary.reason}
+                    reasonId={reasonId}
                 >
                     <LabelsDialog
                         title={LABEL_COPY.openFromTool}
                         toolName={toolName}
                         toolItemIds={selection}
                         disabled={!summary.printable}
-                        disabledReason={summary.reason}
+                        describedBy={summary.reason ? reasonId : undefined}
                     />
                 </SelectionBar>
             }

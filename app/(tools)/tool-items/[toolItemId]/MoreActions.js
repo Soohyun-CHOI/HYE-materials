@@ -4,6 +4,7 @@ import { useId, useRef, useState } from "react";
 import { ActionMenu } from "@/app/components/Menu";
 import { useTooltip } from "@/app/components/Tooltip";
 import { menuButtonKey } from "@/lib/controls";
+import { NAVIGATION_COPY } from "@/lib/navigation";
 import { TOOL_ITEM_COPY } from "@/lib/toolItemView";
 import { TOOL_TRANSITION_COPY } from "@/lib/toolTransition";
 import { useToolItemTransition } from "./ToolItemTransition";
@@ -45,9 +46,18 @@ function Dots({ phone }) {
  *
  * AT A DESK, 32 SQUARE WITH A 16 MARK, ITS INK ON THE CONTENT'S EDGE; ON A PHONE, 48 ROUND
  * IN INK 2 WITH A 24 MARK, ON THE FIELD WASH IN INK WHILE ITS MENU IS OPEN (1f).
+ *
+ * ON A PHONE ITS MENU ENDS ON THE ACCOUNT, AND EVERY SCREEN WITH A TOP BAR CARRIES IT (Tools
+ * 0a Menu, #495). A phone has no rail, so this is where the reader is named and signs out:
+ * under a full-width Inner rule, `Sign out` over the reader's email, posting where the rail's
+ * account and the root screen do. Where the record takes no action — a retired tool, a code
+ * no tool carries, a reader on no job — the menu holds the account alone, with no rule, and
+ * there it needs no transition: the screen saying a code is on no tool has none. The desk's
+ * menu stays the retirement alone, since the rail's foot holds the account there.
  */
-export default function MoreActions({ phone = false }) {
-    const { openRetirement } = useToolItemTransition();
+export default function MoreActions({ phone = false, account = null }) {
+    const transition = useToolItemTransition();
+    const mayRetire = Boolean(transition?.plan.mayRetire);
     const [open, setOpen] = useState(false);
     const [focusOn, setFocusOn] = useState("first");
     const buttonRef = useRef(null);
@@ -56,6 +66,7 @@ export default function MoreActions({ phone = false }) {
     const word = TOOL_ITEM_COPY.moreActions;
     const buttonId = `${id}-more`;
     const menuId = `${id}-more-menu`;
+    const formId = `${id}-sign-out`;
 
     const openOn = (where) => {
         tip.hide();
@@ -101,19 +112,36 @@ export default function MoreActions({ phone = false }) {
                 look="record"
                 focusOn={focusOn}
                 items={[
-                    {
-                        key: "retire",
-                        label: TOOL_TRANSITION_COPY.retireOpener,
-                        tone: "danger",
-                        onSelect: () => {
-                            buttonRef.current?.focus();
-                            setOpen(false);
-                            openRetirement();
-                        },
-                    },
+                    ...(mayRetire
+                        ? [
+                              {
+                                  key: "retire",
+                                  label: TOOL_TRANSITION_COPY.retireOpener,
+                                  tone: "danger",
+                                  onSelect: () => {
+                                      buttonRef.current?.focus();
+                                      setOpen(false);
+                                      transition.openRetirement();
+                                  },
+                              },
+                          ]
+                        : []),
+                    ...(phone && account
+                        ? [
+                              {
+                                  key: "sign-out",
+                                  label: NAVIGATION_COPY.account.signOut,
+                                  detail: account.email,
+                                  separated: true,
+                                  type: "submit",
+                                  form: formId,
+                              },
+                          ]
+                        : []),
                 ]}
                 onClose={close}
             />
+            {phone && account && <form id={formId} action="/api/auth/logout" method="POST" hidden />}
             {!phone && tip.element}
         </div>
     );

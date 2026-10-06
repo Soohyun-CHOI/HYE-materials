@@ -60,6 +60,8 @@ import {
     asksBeforeRecording,
     fieldRefusals,
     jobMoveNotice,
+    matchedPart,
+    namesAreRecent,
     narrowNames,
     offeredNames,
     planTransition,
@@ -114,8 +116,12 @@ function copyStrings() {
         if (typeof value === "string") out.push(value);
         else if (typeof value === "object" && value) out.push(...Object.values(value));
     }
-    out.push(TOOL_TRANSITION_COPY.moved({ by: "Jisoo Park", event: TOOL_EVENT.CHECKED_OUT, when: "09/25/2026 2:14 PM", attempted: TOOL_EVENT.CHECKED_OUT }));
-    out.push(TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }));
+    // The stale sentence is parts since #495, its moment one of them: the words are the rest.
+    for (const parts of [
+        TOOL_TRANSITION_COPY.moved({ by: "Jisoo Park", event: TOOL_EVENT.CHECKED_OUT, at: "2026-10-05T13:50:00.000Z", attempted: TOOL_EVENT.CHECKED_OUT }),
+        TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }),
+    ])
+        out.push(...parts);
     out.push(TOOL_TRANSITION_COPY.movesJob({ from: JOB_B.jobCode, to: JOB_A.jobCode }));
     out.push(TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-TL-261001-022" }));
     out.push(
@@ -305,7 +311,7 @@ export function run({ check, assert, log }) {
     // AND IT SAYS IT IS THE STALE ONE (#463), which is what the action reads the latest entry
     // for: the design names who recorded first and when (1g), which this function cannot know.
     check("  marked as the stale refusal", stale.stale, true);
-    check("  naming the press it refused", stale.refusal, TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }));
+    check("  naming the press it refused", stale.refusal, TOOL_TRANSITION_COPY.scannedFirst({ attempted: TOOL_EVENT.CHECKED_IN }));
     assert(
         "  and asking for no reload, because the action refreshes as it refuses",
         !/(reload|refresh|open it again|out of date)/i.test(stale.refusal)
@@ -383,7 +389,7 @@ export function run({ check, assert, log }) {
     check(
         "a stale page is answered before a missing name",
         readSubmission(inStock, { event: TOOL_EVENT.CHECKED_IN, jobId: JOB_A.id, checkedOutTo: "" }).refusal,
-        TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN })
+        TOOL_TRANSITION_COPY.scannedFirst({ attempted: TOOL_EVENT.CHECKED_IN })
     );
     check(
         "  and so is a job that is not the actor's",
@@ -470,6 +476,23 @@ export function run({ check, assert, log }) {
     // narrowed would show here.
     check("something typed offers every name it matches, past the cut", offeredNames(six, "e").join(" | "), "Ben Q | Dee S | Eli T | Fae U");
     check("  and nothing typed into no list offers nothing", offeredNames(undefined, "").length, 0);
+    // WHAT IS OFFERED IS THE RECENT LIST WHILE NOTHING IS TYPED, which is what its head names
+    // (#495): the head stands over that list and goes once somebody types.
+    check("the recent names are what is offered while nothing is typed", `${namesAreRecent("")} ${namesAreRecent("   ")}`, "true true");
+    check("  and not once a fragment is", namesAreRecent("e"), false);
+    // THE PART A FRAGMENT MATCHED, SET AT 600 (#495): where the narrowing found it, on its fold,
+    // at a word's start when it starts one and otherwise its first place.
+    const marked = (name, typed) => {
+        const part = matchedPart(name, typed);
+        return part ? `${part.before}[${part.match}]${part.after}` : "none";
+    };
+    check("a typed fragment is marked where it matched", marked("Mike Torres", "tor"), "Mike [Tor]res");
+    check("  ignoring case, the name's own case kept", marked("Mike Torres", "MIKE"), "[Mike] Torres");
+    check("  at a word's start before an earlier place inside a word", marked("Anna Nash", "na"), "Anna [Na]sh");
+    check("  and inside a word when it starts none", marked("Dana K", "an"), "D[an]a K");
+    check("  spacing folded, as the narrowing folds it", marked("mike r", "mike  r"), "[mike r]");
+    check("nothing typed marks nothing", marked("Dana K", "  "), "none");
+    check("  nor does a fragment the name does not hold", marked("Dana K", "zz"), "none");
 
     // A refused plan is not re-litigated by a well-formed submission — which is
     // what a forged POST against a retired tool item looks like.
@@ -529,23 +552,26 @@ export function run({ check, assert, log }) {
     );
     // The two sentences the sweep carried the noun into, by value.
     check("the terminal sentence, the design's (1f)", TOOL_TRANSITION_COPY.noTransition, "Nothing more can be recorded here.");
-    // THE STALE PRESS IN 1g's WORDS (#463), the person in full and the moment in the app's
-    // notation where the design says `a moment ago`, the noun hyphenated and the verb not.
+    // THE STALE PRESS IN 1g's WORDS (#463), the person in full, `already` and the moment as
+    // a part the page draws in the reader's zone since the design's final files (#495), the
+    // noun hyphenated and the verb not.
     check(
         "  the press somebody else's scan got in front of",
-        TOOL_TRANSITION_COPY.moved({ by: "Jisoo Park", event: TOOL_EVENT.CHECKED_OUT, when: "09/25/2026 2:14 PM", attempted: TOOL_EVENT.CHECKED_OUT }),
-        "Jisoo Park checked this out on 09/25/2026 2:14 PM. Your check-out wasn't saved."
+        JSON.stringify(TOOL_TRANSITION_COPY.moved({ by: "Jisoo Park", event: TOOL_EVENT.CHECKED_OUT, at: "2026-10-05T13:50:00.000Z", attempted: TOOL_EVENT.CHECKED_OUT })),
+        JSON.stringify(["Jisoo Park already checked this out on ", { at: "2026-10-05T13:50:00.000Z" }, ". Your check-out wasn't saved."])
     );
     check(
         "  naming nobody when nobody resolved",
-        TOOL_TRANSITION_COPY.moved({ by: null, event: TOOL_EVENT.CHECKED_IN, when: "09/25/2026 2:14 PM", attempted: TOOL_EVENT.CHECKED_OUT }),
-        "Someone else checked this in on 09/25/2026 2:14 PM. Your check-out wasn't saved."
+        JSON.stringify(TOOL_TRANSITION_COPY.moved({ by: null, event: TOOL_EVENT.CHECKED_IN, at: "2026-09-25T19:14:00.000Z", attempted: TOOL_EVENT.CHECKED_OUT })),
+        JSON.stringify(["Someone else already checked this in on ", { at: "2026-09-25T19:14:00.000Z" }, ". Your check-out wasn't saved."])
     );
     check(
         "  and no entry at all when none was read",
-        TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN }),
-        "Someone else scanned this first. Your check-in wasn't saved."
+        JSON.stringify(TOOL_TRANSITION_COPY.moved({ attempted: TOOL_EVENT.CHECKED_IN })),
+        JSON.stringify(["Someone else scanned this first. Your check-in wasn't saved."])
     );
+    check("  nor an event read with its moment", JSON.stringify(TOOL_TRANSITION_COPY.moved({ by: "Jisoo Park", at: "2026-10-05T13:50:00.000Z", attempted: TOOL_EVENT.CHECKED_OUT })), JSON.stringify(["Someone else scanned this first. Your check-out wasn't saved."]));
+    check("  that last the one sentence the action answers with", TOOL_TRANSITION_COPY.scannedFirst({ attempted: TOOL_EVENT.CHECKED_IN }), "Someone else scanned this first. Your check-in wasn't saved.");
     check(
         "  and the one for a move",
         TOOL_TRANSITION_COPY.movesJob({ from: "26-DEMO-02", to: "26-DEMO-01" }),
@@ -975,12 +1001,13 @@ export function run({ check, assert, log }) {
     // maps that agree only on today's three statuses. Deriving one control's
     // presence from the other's would be the coincidence lib/toolStatus.js records.
     assert("the transition control is gated on the offered event", /\{transition\.event && <TransitionDialog /.test(page.source));
-    // `More actions` holds the retirement at both widths (#463): beside the transition at a
-    // desk, in the top bar on a phone — each asked of the plan's own answer.
+    // `More actions` holds the retirement beside the transition at a desk, asked of the plan's
+    // own answer (#463); on a phone it stands in every top bar, the page's and the one over a
+    // code no tool carries, since its menu ends on the account (#495).
     check(
-        "  and More actions, which holds the retirement, on its own answer at both widths",
-        (page.source.match(/\{transition\.mayRetire && <MoreActions( phone)? \/>\}/g) ?? []).join(" | "),
-        "{transition.mayRetire && <MoreActions phone />} | {transition.mayRetire && <MoreActions />}"
+        "  and More actions holds the retirement at a desk on its own answer, and stands in every phone top bar (#495)",
+        `${(page.source.match(/\{transition\.mayRetire && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
+        "1 2"
     );
     // A RETIRED TOOL SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1c); any other refusal is
     // said there, and a phone's foot bar says the terminal one.
@@ -1116,10 +1143,10 @@ export function run({ check, assert, log }) {
     const sentenceFn = functionNamed(provider.ast, "useRefusalSentence");
     const sentenceSource = sentenceFn ? provider.source.slice(sentenceFn.start, sentenceFn.end) : "";
     assert(
-        "a refusal is the action's last answer, a stale one named in the reader's zone",
-        /const when = useReaderInstant\(answer\?\.moved\?\.at \?\? null\);/.test(sentenceSource) &&
-            /if \(answer\.moved\) return COPY\.moved\(\{ \.\.\.answer\.moved, when \}\);/.test(sentenceSource) &&
-            /return answer\.error \?\? null;/.test(sentenceSource)
+        "a refusal is the action's last answer, a stale one drawn with its moment in the reader's zone, inside the sentence (#495)",
+        /if \(answer\.moved\) \{\s*return COPY\.moved\(answer\.moved\)\.map\(\(part, index\) =>\s*typeof part === "string" \? <Fragment key=\{index\}>\{part\}<\/Fragment> : <Instant key=\{index\} at=\{part\.at\} sentence \/>/.test(
+            sentenceSource
+        ) && /return answer\.error \?\? null;/.test(sentenceSource)
     );
     check("  which the dialog reads", initSource(dialogFn, dialog.source, "refusal"), "useRefusalSentence(answer)");
     const refusalFile = parseFile(REFUSAL);
@@ -1148,7 +1175,11 @@ export function run({ check, assert, log }) {
     log("each width asks in its own drawing, from one state:");
     assert("at a desk the job is 0a's choice, drawn only from the phone's edge up", /<div className="max-sm:hidden">\s*<Choice\s+name="jobId"/.test(formSource));
     assert("  and the name the registration's combobox", /<div className="max-sm:hidden">\s*<Combobox\s+name="checkedOutTo"/.test(formSource));
-    check("  headed with the name sheet's own words", attributeSources(formFn, dialog.source, "Combobox", "heading").join(), "{COPY.recentHeading}");
+    check(
+        "  headed with the name sheet's own words while nothing is typed (#495)",
+        attributeSources(formFn, dialog.source, "Combobox", "heading").join(),
+        "{namesAreRecent(name) ? COPY.recentHeading : undefined}"
+    );
     check(
         "below it each opens one of 1f's sheets",
         attributeSources(formFn, dialog.source, "SheetField", "onOpen").join(" | "),
@@ -1157,9 +1188,9 @@ export function run({ check, assert, log }) {
     check("  the job sheet only for a person on several jobs", /\{several && \(\s*<JobSheet/.test(formSource), true);
     check("  each sheet open only while the dialog is", attributeSources(formFn, dialog.source, "JobSheet", "open").concat(attributeSources(formFn, dialog.source, "NameSheet", "open")).join(" | "), '{open && sheet === "job"} | {open && sheet === "name"}');
     check(
-        "the names offered are one list on both widths",
+        "the names offered are one list on both widths, each with what is typed marked (#495)",
         `${attributeSources(formFn, dialog.source, "Combobox", "suggestions").join()} | ${attributeSources(formFn, dialog.source, "NameSheet", "names").join()}`,
-        "{offered.map((person) => ({ label: person }))} | {offered}"
+        "{offered.map((person) => ({ label: person, match: matchedPart(person, name) }))} | {offered}"
     );
     check("  narrowed and cut by offeredNames", initSource(formFn, dialog.source, "offered"), "offeredNames(recent, name)");
     check("  out of the chosen job's recent names", initSource(formFn, dialog.source, "recent"), "recentNamesFor(recentCheckOuts, { jobCode: chosen?.jobCode })");
@@ -1201,6 +1232,19 @@ export function run({ check, assert, log }) {
     assert("  the name asked only of a check-out", /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}/.test(barSource) && /\{asksName && \(\s*<NameSheet/.test(barSource));
     check("with nothing to record it says the plan's refusal in the press's place", /\{plan\.refusal\}<\/p>/.test(barSource), true);
     check("  drawn below the phone's edge alone", attributeSources(barFn ?? {}, bar.source, "BottomBar", "phoneOnly").join(" | "), "true | true");
+    // WHAT A DESK'S DIALOG WAS GIVEN COMES TO THE BAR WHEN THE WINDOW CROSSES INTO IT (#495):
+    // the frame closes a dialog its page stops drawing, the dialog hands its job and name to
+    // the provider first, and the bar takes each handing-over once, as its own.
+    check(
+        "a desk's dialog the frame closes undrawn carries its job and name (#495)",
+        `${attributeSources(formFn, dialog.source, "DialogFrame", "onHidden").join()} | ${attributeSources(dialogFn, dialog.source, "TransitionForm", "onCarry").join()}`,
+        "{() => onCarry({ jobId: kept, name })} | {carry}"
+    );
+    check("  which the provider keeps, a new object each time", /carry: \(\{ jobId, name \}\) => setCarried\(\{ jobId, name \}\),/.test(provider.source), true);
+    assert(
+        "  and the bar takes each handing-over once, as its own job and name",
+        /if \(carried !== taken\) \{\s*setTaken\(carried\);\s*if \(carried\) \{\s*setJobId\(carried\.jobId\);\s*setName\(carried\.name\);/.test(barSource)
+    );
 
     // ── 8: retiring — the second answer the plan carries (#363) ────────────
     log("");
@@ -1378,8 +1422,24 @@ export function run({ check, assert, log }) {
     // the question opens, so every way out of the question comes back to the button.
     check("the opener is a menu button named More actions", `${attributeSources(opener.ast, opener.source, "button", "aria-haspopup").join()} ${attributeSources(opener.ast, opener.source, "button", "aria-label").join()}`, '"menu" {word}');
     check("  its name the copy's own", initSource(opener.ast, opener.source, "word"), "TOOL_ITEM_COPY.moreActions");
-    assert("  its one item the opener's words, a destructive one", /label: TOOL_TRANSITION_COPY\.retireOpener,\s*tone: "danger",/.test(opener.source));
-    assert("  which hands focus to its button before the question opens", /buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*openRetirement\(\);/.test(opener.source));
+    assert("  its retirement item the opener's words, a destructive one", /label: TOOL_TRANSITION_COPY\.retireOpener,\s*tone: "danger",/.test(opener.source));
+    assert(
+        "  which hands focus to its button before the question opens",
+        /buttonRef\.current\?\.focus\(\);\s*setOpen\(false\);\s*transition\.openRetirement\(\);/.test(opener.source)
+    );
+    // ON A PHONE THE MENU ENDS ON THE ACCOUNT (#495), under a rule when the retirement stands
+    // above it and alone when the record takes no action, and the retirement is offered only
+    // where the plan allows it — the screen of a code no tool carries has no plan at all.
+    assert(
+        "  the retirement offered only where the plan allows it, with no plan at all read as none (#495)",
+        /const mayRetire = Boolean\(transition\?\.plan\.mayRetire\);/.test(opener.source) && /\.\.\.\(mayRetire\s*\?/.test(opener.source)
+    );
+    assert(
+        "  and a phone's menu ending on the account, its email the detail, posting the sign-out (#495)",
+        /\.\.\.\(phone && account\s*\?/.test(opener.source) &&
+            /label: NAVIGATION_COPY\.account\.signOut,\s*detail: account\.email,\s*separated: true,\s*type: "submit",\s*form: formId,/.test(opener.source) &&
+            /\{phone && account && <form id=\{formId\} action="\/api\/auth\/logout" method="POST" hidden \/>\}/.test(opener.source)
+    );
     // AND THE TRANSITION'S DIALOG STILL ASKS FOR A JOB, because a scan is the actor
     // handling the tool. One question on the screen rather than none is the point.
     assert("the transition's dialog keeps its job choice", /<Choice\s+name="jobId"/.test(dialog.source));
@@ -1414,7 +1474,8 @@ export function run({ check, assert, log }) {
     // showed first; and the sentence for a job with none is for that job alone.
     assert("  the list absent until a job is chosen, and once typing leaves it no row", /\{jobChosen && names\.length > 0 && \(/.test(nameSheet.source));
     assert("  a job nothing has gone out on saying so in place of the rows", /\{jobChosen && !hasRecent && \(\s*<p[^>]*>\s*\{COPY\.noRecentNames\}/.test(nameSheet.source));
-    assert("  the rows headed as the dialog's suggestions are", /\{COPY\.recentHeading\}/.test(nameSheet.source));
+    assert("  the rows headed as the dialog's suggestions are, while nothing is typed (#495)", /\{namesAreRecent\(value\) && \(\s*<p[^>]*>\s*\{COPY\.recentHeading\}/.test(nameSheet.source));
+    assert("  and each row marking what is typed (#495)", /match: matchedPart\(name, value\),/.test(nameSheet.source));
     assert("  and a name picked is the opener's and puts the sheet away", /onChange\(name\);\s*onClose\(\);/.test(nameSheet.source));
     check("neither sheet draws on the old frame", [jobSheet, nameSheet].filter((f) => /modalStyles/.test(f.source)).length, 0);
     // AND THE FOOT BAR OPENS THEM AS THEY ARE (#463), which is what #458 built them for.

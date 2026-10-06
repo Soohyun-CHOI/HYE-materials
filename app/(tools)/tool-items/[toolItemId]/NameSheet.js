@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { DialogFrame, SheetRows } from "@/app/components/DialogFrame";
 import { textMatchKey } from "@/lib/itemNaming";
-import { TOOL_TRANSITION_COPY as COPY } from "@/lib/toolTransition";
+import { TOOL_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/lib/toolTransition";
 
 /**
  * 1f's name sheet (#458) — who a tool goes to, typed or picked, in Tools 0a's Sheet that
@@ -34,7 +34,8 @@ import { TOOL_TRANSITION_COPY as COPY } from "@/lib/toolTransition";
  * the rows `names` hands in (`offeredNames`), the list a desk is offered under its field, and
  * a name that matches none leaves no list at all, heading and all, as the desk's closes; the
  * row naming the person already typed is checked, on the fold the whole app compares people's
- * names on (`textMatchKey`).
+ * names on (`textMatchKey`). The heading names the recent list, so it stands only while
+ * nothing is typed, and a typed fragment's match in each row is set at 600 (1f, #495).
  *
  * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1f draws.
  */
@@ -92,13 +93,16 @@ export default function NameSheet({ open, onClose, value, onChange, names, jobCh
                 </div>
                 {jobChosen && names.length > 0 && (
                     <>
-                        <p className="shrink-0 px-mobile-drawer-row-inset-x pb-mobile-drawer-heading-stack text-mobile-heading-sm text-foreground-subtle">
-                            {COPY.recentHeading}
-                        </p>
+                        {namesAreRecent(value) && (
+                            <p className="shrink-0 px-mobile-drawer-row-inset-x pb-mobile-drawer-heading-stack text-mobile-heading-sm text-foreground-subtle">
+                                {COPY.recentHeading}
+                            </p>
+                        )}
                         <SheetRows
                             rows={names.map((name) => ({
                                 key: name,
                                 label: name,
+                                match: matchedPart(name, value),
                                 chosen: typed !== "" && textMatchKey(name) === typed,
                                 onPress: () => {
                                     onChange(name);

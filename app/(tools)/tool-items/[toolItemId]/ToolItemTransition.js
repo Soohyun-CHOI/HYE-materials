@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, startTransition, useActionState, useContext, useState } from "react";
-import { useReaderInstant } from "@/app/components/Instant";
+import { Fragment, createContext, startTransition, useActionState, useContext, useState } from "react";
+import Instant from "@/app/components/Instant";
 import { TOOL_TRANSITION_COPY as COPY } from "@/lib/toolTransition";
 import { recordToolItemEventAction } from "./actions";
 import RetirementConfirm from "./RetirementConfirm";
@@ -29,6 +29,13 @@ import RetirementConfirm from "./RetirementConfirm";
  * beside the transition and the phone's in its top bar (1c, 1f), one question for both. It
  * holds its own answer (`RetirementConfirm`), and whatever opened it gets focus back: the
  * menu hands focus to its button before it opens the question.
+ *
+ * WHAT A DESK'S DIALOG HELD GOES TO THE FOOT BAR WHEN THE WINDOW CROSSES THE PHONE'S EDGE
+ * (#495). The header row the dialog opens from is not drawn below the edge, so the frame
+ * closes the dialog there (`DialogFrame.js`), and the job and the name it was given are
+ * `carried` to the bar, which takes them as its own — a phone turned upright mid-check-out
+ * finds the bar filled rather than empty. Only that way: a dialog opened at a desk starts
+ * where an opening starts (0l), whatever the bar was left holding.
  */
 const TransitionContext = createContext(null);
 
@@ -39,13 +46,17 @@ export function useToolItemTransition() {
 
 /**
  * The sentence a refused press says (#463), or null. A press somebody else's scan got in front
- * of names who recorded first and when, in the reader's own zone (`moved`); any other refusal
- * is the action's sentence as it came.
+ * of names who recorded first and when (`moved`), its moment drawn in the reader's own zone
+ * in the design's notation, as a sentence holds one (#495); any other refusal is the action's
+ * sentence as it came.
  */
 export function useRefusalSentence(answer) {
-    const when = useReaderInstant(answer?.moved?.at ?? null);
     if (!answer) return null;
-    if (answer.moved) return COPY.moved({ ...answer.moved, when });
+    if (answer.moved) {
+        return COPY.moved(answer.moved).map((part, index) =>
+            typeof part === "string" ? <Fragment key={index}>{part}</Fragment> : <Instant key={index} at={part.at} sentence />
+        );
+    }
     return answer.error ?? null;
 }
 
@@ -54,6 +65,7 @@ export default function ToolItemTransition({ plan, toolItemId, toolName, childre
     const [openedFor, setOpenedFor] = useState(null);
     const [opening, setOpening] = useState(0);
     const [retiring, setRetiring] = useState(false);
+    const [carried, setCarried] = useState(null);
     // The opening ends with the event it was for. A landing takes it away with the page's
     // state and a refusal does not, so two refusals that flip the status out and back would
     // otherwise find it naming the event again and open the dialog with nobody asking.
@@ -74,6 +86,10 @@ export default function ToolItemTransition({ plan, toolItemId, toolName, childre
             setOpenedFor(plan.event);
         },
         closeDialog: () => setOpenedFor(null),
+        // A new object each time, so the bar takes every handing-over, the same choice twice
+        // included (#495 — the header).
+        carried,
+        carry: ({ jobId, name }) => setCarried({ jobId, name }),
         openRetirement: () => setRetiring(true),
     };
 

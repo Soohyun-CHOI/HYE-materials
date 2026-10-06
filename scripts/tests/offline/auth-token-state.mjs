@@ -425,7 +425,11 @@ function runCode({ check, assert, log }) {
     };
     const html = SIGN_IN_COPY.mail.html(facts);
     assert("it carries the code, leading zero and all", html.includes(">012345<"));
-    check("it carries one link", [...html.matchAll(/href="/g)].length, 1);
+    check(
+        "it carries two links, the button's and the address's (#495)",
+        [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]).join(" | "),
+        "mailto:soo+code471@hanyang.example | https://portal.example.com/login/confirm?token=abc&amp;destination=%2Ftool-items%2FX"
+    );
     assert("  with its separator escaped", html.includes("token=abc&amp;destination="));
     assert("it names the address it signs in", html.includes(">soo+code471@hanyang.example<"));
     const confirmAction = CONFIRM_COPY[TOKEN_STATES.VALID].action;
@@ -437,8 +441,16 @@ function runCode({ check, assert, log }) {
     assert("the code is in neither the subject nor the hidden first line", !SIGN_IN_COPY.mail.subject.includes("012345") && !/>Use the link[^<]*012345/.test(html));
     // A LONG ADDRESS BREAKS RATHER THAN RUNNING PAST A NARROW PHONE'S EDGE, which the
     // design's own mail held to one line.
-    const addressSpan = html.match(/<span class="ink"[^>]*>soo\+code471@hanyang\.example<\/span>/)?.[0] ?? "";
+    const addressSpan = html.match(/<a href="mailto:soo\+code471@hanyang\.example" class="ink"[^>]*>soo\+code471@hanyang\.example<\/a>/)?.[0] ?? "";
     assert("the address is no longer held to one line", addressSpan.length > 0 && !addressSpan.includes("nowrap") && addressSpan.includes("overflow-wrap: anywhere"));
+    // ITS OWN LINK IN INK WITH NO UNDERLINE (#495), so a client that links an address by
+    // itself does not draw it in its blue; and Outlook for Windows, which draws no padding on
+    // a link, takes the button's from its cell.
+    assert("  and is a link to itself in Ink, with no underline (#495)", /color: #202329; text-decoration: none;/.test(addressSpan));
+    assert(
+        "the button's cell carries Outlook's padding, which ignores a link's (#495)",
+        html.includes('<td align="center" bgcolor="#0055D5" style="border-radius: 8px; background: #0055D5; mso-padding-alt: 12px 28px;">')
+    );
     // EVERY VALUE IN THE MARKUP IS ESCAPED (#473), the address and the link as well as the
     // link's `&`, so a value cannot become markup.
     const hostile = SIGN_IN_COPY.mail.html({

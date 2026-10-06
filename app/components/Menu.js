@@ -1,7 +1,12 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { Fragment, useId, useLayoutEffect, useRef } from "react";
 import { menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
+
+// 0a Menu's head, a line that names what follows and answers no pointer: 12 at Ink 3 and
+// 400, 6 above and below, 10 either side (#495). The field list's `Recently at this job` and
+// the account menu's email are the two.
+const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset-y text-heading-sm font-normal text-foreground-subtle";
 
 /**
  * The list a field opens (Claude Design's 0a Menu, #456) — the options under a choice, and
@@ -18,9 +23,16 @@ import { menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
  * recent names.
  *
  * A LIST MAY CARRY A HEAD ABOVE ITS OPTIONS, THE CHECK-OUT'S `Recently at this job`
- * (#458), which is what the name sheet a phone types in heads its rows with. It is 0h's
- * Label in Ink 3 at an option's side room, and hidden from a screen reader: the list is
- * already named by its field's label, and a listbox owns options and nothing else.
+ * (#458), which is what the name sheet a phone types in heads its rows with. It is 0a's head
+ * since #495 — 0h's Label at 400 in Ink 3, 6 above and below and an option's side room either
+ * side — and hidden from a screen reader: the list is already named by its field's label,
+ * and a listbox owns options and nothing else. The caller decides when it stands; the
+ * check-out's stands only while nothing is typed, since a narrowed list is no longer the
+ * recent one.
+ *
+ * AN OPTION IS 13 SINCE #495, the Beside size the design's final files set every list a field
+ * opens in, where it was the field's own 14. An option may name the part of it a typed value
+ * matched (`match`), which stands at 600 inside it (1c, 1e).
  *
  * IN THE TOP LAYER, THROUGH THE POPOVER API, SO NO DIALOG CLIPS IT. A dialog's body scrolls
  * when the screen is short (0l), and a list positioned inside it would be cut at the body's
@@ -84,10 +96,10 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
             role="listbox"
             aria-labelledby={labelId}
             popover="manual"
-            className="inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body text-foreground-default shadow-popover open:flex"
+            className="inset-auto mx-0 mt-menu-offset mb-0 flex-col overflow-y-auto rounded-card border border-border bg-white p-menu-inset font-ui text-body-sm text-foreground-default shadow-popover open:flex"
         >
             {heading && (
-                <div aria-hidden="true" className="shrink-0 px-control-inset-x py-menu-inset text-heading-sm text-foreground-subtle">
+                <div aria-hidden="true" className={MENU_HEADING}>
                     {heading}
                 </div>
             )}
@@ -104,7 +116,17 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                         index === active ? "bg-hover" : ""
                     }`}
                 >
-                    <span className="min-w-0 truncate">{option.label}</span>
+                    <span className="min-w-0 truncate">
+                        {option.match ? (
+                            <>
+                                {option.match.before}
+                                <span className="font-semibold">{option.match.match}</span>
+                                {option.match.after}
+                            </>
+                        ) : (
+                            option.label
+                        )}
+                    </span>
                     {option.detail && (
                         <span className="shrink-0 text-body-sm text-foreground-subtle tabular-nums">{option.detail}</span>
                     )}
@@ -143,9 +165,16 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * opener's to do when `onClose("escape")` reaches it. Escape is marked handled, so a Panel
  * the menu sits in keeps its own Escape for the next press.
  *
- * ABOVE ITS OPENER WHEN `placement` SAYS SO. The account sits at the foot of the rail with
- * no room under it, so 0a's "6 under it" is 6 above, and the upward chevron the expanded
- * row draws says which way it opens.
+ * WHERE IT OPENS IS `placement`. The account sits at the foot of the rail with no room under
+ * it, so 0a's "6 under it" is 6 above while the rail is expanded, the menu as wide as the row
+ * that opens it and the upward chevron saying which way; while it is collapsed the menu stands
+ * 8 beside the button, their bottoms aligned (0m, #495).
+ *
+ * THE ACCOUNT'S MENU IS 0m's SINCE #495: 224 wide — the expanded rail's inner width, written
+ * as that difference — whatever its button, a head naming the reader's email above its one
+ * item, and the item at 13 and 400. It grows from 0.98 at its corner by the button over
+ * 120ms. The head answers no pointer and is no item, so it describes the menu rather than
+ * standing in it.
  *
  * `look="record"` IS THE TOOL ITEM PAGE'S `More actions` (#463, 1c and 1f): set against its
  * opener's right end, since the opener stands at the content's edge, and drawn two ways. At
@@ -154,10 +183,17 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * from the screen's right edge and 4 under the top bar, the phone's Radius and no room of its
  * own, rows 48 with 16 inside at 17. An item of `tone: "danger"` is 0f's Destructive: red
  * on red's Face under the pointer at a desk, and red at rest on a phone, which 1f draws
- * taking the Face while held. The account's menu keeps the look it had.
+ * taking the Face while held.
+ *
+ * AN ITEM WITH A `detail` IS THE ACCOUNT A PHONE'S MENU ENDS ON (#495, Tools 0a Menu): at
+ * least 56 tall, 8 and 16 inside, its word at 17 in Ink and the detail under it at 13 in Ink 3
+ * — `Sign out` over the reader's email. It is named by its word and described by its detail.
+ * An item marked `separated` stands under a full-width Inner rule when anything stands above
+ * it, and alone, with none, when nothing does.
  */
-export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", items, onClose }) {
+export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "below", look = "account", focusOn = "first", heading, items, onClose }) {
     const listRef = useRef(null);
+    const headingId = useId();
 
     useLayoutEffect(() => {
         const list = listRef.current;
@@ -171,16 +207,19 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             if (!opener) return;
             const box = opener.getBoundingClientRect();
             // A record's menu is set against its opener's right end, the class's margin
-            // pulling it in from there; every other is set from its left.
+            // pulling it in from there; one beside its opener from the opener's right edge;
+            // every other from its left.
             if (look === "record") {
                 list.style.left = "auto";
                 list.style.right = `${document.documentElement.clientWidth - box.right}px`;
             } else {
-                list.style.left = `${box.left}px`;
+                list.style.left = `${placement === "beside" ? box.right : box.left}px`;
             }
-            if (placement === "above") {
+            // Above its opener the menu's foot is the opener's top; beside it, the opener's
+            // foot, so the two stand on one line; under it, its top is the opener's foot.
+            if (placement === "above" || placement === "beside") {
                 list.style.top = "auto";
-                list.style.bottom = `${window.innerHeight - box.top}px`;
+                list.style.bottom = `${window.innerHeight - (placement === "above" ? box.top : box.bottom)}px`;
             } else {
                 list.style.bottom = "auto";
                 list.style.top = `${box.bottom}px`;
@@ -233,39 +272,72 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
             id={id}
             role="menu"
             aria-labelledby={labelledBy}
+            aria-describedby={heading ? headingId : undefined}
             popover="manual"
             onKeyDown={onKeyDown}
             onBlur={onBlur}
-            className={`inset-auto flex-col border border-border bg-white font-ui text-body text-foreground-default shadow-popover open:flex ${MENU_LOOK[look]} ${
-                placement === "above" ? "mt-0 mb-menu-offset" : "mt-menu-offset mb-0"
-            }`}
+            className={`inset-auto flex-col border border-border bg-white font-ui text-body text-foreground-default shadow-popover open:flex ${MENU_LOOK[look]} ${PLACEMENT[placement]}`}
         >
-            {items.map((item) => (
-                <button
-                    key={item.key}
-                    type={item.type ?? "button"}
-                    form={item.form}
-                    role="menuitem"
-                    tabIndex={-1}
-                    onClick={item.onSelect}
-                    className={`flex w-full shrink-0 items-center text-left outline-none ${ITEM_LOOK[look]} ${
-                        item.tone === "danger" ? DANGER_ITEM[look] : "hover:bg-hover focus:bg-hover"
-                    }`}
-                >
-                    <span className="min-w-0 truncate">{item.label}</span>
-                </button>
-            ))}
+            {heading && (
+                <div id={headingId} aria-hidden="true" className={MENU_HEADING}>
+                    {heading}
+                </div>
+            )}
+            {items.map((item, index) => {
+                const labelId = `${id}-${item.key}-label`;
+                const detailId = `${id}-${item.key}-detail`;
+                return (
+                    <Fragment key={item.key}>
+                        {item.separated && index > 0 && <div aria-hidden="true" className="h-px shrink-0 bg-divider-subtle" />}
+                        <button
+                            type={item.type ?? "button"}
+                            form={item.form}
+                            role="menuitem"
+                            tabIndex={-1}
+                            onClick={item.onSelect}
+                            aria-labelledby={item.detail ? labelId : undefined}
+                            aria-describedby={item.detail ? detailId : undefined}
+                            className={`flex w-full shrink-0 text-left outline-none ${item.detail ? DETAIL_ITEM : `items-center ${ITEM_LOOK[look]}`} ${
+                                item.tone === "danger" ? DANGER_ITEM[look] : item.detail ? "focus-visible:bg-hover active:bg-hover" : "hover:bg-hover focus:bg-hover"
+                            }`}
+                        >
+                            {item.detail ? (
+                                <>
+                                    <span id={labelId} className="max-w-full truncate text-mobile-heading text-foreground-default">
+                                        {item.label}
+                                    </span>
+                                    <span id={detailId} className="max-w-full truncate text-body-sm text-foreground-subtle">
+                                        {item.detail}
+                                    </span>
+                                </>
+                            ) : (
+                                <span className="min-w-0 truncate">{item.label}</span>
+                            )}
+                        </button>
+                    </Fragment>
+                );
+            })}
         </div>
     );
 }
 
-// The frame each look draws, and its offset from its opener below it. A record's margins
-// are written as the differences they are: at a desk the 8 between its opener's box and the
-// dots' ink, so the menu meets the content's edge; on a phone the 12 from the screen's edge
-// less the top bar's 4 on the right, and the 4 under the top bar plus the 4 between the 48
-// button and the bar's foot.
+// Where each placement sets the menu from its opener: under it at 0a's 6, above it at the
+// same 6, or beside the collapsed rail's account at 0m's 8, where the rows run on one line.
+const PLACEMENT = {
+    below: "mt-menu-offset mb-0",
+    above: "mx-0 mt-0 mb-menu-offset",
+    beside: "my-0 mr-0 ml-account-menu-offset-x",
+};
+
+// The frame each look draws. A record's margins are written as the differences they are: at
+// a desk the 8 between its opener's box and the dots' ink, so the menu meets the content's
+// edge; on a phone the 12 from the screen's edge less the top bar's 4 on the right, and the 4
+// under the top bar plus the 4 between the 48 button and the bar's foot. The account's width
+// is the expanded rail's inside — its 248 less the 12 either side — and it grows from the
+// corner by its button.
 const MENU_LOOK = {
-    account: "mx-0 w-max min-w-menu max-w-menu rounded-card p-menu-inset",
+    account:
+        "w-[calc(var(--width-rail-expanded)-2*var(--spacing-rail-inset))] rounded-card p-menu-inset origin-bottom-left open:animate-account-menu",
     record:
         "ml-0 w-max min-w-menu max-w-menu rounded-card p-menu-inset mr-[calc((var(--height-control)-var(--size-icon))/2)] " +
         "max-sm:w-mobile-menu max-sm:min-w-0 max-sm:max-w-none max-sm:overflow-hidden max-sm:rounded-mobile-control max-sm:p-0 " +
@@ -273,14 +345,19 @@ const MENU_LOOK = {
         "max-sm:mr-[calc(var(--spacing-mobile-menu-gutter)-var(--spacing-mobile-top-bar-inset-right))]",
 };
 
-// An item at each look: the Control's height and the Group corner at a desk, and on a phone
-// 0a's 48 row at 17 with nothing rounded, the menu's own corner clipping it.
+// An item at each look: the Control's height and the Group corner at a desk, at 13 and 400,
+// and on a phone 0a's 48 row at 17 with nothing rounded, the menu's own corner clipping it.
 const ITEM_LOOK = {
-    account: "h-control rounded-control px-control-inset-x",
+    account: "h-control rounded-control px-control-inset-x text-body-sm",
     record:
         "h-control rounded-control px-control-inset-x text-body-sm " +
         "max-sm:h-mobile-touch-target max-sm:rounded-none max-sm:px-mobile-menu-row-inset-x max-sm:text-mobile-heading",
 };
+
+// The account a phone's menu ends on (Tools 0a Menu, #495): a row at least 56 tall, 8 above
+// and below and 16 either side, its word over its detail. It takes the Hover face while held,
+// as the menu's other rows do on a phone.
+const DETAIL_ITEM = "min-h-mobile-menu-account flex-col items-start justify-center px-mobile-menu-row-inset-x py-mobile-menu-account-inset-y";
 
 // 0f's Destructive item: red on red's Face under the pointer or the keyboard at a desk, and
 // on a phone red at rest, taking the Face while held. The keyboard's is `focus-visible`, since

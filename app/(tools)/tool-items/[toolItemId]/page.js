@@ -12,6 +12,7 @@ import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
 import Instant from "@/app/components/Instant";
 import Dot from "@/app/components/Dot";
+import { KEYBOARD_VIEWPORT } from "@/app/components/keyboardViewport";
 import TopBar from "@/app/components/TopBar";
 import { QR_SIDE_MODULES, buildToolItemLabel } from "@/lib/toolLabelQR";
 import { TOOL_LABEL_PAGE_COPY as LABEL_COPY, labelBudget, symbolBox } from "@/lib/toolLabelPage";
@@ -40,6 +41,11 @@ export async function generateMetadata({ params }) {
     const { toolItemId } = await params;
     return { title: decodeURIComponent(toolItemId) };
 }
+
+// A phone that would cover the page with its keyboard shrinks it instead, as on every screen
+// with a foot bar (#495): the name sheet the foot bar opens stands on the keyboard, as 1f
+// draws it, rather than under it.
+export const viewport = KEYBOARD_VIEWPORT;
 
 /**
  * One tool item and everything that has happened to it (#340), in the look the design
@@ -126,11 +132,14 @@ export default async function ToolItemPage(props) {
  * A code no tool item carries (#463): the desk's 1l, centered in the column with the code it
  * asked for and the way back to the list, and the phone's 1g-c, the top bar naming the code
  * in Ink 3 over the mark and two lines — no way back, since a phone arrived here from a scan.
+ * Its top bar carries `More actions` with the account alone (#495), as every one does.
  */
-function ToolItemNotFound({ asked }) {
+function ToolItemNotFound({ asked, account }) {
     return (
         <div className="flex min-h-full flex-1 flex-col font-ui text-foreground-default max-sm:min-h-0">
-            <TopBar id={asked} muted />
+            <TopBar id={asked} muted>
+                <MoreActions phone account={account} />
+            </TopBar>
             <div className="flex flex-1 flex-col items-center justify-center px-page-gutter text-center max-sm:px-mobile-empty-inset-x max-sm:pb-mobile-empty-inset-bottom">
                 <svg viewBox="0 0 40 40" fill="none" aria-hidden="true" className="mb-gap size-mobile-empty-icon text-foreground-subtle sm:hidden">
                     <circle cx="17.5" cy="17.5" r="11" stroke="currentColor" strokeWidth="2" />
@@ -159,8 +168,11 @@ async function renderToolItemPage({ params }) {
     const { toolItemId } = await params;
     const asked = decodeURIComponent(toolItemId);
 
+    // Who is reading, for the account a phone's top bar ends its menu on (#495).
+    const account = { email: user.email };
+
     const toolItem = await getToolItemByToolItemId(asked);
-    if (!toolItem) return <ToolItemNotFound asked={asked} />;
+    if (!toolItem) return <ToolItemNotFound asked={asked} account={account} />;
 
     // The canonical form answers directly and every other casing arrives here.
     // After requireUser, so a reader with no session learns nothing about which
@@ -245,9 +257,11 @@ async function renderToolItemPage({ params }) {
     return (
         <ToolItemTransition plan={transition} toolItemId={toolItem.toolItemId} toolName={tool?.toolName}>
             <div className="font-ui text-foreground-default max-sm:flex max-sm:flex-1 max-sm:flex-col">
-                {/* THE PHONE'S HEAD (1f): the printed id, and `More actions` when there is
-                    something to retire. */}
-                <TopBar id={toolItem.toolItemId}>{transition.mayRetire && <MoreActions phone />}</TopBar>
+                {/* THE PHONE'S HEAD (1f): the printed id, and `More actions`, which holds the
+                    retirement when there is something to retire and the account always (#495). */}
+                <TopBar id={toolItem.toolItemId}>
+                    <MoreActions phone account={account} />
+                </TopBar>
                 {/* WHERE THIS TOOL ITEM SITS UNDER ITS TOOL (#460): the list, the tool, and the
                     code its label prints, which is how the design ends the path (1c). The
                     tool is the row read above, so the path costs nothing. A phone draws the

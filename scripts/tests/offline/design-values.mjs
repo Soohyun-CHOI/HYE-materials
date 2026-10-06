@@ -167,6 +167,12 @@ const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
  * names still marked for it — 0b's row, column head and bleed, a list head's 20 above it,
  * and the selection bar's four — and declared the lists' own with them, 1a and 1b's
  * figures where the spec states none, and 0j's Badge and 0e's Ink 5 for the checkbox.
+ * #495 declared eight with their readers when the design's final files reached the merged
+ * screens — the account menu's offset and entrance, a menu's head, a selection bar's reason,
+ * the phone menu's account row and its room, and the resend control's spinner track — renamed
+ * the sign-in page's refusal gap for the line a dialog draws the same way now,
+ * `--spacing-refusal-gap`, and undeclared the 4 the resend control pulled left, which pulls
+ * its whole 8 now.
  * No issue is marked to read a name next.
  */
 const READERS_TO_COME = [];
@@ -198,6 +204,8 @@ const VALUES = [
     ["--max-width-menu", "17.5rem", null],
     ["--spacing-menu-offset", "0.375rem", null],
     ["--spacing-menu-inset", "0.3125rem", null],
+    // 0a Menu's head, which names what follows (#495).
+    ["--spacing-menu-heading-inset-y", "0.375rem", null],
     // 0b · Layout
     ["--container-content", "67.5rem", null],
     ["--spacing-page-gutter", "2rem", null],
@@ -212,6 +220,8 @@ const VALUES = [
     ["--spacing-selection-bar-inset", "0.5rem", null],
     ["--spacing-selection-bar-slide", "0.5rem", null],
     ["--transition-duration-selection-bar", "160ms", null],
+    // The mark that leads an action's reason in the bar (#495).
+    ["--spacing-selection-bar-reason-gap", "0.375rem", null],
     // 1a and 1b's drawings, where the spec states no figure — #463's lists.
     ["--spacing-list-header-inset-bottom", "1.25rem", null],
     ["--spacing-list-header-inline", "2.5rem", null],
@@ -298,7 +308,7 @@ const VALUES = [
     ["--font-brand", "var(--font-bricolage-grotesque), sans-serif", null],
     // 0i · Scroll — a column's End is the column's, and #463 draws the columns.
     ["--spacing-scrollbar", "8px", null],
-    ["--spacing-scrollbar-inset", "2px", null],
+    ["--spacing-scrollbar-inset", "1px", null],
     ["--spacing-scroll-inset-bottom", "2.5rem", null],
     // 0j · Radius
     ["--radius-preview", "0.125rem", null],
@@ -343,6 +353,9 @@ const VALUES = [
     ["--spacing-dialog-summary-inset-y", "1rem", null],
     ["--spacing-dialog-summary-inset-x", "1.125rem", null],
     ["--spacing-dialog-summary-stack", "0.25rem", null],
+    // A message about a whole dialog or page, its mark to its sentence — the sign-in page's
+    // name until #495, when 0l set a dialog's the same way.
+    ["--spacing-refusal-gap", "0.375rem", null],
     ["--container-dialog-preview", "48.75rem", null],
     ["--height-dialog-preview", "32.5rem", null],
     ["--width-dialog-preview-pane", "27.5rem", null],
@@ -369,6 +382,9 @@ const VALUES = [
     ["--spacing-account-name-stack", "0.0625rem", null],
     ["--size-account-chevron", "0.8125rem", null],
     ["--transition-duration-avatar", "90ms", null],
+    // 0m's account menu, beside a collapsed button and growing in (#495).
+    ["--spacing-account-menu-offset-x", "0.5rem", null],
+    ["--animate-account-menu", "account-menu-in 120ms ease-out", null],
     ["--height-breadcrumb", "3rem", null],
     // From the drawings, not the spec (#460).
     ["--spacing-breadcrumb-back-offset", "0.75rem", null],
@@ -408,7 +424,6 @@ const VALUES = [
     ["--spacing-sign-in-header-stack", "2rem", null],
     ["--spacing-sign-in-form-stack", "1.5rem", null],
     ["--spacing-sign-in-form-inline", "0.75rem", null],
-    ["--spacing-sign-in-refusal-gap", "0.375rem", null],
     ["--spacing-avatar-chip-inset-left", "0.25rem", null],
     ["--spacing-avatar-chip-inset-right", "0.75rem", null],
     ["--size-code-slot", "3.25rem", null],
@@ -420,7 +435,8 @@ const VALUES = [
     ["--width-code-caret", "0.125rem", null],
     ["--height-code-caret", "1.5rem", null],
     ["--animate-code-caret", "code-caret-blink 1s steps(1) infinite", null],
-    ["--spacing-code-resend-offset", "0.25rem", null],
+    // The resend control's spinner, whose words are Accent (#495).
+    ["--color-code-resend-spinner-track", "color-mix(in oklab, currentColor 25%, transparent)", null],
     // Tools 0a · App — #458's sheets and #473's step pages read theirs; the foot bar's 12
     // between its rows waits on #463's tool item page.
     ["--spacing-mobile-gutter", "1rem", null],
@@ -533,6 +549,9 @@ const VALUES = [
     ["--spacing-mobile-menu-gutter", "0.75rem", null],
     ["--spacing-mobile-menu-offset", "0.25rem", null],
     ["--spacing-mobile-menu-row-inset-x", "1rem", null],
+    // The account the top bar's menu ends on (#495).
+    ["--height-mobile-menu-account", "3.5rem", null],
+    ["--spacing-mobile-menu-account-inset-y", "0.5rem", null],
 ];
 
 /**
@@ -875,11 +894,11 @@ export async function run({ check, assert, log }) {
 
     // #473 — a block's keyframes are what an animation it declares runs, and nothing else:
     // each one is run by an animation declared here, and each animation runs keyframes
-    // declared here or Tailwind's own.
+    // declared here or Tailwind's own. #495 added the account menu's entrance.
     const keyframes = parsed.blocks.flatMap((b) => b.keyframes);
     const animations = [...declared].filter(([name]) => name.startsWith("--animate-"));
     const runs = (value) => value.split(/\s+/)[0];
-    check("  the keyframes declared are the caret's blink", keyframes.join(" "), "code-caret-blink");
+    check("  the keyframes declared are the account menu's entrance and the caret's blink", keyframes.join(" "), "account-menu-in code-caret-blink");
     check(
         "  every keyframes is run by an animation declared here",
         keyframes.filter((k) => !animations.some(([, value]) => runs(value) === k)).join(" "),

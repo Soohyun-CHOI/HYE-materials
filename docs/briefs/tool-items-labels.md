@@ -10,7 +10,7 @@ step, and it does not support a phone's width (`_shared.md`).
 
 ## What it answers
 
-We created some tools and now they need stickers. Print their QR labels on the
+We added some tools and now they need stickers. Print their QR labels on the
 label printer's tape, one label to a page.
 
 **A tool item with no label is a row nothing can reach.** The QR symbol is the
@@ -43,6 +43,10 @@ printed:
   takes is the page's, so the tape is the one thing a person loading the printer
   has to get right (#467). It was `Stock: 12 mm tape` until #457, and it named a
   die-cut's two dimensions while the stock was a sheet no product matched (#412).
+
+The two are parted by the dot every caption draws, whose room either side is a
+space the text holds, so they copy and are read as two facts (#495). Until then
+padding round a dot nobody reads ran them together: `4 labels11 × 12 mm`.
 
 **The host each symbol will encode is not stated (#454).** It was the first of
 three facts here. A symbol carries the host it was printed from, so a run
@@ -122,6 +126,11 @@ no picker, and it names a code it did not find in the sticker's form,
 
 ## What it carries only sometimes
 
+**While its page reads the labels, the dialog is not open yet (#495).** The
+control that opens it keeps its width and, after 300ms, draws a spinner in place
+of its words, saying `Loading…` to assistive tech: the press reads the labels
+rather than printing them. The dialog opens when the read answers.
+
 **When nothing is selected, the dialog does not open:** a tool's page draws its
 control disabled with the reason beside it, `Nothing is selected, so there is
 nothing to print.` Until #457 the screen said `Nothing was named to print. Open
@@ -148,9 +157,10 @@ nothing on record, with one sentence about the host where the codes not found
 stand. 1i draws no such state.
 
 **When more ids are selected than one print takes, the dialog does not open:** a
-tool's page refuses the selection, `101 selected, and one print takes at most
-100.` (#443), and the read behind the dialog throws on a longer run, which
-nothing the app draws can send. The screen printed the first 100 of a longer
+tool's page keeps the selection, `101 selected`, and draws its print control not
+acting with `Up to 100 labels per print.` before it (#443), where it said
+`One print takes at most 100.` until #495; and the read behind the dialog
+throws on a longer run, which nothing the app draws can send. The screen printed the first 100 of a longer
 address and said so until #457. The cap is the largest registration's cap and the
 two are one number.
 

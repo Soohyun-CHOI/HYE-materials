@@ -431,10 +431,11 @@ export function run({ check, assert, log }) {
     const built = confirmPath({ token: "abc", destination: "/tool-items/X" });
     const html = SIGN_IN_COPY.mail.html({ email: "soo@portal.example.com", confirmUrl: `https://portal.example.com${built}`, code: "012345" });
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
-    check("it writes one href", hrefs.length, 1);
+    // The address is a `mailto:` link of its own since #495 (`lib/authTokenState.js`).
+    check("it writes two hrefs, the address's and then the sign-in link's (#495)", hrefs.map((h) => (h.startsWith("mailto:") ? "mailto" : "link")).join(" "), "mailto link");
     check(
         "  whose separator is escaped rather than in raw",
-        hrefs[0],
+        hrefs.find((h) => !h.startsWith("mailto:")),
         `https://portal.example.com${CONFIRM_PATH}?token=abc&amp;${DESTINATION_PARAM}=%2Ftool-items%2FX`
     );
 

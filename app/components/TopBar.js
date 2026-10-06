@@ -10,7 +10,8 @@ import { useEffect, useState } from "react";
  *
  * 56 TALL, 16 IN ON THE LEFT AND 4 ON THE RIGHT, THE ID AT 17 (0a): the record's printed id
  * in the id face, and at the right end one 48 icon button whose 24 mark has its ink on the
- * 16 margin — `children` is that button, and a screen with nothing to offer passes none.
+ * 16 margin — `children` is that button. Every screen with a top bar passes its `More
+ * actions`, since the menu ends on the account where nothing else is offered (#495).
  * `muted` sets the id in Ink 3, which 1g-c does for a code no tool carries.
  *
  * STICKY AT THE TOP, DRAWING NO RULE (0a, 0k): white at 0.82 over a blur while the page runs

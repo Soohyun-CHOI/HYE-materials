@@ -52,7 +52,8 @@ const CREATE = /creat/i;
  * builder's pieces rather than its sentence — with why each still does. Two kinds, and the
  * difference is what keeps the list short: a string about something other than adding tools,
  * which stays, and one about adding tools that #485 did not reach, which is left for the
- * design and should leave this list when it is reworded.
+ * design and should leave this list when it is reworded. The one of the second kind, a tool's
+ * empty list, left it in #495, when the design's final files said `adding` there.
  */
 const STILL_CREATE = new Map([
     ["Creates a new tool", "the preview's second voice: the name typed coins a `Tools` row, which is not the act"],
@@ -63,10 +64,6 @@ const STILL_CREATE = new Map([
         "the creation date, in the notice's sentence for one",
     ],
     ["Only the creation date wasn't saved for these", "the creation date, in the notice's sentence for several"],
-    [
-        "If you were creating some, it stopped before any were saved.",
-        "a tool's empty list, about adding tools and outside the words #485 changed — the design's to reword",
-    ],
 ]);
 
 /** The strings saying `create` that `STILL_CREATE` does not name. */

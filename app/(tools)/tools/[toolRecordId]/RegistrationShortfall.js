@@ -12,10 +12,12 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // naming tool items with no history, carries one control that answers nothing, because
 // nothing repairs those.
 //
-// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1k: how many of how many were added
-// is its title (#455, #485), the tool is the line under it, and how many were not is its
-// one sentence. The first needs `asked`, which the landing's address carries beside
-// `unwritten` for exactly this, and what was added is the one less the other. It is
+// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1k, AND ITS FINAL COMPOSITION SINCE
+// #495: how many were not added is its title, the tool is the line under it, and its one
+// sentence says the others were added and are selected on this page — it said how many of
+// how many were added in its title until then, and how many were not in its sentence.
+// What was added needs `asked`, which the landing's address carries beside `unwritten`
+// for exactly this, and is the one less the other. It is
 // told after the notice when a landing carries both — `accountToTell` has why — and it
 // is open while the page found a shortfall and `unwritten` is still on the address, so
 // the address stays the one account of whether the question is asked.
@@ -81,11 +83,11 @@ export default function RegistrationShortfall({ toolName, account, canRegister, 
                 open={told && !registration.open}
                 onClose={notNow}
                 unprompted
-                title={COPY.shortfallHeading({ created: account.asked - account.unwritten, asked: account.asked })}
+                title={COPY.shortfallHeading(account.unwritten)}
                 subtitle={toolName}
             >
                 <DialogBody>
-                    <DialogMessage>{COPY.shortfall(account.unwritten)}</DialogMessage>
+                    <DialogMessage>{COPY.shortfall(account.asked - account.unwritten)}</DialogMessage>
                 </DialogBody>
                 <DialogActions>
                     <Button variant="bordered" onClick={notNow}>

@@ -10,9 +10,9 @@ import { retireToolItemAction } from "./actions";
  * The question before a tool item is retired (#363, #458) — 0l's Confirm at a desk, and 1f's
  * sheet that confirms below the phone's edge.
  *
- * A PART, OPENED BY WHATEVER OFFERS THE RETIREMENT. The tool item page's `Retire this tool`
- * opens it today (`RetirementDialog.js`); 1c and 1f put that offer in a `More actions` menu,
- * which is #463's, and that menu opens this as it is. It holds the retirement's own answer,
+ * A PART, OPENED BY WHATEVER OFFERS THE RETIREMENT. 1c and 1f put that offer in a `More
+ * actions` menu (`MoreActions.js`, #463), the desk's or the phone's, and the page's provider
+ * (`ToolItemTransition.js`) draws this once for both. It holds the retirement's own answer,
  * so whatever opens it hands over only whether it is open and which tool item.
  *
  * THE TITLE ASKS AND NAMES THE TOOL, AND THE LINE UNDER IT IS THE ID AND NOTHING ELSE —

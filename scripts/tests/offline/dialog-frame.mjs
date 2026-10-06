@@ -304,12 +304,13 @@ export function run({ check, assert, log }) {
     // there or on a sign-in page only: every such class is `max-sm:in-data-[sheet]:`, so the
     // width and the ancestor both decide it in CSS and a control in a desk's dialog keeps
     // 0a's — or it sits where only a sign-in page's control goes (#473): the `xl` size's own
-    // classes, a branch on `xl`, `labelHidden` or `suffix`, or the clear × only `xl` draws.
+    // classes, a branch on `xl`, `labelHidden` or `suffix`, or the clear × only `xl` draws —
+    // and since #495 a branch on a refusal's `centered`, which the sign-in steps alone pass.
     // A destructive commitment is filled red (0f Destructive), and a busy action of any kind
     // takes no hover and no press (0f Working), nor does one locked with it (#469) — both are
     // `aria-disabled`, which every hover and press is written against. Read through one
     // function, so the planted controls below are judged the same way.
-    const SIGN_IN_GATE = /\bxl\b|size === "xl"|\blabelHidden\b|\bsuffix\b/;
+    const SIGN_IN_GATE = /\bxl\b|size === "xl"|\blabelHidden\b|\bsuffix\b|\bcentered\b/;
     const controlFacts = ({ ast, source }) => {
         const constant = (name) => {
             let text = "";
@@ -357,6 +358,27 @@ export function run({ check, assert, log }) {
             ),
             label: /const FIELD_LABEL = "[^"]*max-sm:in-data-\[sheet\]:text-mobile-body-sm"/.test(source),
             refusal: /role="alert"[\s\S]*max-sm:in-data-\[sheet\]:text-mobile-body-sm/.test(functionSource("Refusal")),
+            // A refusal of the whole dialog is a message in Ink 2 behind the 16 info mark, 6 from
+            // it, since 0l's final drawing (#495): Red is a field's refusal, and none is here.
+            refusalMessage: [
+                /\btext-foreground-muted\b/.test(functionSource("Refusal")),
+                /<InfoMark size="size-icon"/.test(functionSource("Refusal")),
+                /\bgap-refusal-gap\b/.test(functionSource("Refusal")),
+                !/danger/.test(functionSource("Refusal")),
+            ].join(" "),
+            // And centered it is a sign-in step's line (0o, #495): centered from the phone's edge
+            // up, and below it set left at 15 and 4 in, as the line under a code stands.
+            refusalCentered:
+                /\$\{\s*centered\s*\?\s*"justify-center max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"\s*:\s*"max-sm:in-data-\[sheet\]:text-mobile-body-sm"\s*\}/.test(
+                    functionSource("Refusal")
+                ),
+            // An action as wide as its words keeps its resting width (0f Working, #495): what it
+            // shows while busy is laid over its label rather than sharing a cell with it.
+            overLabel: [
+                /const BUTTON = "relative /.test(source),
+                /invisible absolute inset-0 /.test(functionSource("ButtonLabel")),
+                !/\bgrid\b/.test(functionSource("ButtonLabel")),
+            ].join(" "),
             phoneOnlyInSheet: phoneClasses.length,
             sheetField: [
                 /\bsm:hidden\b/.test(sheetFieldSource),
@@ -378,6 +400,21 @@ export function run({ check, assert, log }) {
     check("  every button carrying both, which only a sheet's ancestor sets off", controlRules.applied, true);
     check("  and a field's label 15 there", controlRules.label, true);
     check("  and a refusal of the whole dialog 15 there, in the refusal every form shares", controlRules.refusal, true);
+    check("a refusal of the whole dialog is Ink 2 behind the info mark, 6 from it, and never Red (#495)", controlRules.refusalMessage, "true true true true");
+    check("  and centered, a sign-in step's: centered from the phone's edge up, below it set left at 15 and 4 in (#495)", controlRules.refusalCentered, true);
+    // `centered` IS A SIGN-IN STEP'S ALONE, which is what lets the phone-size rule below excuse
+    // it: a dialog drawing one would put the step's phone sizes outside a sheet.
+    const centeredRefusals = listJsFiles(repoPath("app"))
+        .map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1))
+        .filter((rel) => {
+            let found = false;
+            walk(parseFile(rel).ast, (n) => {
+                if (n.type === "JSXOpeningElement" && n.name?.name === "Refusal" && n.attributes.some((a) => a.name?.name === "centered")) found = true;
+            });
+            return found;
+        });
+    check("  drawn centered by the sign-in steps alone", centeredRefusals.join(" | "), "app/login/SignInParts.js");
+    check("a busy action keeps its resting width, what it shows laid over its label (#495)", controlRules.overLabel, "true true true");
     check("no phone size reaches a control outside a sheet but a sign-in page's", controlRules.phoneOnlyInSheet, 0);
     check("  and the clear × that carries one is drawn only at a sign-in page's size", controlRules.clearGate, true);
     check(
@@ -420,6 +457,67 @@ export function run({ check, assert, log }) {
     });
     check("  holding items that take focus by script and never by Tab", itemTabIndex, -1);
     check("  and applying the menu's keys", ["menuKey", "menuIndex"].filter((name) => !menuCalls.has(name)).join(", "), "");
+
+    // #495 — 0a's head is 12 at 400 in Ink 3, 6 above and below and 10 either side, and both
+    // lists draw it; a field's list sets its options at 13 and a typed fragment's match at
+    // 600; the account's menu is 224, grows in from the corner by its button and stands beside
+    // a collapsed one; and the account a phone's menu ends on is a row of its own.
+    const menuSource = menu.source;
+    const menuConstant = (name) => {
+        let text = "";
+        walk(menu.ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === name && n.init) text = menuSource.slice(n.init.start, n.init.end);
+        });
+        return text;
+    };
+    check(
+        "a menu's head is 0a's: 12 at 400 in Ink 3, 6 above and below, 10 either side (#495)",
+        ["py-menu-heading-inset-y", "px-control-inset-x", "text-heading-sm", "font-normal", "text-foreground-subtle"].filter((t) => !menuConstant("MENU_HEADING").includes(t)).join(" "),
+        ""
+    );
+    check("  and both lists draw it", (menuSource.match(/className=\{MENU_HEADING\}/g) ?? []).length, 2);
+    const fieldListFn = functionNamed(menu.ast, "Menu");
+    const fieldListSource = fieldListFn ? menuSource.slice(fieldListFn.start, fieldListFn.end) : "";
+    check(
+        "a field's list sets its options at 13 and a typed fragment's match at 600 (#495)",
+        [
+            /className="[^"]*\bp-menu-inset font-ui text-body-sm\b/.test(fieldListSource),
+            /\{option\.match \? \(\s*<>\s*\{option\.match\.before\}\s*<span className="font-semibold">\{option\.match\.match\}<\/span>/.test(fieldListSource),
+        ].join(" "),
+        "true true"
+    );
+    check(
+        "the account's menu is 224, the expanded rail's inside, and grows in from the corner by its button (0m, #495)",
+        [
+            /w-\[calc\(var\(--width-rail-expanded\)-2\*var\(--spacing-rail-inset\)\)\]/.test(menuConstant("MENU_LOOK")),
+            /origin-bottom-left open:animate-account-menu/.test(menuConstant("MENU_LOOK")),
+        ].join(" "),
+        "true true"
+    );
+    check(
+        "  beside a collapsed button 8 out, its foot on the button's",
+        [
+            /beside: "my-0 mr-0 ml-account-menu-offset-x"/.test(menuConstant("PLACEMENT")),
+            /placement === "beside" \? box\.right : box\.left/.test(menuSource),
+            /window\.innerHeight - \(placement === "above" \? box\.top : box\.bottom\)/.test(menuSource),
+        ].join(" "),
+        "true true true"
+    );
+    check("  its head describing the menu rather than standing in it", /aria-describedby=\{heading \? headingId : undefined\}/.test(menuSource), true);
+    check(
+        "an item with a detail is named by its word and described by its detail, under a rule only when something stands above it (#495)",
+        [
+            /aria-labelledby=\{item\.detail \? labelId : undefined\}/.test(menuSource),
+            /aria-describedby=\{item\.detail \? detailId : undefined\}/.test(menuSource),
+            /\{item\.separated && index > 0 && <div aria-hidden="true" className="h-px shrink-0 bg-divider-subtle" \/>\}/.test(menuSource),
+        ].join(" "),
+        "true true true"
+    );
+    check(
+        "  at least 56, 8 and 16 inside, its word over its detail",
+        ["min-h-mobile-menu-account", "py-mobile-menu-account-inset-y", "px-mobile-menu-row-inset-x", "flex-col"].filter((t) => !menuConstant("DETAIL_ITEM").includes(t)).join(" "),
+        ""
+    );
     const account = parseFile(ACCOUNT);
     const [opener] = elements(account.ast, "button").filter((a) => a["aria-haspopup"] === "menu");
     assert("its opener says it opens a menu", Boolean(opener));
@@ -484,7 +582,17 @@ export function run({ check, assert, log }) {
                 /if \(!heading\.hasAttribute\("tabindex"\)\) heading\.tabIndex = -1;/.test(heading),
                 /heading\.focus\(\)/.test(heading),
             ].join(" "),
-            onClose: /dialog\.close\(\);\s*if \(unprompted\) focusPageHeading\(\);/.test(source),
+            // Since #495 a closing also sends focus there when the opener did not take it back,
+            // which an opener its page has hidden cannot.
+            onClose: /const opener = openerRef\.current;\s*dialog\.close\(\);\s*\/\/[^\n]*\n\s*if \(unprompted \|\| \(opener !== null && document\.activeElement !== opener\)\) focusPageHeading\(\);/.test(
+                source
+            ),
+            // A dialog its page stops drawing closes as the window changes size, after the
+            // owner's `onHidden` and whether or not it is busy (#495).
+            hidden: [
+                /window\.addEventListener\("resize", onResize\)/.test(source),
+                /if \(!dialog\.open \|\| dialog\.checkVisibility\(\)\) return;\s*onHidden\?\.\(\);\s*onClose\(\);/.test(source),
+            ].join(" "),
             describes: [
                 /closest\("dialog"\)/.test(message),
                 /setAttribute\("aria-describedby", id\)/.test(message),
@@ -495,7 +603,8 @@ export function run({ check, assert, log }) {
     };
     const frameRules = frameFacts(frame);
     check("  a dialog no press opened hands focus to the page's heading, made focusable", frameRules.heading, "true true true");
-    check("  and only one marked unprompted, in the branch that closes it", frameRules.onClose, true);
+    check("  and only one marked unprompted, or one its opener did not take focus back from, in the branch that closes it (#495)", frameRules.onClose, true);
+    check("a dialog its page stops drawing closes as the window changes size, busy or not, after its owner's onHidden (#495)", frameRules.hidden, "true true");
     check("  a dialog's sentence describes the dialog it stands in, and stops when it goes", frameRules.describes, "true true true");
     check("  and the actions wrap rather than run off a narrow dialog", frameRules.wraps, true);
 
@@ -534,10 +643,35 @@ export function run({ check, assert, log }) {
                 /var\(--width-dialog-preview-pane\)/.test(withPreview),
                 !/\bp-dialog-inset\b/.test(withPreview),
             ].join(" "),
-            pane: [/\bbg-background-muted\b/.test(paneSource), /\boverflow-y-auto\b/.test(paneSource), /\bp-dialog-inset\b/.test(paneSource)].join(" "),
-            column: /px-dialog-inset pt-dialog-inset/.test(source) && /px-dialog-inset pb-dialog-inset/.test(source),
+            // Since #495 the pane reserves 0i's lane and draws its bar, its room 24 16 24 24 so
+            // the pages stand 24 from the lane, and it stops at its end (1i).
+            pane: [
+                /\bbg-background-muted\b/.test(paneSource),
+                /\boverflow-y-auto\b/.test(paneSource),
+                /\bpy-dialog-inset\b/.test(paneSource) &&
+                    /\bpl-dialog-inset\b/.test(paneSource) &&
+                    /pr-\[calc\(var\(--spacing-dialog-inset\)-var\(--spacing-scrollbar\)\)\]/.test(paneSource),
+                /\[scrollbar-gutter:stable\]/.test(paneSource) && /\$\{SCROLL_LANE\}/.test(paneSource),
+                /\boverscroll-contain\b/.test(paneSource),
+            ].join(" "),
+            // And the column scrolls as one lane between its head and its actions (#495): the
+            // head keeps the column's sides, the column itself takes none, and the body and the
+            // actions take them inside a dialog marked as holding a preview.
+            column: [
+                /px-dialog-inset pt-dialog-inset/.test(source),
+                /"pb-dialog-inset sm:col-start-2 sm:row-start-2"/.test(source),
+                (source.match(/\bin-data-preview:px-dialog-inset\b/g) ?? []).length === 2,
+                /data-preview=\{withPreview \? "" : undefined\}/.test(source),
+            ].join(" "),
             // The body's outermost box, which in a column taller than what it holds is what
             // takes the room left over — and so what keeps the actions at the column's foot.
+            // Its scroller stops at its end (0i Chain, #495), so a scroll past the last line
+            // does not move the page behind the dialog.
+            bodyContained: (() => {
+                const fn = functionNamed(ast, "DialogBody");
+                const body = fn ? source.slice(fn.start, fn.end) : "";
+                return /ref=\{scrollerRef\}\s*className="[^"]*\boverflow-y-auto overscroll-contain\b/.test(body);
+            })(),
             bodyGrows: (() => {
                 let grows = false;
                 walk(ast, (n) => {
@@ -553,12 +687,13 @@ export function run({ check, assert, log }) {
     const builds = buildFacts(frame);
     check("  the Compact build keeps its 24 all round, at 420", builds.compact, "true true");
     check("  a preview's build is 780 by 520 with a 440 pane, and no room of its own", builds.withPreview, "true true true true");
-    check("  its pane is on the Field ground, scrolls, and holds its own room", builds.pane, "true true true");
-    check("  and the column beside it takes the Compact build's room", builds.column, true);
+    check("  its pane is on the Field ground, scrolls in 0i's reserved lane with its own room, and stops at its end (#495)", builds.pane, "true true true true true");
+    check("  and the column beside it takes the Compact build's room, its body scrolling across it (#495)", builds.column, "true true true true");
     // 1i STANDS THE ACTIONS AT THE COLUMN'S FOOT, 460 down a 520 dialog, whatever the body
     // holds above them: the body takes the column's spare room. In the Compact build the
     // column is its content's height, so there is none to take and nothing moves.
     check("  the body takes the column's spare room, so the actions stand at its foot", builds.bodyGrows, true);
+    check("a dialog's body stops at its end rather than scrolling the page behind it (#495)", builds.bodyContained, true);
 
     // THE PHONE'S SHEET, 0l's CONFIRM, AND A DIALOG TAKEN AWAY OPEN (#458). Below the phone's
     // edge a dialog marked `sheet` is Tools 0a's: at the screen's foot and its width, the top
@@ -659,6 +794,14 @@ export function run({ check, assert, log }) {
             /\{row\.chosen && \(/.test(rowsSource),
         ].join(" "),
         "true true true true"
+    );
+    check(
+        "  which stop at their end, and set a typed fragment's match at 600 (#495)",
+        [
+            /<ul role="list" className="[^"]*\boverflow-y-auto overscroll-contain\b/.test(rowsSource),
+            /\{row\.match \? \(\s*<>\s*\{row\.match\.before\}\s*<span className="font-semibold">\{row\.match\.match\}<\/span>\s*\{row\.match\.after\}/.test(rowsSource),
+        ].join(" "),
+        "true true"
     );
 
     // ── 4: the words ────────────────────────────────────────────────────────
@@ -803,7 +946,7 @@ export function run({ check, assert, log }) {
             ].join(" "),
             sheetBusy: [
                 /size === "xl" \? "max-sm:size-mobile-spinner" : "max-sm:in-data-\[sheet\]:size-mobile-spinner"/.test(fnSource("Spinner")),
-                /size === "xl" \? "max-sm:sr-only" : "max-sm:in-data-\[sheet\]:sr-only"/.test(fnSource("ButtonLabel")),
+                /size === "xl" \? "max-sm:sr-only" : "sr-only"/.test(fnSource("ButtonLabel")),
             ].join(" "),
         };
     };
@@ -816,7 +959,11 @@ export function run({ check, assert, log }) {
     check("  a typed value locks read-only and its list does not show", busyRules.combobox, "true true true true true");
     check("  and the phone's field opens no sheet", busyRules.sheetField, "true true true true");
     check("  nor does the foot bar's job pill (#463)", busyRules.sheetChip, "true true true true");
-    check("in a sheet below the phone's edge a busy action is Tools 0a's Busy, its word kept for assistive tech", busyRules.sheetBusy, "true true");
+    check(
+        "a busy action as wide as its words shows its spinner alone, as Tools 0a's Busy does in a sheet, its word kept for assistive tech (#495)",
+        busyRules.sheetBusy,
+        "true true"
+    );
 
     // THE FRAME HANDS ITS BUSY STATE TO WHAT IT HOLDS AND KEEPS FOCUS INSIDE WHILE IT IS
     // OPEN. Its close locks rather than disabling. While it is open an observer is told of
@@ -941,8 +1088,11 @@ export function run({ check, assert, log }) {
                 };
                 if (inner.name?.name === "FormBusy") states.push(`form ${valueOf("busy")}`);
                 if (inner.name?.name === "Button" && valueOf("busy")) states.push(`button ${valueOf("busy")}`);
-                if (inner.name?.name === "Button" && valueOf("type") === '"submit"') commitments.push(valueOf("busyLabel") ? "named" : "unnamed");
-                if (inner.name?.name === "Button" && /pending/.test(valueOf("disabled") ?? "")) disabledBySending++;
+                // A submit names its word, and since #495 so does a press that waits on a read
+                // before it opens anything, which submits no form.
+                if (inner.name?.name === "Button" && (valueOf("type") === '"submit"' || valueOf("busy")))
+                    commitments.push(valueOf("busyLabel") ? "named" : "unnamed");
+                if (inner.name?.name === "Button" && /\bpending\b/.test(valueOf("disabled") ?? "")) disabledBySending++;
             });
             if (states.length > 0) found.push(`${n.id?.name}: ${states.join(", ")} · ${commitments.join(", ")} · ${disabledBySending} disabled by sending`);
         });
@@ -950,9 +1100,10 @@ export function run({ check, assert, log }) {
     };
     const forms = toolsFiles.flatMap((rel) => formFacts(parseFile(rel))).sort();
     check(
-        "every form on the axis that submits outside a frame says it is busy, and names its submit's word",
+        "every form on the axis that submits outside a frame, and every press that waits on a read, says it is busy and names its word (#495)",
         forms.join(" | "),
         [
+            "LabelsDialog: button {pending} · named · 0 disabled by sending",
             "TransitionBar: form {pending} · named · 0 disabled by sending",
             "TransitionDialog: button {!asks && pending} · named · 0 disabled by sending",
         ].join(" | ")
@@ -1037,6 +1188,21 @@ export function run({ check, assert, log }) {
         controlFacts(parseSource('export function Refusal({ children }) { return <p role="alert" className="text-body-sm text-danger">{children}</p>; }\n', "<planted-refusal>")).refusal,
         false
     );
+    check(
+        "  and a refusal in Red behind the alert mark is seen",
+        controlFacts(parseSource('export function Refusal({ children }) { return <p role="alert" className="flex gap-gap text-danger"><AlertMark />{children}</p>; }\n', "<planted-red-refusal>")).refusalMessage,
+        "false false false false"
+    );
+    check(
+        "  and a busy label sharing a cell with the resting one is seen",
+        controlFacts(
+            parseSource(
+                'const BUTTON = "items-center";\nfunction ButtonLabel() { return <span className="grid"><span className="invisible col-start-1 row-start-1" /></span>; }\n',
+                "<planted-cell>"
+            )
+        ).overLabel,
+        "false false false"
+    );
     check("  and a phone size outside a sheet is seen, where a sign-in page's two are not", plantedControls2.phoneOnlyInSheet, 1);
     // The frame's #459 rules are seen to fail on a frame that keeps the browser's own return,
     // hands focus back on every close, names no description and holds its actions on a line.
@@ -1052,6 +1218,7 @@ export function run({ check, assert, log }) {
     );
     check("  a heading neither found nor made focusable is seen", plantedFrame.heading, "false false true");
     check("  a return to it on every close is seen", plantedFrame.onClose, false);
+    check("  a frame that never asks whether it is drawn is seen", plantedFrame.hidden, "false false");
     check("  a sentence describing nothing is seen", plantedFrame.describes, "false false false");
     check("  and actions held on one line are seen", plantedFrame.wraps, false);
     // The build reader is seen to fail on a frame that gives a preview the Compact build's
@@ -1066,8 +1233,8 @@ export function run({ check, assert, log }) {
     );
     check("  a Compact build with no room of its own is seen", plantedBuilds.compact, "false true");
     check("  a preview's build at the Compact width with its room is seen", plantedBuilds.withPreview, "false false false false");
-    check("  a pane on white that does not scroll is seen", plantedBuilds.pane, "false false false");
-    check("  and a column taking no room is seen", plantedBuilds.column, false);
+    check("  a pane on white that does not scroll is seen", plantedBuilds.pane, "false false false false false");
+    check("  and a column taking no room is seen", plantedBuilds.column, "false false false false");
     check(
         "  a body that takes no spare room is seen",
         buildFacts(parseSource('export function DialogBody({ children }) { return <div className="relative flex min-h-0 flex-col">{children}</div>; }\n', "<planted-body>")).bodyGrows,

@@ -69,6 +69,7 @@
     --max-width-menu: 17.5rem; /* Menu, 280: to here */
     --spacing-menu-offset: 0.375rem; /* Menu, 6: under the control that opens it */
     --spacing-menu-inset: 0.3125rem; /* Menu, 5: inside it */
+    --spacing-menu-heading-inset-y: 0.375rem; /* Menu, 6: above and below a head that names what follows */
 
     /* 0b · Layout — the page's own measure. */
     --container-content: 67.5rem; /* Content, 1080: the centered measure, for short text */
@@ -84,6 +85,7 @@
     --spacing-selection-bar-inset: 0.5rem; /* Selection bar, 8: inside it */
     --spacing-selection-bar-slide: 0.5rem; /* Selection bar, 8: how far it rises as it appears */
     --transition-duration-selection-bar: 160ms; /* Selection bar: how long it takes to fade in */
+    --spacing-selection-bar-reason-gap: 0.375rem; /* Selection bar, 6: from the info mark that leads an action's reason to its words */
     --spacing-list-header-inset-bottom: 1.25rem; /* 1b, 20: under a list's head, to its column head — from the drawings, not the spec */
     --spacing-list-header-inline: 2.5rem; /* 1a, 40: the least room between a list head's title block and its control — from the drawings, not the spec */
     --spacing-list-count-inline: 0.3125rem; /* 1a and 1b, 5: from a list head's count to its noun — from the drawings, not the spec */
@@ -181,7 +183,7 @@
     /* 0i · Scroll — the bar, and the room it is given. The lane is the browser's own
        scrollbar, whose width follows no text size, so it and its clearance stay px. */
     --spacing-scrollbar: 8px; /* Bar, 8: its lane, reserved whether or not it shows */
-    --spacing-scrollbar-inset: 2px; /* Bar, 2: around the thumb inside the lane */
+    --spacing-scrollbar-inset: 1px; /* Bar, 1: around the thumb inside the lane, so the thumb reads as 6 of its 8 */
     --spacing-scroll-inset-bottom: 2.5rem; /* End, 40: what a column ending in open space closes on */
 
     /* 0j · Radius — a corner is a step of one ladder, named for what the thing is.
@@ -223,6 +225,7 @@
     --spacing-dialog-summary-inset-y: 1rem; /* Split, 16: inside a dialog's summary, above and below */
     --spacing-dialog-summary-inset-x: 1.125rem; /* Split, 18: inside a dialog's summary, either side */
     --spacing-dialog-summary-stack: 0.25rem; /* 1k, 4: between two ids a dialog's summary lists, which the spec does not state */
+    --spacing-refusal-gap: 0.375rem; /* Actions and 0o Refusal, 6: from a message's info mark to its sentence — a dialog's, a sign-in page's and a tool item page's at a desk */
     --container-dialog-preview: 48.75rem; /* Width, 780: a dialog with a preview, which takes the width its pane and column need (1i) */
     --height-dialog-preview: 32.5rem; /* 1i, 520: a dialog with a preview, which the spec does not state */
     --width-dialog-preview-pane: 27.5rem; /* 1i, 440: the pane a preview is drawn in, beside the column */
@@ -248,6 +251,14 @@
     --spacing-account-name-stack: 0.0625rem; /* Account, 1: between the name and the role — from the drawings, not the spec */
     --size-account-chevron: 0.8125rem; /* Account, 13: the chevron at the row's end — from the drawings, not the spec */
     --transition-duration-avatar: 90ms; /* Account: how long the avatar takes to darken under the pointer — from the drawings, not the spec */
+    --spacing-account-menu-offset-x: 0.5rem; /* Account, 8: its menu beside the collapsed button, their bottoms aligned */
+    --animate-account-menu: account-menu-in 120ms ease-out; /* Account: its menu growing from 0.98 at its corner by the button */
+    @keyframes account-menu-in {
+        from {
+            opacity: 0;
+            transform: scale(0.98);
+        }
+    }
     --height-breadcrumb: 3rem; /* Breadcrumb, 48: the way back and a record's pager */
     --spacing-breadcrumb-back-offset: 0.75rem; /* Breadcrumb, 12: how far one level pulls left so its chevron's stroke meets the Margin — from the drawings, not the spec */
     --spacing-breadcrumb-back-gap: 0.125rem; /* Breadcrumb, 2: between that chevron and its word — from the drawings, not the spec */
@@ -285,7 +296,6 @@
     --spacing-sign-in-header-stack: 2rem; /* 0o, 32: under the header, to the first field or the action */
     --spacing-sign-in-form-stack: 1.5rem; /* 0o, 24: from a field to the action or to a refusal of the page, and from the action to the line under it */
     --spacing-sign-in-form-inline: 0.75rem; /* 1g, 12: between two fields sharing a row — from the drawings, not the spec */
-    --spacing-sign-in-refusal-gap: 0.375rem; /* 0o Refusal, 6: from a refusal of the page's info mark to its sentence (#148) */
     --spacing-avatar-chip-inset-left: 0.25rem; /* 0o, 4: the avatar from the chip's round end */
     --spacing-avatar-chip-inset-right: 0.75rem; /* 0o, 12: the chip's words from its other end */
     --size-code-slot: 3.25rem; /* 0o, 52: the box one figure of a sign-in code is drawn in */
@@ -302,7 +312,7 @@
             opacity: 0;
         }
     }
-    --spacing-code-resend-offset: 0.25rem; /* 1e and 1a, 4: how far the resend control in the line under a code pulls left into the space before it, where it pulls 8 right — from the drawings, not the spec */
+    --color-code-resend-spinner-track: color-mix(in oklab, currentColor 25%, transparent); /* 1e and 1a: the resend control's spinner track, its words' Accent at 25% — from the drawings, not the spec */
 
     /* Tools 0a · App — what the phone screen takes in place of the web values, read
        under max-sm, whose 40rem is this repository's edge rather than the design's. */
@@ -410,6 +420,8 @@
     --spacing-mobile-menu-gutter: 0.75rem; /* Menu, 12: from the screen's right edge */
     --spacing-mobile-menu-offset: 0.25rem; /* Menu, 4: under the top bar */
     --spacing-mobile-menu-row-inset-x: 1rem; /* Menu, 16: inside a row */
+    --height-mobile-menu-account: 3.5rem; /* Menu, 56: the account row the top bar's menu ends on, at least */
+    --spacing-mobile-menu-account-inset-y: 0.5rem; /* Menu, 8: inside that row, above and below */
 }
 
 @theme inline {

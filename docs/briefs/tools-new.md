@@ -59,7 +59,10 @@ to Impact Driver, which already has 13 items`, and `Creates a new tool`. The
 count is every item the tool has, the figure its own screen heads its list
 with. **This is a
 preview and not the verdict**: it is decided against a list loaded when the page
-opened, and the write asks the base again.
+opened, and the write asks the base again. **While no name is typed, the line
+under the field says what a name does** —
+`Use an existing name to add to that tool.` (1j, #495) — and the preview and a
+refusal take its place.
 
 ## What it carries only sometimes
 
@@ -111,9 +114,10 @@ what each says. Neither is in this dialog. **The rows already written are never
 undone** in either case, because their ids are spent and a later registration
 would re-issue them onto different tools.
 
-**While a registration is on its way (#469):** the submit keeps its color and,
-after a moment, says `Adding…` beside a spinner; nothing in the dialog takes a
-press or a keystroke, and it does not close. **That is the submit at work and
+**While a registration is on its way (#469):** the submit keeps its color and
+its width and, after a moment, draws a spinner in place of its words, saying
+`Adding…` to assistive tech (#495); nothing in the dialog takes a press or a
+keystroke, and it does not close. **That is the submit at work and
 not a submit that cannot act**, and a design must keep the two apart: one that
 cannot act is drawn faded with why before it, and this one keeps its full
 color, because the press it is waiting on has happened.
