@@ -114,8 +114,8 @@ function copyStrings() {
     out.push(TOOL_REGISTRATION_COPY.quantityHelp(100));
     out.push(TOOL_REGISTRATION_COPY.quantityInvalid(100), TOOL_REGISTRATION_COPY.quantityTooMany(100));
     out.push(TOOL_REGISTRATION_COPY.submit(null), TOOL_REGISTRATION_COPY.submit(1), TOOL_REGISTRATION_COPY.submit(5));
-    out.push(TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }));
     for (const n of [1, 4]) {
+        out.push(TOOL_REGISTRATION_COPY.shortfallHeading(n));
         out.push(TOOL_REGISTRATION_COPY.shortfall(n), TOOL_REGISTRATION_COPY.registerOthers(n));
         out.push(TOOL_REGISTRATION_COPY.unloggedHeading(n), TOOL_REGISTRATION_COPY.unlogged(n));
     }
@@ -296,6 +296,12 @@ export async function run({ check, assert, log }) {
     check("  the line under it, opened on no tool", TOOL_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
     check("  the name's label", TOOL_REGISTRATION_COPY.nameLabel, "Tool name");
     check("  and its placeholder", TOOL_REGISTRATION_COPY.namePlaceholder, "e.g. Impact Driver, Milwaukee");
+    check("  and the line under it while nothing is typed (1j, #495)", TOOL_REGISTRATION_COPY.nameHelp, "Use an existing name to add to that tool.");
+    check(
+        "  which the name's field carries as its help, the preview and a refusal taking its place (#495)",
+        /<Field label=\{COPY\.nameLabel\} help=\{COPY\.nameHelp\} note=\{note\} refusal=\{refusalFor\("toolName"\)\} reserveMessage>/.test(parseFile(DIALOG).source),
+        true
+    );
     check("  the count's label", TOOL_REGISTRATION_COPY.quantityLabel, "Quantity");
     check("  and its help", TOOL_REGISTRATION_COPY.quantityHelp(100), "Up to 100");
     check("  the job's label", TOOL_REGISTRATION_COPY.jobLabel, "Job");
@@ -346,12 +352,15 @@ export async function run({ check, assert, log }) {
     // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's title, its one
     // sentence and its two answers, one going on and one stopping — and the notice, whose
     // one control dismisses it and repairs nothing, because nothing repairs what it names.
-    // Each is a dialog since #459, and each sentence is 1k's as far as it goes: what 1k
-    // adds about the ones that were added is the selection's to say (#321). The answer that
-    // goes on names how many are left since #485, and says `more` at one as at two.
-    check("the fork's title", TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }), "3 of 5 tools added");
-    check("  its sentence", TOOL_REGISTRATION_COPY.shortfall(2), "2 couldn't be added.");
-    check("  at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 couldn't be added.");
+    // Each is a dialog since #459. The fork is 1k's final composition since #495 — how many
+    // were not added is its title, and its sentence says the others were added and are the
+    // selection on this page, which #459 had left out as a confirmation off the address and
+    // which came back by decision. The answer that goes on names how many are left since
+    // #485, and says `more` at one as at two.
+    check("the fork's title, how many were not added", TOOL_REGISTRATION_COPY.shortfallHeading(2), "2 tools couldn't be added");
+    check("  at one", TOOL_REGISTRATION_COPY.shortfallHeading(1), "1 tool couldn't be added");
+    check("  its sentence, where the others are", TOOL_REGISTRATION_COPY.shortfall(3), "The other 3 were added and are selected on this page.");
+    check("  and with one other", TOOL_REGISTRATION_COPY.shortfall(1), "The other 1 was added and is selected on this page.");
     check("  the answer that goes on, naming how many are left", TOOL_REGISTRATION_COPY.registerOthers(2), "Add 2 more");
     check("  and that answer at one", TOOL_REGISTRATION_COPY.registerOthers(1), "Add 1 more");
     check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Not now");
@@ -368,11 +377,12 @@ export async function run({ check, assert, log }) {
         "Only the creation date wasn't saved for this one, and it can't be added later."
     );
     check("  and the control that takes it away", TOOL_REGISTRATION_COPY.gotIt, "Got it");
-    // 1k'S TWO CONFIRMATIONS ARE NOT TAKEN, and a sweep that took the design's words whole
-    // would bring them in: where the created ones are, and that all were created.
+    // THE NOTICE'S CONFIRMATION IS NOT TAKEN, and a sweep that took the design's words whole
+    // would bring it in: that all were added, a count a landing with no shortfall does not
+    // carry (#459). The fork's half came back in #495, by decision, and is pinned above.
     check(
-        "  no sentence says where the created ones are or that all were",
-        copyStrings().filter((s) => /saved and selected|work as usual/.test(s)).join(" | "),
+        "  no sentence says that all were added",
+        copyStrings().filter((s) => /work as usual/.test(s)).join(" | "),
         ""
     );
 
@@ -1039,7 +1049,7 @@ export async function run({ check, assert, log }) {
         const told = (query = address) => accountToTell(account, query);
         const said =
             account.unwritten > 0
-                ? `${TOOL_REGISTRATION_COPY.shortfallHeading({ created: account.asked - account.unwritten, asked: account.asked })} — ${TOOL_REGISTRATION_COPY.shortfall(account.unwritten)} — ${TOOL_REGISTRATION_COPY.registerOthers(account.unwritten)}`
+                ? `${TOOL_REGISTRATION_COPY.shortfallHeading(account.unwritten)} — ${TOOL_REGISTRATION_COPY.shortfall(account.asked - account.unwritten)} — ${TOOL_REGISTRATION_COPY.registerOthers(account.unwritten)}`
                 : "";
         return { created, account, address, told, said, rows: [...logBase.held.keys()] };
     };
@@ -1052,13 +1062,13 @@ export async function run({ check, assert, log }) {
     {
         const refused = await register(25, { toolAnswer: (n) => (n === 1 ? { land: 0 } : null) });
         check("a tool items request refused whole: what landed before it is selected", refused.address.getAll("id").join(" "), printed(1, 10));
-        check("  and the fork says the rest, and offers it", refused.said, "10 of 25 tools added — 15 couldn't be added. — Add 15 more");
+        check("  and the fork says the rest, and offers it", refused.said, "15 tools couldn't be added — The other 10 were added and are selected on this page. — Add 15 more");
         check("  with nothing unlogged, since every one written has its first row", `${refused.told()} ${refused.account.unlogged.length}`, "shortfall 0");
     }
     {
         const lost = await register(25, { toolAnswer: (n, rows) => (n === 1 ? { land: rows.length } : null) });
         check("its answer lost after the rows landed: the read-back selects twenty", lost.address.getAll("id").join(" "), printed(1, 20));
-        check("  and the fork says five, and offers them", lost.said, "20 of 25 tools added — 5 couldn't be added. — Add 5 more");
+        check("  and the fork says five, and offers them", lost.said, "5 tools couldn't be added — The other 20 were added and are selected on this page. — Add 5 more");
         check("  each of the twenty with its first row, minted with no read", `${lost.rows.length} ${lost.rows[0]} ${lost.rows[19]}`, "20 HYE-TL-261001-001-001 HYE-TL-261001-020-001");
     }
     {
@@ -1079,7 +1089,11 @@ export async function run({ check, assert, log }) {
             logAnswer: (n) => (n === 1 ? { land: 0 } : null),
         });
         check("both passes failing: the notice first, naming the second ten", `${both.told()} ${both.account.unlogged.join(" ")}`, `unlogged ${printed(11, 20)}`);
-        check("  then the fork, for the five never written", `${both.told(without(both.address, "unlogged"))} — ${both.said}`, "shortfall — 20 of 25 tools added — 5 couldn't be added. — Add 5 more");
+        check(
+            "  then the fork, for the five never written",
+            `${both.told(without(both.address, "unlogged"))} — ${both.said}`,
+            "shortfall — 5 tools couldn't be added — The other 20 were added and are selected on this page. — Add 5 more"
+        );
     }
 
     // ── anti-vacuity ───────────────────────────────────────────────────────

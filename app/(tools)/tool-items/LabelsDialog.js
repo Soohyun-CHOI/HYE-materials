@@ -4,6 +4,7 @@ import { Inconsolata } from "next/font/google";
 import { useState, useTransition } from "react";
 import { Button } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame, DialogMessage } from "@/app/components/DialogFrame";
+import Dot from "@/app/components/Dot";
 import {
     LABEL_PREVIEW_SCALE,
     LABEL_STOCK,
@@ -27,12 +28,15 @@ import "./labels.css";
 // the dialog at once. The opener is a 0a button in both, and a tool's page disables it
 // where its list says why (`describeSelection`).
 //
-// A PRESS WHILE THE READ IS IN FLIGHT IS IGNORED RATHER THAN THE BUTTON DISABLED, which
-// a browser showed: a button disabled under the pointer drops focus to the page, so the
-// dialog opened with nothing to hand focus back to and its closing left the reader at the
-// top of the document, where CLAUDE.md's overlay rule wants the opener. Nothing marks
-// the wait, because 1i draws nothing between the press and the dialog; #469's
-// submitting state is a dialog's action, which this read is not.
+// A PRESS WHILE THE READ IS IN FLIGHT IS TURNED AWAY RATHER THAN THE BUTTON DISABLED,
+// which a browser showed: a button disabled under the pointer drops focus to the page, so
+// the dialog opened with nothing to hand focus back to and its closing left the reader at
+// the top of the document, where CLAUDE.md's overlay rule wants the opener. **Since #495 the
+// wait is 0f's Working**, the opener busy and not disabled: after 300ms its spinner stands
+// in its label's place at its resting width, and its `-ing` word is `Loading…` for
+// assistive tech, since the press opens the labels to print rather than printing them
+// (`TOOL_LABEL_PAGE_COPY.working`). 1i draws nothing between the press and the dialog, and
+// nothing marked the wait until then.
 //
 // NOTHING IS WRITTEN TO THE ADDRESS TO OPEN IT, which is #456's shape rather than #459's.
 // A tool's page already carries the selection on its address, so a copied link is a
@@ -122,7 +126,7 @@ const labelCodeFont = Inconsolata({ subsets: ["latin"], variable: "--font-label-
  * item's page hands over; `toolItemIds` is what a tool's page has selected, read when
  * pressed. `toolName` is the line under the title.
  */
-export default function LabelsDialog({ title, toolName, run: handed, toolItemIds, disabled = false, disabledReason, variant = "filled" }) {
+export default function LabelsDialog({ title, toolName, run: handed, toolItemIds, disabled = false, disabledReason, describedBy, variant = "filled" }) {
     const [open, setOpen] = useState(false);
     const [run, setRun] = useState(handed ?? null);
     const [pending, startTransition] = useTransition();
@@ -143,7 +147,15 @@ export default function LabelsDialog({ title, toolName, run: handed, toolItemIds
 
     return (
         <>
-            <Button variant={variant} disabled={disabled} disabledReason={disabledReason} onClick={press}>
+            <Button
+                variant={variant}
+                disabled={disabled}
+                disabledReason={disabledReason}
+                describedBy={describedBy}
+                busy={pending}
+                busyLabel={COPY.working}
+                onClick={press}
+            >
                 {title}
             </Button>
             {run && <LabelsFrame open={open} onClose={() => setOpen(false)} title={title} toolName={toolName} run={run} />}
@@ -215,9 +227,7 @@ function LabelsFrame({ open, onClose, title, toolName, run }) {
                 <div className="flex flex-col gap-dialog-panel-stack">
                     <DialogMessage>
                         {COPY.count({ printing, named })}
-                        <span aria-hidden="true" className="px-separator-inline text-foreground-faint">
-                            {COPY.between}
-                        </span>
+                        <Dot />
                         <span className="text-foreground-muted">{COPY.size}</span>
                     </DialogMessage>
                     {missing.length > 0 && (

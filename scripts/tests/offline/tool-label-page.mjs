@@ -1195,6 +1195,18 @@ export function run({ check, assert, log }) {
     check("the control on a tool, and the dialog's title there", COPY.openFromTool, "Print labels");
     // `Print label` SINCE #457, the design's, where it said `Print the label` from #352.
     check("the control on one tool item, and the dialog's title there", COPY.openFromToolItem, "Print label");
+    // WHAT AN OPENER SAYS WHILE A TOOL'S PAGE READS ITS LABELS (0f Working, #495), to assistive
+    // tech alone: the work being done, since the press opens the labels rather than printing.
+    check("  and what either says while its page reads the labels (#495)", COPY.working, "Loading…");
+    check(
+        "  busy for that read and not disabled, saying that word",
+        [
+            /busy=\{pending\}/.test(parseFile(COMPONENT_SOURCE).source),
+            /busyLabel=\{COPY\.working\}/.test(parseFile(COMPONENT_SOURCE).source),
+            !/disabled=\{[^}]*pending/.test(parseFile(COMPONENT_SOURCE).source),
+        ].join(" "),
+        "true true true"
+    );
     // IT MAY NOT SAY `REPRINT`, which is what it said until #352 was read on screen:
     // nothing in this base records whether a sticker was ever printed, so a control
     // promising a re-print states what the app cannot check.
@@ -1212,7 +1224,28 @@ export function run({ check, assert, log }) {
     check("  a run that does not", COPY.count({ printing: 3, named: 5 }), "3 of 5 labels");
     check("  one of two", COPY.count({ printing: 1, named: 2 }), "1 of 2 labels");
     check("  and none of one", COPY.count({ printing: 0, named: 1 }), "0 of 1 label");
-    check("the dot between the count and the size", COPY.between, "·");
+    // THE DOT BETWEEN THE COUNT AND THE SIZE IS `Dot` SINCE #495, whose room either side is a
+    // space the text holds: drawn with padding round a mark nobody reads, the two clauses
+    // copied and were read as `1 label11 × 12 mm`. Read off the dialog's sentence, beside a
+    // planted one padding a mark of its own; the copy holds no mark any more.
+    const sentenceParts = (ast) => {
+        const out = [];
+        walk(ast, (n) => {
+            if (n.type !== "JSXElement" || n.openingElement.name?.name !== "DialogMessage") return;
+            for (const child of n.children) {
+                if (child.type === "JSXElement") out.push(child.openingElement.name.name);
+                else if (child.type === "JSXExpressionContainer" && child.expression.type !== "JSXEmptyExpression") out.push("{}");
+            }
+        });
+        return out.join(" ");
+    };
+    check("the dialog's sentence parts the count and the size with Dot", sentenceParts(parseFile(COMPONENT_SOURCE).ast), "{} Dot span");
+    check(
+        "  where a padded mark reads otherwise",
+        sentenceParts(parseSource('const a = <DialogMessage>{x}<span aria-hidden="true" className="px-separator-inline">·</span><span>{y}</span></DialogMessage>;', "<planted-dot>").ast),
+        "{} span span"
+    );
+    check("  and the copy holds no mark of its own", "between" in COPY, false);
     // THE PRINT'S SIZE IN TEXT, BUILT FROM THE STOCK — read off the AST, beside a planted
     // literal — and pinned by value so the composition is held rather than merely
     // performed. It replaced `Stock: 12 mm tape` (#457).

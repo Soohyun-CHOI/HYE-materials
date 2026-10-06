@@ -170,6 +170,18 @@ export function run({ check, log, assert }) {
         if (n.type === "JSXOpeningElement" && n.name?.name === "Space") spaces.push(n.attributes.find((a) => a.name?.name === "className")?.value?.value ?? "");
     });
     check("  and sets the time after a Space of the date-time width", spaces.join(" | "), "w-date-time-inline max-sm:w-mobile-date-time-inline");
+    // INSIDE A SENTENCE THE TIME FOLLOWS A WORD'S SPACE (#495), as the design's final files draw
+    // the stale-press sentence's moment: the slashes still dimmed, and no 9 or 8 apart, which
+    // is a date and its time standing on their own. Every other caller keeps the Space.
+    const componentSource = parseFile(COMPONENT).source;
+    check(
+        "  but after a word's space when it stands inside a sentence (#495)",
+        [
+            /export default function Instant\(\{ at, format = INSTANT_FORMAT, sentence = false \}\)/.test(componentSource),
+            /\{sentence \? " " : <Space className="w-date-time-inline max-sm:w-mobile-date-time-inline" \/>\}/.test(componentSource),
+        ].join(" "),
+        "true true"
+    );
     check("  a Space being a real space the text keeps, in a box of its caller's width", spaceReading(parseFile(SPACE)), 'inline-block whitespace-pre ${className} | " "');
     // ANTI-VACUITY: the padding this replaced, and a box holding nothing, are read so.
     check(

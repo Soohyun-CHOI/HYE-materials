@@ -84,9 +84,10 @@ const BAR_STACK = {
  * — and while the content runs on under it, a soft edge, the translucent white over a blur,
  * fading in over the 24 above it. **It rides on the keyboard**, 12 below it rather than 20,
  * so a screen's action and its field are both in sight while somebody types: a browser that
- * shrinks the page for its keyboard keeps a sticky bar above it by itself — both screens ask
- * for that — and one that covers the page instead reports how far it covers, which the bar
- * is lifted by.
+ * shrinks the page for its keyboard keeps a sticky bar above it by itself — every screen that
+ * draws this asks for that (`keyboardViewport.js`), the tool item page only since #495,
+ * though this said both did from #463 — and one that covers the page instead reports how far
+ * it covers, which the bar is lifted by.
  *
  * `bleed` reaches the bar out over the gutter of a column that has one, which a sign-in
  * step's does; the tool item page holds no gutter of its own, so its bar takes the gutter as

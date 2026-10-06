@@ -43,9 +43,10 @@ import Menu from "./Menu";
  *
  * A BUSY ACTION IS DRAWN HERE AND NOWHERE ELSE (0f Working, #473). An action whose work has
  * started keeps its fill and its ink, takes no press, and after 300ms gives its label way to
- * a spinner before the work's own `-ing` word — the delay is a name and the switch is CSS,
- * so an answer inside it changes nothing on the screen. The sign-in steps say when an action
- * is busy themselves, and lock their own fields.
+ * a spinner — alone in an action as wide as its words, before the work's own `-ing` word in
+ * one that spans its column (#495) — the delay is a name and the switch is CSS, so an answer
+ * inside it changes nothing on the screen. The sign-in steps say when an action is busy
+ * themselves, and lock their own fields.
  *
  * A DIALOG'S FRAME SAYS IT FOR EVERYTHING IT HOLDS (#469). The frame takes `busy` while a
  * dialog's submission is in flight, as it has since #456 so as not to close, and wraps what
@@ -120,12 +121,15 @@ function AlertMark() {
 
 /**
  * The mark before what a notice says: a circle with an i in it, in Ink 2 — 18 in Tools 0a's
- * Notice, and 16 beside a sentence on a sign-in page (#148), where the design draws its ring
- * a touch heavier.
+ * Notice, and 16 beside a sentence on a sign-in page (#148) or a dialog's (#495), where the
+ * design draws its ring a touch heavier. In Ink 3 it leads the reason a selection bar's action
+ * gives (0b, #495), the ink that reason is set in.
  */
-export function InfoMark({ size = "size-mobile-alert-icon", ring = 1.4 }) {
+const INFO_MARK_TONE = { muted: "text-foreground-muted", subtle: "text-foreground-subtle" };
+
+export function InfoMark({ size = "size-mobile-alert-icon", ring = 1.4, tone = "muted" }) {
     return (
-        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className={`${size} shrink-0 text-foreground-muted`}>
+        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className={`${size} shrink-0 ${INFO_MARK_TONE[tone]}`}>
             <circle cx="9" cy="9" r="7.3" stroke="currentColor" strokeWidth={ring} />
             <path d="M9 8v4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
             <circle cx="9" cy="5.4" r="1" fill="currentColor" />
@@ -159,20 +163,31 @@ export function Notice({ children }) {
 
 /**
  * A refusal about the whole of what a form asks — a dialog's (0l Actions), and a tool item
- * page's at a desk (#463): the alert mark 8 before one sentence at 13, both in Red, and at 15
- * in a sheet below the phone's edge (#458). A sign-in page drew it too, centered under its
- * fields, from #473 until #148's drawings set that refusal in Ink 2 behind the info mark.
+ * page's at a desk (#463): the 16 info mark 6 before one sentence at 13, both in Ink 2, and at
+ * 15 in a sheet below the phone's edge (#458). The mark stands on the sentence's first line.
+ *
+ * INK 2 BEHIND THE INFO MARK SINCE #495, WHERE IT WAS THE ALERT MARK IN RED. The design's
+ * final files set a message about the whole dialog the way #148's had set a sign-in page's:
+ * it is something the reader did not cause and cannot fix in place, and Red is kept for a
+ * field's refusal, which is the reader's own value refused (0l, 0o). A sign-in page drew this
+ * line in Red from #473 until #148 and draws its own in Ink 2 since.
+ *
+ * ITS ROLE STAYS `alert`, WHICH IS THIS APP'S RULE AND NOT THE DRAWING'S `status`. It answers
+ * the reader's own press with a refusal, and the role says how that is heard, whatever ink the
+ * drawing sets it in: a field's refusal and the phone's Notice are alerts for the same reason.
  */
 export function Refusal({ children }) {
     return (
-        <p role="alert" className="flex items-center gap-gap text-body-sm text-danger max-sm:in-data-[sheet]:text-mobile-body-sm">
-            <AlertMark />
+        <p role="alert" className="flex items-start gap-refusal-gap text-body-sm text-foreground-muted max-sm:in-data-[sheet]:text-mobile-body-sm">
+            <span className="flex h-[var(--text-body-sm--line-height)] shrink-0 items-center">
+                <InfoMark size="size-icon" ring={1.5} />
+            </span>
             <span>{children}</span>
         </p>
     );
 }
 
-const BUTTON = "items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold disabled:cursor-default aria-disabled:cursor-default";
+const BUTTON = "relative items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold disabled:cursor-default aria-disabled:cursor-default";
 
 // 0a's Commitment, 36, and a sign-in page's action, 40 and its column's width — and below
 // the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button).
@@ -223,35 +238,35 @@ function Spinner({ size }) {
 }
 
 /**
- * The words on an action, and the ones it says while busy, laid in one cell so the action
- * is as wide as the wider of the two and does not move when one gives way to the other (0f).
- * The switch waits `--transition-delay-busy` either way it is entered and none on the way
- * back, and what is not shown is not read: an invisible label leaves the accessibility tree.
+ * The words on an action, and what it shows while busy laid over them, so the action keeps
+ * the width its words give it and does not move when one gives way to the other (0f). The
+ * switch waits `--transition-delay-busy` either way it is entered and none on the way back,
+ * and what is not shown is not read: an invisible label leaves the accessibility tree.
  *
- * THE ONE CELL IS 0f's MINIMUM WIDTH, and it is why no name holds one (#469). 0f's Working
- * holds a busy action at least as wide as its working label in its padding and otherwise at
- * its resting label's width, so a label that changes with a count moves it only when the
- * count needs more room: 1j's `min-width: 124px` is that sum for `Creating…` — 16, 8, the
- * word and 32 — measured at 123.77, and the cell reaches it from the words themselves.
+ * AN ACTION AS WIDE AS ITS WORDS SHOWS THE SPINNER ALONE (0f Working, #495). It keeps its
+ * resting width and the 16 spinner stands centered in its label's place, the `-ing` word for
+ * assistive tech alone. An action that spans its column — a sign-in page's, at `xl` — shows
+ * the spinner 8 before that word instead. Until #495 every action showed the word and held
+ * at least its width, 0f's minimum width then: 1j's `min-width: 124px` for `Creating…`, which
+ * a grid cell holding both labels reached from the words themselves (#469). The files of
+ * 2026-10-05 took the minimum away with the word.
  *
  * BELOW THE PHONE'S EDGE THE SPINNER STANDS ALONE, on a sign-in step and in a sheet alike
- * (Tools 0a Busy, #469), and the word stays for assistive tech. #473 kept the desk's word in
- * a sheet on the reading that 0a draws Busy only for a step; a sheet's button is 0a's Button
- * already — its height, width and type are the phone's — and the design hands the app
- * frame's Busy to the phone (`docs/notes/design-system.md` has the argument).
+ * (Tools 0a Busy, #469), at the phone's 20. #473 kept the desk's word in a sheet on the
+ * reading that 0a draws Busy only for a step; a sheet's button is 0a's Button already — its
+ * height, width and type are the phone's — and the design hands the app frame's Busy to the
+ * phone (`docs/notes/design-system.md` has the argument).
  */
 function ButtonLabel({ size, busyLabel, children }) {
     if (!busyLabel) return children;
     return (
-        <span className="grid">
-            <span className="col-start-1 row-start-1 transition-[visibility] duration-0 group-data-busy/button:invisible group-data-busy/button:delay-busy">
-                {children}
-            </span>
-            <span className="invisible col-start-1 row-start-1 flex items-center justify-center gap-gap transition-[visibility] duration-0 group-data-busy/button:visible group-data-busy/button:delay-busy">
+        <>
+            <span className="transition-[visibility] duration-0 group-data-busy/button:invisible group-data-busy/button:delay-busy">{children}</span>
+            <span className="invisible absolute inset-0 flex items-center justify-center gap-gap transition-[visibility] duration-0 group-data-busy/button:visible group-data-busy/button:delay-busy">
                 <Spinner size={size} />
-                <span className={size === "xl" ? "max-sm:sr-only" : "max-sm:in-data-[sheet]:sr-only"}>{busyLabel}</span>
+                <span className={size === "xl" ? "max-sm:sr-only" : "sr-only"}>{busyLabel}</span>
             </span>
-        </span>
+        </>
     );
 }
 
@@ -268,16 +283,22 @@ function ButtonLabel({ size, busyLabel, children }) {
  * A BUSY ACTION IS NOT A DISABLED ONE (0f Working). `busy` keeps the fill, turns a press
  * away — a submit included, so a second press cannot send the form twice, and Enter in a
  * field cannot either, since the press it makes on the form's submit is turned away too —
- * and says it is busy to assistive tech; `busyLabel` is the `-ing` word it shows once the
- * wait passes the delay. Below the phone's edge, at `xl` and in a sheet, the spinner alone
- * stands in the label's place (Tools 0a Busy, #469) and the word stays for assistive tech.
- * A `danger` commitment keeps its red the same way.
+ * and says it is busy to assistive tech; `busyLabel` is the `-ing` word it says once the
+ * wait passes the delay. An action as wide as its words shows the spinner alone and keeps
+ * that word for assistive tech, and one that spans its column, at `xl`, draws the word after
+ * the spinner (#495); below the phone's edge, at `xl` and in a sheet, the spinner alone
+ * stands in the label's place (Tools 0a Busy, #469). A `danger` commitment keeps its red
+ * the same way.
  *
  * INSIDE A BUSY FORM IT NEEDS NO `busy` OF ITS OWN (#469): the form's submit is the one
  * working, and any other button is locked — `aria-disabled`, its look kept, its press turned
  * away — which is `lib/controls.js:buttonBusyState`'s answer to the two.
+ *
+ * `describedBy` IS A REASON DRAWN SOMEWHERE ELSE (#495): a selection bar sets its action's
+ * reason in a column of its own that comes and goes with the bar's motion (0b), so the
+ * button points at it rather than drawing one before itself.
  */
-export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, busy = false, busyLabel, onClick, children }) {
+export function Button({ variant = "filled", size = "lg", type = "button", disabled = false, disabledReason, describedBy, busy = false, busyLabel, onClick, children }) {
     const reasonId = useId();
     const formBusy = useContext(FormBusyContext);
     const state = buttonBusyState({ busy, formBusy, submits: type === "submit", disabled });
@@ -288,7 +309,7 @@ export function Button({ variant = "filled", size = "lg", type = "button", disab
             type={type}
             disabled={disabled}
             onClick={state ? (event) => event.preventDefault() : onClick}
-            aria-describedby={explained ? reasonId : undefined}
+            aria-describedby={explained ? reasonId : describedBy}
             aria-busy={working || undefined}
             aria-disabled={state ? true : undefined}
             data-busy={working || undefined}
@@ -871,7 +892,8 @@ export function Choice({ name, options, value, onChange, placeholder }) {
  * accepts one, which is the pattern's manual selection; `editableComboboxKey` says what
  * each key does. `heading` is a word the list carries above its suggestions — the
  * check-out's `Recently at this job` (#458), the same words as the name sheet a phone
- * types in. Inside a busy form it is read-only and its list does not show (#469).
+ * types in — and a suggestion's `match` the part of it what is typed matched, set at 600
+ * (#495). Inside a busy form it is read-only and its list does not show (#469).
  */
 export function Combobox({ name, value, onChange, suggestions, heading, placeholder, listOpen, onListOpenChange }) {
     const field = useField();
@@ -947,6 +969,7 @@ export function Combobox({ name, value, onChange, suggestions, heading, placehol
                 options={suggestions.map((suggestion, index) => ({
                     key: suggestion.label,
                     label: suggestion.label,
+                    match: suggestion.match,
                     detail: suggestion.detail,
                     selected: index === active,
                 }))}

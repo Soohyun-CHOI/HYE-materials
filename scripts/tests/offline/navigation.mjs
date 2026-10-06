@@ -55,6 +55,7 @@ const ROOT_PAGE = "app/page.js";
 const TOOLS_LAYOUT = "app/(tools)/layout.js";
 const TOOL_PAGE = "app/(tools)/tools/[toolRecordId]/page.js";
 const TOOL_ITEM_PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
+const MORE_ACTIONS = "app/(tools)/tool-items/[toolItemId]/MoreActions.js";
 
 /** The design's sections less `Office`: key, word, address, in its order. */
 const SECTIONS = [
@@ -379,7 +380,7 @@ export async function run({ check, assert, log }) {
     check(
         "  an office reader, as the design draws one",
         JSON.stringify(reader("lee@hanyangengusa.com", "Employee", true)),
-        JSON.stringify({ name: "lee", initial: "l", role: "Admin", label: "lee, Admin" })
+        JSON.stringify({ name: "lee", email: "lee@hanyangengusa.com", initial: "l", role: "Admin", label: "lee, Admin" })
     );
     check("  the President who is the office too", reader("soo@hanyangengusa.com", "President", true).label, "soo, President, Admin");
     check("  the President alone", reader("soo@hanyangengusa.com", "President", false).role, "President");
@@ -397,6 +398,44 @@ export async function run({ check, assert, log }) {
     check("  a planted button that agrees passes", plantedAccount("words.label").join(" | "), "");
     assert("  one whose tooltip reads another expression fails", plantedAccount("words.name").length > 0);
     check("  only the rail draws it", importers(ACCOUNT).join(" "), RAIL);
+
+    // #495 — the account's menu is 0m's: the reader's email heads it, it opens above an
+    // expanded row and beside a collapsed button, and the button holds its hover while open.
+    const accountSource = parseFile(ACCOUNT).source;
+    const menuAttr = (name) => {
+        let found = null;
+        walk(accountAst, (n) => {
+            if (n.type !== "JSXElement" || jsxName(n) !== "ActionMenu") return;
+            const value = attrOf(n, name)?.value;
+            if (value?.type === "JSXExpressionContainer") found = accountSource.slice(value.expression.start, value.expression.end);
+            else if (value?.type === "Literal") found = JSON.stringify(value.value);
+        });
+        return found;
+    };
+    check("  its menu is headed with the reader's email (0m, #495)", menuAttr("heading"), "words.email");
+    check("  and opens above an expanded row and beside a collapsed button", menuAttr("placement"), 'expanded ? "above" : "beside"');
+    let shapeHanded = null;
+    walk(railAst, (n) => {
+        if (n.type === "JSXElement" && jsxName(n) === "RailAccount") shapeHanded = attrOf(n, "expanded")?.value?.expression?.name ?? null;
+    });
+    check("  which shape it is the rail says", shapeHanded, "expanded");
+    const accountClasses = classNames(accountAst);
+    const accountButton = accountClasses.find((c) => c.name === "button")?.tokens ?? [];
+    const avatar = accountClasses.find((c) => c.tokens.includes("size-avatar"))?.tokens ?? [];
+    check(
+        "  the row's corner is the Control's, not the Group's",
+        ["group-data-expanded:rounded-control", "group-data-expanded:rounded-card"].map((t) => accountButton.includes(t)).join(" "),
+        "true false"
+    );
+    check(
+        "  and while its menu is open the row holds Hover and the collapsed avatar Face hover",
+        [
+            accountButton.includes("group-data-expanded:aria-expanded:bg-hover"),
+            avatar.includes("group-aria-expanded/account:bg-selected-hover"),
+            avatar.includes("group-data-expanded:group-aria-expanded/account:bg-selected"),
+        ].join(" "),
+        "true true true"
+    );
 
     // The layout hands the rail the page's read and reads nobody itself.
     const layoutCalls = [];
@@ -424,6 +463,7 @@ export async function run({ check, assert, log }) {
     };
     check("  the account's form", formActions(ACCOUNT).join(" | "), "POST /api/auth/logout");
     check("  is the root screen's", formActions(ROOT_PAGE).join(" | "), formActions(ACCOUNT).join(" | "));
+    check("  and the phone's top-bar menu posts there too (#495)", formActions(MORE_ACTIONS).join(" | "), formActions(ROOT_PAGE).join(" | "));
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

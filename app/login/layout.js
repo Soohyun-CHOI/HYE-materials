@@ -1,3 +1,4 @@
+import { KEYBOARD_VIEWPORT } from "@/app/components/keyboardViewport";
 import { brandFace } from "@/app/faces/brand";
 import { uiFace } from "@/app/faces/ui";
 import { WORDMARK } from "@/lib/productName";
@@ -6,9 +7,10 @@ import { WORDMARK } from "@/lib/productName";
  * A phone's browser that would cover the page with its keyboard shrinks it instead, so the
  * bar a step's action stands in stays above the keyboard (Tools 0a Keyboard). A browser
  * that ignores the hint covers the page, and the bar measures how far
- * (`app/login/SignInParts.js`). Every sign-in step, and no other screen, takes it.
+ * (`app/components/BottomBar.js`). Every sign-in step takes it, as every screen with a foot
+ * bar does (`app/components/keyboardViewport.js`).
  */
-export const viewport = { interactiveWidget: "resizes-content" };
+export const viewport = KEYBOARD_VIEWPORT;
 
 /**
  * The frame every sign-in step is drawn in (#473): the sign-in screen, the confirmation a

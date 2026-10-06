@@ -9,6 +9,8 @@ import {
     TOOL_TRANSITION_COPY as COPY,
     asksBeforeRecording,
     jobMoveNotice,
+    matchedPart,
+    namesAreRecent,
     offeredNames,
     readSubmission,
     recentNamesFor,
@@ -55,9 +57,16 @@ import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition"
  *
  * TWO WIDTHS IN THE DIALOG, AND EACH ASKS IN ITS OWN DRAWING. At a desk the job is 0a's choice
  * and the name the registration's own combobox (1j), its suggestions this job's recent names
- * under `Recently at this job`. A dialog left open as the window narrows past the phone's
- * edge is Tools 0a's sheet, and the job and the name are fields that open 1f's job sheet and
- * name sheet. One state behind both, so the field behind a sheet and the sheet are one value.
+ * under `Recently at this job` — the head while nothing is typed, and once somebody types,
+ * the names that match with the matching part at 600 and no head (1c, #495). Below the
+ * phone's edge the frame is Tools 0a's sheet, and the job and the name are fields that open
+ * 1f's job sheet and name sheet. One state behind both, so the field behind a sheet and the
+ * sheet are one value.
+ *
+ * ON THIS PAGE THAT SHEET IS NEVER SEEN. The row the press stands in is hidden below the
+ * phone's edge, where the foot bar asks instead (#463), and a dialog left open as the window
+ * narrows past it goes with the row while it stays modal — measured in #495 at 375: `:modal`,
+ * and no box.
  *
  * A SUBMISSION IN FLIGHT IS SAID IN WHAT SENT IT (#469). The frame is `busy` while the
  * dialog's event is on its way, so the commitment keeps its fill and after 300ms gives its
@@ -182,8 +191,8 @@ function TransitionForm({ open, onClose, plan, toolItemId, currentJobCode, recen
                                     name="checkedOutTo"
                                     value={name}
                                     onChange={setName}
-                                    suggestions={offered.map((person) => ({ label: person }))}
-                                    heading={COPY.recentHeading}
+                                    suggestions={offered.map((person) => ({ label: person, match: matchedPart(person, name) }))}
+                                    heading={namesAreRecent(name) ? COPY.recentHeading : undefined}
                                     placeholder={COPY.namePlaceholder}
                                     listOpen={listOpen}
                                     onListOpenChange={setListOpen}

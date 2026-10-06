@@ -257,7 +257,7 @@ export default function Rail({ account, children }) {
                             );
                         })}
                     </ul>
-                    {account ? <RailAccount account={account} tip={tip} /> : null}
+                    {account ? <RailAccount account={account} expanded={expanded} tip={tip} /> : null}
                 </nav>
                 {tip.element}
             </div>

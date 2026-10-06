@@ -204,7 +204,7 @@ export function RegistrationForm({ open, onClose, jobs, tool, quantity, tools = 
                 {tool ? (
                     <input type="hidden" name="toolName" value={tool.toolName} />
                 ) : (
-                    <Field label={COPY.nameLabel} note={note} refusal={refusalFor("toolName")} reserveMessage>
+                    <Field label={COPY.nameLabel} help={COPY.nameHelp} note={note} refusal={refusalFor("toolName")} reserveMessage>
                         <Combobox
                             name="toolName"
                             value={toolName}

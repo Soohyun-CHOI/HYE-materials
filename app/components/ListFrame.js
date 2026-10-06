@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { InfoMark } from "@/app/components/Controls";
 import Dot from "@/app/components/Dot";
 import { LIST_MEASURE } from "@/app/components/ListTable";
 import { SCROLL_LANE } from "@/app/components/scrollLane";
@@ -93,13 +94,28 @@ export default function ListFrame({ top, header, footer, overlay, overlayShown =
  * an Edge and the Raised shadow at the Group radius.
  *
  * EACH CLAUSE HOLDS THE WIDTH OF ITS THREE-DIGIT FORM, so the bar changes width only when the
- * second clause comes or goes, over 160ms; it rises 8 and fades in over the same. Hidden, it
- * is inert and leaves the accessibility tree, so its controls cannot be reached while it does
- * not show. `Escape` clears the selection — except while a dialog is open, which `Escape`
- * closes first (0b).
+ * second clause or a reason comes or goes, over 160ms; it rises 8 and fades in over the same.
+ * Hidden, it is inert and leaves the accessibility tree, so its controls cannot be reached
+ * while it does not show. `Escape` clears the selection — except while a dialog is open,
+ * which `Escape` closes first (0b).
+ *
+ * AN ACTION THE SELECTION IS TOO LARGE FOR SAYS WHY BEFORE IT (0b, #495): `reason`, 14 before
+ * the actions and led by a 16 info mark 6 before it, at 13 in Ink 3 — 0f's Disabled with the
+ * mark the bar's row gives it — and the action points at it as its description through
+ * `reasonId`. The selection itself is never refused. The reason opens and closes the way the
+ * second clause does, and keeps its words while it closes, so it does not vanish before its
+ * column has.
+ *
+ * IT TAKES ITS CONTENT'S WIDTH (#495). It is centered by standing at the list's middle and
+ * moving back half its own width, and a box set from the middle and left to size itself is
+ * held to the half of the list beyond it: measured on a 1080 list, a bar past a hundred
+ * needed 597 and was held to 572, and the reason's column took the cut.
  */
-export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel, onClear, children }) {
+export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel, onClear, reason, reasonId, children }) {
     const tip = useTooltip({ enabled: shown, placement: "above" });
+    // The last reason given, which the column keeps drawing while it closes.
+    const [lastReason, setLastReason] = useState(reason ?? "");
+    if (reason && reason !== lastReason) setLastReason(reason);
 
     useEffect(() => {
         if (!shown) return undefined;
@@ -116,7 +132,7 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
             role="toolbar"
             aria-label={label}
             inert={!shown}
-            className={`absolute bottom-full left-1/2 mb-selection-bar-offset flex -translate-x-1/2 items-center gap-gap-lg rounded-card border border-border bg-background-translucent p-selection-bar-inset shadow-popover backdrop-blur-sm transition-[opacity,translate,visibility] duration-selection-bar ease-out ${
+            className={`absolute bottom-full left-1/2 mb-selection-bar-offset flex w-max -translate-x-1/2 items-center gap-gap-lg rounded-card border border-border bg-background-translucent p-selection-bar-inset shadow-popover backdrop-blur-sm transition-[opacity,translate,visibility] duration-selection-bar ease-out ${
                 shown ? "visible translate-y-0 opacity-100" : "invisible translate-y-selection-bar-slide opacity-0"
             }`}
         >
@@ -157,7 +173,24 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
                     </span>
                 </span>
             </div>
-            <div className="flex items-center gap-gap">{children}</div>
+            <div className="flex items-center">
+                <span
+                    aria-hidden={reason ? undefined : true}
+                    className={`grid transition-[grid-template-columns,opacity] duration-selection-bar ease-out ${
+                        reason ? "grid-cols-[1fr] opacity-100" : "grid-cols-[0fr] opacity-0"
+                    }`}
+                >
+                    <span className="min-w-0 overflow-hidden">
+                        <span className="flex items-center gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg">
+                            <InfoMark size="size-icon" ring={1.5} tone="subtle" />
+                            <span id={reasonId} className="text-body-sm text-foreground-subtle">
+                                {lastReason}
+                            </span>
+                        </span>
+                    </span>
+                </span>
+                {children}
+            </div>
             {tip.element}
         </div>
     );

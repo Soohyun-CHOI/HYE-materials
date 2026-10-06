@@ -105,15 +105,17 @@ the one the registration types a name in (1j), and the list opens under it. The
 pill opens 1f's job sheet the same way for a person on several jobs; for a
 person on one it states the job and opens nothing.
 
-**The list of names is headed `Recently at this job`** and holds the people
-that job has recently handed tools to, most recent first. **One entry per
-person however their name was typed** — `Mike R` and `mike r` are one, shown
-in the most recent spelling — and **it is the chosen job's list, not the
-reader's**: a person with two assignments sees it change as the job does.
-Typing narrows it, matching anywhere inside a name and ignoring case and
-spacing. **A few are shown before anybody types and the number is a display
-choice over the whole list**, so a design may set it: a name below the cut is
-one keystroke away rather than absent.
+**The list of names is headed `Recently at this job`** while nothing is typed,
+and holds the people that job has recently handed tools to, most recent first.
+**One entry per person however their name was typed** — `Mike R` and `mike r`
+are one, shown in the most recent spelling — and **it is the chosen job's list,
+not the reader's**: a person with two assignments sees it change as the job
+does. Typing narrows it, matching anywhere inside a name and ignoring case and
+spacing, and once a fragment is typed the list is no longer the recent names,
+so the head goes and each name shows the part that matched (#495). **A few are
+shown before anybody types and the number is a display choice over the whole
+list**, so a design may set it: a name below the cut is one keystroke away
+rather than absent.
 
 **When that job has handed out nothing yet:** one sentence in place of the
 entries in the phone's sheet, `No tools have gone out on this job yet.`, and
@@ -135,18 +137,23 @@ check-in on several jobs opens the same dialog for its job alone, with none
 chosen — and on a phone the pill starts with none chosen the same way.
 
 **While the event is on its way the control says so (#469, #463):** the press,
-the dialog's commitment or the foot bar's press keeps its color and, after a
-moment, says `Checking out…` or `Checking in…` — on a phone a spinner alone,
-the word kept for assistive tech — and nothing beside it takes a press. That is
+the dialog's commitment or the foot bar's press keeps its color and its width
+and, after a moment, draws a spinner in place of its words, saying
+`Checking out…` or `Checking in…` to assistive tech — at both widths since
+#495 — and nothing beside it takes a press. That is
 not the commitment that cannot act yet — drawn faded until the job and the name
 are given — and a design must keep the two apart.
 
 **action.** `Retire this tool`, behind `More actions` — at a desk a 32 icon
 button beside the transition, named by its tooltip, and on a phone the 48
-button at the top bar's right end (1c, 1f). It is the menu's one item, in 0f's
-destructive red, and opens a dialog. It is offered from `In stock` and from
-`Out` alike — a tool that broke on a site is retired from there, and requiring a
-check-in first would put an event in the history that did not happen.
+button at the top bar's right end (1c, 1f). At a desk it is the menu's one
+item, in 0f's destructive red, and opens a dialog. **On a phone the menu ends on
+the reader's account** — `Sign out` over their email, under a rule — since a
+phone has no rail to name the reader in, and where the page offers no
+retirement it holds the account alone (Tools 0a, #495). It is offered from
+`In stock` and from `Out` alike — a tool that broke on a site is retired from
+there, and requiring a check-in first would put an event in the history that
+did not happen.
 
 **THE TWO CONTROLS MUST NOT READ AS THE SAME WEIGHT, AND THREE THINGS STOP
 THEM.** One of them is pressed dozens of times a day and the other is that
@@ -326,10 +333,11 @@ so the screen under a refusal is never the screen the reader pressed on. It
 also means a refused press and a successful one leave the SAME screen — a
 flipped control, a moved status, one more history entry — and the only visible
 difference is whose entry it is. So the sentence names the person and the
-moment, the design's (1g) since #463: `Jisoo Park checked this out on
-09/25/2026 2:14 PM. Your check-out wasn't saved.` — who recorded the latest
-entry, in full, and that entry's own moment where the design says `a moment
-ago`. **A design may not treat it as an aside.** It is the one thing
+moment, the design's (1g) since #463: `Jisoo Park already checked this out on
+10/05/2026 8:50 AM. Your check-out wasn't saved.` — who recorded the latest
+entry, in full, and that entry's own moment in the reader's zone, written as
+every date on the screen is. It says `already` since #495, as the design's
+final files do. **A design may not treat it as an aside.** It is the one thing
 distinguishing two outcomes that otherwise look alike, it is read on a phone in
 one hand, and it names no status because the status is stated directly above it
 and was just refreshed.
@@ -339,7 +347,8 @@ The page behind it stays legible, and it closes by `Cancel`, by `Escape`, by its
 close at a desk and on a press behind it as a phone's sheet, with focus returning
 to `More actions`; the confirm takes it away with the page's offer, and focus
 goes to the page's heading (#458). It does not close while a confirmation is in
-flight, and while it is, the commitment keeps its red and says `Retiring…` and
+flight, and while it is, the commitment keeps its red and its width, a spinner
+in place of its words and `Retiring…` said to assistive tech (#495), and
 nothing else in it takes a press (#469). It carries a refusal slot of its own, in
 case a refusal ever lands while it is open. **What happens today when somebody
 else retires the tool item first is that the dialog goes** — the refusal
@@ -388,7 +397,8 @@ HYE-TL-260909-099. Check it against the label.` — and `Back to Tools`. On a
 phone, under the top bar naming the code in Ink 3, a mark and one line,
 `No tool has this code. Check it against the label and scan again.`, **and no
 way back**, as 1g-c draws it: a phone came from a scan, and the next thing it
-does is scan again. Nothing on this axis is scoped by role or job, so
+does is scan again. The top bar's menu holds the reader's account alone there
+(#495). Nothing on this axis is scoped by role or job, so
 unlike the request, order and invoice screens this answers one state — no such
 tool item — rather than standing in for two. **The transition, the label and the
 history are all absent here rather than empty**, and there is no state in

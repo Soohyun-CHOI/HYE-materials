@@ -173,6 +173,7 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `app/components/Controls.js`, `Menu.js` — 0a's controls, the list a field opens (#456) and the menu a button opens (#478); `lib/controls.js`, their keys and words, and what a button is under a busy form (#469).
 - `app/components/Rail.js`, `RailAccount.js`, `Breadcrumb.js` — the rail, its account (#478) and the column a screen scrolls in, and the bar above a record's title (#460); `lib/navigation.js`, the sections, which one an address is in, what the account says, and their words. **Only the tools layout calls the rail until #258.**
 - `app/components/TopBar.js`, `BottomBar.js`, `Tooltip.js`, `Space.js`, `Dot.js` — a phone screen's top bar and foot bar (#463, #473), 0k's tooltip, a space the text holds at a design width, and 0e's dot.
+- `app/components/keyboardViewport.js` — `KEYBOARD_VIEWPORT`, what every screen drawing the foot bar asks of a phone's keyboard (#495), held by `offline/keyboard-viewport.mjs`.
 - `app/components/ListFrame.js`, `ListTable.js`, `scrollLane.js` — a list's frame and parts (#463), and the bar every lane draws.
 - `app/components/listTableWidth.js` — `LIST_TABLE_CLASS`, the width the list tables are held to (#183). **A table on a different page shell declares its own and is not a stale copy.**
 - `app/components/FileFrame.js` — how an uploaded file is drawn, and what is said when it cannot be (#331, #422, #433). **A screen showing a file calls it; a second frame or `<img>` for one is a duplication.**

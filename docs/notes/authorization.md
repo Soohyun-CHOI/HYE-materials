@@ -339,7 +339,7 @@ The design settled the three steps and their email — Claude Design's Sign in 1
 - **A request that did not happen says one sentence wherever it was asked** — `Something went wrong. Try again.`, the email step's, for a code the server could not check and for a new email that did not go, where the email step says it. A code that could not be checked keeps its figures, so `Sign in` tries it again.
 - **`used`, `missing` and `invalid` share `This code no longer works`** — under the code step's states above.
 - **A long address is never held to one line where nothing else can give**: the screens' chip ends it in an ellipsis and keeps `Change`, and the mail breaks it, where the drawing's `nowrap` pushed a narrow phone's mail past its edge.
-- **The keyboard covers neither the field nor the action.** On a phone the action stands in a bar that rides on the keyboard (`app/components/BottomBar.js`), and the sign-in steps ask a phone's browser to shrink the page for its keyboard rather than cover it, which only those three steps ask (`app/login/layout.js`).
+- **The keyboard covers neither the field nor the action.** On a phone the action stands in a bar that rides on the keyboard (`app/components/BottomBar.js`), and the sign-in steps ask a phone's browser to shrink the page for its keyboard rather than cover it (`app/login/layout.js`), as the tool item page has since #495 — the one other screen drawing that bar, which asked for nothing until then — both with `app/components/keyboardViewport.js`'s one value.
 
 #### The mail
 

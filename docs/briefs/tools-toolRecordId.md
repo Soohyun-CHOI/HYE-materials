@@ -128,22 +128,25 @@ how many are not on it, exactly as it does for any selection, and the steps
 carry the selection on. **Nothing here says the registration happened**: the
 selection is what says it (#321; `_shared.md`, "The arrival is the
 confirmation"). What the registration could not do is said by the next two
-entries, and only when it happened.
+entries, and only when it happened; the first of them says where the rest
+went as well (#495).
 
 **When the registration wrote fewer than were asked for:** a dialog over the
-screen, the design's (#455, #459) — how many of how many were added as its
-title, `3 of 5 tools added`, the tool's name under it, and how many were not,
-`2 couldn't be added.` — and two controls that answer them, in the act's verb
-since #485. `Add 2 more` names how many were not written — `Add 1 more` at one
-— and puts the dialog away and opens the registration dialog on this tool,
+screen, the design's (#455, #459) — how many were not added as its title,
+`2 tools couldn't be added`, the tool's name under it, and where the others
+are, `The other 3 were added and are selected on this page.` (#495; it was
+`3 of 5 tools added` over `2 couldn't be added.` until then) — and two
+controls that answer them, in the act's verb since #485. `Add 2 more` names
+how many were not written — `Add 1 more` at one — and puts the dialog away
+and opens the registration dialog on this tool,
 with that count filled in and still the reader's to change there; canceling
 that brings this dialog back, since nothing answered it. `Not now` takes the
 dialog away, and so do its close and `Escape`. **The two are a pair, and the
 pairing is what says what the choice is about**: one goes on adding and the
 other ends it, so neither can be read as being about the entry below. It is a
-choice rather than a confirmation — `Not now` acts on nothing in the base. The
-first sentence always says `tools`: a shortfall has at least one added and one
-not, so what was asked for is at least two.
+choice rather than a confirmation — `Not now` acts on nothing in the base. At
+one, either way, the title says `1 tool couldn't be added` and the sentence
+`The other 1 was added and is selected on this page.`
 
 **When some of what it wrote has no first history entry:** a dialog over the
 screen (#459) — `2 tools have no creation date` as its title, the tool's name
@@ -200,18 +203,19 @@ count with a page whose boxes show fewer — and it is the only place those tool
 items appear until the labels' dialog draws them.
 
 **When more are selected than one print takes:** the bar counts them,
-`101 selected`, and the print control does not act, with `One print takes at
-most 100.` before it. The labels' dialog
-reads a hundred at most (#457), and the label screen printed the first hundred
-of a longer run, so a press here would have printed less than it sent. It needs a tool with more than
-a hundred tool items, selected across pages.
+`101 selected`, and the print control does not act, with
+`Up to 100 labels per print.` before it behind an info mark, where it said
+`One print takes at most 100.` until #495. The labels' dialog reads a hundred
+at most (#457), and the label screen printed the first hundred of a longer
+run, so a press here would have printed less than it sent. It needs a tool
+with more than a hundred tool items, selected across pages.
 
 **When the tool has no tool items at all:** in place of the entries, a
-heading and a sentence, `No items under this tool` and `If you were creating
-some, it stopped before any were saved.`, and under them a second, bordered
-`Add tools` (1b, #463, #485). The sentence still says `creating`: #485 changed
-the words its issue named and this was not one. **This is
-reachable and is not an error state**, the same way the tool item screen's
+heading and a sentence, `No items under this tool` and
+`If you were adding some, it stopped before any were saved.`, and under them a
+second, bordered `Add tools` (1b, #463, #485). The sentence said `creating`
+until #495, which gave it the act's verb #485 gave the words its issue named.
+**This is reachable and is not an error state**, the same way the tool item screen's
 missing history is: nothing rolls back, and the row that stands is sound.
 The total, the page position, the boxes and the print control are absent
 with it; there is nothing to count, no page to be on and nothing to print.

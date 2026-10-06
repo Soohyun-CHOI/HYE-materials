@@ -1,7 +1,7 @@
 "use client";
 
-import { createContext, startTransition, useActionState, useContext, useState } from "react";
-import { useReaderInstant } from "@/app/components/Instant";
+import { Fragment, createContext, startTransition, useActionState, useContext, useState } from "react";
+import Instant from "@/app/components/Instant";
 import { TOOL_TRANSITION_COPY as COPY } from "@/lib/toolTransition";
 import { recordToolItemEventAction } from "./actions";
 import RetirementConfirm from "./RetirementConfirm";
@@ -39,13 +39,17 @@ export function useToolItemTransition() {
 
 /**
  * The sentence a refused press says (#463), or null. A press somebody else's scan got in front
- * of names who recorded first and when, in the reader's own zone (`moved`); any other refusal
- * is the action's sentence as it came.
+ * of names who recorded first and when (`moved`), its moment drawn in the reader's own zone
+ * in the design's notation, as a sentence holds one (#495); any other refusal is the action's
+ * sentence as it came.
  */
 export function useRefusalSentence(answer) {
-    const when = useReaderInstant(answer?.moved?.at ?? null);
     if (!answer) return null;
-    if (answer.moved) return COPY.moved({ ...answer.moved, when });
+    if (answer.moved) {
+        return COPY.moved(answer.moved).map((part, index) =>
+            typeof part === "string" ? <Fragment key={index}>{part}</Fragment> : <Instant key={index} at={part.at} sentence />
+        );
+    }
     return answer.error ?? null;
 }
 

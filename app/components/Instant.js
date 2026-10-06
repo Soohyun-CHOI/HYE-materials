@@ -49,6 +49,12 @@ import Space from "@/app/components/Space";
  * vendor, so there is no element to wrap; that caller takes the string and builds
  * its own line, and renders nothing until this hook has one. The string is the same
  * notation with plain slashes, since a sentence is one string.
+ *
+ * A SENTENCE BUILT AS PARTS DRAWS ITS INSTANT HERE INSTEAD, `sentence` (#495). The
+ * design's final files draw the moment inside the tool item page's stale-press sentence
+ * with its slashes dimmed, and the time a word's space past the date rather than the
+ * 9 a date and its time stand apart at elsewhere, so that sentence hands this its moment
+ * as a part and nothing else changes for any other screen.
  */
 
 // Whether this render is the browser's. The three arguments ARE the hydration
@@ -82,7 +88,7 @@ export function useReaderInstant(at, format = INSTANT_FORMAT) {
     return instantText(at, format);
 }
 
-export default function Instant({ at, format = INSTANT_FORMAT }) {
+export default function Instant({ at, format = INSTANT_FORMAT, sentence = false }) {
     const parts = useReaderParts(at, format);
 
     // A blank stays blank and a string no parser can read stays itself, which is
@@ -102,7 +108,7 @@ export default function Instant({ at, format = INSTANT_FORMAT }) {
                     ))}
                     {parts.time && (
                         <>
-                            <Space className="w-date-time-inline max-sm:w-mobile-date-time-inline" />
+                            {sentence ? " " : <Space className="w-date-time-inline max-sm:w-mobile-date-time-inline" />}
                             {parts.time}
                         </>
                     )}

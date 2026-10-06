@@ -76,7 +76,7 @@ export function AddressChip({ email, onChange, disabled = false }) {
  */
 function DeskRefusal({ children }) {
     return (
-        <p role="status" className="flex items-center justify-center gap-sign-in-refusal-gap text-body-sm text-foreground-muted">
+        <p role="status" className="flex items-center justify-center gap-refusal-gap text-body-sm text-foreground-muted">
             <InfoMark size="size-icon" ring={1.5} />
             <span>{children}</span>
         </p>
@@ -114,7 +114,7 @@ export function ResendRefusal({ children }) {
     return (
         <p
             role="status"
-            className="mt-sign-in-form-stack flex items-center justify-center gap-sign-in-refusal-gap text-body-sm text-foreground-muted max-sm:mt-mobile-code-help-stack max-sm:items-start max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"
+            className="mt-sign-in-form-stack flex items-center justify-center gap-refusal-gap text-body-sm text-foreground-muted max-sm:mt-mobile-code-help-stack max-sm:items-start max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"
         >
             <span className="flex h-[var(--text-body-sm--line-height)] items-center max-sm:h-[var(--text-mobile-body-sm--line-height)]">
                 <InfoMark size="size-icon" ring={1.5} />
