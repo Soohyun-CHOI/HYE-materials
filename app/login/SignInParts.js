@@ -24,7 +24,7 @@ import { SIGN_IN_COPY } from "@/lib/authTokenState";
  */
 export function SignInHeader({ heading, sentence, chip, headingRef }) {
     return (
-        <header className="flex flex-col items-center gap-sign-in-header-gap text-center max-sm:items-start max-sm:text-left">
+        <header className="flex flex-col items-center gap-sign-in-title-stack text-center max-sm:items-start max-sm:text-left">
             <h1 ref={headingRef} tabIndex={-1} className="text-heading-lg outline-none max-sm:text-mobile-heading-lg">
                 {heading}
             </h1>

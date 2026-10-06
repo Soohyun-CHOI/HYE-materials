@@ -178,7 +178,7 @@ async function renderToolPage({ params, searchParams }) {
     if (page.total === 0) {
         return (
             <ListFrame top={top} header={header}>
-                <div className="flex flex-col items-center pt-list-empty-inset-top text-center">
+                <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{COPY.noToolItemsHeading}</h2>
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noToolItems}</p>
                     <div className="mt-gap-lg">

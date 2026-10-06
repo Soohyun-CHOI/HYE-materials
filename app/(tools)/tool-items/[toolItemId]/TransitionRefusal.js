@@ -23,7 +23,7 @@ export default function TransitionRefusal() {
             <div className="max-sm:hidden">
                 <Refusal>{sentence}</Refusal>
             </div>
-            <div className="mt-mobile-title-notice-offset sm:hidden">
+            <div className="mt-mobile-title-alert-stack sm:hidden">
                 <Notice>{sentence}</Notice>
             </div>
         </>

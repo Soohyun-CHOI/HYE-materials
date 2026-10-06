@@ -650,7 +650,7 @@ export function run({ check, assert, log }) {
                 /\boverflow-y-auto\b/.test(paneSource),
                 /\bpy-dialog-inset\b/.test(paneSource) &&
                     /\bpl-dialog-inset\b/.test(paneSource) &&
-                    /pr-\[calc\(var\(--spacing-dialog-inset\)-var\(--spacing-scrollbar\)\)\]/.test(paneSource),
+                    /pr-\[calc\(var\(--spacing-dialog-inset\)-var\(--spacing-scrollbar-gutter\)\)\]/.test(paneSource),
                 /\[scrollbar-gutter:stable\]/.test(paneSource) && /\$\{SCROLL_LANE\}/.test(paneSource),
                 /\boverscroll-contain\b/.test(paneSource),
             ].join(" "),

@@ -10,7 +10,7 @@
  * overscroll rule are the caller's, since only the caller knows when it scrolls.
  */
 export const SCROLL_LANE = [
-    "[&::-webkit-scrollbar]:w-scrollbar [&::-webkit-scrollbar]:h-scrollbar [&::-webkit-scrollbar-track]:bg-transparent",
+    "[&::-webkit-scrollbar]:w-scrollbar-gutter [&::-webkit-scrollbar]:h-scrollbar-gutter [&::-webkit-scrollbar-track]:bg-transparent",
     "[&::-webkit-scrollbar-button]:hidden [&::-webkit-scrollbar-corner]:bg-transparent",
     "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-scrollbar-thumb [&::-webkit-scrollbar-thumb]:bg-clip-content",
     "[&::-webkit-scrollbar-thumb]:[border:var(--spacing-scrollbar-inset)_solid_transparent]",

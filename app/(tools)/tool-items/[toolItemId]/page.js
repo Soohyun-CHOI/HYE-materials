@@ -140,8 +140,8 @@ function ToolItemNotFound({ asked, account }) {
             <TopBar id={asked} muted>
                 <MoreActions phone account={account} />
             </TopBar>
-            <div className="flex flex-1 flex-col items-center justify-center px-page-gutter text-center max-sm:px-mobile-empty-inset-x max-sm:pb-mobile-empty-inset-bottom">
-                <svg viewBox="0 0 40 40" fill="none" aria-hidden="true" className="mb-gap size-mobile-empty-icon text-foreground-subtle sm:hidden">
+            <div className="flex flex-1 flex-col items-center justify-center px-page-gutter text-center max-sm:px-mobile-empty-state-inset-x max-sm:pb-mobile-empty-state-inset-bottom">
+                <svg viewBox="0 0 40 40" fill="none" aria-hidden="true" className="mb-gap size-mobile-empty-state-icon text-foreground-subtle sm:hidden">
                     <circle cx="17.5" cy="17.5" r="11" stroke="currentColor" strokeWidth="2" />
                     <path d="M25.5 25.5 34 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                     <path d="M13.5 13.5l8 8M21.5 13.5l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -281,7 +281,7 @@ async function renderToolItemPage({ params }) {
                     {/* 0n's RECORD HEADER: the name, the id and job under it, the status, and
                         on the right what may be recorded, centered on the title's line —
                         24 above and below its Band. On a phone, 1f's title block. */}
-                    <header className="flex items-start justify-between gap-record-header-inline border-b border-divider-strong pb-page-header-stack max-sm:border-b-0 max-sm:px-mobile-gutter max-sm:pt-mobile-top-bar-stack max-sm:pb-mobile-title-stack">
+                    <header className="flex items-start justify-between gap-record-header-inline border-b border-divider-strong pb-record-header-stack max-sm:border-b-0 max-sm:px-mobile-gutter max-sm:pt-mobile-top-bar-stack max-sm:pb-mobile-title-stack">
                         <div className="flex min-w-0 flex-col gap-subtitle-stack">
                             <div className="flex flex-col gap-title-stack">
                                 <h1 className="text-heading-lg max-sm:text-mobile-heading-lg">{name}</h1>
@@ -334,7 +334,7 @@ async function renderToolItemPage({ params }) {
                         )}
                     </header>
                     <div className="grid grid-cols-[minmax(0,1fr)_var(--width-record-rail)] max-sm:block">
-                        <section className="pt-page-header-stack pr-record-rail-inline max-sm:px-mobile-gutter max-sm:pt-[calc(var(--spacing-mobile-stack)-var(--spacing-mobile-title-stack))] max-sm:pb-scroll-inset-bottom">
+                        <section className="pt-record-header-stack pr-record-rail-inline max-sm:px-mobile-gutter max-sm:pt-[calc(var(--spacing-mobile-stack)-var(--spacing-mobile-title-stack))] max-sm:pb-scroll-inset-bottom">
                             <h2 className="pb-heading-sm-stack text-heading-sm text-foreground-subtle max-sm:text-mobile-heading-sm">{COPY.historyHeading}</h2>
                             {history.length === 0 ? (
                                 <p className="text-body text-foreground-subtle max-sm:text-mobile-body">{COPY.noHistory}</p>
@@ -351,7 +351,7 @@ async function renderToolItemPage({ params }) {
                             THE BREADCRUMB BAR WHILE IT FITS (0i), 24 under it as it stands under
                             the header's Band, and its Rule runs the whole column. */}
                         <aside className="border-l border-divider pl-record-rail-inset-left max-sm:hidden">
-                            <div className="sticky top-(--height-breadcrumb) pt-page-header-stack">
+                            <div className="sticky top-(--height-breadcrumb) pt-record-header-stack">
                                 <h2 className="pb-heading-sm-stack text-heading-sm text-foreground-subtle">{COPY.labelHeading}</h2>
                                 <div className="flex flex-col gap-label-block-stack">
                                     {symbolFits ? (

@@ -63,14 +63,14 @@ export default function ListFrame({ top, header, footer, overlay, overlayShown =
 
     return (
         <div data-list-frame="" className="flex h-full flex-col font-ui text-foreground-default">
-            {top && <div className="shrink-0 pr-scrollbar">{top}</div>}
+            {top && <div className="shrink-0 pr-scrollbar-gutter">{top}</div>}
             <div className="shrink-0">{header}</div>
             <div ref={laneRef} className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain [scrollbar-gutter:stable] ${SCROLL_LANE}`}>
                 <div className={LIST_MEASURE}>{children}</div>
                 {footer && <div aria-hidden="true" className={overlayShown ? END_ROOM_WITH_BAR : END_ROOM} />}
             </div>
             {footer && (
-                <div className={`relative z-10 shrink-0 pr-scrollbar ${PAGER_OVER_ROWS}`}>
+                <div className={`relative z-10 shrink-0 pr-scrollbar-gutter ${PAGER_OVER_ROWS}`}>
                     <div className={`${LIST_MEASURE} relative`}>
                         {overlay}
                         <div

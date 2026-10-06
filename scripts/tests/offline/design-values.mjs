@@ -92,7 +92,10 @@
 //
 // WHAT IT CANNOT SEE: anything rendered, a class assembled at runtime in the app,
 // a dynamic import(), and whether a face's loader class sits above the element
-// reading the face. Those are a browser's.
+// reading the face. Those are a browser's. Nor a class left on a name a rename took
+// away while the new name has another reader: that class reads nothing and the name
+// is still read, so a rename counts its readers file by file before and after it, as
+// #498 did, rather than leaving it to this file.
 
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -226,16 +229,16 @@ const VALUES = [
     ["--spacing-list-header-inset-bottom", "1.25rem", null],
     ["--spacing-list-header-inline", "2.5rem", null],
     ["--spacing-list-count-inline", "0.3125rem", null],
-    ["--spacing-table-column-gap", "1.25rem", null],
+    ["--spacing-table-column-inline", "1.25rem", null],
     ["--width-table-count", "6rem", null],
     ["--width-table-id", "15rem", null],
     ["--width-table-status", "10rem", null],
     ["--spacing-pager-inset-top", "1rem", null],
     ["--spacing-pager-inset-bottom", "1.25rem", null],
-    ["--spacing-pager-gap", "1.5rem", null],
+    ["--spacing-pager-inline", "1.5rem", null],
     ["--spacing-pager-step-gap", "0.625rem", null],
-    ["--spacing-pager-step-offset", "0.8125rem", null],
-    ["--spacing-list-empty-inset-top", "15rem", null],
+    ["--spacing-pager-step-bleed", "0.8125rem", null],
+    ["--spacing-list-empty-state-inset-top", "15rem", null],
     // 0c · Blue
     ["--color-selected", "#F0F9FF", null],
     ["--color-selected-hover", "#E6F5FF", null],
@@ -251,7 +254,7 @@ const VALUES = [
     ["--color-foreground-muted", "oklch(0.405 0.013 265)", null],
     ["--color-foreground-subtle", "oklch(0.505 0.012 265)", null],
     ["--color-foreground-faint", "oklch(0.760 0.010 265)", null],
-    ["--color-skeleton", "oklch(0.800 0.010 265)", null],
+    ["--color-checkbox-border", "oklch(0.800 0.010 265)", null],
     ["--spacing-separator-inline", "0.5625rem", null],
     ["--color-divider-subtle", "oklch(0.946 0.005 265)", null],
     ["--color-divider", "oklch(0.928 0.006 265)", null],
@@ -265,7 +268,7 @@ const VALUES = [
     ["--color-scrollbar-thumb-hover", "color-mix(in oklab, var(--color-foreground-default) 34%, transparent)", null],
     // 0f · States
     ["--width-number-input", "7.5rem", null],
-    ["--spacing-stepper-inset", "0.1875rem", null],
+    ["--spacing-stepper-inset-x", "0.1875rem", null],
     // A busy action (#473); its turn and its track are the drawings', not the spec's.
     ["--transition-delay-busy", "300ms", null],
     ["--size-spinner", "1rem", null],
@@ -307,7 +310,7 @@ const VALUES = [
     ["--font-id", "var(--font-fragment-mono), ui-monospace, monospace", null],
     ["--font-brand", "var(--font-bricolage-grotesque), sans-serif", null],
     // 0i · Scroll — a column's End is the column's, and #463 draws the columns.
-    ["--spacing-scrollbar", "8px", null],
+    ["--spacing-scrollbar-gutter", "8px", null],
     ["--spacing-scrollbar-inset", "1px", null],
     ["--spacing-scroll-inset-bottom", "2.5rem", null],
     // 0j · Radius
@@ -347,7 +350,7 @@ const VALUES = [
     ["--spacing-dialog-inset", "1.5rem", null],
     ["--spacing-dialog-header-stack", "1.25rem", null],
     ["--spacing-dialog-inline", "0.75rem", null],
-    ["--spacing-dialog-close-offset", "0.25rem", null],
+    ["--spacing-dialog-close-bleed", "0.25rem", null],
     ["--spacing-dialog-header-inline", "1rem", null],
     ["--spacing-dialog-title-stack", "0.125rem", null],
     ["--spacing-dialog-summary-inset-y", "1rem", null],
@@ -361,8 +364,8 @@ const VALUES = [
     ["--width-dialog-preview-pane", "27.5rem", null],
     ["--spacing-dialog-preview-stack", "1.25rem", null],
     ["--spacing-dialog-preview-inline", "0.75rem", null],
-    ["--spacing-dialog-panel-stack", "1.5rem", null],
-    ["--spacing-dialog-panel-list-stack", "0.25rem", null],
+    ["--spacing-dialog-column-stack", "1.5rem", null],
+    ["--spacing-dialog-column-list-stack", "0.25rem", null],
     ["--size-dialog-step", "1.25rem", null],
     // 0m · Navigation
     ["--width-rail", "3.5rem", null],
@@ -387,10 +390,10 @@ const VALUES = [
     ["--animate-account-menu", "account-menu-in 120ms ease-out", null],
     ["--height-breadcrumb", "3rem", null],
     // From the drawings, not the spec (#460).
-    ["--spacing-breadcrumb-back-offset", "0.75rem", null],
+    ["--spacing-breadcrumb-back-bleed", "0.75rem", null],
     ["--spacing-breadcrumb-back-gap", "0.125rem", null],
     // 0n · Record page
-    ["--spacing-page-header-stack", "1.5rem", null],
+    ["--spacing-record-header-stack", "1.5rem", null],
     ["--spacing-breadcrumb-stack", "0.875rem", null],
     ["--spacing-title-stack", "0.625rem", null],
     ["--spacing-subtitle-stack", "0.75rem", null],
@@ -415,12 +418,12 @@ const VALUES = [
     ["--spacing-log-line-stack", "0.1875rem", null],
     ["--spacing-log-stack", "1.5rem", null],
     ["--max-width-empty-state", "27.5rem", null],
-    // 0o · Sign-in page (#473); the name fields' 12, the caret's height and the resend
-    // control's pull are the drawings'. Its chip's avatar is the account's, above.
+    // 0o · Sign-in page (#473); the name fields' 12 and the caret's height are the drawings'.
+    // Its chip's avatar is the account's, above.
     ["--container-sign-in", "22.5rem", null],
     ["--spacing-sign-in-inset-top", "16.75rem", null],
     ["--spacing-sign-in-brand-stack", "2.5rem", null],
-    ["--spacing-sign-in-header-gap", "0.5rem", null],
+    ["--spacing-sign-in-title-stack", "0.5rem", null],
     ["--spacing-sign-in-header-stack", "2rem", null],
     ["--spacing-sign-in-form-stack", "1.5rem", null],
     ["--spacing-sign-in-form-inline", "0.75rem", null],
@@ -437,8 +440,8 @@ const VALUES = [
     ["--animate-code-caret", "code-caret-blink 1s steps(1) infinite", null],
     // The resend control's spinner, whose words are Accent (#495).
     ["--color-code-resend-spinner-track", "color-mix(in oklab, currentColor 25%, transparent)", null],
-    // Tools 0a · App — #458's sheets and #473's step pages read theirs; the foot bar's 12
-    // between its rows waits on #463's tool item page.
+    // Tools 0a · App — #458's sheets and #473's step pages read theirs, and #463's tool item
+    // page the foot bar's 12 between its rows.
     ["--spacing-mobile-gutter", "1rem", null],
     ["--height-mobile-top-bar", "3.5rem", null],
     ["--spacing-mobile-top-bar-inset-right", "0.25rem", null],
@@ -520,10 +523,10 @@ const VALUES = [
     ["--spacing-mobile-log-dot-inset-top", "0.5625rem", null],
     ["--spacing-mobile-log-rule-inset-top", "1.375rem", null],
     ["--spacing-mobile-log-rule-overhang", "0.25rem", null],
-    ["--spacing-mobile-title-notice-offset", "0.25rem", null],
-    ["--size-mobile-empty-icon", "2.5rem", null],
-    ["--spacing-mobile-empty-inset-x", "2rem", null],
-    ["--spacing-mobile-empty-inset-bottom", "6rem", null],
+    ["--spacing-mobile-title-alert-stack", "0.25rem", null],
+    ["--size-mobile-empty-state-icon", "2.5rem", null],
+    ["--spacing-mobile-empty-state-inset-x", "2rem", null],
+    ["--spacing-mobile-empty-state-inset-bottom", "6rem", null],
     ["--max-width-mobile-empty-state", "17.5rem", null],
     ["--width-mobile-drawer-handle", "2.25rem", null],
     ["--height-mobile-drawer-handle", "0.25rem", null],
@@ -561,7 +564,7 @@ const VALUES = [
  * date's slash is a fraction of a pixel, which no whole number of the design's
  * pixels over 16 states (#463). Every shadow stays px too, and is not a length.
  */
-const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar", "--spacing-scrollbar-inset", "--spacing-date-separator-inline"];
+const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar-gutter", "--spacing-scrollbar-inset", "--spacing-date-separator-inline"];
 
 /**
  * The three faces: the only names in `@theme inline`, each resolving to the

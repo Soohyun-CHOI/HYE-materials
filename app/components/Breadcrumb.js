@@ -36,7 +36,7 @@ export default function Breadcrumb({ levels, current, phone = true }) {
             className={`sticky top-0 z-10 flex h-breadcrumb items-center bg-background-translucent px-page-gutter font-ui backdrop-blur-sm ${phone ? "" : "max-sm:hidden"}`}
         >
             {current === undefined && levels.length === 1 ? (
-                <Link href={levels[0].href} className={`${LEVEL} -ml-breadcrumb-back-offset gap-breadcrumb-back-gap`}>
+                <Link href={levels[0].href} className={`${LEVEL} -ml-breadcrumb-back-bleed gap-breadcrumb-back-gap`}>
                     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm shrink-0">
                         <path d="M9.5 4 5.5 8l4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
