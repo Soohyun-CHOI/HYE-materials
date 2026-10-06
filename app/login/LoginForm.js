@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Field, TextInput } from "@/app/components/Controls";
 import { canTryAgain, CODE_COPY, CODE_STATES, isCodeShaped, RESENT_FOR_MS, SIGN_IN_COPY } from "@/lib/authTokenState";
 import { COMPANY_EMAIL_COPY, companyAddress, emailFieldValue, namesAnotherDomain } from "@/lib/companyEmail";
+import { RESEND_COOLDOWN_MS, resendWaitLeft } from "@/lib/signInLimit";
+import { ASKED, askForEmail } from "./askForEmail";
 import CodeField from "./CodeField";
 import BottomBar from "@/app/components/BottomBar";
-import { AddressChip, PageRefusal, SignInHeader } from "./SignInParts";
+import { AddressChip, PageRefusal, ResendRefusal, SignInHeader } from "./SignInParts";
 
 // The `?error=` messages that used to live here are gone (#203). Their only two
 // producers were the redirects in app/api/auth/verify/route.js, and both went
@@ -37,28 +39,31 @@ import { AddressChip, PageRefusal, SignInHeader } from "./SignInParts";
 //
 // A REQUEST THAT DID NOT HAPPEN SAYS ONE SENTENCE, WHEREVER IT WAS ASKED (#473): the
 // email step's, a code the server could not check, and a new email that did not go —
-// `SIGN_IN_COPY.failed`, in the place a refusal of the whole step stands.
+// `SIGN_IN_COPY.failed`, in the place a refusal of the whole step stands. ONE A CEILING
+// HELD BACK SAYS ANOTHER (#148), `SIGN_IN_COPY.limited`, by the control that asked: in that
+// same place for `Continue` and an ended code's `Send new email`, and for `Resend email` in
+// the line under the code. Either way the step keeps its state, the control stays live and
+// starts no wait, and the sentence goes at the next request.
+//
+// `Resend email` RESTS AFTER EVERY EMAIL THIS PAGE ASKS FOR (#148, 1j), `Continue`'s
+// included: one clock from the press, `Email sent` for its first moments after a resend,
+// then `Resend in m:ss`, which takes no press and is not announced, then the control again,
+// which is. How long is `lib/signInLimit.js`'s, and a page the server draws mid-wait is
+// handed what is left of it (`resendWaitMs`), so a reload counts on.
 //
 // EVERY WORD COMES FROM `lib/authTokenState.js` and `lib/companyEmail.js`, not from this
 // file, which is `NameForm.js`'s arrangement: a string written into JSX cannot be pinned.
-export default function LoginForm({ destination = "", pendingEmail = "", domain }) {
+export default function LoginForm({ destination = "", pendingEmail = "", resendWaitMs = 0, domain }) {
     const [step, setStep] = useState(pendingEmail ? "code" : "email");
     const [email, setEmail] = useState(pendingEmail);
+    // The wait the code step opens on: when it was asked for, in this page's clock, and what
+    // is left of it. A page the server drew knows only the second until it is live.
+    const [openingWait, setOpeningWait] = useState({ askedAt: null, left: resendWaitMs });
 
-    // One request for the first email and every new one, so the three places that ask
-    // for an email cannot ask for it three ways. It answers whether the email went.
-    async function requestEmail(address) {
-        try {
-            const res = await fetch("/api/auth/request", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: address, destination }),
-            });
-            return res.ok;
-        } catch {
-            return false;
-        }
-    }
+    // One request for the first email and every new one, so the places that ask for an
+    // email cannot ask for it different ways (`./askForEmail.js`, which the confirmation
+    // shares). It answers whether the email went, was held back, or did not happen.
+    const requestEmail = (address) => askForEmail({ email: address, destination });
 
     // The binding is forgotten on the server as well, or a reload would bring the code
     // step back for the address being corrected. The address returns to the field, its
@@ -70,15 +75,24 @@ export default function LoginForm({ destination = "", pendingEmail = "", domain 
     }
 
     if (step === "code") {
-        return <CodeStep email={email} destination={destination} requestEmail={requestEmail} onChangeEmail={changeEmail} />;
+        return (
+            <CodeStep
+                email={email}
+                destination={destination}
+                requestEmail={requestEmail}
+                onChangeEmail={changeEmail}
+                openingWait={openingWait}
+            />
+        );
     }
     return (
         <EmailStep
             domain={domain}
             initial={emailFieldValue(email, domain)}
             requestEmail={requestEmail}
-            onSent={(address) => {
+            onSent={(address, askedAt) => {
                 setEmail(address);
+                setOpeningWait({ askedAt, left: resendWaitLeft(askedAt, Date.now()) });
                 setStep("code");
             }}
         />
@@ -100,7 +114,7 @@ export default function LoginForm({ destination = "", pendingEmail = "", domain 
 function EmailStep({ domain, initial, requestEmail, onSent }) {
     const copy = SIGN_IN_COPY.request;
     const [value, setValue] = useState(initial);
-    const [refusal, setRefusal] = useState(null); // "domain" | "failed" | null
+    const [refusal, setRefusal] = useState(null); // "domain" | "failed" | "limited" | null
     const [busy, setBusy] = useState(false);
     const fieldRef = useRef(null);
 
@@ -117,19 +131,21 @@ function EmailStep({ domain, initial, requestEmail, onSent }) {
             fieldRef.current?.focus();
             return;
         }
+        const askedAt = Date.now();
         setBusy(true);
         setRefusal(null);
-        const sent = await requestEmail(address);
+        const asked = await requestEmail(address);
         setBusy(false);
-        if (sent) {
-            onSent(address);
+        if (asked === ASKED.SENT) {
+            onSent(address, askedAt);
             return;
         }
-        setRefusal("failed");
+        setRefusal(asked === ASKED.LIMITED ? "limited" : "failed");
         fieldRef.current?.focus();
     }
 
     const otherDomain = namesAnotherDomain(value);
+    const pageRefusal = refusal === "failed" ? SIGN_IN_COPY.failed : refusal === "limited" ? SIGN_IN_COPY.limited : null;
     return (
         <form onSubmit={handleSubmit} noValidate className="flex flex-1 flex-col">
             <SignInHeader heading={copy.heading} sentence={copy.sentence} />
@@ -157,8 +173,8 @@ function EmailStep({ domain, initial, requestEmail, onSent }) {
                     />
                 </Field>
             </div>
-            {refusal === "failed" && <PageRefusal>{SIGN_IN_COPY.failed}</PageRefusal>}
-            <BottomBar stack={refusal === "failed" ? "refusal" : "form"}>
+            {pageRefusal && <PageRefusal>{pageRefusal}</PageRefusal>}
+            <BottomBar stack={pageRefusal ? "refusal" : "form"}>
                 <Button type="submit" size="xl" busy={busy} busyLabel={copy.working}>
                     {copy.action}
                 </Button>
@@ -179,15 +195,17 @@ function EmailStep({ domain, initial, requestEmail, onSent }) {
  * `requireUser()` there sends a first-time signer to the name step exactly as it does
  * after the link.
  */
-function CodeStep({ email, destination, requestEmail, onChangeEmail }) {
+function CodeStep({ email, destination, requestEmail, onChangeEmail, openingWait }) {
     const copy = SIGN_IN_COPY.code;
     const [code, setCode] = useState("");
     const [shown, setShown] = useState(null); // the figures a refused code keeps on screen
     const [refusal, setRefusal] = useState(null); // { state, remaining } | null
     const [failed, setFailed] = useState(false);
+    const [limited, setLimited] = useState(false);
     const [checking, setChecking] = useState(false);
     const [sending, setSending] = useState(false);
     const [resent, setResent] = useState(false);
+    const [wait, setWait] = useState(openingWait); // { askedAt, left } — `Resend email`'s rest
     const codeField = useRef(null);
     const heading = useRef(null);
 
@@ -201,13 +219,13 @@ function CodeStep({ email, destination, requestEmail, onChangeEmail }) {
     // on a phone, and this is what puts it back after a press elsewhere. A code that ends
     // hands focus to the heading instead, once, so the new heading is named.
     useEffect(() => {
-        if (!busy && !ended && (refusal || failed)) codeField.current?.focus();
-    }, [busy, ended, refusal, failed]);
+        if (!busy && !ended && (refusal || failed || limited)) codeField.current?.focus();
+    }, [busy, ended, refusal, failed, limited]);
     useEffect(() => {
         if (ended) heading.current?.focus();
     }, [ended]);
 
-    // `Email sent` stands for its 3 s and then gives way to the control again. The new
+    // `Email sent` stands for its 3 s and then gives way to the wait's count. The new
     // email's code goes in the same field, and the control that asked for it has just given
     // way, so the caret goes where the code will be typed.
     useEffect(() => {
@@ -217,9 +235,33 @@ function CodeStep({ email, destination, requestEmail, onChangeEmail }) {
         return () => window.clearTimeout(timer);
     }, [resent]);
 
+    // A page the server drew mid-wait learns, once live, the press its count runs from —
+    // until then the server's figure stands, so the page and its hydration draw one text.
+    useEffect(() => {
+        if (wait.askedAt !== null || wait.left <= 0) return;
+        const start = window.setTimeout(() => {
+            const now = Date.now();
+            setWait((w) => (w.askedAt === null ? { askedAt: now + w.left - RESEND_COOLDOWN_MS, left: w.left } : w));
+        }, 0);
+        return () => window.clearTimeout(start);
+    }, [wait.askedAt, wait.left]);
+    // And counts down, four times a second so a figure never lingers, until the wait is over.
+    useEffect(() => {
+        if (wait.askedAt === null) return;
+        const tick = window.setInterval(() => {
+            const now = Date.now();
+            setWait((w) => {
+                const left = resendWaitLeft(w.askedAt, now);
+                return left > 0 ? { askedAt: w.askedAt, left } : { askedAt: null, left: 0 };
+            });
+        }, 250);
+        return () => window.clearInterval(tick);
+    }, [wait.askedAt]);
+
     async function check(typed) {
         if (busy) return;
         setFailed(false);
+        setLimited(false);
         // Checked here as well as on the server so a short code costs no request; the
         // server's check is the one that counts.
         if (!isCodeShaped(typed)) {
@@ -257,28 +299,36 @@ function CodeStep({ email, destination, requestEmail, onChangeEmail }) {
 
     async function sendNewEmail({ fromEnded }) {
         if (busy) return;
+        const askedAt = Date.now();
         setSending(true);
         setFailed(false);
-        const sent = await requestEmail(email);
+        setLimited(false);
+        const asked = await requestEmail(email);
         setSending(false);
-        if (!sent) {
+        if (asked === ASKED.LIMITED) {
+            setLimited(true);
+            return;
+        }
+        if (asked !== ASKED.SENT) {
             setFailed(true);
             return;
         }
         setCode("");
         setShown(null);
         setRefusal(null);
+        setWait({ askedAt, left: resendWaitLeft(askedAt, Date.now()) });
         // From an ended code the field comes back, and takes focus as it appears.
         if (!fromEnded) setResent(true);
     }
 
     const chip = <AddressChip email={email} onChange={onChangeEmail} disabled={busy} />;
     if (ended) {
+        const pageRefusal = failed ? SIGN_IN_COPY.failed : limited ? SIGN_IN_COPY.limited : null;
         return (
             <div className="flex flex-1 flex-col">
                 <SignInHeader heading={refusalWords} sentence={copy.endedSentence} chip={chip} headingRef={heading} />
-                {failed && <PageRefusal>{SIGN_IN_COPY.failed}</PageRefusal>}
-                <BottomBar stack={failed ? "refusal" : "header"}>
+                {pageRefusal && <PageRefusal>{pageRefusal}</PageRefusal>}
+                <BottomBar stack={pageRefusal ? "refusal" : "header"}>
                     <Button size="xl" busy={sending} busyLabel={SIGN_IN_COPY.sending} onClick={() => sendNewEmail({ fromEnded: true })}>
                         {copy.endedAction}
                     </Button>
@@ -321,13 +371,20 @@ function CodeStep({ email, destination, requestEmail, onChangeEmail }) {
                     {copy.action}
                 </Button>
             </BottomBar>
+            {limited && <ResendRefusal>{SIGN_IN_COPY.limited}</ResendRefusal>}
             <p
                 aria-live="polite"
-                className="mt-sign-in-form-stack text-center text-body-sm text-foreground-subtle max-sm:mt-mobile-code-help-stack max-sm:px-mobile-input-message-inset-x max-sm:text-left max-sm:text-mobile-body-sm"
+                className={`${limited ? "mt-gap-lg max-sm:hidden" : "mt-sign-in-form-stack"} text-center text-body-sm text-foreground-subtle max-sm:mt-mobile-code-help-stack max-sm:px-mobile-input-message-inset-x max-sm:text-left max-sm:text-mobile-body-sm`}
             >
                 {copy.resendLead}{" "}
                 {resent ? (
                     <span className="font-semibold">{copy.resent}</span>
+                ) : wait.left > 0 ? (
+                    // Taking no press, and kept out of the line's announcements: the count
+                    // would be read out every second (1j). Where it ends, the control is.
+                    <span aria-live="off" className="font-semibold tabular-nums">
+                        {copy.resendIn(wait.left)}
+                    </span>
                 ) : (
                     // Its room either side is pulled back out of the line, so the line is no
                     // taller and no wider for it — on the left by only half, which leaves its

@@ -66,12 +66,15 @@ is holding the link something about what the app knows.
 
 **The way forward follows from whether the link names an address.** The two that do
 offer `Send new email`, which sends a new email to that address from this browser —
-the code in it works here — and then shows the sign-in screen's code step. The two
-that name none offer `Go to sign in`, back to the sign-in screen. Both carry the
-destination with them, so a reader whose link ended does not lose where they were
-going at the last step. While the new email is being sent the button keeps its fill
-and shows a spinner and `Sending…`; if it cannot be sent,
-`Something went wrong. Try again.`
+the code in it works here — and then shows the sign-in screen's code step, its
+`Resend email` already waiting out the minute from this press. The two that name
+none offer `Go to sign in`, back to the sign-in screen. Both carry the destination
+with them, so a reader whose link ended does not lose where they were going at the
+last step. While the new email is being sent the button keeps its fill and shows a
+spinner and `Sending…`; if it cannot be sent, `Something went wrong. Try again.`;
+and if too many emails have been asked for, `Too many requests. Try again later.` in
+the same place, with the button still live (#148). That sentence reads the same for
+every address, as on the sign-in screen.
 
 **Showing the address on a dead link withholds nothing either.** Whoever holds the
 link holds the email it came in, which names the address.

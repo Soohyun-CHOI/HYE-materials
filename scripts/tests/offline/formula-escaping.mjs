@@ -53,7 +53,7 @@
 
 import { andSearchAll, formulaString, orByField, orByRecordId, prefixMatch } from "../../../lib/airtableFormula.js";
 import { isMain, standalone } from "./_harness.mjs";
-import { listJsFiles, parseFile, repoPath, toPosix, REPO_ROOT, walk } from "./_ast.mjs";
+import { listJsFiles, parseFile, repoPath, resolveFunction, toPosix, REPO_ROOT, walk } from "./_ast.mjs";
 
 export const title = "filterByFormula escaping — every interpolation (#159)";
 
@@ -375,17 +375,27 @@ export function run({ check, log, assert }) {
     }
 
     // The auth path is the reason this issue exists; name it so a regression
-    // there fails with the right label rather than as one of N sites.
+    // there fails with the right label rather than as one of N sites. Two sites
+    // since #148, and both take an unauthenticated caller's value: the token a
+    // link carries, and the address a request for an email names.
     log("");
     const authTokens = parseFile("lib/airtable/authTokens.js");
     const authProps = findFilterProperties(authTokens);
-    check("authTokens.js has exactly one filterByFormula", authProps.length, 1);
-    assert(
-        "the unauthenticated magic-link token lookup escapes its token",
-        authProps.length === 1 &&
-            authProps[0].value.type === "TemplateLiteral" &&
-            authProps[0].value.expressions.every(isEscapeBuilderCall)
-    );
+    check("authTokens.js has two filterByFormula sites", authProps.length, 2);
+    for (const [fnName, label] of [
+        ["getAuthTokenRecord", "the unauthenticated magic-link token lookup escapes its token"],
+        ["getRecentSignInRows", "the read a request for an email makes escapes the address it names (#148)"],
+    ]) {
+        const fn = resolveFunction(authTokens.ast, fnName);
+        const props = fn ? findFilterProperties({ ast: fn, source: authTokens.source }) : [];
+        assert(
+            label,
+            props.length === 1 &&
+                props[0].value.type === "TemplateLiteral" &&
+                props[0].value.expressions.length > 0 &&
+                props[0].value.expressions.every(isEscapeBuilderCall)
+        );
+    }
     assert(
         "and imports the escape from the canonical module",
         importsCanonicalFormulaString(authTokens)

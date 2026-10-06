@@ -62,7 +62,7 @@ Field lists and link topology only. Why a field is shaped the way it is lives in
 
 **Tool Log**: what has happened to one tool item, append-only (#334). `Tool Log ID` ({Tool Item ID}-{seq}, 3 digits), `Tool Item` (link, single), `Event` (select — Created/Checked out/Checked in/Retired), `Job` (link → Jobs, single, **on every row and never blank**, which is what makes the previous row the previous job — so **no `Former Job` is stored**; where each event learns it is in `tools.md`), `Recorded By` (link → Users, single), `Event At` (datetime, UTC), `Checked Out To` (text — the person a tool item was handed to, **on `Checked out` rows and blank on the other three, app-enforced both ways**; no account exists for these people, #376). `Notes` was here until #363 dropped the rule it existed for.
 
-**Auth Tokens**: Token (primary), Code (text, six digits, #471), Code Attempts (number), Email, Expires At, Used, Created At. Single-use by link or code, 15-min TTL, five tries per code.
+**Auth Tokens**: Token (primary), Code (text, six digits, #471), Code Attempts (number), Email, Mailbox (text, #148 — the address lowercased, its `+` tag cut), IP Hash (text, #148 — a keyed hash of the IP that asked; blank on a row a script minted), Expires At, Used, Created At. Single-use by link or code, 15-min TTL, five tries per code; a request is held to #148's ceilings, counted over these rows.
 
 ### Units
 

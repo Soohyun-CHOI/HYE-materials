@@ -181,10 +181,17 @@ export function run({ check, assert, log }) {
 
     // ── 5: the binding carries neither credential ───────────────────────────
     log("");
-    log("the asking browser holds the row's id and the address, and never the token or the code:");
+    // #148 added the time the email was asked for, which `Resend email`'s wait counts from on
+    // a page drawn again. The time says nothing a stranger could use; the token and the code
+    // stay out, which is what the two `nothing else` assertions hold.
+    log("the asking browser holds the row's id, the address and when it asked, and never the token or the code:");
     const auth = parseFile(AUTH);
     const requestLink = resolveFunction(auth.ast, "requestMagicLink");
-    check("requestMagicLink binds with", (keysPassedTo(requestLink, "writePendingSignIn") ?? []).join(","), "authTokenRecordId,email");
+    check(
+        "requestMagicLink binds with",
+        (keysPassedTo(requestLink, "writePendingSignIn") ?? []).join(","),
+        "authTokenRecordId,email,requestedAt"
+    );
     assert("  only once the email has gone", callsBefore(requestLink, "sendMagicLinkEmail", "writePendingSignIn"));
     const session = parseFile(SESSION);
     const writeBinding = resolveFunction(session.ast, "writePendingSignIn");
@@ -192,7 +199,7 @@ export function run({ check, assert, log }) {
     walk(writeBinding, (n) => {
         if (n.type === "AssignmentExpression" && n.left?.type === "MemberExpression") assigned.push(n.left.property?.name);
     });
-    check("  and the binding writes those two and nothing else", assigned.sort().join(","), "authTokenRecordId,email");
+    check("  and the binding writes those three and nothing else", assigned.sort().join(","), "authTokenRecordId,email,requestedAt");
     for (const file of ["app/api/auth/request/route.js", "app/api/auth/code/route.js"]) {
         const answered = answeredKeys(parseFile(file).ast);
         assert(`${file} answers (${[...answered].join(", ")})`, answered.size > 0);
@@ -243,7 +250,7 @@ export function run({ check, assert, log }) {
     assert(
         "a binding that carries the token is reported",
         (keysPassedTo(resolveFunction(leaky.ast, "requestMagicLink"), "writePendingSignIn") ?? []).join(",") !==
-            "authTokenRecordId,email"
+            "authTokenRecordId,email,requestedAt"
     );
     const secondSpend = parseSource(
         "async function a(r) { await base(T).update([{ id: r.id, fields: { Used: true } }]); }\n" +

@@ -400,6 +400,14 @@ function runCode({ check, assert, log }) {
     );
     check("a request that did not happen says one sentence wherever it was asked", SIGN_IN_COPY.failed, "Something went wrong. Try again.");
     check("  and a new email on its way one word wherever it was asked", [SIGN_IN_COPY.request.working, SIGN_IN_COPY.sending].join(" "), "Sending… Sending…");
+    // #148 — what a request a ceiling held back says, and `Resend email` while its wait runs.
+    check("a request a ceiling held back says one sentence wherever it was asked", SIGN_IN_COPY.limited, "Too many requests. Try again later.");
+    assert("  naming no address and no time", !/@|\d/.test(SIGN_IN_COPY.limited));
+    check("the wait's count at a whole minute", SIGN_IN_COPY.code.resendIn(60000), "Resend in 1:00");
+    check("  a part second counted as one", SIGN_IN_COPY.code.resendIn(56001), "Resend in 0:57");
+    check("  the last second", SIGN_IN_COPY.code.resendIn(1), "Resend in 0:01");
+    check("  past a minute, the seconds padded", SIGN_IN_COPY.code.resendIn(65000), "Resend in 1:05");
+    check("  and never below nothing", SIGN_IN_COPY.code.resendIn(-1500), "Resend in 0:00");
 
     // ── the email ───────────────────────────────────────────────────────────
     // THE DESIGN'S OWN MAIL SINCE #473 (1h, 0a Email): one builder for the HTML and the

@@ -488,12 +488,22 @@ export function run({ check, assert, log }) {
     const resend = parseFile("app/login/confirm/SendNewEmail.js");
     // Read off the request itself — the one `fetch`, and the fields its JSON body sends —
     // since the component's own prop spells the word whether or not the body carries it.
-    const asks = callsTo(resend.ast, "fetch");
+    // Since #148 every control that asks for an email asks through `askForEmail`, so the
+    // body is read there and the hand-off here: both halves have to carry it.
+    const asker = parseFile("app/login/askForEmail.js");
+    const asks = callsTo(asker.ast, "fetch");
     const sentFields = (call) => {
         const body = call?.arguments[1]?.properties?.find((p) => p.key?.name === "body")?.value;
         return body?.type === "CallExpression" ? (body.arguments[0]?.properties ?? []).map((p) => p.key?.name) : [];
     };
-    assert("  which it asks for the email with", asks.length === 1 && sentFields(asks[0]).includes("destination"));
+    const handedOn = callsTo(resend.ast, "askForEmail").map((c) => (c.arguments[0]?.properties ?? []).map((p) => p.key?.name));
+    assert(
+        "  which it asks for the email with",
+        handedOn.length === 1 &&
+            handedOn[0].includes("destination") &&
+            asks.length === 1 &&
+            sentFields(asks[0]).includes("destination")
+    );
     assert("  and lands on the sign-in screen through the builder", callsTo(resend.ast, "signInPath").length === 1);
 
     // ── 7: the detectors, seen finding what they look for ───────────────────

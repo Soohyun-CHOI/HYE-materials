@@ -21,7 +21,7 @@ The reasoning behind each area lives under `docs/notes/`, not here. These are in
 | `lib/airtable/**`, `lib/airtableFormula.js`, `lib/airtableOps.js`, `lib/airtableBatch.js` | `docs/notes/airtable-access.md` **and** `docs/notes/naming.md` |
 | `lib/airtable/**`, `scripts/import/**`, `scripts/demo/**`, `scripts/tests/verify-*.mjs`, adding or changing a field or a table | `docs/notes/data-model.md` |
 | `lib/ids.js`, `lib/idSequence.js` | `docs/notes/id-generation.md` |
-| `lib/auth.js`, `lib/authz*.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
+| `lib/auth.js`, `lib/authz*.js`, `lib/signInLimit.js`, `lib/prVisibility.js`, `lib/invoiceVisibility.js`, `app/login/**`, `app/api/**` | `docs/notes/authorization.md` |
 | `lib/blobIngest.js`, `lib/prDraft.js`, `app/prs/new/**`, `lib/file*.js`, `app/components/File*.js`, `app/components/PdfPages.js` | `docs/notes/uploads-and-drafts.md` |
 | `scripts/**`, `eslint.config.mjs` | `docs/notes/verification.md` |
 | renaming a field, a screen word or an identifier | `docs/notes/naming.md` |
@@ -95,6 +95,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/userName.js` — the name a screen prints for a user (#381). **A name field is read nowhere else.**
 - `lib/authTokenState.js` — whether a sign-in row can still be used, by link or code (#471), the TTL, every word either says, and the email carrying both (#473).
 - `lib/companyEmail.js` — the company's address as the sign-in field takes it and the server admits it (#473).
+- `lib/signInLimit.js` — how often a sign-in email may be asked for (#148): the ceilings, `Resend email`'s rest, the mailbox and the IP a request counts against, and the judgment.
+- `app/login/askForEmail.js` — the one request all four sign-in controls ask for an email with (#148), and its three answers.
 - `lib/crossOrigin.js` — the login-CSRF refusal every sign-in POST makes.
 - `lib/cookieLifetime.js` — each sealed cookie's lifetime, one value for its seal and its cookie. A session lasts 30 days from sign-in and is never extended.
 - `lib/loginDestination.js` — where a signed-out reader was headed (#373).
@@ -237,7 +239,7 @@ Read `docs/notes/uploads-and-drafts.md` before changing an upload path or `persi
 
 ## Auth (lib/auth.js, lib/session.js, lib/email.js, lib/authz.js)
 
-- A magic link, or the code beside it in the same email, restricted to the company email domain. `requestMagicLink()` domain-checks then emails both; **a code works only in the browser that asked (#471)**, and `consumeAuthToken` and `consumeAuthCode` spend the one row under one `withKeyLock` key. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
+- A magic link, or the code beside it in the same email, restricted to the company email domain. `requestMagicLink()` domain-checks, holds the mailbox and the IP to their ceilings (#148), then emails both; **a code works only in the browser that asked (#471)**, and `consumeAuthToken` and `consumeAuthCode` spend the one row under one `withKeyLock` key. New signups always land as plain Employee (`Is Admin: false`) and **with no name** — `requireUser()` sends a nameless reader to `/login/name` (#381); promotion is a manual Airtable edit.
 - **Every sign-in POST refuses a cross-origin submission** — `Origin` against `Host`, and absence fails open.
 - `lib/session.js`: iron-session, payload `{ userId }`. `getCurrentUser()` treats a missing Users record as logged-out and re-throws real Airtable errors. `getActiveUser()` also treats `Status: Inactive` as logged-out.
 - Env vars: `SESSION_SECRET`, `RESEND_API_KEY`, `ALLOWED_EMAIL_DOMAIN`, `EMAIL_FROM` (optional). Fail-fast at module load; set in Vercel too. **`lib/auth.js` alone reads `ALLOWED_EMAIL_DOMAIN`**; a screen showing the domain is handed its export (#473).

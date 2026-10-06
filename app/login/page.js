@@ -1,6 +1,7 @@
 import { ALLOWED_EMAIL_DOMAIN } from "@/lib/auth";
 import { safeDestination } from "@/lib/loginDestination";
 import { readPendingSignIn } from "@/lib/session";
+import { resendWaitLeft } from "@/lib/signInLimit";
 import { withOpsLabel } from "@/lib/airtableOps";
 import LoginForm from "./LoginForm";
 
@@ -43,6 +44,11 @@ import LoginForm from "./LoginForm";
  * `ALLOWED_EMAIL_DOMAIN`, the value every request is judged against, so the screen
  * spells no domain of its own. The page draws nothing around the form: the column,
  * the wordmark and the faces are `app/login/layout.js`'s, for all three steps.
+ *
+ * AND WHAT IS LEFT OF `Resend email`'s WAIT (#148), from the time the binding holds,
+ * so a code step drawn again mid-wait counts on rather than starting over or offering
+ * the control early. Measured here and handed on as a length, not an instant, so the
+ * form's first render and the server's draw the same figure.
  */
 export default async function LoginPage(props) {
     return withOpsLabel("/login", () => renderLoginPage(props));
@@ -56,6 +62,7 @@ async function renderLoginPage({ searchParams }) {
         <LoginForm
             destination={safeDestination(destination) ?? ""}
             pendingEmail={pending?.email ?? ""}
+            resendWaitMs={resendWaitLeft(pending?.requestedAt)}
             domain={ALLOWED_EMAIL_DOMAIN}
         />
     );
