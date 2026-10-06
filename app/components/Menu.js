@@ -165,6 +165,15 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * opener's to do when `onClose("escape")` reaches it. Escape is marked handled, so a Panel
  * the menu sits in keeps its own Escape for the next press.
  *
+ * AN ITEM SHOWS FOCUS ONLY AS `focus-visible` (#501). Opening moves focus onto an item by
+ * script, so an item drawn on `:focus` meets the press that opened the menu already shaded,
+ * as if pointed at — the account's `Sign out` did until #501. The browser marks a focus a
+ * script moves visible after a key and not after a press, so a menu opened from the
+ * keyboard, or walked with its keys after a press, still shows where focus is. The field
+ * list's shaded option is not focus: it is the option `aria-activedescendant` names — the
+ * chosen one as a choice opens, which a native select shows the same way — and it is drawn
+ * however the list opened.
+ *
  * WHERE IT OPENS IS `placement`. The account sits at the foot of the rail with no room under
  * it, so 0a's "6 under it" is 6 above while the rail is expanded, the menu as wide as the row
  * that opens it and the upward chevron saying which way; while it is collapsed the menu stands
@@ -298,7 +307,7 @@ export function ActionMenu({ id, anchorRef, shown, labelledBy, placement = "belo
                             aria-labelledby={item.detail ? labelId : undefined}
                             aria-describedby={item.detail ? detailId : undefined}
                             className={`flex w-full shrink-0 text-left outline-none ${item.detail ? DETAIL_ITEM : `items-center ${ITEM_LOOK[look]}`} ${
-                                item.tone === "danger" ? DANGER_ITEM[look] : item.detail ? "focus-visible:bg-hover active:bg-hover" : "hover:bg-hover focus:bg-hover"
+                                item.tone === "danger" ? DANGER_ITEM[look] : item.detail ? "focus-visible:bg-hover active:bg-hover" : "hover:bg-hover focus-visible:bg-hover"
                             }`}
                         >
                             {item.detail ? (
@@ -360,11 +369,11 @@ const ITEM_LOOK = {
 const DETAIL_ITEM = "min-h-mobile-menu-account flex-col items-start justify-center px-mobile-menu-row-inset-x py-mobile-menu-account-inset-y";
 
 // 0f's Destructive item: red on red's Face under the pointer or the keyboard at a desk, and
-// on a phone red at rest, taking the Face while held. The keyboard's is `focus-visible`, since
-// the menu puts focus on its first item as it opens and a press that opened it should meet
-// that item at rest, as 1c draws it.
+// on a phone red at rest, taking the Face while held. The keyboard's is `focus-visible`, as
+// every item's is (`ActionMenu`), so a press that opened the menu meets the item at rest, as
+// 1c draws it.
 const DANGER_ITEM = {
-    account: "hover:bg-danger-subtle hover:text-danger focus:bg-danger-subtle focus:text-danger",
+    account: "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger",
     record:
         "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger " +
         "max-sm:text-danger max-sm:hover:bg-transparent max-sm:focus-visible:bg-transparent max-sm:active:bg-danger-subtle",

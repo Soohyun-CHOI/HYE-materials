@@ -217,8 +217,10 @@ export default function Rail({ account, children }) {
                             <span className="text-foreground-muted">{WORDMARK.rest}</span>
                         </span>
                     </div>
-                    <div aria-hidden="true" className="my-rail-divider-stack h-px shrink-0 bg-divider" />
-                    <ul className="flex flex-col gap-rail-stack">
+                    {/* The head and the sections part by room alone — 16 and no rule, as the
+                        design's final files draw the rail collapsed and expanded alike (0m,
+                        #501). */}
+                    <ul className="mt-rail-header-stack flex flex-col gap-rail-stack">
                         {NAVIGATION_SECTIONS.map((section) => {
                             const word = COPY.sections[section.key];
                             const current = currentOf(section, pathname);

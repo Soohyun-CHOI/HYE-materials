@@ -200,7 +200,9 @@ export function Refusal({ centered = false, children }) {
     );
 }
 
-const BUTTON = "relative items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold disabled:cursor-default aria-disabled:cursor-default";
+// The hand under the pointer is `app/globals.css`'s, given to every button that acts and
+// withheld from one disabled or `aria-disabled`, a busy or locked one among them (#501).
+const BUTTON = "relative items-center justify-center whitespace-nowrap rounded-control font-ui font-semibold";
 
 // 0a's Commitment, 36, and a sign-in page's action, 40 and its column's width — and below
 // the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button).
@@ -668,8 +670,10 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
  * role. The browser already says checked, unchecked and mixed, toggles on Space and joins a
  * form, so what is drawn over it is the look alone; `indeterminate` is a property with no
  * attribute and is set on the element. It stands above a row whose link covers the row
- * (`ListTable.js`), so a press on the box selects rather than opening the row. It is named
- * by `label`, since a box in a column carries no words of its own.
+ * (`ListTable.js`), so a press on the box selects rather than opening the row — above it
+ * within the row, a stacking context of its own, so the box never rises over the column
+ * head its row scrolls under (#501). It is named by `label`, since a box in a column
+ * carries no words of its own.
  */
 export function Checkbox({ label, checked, indeterminate = false, onChange }) {
     return (

@@ -518,6 +518,51 @@ export function run({ check, assert, log }) {
         ["min-h-mobile-menu-account", "py-mobile-menu-account-inset-y", "px-mobile-menu-row-inset-x", "flex-col"].filter((t) => !menuConstant("DETAIL_ITEM").includes(t)).join(" "),
         ""
     );
+    // AN ITEM SHOWS FOCUS ONLY AS `focus-visible` (#501). Opening moves focus onto an item by
+    // script, so a look drawn on `:focus` met the press that opened the account's menu with
+    // `Sign out` already shaded, as if pointed at. `focus-visible` is the browser's word for
+    // focus the keyboard put there, so every look an item takes is read for a bare `focus:`.
+    const focusLooks = ({ ast }) => {
+        const texts = [];
+        const reached = new Set();
+        const strings = (node, from) =>
+            walk(node, (m) => {
+                if (m.type === "Literal" && typeof m.value === "string") texts.push(m.value);
+                if (m.type === "TemplateElement") texts.push(m.value.cooked ?? "");
+                if (m.type === "Literal" || m.type === "TemplateElement") reached.add(from);
+            });
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && ["ITEM_LOOK", "DANGER_ITEM", "DETAIL_ITEM"].includes(n.id?.name) && n.init) strings(n.init, n.id.name);
+            if (n.type === "JSXOpeningElement" && n.attributes.some((a) => a.name?.name === "role" && a.value?.value === "menuitem"))
+                strings(n.attributes.find((a) => a.name?.name === "className")?.value ?? {}, "the item");
+        });
+        const bare = texts.flatMap((t) => t.split(/\s+/)).filter((t) => t.split(":").slice(0, -1).includes("focus"));
+        return { bare, reached: [...reached].sort().join(" | ") };
+    };
+    const looks = focusLooks(menu);
+    check("an item a button's menu opens on shows focus only when the keyboard put it there (#501)", looks.bare.join(" "), "");
+    check(
+        "  and the plain item, the one with a detail and both destructive looks still show it then",
+        [
+            /: "hover:bg-hover focus-visible:bg-hover"/.test(menuSource),
+            /item\.detail \? "focus-visible:bg-hover active:bg-hover"/.test(menuSource),
+            /account: "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger"/.test(menuConstant("DANGER_ITEM")),
+            /record:\s*"hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger /.test(menuConstant("DANGER_ITEM")),
+        ].join(" "),
+        "true true true true"
+    );
+    // Anti-vacuity: the reading reaches the item's classes and the looks it reads, and sees a
+    // planted look drawn on focus — assembled while this runs, so Tailwind never builds it.
+    check("  the reading reaches the item's own classes and every look it reads", looks.reached, "DANGER_ITEM | DETAIL_ITEM | ITEM_LOOK | the item");
+    const onFocus = ["focus", ":bg-hover"].join("");
+    const plantedLooks = focusLooks(
+        parseSource(
+            'const ITEM_LOOK = { account: "h-control" };\n' +
+                `export function ActionMenu() { return <button role="menuitem" className={"hover:bg-hover ${onFocus}"} />; }`,
+            "<planted Menu>"
+        )
+    );
+    check("  a planted item drawn on focus is seen", plantedLooks.bare.join(" "), onFocus);
     const account = parseFile(ACCOUNT);
     const [opener] = elements(account.ast, "button").filter((a) => a["aria-haspopup"] === "menu");
     assert("its opener says it opens a menu", Boolean(opener));
@@ -964,6 +1009,57 @@ export function run({ check, assert, log }) {
         busyRules.sheetBusy,
         "true true"
     );
+
+    // THE HAND IS ONE RULE, AND WHAT DOES NOT ACT WITHHOLDS IT (#501). Tailwind 4's preflight
+    // gives a button none, so `app/globals.css` gives it in the base layer — where a control's
+    // own cursor still wins — to every button neither `disabled` nor `aria-disabled`, which is
+    // what a disabled action, a busy or locked one and a close held while its dialog sends say.
+    // Each rule giving the hand is read with the layers it sits in, comments stripped.
+    const handRules = (css) => {
+        const text = css.replace(/\/\*[\s\S]*?\*\//g, "");
+        const rules = [];
+        const open = [];
+        let prelude = "";
+        for (const ch of text) {
+            if (ch === "{") {
+                open.push(prelude.trim());
+                prelude = "";
+            } else if (ch === "}") {
+                const selector = open.pop() ?? "";
+                if (/(^|;)\s*cursor\s*:\s*pointer\s*(;|$)/.test(prelude.trim()))
+                    rules.push({
+                        layers: open.filter((p) => p.startsWith("@layer")).map((p) => p.replace(/^@layer\s+/, "")).join(" > ") || "none",
+                        selectors: selector.split(/,\s*(?![^(]*\))/).map((s) => s.trim().replace(/\s+/g, " ")),
+                    });
+                prelude = "";
+            } else if (ch === ";" && open.length === 0) prelude = "";
+            else prelude += ch;
+        }
+        return rules;
+    };
+    const hands = handRules(readFileSync(`${REPO_ROOT}/app/globals.css`, "utf8"));
+    check("a control that acts shows the hand, from one rule in the base layer (#501)", hands.map((r) => r.layers).join(" | "), "base");
+    check(
+        "  given to a button and to what says it is one, unless it is disabled or aria-disabled",
+        hands.flatMap((r) => r.selectors).join(" | "),
+        'button:not(:disabled, [aria-disabled="true"]) | [role="button"]:not(:disabled, [aria-disabled="true"])'
+    );
+    const controlsText = controls.source;
+    const closeTag = frame.source.match(/<button[^>]*aria-label=\{COPY\.close\}[^>]*>/)?.[0] ?? "";
+    check(
+        "  which is what a disabled action, a busy or locked one and a close held while its dialog sends say",
+        [/disabled=\{disabled\}/.test(controlsText), /aria-disabled=\{state \? true : undefined\}/.test(controlsText), /aria-disabled=\{busy \|\| undefined\}/.test(closeTag)].join(" "),
+        "true true true"
+    );
+    // Anti-vacuity: a planted rule outside the layer, withholding the hand from disabled alone,
+    // is read as what it is, and a stylesheet giving no hand reads as none.
+    const plantedHands = handRules('@import "tailwindcss";\nbutton:not(:disabled) { cursor: pointer; }\n@layer base { a { color: red; } }');
+    check(
+        "  a planted rule outside the layer, withholding the hand from disabled alone, is seen",
+        `${plantedHands.map((r) => r.layers).join(" | ")} ~ ${plantedHands.flatMap((r) => r.selectors).join(" | ")}`,
+        "none ~ button:not(:disabled)"
+    );
+    check("  and a stylesheet that gives none is read so", handRules(":root { color-scheme: light; }").length, 0);
 
     // THE FRAME HANDS ITS BUSY STATE TO WHAT IT HOLDS AND KEEPS FOCUS INSIDE WHILE IT IS
     // OPEN. Its close locks rather than disabling. While it is open an observer is told of

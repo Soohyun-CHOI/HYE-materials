@@ -243,7 +243,7 @@
     --transition-duration-rail: 200ms; /* Rail: how long it takes to widen */
     --ease-rail: cubic-bezier(0.2, 0, 0, 1); /* Rail: how it widens */
     --spacing-rail-stack: 0.125rem; /* Rail, 2: between two sections — from the drawings, not the spec */
-    --spacing-rail-divider-stack: 0.625rem; /* Rail, 10: above and below the rule under its toggle — from the drawings, not the spec */
+    --spacing-rail-header-stack: 1rem; /* Rail, 16: from its head — the toggle and, expanded, the wordmark — to its sections, with no rule between — from the drawings, not the spec */
     --height-account: 3rem; /* Account, 48: the account row at the rail's foot */
     --size-avatar: 1.5rem; /* Account, 24: the avatar, and the one an address chip leads with on a sign-in page (0o) */
     --spacing-account-gap: 0.625rem; /* Account, 10: from the avatar to the name — from the drawings, not the spec */
