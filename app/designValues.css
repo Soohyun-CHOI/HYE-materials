@@ -89,16 +89,16 @@
     --spacing-list-header-inset-bottom: 1.25rem; /* 1b, 20: under a list's head, to its column head — from the drawings, not the spec */
     --spacing-list-header-inline: 2.5rem; /* 1a, 40: the least room between a list head's title block and its control — from the drawings, not the spec */
     --spacing-list-count-inline: 0.3125rem; /* 1a and 1b, 5: from a list head's count to its noun — from the drawings, not the spec */
-    --spacing-table-column-gap: 1.25rem; /* 1a and 1b, 20: between two columns — from the drawings, not the spec */
+    --spacing-table-column-inline: 1.25rem; /* 1a and 1b, 20: between two columns — from the drawings, not the spec */
     --width-table-count: 6rem; /* 1a, 96: a column of counts — from the drawings, not the spec */
     --width-table-id: 15rem; /* 1b, 240: a column of printed ids — from the drawings, not the spec */
     --width-table-status: 10rem; /* 1b, 160: a column of statuses — from the drawings, not the spec */
     --spacing-pager-inset-top: 1rem; /* 1a and 1b, 16: above a pager's controls — from the drawings, not the spec */
     --spacing-pager-inset-bottom: 1.25rem; /* 1a and 1b, 20: under them — from the drawings, not the spec */
-    --spacing-pager-gap: 1.5rem; /* 1a and 1b, 24: between the rows a pager counts and its page — from the drawings, not the spec */
+    --spacing-pager-inline: 1.5rem; /* 1a and 1b, 24: the least room between the rows a pager counts and its page — from the drawings, not the spec */
     --spacing-pager-step-gap: 0.625rem; /* 1a and 1b, 10: from the page to its two steps — from the drawings, not the spec */
-    --spacing-pager-step-offset: 0.8125rem; /* 1a and 1b, 13: how far the steps pull out so the last chevron's ink meets the text's edge — from the drawings, not the spec */
-    --spacing-list-empty-inset-top: 15rem; /* 1a and 1b, 240: above a list's empty state — from the drawings, not the spec */
+    --spacing-pager-step-bleed: 0.8125rem; /* 1a and 1b, 13: how far the steps pull out so the last chevron's ink meets the text's edge — from the drawings, not the spec */
+    --spacing-list-empty-state-inset-top: 15rem; /* 1a and 1b, 240: above a list's empty state — from the drawings, not the spec */
 
     /* 0c · Blue — a face pair and an accent. Blue marks what is chosen: what is
        selected, current, or the single action a screen exists for (0f Chosen). */
@@ -118,7 +118,7 @@
     --color-foreground-muted: oklch(0.405 0.013 265); /* Ink 2: the sentence under a heading, a note beside a value, the breadcrumb above a title */
     --color-foreground-subtle: oklch(0.505 0.012 265); /* Ink 3: a column head, a block's name, a field label, a unit, a placeholder, a status mark */
     --color-foreground-faint: oklch(0.760 0.010 265); /* Ink 4: the dot between two clauses, the / between breadcrumb levels, a disabled pager arrow, a disabled control's glyph */
-    --color-skeleton: oklch(0.800 0.010 265); /* Ink 5: a bar standing in for a line of text, the edge of an empty checkbox */
+    --color-checkbox-border: oklch(0.800 0.010 265); /* Ink 5: the edge of an empty checkbox. The row's other use, a bar standing in for a line of text, is drawn nowhere yet and takes a name of its own with its reader */
     --spacing-separator-inline: 0.5625rem; /* Ink 4, 9: either side of the dot between two clauses, everywhere */
 
     --color-divider-subtle: oklch(0.946 0.005 265); /* Inner rule: between two item rows inside a card */
@@ -136,7 +136,7 @@
 
     /* 0f · States — a number field with steps, and an action that is busy. */
     --width-number-input: 7.5rem; /* Field, 120: a number field */
-    --spacing-stepper-inset: 0.1875rem; /* Field, 3: its − and + from its ends */
+    --spacing-stepper-inset-x: 0.1875rem; /* Field, 3: its − and + from its ends */
     --transition-delay-busy: 300ms; /* 0f, 300ms: how long an action that has started waits before it shows it is busy */
     --size-spinner: 1rem; /* 0f, 16: the spinner a busy action shows before its -ing label */
     --animate-spinner: spin 0.7s linear infinite; /* 0f: the spinner's turn — from the drawings' stylesheet, not the spec */
@@ -182,7 +182,7 @@
 
     /* 0i · Scroll — the bar, and the room it is given. The lane is the browser's own
        scrollbar, whose width follows no text size, so it and its clearance stay px. */
-    --spacing-scrollbar: 8px; /* Bar, 8: its lane, reserved whether or not it shows */
+    --spacing-scrollbar-gutter: 8px; /* Bar, 8: its lane, reserved whether or not it shows — what scrollbar-gutter holds open */
     --spacing-scrollbar-inset: 1px; /* Bar, 1: around the thumb inside the lane, so the thumb reads as 6 of its 8 */
     --spacing-scroll-inset-bottom: 2.5rem; /* End, 40: what a column ending in open space closes on */
 
@@ -219,7 +219,7 @@
     --spacing-dialog-inset: 1.5rem; /* Compact, 24: the room all round, and from the last field to the actions */
     --spacing-dialog-header-stack: 1.25rem; /* Compact, 20: from the title's line to the body */
     --spacing-dialog-inline: 0.75rem; /* Compact, 12: between two short fields sharing a row */
-    --spacing-dialog-close-offset: 0.25rem; /* Head, 4: how far the close pulls out so its ink meets the edge */
+    --spacing-dialog-close-bleed: 0.25rem; /* Head, 4: how far the close pulls out so its ink meets the edge */
     --spacing-dialog-header-inline: 1rem; /* Head, 16: the least room between the title and the close */
     --spacing-dialog-title-stack: 0.125rem; /* Head, 2: from the title to the line under it */
     --spacing-dialog-summary-inset-y: 1rem; /* Split, 16: inside a dialog's summary, above and below */
@@ -231,8 +231,8 @@
     --width-dialog-preview-pane: 27.5rem; /* 1i, 440: the pane a preview is drawn in, beside the column */
     --spacing-dialog-preview-stack: 1.25rem; /* 1i, 20: between two rows of label pages in the pane */
     --spacing-dialog-preview-inline: 0.75rem; /* 1i, 12: between two label pages in a row */
-    --spacing-dialog-panel-stack: 1.5rem; /* 1i, 24: between the blocks of the column beside a preview */
-    --spacing-dialog-panel-list-stack: 0.25rem; /* 1i, 4: between two codes that column lists */
+    --spacing-dialog-column-stack: 1.5rem; /* 1i, 24: between the blocks of the column beside a preview */
+    --spacing-dialog-column-list-stack: 0.25rem; /* 1i, 4: between two codes that column lists */
     --size-dialog-step: 1.25rem; /* 1i, 20: the round mark a numbered step in a dialog takes */
 
     /* 0m · Navigation — the frame every screen sits in. From Tailwind's xl, the
@@ -260,11 +260,11 @@
         }
     }
     --height-breadcrumb: 3rem; /* Breadcrumb, 48: the way back and a record's pager */
-    --spacing-breadcrumb-back-offset: 0.75rem; /* Breadcrumb, 12: how far one level pulls left so its chevron's stroke meets the Margin — from the drawings, not the spec */
+    --spacing-breadcrumb-back-bleed: 0.75rem; /* Breadcrumb, 12: how far one level pulls left so its chevron's stroke meets the Margin — from the drawings, not the spec */
     --spacing-breadcrumb-back-gap: 0.125rem; /* Breadcrumb, 2: between that chevron and its word — from the drawings, not the spec */
 
     /* 0n · Record page — the header a detail page opens with. */
-    --spacing-page-header-stack: 1.5rem; /* Record header, 24: above and below its rule */
+    --spacing-record-header-stack: 1.5rem; /* Record header, 24: above and below its rule */
     --spacing-breadcrumb-stack: 0.875rem; /* Record header, 14: from the breadcrumb bar to the header */
     --spacing-title-stack: 0.625rem; /* Header stack, 10: from the title to the line of text under it */
     --spacing-subtitle-stack: 0.75rem; /* Header stack, 12: from the line of text under the title to the status */
@@ -286,13 +286,13 @@
     --spacing-log-rule-overhang: 0.1875rem; /* 1c, 3: how far the rule runs into the next entry — from the drawings, not the spec */
     --spacing-log-line-stack: 0.1875rem; /* 1c and 1f, 3: between an entry's lines — from the drawings, not the spec */
     --spacing-log-stack: 1.5rem; /* 1c, 24: between entries — from the drawings, not the spec */
-    --max-width-empty-state: 27.5rem; /* 1l, 440: the sentence of a screen saying a record is not there — from the drawings, not the spec */
+    --max-width-empty-state: 27.5rem; /* 1l, 440: the sentence of a screen saying a record is not there — from the drawings, not the spec. The tool item page's refusal at a desk reads it too, which no row sizes, so it moves with this */
 
     /* 0o · Sign-in page — one column, centered, with the wordmark at its head (#473). */
     --container-sign-in: 22.5rem; /* 0o, 360: the page's one column */
     --spacing-sign-in-inset-top: 16.75rem; /* 0o, 268: the wordmark from the page's top, the same in every state */
     --spacing-sign-in-brand-stack: 2.5rem; /* 0o, 40: from the wordmark to the title */
-    --spacing-sign-in-header-gap: 0.5rem; /* 0o, 8: between a header's title, its sentence and an address chip */
+    --spacing-sign-in-title-stack: 0.5rem; /* 0o, 8: between a header's title, its sentence and an address chip */
     --spacing-sign-in-header-stack: 2rem; /* 0o, 32: under the header, to the first field or the action */
     --spacing-sign-in-form-stack: 1.5rem; /* 0o, 24: from a field to the action or to a refusal of the page, and from the action to the line under it */
     --spacing-sign-in-form-inline: 0.75rem; /* 1g, 12: between two fields sharing a row — from the drawings, not the spec */
@@ -392,10 +392,10 @@
     --spacing-mobile-log-dot-inset-top: 0.5625rem; /* 1f, 9: the dot from its entry's top — from the drawings, not the spec */
     --spacing-mobile-log-rule-inset-top: 1.375rem; /* 1f, 22: where the rule under a dot starts — from the drawings, not the spec */
     --spacing-mobile-log-rule-overhang: 0.25rem; /* 1f, 4: how far the rule runs into the next entry — from the drawings, not the spec */
-    --spacing-mobile-title-notice-offset: 0.25rem; /* 1g, 4: a notice in the title block, past the block's 12 — from the drawings, not the spec */
-    --size-mobile-empty-icon: 2.5rem; /* 1g, 40: the mark over a screen saying a record is not there — from the drawings, not the spec */
-    --spacing-mobile-empty-inset-x: 2rem; /* 1g, 32: either side of that screen's words — from the drawings, not the spec */
-    --spacing-mobile-empty-inset-bottom: 6rem; /* 1g, 96: under them, which sets them above the middle — from the drawings, not the spec */
+    --spacing-mobile-title-alert-stack: 0.25rem; /* 1g, 4: a Notice in the title block, past the block's 12 — from the drawings, not the spec */
+    --size-mobile-empty-state-icon: 2.5rem; /* 1g, 40: the mark over a screen saying a record is not there — from the drawings, not the spec */
+    --spacing-mobile-empty-state-inset-x: 2rem; /* 1g, 32: either side of that screen's words — from the drawings, not the spec */
+    --spacing-mobile-empty-state-inset-bottom: 6rem; /* 1g, 96: under them, which sets them above the middle — from the drawings, not the spec */
     --max-width-mobile-empty-state: 17.5rem; /* 1g, 280: that screen's sentence — from the drawings, not the spec */
 
     --width-mobile-drawer-handle: 2.25rem; /* Sheet, 36: the handle */

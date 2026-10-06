@@ -682,7 +682,7 @@ export function Checkbox({ label, checked, indeterminate = false, onChange }) {
                 ref={(box) => {
                     if (box) box.indeterminate = indeterminate;
                 }}
-                className="peer size-icon cursor-pointer appearance-none rounded-badge border border-skeleton bg-white group-hover/checkbox:bg-[linear-gradient(var(--color-hover-subtle),var(--color-hover-subtle))] checked:border-primary checked:bg-primary group-hover/checkbox:checked:border-primary-hover group-hover/checkbox:checked:bg-primary-hover indeterminate:border-primary indeterminate:bg-primary group-hover/checkbox:indeterminate:border-primary-hover group-hover/checkbox:indeterminate:bg-primary-hover"
+                className="peer size-icon cursor-pointer appearance-none rounded-badge border border-checkbox-border bg-white group-hover/checkbox:bg-[linear-gradient(var(--color-hover-subtle),var(--color-hover-subtle))] checked:border-primary checked:bg-primary group-hover/checkbox:checked:border-primary-hover group-hover/checkbox:checked:bg-primary-hover indeterminate:border-primary indeterminate:bg-primary group-hover/checkbox:indeterminate:border-primary-hover group-hover/checkbox:indeterminate:bg-primary-hover"
             />
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-checked:block">
                 <path d="M3.4 8.4 6.5 11.5l6.1-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -717,7 +717,7 @@ export function NumberField({ name, value, onChange, min, max }) {
     };
     return (
         <div
-            className={`flex h-control-lg w-number-input items-center rounded-control bg-white px-stepper-inset inset-ring ${
+            className={`flex h-control-lg w-number-input items-center rounded-control bg-white px-stepper-inset-x inset-ring ${
                 field.refused ? "inset-ring-danger" : "inset-ring-border focus-within:inset-ring-border-focus"
             }`}
         >

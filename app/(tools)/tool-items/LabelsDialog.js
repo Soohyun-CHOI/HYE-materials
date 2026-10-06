@@ -224,7 +224,7 @@ function LabelsFrame({ open, onClose, title, toolName, run }) {
     return (
         <DialogFrame open={open} onClose={onClose} title={title} subtitle={toolName} preview={preview}>
             <DialogBody>
-                <div className="flex flex-col gap-dialog-panel-stack">
+                <div className="flex flex-col gap-dialog-column-stack">
                     <DialogMessage>
                         {COPY.count({ printing, named })}
                         <Dot />
@@ -233,7 +233,7 @@ function LabelsFrame({ open, onClose, title, toolName, run }) {
                     {missing.length > 0 && (
                         <div className="flex flex-col gap-gap">
                             <p className="text-body-sm font-medium">{COPY.notFound(missing.length)}</p>
-                            <ul className="flex flex-col gap-dialog-panel-list-stack">
+                            <ul className="flex flex-col gap-dialog-column-list-stack">
                                 {missing.map((code) => (
                                     <li key={code} className="whitespace-nowrap font-id text-body-sm tracking-id text-foreground-muted">
                                         {code}

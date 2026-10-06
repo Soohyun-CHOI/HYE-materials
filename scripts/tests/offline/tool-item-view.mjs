@@ -449,7 +449,7 @@ export function run({ check, assert, log }) {
     check(
         "  and holds under the breadcrumb bar while the column scrolls, its Rule the column's height",
         railHold(page),
-        "border-l border-divider pl-record-rail-inset-left max-sm:hidden > sticky top-(--height-breadcrumb) pt-page-header-stack"
+        "border-l border-divider pl-record-rail-inset-left max-sm:hidden > sticky top-(--height-breadcrumb) pt-record-header-stack"
     );
     check("  says the symbol's size from the box", rail.symbol, "symbolMm");
     check("  and draws both only when it fits, the host's sentence otherwise", rail.verdict, "true true");

@@ -398,7 +398,7 @@ export function DialogFrame({
                     </button>
                 </div>
             ) : (
-                <div className="-mr-dialog-close-offset flex h-[var(--text-heading--line-height)] shrink-0 items-center max-sm:in-data-[sheet]:hidden">
+                <div className="-mr-dialog-close-bleed flex h-[var(--text-heading--line-height)] shrink-0 items-center max-sm:in-data-[sheet]:hidden">
                     <button
                         type="button"
                         aria-label={COPY.close}
@@ -443,7 +443,7 @@ export function DialogFrame({
                     {head}
                     {withPreview && (
                         <div
-                            className={`min-h-0 overflow-y-auto overscroll-contain bg-background-muted py-dialog-inset pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar))] pl-dialog-inset [scrollbar-gutter:stable] sm:col-start-1 sm:row-span-2 sm:row-start-1 ${SCROLL_LANE}`}
+                            className={`min-h-0 overflow-y-auto overscroll-contain bg-background-muted py-dialog-inset pr-[calc(var(--spacing-dialog-inset)-var(--spacing-scrollbar-gutter))] pl-dialog-inset [scrollbar-gutter:stable] sm:col-start-1 sm:row-span-2 sm:row-start-1 ${SCROLL_LANE}`}
                         >
                             {preview}
                         </div>

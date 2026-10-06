@@ -23,7 +23,7 @@ export const LIST_MEASURE = "mx-auto box-content max-w-content px-page-gutter";
  * edge, as a row's is.
  */
 export const TABLE_HEAD =
-    "sticky top-0 z-10 -mb-px box-content grid h-table-header items-center gap-x-table-column-gap border-b border-divider-strong bg-background-translucent px-table-bleed text-heading-sm text-foreground-subtle shadow-[inset_0_1px_0_var(--color-divider-strong)] backdrop-blur-sm";
+    "sticky top-0 z-10 -mb-px box-content grid h-table-header items-center gap-x-table-column-inline border-b border-divider-strong bg-background-translucent px-table-bleed text-heading-sm text-foreground-subtle shadow-[inset_0_1px_0_var(--color-divider-strong)] backdrop-blur-sm";
 
 /**
  * 0b's Row: 40 under its 1px Rule, its text 12 in from the content's edge where the rule
@@ -32,7 +32,7 @@ export const TABLE_HEAD =
  * gives the hover a Control radius on 1080, and the spec is the one followed.
  */
 export const TABLE_ROW =
-    "relative box-content grid h-table-row content-center items-baseline gap-x-table-column-gap rounded-control px-table-bleed pt-px text-body text-foreground-default before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-divider hover:bg-hover-subtle";
+    "relative box-content grid h-table-row content-center items-baseline gap-x-table-column-inline rounded-control px-table-bleed pt-px text-body text-foreground-default before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-divider hover:bg-hover-subtle";
 
 /** A selected row's Face (0c), over the hover's Wash. */
 export const TABLE_ROW_SELECTED = "bg-selected hover:bg-selected";
@@ -52,7 +52,7 @@ export const TABLE_ROW_LINK = "after:absolute after:inset-0 after:rounded-contro
  */
 export function ListHeader({ title, count, noun, children }) {
     return (
-        <div className="pr-scrollbar">
+        <div className="pr-scrollbar-gutter">
             <div
                 className={`${LIST_MEASURE} flex items-center justify-between gap-list-header-inline pt-list-header-inset-top pb-list-header-inset-bottom`}
             >
@@ -118,7 +118,7 @@ function PagerStep({ href, label, back }) {
  */
 export function Pager({ range, position, previous, next }) {
     return (
-        <div className="flex items-center justify-between gap-pager-gap px-table-bleed pt-pager-inset-top pb-pager-inset-bottom">
+        <div className="flex items-center justify-between gap-pager-inline px-table-bleed pt-pager-inset-top pb-pager-inset-bottom">
             <p className="text-body-sm text-foreground-subtle">
                 <Figures className="text-foreground-default">{range}</Figures>
             </p>
@@ -126,7 +126,7 @@ export function Pager({ range, position, previous, next }) {
                 <p className="text-body-sm text-foreground-subtle">
                     <Figures className="text-foreground-default">{position}</Figures>
                 </p>
-                <div className="-mr-pager-step-offset flex">
+                <div className="-mr-pager-step-bleed flex">
                     <PagerStep {...previous} back />
                     <PagerStep {...next} />
                 </div>

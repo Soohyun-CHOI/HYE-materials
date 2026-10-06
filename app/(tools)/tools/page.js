@@ -116,7 +116,7 @@ async function renderToolsPage({ searchParams }) {
             }
         >
             {rows.length === 0 ? (
-                <div className="flex flex-col items-center pt-list-empty-inset-top text-center">
+                <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{COPY.noToolsHeading}</h2>
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noTools}</p>
                     <div className="mt-gap-lg">
