@@ -1232,6 +1232,19 @@ export function run({ check, assert, log }) {
     assert("  the name asked only of a check-out", /\{asksName && \(\s*<Field label=\{COPY\.checkedOutToLabel\}/.test(barSource) && /\{asksName && \(\s*<NameSheet/.test(barSource));
     check("with nothing to record it says the plan's refusal in the press's place", /\{plan\.refusal\}<\/p>/.test(barSource), true);
     check("  drawn below the phone's edge alone", attributeSources(barFn ?? {}, bar.source, "BottomBar", "phoneOnly").join(" | "), "true | true");
+    // WHAT A DESK'S DIALOG WAS GIVEN COMES TO THE BAR WHEN THE WINDOW CROSSES INTO IT (#495):
+    // the frame closes a dialog its page stops drawing, the dialog hands its job and name to
+    // the provider first, and the bar takes each handing-over once, as its own.
+    check(
+        "a desk's dialog the frame closes undrawn carries its job and name (#495)",
+        `${attributeSources(formFn, dialog.source, "DialogFrame", "onHidden").join()} | ${attributeSources(dialogFn, dialog.source, "TransitionForm", "onCarry").join()}`,
+        "{() => onCarry({ jobId: kept, name })} | {carry}"
+    );
+    check("  which the provider keeps, a new object each time", /carry: \(\{ jobId, name \}\) => setCarried\(\{ jobId, name \}\),/.test(provider.source), true);
+    assert(
+        "  and the bar takes each handing-over once, as its own job and name",
+        /if \(carried !== taken\) \{\s*setTaken\(carried\);\s*if \(carried\) \{\s*setJobId\(carried\.jobId\);\s*setName\(carried\.name\);/.test(barSource)
+    );
 
     // ── 8: retiring — the second answer the plan carries (#363) ────────────
     log("");

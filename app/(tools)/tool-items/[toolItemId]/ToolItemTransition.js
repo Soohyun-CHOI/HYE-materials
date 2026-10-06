@@ -29,6 +29,13 @@ import RetirementConfirm from "./RetirementConfirm";
  * beside the transition and the phone's in its top bar (1c, 1f), one question for both. It
  * holds its own answer (`RetirementConfirm`), and whatever opened it gets focus back: the
  * menu hands focus to its button before it opens the question.
+ *
+ * WHAT A DESK'S DIALOG HELD GOES TO THE FOOT BAR WHEN THE WINDOW CROSSES THE PHONE'S EDGE
+ * (#495). The header row the dialog opens from is not drawn below the edge, so the frame
+ * closes the dialog there (`DialogFrame.js`), and the job and the name it was given are
+ * `carried` to the bar, which takes them as its own — a phone turned upright mid-check-out
+ * finds the bar filled rather than empty. Only that way: a dialog opened at a desk starts
+ * where an opening starts (0l), whatever the bar was left holding.
  */
 const TransitionContext = createContext(null);
 
@@ -58,6 +65,7 @@ export default function ToolItemTransition({ plan, toolItemId, toolName, childre
     const [openedFor, setOpenedFor] = useState(null);
     const [opening, setOpening] = useState(0);
     const [retiring, setRetiring] = useState(false);
+    const [carried, setCarried] = useState(null);
     // The opening ends with the event it was for. A landing takes it away with the page's
     // state and a refusal does not, so two refusals that flip the status out and back would
     // otherwise find it naming the event again and open the dialog with nobody asking.
@@ -78,6 +86,10 @@ export default function ToolItemTransition({ plan, toolItemId, toolName, childre
             setOpenedFor(plan.event);
         },
         closeDialog: () => setOpenedFor(null),
+        // A new object each time, so the bar takes every handing-over, the same choice twice
+        // included (#495 — the header).
+        carried,
+        carry: ({ jobId, name }) => setCarried({ jobId, name }),
         openRetirement: () => setRetiring(true),
     };
 

@@ -474,6 +474,52 @@ export async function run({ check, assert, log }) {
         1
     );
 
+    // THE DESIGN'S FINAL FILES ON THE STEPS (#495): the steps' refusal line is the one a
+    // dialog draws, centered; the resend line keeps 8 after its space, which the control's
+    // room pulls into, and its press is 0f's Working; and at a desk the column scrolls in
+    // 0i's lane while the page holds still.
+    log("");
+    log("the steps draw the dialogs' refusal line, the resend control's room and press, and a column that scrolls:");
+    const parts = parseFile("app/login/SignInParts.js");
+    const partRefusals = [];
+    walk(parts.ast, (n) => {
+        if (n.type === "JSXOpeningElement" && n.name?.name === "Refusal") partRefusals.push(n.attributes.map((a) => a.name?.name).join(","));
+    });
+    check("a refusal of the page and a held-back resend are Controls.js's Refusal, centered (#495)", partRefusals.join(" | "), "centered | centered");
+    check("  and the steps draw no line of their own, the drawing's status among them", /role="status"/.test(parts.source), false);
+    const codeStep = functionNamed(form.ast, "CodeStep");
+    const codeStepSource = codeStep ? form.source.slice(codeStep.start, codeStep.end) : "";
+    const resendButton = codeStepSource.match(/<button\s+type="button"[\s\S]*?<\/button>/)?.[0] ?? "";
+    check(
+        "the resend line keeps 8 after its space in every state, which the control pulls its whole 8 into (#495)",
+        [
+            /\{copy\.resendLead\}\{" "\}[\s\S]{0,400}?<span aria-hidden="true" className="inline-block w-control-inline-inset-x" \/>\s*\{resent \?/.test(codeStepSource),
+            /\s-mx-control-inline-inset-x\s/.test(resendButton),
+            /code-resend-offset/.test(form.source),
+        ].join(" "),
+        "true true false"
+    );
+    check(
+        "  and while its email is asked for it is busy and not disabled, an Accent spinner on its track in its words' place and Sending… for assistive tech alone (#495)",
+        [
+            /aria-busy=\{sending \|\| undefined\}/.test(resendButton) && /data-busy=\{sending \|\| undefined\}/.test(resendButton),
+            /\sdisabled=/.test(resendButton),
+            /group-data-busy\/resend:invisible group-data-busy\/resend:delay-busy">\{copy\.resend\}<\/span>/.test(resendButton),
+            /border-code-resend-spinner-track border-t-current/.test(resendButton),
+            /<span className="sr-only">\{SIGN_IN_COPY\.sending\}<\/span>/.test(resendButton),
+        ].join(" "),
+        "true false true true true"
+    );
+    const signInLayout = parseFile("app/login/layout.js");
+    check(
+        "at a desk the column scrolls in 0i's lane, reserved on both sides, stops at its end and ends on 40, and the page holds still (#495)",
+        [
+            /sm:h-dvh/.test(signInLayout.source),
+            /sm:min-h-0 sm:items-start sm:overflow-y-auto sm:overscroll-y-contain sm:pb-scroll-inset-bottom sm:\[scrollbar-gutter:stable_both-edges\] \$\{SCROLL_LANE\}/.test(signInLayout.source),
+        ].join(" "),
+        "true true"
+    );
+
     // ── 11: the detectors, seen finding what they look for ──────────────────
     log("");
     log("and the detectors are seen finding a planted defect:");

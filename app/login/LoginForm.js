@@ -377,6 +377,10 @@ function CodeStep({ email, destination, requestEmail, onChangeEmail, openingWait
                 className={`${limited ? "mt-gap-lg max-sm:hidden" : "mt-sign-in-form-stack"} text-center text-body-sm text-foreground-subtle max-sm:mt-mobile-code-help-stack max-sm:px-mobile-input-message-inset-x max-sm:text-left max-sm:text-mobile-body-sm`}
             >
                 {copy.resendLead}{" "}
+                {/* 8 OF ROOM AFTER THE SPACE IN EVERY STATE (1e, 1a, #495), which the control's
+                    own room pulls into, so its words stand 8 past the space and its face under
+                    the pointer reaches back over the 8. */}
+                <span aria-hidden="true" className="inline-block w-control-inline-inset-x" />
                 {resent ? (
                     <span className="font-semibold">{copy.resent}</span>
                 ) : wait.left > 0 ? (
@@ -387,15 +391,23 @@ function CodeStep({ email, destination, requestEmail, onChangeEmail, openingWait
                     </span>
                 ) : (
                     // Its room either side is pulled back out of the line, so the line is no
-                    // taller and no wider for it — on the left by only half, which leaves its
-                    // words that much further from the sentence they end (1e, 1a).
+                    // taller and no wider for it (1e, 1a). WHILE ITS EMAIL IS ASKED FOR IT IS
+                    // 0f's WORKING (#495): its words keep their place unseen, and after 300ms
+                    // an Accent spinner on a 25% track stands centered in them, `Sending…` for
+                    // assistive tech alone. Nothing is disabled, so focus stays on it.
                     <button
                         type="button"
                         aria-disabled={busy || undefined}
+                        aria-busy={sending || undefined}
+                        data-busy={sending || undefined}
                         onClick={() => sendNewEmail({ fromEnded: false })}
-                        className="-my-[calc((var(--height-control-inline)-var(--text-body-sm--line-height))/2)] -mr-control-inline-inset-x -ml-code-resend-offset inline-flex h-control-inline items-center rounded-control px-control-inline-inset-x align-baseline font-semibold text-primary hover:bg-selected aria-disabled:pointer-events-none max-sm:h-auto max-sm:-my-[calc((var(--spacing-mobile-touch-target)-var(--text-mobile-body-sm--line-height))/2)] max-sm:py-[calc((var(--spacing-mobile-touch-target)-var(--text-mobile-body-sm--line-height))/2)] max-sm:active:opacity-mobile-pressed"
+                        className="group/resend relative -my-[calc((var(--height-control-inline)-var(--text-body-sm--line-height))/2)] -mx-control-inline-inset-x inline-flex h-control-inline items-center rounded-control px-control-inline-inset-x align-baseline font-semibold text-primary not-aria-disabled:hover:bg-selected aria-disabled:pointer-events-none max-sm:h-auto max-sm:-my-[calc((var(--spacing-mobile-touch-target)-var(--text-mobile-body-sm--line-height))/2)] max-sm:py-[calc((var(--spacing-mobile-touch-target)-var(--text-mobile-body-sm--line-height))/2)] max-sm:active:opacity-mobile-pressed"
                     >
-                        {copy.resend}
+                        <span className="transition-[visibility] duration-0 group-data-busy/resend:invisible group-data-busy/resend:delay-busy">{copy.resend}</span>
+                        <span className="invisible absolute inset-0 flex items-center justify-center transition-[visibility] duration-0 group-data-busy/resend:visible group-data-busy/resend:delay-busy">
+                            <span aria-hidden="true" className="block size-spinner animate-spinner rounded-full border-2 border-code-resend-spinner-track border-t-current" />
+                            <span className="sr-only">{SIGN_IN_COPY.sending}</span>
+                        </span>
                     </button>
                 )}
             </p>

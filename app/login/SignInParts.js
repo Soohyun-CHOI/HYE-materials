@@ -1,6 +1,6 @@
 "use client";
 
-import { InfoMark, Notice } from "@/app/components/Controls";
+import { Notice, Refusal } from "@/app/components/Controls";
 import { SIGN_IN_COPY } from "@/lib/authTokenState";
 
 /*
@@ -9,7 +9,8 @@ import { SIGN_IN_COPY } from "@/lib/authTokenState";
  * desk (0o) and a step page below the phone's edge (Tools 0a) — so each part is drawn once,
  * with the phone's values under `max-sm:`. The bar a step's action stands in was here too,
  * and the alert a phone draws for a refusal; both are `app/components/`'s since #463, when
- * the tool item page came to draw them.
+ * the tool item page came to draw them, and the desk's refusal line is `Controls.js`'s
+ * `Refusal` since #495, when the dialogs came to draw it.
  *
  * EVERY WORD IS THE CALLER'S, from `lib/authTokenState.js` and `lib/userName.js`, apart
  * from the chip's `Change`, which is the code step's own and the only word here.
@@ -69,32 +70,19 @@ export function AddressChip({ email, onChange, disabled = false }) {
 }
 
 /**
- * A refusal of the page at a desk (0o's Refusal since #148's drawings): the 16 info mark 6
- * before one sentence at 13, both in Ink 2, centered. It was the alert mark in red until
- * then; red stays a field's refusal, and this is for what the reader did not cause and
- * cannot fix in place — a request that did not happen, or one a ceiling held back.
- */
-function DeskRefusal({ children }) {
-    return (
-        <p role="status" className="flex items-center justify-center gap-refusal-gap text-body-sm text-foreground-muted">
-            <InfoMark size="size-icon" ring={1.5} />
-            <span>{children}</span>
-        </p>
-    );
-}
-
-/**
  * A refusal about the whole step — a request that did not happen, or one #148's ceilings
- * held back. At a desk it is 0o's line, 24 under the fields and 14 over the action; on a
- * phone it is the alert Tools 0a draws for what the reader did not cause and cannot fix in
- * place, 24 under the content. One of the two is drawn at any width, so assistive tech
- * hears the sentence once.
+ * held back. At a desk it is 0o's line, `Controls.js`'s `Refusal` centered: the 16 info mark
+ * 6 before one sentence at 13, both in Ink 2, 24 under the fields and 14 over the action. On
+ * a phone it is the Notice Tools 0a draws for what the reader did not cause and cannot fix
+ * in place, 24 under the content. One of the two is drawn at any width, so assistive tech
+ * hears the sentence once, and both are alerts since #495, where the desk's line was the
+ * drawing's `status` — the one refusal of a press in this app that was not.
  */
 export function PageRefusal({ children }) {
     return (
         <div className="mt-sign-in-form-stack">
             <div className="max-sm:hidden">
-                <DeskRefusal>{children}</DeskRefusal>
+                <Refusal centered>{children}</Refusal>
             </div>
             <div className="sm:hidden">
                 <Notice>{children}</Notice>
@@ -107,19 +95,14 @@ export function PageRefusal({ children }) {
  * A ceiling's refusal where `Resend email` asked (#148), by the control that asked rather
  * than over the step's action. At a desk it is the same line as `PageRefusal`'s, 24 under
  * `Sign in`, and the line it answers follows 14 under it; on a phone it stands in that
- * line's place, its 16 mark 6 before the sentence at 15 in Ink 2, so the code step still
- * fits above the keypad. One element at both widths, so it is heard once.
+ * line's place, 20 under the code, its 16 mark 6 before the sentence at 15 in Ink 2 and 4
+ * in, so the code step still fits above the keypad. One element at both widths, so it is
+ * heard once.
  */
 export function ResendRefusal({ children }) {
     return (
-        <p
-            role="status"
-            className="mt-sign-in-form-stack flex items-center justify-center gap-refusal-gap text-body-sm text-foreground-muted max-sm:mt-mobile-code-help-stack max-sm:items-start max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"
-        >
-            <span className="flex h-[var(--text-body-sm--line-height)] items-center max-sm:h-[var(--text-mobile-body-sm--line-height)]">
-                <InfoMark size="size-icon" ring={1.5} />
-            </span>
-            <span>{children}</span>
-        </p>
+        <div className="mt-sign-in-form-stack max-sm:mt-mobile-code-help-stack">
+            <Refusal centered>{children}</Refusal>
+        </div>
     );
 }

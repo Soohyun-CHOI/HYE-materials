@@ -3,11 +3,11 @@
  * at Ink 0.20 with its clearance, going 0.34 under the pointer, and no arrow buttons.
  * Firefox draws its own bar; these rules are WebKit's.
  *
- * ONE STRING FOR EVERY LANE ON THE AXIS. The rail's column drew it first (#460), and a list
- * scrolls its rows in a lane of its own since #463, so the two read it from here rather
- * than spelling it twice. Whatever scrolls with it reserves the lane itself — overflow,
- * `scrollbar-gutter` and the overscroll rule are the caller's, since only the caller knows
- * when it scrolls.
+ * ONE STRING FOR EVERY LANE. The rail's column drew it first (#460), a list scrolls its rows
+ * in a lane of its own since #463, and the labels' pane and a sign-in step's column at a
+ * desk since #495, so each reads it from here rather than spelling it again. Whatever
+ * scrolls with it reserves the lane itself — overflow, `scrollbar-gutter` and the
+ * overscroll rule are the caller's, since only the caller knows when it scrolls.
  */
 export const SCROLL_LANE = [
     "[&::-webkit-scrollbar]:w-scrollbar [&::-webkit-scrollbar]:h-scrollbar [&::-webkit-scrollbar-track]:bg-transparent",

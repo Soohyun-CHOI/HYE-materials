@@ -63,11 +63,24 @@ function PersonIcon() {
  * WITH NOTHING TO RECORD THE BAR SAYS WHY, in the press's place: a retired tool (1f-c), or a
  * reader on no job. **Below the phone's edge and nowhere else**, which the bar's own class
  * decides, so the sticky bar is not held inside a wrapper of its own.
+ *
+ * IT TAKES WHAT A DESK'S DIALOG WAS GIVEN WHEN THE WINDOW CROSSES INTO IT (#495): the job and
+ * the name `carried` from the dialog the frame closed, each handing-over taken once. Its own
+ * sheets are inside it, so the frame closes one left open as the window widens past the edge
+ * and the bar hides — what it held is the bar's already.
  */
 export default function TransitionBar({ recentCheckOuts }) {
-    const { plan, toolItemId, pending, send } = useToolItemTransition();
+    const { plan, toolItemId, pending, send, carried } = useToolItemTransition();
     const [jobId, setJobId] = useState(() => onlyJob(plan.jobs)?.id ?? "");
     const [name, setName] = useState("");
+    const [taken, setTaken] = useState(null);
+    if (carried !== taken) {
+        setTaken(carried);
+        if (carried) {
+            setJobId(carried.jobId);
+            setName(carried.name);
+        }
+    }
     const [sheet, setSheet] = useState(null);
     // Which event a press asked for. A refusal that flips the status offers the other event
     // and the fields that go with it, which nobody has pressed for yet.

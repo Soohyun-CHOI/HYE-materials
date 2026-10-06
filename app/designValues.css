@@ -312,7 +312,7 @@
             opacity: 0;
         }
     }
-    --spacing-code-resend-offset: 0.25rem; /* 1e and 1a, 4: how far the resend control in the line under a code pulls left into the space before it, where it pulls 8 right — from the drawings, not the spec */
+    --color-code-resend-spinner-track: color-mix(in oklab, currentColor 25%, transparent); /* 1e and 1a: the resend control's spinner track, its words' Accent at 25% — from the drawings, not the spec */
 
     /* Tools 0a · App — what the phone screen takes in place of the web values, read
        under max-sm, whose 40rem is this repository's edge rather than the design's. */

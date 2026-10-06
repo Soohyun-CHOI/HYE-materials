@@ -65,8 +65,10 @@ import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition"
  *
  * ON THIS PAGE THAT SHEET IS NEVER SEEN. The row the press stands in is hidden below the
  * phone's edge, where the foot bar asks instead (#463), and a dialog left open as the window
- * narrows past it goes with the row while it stays modal — measured in #495 at 375: `:modal`,
- * and no box.
+ * narrows past it went with the row while it stayed modal — measured at 375: `:modal`, and
+ * no box. Since #495 the frame closes it there, and the job and the name it was given go to
+ * the foot bar (`ToolItemTransition.js`), so a phone turned upright mid-check-out keeps
+ * them.
  *
  * A SUBMISSION IN FLIGHT IS SAID IN WHAT SENT IT (#469). The frame is `busy` while the
  * dialog's event is on its way, so the commitment keeps its fill and after 300ms gives its
@@ -79,7 +81,7 @@ import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition"
  * failing on any JSX text under app/(tools)/.
  */
 export default function TransitionDialog({ currentJobCode, recentCheckOuts }) {
-    const { plan, toolItemId, answer, formAction, pending, send, open, opening, openDialog, closeDialog } = useToolItemTransition();
+    const { plan, toolItemId, answer, formAction, pending, send, open, opening, openDialog, closeDialog, carry } = useToolItemTransition();
     const refusal = useRefusalSentence(answer);
     const asks = asksBeforeRecording(plan);
     const one = onlyJob(plan.jobs);
@@ -120,6 +122,7 @@ export default function TransitionDialog({ currentJobCode, recentCheckOuts }) {
                     pending={pending}
                     refusal={open ? refusal : null}
                     onSend={send}
+                    onCarry={carry}
                 />
             )}
         </>
@@ -127,7 +130,7 @@ export default function TransitionDialog({ currentJobCode, recentCheckOuts }) {
 }
 
 /** The dialog itself: the job, for a check-out the name, and the commitment. */
-function TransitionForm({ open, onClose, plan, toolItemId, currentJobCode, recentCheckOuts, pending, refusal, onSend }) {
+function TransitionForm({ open, onClose, plan, toolItemId, currentJobCode, recentCheckOuts, pending, refusal, onSend, onCarry }) {
     // With one job it is already chosen, and with several nothing is (0l) — the tool item's
     // own job is not chosen for anybody: a person on several assignments is asked because the
     // app does not know which site they are at.
@@ -165,7 +168,15 @@ function TransitionForm({ open, onClose, plan, toolItemId, currentJobCode, recen
 
     return (
         <>
-            <DialogFrame open={open} onClose={onClose} busy={pending} title={COPY.control[plan.event]} onSubmit={submit} sheet>
+            <DialogFrame
+                open={open}
+                onClose={onClose}
+                onHidden={() => onCarry({ jobId: kept, name })}
+                busy={pending}
+                title={COPY.control[plan.event]}
+                onSubmit={submit}
+                sheet
+            >
                 <input type="hidden" name="toolItemId" value={toolItemId} />
                 {/* The event the page offered. The action re-derives it from the stored
                     status and compares — it never writes this value. */}

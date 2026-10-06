@@ -175,10 +175,23 @@ export function Notice({ children }) {
  * ITS ROLE STAYS `alert`, WHICH IS THIS APP'S RULE AND NOT THE DRAWING'S `status`. It answers
  * the reader's own press with a refusal, and the role says how that is heard, whatever ink the
  * drawing sets it in: a field's refusal and the phone's Notice are alerts for the same reason.
+ *
+ * `centered` IS A SIGN-IN STEP'S LINE (0o, #495): centered in the step's column from the
+ * phone's edge up, and below it set left at 15 and 4 in, as the line under a code stands. The
+ * steps drew it as a line of their own from #148, `role="status"` as the drawing has it, and
+ * it moved here when a dialog came to draw the same line — the move a part shared by a second
+ * screen waits on, as the Notice's did (#463).
  */
-export function Refusal({ children }) {
+export function Refusal({ centered = false, children }) {
     return (
-        <p role="alert" className="flex items-start gap-refusal-gap text-body-sm text-foreground-muted max-sm:in-data-[sheet]:text-mobile-body-sm">
+        <p
+            role="alert"
+            className={`flex items-start gap-refusal-gap text-body-sm text-foreground-muted ${
+                centered
+                    ? "justify-center max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"
+                    : "max-sm:in-data-[sheet]:text-mobile-body-sm"
+            }`}
+        >
             <span className="flex h-[var(--text-body-sm--line-height)] shrink-0 items-center">
                 <InfoMark size="size-icon" ring={1.5} />
             </span>

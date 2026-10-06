@@ -304,12 +304,13 @@ export function run({ check, assert, log }) {
     // there or on a sign-in page only: every such class is `max-sm:in-data-[sheet]:`, so the
     // width and the ancestor both decide it in CSS and a control in a desk's dialog keeps
     // 0a's — or it sits where only a sign-in page's control goes (#473): the `xl` size's own
-    // classes, a branch on `xl`, `labelHidden` or `suffix`, or the clear × only `xl` draws.
+    // classes, a branch on `xl`, `labelHidden` or `suffix`, or the clear × only `xl` draws —
+    // and since #495 a branch on a refusal's `centered`, which the sign-in steps alone pass.
     // A destructive commitment is filled red (0f Destructive), and a busy action of any kind
     // takes no hover and no press (0f Working), nor does one locked with it (#469) — both are
     // `aria-disabled`, which every hover and press is written against. Read through one
     // function, so the planted controls below are judged the same way.
-    const SIGN_IN_GATE = /\bxl\b|size === "xl"|\blabelHidden\b|\bsuffix\b/;
+    const SIGN_IN_GATE = /\bxl\b|size === "xl"|\blabelHidden\b|\bsuffix\b|\bcentered\b/;
     const controlFacts = ({ ast, source }) => {
         const constant = (name) => {
             let text = "";
@@ -365,6 +366,12 @@ export function run({ check, assert, log }) {
                 /\bgap-refusal-gap\b/.test(functionSource("Refusal")),
                 !/danger/.test(functionSource("Refusal")),
             ].join(" "),
+            // And centered it is a sign-in step's line (0o, #495): centered from the phone's edge
+            // up, and below it set left at 15 and 4 in, as the line under a code stands.
+            refusalCentered:
+                /\$\{\s*centered\s*\?\s*"justify-center max-sm:justify-start max-sm:gap-mobile-input-message-gap max-sm:px-mobile-input-message-inset-x max-sm:text-mobile-body-sm"\s*:\s*"max-sm:in-data-\[sheet\]:text-mobile-body-sm"\s*\}/.test(
+                    functionSource("Refusal")
+                ),
             // An action as wide as its words keeps its resting width (0f Working, #495): what it
             // shows while busy is laid over its label rather than sharing a cell with it.
             overLabel: [
@@ -394,6 +401,19 @@ export function run({ check, assert, log }) {
     check("  and a field's label 15 there", controlRules.label, true);
     check("  and a refusal of the whole dialog 15 there, in the refusal every form shares", controlRules.refusal, true);
     check("a refusal of the whole dialog is Ink 2 behind the info mark, 6 from it, and never Red (#495)", controlRules.refusalMessage, "true true true true");
+    check("  and centered, a sign-in step's: centered from the phone's edge up, below it set left at 15 and 4 in (#495)", controlRules.refusalCentered, true);
+    // `centered` IS A SIGN-IN STEP'S ALONE, which is what lets the phone-size rule below excuse
+    // it: a dialog drawing one would put the step's phone sizes outside a sheet.
+    const centeredRefusals = listJsFiles(repoPath("app"))
+        .map((abs) => toPosix(abs).slice(toPosix(REPO_ROOT).length + 1))
+        .filter((rel) => {
+            let found = false;
+            walk(parseFile(rel).ast, (n) => {
+                if (n.type === "JSXOpeningElement" && n.name?.name === "Refusal" && n.attributes.some((a) => a.name?.name === "centered")) found = true;
+            });
+            return found;
+        });
+    check("  drawn centered by the sign-in steps alone", centeredRefusals.join(" | "), "app/login/SignInParts.js");
     check("a busy action keeps its resting width, what it shows laid over its label (#495)", controlRules.overLabel, "true true true");
     check("no phone size reaches a control outside a sheet but a sign-in page's", controlRules.phoneOnlyInSheet, 0);
     check("  and the clear × that carries one is drawn only at a sign-in page's size", controlRules.clearGate, true);
@@ -562,7 +582,17 @@ export function run({ check, assert, log }) {
                 /if \(!heading\.hasAttribute\("tabindex"\)\) heading\.tabIndex = -1;/.test(heading),
                 /heading\.focus\(\)/.test(heading),
             ].join(" "),
-            onClose: /dialog\.close\(\);\s*if \(unprompted\) focusPageHeading\(\);/.test(source),
+            // Since #495 a closing also sends focus there when the opener did not take it back,
+            // which an opener its page has hidden cannot.
+            onClose: /const opener = openerRef\.current;\s*dialog\.close\(\);\s*\/\/[^\n]*\n\s*if \(unprompted \|\| \(opener !== null && document\.activeElement !== opener\)\) focusPageHeading\(\);/.test(
+                source
+            ),
+            // A dialog its page stops drawing closes as the window changes size, after the
+            // owner's `onHidden` and whether or not it is busy (#495).
+            hidden: [
+                /window\.addEventListener\("resize", onResize\)/.test(source),
+                /if \(!dialog\.open \|\| dialog\.checkVisibility\(\)\) return;\s*onHidden\?\.\(\);\s*onClose\(\);/.test(source),
+            ].join(" "),
             describes: [
                 /closest\("dialog"\)/.test(message),
                 /setAttribute\("aria-describedby", id\)/.test(message),
@@ -573,7 +603,8 @@ export function run({ check, assert, log }) {
     };
     const frameRules = frameFacts(frame);
     check("  a dialog no press opened hands focus to the page's heading, made focusable", frameRules.heading, "true true true");
-    check("  and only one marked unprompted, in the branch that closes it", frameRules.onClose, true);
+    check("  and only one marked unprompted, or one its opener did not take focus back from, in the branch that closes it (#495)", frameRules.onClose, true);
+    check("a dialog its page stops drawing closes as the window changes size, busy or not, after its owner's onHidden (#495)", frameRules.hidden, "true true");
     check("  a dialog's sentence describes the dialog it stands in, and stops when it goes", frameRules.describes, "true true true");
     check("  and the actions wrap rather than run off a narrow dialog", frameRules.wraps, true);
 
@@ -1187,6 +1218,7 @@ export function run({ check, assert, log }) {
     );
     check("  a heading neither found nor made focusable is seen", plantedFrame.heading, "false false true");
     check("  a return to it on every close is seen", plantedFrame.onClose, false);
+    check("  a frame that never asks whether it is drawn is seen", plantedFrame.hidden, "false false");
     check("  a sentence describing nothing is seen", plantedFrame.describes, "false false false");
     check("  and actions held on one line are seen", plantedFrame.wraps, false);
     // The build reader is seen to fail on a frame that gives a preview the Compact build's

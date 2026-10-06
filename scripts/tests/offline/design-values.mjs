@@ -167,10 +167,12 @@ const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
  * names still marked for it — 0b's row, column head and bleed, a list head's 20 above it,
  * and the selection bar's four — and declared the lists' own with them, 1a and 1b's
  * figures where the spec states none, and 0j's Badge and 0e's Ink 5 for the checkbox.
- * #495 declared seven with their readers when the design's final files reached the merged
+ * #495 declared eight with their readers when the design's final files reached the merged
  * screens — the account menu's offset and entrance, a menu's head, a selection bar's reason,
- * the phone menu's account row and its room — and renamed the sign-in page's refusal gap for
- * the line a dialog draws the same way now, `--spacing-refusal-gap`.
+ * the phone menu's account row and its room, and the resend control's spinner track — renamed
+ * the sign-in page's refusal gap for the line a dialog draws the same way now,
+ * `--spacing-refusal-gap`, and undeclared the 4 the resend control pulled left, which pulls
+ * its whole 8 now.
  * No issue is marked to read a name next.
  */
 const READERS_TO_COME = [];
@@ -433,7 +435,8 @@ const VALUES = [
     ["--width-code-caret", "0.125rem", null],
     ["--height-code-caret", "1.5rem", null],
     ["--animate-code-caret", "code-caret-blink 1s steps(1) infinite", null],
-    ["--spacing-code-resend-offset", "0.25rem", null],
+    // The resend control's spinner, whose words are Accent (#495).
+    ["--color-code-resend-spinner-track", "color-mix(in oklab, currentColor 25%, transparent)", null],
     // Tools 0a · App — #458's sheets and #473's step pages read theirs; the foot bar's 12
     // between its rows waits on #463's tool item page.
     ["--spacing-mobile-gutter", "1rem", null],

@@ -79,7 +79,10 @@ never a choice of transition: the status decides which one. **A desk asks it in
 the header**, on the right and centered on the heading's line: the press or
 the dialog it opens (1c, 1d). **A phone asks it in the foot bar** (1f): the job
 as a pill, for a check-out a field for who it goes to, and the press, at the
-foot of the screen and riding on the keyboard.
+foot of the screen and riding on the keyboard. **They are one transition in two
+drawings**: a phone on its side is wide enough to draw the desk, and a dialog
+left open as it turns upright closes, the job and the name it was given
+standing in the foot bar (#495).
 
 **A CHECK-OUT ALSO ASKS WHO THE TOOL IS GOING TO, AND A CHECK-IN DOES NOT.**
 At a desk the check-out's dialog asks it under the job, in a field labeled
