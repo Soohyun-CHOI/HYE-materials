@@ -329,7 +329,7 @@ export function run({ check, assert, log }) {
     // been printed, so no artifact carries the old segment and a branch admitting it
     // would have no caller — #340's ground for refusing a comparison it could not
     // reach. Typing one produces a doubled token, which resolves to no tool item and
-    // meets the axis's own `Tool item not found`.
+    // meets the axis's own `Tool not found`.
     assert(
         "a whole Tool Item ID is not silently accepted as a code",
         toolItemIdFromLabelCode("HYE-TL-260909-004") === "HYE-TL-HYE-TL-260909-004"

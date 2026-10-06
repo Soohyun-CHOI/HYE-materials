@@ -751,13 +751,16 @@ export function run({ check, assert, log }) {
     // THE FORK'S HALF (#449, #455, #459). `Not now` has to edit the CURRENT address and
     // take the fork's own two keys out of it: an address rebuilt from anything the render
     // was handed would put back a selection the reader has since changed, and deleting
-    // `unlogged` too would take the notice's ids with it. `Create the rest` has to carry
-    // the count the fork was handed into the registration dialog, and since #459 the fork
-    // is a dialog of its own: open while `accountToTell` tells it and the registration is
+    // `unlogged` too would take the notice's ids with it. `Add 2 more` has to carry the
+    // count the fork was handed into the registration dialog — and since #485 it names that
+    // count, so its words and the dialog are handed one value — and since #459 the fork is
+    // a dialog of its own: open while `accountToTell` tells it and the registration is
     // shut, closed with `Not now` on the close and on Escape as on its own answer, handing
     // focus to the page's heading, and opening the form through the one opening rule
-    // behind the one gate. None of that moves a figure, so it is read off the source — and
-    // the notice's `Got it` below is held the same way.
+    // behind the one gate. Its title and its sentence are read here too (#485), as the
+    // expressions whose values `offline/tool-registration.mjs` holds for a batch that
+    // failed. None of that moves a figure, so it is read off the source — and the
+    // notice's `Got it` below is held the same way.
     const FORK = "app/(tools)/tools/[toolRecordId]/RegistrationShortfall.js";
     const NOTICE = "app/(tools)/tools/[toolRecordId]/RegistrationUnlogged.js";
     const forkFacts = ({ ast, source }) => {
@@ -773,14 +776,29 @@ export function run({ check, assert, log }) {
         let frame = null;
         let told = null;
         let registration = null;
+        // The count the answer that goes on names, and the count the form is handed (#485).
+        let offers = "none";
+        let handed = "none";
+        // What the dialog says: its title and its one sentence, as expressions (#485).
+        let titled = "none";
+        let message = "none";
         const answers = [];
         walk(ast, (n) => {
             if (n.type === "MemberExpression" && nameOf(n) === "window.location.href") readsLocation = true;
-            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationForm") opens = dialogProps(n);
+            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationForm") {
+                opens = dialogProps(n);
+                const quantity = n.attributes.find((a) => a.name?.name === "quantity");
+                if (quantity) handed = text(quantity.value?.expression);
+            }
             // The gate and what it says: its props, and the one expression it holds.
             if (n.type === "JSXElement" && n.openingElement.name?.name === "RegistrationOpener") {
                 const said = n.children.find((c) => c.type === "JSXExpressionContainer");
                 gate = `${dialogProps(n.openingElement)} → ${text(said?.expression)}`;
+                if (said?.expression?.type === "CallExpression") offers = said.expression.arguments.map(text).join(", ");
+            }
+            if (n.type === "JSXElement" && n.openingElement.name?.name === "DialogMessage") {
+                const said = n.children.find((c) => c.type === "JSXExpressionContainer");
+                if (said) message = text(said.expression);
             }
             // The frame: when it is open, what closing it answers, and whether a press opened it.
             if (n.type === "JSXOpeningElement" && n.name?.name === "DialogFrame") {
@@ -789,6 +807,7 @@ export function run({ check, assert, log }) {
                 frame = `open: ${text(attribute("open")?.value?.expression)} · onClose: ${text(
                     attribute("onClose")?.value?.expression
                 )} · ${unprompted ? "unprompted" : "prompted"}`;
+                if (attribute("title")) titled = text(attribute("title").value?.expression);
             }
             // The dialog's own answers, by what each one runs.
             if (n.type === "JSXOpeningElement" && n.name?.name === "Button") {
@@ -805,7 +824,24 @@ export function run({ check, assert, log }) {
             if (callee === "toolPath") rebuilt++;
             if (callee === "useRouter" || /^router\./.test(callee)) routed.push(callee);
         });
-        return { deleted, added, replaced, rebuilt, readsLocation, routed, opens, gate, frame, told, registration, answers: answers.join(", ") };
+        return {
+            deleted,
+            added,
+            replaced,
+            rebuilt,
+            readsLocation,
+            routed,
+            opens,
+            gate,
+            frame,
+            told,
+            registration,
+            offers,
+            handed,
+            titled,
+            message,
+            answers: answers.join(", "),
+        };
     };
     const fork = forkFacts(parseFile(FORK));
     check("the fork's dismissal takes exactly its own two keys out of the address", fork.deleted.join(", "), "asked, unwritten");
@@ -821,11 +857,23 @@ export function run({ check, assert, log }) {
     );
     check("  whose own answer that stops is the same `Not now`", fork.answers, "notNow");
     check("its answer that goes on opens through the one opening rule", fork.registration, "useRegistrationOpening()");
-    check("  behind the one gate, in the fork's own words", fork.gate, "canRegister: canRegister, onOpen: registration.start → COPY.registerOthers");
+    check(
+        "  behind the one gate, in the fork's own words",
+        fork.gate,
+        "canRegister: canRegister, onOpen: registration.start → COPY.registerOthers(account.unwritten)"
+    );
     check(
         "  onto the registration form on this tool, with the count it was handed",
         fork.opens,
         "jobs: jobs, key: registration.opening, onClose: registration.close, open: registration.open, quantity: account.unwritten, tool: { toolName }"
+    );
+    // ONE VALUE FOR THE WORDS AND THE FORM (#485): the answer names how many it will add, and
+    // the dialog it opens starts at that count, so both are handed the same expression.
+    check("  naming the count it hands the form, one value for both", `${fork.offers} | ${fork.handed}`, "account.unwritten | account.unwritten");
+    check(
+        "its title and its sentence, from the account it was handed",
+        `${fork.titled} · ${fork.message}`,
+        "COPY.shortfallHeading({ created: account.asked - account.unwritten, asked: account.asked }) · COPY.shortfall(account.unwritten)"
     );
     // ANTI-VACUITY: a planted fork doing each of those wrong is seen doing it.
     const plantedFork = forkFacts(
@@ -842,9 +890,10 @@ export function run({ check, assert, log }) {
                 "    router.replace(`${address.pathname}${address.search}`);\n" +
                 "  };\n" +
                 "  return (<>\n" +
-                "    <DialogFrame open={told} onClose={() => {}}>\n" +
+                "    <DialogFrame open={told} onClose={() => {}} title={COPY.shortfallHeading({ created: account.asked, asked: account.asked })}>\n" +
+                "      <DialogMessage>{COPY.shortfall(account.asked)}</DialogMessage>\n" +
                 "      <Button onClick={finish}>{COPY.doneRegistering}</Button>\n" +
-                "      <RegistrationOpener canRegister={true} onOpen={() => {}}>{COPY.heading}</RegistrationOpener>\n" +
+                "      <RegistrationOpener canRegister={true} onOpen={() => {}}>{COPY.registerOthers(account.asked)}</RegistrationOpener>\n" +
                 "    </DialogFrame>\n" +
                 "    <RegistrationForm open={true} onClose={finish} jobs={jobs} tool={{ toolName: toolRecordId }} quantity={requested} />\n" +
                 "  </>);\n" +
@@ -864,11 +913,21 @@ export function run({ check, assert, log }) {
         "open: told · onClose: () => {} · prompted"
     );
     check("  an opening kept by itself is seen", plantedFork.registration, "{ open: false }");
-    check("  a gate opened on nothing and another word is seen", plantedFork.gate, "canRegister: true, onOpen: ArrowFunctionExpression → COPY.heading");
     check(
-        "  and a form opened on another record, another count and always is seen",
+        "  a gate opened on nothing, naming another count, is seen",
+        plantedFork.gate,
+        "canRegister: true, onOpen: ArrowFunctionExpression → COPY.registerOthers(account.asked)"
+    );
+    check(
+        "  a form opened on another record, another count and always is seen",
         plantedFork.opens,
         "jobs: jobs, onClose: finish, open: true, quantity: requested, tool: { toolName: toolRecordId }"
+    );
+    check("  the words naming one count and the form handed another are seen", `${plantedFork.offers} | ${plantedFork.handed}`, "account.asked | requested");
+    check(
+        "  and a title and a sentence counting the wrong things are seen",
+        `${plantedFork.titled} · ${plantedFork.message}`,
+        "COPY.shortfallHeading({ created: account.asked, asked: account.asked }) · COPY.shortfall(account.asked)"
     );
 
     // THE NOTICE'S HALF (#455, #459). `Got it` is the same act on the other key: the
@@ -917,8 +976,8 @@ export function run({ check, assert, log }) {
     );
 
     // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A tool's page
-    // opens it on that tool and with no count, in the dialog's own title — the design's
-    // `New tools` — and the list opens it on no tool. Each stands under no condition: a
+    // opens it on that tool and with no count, in the dialog's own title — `Add tools` since
+    // #485 — and the list opens it on no tool. Each stands under no condition: a
     // tool with nothing under it keeps its opener, and so does a reader on no job, whom
     // the opener itself tells why it cannot act (0f). What decides that is one predicate,
     // `canRegisterToolItems`, asked by each page and handed down, so no opener answers the

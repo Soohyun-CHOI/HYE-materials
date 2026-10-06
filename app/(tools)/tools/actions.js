@@ -42,10 +42,10 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * selected — so the ids survive a reload and their labels are one press of that page's
  * print control. The address also carries the two things the landing cannot show: how
  * many were asked for and not written — with how many were asked for beside it, since
- * #455's `3 of 5 tools created` needs both — and which of those written have no
- * `Created` row (`toolPath`'s fourth argument, read back by `readRegistrationAccount`).
- * The record id was in hand without a read: `upsertTool` returns the row it found or
- * made.
+ * the fork's title, `3 of 5 tools added` (#455, #485), needs both — and which of those
+ * written have no `Created` row (`toolPath`'s fourth argument, read back by
+ * `readRegistrationAccount`). The record id was in hand without a read: `upsertTool`
+ * returns the row it found or made.
  *
  * THE FIRST PAGE, BECAUSE THE LIST READS NEWEST FIRST (#463). What a registration wrote
  * is the newest the tool holds, so it begins the list whatever the tool held before,

@@ -48,17 +48,23 @@
 // still on the address. What each dialog does with the answer is read off the source in
 // `offline/tool-list-view.mjs`, beside the rest of the page.
 //
-// AND SINCE #455 THE WORDS ARE THE DESIGN'S, pinned by value — `create` for the act and
-// `tool` for what one creates — and since #456 the dialog's own words with them. The
-// scanner that failed a bare `item` here went with the rule it held: that rule was the
-// tools area's stricter reading of #303, and the design reversed it. What replaces it
-// is the sweep's own claim, that no string in the constant says `tool item`.
-// `offline/tool-screen-words.mjs` holds the verb across every tools screen.
+// AND SINCE #455 THE WORDS ARE THE DESIGN'S, pinned by value — `tool` for what the act
+// makes, and the act `add` since #485 where #455 made it `create` — and since #456 the
+// dialog's own words with them. The scanner that failed a bare `item` here went with the
+// rule it held: that rule was the tools area's stricter reading of #303, and the design
+// reversed it. What replaces it is the sweep's own claim, that no string in the constant
+// says `tool item`. `offline/tool-screen-words.mjs` holds the verb across every tools
+// screen.
 //
-// AND SINCE #469 WHAT THE COMMITMENT SAYS: the count it will create, by value through the
-// reading the press makes, and `Creating…` while it sends — read off the dialog as the
+// AND SINCE #469 WHAT THE COMMITMENT SAYS: the count it will add, by value through the
+// reading the press makes, and `Adding…` while it sends — read off the dialog as the
 // expressions that decide them, with no button disabled for the sending. What the frame
 // does with its busy state is `offline/dialog-frame.mjs`'s.
+//
+// AND SINCE #485 HOW MANY THE FORK'S ANSWER OFFERS: the count not written, which is also
+// the count the dialog it opens starts at — by value here, through `openingCount`, and in
+// what a failed batch leaves on its landing (section 9). That the fork hands the one value
+// to both is `offline/tool-list-view.mjs`'s, off the source.
 //
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
@@ -86,7 +92,7 @@ import { fakeBase } from "./_fakeBase.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
-    "Registering tool items — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470)";
+    "Registering tool items — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(tools)/tools/actions.js";
@@ -110,7 +116,7 @@ function copyStrings() {
     out.push(TOOL_REGISTRATION_COPY.submit(null), TOOL_REGISTRATION_COPY.submit(1), TOOL_REGISTRATION_COPY.submit(5));
     out.push(TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }));
     for (const n of [1, 4]) {
-        out.push(TOOL_REGISTRATION_COPY.shortfall(n));
+        out.push(TOOL_REGISTRATION_COPY.shortfall(n), TOOL_REGISTRATION_COPY.registerOthers(n));
         out.push(TOOL_REGISTRATION_COPY.unloggedHeading(n), TOOL_REGISTRATION_COPY.unlogged(n));
     }
     return out;
@@ -283,9 +289,10 @@ export async function run({ check, assert, log }) {
             .join(", "),
         ""
     );
-    // THE DESIGN'S WORDS, BY VALUE (#455, #456). The title is also the list's and a tool's
-    // page's opener, so the three are one string; the submit names what it makes.
-    check("the title, which both openers that begin a registration say", TOOL_REGISTRATION_COPY.heading, "New tools");
+    // THE DESIGN'S WORDS, BY VALUE (#455, #456), AND THE ACT'S VERB `add` (#485). The title
+    // is also the list's and a tool's page's opener, so the three are one string; the submit
+    // names what it adds.
+    check("the title, which both openers that begin a registration say", TOOL_REGISTRATION_COPY.heading, "Add tools");
     check("  the line under it, opened on no tool", TOOL_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
     check("  the name's label", TOOL_REGISTRATION_COPY.nameLabel, "Tool name");
     check("  and its placeholder", TOOL_REGISTRATION_COPY.namePlaceholder, "e.g. Impact Driver, Milwaukee");
@@ -296,21 +303,21 @@ export async function run({ check, assert, log }) {
     // THE SUBMIT NAMES WHAT IT MAKES BY ITS COUNT (#469, 1j) — and only a count the press
     // takes: the dialog hands it `readQuantity`'s count for what the field holds, so the
     // words over a count the press would refuse say the act alone, as 1j's Refused does.
-    check("  the submit, for one", TOOL_REGISTRATION_COPY.submit(1), "Create 1 tool");
-    check("  for several", TOOL_REGISTRATION_COPY.submit(5), "Create 5 tools");
-    check("  at the ceiling", TOOL_REGISTRATION_COPY.submit(100), "Create 100 tools");
-    check("  and over a count the press would refuse", TOOL_REGISTRATION_COPY.submit(null), "Create tools");
+    check("  the submit, for one", TOOL_REGISTRATION_COPY.submit(1), "Add 1 tool");
+    check("  for several", TOOL_REGISTRATION_COPY.submit(5), "Add 5 tools");
+    check("  at the ceiling", TOOL_REGISTRATION_COPY.submit(100), "Add 100 tools");
+    check("  and over a count the press would refuse", TOOL_REGISTRATION_COPY.submit(null), "Add tools");
     for (const [raw, expected, why] of [
-        ["1", "Create 1 tool", "  the field's 1, read as the press reads it"],
-        [" 12 ", "Create 12 tools", "  a dozen, its spaces trimmed as the press trims them"],
-        ["100", "Create 100 tools", "  the ceiling, typed"],
-        ["", "Create tools", "  nothing typed"],
-        ["0", "Create tools", "  zero"],
-        ["101", "Create tools", "  one past the ceiling"],
-        ["140", "Create tools", "  1j's refused 140"],
+        ["1", "Add 1 tool", "  the field's 1, read as the press reads it"],
+        [" 12 ", "Add 12 tools", "  a dozen, its spaces trimmed as the press trims them"],
+        ["100", "Add 100 tools", "  the ceiling, typed"],
+        ["", "Add tools", "  nothing typed"],
+        ["0", "Add tools", "  zero"],
+        ["101", "Add tools", "  one past the ceiling"],
+        ["140", "Add tools", "  1j's refused 140"],
     ])
         check(why, TOOL_REGISTRATION_COPY.submit(readQuantity(raw).count), expected);
-    check("  and while it is on its way, 0f's -ing word with no count", TOOL_REGISTRATION_COPY.working, "Creating…");
+    check("  and while it is on its way, 0f's -ing word with no count", TOOL_REGISTRATION_COPY.working, "Adding…");
     check("  and the way out", TOOL_REGISTRATION_COPY.cancel, "Cancel");
     // THE PREVIEW (#456): a tool that exists, with its count in the words its own page
     // heads its list with, and a name that coins one.
@@ -334,17 +341,19 @@ export async function run({ check, assert, log }) {
     check("  a count past the ceiling", TOOL_REGISTRATION_COPY.quantityTooMany(100), "Max 100 at a time.");
     check("  a job not chosen, the picker's own word", TOOL_REGISTRATION_COPY.jobNoneChosen, TOOL_JOB_COPY.noneChosen);
     check("  a job not the reader's, the picker's own word", TOOL_REGISTRATION_COPY.jobNotYours, TOOL_JOB_COPY.notYours);
-    check("nothing written", TOOL_REGISTRATION_COPY.noneWritten, "Couldn't create the tools. Try again.");
+    check("nothing written", TOOL_REGISTRATION_COPY.noneWritten, "Couldn't add the tools. Try again.");
     check("why an opener cannot act, for a reader on no job", TOOL_REGISTRATION_COPY.noJob, "Ask the office to assign you to a job");
     // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's title, its one
     // sentence and its two answers, one going on and one stopping — and the notice, whose
     // one control dismisses it and repairs nothing, because nothing repairs what it names.
     // Each is a dialog since #459, and each sentence is 1k's as far as it goes: what 1k
-    // adds about the ones that were created is the selection's to say (#321).
-    check("the fork's title", TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }), "3 of 5 tools created");
-    check("  its sentence", TOOL_REGISTRATION_COPY.shortfall(2), "2 couldn't be created.");
-    check("  at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 couldn't be created.");
-    check("  the answer that goes on", TOOL_REGISTRATION_COPY.registerOthers, "Create the rest");
+    // adds about the ones that were added is the selection's to say (#321). The answer that
+    // goes on names how many are left since #485, and says `more` at one as at two.
+    check("the fork's title", TOOL_REGISTRATION_COPY.shortfallHeading({ created: 3, asked: 5 }), "3 of 5 tools added");
+    check("  its sentence", TOOL_REGISTRATION_COPY.shortfall(2), "2 couldn't be added.");
+    check("  at one", TOOL_REGISTRATION_COPY.shortfall(1), "1 couldn't be added.");
+    check("  the answer that goes on, naming how many are left", TOOL_REGISTRATION_COPY.registerOthers(2), "Add 2 more");
+    check("  and that answer at one", TOOL_REGISTRATION_COPY.registerOthers(1), "Add 1 more");
     check("  and the one that stops", TOOL_REGISTRATION_COPY.doneRegistering, "Not now");
     check("the notice's title", TOOL_REGISTRATION_COPY.unloggedHeading(2), "2 tools have no creation date");
     check("  at one", TOOL_REGISTRATION_COPY.unloggedHeading(1), "1 tool has no creation date");
@@ -383,6 +392,20 @@ export async function run({ check, assert, log }) {
         ["four", "a word"],
     ])
         check(`  ${why} opens at one`, openingCount(raw), 1);
+    // THE FORK'S ANSWER NAMES THE COUNT ITS DIALOG OPENS AT (#485). The fork hands both the
+    // count not written — `offline/tool-list-view.mjs` reads that off the source — so over
+    // every count a shortfall can carry, from one to one short of the ceiling, the words, the
+    // count the dialog starts at and the commitment it then shows name one number.
+    for (const [unwritten, expected, why] of [
+        [1, "Add 1 more → Add 1 tool", "the fork's answer names the count its dialog opens at, at the smallest shortfall"],
+        [2, "Add 2 more → Add 2 tools", "  at 1k's two"],
+        [99, "Add 99 more → Add 99 tools", "  and at the largest a shortfall can carry"],
+    ])
+        check(
+            why,
+            `${TOOL_REGISTRATION_COPY.registerOthers(unwritten)} → ${TOOL_REGISTRATION_COPY.submit(readQuantity(String(openingCount(unwritten))).count)}`,
+            expected
+        );
 
     const reading = (submitted, offered = jobs) => JSON.stringify(readRegistration(submitted, offered));
     const good = { toolName: "  Impact Driver ", quantity: "5", jobId: "job2" };
@@ -413,7 +436,7 @@ export async function run({ check, assert, log }) {
     log("a registration's landing carries what it could not show, and nothing it cannot have:");
     // A SHORTFALL IS A PAIR SINCE #455: how many were asked for, and how many of those
     // were not written. `1 ≤ unwritten < asked ≤ the ceiling`, read as one value, since
-    // `3 of 5 tools created` is false the moment either half is.
+    // `3 of 5 tools added` is false the moment either half is.
     const accountOf = (asked, unwritten) => {
         const account = readRegistrationAccount({ asked, unwritten });
         return `${account.asked}/${account.unwritten}`;
@@ -915,9 +938,10 @@ export async function run({ check, assert, log }) {
         "openedAt !== null && openedAt === address where address = useSearchParams().toString()"
     );
     // ITS COMMITMENT NAMES ITS COUNT AS THE PRESS WILL READ IT, AND SAYS IT IS SENDING (#469):
-    // the words through `readQuantity`, the one reading of a count, and 1j's `Creating…`
-    // handed over for the frame's busy state, with no button disabled while the dialog sends —
-    // a disabled one gives focus up to the document, which the frame's state exists to stop.
+    // the words through `readQuantity`, the one reading of a count, and its working word —
+    // `Adding…` since #485 — handed over for the frame's busy state, with no button disabled
+    // while the dialog sends: a disabled one gives focus up to the document, which the
+    // frame's state exists to stop.
     check(
         "its commitment names the count the press would take, and gives way to its working word",
         dialog.commitment,
@@ -977,7 +1001,12 @@ export async function run({ check, assert, log }) {
     // then a first log row for each that landed — its id `nextChildId` over no siblings —
     // written the same way. The account they leave goes onto a landing through `toolPath`
     // and is read back the way the tool's page reads it, so each assertion is about what
-    // the reader is told. The fake is `airtable-batch.mjs`' own (`_fakeBase.mjs`).
+    // the reader is told. The fake is `airtable-batch.mjs`' own (`_fakeBase.mjs`). **The fork
+    // is said whole since #485** — its title, its sentence and the answer that goes on, each
+    // built from the account as `RegistrationShortfall.js` builds it, which
+    // `offline/tool-list-view.mjs` reads off that file — because a browser can draw that
+    // dialog only from an address typed by hand, and this is where a failed batch is the one
+    // that wrote it.
     log("");
     log("a registration whose batch fails says how many were written, and which have no first row (#470):");
     const FIRST_ROW = childKind("Tool Items", "Tool Log");
@@ -1010,7 +1039,7 @@ export async function run({ check, assert, log }) {
         const told = (query = address) => accountToTell(account, query);
         const said =
             account.unwritten > 0
-                ? `${TOOL_REGISTRATION_COPY.shortfallHeading({ created: account.asked - account.unwritten, asked: account.asked })} — ${TOOL_REGISTRATION_COPY.shortfall(account.unwritten)}`
+                ? `${TOOL_REGISTRATION_COPY.shortfallHeading({ created: account.asked - account.unwritten, asked: account.asked })} — ${TOOL_REGISTRATION_COPY.shortfall(account.unwritten)} — ${TOOL_REGISTRATION_COPY.registerOthers(account.unwritten)}`
                 : "";
         return { created, account, address, told, said, rows: [...logBase.held.keys()] };
     };
@@ -1023,13 +1052,13 @@ export async function run({ check, assert, log }) {
     {
         const refused = await register(25, { toolAnswer: (n) => (n === 1 ? { land: 0 } : null) });
         check("a tool items request refused whole: what landed before it is selected", refused.address.getAll("id").join(" "), printed(1, 10));
-        check("  and the fork says the rest", refused.said, "10 of 25 tools created — 15 couldn't be created.");
+        check("  and the fork says the rest, and offers it", refused.said, "10 of 25 tools added — 15 couldn't be added. — Add 15 more");
         check("  with nothing unlogged, since every one written has its first row", `${refused.told()} ${refused.account.unlogged.length}`, "shortfall 0");
     }
     {
         const lost = await register(25, { toolAnswer: (n, rows) => (n === 1 ? { land: rows.length } : null) });
         check("its answer lost after the rows landed: the read-back selects twenty", lost.address.getAll("id").join(" "), printed(1, 20));
-        check("  and the fork says five", lost.said, "20 of 25 tools created — 5 couldn't be created.");
+        check("  and the fork says five, and offers them", lost.said, "20 of 25 tools added — 5 couldn't be added. — Add 5 more");
         check("  each of the twenty with its first row, minted with no read", `${lost.rows.length} ${lost.rows[0]} ${lost.rows[19]}`, "20 HYE-TL-261001-001-001 HYE-TL-261001-020-001");
     }
     {
@@ -1050,7 +1079,7 @@ export async function run({ check, assert, log }) {
             logAnswer: (n) => (n === 1 ? { land: 0 } : null),
         });
         check("both passes failing: the notice first, naming the second ten", `${both.told()} ${both.account.unlogged.join(" ")}`, `unlogged ${printed(11, 20)}`);
-        check("  then the fork, for the five never written", `${both.told(without(both.address, "unlogged"))} — ${both.said}`, "shortfall — 20 of 25 tools created — 5 couldn't be created.");
+        check("  then the fork, for the five never written", `${both.told(without(both.address, "unlogged"))} — ${both.said}`, "shortfall — 20 of 25 tools added — 5 couldn't be added. — Add 5 more");
     }
 
     // ── anti-vacuity ───────────────────────────────────────────────────────

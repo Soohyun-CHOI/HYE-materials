@@ -1,4 +1,4 @@
-# New tools
+# Add tools
 
 Opens from: `/tools` and `/tools/[toolRecordId]`, as a dialog over the page that
 opens it — it was the page `/tools/new` until #456.
@@ -23,10 +23,10 @@ a person typed once, `Impact Driver`. A `Tool Items` row — the base's **tool
 item**, which is what this brief calls it — is one physical drill, the thing a
 QR label is stuck to, carrying an id that is printed. **On the screen both are
 `tool`, which is the design's word**: the name field names the kind, and
-`Create tools` makes the units. The one sentence that names both at once, the
+`Add 5 tools` makes the units. The one sentence that names both at once, the
 preview below, counts the second in `items` — the word a tool's own screen
 counts them in — rather than a second `tool` meaning something else. Six of one
-drill is one tool and six tools created under it.
+drill is one tool and six tools added under it.
 **Never `tool item` on screen.**
 
 **Typing the name of a tool the company already owns is the ordinary case, not
@@ -38,12 +38,12 @@ the one that is already there.
 
 ## What it always carries
 
-**identity.** The heading, `New tools` — the word `/tools` and a tool's own
-screen open it with, so the two cannot drift.
+**identity.** The heading, `Add tools` (#485) — the word `/tools` and a tool's
+own screen open it with, so the two cannot drift.
 
 **action.** Three controls, and the submit beside `Cancel`, which names what it
-will create by its count — `Create 1 tool`, `Create 5 tools` — and says
-`Create tools` while the count is one a submission would refuse (#469):
+will add by its count — `Add 1 tool`, `Add 5 tools` — and says `Add tools`
+while the count is one a submission would refuse (#469):
 
 - The tool's name, typed. Any name may be typed — the name is the identity,
   and a person buying a kind nobody has registered has to be able to name it —
@@ -81,10 +81,11 @@ in a choice holding that one job.
 and no other job is offered.
 
 **When it is opened on a tool (#449, #451, #456):** a tool's own screen opens it
-on that tool with its `New tools`, and after a registration that fell short, its
-`Create the rest` opens it on that tool with the count that was not written. The
-tool is named on the line under the title and is not a field there, so what is
-created goes under the tool that screen is about; another tool is named from
+on that tool with its `Add tools`, and after a registration that fell short, its
+`Add 2 more` opens it on that tool with the count that was not written — the
+count those words name (#485). The tool is named on the line under the title
+and is not a field there, so what is added goes under the tool that screen is
+about; another tool is named from
 `/tools`. The count starts at the one handed over, and at 1 when none is — where
 it starts on `/tools` too — and is the reader's to change. **The dialog says
 nothing about why the count is filled**: a line saying so would be a second
@@ -111,14 +112,14 @@ undone** in either case, because their ids are spent and a later registration
 would re-issue them onto different tools.
 
 **While a registration is on its way (#469):** the submit keeps its color and,
-after a moment, says `Creating…` beside a spinner; nothing in the dialog takes a
+after a moment, says `Adding…` beside a spinner; nothing in the dialog takes a
 press or a keystroke, and it does not close. **That is the submit at work and
 not a submit that cannot act**, and a design must keep the two apart: one that
 cannot act is drawn faded with why before it, and this one keeps its full
 color, because the press it is waiting on has happened.
 
 **When nothing was written:** one sentence on the line above the actions —
-`Couldn't create the tools. Try again.` The dialog stays, and **everything
+`Couldn't add the tools. Try again.` The dialog stays, and **everything
 typed stays with it** — the name, the count and the job — because what the
 sentence asks for is the same submit again. The tool may exist by then, since a
 registration writes the tool before its tool items, and `/tools` and the tool's
@@ -138,15 +139,21 @@ field keeps what was typed through any of them.
 design's way (#455).** A tool, and the tools under it — `items` where a tool's
 own screen counts them, and where this dialog does. The same words govern `/tools`, the tool's own screen
 and the tool item's, so a word chosen here is chosen for all of them. **The act
-is `create` on every screen**; the code and these briefs call it registration,
-which is the code's word, and no string a tools screen renders may say that.
+is `add` (#485)**, whether the name typed is a tool the company has or a new one
+— the line under the name says which — where it was `create` from #455; the
+code and these briefs call it registration, which is the code's word, and no
+string a tools screen renders may say that. `create` stays where it names
+something else, `Creates a new tool` under the name and the creation date where
+a registration lands, and in the sentence a tool's screen shows when nothing is
+under it, which #485 did not reach.
 
 **The heading is also the word on the controls that open this dialog** —
 `/tools`' and a tool's own screen's — and they come from one constant so they
-cannot drift. After a registration that fell short, `Create the rest` opens it
-too, from the same constant. This said "the control that opens this screen",
-which stopped being the only one at #449, and a tool's own screen said `Create
-more of this tool` until #456 took the design's word for it.
+cannot drift. After a registration that fell short, `Add 2 more` opens it too,
+from the same constant, naming the count it opens with. This said "the control
+that opens this screen", which stopped being the only one at #449, and a tool's
+own screen said `Create more of this tool` until #456 took the design's word for
+it.
 
 **The cap of 100 is a fact about one submission, not about a tool.** It was
 set from what one server invocation could write when each tool item cost three
