@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import Icon from "@/app/components/Icon";
 import { ActionMenu } from "@/app/components/Menu";
 import { useTooltip } from "@/app/components/Tooltip";
 import { menuButtonKey } from "@/lib/controls";
@@ -11,19 +12,7 @@ import { useToolItemTransition } from "./ToolItemTransition";
 
 /** Three dots, 16 at a desk and 24 in a phone's top bar (1c, 1f). */
 function Dots({ phone }) {
-    return phone ? (
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="size-mobile-top-bar-icon">
-            <circle cx="5" cy="12" r="2" fill="currentColor" />
-            <circle cx="12" cy="12" r="2" fill="currentColor" />
-            <circle cx="19" cy="12" r="2" fill="currentColor" />
-        </svg>
-    ) : (
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon">
-            <circle cx="3.2" cy="8" r="1.45" fill="currentColor" />
-            <circle cx="8" cy="8" r="1.45" fill="currentColor" />
-            <circle cx="12.8" cy="8" r="1.45" fill="currentColor" />
-        </svg>
-    );
+    return phone ? <Icon name="ellipsis" className="size-mobile-top-bar-icon" /> : <Icon name="ellipsis" className="size-icon" />;
 }
 
 /**

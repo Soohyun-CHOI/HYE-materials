@@ -827,7 +827,7 @@ export function run({ check, assert, log }) {
         "true true true true"
     );
     // A SHEET'S ROWS (0a Sheet): 56 at least, 15 and 16 inside, an Inner rule 16 in between
-    // two, and the check on the row already chosen.
+    // two, and the check on the row already chosen — 17 in Accent, a mark from `Icon.js` (#502).
     const rowsFn = functionNamed(frame.ast, "SheetRows");
     const rowsSource = rowsFn ? frame.source.slice(rowsFn.start, rowsFn.end) : "";
     check(
@@ -836,7 +836,7 @@ export function run({ check, assert, log }) {
             /min-h-mobile-drawer-row/.test(rowsSource),
             /px-mobile-drawer-row-inset-x py-mobile-drawer-row-inset-y/.test(rowsSource),
             /\{index > 0 && <div aria-hidden="true" className="ml-mobile-drawer-row-inset-x h-px bg-divider-subtle" \/>\}/.test(rowsSource),
-            /\{row\.chosen && \(/.test(rowsSource),
+            /\{row\.chosen && <Icon name="check" className="size-mobile-drawer-row-icon shrink-0 text-primary" \/>\}/.test(rowsSource),
         ].join(" "),
         "true true true true"
     );

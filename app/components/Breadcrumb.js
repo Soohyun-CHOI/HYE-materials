@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Fragment } from "react";
 import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
+import Icon from "./Icon";
 
 /*
  * The breadcrumb bar — 0m's Breadcrumb, the way back a screen offers above its title
@@ -9,8 +10,9 @@ import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
  *
  * ONE LEVEL IS A CHEVRON AND ITS NAME; MORE ARE A PATH SPLIT BY `/` (0m). A level is a
  * link at Ink 2 and 600, an Inline control whose side room is pulled back so its ink
- * meets the Margin, and the chevron is pulled further, so its stroke meets it rather
- * than its box. The screen the bar sits on ends a path, in Ink and not a link.
+ * meets the Margin. The chevron's box is as wide as its ink — the grid's middle eight
+ * columns — so its stroke is what meets the Margin, and its word stands 0b's 8 past
+ * it (#502). The screen the bar sits on ends a path, in Ink and not a link.
  *
  * IT HOLDS THE TOP OF THE COLUMN WHILE THE SCREEN RUNS UNDER IT (0k Sticky): white at
  * 0.82 over a blur, which over nothing is plain white. It draws no rule.
@@ -36,10 +38,8 @@ export default function Breadcrumb({ levels, current, phone = true }) {
             className={`sticky top-0 z-10 flex h-breadcrumb items-center bg-background-translucent px-page-gutter font-ui backdrop-blur-sm ${phone ? "" : "max-sm:hidden"}`}
         >
             {current === undefined && levels.length === 1 ? (
-                <Link href={levels[0].href} className={`${LEVEL} -ml-breadcrumb-back-bleed gap-breadcrumb-back-gap`}>
-                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm shrink-0">
-                        <path d="M9.5 4 5.5 8l4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                <Link href={levels[0].href} className={`${LEVEL} -mx-control-inline-inset-x gap-gap`}>
+                    <Icon name="chevron-left" crop={[8, 8]} className="h-[var(--size-icon-sm)] shrink-0" />
                     {levels[0].label}
                 </Link>
             ) : (

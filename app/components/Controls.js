@@ -12,6 +12,7 @@ import {
     stepNumber,
     typeaheadIndex,
 } from "@/lib/controls";
+import Icon from "./Icon";
 import Menu from "./Menu";
 
 /*
@@ -110,31 +111,19 @@ export function useField() {
  * gave a sign-in page's own refusal the info mark instead.
  */
 function AlertMark() {
-    return (
-        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className="size-icon shrink-0">
-            <circle cx="9" cy="9" r="7.3" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M9 5.2v4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            <circle cx="9" cy="12.6" r="1" fill="currentColor" />
-        </svg>
-    );
+    return <Icon name="circle-alert" className="size-icon shrink-0" />;
 }
 
 /**
  * The mark before what a notice says: a circle with an i in it, in Ink 2 — 18 in Tools 0a's
- * Notice, and 16 beside a sentence on a sign-in page (#148) or a dialog's (#495), where the
- * design draws its ring a touch heavier. In Ink 3 it leads the reason a selection bar's action
- * gives (0b, #495), the ink that reason is set in.
+ * Notice, and 16 beside a sentence on a sign-in page (#148) or a dialog's (#495). In Ink 3 it
+ * leads the reason a selection bar's action gives (0b, #495), the ink that reason is set in.
+ * Its line is every mark's since #502, where the 16 had drawn its ring a touch heavier.
  */
 const INFO_MARK_TONE = { muted: "text-foreground-muted", subtle: "text-foreground-subtle" };
 
-export function InfoMark({ size = "size-mobile-alert-icon", ring = 1.4, tone = "muted" }) {
-    return (
-        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true" className={`${size} shrink-0 ${INFO_MARK_TONE[tone]}`}>
-            <circle cx="9" cy="9" r="7.3" stroke="currentColor" strokeWidth={ring} />
-            <path d="M9 8v4.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            <circle cx="9" cy="5.4" r="1" fill="currentColor" />
-        </svg>
-    );
+export function InfoMark({ size = "size-mobile-alert-icon", tone = "muted" }) {
+    return <Icon name="info" className={`${size} shrink-0 ${INFO_MARK_TONE[tone]}`} />;
 }
 
 /**
@@ -193,7 +182,7 @@ export function Refusal({ centered = false, children }) {
             }`}
         >
             <span className="flex h-[var(--text-body-sm--line-height)] shrink-0 items-center">
-                <InfoMark size="size-icon" ring={1.5} />
+                <InfoMark size="size-icon" />
             </span>
             <span>{children}</span>
         </p>
@@ -526,9 +515,7 @@ function ClearButton({ onClear }) {
             }}
             className="-mr-[calc(var(--spacing-mobile-input-inset-x)-var(--spacing-mobile-input-clear-inset-right))] ml-auto hidden size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed max-sm:inline-flex"
         >
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-mobile-input-clear-icon">
-                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-            </svg>
+            <Icon name="x" className="size-mobile-input-clear-icon" />
         </button>
     );
 }
@@ -594,11 +581,7 @@ export function SheetField({ value, placeholder, onOpen, chevron = false, icon }
         >
             {mark}
             {said}
-            {chevron && (
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm shrink-0 text-foreground-subtle">
-                    <path d="M4 6.5 8 10.5l4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-            )}
+            {chevron && <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />}
         </button>
     );
 }
@@ -650,9 +633,7 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
             >
                 <span className={`${pill} ${field.refused ? "" : "group-focus-visible/chip:border-border-focus"}`}>
                     {content}
-                    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-mobile-chip-chevron shrink-0 text-foreground-subtle">
-                        <path d="M4.5 6.5 8 10l3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                    <Icon name="chevron-down" className="size-mobile-chip-chevron shrink-0 text-foreground-subtle" />
                 </span>
             </button>
         </div>
@@ -688,12 +669,8 @@ export function Checkbox({ label, checked, indeterminate = false, onChange }) {
                 }}
                 className="peer size-icon cursor-pointer appearance-none rounded-badge border border-checkbox-border bg-white group-hover/checkbox:bg-[linear-gradient(var(--color-hover-subtle),var(--color-hover-subtle))] checked:border-primary checked:bg-primary group-hover/checkbox:checked:border-primary-hover group-hover/checkbox:checked:bg-primary-hover indeterminate:border-primary indeterminate:bg-primary group-hover/checkbox:indeterminate:border-primary-hover group-hover/checkbox:indeterminate:bg-primary-hover"
             />
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-checked:block">
-                <path d="M3.4 8.4 6.5 11.5l6.1-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-indeterminate:block">
-                <path d="M4 8h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
+            <Icon name="check" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-checked:block" />
+            <Icon name="minus" className="pointer-events-none absolute hidden size-checkbox-mark text-white peer-indeterminate:block" />
         </label>
     );
 }
@@ -726,9 +703,7 @@ export function NumberField({ name, value, onChange, min, max }) {
             }`}
         >
             <button type="button" aria-label={COPY.fewer} aria-disabled={formBusy || undefined} onClick={step(-1)} className={STEP}>
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
-                    <path d="M3.5 8h9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-                </svg>
+                <Icon name="minus" className="size-icon-sm" />
             </button>
             <input
                 id={field.control}
@@ -744,9 +719,7 @@ export function NumberField({ name, value, onChange, min, max }) {
                 className="h-control-sm min-w-0 flex-1 bg-transparent text-center text-body tabular-nums text-foreground-default caret-primary outline-none"
             />
             <button type="button" aria-label={COPY.more} aria-disabled={formBusy || undefined} onClick={step(1)} className={STEP}>
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
-                    <path d="M3.5 8h9M8 3.5v9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-                </svg>
+                <Icon name="plus" className="size-icon-sm" />
             </button>
         </div>
     );
@@ -870,9 +843,7 @@ export function Choice({ name, options, value, onChange, placeholder }) {
                 <span className={`min-w-0 truncate ${chosen >= 0 ? "text-foreground-default" : "text-foreground-subtle"}`}>
                     {chosen >= 0 ? options[chosen].label : placeholder}
                 </span>
-                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm shrink-0 text-foreground-subtle">
-                    <path d="M4 6.5 8 10.5l4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />
             </div>
             <input type="hidden" name={name} value={value} />
             <Menu

@@ -35,9 +35,9 @@
  *
  * A LENGTH IS REM, THE DESIGN'S PX OVER 16, so a reader's text size moves every
  * length together; each comment gives the design's figure. What stays px is what
- * is drawn in px by convention: the ring, the shadows, the scrollbar, whose lane is
- * the browser's own, and the room either side of a date's slash, a fraction of a
- * pixel that no whole number of them states.
+ * is drawn in px by convention: the ring, a mark's line, the shadows, the
+ * scrollbar, whose lane is the browser's own, and the room either side of a date's
+ * slash, a fraction of a pixel that no whole number of them states.
  *
  * `@theme` AND NOT `@theme inline`, so every utility reads `var(--name)` and a
  * second set of values later is values behind these names rather than a rebuild.
@@ -59,6 +59,7 @@
     --size-icon: 1rem; /* Icon box, 16: the mark a 32 square holds */
     --size-checkbox-mark: 0.75rem; /* 1b, 12: the check or the dash a checkbox draws in its 16 — from the drawings, not the spec */
     --size-icon-sm: 0.875rem; /* Icon box, 14: the mark a 28 square holds, and a Nested 30 inside a field */
+    --stroke-width-icon: 1.25px; /* Icon box, 1.25: every mark's line, whatever its size — each drawn from Lucide on its 24 grid, round caps and joins (#502) */
     --spacing-control-inline-inset-x: 0.5rem; /* Side room, 8: either side of an inline summary's words, and of a 26 pill (0f) */
     --spacing-control-inset-x: 0.625rem; /* Side room, 10: either side of a chip's or a menu option's words */
     --spacing-control-lg-inset-x: 1rem; /* Side room, 16: either side of a 36px control's words */
@@ -260,8 +261,6 @@
         }
     }
     --height-breadcrumb: 3rem; /* Breadcrumb, 48: the way back and a record's pager */
-    --spacing-breadcrumb-back-bleed: 0.75rem; /* Breadcrumb, 12: how far one level pulls left so its chevron's stroke meets the Margin — from the drawings, not the spec */
-    --spacing-breadcrumb-back-gap: 0.125rem; /* Breadcrumb, 2: between that chevron and its word — from the drawings, not the spec */
 
     /* 0n · Record page — the header a detail page opens with. */
     --spacing-record-header-stack: 1.5rem; /* Record header, 24: above and below its rule */

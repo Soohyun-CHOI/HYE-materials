@@ -1399,7 +1399,7 @@ export function run({ check, assert, log }) {
         "the bar draws an action's reason 14 before the actions, led by the info mark in Ink 3, 6 from it (#495)",
         [
             /gap-selection-bar-reason-gap whitespace-nowrap pr-gap-lg/.test(barSource),
-            /<InfoMark size="size-icon" ring=\{1\.5\} tone="subtle" \/>/.test(barSource),
+            /<InfoMark size="size-icon" tone="subtle" \/>/.test(barSource),
             /<span id=\{reasonId\} className="text-body-sm text-foreground-subtle">\s*\{lastReason\}/.test(barSource),
         ].join(" "),
         "true true true"
