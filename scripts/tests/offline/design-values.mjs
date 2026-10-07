@@ -196,6 +196,8 @@ const VALUES = [
     ["--size-icon", "1rem", null],
     ["--size-checkbox-mark", "0.75rem", null],
     ["--size-icon-sm", "0.875rem", null],
+    // Every mark's line, whatever its size (#502).
+    ["--stroke-width-icon", "1.25px", null],
     ["--spacing-control-inline-inset-x", "0.5rem", null],
     ["--spacing-control-inset-x", "0.625rem", null],
     ["--spacing-control-lg-inset-x", "1rem", null],
@@ -391,9 +393,6 @@ const VALUES = [
     ["--spacing-account-menu-offset-x", "0.5rem", null],
     ["--animate-account-menu", "account-menu-in 120ms ease-out", null],
     ["--height-breadcrumb", "3rem", null],
-    // From the drawings, not the spec (#460).
-    ["--spacing-breadcrumb-back-bleed", "0.75rem", null],
-    ["--spacing-breadcrumb-back-gap", "0.125rem", null],
     // 0n · Record page
     ["--spacing-record-header-stack", "1.5rem", null],
     ["--spacing-breadcrumb-stack", "0.875rem", null],
@@ -561,12 +560,13 @@ const VALUES = [
 
 /**
  * The lengths that stay px: what is drawn in px by convention. The ring is a
- * stroke, and the scrollbar's lane is the browser's own, whose width follows no
- * text size, so the clearance inside it follows it. The room either side of a
- * date's slash is a fraction of a pixel, which no whole number of the design's
- * pixels over 16 states (#463). Every shadow stays px too, and is not a length.
+ * stroke, and so is every mark's line, the one 1.25 at any size (#502); the
+ * scrollbar's lane is the browser's own, whose width follows no text size, so the
+ * clearance inside it follows it. The room either side of a date's slash is a
+ * fraction of a pixel, which no whole number of the design's pixels over 16 states
+ * (#463). Every shadow stays px too, and is not a length.
  */
-const PX_KEPT = ["--stroke-width-status-ring", "--spacing-scrollbar-gutter", "--spacing-scrollbar-inset", "--spacing-date-separator-inline"];
+const PX_KEPT = ["--stroke-width-status-ring", "--stroke-width-icon", "--spacing-scrollbar-gutter", "--spacing-scrollbar-inset", "--spacing-date-separator-inline"];
 
 /**
  * The three faces: the only names in `@theme inline`, each resolving to the

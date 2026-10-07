@@ -1106,6 +1106,18 @@ Three things Soo saw on the deployed tools screens, and the rail's head beside t
 
 **WHAT THE CHECKS HOLD, AND WHAT A MUTATION SHOWED.** `offline/tool-list-view.mjs` holds the order — a row `isolate`, the box over a cover that lifts nothing, the head over the rows, the pager at its layer after the lane, the Panel over both — beside a planted list doing each wrong; `offline/dialog-frame.mjs` that no look an item takes draws on a bare `:focus` and every one draws `focus-visible`, and the hand's one base-layer rule with both of its exclusions and the states that set them; `offline/navigation.mjs` the rail's head with no rule and its room; and `offline/design-values.mjs` the new name by value. **32 mutations were run**, one at a time in a copy of the tree with abfa156 as the base for what is new, and each of the 22 labels this issue added failed under at least one, with none surviving.
 
+## The marks from one source (#502)
+
+Every mark these screens draw is `app/components/Icon.js`'s, and `design-system.md` has why it copies the design's Lucide shapes rather than depending on Lucide: the rail's toggle and six sections, the account's chevron, the breadcrumb's, the pager's steps, the selection bar's clear and reason, a row's box, a dialog's close, the quantity's steps, a choice's chevron and its list's check, `More actions` at both widths, the foot bar's pin, chevron and person, the history's person and pin, a sheet's check and clear, a field's refusal, the Notice, and 1g-c's mark. `TransitionBar.js` and the tool item page each drew a pin and a person of their own, one drawing twice; both name the module's now. Where a mark stands, its size and its ink did not move — every one was a name or the text around it already — and what changed is the shape and the line.
+
+**THE BREADCRUMB'S ONE LEVEL TOOK DESIGN'S CORRECTION, MEASURED AT 1440** on a tool's page, from the column's edge: the level pulled out by its own side room, 8 either side, so its box runs from 24; the chevron's box 4.66 × 14 at 32, the grid's columns 8 to 16; its ink from 31.96 to 36.70, on the Margin; and `Tools` at 44.66, where Design gives 44.67 and the browser rounds the cropped box's width to a 64th. Until #502 the level pulled 12 left with a 14 box for its chevron, whose ink began at 32.07, and its word stood at 44.
+
+**1g-c's MARK IS LUCIDE'S `search-x`**, 40 in Ink 3 and 8 over the title as it was, on the one line, which Design settled after the files of 2026-10-07 still drew the old one.
+
+**THE FIGURES ARE UNCHANGED**, since a mark reads nothing: `/tools` 5 operations, `/tools/[toolRecordId]` 4, `/tool-items/[toolItemId]` 7 in stock and 2 for a code no tool carries.
+
+**WHAT THE CHECKS HOLD, AND WHAT A MUTATION SHOWED.** `offline/icons.mjs` is new and holds the one source, the frame, every shape by value and every call; `offline/design-values.mjs` the line's name by value and in px, without the breadcrumb's two; `offline/dialog-frame.mjs` a sheet's check as the module's mark; and `offline/tool-list-view.mjs` the bar's reason with no ring of its own. **42 mutations were run**, one at a time in a copy of the tree with b363fa7 as the base for what is new, and each of the 32 labels this issue added or changed failed under at least one, with none surviving.
+
 ## Three tables, and what each is for
 
 `Tools` is the KIND. `Tool Items` is the object. `Tool Log` is the history.

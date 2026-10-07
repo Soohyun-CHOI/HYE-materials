@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Icon from "@/app/components/Icon";
 import Space from "@/app/components/Space";
 
 /**
@@ -100,11 +101,7 @@ function Figures({ children, className = "" }) {
 
 /** A pager's step: a link while there is a page that way, and a step that does not act at the end (1a, 1b). */
 function PagerStep({ href, label, back }) {
-    const mark = (
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon">
-            <path d={back ? "M10 3.5 5.5 8 10 12.5" : "M6 3.5 10.5 8 6 12.5"} stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-    );
+    const mark = <Icon name={back ? "chevron-left" : "chevron-right"} className="size-icon" />;
     const look = "flex aspect-square h-control items-center justify-center rounded-control";
     if (!href) {
         return (

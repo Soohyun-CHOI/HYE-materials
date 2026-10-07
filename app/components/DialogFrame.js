@@ -3,6 +3,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { DIALOG_FRAME_COPY as COPY, focusLost } from "@/lib/dialogFrame";
 import { FormBusy, Refusal } from "./Controls";
+import Icon from "./Icon";
 import { SCROLL_LANE } from "./scrollLane";
 
 /*
@@ -406,9 +407,7 @@ export function DialogFrame({
                         onClick={ask}
                         className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default"
                     >
-                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
-                            <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                        </svg>
+                        <Icon name="x" className="size-icon-sm" />
                     </button>
                 </div>
             )}
@@ -582,11 +581,7 @@ export function SheetRows({ rows }) {
                                 row.label
                             )}
                         </span>
-                        {row.chosen && (
-                            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-mobile-drawer-row-icon shrink-0 text-primary">
-                                <path d="M3 8.5 6.2 11.7 13 4.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                        )}
+                        {row.chosen && <Icon name="check" className="size-mobile-drawer-row-icon shrink-0 text-primary" />}
                     </button>
                 </li>
             ))}

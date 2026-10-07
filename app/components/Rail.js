@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NAVIGATION_COPY as COPY, NAVIGATION_SECTIONS, currentOf } from "@/lib/navigation";
 import { WORDMARK } from "@/lib/productName";
+import Icon from "./Icon";
 import RailAccount from "./RailAccount";
 import { SCROLL_LANE } from "./scrollLane";
 import { useTooltip } from "./Tooltip";
@@ -80,44 +81,14 @@ import { useTooltip } from "./Tooltip";
  * outranks it, its selector being the more specific.
  */
 
-// 0m's icons, 16 in a 32 box, drawn as the design draws them.
+// 0m's icons, 16 in a 32 box: each section's shape, by its Lucide name (#502).
 const SECTION_ICONS = {
-    "purchase-requests": (
-        <>
-            <path d="M4.5 2.5h4.6l3.4 3.4v7.6a1 1 0 0 1-1 1H4.5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1Z" />
-            <path d="M9.1 2.5v3.4h3.4M5.8 9h4.4M5.8 11.4h3" />
-        </>
-    ),
-    "purchase-orders": (
-        <>
-            <path d="M4 4h8a1 1 0 0 1 1 1v8.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" />
-            <path d="M6.2 2.2h3.6v2.4H6.2z" />
-            <path d="M5.8 8h4.4M5.8 10.6h3" />
-        </>
-    ),
-    invoices: (
-        <>
-            <path d="M3.6 2.5h8.8v11.4l-1.5-1-1.5 1-1.4-1-1.5 1-1.4-1-1.5 1z" />
-            <path d="M6 6h4M6 8.6h2.6" />
-        </>
-    ),
-    deliveries: (
-        <>
-            <path d="M1.8 5h6.4v5.8H1.8z" />
-            <path d="M8.2 7.2h2.6l2.4 2.3v1.3H8.2z" />
-            <circle cx="4.4" cy="12" r="1.4" />
-            <circle cx="10.6" cy="12" r="1.4" />
-        </>
-    ),
-    tools: (
-        <path d="M11.9 2.6a3.2 3.2 0 0 0-3.6 4.1l-5.1 5.1a1.2 1.2 0 0 0 1.7 1.7l5.1-5.1a3.2 3.2 0 0 0 4.1-3.6l-1.9 1.9-1.9-.5-.4-1.9z" />
-    ),
-    "material-prices": (
-        <>
-            <path d="M8.4 2.3 13.7 7.6 8 13.3 2.7 8V2.3z" />
-            <circle cx="5.4" cy="5" r="1" />
-        </>
-    ),
+    "purchase-requests": "file-text",
+    "purchase-orders": "clipboard-list",
+    invoices: "receipt",
+    deliveries: "truck",
+    tools: "wrench",
+    "material-prices": "tag",
 };
 
 // The column a screen sits in (0i): it scrolls from the phone's edge up and its lane is
@@ -203,10 +174,7 @@ export default function Rail({ account, children }) {
                             {...tip.targetProps(toggleWord)}
                             className="flex h-control aspect-square shrink-0 items-center justify-center rounded-control text-foreground-default hover:bg-hover"
                         >
-                            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon">
-                                <rect x="2.5" y="3" width="11" height="10" rx="1.6" stroke="currentColor" strokeWidth="1.4" />
-                                <path d="M6.4 3v10" stroke="currentColor" strokeWidth="1.4" />
-                            </svg>
+                            <Icon name="panel-left" className="size-icon" />
                         </button>
                         {/* The wordmark stays drawn until the rail has closed over it, and is
                             not drawn at all while it is collapsed (0h, 0m). Its first word is
@@ -241,18 +209,7 @@ export default function Rail({ account, children }) {
                                         {...tip.targetProps(word)}
                                         className="group/row flex h-control items-center gap-nav-gap overflow-hidden rounded-control pr-control-inset-x pl-[calc((var(--height-control)-var(--size-icon))/2)] text-body font-medium text-foreground-subtle group-data-expanded:text-foreground-muted data-current:bg-selected data-current:text-primary group-data-expanded:data-current:font-semibold group-data-expanded:data-current:text-foreground-default not-data-current:hover:bg-hover not-data-current:hover:text-foreground-default"
                                     >
-                                        <svg
-                                            viewBox="0 0 16 16"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="1.4"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            aria-hidden="true"
-                                            className="size-icon shrink-0 group-data-current/row:text-primary"
-                                        >
-                                            {SECTION_ICONS[section.key]}
-                                        </svg>
+                                        <Icon name={SECTION_ICONS[section.key]} className="size-icon shrink-0 group-data-current/row:text-primary" />
                                         <span className="whitespace-nowrap">{word}</span>
                                     </Link>
                                 </li>

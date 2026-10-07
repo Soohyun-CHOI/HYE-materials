@@ -10,6 +10,7 @@ import { DAY_FORMAT } from "@/lib/format";
 import { TOOL_ITEM_COPY as COPY, currentHolder, logRowFacts, newestFirst, retiredAt } from "@/lib/toolItemView";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
+import Icon from "@/app/components/Icon";
 import Instant from "@/app/components/Instant";
 import Dot from "@/app/components/Dot";
 import { KEYBOARD_VIEWPORT } from "@/app/components/keyboardViewport";
@@ -141,11 +142,7 @@ function ToolItemNotFound({ asked, account }) {
                 <MoreActions phone account={account} />
             </TopBar>
             <div className="flex flex-1 flex-col items-center justify-center px-page-gutter text-center max-sm:px-mobile-empty-state-inset-x max-sm:pb-mobile-empty-state-inset-bottom">
-                <svg viewBox="0 0 40 40" fill="none" aria-hidden="true" className="mb-gap size-mobile-empty-state-icon text-foreground-subtle sm:hidden">
-                    <circle cx="17.5" cy="17.5" r="11" stroke="currentColor" strokeWidth="2" />
-                    <path d="M25.5 25.5 34 34" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    <path d="M13.5 13.5l8 8M21.5 13.5l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
+                <Icon name="search-x" className="mb-gap size-mobile-empty-state-icon text-foreground-subtle sm:hidden" />
                 <h1 className="text-heading font-semibold max-sm:mt-gap max-sm:text-mobile-heading-lg">{COPY.notFoundHeading}</h1>
                 <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted max-sm:hidden">
                     {COPY.notFoundCode.before}
@@ -440,12 +437,12 @@ function History({ rows, nameById, jobCodeById }) {
                             </p>
                             {handedTo && (
                                 <p className="flex items-center gap-gap text-mobile-body-xs sm:hidden">
-                                    <PersonMark />
+                                    <Icon name="user" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
                                     <span className="min-w-0 text-pretty">{facts.checkedOutTo}</span>
                                 </p>
                             )}
                             <p className="flex items-center gap-gap text-mobile-body-xs text-foreground-muted sm:hidden">
-                                <PinMark />
+                                <Icon name="map-pin" className="size-mobile-log-icon shrink-0 text-foreground-subtle" />
                                 <span className="min-w-0 text-pretty">{facts.job}</span>
                             </p>
                             <p className="text-body-sm text-foreground-subtle max-sm:text-mobile-body-xs">
@@ -465,25 +462,5 @@ function History({ rows, nameById, jobCodeById }) {
                 );
             })}
         </ol>
-    );
-}
-
-/** A phone entry's person, 14 in Ink 3 before the name (1f). */
-function PersonMark() {
-    return (
-        <svg viewBox="0 0 16 17" fill="none" aria-hidden="true" className="size-mobile-log-icon shrink-0 text-foreground-subtle">
-            <circle cx="8" cy="5" r="3.1" stroke="currentColor" strokeWidth="1.4" />
-            <path d="M2.2 15.2c0-3.1 2.6-4.6 5.8-4.6s5.8 1.5 5.8 4.6" stroke="currentColor" strokeWidth="1.4" />
-        </svg>
-    );
-}
-
-/** A phone entry's job, a pin, 14 in Ink 3 before the job (1f). */
-function PinMark() {
-    return (
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-mobile-log-icon shrink-0 text-foreground-subtle">
-            <path d="M8 14.5s5-4.1 5-7.8A5 5 0 0 0 3 6.7c0 3.7 5 7.8 5 7.8Z" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="8" cy="6.6" r="1.7" fill="currentColor" />
-        </svg>
     );
 }

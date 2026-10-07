@@ -3,32 +3,13 @@
 import { useState } from "react";
 import BottomBar from "@/app/components/BottomBar";
 import { Button, Field, FormBusy, SheetChip, SheetField } from "@/app/components/Controls";
+import Icon from "@/app/components/Icon";
 import { chosenJobId, onlyJob } from "@/lib/toolJob";
 import { TOOL_EVENT } from "@/lib/toolStatus";
 import { TOOL_TRANSITION_COPY as COPY, fieldRefusals, offeredNames, readSubmission, recentNamesFor } from "@/lib/toolTransition";
 import JobSheet from "./JobSheet";
 import NameSheet from "./NameSheet";
 import { useToolItemTransition } from "./ToolItemTransition";
-
-/** The job pill's mark, a pin (1f), in the ink of the pill's word. */
-function PinIcon() {
-    return (
-        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-full">
-            <path d="M8 14.5s5-4.1 5-7.8A5 5 0 0 0 3 6.7c0 3.7 5 7.8 5 7.8Z" stroke="currentColor" strokeWidth="1.4" />
-            <circle cx="8" cy="6.6" r="1.7" fill="currentColor" />
-        </svg>
-    );
-}
-
-/** The name field's mark, a person (1f). */
-function PersonIcon() {
-    return (
-        <svg viewBox="0 0 16 17" fill="none" aria-hidden="true" className="size-full">
-            <circle cx="8" cy="5" r="3.1" stroke="currentColor" strokeWidth="1.4" />
-            <path d="M2.2 15.2c0-3.1 2.6-4.6 5.8-4.6s5.8 1.5 5.8 4.6" stroke="currentColor" strokeWidth="1.4" />
-        </svg>
-    );
-}
 
 /**
  * The one transition this tool item's status allows, as a phone asks it (#463): 1f's foot
@@ -133,13 +114,13 @@ export default function TransitionBar({ recentCheckOuts }) {
                         <SheetChip
                             value={chosen?.jobCode}
                             placeholder={COPY.jobUnchosen}
-                            icon={<PinIcon />}
+                            icon={<Icon name="map-pin" className="size-full" />}
                             onOpen={several ? () => setSheet("job") : undefined}
                         />
                     </Field>
                     {asksName && (
                         <Field label={COPY.checkedOutToLabel} labelAs="span" labelHidden size="xl" refusal={pressed ? refusals.nameRefusal : null}>
-                            <SheetField value={name} placeholder={COPY.checkedOutToLabel} icon={<PersonIcon />} onOpen={() => setSheet("name")} />
+                            <SheetField value={name} placeholder={COPY.checkedOutToLabel} icon={<Icon name="user" className="size-full" />} onOpen={() => setSheet("name")} />
                         </Field>
                     )}
                     <Button type="submit" size="xl" busyLabel={COPY.working[plan.event]}>

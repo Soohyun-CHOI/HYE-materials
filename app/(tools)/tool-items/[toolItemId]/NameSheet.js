@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { DialogFrame, SheetRows } from "@/app/components/DialogFrame";
+import Icon from "@/app/components/Icon";
 import { textMatchKey } from "@/lib/itemNaming";
 import { TOOL_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/lib/toolTransition";
 
@@ -84,9 +85,7 @@ export default function NameSheet({ open, onClose, value, onChange, names, jobCh
                                 }}
                                 className="flex size-mobile-touch-target shrink-0 items-center justify-center text-foreground-subtle active:opacity-mobile-pressed"
                             >
-                                <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-mobile-input-clear-icon">
-                                    <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                                </svg>
+                                <Icon name="x" className="size-mobile-input-clear-icon" />
                             </button>
                         )}
                     </div>

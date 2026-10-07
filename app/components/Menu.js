@@ -2,6 +2,7 @@
 
 import { Fragment, useId, useLayoutEffect, useRef } from "react";
 import { menuIndex, menuKey, typeaheadIndex } from "@/lib/controls";
+import Icon from "./Icon";
 
 // 0a Menu's head, a line that names what follows and answers no pointer: 12 at Ink 3 and
 // 400, 6 above and below, 10 either side (#495). The field list's `Recently at this job` and
@@ -130,17 +131,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
                     {option.detail && (
                         <span className="shrink-0 text-body-sm text-foreground-subtle tabular-nums">{option.detail}</span>
                     )}
-                    {option.checked && (
-                        <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm shrink-0 text-primary">
-                            <path
-                                d="M3.4 8.4 6.5 11.5l6.1-7"
-                                stroke="currentColor"
-                                strokeWidth="1.7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    )}
+                    {option.checked && <Icon name="check" className="size-icon-sm shrink-0 text-primary" />}
                 </div>
             ))}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import Icon from "./Icon";
 import { ActionMenu } from "./Menu";
 import { menuButtonKey } from "@/lib/controls";
 import { NAVIGATION_COPY as COPY } from "@/lib/navigation";
@@ -95,14 +96,7 @@ export default function RailAccount({ account: words, expanded = false, tip }) {
                     <span className="max-w-full truncate text-body-sm font-semibold text-foreground-default">{words.name}</span>
                     <span className="max-w-full truncate text-heading-sm font-normal text-foreground-subtle">{words.role}</span>
                 </span>
-                <svg
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                    className="ml-auto hidden size-account-chevron shrink-0 text-foreground-subtle group-data-expanded:block"
-                >
-                    <path d="M4.5 9.5 8 6l3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+                <Icon name="chevron-up" className="ml-auto hidden size-account-chevron shrink-0 text-foreground-subtle group-data-expanded:block" />
             </button>
             <ActionMenu
                 id={menuId}
