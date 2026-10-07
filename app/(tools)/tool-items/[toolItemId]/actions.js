@@ -43,7 +43,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * `ToolItemTransition.js` reads this through `useActionState` for both of the page's
  * drawings (#463), so every refusal lands in the one place it has for them — above
  * the desk's dialog's actions while it stands open, and under the status otherwise,
- * where 1g says a refused press. **It goes through `refuse`, which re-renders the
+ * where 1k says a refused press. **It goes through `refuse`, which re-renders the
  * page as it answers (#378)** — a returned sentence on a page nothing re-rendered is
  * true beside a screen that contradicts it.
  *
@@ -62,7 +62,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * item and the job list, which are what the verdict is reached from. The two
  * writes are downstream of it. **One that somebody else's scan got in front of
  * costs five (#463)**: the design's sentence names who recorded first and when
- * (1g), so `refuseStale` reads the tool item's latest `Tool Log` row and the person
+ * (1k), so `refuseStale` reads the tool item's latest `Tool Log` row and the person
  * who recorded it, one operation each.
  *
  * SIX ON THE FIRST EVENT AFTER A REGISTRATION THAT LOST ITS LOG ROW, because
@@ -255,7 +255,7 @@ export async function retireToolItemAction(prevState, formData) {
  * is an entry point callable from a browser.
  *
  * `moved` RIDES BESIDE THE SENTENCE FOR A STALE PRESS (#463): who recorded the latest
- * entry, what it was, and when, which the page turns into 1g's sentence in the reader's
+ * entry, what it was, and when, which the page turns into 1k's sentence in the reader's
  * own zone. `error` is still the whole sentence without them, so nothing that reads
  * only `error` says less than it did.
  */
@@ -267,7 +267,7 @@ function refuse(error, moved = null) {
 /**
  * The refusal for a press somebody else's scan got in front of (#463): the design names
  * them and the moment — `Jisoo Park checked this out a moment ago. Your check-out wasn't
- * saved.` (1g) — so this reads the tool item's latest `Tool Log` row and who recorded it.
+ * saved.` (1k) — so this reads the tool item's latest `Tool Log` row and who recorded it.
  *
  * THE LATEST ROW IS THE LINK ARRAY'S LAST, which is creation order and for an append-only
  * table the newest; read through `findChildRecords` as one id, so one operation, and the

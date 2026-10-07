@@ -4,8 +4,8 @@ import { Notice, Refusal } from "@/app/components/Controls";
 import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition";
 
 /**
- * A refused press, said in the title block under the status (#463) — 1g's Notice on a phone,
- * 16 under the status line, and a desk's refusal line in the same place, which 1c leaves for
+ * A refused press, said in the title block under the status (#463) — 1k's Notice on a phone,
+ * 16 under the status line, and a desk's refusal line in the same place, which 1f leaves for
  * it. One of the two is drawn at any width, so assistive tech hears it once.
  *
  * WHERE THE STATUS IS, BECAUSE THAT IS WHAT THE REFUSAL IS ABOUT. The action re-renders the

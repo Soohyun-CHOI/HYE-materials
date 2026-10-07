@@ -296,7 +296,7 @@ export async function run({ check, assert, log }) {
     check("  the line under it, opened on no tool", TOOL_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
     check("  the name's label", TOOL_REGISTRATION_COPY.nameLabel, "Tool name");
     check("  and its placeholder", TOOL_REGISTRATION_COPY.namePlaceholder, "e.g. Impact Driver, Milwaukee");
-    check("  and the line under it while nothing is typed (1j, #495)", TOOL_REGISTRATION_COPY.nameHelp, "Use an existing name to add to that tool.");
+    check("  and the line under it while nothing is typed (1b, #495)", TOOL_REGISTRATION_COPY.nameHelp, "Use an existing name to add to that tool.");
     check(
         "  which the name's field carries as its help, the preview and a refusal taking its place (#495)",
         /<Field label=\{COPY\.nameLabel\} help=\{COPY\.nameHelp\} note=\{note\} refusal=\{refusalFor\("toolName"\)\} reserveMessage>/.test(parseFile(DIALOG).source),
@@ -306,9 +306,9 @@ export async function run({ check, assert, log }) {
     check("  and its help", TOOL_REGISTRATION_COPY.quantityHelp(100), "Up to 100");
     check("  the job's label", TOOL_REGISTRATION_COPY.jobLabel, "Job");
     check("  and its choice left empty, the picker's own word", TOOL_REGISTRATION_COPY.jobUnchosen, TOOL_JOB_COPY.unchosen);
-    // THE SUBMIT NAMES WHAT IT MAKES BY ITS COUNT (#469, 1j) — and only a count the press
+    // THE SUBMIT NAMES WHAT IT MAKES BY ITS COUNT (#469, 1b) — and only a count the press
     // takes: the dialog hands it `readQuantity`'s count for what the field holds, so the
-    // words over a count the press would refuse say the act alone, as 1j's Refused does.
+    // words over a count the press would refuse say the act alone, as 1b's Refused does.
     check("  the submit, for one", TOOL_REGISTRATION_COPY.submit(1), "Add 1 tool");
     check("  for several", TOOL_REGISTRATION_COPY.submit(5), "Add 5 tools");
     check("  at the ceiling", TOOL_REGISTRATION_COPY.submit(100), "Add 100 tools");
@@ -320,7 +320,7 @@ export async function run({ check, assert, log }) {
         ["", "Add tools", "  nothing typed"],
         ["0", "Add tools", "  zero"],
         ["101", "Add tools", "  one past the ceiling"],
-        ["140", "Add tools", "  1j's refused 140"],
+        ["140", "Add tools", "  1b's refused 140"],
     ])
         check(why, TOOL_REGISTRATION_COPY.submit(readQuantity(raw).count), expected);
     check("  and while it is on its way, 0f's -ing word with no count", TOOL_REGISTRATION_COPY.working, "Adding…");
@@ -352,7 +352,7 @@ export async function run({ check, assert, log }) {
     // WHAT A REGISTRATION SAYS WHERE IT LANDS, pinned by value. The fork's title, its one
     // sentence and its two answers, one going on and one stopping — and the notice, whose
     // one control dismisses it and repairs nothing, because nothing repairs what it names.
-    // Each is a dialog since #459. The fork is 1k's final composition since #495 — how many
+    // Each is a dialog since #459. The fork is 1c's final composition since #495 — how many
     // were not added is its title, and its sentence says the others were added and are the
     // selection on this page, which #459 had left out as a confirmation off the address and
     // which came back by decision. The answer that goes on names how many are left since
@@ -408,7 +408,7 @@ export async function run({ check, assert, log }) {
     // count the dialog starts at and the commitment it then shows name one number.
     for (const [unwritten, expected, why] of [
         [1, "Add 1 more → Add 1 tool", "the fork's answer names the count its dialog opens at, at the smallest shortfall"],
-        [2, "Add 2 more → Add 2 tools", "  at 1k's two"],
+        [2, "Add 2 more → Add 2 tools", "  at 1c's two"],
         [99, "Add 99 more → Add 99 tools", "  and at the largest a shortfall can carry"],
     ])
         check(

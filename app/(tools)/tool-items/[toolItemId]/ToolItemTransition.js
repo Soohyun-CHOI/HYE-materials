@@ -11,8 +11,8 @@ import RetirementConfirm from "./RetirementConfirm";
  * dialog is open, and the retirement's question.
  *
  * ONE ANSWER FOR THREE PLACES. The design asks for a transition in two drawings — a desk's
- * header opens a dialog or records on the press (1c, 1d), a phone's foot bar asks in fields
- * that stay on the page (1f) — and says a refused press in a third, the title block (1g). So
+ * header opens a dialog or records on the press (1f, 1g), a phone's foot bar asks in fields
+ * that stay on the page (1j) — and says a refused press in a third, the title block (1k). So
  * the action's answer is held once, here, and each reads it: two `useActionState`s would be
  * two answers to one press the first time the window crossed the phone's edge between the
  * press and the answer. The page renders under this, so a press that lands redirects and the
@@ -26,7 +26,7 @@ import RetirementConfirm from "./RetirementConfirm";
  * in the header where the control is.
  *
  * THE RETIREMENT'S QUESTION IS HERE TOO, AND OPENED FROM EITHER `More actions` — the desk's
- * beside the transition and the phone's in its top bar (1c, 1f), one question for both. It
+ * beside the transition and the phone's in its top bar (1f, 1j), one question for both. It
  * holds its own answer (`RetirementConfirm`), and whatever opened it gets focus back: the
  * menu hands focus to its button before it opens the question.
  *

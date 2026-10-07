@@ -12,8 +12,9 @@ Which units of this tool exist, and where is each of them?
 **One row per physical object.** A `Tools` row is a `tool` — the kind, the
 name somebody typed once — and each row here is one drill with one printed
 id stuck to it, a `Tool Items` row, which this brief calls a tool item.
-**The screen calls each one an `item`, the design's (#455)**: it counts
-`13 items` and heads the column of their codes `Tool ID` (#463), and a
+**The screen calls each one an `item`, the design's (#455)**: its head
+shows the figure alone, `13`, and says `13 items` to assistive tech (#505),
+it heads the column of their codes `Tool ID` (#463), and a
 sentence about one elsewhere calls it a `tool`. Six of one drill is one tool and six items on this
 screen.
 
@@ -33,7 +34,7 @@ reader recognizes, which is why the browser tab says only `Tool`.
 **It is used at a desk, and the tool item's screen is the one on this axis a
 phone shows** (#336). The width container lives in the layout with no width,
 no padding, no type and no color of a screen's own. Since #460 it holds the
-design's rail, and **since #463 this screen is drawn as 1b**: the breadcrumb
+design's rail, and **since #463 this screen is drawn as 1d**: the breadcrumb
 and the list's head held still over a table whose column head holds while the
 rows scroll, the pager pinned at the foot and the selection bar floating over
 it while anything is selected.
@@ -94,15 +95,15 @@ the label screen with it until #457.
 `3 selected` — with a way out beside it. The words name no noun for what is
 selected; see below.
 
-**evidence.** How many tool items this tool has in total, `13 items`, under the
-heading. #326 names this as the fact every list in this app is missing: without it nothing on
+**evidence.** How many tool items this tool has in total, `13`, on the
+heading's line (`13 items` to assistive tech). #326 names this as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
 holds** — which is why a single figure is right here and deliberately
 absent from the tool list, where a total would have to decide whether a
 retired tool still counts.
 
-**evidence.** One entry per tool item, **newest first** (1b), each carrying
+**evidence.** One entry per tool item, **newest first** (1d), each carrying
 three facts: its printed `Tool Item ID`, which is the way into that tool
 item's own screen; its status, one of `In stock`, `Out` or `Retired`; and
 the job it is on. Each carries its box as well; see above.
@@ -116,7 +117,7 @@ and moves with nothing. It read oldest first until #463, for that reason.
 stated whether or not there is a second page, because a position that
 appears only once a list is long leaves the short case saying nothing. The
 pager says which rows the page shows of how many, `1–25 of 38`, and which page
-of how many, `Page 1 of 2` (1b, #463).
+of how many, `Page 1 of 2` (1d, #463).
 
 ## What it carries only sometimes
 
@@ -173,7 +174,7 @@ second alone, so either can go and leave the other — after `Got it` the
 shortfall follows, and a reload between them opens whichever is left.
 
 **A step to the previous page** and **a step to the next**, each acting
-when there is a page that way and drawn without acting at its own end — 1b's,
+when there is a page that way and drawn without acting at its own end — 1d's,
 where until #463 each was absent at its end.
 **A second page exists only for a tool with more than twenty-five tool
 items**, and that number counts every registration of the tool rather than
@@ -213,7 +214,7 @@ with more than a hundred tool items, selected across pages.
 **When the tool has no tool items at all:** in place of the entries, a
 heading and a sentence, `No items under this tool` and
 `If you were adding some, it stopped before any were saved.`, and under them a
-second, bordered `Add tools` (1b, #463, #485). The sentence said `creating`
+second, bordered `Add tools` (1d, #463, #485). The sentence said `creating`
 until #495, which gave it the act's verb #485 gave the words its issue named.
 **This is reachable and is not an error state**, the same way the tool item screen's
 missing history is: nothing rolls back, and the row that stands is sound.
@@ -234,7 +235,7 @@ for two.
 **A page holds twenty-five tool items, the design's figure for the list as
 it drew it (#442), and the design settled how the position is expressed
 (#463):** which rows the page shows of how many, which page of how many, and
-one step in each direction (1b). This is the first paged list in the app. **Twenty-five is the design's to move again** when
+one step in each direction (1d). This is the first paged list in the app. **Twenty-five is the design's to move again** when
 the list is drawn again. It replaced ten, an estimate of a screenful made
 before any screen was drawn, and it is a design's figure rather than a
 measurement — nobody has yet read this list with a real warehouse in

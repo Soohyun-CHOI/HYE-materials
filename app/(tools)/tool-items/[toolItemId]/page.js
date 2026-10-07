@@ -44,13 +44,13 @@ export async function generateMetadata({ params }) {
 }
 
 // A phone that would cover the page with its keyboard shrinks it instead, as on every screen
-// with a foot bar (#495): the name sheet the foot bar opens stands on the keyboard, as 1f
+// with a foot bar (#495): the name sheet the foot bar opens stands on the keyboard, as 1j
 // draws it, rather than under it.
 export const viewport = KEYBOARD_VIEWPORT;
 
 /**
  * One tool item and everything that has happened to it (#340), in the look the design
- * settled (#463): 0n's record page at a desk (1c, 1d) and 1f's app screen on a phone.
+ * settled (#463): 0n's record page at a desk (1f, 1g) and 1j's app screen on a phone.
  *
  * A SCAN ARRIVES HERE AND THE LABEL DOES NOT CARRY THIS ADDRESS (#348). It used
  * to: the page stood at `/tools/[toolItemId]` because a QR encodes the whole URL
@@ -117,7 +117,7 @@ export const viewport = KEYBOARD_VIEWPORT;
  *
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
  * a header holding the tool's name, its id and job, its status and the actions, the history
- * beside the record rail and its label (1c, 1d). A phone draws 1f: the top bar with the id
+ * beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with the id
  * and `More actions`, the title block, the history, and the transition in a foot bar. What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
@@ -130,8 +130,8 @@ export default async function ToolItemPage(props) {
 }
 
 /**
- * A code no tool item carries (#463): the desk's 1l, centered in the column with the code it
- * asked for and the way back to the list, and the phone's 1g-c, the top bar naming the code
+ * A code no tool item carries (#463): the desk's 1h, centered in the column with the code it
+ * asked for and the way back to the list, and the phone's 1k-c, the top bar naming the code
  * in Ink 3 over the mark and two lines — no way back, since a phone arrived here from a scan.
  * Its top bar carries `More actions` with the account alone (#495), as every one does.
  */
@@ -254,13 +254,13 @@ async function renderToolItemPage({ params }) {
     return (
         <ToolItemTransition plan={transition} toolItemId={toolItem.toolItemId} toolName={tool?.toolName}>
             <div className="font-ui text-foreground-default max-sm:flex max-sm:flex-1 max-sm:flex-col">
-                {/* THE PHONE'S HEAD (1f): the printed id, and `More actions`, which holds the
+                {/* THE PHONE'S HEAD (1j): the printed id, and `More actions`, which holds the
                     retirement when there is something to retire and the account always (#495). */}
                 <TopBar id={toolItem.toolItemId}>
                     <MoreActions phone account={account} />
                 </TopBar>
                 {/* WHERE THIS TOOL ITEM SITS UNDER ITS TOOL (#460): the list, the tool, and the
-                    code its label prints, which is how the design ends the path (1c). The
+                    code its label prints, which is how the design ends the path (1f). The
                     tool is the row read above, so the path costs nothing. A phone draws the
                     top bar in its place. */}
                 <Breadcrumb
@@ -277,7 +277,7 @@ async function renderToolItemPage({ params }) {
                 <div className="mx-auto box-content max-w-content px-page-gutter pt-breadcrumb-stack pb-scroll-inset-bottom max-sm:mx-0 max-sm:max-w-none max-sm:px-0 max-sm:pt-0 max-sm:pb-0">
                     {/* 0n's RECORD HEADER: the name, the id and job under it, the status, and
                         on the right what may be recorded, centered on the title's line —
-                        24 above and below its Band. On a phone, 1f's title block. */}
+                        24 above and below its Band. On a phone, 1j's title block. */}
                     <header className="flex items-start justify-between gap-record-header-inline border-b border-divider-strong pb-record-header-stack max-sm:border-b-0 max-sm:px-mobile-gutter max-sm:pt-mobile-top-bar-stack max-sm:pb-mobile-title-stack">
                         <div className="flex min-w-0 flex-col gap-subtitle-stack">
                             <div className="flex flex-col gap-title-stack">
@@ -312,7 +312,7 @@ async function renderToolItemPage({ params }) {
                         {/* WHAT MAY BE RECORDED, AT A DESK (#362, #363, #463): the transition and
                             `More actions`, which holds the retirement. A REFUSAL STANDS WHERE
                             BOTH CONTROLS WOULD BE, never beside them — a reader on no job reads
-                            why — except a status that allows nothing, where 1c draws nothing at
+                            why — except a status that allows nothing, where 1f draws nothing at
                             all; a phone's foot bar says that one. The two controls must not read
                             as the same weight: one is pressed dozens of times a day and is the
                             filled button, the other is that tool item's last act and is a menu
@@ -394,9 +394,9 @@ async function renderToolItemPage({ params }) {
  * dot on a rule beside each entry, the rule stopping at the last.
  *
  * AN ENTRY IS ONE ELEMENT SET TWO WAYS. At a desk the event heads it with who a check-out
- * went to after `to`, and one line under it says when, on which job and `by` whom (1c). On a
+ * went to after `to`, and one line under it says when, on which job and `by` whom (1f). On a
  * phone the event stands alone, each value under it on its own line — the person and the job
- * behind their marks — and the moment and who recorded it last (1f). The values are
+ * behind their marks — and the moment and who recorded it last (1j). The values are
  * `logRowFacts`', so all four are on every entry and a check-out carries the fifth.
  */
 function History({ rows, nameById, jobCodeById }) {

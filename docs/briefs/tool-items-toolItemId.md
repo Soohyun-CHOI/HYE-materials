@@ -38,13 +38,13 @@ has been scratched or painted over, so the second way here is somebody typing
 it. Case does not matter when they do; the page then moves itself to the
 canonical form of the address, so one tool item keeps one address.
 
-**It is drawn the design's way since #463**: 0n's record page at a desk (1c,
-1d) and 1f's app screen on a phone. What follows says what each width carries
+**It is drawn the design's way since #463**: 0n's record page at a desk (1f,
+1g) and 1j's app screen on a phone. What follows says what each width carries
 and which decisions in the drawing a later design may not undo.
 
 ## What it always carries
 
-**identity.** The tool's name as the heading — the record's name, as 0n and 1f
+**identity.** The tool's name as the heading — the record's name, as 0n and 1j
 draw a record page — and the `Tool Item ID` beside it: under the heading at a
 desk, set in the id face with the job after it, and in the top bar on a phone,
 where the screen opens. A tool item whose tool did not resolve is headed by its
@@ -77,7 +77,7 @@ sits on one job.
 `Check in` from `Out` — and the job the event will be recorded on. There is
 never a choice of transition: the status decides which one. **A desk asks it in
 the header**, on the right and centered on the heading's line: the press or
-the dialog it opens (1c, 1d). **A phone asks it in the foot bar** (1f): the job
+the dialog it opens (1f, 1g). **A phone asks it in the foot bar** (1j): the job
 as a pill, for a check-out a field for who it goes to, and the press, at the
 foot of the screen and riding on the keyboard. **They are one transition in two
 drawings**: a phone on its side is wide enough to draw the desk, and a dialog
@@ -92,7 +92,7 @@ people it names have no account here, so it is free text rather than a picker
 over a list of users. **A check-out cannot be recorded without one.** The
 dialog's `Check out` cannot act until the field holds a name; **the foot bar's
 press always acts, and a press with no name is answered under the field**,
-`Enter a name to check out.`, as 1g draws it — and a press with no job chosen
+`Enter a name to check out.`, as 1k draws it — and a press with no job chosen
 is answered under the pill the same way, both at once when both are missing.
 Nothing is written either way. A field of nothing but spaces is the same
 refusal.
@@ -104,8 +104,8 @@ It closes by picking, by its own `Done`, by the keyboard's done key, by
 `Escape`, on its handle and on what lies behind it, and focus returns to the
 field. **Opening it is a press rather than a focus** — returning focus to the
 field would otherwise reopen it. **At a desk there is no sheet**: the field is
-the one the registration types a name in (1j), and the list opens under it. The
-pill opens 1f's job sheet the same way for a person on several jobs; for a
+the one the registration types a name in (1b), and the list opens under it. The
+pill opens 1j's job sheet the same way for a person on several jobs; for a
 person on one it states the job and opens nothing.
 
 **The list of names is headed `Recently at this job`** while nothing is typed,
@@ -149,7 +149,7 @@ are given — and a design must keep the two apart.
 
 **action.** `Retire this tool`, behind `More actions` — at a desk a 32 icon
 button beside the transition, named by its tooltip, and on a phone the 48
-button at the top bar's right end (1c, 1f). At a desk it is the menu's one
+button at the top bar's right end (1f, 1j). At a desk it is the menu's one
 item, in 0f's destructive red, and opens a dialog. **On a phone the menu ends on
 the reader's account** — `Sign out` over their email, under a rule — since a
 phone has no rail to name the reader in, and where the page offers no
@@ -268,8 +268,8 @@ control promising a re-print would state something the app cannot check — and 
 two readers are after the same act anyway: one whose label has worn through, and
 one printing a label for the first time.
 
-**evidence.** A history, one entry per `Tool Log` row, **the newest first** (1c,
-1f) — the latest scan is the one a reader standing over the tool came to check.
+**evidence.** A history, one entry per `Tool Log` row, **the newest first** (1f,
+1j) — the latest scan is the one a reader standing over the tool came to check.
 It read oldest first until #463. Each entry carries four facts and always all
 four — the event, when it happened, the job it happened on, and who recorded it.
 **There is no fifth and nothing is ever absent** but on a check-out, below.
@@ -316,11 +316,11 @@ on is not the job the tool item was last scanned on — which is a tool that has
 been carried to another site, and is recorded as it happened rather than
 refused. **This is the one place two `Job` values meet on the page with
 different values under one word**, and the line is what stops that reading as
-a mistake. **A phone's foot bar draws no such line** (1f): its pill states the
+a mistake. **A phone's foot bar draws no such line** (1j): its pill states the
 one job the event goes on.
 
 **A refusal of the press, under the status in the title block** — a phone's
-notice and a desk's refusal line (1g) — or above the dialog's actions while a
+notice and a desk's refusal line (1k) — or above the dialog's actions while a
 dialog stands open for it (#458). Those that reach it: someone else has
 already recorded something, so the press was not saved; the job submitted is
 not one of the reader's; the tool item carries no such id; and the event was
@@ -336,7 +336,7 @@ so the screen under a refusal is never the screen the reader pressed on. It
 also means a refused press and a successful one leave the SAME screen — a
 flipped control, a moved status, one more history entry — and the only visible
 difference is whose entry it is. So the sentence names the person and the
-moment, the design's (1g) since #463: `Jisoo Park already checked this out on
+moment, the design's (1k) since #463: `Jisoo Park already checked this out on
 10/05/2026 8:50 AM. Your check-out wasn't saved.` — who recorded the latest
 entry, in full, and that entry's own moment in the reader's zone, written as
 every date on the screen is. It says `already` since #495, as the design's
@@ -367,8 +367,8 @@ that reader**: what varies is whether they can act, never what they can read.
 
 **A tool item whose status allows nothing** offers nothing. `Retired` is the only
 such status, and it is reachable — the retire control is what puts a tool item
-there. **A desk draws nothing in the actions' place** (1c); a phone's foot bar
-says `Nothing more can be recorded here.` (1f), and the sentence names no status,
+there. **A desk draws nothing in the actions' place** (1f); a phone's foot bar
+says `Nothing more can be recorded here.` (1j), and the sentence names no status,
 since the status stands above it.
 
 **A history entry is four facts, and a `Checked out` entry is five.** The fifth
@@ -387,19 +387,19 @@ recorded. A blank in any of the five reads the same way: a defect upstream,
 shown rather than hidden.
 
 **When the tool item has no history at all:** one line in place of the entries,
-`No history yet`, the design's (1c, 1g). **This is reachable and is not an
+`No history yet`, the design's (1f, 1k). **This is reachable and is not an
 error state.** Registration writes the tool item and then its first log row, and
 a failure between the two leaves exactly this; the row is sound, with its id,
 its status and its job. There is no repair, because a log row written later
 would state a time that is not when the tool item was created.
 
 **When no tool item carries the code in the address:** the heading `Tool not
-found`, the design's (1l, 1g). At a desk, centered in the column, a sentence
+found`, the design's (1h, 1k). At a desk, centered in the column, a sentence
 naming the code asked for in the id face — `No tool has the code
 HYE-TL-260909-099. Check it against the label.` — and `Back to Tools`. On a
 phone, under the top bar naming the code in Ink 3, a mark and one line,
 `No tool has this code. Check it against the label and scan again.`, **and no
-way back**, as 1g-c draws it: a phone came from a scan, and the next thing it
+way back**, as 1k-c draws it: a phone came from a scan, and the next thing it
 does is scan again. The top bar's menu holds the reader's account alone there
 (#495). Nothing on this axis is scoped by role or job, so
 unlike the request, order and invoice screens this answers one state — no such

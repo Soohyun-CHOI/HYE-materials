@@ -333,7 +333,7 @@ export async function run({ check, assert, log }) {
     check("  the breadcrumb's callers", importers(BREADCRUMB).join(" "), [TOOL_ITEM_PAGE, TOOL_PAGE].sort().join(" "));
     assert("  and the walk finds a component's callers at all", importers("app/components/DialogFrame.js").length > 2);
 
-    // The tool item page ends its path on the code its label prints (1c).
+    // The tool item page ends its path on the code its label prints (1f).
     let currentCall = null;
     walk(parseFile(TOOL_ITEM_PAGE).ast, (n) => {
         if (n.type === "JSXElement" && jsxName(n) === "Breadcrumb") currentCall = attrOf(n, "current")?.value?.expression;

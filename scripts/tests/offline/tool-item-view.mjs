@@ -222,7 +222,7 @@ export function run({ check, assert, log }) {
     // THE SWEEP'S CLAIM (#455), WITH NO REMAINDER SINCE #463: the not-found heading was the
     // one string still saying the replaced noun, left for the design, and it is the design's.
     check("no string says `tool item`", strings.filter((s) => TOOL_ITEM_NOUN.test(s)).join(" | "), "");
-    // THE DESIGN'S WORDS (1c, 1g, 1l), typed out here so a rewording reaches this file.
+    // THE DESIGN'S WORDS (1f, 1k, 1h), typed out here so a rewording reaches this file.
     check("the empty history", TOOL_ITEM_COPY.noHistory, "No history yet");
     check("a code no tool carries, at a desk", `${TOOL_ITEM_COPY.notFoundHeading} | ${TOOL_ITEM_COPY.notFoundCode.before}HYE-TL-260909-099${TOOL_ITEM_COPY.notFoundCode.after}`, "Tool not found | No tool has the code HYE-TL-260909-099. Check it against the label.");
     check("  and after a scan", TOOL_ITEM_COPY.notFoundScanned, "No tool has this code. Check it against the label and scan again.");
@@ -283,7 +283,7 @@ export function run({ check, assert, log }) {
         return found;
     };
 
-    // THE HEADING IS THE TOOL'S NAME (#463), the record's name as 0n and 1f draw it, and the
+    // THE HEADING IS THE TOOL'S NAME (#463), the record's name as 0n and 1j draw it, and the
     // id where the tool did not resolve — and there is one `h1`, set at each width's size,
     // since the dialogs hand focus to the page's heading.
     check("the heading is the tool's name, or the id where no tool resolved", initOf("name"), "tool?.toolName || toolItem.toolItemId");

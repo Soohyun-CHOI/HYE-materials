@@ -1,9 +1,8 @@
 import Link from "next/link";
 import Icon from "@/app/components/Icon";
-import Space from "@/app/components/Space";
 
 /**
- * A list's parts as 1a and 1b draw them (#463): the head a list opens with, 0b's Column
+ * A list's parts as 1a and 1d draw them (#463): the head a list opens with, 0b's Column
  * head and Row, and the pager under the rows. `ListFrame.js` is the frame that holds them
  * still or scrolls them.
  *
@@ -52,27 +51,28 @@ export const TABLE_ROW_SELECTED = "bg-selected hover:bg-selected";
 export const TABLE_ROW_LINK = "after:absolute after:inset-0 after:rounded-control";
 
 /**
- * The head a list opens with (1a, 1b): its title, a line counting what it holds — the figure
- * in Ink and the noun at Ink 3, 5 apart — and what it acts with on the right.
+ * The head a list opens with (0n's list header, 1a, 1d): one line — its title, then 8 on
+ * along the title's baseline how many rows the list holds, the figure alone at 14, 400 and
+ * Ink 3 — and its one control on the right, centered on the title's line. 32 above it, or 14
+ * where the breadcrumb bar stands over it (`underBreadcrumb`), and 18 under it.
  *
- * 0n's FIGURES WHERE THE TWO DRAWINGS PART. 1b sets the line 10 under the title and 20 under
- * the line; 1a sets it 6 under in a 26 box and 18 under, the figure at Ink 3 and the control
- * centered on the pair, where 1b sets its control level with the title. 0n's Header stack is
- * 10, every figure is Ink (0e), and a two-line list header centers its one control (0n), so
- * one head draws both lists that way.
+ * THE FIGURE STANDS ALONE ON THE SCREEN AND NOT FOR ASSISTIVE TECH (#505). The files of
+ * 2026-10-07 dropped the noun the head drew beside it since #463; a figure read straight after
+ * a heading names nothing it counts, so `noun` follows it unseen, in the list's own word.
  */
-export function ListHeader({ title, count, noun, children }) {
+export function ListHeader({ title, count, noun, underBreadcrumb = false, children }) {
     return (
         <div className="pr-scrollbar-gutter">
             <div
-                className={`${LIST_MEASURE} flex items-center justify-between gap-list-header-inline pt-list-header-inset-top pb-list-header-inset-bottom`}
+                className={`${LIST_MEASURE} flex items-center justify-between gap-list-header-inline pb-list-header-inset-bottom ${
+                    underBreadcrumb ? "pt-breadcrumb-stack" : "pt-list-header-inset-top"
+                }`}
             >
-                <div className="flex min-w-0 flex-col gap-title-stack">
-                    <h1 className="text-heading-lg">{title}</h1>
-                    <p className="text-body text-foreground-subtle">
-                        <span className="tabular-nums text-foreground-default">{count}</span>
-                        <Space className="w-list-count-inline" />
-                        {noun}
+                <div className="flex min-w-0 items-baseline gap-list-count-inline">
+                    <h1 className="min-w-0 text-heading-lg">{title}</h1>
+                    <p className="shrink-0 text-body tabular-nums text-foreground-subtle">
+                        {count}
+                        <span className="sr-only">{` ${noun}`}</span>
                     </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-gap">{children}</div>
@@ -99,7 +99,7 @@ function Figures({ children, className = "" }) {
         );
 }
 
-/** A pager's step: a link while there is a page that way, and a step that does not act at the end (1a, 1b). */
+/** A pager's step: a link while there is a page that way, and a step that does not act at the end (1a, 1d). */
 function PagerStep({ href, label, back }) {
     const mark = <Icon name={back ? "chevron-left" : "chevron-right"} className="size-icon" />;
     const look = "flex aspect-square h-control items-center justify-center rounded-control";
@@ -118,14 +118,15 @@ function PagerStep({ href, label, back }) {
 }
 
 /**
- * What the foot of a list says (1a, 1b): which rows this page shows of how many on the left,
+ * What the foot of a list says (1a, 1d): which rows this page shows of how many on the left,
  * and on the right which page of how many and a step each way, the last chevron's ink on the
  * text's edge. A step at its end is drawn and does not act — the drawings' — where the steps
- * were absent at the ends until #463. The ground under it is the frame's.
+ * were absent at the ends until #463. The ground under it is the frame's, and so is the
+ * 1px rule over it, which 0b's 12 above the controls counts — so 60 in all (#505).
  */
 export function Pager({ range, position, previous, next }) {
     return (
-        <div className="flex items-center justify-between gap-pager-inline px-table-bleed pt-pager-inset-top pb-pager-inset-bottom">
+        <div className="flex items-center justify-between gap-pager-inline px-table-bleed pt-[calc(var(--spacing-pager-inset-top)-1px)] pb-pager-inset-bottom">
             <p className="text-body-sm text-foreground-subtle">
                 <Figures className="text-foreground-default">{range}</Figures>
             </p>

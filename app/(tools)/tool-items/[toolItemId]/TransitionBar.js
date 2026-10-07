@@ -12,18 +12,18 @@ import NameSheet from "./NameSheet";
 import { useToolItemTransition } from "./ToolItemTransition";
 
 /**
- * The one transition this tool item's status allows, as a phone asks it (#463): 1f's foot
+ * The one transition this tool item's status allows, as a phone asks it (#463): 1j's foot
  * bar, Tools 0a's, which the sign-in steps drew first (#473) — the job as a pill, for a
  * check-out who it goes to, and the press, rows 12 apart at the screen's foot and riding on
  * the keyboard.
  *
- * THE FIELDS STAY ON THE PAGE AND OPEN 1f's SHEETS, which #458 built as parts for exactly
+ * THE FIELDS STAY ON THE PAGE AND OPEN 1j's SHEETS, which #458 built as parts for exactly
  * this: the pill opens the job sheet for a person on several jobs and states the one job of a
  * person on one; the name field opens the name sheet, the people this job has recently handed
  * tools to under the field a phone types in. With one job and a check-in there is nothing to
  * ask, so the bar is the pill and the press, and the press records.
  *
- * THE PRESS ACTS WHATEVER IS MISSING, AND SAYS WHAT IS (1g). A desk's dialog holds its
+ * THE PRESS ACTS WHATEVER IS MISSING, AND SAYS WHAT IS (1k). A desk's dialog holds its
  * commitment back until the job and the name are given (0f); the bar keeps its press, and a
  * press with either missing is answered under the field it is about — both at once, as the
  * name step answers both its names (#473), by `fieldRefusals`, the reading `readSubmission`
@@ -39,9 +39,9 @@ import { useToolItemTransition } from "./ToolItemTransition";
  * THE JOB STARTS WHERE A DIALOG'S STARTS AND STARTS THERE AGAIN — the one job there is, or
  * none of several, and a chosen job the page's plan no longer holds goes back to that start
  * (`chosenJobId`, #469). The bar draws no move notice under its pill: the design draws the
- * pill alone (1f), and a desk's dialog is where the two `Job` values meet.
+ * pill alone (1j), and a desk's dialog is where the two `Job` values meet.
  *
- * WITH NOTHING TO RECORD THE BAR SAYS WHY, in the press's place: a retired tool (1f-c), or a
+ * WITH NOTHING TO RECORD THE BAR SAYS WHY, in the press's place: a retired tool (1j-c), or a
  * reader on no job. **Below the phone's edge and nowhere else**, which the bar's own class
  * decides, so the sticky bar is not held inside a wrapper of its own.
  *

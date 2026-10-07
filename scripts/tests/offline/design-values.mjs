@@ -203,7 +203,7 @@ const VALUES = [
     ["--spacing-control-lg-inset-x", "1rem", null],
     // A sign-in page's field and action, and the line under any field (#473).
     ["--height-control-xl", "2.5rem", null],
-    ["--spacing-control-xl-inset-x", "0.75rem", null],
+    ["--spacing-input-inset-x", "0.75rem", null],
     ["--spacing-input-message-stack", "0.375rem", null],
     ["--min-width-menu", "8.75rem", null],
     ["--max-width-menu", "17.5rem", null],
@@ -217,7 +217,6 @@ const VALUES = [
     ["--spacing-gap", "0.5rem", null],
     ["--spacing-gap-lg", "0.875rem", null],
     ["--spacing-nav-gap", "0.6875rem", null],
-    ["--spacing-list-header-inset-top", "1.25rem", null],
     ["--height-table-row", "2.5rem", null],
     ["--spacing-table-bleed", "0.75rem", null],
     ["--height-table-header", "2.25rem", null],
@@ -227,16 +226,14 @@ const VALUES = [
     ["--transition-duration-selection-bar", "160ms", null],
     // The mark that leads an action's reason in the bar (#495).
     ["--spacing-selection-bar-reason-gap", "0.375rem", null],
-    // 1a and 1b's drawings, where the spec states no figure — #463's lists.
-    ["--spacing-list-header-inset-bottom", "1.25rem", null],
-    ["--spacing-list-header-inline", "2.5rem", null],
-    ["--spacing-list-count-inline", "0.3125rem", null],
+    // The pager's 60 (#505): 12 above its controls, its rule counted, and 16 under them.
+    ["--spacing-pager-inset-top", "0.75rem", null],
+    ["--spacing-pager-inset-bottom", "1rem", null],
+    // 1a and 1d's drawings, where the spec states no figure — #463's lists.
     ["--spacing-table-column-inline", "1.25rem", null],
     ["--width-table-count", "6rem", null],
     ["--width-table-id", "15rem", null],
     ["--width-table-status", "10rem", null],
-    ["--spacing-pager-inset-top", "1rem", null],
-    ["--spacing-pager-inset-bottom", "1.25rem", null],
     ["--spacing-pager-inline", "1.5rem", null],
     ["--spacing-pager-step-gap", "0.625rem", null],
     ["--spacing-pager-step-bleed", "0.8125rem", null],
@@ -396,6 +393,11 @@ const VALUES = [
     // 0n · Record page
     ["--spacing-record-header-stack", "1.5rem", null],
     ["--spacing-breadcrumb-stack", "0.875rem", null],
+    // 0n's list header, one line (#505).
+    ["--spacing-list-header-inset-top", "2rem", null],
+    ["--spacing-list-header-inset-bottom", "1.125rem", null],
+    ["--spacing-list-header-inline", "2.5rem", null],
+    ["--spacing-list-count-inline", "0.5rem", null],
     ["--spacing-title-stack", "0.625rem", null],
     ["--spacing-subtitle-stack", "0.75rem", null],
     ["--spacing-heading-sm-stack", "0.75rem", null],
@@ -518,7 +520,7 @@ const VALUES = [
     ["--spacing-mobile-log-gap", "0.75rem", null],
     ["--spacing-mobile-log-stack", "1.25rem", null],
     ["--size-mobile-log-icon", "0.875rem", null],
-    // 1f's history, 1g's notice and its screen for a code no tool carries (#463), from the
+    // 1j's history, 1k's notice and its screen for a code no tool carries (#463), from the
     // drawings, not the spec.
     ["--width-mobile-log-track", "0.75rem", null],
     ["--spacing-mobile-log-dot-inset-top", "0.5625rem", null],

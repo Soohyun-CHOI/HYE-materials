@@ -92,11 +92,11 @@ export const metadata = { title: "Tool" };
  * comes from a rollup, under the same measured condition docs/notes/tools.md
  * already states for the list.
  *
- * DRAWN AS 1b (#463): the breadcrumb and the list's head with how many items the tool has,
+ * DRAWN AS 1d (#463): the breadcrumb and the list's head with how many items the tool has,
  * held still over the rows, the selection bar floating over the pinned pager while anything
  * is selected — `ListFrame.js` and `ListTable.js` for the parts, `ToolItemList.js` for the
  * rows, the boxes and the bar, which read the selection off the address. **Newest first,
- * as 1b draws it** (`pageOfToolItems`), so a registration moves every page's edges, which
+ * as 1d draws it** (`pageOfToolItems`), so a registration moves every page's edges, which
  * was accepted: the selection is printed ids and moves with nothing.
  *
  * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — see the layout (#336), lib/toolListView.js
@@ -121,7 +121,7 @@ async function renderToolPage({ params, searchParams }) {
     // which escapes it.
     const [tool] = await getToolsByRecordIds([toolRecordId]);
     if (!tool) {
-        // 1l's shape, which the tool item page draws for a code no tool item carries: the
+        // 1h's shape, which the tool item page draws for a code no tool item carries: the
         // heading centered in the column and the way back under it. An address carries a
         // record id here, which says nothing to a reader, so there is no sentence naming it.
         return (
@@ -163,14 +163,14 @@ async function renderToolPage({ params, searchParams }) {
     const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));
 
     // The way back is the breadcrumb's one level since #460, the list's own heading behind a
-    // chevron (1b). The tool's name is the heading and there is no heading word, which is
+    // chevron (1d). The tool's name is the heading and there is no heading word, which is
     // the shape the tool item's page takes. Registering more of this tool (#451) is the
     // head's one control, so a tool with nothing under it keeps it — there it is the way to
     // write what a registration did not. It opens the dialog on this tool (#456).
     const top = <Breadcrumb levels={[{ label: COPY.heading, href: TOOLS_PATH }]} />;
     const registration = { opener: TOOL_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, tool: { toolName: tool.toolName } };
     const header = (
-        <ListHeader title={tool.toolName} count={page.total} noun={COPY.itemNoun(page.total)}>
+        <ListHeader title={tool.toolName} count={page.total} noun={COPY.itemNoun(page.total)} underBreadcrumb>
             <RegistrationDialog {...registration} />
         </ListHeader>
     );

@@ -27,7 +27,7 @@
 // dialog asks `readSubmission` before it sends, so what keeps the rule one
 // implementation is which function the dialog calls and what it reads into it — held
 // off the dialog's source the way the action's arguments are, beside what a check-in
-// asks first (`asksBeforeRecording`, by value) and the three parts of 1f's phone
+// asks first (`asksBeforeRecording`, by value) and the three parts of 1j's phone
 // screen the dialogs open, which #463's foot bar opens later as they are.
 //
 // AND #463 GAVE THE PAGE TWO DRAWINGS OF ONE TRANSITION — a desk's header and a phone's
@@ -309,7 +309,7 @@ export function run({ check, assert, log }) {
     assert("  saying that the press was not saved", /wasn't saved/i.test(stale.refusal));
     assert("  and that the change on screen is someone else's", /someone else/i.test(stale.refusal));
     // AND IT SAYS IT IS THE STALE ONE (#463), which is what the action reads the latest entry
-    // for: the design names who recorded first and when (1g), which this function cannot know.
+    // for: the design names who recorded first and when (1k), which this function cannot know.
     check("  marked as the stale refusal", stale.stale, true);
     check("  naming the press it refused", stale.refusal, TOOL_TRANSITION_COPY.scannedFirst({ attempted: TOOL_EVENT.CHECKED_IN }));
     assert(
@@ -328,7 +328,7 @@ export function run({ check, assert, log }) {
     const otherJob = readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id });
     check("a job the actor is not on is refused", otherJob.refusal, TOOL_JOB_COPY.notYours);
     // A JOB NOT CHOSEN IS NOT A JOB REFUSED (#463): the foot bar's press can arrive with none,
-    // and its answer is the design's word for a field left at its placeholder (1j).
+    // and its answer is the design's word for a field left at its placeholder (1b).
     check("  while no job at all is one not chosen yet", readSubmission(inStock, { ...CHECKING_OUT, jobId: "" }).refusal, TOOL_JOB_COPY.noneChosen);
     check("  and neither is the stale refusal", readSubmission(inStock, { ...CHECKING_OUT, jobId: JOB_B.id }).stale, false);
 
@@ -398,7 +398,7 @@ export function run({ check, assert, log }) {
     );
 
     // ── 3b': both fields at once, for the foot bar (#463) ─────────────────
-    // A PHONE'S PRESS IS ANSWERED UNDER THE FIELD IT IS ABOUT, both when both are missing (1g),
+    // A PHONE'S PRESS IS ANSWERED UNDER THE FIELD IT IS ABOUT, both when both are missing (1k),
     // and the reader is the one `readSubmission` reads — so the two cannot disagree.
     log("");
     log("what is wrong with each field, both at once:");
@@ -465,7 +465,7 @@ export function run({ check, assert, log }) {
     // THE SHOWN COUNT IS A DISPLAY CHOICE OVER THE WHOLE LIST, which is what lets
     // the brief hand the number to Design: a name below the cut is one keystroke
     // away rather than absent, so the cut costs nothing that typing does not undo.
-    // Three, which is what 1f's name sheet lists (#458).
+    // Three, which is what 1j's name sheet lists (#458).
     check("a few are offered before anybody types", RECENT_NAMES_SHOWN, 3);
     // AND WHAT IS OFFERED IS ONE FUNCTION FOR BOTH WIDTHS (#458): the dialog's
     // suggestions and the name sheet's rows are `offeredNames` of one list.
@@ -551,8 +551,8 @@ export function run({ check, assert, log }) {
         0
     );
     // The two sentences the sweep carried the noun into, by value.
-    check("the terminal sentence, the design's (1f)", TOOL_TRANSITION_COPY.noTransition, "Nothing more can be recorded here.");
-    // THE STALE PRESS IN 1g's WORDS (#463), the person in full, `already` and the moment as
+    check("the terminal sentence, the design's (1j)", TOOL_TRANSITION_COPY.noTransition, "Nothing more can be recorded here.");
+    // THE STALE PRESS IN 1k's WORDS (#463), the person in full, `already` and the moment as
     // a part the page draws in the reader's zone since the design's final files (#495), the
     // noun hyphenated and the verb not.
     check(
@@ -946,7 +946,7 @@ export function run({ check, assert, log }) {
     assert("  and capped, which is what keeps it one operation", /maxRecords: RECENT_CHECK_OUT_ROWS/.test(readerSource));
 
     // ── 6f: a stale press names who recorded first, read as it refuses (#463) ─
-    // THE DESIGN'S SENTENCE NAMES THE PERSON AND THE MOMENT (1g), which only the latest entry
+    // THE DESIGN'S SENTENCE NAMES THE PERSON AND THE MOMENT (1k), which only the latest entry
     // knows, so the action reads it for the stale refusal and for nothing else — two
     // operations on a path a person meets rarely, and none on any other.
     log("");
@@ -1009,7 +1009,7 @@ export function run({ check, assert, log }) {
         `${(page.source.match(/\{transition\.mayRetire && <MoreActions \/>\}/g) ?? []).length} ${(page.source.match(/<MoreActions phone account=\{account\} \/>/g) ?? []).length}`,
         "1 2"
     );
-    // A RETIRED TOOL SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1c); any other refusal is
+    // A RETIRED TOOL SHOWS NOTHING IN THE ACTIONS' PLACE AT A DESK (1f); any other refusal is
     // said there, and a phone's foot bar says the terminal one.
     assert(
         "  a desk says the refusal where the controls would be, but for a status that allows nothing",
@@ -1028,7 +1028,7 @@ export function run({ check, assert, log }) {
     // ── 7b: what a transition asks before it records (#458) ────────────────
     // A CHECK-OUT RECORDS A NAME, SO IT ALWAYS ASKS; a check-in asks only a person on
     // several jobs, and for a person on one it is the press it always was. The design
-    // draws exactly that split (1c, 1d, 1e), and it is #338's job rule and #376's name
+    // draws exactly that split (1f, 1g, 1i), and it is #338's job rule and #376's name
     // rule rather than a new one — so it is held by value, and the component is held
     // to asking it.
     log("");
@@ -1139,7 +1139,7 @@ export function run({ check, assert, log }) {
     assert("  holding the one answer both drawings read", providerSource.includes("const [answer, formAction, pending] = useActionState(recordToolItemEventAction, null);"));
     // A REFUSAL IS THE ACTION'S LAST ANSWER, read as it is: a press that lands leaves no
     // answer behind it to hide, since its redirect throws the state away. A stale one is
-    // turned into 1g's sentence in the reader's zone; any other is the action's sentence.
+    // turned into 1k's sentence in the reader's zone; any other is the action's sentence.
     const sentenceFn = functionNamed(provider.ast, "useRefusalSentence");
     const sentenceSource = sentenceFn ? provider.source.slice(sentenceFn.start, sentenceFn.end) : "";
     assert(
@@ -1167,9 +1167,9 @@ export function run({ check, assert, log }) {
     check("each opening starts from what the plan hands it", attributeSources(dialogFn, dialog.source, "TransitionForm", "key").join(), "{opening}");
 
     // ── 7e: each width asks in its own drawing (#458) ──────────────────────
-    // AT A DESK the job is 0a's choice and the name the registration's combobox (1j),
+    // AT A DESK the job is 0a's choice and the name the registration's combobox (1b),
     // its suggestions this job's recent names under the name sheet's own head; BELOW
-    // THE PHONE'S EDGE each is a field that opens one of 1f's sheets. One state behind
+    // THE PHONE'S EDGE each is a field that opens one of 1j's sheets. One state behind
     // both, so what a sheet chose is what the dialog sends.
     log("");
     log("each width asks in its own drawing, from one state:");
@@ -1181,7 +1181,7 @@ export function run({ check, assert, log }) {
         "{namesAreRecent(name) ? COPY.recentHeading : undefined}"
     );
     check(
-        "below it each opens one of 1f's sheets",
+        "below it each opens one of 1j's sheets",
         attributeSources(formFn, dialog.source, "SheetField", "onOpen").join(" | "),
         '{several ? () => setSheet("job") : undefined} | {() => setSheet("name")}'
     );
@@ -1197,7 +1197,7 @@ export function run({ check, assert, log }) {
     check("one value behind the field and its sheet", `${attributeSources(formFn, dialog.source, "Combobox", "onChange").join()} ${attributeSources(formFn, dialog.source, "NameSheet", "onChange").join()}`, "{setName} {setName}");
 
     // ── 7f: the phone's foot bar, which asks the same reader (#463) ───────
-    // 1f's FOOT BAR KEEPS ITS PRESS AND ANSWERS UNDER THE FIELDS (1g): what a submission may be
+    // 1j's FOOT BAR KEEPS ITS PRESS AND ANSWERS UNDER THE FIELDS (1k): what a submission may be
     // is `readSubmission` before anything is sent, the field refusals are `fieldRefusals`, and
     // they show once a press asked for that event. The bar is busy while it sends and never
     // disabled, takes the dialog's job rule, and draws no move notice.
@@ -1334,7 +1334,7 @@ export function run({ check, assert, log }) {
             TOOL_TRANSITION_COPY.retireOpener.includes("this tool")
     );
     // THE BODY IS AN ACCOUNT OF WHAT THE ACT ENDS, which `_shared.md` names as the point
-    // of a confirmation and 0l's Confirm asks for: the design's sentence (1c, 1f).
+    // of a confirmation and 0l's Confirm asks for: the design's sentence (1f, 1j).
     const body = TOOL_TRANSITION_COPY.retireBody;
     check(
         "the sentence is the design's",
@@ -1349,12 +1349,12 @@ export function run({ check, assert, log }) {
     check("  and none asks for a note", retireStrings.filter((s) => /\bnotes?\b/i.test(s)).length, 0);
 
     // THE TRANSITION'S OWN WORDS SINCE #458: the field's example and the name sheet's,
-    // which are the design's (1c, 1f), and the missing-name refusal, which is 1g's.
+    // which are the design's (1f, 1j), and the missing-name refusal, which is 1k's.
     check("the name field's example", TOOL_TRANSITION_COPY.namePlaceholder, "e.g. Jane Doe");
     check("the head of the recent names, on both widths", TOOL_TRANSITION_COPY.recentHeading, "Recently at this job");
     check("the name sheet's end", TOOL_TRANSITION_COPY.sheetDone, "Done");
     check("  and the name of its clear mark", TOOL_TRANSITION_COPY.clearName, "Clear");
-    check("a check-out with no name is answered in 1g's words", TOOL_TRANSITION_COPY.nameRequired, "Enter a name to check out.");
+    check("a check-out with no name is answered in 1k's words", TOOL_TRANSITION_COPY.nameRequired, "Enter a name to check out.");
 
     // THE TERMINAL SENTENCE WIDENED WITH THE SCREEN. #362 wrote it as
     // `no check-out or check-in to record`, which enumerated two of three absent
@@ -1444,13 +1444,13 @@ export function run({ check, assert, log }) {
     // handling the tool. One question on the screen rather than none is the point.
     assert("the transition's dialog keeps its job choice", /<Choice\s+name="jobId"/.test(dialog.source));
 
-    // ── 10b: 1f's job sheet and name sheet, the parts a foot bar opens (#458) ─
-    // DRAWN AS 1f DRAWS THEM AND OPENED BY WHATEVER HOLDS A JOB OR ASKS FOR A NAME —
+    // ── 10b: 1j's job sheet and name sheet, the parts a foot bar opens (#458) ─
+    // DRAWN AS 1j DRAWS THEM AND OPENED BY WHATEVER HOLDS A JOB OR ASKS FOR A NAME —
     // the check-out's dialog today, #463's foot bar later. So what is held is what each
     // asks of its opener and does with an answer, and that each closes on a press behind
-    // it as 1f draws.
+    // it as 1j draws.
     log("");
-    log("1f's job sheet and name sheet are parts any opener can open:");
+    log("1j's job sheet and name sheet are parts any opener can open:");
     const jobSheet = parseFile(JOB_SHEET);
     const nameSheet = parseFile(NAME_SHEET);
     check(

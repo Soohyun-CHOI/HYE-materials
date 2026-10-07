@@ -122,7 +122,7 @@ and the label its width while confirming nothing. **A design must not put them
 back.** The picker named each tool item by the whole id until #457, a screen
 naming a record above a sticker a person reads in order to type; the dialog has
 no picker, and it names a code it did not find in the sticker's form,
-`260909-098`, as 1i draws it.
+`260909-098`, as 1e draws it.
 
 ## What it carries only sometimes
 
@@ -154,7 +154,7 @@ stickers to find out.
 
 **When the host is too long for the symbols (#453):** the shape of a run with
 nothing on record, with one sentence about the host where the codes not found
-stand. 1i draws no such state.
+stand. 1e draws no such state.
 
 **When more ids are selected than one print takes, the dialog does not open:** a
 tool's page keeps the selection, `101 selected`, and draws its print control not
@@ -308,7 +308,7 @@ run whose tail would not print. **A design offering "select all of this tool"
 there would be asking for a read that page divided on purpose.**
 
 **Each label is drawn at twice its printed size and printed at its own
-(#457)** — 1i's 22 × 24 mm on screen, by a zoom the print takes back to 1, so
+(#457)** — 1e's 22 × 24 mm on screen, by a zoom the print takes back to 1, so
 nothing inside a label moves between the two. At a 375px width the dialog stacks
 — the head, the pane, then the rest — and two labels fit across the pane with
 nothing scrolling sideways, measured. Until then each was drawn at its true size,

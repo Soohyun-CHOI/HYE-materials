@@ -483,7 +483,7 @@ export function run({ check, assert, log }) {
         });
         return found;
     };
-    // A CODE THE READ DID NOT FIND IS NAMED IN THE STICKER'S FORM, `260909-098`, as 1i
+    // A CODE THE READ DID NOT FIND IS NAMED IN THE STICKER'S FORM, `260909-098`, as 1e
     // draws it — through `namedCode`, which names a string that is not shaped like a
     // `Tool Item ID` as it came rather than throwing on it, as `labelCodeFor` would.
     const missingNamed = (parsed) => {
@@ -512,7 +512,7 @@ export function run({ check, assert, log }) {
     // ── 4c: what the dialog shows for a run, by value (#457) ────────────────
     log("");
     log("which pages a run prints, of how many it named:");
-    // 1i's three states and the long host's borrowing of the third, each a run the
+    // 1e's three states and the long host's borrowing of the third, each a run the
     // function is handed — so the count, the pages and the two reasons a label does not
     // print are pinned where the dialog reads them.
     const ready = describeLabelRun(plantedRun([33, 33, 33]));
@@ -643,7 +643,7 @@ export function run({ check, assert, log }) {
         return [items, frames, pages].map((level) => level.map(name).join(" + ")).join(" > ");
     };
     check("a list of items, each holding one frame holding one label page", paneTree(componentAst), "label-item > label-frame > LabelPage");
-    // ANTI-VACUITY: an item carrying a caption beside its frame — the shape 1i drew for a
+    // ANTI-VACUITY: an item carrying a caption beside its frame — the shape 1e drew for a
     // label too large to print until Design took it out — is seen carrying it.
     check(
         "  an item with a caption beside its frame is seen",
@@ -973,7 +973,7 @@ export function run({ check, assert, log }) {
     // ── 6f: the screen draws a page larger, by one figure the stylesheet takes back (#457) ──
     log("");
     log("the pane draws each page at the design's size and the print at its own:");
-    // 1i DRAWS A PAGE 22 × 24 mm, TWICE THE LABEL, and 0p says a label on screen is drawn
+    // 1e DRAWS A PAGE 22 × 24 mm, TWICE THE LABEL, and 0p says a label on screen is drawn
     // at whatever size reads in its place. The page itself is not drawn twice: the dialog
     // sets one custom property from `LABEL_PREVIEW_SCALE` and the stylesheet zooms the page
     // by it on screen and by 1 at print (section 5).
@@ -1038,7 +1038,7 @@ export function run({ check, assert, log }) {
     // ── 7b: what the dialog shows, as the source decides it (#457) ──────────
     log("");
     log("the dialog shows what its run has, and says why it prints nothing where it does:");
-    // 1i's three states are one arrangement, and what decides each part is a test in the
+    // 1e's three states are one arrangement, and what decides each part is a test in the
     // source — no figure moves when the steps are drawn for a run that prints nothing, or
     // when the commitment stays live with nothing to print. So each part is read with the
     // test that guards it: the steps only while something prints, the codes not found
@@ -1133,7 +1133,7 @@ export function run({ check, assert, log }) {
     // later than on the labels' page, which drew it on arrival — so the press waits for
     // `document.fonts.ready` before it prints, or the fallback could print under figures
     // measured in the face (section 6d). And it closes on `afterprint`, which comes with the
-    // label printed or not: 1i's tool item page draws the commitment closing the dialog.
+    // label printed or not: 1e's tool item page draws the commitment closing the dialog.
     const pressFacts = (parsed) => {
         let found = "none";
         walk(frameFn(parsed.ast) ?? parsed.ast, (n) => {
@@ -1301,7 +1301,7 @@ export function run({ check, assert, log }) {
         ["startLabel", "startHint", "sheetCount", "hostLabel", "hostWarningTitle", "hostWarning"].filter((key) => key in COPY).join(", "),
         ""
     );
-    check("  nor for a label too large, which 1i draws no more", ["tooLarge", "doesNotPrint"].filter((key) => key in COPY).join(", "), "");
+    check("  nor for a label too large, which 1e draws no more", ["tooLarge", "doesNotPrint"].filter((key) => key in COPY).join(", "), "");
     assert("  and the same question finds a word that is there", "count" in COPY && "notFound" in COPY);
     // THE DESIGN'S NOUN SINCE #455: a `Tool Items` row is a `tool` in a sentence, so no
     // string here says `tool item`. Builders called, so a sentence a builder makes is

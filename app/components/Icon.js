@@ -24,7 +24,7 @@
  *
  * A CROPPED MARK IS AS WIDE AS ITS INK. `crop` is the grid's columns the ink spans, `[from,
  * width]`, and the box holds those at the grid's full height and the caller's height, so its
- * stroke meets whatever its box meets and the room beside it is measured from ink — 1b's
+ * stroke meets whatever its box meets and the room beside it is measured from ink — 1d's
  * chevron, the grid's 8 to 16. It draws past its box, so the round caps the crop runs through
  * are not cut.
  *
@@ -126,7 +126,7 @@ const SHAPES = {
         ["path", { d: "M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8" }],
         ["path", { d: "M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z" }],
     ],
-    // 1g-c's mark, which Design settled as this where the files of 2026-10-07 drew their own.
+    // 1k-c's mark, which Design settled as this where the files of 2026-10-07 drew their own.
     "search-x": [
         ["path", { d: "m13.5 8.5-5 5" }],
         ["path", { d: "m8.5 8.5 5 5" }],

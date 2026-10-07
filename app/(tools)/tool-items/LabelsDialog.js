@@ -16,7 +16,7 @@ import {
 import { readToolItemLabelsAction } from "./actions";
 import "./labels.css";
 
-// The labels, as a dialog over the page that opens them (#457) — Claude Design's 1i —
+// The labels, as a dialog over the page that opens them (#457) — Claude Design's 1e —
 // and the control that opens it. They were the screen `/tool-items/labels` from #353
 // until then.
 //
@@ -35,7 +35,7 @@ import "./labels.css";
 // wait is 0f's Working**, the opener busy and not disabled: after 300ms its spinner stands
 // in its label's place at its resting width, and its `-ing` word is `Loading…` for
 // assistive tech, since the press opens the labels to print rather than printing them
-// (`TOOL_LABEL_PAGE_COPY.working`). 1i draws nothing between the press and the dialog, and
+// (`TOOL_LABEL_PAGE_COPY.working`). 1e draws nothing between the press and the dialog, and
 // nothing marked the wait until then.
 //
 // NOTHING IS WRITTEN TO THE ADDRESS TO OPEN IT, which is #456's shape rather than #459's.
@@ -50,7 +50,7 @@ import "./labels.css";
 // is one box the size of the label, and `labels.css` gives each its own page at print,
 // the page box being the label's size — so what a reader sees in the pane is what comes
 // off the tape, drawn in one place. **On screen the pane draws each at
-// `LABEL_PREVIEW_SCALE` times its size**, 1i's 22 × 24 mm, by a zoom the stylesheet
+// `LABEL_PREVIEW_SCALE` times its size**, 1e's 22 × 24 mm, by a zoom the stylesheet
 // takes back to 1 at print; no figure inside the page moves, so nothing here is a second
 // drawing of it.
 //
@@ -164,7 +164,7 @@ export default function LabelsDialog({ title, toolName, run: handed, toolItemIds
 }
 
 /**
- * 1i: the pages in the pane, and beside them how many print, what did not, what to do in
+ * 1e: the pages in the pane, and beside them how many print, what did not, what to do in
  * the browser's print dialog, and the commitment.
  *
  * THREE STATES, AND THEY ARE ONE ARRANGEMENT. Every code named on a tool item and its
@@ -173,7 +173,7 @@ export default function LabelsDialog({ title, toolName, run: handed, toolItemIds
  * `Print 3 labels`. None that prints: `No labels to print.` in the pane, `0 of 3 labels`,
  * the codes, no steps and the title's words on a commitment drawn disabled, with no
  * reason before it since the pane and the codes are the reason (0f). A host long enough
- * that the symbols do not fit the label is 1i's third state too, with one sentence about
+ * that the symbols do not fit the label is 1e's third state too, with one sentence about
  * the host where the codes stand — the design draws nothing for it, and nothing the app
  * draws can be printed from such a host.
  */
@@ -193,7 +193,7 @@ function LabelsFrame({ open, onClose, title, toolName, run }) {
 
     // AFTER THE FACE, AND SHUT WHEN THE PRINT DIALOG IS. The browser's print dialog
     // closes with the label printed or not, and either way the dialog has done its
-    // part — 1i's tool item page draws its commitment closing it. A print that did not
+    // part — 1e's tool item page draws its commitment closing it. A print that did not
     // go is one press of the opener away.
     const print = async () => {
         await document.fonts.ready;
@@ -278,10 +278,10 @@ function LabelsFrame({ open, onClose, title, toolName, run }) {
 /**
  * One label as the tool item page's record rail draws it (#463): the label's own page, the
  * one the dialog draws and prints, at the dialog's preview scale on the Preview's face —
- * so the page and the dialog show the same drawing, as 1c and 1i do. `name` is what an
+ * so the page and the dialog show the same drawing, as 1f and 1e do. `name` is what an
  * image takes for assistive tech; the code under the symbol is nothing a heading says.
  *
- * THE PREVIEW'S FACE AND NOT 1c's. The design draws this one on a 1 corner with an 8% ring
+ * THE PREVIEW'S FACE AND NOT 1f's. The design draws this one on a 1 corner with an 8% ring
  * over a 1 2 shadow, and the dialog's on 0k's Preview — the Mark corner, a 6% ring over 2 8
  * at 8% — which the spec gives a print shown on the page; the frame takes the spec's, the
  * one the dialog has worn since #457, so the two drawings stay one.

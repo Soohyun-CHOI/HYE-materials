@@ -22,7 +22,7 @@
 //      narrow dialog rather than running off it — and since #457 the second build, a
 //      preview in a pane beside a column that is the Compact build inside — and since
 //      #458 0l's Confirm, the phone's sheet a dialog marked so becomes below the phone's
-//      edge, the sizes its controls take there, the backdrop that closes 1f's sheets
+//      edge, the sizes its controls take there, the backdrop that closes 1j's sheets
 //      only while they are sheets, and a dialog taken off the page handing focus on.
 //   4. THE WORDS. Every string these three render comes from `lib/dialogFrame.js` or
 //      `lib/controls.js`, pinned by value, and none is in their markup — the rule
@@ -390,6 +390,16 @@ export function run({ check, assert, log }) {
                 /if \(!onOpen\) \{\s*return \(?\s*<div/.test(sheetFieldSource),
             ].join(" "),
             heading: /heading=\{heading\}/.test(source),
+            // A form field holds 12 either side, a dialog's as a sign-in page's, and a choice shows
+            // what it holds at 400 (0a Side room, #505): until then a dialog's field and choice held a
+            // 36 button's 16, and the choice its value at 500, which no drawing drew.
+            fieldSideRoom: [
+                /lg: "h-control-lg px-input-inset-x text-body"/.test(constant("TEXT_INPUT_SIZE")),
+                /xl: "h-control-xl px-input-inset-x /.test(constant("TEXT_INPUT_SIZE")),
+                /rounded-control border bg-white px-input-inset-x text-body outline-none/.test(functionSource("Choice")),
+                /rounded-control bg-white px-input-inset-x text-body /.test(functionSource("Combobox")),
+                !/font-medium/.test(functionSource("Choice")),
+            ].join(" "),
         };
     };
     const controlRules = controlFacts(controls);
@@ -423,6 +433,7 @@ export function run({ check, assert, log }) {
         "true true true true"
     );
     check("the combobox hands its list a head", controlRules.heading, true);
+    check("a form field holds 12 either side at both sizes, a choice's and a combobox's too, and a choice's value is 400 (#505)", controlRules.fieldSideRoom, "true true true true true");
 
     const menu = parseFile(MENU);
     const [list] = elements(menu.ast, "div").filter((a) => a.role === "listbox");
@@ -689,7 +700,7 @@ export function run({ check, assert, log }) {
                 !/\bp-dialog-inset\b/.test(withPreview),
             ].join(" "),
             // Since #495 the pane reserves 0i's lane and draws its bar, its room 24 16 24 24 so
-            // the pages stand 24 from the lane, and it stops at its end (1i).
+            // the pages stand 24 from the lane, and it stops at its end (1e).
             pane: [
                 /\bbg-background-muted\b/.test(paneSource),
                 /\boverflow-y-auto\b/.test(paneSource),
@@ -734,7 +745,7 @@ export function run({ check, assert, log }) {
     check("  a preview's build is 780 by 520 with a 440 pane, and no room of its own", builds.withPreview, "true true true true");
     check("  its pane is on the Field ground, scrolls in 0i's reserved lane with its own room, and stops at its end (#495)", builds.pane, "true true true true true");
     check("  and the column beside it takes the Compact build's room, its body scrolling across it (#495)", builds.column, "true true true true");
-    // 1i STANDS THE ACTIONS AT THE COLUMN'S FOOT, 460 down a 520 dialog, whatever the body
+    // 1e STANDS THE ACTIONS AT THE COLUMN'S FOOT, 460 down a 520 dialog, whatever the body
     // holds above them: the body takes the column's spare room. In the Compact build the
     // column is its content's height, so there is none to take and nothing moves.
     check("  the body takes the column's spare room, so the actions stand at its foot", builds.bodyGrows, true);
@@ -872,7 +883,7 @@ export function run({ check, assert, log }) {
     check("  the files on it", onOldFrame.length, 0);
     const onNewFrame = toolsFiles.filter((rel) => readFileSync(repoPath(rel), "utf8").includes("@/app/components/DialogFrame")).sort();
     // The registration's dialog (#456), the landing's two (#459), the labels' (#457), and the
-    // tool item page's transition, its retirement's question and 1f's two sheets (#458).
+    // tool item page's transition, its retirement's question and 1j's two sheets (#458).
     check(
         "  and the frame's callers on the axis are the dialogs drawn on it",
         onNewFrame.join(", "),

@@ -36,7 +36,7 @@ import { useTooltip } from "./Tooltip";
  * never stays open over the screen it took the reader to.
  *
  * BELOW THE PHONE'S EDGE THERE IS NO RAIL. The phone frame draws a top bar in its place
- * — on the tool item page, 1f's, with the id and one 48 button — and no rail at any
+ * — on the tool item page, 1j's, with the id and one 48 button — and no rail at any
  * width, so the two never meet: they divide at `max-sm`, the edge every phone name
  * already divides at. The top bar is `TopBar.js` (#463). Below that edge the document
  * scrolls rather than this column, which is at least the screen's height there and lays
@@ -96,7 +96,7 @@ const SECTION_ICONS = {
 // phone's edge the document scrolls instead, and the column is at least the screen's height
 // and lays out down it, so a screen's foot bar can stand at the foot of a short page (#463).
 //
-// A LIST SCROLLS ITS OWN ROWS, SO THE COLUMN STEPS ASIDE FOR ONE (#463). 1a and 1b hold
+// A LIST SCROLLS ITS OWN ROWS, SO THE COLUMN STEPS ASIDE FOR ONE (#463). 1a and 1d hold
 // their head still and scroll the rows under it in a lane of their own (`ListFrame.js`), so
 // a column holding one scrolls nothing and reserves no lane — the list's is the one at the
 // window's edge. It is the column's to decide because only the column scrolls itself; the
