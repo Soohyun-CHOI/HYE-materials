@@ -372,6 +372,35 @@ export async function run({ check, assert, log }) {
     assert("  a planted breakpoint is seen", planted5.filter(breakpoint).length === 2);
     check("  a planted print rule is seen", printRules(planted5).join(" "), cls("print", ":block"));
 
+    // THE HEAD AND THE SECTIONS PART BY ROOM ALONE (#501): 16 under the head and no rule, as
+    // the design's final files draw the rail collapsed and expanded alike — a rule stood there,
+    // 10 either side, from the files #460 first measured. The rail's own edge is its one line,
+    // which is what tells this reading that it sees a line at all.
+    log("");
+    log("the rail's head stands apart from its sections by room alone:");
+    const railRoom = (ast) => {
+        let rules = 0;
+        let edges = 0;
+        let room = null;
+        for (const c of classNames(ast)) {
+            if (c.tokens.includes(cls("h-", "px"))) rules += 1;
+            if (c.tokens.includes(cls("after:", "w-px"))) edges += 1;
+            if (c.name === "ul") room = c.tokens.includes(cls("mt-", "rail-header-stack"));
+        }
+        return `${rules} ${edges} ${room}`;
+    };
+    check("  no rule between them, the rail's edge its one line, and the sections 16 under the head (#501)", railRoom(railAst), "0 1 true");
+    check(
+        "  a planted rule between them is seen",
+        railRoom(
+            parseSource(
+                `export default function Rail() { return <nav className="${cls("after:", "w-px")}"><div className="${cls("my-rail-", "divider-stack ", "h-", "px")}" /><ul className="flex" /></nav>; }`,
+                "<planted>"
+            ).ast
+        ),
+        "1 1 false"
+    );
+
     // ── 6: the account at the rail's foot (#478) ─────────────────────────────
     log("");
     log("the account says who is reading, in one string, from the page's own read:");

@@ -375,7 +375,9 @@ const VALUES = [
     ["--ease-rail", "cubic-bezier(0.2, 0, 0, 1)", null],
     // From the drawings, not the spec (#460).
     ["--spacing-rail-stack", "0.125rem", null],
-    ["--spacing-rail-divider-stack", "0.625rem", null],
+    // From the final files' drawings, where a rule with 10 either side stood under the toggle
+    // until #501.
+    ["--spacing-rail-header-stack", "1rem", null],
     // The account at the rail's foot (#478), declared again with its first reader.
     ["--height-account", "3rem", null],
     ["--size-avatar", "1.5rem", null],

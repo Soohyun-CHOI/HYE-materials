@@ -11,6 +11,15 @@ import Space from "@/app/components/Space";
  * than as the string, so the constants a server page's rows are built from live in a module
  * both kinds of file can read. The columns are each list's own; what a row and a head ARE is
  * here once.
+ *
+ * WHAT STANDS OVER WHAT (#501). A row is its own stacking context, so what it lifts — its
+ * box, over the link that covers the row — rises inside the row and never past it. Over the
+ * rows stands the column head. The pager stands over the head where a short window brings
+ * them together, at the head's z-index and later in the document, with the selection bar
+ * floating on it (`ListFrame.js`); the rail's Panel covers all three; and a tooltip, a menu
+ * or a dialog opens in the top layer over everything. Until #501 a row was no context of its
+ * own, so its box and the column head held one z-index in one context, and every box —
+ * later in the document — drew over the head as its row scrolled under it.
  */
 
 /** The content's measure inside the column (0b, 1080), with the Margin either side. */
@@ -29,10 +38,11 @@ export const TABLE_HEAD =
  * 0b's Row: 40 under its 1px Rule, its text 12 in from the content's edge where the rule
  * stops, and a Control-radius face under the pointer and while it is selected — Wash, since a
  * table row counts as bordered (0f), and Face (0c). The drawings set both faces square; 0b
- * gives the hover a Control radius on 1080, and the spec is the one followed.
+ * gives the hover a Control radius on 1080, and the spec is the one followed. `isolate` makes
+ * it a stacking context of its own, so its box stays under the column head (above).
  */
 export const TABLE_ROW =
-    "relative box-content grid h-table-row content-center items-baseline gap-x-table-column-inline rounded-control px-table-bleed pt-px text-body text-foreground-default before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-divider hover:bg-hover-subtle";
+    "relative isolate box-content grid h-table-row content-center items-baseline gap-x-table-column-inline rounded-control px-table-bleed pt-px text-body text-foreground-default before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-divider hover:bg-hover-subtle";
 
 /** A selected row's Face (0c), over the hover's Wash. */
 export const TABLE_ROW_SELECTED = "bg-selected hover:bg-selected";

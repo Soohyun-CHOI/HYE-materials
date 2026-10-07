@@ -32,6 +32,11 @@ const END_ROOM_WITH_BAR =
  * height instead, so the last row scrolls clear of it — and on the selection bar's as well
  * while it stands (0b), so no row stays under the bar either.
  *
+ * THE PAGER STANDS OVER THE ROWS AND THE COLUMN HEAD (#501). It takes the head's z-index and
+ * comes after the lane, so where a short window brings the two together it is the one on
+ * top, as 1b ties them; the selection bar is drawn inside it, so it floats over both; and
+ * the rail's Panel covers them all. `ListTable.js` has the order whole.
+ *
  * THE PAGER'S GROUND SAYS WHETHER ROWS RUN BENEATH IT (0k Sticky, 0e Band): white at 0.82
  * over the blur and a Band over it while they do, plain white with no rule once the list has
  * ended above it. That is a fact about the scroll position, so it is measured — on every

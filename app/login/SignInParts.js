@@ -62,7 +62,7 @@ export function AddressChip({ email, onChange, disabled = false }) {
             type="button"
             aria-disabled={disabled || undefined}
             onClick={disabled ? undefined : onChange}
-            className={`${chip} not-aria-disabled:hover:bg-hover-subtle not-aria-disabled:active:bg-hover-subtle aria-disabled:cursor-default max-sm:before:absolute max-sm:before:inset-x-0 max-sm:before:-inset-y-[calc((var(--spacing-mobile-touch-target)-var(--height-mobile-chip))/2)]`}
+            className={`${chip} not-aria-disabled:hover:bg-hover-subtle not-aria-disabled:active:bg-hover-subtle max-sm:before:absolute max-sm:before:inset-x-0 max-sm:before:-inset-y-[calc((var(--spacing-mobile-touch-target)-var(--height-mobile-chip))/2)]`}
         >
             {content}
         </button>

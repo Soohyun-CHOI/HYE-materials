@@ -404,7 +404,7 @@ export function DialogFrame({
                         aria-label={COPY.close}
                         aria-disabled={busy || undefined}
                         onClick={ask}
-                        className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle aria-disabled:cursor-default not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default"
+                        className="flex h-dialog-close aspect-square items-center justify-center rounded-control text-foreground-subtle not-aria-disabled:hover:bg-hover not-aria-disabled:hover:text-foreground-default"
                     >
                         <svg viewBox="0 0 16 16" fill="none" aria-hidden="true" className="size-icon-sm">
                             <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />

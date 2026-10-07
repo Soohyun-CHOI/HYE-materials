@@ -29,3 +29,20 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* A control that acts shows the hand under the pointer, and one that does not
+   keeps the browser's arrow (#501) — on every screen, the materials ones
+   included. Tailwind 4's preflight no longer gives a button the hand, as
+   version 3's did, so every button here drew the arrow; this one rule gives it
+   back. What does not act says so with `disabled` or `aria-disabled` — a step
+   at its end, a busy or locked action (`lib/controls.js:buttonBusyState`), a
+   close held while its dialog sends — and takes no hand. It sits in the base
+   layer, so a control's own `cursor-*` utility still wins: a drag handle's
+   grab, a refused control's not-allowed. A control that is not a button — a
+   row's box, a list's option, a choice — draws its own. */
+@layer base {
+  button:not(:disabled, [aria-disabled="true"]),
+  [role="button"]:not(:disabled, [aria-disabled="true"]) {
+    cursor: pointer;
+  }
+}

@@ -1426,6 +1426,87 @@ export function run({ check, assert, log }) {
         "true true true"
     );
 
+    // WHAT STANDS OVER WHAT (#501). A row is its own stacking context, so the box it lifts
+    // over the link that covers it rises inside the row and stays under the column head; the
+    // pager, which the selection bar is drawn in, takes the head's z-index after the lane, so
+    // it is the one on top where the two meet; and the rail's Panel covers them all. Until
+    // #501 a row was no context of its own, and every row's box — at the head's z-index and
+    // later in the document — drew over the head as its row scrolled under it.
+    const stackingOf = ({ table: tableFile, frame: frameFile, rail: railFile, controls: controlsFile }) => {
+        const constant = (parsed, name) => {
+            let value = "";
+            walk(parsed.ast, (n) => {
+                if (n.type === "VariableDeclarator" && n.id?.name === name && n.init?.type === "Literal") value = String(n.init.value);
+            });
+            return value.split(/\s+/).filter(Boolean);
+        };
+        // The classes of the first JSX element under `node` that `picks` takes — a string, or a
+        // template's fixed text — with where the element starts in its file.
+        const classesOf = (parsed, picks, node = parsed.ast) => {
+            let found = null;
+            walk(node, (n) => {
+                if (found || n.type !== "JSXElement" || !picks(n)) return;
+                const value = n.openingElement.attributes.find((a) => a.name?.name === "className")?.value;
+                const expression = value?.type === "JSXExpressionContainer" ? value.expression : value;
+                const text =
+                    expression?.type === "Literal"
+                        ? String(expression.value)
+                        : expression?.type === "TemplateLiteral"
+                          ? expression.quasis.map((q) => q.value.cooked).join(" ")
+                          : "";
+                found = { tokens: text.split(/\s+/).filter(Boolean), start: n.start };
+            });
+            return found ?? { tokens: [], start: -1 };
+        };
+        const named = (name) => (n) => n.openingElement.name?.name === name;
+        const holding = (parsed, text) => (n) => parsed.source.slice(n.openingElement.start, n.openingElement.end).includes(text);
+        const layer = (tokens) => Number(tokens.find((t) => /^z-\d+$/.test(t))?.slice(2) ?? NaN);
+        let checkboxFn = null;
+        walk(controlsFile.ast, (n) => {
+            if (n.type === "FunctionDeclaration" && n.id?.name === "Checkbox") checkboxFn = n;
+        });
+        const box = classesOf(controlsFile, named("label"), checkboxFn ?? {});
+        const cover = constant(tableFile, "TABLE_ROW_LINK");
+        const head = constant(tableFile, "TABLE_HEAD");
+        const pager = classesOf(frameFile, holding(frameFile, "PAGER_OVER_ROWS"));
+        const lane = classesOf(frameFile, holding(frameFile, "ref={laneRef}"));
+        const nav = classesOf(railFile, named("nav"));
+        return {
+            row: constant(tableFile, "TABLE_ROW").includes("isolate"),
+            box: `${box.tokens.includes("relative")} ${layer(box.tokens) > 0} ${cover.includes("after:absolute")} ${cover.some((t) => /(^|:)z-/.test(t))}`,
+            head: `${head.includes("sticky")} ${layer(head) > 0}`,
+            pager: `${pager.tokens.includes("relative")} ${layer(pager.tokens) === layer(head)} ${lane.start >= 0 && pager.start > lane.start}`,
+            panel: layer(nav.tokens) > Math.max(layer(head), layer(pager.tokens)),
+        };
+    };
+    const stack = stackingOf({ table, frame, rail, controls: parseFile(CONTROLS) });
+    check("a row is a stacking context of its own, so what it lifts rises inside it and no further (#501)", stack.row, true);
+    check("  where the box stands over the link that covers the row, which lifts nothing", stack.box, "true true true false");
+    check("the column head holds at the top of the rows, over them", stack.head, "true true");
+    check("  the pager over it at its z-index, after the lane, so on top where the two meet", stack.pager, "true true true");
+    check("  and the rail's Panel over all of them", stack.panel, true);
+    // Anti-vacuity: the reading sees each of those undone in a planted list. The lifted cover
+    // is assembled while this runs, so no whole class of it is in a file Tailwind scans.
+    const liftedCover = ["after:", "z-10"].join("");
+    const plantedStack = stackingOf({
+        table: parseSource(
+            'export const TABLE_HEAD = "sticky top-0 z-10";\n' +
+                'export const TABLE_ROW = "relative box-content";\n' +
+                `export const TABLE_ROW_LINK = "after:absolute after:inset-0 ${liftedCover}";`,
+            "<planted ListTable>"
+        ),
+        frame: parseSource(
+            "export default function ListFrame() { return <div><div className={`relative z-20 ${PAGER_OVER_ROWS}`} /><div ref={laneRef} /></div>; }",
+            "<planted ListFrame>"
+        ),
+        rail: parseSource('export default function Rail() { return <nav className="absolute z-10" />; }', "<planted Rail>"),
+        controls: parseSource('export function Checkbox() { return <label className="flex" />; }', "<planted Controls>"),
+    });
+    check("  a row that is no context of its own is seen", plantedStack.row, false);
+    check("  a box that lifts nothing over a cover that lifts itself is seen", plantedStack.box, "false false true true");
+    check("  a pager off the head's layer and before the lane is seen", plantedStack.pager, "true false false");
+    check("  and one the rail's Panel does not cover", plantedStack.panel, false);
+
     // ── 3: the words ────────────────────────────────────────────────────────
     log("");
     log("every word both screens say is in the constant:");
