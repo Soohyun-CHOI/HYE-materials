@@ -10,10 +10,10 @@
 //      joins, every shape stroked non-scaling at `stroke-icon`, which reads the one line
 //      `app/designValues.css` declares — and a mark hidden from assistive tech that takes a
 //      shape, a crop and classes and nothing that could name it.
-//   3. THE SHAPES, BY VALUE: each is typed below as the design's files of 2026-10-07 draw it,
-//      `search-x` as Lucide 0.532.0 has it, since those files do not draw it yet. A table
-//      read back from the module would pass for any shape it held, so a shape changes in
-//      both files in one commit — `design-values.mjs`' rule for the design's figures.
+//   3. THE SHAPES, BY VALUE: each is typed below as Lucide 1.52.0 has it, the release the
+//      design draws its marks from. A table read back from the module would pass for any
+//      shape it held, so a shape changes in both files in one commit — `design-values.mjs`'
+//      rule for the design's figures — and so does the release.
 //   4. THE CALLS: each names a shape the module has, every shape is drawn somewhere, and each
 //      call is given a size — a mark given none is an `<svg>` at the browser's 300 by 150.
 //      Which file draws which marks is typed below too, so a mark that goes missing from a
@@ -47,10 +47,9 @@ const NOT_MARKS = {
 };
 
 /**
- * Every shape, element by element, as the design's files draw it — Lucide's, as Lucide stood
- * from 0.416.0 to 0.532.0, with `circle-alert`'s two strokes written as paths where Lucide has
- * lines. `search-x` is Lucide 0.532.0's, unchanged from 0.416.0 to 1.52.0, which Design settled
- * 1g-c's mark as and its files of 2026-10-07 do not draw yet.
+ * Every shape, element by element and in Lucide's order, as lucide-react 1.52.0 holds it: the
+ * release Design moved the design's marks to on 2026-10-07, after that morning's files drew
+ * Lucide as it stood from 0.416.0 to 0.532.0. `search-x` is 1g-c's mark, which Design settled.
  */
 const DESIGN_SHAPES = {
     check: [["path", { d: "M20 6 9 17l-5-5" }]],
@@ -60,8 +59,8 @@ const DESIGN_SHAPES = {
     "chevron-up": [["path", { d: "m18 15-6-6-6 6" }]],
     "circle-alert": [
         ["circle", { cx: "12", cy: "12", r: "10" }],
-        ["path", { d: "M12 8v4" }],
-        ["path", { d: "M12 16h.01" }],
+        ["line", { x1: "12", x2: "12", y1: "8", y2: "12" }],
+        ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16" }],
     ],
     "clipboard-list": [
         ["rect", { width: "8", height: "4", x: "8", y: "2", rx: "1", ry: "1" }],
@@ -77,8 +76,8 @@ const DESIGN_SHAPES = {
         ["circle", { cx: "5", cy: "12", r: "1" }],
     ],
     "file-text": [
-        ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" }],
-        ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4" }],
+        ["path", { d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" }],
+        ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
         ["path", { d: "M10 9H8" }],
         ["path", { d: "M16 13H8" }],
         ["path", { d: "M16 17H8" }],
@@ -102,9 +101,9 @@ const DESIGN_SHAPES = {
         ["path", { d: "M12 5v14" }],
     ],
     receipt: [
-        ["path", { d: "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" }],
-        ["path", { d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" }],
-        ["path", { d: "M12 17.5v-11" }],
+        ["path", { d: "M12 17V7" }],
+        ["path", { d: "M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8" }],
+        ["path", { d: "M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z" }],
     ],
     "search-x": [
         ["path", { d: "m13.5 8.5-5 5" }],
@@ -128,7 +127,7 @@ const DESIGN_SHAPES = {
         ["circle", { cx: "12", cy: "7", r: "4" }],
     ],
     wrench: [
-        ["path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" }],
+        ["path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" }],
     ],
     x: [
         ["path", { d: "M18 6 6 18" }],

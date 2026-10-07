@@ -4,14 +4,13 @@
  * joins (0a Icon box); a screen names the shape here and gives it a size, its ink coming from
  * the text around it. `docs/notes/design-system.md` has what was weighed and measured.
  *
- * THE SHAPES ARE THE DESIGN'S, COPIED RATHER THAN DEPENDED ON. They are Lucide's as the files
- * of 2026-10-07 draw them, which is Lucide as it stood from 0.416.0 to 0.532.0: lucide-react
- * 1.52.0 draws three of them otherwise — `file-text`, `receipt` and `wrench`, which Lucide
- * redrew after — so a dependency would draw three of the rail's sections unlike the design or
- * be held to an old release, and an upgrade could move any shape away from it. A shape the
- * design draws is added by copying its node out of the design's file; one it does not draw
- * yet comes from Lucide at 0.532.0 and says so beside it. `circle-alert` is written as the
- * design writes it, two paths where Lucide has two lines that stroke the same.
+ * LUCIDE 1.52.0'S SHAPES, COPIED RATHER THAN DEPENDED ON. That is the release the design draws
+ * its marks from since Design moved them to it on 2026-10-07; that morning's files drew Lucide as
+ * it stood from 0.416.0 to 0.532.0, whose `file-text`, `receipt` and `wrench` 1.52.0 redraws.
+ * The release is Design's to choose and has moved once already, so each shape is copied out of
+ * it and held to it by value in `offline/icons.mjs`, where a dependency would move with its own
+ * upgrades — and could not carry the line either (below). A shape the design comes to draw is
+ * copied out of Lucide at the design's release, its elements in Lucide's order.
  *
  * ONE LINE FOR EVERY MARK, AND IT DOES NOT SCALE. The stroke is `--stroke-width-icon` and
  * every shape is drawn `non-scaling-stroke`, so a 40 mark and an 11 chevron carry the one
@@ -38,8 +37,7 @@
  *
  *   ISC License
  *
- *   Copyright (c) for portions of Lucide are held by Cole Bemis 2013-2022 as part of Feather
- *   (MIT). All other copyright (c) for Lucide are held by Lucide Contributors 2022.
+ *   Copyright (c) 2026 Lucide Icons and Contributors
  *
  *   Permission to use, copy, modify, and/or distribute this software for any purpose with or
  *   without fee is hereby granted, provided that the above copyright notice and this
@@ -73,7 +71,7 @@
  *   DEALINGS IN THE SOFTWARE.
  */
 
-// Each shape by its Lucide name, its elements in Lucide's order, as the design's files draw them.
+// Each shape by its Lucide name, as lucide-react 1.52.0 holds it, its elements in Lucide's order.
 const SHAPES = {
     check: [["path", { d: "M20 6 9 17l-5-5" }]],
     "chevron-down": [["path", { d: "m6 9 6 6 6-6" }]],
@@ -82,8 +80,8 @@ const SHAPES = {
     "chevron-up": [["path", { d: "m18 15-6-6-6 6" }]],
     "circle-alert": [
         ["circle", { cx: "12", cy: "12", r: "10" }],
-        ["path", { d: "M12 8v4" }],
-        ["path", { d: "M12 16h.01" }],
+        ["line", { x1: "12", x2: "12", y1: "8", y2: "12" }],
+        ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16" }],
     ],
     "clipboard-list": [
         ["rect", { width: "8", height: "4", x: "8", y: "2", rx: "1", ry: "1" }],
@@ -99,8 +97,8 @@ const SHAPES = {
         ["circle", { cx: "5", cy: "12", r: "1" }],
     ],
     "file-text": [
-        ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" }],
-        ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4" }],
+        ["path", { d: "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" }],
+        ["path", { d: "M14 2v5a1 1 0 0 0 1 1h5" }],
         ["path", { d: "M10 9H8" }],
         ["path", { d: "M16 13H8" }],
         ["path", { d: "M16 17H8" }],
@@ -124,12 +122,11 @@ const SHAPES = {
         ["path", { d: "M12 5v14" }],
     ],
     receipt: [
-        ["path", { d: "M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" }],
-        ["path", { d: "M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" }],
-        ["path", { d: "M12 17.5v-11" }],
+        ["path", { d: "M12 17V7" }],
+        ["path", { d: "M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8" }],
+        ["path", { d: "M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z" }],
     ],
-    // Not drawn by the files of 2026-10-07, whose 1g-c still draws its own 40 mark; Design
-    // settled it as this, and it is Lucide 0.532.0's — unchanged from 0.416.0 to 1.52.0.
+    // 1g-c's mark, which Design settled as this where the files of 2026-10-07 drew their own.
     "search-x": [
         ["path", { d: "m13.5 8.5-5 5" }],
         ["path", { d: "m8.5 8.5 5 5" }],
@@ -152,7 +149,7 @@ const SHAPES = {
         ["circle", { cx: "12", cy: "7", r: "4" }],
     ],
     wrench: [
-        ["path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" }],
+        ["path", { d: "M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z" }],
     ],
     x: [
         ["path", { d: "M18 6 6 18" }],
