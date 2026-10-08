@@ -3,9 +3,10 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemsByTool } from "@/lib/airtable/toolItems";
 import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { assignedJobsFor } from "@/lib/toolJob";
-import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
+import { FILTER_BAR_COPY } from "@/lib/listFilters";
+import { TOOL_LIST_COPY as COPY, idsInScope, pageOfToolItems, toolListScope } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems, readRegistrationAccount } from "@/lib/toolRegistration";
-import { TOOLS_PATH } from "@/lib/toolRoutes";
+import { TOOLS_PATH, toolsPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
 import Breadcrumb from "@/app/components/Breadcrumb";
@@ -15,6 +16,7 @@ import { ListHeader } from "@/app/components/ListTable";
 import RegistrationDialog from "../RegistrationDialog";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
+import ToolJobChoice from "./ToolJobChoice";
 import ToolItemList from "./ToolItemList";
 
 // Static, the way `/materials/[materialId]` is and for the same reason: the
@@ -54,6 +56,15 @@ export const metadata = { title: "Tool" };
  * from the tool's own `Tool Items` link array BEFORE anything is fetched, so a
  * tool with three hundred units costs exactly what a tool with three costs, and
  * the total the screen states comes from that array's length for nothing.
+ *
+ * AND WHATEVER JOB IT IS NARROWED TO (#509). The array is first cut to the reader's
+ * scope — `toolListScope`, the judgment `/tools` reads its rows by — which comes off the
+ * job list's own link arrays, so the page is still chosen before anything is fetched.
+ * The office starts from every tool item under the tool and anybody else from those on
+ * their jobs; a job in the head narrows to its own, and the head counts `N of M`. A tool
+ * with tool items, none of them in the scope, draws its head and nothing under it, as a
+ * job with none does on `/tools`: `No items under this tool` would be false there, and
+ * Design is drawing what it says. A tool item off the scope still opens from its label.
  *
  * AND WHATEVER IS SELECTED (#443). Which tool items a label run is for rides in the
  * address as `id`, and this page never reads it: `ToolItemList.js` beside it reads
@@ -118,8 +129,8 @@ export default async function ToolPage(props) {
     return withOpsLabel("/tools/[toolRecordId]", () => renderToolPage(props));
 }
 
-// Every signed-in user, with no Role and no Job scoping (#337) — the same reader
-// the rest of this axis has.
+// Every signed-in user, with no Role and no Job gate (#337) — the same reader the rest
+// of this axis has; what the list shows first is their jobs' (#509).
 async function renderToolPage({ params, searchParams }) {
     const user = await requireUser();
     const { toolRecordId } = await params;
@@ -127,8 +138,8 @@ async function renderToolPage({ params, searchParams }) {
 
     // Batched by record id, so an id nothing carries comes back as no row rather
     // than as a throw. The id reaches a formula only through `orByRecordId`,
-    // which escapes it.
-    const [tool] = await getToolsByRecordIds([toolRecordId]);
+    // which escapes it. The job list beside it, since the scope comes off it (#509).
+    const [[tool], jobs] = await Promise.all([getToolsByRecordIds([toolRecordId]), getAllJobs()]);
     if (!tool) {
         // 1h's shape, which the tool item page draws for a code no tool item carries: the
         // heading centered in the column and the way back under it. An address carries a
@@ -157,13 +168,17 @@ async function renderToolPage({ params, searchParams }) {
     // box with nothing on screen to show it — so `offline/tool-list-view.mjs` reads
     // the argument off the source, and the rows this hands the list, rather than
     // trusting a figure.
-    const page = pageOfToolItems(tool.toolItems, sp.page);
-    const [toolItems, jobs] = await Promise.all([
-        getToolItemsByTool(tool.id, { rowIds: page.ids }),
-        getAllJobs(),
-    ]);
+    //
+    // THE ARRAY IS CUT TO THE READER'S SCOPE FIRST (#509), off ids already in hand, so the
+    // read is still one page.
+    const scope = toolListScope(user, jobs, sp.job);
+    const narrowed = scope.job !== null;
+    const job = scope.job?.id ?? null;
+    const page = pageOfToolItems(idsInScope(tool.toolItems, scope.shown), sp.page);
+    const total = idsInScope(tool.toolItems, scope.start).length;
+    const toolItems = await getToolItemsByTool(tool.id, { rowIds: page.ids });
 
-    const jobCodeById = Object.fromEntries(jobs.map((job) => [job.id, job.jobCode]));
+    const jobCodeById = Object.fromEntries(jobs.map((each) => [each.id, each.jobCode]));
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
     // Whether this reader adds tools and prints their labels here at all (#506): every
     // control below that does either is drawn under it, and nothing else on the page is.
@@ -178,14 +193,35 @@ async function renderToolPage({ params, searchParams }) {
     // chevron (1d). The tool's name is the heading and there is no heading word, which is
     // the shape the tool item's page takes. Registering more of this tool (#451) is the
     // head's one control, so a tool with nothing under it keeps it — there it is the way to
-    // write what a registration did not. It opens the dialog on this tool (#456).
-    const top = <Breadcrumb levels={[{ label: COPY.heading, href: TOOLS_PATH }]} />;
+    // write what a registration did not. It opens the dialog on this tool (#456). The way
+    // back keeps the job the list is narrowed to (#509), and the head's choice stands
+    // before the opener, as on `/tools`.
+    const top = <Breadcrumb levels={[{ label: COPY.heading, href: toolsPath(1, job) }]} />;
     const registration = { opener: TOOL_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, tool: { toolName: tool.toolName } };
     const header = (
-        <ListHeader title={tool.toolName} count={page.total} noun={COPY.itemNoun(page.total)} underBreadcrumb>
+        <ListHeader
+            title={tool.toolName}
+            count={narrowed ? FILTER_BAR_COPY.count(page.total, total) : page.total}
+            noun={COPY.itemNoun(page.total)}
+            underBreadcrumb
+        >
+            {scope.jobs.length > 0 && (
+                <ToolJobChoice
+                    jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))}
+                    job={job}
+                    toolRecordId={tool.id}
+                    selects={recorder}
+                />
+            )}
             {recorder && <RegistrationDialog {...registration} />}
         </ListHeader>
     );
+
+    // Tool items under the tool, none of them in the scope (#509): the head alone, whose
+    // count and choice say it, where the empty tool's words below would be false.
+    if (page.total === 0 && tool.toolItems.length > 0) {
+        return <ListFrame top={top} header={header} />;
+    }
 
     if (page.total === 0) {
         return (
@@ -226,6 +262,7 @@ async function renderToolPage({ params, searchParams }) {
                 jobCode: jobCodeById[toolItem.job?.[0]],
             }))}
             page={page}
+            job={job}
             top={top}
             header={header}
         >

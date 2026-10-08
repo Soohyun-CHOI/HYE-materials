@@ -1,9 +1,11 @@
 # Tools
 
 Route: `/tools`
-Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
+Who reaches it: anyone signed in, with no Role and no Job gate (#337).
 Adding tools from it is a site manager's (#506); everyone else reads the same
-list without that control.
+list without that control. What the list holds first is the reader's (#509):
+the office's is every tool, anybody else's the tools on the jobs they are
+assigned to.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -65,6 +67,23 @@ reader who is not a site manager is drawn none (#506)** — being one is not
 something the office assigns on request the way a job is, so a disabled control
 with a reason would send them nowhere.
 
+**action.** A choice of job in the head, before `Add tools` (#509): `All jobs`,
+which is the whole of what the reader starts from, then each job they may
+narrow to by its code — every job for the office, their own for anybody else,
+a job with nothing on it included. Choosing one narrows the list to the tools
+with a tool item on that job, counted over those tool items alone, from the
+first page. Design is drawing the control; it is the choice the registration
+dialog draws until then.
+
+**What a reader starts from is a fact the list carries, and a design may not
+make it a toggle (#509).** The office — `Is Admin` — starts from every tool,
+**a tool with nothing under it included**, since a registration that stopped
+before writing any leaves one and the office is who finds it. Anybody else
+starts from the tools with a tool item on their jobs, counted over those tool
+items, and a tool with none there is not on their list. A tool item off the
+reader's jobs still opens from its label or a link; the list is what they are
+shown first, not what they may see.
+
 **evidence.** One row per tool, ordered by name, twenty-five to a page
 (0b's page of rows, #463) with the pager under them: which rows the page
 shows of how many, `1–17 of 17`, which page of how many, and a step each
@@ -98,14 +117,21 @@ site manager, the heading and the sentence alone (#506)**: the sentence says
 what the list is for, which is true for whoever reads it, and both openers are
 a site manager's.
 
-**This is the only empty state this screen can reach**, which is worth
-saying because the shared brief describes three. The other two are
-"nothing you can see" and "nothing matching your filters"; nothing on this
-axis is scoped by role or job, and this list has no filters, so neither
-has a producer here.
+**The shared brief's three empty states all have a producer here since #509,
+and this screen draws two.** "Nothing exists yet" and "nothing you can see" —
+a reader whose jobs hold no tool, or who is on no job — both read the words
+above for now. "Nothing matching your filters" is a job chosen with nothing on
+it: the head reads `0 of 4` with the choice beside it, and nothing is drawn
+under it. Design is drawing what both of those say.
+
+**When a job narrows the list:** the head's figure reads `N of M`, the document
+lists' words for the same thing, `M` being what the reader started from. The
+pager's steps and every row's way into a tool keep the job; the rail's
+`Tools` does not. A job in the address the reader may not narrow to is
+answered with their whole list, the choice reading `All jobs`.
 
 **A tool with nothing under it** reads as a row whose three counts are all
-zero. It is reachable and is not a display error: a registration writes
+zero, on the office's list before a job narrows it, and on no other (#509). It is reachable and is not a display error: a registration writes
 the `Tools` row before it writes the tool items, and #338 rolls back
 neither, so a failure in between leaves the tool standing alone. The
 tool's own screen is where that is explained in words.

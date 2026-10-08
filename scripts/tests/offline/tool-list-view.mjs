@@ -64,12 +64,15 @@ import {
     TOOL_LIST_COPY,
     TOOL_PAGE_SIZE,
     describeSelection,
+    idsInScope,
     pageOfToolItems,
     pageOfTools,
     pageSelection,
     summarizeTools,
     togglePage,
     toggleToolItem,
+    toolListScope,
+    toolsInScope,
 } from "../../../lib/toolListView.js";
 import { MAX_LABELS_PER_REQUEST } from "../../../lib/toolLabelPage.js";
 import { readToolItemIds } from "../../../lib/toolRoutes.js";
@@ -563,11 +566,12 @@ export function run({ check, assert, log }) {
     // AND A REGISTRATION'S ACCOUNT (#449), which this page does read: it is drawn at
     // render and no box or step moves it, so a server read is right for it where it is
     // wrong for the selection. Pinned by name, so a page that began to read `id` fails
-    // here even while it read the account as well.
+    // here even while it read the account as well. `job` is the job the list is narrowed
+    // to (#509), read into `toolListScope` before the page is chosen.
     check(
-        "the page reads `page` and a registration's account off its address, and never the selection",
+        "the page reads `page`, `job` and a registration's account off its address, and never the selection",
         facts.addressReads.join(", "),
-        "asked, page, unlogged, unwritten"
+        "asked, job, page, unlogged, unwritten"
     );
     check("  and draws no labels' opener of its own", facts.printLinks, 0);
     // THE LABELS' DIALOG NAMES THE TOOL UNDER ITS TITLE (#457), and the name is the one
@@ -698,8 +702,14 @@ export function run({ check, assert, log }) {
             if (n.type !== "CallExpression") return;
             const callee = nameOf(n.callee);
             if (callee === "togglePage") pageBoxOver = origin(n.arguments[1]);
-            if (callee === "toolPath")
-                toolPathCalls.push(n.arguments.length === 3 ? nameOf(n.arguments[2]) : `${n.arguments.length} arguments`);
+            // The selection each write carries, and `+job` where its options carry the job
+            // the list is narrowed to (#509).
+            if (callee === "toolPath") {
+                const options = n.arguments[3];
+                const job =
+                    options?.type === "ObjectExpression" && options.properties.some((p) => p.key?.name === "job") ? "+job" : "";
+                toolPathCalls.push(n.arguments.length >= 3 ? `${nameOf(n.arguments[2])}${job}` : `${n.arguments.length} arguments`);
+            }
             if (callee === "window.history.replaceState") replaced++;
             if (callee === "useRouter" || callee === "redirect" || /^router\./.test(callee)) routed.push(callee);
         });
@@ -724,9 +734,9 @@ export function run({ check, assert, log }) {
     check("  and says the dialog's word for a run from a tool", list.printTitle, "LABEL_COPY.openFromTool");
     check("  the page box acts on the rows the page handed it", list.pageBoxOver, "rows");
     check(
-        "  every address it writes carries a selection — the new one, or the current one on a step",
+        "  every address it writes carries a selection — the new one, or the current one on a step — and the job (#509)",
         list.toolPathCalls.join(", "),
-        "next, selection, selection"
+        "next+job, selection+job, selection+job"
     );
     check("  written with history.replaceState", list.replaced, 1);
     check("  and never through the router", list.routed.join(", "), "");
@@ -1071,16 +1081,16 @@ export function run({ check, assert, log }) {
     const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
     check("the tool list opens it from its head, and from an empty list", listOpeners.length, 2);
     check(
-        "  on no tool, in the same title, with the list's tools to suggest",
+        "  on no tool, in the same title, with every tool to suggest — whatever the list's scope (#509)",
         listOpeners[0]?.handed,
-        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: rows.map(…)"
+        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: everyTool.map(…)"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterToolItems");
     check("  and under the reader being a site manager alone too (#506)", listOpeners[0]?.under, "recorder");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: rows.map(…), variant: bordered | canRegisterToolItems | rows.length === 0, recorder"
+        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: everyTool.map(…), variant: bordered | canRegisterToolItems | rows.length === 0, !(narrowed), recorder"
     );
     // THE COUNT BESIDE A SUGGESTED TOOL IS ITS LINK ARRAY'S LENGTH (#456) — the figure its
     // own page heads its list with — and never a sum of statuses, so one word says one
@@ -1351,9 +1361,9 @@ export function run({ check, assert, log }) {
     });
     check("the tool list cuts its built rows by the page asked for", pagedWith, "rows, sp.page");
     check(
-        "  draws the page's rows, and steps through toolsPath",
+        "  draws the page's rows, and steps through toolsPath, keeping the job (#509)",
         `${/\{page\.rows\.map\(\(row\) =>/.test(listScreen.source)} ${propSources(listScreen, "Pager", "previous").join()} ${propSources(listScreen, "Pager", "next").join()}`,
-        "true {{ href: page.page > 1 ? toolsPath(page.page - 1) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? toolsPath(page.page + 1) : null, label: COPY.next }}"
+        "true {{ href: page.page > 1 ? toolsPath(page.page - 1, job) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? toolsPath(page.page + 1, job) : null, label: COPY.next }}"
     );
     check(
         "  and draws no pager over an empty list",
@@ -1385,9 +1395,9 @@ export function run({ check, assert, log }) {
         "{pageState === \"all\"} | {selected} ~ {pageState === \"some\"} ~ {COPY.selectPage} | {COPY.selectToolItem(row.toolItemId)}"
     );
     check(
-        "  and both steps carry the selection",
+        "  and both steps carry the selection and the job (#509)",
         `${propSources(itemList, "Pager", "previous").join()} ${propSources(itemList, "Pager", "next").join()}`,
-        "{{ href: page.page > 1 ? toolPath(toolRecordId, page.page - 1, selection) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? toolPath(toolRecordId, page.page + 1, selection) : null, label: COPY.next }}"
+        "{{ href: page.page > 1 ? toolPath(toolRecordId, page.page - 1, selection, { job }) : null, label: COPY.previous }} {{ href: page.page < page.pageCount ? toolPath(toolRecordId, page.page + 1, selection, { job }) : null, label: COPY.next }}"
     );
 
     // THE FRAME: one lane that holds the rows and stops at its end, a pager whose ground
@@ -1599,6 +1609,108 @@ export function run({ check, assert, log }) {
     check("  rows ending short of it are seen", plantedHead.endRoom, false);
     check("  a clear that keeps Ink 3 is seen", plantedHead.clear, false);
     check("  and a level that lifts is seen", plantedHead.level, "true true false");
+
+    // ── 2f: what a reader's lists start from, and what a job narrows (#509) ─
+    log("");
+    log("a list starts from the reader's jobs, or everything for the office, and a job narrows it:");
+    // Three jobs, the third with nothing on it, over the three tools above — the third of
+    // those with nothing under it at all. `i1`–`i4` are the tool items `ITEMS` holds.
+    const JOBS = [
+        { id: "recJ1", jobCode: "26-A", toolItems: ["i1", "i2"] },
+        { id: "recJ2", jobCode: "26-B", toolItems: ["i3", "i4"] },
+        { id: "recJ3", jobCode: "26-C", toolItems: [] },
+    ];
+    const office = { isAdmin: true, assignedJobs: ["recJ1"] };
+    const site = { isAdmin: false, assignedJobs: ["recJ1", "recJ3"] };
+    const said = (scope) => (scope === null ? "every" : [...scope].join(","));
+    const named = (tools) => tools.map((tool) => tool.id).join(",");
+    const jobsOf = (scope) => scope.jobs.map((job) => job.jobCode).join(",");
+
+    // THE OFFICE, ASSIGNED OR NOT, STARTS FROM EVERYTHING — every tool, the one with
+    // nothing under it included, since that is a registration the office puts right.
+    const whole = toolListScope(office, JOBS, undefined);
+    check("the office may narrow to every job, one with nothing on it included", jobsOf(whole), "26-A,26-B,26-C");
+    check("  starts from every tool item, its assignment notwithstanding", `${said(whole.start)} ${said(whole.shown)} ${whole.job}`, "every every null");
+    check("  and lists every tool, the one with no tool items included", named(toolsInScope(TOOLS, whole.shown)), "recGrinder,recDriver,recNothing");
+    // ANYBODY ELSE STARTS FROM THEIR JOBS' TOOL ITEMS, TOGETHER.
+    const own = toolListScope(site, JOBS, undefined);
+    check("anybody else may narrow to their own jobs, one with nothing on it included", jobsOf(own), "26-A,26-C");
+    check("  starts from those jobs' tool items together", `${said(own.start)} | ${said(own.shown)}`, "i1,i2 | i1,i2");
+    check("  and lists only the tools with one in it — no empty tool", named(toolsInScope(TOOLS, own.shown)), "recGrinder");
+    // A JOB NARROWS EITHER, AND THEN AN EMPTY TOOL IS LEFT OFF FOR THE OFFICE TOO.
+    const officeOnB = toolListScope(office, JOBS, "recJ2");
+    check("the office narrowed to a job holds that job's tool items", `${officeOnB.job?.jobCode} ${said(officeOnB.shown)}`, "26-B i3,i4");
+    check("  lists the tools with one there, the empty tool left off", named(toolsInScope(TOOLS, officeOnB.shown)), "recGrinder,recDriver");
+    check("  and counts out of every tool, the empty one included", toolsInScope(TOOLS, officeOnB.start).length, 3);
+    const onEmpty = toolListScope(office, JOBS, "recJ3");
+    check("a job with nothing on it is chosen, and lists no tool", `${onEmpty.job?.jobCode} ${named(toolsInScope(TOOLS, onEmpty.shown))}|`, "26-C |");
+    const siteOnC = toolListScope(site, JOBS, "recJ3");
+    check("  for anybody else too, out of their own start", `${siteOnC.job?.jobCode} ${toolsInScope(TOOLS, siteOnC.shown).length} of ${toolsInScope(TOOLS, siteOnC.start).length}`, "26-C 0 of 1");
+    // THE JOB ASKED FOR IS A REQUEST: one outside the reader's, one that is no job and a
+    // repeated parameter are all the whole scope, answered alike.
+    const asked = (raw) => {
+        const scope = toolListScope(site, JOBS, raw);
+        return `${scope.job === null} ${said(scope.shown)}`;
+    };
+    check("a job outside the reader's is the whole scope", asked("recJ2"), "true i1,i2");
+    check("  so is one that is no job", asked("recNope"), "true i1,i2");
+    check("  and a repeated parameter", asked(["recJ1"]), "true i1,i2");
+    // THE FLAG ALONE: a President who is not marked Admin starts from their own jobs.
+    check(
+        "a President not marked Admin starts from their own jobs",
+        said(toolListScope({ role: "President", isAdmin: false, assignedJobs: ["recJ2"] }, JOBS).start),
+        "i3,i4"
+    );
+    check("  and a reader on no job from nothing", `${said(toolListScope({ isAdmin: false }, JOBS).start)}|${jobsOf(toolListScope({ isAdmin: false }, JOBS))}|`, "||");
+    // THE TOOL'S OWN LIST IS CUT IN THE LINK ARRAY'S ORDER, BEFORE ANY READ.
+    check("ids in scope keep their own order", idsInScope(["i2", "i9", "i1"], own.shown).join(), "i2,i1");
+    check("  and every one for the office's whole list", idsInScope(["i2", "i9"], null).join(), "i2,i9");
+    check("  so a tool's page counts only those", pageOfToolItems(idsInScope(["i1", "i3", "i2"], own.shown), 1).total, 2);
+    // THE COUNTS ARE OVER THE SCOPE'S TOOL ITEMS ALONE.
+    const narrowedRows = summarizeTools(
+        toolsInScope(TOOLS, officeOnB.shown),
+        ITEMS.filter((item) => officeOnB.shown.has(item.id))
+    );
+    check(
+        "a narrowed list counts that job's tool items and no other",
+        narrowedRows.map((row) => `${row.toolName}:${row.counts.map((c) => c.count).join("/")}`).join(" "),
+        "angle grinder:1/0/0 Impact Driver:0/0/1"
+    );
+
+    // BOTH SCREENS ASK THE ONE JUDGMENT, BEFORE ANY TOOL ITEM IS READ — the list for which
+    // tools and which of their tool items, a tool's page for which of its tool items, both
+    // counting out of `start` — which no figure shows, so it is read off the source.
+    const scopeUse = (parsed) => {
+        const calls = {};
+        walk(parsed.ast, (n) => {
+            if (n.type !== "CallExpression") return;
+            const callee = n.callee?.name;
+            if (!["toolListScope", "toolsInScope", "idsInScope", "pageOfToolItems"].includes(callee)) return;
+            const args = n.arguments.map((a) => parsed.source.slice(a.start, a.end)).join(", ");
+            (calls[callee] ||= []).push(args);
+        });
+        return Object.keys(calls)
+            .sort()
+            .map((name) => `${name}(${calls[name].join(" | ")})`)
+            .join(" ");
+    };
+    check(
+        "the tool list asks the one judgment, and reads and counts by it",
+        scopeUse(parseFile(LIST_SCREEN)),
+        "idsInScope(tool.toolItems, scope.shown) toolListScope(user, allJobs, sp.job) toolsInScope(tools, scope.shown | tools, scope.start)"
+    );
+    check(
+        "  and a tool's page the same one, cutting its page from it",
+        scopeUse(parseFile(TOOL_SCREEN)),
+        "idsInScope(tool.toolItems, scope.shown | tool.toolItems, scope.start) pageOfToolItems(idsInScope(tool.toolItems, scope.shown), sp.page) toolListScope(user, jobs, sp.job)"
+    );
+    // ANTI-VACUITY: a planted page paging the whole link array and counting with no scope is
+    // seen doing it.
+    check(
+        "  a page ignoring the scope is seen",
+        scopeUse(parseSource("const page = pageOfToolItems(tool.toolItems, sp.page);\nconst rows = toolsInScope(tools, null);\n", "<planted-scope>")),
+        "pageOfToolItems(tool.toolItems, sp.page) toolsInScope(tools, null)"
+    );
 
     // ── 3: the words ────────────────────────────────────────────────────────
     log("");

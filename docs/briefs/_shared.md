@@ -721,11 +721,11 @@ office. Invoicing is Admin because invoicing is office work.
 | `/prs/new` | anyone signed in |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
-| `/tools` | anyone signed in, with no Role and no Job scoping (#337); adding tools from it is a site manager's (#506) |
+| `/tools` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); adding tools from it is a site manager's (#506) |
 | the registration dialog, over `/tools` and `/tools/[toolRecordId]` (#456) | a site manager on either page (#506); only one assigned to a job can open it (#338) |
 | the labels' dialog, over `/tools/[toolRecordId]` and `/tool-items/[toolItemId]` (#457) | a site manager on either page (#506) |
-| `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337); selecting and printing labels, and adding tools, are a site manager's (#506) |
-| `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337); checking out and in, retiring and printing are a site manager's (#506) |
+| `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); selecting and printing labels, and adding tools, are a site manager's (#506) |
+| `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job gate (#337) — off the reader's jobs included (#509); checking out and in, retiring and printing are a site manager's (#506) |
 | `/t/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 

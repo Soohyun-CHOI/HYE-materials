@@ -4,7 +4,15 @@ import { getAllJobs } from "@/lib/airtable/jobs";
 import { getAllTools } from "@/lib/airtable/tools";
 import { getToolItemsByRecordIds } from "@/lib/airtable/toolItems";
 import { assignedJobsFor } from "@/lib/toolJob";
-import { TOOL_LIST_COPY as COPY, pageOfTools, summarizeTools } from "@/lib/toolListView";
+import { FILTER_BAR_COPY } from "@/lib/listFilters";
+import {
+    TOOL_LIST_COPY as COPY,
+    idsInScope,
+    pageOfTools,
+    summarizeTools,
+    toolListScope,
+    toolsInScope,
+} from "@/lib/toolListView";
 import { toolPath, toolsPath } from "@/lib/toolRoutes";
 import { TOOL_STATUS_VALUES } from "@/lib/toolStatus";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems } from "@/lib/toolRegistration";
@@ -12,6 +20,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader, Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK } from "@/app/components/ListTable";
+import JobChoice from "../JobChoice";
 import RegistrationDialog from "./RegistrationDialog";
 
 // The constant rather than a second spelling of the word: the tab and the
@@ -32,17 +41,25 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  *
  * FOUR OPERATIONS, AND THE FOURTH IS THE ONE THAT GROWS. The session find,
  * `getAllTools` — the whole table in one query, bounded by what the company has
- * bought — and then every tool item those tools name, read in one batch of 50 at
- * a time. `getAllTools` already returns each tool's `Tool Items` link array, so
- * finding the units costs no query per tool (#193), and `getToolItemsByRecordIds`
- * was written for exactly this call. **The job list is the third since #456**, read
- * beside the tools rather than after them: the registration dialog opens over this
- * page, and what it offers — the reader's own jobs, or none and a disabled opener —
- * is `/tools/new`'s old read, moved here with the form. The tools it suggests as a
- * name is typed are the list this page has already read, each with its count off the
- * link array, so they cost nothing. **Since #506 it is read for a site manager alone**,
- * since nobody else is offered the dialog it is for, so anybody else's list is one
- * operation less.
+ * bought — the job list, and then every tool item in the reader's scope, read in one
+ * batch of 50 at a time. `getAllTools` already returns each tool's `Tool Items` link
+ * array, so finding the units costs no query per tool (#193), and
+ * `getToolItemsByRecordIds` was written for exactly this call. **The job list is read
+ * for every reader since #509**, beside the tools: each job carries the tool items on
+ * it, which is where a reader's scope comes from (`toolListScope`), and it is the
+ * choice the head narrows by. It was read for the registration dialog alone from #456,
+ * and for a site manager alone from #506; the dialog takes the reader's own jobs from
+ * the same read. The tools it suggests as a name is typed are every tool, each with its
+ * whole count off the link array — a name is the company's, whatever scope this list
+ * is in — so they cost nothing.
+ *
+ * WHAT A READER STARTS FROM, AND WHAT A JOB NARROWS (#509). The office starts from every
+ * tool, one with nothing under it included, since that is a registration the office puts
+ * right; anybody else starts from the tools with a tool item on their jobs, counted over
+ * those tool items alone. A job chosen in the head narrows either to that job's tool
+ * items, and a tool with none of them is left off. The head then counts `N of M`, `M`
+ * being where the reader started. `lib/toolListView.js:toolListScope` is the judgment,
+ * and a tool's own page reads its rows by the same one.
  *
  * A READER WHO IS NOT A SITE MANAGER READS THE SAME LIST WITH NO OPENER (#506), in the
  * head or under an empty list: adding tools is a site manager's, and the action behind
@@ -50,8 +67,10 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  * its heading and its sentence, which say what the list is for whoever reads it.
  *
  * NO PER-STATUS ROLLUP ON `Tools`, WHICH IS A DECISION WITH A MEASURED TRIGGER.
- * The walk is `ceil(total tool items / 50)`, so this page passes ten operations
- * at 401 tool items; at that point the count moves into a rollup and
+ * The walk is `ceil(tool items in scope / 50)` over three fixed operations, so this page
+ * passes ten at 351 tool items in the widest scope, the office's — 401 until the job list
+ * joined the fixed three, which #456 began for a site manager and #509 made everybody's;
+ * corrected per #181. At that point the count moves into a rollup and
  * `Purchase Orders."Uninvoiced Items"` (#244) is the worked example of the move.
  * Five rollups nothing reads today would be five fields to keep in step for
  * nothing. docs/notes/tools.md carries the arithmetic.
@@ -63,11 +82,11 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  * so the page reads them all whichever page it draws and slices what it built
  * (`pageOfTools`). The suggestions the registration offers are every tool, not the page's.
  *
- * ONE EMPTY STATE, NOT THREE. The shared brief's three empties tell "nothing
- * exists yet" from "nothing you can see" and "nothing matching your filters";
- * nothing on this axis is scoped by role or job (#337) and this list has no
- * filters, so only the first has a producer here. It draws a second opener under its
- * sentence, and no pager: there is nothing to page.
+ * TWO EMPTY STATES, AND ONE HAS NO WORDS YET. A list that starts from nothing — no tool
+ * at all, or none on the reader's jobs — draws `No tools yet` and its sentence, with a
+ * second opener under them, and no pager: there is nothing to page. A job chosen with
+ * nothing on it draws nothing under the head, whose `0 of M` and choice say what
+ * happened (#509); Design is drawing what it says.
  *
  * NO WIDTH OF ITS OWN AND NO TEXT IN THE MARKUP — #336 put this axis's only container
  * in the layout, the 1080 here is the content's measure inside it (0b), and every
@@ -79,41 +98,60 @@ export default async function ToolsPage(props) {
     return withOpsLabel("/tools", () => renderToolsPage(props));
 }
 
-// Every signed-in user, with no Role and no Job scoping (#337): a scan needs an
-// account only because it records who performed it, and a tool item moves between
-// jobs, so the person scanning one is not always assigned to the job it is on. What a
-// reader may DO here is narrower since #506 — adding tools is a site manager's — and
-// what everybody may READ is unchanged.
+// Every signed-in user, with no Role and no Job gate (#337): a scan needs an account
+// only because it records who performed it, and a tool item moves between jobs, so the
+// person scanning one is not always assigned to the job it is on. What a reader may DO
+// here is narrower since #506 — adding tools is a site manager's — and what a reader is
+// SHOWN first is their jobs' since #509; neither closes anything to them.
 async function renderToolsPage({ searchParams }) {
     const user = await requireUser();
     const sp = (await searchParams) ?? {};
     // Whether this reader adds tools (#506) — the one question every opener below is drawn
-    // under, and the reason the job list is read at all.
+    // under.
     const recorder = isSiteManager(user);
 
-    const [tools, allJobs] = await Promise.all([getAllTools(), recorder ? getAllJobs() : []]);
-    // The link arrays the tools already carry, flattened into one batched read.
-    const toolItems = await getToolItemsByRecordIds(tools.flatMap((tool) => tool.toolItems));
-    const rows = summarizeTools(tools, toolItems);
+    const [tools, allJobs] = await Promise.all([getAllTools(), getAllJobs()]);
+    const scope = toolListScope(user, allJobs, sp.job);
+    const narrowed = scope.job !== null;
+    // The tools the scope reaches, and of theirs the tool items in it, in one batched read.
+    const shownTools = toolsInScope(tools, scope.shown);
+    const toolItems = await getToolItemsByRecordIds(shownTools.flatMap((tool) => idsInScope(tool.toolItems, scope.shown)));
+    const rows = summarizeTools(shownTools, toolItems);
     const page = pageOfTools(rows, sp.page);
+    const total = toolsInScope(tools, scope.start).length;
+    // 0n's figure alone, and while a job narrows the list the document lists' `N of M`, `M`
+    // being where the reader started (#509).
+    const count = narrowed ? FILTER_BAR_COPY.count(rows.length, total) : rows.length;
+    const job = scope.job?.id ?? null;
     // How many a tool has is its link array's length — the figure its own page heads
     // its list with — and never a sum of statuses, so one word says one number on both.
     const itemCount = Object.fromEntries(tools.map((tool) => [tool.id, tool.toolItems.length]));
+    // Every tool by name, as the list orders them, for the registration's suggestions below;
+    // its counts are over no tool items and nothing reads them.
+    const everyTool = summarizeTools(tools, []);
+    // The head's choice, drawn when there is a job to choose (#509).
+    const jobChoice =
+        scope.jobs.length > 0 ? (
+            <JobChoice jobs={scope.jobs.map(({ id, jobCode }) => ({ id, jobCode }))} job={job} />
+        ) : null;
 
     // The control that opens the registration dialog, carrying that dialog's own title so
     // the two cannot drift (#338). It is in the list's head rather than under it because a
-    // reader with no tools yet needs it most, and it opens on no tool (#456).
+    // reader with no tools yet needs it most, and it opens on no tool (#456). What it suggests
+    // is every tool, whatever the scope (#509): a name is the company's, and one off the
+    // reader's jobs is still the one to add to.
     const registration = {
         opener: TOOL_REGISTRATION_COPY.heading,
         canRegister: canRegisterToolItems(user, allJobs),
         jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),
-        tools: rows.map((row) => ({ toolName: row.toolName, count: itemCount[row.id] })),
+        tools: everyTool.map((row) => ({ toolName: row.toolName, count: itemCount[row.id] })),
     };
 
     return (
         <ListFrame
             header={
-                <ListHeader title={COPY.heading} count={rows.length} noun={COPY.toolNoun(rows.length)}>
+                <ListHeader title={COPY.heading} count={count} noun={COPY.toolNoun(rows.length)}>
+                    {jobChoice}
                     {recorder && <RegistrationDialog {...registration} />}
                 </ListHeader>
             }
@@ -122,22 +160,26 @@ async function renderToolsPage({ searchParams }) {
                     <Pager
                         range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
                         position={COPY.pagePosition(page)}
-                        previous={{ href: page.page > 1 ? toolsPath(page.page - 1) : null, label: COPY.previous }}
-                        next={{ href: page.page < page.pageCount ? toolsPath(page.page + 1) : null, label: COPY.next }}
+                        previous={{ href: page.page > 1 ? toolsPath(page.page - 1, job) : null, label: COPY.previous }}
+                        next={{ href: page.page < page.pageCount ? toolsPath(page.page + 1, job) : null, label: COPY.next }}
                     />
                 )
             }
         >
+            {/* A job chosen with nothing on it draws nothing under the head (#509), whose
+                `0 of M` and choice say it; a list that starts from nothing draws the words. */}
             {rows.length === 0 ? (
-                <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
-                    <h2 className="text-heading font-semibold">{COPY.noToolsHeading}</h2>
-                    <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noTools}</p>
-                    {recorder && (
-                        <div className="mt-gap-lg">
-                            <RegistrationDialog {...registration} variant="bordered" />
-                        </div>
-                    )}
-                </div>
+                narrowed ? null : (
+                    <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
+                        <h2 className="text-heading font-semibold">{COPY.noToolsHeading}</h2>
+                        <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noTools}</p>
+                        {recorder && (
+                            <div className="mt-gap-lg">
+                                <RegistrationDialog {...registration} variant="bordered" />
+                            </div>
+                        )}
+                    </div>
+                )
             ) : (
                 <div role="table" aria-label={COPY.heading}>
                     <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
@@ -151,7 +193,7 @@ async function renderToolsPage({ searchParams }) {
                     {page.rows.map((row) => (
                         <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS}`}>
                             <span role="cell" className="min-w-0 truncate">
-                                <Link href={toolPath(row.id)} className={TABLE_ROW_LINK}>
+                                <Link href={toolPath(row.id, 1, [], { job })} className={TABLE_ROW_LINK}>
                                     {row.toolName}
                                 </Link>
                             </span>

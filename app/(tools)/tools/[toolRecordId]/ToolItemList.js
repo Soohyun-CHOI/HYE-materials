@@ -90,7 +90,11 @@ const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-
 // in the column head, and no selection bar — so there is no run to print and no `Escape`
 // to clear one — and it reads no selection off the address either, so a copied link's
 // `id` neither marks a row nor rides the pager's steps.
-export default function ToolItemList({ toolRecordId, toolName, selects, rows, page, top, header, children }) {
+//
+// THE JOB THE LIST IS NARROWED TO RIDES EVERY WRITE (#509). `job` is the page's, resolved
+// from the address by `toolListScope` — a job the reader may not narrow to is none — and a
+// press and a step keep it, so the address goes on naming the list the rows came from.
+export default function ToolItemList({ toolRecordId, toolName, selects, rows, page, job = null, top, header, children }) {
     const params = useSearchParams();
     const selection = selects ? readToolItemIds(params.getAll("id")) : [];
     const columns = selects ? COLUMNS : COLUMNS_WITHOUT_BOX;
@@ -102,7 +106,7 @@ export default function ToolItemList({ toolRecordId, toolName, selects, rows, pa
 
     // THE ONE WRITE, AND IT IS NOT A NAVIGATION — see the header. It keeps the page
     // the reader is on, resolved rather than as typed.
-    const replaceSelection = (next) => window.history.replaceState(null, "", toolPath(toolRecordId, page.page, next));
+    const replaceSelection = (next) => window.history.replaceState(null, "", toolPath(toolRecordId, page.page, next, { job }));
     const clear = () => replaceSelection([]);
 
     return (
@@ -117,8 +121,8 @@ export default function ToolItemList({ toolRecordId, toolName, selects, rows, pa
                 <Pager
                     range={COPY.range({ from: page.from + 1, to: page.to, total: page.total })}
                     position={COPY.pagePosition(page)}
-                    previous={{ href: page.page > 1 ? toolPath(toolRecordId, page.page - 1, selection) : null, label: COPY.previous }}
-                    next={{ href: page.page < page.pageCount ? toolPath(toolRecordId, page.page + 1, selection) : null, label: COPY.next }}
+                    previous={{ href: page.page > 1 ? toolPath(toolRecordId, page.page - 1, selection, { job }) : null, label: COPY.previous }}
+                    next={{ href: page.page < page.pageCount ? toolPath(toolRecordId, page.page + 1, selection, { job }) : null, label: COPY.next }}
                 />
             }
             // The bar comes with the first box pressed and goes with the last (0b): the count,

@@ -51,6 +51,7 @@ import {
     toolItemIdFromLabelCode,
     toolItemPath,
     toolPath,
+    toolsPath,
 } from "../../../lib/toolRoutes.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isPageFile, isRouteFile, routeTemplate } from "./_entrypoints.mjs";
@@ -268,8 +269,8 @@ export function run({ check, assert, log }) {
     log("a registration's landing carries its account after the selection:");
     // Literals again, and at the edges the account has: a shortfall of one is the
     // smallest there is and must be written, none must not, and the unlogged ids keep
-    // their order. Only a registration passes the fourth argument, so the list's own
-    // addresses are the three-argument ones pinned above. `asked` rides with the
+    // their order. Only a registration passes the account in the fourth argument; the
+    // list's own addresses pass the job alone there since #509 (below). `asked` rides with the
     // shortfall and only with it (#455), so a registration that wrote everything lands
     // with neither.
     check(
@@ -288,6 +289,28 @@ export function run({ check, assert, log }) {
         "  and an empty account leaves the plain selection",
         toolPath("recAbc", 2, two, {}),
         "/tools/recAbc?page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+    );
+
+    // ── 2a‴: the job a list is narrowed to rides as `job` (#509) ────────────
+    log("");
+    log("both lists' addresses carry the job they are narrowed to, first, and only when there is one:");
+    check("the tool list narrowed to a job", toolsPath(1, "recJob1"), "/tools?job=recJob1");
+    check("  on a later page", toolsPath(2, "recJob1"), "/tools?job=recJob1&page=2");
+    check("  and none is the plain list, the rail's", `${toolsPath(1, null)} ${toolsPath(1)} ${toolsPath(2)}`, "/tools /tools /tools?page=2");
+    check(
+        "a tool's list narrowed, with a page and a selection",
+        toolPath("recAbc", 2, two, { job: "recJob1" }),
+        "/tools/recAbc?job=recJob1&page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+    );
+    check("  and with neither", toolPath("recAbc", 1, [], { job: "recJob1" }), "/tools/recAbc?job=recJob1");
+    check("  a job of null carries nothing", toolPath("recAbc", 1, [], { job: null }), "/tools/recAbc");
+    check(
+        "  and it reads back as the one job, beside the selection",
+        (() => {
+            const back = new URLSearchParams(toolPath("recAbc", 2, two, { job: "recJob1" }).split("?")[1]);
+            return `${back.getAll("job").join()} ${readToolItemIds(back.getAll("id")).length}`;
+        })(),
+        "recJob1 2"
     );
 
     // `registerPath` was checked here from #449 to #456 — the registration form's address,
