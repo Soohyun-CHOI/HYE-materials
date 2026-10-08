@@ -143,6 +143,20 @@ const CARRIED = [
     { route: "/invoices", param: "mine", note: "#382 — `1` narrows to invoices this reader entered, off `Invoices.\"Recorded By\"`. The last of the four lists to get this axis, because it was the last document to hold an author; an invoice entered before that field existed is nobody's" },
     { route: "/invoices", param: "status", note: "#324 — the payment word, `Paid` or `Not paid`. Named for the column it narrows; `Overdue` is a qualifier on the second rather than a third option" },
     { route: "/materials", param: "q", note: "the search term, tokenized by lib/materialPriceView.js; an empty one is the unsearched screen rather than a filter matching everything" },
+    // #509 — THE TOOLS LISTS' JOB, THE DOCUMENT LISTS' NAME AND VALUE FOR THE SAME NARROWING,
+    // AND ONE OF THEM RATHER THAN SEVERAL. The server reads it, before any tool item: the
+    // scope it narrows is what the page reads, so it divides the read as `page` does on a
+    // tool's own list. Absence is the reader's whole scope, as #324 settled for the bar.
+    {
+        route: "/tools",
+        param: "job",
+        note: "#509 — the job the tool list is narrowed to; one Job record id, taken only if it is among the jobs this reader may narrow to (`lib/toolListView.js:toolListScope`) and answered with the whole scope otherwise. Written by the head's choice and carried by the pager's steps and each row's link, through `toolsPath` and `toolPath`; the rail's link carries none",
+    },
+    {
+        route: "/tools/[toolRecordId]",
+        param: "job",
+        note: "#509 — the same job, on one tool's list, read by the same judgment before the page is chosen. Written by the head's choice, which keeps the selection (`id`) and starts at the first page, and carried by every write the list makes — a box, a step — and by the row's link from `/tools`; a registration's landing carries none, since what it wrote is on the registrant's job and may be off the one chosen",
+    },
 
     // ── navigation: which record the form opens on ──────────────────────────
     { route: "/prs/new", param: "draft", note: "the saved Draft to resume (#72/#74); written by a Link on the drafts list and by both actions that raise one" },

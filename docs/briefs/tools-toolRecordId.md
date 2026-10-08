@@ -1,9 +1,11 @@
 # Tool detail
 
 Route: `/tools/[toolRecordId]`
-Who reaches it: anyone signed in, with no Role and no Job scoping (#337). What a
+Who reaches it: anyone signed in, with no Role and no Job gate (#337). What a
 reader DOES here — adding tools, and selecting and printing labels — is a site
 manager's (#506); everyone else reads the same screen without those controls.
+What the list holds first is the reader's (#509): the office's is every tool
+item under the tool, anybody else's those on the jobs they are assigned to.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -23,7 +25,9 @@ screen.
 **It is reached from the tool list, and a registration lands on it (#449).**
 The tool item's own screen is the one a machine opens; this one is opened by a
 person who picked a name off a list, or who has just registered tool items of
-this tool and arrives with them selected. So the reader is at a desk as often
+this tool and arrives with them selected — on the whole of what they start
+from, with no job chosen, since what they wrote is on their own job and may be
+off one they had chosen (#509). So the reader is at a desk as often
 as on a site — printing labels, checking what the company has of something, or
 registering more of it (#451).
 
@@ -100,8 +104,16 @@ the label screen with it until #457.
 `3 selected` — with a way out beside it. The words name no noun for what is
 selected; see below.
 
-**evidence.** How many tool items this tool has in total, `13`, on the
-heading's line (`13 items` to assistive tech). #326 names this as the fact every list in this app is missing: without it nothing on
+**action.** A choice of job in the head, before `Add tools` (#509): `All jobs`,
+which is the whole of what the reader starts from, then each job they may
+narrow to by its code — every job for the office, their own for anybody else,
+a job with nothing on it included. Choosing one lists that job's tool items
+under this tool, from the first page, and keeps whatever is selected. Design is
+drawing the control; it is the choice the registration dialog draws until then.
+
+**evidence.** How many tool items this tool has in the reader's scope, `13`,
+on the heading's line (`13 items` to assistive tech) — every one for the office,
+those on the reader's jobs for anybody else (#509). #326 names this as the fact every list in this app is missing: without it nothing on
 screen says whether a reader is looking at everything or at the beginning
 of it. **It is a fact about the list rather than about what the company
 holds** — which is why a single figure is right here and deliberately
@@ -185,7 +197,19 @@ where until #463 each was absent at its end.
 items**, and that number counts every registration of the tool rather than
 one: registering more of a tool adds to the same list, and one registration
 can make up to a hundred. Both steps carry the selection, so what was
-selected on one page is still selected on the next.
+selected on one page is still selected on the next, and the job the list is
+narrowed to (#509).
+
+**When a job narrows the list (#509):** the head's figure reads `N of M` — the
+document lists' words for the same thing — `M` being what the reader started
+from; the rows, the pager and the page box are that job's alone, and the
+breadcrumb's `Tools` keeps the job. A job with none of this tool's items on it
+draws the head and nothing under it, `0 of 91` and the choice saying it; Design
+is drawing what that state says. So does a tool whose items are all off the
+reader's jobs, before any job is chosen: `No items under this tool` would be
+false there. A tool item off the reader's jobs is left off this list and still
+opens from its label or a link. A job in the address the reader may not narrow
+to is answered with their whole scope and the choice reading `All jobs`.
 
 **When nothing is selected:** no selection bar, 0b's (#463), where until
 then a sentence, `Nothing is selected, so there is nothing to print.`, stood
@@ -247,7 +271,7 @@ the office for the way a job is.
 
 **When no tool carries the record id in the address:** the screen is the
 heading `Tool not found` and a way back to `/tools`. Nothing on this axis
-is scoped by role or job, so unlike the request, order and invoice screens
+is gated by role or job, so unlike the request, order and invoice screens
 this refusal answers one state — no such tool — rather than standing in
 for two.
 
@@ -287,7 +311,7 @@ delivery was matched to it (#231). A reload of that address tells again what is
 still on it, which is true — nothing repairs a missing entry, and the choice
 stands until it is answered — until `Not now` takes the first out of the address
 and `Got it` the second. **Every address the list itself writes carries the
-selection alone**, and while either dialog stands the list behind it cannot be
+selection and the job alone**, and while either dialog stands the list behind it cannot be
 pressed, so the account leaves the address by being answered. A copied
 address carrying them shows them to whoever opens it, if that reader is a site
 manager (#506); anybody else is told neither.

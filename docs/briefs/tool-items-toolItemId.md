@@ -1,7 +1,8 @@
 # Tool item detail
 
 Route: `/tool-items/[toolItemId]`
-Who reaches it: anyone signed in, with no Role and no Job scoping (#337). What
+Who reaches it: anyone signed in, with no Role and no Job gate (#337) — a tool
+item off the reader's jobs, which the lists leave off, included (#509). What
 a reader DOES here — checking out, checking in, retiring and printing the label
 — is a site manager's (#506); everyone else reads the same screen, at both
 widths, without those controls.
@@ -424,7 +425,7 @@ phone, under the top bar naming the code in Ink 3, a mark and one line,
 `No tool has this code. Check it against the label and scan again.`, **and no
 way back**, as 1k-c draws it: a phone came from a scan, and the next thing it
 does is scan again. The top bar's menu holds the reader's account alone there
-(#495). Nothing on this axis is scoped by role or job, so
+(#495). Nothing on this axis is gated by role or job, so
 unlike the request, order and invoice screens this answers one state — no such
 tool item — rather than standing in for two. **The transition, the label and the
 history are all absent here rather than empty**, and there is no state in

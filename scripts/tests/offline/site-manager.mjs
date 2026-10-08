@@ -12,7 +12,8 @@
 //
 //   1. THE ONE READING. `isSiteManager` by value, no read of a user's `isSiteManager` under
 //      app/ or lib/ outside lib/siteManager.js, the field's name spelled in the mapper
-//      alone, and nothing on the tools axis asking the office's flag or the role instead.
+//      alone, and nothing on the tools axis asking the office's flag or the role instead —
+//      but for the one read #509 admits, what a list starts from (`SCOPE` below).
 //   2. THE SERVER. Every export of a `"use server"` file on the tools axis is
 //      `withSiteManagerAction(handler)`, found by walking the tree rather than listed — so
 //      a fifth action fails until it is wrapped and this inventory says so — and no handler
@@ -95,14 +96,41 @@ export function siteManagerReads({ ast, source }) {
     return lines;
 }
 
-/** Every line on which the office's flag or the role is read off anything. */
-function officeReads({ ast, source }) {
+/**
+ * THE ONE READ OF THE OFFICE'S FLAG THE AXIS ADMITS (#509): what a tools list starts from —
+ * every tool item for the office, a reader's own jobs' for anybody else — which is a question
+ * about the office and not about who records, so the mark cannot answer it. It is the flag
+ * alone, in this one function, once; the role is admitted nowhere.
+ */
+const SCOPE = { file: "lib/toolListView.js", fn: "toolListScope", name: "isAdmin" };
+
+/**
+ * Every line on which the office's flag or the role is read off anything, leaving out reads
+ * inside `skip` — a function declaration's name — of the flag named `admitted`.
+ */
+function officeReads({ ast, source }, { skip = null, admitted = null } = {}) {
     const lines = [];
     const lineOf = (offset) => source.slice(0, offset).split("\n").length;
+    const skipped = [];
+    if (skip) walk(ast, (n) => n.type === "FunctionDeclaration" && n.id?.name === skip && skipped.push([n.start, n.end]));
     walk(ast, (n) => {
-        if (n.type === "MemberExpression" && !n.computed && ["isAdmin", "role"].includes(n.property?.name)) lines.push(lineOf(n.start));
+        if (n.type !== "MemberExpression" || n.computed || !["isAdmin", "role"].includes(n.property?.name)) return;
+        if (n.property.name === admitted && skipped.some(([start, end]) => n.start >= start && n.end <= end)) return;
+        lines.push(lineOf(n.start));
     });
     return lines;
+}
+
+/** How many times `name` is read inside the function declaration `fn`. */
+function readsInside(ast, fn, name) {
+    let count = 0;
+    walk(ast, (n) => {
+        if (n.type !== "FunctionDeclaration" || n.id?.name !== fn) return;
+        walk(n.body, (m) => {
+            if (m.type === "MemberExpression" && !m.computed && m.property?.name === name) count++;
+        });
+    });
+    return count;
 }
 
 /** Every string literal spelling the field's name. */
@@ -245,7 +273,9 @@ export function run({ check, assert, log }) {
 
     const toolsFiles = scanned.filter((rel) => rel.startsWith("app/(tools)/") || /^lib\/tool[A-Z][^/]*\.js$/.test(rel));
     assert(`  ${toolsFiles.length} files on the tools axis are walked`, toolsFiles.length > 20);
-    const office = toolsFiles.map((rel) => [rel, officeReads(parseFile(rel))]).filter(([, lines]) => lines.length > 0);
+    const office = toolsFiles
+        .map((rel) => [rel, officeReads(parseFile(rel), rel === SCOPE.file ? { skip: SCOPE.fn, admitted: SCOPE.name } : {})])
+        .filter(([, lines]) => lines.length > 0);
     check(
         "nothing on the tools axis asks the office's flag or the role instead",
         office.map(([rel, lines]) => `${rel}:${lines.join(",")}`).join(" | "),
@@ -255,6 +285,22 @@ export function run({ check, assert, log }) {
         "  and a planted read of either is seen",
         officeReads(parseSource("const a = user.isAdmin || user.role === 'President';\n", "<planted-office>")).join(","),
         "1,1"
+    );
+    check(
+        `  but for what a list starts from (#509): the flag, read once in ${SCOPE.file}:${SCOPE.fn}`,
+        readsInside(parseFile(SCOPE.file).ast, SCOPE.fn, SCOPE.name),
+        1
+    );
+    check(
+        "  and that admission reaches neither the role there nor the flag anywhere else",
+        officeReads(
+            parseSource(
+                "export function toolListScope(user) { return user.isAdmin && user.role; }\nconst b = user.isAdmin;\n",
+                "<planted-scope>"
+            ),
+            { skip: SCOPE.fn, admitted: SCOPE.name }
+        ).join(","),
+        "1,2"
     );
 
     // ── 2: the server ────────────────────────────────────────────────────────
