@@ -47,8 +47,12 @@
 // inventories every read of a request by id and requires, of each one a write
 // follows, that the declared judgment is asked about that record first. It holds the
 // comparison's presence and order where the record compared is a request, which
-// reaches an order's writes through the request behind the order; the delivery and
-// tool axes, which compare a job, are still held by nothing but their exemptions here.
+// reaches an order's writes through the request behind the order; the delivery axis,
+// which compares a job, is still held by nothing but its exemptions here. THE TOOLS
+// AXIS LEFT THIS LIST IN #506: its four actions are a site manager's and are wrapped by
+// `withSiteManagerAction`, and the job each body still compares is held where the
+// body's planners are — `offline/tool-transition.mjs` for the scan and the retirement,
+// `offline/tool-registration.mjs` for the registration.
 // ---------------------------------------------------------------------------
 
 import { REPO_ROOT, callsFunction, listJsFiles, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
@@ -64,6 +68,9 @@ const WRAPPERS = {
     withAdminApi: 1,
     withAdminAction: 2,
     withPresidentAction: 1,
+    // #506 — the handler alone: its refusal is bound in lib/authz.js, one answer for all
+    // four tools actions, so a call site has no position to supply one in either.
+    withSiteManagerAction: 1,
 };
 
 // The method set and the scan roots moved to _entrypoints.mjs with the
@@ -84,28 +91,14 @@ const DELIVERY_JOB_AXIS =
     "record in the body — an axis no role helper covers, since a site employee assigned to the Job must pass and " +
     "an Admin on no job must too. Same shape as withdrawPOAction (#138).";
 
-// #338's axis, and the fourth of this mixed shape. It is the tools track's first
-// endpoint, and the comparison it makes is narrower than every one above it: the
-// job is not something the caller may name, it is read off the ACTOR. #362 and
-// #363 are the second and third exports on it and share the constant rather than
-// restating it — one axis with three writers, the way the delivery ones work.
-const TOOL_JOB_AXIS =
-    "Session + the submitted job being one the actor's own Users.\"Assigned Jobs\" names, not a role. " +
-    "requireUser() already cannot be dropped (it redirects), and the deciding comparison is " +
-    "assignedJobsFor (lib/toolJob.js) against the loaded job list in the body — through " +
-    "readRegistration (lib/toolRegistration.js) in #338's registration since #456, which the " +
-    "dialog asks too, through planTransition (lib/toolTransition.js) in #362's check-out and " +
-    "check-in and in #363's retirement. TWO SHAPES OF THAT ONE COMPARISON, and the difference is " +
-    "worth stating: the first three admit a SUBMITTED job only if it is one of the actor's, while " +
-    "the retirement submits none at all — it inherits the tool item's own job (#363) — so what is " +
-    "left there is that the actor holds at least one assignment. That is a smaller surface rather " +
-    "than a weaker gate: the forgery the comparison refused existed only because the value was " +
-    "submitted. No role helper " +
-    "covers it, and DELIBERATELY NOT canAccessJobDeliveries either: that predicate admits President and " +
-    "Admin to every job, and the tools track does not pass through the office — a site person buys, " +
-    "registers and keeps the tool, and Tool Log.\"Job\" is the job the event HAPPENED on. So an Admin " +
-    "assigned to no job is refused, which is the point rather than an oversight. Nothing on this axis is " +
-    "scoped per tool item (#337), so the job is the only per-record comparison there is.";
+// #338's axis stood here, TOOL_JOB_AXIS, as the fourth of this mixed shape — session plus
+// the submitted job being one the actor's own Users."Assigned Jobs" names — with three
+// exports on it, and #457's TOOL_LABEL_READ_AXIS beside it for the labels' read, whose
+// gate was the session alone. #506 made all four a site manager's, which is a ROLE, so
+// they are wrapped by `withSiteManagerAction` and neither reason is anybody's any more.
+// The job comparison they described is still in the bodies, and its derivation — no
+// office clause, a retirement inheriting the tool item's own job — is in
+// docs/notes/tools.md and lib/toolJob.js, where the code it is about is.
 
 // #384's, AND IT IS THE ONE ENTRY ON THIS LIST WITH NO PER-RECORD COMPARISON
 // BEHIND IT — which is why it is a constant of its own rather than a fifth reader
@@ -122,18 +115,6 @@ const SESSION_ONLY_AXIS =
     "material has to be delivered is the site's fact, so withAdminAction would refuse the requester this screen " +
     "exists for — #385 sends one here from the request form when the address they need has no row yet. Compare " +
     "/api/quotations/upload, which is any-active-user on the same reading.";
-
-// #457's, AND THE SECOND WHOSE GATE IS A SESSION AND NOTHING ELSE. It is a constant of
-// its own rather than a second reader of SESSION_ONLY_AXIS, whose reason is about an
-// `Addresses` row; this one is about the tools axis's reader, and borrowing the other
-// would state something untrue about each.
-const TOOL_LABEL_READ_AXIS =
-    "Session and nothing else, which is the whole gate. Every signed-in reader may print any tool item's label: " +
-    "the tools axis has no Role and no Job scoping (#337), no tool item is one reader's rather than another's, and " +
-    "this action reads tool items and builds their labels and writes nothing. So requireUser() is the gate both pages " +
-    "that open the labels' dialog have, and with no field to select a reader by there is no per-record comparison " +
-    "to make — the property docs/notes/authorization.md records as what makes an exemption the whole coverage, left " +
-    "by #351's QR endpoint when #352 deleted it.";
 
 // #281's axis, and the third of this mixed shape after the two delivery ones.
 const PO_DOCUMENT_AXIS =
@@ -296,25 +277,6 @@ const EXEMPTIONS = [
     { file: "app/prs/new/actions.js", name: "saveDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "deleteDraftAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
     { file: "app/prs/new/actions.js", name: "createPRAction", mustCall: "requireUser", reason: REQUIRE_USER_AXIS },
-    { file: "app/(tools)/tools/actions.js", name: "registerToolItemsAction", mustCall: "requireUser", reason: TOOL_JOB_AXIS },
-    {
-        file: "app/(tools)/tool-items/actions.js",
-        name: "readToolItemLabelsAction",
-        mustCall: "requireUser",
-        reason: TOOL_LABEL_READ_AXIS,
-    },
-    {
-        file: "app/(tools)/tool-items/[toolItemId]/actions.js",
-        name: "recordToolItemEventAction",
-        mustCall: "requireUser",
-        reason: TOOL_JOB_AXIS,
-    },
-    {
-        file: "app/(tools)/tool-items/[toolItemId]/actions.js",
-        name: "retireToolItemAction",
-        mustCall: "requireUser",
-        reason: TOOL_JOB_AXIS,
-    },
     { file: "app/deliveries/new/actions.js", name: "createDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "updateDeliveryAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },
     { file: "app/deliveries/[deliveryId]/actions.js", name: "replaceDeliveryPhotoAction", mustCall: "requireUser", reason: DELIVERY_JOB_AXIS },

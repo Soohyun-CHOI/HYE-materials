@@ -1,7 +1,10 @@
 # Tool item detail
 
 Route: `/tool-items/[toolItemId]`
-Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
+Who reaches it: anyone signed in, with no Role and no Job scoping (#337). What
+a reader DOES here — checking out, checking in, retiring and printing the label
+— is a site manager's (#506); everyone else reads the same screen, at both
+widths, without those controls.
 Which width comes first: **phone**. Both widths must work; this one is
 drawn first and the desktop is what it opens out into.
 
@@ -73,7 +76,7 @@ entry, and its foot bar states the job the next event will be recorded on.
 Both are single values, never lists — a tool item is one unit of one tool and
 sits on one job.
 
-**action.** The one transition the status allows — `Check out` from `In stock`,
+**action.** For a site manager (#506), the one transition the status allows — `Check out` from `In stock`,
 `Check in` from `Out` — and the job the event will be recorded on. There is
 never a choice of transition: the status decides which one. **A desk asks it in
 the header**, on the right and centered on the heading's line: the press or
@@ -147,13 +150,14 @@ and, after a moment, draws a spinner in place of its words, saying
 not the commitment that cannot act yet — drawn faded until the job and the name
 are given — and a design must keep the two apart.
 
-**action.** `Retire this tool`, behind `More actions` — at a desk a 32 icon
+**action.** For a site manager (#506), `Retire this tool`, behind `More actions` — at a desk a 32 icon
 button beside the transition, named by its tooltip, and on a phone the 48
 button at the top bar's right end (1f, 1j). At a desk it is the menu's one
 item, in 0f's destructive red, and opens a dialog. **On a phone the menu ends on
 the reader's account** — `Sign out` over their email, under a rule — since a
 phone has no rail to name the reader in, and where the page offers no
-retirement it holds the account alone (Tools 0a, #495). It is offered from
+retirement — a retired tool, or a reader who is not a site manager — it holds
+the account alone (Tools 0a, #495). It is offered from
 `In stock` and from `Out` alike — a tool that broke on a site is retired from
 there, and requiring a check-in first would put an event in the history that
 did not happen.
@@ -240,8 +244,11 @@ not shrink these below the phone's Target.
 record rail beside the history: the label's own page as the labels' dialog
 draws it, at twice its size on the Field ground, with **the print size in
 text** under it — `Size`, `11 × 12 mm`, and `Symbol` with the symbol's own
-figure — and a control that prints it. **A phone draws no label**: a label is
-printed at a desk, and the phone's screen is for the scan.
+figure — and, for a site manager, a control that prints it (#506). **A phone
+draws no label**: a label is printed at a desk, and the phone's screen is for
+the scan. **The label, its size and its symbol are for every reader**: what a
+tool item's sticker carries is a fact about it, and only printing one is a site
+manager's.
 
 **Why it is here decides how it is drawn.** It is here so a reader can SEE what a
 replacement sticker will carry and match it against the one in their hand — not to
@@ -257,7 +264,7 @@ code under the symbol is nothing the heading says, so it takes a name rather tha
 hiding. The string sat in the page's copy with nothing drawing it from #352 to
 #463.
 
-**action.** A control that prints this tool item's label, `Print label`. It opens
+**action.** For a site manager (#506), a control that prints this tool item's label, `Print label`. It opens
 the labels' dialog on this one label (#457), rather than printing the page — that
 dialog owns the label's page and the print rule, so printing the page would be a
 second layout of one label.
@@ -359,17 +366,33 @@ re-renders the page, the page has nothing to offer a retired tool item, and the
 dialog disappears with its menu; what the reader is left looking at is the
 status saying it is the end.
 
-**For a reader assigned to no job, a sentence where the controls would be**:
-in the header's right at a desk and in the foot bar on a phone. Both controls
-are absent, not disabled — a control the action would refuse is a promise the
-screen cannot keep. **The status, the job and the history are still shown to
-that reader**: what varies is whether they can act, never what they can read.
+**For a site manager assigned to no job, a sentence where the controls would
+be**: in the header's right at a desk and in the foot bar on a phone. Both
+controls are absent, not disabled — a control the action would refuse is a
+promise the screen cannot keep. **The status, the job and the history are still
+shown to that reader**: what varies is whether they can act, never what they
+can read.
+
+**For a reader who is not a site manager (#506), nothing where the controls
+would be, and nothing said.** At a desk the header's right is empty and the
+rail holds the label, its size and its symbol with no `Print label`; on a phone
+there is no foot bar at all, on any status, and `More actions` holds the account
+alone — the shape a retired tool already has. No sentence stands in for the
+controls: the one a site manager on no job reads tells them to ask the office
+for a job, and nothing the office could give this reader would let them record,
+so there is nothing for a sentence to say. The status, the job, who holds a tool
+that is out and the whole history are theirs as they are anybody's. Design is
+drawing that reader's foot bar; until then it is absent. **A press on a page
+drawn while they were one** — a dialog left open, a foot bar filled in — is
+answered by the page drawn again for who they are now, without the controls and
+without a sentence, and with nothing written.
 
 **A tool item whose status allows nothing** offers nothing. `Retired` is the only
 such status, and it is reachable — the retire control is what puts a tool item
 there. **A desk draws nothing in the actions' place** (1f); a phone's foot bar
-says `Nothing more can be recorded here.` (1j), and the sentence names no status,
-since the status stands above it.
+says `Nothing more can be recorded here.` (1j) to a site manager, and the
+sentence names no status, since the status stands above it. A reader who is not
+a site manager has no foot bar to say it in (#506).
 
 **A history entry is four facts, and a `Checked out` entry is five.** The fifth
 is who the tool went to: `Checked out to Dana K` at a desk, the `to` in Ink 3,

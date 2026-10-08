@@ -43,7 +43,12 @@ import { useToolItemTransition } from "./ToolItemTransition";
  *
  * WITH NOTHING TO RECORD THE BAR SAYS WHY, in the press's place: a retired tool (1j-c), or a
  * reader on no job. **Below the phone's edge and nowhere else**, which the bar's own class
- * decides, so the sticky bar is not held inside a wrapper of its own.
+ * decides, so the sticky bar is not held inside a wrapper of its own. **A reader who is not a
+ * site manager has no bar at all (#506)**: their plan offers nothing and says nothing, so
+ * there is neither a press nor a reason to stand in its place. **A press the re-render takes
+ * away leaves focus on the document**, seen for a reader whose mark went while the page
+ * stood (#506); a press on a tool another tab retired gives way to the sentence the same way,
+ * and was not tried.
  *
  * IT TAKES WHAT A DESK'S DIALOG WAS GIVEN WHEN THE WINDOW CROSSES INTO IT (#495): the job and
  * the name `carried` from the dialog the frame closed, each handing-over taken once. Its own

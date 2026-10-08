@@ -61,10 +61,14 @@ point at should be settled together — see the shared brief.
 request list's button says `New PR` for the same destination. Three surfaces, two
 words for one screen.
 
-**The role stated here is the same distinction every gate uses** — President,
-Employee, and the Admin flag that means office staff. It is an organizational
-distinction rather than a privilege ladder, and this line is the only place a
-reader sees their own.
+**The role stated here is the distinction the materials screens' gates use** —
+President, Employee, and the Admin flag that means office staff. It is an
+organizational distinction rather than a privilege ladder. **The tools screens
+gate on a mark this line does not state**, `Is Site Manager` (#506): the account
+at the foot of their rail says it, `Site manager` after the rest, and has said
+the reader's roles since #478 — so this line is no longer the only place a
+reader sees their own. It stays as it is until #258 brings this screen under
+the design, and the rail's account with it.
 
 **There is no user-administration screen**, so nothing here leads to one. A Users
 record appears as a side effect of a first sign-in and in no other way, and

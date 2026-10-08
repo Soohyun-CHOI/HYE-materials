@@ -2,6 +2,8 @@
 
 Route: `/tools`
 Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
+Adding tools from it is a site manager's (#506); everyone else reads the same
+list without that control.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -57,8 +59,11 @@ because most registrations add to a tool the company already has, and the line
 under a typed name says when one is new. Every other list screen in the
 app opens its create form the same way, as a screen of its own. It is above
 the list rather than inside it, because the reader with no tools at all is the
-one who needs it most. For a reader assigned to no job it is drawn disabled,
-with `Ask the office to assign you to a job` before it.
+one who needs it most. It is a site manager's: for one assigned to no job it is
+drawn disabled, with `Ask the office to assign you to a job` before it, and **a
+reader who is not a site manager is drawn none (#506)** — being one is not
+something the office assigns on request the way a job is, so a disabled control
+with a reason would send them nowhere.
 
 **evidence.** One row per tool, ordered by name, twenty-five to a page
 (0b's page of rows, #463) with the pager under them: which rows the page
@@ -88,7 +93,10 @@ A design that adds the three together is making that choice.
 sentence, `No tools yet` and `Each tool shows here with how many are in
 stock, out and retired.`, and under them a second, bordered `Add tools`
 (1a, #463). The control in the head is still there, and both are the way to
-make one. No pager stands under an empty list.
+make one. No pager stands under an empty list. **For a reader who is not a
+site manager, the heading and the sentence alone (#506)**: the sentence says
+what the list is for, which is true for whoever reads it, and both openers are
+a site manager's.
 
 **This is the only empty state this screen can reach**, which is worth
 saying because the shared brief describes three. The other two are

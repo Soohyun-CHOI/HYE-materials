@@ -1,7 +1,7 @@
 "use server";
 
 import { headers } from "next/headers";
-import { requireUser } from "@/lib/authz";
+import { withSiteManagerAction } from "@/lib/authz";
 import { getToolItemsByToolItemIds } from "@/lib/airtable/toolItems";
 import { QR_SIDE_MODULES, buildToolItemLabel } from "@/lib/toolLabelQR";
 import { MAX_LABELS_PER_REQUEST } from "@/lib/toolLabelPage";
@@ -30,10 +30,14 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * each by its tool, and the dialog names one tool, the page's own, which that page has
  * in hand. The symbols cost nothing: they are built from the origin and the id.
  *
- * NOT WRAPPED, AND LISTED AS AN EXEMPTION WITH THAT REASON. Every signed-in reader may
- * print any label (#337), so `requireUser()` is the whole gate and there is no field to
- * select a reader by — which is what makes an exemption the whole coverage
- * (docs/notes/authorization.md, the rule the deleted QR endpoint's entry left).
+ * ONLY A SITE MANAGER PRINTS LABELS (#506), AND THE WRAPPER IS THE WHOLE GATE. Until then
+ * every signed-in reader could print any label (#337) and the session was the gate; now
+ * `withSiteManagerAction` refuses anybody else before this body runs — the tool's page
+ * rendered again without its boxes and bar, and `null`, which the dialog opens on nothing
+ * for. No tool item is one reader's rather than another's, so there is still no record to
+ * compare, and the session is the wrapper's read: this body reads nobody, so the run
+ * still costs what it did — the session counted under `authz gate`, where every
+ * wrapper's gate is counted (#224), and the `Tool Items` reads under this action.
  *
  * A RUN LONGER THAN ONE PRINT THROWS, AND NOTHING OPENS ONE. A tool's page refuses a
  * selection over `MAX_LABELS_PER_REQUEST` before it calls this (`describeSelection`),
@@ -45,10 +49,10 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * behind Vercel's proxy, the source the tool item's page reads its own from — so the
  * symbol it shows and the label printed for it encode one string.
  */
-export async function readToolItemLabelsAction(toolItemIds) {
-    return withOpsLabel("readToolItemLabelsAction", async () => {
-        await requireUser();
+export const readToolItemLabelsAction = withSiteManagerAction(readToolItemLabelsHandler);
 
+async function readToolItemLabelsHandler(toolItemIds) {
+    return withOpsLabel("readToolItemLabelsAction", async () => {
         // Canonical, each once, in the order handed over — the reading the list makes
         // of its own address, so the run read is the run selected.
         const named = readToolItemIds(toolItemIds);

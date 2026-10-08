@@ -654,6 +654,9 @@ export function run({ check, assert, log }) {
         const bindings = new Map();
         let selection = null;
         let readOff = null;
+        // What the read stands under (#506): `selects ? read : []` for a list that selects
+        // only for a site manager, and `none` for a read made whoever is reading.
+        let readUnder = "none";
         let printFrom = null;
         let printDisabled = null;
         let printTitle = null;
@@ -664,13 +667,16 @@ export function run({ check, assert, log }) {
         walk(ast, (n) => {
             if (n.type === "VariableDeclarator" && n.id?.type === "Identifier") {
                 bindings.set(n.id.name, n.init);
-                if (n.init?.type === "CallExpression" && n.init.callee?.name === "readToolItemIds") {
+                const gated = n.init?.type === "ConditionalExpression" ? n.init : null;
+                const read = gated ? gated.consequent : n.init;
+                if (read?.type === "CallExpression" && read.callee?.name === "readToolItemIds") {
                     selection = n.id.name;
                     // What it is handed: every `id` in the address, or only the first.
-                    const source = n.init.arguments[0];
-                    const method = source?.type === "CallExpression" ? nameOf(source.callee).split(".").pop() : null;
-                    const literals = source?.arguments?.map((a) => JSON.stringify(a.value)).join(", ");
-                    readOff = method ? `${method}(${literals})` : nameOf(source ?? {});
+                    const argument = read.arguments[0];
+                    const method = argument?.type === "CallExpression" ? nameOf(argument.callee).split(".").pop() : null;
+                    const literals = argument?.arguments?.map((a) => JSON.stringify(a.value)).join(", ");
+                    readOff = method ? `${method}(${literals})` : nameOf(argument ?? {});
+                    if (gated) readUnder = `${nameOf(gated.test)} ? read : ${source.slice(gated.alternate.start, gated.alternate.end)}`;
                 }
             }
         });
@@ -697,7 +703,7 @@ export function run({ check, assert, log }) {
             if (callee === "window.history.replaceState") replaced++;
             if (callee === "useRouter" || callee === "redirect" || /^router\./.test(callee)) routed.push(callee);
         });
-        return { selection, readOff, printFrom, printDisabled, printTitle, pageBoxOver, toolPathCalls, replaced, routed };
+        return { selection, readOff, readUnder, printFrom, printDisabled, printTitle, pageBoxOver, toolPathCalls, replaced, routed };
     };
     const listFile = parseFile(TOOL_ITEM_LIST);
     const list = listFacts(listFile.ast, listFile.source);
@@ -705,6 +711,9 @@ export function run({ check, assert, log }) {
     // `get` would answer with the first id alone, so a selection of three would read as
     // one and print one — a defect no figure on this page shows until print is pressed.
     check("  handed every `id` in the address", list.readOff, 'getAll("id")');
+    // A list that selects nothing reads nothing (#506): a copied link's `id` neither marks a
+    // row for a reader who is not a site manager nor rides the pager's steps.
+    check("  and only for a list that selects, which reads none otherwise (#506)", list.readUnder, "selects ? read : []");
     check("  the labels' opener is handed it", list.printFrom, list.selection);
     // `describeSelection` says why a press would not print — nothing selected, or more
     // than one print takes — and the opener is drawn disabled on exactly that.
@@ -740,6 +749,7 @@ export function run({ check, assert, log }) {
     );
     const plantedList = listFacts(plantedListFile.ast, plantedListFile.source);
     check("  a read of the first id alone is seen so", plantedList.readOff, 'get("id")');
+    check("  and one made whoever is reading is seen so", plantedList.readUnder, "none");
     check("  an opener handed the rows is seen so", plantedList.printFrom, "rows");
     check("  and one never disabled is seen so", plantedList.printDisabled, "none");
     check("  and one with no title of its own is seen so", plantedList.printTitle, "none");
@@ -977,13 +987,15 @@ export function run({ check, assert, log }) {
 
     // THE OPENERS OF THE REGISTRATION DIALOG, ON BOTH SCREENS (#451, #456). A tool's page
     // opens it on that tool and with no count, in the dialog's own title — `Add tools` since
-    // #485 — and the list opens it on no tool. Each stands under no condition: a
-    // tool with nothing under it keeps its opener, and so does a reader on no job, whom
+    // #485 — and the list opens it on no tool. Each stands under ONE condition since #506,
+    // that the reader is a site manager — the page's `recorder` — and under nothing else: a
+    // tool with nothing under it keeps its opener, and so does a site manager on no job, whom
     // the opener itself tells why it cannot act (0f). What decides that is one predicate,
     // `canRegisterToolItems`, asked by each page and handed down, so no opener answers the
     // reader differently. An opener drawn only beside the list renders this very page on
     // every tool this base holds, so none of that shows in a figure and all of it is read
-    // off the source.
+    // off the source. WHICH condition, and not only how many, since #506: a count of one is
+    // what an opener gated on the reader's job would read as too.
     const dialogOpeners = (ast) => {
         const found = [];
         const bindings = new Map();
@@ -994,13 +1006,26 @@ export function run({ check, assert, log }) {
             LogicalExpression: ["right"],
             IfStatement: ["consequent", "alternate"],
         };
+        // A condition as it reads, and its negation on the branch taken when it is false.
+        const said = (test) => {
+            if (!test) return "none";
+            if (test.type === "Identifier" || test.type === "MemberExpression") return nameOf(test);
+            if (test.type === "Literal") return JSON.stringify(test.value);
+            if (test.type === "UnaryExpression") return `${test.operator}${said(test.argument)}`;
+            if (test.type === "BinaryExpression" || test.type === "LogicalExpression")
+                return `${said(test.left)} ${test.operator} ${said(test.right)}`;
+            if (test.type === "CallExpression") return `${nameOf(test.callee)}(…)`;
+            return test.type;
+        };
+        const conditionOf = (node, key) =>
+            key === "alternate" ? `!(${said(node.test)})` : node.type === "LogicalExpression" ? said(node.left) : said(node.test);
         walk(ast, (n) => {
             if (n.type === "VariableDeclarator" && n.id?.type === "Identifier" && n.init?.type === "CallExpression")
                 bindings.set(n.id.name, nameOf(n.init.callee));
         });
-        (function visit(node, conditions) {
+        (function visit(node, under) {
             if (!node || typeof node !== "object") return;
-            if (Array.isArray(node)) return node.forEach((child) => visit(child, conditions));
+            if (Array.isArray(node)) return node.forEach((child) => visit(child, under));
             if (typeof node.type !== "string") return;
             if (node.type === "JSXOpeningElement" && node.name?.name === "RegistrationDialog") {
                 const raw = attributesOf(node, ast).find((a) => a.name === "canRegister")?.value;
@@ -1015,18 +1040,20 @@ export function run({ check, assert, log }) {
                             : canRegister?.type === "Identifier"
                               ? (bindings.get(canRegister.name) ?? canRegister.name)
                               : nameOf(canRegister ?? {}),
-                    conditions,
+                    conditions: under.length,
+                    under: under.join(", ") || "nothing",
                 });
             }
             for (const key of Object.keys(node)) {
                 if (skip.has(key)) continue;
-                visit(node[key], conditions + (branches[node.type]?.includes(key) ? 1 : 0));
+                visit(node[key], branches[node.type]?.includes(key) ? [...under, conditionOf(node, key)] : under);
             }
-        })(ast, 0);
+        })(ast, []);
         return found;
     };
-    // TWO OPENERS EACH SINCE #463, HANDED ONE OBJECT: the head's, under no condition, and an
-    // empty list's second one, bordered, under the branch that draws the empty state (1a, 1d).
+    // TWO OPENERS EACH SINCE #463, HANDED ONE OBJECT: the head's, under the reader being a site
+    // manager alone (#506), and an empty list's second one, bordered, under the branch that
+    // draws the empty state as well (1a, 1d).
     const openers = dialogOpeners(parseFile(TOOL_SCREEN).ast);
     check("the tool's page opens the registration dialog from its head, and from an empty list", openers.length, 2);
     check(
@@ -1035,11 +1062,11 @@ export function run({ check, assert, log }) {
         "canRegister: canRegister, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: { toolName: tool.toolName }"
     );
     check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterToolItems");
-    check("  and under no condition — not the list's, not the reader's", openers[0]?.conditions, 0);
+    check("  and under the reader being a site manager alone — not the list's, not a job (#506)", openers[0]?.under, "recorder");
     check(
-        "  the empty list's the same opener, bordered, under the empty branch alone",
-        `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.conditions}`,
-        "canRegister: canRegister, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: { toolName: tool.toolName }, variant: bordered | canRegisterToolItems | 1"
+        "  the empty list's the same opener, bordered, under the empty branch and the same reader",
+        `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
+        "canRegister: canRegister, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: { toolName: tool.toolName }, variant: bordered | canRegisterToolItems | page.total === 0, recorder"
     );
     const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
     check("the tool list opens it from its head, and from an empty list", listOpeners.length, 2);
@@ -1049,11 +1076,11 @@ export function run({ check, assert, log }) {
         "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: rows.map(…)"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterToolItems");
-    check("  and under no condition either", listOpeners[0]?.conditions, 0);
+    check("  and under the reader being a site manager alone too (#506)", listOpeners[0]?.under, "recorder");
     check(
-        "  the empty list's the same opener, bordered, under the empty branch alone",
-        `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.conditions}`,
-        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: rows.map(…), variant: bordered | canRegisterToolItems | 1"
+        "  the empty list's the same opener, bordered, under the empty branch and the same reader",
+        `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
+        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: rows.map(…), variant: bordered | canRegisterToolItems | rows.length === 0, recorder"
     );
     // THE COUNT BESIDE A SUGGESTED TOOL IS ITS LINK ARRAY'S LENGTH (#456) — the figure its
     // own page heads its list with — and never a sum of statuses, so one word says one
@@ -1113,6 +1140,13 @@ export function run({ check, assert, log }) {
         "  each under the condition it is drawn beneath",
         plantedOpeners.map((opener) => opener.conditions).join(", "),
         "1, 1, 1"
+    );
+    // And named for it (#506), so an opener drawn for a reader on a job reads as that and
+    // not as the site manager's one condition.
+    check(
+        "  and each condition read as it is written, a false branch negated",
+        plantedOpeners.map((opener) => opener.under).join(" | "),
+        "!tool | !(page.total === 0) | canRegisterToolItems(…)"
     );
     check(
         "  a record id, a count and another word are seen handed",

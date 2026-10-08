@@ -26,7 +26,8 @@ import "./labels.css";
 // and the dialog opens on what comes back. A tool item's page has read its record and
 // built its symbol as it rendered, so it hands over that one label and the press opens
 // the dialog at once. The opener is a 0a button in both, and a tool's page disables it
-// where its list says why (`describeSelection`).
+// where its list says why (`describeSelection`). **Both pages draw it for a site manager
+// alone (#506)**, and the read behind the first refuses anybody else.
 //
 // A PRESS WHILE THE READ IS IN FLIGHT IS TURNED AWAY RATHER THAN THE BUTTON DISABLED,
 // which a browser showed: a button disabled under the pointer drops focus to the page, so
@@ -140,6 +141,10 @@ export default function LabelsDialog({ title, toolName, run: handed, toolItemIds
         if (pending) return;
         startTransition(async () => {
             const read = await readToolItemLabelsAction(toolItemIds);
+            // A read refused to a reader who is not a site manager answers null (#506), with
+            // the page re-rendered in the same response — without this opener — so there is
+            // nothing to open.
+            if (!read) return;
             setRun(read);
             setOpen(true);
         });

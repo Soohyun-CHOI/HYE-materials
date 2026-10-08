@@ -22,6 +22,7 @@ import { TOOLS_PATH, labelCodeFor, toolItemPath, toolPath } from "@/lib/toolRout
 import { TOOL_EVENT } from "@/lib/toolStatus";
 import { TOOL_TRANSITION_COPY as TRANSITION_COPY, planTransition } from "@/lib/toolTransition";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { isSiteManager } from "@/lib/siteManager";
 import { actorName } from "@/lib/userName";
 import LabelsDialog, { LabelPreview } from "../LabelsDialog";
 import StatusMark from "../../StatusMark";
@@ -109,7 +110,8 @@ const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
  * names a check-out offers are other tool items' history on the reader's own jobs,
  * so nothing already in hand can answer it; `getRecentCheckOuts` is one operation
  * and stays one whatever a job's history grows to. Every other path — a check-in,
- * a retired tool item, a reader with no job — asks nothing and pays nothing.
+ * a retired tool item, a reader with no job, a reader who is not a site manager
+ * (#506) — asks nothing and pays nothing.
  *
  * IT OFFERS WHAT THAT STATUS ALLOWS (#362, #363), AND FOR NO OPERATIONS AT ALL.
  * The session and the whole job list are already read for the history's names,
@@ -122,6 +124,14 @@ const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
  * `planTransition`, and the action calls it again on a fresh read because a
  * Server Action is reachable without this page and because the status may have
  * moved since this render. One rule, two callers, no second implementation.
+ *
+ * AND IT OFFERS NOTHING TO A READER WHO IS NOT A SITE MANAGER (#506), who reads the same
+ * page without its controls: `planTransition` asks `isSiteManager` first and gives them no
+ * event, no retirement and no sentence, so the header's right holds nothing at a desk and
+ * a phone draws no foot bar; and `Print label` is drawn under the same question, while
+ * the label itself, its size and its symbol stay, since what a label looks like is a fact
+ * about the tool item. The actions behind the controls ask it too, through
+ * `withSiteManagerAction`.
  *
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
  * a header holding the tool's name, its id and job, its status and the actions, the history
@@ -215,12 +225,16 @@ async function renderToolItemPage({ params }) {
     // asks the same function again, because a Server Action is reachable without
     // this page.
     const transition = planTransition({ user, jobs, status: toolItem.status });
+    // Whether this reader prints labels (#506) — the question `planTransition` asked above,
+    // asked of the one control outside the transition.
+    const recorder = isSiteManager(user);
 
     // #376 — THE ONE READ THIS PAGE ADDED, AND ONLY WHERE IT IS USED. A check-out
     // asks who the tool is going to and offers the names the reader's own jobs have
     // recently handed tools to; a check-in returns one to stock and asks nobody, a
-    // retired tool item offers neither control, and a reader with no job is refused
-    // before either. So the query runs only when the offered event is the one that
+    // retired tool item offers neither control, a reader with no job is refused before
+    // either, and one who is not a site manager is offered neither (#506). So the
+    // query runs only when the offered event is the one that
     // carries a name, which leaves this page at its recorded figure on every other
     // path. One operation when it does run — see `getRecentCheckOuts` for why it is
     // one and stays one.
@@ -326,17 +340,19 @@ async function renderToolItemPage({ params }) {
                             filled button, the other is that tool item's last act and is a menu
                             item behind an icon. Each is asked for separately, because the two
                             answers come from two maps and agree only on today's three
-                            statuses. */}
-                        {transition.refusal ? (
-                            transition.refusal !== TRANSITION_COPY.noTransition && (
-                                <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle max-sm:hidden">{transition.refusal}</p>
-                            )
-                        ) : (
-                            <div className="-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)] flex shrink-0 items-center gap-gap max-sm:hidden">
-                                {transition.event && <TransitionDialog currentJobCode={jobCode} recentCheckOuts={recentCheckOuts} />}
-                                {transition.mayRetire && <MoreActions />}
-                            </div>
-                        )}
+                            statuses. A READER WHO IS NOT A SITE MANAGER IS OFFERED NEITHER AND
+                            TOLD NOTHING (#506), so the place holds nothing, as it does for a
+                            retired tool. */}
+                        {transition.refusal
+                            ? transition.refusal !== TRANSITION_COPY.noTransition && (
+                                  <p className="max-w-empty-state text-body-sm text-pretty text-foreground-subtle max-sm:hidden">{transition.refusal}</p>
+                              )
+                            : (transition.event || transition.mayRetire) && (
+                                  <div className="-mt-[calc((var(--height-control-lg)-var(--text-heading-lg--line-height))/2)] flex shrink-0 items-center gap-gap max-sm:hidden">
+                                      {transition.event && <TransitionDialog currentJobCode={jobCode} recentCheckOuts={recentCheckOuts} />}
+                                      {transition.mayRetire && <MoreActions />}
+                                  </div>
+                              )}
                     </header>
                     <div className="grid grid-cols-[minmax(0,1fr)_var(--width-record-rail)] max-sm:block">
                         <section className="pt-record-header-stack pr-record-rail-inline max-sm:px-mobile-gutter max-sm:pt-[calc(var(--spacing-mobile-stack)-var(--spacing-mobile-title-stack))] max-sm:pb-scroll-inset-bottom">
@@ -351,7 +367,9 @@ async function renderToolItemPage({ params }) {
                             drawn as the labels' dialog draws its page, at twice its size, with
                             the print size in text under it; the control opens that dialog on
                             this one label, handed over as this render built it, so opening it
-                            reads nothing. It stands for every status, `Retired` included. A
+                            reads nothing. It stands for every status, `Retired` included, and
+                            for a site manager alone (#506): anybody else reads the label, its
+                            size and its symbol, and has nothing here to print it with. A
                             phone draws no label: one is printed at a desk. THE RAIL HOLDS UNDER
                             THE BREADCRUMB BAR WHILE IT FITS (0i), 24 under it as it stands under
                             the header's Band, and its Rule runs the whole column. */}
@@ -378,14 +396,16 @@ async function renderToolItemPage({ params }) {
                                     ) : (
                                         <p className="text-body-sm text-pretty text-foreground-muted">{COPY.symbolTooLargeNote}</p>
                                     )}
-                                    <div>
-                                        <LabelsDialog
-                                            title={LABEL_COPY.openFromToolItem}
-                                            toolName={tool?.toolName}
-                                            run={{ sideModules: QR_SIDE_MODULES, labels: [label], missing: [] }}
-                                            variant="bordered"
-                                        />
-                                    </div>
+                                    {recorder && (
+                                        <div>
+                                            <LabelsDialog
+                                                title={LABEL_COPY.openFromToolItem}
+                                                toolName={tool?.toolName}
+                                                run={{ sideModules: QR_SIDE_MODULES, labels: [label], missing: [] }}
+                                                variant="bordered"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </aside>

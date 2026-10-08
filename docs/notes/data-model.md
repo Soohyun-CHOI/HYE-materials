@@ -14,7 +14,7 @@ Moved verbatim out of CLAUDE.md, and three lines have changed since. The `PR Sig
 
 Field lists and link topology only. Why a field is shaped the way it is lives in the `docs/notes/` file for its area — see the index in CLAUDE.md.
 
-**Users**: First Name (primary, typed at the first sign-in, blank until then), Last Name, Email, Phone, Role (Employee/President), Is Admin, Status (Active/Inactive), Created At, Assigned Jobs (link -> Jobs, multiple, optional).
+**Users**: First Name (primary, typed at the first sign-in, blank until then), Last Name, Email, Phone, Role (Employee/President), Is Admin, Is Site Manager (checkbox, set by hand — who records what happens to a tool, #506; read by `lib/siteManager.js` alone), Status (Active/Inactive), Created At, Assigned Jobs (link -> Jobs, multiple, optional).
 
 **Jobs**: Job Code (primary), Job Name, Business Unit, PIC/Manager (link -> Users) + Phone/Email (Lookups), Delivery Address (link -> Addresses, single — the DEFAULT; `Alternate Delivery Address` went in #384), Disciplines/Users/Addresses (reverse-links).
 

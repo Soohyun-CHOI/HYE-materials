@@ -9,6 +9,7 @@ import { toolPath, toolsPath } from "@/lib/toolRoutes";
 import { TOOL_STATUS_VALUES } from "@/lib/toolStatus";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { isSiteManager } from "@/lib/siteManager";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader, Pager, TABLE_HEAD, TABLE_ROW, TABLE_ROW_LINK } from "@/app/components/ListTable";
 import RegistrationDialog from "./RegistrationDialog";
@@ -39,7 +40,14 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  * page, and what it offers — the reader's own jobs, or none and a disabled opener —
  * is `/tools/new`'s old read, moved here with the form. The tools it suggests as a
  * name is typed are the list this page has already read, each with its count off the
- * link array, so they cost nothing.
+ * link array, so they cost nothing. **Since #506 it is read for a site manager alone**,
+ * since nobody else is offered the dialog it is for, so anybody else's list is one
+ * operation less.
+ *
+ * A READER WHO IS NOT A SITE MANAGER READS THE SAME LIST WITH NO OPENER (#506), in the
+ * head or under an empty list: adding tools is a site manager's, and the action behind
+ * the dialog refuses anybody else through `withSiteManagerAction`. The empty list keeps
+ * its heading and its sentence, which say what the list is for whoever reads it.
  *
  * NO PER-STATUS ROLLUP ON `Tools`, WHICH IS A DECISION WITH A MEASURED TRIGGER.
  * The walk is `ceil(total tool items / 50)`, so this page passes ten operations
@@ -73,12 +81,17 @@ export default async function ToolsPage(props) {
 
 // Every signed-in user, with no Role and no Job scoping (#337): a scan needs an
 // account only because it records who performed it, and a tool item moves between
-// jobs, so the person scanning one is not always assigned to the job it is on.
+// jobs, so the person scanning one is not always assigned to the job it is on. What a
+// reader may DO here is narrower since #506 — adding tools is a site manager's — and
+// what everybody may READ is unchanged.
 async function renderToolsPage({ searchParams }) {
     const user = await requireUser();
     const sp = (await searchParams) ?? {};
+    // Whether this reader adds tools (#506) — the one question every opener below is drawn
+    // under, and the reason the job list is read at all.
+    const recorder = isSiteManager(user);
 
-    const [tools, allJobs] = await Promise.all([getAllTools(), getAllJobs()]);
+    const [tools, allJobs] = await Promise.all([getAllTools(), recorder ? getAllJobs() : []]);
     // The link arrays the tools already carry, flattened into one batched read.
     const toolItems = await getToolItemsByRecordIds(tools.flatMap((tool) => tool.toolItems));
     const rows = summarizeTools(tools, toolItems);
@@ -101,7 +114,7 @@ async function renderToolsPage({ searchParams }) {
         <ListFrame
             header={
                 <ListHeader title={COPY.heading} count={rows.length} noun={COPY.toolNoun(rows.length)}>
-                    <RegistrationDialog {...registration} />
+                    {recorder && <RegistrationDialog {...registration} />}
                 </ListHeader>
             }
             footer={
@@ -119,9 +132,11 @@ async function renderToolsPage({ searchParams }) {
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{COPY.noToolsHeading}</h2>
                     <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noTools}</p>
-                    <div className="mt-gap-lg">
-                        <RegistrationDialog {...registration} variant="bordered" />
-                    </div>
+                    {recorder && (
+                        <div className="mt-gap-lg">
+                            <RegistrationDialog {...registration} variant="bordered" />
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div role="table" aria-label={COPY.heading}>

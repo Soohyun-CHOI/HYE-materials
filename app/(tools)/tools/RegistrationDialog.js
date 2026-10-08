@@ -42,12 +42,16 @@ import { registerToolItemsAction } from "./actions";
  * of these beside the head's, `variant` its one difference — since a list with nothing in it
  * is where the reader who needs the dialog most is looking.
  *
- * A READER ON NO JOB MEETS EVERY OPENER DRAWN AND DISABLED, WITH WHY BEFORE IT (0f), and
- * the dialog never opens for them. What #451 kept is kept: no opener is hidden, and all
- * three ask one predicate, `canRegisterToolItems`, which the page asks and hands down as
- * `canRegister`. What moved is only where the reason is said — beside the control that
- * cannot act, rather than on a screen arrived at to be refused, which is also
- * `/invoices`' rule against landing a reader on a refusal.
+ * A SITE MANAGER ON NO JOB MEETS EVERY OPENER DRAWN AND DISABLED, WITH WHY BEFORE IT (0f),
+ * and the dialog never opens for them. What #451 kept is kept for them: all three ask one
+ * predicate, `canRegisterToolItems`, which the page asks and hands down as `canRegister`,
+ * and the reason is said beside the control that cannot act, rather than on a screen
+ * arrived at to be refused, which is also `/invoices`' rule against landing a reader on a
+ * refusal. **A reader who is not a site manager meets no opener at all (#506)** — each page
+ * draws this only under `isSiteManager` — which is that same rule read for a role: a job
+ * assignment is something to ask the office for, and being a site manager is not, so
+ * `New invoice`'s shape fits rather than a disabled opener with a reason that would send
+ * them nowhere.
  *
  * WHAT A SUBMISSION MAY BE IS ASKED BEFORE IT IS SENT, and asked of the same function the
  * action asks, `readRegistration`: a refusal about a field is said under that field and

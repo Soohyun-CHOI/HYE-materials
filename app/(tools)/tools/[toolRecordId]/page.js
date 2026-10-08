@@ -7,6 +7,7 @@ import { TOOL_LIST_COPY as COPY, pageOfToolItems } from "@/lib/toolListView";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems, readRegistrationAccount } from "@/lib/toolRegistration";
 import { TOOLS_PATH } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { isSiteManager } from "@/lib/siteManager";
 import Breadcrumb from "@/app/components/Breadcrumb";
 import { ButtonLink } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
@@ -77,14 +78,22 @@ export const metadata = { title: "Tool" };
  * `lib/toolRegistration.js:accountToTell`, asked of this render's reading and of the
  * address as it stands — so both are handed the whole account.
  *
- * AND IT IS WHERE SOMEBODY REGISTERS MORE OF THIS TOOL (#451). One control opens the
+ * AND IT IS WHERE A SITE MANAGER ADDS MORE OF THIS TOOL (#451). One control opens the
  * registration dialog on this tool and with no count — nothing here knows how many
  * were bought — and costs nothing: the name is on the row already read, and the reader
  * and the job list are what this page reads anyway. It is drawn for every tool this page
- * finds, the one with nothing under it included, and for every reader — disabled, with
- * the reason before it, for a reader on no job, as `/tools`' own control and the offer
- * below are (#456). `registerToolItemsAction`'s header records what finding the tool by
- * its name rather than its record id costs.
+ * finds, the one with nothing under it included — disabled, with the reason before it,
+ * for a site manager on no job, as `/tools`' own control and the offer below are (#456).
+ * `registerToolItemsAction`'s header records what finding the tool by its name rather
+ * than its record id costs.
+ *
+ * A READER WHO IS NOT A SITE MANAGER READS THIS PAGE WITHOUT WHAT A SITE MANAGER DOES ON
+ * IT (#506): no opener, no box on a row or on the page and no selection bar — so no label
+ * run is made here, and an `id` on the address is left unread — and neither part of a
+ * registration's account, which is told to whoever added. An empty tool keeps its heading
+ * and drops the sentence under it, which speaks to the person who was adding. Every
+ * question is `isSiteManager`, asked once here, the one the actions behind those controls
+ * ask through `withSiteManagerAction`.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
  * answering it on this page would mean reading every tool item under the tool —
@@ -156,8 +165,11 @@ async function renderToolPage({ params, searchParams }) {
 
     const jobCodeById = Object.fromEntries(jobs.map((job) => [job.id, job.jobCode]));
     const account = readRegistrationAccount({ asked: sp.asked, unwritten: sp.unwritten, unlogged: sp.unlogged });
+    // Whether this reader adds tools and prints their labels here at all (#506): every
+    // control below that does either is drawn under it, and nothing else on the page is.
+    const recorder = isSiteManager(user);
     // What both openers on this page hand the registration dialog (#456): whether this
-    // reader may register at all, which is the one predicate every opener asks, and the
+    // site manager may register, which is the one predicate every opener asks, and the
     // jobs its choice offers.
     const canRegister = canRegisterToolItems(user, jobs);
     const assignedJobs = assignedJobsFor(user, jobs).map(({ id, jobCode }) => ({ id, jobCode }));
@@ -171,7 +183,7 @@ async function renderToolPage({ params, searchParams }) {
     const registration = { opener: TOOL_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, tool: { toolName: tool.toolName } };
     const header = (
         <ListHeader title={tool.toolName} count={page.total} noun={COPY.itemNoun(page.total)} underBreadcrumb>
-            <RegistrationDialog {...registration} />
+            {recorder && <RegistrationDialog {...registration} />}
         </ListHeader>
     );
 
@@ -180,10 +192,17 @@ async function renderToolPage({ params, searchParams }) {
             <ListFrame top={top} header={header}>
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{COPY.noToolItemsHeading}</h2>
-                    <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noToolItems}</p>
-                    <div className="mt-gap-lg">
-                        <RegistrationDialog {...registration} variant="bordered" />
-                    </div>
+                    {/* The sentence speaks to whoever was adding, and the opener under it is
+                        theirs, so both are a site manager's (#506); anybody else reads the
+                        heading alone. */}
+                    {recorder && (
+                        <>
+                            <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noToolItems}</p>
+                            <div className="mt-gap-lg">
+                                <RegistrationDialog {...registration} variant="bordered" />
+                            </div>
+                        </>
+                    )}
                 </div>
             </ListFrame>
         );
@@ -193,11 +212,13 @@ async function renderToolPage({ params, searchParams }) {
     // page (#443): the list selects among what it is handed and has no way to name a tool
     // item it was not. What a label run is for is the list's to read off the address, and
     // the print control that opens the labels on it stands in the selection bar with the
-    // count; the tool's name is the line under that dialog's title (#457).
+    // count; the tool's name is the line under that dialog's title (#457). The boxes and the
+    // bar are a site manager's (#506), so `selects` is the page's one answer to that.
     return (
         <ToolItemList
             toolRecordId={tool.id}
             toolName={tool.toolName}
+            selects={recorder}
             rows={toolItems.map((toolItem) => ({
                 id: toolItem.id,
                 toolItemId: toolItem.toolItemId,
@@ -214,9 +235,13 @@ async function renderToolPage({ params, searchParams }) {
                 it and the notice's one only takes it away (#455), and the fork's count never
                 includes the notice's tool items, which were written. Each is a dialog since
                 #459, one at a time and the notice first; it stands first here too, so when
-                its answer hands over to the fork the one closes before the other opens. */}
-            {account.unlogged.length > 0 && <RegistrationUnlogged toolName={tool.toolName} account={account} />}
-            {account.unwritten > 0 && <RegistrationShortfall toolName={tool.toolName} account={account} canRegister={canRegister} jobs={assignedJobs} />}
+                its answer hands over to the fork the one closes before the other opens. Both
+                are told to whoever added, which is a site manager (#506); an address carrying
+                them reaches anybody else only as a copied link, and tells them nothing. */}
+            {recorder && account.unlogged.length > 0 && <RegistrationUnlogged toolName={tool.toolName} account={account} />}
+            {recorder && account.unwritten > 0 && (
+                <RegistrationShortfall toolName={tool.toolName} account={account} canRegister={canRegister} jobs={assignedJobs} />
+            )}
         </ToolItemList>
     );
 }

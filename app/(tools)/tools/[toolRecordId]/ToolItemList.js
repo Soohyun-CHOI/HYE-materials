@@ -20,6 +20,9 @@ import LabelsDialog from "../../tool-items/LabelsDialog";
 
 // 1d's columns: the box, the printed id at 240, the status at 160, and the job.
 const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)]";
+// The same three for a reader who selects nothing (#506), with no box to hold room for —
+// until Design draws that list, the closest shape the app already has.
+const COLUMNS_WITHOUT_BOX = "grid-cols-[var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)]";
 
 // One page of a tool's tool items, drawn as 1d's table (#463): a box on each and one for the
 // page in the column head, and the selection bar that opens the labels' dialog on what they
@@ -81,9 +84,16 @@ const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-t
 //
 // EVERY WORD IS IN `TOOL_LIST_COPY` OR `TOOL_LABEL_PAGE_COPY` AND NONE IS IN JSX, this
 // axis's rule since #338, held by `offline/tool-list-view.mjs`.
-export default function ToolItemList({ toolRecordId, toolName, rows, page, top, header, children }) {
+//
+// A READER WHO PRINTS NO LABELS SELECTS NOTHING (#506). `selects` is the page's answer to
+// whether this reader is a site manager, and without it the list draws no box on a row or
+// in the column head, and no selection bar — so there is no run to print and no `Escape`
+// to clear one — and it reads no selection off the address either, so a copied link's
+// `id` neither marks a row nor rides the pager's steps.
+export default function ToolItemList({ toolRecordId, toolName, selects, rows, page, top, header, children }) {
     const params = useSearchParams();
-    const selection = readToolItemIds(params.getAll("id"));
+    const selection = selects ? readToolItemIds(params.getAll("id")) : [];
+    const columns = selects ? COLUMNS : COLUMNS_WITHOUT_BOX;
     const pageIds = rows.map((row) => row.toolItemId);
     const pageState = pageSelection(selection, pageIds);
     const summary = describeSelection(selection, pageIds);
@@ -117,40 +127,44 @@ export default function ToolItemList({ toolRecordId, toolName, rows, page, top, 
             // tool's name (#457) — and says why it does not act on more than one print takes,
             // in a column of the bar's own that the control points at (#495).
             overlay={
-                <SelectionBar
-                    shown={selecting}
-                    label={COPY.selectionBar}
-                    count={summary.count}
-                    notOnPage={summary.notOnPage}
-                    words={{ count: COPY.selectedCount, notOnPage: COPY.notOnPage }}
-                    clearLabel={COPY.clearSelection}
-                    onClear={clear}
-                    reason={summary.reason}
-                    reasonId={reasonId}
-                >
-                    <LabelsDialog
-                        title={LABEL_COPY.openFromTool}
-                        toolName={toolName}
-                        toolItemIds={selection}
-                        disabled={!summary.printable}
-                        describedBy={summary.reason ? reasonId : undefined}
-                    />
-                </SelectionBar>
+                selects ? (
+                    <SelectionBar
+                        shown={selecting}
+                        label={COPY.selectionBar}
+                        count={summary.count}
+                        notOnPage={summary.notOnPage}
+                        words={{ count: COPY.selectedCount, notOnPage: COPY.notOnPage }}
+                        clearLabel={COPY.clearSelection}
+                        onClear={clear}
+                        reason={summary.reason}
+                        reasonId={reasonId}
+                    >
+                        <LabelsDialog
+                            title={LABEL_COPY.openFromTool}
+                            toolName={toolName}
+                            toolItemIds={selection}
+                            disabled={!summary.printable}
+                            describedBy={summary.reason ? reasonId : undefined}
+                        />
+                    </SelectionBar>
+                ) : null
             }
             overlayShown={selecting}
         >
             <div role="table" aria-label={toolName}>
                 {/* This page's box: its state is this page's alone, and a partly selected
                     page shows as mixed, which is a DOM property with no attribute. */}
-                <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
-                    <span role="columnheader" className="flex self-center">
-                        <Checkbox
-                            label={COPY.selectPage}
-                            checked={pageState === "all"}
-                            indeterminate={pageState === "some"}
-                            onChange={() => replaceSelection(togglePage(selection, pageIds))}
-                        />
-                    </span>
+                <div role="row" className={`${TABLE_HEAD} ${columns}`}>
+                    {selects && (
+                        <span role="columnheader" className="flex self-center">
+                            <Checkbox
+                                label={COPY.selectPage}
+                                checked={pageState === "all"}
+                                indeterminate={pageState === "some"}
+                                onChange={() => replaceSelection(togglePage(selection, pageIds))}
+                            />
+                        </span>
+                    )}
                     <span role="columnheader">{COPY.toolItemLabel}</span>
                     <span role="columnheader">{COPY.statusLabel}</span>
                     <span role="columnheader">{COPY.jobLabel}</span>
@@ -160,14 +174,16 @@ export default function ToolItemList({ toolRecordId, toolName, rows, page, top, 
                 {rows.map((row) => {
                     const selected = selection.includes(row.toolItemId);
                     return (
-                        <div key={row.id} role="row" className={`${TABLE_ROW} ${COLUMNS} ${selected ? TABLE_ROW_SELECTED : ""}`}>
-                            <span role="cell" className="flex self-center">
-                                <Checkbox
-                                    label={COPY.selectToolItem(row.toolItemId)}
-                                    checked={selected}
-                                    onChange={() => replaceSelection(toggleToolItem(selection, row.toolItemId))}
-                                />
-                            </span>
+                        <div key={row.id} role="row" className={`${TABLE_ROW} ${columns} ${selected ? TABLE_ROW_SELECTED : ""}`}>
+                            {selects && (
+                                <span role="cell" className="flex self-center">
+                                    <Checkbox
+                                        label={COPY.selectToolItem(row.toolItemId)}
+                                        checked={selected}
+                                        onChange={() => replaceSelection(toggleToolItem(selection, row.toolItemId))}
+                                    />
+                                </span>
+                            )}
                             <span role="cell" className="min-w-0 truncate font-id text-body-sm tracking-id">
                                 <Link href={toolItemPath(row.toolItemId)} className={TABLE_ROW_LINK}>
                                     {row.toolItemId}

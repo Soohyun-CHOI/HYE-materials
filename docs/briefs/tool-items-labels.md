@@ -2,8 +2,10 @@
 
 Opens from: `/tools/[toolRecordId]` and `/tool-items/[toolItemId]`, as a dialog
 over the page that opens it — it was the page `/tool-items/labels` until #457.
-Who reaches it: anyone signed in who is on either page, with no Role and no Job
-scoping (#337). No tool item is one reader's rather than another's.
+Who reaches it: a site manager on either page (#506) — nobody else is drawn a
+control that opens it, and the read behind a tool's page refuses anybody else.
+No tool item is one reader's rather than another's, so a site manager may print
+any label; everyone else still reads a tool item's label on its own screen.
 Which width comes first: **desktop**. This dialog is used at whatever machine the
 printer is attached to, which `docs/notes/tools.md` settled for the whole label
 step, and it does not support a phone's width (`_shared.md`).

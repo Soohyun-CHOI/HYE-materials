@@ -66,7 +66,7 @@ export const title = "A request a caller names is asked whose it is before anyth
 const READERS = new Set(["getPRById", "getPRByRecordId", "getPRsByRecordIds", "loadPRContext", "resumedDraft"]);
 
 /** The wrappers that make an export role-gated, from `lib/authz.js`. */
-const ROLE_WRAPPERS = new Set(["withAdminAction", "withPresidentAction"]);
+const ROLE_WRAPPERS = new Set(["withAdminAction", "withPresidentAction", "withSiteManagerAction"]);
 
 /**
  * THE INVENTORY, one row per (file, named function, reader). `kind` is one of:

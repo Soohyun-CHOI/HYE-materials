@@ -417,6 +417,17 @@ export async function run({ check, assert, log }) {
     check("  the avatar takes the address's first letter as it is spelled", reader("Kji9408@hanyangengusa.com", "Employee", false).initial, "K");
     check("  the menu's one word", NAVIGATION_COPY.account.signOut, "Sign out");
     check("  the office's word", NAVIGATION_COPY.account.admin, "Admin");
+    // #506 — A SITE MANAGER IS SAID LAST, after the roles the line already joined, and it
+    // takes the place of `Employee` the way `Admin` does: the one new word on any screen.
+    const manager = (email, role, isAdmin) => accountOf({ email, role, isAdmin, isSiteManager: true });
+    check("  the President, the office and a site manager in one person", manager("soo@hanyangengusa.com", "President", true).label, "soo, President, Admin, Site manager");
+    check(
+        "  a site manager who is otherwise an employee, as the account and its tooltip both say",
+        JSON.stringify(manager("lee@hanyangengusa.com", "Employee", false)),
+        JSON.stringify({ name: "lee", email: "lee@hanyangengusa.com", initial: "l", role: "Site manager", label: "lee, Site manager" })
+    );
+    check("  a mark that is merely truthy is no site manager", accountOf({ email: "lee@hanyangengusa.com", role: "Employee", isSiteManager: "true" }).role, "Employee");
+    check("  the site manager's word, in the design's sentence case", NAVIGATION_COPY.account.siteManager, "Site manager");
 
     const accountAst = parseFile(ACCOUNT).ast;
     check("  the account's name and its tooltip", judgeAccountName(accountAst).join(" | "), "");

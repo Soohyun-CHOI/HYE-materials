@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/authz";
+import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { getToolItemByToolItemId, updateToolItemCache } from "@/lib/airtable/toolItems";
 import { createToolLogEntry, getToolLogByToolItem } from "@/lib/airtable/toolLog";
@@ -29,15 +29,16 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * status that does not offer it. What the form sends is compared, never used —
  * see `readSubmission`.
  *
- * NOT WRAPPED, AND LISTED AS AN EXEMPTION WITH THAT REASON. This is #338's axis
- * exactly: `requireUser()` settles only that this is an active session, and the
- * authorization that decides anything is that the submitted job is one the
- * actor's own `Users."Assigned Jobs"` names. No role helper fits — scanning a
- * tool is site work, so an Admin on no job must be refused and a non-Admin
- * employee on a job must pass — and deliberately not `canAccessJobDeliveries`,
- * which admits the office to every job. Nothing here is scoped per tool item:
- * anyone signed in may reach any of them (#337), which is why the only
- * per-record comparison is about the job.
+ * ONLY A SITE MANAGER RECORDS, AND THE WRAPPER DECIDES THAT BEFORE THIS BODY RUNS
+ * (#506). `withSiteManagerAction` refuses anybody else — the page they pressed on,
+ * rendered again without the controls, and nothing said. What this body still decides
+ * is the job, #338's axis exactly, as it did while this action was an exemption: the
+ * submitted job has to be one the actor's own `Users."Assigned Jobs"` names, with no
+ * office clause — scanning a tool is site work, so a site manager on no job is refused
+ * whatever else they are — and deliberately not `canAccessJobDeliveries`, which admits
+ * the office to every job. Nothing here is scoped per tool item: a site manager may
+ * record against any of them, as anyone signed in may read them (#337), which is why
+ * the only per-record comparison is about the job.
  *
  * REFUSES BY RETURNING `{ error }` BECAUSE THE CALL SITE BINDS (#185).
  * `ToolItemTransition.js` reads this through `useActionState` for both of the page's
@@ -52,20 +53,21 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * move are one rule and live in one place; that function's header carries the
  * argument.
  *
- * SEVEN AIRTABLE OPERATIONS, MEASURED: the session, the tool item, the job list,
+ * EIGHT AIRTABLE OPERATIONS, MEASURED: the session twice — the wrapper's gate reads
+ * it and drops it, and this body reads it again (#506) — the tool item, the job list,
  * THREE for the log row — `generateChildId`'s parent find, the sibling read that
  * finds the highest sequence, and the create — and one for the cache. None of
  * them is per row of anything: the sibling read is one query per 50, so a tool
- * item with two hundred events costs eight rather than two hundred and six.
+ * item with two hundred events costs eleven rather than two hundred and seven.
  *
- * A REFUSAL COSTS THREE AND WRITES NOTHING, also measured: the session, the tool
- * item and the job list, which are what the verdict is reached from. The two
- * writes are downstream of it. **One that somebody else's scan got in front of
- * costs five (#463)**: the design's sentence names who recorded first and when
- * (1k), so `refuseStale` reads the tool item's latest `Tool Log` row and the person
- * who recorded it, one operation each.
+ * A REFUSAL COSTS FOUR AND WRITES NOTHING: the session twice, the tool item and the
+ * job list, which are what the verdict is reached from — three of them measured
+ * before #506 put the gate's read in front. The two writes are downstream of it.
+ * **One that somebody else's scan got in front of costs six (#463)**: the design's
+ * sentence names who recorded first and when (1k), so `refuseStale` reads the tool
+ * item's latest `Tool Log` row and the person who recorded it, one operation each.
  *
- * SIX ON THE FIRST EVENT AFTER A REGISTRATION THAT LOST ITS LOG ROW, because
+ * SEVEN ON THE FIRST EVENT AFTER A REGISTRATION THAT LOST ITS LOG ROW, because
  * `findChildRecords` on an empty link array costs nothing. That is #338's
  * unlogged state, and it is why this figure is stated as the ordinary case
  * rather than as a law.
@@ -90,7 +92,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * same fresh page by the other mechanism and keeps its sentence**; `refuse`
  * carries why the two differ.
  */
-export async function recordToolItemEventAction(prevState, formData) {
+export const recordToolItemEventAction = withSiteManagerAction(recordToolItemEventHandler);
+
+async function recordToolItemEventHandler(prevState, formData) {
     return withOpsLabel("recordToolItemEventAction", async () => {
         const user = await requireUser();
 
@@ -160,9 +164,9 @@ export async function recordToolItemEventAction(prevState, formData) {
  * `Tool Log."Notes"` is read by nothing as of this commit and comes off the base
  * by hand, since the Metadata API has no field DELETE.
  *
- * THE SAME EXEMPTION AND THE SAME AXIS as the action above: `requireUser()`
- * plus the submitted job being one the actor's own `Users."Assigned Jobs"`
- * names. Nothing on this axis is scoped per tool item (#337).
+ * THE SAME WRAPPER AND THE SAME AXIS as the action above (#506): only a site manager
+ * gets past `withSiteManagerAction`, and the body asks the rest of it. Nothing on this
+ * axis is scoped per tool item (#337).
  *
  * NOTHING CROSSES THE WIRE BUT THE TOOL ITEM'S ID. There is one direction, so
  * the event is `TOOL_EVENT.RETIRED` from the vocabulary; and the job is the tool
@@ -170,16 +174,17 @@ export async function recordToolItemEventAction(prevState, formData) {
  * need not be near it. `readRetirement` carries both arguments, including the
  * row on this base that proved the second one.
  *
- * WHICH LEAVES THE GATE AS `planTransition`'s: the actor must hold at least one
- * assigned job. There is no submitted job left to compare, and that is a smaller
- * surface rather than a weaker one — the forgery it used to refuse existed only
- * because the value was submitted. The exemption's reason says which of the two
- * shapes each export takes.
+ * WHICH LEAVES THE BODY'S QUESTION AS `planTransition`'s: the actor must hold at
+ * least one assigned job. There is no submitted job left to compare, and that is a
+ * smaller surface rather than a weaker one — the forgery it used to refuse existed
+ * only because the value was submitted.
  *
- * SEVEN OPERATIONS, the same seven the action above spends, for the same
+ * EIGHT OPERATIONS, the same eight the action above spends, for the same
  * reasons and in the same order.
  */
-export async function retireToolItemAction(prevState, formData) {
+export const retireToolItemAction = withSiteManagerAction(retireToolItemHandler);
+
+async function retireToolItemHandler(prevState, formData) {
     return withOpsLabel("retireToolItemAction", async () => {
         const user = await requireUser();
 
@@ -249,7 +254,9 @@ export async function retireToolItemAction(prevState, formData) {
  *
  * IT WORKS ONLY INSIDE A SERVER ACTION, since `refresh()` throws anywhere else.
  * That is a constraint on this function rather than a hazard: its callers are the
- * two exported actions and the writer they share.
+ * two actions' handlers and the writer they share. A press `withSiteManagerAction`
+ * turns away never gets this far, and is answered the same way — a fresh render —
+ * by the wrapper's own refusal (#506), with nothing said.
  *
  * NOT EXPORTED, for `writeEvent`'s reason — an export of a `"use server"` module
  * is an entry point callable from a browser.
