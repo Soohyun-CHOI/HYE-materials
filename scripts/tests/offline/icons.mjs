@@ -49,7 +49,7 @@ const NOT_MARKS = {
 /**
  * Every shape, element by element and in Lucide's order, as lucide-react 1.52.0 holds it: the
  * release Design moved the design's marks to on 2026-10-07, after that morning's files drew
- * Lucide as it stood from 0.416.0 to 0.532.0. `search-x` is 1g-c's mark, which Design settled.
+ * Lucide as it stood from 0.416.0 to 0.532.0. `search-x` is 1k-c's mark, which Design settled.
  */
 const DESIGN_SHAPES = {
     check: [["path", { d: "M20 6 9 17l-5-5" }]],
@@ -390,7 +390,7 @@ export function run({ check, assert, log }) {
             .join(" | ")
     );
     check(
-        "  the one cropped mark is 1b's chevron, the grid's 8 to 16",
+        "  the one cropped mark is 1d's chevron, the grid's 8 to 16",
         [...callsByFile].flatMap(([file, calls]) => calls.filter((c) => c.crop !== null).map((c) => `${file}: ${c.names.join("/")} ${c.crop}`)).join(" | "),
         "app/components/Breadcrumb.js: chevron-left [8, 8]"
     );

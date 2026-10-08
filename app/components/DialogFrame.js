@@ -25,7 +25,7 @@ import { SCROLL_LANE } from "./scrollLane";
  * a dialog out from under its own write was the retirement modal's rule (#363), and it
  * holds for Escape as much as for the close. A press on the backdrop does nothing. 0l does
  * not draw one closing, and a dialog of fields that shut on a stray press would lose what
- * was typed into it. The one exception is 1f's sheets, below, which the design draws
+ * was typed into it. The one exception is 1j's sheets, below, which the design draws
  * closing on what lies behind them and which hold nothing a press could lose.
  *
  * WHILE IT IS BUSY IT SAYS SO, AND SO DOES EVERYTHING IT HOLDS (#469). The frame wraps what
@@ -87,12 +87,12 @@ import { SCROLL_LANE } from "./scrollLane";
  * and what it holds takes its phone sizes from `max-sm:in-data-[sheet]:` classes, so CSS
  * decides both conditions and none of it is a second account of the phone's edge.
  *
- * 1f's THREE SHEETS ARE PARTS ON THIS FRAME, built to be opened as they are. The job sheet
+ * 1j's THREE SHEETS ARE PARTS ON THIS FRAME, built to be opened as they are. The job sheet
  * and the name sheet beside the tool item page, and the retirement's Confirm, close on a
  * press on what lies behind them while drawn as sheets (`closesOnBackdrop`), the name
  * sheet on its handle too (`onHandlePress`), and the name sheet ends in `done`, a text
  * button at its head's end in place of the close, since it holds a field (0a Sheet). The job
- * and name sheets open from #463's foot bar — 1f's — and the Confirm from the phone's
+ * and name sheets open from #463's foot bar — 1j's — and the Confirm from the phone's
  * `More actions`, with nothing about them changed; the fields in the page's dialog that
  * open them stand below the phone's edge, where that dialog is not drawn.
  *
@@ -119,17 +119,17 @@ import { SCROLL_LANE } from "./scrollLane";
  * opener gone with its dialog does (#458).
  *
  * A DIALOG CAN HOLD A PREVIEW BESIDE WHAT IT SAYS (#457), which is the frame's second
- * build and 1i's: a pane on the Field ground the dialog's full height and flush to its
+ * build and 1e's: a pane on the Field ground the dialog's full height and flush to its
  * edges, where what it shows is drawn as it will print, and beside it a column that is
  * the Compact build inside — the head, the body and the actions, 24 all round. 0l's
  * Split takes the width its summary and its control need, and this is the same rule
  * with a preview for the control: 780 by 520, the pane 440 and the column the rest. The
  * column holds its width as the screen narrows and the pane gives way, and on a phone,
- * which 1i does not draw, the two stack in reading order — the head, the preview, then
+ * which 1e does not draw, the two stack in reading order — the head, the preview, then
  * what the dialog says and its actions. The labels are its one caller, and the pane is
  * what they print; their stylesheet is what takes everything else off the paper.
  *
- * EACH OF THE TWO SCROLLS AS 1i DRAWS IT SINCE #495. The pane reserves 0i's 8 lane and
+ * EACH OF THE TWO SCROLLS AS 1e DRAWS IT SINCE #495. The pane reserves 0i's 8 lane and
  * draws 0i's bar in it, its room 24 16 24 24 so the pages stand 24 from the lane as from
  * every other edge, and it stops at its end; the column scrolls as one lane between its
  * head and its actions, across the column's whole width, so its Rules run edge to edge at
@@ -434,7 +434,7 @@ export function DialogFrame({
                 <>
                     {sheet && !confirm && (
                         // The handle: 36 by 4 on the Edge, 12 from the sheet's top — drawn, and
-                        // a press on it closes a sheet that says so (1f's name sheet).
+                        // a press on it closes a sheet that says so (1j's name sheet).
                         <div aria-hidden="true" onClick={onHandlePress} className="hidden shrink-0 justify-center pt-mobile-drawer-inset-top max-sm:flex">
                             <span className="h-mobile-drawer-handle w-mobile-drawer-handle rounded-full bg-border" />
                         </div>
@@ -473,7 +473,7 @@ export function DialogFrame({
  *
  * IT STOPS AT ITS END (0i Chain, #495): a scroll past its last line does not move the page
  * behind the dialog. Beside a preview it holds the column's 24 either side inside itself, so
- * it scrolls across the column's whole width and its Rules run edge to edge (1i).
+ * it scrolls across the column's whole width and its Rules run edge to edge (1e).
  */
 export function DialogBody({ children }) {
     const scrollerRef = useRef(null);
@@ -541,7 +541,7 @@ export function DialogMessage({ children }) {
 /**
  * A dialog's summary (0l Split): a card on the Field ground at the Group radius, 16 inside
  * above and below and 18 either side — what a dialog holds up for reference rather than
- * asks about. What it holds lays itself out; the ids a landing names are the first (1k).
+ * asks about. What it holds lays itself out; the ids a landing names are the first (1c).
  */
 export function DialogSummary({ children }) {
     return (
@@ -553,10 +553,10 @@ export function DialogSummary({ children }) {
  * The rows a sheet lists to choose from (Tools 0a Sheet, #458): each at least 56, 16 at
  * Ink with 15 and 16 inside, an Inner rule between two that starts 16 in and runs to the
  * sheet's edge, and a check in Accent at the end of the one already chosen. A row takes
- * the Wash while held, as a control does under a press (0a). 1f's job sheet and name sheet
+ * the Wash while held, as a control does under a press (0a). 1j's job sheet and name sheet
  * list theirs this way; a press on a row is the row's `onPress`. The rows stop at their end
  * (0i Chain, #495), so a scroll past the last does not move the page behind the sheet. A row
- * may name the part of it a typed value matched (`match`), set at 600 (1f).
+ * may name the part of it a typed value matched (`match`), set at 600 (1j).
  */
 export function SheetRows({ rows }) {
     return (

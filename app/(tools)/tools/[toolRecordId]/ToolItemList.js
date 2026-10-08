@@ -18,10 +18,10 @@ import { readToolItemIds, toolItemPath, toolPath } from "@/lib/toolRoutes";
 import StatusMark from "../../StatusMark";
 import LabelsDialog from "../../tool-items/LabelsDialog";
 
-// 1b's columns: the box, the printed id at 240, the status at 160, and the job.
+// 1d's columns: the box, the printed id at 240, the status at 160, and the job.
 const COLUMNS = "grid-cols-[var(--size-icon)_var(--width-table-id)_var(--width-table-status)_minmax(0,1fr)]";
 
-// One page of a tool's tool items, drawn as 1b's table (#463): a box on each and one for the
+// One page of a tool's tool items, drawn as 1d's table (#463): a box on each and one for the
 // page in the column head, and the selection bar that opens the labels' dialog on what they
 // select (#443, #457), over the pager. The page hands down the breadcrumb and the list's head,
 // which this frames with the rows.

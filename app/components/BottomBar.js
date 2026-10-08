@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 /*
  * Tools 0a's Foot bar — where a phone screen's action stands, at the foot of the page —
  * written for the sign-in steps (#473) and shared with the tool item page since #463, whose
- * check-out and check-in stand in one (1f).
+ * check-out and check-in stand in one (1j).
  *
  * MOVED OUT OF `app/login/SignInParts.js` WHEN THE SECOND SCREEN CAME TO IT, which is the
  * move condition a shared part waits on: the bar's room, its soft edge and the way it rides

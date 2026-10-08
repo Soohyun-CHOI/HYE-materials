@@ -6,7 +6,7 @@
 // takes the route asking for it — `viewport.interactiveWidget: "resizes-content"` — and from
 // #463 to #495 the bar's header said both screens drawing it asked while only the sign-in
 // steps did. Nothing failed: the tool item page simply asked for nothing, and the name sheet
-// its foot bar opens could stand under a keyboard 1f draws it standing on. So every route
+// its foot bar opens could stand under a keyboard 1j draws it standing on. So every route
 // whose page reaches the bar has, in that page or a layout above it, a `viewport` export that
 // is `KEYBOARD_VIEWPORT` from `app/components/keyboardViewport.js` — the one value, so the two
 // screens cannot ask for two things — and that value is the one hint.

@@ -1026,7 +1026,7 @@ export function run({ check, assert, log }) {
         return found;
     };
     // TWO OPENERS EACH SINCE #463, HANDED ONE OBJECT: the head's, under no condition, and an
-    // empty list's second one, bordered, under the branch that draws the empty state (1a, 1b).
+    // empty list's second one, bordered, under the branch that draws the empty state (1a, 1d).
     const openers = dialogOpeners(parseFile(TOOL_SCREEN).ast);
     check("the tool's page opens the registration dialog from its head, and from an empty list", openers.length, 2);
     check(
@@ -1507,6 +1507,65 @@ export function run({ check, assert, log }) {
     check("  a pager off the head's layer and before the lane is seen", plantedStack.pager, "true false false");
     check("  and one the rail's Panel does not cover", plantedStack.panel, false);
 
+    // ONE LINE, AND THE FIGURE ALONE ON THE SCREEN (0n, #505). The head is the title and, 8 on
+    // along its baseline, the figure at Ink 3, its noun said to assistive tech alone; 32 above
+    // it, or the breadcrumb bar's 14 where one stands over it, which the tool's page alone
+    // says. The pager is 60, its rule counted in the 12 above its controls, and the rows end
+    // on that. Under the pointer the bar's clear lifts its Ink 3 to Ink, and a breadcrumb
+    // level keeps its Ink 2, a target set in text (0f). Read through one function, so a
+    // planted list is judged the same way.
+    const headOf = ({ table: tableFile, frame: frameFile, crumb, toolScreen, listScreen: listFile }) => {
+        const header = functionSource(tableFile, "ListHeader");
+        const pager = functionSource(tableFile, "Pager");
+        let level = "";
+        walk(crumb.ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === "LEVEL" && n.init?.type === "Literal") level = String(n.init.value);
+        });
+        return {
+            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${!/flex-col/.test(header)}`,
+            figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
+            top: /underBreadcrumb \? "pt-breadcrumb-stack" : "pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
+            under: `${propSources(toolScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,
+            pager: /pt-\[calc\(var\(--spacing-pager-inset-top\)-1px\)\] pb-pager-inset-bottom/.test(pager),
+            endRoom: /const END_ROOM = "h-\[calc\(var\(--spacing-pager-inset-top\)\+var\(--height-control\)\+var\(--spacing-pager-inset-bottom\)\)\]";/.test(frameFile.source),
+            clear: /rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default"/.test(functionSource(frameFile, "SelectionBar")),
+            level: `${level.includes("text-foreground-muted")} ${level.includes("hover:bg-hover")} ${!/hover:text-/.test(level)}`,
+        };
+    };
+    const crumbFile = parseFile("app/components/Breadcrumb.js");
+    const head = headOf({ table, frame, crumb: crumbFile, toolScreen: parseFile(TOOL_SCREEN), listScreen });
+    check("a list's head is one line, the count on the title's baseline 8 on (#505)", head.line, "true true");
+    check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
+    check("  32 above it, or the breadcrumb's 14, and 18 under it", head.top, true);
+    check("  the breadcrumb's on the tool's page and not on the list", head.under, "true|");
+    check("the pager is 60, its rule counted in the 12 above its controls (#505)", head.pager, true);
+    check("  and the rows end on that", head.endRoom, true);
+    check("the bar's clear lifts to Ink under the pointer (#505)", head.clear, true);
+    check("  and a breadcrumb level keeps its Ink 2, taking the Hover face alone", head.level, "true true true");
+    const plantedHead = headOf({
+        table: parseSource(
+            'export function ListHeader() { return <div className="flex min-w-0 flex-col gap-title-stack"><p className="text-body">{count} {noun}</p></div>; }\n' +
+                'export function Pager() { return <div className="pt-pager-inset-top pb-pager-inset-bottom" />; }',
+            "<planted ListTable>"
+        ),
+        frame: parseSource(
+            'const END_ROOM = "h-[calc(var(--spacing-pager-inset-top)+var(--height-control))]";\n' +
+                'export function SelectionBar() { return <button className="rounded-control text-foreground-subtle hover:bg-hover" />; }',
+            "<planted ListFrame>"
+        ),
+        crumb: parseSource('const LEVEL = "text-foreground-muted hover:bg-hover hover:text-foreground-default";', "<planted Breadcrumb>"),
+        toolScreen: parseSource("export default function Page() { return <ListHeader title={t} />; }", "<planted tool page>"),
+        listScreen: parseSource("export default function Page() { return <ListHeader title={t} underBreadcrumb />; }", "<planted list>"),
+    });
+    check("  a two-line head is seen", plantedHead.line, "false false");
+    check("  a noun drawn beside the figure is seen", plantedHead.figure, false);
+    check("  a head with neither top is seen", plantedHead.top, false);
+    check("  the breadcrumb's top on the wrong screen is seen", plantedHead.under, "|true");
+    check("  a pager with its rule outside its 12 is seen", plantedHead.pager, false);
+    check("  rows ending short of it are seen", plantedHead.endRoom, false);
+    check("  a clear that keeps Ink 3 is seen", plantedHead.clear, false);
+    check("  and a level that lifts is seen", plantedHead.level, "true true false");
+
     // ── 3: the words ────────────────────────────────────────────────────────
     log("");
     log("every word both screens say is in the constant:");
@@ -1561,7 +1620,7 @@ export function run({ check, assert, log }) {
         "No tools yet | Each tool shows here with how many are in stock, out and retired."
     );
     check(
-        "  and a tool with nothing under it (1b)",
+        "  and a tool with nothing under it (1d)",
         `${TOOL_LIST_COPY.noToolItemsHeading} | ${TOOL_LIST_COPY.noToolItems}`,
         "No items under this tool | If you were adding some, it stopped before any were saved."
     );

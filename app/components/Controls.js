@@ -71,7 +71,7 @@ import Menu from "./Menu";
  * frame marks such a dialog `data-sheet`, so those sizes are `max-sm:in-data-[sheet]:`
  * classes — CSS decides both conditions, the width and the ancestor, and a control in any
  * other dialog or on a page keeps 0a's at every width; the registration's and the labels'
- * dialogs are a desk's. `SheetField` is the phone's own field: it opens one of 1f's sheets
+ * dialogs are a desk's. `SheetField` is the phone's own field: it opens one of 1j's sheets
  * and shows what the sheet chose. **A busy action in a sheet is Tools 0a's Busy (#469)** —
  * the phone's spinner alone, the word left for assistive tech — as it is on a sign-in step.
  */
@@ -133,7 +133,7 @@ export function InfoMark({ size = "size-mobile-alert-icon", tone = "muted" }) {
  *
  * MOVED HERE FROM THE SIGN-IN STEPS IN #463, which drew it for a request that did not go
  * through; the tool item page draws it for a press somebody else's scan got in front of
- * (1g). Where it stands, and whether a desk draws something else in its place, is its
+ * (1k). Where it stands, and whether a desk draws something else in its place, is its
  * caller's.
  */
 export function Notice({ children }) {
@@ -197,7 +197,7 @@ const BUTTON = "relative items-center justify-center whitespace-nowrap rounded-c
 // the phone's edge, the phone's 50 at 17 with its rounder corner (Tools 0a Button).
 const BUTTON_SIZE = {
     lg: "inline-flex h-control-lg shrink-0 px-control-lg-inset-x text-body",
-    xl: "flex h-control-xl w-full px-control-xl-inset-x text-body max-sm:h-mobile-button max-sm:rounded-mobile-control max-sm:text-mobile-heading",
+    xl: "flex h-control-xl w-full px-control-lg-inset-x text-body max-sm:h-mobile-button max-sm:rounded-mobile-control max-sm:text-mobile-heading",
 };
 
 // 0f: a filled action hovers to its Accent hover and keeps its white ink, and one that
@@ -427,13 +427,15 @@ export function Field({ label, labelAs = "label", labelHidden = false, size = "l
 }
 
 const TEXT_INPUT_SIZE = {
-    lg: "h-control-lg px-control-lg-inset-x text-body",
-    xl: "h-control-xl px-control-xl-inset-x text-body max-sm:h-mobile-input max-sm:gap-mobile-input-gap max-sm:rounded-mobile-control max-sm:px-mobile-input-inset-x max-sm:text-mobile-body",
+    lg: "h-control-lg px-input-inset-x text-body",
+    xl: "h-control-xl px-input-inset-x text-body max-sm:h-mobile-input max-sm:gap-mobile-input-gap max-sm:rounded-mobile-control max-sm:px-mobile-input-inset-x max-sm:text-mobile-body",
 };
 
 /**
  * A text field (0f Field): white on an Edge border, Edge focus while it holds the caret,
- * red while its field refuses it, the caret in Accent. `onChange` is handed the value.
+ * red while its field refuses it, the caret in Accent, 12 either side of what it holds (0a
+ * Side room) — a dialog's field held a 36 button's 16 until #505, which the drawings never
+ * drew. `onChange` is handed the value.
  *
  * A `suffix` IS FIXED BESIDE WHAT IS TYPED (#473): the sign-in's email field takes only the
  * part before the company's domain and shows the domain here. At a desk it sits at the
@@ -522,18 +524,18 @@ function ClearButton({ onClear }) {
 
 /**
  * Part of a note that names something the note is about — a tool, a count — in Ink
- * rather than the note's Ink 2 (1j's preview under a typed name).
+ * rather than the note's Ink 2 (1b's preview under a typed name).
  */
 export function NoteEmphasis({ children }) {
     return <span className="text-foreground-default tabular-nums">{children}</span>;
 }
 
 /**
- * A field on a phone that one of 1f's sheets sets (Tools 0a Field, #458): it shows what was
+ * A field on a phone that one of 1j's sheets sets (Tools 0a Field, #458): it shows what was
  * chosen, or its placeholder at Ink 3, and a press opens the sheet that chooses. 50 tall,
  * 16 inside, its value at 16, white with an Edge border at the phone's Radius, as every form
  * field rests (0f); a chevron says it opens a list. With no `onOpen` it states its value and
- * takes no press — 1f draws one job that way, for a person on one assignment.
+ * takes no press — 1j draws one job that way, for a person on one assignment.
  *
  * IT IS DRAWN BELOW THE PHONE'S EDGE AND NOWHERE ELSE, so its caller draws the desk's control
  * beside it with `max-sm:hidden`. It takes its name from the field around it and its own
@@ -590,9 +592,9 @@ export function SheetField({ value, placeholder, onOpen, chevron = false, icon }
  * Tools 0a's Pill as a field (#463) — the foot bar's job: 36 tall and round, 14 inside, an
  * Edge border on no ground, its icon 8 before its value at 15, and a chevron 12 inside its end
  * when a press opens the sheet that chooses. With no `onOpen` it states its value and takes
- * no press, which is the one job of a person on one assignment (1f-b).
+ * no press, which is the one job of a person on one assignment (1j-b).
  *
- * ITS TARGET IS TALLER THAN ITS PILL: it reaches up into the bar's room above it, as 1f
+ * ITS TARGET IS TALLER THAN ITS PILL: it reaches up into the bar's room above it, as 1j
  * draws it, so a press anywhere in the 52 above the pill's foot opens it — more than the 48
  * the phone's Target asks for, without the pill growing. Held, it takes the Wash, which is
  * what any control but a text button does under a press (Tools 0a Field). It is named by the
@@ -641,7 +643,7 @@ export function SheetChip({ value, placeholder, onOpen, icon }) {
 }
 
 /**
- * A row's box (0b, 1b; #463): 16 at the Badge radius in a 32 target that gives its room back,
+ * A row's box (0b, 1d; #463): 16 at the Badge radius in a 32 target that gives its room back,
  * so the box keeps the 16 column it is drawn in and a row's text stays where it was. Empty,
  * it is white on an Ink 5 edge and takes the Wash under the pointer; checked, the Accent with
  * a white check, and mixed — some of a page — the Accent with a dash, both going to the
@@ -740,6 +742,8 @@ const TYPEAHEAD_MS = 500;
  *
  * WITH ONE OPTION IT IS ALREADY CHOSEN, AND WITH SEVERAL IT STARTS EMPTY (0l): that is the
  * caller's `value`, and the placeholder is what it shows while nothing is chosen, at Ink 3.
+ * What it shows sits 12 in at 400, a form field's (0a Side room), as the text field's does
+ * — until #505 it held a 36 button's 16 at 500, which no drawing drew.
  * What submits is the hidden input under `name`, carrying the chosen option's value.
  *
  * INSIDE A BUSY FORM IT IS READ-ONLY (#469): it keeps focus and its look, and no key and no
@@ -836,7 +840,7 @@ export function Choice({ name, options, value, onChange, placeholder }) {
                     choose(active);
                     setOpen(false);
                 }}
-                className={`flex h-control-lg w-full cursor-pointer items-center justify-between gap-gap rounded-control border bg-white px-control-lg-inset-x text-body font-medium outline-none aria-readonly:cursor-default not-aria-readonly:hover:bg-hover-subtle ${
+                className={`flex h-control-lg w-full cursor-pointer items-center justify-between gap-gap rounded-control border bg-white px-input-inset-x text-body outline-none aria-readonly:cursor-default not-aria-readonly:hover:bg-hover-subtle ${
                     field.refused ? "border-danger" : "border-border focus:border-border-focus"
                 }`}
             >
@@ -944,7 +948,7 @@ export function Combobox({ name, value, onChange, suggestions, heading, placehol
                     onListOpenChange(false);
                 }}
                 onKeyDown={onKeyDown}
-                className={`h-control-lg w-full rounded-control bg-white px-control-lg-inset-x text-body text-foreground-default caret-primary outline-none inset-ring placeholder:text-foreground-subtle ${
+                className={`h-control-lg w-full rounded-control bg-white px-input-inset-x text-body text-foreground-default caret-primary outline-none inset-ring placeholder:text-foreground-subtle ${
                     field.refused ? "inset-ring-danger" : "inset-ring-border focus:inset-ring-border-focus"
                 }`}
             />

@@ -80,7 +80,7 @@ The Tools file's 0a gives the values the phone screen takes in place of the web 
 
 **#478 drew 0m's account, and declared its two names again with it.** `--height-account` is the expanded row and `--size-avatar` the avatar on Face; the collapsed button's 8 above the rail's foot is (48 − 32) / 2 and the row's 4 before the avatar (32 − 24) / 2, written as those differences so the avatar's center is one point in both shapes. The account and its menu read three names marked for #463 first — the menu's two widths, since a menu opened from a button is 0a Menu's other half, and Face hover, which the collapsed avatar takes under the pointer — and five more came from the drawings rather than the spec, each declaration saying so: the row's 10 from the avatar to the name, its 12 inside the right end, the 1 between the name and the role, the 13 chevron, and the avatar's 90ms fade. The role line is the Label step at 400, 12 on 16 in Ink 3, and takes no name of its own, and the menu's items are the Control, 32, the height the collapsed button is.
 
-**#458 drew the tool item page's dialogs and 1f's three sheets, and took its number out.** Of the thirty-two names marked for it, twenty-two are read — the sheet's, the phone's type, its field, its radii and its Target — and seven of #463's are read first: the button in a dialog, Red's hover, which the retirement's commitment takes under the pointer, and the sheet that confirms. **The foot bar went to the issues that draw one**, since 1f draws the tool item page's check-out as a foot bar and #473 builds 0a's for the sign-in steps: its room above, below and between its rows, its 50 button and the pill's height and sides to #473, and the pill's chevron side, a field's icon and the icon's gap to #463's tool item page. **Its shadow was undeclared**, since 0a now draws the foot bar with none. Two of the sheet that confirms' names are every sheet's — the 20 under what it holds and the 12 between its stacked actions, the one arrangement 0a gives a sheet's actions — so they are `--spacing-mobile-drawer-body-stack` and `--spacing-mobile-drawer-action-stack`, named for the sheet rather than for its one kind. It declared six more with their readers: the one field in a sheet, filled at Ink 5.5% with no edge (`--color-mobile-input-background`), and Field label's 20 (`--spacing-mobile-field-stack`), both the spec's; and four from the drawings, each declaration saying so — the clear mark's 15 at a filled field's end, the 17 check on the row already chosen, the 4 from a list's heading to its first row, and the 12 either side of `Done`, pulled back out so its word meets the gutter.
+**#458 drew the tool item page's dialogs and 1f's three sheets, and took its number out.** Of the thirty-two names marked for it, twenty-two are read — the sheet's, the phone's type, its field, its radii and its Target — and seven of #463's are read first: the button in a dialog, Red's hover, which the retirement's commitment takes under the pointer, and the sheet that confirms. **The foot bar went to the issues that draw one**, since 1j draws the tool item page's check-out as a foot bar and #473 builds 0a's for the sign-in steps: its room above, below and between its rows, its 50 button and the pill's height and sides to #473, and the pill's chevron side, a field's icon and the icon's gap to #463's tool item page. **Its shadow was undeclared**, since 0a now draws the foot bar with none. Two of the sheet that confirms' names are every sheet's — the 20 under what it holds and the 12 between its stacked actions, the one arrangement 0a gives a sheet's actions — so they are `--spacing-mobile-drawer-body-stack` and `--spacing-mobile-drawer-action-stack`, named for the sheet rather than for its one kind. It declared six more with their readers: the one field in a sheet, filled at Ink 5.5% with no edge (`--color-mobile-input-background`), and Field label's 20 (`--spacing-mobile-field-stack`), both the spec's; and four from the drawings, each declaration saying so — the clear mark's 15 at a filled field's end, the 17 check on the row already chosen, the 4 from a list's heading to its first row, and the 12 either side of `Done`, pulled back out so its word meets the gutter.
 
 **#473 drew the sign-in steps and took its number out.** Of the six names #458 marked for it, five are read — the foot bar's room above and below, its 50 button and the pill's height and sides — and the foot bar's 12 between its rows went to #463's tool item page, since no step page has two. Three of #463's are read first: the Page title at both widths, and a phone field's gap, which a step page's field keeps between what is typed and what stands beside it. Its address pill's avatar is the account's, so `--size-avatar` has two readers and one declaration, and two of the names it reads are #458's, declared by that issue first and with the same values: Field label's 20 and the clear mark's 15. The rest it declared: 0o's column, head, pill and code, the 40 field and action and the 12 inside them, 0f's Working, the wordmark at 20 and the phone's at 17, the five Tools 0a rows above, and the drawings' values below.
 
@@ -88,9 +88,9 @@ The Tools file's 0a gives the values the phone screen takes in place of the web 
 
 **0f's Working is built once, in `Controls.js`'s `Button`.** What a busy action shows is laid over its resting label, which keeps its place unseen, so the action keeps its resting width (#495); the switch is a visibility transition delayed by `--transition-delay-busy`, so an answer quicker than 300 ms never shows the spinner and no timer is kept for it. An action as wide as its words shows its spinner alone and keeps its `-ing` word for assistive tech, as the files of 2026-10-05 draw it; one that spans its column — a sign-in step's — shows the spinner 8 before the word from the phone's edge up, and below it the spinner alone, which is Tools 0a's Busy. A `danger` commitment keeps its red while busy. The sign-in steps were its first readers, the dialogs' commitments its second (#469), whose frame hands the state to the form's submit and locks the rest, and the labels' two openers its third, busy while their page reads the labels and saying `Loading…` to assistive tech, since the press opens the labels rather than printing them (#495).
 
-**In a sheet a busy action is Tools 0a's Busy since #469**, the phone's 20 spinner alone and the word kept for assistive tech. #473 kept 0f's spinner and word there, on the reading that 0a draws Busy for a step page and no sheet, and with no busy action in any sheet to read it. Three things decided it once one had a reader. A sheet's button is 0a's Button already — its 48, its width and its 17 at 600 are the phone's — so taking the desk's state would give one button two frames. The design divides Working by frame rather than by page: the sign-in handoff's README gives the app a 20 white spinner in place of the label and the web a 16 one before the `-ing…` word. And 1f draws the tool item page's check-out and check-in on a phone in a foot bar, whose 50 button is the button Busy describes, so a sheet drawing the desk's word would put two Busy looks on the one screen once #463 builds it. The case against was that 0a names no sheet and a word says more than a spinner; the word is still what a screen reader hears. Since #495 a desk's action as wide as its words shows its spinner alone too, so a sheet's differs from it only in the spinner's 20.
+**In a sheet a busy action is Tools 0a's Busy since #469**, the phone's 20 spinner alone and the word kept for assistive tech. #473 kept 0f's spinner and word there, on the reading that 0a draws Busy for a step page and no sheet, and with no busy action in any sheet to read it. Three things decided it once one had a reader. A sheet's button is 0a's Button already — its 48, its width and its 17 at 600 are the phone's — so taking the desk's state would give one button two frames. The design divides Working by frame rather than by page: the sign-in handoff's README gives the app a 20 white spinner in place of the label and the web a 16 one before the `-ing…` word. And 1j draws the tool item page's check-out and check-in on a phone in a foot bar, whose 50 button is the button Busy describes, so a sheet drawing the desk's word would put two Busy looks on the one screen once #463 builds it. The case against was that 0a names no sheet and a word says more than a spinner; the word is still what a screen reader hears. Since #495 a desk's action as wide as its words shows its spinner alone too, so a sheet's differs from it only in the spinner's 20.
 
-**No busy action holds a minimum width since #495.** #469 put the resting and the working label in one grid cell, which held a busy action at least as wide as its working label — 1j's `min-width: 124px` for `Creating…` then, measured at 123.77 — and so stood the tool item page's commitments wider at rest than 1c and 1e draw them: `Check out` 154.69, `Check in` 144.50 and `Retire tool` 118.41. The files of 2026-10-05 keep an action's resting width and draw the spinner alone in it, so the working label is laid over the resting one and takes no width: read in a browser at 1440, `Check out` stood at 99.75 in its dialog and `Print labels` at 105.80 in the selection bar, the same resting and busy.
+**No busy action holds a minimum width since #495.** #469 put the resting and the working label in one grid cell, which held a busy action at least as wide as its working label — 1j's `min-width: 124px` for `Creating…` then, measured at 123.77 — and so stood the tool item page's commitments wider at rest than 1f and 1i draw them: `Check out` 154.69, `Check in` 144.50 and `Retire tool` 118.41. The files of 2026-10-05 keep an action's resting width and draw the spinner alone in it, so the working label is laid over the resting one and takes no width: read in a browser at 1440, `Check out` stood at 99.75 in its dialog and `Print labels` at 105.80 in the selection bar, the same resting and busy.
 
 **A field's help or refusal sits 6 under it, and that corrected the registration dialog.** 0l's Compact row and 0o both set the line 6 under its field, where the registration dialog set its `Up to 100` 8 under on `--spacing-gap`; the field component reads `--spacing-input-message-stack` now, and the dialog was read with it at 6. A field in one of #458's sheets takes the same 6, which is Tools 0a's Field error, under the phone's 15 that #458 gives the line.
 
@@ -106,10 +106,10 @@ The values were read from Claude Design's `Tools - new direction` and `Invoices 
 6. **A list that opens from a field takes the field's width.** Design added the sentence to 0a's Menu row, whose other figures hold: 6 under the control, 5 inside, each item the height of the control that opens it — 36 under a 36 field — and 0k's Raised, the shadow of a surface that opens from a control. So a field's list is 0a's Menu, and the registration dialog's two read the Menu's names. The row's widths, from 140 to 280 on the longest item, are for a menu a button opens, and they wait for #463's `More actions`.
 7. **The dot between two clauses is 9 either side, everywhere.** Design set 0e's Ink 4 row to `the dot between two clauses, 9 either side` and moved the line under a dialog's title from 8 to the same 9, since one mark does not take two values. The files of 2026-10-01 draw it at 9 in every caption. The breadcrumb's `/` keeps 8, and it is another mark. **The dot's name is `--spacing-separator-inline`**, declared by #457 with its first reader, the dot between the labels' count and their size; it was set with the text that held it until then.
 8. **A dialog's head has two figures more, and both are names.** 0l's Head row now sets the close at least 16 from the title and a line under the title 2 under it — `--spacing-dialog-header-inline` and `--spacing-dialog-title-stack`, which the frame reads.
-9. **A refusal about the whole dialog is drawn.** 0l's Actions row gives it one line above the actions: a 16 alert mark in Red, 8 before one sentence at 13 in Red, 14 over the actions — the mark the sign-in screens draw (1p, 1r). Every figure is a name already: `--size-icon`, `--spacing-gap`, `--text-body-sm`, `--color-danger` and `--spacing-gap-lg`. **The files of 2026-10-05 draw it otherwise, and #495 took them**: a 16 info mark 6 before the sentence, both Ink 2, with red a field's refusal alone (below). 1j's `Create failed` is where a registration that wrote nothing stands, and its sentence is Design's with the act's verb since #485: `Couldn't add the tools. Try again.`
+9. **A refusal about the whole dialog is drawn.** 0l's Actions row gives it one line above the actions: a 16 alert mark in Red, 8 before one sentence at 13 in Red, 14 over the actions — the mark the sign-in screens draw (1p, 1r). Every figure is a name already: `--size-icon`, `--spacing-gap`, `--text-body-sm`, `--color-danger` and `--spacing-gap-lg`. **The files of 2026-10-05 draw it otherwise, and #495 took them**: a 16 info mark 6 before the sentence, both Ink 2, with red a field's refusal alone (below). 1b's `Create failed` is where a registration that wrote nothing stands, and its sentence is Design's with the act's verb since #485: `Couldn't add the tools. Try again.`
 10. **A reader on no job meets every opener disabled, with why before it.** `Ask the office to assign you to a job` stands 14 before each of the three, on its line and at 13 in Ink 3 — 0f's Disabled row — and the dialog does not open for them. It is Design's answer to `Join a job to create tools`, which #455 sent back for naming an act nobody on this axis can take.
 11. **The name sheet's `Done` is 48 tall**, the phone's Target, which settles the one place a drawing contradicted the spec: it was 44.
-12. **A suggested tool and the preview say `N items`, and N is every item under the tool.** 1j suggests up to five tools as a name is typed, each row ending in its count, and a name typed in full is answered under the field instead: `Adds to X, which already has N items`, or `Creates a new tool`. N is the figure the tool's own page heads its list with, retired items included, since one word showing two figures on two screens reads as a discrepancy. The files of 2026-10-01 draw both that way.
+12. **A suggested tool and the preview say `N items`, and N is every item under the tool.** 1b suggests up to five tools as a name is typed, each row ending in its count, and a name typed in full is answered under the field instead: `Adds to X, which already has N items`, or `Creates a new tool`. N is the figure the tool's own page heads its list with, retired items included, since one word showing two figures on two screens reads as a discrepancy. The files of 2026-10-01 draw both that way.
 
 **Design sent the files twice on 2026-10-05, and #495 brought the merged screens to the second.** #463 read the first sending for the tools screens and took what is its own — the desk history's dot at 6 and 7 from its entry's top, 1c's label on the Preview face, the pill's 8 and its Wash alone under a press, and `check-out` with its hyphen in 1g; the last three agree with what #463 had taken from the spec over the older drawing — and listed what it moved on screens other issues drew without taking it. The second sending, that afternoon's, moved more, and the Sign in file and the email followed it on 2026-10-06; where this file says the files of 2026-10-05, it means those. What #495 took:
 
@@ -136,9 +136,9 @@ And on the sign-in steps, which #495 took as well:
 
 - **The rail's column (#460)** scrolls a screen in a reserved 8 lane and stops at its end; it steps aside for a list since #463.
 - **The breadcrumb (#460)** holds at the top on the Sticky ground with no rule, as 0k asks of a bar at the top.
-- **A dialog's body (1j #456, 1k #459, the check-out, check-in and retirement #458)** scrolls between its head and its actions with a Rule at each edge its content is hidden past and none at an end, as 0l asks, and stops at its end since #495 — `overscroll-behavior: contain`, 0i's Chain, which keeps a scroll past a body's end from reaching what is behind it. The drawings show none of these bodies scrolling.
+- **A dialog's body (1b #456, 1c #459, the check-out, check-in and retirement #458)** scrolls between its head and its actions with a Rule at each edge its content is hidden past and none at an end, as 0l asks, and stops at its end since #495 — `overscroll-behavior: contain`, 0i's Chain, which keeps a scroll past a body's end from reaching what is behind it. The drawings show none of these bodies scrolling.
 - **A sheet's rows (#458)** stop at their end in `SheetRows` since #495 too.
-- **The labels' dialog (1i #457)** draws its pages in a 440 pane that reserves 0i's 8 lane, draws its thumb, sets 24 16 24 24 so the pages stand 24 from the lane, and stops at its end; until #495 it scrolled in the browser's own 15 bar, which moved the pages when it came, at 24 all round. Its side column scrolls as one lane from the head to the actions, its Rules across the column at the head's foot and the actions' top, where its body scrolled inside the column's 24.
+- **The labels' dialog (1e #457)** draws its pages in a 440 pane that reserves 0i's 8 lane, draws its thumb, sets 24 16 24 24 so the pages stand 24 from the lane, and stops at its end; until #495 it scrolled in the browser's own 15 bar, which moved the pages when it came, at 24 all round. Its side column scrolls as one lane from the head to the actions, its Rules across the column at the head's foot and the actions' top, where its body scrolled inside the column's 24.
 - **The labels' dialog sets its count and its size apart with `Dot.js`** since #495, as the tool item page and the lists do; with padding round a dot nobody reads, the text ran them together — `1 label·11 × 12 mm` copied, `1 label11 × 12 mm` read.
 - **The sign-in steps at a desk (1d–1g #473)** scroll their column in 0i's lane since #495, reserved on both sides so the centered column stays centered, stopping at its end and ending on 0i's 40, and the frame holds still; until then a short window scrolled the document in the browser's own bar. The drawings' column fits 1600 × 900 and shows no scroll.
 - **The sign-in steps on a phone (1a–1c #473)** scroll the document under the sticky foot bar and its soft edge, where the drawings scroll a lane with no bar: the same thing seen, and the document is what lets the foot bar ride on the keyboard through the visual viewport. The tool item page on a phone does the same for the same reason, and asks a phone to make room for its keyboard as the sign-in steps do since #495 (`app/components/keyboardViewport.js`).
@@ -154,11 +154,11 @@ Each is for the issue that draws it to name, in the same commit as its reader, s
 - The label sheet's cells — 26 × 29 at the Mark radius, an inset ring at the ink's 12% and 14%, and a used position filled at Hover — went with the sheet (#467): a label printer cuts after every page, so no position is picked, and none of the three is any issue's to name.
 - The web history's entries hang from a dot at Ink 4 on a 1px Rule — 6 across and 7 from the entry's top in the files of 2026-10-05, the phone log's 6, where those of 2026-10-01 drew 5 at 8. #463 named the dot, its column and the rule's run with their reader, each declaration saying they are the drawings' — 1c's and, for a phone, 1f's — and the 3 between an entry's lines on both.
 - A list's row puts 16 between a suggested tool's name and its count and 10 between a job and its check, where 0a's Menu row states neither. The registration dialog's two lists are one component and take one gap, 0b's Gap within a cluster, 8 — the least room a row whose two ends are pushed apart keeps between them.
-- The sticker in the tool item page's label block is drawn on the Preview face, 0k's row for a print shown on the page — the Mark corner, a 6% ring over 2 8 at 8% — in the files of 2026-10-05, where those of 2026-10-01 drew a radius of 1 on an 8% ring over 1 2. **#463 drew it on the Preview face from the first**, the face the labels' dialog draws, so the page and the dialog draw one label one way (`tools.md`, `The tools screens' look`); the block's Field ground, its 16 between parts and the facts' column are named with their reader. This bullet said 4, which 1c does not draw; corrected per #181.
-- A dialog's summary puts 4 between two ids it lists, one to a line (1k). #459 named it `--spacing-dialog-summary-stack` with its first reader, for the summary rather than for spacing in general, so another screen's line spacing does not borrow it.
+- The sticker in the tool item page's label block is drawn on the Preview face, 0k's row for a print shown on the page — the Mark corner, a 6% ring over 2 8 at 8% — in the files of 2026-10-05, where those of 2026-10-01 drew a radius of 1 on an 8% ring over 1 2. **#463 drew it on the Preview face from the first**, the face the labels' dialog draws, so the page and the dialog draw one label one way (`tools.md`, `The tools screens' look`); the block's Field ground, its 16 between parts and the facts' column are named with their reader. This bullet said 4, which 1f does not draw; corrected per #181.
+- A dialog's summary puts 4 between two ids it lists, one to a line (1c). #459 named it `--spacing-dialog-summary-stack` with its first reader, for the summary rather than for spacing in general, so another screen's line spacing does not borrow it.
 - The rail and the breadcrumb carry five, which #460 named with their readers, each declaration saying it is the drawings' and not the spec's: 2 between two sections (`--spacing-rail-stack`) and 10 above and below the rule under the toggle (`--spacing-rail-divider-stack`), both 0m's — a rule the files of 2026-10-01's second sending no longer drew, so #501 took it out with its name and named the 16 of room they draw there instead (`--spacing-rail-header-stack`); 12 that one level of the breadcrumb pulls left so its chevron's stroke meets the Margin (`--spacing-breadcrumb-back-offset`) and 2 between that chevron and its word (`--spacing-breadcrumb-back-gap`), both 1b's, which #502 took out with Design's correction of the level (`Every mark from one source`); and the 120ms a tooltip takes to fade in (`--transition-duration-tooltip`), which the drawings' stylesheet sets and 0k does not.
 - The account at the rail's foot carries five more, which #478 named with their reader, each declaration saying the same: the expanded row's 10 from the avatar to the name (`--spacing-account-gap`), its 12 inside the right end (`--spacing-account-inset-right`), the 1 between the name and the role (`--spacing-account-name-stack`), the 13 chevron (`--size-account-chevron`), and the 90ms over which the collapsed avatar darkens to Face hover under the pointer (`--transition-duration-avatar`). 0m's Account row gives the 48 and the 24 and nothing else.
-- 1f's sheets carry four, which #458 named with their readers, each declaration saying the same: the 15 mark of the clear × at a filled field's end (`--size-mobile-input-clear-icon`), the 17 check at the end of the row already chosen (`--size-mobile-drawer-row-icon`), the 4 from a list's heading to its first row (`--spacing-mobile-drawer-heading-stack`), and the 12 either side of the name sheet's `Done`, pulled back out so its word meets the gutter (`--spacing-mobile-drawer-header-action-inset-x`). 0a's Sheet row gives the rows, the handle and the title, and none of these.
+- 1j's sheets carry four, which #458 named with their readers, each declaration saying the same: the 15 mark of the clear × at a filled field's end (`--size-mobile-input-clear-icon`), the 17 check at the end of the row already chosen (`--size-mobile-drawer-row-icon`), the 4 from a list's heading to its first row (`--spacing-mobile-drawer-heading-stack`), and the 12 either side of the name sheet's `Done`, pulled back out so its word meets the gutter (`--spacing-mobile-drawer-header-action-inset-x`). 0a's Sheet row gives the rows, the handle and the title, and none of these.
 - The sign-in steps carry eight, which #473 named with their readers, each declaration saying the same: the 12 between the name step's two fields (`--spacing-sign-in-form-inline`, 1g); the caret's height, 24 in a desk's box and 26 in a phone's (`--height-code-caret`, 1e; `--height-mobile-code-caret`, 1a); the clear ×'s target 6 from a phone field's inside edge, beside the 15 mark #458 named (`--spacing-mobile-input-clear-inset-right`, 1a); the 4 the resend control pulled left into the space before it, where it pulled its whole 8 to the right (`--spacing-code-resend-offset`, 1e and 1a), which #495 undeclared when the final files gave it a whole 8 drawn before it, and named the track of its spinner at 25% of its Accent instead (`--color-code-resend-spinner-track`); and, from the drawings' stylesheet, the spinner's 0.7 s turn and its track at 35% of its label's ink (`--animate-spinner`, `--color-spinner-track`) and the 160ms the foot bar's soft edge fades in over (`--transition-duration-mobile-bottom-bar`). The line under a phone's code stands 4 in, as 1a draws it, which is a field's refusal's 4 (`--spacing-mobile-input-message-inset-x`) and takes no name of its own.
 
 - A date's slashes are at 45% with 1.5 of room either side, and its time 9 past it at a desk and 8 on a phone — every date both files draw, and no row. #463 named the four with `app/components/Instant.js`, which draws every date in the app.
@@ -177,9 +177,24 @@ The design set the code on a tool label in Inconsolata at 500 with −0.04em of 
 
 **ONE LINE, AND IT DOES NOT SCALE.** The files write the line in each mark's own grid units — 1.88 at 16, 2.14 at 14, 2.5 at 12 — which is 1.25px every time, and the Icon box row says so. So it is one name, kept in px as the status ring's is, and every shape is drawn `non-scaling-stroke`: a 40 mark and an 11 chevron carry the same 1.25, and a reader's larger text grows a mark and not its line, as it leaves a border alone. A name per size would be a ladder the design does not draw. The sizes needed nothing: every one a mark is drawn at was a name already, and none moved.
 
-**THREE PLACES THE FILES DID NOT SAY WHAT DESIGN MEANT, AND HOW EACH WAS SETTLED.** 1b's breadcrumb crops its chevron's box to its ink, the grid's columns 8 to 16 — 4.67 wide at 14 — which with #460's pull of 12 hung the ink 4 past the Margin and drew `Tools` at 34.67. Design moved the level onto its Inline control's own side room, −8 either side as a path's levels already were, with 0b's 8 between an icon and its word, so the ink meets the Margin at 32 and `Tools` stands at 44.67 (`tools.md` has the measurement), and the two names #460 gave the old figures went. The mixed checkbox's dash became `currentColor` in the redrawing, which inside a button is the browser's black on the Accent; it stays white, as the check beside it is in the same files. And 1g-c, a code no tool carries on a phone, still draws its own 40 mark on a 40 grid at a line of 2; Design settled it as Lucide's `search-x` at 40, Ink 3 and 8 above the title, on the one line, its shape 1.52.0's as every other is; the next sending is to be held against it.
+**THREE PLACES THE FILES DID NOT SAY WHAT DESIGN MEANT, AND HOW EACH WAS SETTLED.** 1d's breadcrumb crops its chevron's box to its ink, the grid's columns 8 to 16 — 4.67 wide at 14 — which with #460's pull of 12 hung the ink 4 past the Margin and drew `Tools` at 34.67. Design moved the level onto its Inline control's own side room, −8 either side as a path's levels already were, with 0b's 8 between an icon and its word, so the ink meets the Margin at 32 and `Tools` stands at 44.67 (`tools.md` has the measurement), and the two names #460 gave the old figures went. The mixed checkbox's dash became `currentColor` in the redrawing, which inside a button is the browser's black on the Accent; it stays white, as the check beside it is in the same files. And 1k-c, a code no tool carries on a phone, still draws its own 40 mark on a 40 grid at a line of 2; Design settled it as Lucide's `search-x` at 40, Ink 3 and 8 above the title, on the one line, its shape 1.52.0's as every other is; the next sending is to be held against it.
 
 **WHAT IS NOT A MARK.** A status dot is not one (0a), so `StatusMark.js` keeps its own drawing; a label's face and its symbol are the label's, and the QR is a string. Two materials screens draw `<svg>` of their own — the signing chain's arcs, a chart, and the request form's own mark — and #258 brings those screens to the design. `offline/icons.mjs` holds every other `<svg>` to the module, each shape to the design's by value, every call to a shape the module has and a size, and which file draws which marks.
+
+## The files of 2026-10-07 (#505)
+
+**THE TOOLS CANVASES WERE RENUMBERED, AND A CITATION IN THE PRESENT NAMES THE NEW ONE.** Old to new: 1j → 1b (Add tools), 1k → 1c (After adding), 1b → 1d (a tool's page), 1i → 1e (Print labels), 1c → 1f (a tool item in stock or retired), 1d → 1g (one out), 1l → 1h (Tool not found), 1e → 1i (the check-out and check-in dialogs), 1f → 1j (the app screen, its states 1j-a to 1j-c), 1g → 1k (a scan gone wrong, 1k-a to 1k-c); 1a stays. The notes, briefs, checks and comments that point at a drawing as it stands took the new numbers; a record of what an issue did or measured, or of what an earlier sending drew, keeps the number it was written with, so a 1i in a paragraph about #457 is the labels' dialog. The Sign in file and the Invoices file kept their numbers, and their 1a to 1j are not these.
+
+**WHAT CHANGED WAS FOUND BY RENDERING BOTH, SCREEN BY SCREEN.** Every tools canvas and `/login` were measured against the app in a browser at 1440, and the tool item page and its not-found state at 375 too, which is #501's lesson — a list of what one sending moved against the last says nothing of a difference standing before both. What it found and what was taken:
+
+- **0n's list header is one line** — the title, then 8 on along its baseline the figure alone at 14, 400 and Ink 3 — with 32 above it, the breadcrumb bar's 14 where one stands over it, and 18 under it. It was two lines, the figure in Ink beside its noun at Ink 3, 20 above and 20 under. The noun stays, said after the figure to assistive tech alone (`ListTable.js`). The four names it reads are 0n's now, where three were the drawings' and one 0b's Band padding, which no reader holds since.
+- **0b's pager is 60**: 12 above its 32 controls counting its 1px rule, and 16 under them. It was 16 and 20 with the rule outside them, 69; the rows' end room is 60, and 126 under the selection bar.
+- **A control resting below Ink lifts to Ink as it fills (0f Ink on hover)**: the selection bar's clear, which took the Hover face alone. A breadcrumb level is 0f's target set in text and keeps its Ink 2 under the face, where it lifted.
+- **A form field holds 12 either side (0a Side room)** — a dialog's text field, choice and combobox held a 36 button's 16, and a choice showed what it holds at 500 where the drawings set 400. Neither was new in these files: the earlier sendings drew both, and no list built sending against sending caught them. `--spacing-control-xl-inset-x` was the 12 a sign-in page's 40 field held; it is `--spacing-input-inset-x` now, since a 36 field reads it too, and the sign-in action that read it takes a button's 16 as 1d of the Sign in file draws it, which a full-width action shows no difference for.
+
+**WHAT THE FILES SAY THAT WAS NOT TAKEN.** 0h gives a 32 control's words 13, and every file still draws the rail's 32 rows at 14 with their icon 8 in, where 0a's leading-icon rule would say 7 — the nav row is the drawings' exception (0b's own 11 between its icon and its word), and the rail stays as drawn. 1i offers recent names under `Recent` before a reader on several jobs has chosen one, which #376 decided against: the list is about a job and stands only once one is chosen (`tools.md`).
+
+**AN ID SET IN A LINE OF TEXT TAKES A LINE HEIGHT OF 1, SO THE LINE IS 20 AT EVERY PIXEL RATIO.** The tool item page's line under its title and its not-found sentence set an id in Fragment Mono inside Instrument Sans, and stood 21 where the drawings' stand 20. The faces were not the cause: the woff2 next/font serves and the one Google serves today are both Fragment Mono 1.011 and Instrument Sans 1.000, with the same ascents and descents (950 and −250, 970 and −250). Two boxes on one baseline with fractional ascents round apart, and the line grows: the same markup with the same files drew 20 at a ratio of two device pixels to the CSS pixel and 21 at one, the drawings as much as the app, so the two had been read at different ratios. At a line height of 1 the id's box sits inside the line's and its glyphs draw where they did; measured in the app at both ratios, both lines are 20 and the status and `Back to Tools` stand at the drawings' 74 and 66. A block that is all id — 1c's notice, 1e's codes not found, the retirement's id under its title in 1f and 1g — has one face and no second box, and was 20 at both before and after.
 
 ## From the design's words to the names
 
@@ -193,14 +208,14 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0a Inline | `--height-control-inline` | 1.625rem (26) |
 | 0a Icon box, 28 (0l's close) | `--height-dialog-close` | 1.75rem (28) |
 | 0a Icon box, 16 in a 32 | `--size-icon` | 1rem (16) |
-| 1b's drawing, the check or the dash a checkbox draws in its 16 — not the spec | `--size-checkbox-mark` | 0.75rem (12) |
+| 1d's drawing, the check or the dash a checkbox draws in its 16 — not the spec | `--size-checkbox-mark` | 0.75rem (12) |
 | 0a Icon box, 14 in a 28 | `--size-icon-sm` | 0.875rem (14) |
 | 0a Icon box, every mark's line whatever its size | `--stroke-width-icon` | 1.25px |
 | 0a Side room, an inline summary | `--spacing-control-inline-inset-x` | 0.5rem (8) |
 | 0a Side room, a chip or a menu option | `--spacing-control-inset-x` | 0.625rem (10) |
 | 0a Side room, any 36px button | `--spacing-control-lg-inset-x` | 1rem (16) |
 | 0o Field and Action, 40 tall | `--height-control-xl` | 2.5rem (40) |
-| 0a Side room, inside a form field, and 0o Field, its fixed domain from the border | `--spacing-control-xl-inset-x` | 0.75rem (12) |
+| 0a Side room, inside a form field — a dialog's and a sign-in page's — and 0o Field, its fixed domain from the border | `--spacing-input-inset-x` | 0.75rem (12) |
 | 0l Compact, a field's help under it, and 0o Refusal, one field's | `--spacing-input-message-stack` | 0.375rem (6) |
 | 0a Menu, from | `--min-width-menu` | 8.75rem (140) |
 | 0a Menu, to | `--max-width-menu` | 17.5rem (280) |
@@ -212,7 +227,6 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0b Gap, within a cluster | `--spacing-gap` | 0.5rem (8) |
 | 0b Gap, between clusters | `--spacing-gap-lg` | 0.875rem (14) |
 | 0b Gap, in a nav row | `--spacing-nav-gap` | 0.6875rem (11) |
-| 0b Band padding, above a band of type | `--spacing-list-header-inset-top` | 1.25rem (20) |
 | 0b Row | `--height-table-row` | 2.5rem (40) |
 | 0b Row, past the text | `--spacing-table-bleed` | 0.75rem (12) |
 | 0b Column head | `--height-table-header` | 2.25rem (36) |
@@ -221,19 +235,16 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0b Selection bar, rises | `--spacing-selection-bar-slide` | 0.5rem (8) |
 | 0b Selection bar, fades in | `--transition-duration-selection-bar` | 160ms |
 | 0b Selection bar, an action's reason from its info mark | `--spacing-selection-bar-reason-gap` | 0.375rem (6) |
-| 1b's drawing, under a list's head to its column head — not the spec | `--spacing-list-header-inset-bottom` | 1.25rem (20) |
-| 1a's drawing, the least room from a list head's title block to its control — not the spec | `--spacing-list-header-inline` | 2.5rem (40) |
-| 1a and 1b's drawings, a list head's count to its noun — not the spec | `--spacing-list-count-inline` | 0.3125rem (5) |
-| 1a and 1b's drawings, between two columns — not the spec | `--spacing-table-column-inline` | 1.25rem (20) |
+| 1a and 1d's drawings, between two columns — not the spec | `--spacing-table-column-inline` | 1.25rem (20) |
 | 1a's drawing, a column of counts — not the spec | `--width-table-count` | 6rem (96) |
-| 1b's drawing, a column of printed ids — not the spec | `--width-table-id` | 15rem (240) |
-| 1b's drawing, a column of statuses — not the spec | `--width-table-status` | 10rem (160) |
-| 1a and 1b's drawings, above a pager's controls — not the spec | `--spacing-pager-inset-top` | 1rem (16) |
-| 1a and 1b's drawings, under them — not the spec | `--spacing-pager-inset-bottom` | 1.25rem (20) |
-| 1a and 1b's drawings, the least room between the rows a pager counts and its page — not the spec | `--spacing-pager-inline` | 1.5rem (24) |
-| 1a and 1b's drawings, from the page to its two steps — not the spec | `--spacing-pager-step-gap` | 0.625rem (10) |
-| 1a and 1b's drawings, how far the steps pull out so the last chevron's ink meets the text's edge — not the spec | `--spacing-pager-step-bleed` | 0.8125rem (13) |
-| 1a and 1b's drawings, above a list's empty state — not the spec | `--spacing-list-empty-state-inset-top` | 15rem (240) |
+| 1d's drawing, a column of printed ids — not the spec | `--width-table-id` | 15rem (240) |
+| 1d's drawing, a column of statuses — not the spec | `--width-table-status` | 10rem (160) |
+| 0b Pager, above its controls, its 1px rule counted | `--spacing-pager-inset-top` | 0.75rem (12) |
+| 0b Pager, under them, 60 in all | `--spacing-pager-inset-bottom` | 1rem (16) |
+| 1a and 1d's drawings, the least room between the rows a pager counts and its page — not the spec | `--spacing-pager-inline` | 1.5rem (24) |
+| 1a and 1d's drawings, from the page to its two steps — not the spec | `--spacing-pager-step-gap` | 0.625rem (10) |
+| 1a and 1d's drawings, how far the steps pull out so the last chevron's ink meets the text's edge — not the spec | `--spacing-pager-step-bleed` | 0.8125rem (13) |
+| 1a and 1d's drawings, above a list's empty state — not the spec | `--spacing-list-empty-state-inset-top` | 15rem (240) |
 | 0c Face | `--color-selected` | #F0F9FF |
 | 0c Face hover | `--color-selected-hover` | #E6F5FF |
 | 0c Accent | `--color-primary` | oklch(0.487 0.216 257) |
@@ -275,10 +286,10 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0h Wordmark, on a sign-in page | `--text-brand-lg` | 1.25rem at 1.75rem, 500 (20 at 28) |
 | 0h Tracking, a mono id under 21px | `--tracking-id` | −0.02em |
 | 0h Tracking, the wordmark | `--tracking-brand` | −0.03em |
-| 1c and 1f's drawings, a date's slashes — not the spec | `--opacity-date-separator` | 45% |
-| 1c and 1f's drawings, either side of a slash — not the spec | `--spacing-date-separator-inline` | 1.5px |
-| 1c's drawing, a date to its time — not the spec | `--spacing-date-time-inline` | 0.5625rem (9) |
-| 1f's drawing, a date to its time on a phone — not the spec | `--spacing-mobile-date-time-inline` | 0.5rem (8) |
+| 1f and 1j's drawings, a date's slashes — not the spec | `--opacity-date-separator` | 45% |
+| 1f and 1j's drawings, either side of a slash — not the spec | `--spacing-date-separator-inline` | 1.5px |
+| 1f's drawing, a date to its time — not the spec | `--spacing-date-time-inline` | 0.5625rem (9) |
+| 1j's drawing, a date to its time on a phone — not the spec | `--spacing-mobile-date-time-inline` | 0.5rem (8) |
 | 0h Instrument Sans | `--font-ui` | Instrument Sans |
 | 0h Fragment Mono | `--font-id` | Fragment Mono |
 | 0h Bricolage Grotesque | `--font-brand` | Bricolage Grotesque |
@@ -314,15 +325,15 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0l Head, a line under the title | `--spacing-dialog-title-stack` | 0.125rem (2) |
 | 0l Split, the summary inside, above and below | `--spacing-dialog-summary-inset-y` | 1rem (16) |
 | 0l Split, the summary inside, either side | `--spacing-dialog-summary-inset-x` | 1.125rem (18) |
-| 1k, between two ids a summary lists | `--spacing-dialog-summary-stack` | 0.25rem (4) |
-| 1i, a dialog with a preview, across | `--container-dialog-preview` | 48.75rem (780) |
-| 1i, a dialog with a preview, down | `--height-dialog-preview` | 32.5rem (520) |
-| 1i, the pane a preview is drawn in | `--width-dialog-preview-pane` | 27.5rem (440) |
-| 1i, between two rows of pages in the pane | `--spacing-dialog-preview-stack` | 1.25rem (20) |
-| 1i, between two pages in a row | `--spacing-dialog-preview-inline` | 0.75rem (12) |
-| 1i, between the blocks of the column beside the pane | `--spacing-dialog-column-stack` | 1.5rem (24) |
-| 1i, between two codes the column lists | `--spacing-dialog-column-list-stack` | 0.25rem (4) |
-| 1i, a numbered step's mark | `--size-dialog-step` | 1.25rem (20) |
+| 1c, between two ids a summary lists | `--spacing-dialog-summary-stack` | 0.25rem (4) |
+| 1e, a dialog with a preview, across | `--container-dialog-preview` | 48.75rem (780) |
+| 1e, a dialog with a preview, down | `--height-dialog-preview` | 32.5rem (520) |
+| 1e, the pane a preview is drawn in | `--width-dialog-preview-pane` | 27.5rem (440) |
+| 1e, between two rows of pages in the pane | `--spacing-dialog-preview-stack` | 1.25rem (20) |
+| 1e, between two pages in a row | `--spacing-dialog-preview-inline` | 0.75rem (12) |
+| 1e, between the blocks of the column beside the pane | `--spacing-dialog-column-stack` | 1.5rem (24) |
+| 1e, between two codes the column lists | `--spacing-dialog-column-list-stack` | 0.25rem (4) |
+| 1e, a numbered step's mark | `--size-dialog-step` | 1.25rem (20) |
 | 0m Rail, collapsed | `--width-rail` | 3.5rem (56) |
 | 0m Rail, expanded | `--width-rail-expanded` | 15.5rem (248) |
 | 0m Rail, inside | `--spacing-rail-inset` | 0.75rem (12) |
@@ -341,28 +352,32 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | 0m Account, its menu growing in from 0.98 | `--animate-account-menu` | 120ms |
 | 0m Breadcrumb | `--height-breadcrumb` | 3rem (48) |
 | 0n Record header, around its rule | `--spacing-record-header-stack` | 1.5rem (24) |
-| 0n Record header, under the breadcrumb bar | `--spacing-breadcrumb-stack` | 0.875rem (14) |
+| 0n Record header, under the breadcrumb bar, and a list header's title under it (0m Breadcrumb) | `--spacing-breadcrumb-stack` | 0.875rem (14) |
+| 0n Header right, above a list header with no breadcrumb over it | `--spacing-list-header-inset-top` | 2rem (32) |
+| 0n Header right, under a list header | `--spacing-list-header-inset-bottom` | 1.125rem (18) |
+| 0n Header right, the least room from a list header's title to its control | `--spacing-list-header-inline` | 2.5rem (40) |
+| 0n Header right, a list header's title to its count | `--spacing-list-count-inline` | 0.5rem (8) |
 | 0n Header stack, from the title | `--spacing-title-stack` | 0.625rem (10) |
 | 0n Header stack, to the status | `--spacing-subtitle-stack` | 0.75rem (12) |
 | 0n Rail blocks, from a block's name | `--spacing-heading-sm-stack` | 0.75rem (12) |
-| 1c's drawing, the header's title block to its actions — not the spec | `--spacing-record-header-inline` | 3.5rem (56) |
+| 1f's drawing, the header's title block to its actions — not the spec | `--spacing-record-header-inline` | 3.5rem (56) |
 | 0n Record rail, on 1080 | `--width-record-rail` | 21rem (336) |
 | 0n Record rail, the main column's text to its Rule | `--spacing-record-rail-inline` | 2rem (32) |
 | 0n Record rail, its Rule to its own text | `--spacing-record-rail-inset-left` | 1.75rem (28) |
-| 1c's drawing, between the label, its size and its control — not the spec | `--spacing-label-block-stack` | 1rem (16) |
-| 1c's drawing, the label's Field ground, either side — not the spec | `--spacing-label-preview-inset-x` | 1rem (16) |
-| 1c's drawing, the label's Field ground, above and below — not the spec | `--spacing-label-preview-inset-y` | 1.75rem (28) |
-| 1c's drawing, the column `Size` and `Symbol` stand in — not the spec | `--width-label-fact-term` | 4rem (64) |
-| 1c's drawing, that column to the figure — not the spec | `--spacing-label-fact-inline` | 0.75rem (12) |
-| 1c's drawing, between the two — not the spec | `--spacing-label-fact-stack` | 0.25rem (4) |
-| 1c's drawing, the history's dots and rule — not the spec | `--width-log-track` | 1.25rem (20) |
-| 1c's drawing, an entry's dot — not the spec | `--size-log-dot` | 0.375rem (6) |
-| 1c's drawing, the dot from its entry's top — not the spec | `--spacing-log-dot-inset-top` | 0.4375rem (7) |
-| 1c's drawing, where the rule under a dot starts — not the spec | `--spacing-log-rule-inset-top` | 1.25rem (20) |
-| 1c's drawing, the rule into the next entry — not the spec | `--spacing-log-rule-overhang` | 0.1875rem (3) |
-| 1c and 1f's drawings, between an entry's lines — not the spec | `--spacing-log-line-stack` | 0.1875rem (3) |
-| 1c's drawing, between entries — not the spec | `--spacing-log-stack` | 1.5rem (24) |
-| 1l's drawing, the sentence of a record that is not there — not the spec | `--max-width-empty-state` | 27.5rem (440) |
+| 1f's drawing, between the label, its size and its control — not the spec | `--spacing-label-block-stack` | 1rem (16) |
+| 1f's drawing, the label's Field ground, either side — not the spec | `--spacing-label-preview-inset-x` | 1rem (16) |
+| 1f's drawing, the label's Field ground, above and below — not the spec | `--spacing-label-preview-inset-y` | 1.75rem (28) |
+| 1f's drawing, the column `Size` and `Symbol` stand in — not the spec | `--width-label-fact-term` | 4rem (64) |
+| 1f's drawing, that column to the figure — not the spec | `--spacing-label-fact-inline` | 0.75rem (12) |
+| 1f's drawing, between the two — not the spec | `--spacing-label-fact-stack` | 0.25rem (4) |
+| 1f's drawing, the history's dots and rule — not the spec | `--width-log-track` | 1.25rem (20) |
+| 1f's drawing, an entry's dot — not the spec | `--size-log-dot` | 0.375rem (6) |
+| 1f's drawing, the dot from its entry's top — not the spec | `--spacing-log-dot-inset-top` | 0.4375rem (7) |
+| 1f's drawing, where the rule under a dot starts — not the spec | `--spacing-log-rule-inset-top` | 1.25rem (20) |
+| 1f's drawing, the rule into the next entry — not the spec | `--spacing-log-rule-overhang` | 0.1875rem (3) |
+| 1f and 1j's drawings, between an entry's lines — not the spec | `--spacing-log-line-stack` | 0.1875rem (3) |
+| 1f's drawing, between entries — not the spec | `--spacing-log-stack` | 1.5rem (24) |
+| 1h's drawing, the sentence of a record that is not there — not the spec | `--max-width-empty-state` | 27.5rem (440) |
 | 0o Column | `--container-sign-in` | 22.5rem (360) |
 | 0o Column, the wordmark from the page's top | `--spacing-sign-in-inset-top` | 16.75rem (268) |
 | 0o Wordmark, above the title | `--spacing-sign-in-brand-stack` | 2.5rem (40) |
@@ -386,7 +401,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Top bar, right | `--spacing-mobile-top-bar-inset-right` | 0.25rem (4) |
 | Tools 0a Top bar, the mark | `--size-mobile-top-bar-icon` | 1.5rem (24) |
 | Tools 0a Top bar, its soft edge over the 24 below it | `--spacing-mobile-top-bar-bleed` | 1.5rem (24) |
-| 1f's drawings' stylesheet, that edge fading in — not the spec | `--transition-duration-mobile-top-bar` | 160ms |
+| 1j's drawings' stylesheet, that edge fading in — not the spec | `--transition-duration-mobile-top-bar` | 160ms |
 | Tools 0a Foot bar, above | `--spacing-mobile-bottom-bar-inset-top` | 1rem (16) |
 | Tools 0a Foot bar, below | `--spacing-mobile-bottom-bar-inset-bottom` | 1.25rem (20) |
 | Tools 0a Foot bar, between its rows | `--spacing-mobile-bottom-bar-stack` | 0.75rem (12) |
@@ -408,7 +423,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Field, inside | `--spacing-mobile-input-inset-x` | 1rem (16) |
 | Tools 0a Field, its icon | `--size-mobile-input-icon` | 1.125rem (18) |
 | Tools 0a Field, its icon to its value, and any two parts inside it | `--spacing-mobile-input-gap` | 0.625rem (10) |
-| 1f's and 1a's drawings, the clear × at a filled field's end — not the spec | `--size-mobile-input-clear-icon` | 0.9375rem (15) |
+| 1j's and 1a's drawings, the clear × at a filled field's end — not the spec | `--size-mobile-input-clear-icon` | 0.9375rem (15) |
 | 1a's drawing, the clear ×'s target from the field's inside edge — not the spec | `--spacing-mobile-input-clear-inset-right` | 0.375rem (6) |
 | Tools 0a Field, a text button pressed | `--opacity-mobile-pressed` | 50% |
 | Tools 0a Field, the one field in a sheet | `--color-mobile-input-background` | Ink at 5.5% |
@@ -422,7 +437,7 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Pill | `--height-mobile-chip` | 2.25rem (36) |
 | Tools 0a Pill, either side | `--spacing-mobile-chip-inset-x` | 0.875rem (14) |
 | Tools 0a Pill, its chevron side | `--spacing-mobile-chip-inset-right` | 0.75rem (12) |
-| 1f's drawing, a pill's chevron — not the spec | `--size-mobile-chip-chevron` | 0.6875rem (11) |
+| 1j's drawing, a pill's chevron — not the spec | `--size-mobile-chip-chevron` | 0.6875rem (11) |
 | Tools 0a Pill, an address pill's avatar from its round end | `--spacing-mobile-avatar-chip-inset-left` | 0.375rem (6) |
 | Tools 0a Status, the mark | `--size-mobile-status-indicator` | 0.625rem (10) |
 | Tools 0a Radius, a control and a dialog | `--radius-mobile-control` | 0.75rem (12) |
@@ -439,15 +454,15 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Log, beside the dot | `--spacing-mobile-log-gap` | 0.75rem (12) |
 | Tools 0a Log, between entries | `--spacing-mobile-log-stack` | 1.25rem (20) |
 | Tools 0a Log, the icon | `--size-mobile-log-icon` | 0.875rem (14) |
-| 1f's drawing, the dots and rule — not the spec | `--width-mobile-log-track` | 0.75rem (12) |
-| 1f's drawing, the dot from its entry's top — not the spec | `--spacing-mobile-log-dot-inset-top` | 0.5625rem (9) |
-| 1f's drawing, where the rule under a dot starts — not the spec | `--spacing-mobile-log-rule-inset-top` | 1.375rem (22) |
-| 1f's drawing, the rule into the next entry — not the spec | `--spacing-mobile-log-rule-overhang` | 0.25rem (4) |
-| 1g's drawing, a notice in the title block past its 12 — not the spec | `--spacing-mobile-title-alert-stack` | 0.25rem (4) |
-| 1g's drawing, the mark over a record that is not there — not the spec | `--size-mobile-empty-state-icon` | 2.5rem (40) |
-| 1g's drawing, either side of that screen's words — not the spec | `--spacing-mobile-empty-state-inset-x` | 2rem (32) |
-| 1g's drawing, under them — not the spec | `--spacing-mobile-empty-state-inset-bottom` | 6rem (96) |
-| 1g's drawing, that screen's sentence — not the spec | `--max-width-mobile-empty-state` | 17.5rem (280) |
+| 1j's drawing, the dots and rule — not the spec | `--width-mobile-log-track` | 0.75rem (12) |
+| 1j's drawing, the dot from its entry's top — not the spec | `--spacing-mobile-log-dot-inset-top` | 0.5625rem (9) |
+| 1j's drawing, where the rule under a dot starts — not the spec | `--spacing-mobile-log-rule-inset-top` | 1.375rem (22) |
+| 1j's drawing, the rule into the next entry — not the spec | `--spacing-mobile-log-rule-overhang` | 0.25rem (4) |
+| 1k's drawing, a notice in the title block past its 12 — not the spec | `--spacing-mobile-title-alert-stack` | 0.25rem (4) |
+| 1k's drawing, the mark over a record that is not there — not the spec | `--size-mobile-empty-state-icon` | 2.5rem (40) |
+| 1k's drawing, either side of that screen's words — not the spec | `--spacing-mobile-empty-state-inset-x` | 2rem (32) |
+| 1k's drawing, under them — not the spec | `--spacing-mobile-empty-state-inset-bottom` | 6rem (96) |
+| 1k's drawing, that screen's sentence — not the spec | `--max-width-mobile-empty-state` | 17.5rem (280) |
 | Tools 0a Sheet, the handle's width | `--width-mobile-drawer-handle` | 2.25rem (36) |
 | Tools 0a Sheet, the handle's height | `--height-mobile-drawer-handle` | 0.25rem (4) |
 | Tools 0a Sheet, the handle from the top | `--spacing-mobile-drawer-inset-top` | 0.75rem (12) |
@@ -458,9 +473,9 @@ Every declaration, by the design's row and the figure the design draws, and afte
 | Tools 0a Sheet, at the foot | `--spacing-mobile-drawer-inset-bottom` | 1.25rem (20) |
 | Tools 0a Sheet, cast upward | `--shadow-mobile-drawer` | 0 −12px 48px at 16% |
 | Tools 0a Sheet, behind it | `--color-mobile-drawer-overlay` | the shadow ink at 24% |
-| 1f's drawing, the check on the row already chosen — not the spec | `--size-mobile-drawer-row-icon` | 1.0625rem (17) |
-| 1f's drawing, a list's heading to its first row — not the spec | `--spacing-mobile-drawer-heading-stack` | 0.25rem (4) |
-| 1f's drawing, either side of `Done`, pulled back out — not the spec | `--spacing-mobile-drawer-header-action-inset-x` | 0.75rem (12) |
+| 1j's drawing, the check on the row already chosen — not the spec | `--size-mobile-drawer-row-icon` | 1.0625rem (17) |
+| 1j's drawing, a list's heading to its first row — not the spec | `--spacing-mobile-drawer-heading-stack` | 0.25rem (4) |
+| 1j's drawing, either side of `Done`, pulled back out — not the spec | `--spacing-mobile-drawer-header-action-inset-x` | 0.75rem (12) |
 | Tools 0a Sheet that confirms, its title | `--spacing-mobile-confirm-inset-top` | 1.5rem (24) |
 | Tools 0a Sheet that confirms, its id | `--spacing-mobile-confirm-title-stack` | 0.25rem (4) |
 | Tools 0a Sheet that confirms, the sentence | `--spacing-mobile-confirm-id-stack` | 0.875rem (14) |

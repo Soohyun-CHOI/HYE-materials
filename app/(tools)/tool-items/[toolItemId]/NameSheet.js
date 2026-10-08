@@ -7,13 +7,13 @@ import { textMatchKey } from "@/lib/itemNaming";
 import { TOOL_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/lib/toolTransition";
 
 /**
- * 1f's name sheet (#458) — who a tool goes to, typed or picked, in Tools 0a's Sheet that
+ * 1j's name sheet (#458) — who a tool goes to, typed or picked, in Tools 0a's Sheet that
  * holds a field: the title `Checked out to` with `Done` at its end, the one field under
  * it, and the people this job has recently handed tools to.
  *
- * A PART, DRAWN AS 1f DRAWS IT AND OPENED BY WHATEVER ASKS FOR A NAME. The check-out's
+ * A PART, DRAWN AS 1j DRAWS IT AND OPENED BY WHATEVER ASKS FOR A NAME. The check-out's
  * dialog opens it from its name field below the phone's edge, where a desk types into the
- * field and is offered the same names under it; #463's foot bar — 1f's, which takes
+ * field and is offered the same names under it; #463's foot bar — 1j's, which takes
  * #473's — opens it from its own name field. It holds no name of its own: `value` is the
  * opener's, and every keystroke and pick is handed back through `onChange`, so the field
  * behind it and this one are one value (#376) and putting the sheet away loses nothing.
@@ -36,9 +36,9 @@ import { TOOL_TRANSITION_COPY as COPY, matchedPart, namesAreRecent } from "@/lib
  * a name that matches none leaves no list at all, heading and all, as the desk's closes; the
  * row naming the person already typed is checked, on the fold the whole app compares people's
  * names on (`textMatchKey`). The heading names the recent list, so it stands only while
- * nothing is typed, and a typed fragment's match in each row is set at 600 (1f, #495).
+ * nothing is typed, and a typed fragment's match in each row is set at 600 (1j, #495).
  *
- * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1f draws.
+ * IT CLOSES ON A PRESS ON WHAT LIES BEHIND IT AND ON ITS HANDLE, both of which 1j draws.
  */
 export default function NameSheet({ open, onClose, value, onChange, names, jobChosen, hasRecent }) {
     const inputRef = useRef(null);

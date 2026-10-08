@@ -11,7 +11,7 @@ import { TOOL_REGISTRATION_COPY as COPY, accountToTell } from "@/lib/toolRegistr
 // tool was created, so there is nothing to choose and the one control answers nothing.
 // `Got it` is the design's, and it takes the notice away and nothing else.
 //
-// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1k: the count is its title, the tool
+// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1c: the count is its title, the tool
 // the line under it, one sentence, and the ids in the dialog's summary, each in the id
 // face. It is 0l's dialog that only informs, so its one action is `Got it`, filled, and
 // the close and Escape answer it too. When a landing carries the fork as well this is

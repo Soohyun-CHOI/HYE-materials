@@ -12,7 +12,7 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // naming tool items with no history, carries one control that answers nothing, because
 // nothing repairs those.
 //
-// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1k, AND ITS FINAL COMPOSITION SINCE
+// A DIALOG OVER THE PAGE SINCE #459, THE DESIGN'S 1c, AND ITS FINAL COMPOSITION SINCE
 // #495: how many were not added is its title, the tool is the line under it, and its one
 // sentence says the others were added and are selected on this page — it said how many of
 // how many were added in its title until then, and how many were not in its sentence.
@@ -32,7 +32,7 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // question again.
 //
 // `Add 2 more` PUTS THE FORK AWAY AND OPENS THE REGISTRATION DIALOG ON THIS TOOL AT THE
-// COUNT IT NAMES, the count still the person's to change there — 1k's own answer, which
+// COUNT IT NAMES, the count still the person's to change there — 1c's own answer, which
 // closes the one before it opens the other rather than stacking them. The words and the
 // dialog are handed one value, `account.unwritten`, so they cannot name two numbers
 // (#485); it said `Create the rest` until then and named none. The

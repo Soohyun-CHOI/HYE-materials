@@ -7,10 +7,10 @@ import { TOOL_TRANSITION_COPY as COPY } from "@/lib/toolTransition";
 import { retireToolItemAction } from "./actions";
 
 /**
- * The question before a tool item is retired (#363, #458) — 0l's Confirm at a desk, and 1f's
+ * The question before a tool item is retired (#363, #458) — 0l's Confirm at a desk, and 1j's
  * sheet that confirms below the phone's edge.
  *
- * A PART, OPENED BY WHATEVER OFFERS THE RETIREMENT. 1c and 1f put that offer in a `More
+ * A PART, OPENED BY WHATEVER OFFERS THE RETIREMENT. 1f and 1j put that offer in a `More
  * actions` menu (`MoreActions.js`, #463), the desk's or the phone's, and the page's provider
  * (`ToolItemTransition.js`) draws this once for both. It holds the retirement's own answer,
  * so whatever opens it hands over only whether it is open and which tool item.
@@ -25,7 +25,7 @@ import { retireToolItemAction } from "./actions";
  * the two cannot disagree; nothing crosses the wire but the tool item's id.
  *
  * NOTHING CLOSES IT WHILE IT IS SENDING (the frame's `busy`), and a press on what lies
- * behind it closes it only as 1f's sheet, where the design draws that — never as 0l's
+ * behind it closes it only as 1j's sheet, where the design draws that — never as 0l's
  * dialog. While it sends, the red commitment keeps its fill and after 300ms says
  * `Retiring…`, and `Cancel` locks with it (#469); neither is disabled, so focus stays on the
  * commitment that was pressed. A refusal it can stand open for — the status left unwritten —

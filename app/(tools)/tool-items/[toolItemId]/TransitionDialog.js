@@ -26,9 +26,9 @@ import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition"
  * this from the phone's edge up.
  *
  * A PRESS WHEN THERE IS NOTHING TO ASK, A DIALOG WHEN THERE IS. A check-out records who the
- * tool went to, so it always opens the design's dialog (1c) with the job and the name
- * together; a check-in asks only a person on several jobs (1e), and for one on a single job it
- * records on the press (1d). `asksBeforeRecording` is the split, and the press and the opener
+ * tool went to, so it always opens the design's dialog (1f) with the job and the name
+ * together; a check-in asks only a person on several jobs (1i), and for one on a single job it
+ * records on the press (1g). `asksBeforeRecording` is the split, and the press and the opener
  * are one button, so a refusal that turns one into the other — it re-renders the page in
  * place (#378) — leaves the reader on the same control, which the frame hands focus back to
  * as the dialog goes.
@@ -40,7 +40,7 @@ import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition"
  *
  * WHAT A SUBMISSION MAY BE IS `readSubmission`, ASKED BEFORE IT IS SENT AND AGAIN BY THE
  * ACTION. The dialog's commitment acts only when that answers with no refusal — a job among the
- * reader's own and, for a check-out, a name — which is the design's (1c, 1e): a check-out's
+ * reader's own and, for a check-out, a name — which is the design's (1f, 1i): a check-out's
  * two answers can be missing but never wrong, so the act "cannot act yet" (0f), and the empty
  * field is the reason, with no line before it.
  *
@@ -48,7 +48,7 @@ import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition"
  * `ToolItemTransition`, which holds the action's answer and whether the dialog is open: a
  * refusal the dialog can stand open for — a job the reader is no longer assigned to, or the
  * status left unwritten — is said above its actions, and every other stands in the page's
- * header, where the design says a refused press (1g). A job taken away takes the opening's
+ * header, where the design says a refused press (1k). A job taken away takes the opening's
  * start again (#469), by `chosenJobId`, which the foot bar asks too.
  *
  * A PRESS THAT LANDS LEAVES FOCUS ON THE DOCUMENT, as #362's form did: the redirect remounts
@@ -56,11 +56,11 @@ import { useRefusalSentence, useToolItemTransition } from "./ToolItemTransition"
  * frame's dialog was open as the tree went.
  *
  * TWO WIDTHS IN THE DIALOG, AND EACH ASKS IN ITS OWN DRAWING. At a desk the job is 0a's choice
- * and the name the registration's own combobox (1j), its suggestions this job's recent names
+ * and the name the registration's own combobox (1b), its suggestions this job's recent names
  * under `Recently at this job` — the head while nothing is typed, and once somebody types,
- * the names that match with the matching part at 600 and no head (1c, #495). Below the
+ * the names that match with the matching part at 600 and no head (1f, #495). Below the
  * phone's edge the frame is Tools 0a's sheet, and the job and the name are fields that open
- * 1f's job sheet and name sheet. One state behind both, so the field behind a sheet and the
+ * 1j's job sheet and name sheet. One state behind both, so the field behind a sheet and the
  * sheet are one value.
  *
  * ON THIS PAGE THAT SHEET IS NEVER SEEN. The row the press stands in is hidden below the

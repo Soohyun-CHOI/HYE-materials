@@ -61,7 +61,7 @@ with. **This is a
 preview and not the verdict**: it is decided against a list loaded when the page
 opened, and the write asks the base again. **While no name is typed, the line
 under the field says what a name does** —
-`Use an existing name to add to that tool.` (1j, #495) — and the preview and a
+`Use an existing name to add to that tool.` (1b, #495) — and the preview and a
 refusal take its place.
 
 ## What it carries only sometimes

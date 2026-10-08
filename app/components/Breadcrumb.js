@@ -10,17 +10,19 @@ import Icon from "./Icon";
  *
  * ONE LEVEL IS A CHEVRON AND ITS NAME; MORE ARE A PATH SPLIT BY `/` (0m). A level is a
  * link at Ink 2 and 600, an Inline control whose side room is pulled back so its ink
- * meets the Margin. The chevron's box is as wide as its ink — the grid's middle eight
+ * meets the Margin. It is 0f's target set in text, so under the pointer it takes the
+ * Hover face and keeps its Ink 2, as the files of 2026-10-07 draw it; it lifted to Ink
+ * until #505. The chevron's box is as wide as its ink — the grid's middle eight
  * columns — so its stroke is what meets the Margin, and its word stands 0b's 8 past
  * it (#502). The screen the bar sits on ends a path, in Ink and not a link.
  *
  * IT HOLDS THE TOP OF THE COLUMN WHILE THE SCREEN RUNS UNDER IT (0k Sticky): white at
  * 0.82 over a blur, which over nothing is plain white. It draws no rule.
  *
- * WHICH SCREENS CARRY ONE IS THE DESIGN'S: a tool's page and a tool item's (1b, 1c, 1d),
+ * WHICH SCREENS CARRY ONE IS THE DESIGN'S: a tool's page and a tool item's (1d, 1f, 1g),
  * and not the tool list, which is a section's top, nor a screen saying a record is not
- * there, which keeps its own way back (1l). **Below the phone's edge the tool item page
- * draws the phone's top bar in its place (1f, #463)** and passes `phone={false}`; a tool's
+ * there, which keeps its own way back (1h). **Below the phone's edge the tool item page
+ * draws the phone's top bar in its place (1j, #463)** and passes `phone={false}`; a tool's
  * page, which the design draws at a desk alone, keeps it at every width.
  *
  * A level is `{ label, href }`, and `current` is the screen's own name when it ends a
@@ -29,7 +31,7 @@ import Icon from "./Icon";
  */
 
 const LEVEL =
-    "inline-flex h-control-inline min-w-0 items-center rounded-control px-control-inline-inset-x text-body-sm font-semibold text-foreground-muted hover:bg-hover hover:text-foreground-default";
+    "inline-flex h-control-inline min-w-0 items-center rounded-control px-control-inline-inset-x text-body-sm font-semibold text-foreground-muted hover:bg-hover";
 
 export default function Breadcrumb({ levels, current, phone = true }) {
     return (

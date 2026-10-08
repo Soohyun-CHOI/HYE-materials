@@ -8,8 +8,9 @@ import { LIST_MEASURE } from "@/app/components/ListTable";
 import { SCROLL_LANE } from "@/app/components/scrollLane";
 import { useTooltip } from "@/app/components/Tooltip";
 
-// The pager's own height — its room above and below a 32 control — is how far it stands
-// over the rows and how much room the rows end on, so the last one clears it; the selection
+// The pager's own height — its room above and below a 32 control, its rule counted in the
+// room above, 60 in all (0b) — is how far it stands over the rows and how much room the rows
+// end on, so the last one clears it; the selection
 // bar adds its own height, its 8 inside and Edge round a 36 action, and the 12 it floats at
 // (0b). Each is written whole for Tailwind to find.
 const PAGER_OVER_ROWS = "-mt-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom))]";
@@ -18,7 +19,7 @@ const END_ROOM_WITH_BAR =
     "h-[calc(var(--spacing-pager-inset-top)+var(--height-control)+var(--spacing-pager-inset-bottom)+var(--spacing-selection-bar-offset)+var(--height-control-lg)+2*var(--spacing-selection-bar-inset)+2px)]";
 
 /**
- * The frame a list is drawn in (1a, 1b; #463): its head held still and its rows scrolled
+ * The frame a list is drawn in (1a, 1d; #463): its head held still and its rows scrolled
  * under it in a lane of their own, the column head held at the top of the rows, and the pager
  * pinned at the foot over them.
  *
@@ -35,7 +36,7 @@ const END_ROOM_WITH_BAR =
  *
  * THE PAGER STANDS OVER THE ROWS AND THE COLUMN HEAD (#501). It takes the head's z-index and
  * comes after the lane, so where a short window brings the two together it is the one on
- * top, as 1b ties them; the selection bar is drawn inside it, so it floats over both; and
+ * top, as 1d ties them; the selection bar is drawn inside it, so it floats over both; and
  * the rail's Panel covers them all. `ListTable.js` has the order whole.
  *
  * THE PAGER'S GROUND SAYS WHETHER ROWS RUN BENEATH IT (0k Sticky, 0e Band): white at 0.82
@@ -97,7 +98,8 @@ export default function ListFrame({ top, header, footer, overlay, overlayShown =
  * 0b's Selection bar, floating 12 above the pager while any row is selected: a 32 clear and
  * the count at 14 and 600, 8 apart, then a second clause after a dot at 400 and Ink 3 while
  * part of the selection is on other pages, and the actions 14 on, on the Sticky ground with
- * an Edge and the Raised shadow at the Group radius.
+ * an Edge and the Raised shadow at the Group radius. The clear rests at Ink 3 and lifts to Ink
+ * as it fills under the pointer (0f Ink on hover, #505).
  *
  * EACH CLAUSE HOLDS THE WIDTH OF ITS THREE-DIGIT FORM, so the bar changes width only when the
  * second clause or a reason comes or goes, over 160ms; it rises 8 and fades in over the same.
@@ -148,7 +150,7 @@ export function SelectionBar({ shown, label, count, notOnPage, words, clearLabel
                     aria-label={clearLabel}
                     onClick={onClear}
                     {...tip.targetProps(clearLabel)}
-                    className="flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-subtle hover:bg-hover"
+                    className="flex aspect-square h-control shrink-0 items-center justify-center rounded-control text-foreground-subtle hover:bg-hover hover:text-foreground-default"
                 >
                     <Icon name="x" className="size-icon" />
                 </button>

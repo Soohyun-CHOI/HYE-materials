@@ -45,9 +45,10 @@ at the foot.
 **identity.** The heading `Tools`, which is the `Tools` table's name — the
 same rule that makes the other list screens `Purchase Requests`,
 `Purchase Orders`, `Invoices` and `Deliveries`. The rail's section for this
-screen says the heading's own string, read from it (#460). Under it, how many
-tools there are, `17 tools` (1a, #463) — a count of the list, which says
-nothing about what any tool holds.
+screen says the heading's own string, read from it (#460). Beside it on its
+line, how many tools there are, the figure alone — `17`, with `tools` said to
+assistive tech after it (1a, #505) — a count of the list, which says nothing
+about what any tool holds.
 
 **action.** The control that opens the registration dialog over this screen
 (#456), carrying that dialog's own heading as its word so the two cannot drift

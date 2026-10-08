@@ -10,14 +10,14 @@ import { TOOL_ITEM_COPY } from "@/lib/toolItemView";
 import { TOOL_TRANSITION_COPY } from "@/lib/toolTransition";
 import { useToolItemTransition } from "./ToolItemTransition";
 
-/** Three dots, 16 at a desk and 24 in a phone's top bar (1c, 1f). */
+/** Three dots, 16 at a desk and 24 in a phone's top bar (1f, 1j). */
 function Dots({ phone }) {
     return phone ? <Icon name="ellipsis" className="size-mobile-top-bar-icon" /> : <Icon name="ellipsis" className="size-icon" />;
 }
 
 /**
  * `More actions` (#463) — the button that holds the retirement, at a desk beside the
- * transition (1c) and on a phone at the right end of the top bar (1f). Retiring a tool item is
+ * transition (1f) and on a phone at the right end of the top bar (1j). Retiring a tool item is
  * its last act and is not one a scan is for, so the design takes it off the page and puts it
  * one press away; the question it opens is the retirement's own (`RetirementConfirm`), as
  * #458 built it to be opened.
@@ -34,7 +34,7 @@ function Dots({ phone }) {
  * button `More`; a name nobody sees follows this app's rule, and both open one menu.
  *
  * AT A DESK, 32 SQUARE WITH A 16 MARK, ITS INK ON THE CONTENT'S EDGE; ON A PHONE, 48 ROUND
- * IN INK 2 WITH A 24 MARK, ON THE FIELD WASH IN INK WHILE ITS MENU IS OPEN (1f).
+ * IN INK 2 WITH A 24 MARK, ON THE FIELD WASH IN INK WHILE ITS MENU IS OPEN (1j).
  *
  * ON A PHONE ITS MENU ENDS ON THE ACCOUNT, AND EVERY SCREEN WITH A TOP BAR CARRIES IT (Tools
  * 0a Menu, #495). A phone has no rail, so this is where the reader is named and signs out:

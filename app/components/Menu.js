@@ -33,7 +33,7 @@ const MENU_HEADING = "shrink-0 truncate px-control-inset-x py-menu-heading-inset
  *
  * AN OPTION IS 13 SINCE #495, the Beside size the design's final files set every list a field
  * opens in, where it was the field's own 14. An option may name the part of it a typed value
- * matched (`match`), which stands at 600 inside it (1c, 1e).
+ * matched (`match`), which stands at 600 inside it (1f, 1i).
  *
  * IN THE TOP LAYER, THROUGH THE POPOVER API, SO NO DIALOG CLIPS IT. A dialog's body scrolls
  * when the screen is short (0l), and a list positioned inside it would be cut at the body's
@@ -176,13 +176,13 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * 120ms. The head answers no pointer and is no item, so it describes the menu rather than
  * standing in it.
  *
- * `look="record"` IS THE TOOL ITEM PAGE'S `More actions` (#463, 1c and 1f): set against its
+ * `look="record"` IS THE TOOL ITEM PAGE'S `More actions` (#463, 1f and 1j): set against its
  * opener's right end, since the opener stands at the content's edge, and drawn two ways. At
  * a desk it is this frame with the dots' ink meeting its right edge and items at 13, the
- * Beside size 1c draws them at; below the phone's edge it is Tools 0a's Menu — 232 wide, 12
+ * Beside size 1f draws them at; below the phone's edge it is Tools 0a's Menu — 232 wide, 12
  * from the screen's right edge and 4 under the top bar, the phone's Radius and no room of its
  * own, rows 48 with 16 inside at 17. An item of `tone: "danger"` is 0f's Destructive: red
- * on red's Face under the pointer at a desk, and red at rest on a phone, which 1f draws
+ * on red's Face under the pointer at a desk, and red at rest on a phone, which 1j draws
  * taking the Face while held.
  *
  * AN ITEM WITH A `detail` IS THE ACCOUNT A PHONE'S MENU ENDS ON (#495, Tools 0a Menu): at
@@ -362,7 +362,7 @@ const DETAIL_ITEM = "min-h-mobile-menu-account flex-col items-start justify-cent
 // 0f's Destructive item: red on red's Face under the pointer or the keyboard at a desk, and
 // on a phone red at rest, taking the Face while held. The keyboard's is `focus-visible`, as
 // every item's is (`ActionMenu`), so a press that opened the menu meets the item at rest, as
-// 1c draws it.
+// 1f draws it.
 const DANGER_ITEM = {
     account: "hover:bg-danger-subtle hover:text-danger focus-visible:bg-danger-subtle focus-visible:text-danger",
     record:

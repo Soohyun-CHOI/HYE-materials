@@ -887,8 +887,8 @@ rather than a layout — so it is #258's to make.
 **The tools container holds the rail and nothing of a screen's own** (#460):
 a screen's measure, room and type are its own, read from the names the design's
 values are declared under. **Every tools screen is drawn the design's way since
-#463** — the tool item's as 0n's record page at a desk and 1f's app screen on a
-phone, the tool list and a tool's screen as 1a and 1b's lists, which hold their
+#463** — the tool item's as 0n's record page at a desk and 1j's app screen on a
+phone, the tool list and a tool's screen as 1a and 1d's lists, which hold their
 head still and scroll their rows under it.
 
 **The navigation shell is the tools screens' alone (#460).** The design drew a
