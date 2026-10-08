@@ -48,6 +48,14 @@ export async function generateMetadata({ params }) {
 // draws it, rather than under it.
 export const viewport = KEYBOARD_VIEWPORT;
 
+// An id set inside a line of Instrument Sans — the line under the title and the not-found
+// sentence. ITS OWN LINE HEIGHT IS 1, SO THE LINE STAYS ITS 20 (#505): at the line's 20 the
+// id's box and the line's own sat on the baseline with fractional ascents that rounded apart
+// on a screen of one device pixel to the CSS pixel, and the line drew 21 — the drawing does
+// too at that ratio, and draws 20 at two. At 1 the id's box sits inside the line's, and its
+// glyphs draw where they did.
+const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
+
 /**
  * One tool item and everything that has happened to it (#340), in the look the design
  * settled (#463): 0n's record page at a desk (1f, 1g) and 1j's app screen on a phone.
@@ -146,7 +154,7 @@ function ToolItemNotFound({ asked, account }) {
                 <h1 className="text-heading font-semibold max-sm:mt-gap max-sm:text-mobile-heading-lg">{COPY.notFoundHeading}</h1>
                 <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted max-sm:hidden">
                     {COPY.notFoundCode.before}
-                    <span className="font-id tracking-id text-foreground-default">{asked}</span>
+                    <span className={ID_IN_TEXT}>{asked}</span>
                     {COPY.notFoundCode.after}
                 </p>
                 <p className="mt-gap max-w-mobile-empty-state text-mobile-body text-pretty text-foreground-subtle sm:hidden">{COPY.notFoundScanned}</p>
@@ -283,7 +291,7 @@ async function renderToolItemPage({ params }) {
                             <div className="flex flex-col gap-title-stack">
                                 <h1 className="text-heading-lg max-sm:text-mobile-heading-lg">{name}</h1>
                                 <p className="text-body text-foreground-subtle max-sm:hidden">
-                                    <span className="font-id tracking-id text-foreground-default">{toolItem.toolItemId}</span>
+                                    <span className={ID_IN_TEXT}>{toolItem.toolItemId}</span>
                                     {jobCode && (
                                         <>
                                             <Dot />

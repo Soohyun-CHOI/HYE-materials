@@ -317,6 +317,25 @@ export function run({ check, assert, log }) {
         return found;
     };
     check("the dot between two clauses is a Space either side of a dot nobody reads", dotReading(parseFile(DOT)), "Space w-separator-inline + span text-foreground-faint hidden + Space w-separator-inline");
+    // AN ID SET IN A LINE OF TEXT TAKES A LINE HEIGHT OF 1 (#505), so its box sits inside the
+    // line's and the line stays 20 at every pixel ratio; at the line's own 20 the two faces'
+    // ascents rounded apart on a one-to-one screen and drew 21. Both the line under the title
+    // and the not-found sentence read the one constant, and no id there spells its own classes.
+    const idInText = (parsed) => {
+        let value = "";
+        walk(parsed.ast, (n) => {
+            if (n.type === "VariableDeclarator" && n.id?.name === "ID_IN_TEXT" && n.init?.type === "Literal") value = String(n.init.value);
+        });
+        const readers = parsed.source.split("className={ID_IN_TEXT}").length - 1;
+        const spelled = (parsed.source.match(/className="font-id /g) || []).length;
+        return `${/(^| )leading-none( |$)/.test(value) && /(^| )font-id( |$)/.test(value)} ${readers} ${spelled}`;
+    };
+    check("an id in a line of text takes a line height of 1, read by both such ids (#505)", idInText(page), "true 2 0");
+    check(
+        "  a planted page whose id keeps the line's height is seen",
+        idInText(parseSource('const ID_IN_TEXT = "font-id tracking-id";\nconst a = <p><span className="font-id tracking-id">{x}</span><span className={ID_IN_TEXT}>{y}</span></p>;', "<planted page>")),
+        "false 1 1"
+    );
     check(
         "  and the page draws that dot, three times, and no mark of its own",
         `${imports.includes("@/app/components/Dot")} ${page.source.split("<Dot />").length - 1} ${page.source.split("·").length - 1}`,
