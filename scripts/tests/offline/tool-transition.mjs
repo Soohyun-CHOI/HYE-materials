@@ -89,8 +89,14 @@ const JOB_A = { id: "recJobA", jobCode: "26-DEMO-01" };
 const JOB_B = { id: "recJobB", jobCode: "26-DEMO-02" };
 const ALL_JOBS = [JOB_A, JOB_B];
 
-/** An actor assigned to the jobs named. */
-const actor = (...jobs) => ({ id: "recUser", assignedJobs: jobs.map((j) => j.id) });
+/**
+ * An actor assigned to the jobs named — a site manager (#506), since nobody else is offered
+ * anything to record, and every case below is about what a site manager is offered.
+ */
+const actor = (...jobs) => ({ id: "recUser", isSiteManager: true, assignedJobs: jobs.map((j) => j.id) });
+
+/** A reader on the jobs named who is not a site manager (#506). */
+const nonSiteManager = (...jobs) => ({ id: "recReader", assignedJobs: jobs.map((j) => j.id) });
 
 /**
  * A complete check-out submission, minus the job (#376).
@@ -240,7 +246,35 @@ function inlineErrorReturns({ ast }) {
 }
 
 export function run({ check, assert, log }) {
+    // ── 0: whether this reader records at all (#506) ──────────────────────
+    // A READER WHO IS NOT A SITE MANAGER IS OFFERED NOTHING AND TOLD NOTHING, on every status
+    // and whatever their jobs: no event, no retirement, no job and no refusal, which is what
+    // draws neither a control nor a sentence for them at a desk or on a phone. Asked before
+    // the status, so a retired tool's sentence is not theirs either — and first here as it
+    // is in `planTransition`, so a plan offering a site manager nothing fails these lines
+    // rather than throwing in the ones below, which read a site manager's refusal.
+    log("whether this reader records at all:");
+    const offeredTo = (user) =>
+        TOOL_STATUS_VALUES.map((status) => {
+            const plan = planTransition({ user, jobs: ALL_JOBS, status });
+            return `${status}: ${plan.event}/${plan.mayRetire}/${plan.jobs.length}/${plan.refusal}`;
+        }).join(", ");
+    const nothing = TOOL_STATUS_VALUES.map((status) => `${status}: null/false/0/null`).join(", ");
+    check("a reader who is not a site manager is offered nothing and told nothing, on every status (#506)", offeredTo(nonSiteManager(JOB_A, JOB_B)), nothing);
+    check("  nor one on no job, who is not told to ask for one", offeredTo(nonSiteManager()), nothing);
+    // The office's flag opens the office's screens and nothing here: an Admin, and the
+    // President, who are not site managers record nothing (#506) — `soo@` is all three.
+    check("  nor the office or the President, who are not site managers", offeredTo({ ...nonSiteManager(JOB_A), isAdmin: true, role: "President" }), nothing);
+    // ANTI-VACUITY: the same reader marked a site manager is offered what the status allows,
+    // so "nothing" above is the role's answer rather than every reader's.
+    check(
+        "  while the same reader marked a site manager is offered each status's own",
+        offeredTo({ ...nonSiteManager(JOB_A, JOB_B), isSiteManager: true }),
+        `${TOOL_STATUS.IN_STOCK}: ${TOOL_EVENT.CHECKED_OUT}/true/2/null, ${TOOL_STATUS.OUT}: ${TOOL_EVENT.CHECKED_IN}/true/2/null, ${TOOL_STATUS.RETIRED}: null/false/0/${TOOL_TRANSITION_COPY.noTransition}`
+    );
+
     // ── 1: what a status and a person are offered ──────────────────────────
+    log("");
     log("the one transition a status allows, for a person with a job:");
     const inStock = planTransition({ user: actor(JOB_A), jobs: ALL_JOBS, status: TOOL_STATUS.IN_STOCK });
     check("a stocked tool item offers a check-out", inStock.event, TOOL_EVENT.CHECKED_OUT);
@@ -271,7 +305,11 @@ export function run({ check, assert, log }) {
     assert("  which say what to do rather than what went wrong", noJob.refusal.includes("Ask for"));
     // A person with no jobs and a user object with none at all are the same state,
     // and the second is what a caller that forgot to select the field produces.
-    check("  and a user with no field at all reads the same", planTransition({ user: {}, jobs: ALL_JOBS, status: TOOL_STATUS.IN_STOCK }).refusal, TOOL_TRANSITION_COPY.noJob);
+    check(
+        "  and a user with no field at all reads the same",
+        planTransition({ user: { isSiteManager: true }, jobs: ALL_JOBS, status: TOOL_STATUS.IN_STOCK }).refusal,
+        TOOL_TRANSITION_COPY.noJob
+    );
 
     // THE ORDER IS THE ASSERTION HERE. Telling somebody with no assignment to go
     // and get one, in front of a tool item that would refuse them anyway, is a

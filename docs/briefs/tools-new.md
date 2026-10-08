@@ -2,8 +2,8 @@
 
 Opens from: `/tools` and `/tools/[toolRecordId]`, as a dialog over the page that
 opens it — it was the page `/tools/new` until #456.
-Who reaches it: anyone signed in who is on either page, with no Role and no Job
-scoping (#337) — but only somebody assigned to a job can open it.
+Who reaches it: a site manager on either page (#506) — nobody else is drawn a
+control that opens it — and only one assigned to a job can open it.
 Which width comes first: **desktop**, and it is the only one: this dialog is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -66,14 +66,20 @@ refusal take its place.
 
 ## What it carries only sometimes
 
-**When the reader is assigned to no job:** the dialog does not open. Every
+**When the reader is not a site manager (#506):** there is no control that
+opens it, on either screen, and the action behind it refuses them — the page
+they pressed on, drawn again without the dialog, and nothing said. Adding tools
+is a site manager's, and `Is Admin` does not make one: the office's flag opens
+the office's screens, and this track does not pass through the office.
+
+**When the site manager is assigned to no job:** the dialog does not open. Every
 control that would open it is drawn disabled, with `Ask the office to assign
 you to a job` before it on its line (#456). **It says ask, not join (#455)**:
 nothing in the app lets a person join a job — the office assigns one in
 Airtable — so an instruction to join is one the reader cannot follow, which is
 why the design's `Join a job to create tools` went back to the design and this
-came back. Nothing is hidden — no opener, on either screen — so a reader on a
-tool's own screen sees exactly what one on `/tools` does.
+came back. No opener is hidden from them — on either screen — so a site manager
+on a tool's own screen sees exactly what one on `/tools` does.
 `Tool Items."Job"` is required, the job comes from the reader's own assignments
 with no exception for the office, so an Admin on no job meets this too.
 

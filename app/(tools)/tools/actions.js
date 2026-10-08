@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/authz";
+import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
 import { upsertTool } from "@/lib/airtable/tools";
 import { createToolItems } from "@/lib/airtable/toolItems";
@@ -20,13 +20,18 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * registration that fell short makes is on that page too — so the action sits beside
  * both, under `/tools`. Nothing about what it writes moved with it.
  *
- * NOT WRAPPED, AND LISTED AS AN EXEMPTION WITH THAT REASON. `requireUser()`
- * settles only that this is an active session; the authorization that decides
- * anything is that the submitted job is one the actor's own
- * `Users."Assigned Jobs"` names — a per-record comparison in the body, which is
- * the shape withdrawPOAction and the delivery actions already take. No role
- * helper fits: registering a tool is site work, so an Admin on no job must be
- * refused and a non-Admin employee on a job must pass.
+ * ONLY A SITE MANAGER ADDS TOOLS, AND THE WRAPPER DECIDES THAT BEFORE THIS BODY RUNS
+ * (#506). `withSiteManagerAction` refuses anybody else — the page they pressed on,
+ * rendered again without the dialog, and nothing said — so the role is not a check here
+ * at all. What this body still decides is the job, as it did when this action was an
+ * exemption: the submitted job has to be one the actor's own `Users."Assigned Jobs"`
+ * names, with no office clause, so a site manager on no job is refused in the dialog's
+ * words. `Is Admin` decides neither: the office's flag opens the office's screens, and
+ * the tools track does not pass through the office.
+ *
+ * THE SESSION IS READ TWICE. The wrapper's gate reads the person to decide and drops
+ * them, and this body reads them again for their jobs and for `Recorded By` — one
+ * operation, the one #382 records `createInvoiceAction` paying for the same reason.
  *
  * REFUSES BY RETURNING, BECAUSE THE CALL SITE BINDS (#185). RegistrationDialog.js reads
  * this through `useActionState`, so a refusal lands in `state` and the dialog renders
@@ -89,7 +94,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * dialog, as it reached none on the form before #449: it fails before anything this
  * action could word, where the refusal below is for a batch that ran and wrote none.
  */
-export async function registerToolItemsAction(prevState, formData) {
+export const registerToolItemsAction = withSiteManagerAction(registerToolItemsHandler);
+
+async function registerToolItemsHandler(prevState, formData) {
     return withOpsLabel("registerToolItemsAction", async () => {
         const user = await requireUser();
 

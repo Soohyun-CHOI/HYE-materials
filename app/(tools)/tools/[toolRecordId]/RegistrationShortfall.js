@@ -41,8 +41,9 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // back, because nothing answered it — the question stands until `Not now`, and the
 // address still carries it, so the screen says what a reload would. A registration that
 // lands answers it by moving the address, and the new one carries only its own account.
-// For a reader on no job the answer is drawn disabled with the reason before it, as every
-// opener is (#456).
+// For a site manager on no job the answer is drawn disabled with the reason before it, as
+// every opener is (#456); the fork is told to a site manager alone (#506), since whoever
+// added is one.
 //
 // `Not now` IS THE OTHER ANSWER, AND IT ENDS THE QUESTION: `asked` and `unwritten` leave
 // the address, so a reload does not ask again. The close and Escape answer it too — the

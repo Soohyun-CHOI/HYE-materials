@@ -721,10 +721,11 @@ office. Invoicing is Admin because invoicing is office work.
 | `/prs/new` | anyone signed in |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
-| `/tools` | anyone signed in, with no Role and no Job scoping (#337) |
-| the registration dialog, over `/tools` and `/tools/[toolRecordId]` (#456) | anyone on either page; only somebody assigned to a job can open it (#338) |
-| `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337) |
-| `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337) |
+| `/tools` | anyone signed in, with no Role and no Job scoping (#337); adding tools from it is a site manager's (#506) |
+| the registration dialog, over `/tools` and `/tools/[toolRecordId]` (#456) | a site manager on either page (#506); only one assigned to a job can open it (#338) |
+| the labels' dialog, over `/tools/[toolRecordId]` and `/tool-items/[toolItemId]` (#457) | a site manager on either page (#506) |
+| `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job scoping (#337); selecting and printing labels, and adding tools, are a site manager's (#506) |
+| `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job scoping (#337); checking out and in, retiring and printing are a site manager's (#506) |
 | `/t/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
@@ -736,22 +737,30 @@ then a signer on the chain; then the recipient of a correction request.
 **Two things the design has to accommodate because of this.** A screen can
 render *differently* for two readers, not merely show fewer rows.
 
-**NO TABLE IN THIS APP DROPS A COLUMN BY READER, AND THAT IS NOW A FACT RATHER THAN AN
-ABSENCE.** Two did. The invoice list's `Status` column — the payment word with the
+**NO TABLE IN THIS APP DROPS A COLUMN OF FACTS BY READER, AND THAT IS NOW A FACT RATHER
+THAN AN ABSENCE.** This said any column until #506, which took a tool's list's column of
+boxes away from a reader who is not a site manager: the boxes are a control, the selection
+a label run is made from, so the column goes with the act it serves and every fact on the
+row stays — and the row's last column, the job, takes the room rather than a budget being
+re-cut. Two did drop facts. The invoice list's `Status` column — the payment word with the
 total-mismatch badge stacked under it — existed only for a President or an Admin, and
 the purchase order detail's items table had two column sets. #235 gave that table one
-set and #309 opened that column, so a table's column count IS a constant now, and both
-tables sum their declared widths to exactly the page width on the assumption that it
-stays one. **A design that reintroduces a reader-dependent column is re-cutting a
-budget in two directions at once, which is what both of those did and what both of
-them then had to undo** — the freed width had been handed to a neighbor each time, so
-opening the column took it back off that neighbor.
+set and #309 opened that column, so those tables' column counts ARE constants now, and
+both tables sum their declared widths to exactly the page width on the assumption that
+each stays one. **A design that reintroduces a reader-dependent column of facts is
+re-cutting a budget in two directions at once, which is what both of those did and what
+both of them then had to undo** — the freed width had been handed to a neighbor each
+time, so opening the column took it back off that neighbor. The tool's list sums no
+budget: its last column takes whatever the others leave.
 
 **What survives is smaller than a column and still real.** A single LINE can be
-absent: the invoice list's `New invoice` control is Admin-only. **The other example
-this named is gone** — the purchase order detail's office-only `Delivery Address
-Used` went in #384 with the field it read, which leaves that screen with no
-reader-dependent READ at all, only write controls that each match their own
+absent: the invoice list's `New invoice` control is Admin-only, and since #506 every
+control on the tools screens that adds a tool, prints a label, checks one out or in or
+retires one is a site manager's — absent, not disabled, for anybody else, for the same
+reason `New invoice` is: it is a role, and a role is not something a reader asks for.
+**The other example this named is gone** — the purchase order detail's office-only
+`Delivery Address Used` went in #384 with the field it read, which leaves that screen
+with no reader-dependent READ at all, only write controls that each match their own
 action's gate.
 
 **AND NO SECTION RENDERS TWO WAYS EITHER, SINCE #318.** One did. The invoice detail's

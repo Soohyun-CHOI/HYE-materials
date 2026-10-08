@@ -1,7 +1,9 @@
 # Tool detail
 
 Route: `/tools/[toolRecordId]`
-Who reaches it: anyone signed in, with no Role and no Job scoping (#337).
+Who reaches it: anyone signed in, with no Role and no Job scoping (#337). What a
+reader DOES here — adding tools, and selecting and printing labels — is a site
+manager's (#506); everyone else reads the same screen without those controls.
 Which width comes first: **desktop**, and it is the only one: this screen is
 used at a desk and does not support a phone's width (`_shared.md`).
 
@@ -59,9 +61,11 @@ nothing on this screen knows how many were bought, so the dialog asks,
 starting where it always starts. **Nor does it carry the selection or the
 page**: the boxes are for printing, and it opens the same dialog from every
 page of the list. It is on this screen for every tool it finds, the one with
-nothing under it included, and for every reader — somebody assigned to no job
+nothing under it included, and for every site manager — one assigned to no job
 sees it disabled, with `Ask the office to assign you to a job` before it, as
-they would on `/tools`.
+they would on `/tools`. **A reader who is not a site manager is drawn none**
+(#506): being one is not something the office assigns on request the way a job
+is, so a disabled control with a reason would send them nowhere.
 
 **It is not one of the answers a registration that fell short offers, and a
 design must not draw it as one.** Those two are a pair about the registration
@@ -70,7 +74,8 @@ dialog — `Add 2 more` with the count that was not written, which it names, thi
 one with none — and `Not now` takes the pair away with the dialog they stand in and
 leaves this standing.
 
-**action.** A box on every entry and one for the page, and together they say
+**action.** A box on every entry and one for the page — **for a site manager,
+who is the one who prints labels (#506)** — and together they say
 **which tool items a label run is for** (#443). An entry's box selects that tool
 item or takes it out. The page box selects every entry on this page, or, when
 all of them are selected already, takes this page out — and a page partly
@@ -106,7 +111,7 @@ retired tool still counts.
 **evidence.** One entry per tool item, **newest first** (1d), each carrying
 three facts: its printed `Tool Item ID`, which is the way into that tool
 item's own screen; its status, one of `In stock`, `Out` or `Retired`; and
-the job it is on. Each carries its box as well; see above.
+the job it is on. Each carries its box as well, for a site manager; see above.
 
 **Newest first moves every row along at each registration, and that was
 accepted (#463).** A registration's tool items go to the top, so a link to a
@@ -222,7 +227,23 @@ The total, the page position, the boxes and the print control are absent
 with it; there is nothing to count, no page to be on and nothing to print.
 **The control that registers more of this tool stays, and this is where it
 matters most**: it is how the tool items a failed registration did not write
-get written, under the name that registration found or made.
+get written, under the name that registration found or made. **For a reader
+who is not a site manager the heading stands alone (#506)**: the sentence
+speaks to whoever was adding, and the opener under it is theirs. Design is
+drawing what that reader's empty state says; until then it says nothing more
+than the heading, rather than a sentence nobody has written.
+
+**When the reader is not a site manager (#506):** the same screen, every fact
+on it, and none of the controls a site manager uses here — no `Add tools` in
+the head or under an empty list, no box on an entry or for the page, no
+selection bar and so nothing to print, and neither dialog a registration's
+landing tells, which speak to whoever added. The column of boxes goes with
+the boxes, so the table is `Tool ID`, `Status` and `Job`, the job taking the
+room; Design is drawing that list. A selection carried on the address is not
+read for them, so it marks no entry and rides no step. Nothing replaces any of
+it with a sentence: the screen is theirs to read, and a control is absent
+rather than disabled because being a site manager is not something one asks
+the office for the way a job is.
 
 **When no tool carries the record id in the address:** the screen is the
 heading `Tool not found` and a way back to `/tools`. Nothing on this axis
@@ -268,7 +289,8 @@ stands until it is answered — until `Not now` takes the first out of the addre
 and `Got it` the second. **Every address the list itself writes carries the
 selection alone**, and while either dialog stands the list behind it cannot be
 pressed, so the account leaves the address by being answered. A copied
-address carrying them shows them to whoever opens it.
+address carrying them shows them to whoever opens it, if that reader is a site
+manager (#506); anybody else is told neither.
 
 **The label screen asked which labels to print until #457, and that was not a
 second selection.** Arriving from here, every tool item this selection named
