@@ -60,8 +60,9 @@
 // to both is `offline/asset-list-view.mjs`'s, off the source.
 //
 // AND SINCE #507 THE DIALOG'S TWO STEPS: the first picks a name of the catalog and the
-// second its size, and a submission names the `Asset Categories` row the two made — admitted only if
-// the catalog offers it. `readRegistration` is held by value on that row; the action
+// second the levels its rows hold — its size, maker and part number since #514, each still to
+// choose refused under itself (`detailRefusals`) — and a submission names the `Asset Categories`
+// row the two made, admitted only if the catalog offers it. `readRegistration` is held by value on that row; the action
 // reading the catalog afresh, refusing what it no longer offers and drawing the page again
 // with the refusal, and the dialog's steps, are read off the source beside planted files.
 //
@@ -72,12 +73,14 @@ import {
     ASSET_REGISTRATION_COPY,
     accountToTell,
     canRegisterAssets,
+    detailRefusals,
     openingCount,
     readQuantity,
     readRegistration,
     readRegistrationAccount,
 } from "../../../lib/assetRegistration.js";
 import { ASSET_JOB_COPY } from "../../../lib/assetJob.js";
+import { walkDetails } from "../../../lib/assetCategory.js";
 import { assetCategoryPath } from "../../../lib/assetRoutes.js";
 import { createInBatches } from "../../../lib/airtableBatch.js";
 import { childKind, formatSequentialIds, nextChildId } from "../../../lib/idSequence.js";
@@ -86,7 +89,7 @@ import { fakeBase } from "./_fakeBase.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
-    "Registering assets — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485, #507)";
+    "Registering assets — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485, #507, #514)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(assets)/asset-categories/actions.js";
@@ -101,6 +104,7 @@ function copyStrings() {
     for (const value of Object.values(ASSET_REGISTRATION_COPY)) {
         if (typeof value === "string") out.push(value);
     }
+    out.push(...Object.values(ASSET_REGISTRATION_COPY.levelNoneChosen));
     out.push(ASSET_REGISTRATION_COPY.quantityHelp(100));
     out.push(ASSET_REGISTRATION_COPY.quantityInvalid(100), ASSET_REGISTRATION_COPY.quantityTooMany(100));
     out.push(ASSET_REGISTRATION_COPY.submit(null), ASSET_REGISTRATION_COPY.submit(1), ASSET_REGISTRATION_COPY.submit(5));
@@ -133,8 +137,8 @@ export async function run({ check, assert, log }) {
     // ── 1, 2 and 2b went in #507 ────────────────────────────────────────────
     // They held the key a typed name was one tool under, the preview that found by it and
     // the suggestions a partly typed name made. A registration picks a row of the catalog
-    // now, and the walk it picks through — the categories, the names, the sizes, the five
-    // a search offers — is `offline/asset-category.mjs`'s.
+    // now, and the walk it picks through — the types and categories, the names, the five a
+    // search offers, and the second step's levels since #514 — is `offline/asset-category.mjs`'s.
 
     // ── 3: how many one submission may write ───────────────────────────────
     log("");
@@ -226,8 +230,8 @@ export async function run({ check, assert, log }) {
     check("the title, which both openers that begin a registration say", ASSET_REGISTRATION_COPY.heading, "Add tools");
     check("  the line under it, while the dialog picks its category", ASSET_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
     // THE WAY BACK FROM THE SECOND STEP (#507), the sign-in steps' word for going back to the
-    // step that chose what a chip names.
-    check("  the way back to the first step", ASSET_REGISTRATION_COPY.changeTool, "Change");
+    // step that chose what a chip names — beside the name it picked since #514.
+    check("  the way back to the first step", ASSET_REGISTRATION_COPY.changeName, "Change");
     check("  the count's label", ASSET_REGISTRATION_COPY.quantityLabel, "Quantity");
     check("  and its help", ASSET_REGISTRATION_COPY.quantityHelp(100), "Up to 100");
     check("  the job's label", ASSET_REGISTRATION_COPY.jobLabel, "Job");
@@ -251,11 +255,17 @@ export async function run({ check, assert, log }) {
         check(why, ASSET_REGISTRATION_COPY.submit(readQuantity(raw).count), expected);
     check("  and while it is on its way, 0f's -ing word with no count", ASSET_REGISTRATION_COPY.working, "Adding…");
     check("  and the way out", ASSET_REGISTRATION_COPY.cancel, "Cancel");
-    // EACH FIELD'S REFUSAL, AND THE ONE ABOUT THE WHOLE DIALOG (#456). The two a pick earns
-    // are `Choose a job.`'s shape (#507), and a category the catalog no longer offers is the
-    // whole registration's.
-    check("a name in the search that names no one tool", ASSET_REGISTRATION_COPY.toolNoneChosen, "Choose a tool.");
-    check("  a size not chosen", ASSET_REGISTRATION_COPY.sizeNoneChosen, "Choose a size.");
+    // EACH FIELD'S REFUSAL, AND THE ONE ABOUT THE WHOLE DIALOG (#456). Those a pick earns
+    // are `Choose a job.`'s shape (#507), one per level and keyed by it (#514), and a category
+    // the catalog no longer offers is the whole registration's.
+    check(
+        "a name in the search that names no one row, and each level of the second step not chosen",
+        Object.entries(ASSET_REGISTRATION_COPY.levelNoneChosen)
+            .map(([level, word]) => `${level}=${word}`)
+            .join(" | "),
+        "level3=Choose a name. | size=Choose a size. | maker=Choose a maker. | partNumber=Choose a part #."
+    );
+    check("  and no word is left for the tool #507 searched", ["toolNoneChosen", "sizeNoneChosen", "changeTool"].filter((key) => key in ASSET_REGISTRATION_COPY).join(", "), "");
     check("  a category the catalog no longer offers", ASSET_REGISTRATION_COPY.toolGone, "That tool isn't available any more.");
     check("  a count out of range", ASSET_REGISTRATION_COPY.quantityInvalid(100), "Enter 1 to 100.");
     check("  a count past the ceiling", ASSET_REGISTRATION_COPY.quantityTooMany(100), "Max 100 at a time.");
@@ -346,7 +356,10 @@ export async function run({ check, assert, log }) {
         JSON.stringify({ registration: { category: catalog[1], count: 5, job: jobs[1] } })
     );
     check("a reader on no job is refused the whole registration", reading(good, []), JSON.stringify({ error: ASSET_REGISTRATION_COPY.noJob }));
-    check("  no row picked under the size, where the dialog decides it", reading({ ...good, categoryRecordId: "" }), JSON.stringify({ fields: { categoryRecordId: "Choose a size." } }));
+    // NO ROW IS A ROW NOT YET MADE: the dialog says each level still to choose under that level
+    // and never sends, so this answers a caller with no dialog, under the field that carries the
+    // row, in the words of nothing picked (#514).
+    check("  no row picked, under the field that carries it", reading({ ...good, categoryRecordId: "" }), JSON.stringify({ fields: { categoryRecordId: "Choose a name." } }));
     check(
         "  a row the catalog does not offer the whole registration's, and the page is out of date",
         reading({ ...good, categoryRecordId: "recGone" }),
@@ -371,6 +384,24 @@ export async function run({ check, assert, log }) {
         Object.keys(JSON.parse(reading({ categoryRecordId: null, quantity: null, jobId: null })).fields).join(", "),
         "categoryRecordId, quantity, jobId"
     );
+
+    // THE SECOND STEP'S REFUSALS (#514): each level it asks and nobody has chosen, keyed by the
+    // level, all at once — and none for a level left empty, which holds a value, nor for one the
+    // name's rows never give a value.
+    const welder = [
+        { id: "weldLi", level3: "Welding Machine", size: "", maker: "Lincoln", partNumber: "POWER MIG 256" },
+        { id: "weldMi", level3: "Welding Machine", size: "", maker: "Miller", partNumber: "Millermatic 255" },
+    ];
+    const grinder = [
+        { id: "g45", level3: "Angle Grinder", size: '4-1/2"', maker: "", partNumber: "" },
+        { id: "g45mk", level3: "Angle Grinder", size: '4-1/2"', maker: "Makita", partNumber: "GA4530" },
+        { id: "g5", level3: "Angle Grinder", size: '5"', maker: "", partNumber: "" },
+    ];
+    const refusedOf = (rows, chosen) => JSON.stringify(detailRefusals(walkDetails(rows, chosen).levels));
+    check("each level still to choose is refused under itself, all at once", refusedOf(welder, {}), JSON.stringify({ maker: "Choose a maker.", partNumber: "Choose a part #." }));
+    check("  a level left empty is not, nor one never asked", refusedOf(grinder, {}), JSON.stringify({ size: "Choose a size." }));
+    check("  a level chosen is not", refusedOf(welder, { maker: "miller" }), "{}");
+    check("  and nothing walked refuses nothing", JSON.stringify(detailRefusals()), "{}");
 
     // ── 7: what a landing's account reads as (#449) ─────────────────────────
     log("");
@@ -757,15 +788,18 @@ export async function run({ check, assert, log }) {
     // and only then hands the fields to the action inside a transition — the path React
     // 19 does not reset — with no `action` prop anywhere, since a dialog is never open
     // before hydration. What it says is read off what the reading and the action answered,
-    // as `fields` and `error`; its three fields start from what the opener handed over.
-    // Opened on a category, the category is the line under the title and its row goes as it
-    // stands; a reader who may not register meets a disabled opener with the reason; and
-    // it is open only while the address is the one it was opened at. Since #507 it has two
-    // steps: the first's search offers the catalog's names and picks through `pick`, which
-    // starts the size where 0l starts a choice, and its Enter takes the one name typed or
-    // refuses; the line under the title carries the way back; and only the second step
-    // commits. Each is read as the expression that decides it, since naming the call or
-    // the prop would be satisfied by every wrong version of it.
+    // as `fields` and `error`; its fields start from what the opener handed over. Opened on
+    // a category, the category is the line under the title and its row goes as it stands; a
+    // reader who may not register meets a disabled opener with the reason; and it is open
+    // only while the address is the one it was opened at. Since #507 it has two steps: the
+    // first's search offers the catalog's names and picks through `pick`, and its Enter takes
+    // the one name typed or refuses; the line under the title carries the way back; and only
+    // the second step commits. Since #514 the first narrows by a type and a category, the
+    // category one the type holds, and the second is `walkDetails`' answer drawn — the levels
+    // it asks, each a choice under its own refusal, and the row they make the one submitted —
+    // with each level still to choose refused under itself beside the reading's refusals.
+    // Each is read as the expression that decides it, since naming the call or the prop
+    // would be satisfied by every wrong version of it.
     const dialogFacts = ({ ast, source }) => {
         const text = (node) => (node ? source.slice(node.start, node.end).replace(/\s+/g, " ") : "");
         const facts = {
@@ -787,6 +821,8 @@ export async function run({ check, assert, log }) {
             firstStep: "none",
             firstStepFields: "none",
             back: "none",
+            levels: "none",
+            secondStepRefusal: "none",
         };
         // A variable's own expression, for an attribute that names one.
         const declared = (name) => {
@@ -817,6 +853,9 @@ export async function run({ check, assert, log }) {
             }
             return text(node);
         };
+        // An element's attributes, each as its name and the expression it holds.
+        const attributesOf = (element) =>
+            element.attributes.map((a) => (a.value ? `${a.name?.name}: ${text(a.value.expression ?? a.value)}` : a.name?.name)).join(", ");
         walk(ast, (n) => {
             if (n.type === "JSXAttribute" && n.name?.name === "action") facts.actionProps++;
             // The commitment (#469): what it says, and the word it gives way to while the frame
@@ -860,16 +899,30 @@ export async function run({ check, assert, log }) {
                         : "nothing";
                 facts.search = `picks through ${text(attribute("onPick")) || "nothing"} · offers ${text(source) || "nothing"} · each { ${each} }`;
             }
-            // The first step's fields in reading order (#507): the filter above the search,
-            // since the search opens its list as the dialog's opening focuses it, over whatever
-            // stands below — the filter, on the first walk.
-            if (n.type === "ConditionalExpression" && text(n.test) === 'step === "tool"') {
+            // The first step's fields in reading order (#507, #514): the two filters above the
+            // search, since the search opens its list as the dialog's opening focuses it, over
+            // whatever stands below — the filter, on #507's first walk.
+            if (n.type === "ConditionalExpression" && text(n.test) === 'step === "name"') {
                 const labels = [];
                 walk(n.consequent, (inner) => {
                     if (inner.type === "JSXOpeningElement" && inner.name?.name === "Field")
                         labels.push(text(inner.attributes.find((a) => a.name?.name === "label")?.value?.expression));
                 });
                 facts.firstStepFields = labels.join(", ");
+            }
+            // The second step's levels (#514): which of `walkDetails`' levels are drawn, and what
+            // each draws — the field's label and refusal, and the choice's options, value, change
+            // and placeholder.
+            if (n.type === "CallExpression" && n.callee?.property?.name === "map" && n.callee.object?.type === "CallExpression") {
+                const filtered = n.callee.object;
+                if (filtered.callee?.property?.name === "filter" && text(filtered.callee.object) === "details.levels") {
+                    const drawn = [];
+                    walk(n.arguments[0] ?? {}, (inner) => {
+                        if (inner.type === "JSXOpeningElement" && ["Field", "Choice"].includes(inner.name?.name)) drawn.push(`${inner.name.name} { ${attributesOf(inner)} }`);
+                    });
+                    // A chain broken across lines reads as one, as the source says it.
+                    facts.levels = `${text(filtered).replace(/ \./g, ".")} · ${drawn.join(" · ")}`;
+                }
             }
             // The way back (#507): what `Change` runs, which keeps the name picked.
             if (n.type === "VariableDeclarator" && n.id?.name === "back" && /Function/.test(n.init?.type ?? "")) {
@@ -879,7 +932,7 @@ export async function run({ check, assert, log }) {
                 });
                 facts.back = calls.join(" · ");
             }
-            // A name picked, and the size it starts the second step on (#507).
+            // A name picked, and what it does to the second step's choices (#507, #514).
             if (n.type === "VariableDeclarator" && n.id?.name === "pick" && /Function/.test(n.init?.type ?? "")) {
                 walk(n.init, (inner) => {
                     if (facts.pickRule === "none" && inner.type === "IfStatement") facts.pickRule = text(inner);
@@ -891,7 +944,8 @@ export async function run({ check, assert, log }) {
                 const member = n.expression;
                 if (member.object?.type === "Identifier" && member.object.name === "said") facts.saidReads.add(member.property.name);
             }
-            // What each of the three fields starts from, by the state it is bound to.
+            // What each of the fields starts from, by the state it is bound to: the filters and
+            // the second step's choices (#514), the count and the job.
             if (
                 n.type === "VariableDeclarator" &&
                 n.id?.type === "ArrayPattern" &&
@@ -899,7 +953,7 @@ export async function run({ check, assert, log }) {
                 n.init.callee?.name === "useState"
             ) {
                 const field = n.id.elements[0]?.name;
-                if (["categoryRecordId", "count", "jobId"].includes(field)) {
+                if (["filters", "chosen", "count", "jobId"].includes(field)) {
                     const first = n.init.arguments[0];
                     facts.starts[field] = text(first?.type === "ArrowFunctionExpression" ? first.body : first);
                 }
@@ -913,13 +967,10 @@ export async function run({ check, assert, log }) {
                 walk(n.consequent, (inner) => {
                     if (!button && inner.type === "JSXOpeningElement" && inner.name?.name === "Button") button = inner;
                 });
-                if (button)
-                    facts.gate = `${text(n.test)} → Button ${button.attributes
-                        .map((a) => (a.value ? `${a.name?.name}: ${text(a.value.expression ?? a.value)}` : a.name?.name))
-                        .join(", ")}`;
+                if (button) facts.gate = `${text(n.test)} → Button ${attributesOf(button)}`;
             }
-            // Where the row is asked for, and where it goes as it stands (#507): a size chosen
-            // on the second step, or the row a page opened the dialog on, as a hidden field.
+            // Where the row is submitted from, and what it holds (#507, #514): a hidden field on
+            // the second step, holding the row the steps made — or the one a page opened it on.
             if (n.type === "ConditionalExpression")
                 for (const [side, branch] of [
                     ["then", n.consequent],
@@ -927,9 +978,11 @@ export async function run({ check, assert, log }) {
                 ])
                     walk(branch, (inner) => {
                         if (inner.type !== "JSXOpeningElement") return;
-                        const value = (name) => inner.attributes.find((a) => a.name?.name === name)?.value?.value;
-                        if (value("name") === "categoryRecordId")
-                            facts.nameField.push(`${text(n.test)} ${side}: ${inner.name?.name}${value("type") ? ` ${value("type")}` : ""}`);
+                        const attribute = (name) => inner.attributes.find((a) => a.name?.name === name)?.value;
+                        if (attribute("name")?.value === "categoryRecordId")
+                            facts.nameField.push(
+                                `${text(n.test)} ${side}: ${inner.name?.name}${attribute("type")?.value ? ` ${attribute("type").value}` : ""} = ${text(attribute("value")?.expression) || "nothing"}`
+                            );
                     });
         });
         // The submit handler: its first call after the default is prevented is the reading,
@@ -948,7 +1001,13 @@ export async function run({ check, assert, log }) {
             const sent = calls.indexOf("startTransition");
             let refusesBeforeSending = false;
             walk(submit, (n) => {
-                if (n.type === "IfStatement" && nameOf(n.test?.argument ?? {}) === "reading.registration") refusesBeforeSending = true;
+                if (n.type !== "IfStatement" || nameOf(n.test?.argument ?? {}) !== "reading.registration") return;
+                refusesBeforeSending = true;
+                // What the refusal says (#514): the reading's, with each level still to choose
+                // beside its fields.
+                walk(n.consequent, (inner) => {
+                    if (inner.type === "CallExpression" && inner.callee?.name === "setGuarded") facts.secondStepRefusal = text(inner.arguments[0]);
+                });
             });
             let dispatched = false;
             for (const transition of callsTo(submit, "startTransition"))
@@ -959,9 +1018,9 @@ export async function run({ check, assert, log }) {
                 read >= 0 && (sent < 0 || read < sent) && refusesBeforeSending ? "reads before sending" : "sends unread"
             } · ${dispatched ? "dispatches in a transition" : "dispatches nothing itself"}`;
             // The first step's Enter (#507): what it looks up, what it does with what it finds,
-            // and the refusal it gives a name that names no one tool — and that it sends nothing.
+            // and the refusal it gives a name that names no one row — and that it sends nothing.
             walk(submit, (n) => {
-                if (n.type !== "IfStatement" || text(n.test) !== 'step === "tool"') return;
+                if (n.type !== "IfStatement" || text(n.test) !== 'step === "name"') return;
                 const inside = [];
                 walk(n.consequent, (inner) => {
                     if (inner.type === "CallExpression") inside.push(text(inner));
@@ -973,6 +1032,9 @@ export async function run({ check, assert, log }) {
             ...facts,
             saidReads: [...facts.saidReads].sort().join(", "),
             nameField: facts.nameField.sort().join(" | "),
+            narrowing: text(declared("narrowing")) || "none",
+            details: text(declared("details")) || "none",
+            made: text(declared("made")) || "none",
         };
     };
     const dialog = dialogFacts(parseFile(DIALOG));
@@ -985,52 +1047,79 @@ export async function run({ check, assert, log }) {
     check("  with no action prop anywhere", dialog.actionProps, 0);
     check("  and says only what the reading or the action refused", dialog.saidReads, "error, fields");
     // The one job there is comes from `onlyJob` since #458, the one spelling of "one
-    // assignment" the transition's dialog starts from too (`offline/asset-job.mjs`).
+    // assignment" the transition's dialog starts from too (`offline/asset-job.mjs`). The
+    // filters start on nothing and the second step's choices on none made (#514), so each
+    // level starts where `walkDetails` starts it.
     check(
-        "its fields start from what the opener handed over: the tool, the count, and the one job there is",
-        `${dialog.starts.categoryRecordId} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
-        'assetCategory ? assetCategory.id : "" | String(openingCount(quantity)) | onlyJob(jobs)?.id ?? ""'
+        "its fields start from what the opener handed over: no filter, no level chosen, the count, and the one job there is",
+        `${dialog.starts.filters} | ${dialog.starts.chosen} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
+        '{ level1: "", level2: "" } | {} | String(openingCount(quantity)) | onlyJob(jobs)?.id ?? ""'
     );
     // THE LINE UNDER THE TITLE IN EACH STATE (#507): the category a page opened it on; the name
-    // the first step picked, under its category, with the way back to that step — which
-    // acts on no press while the frame is busy, the frame's rule for what it holds (#469);
-    // and while it picks, what the dialog is for.
+    // the first step picked, in its place (#514), with the way back to that step — which acts
+    // on no press while the frame is busy, the frame's rule for what it holds (#469); and while
+    // it picks, what the dialog is for.
     check(
-        "opened on a tool, the tool is the line under the title, and a picked name carries the way back",
+        "opened on a category, it is the line under the title, and a picked name carries its place and the way back",
         dialog.subtitle,
-        'assetCategory ? assetCategory.itemName : step === "size" ? [picked.level2, picked.level1, button pending ? undefined : back, COPY.changeTool] : COPY.intro'
+        'category ? category.itemName : step === "details" ? [picked.level3, pathOf({ level1: picked.level1, level2: picked.level2 }), button pending ? undefined : back, COPY.changeName] : COPY.intro'
     );
-    // THE WAY BACK KEEPS THE NAME PICKED (#507), so picking it again keeps its size — the
-    // rule `pick` reads below. It cleared the name on the first walk, and the same name came
+    // THE WAY BACK KEEPS THE NAME PICKED (#507), so picking it again keeps its choices — the
+    // rule `pick` reads below. It cleared the name on #507's first walk, and the same name came
     // back with its size gone.
     check("  and the way back goes to the first step and keeps the name picked", dialog.back, "setChoosing(true) · setGuarded(null)");
+    // THE ROW SUBMITTED IS THE ONE THE STEPS MADE, OR THE PAGE'S (#514): a page's row from the
+    // start, and otherwise the row `walkDetails` makes of the name's rows and the choices —
+    // over the page's row alone when opened on one, so its levels start already chosen.
+    check("the row goes as a hidden field on the second step alone, holding the row made", dialog.nameField, 'step === "name" else: input hidden = made?.id ?? ""');
+    check("  the row made is the page's, or the steps'", dialog.made, "category ?? details.category");
     check(
-        "  the row is asked as a size on the second step alone, and a page's goes as it stands",
-        dialog.nameField,
-        'assetCategory else: Choice | assetCategory then: input hidden | step === "tool" else: Choice | step === "tool" else: input hidden'
+        "  and the steps walk the page's row, or the picked name's rows, by the choices",
+        dialog.details,
+        "walkDetails(category ? catalog : picked ? catalogRowsOf(catalog, picked.key) : [], chosen)"
     );
-    // THE FIRST STEP (#507): a search over the catalog's names, the category narrowing it,
-    // picked through the one function that goes on to the second step; that function keeps
-    // the size held only for the name that held it, and starts another name's where 0l
-    // starts a choice; and Enter takes the one name the search names, or refuses with the
-    // field's own words, sending nothing.
-    check("the first step asks the category above the search, which opens its list over what is below", dialog.firstStepFields, "CATALOG.categoryLabel, CATALOG.toolLabel");
+    // THE FIRST STEP (#507, #514): the type and the category above a search over the catalog's
+    // names, which they narrow — a category the type does not hold reading as none — picked
+    // through the one function that goes on to the second step; that function starts another
+    // name's choices afresh and keeps the name already held's; and Enter takes the one name the
+    // search names under the filters, or refuses with the field's own words, sending nothing.
     check(
-        "the first step's search picks through `pick`, over the catalog's names under the category, each the name itself",
+        "the first step asks the type and the category above the search, which opens its list over what is below",
+        dialog.firstStepFields,
+        "CATALOG.levelLabel.level1, CATALOG.levelLabel.level2, CATALOG.levelLabel.level3"
+    );
+    check(
+        "  the category narrowing it only while the type holds it",
+        dialog.narrowing,
+        '{ level1: filters.level1, level2: categories.some(({ key }) => key === filters.level2) ? filters.level2 : "" }'
+    );
+    check(
+        "the first step's search picks through `pick`, over the catalog's names under the filters, each the name itself with the place no filter says",
         dialog.search,
-        "picks through pick · offers suggestCatalogNames(catalog, { categoryKey, typed }) · each { ...name, label: name.level2, detail: categoryKey ? undefined : name.level1 }"
+        'picks through pick · offers suggestCatalogNames(catalog, { filters: narrowing, typed }) · each { ...name, label: name.level3, detail: pathOf({ level1: narrowing.level1 ? "" : name.level1, level2: narrowing.level2 ? "" : name.level2 }) || undefined }'
     );
+    check("  a pick starts another name's choices afresh, and keeps the name already held's", dialog.pickRule, "if (name.key !== picked?.key) setChosen({});");
     check(
-        "  a pick keeps the size only for the name already held, and starts another's at its one size",
-        dialog.pickRule,
-        'if (name.key !== picked?.key) setCategoryRecordId(onlySize(catalogSizes(catalog, name.key))?.id ?? "");'
-    );
-    check(
-        "  and its Enter takes the one name typed under the category, or refuses, and sends nothing",
+        "  and its Enter takes the one name typed under the filters, or refuses, and sends nothing",
         dialog.firstStep,
-        "findCatalogName(catalog, { categoryKey, typed }) · pick(found) · setGuarded({ fields: { tool: COPY.toolNoneChosen } })"
+        "findCatalogName(catalog, { filters: narrowing, typed }) · pick(found) · setGuarded({ fields: { level3: COPY.levelNoneChosen.level3 } })"
     );
-    check("  only the second step commits", dialog.commitmentUnder, 'step === "size"');
+    // THE SECOND STEP (#514): each level the walk asks, a choice in a field under its own word
+    // and its own refusal, offering what the walk offers and holding what it holds, a change
+    // being that level's choice and the field's own edit; and a press with a level still to
+    // choose says so under the level — while it holds nothing, since a choice before it can
+    // leave it one value without the reader touching it — beside whatever else the reading refused.
+    check(
+        "the second step draws each level the walk asks, as a choice holding what the walk holds",
+        dialog.levels,
+        "details.levels.filter(({ asked }) => asked) · Field { key: level, label: CATALOG.levelLabel[level], labelAs: \"span\", refusal: value === null ? refusalFor(level) : undefined } · Choice { options: options, value: value, onChange: edit(level, (key) => setChosen((was) => ({ ...was, [level]: key }))), placeholder: CATALOG.unchosen[level] }"
+    );
+    check(
+        "  and a press with one still to choose says so under it, beside the reading's refusals",
+        dialog.secondStepRefusal,
+        "{ ...reading, fields: { ...reading.fields, ...detailRefusals(details.levels) } }"
+    );
+    check("  only the second step commits", dialog.commitmentUnder, 'step === "details"');
     check(
         "a reader who may not register meets the opener disabled, with why before it",
         dialog.gate,
@@ -1055,11 +1144,13 @@ export async function run({ check, assert, log }) {
     check("  and no button of it is disabled while it sends", dialog.disabledBySending, 0);
     // ANTI-VACUITY: a planted dialog bound through `action`, sending before it reads,
     // reading the action's old account, starting its fields from literals, naming no category,
-    // asking a row it was handed, gating on something else and staying open over a moved
-    // address is seen doing each — and since #507 a search that picks nothing and offers
-    // labels alone, above the filter it covers, a pick that drops the size whatever it
-    // picked, a way back that drops the name, an Enter blind to the category that refuses
-    // nothing, and a commitment on both steps.
+    // submitting a row whatever it was opened on, gating on something else and staying open
+    // over a moved address is seen doing each — and since #507 a search that picks nothing and
+    // offers labels alone, above the filter it covers, a pick that keeps another name's choices,
+    // a way back that drops the name, an Enter blind to the filters that refuses nothing, and a
+    // commitment on both steps — and since #514 a category kept whatever the type, the steps
+    // walking every row, every level drawn, asked or not, under no refusal, and a press that
+    // drops the levels' refusals.
     const plantedDialog = dialogFacts(
         parseSource(
             "function RegistrationDialog({ canRegister }) {\n" +
@@ -1069,18 +1160,24 @@ export async function run({ check, assert, log }) {
                 "}\n" +
                 "function RegistrationForm({ quantity }) {\n" +
                 "  const [state, formAction] = useActionState(registerAssetsAction, null);\n" +
-                '  const [categoryRecordId] = useState("");\n' +
+                '  const [filters] = useState({ level1: "tool", level2: "" });\n' +
+                '  const [chosen] = useState({ maker: "" });\n' +
                 '  const [count] = useState("1");\n' +
                 '  const [jobId] = useState("");\n' +
                 "  const said = state;\n" +
-                '  const pick = (name) => { setCategoryRecordId(""); setPicked(name); };\n' +
+                "  const narrowing = filters;\n" +
+                "  const details = walkDetails(catalog, chosen);\n" +
+                "  const made = details.category;\n" +
+                "  const pick = (name) => { setPicked(name); };\n" +
                 "  const back = () => { setPicked(null); };\n" +
                 "  const submit = (event) => { startTransition(() => formAction(new FormData(event.currentTarget))); const reading = readRegistration({}, []);" +
-                ' if (step === "tool") { const found = findCatalogName(catalog, { typed }); setPicked(found); } };\n' +
+                ' if (step === "name") { const found = findCatalogName(catalog, { typed }); setPicked(found); }' +
+                " if (!reading.registration) { setGuarded(reading); return; } };\n" +
                 "  return <DialogFrame onSubmit={submit} subtitle={COPY.intro}><form action={formAction}>{said?.error}{said?.assetIds}" +
-                '{step === "tool" ? <><Field label={CATALOG.toolLabel}><Combobox onChange={setTyped} suggestions={tools.map((x) => ({ label: x.itemName }))} /></Field>' +
-                "<Field label={CATALOG.categoryLabel}><Choice /></Field></> : null}" +
-                '{false ? <input type="hidden" name="categoryRecordId" /> : <Choice name="categoryRecordId" />}' +
+                '{step === "name" ? <><Field label={CATALOG.levelLabel.level3}><Combobox onChange={setTyped} suggestions={tools.map((x) => ({ label: x.itemName }))} /></Field>' +
+                "<Field label={CATALOG.levelLabel.level1}><Choice /></Field></> : null}" +
+                '{false ? <input type="hidden" name="categoryRecordId" value={category.id} /> : <Choice name="categoryRecordId" />}' +
+                "{details.levels.filter(() => true).map(({ level }) => <Field label={level}><Choice options={[]} /></Field>)}" +
                 '<Button type="submit" disabled={pending}>{COPY.submit(Number(count))}</Button>' +
                 "</form></DialogFrame>;\n" +
                 "}\n",
@@ -1092,16 +1189,21 @@ export async function run({ check, assert, log }) {
     check("  an old account read is seen", plantedDialog.saidReads, "assetIds, error");
     check(
         "  fields started from literals are seen",
-        `${plantedDialog.starts.categoryRecordId} | ${plantedDialog.starts.count} | ${plantedDialog.starts.jobId}`,
-        '"" | "1" | ""'
+        `${plantedDialog.starts.filters} | ${plantedDialog.starts.chosen} | ${plantedDialog.starts.count} | ${plantedDialog.starts.jobId}`,
+        '{ level1: "tool", level2: "" } | { maker: "" } | "1" | ""'
     );
     check("  a line under the title that names no category, and no way back, is seen", plantedDialog.subtitle, "COPY.intro");
-    check("  a row asked for whatever the dialog was opened on is seen", plantedDialog.nameField, "false else: Choice | false then: input hidden");
+    check("  a row submitted whatever the dialog was opened on is seen", plantedDialog.nameField, "false else: Choice = nothing | false then: input hidden = category.id");
+    check("  a row made by the steps alone is seen", plantedDialog.made, "details.category");
+    check("  steps walking every row, picked or not, are seen", plantedDialog.details, "walkDetails(catalog, chosen)");
     check("  a search that picks nothing, over every row, each its label alone, is seen", plantedDialog.search, "picks through nothing · offers tools · each { label: x.itemName }");
     check("  a way back that drops the name picked is seen", plantedDialog.back, "setPicked(null)");
-    check("  a filter under the search's list is seen", plantedDialog.firstStepFields, "CATALOG.toolLabel, CATALOG.categoryLabel");
-    check("  a pick that drops the size whatever it picked is seen", plantedDialog.pickRule, "none");
-    check("  an Enter blind to the category that refuses nothing is seen", plantedDialog.firstStep, "findCatalogName(catalog, { typed }) · setPicked(found)");
+    check("  a filter under the search's list, and no category, is seen", plantedDialog.firstStepFields, "CATALOG.levelLabel.level3, CATALOG.levelLabel.level1");
+    check("  a category kept whatever the type is seen", plantedDialog.narrowing, "filters");
+    check("  a pick that keeps another name's choices is seen", plantedDialog.pickRule, "none");
+    check("  an Enter blind to the filters that refuses nothing is seen", plantedDialog.firstStep, "findCatalogName(catalog, { typed }) · setPicked(found)");
+    check("  every level drawn, asked or not, under no refusal, is seen", plantedDialog.levels, "details.levels.filter(() => true) · Field { label: level } · Choice { options: [] }");
+    check("  a press that drops the levels' refusals is seen", plantedDialog.secondStepRefusal, "reading");
     check("  a commitment on both steps is seen", plantedDialog.commitmentUnder, "nothing");
     check("  a gate on something else, with no reason, is seen", plantedDialog.gate, "canRegister === false → Button disabled");
     check(

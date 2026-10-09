@@ -317,6 +317,46 @@ export function run({ check, assert, log }) {
         "  and every status is reachable as a nonzero count",
         everyStatus.counts.every((c) => c.count === 1)
     );
+    // EACH ROW SAYS ITS KIND'S CLASS, TYPE AND CATEGORY (#507, #514), each under its level's
+    // name, and two kinds of one name are told apart by the category and then the type, so a
+    // page reads the same on every read.
+    const kinds = summarizeAssetCategories(
+        [
+            { id: "recLaserT", itemName: "Laser Level", assetClass: "B", level1: "Tool", level2: "Measuring", assets: [] },
+            { id: "recLaserE", itemName: "Laser Level", assetClass: "A", level1: "Equipment", level2: "Measuring", assets: [] },
+            { id: "recKnifeX", itemName: "Utility Knife", assetClass: "B", level1: "Tool", level2: "Cutting", assets: [] },
+            { id: "recKnifeC", itemName: "Utility Knife", assetClass: "B", level1: "Tool", level2: "Carpentry", assets: [] },
+        ],
+        []
+    );
+    check(
+        "each row carries its kind's class, type and category, one name ordered by category and then type",
+        kinds.map((r) => `${r.id} ${r.assetClass}/${r.level1}/${r.level2}`).join(" | "),
+        "recLaserE A/Equipment/Measuring | recLaserT B/Tool/Measuring | recKnifeC B/Tool/Carpentry | recKnifeX B/Tool/Cutting"
+    );
+    check("  and a kind without them says nothing for them", `${rowFor(rows, "angle grinder").assetClass}|${rowFor(rows, "angle grinder").level1}|${rowFor(rows, "angle grinder").level2}|`, "|||");
+    // THE LIST'S COLUMNS, OFF ITS SOURCE (#514): the name, then the class, the type and the
+    // category, then a count per status — the type between the two it sits between in a path.
+    const columnHeads = ({ ast, source }) => {
+        const heads = [];
+        walk(ast, (n) => {
+            if (n.type !== "JSXElement" || n.openingElement.name?.name !== "span") return;
+            if (!n.openingElement.attributes.some((a) => a.name?.name === "role" && a.value?.value === "columnheader")) return;
+            const said = n.children.find((child) => child.type === "JSXExpressionContainer")?.expression;
+            heads.push(said ? source.slice(said.start, said.end) : "nothing");
+        });
+        return heads.join(", ");
+    };
+    check(
+        "the list heads its columns the name, the class, the type, the category and each status",
+        columnHeads(parseFile(LIST_SCREEN)),
+        "COPY.toolLabel, ASSET_CATEGORY_COPY.classLabel, ASSET_CATEGORY_COPY.levelLabel.level1, ASSET_CATEGORY_COPY.levelLabel.level2, status"
+    );
+    check(
+        "  and a list with the type left out is seen (anti-vacuity)",
+        columnHeads(parseSource('<div><span role="columnheader">{COPY.toolLabel}</span><span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span></div>', "<planted-heads>")),
+        "COPY.toolLabel, ASSET_CATEGORY_COPY.levelLabel.level2"
+    );
     // An asset whose link did not resolve is counted nowhere rather than
     // throwing — `findByRecordIds` returns fewer rows than it was asked for, and
     // one bad link must not take the whole list down.
@@ -1085,7 +1125,8 @@ export function run({ check, assert, log }) {
     // WHAT THE CATEGORY AND THE CATALOG ARE (#507), off their declarations, since `category: opened`
     // above reads alike whatever `opened` is: the row the page read, by the id the action
     // admits and the class the second step says, and the catalog the reading admits it from —
-    // that one row, while the catalog offers it.
+    // that one row, while the catalog offers it, as `registrationCatalog` hands a dialog a row,
+    // so the second step starts on its levels (#514).
     const handedOn = ({ ast, source }) => {
         const declared = {};
         walk(ast, (n) => {
@@ -1097,7 +1138,7 @@ export function run({ check, assert, log }) {
     check(
         "  the tool is the row the page read, and the catalog that row while the catalog offers it",
         handedOn(parseFile(CATEGORY_SCREEN)),
-        "{ id: category.id, itemName: category.itemName, assetClass: category.assetClass } | readCatalog([category]).offered.map(({ id, itemName, assetClass }) => ({ id, itemName, assetClass }))"
+        "{ id: category.id, itemName: category.itemName, assetClass: category.assetClass } | registrationCatalog([category])"
     );
     check(
         "  and a page handing a row of its own making, and the whole table as its catalog, is seen (anti-vacuity)",
@@ -1111,14 +1152,14 @@ export function run({ check, assert, log }) {
     check(
         "  on no tool, in the same title, with the whole catalog to pick from — whatever the list's scope (#509, #507)",
         listOpeners[0]?.handed,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: readCatalog(assetCategories).offered.map(…), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterAssets");
     check("  and under the reader being a site manager alone too (#506)", listOpeners[0]?.under, "recorder");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterAssets(user, allJobs), catalog: readCatalog(assetCategories).offered.map(…), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder"
+        "canRegister: canRegisterAssets(user, allJobs), catalog: registrationCatalog(categories), jobs: assignedJobsFor(user, allJobs).map(…), opener: ASSET_REGISTRATION_COPY.heading, variant: bordered | canRegisterAssets | rows.length === 0, !(narrowed), recorder"
     );
     // The count a suggested tool carried, its link array's length (#456), was held here until
     // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
@@ -1701,7 +1742,7 @@ export function run({ check, assert, log }) {
     check(
         "the tool list asks the one judgment, and reads and counts by it",
         scopeUse(parseFile(LIST_SCREEN)),
-        "assetCategoriesInScope(assetCategories, scope.shown | assetCategories, scope.start) assetListScope(user, allJobs, sp.job) idsInScope(assetCategory.assets, scope.shown)"
+        "assetCategoriesInScope(categories, scope.shown | categories, scope.start) assetListScope(user, allJobs, sp.job) idsInScope(category.assets, scope.shown)"
     );
     check(
         "  and a tool's page the same one, cutting its page from it",

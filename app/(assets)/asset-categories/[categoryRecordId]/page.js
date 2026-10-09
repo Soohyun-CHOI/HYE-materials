@@ -5,7 +5,7 @@ import { getAssetCategoriesByRecordIds } from "@/lib/airtable/assetCategories";
 import { assignedJobsFor } from "@/lib/assetJob";
 import { FILTER_BAR_COPY } from "@/lib/listFilters";
 import { ASSET_LIST_COPY as COPY, idsInScope, pageOfAssets, assetListScope } from "@/lib/assetListView";
-import { readCatalog } from "@/lib/assetCategory";
+import { registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets, readRegistrationAccount } from "@/lib/assetRegistration";
 import { ASSET_CATEGORIES_PATH, assetCategoriesPath } from "@/lib/assetRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -99,8 +99,9 @@ export const metadata = { title: "Tool" };
  * finds, the one with nothing under it included — disabled, with the reason before it,
  * for a site manager on no job, as `/asset-categories`' own control and the offer below are (#456).
  * The dialog starts at its second step on this kind (#507): the kind is submitted by its
- * record id, and the dialog is handed the kind as the catalog it may pick from, which is
- * none at all for a row the catalog no longer offers — its refusal is then the action's.
+ * record id, and the dialog is handed the kind as the catalog it may pick from — so the
+ * levels it asks start on this kind's values (#514) — which is none at all for a row the
+ * catalog no longer offers: its refusal is then the action's.
  *
  * WHAT THE KIND IS, IN THE CAPTION UNDER ITS NAME (#507): its class and where it sits in the
  * catalog, off the row already read (`CategoryCaption`).
@@ -207,9 +208,10 @@ async function renderCategoryPage({ params, searchParams }) {
     // before the opener, as on `/asset-categories`.
     const top = <Breadcrumb levels={[{ label: COPY.heading, href: assetCategoriesPath(1, job) }]} />;
     // The dialog on this kind (#507): the row as the page read it, and the catalog it may pick
-    // from, which is this row alone — none when the catalog no longer offers it.
+    // from, which is this row alone — none when the catalog no longer offers it — so each
+    // level its second step asks has this row's value already chosen (#514).
     const opened = { id: category.id, itemName: category.itemName, assetClass: category.assetClass };
-    const catalog = readCatalog([category]).offered.map(({ id, itemName, assetClass }) => ({ id, itemName, assetClass }));
+    const catalog = registrationCatalog([category]);
     const registration = { opener: ASSET_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, category: opened, catalog };
     const header = (
         <ListHeader

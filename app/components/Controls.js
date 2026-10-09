@@ -742,10 +742,12 @@ const TYPEAHEAD_MS = 500;
  * nothing — and stops there, so a dialog around it stays open.
  *
  * WITH ONE OPTION IT IS ALREADY CHOSEN, AND WITH SEVERAL IT STARTS EMPTY (0l): that is the
- * caller's `value`, and the placeholder is what it shows while nothing is chosen, at Ink 3.
+ * caller's `value`, and the placeholder is what it shows while nothing is chosen, at Ink 3 —
+ * a `value` no option holds, `null` among them, since an option's value can be `""` (#514).
  * What it shows sits 12 in at 400, a form field's (0a Side room), as the text field's does
  * — until #505 it held a 36 button's 16 at 500, which no drawing drew.
- * What submits is the hidden input under `name`, carrying the chosen option's value.
+ * What submits is the hidden input under `name`, carrying the chosen option's value; a choice
+ * with no `name` submits nothing and draws no input.
  *
  * INSIDE A BUSY FORM IT IS READ-ONLY (#469): it keeps focus and its look, and no key and no
  * press opens it or changes what it holds. Tab still leaves.
@@ -850,7 +852,7 @@ export function Choice({ name, options, value, onChange, placeholder }) {
                 </span>
                 <Icon name="chevron-down" className="size-icon-sm shrink-0 text-foreground-subtle" />
             </div>
-            <input type="hidden" name={name} value={value} />
+            {name && <input type="hidden" name={name} value={value} />}
             <Menu
                 id={listId}
                 anchorRef={anchorRef}

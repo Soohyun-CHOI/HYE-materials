@@ -15,7 +15,7 @@ import {
 } from "@/lib/assetListView";
 import { assetCategoryPath, assetCategoriesPath } from "@/lib/assetRoutes";
 import { ASSET_STATUS_VALUES } from "@/lib/assetStatus";
-import { ASSET_CATEGORY_COPY, readCatalog } from "@/lib/assetCategory";
+import { ASSET_CATEGORY_COPY, registrationCatalog } from "@/lib/assetCategory";
 import { ASSET_REGISTRATION_COPY, canRegisterAssets } from "@/lib/assetRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
@@ -29,11 +29,16 @@ import RegistrationDialog from "./RegistrationDialog";
 export const metadata = { title: COPY.heading };
 
 // 1a's columns: the name, then a count for each status at 96, right-aligned — and since
-// #507 the kind's class and its category between them. The class takes a count's track, the
-// one narrow track 1a draws, and the category shares the room with the name, until Design
-// draws the two columns.
+// #507 the kind's class and its category between them, and since #514 its type between
+// those two, in the order a path says type and category. The class and the type each take a
+// count's track, the one narrow track 1a draws — `Equipment` fits it — and the category shares
+// the room with the name, until Design draws the columns. THE NAME TAKES THREE PARTS OF THAT
+// ROOM TO THE CATEGORY'S ONE SINCE #514: a name carries its maker and part number now, which
+// are what tell two rows of one tool and size apart, so it is the cell a cut would cost the
+// most — seen at 1440, where an even split cut `DEMO Cordless Drill 18V, DEMO DeWalt (DCD791)`
+// at 228 and left `DEMO Machining` 114 short of its 228.
 const COLUMNS =
-    "grid-cols-[minmax(0,1fr)_var(--width-table-count)_minmax(0,1fr)_repeat(3,var(--width-table-count))]";
+    "grid-cols-[minmax(0,3fr)_var(--width-table-count)_var(--width-table-count)_minmax(0,1fr)_repeat(3,var(--width-table-count))]";
 
 /**
  * Every kind of asset the company owns, with a count per status (#339).
@@ -55,7 +60,7 @@ const COLUMNS =
  * choice the head narrows by. It was read for the registration dialog alone from #456,
  * and for a site manager alone from #506; the dialog takes the reader's own jobs from
  * the same read. The catalog the dialog picks a kind from is every row of the same read that
- * a registration may pick (`readCatalog`, #507) — a kind is the company's, whatever scope
+ * a registration may pick (`registrationCatalog`, #507) — a kind is the company's, whatever scope
  * this list is in — so it costs nothing.
  *
  * WHAT A READER STARTS FROM, AND WHAT A JOB NARROWS (#509). The office starts from every
@@ -67,9 +72,10 @@ const COLUMNS =
  * the reader started. `lib/assetListView.js:assetListScope` is the judgment, and a category's own
  * page reads its rows by the same one.
  *
- * EACH ROW SAYS ITS KIND'S CLASS AND CATEGORY (#507), off the row already read. A kind's name
- * is its tool and its size, so the category is what the row says beside it; a kind the
- * office left without one shows the cell empty, and no word stands in for it.
+ * EACH ROW SAYS ITS KIND'S CLASS, TYPE AND CATEGORY (#507, #514), off the row already read. A
+ * kind's name is its name, its size, and its maker and part number, so the type and the
+ * category are what the row says beside it; a kind the office left without one shows the
+ * cell empty, and no word stands in for it.
  *
  * A READER WHO IS NOT A SITE MANAGER READS THE SAME LIST WITH NO OPENER (#506), in the
  * head or under an empty list: adding assets is a site manager's, and the action behind
@@ -121,15 +127,15 @@ async function renderCategoriesPage({ searchParams }) {
     // under.
     const recorder = isSiteManager(user);
 
-    const [assetCategories, allJobs] = await Promise.all([getAllAssetCategories(), getAllJobs()]);
+    const [categories, allJobs] = await Promise.all([getAllAssetCategories(), getAllJobs()]);
     const scope = assetListScope(user, allJobs, sp.job);
     const narrowed = scope.job !== null;
     // The categories the scope reaches, and of theirs the assets in it, in one batched read.
-    const shownCategories = assetCategoriesInScope(assetCategories, scope.shown);
-    const assets = await getAssetsByRecordIds(shownCategories.flatMap((assetCategory) => idsInScope(assetCategory.assets, scope.shown)));
+    const shownCategories = assetCategoriesInScope(categories, scope.shown);
+    const assets = await getAssetsByRecordIds(shownCategories.flatMap((category) => idsInScope(category.assets, scope.shown)));
     const rows = summarizeAssetCategories(shownCategories, assets);
     const page = pageOfAssetCategories(rows, sp.page);
-    const total = assetCategoriesInScope(assetCategories, scope.start).length;
+    const total = assetCategoriesInScope(categories, scope.start).length;
     // 0n's figure alone, and while a job narrows the list the document lists' `N of M`, `M`
     // being where the reader started (#509).
     const count = narrowed ? FILTER_BAR_COPY.count(rows.length, total) : rows.length;
@@ -149,14 +155,7 @@ async function renderCategoriesPage({ searchParams }) {
         opener: ASSET_REGISTRATION_COPY.heading,
         canRegister: canRegisterAssets(user, allJobs),
         jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),
-        catalog: readCatalog(assetCategories).offered.map(({ id, itemName, level1, level2, size, assetClass }) => ({
-            id,
-            itemName,
-            level1,
-            level2,
-            size,
-            assetClass,
-        })),
+        catalog: registrationCatalog(categories),
     };
 
     return (
@@ -197,7 +196,8 @@ async function renderCategoriesPage({ searchParams }) {
                     <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
                         <span role="columnheader">{COPY.toolLabel}</span>
                         <span role="columnheader">{ASSET_CATEGORY_COPY.classLabel}</span>
-                        <span role="columnheader">{ASSET_CATEGORY_COPY.categoryLabel}</span>
+                        <span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level1}</span>
+                        <span role="columnheader">{ASSET_CATEGORY_COPY.levelLabel.level2}</span>
                         {ASSET_STATUS_VALUES.map((status) => (
                             <span key={status} role="columnheader" className="text-right">
                                 {status}
@@ -212,8 +212,9 @@ async function renderCategoriesPage({ searchParams }) {
                                 </Link>
                             </span>
                             <span role="cell">{row.assetClass}</span>
+                            <span role="cell">{row.level1}</span>
                             <span role="cell" className="min-w-0 truncate">
-                                {row.category}
+                                {row.level2}
                             </span>
                             {/* All three statuses on every row, a zero included: an absent
                                 one would read as "not known" where a `0` reads as "none",

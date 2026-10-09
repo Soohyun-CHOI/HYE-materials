@@ -120,7 +120,6 @@ because it stands for three things and a sweep needs to know which.
 | `1 tool couldn't be added`, `5 tools couldn't be added` | the shortfall's title | assets |
 | `1 tool has no creation date`, `5 tools have no creation date` | the notice's title | assets |
 | `That tool isn't available any more.` | registration dialog | a category |
-| `Tool`, `Choose a tool`, `Choose a tool.` | registration dialog's first step | the second level |
 | `No tools yet` | the category list, empty | assets |
 | `Each tool shows here with how many are in stock, out and retired.` | the category list, empty | a category |
 | `Tool` | the category list: the name column's head | a category |
@@ -136,10 +135,11 @@ because it stands for three things and a sweep needs to know which.
 | `No tools have gone out on this job yet.` | the name sheet | assets |
 | `Retire this tool`, `Retire tool` | an asset's page: the menu and the confirm | an asset |
 
-The second level is the one `tool` that is not a row: the catalog's levels are
-`Level 1`, `Level 2` and `Size`, a screen says `Category`, `Tool` and `Size`, and
-#514 reshapes the levels — so that row is likely to be decided there rather than
-here.
+The registration's second level was the one `tool` that was not a row — `Tool`,
+`Choose a tool` and `Choose a tool.` on its search — and #514 took it: the
+catalog's levels are six, `Level 1` to `Level 3`, `Size`, `Maker` and `Part
+Number`, and the search names the third, `Name`. The next section lists what
+#514 says.
 
 ### What moves with them
 
@@ -152,10 +152,11 @@ the screen says it.
 - `ASSET_COPY.toolLabel` and `.backToTools` in `lib/assetView.js`, the first of
   which the list's `toolLabel` reads.
 - `ASSET_REGISTRATION_COPY.toolGone` in `lib/assetRegistration.js`.
-- The second level, not a row: `ASSET_CATEGORY_COPY.toolLabel` and
-  `.toolUnchosen` in `lib/assetCategory.js`, `ASSET_REGISTRATION_COPY`'s
-  `.toolNoneChosen` and `.changeTool`, the dialog's first step `"tool"` in
-  `RegistrationDialog.js`, and the refusal key `fields.tool`.
+- The second level, not a row, until #514 renamed it with its level:
+  `ASSET_CATEGORY_COPY.toolLabel` and `.toolUnchosen`, `ASSET_REGISTRATION_COPY`'s
+  `.toolNoneChosen` and `.changeTool`, the dialog's first step `"tool"` and the
+  refusal key `fields.tool` are the level's maps keyed `level3`, `changeName`,
+  the step `"name"` and `fields.level3`.
 - The checks that pin these strings by value: `offline/asset-registration.mjs`,
   `asset-category.mjs`, `asset-list-view.mjs`, `asset-view.mjs`,
   `asset-transition.mjs`, `asset-screen-words.mjs` and `screen-briefs.mjs`.
@@ -165,6 +166,36 @@ the screen says it.
 
 An `Assets` row is an **asset**: `Asset ID` (`HYE-AST-YYMMDD-###`), `Category`,
 `Job`, `Status`. An `Asset Categories` row is a **category**: `Item Name`, a
-formula over `Level 2` and `Size`, beside `Level 1` and `Class`. An `Asset Log`
-row is an entry in an asset's history. `docs/notes/naming.md` has the rows for
-`tool` / `item`, `Tools & Equipment` and `category`.
+formula over `Level 3`, `Size`, `Maker` and `Part Number`, beside `Level 1`,
+`Level 2` and `Class` (#514; over `Level 2` and `Size` until then). An `Asset
+Log` row is an entry in an asset's history. `docs/notes/naming.md` has the rows
+for `tool` / `item`, `Tools & Equipment`, `category` and the six level words.
+
+---
+
+## The catalog's six levels (#514)
+
+The registration names a kind by its type, category and name on its first
+step, and by the size, maker and part number its rows hold on its second; the
+lists and the two pages that head a kind say the type beside the class and the
+category. The level words are the issue's; the rest are the closest shape the
+app already says until Design draws the dialog and the list.
+
+### What a reader sees
+
+| String | Where | Shape it takes |
+|---|---|---|
+| `Type`, `Category`, `Name`, `Size`, `Maker`, `Part #` | the dialog's fields, the list's `Type` column | the issue's words |
+| `All types` | the dialog's type, nothing chosen | `All jobs`, `All categories` |
+| `Choose a name`, `Choose a size`, `Choose a maker`, `Choose a part #` | a field still to choose | `Choose a job` (0l) |
+| `Choose a name.`, `Choose a size.`, `Choose a maker.`, `Choose a part #.` | the refusal under each | `Choose a job.` (0l) |
+| `No size`, `No maker`, `No part #` | a level left empty, as its option and its value | new: one per level |
+| `Tool > DEMO Machining` | beside a name in the search, the line under the title | the caption's path |
+| `Class A · Tool > … > GA4570` | a kind's caption, the type first | #507's caption |
+
+**`No maker` is a value and not a placeholder**, which is why it is set in the
+field's ink and `Choose a maker` in the placeholder's: a level a row leaves
+empty starts on it, so a reader who leaves it alone has chosen the row without
+a maker and the field says so. One word per level rather than one for all:
+`None` is also what the catalog's check refuses as a value, and a screen saying
+it would read as asking the office to type it.

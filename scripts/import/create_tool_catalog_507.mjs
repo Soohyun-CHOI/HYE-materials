@@ -20,11 +20,13 @@
 // is copied into `Level 2` before the conversion, where it stays the tool's own word, and the
 // hand step is not printed while any row with a name still has an empty `Level 2`.
 //
-// RE-RUN IT AFTER THE CATALOG IS FILLED, AND IT IS THE CATALOG'S CHECK. Once the schema
-// matches, a run writes nothing and reads every row back: it compares each name the base
-// computed with lib/assetCategory.js's rule, and it lists every row a registration cannot
-// choose — a level or the class missing, or a path another row already names — which is how
-// a row the office typed and the app does not offer gets found.
+// IT WAS THE CATALOG'S CHECK UNTIL #514, WHICH CLASSIFIED THE CATALOG IN SIX LEVELS AND MOVED
+// THE CHECK TO scripts/import/classify_asset_categories_514.mjs. A run on a base with #514's
+// levels refuses before it writes: this spec's `Level 1` is #507's category, and its
+// descriptions would overwrite #514's. Until then a run on a matching schema wrote nothing,
+// compared each name the base computed with lib/assetCategory.js's rule, and listed every
+// row a registration could not choose. The fields and the rule it imports are #514's now,
+// which is a second reason it cannot be run again as written.
 //
 // IT TALKS TO THE REST API DIRECTLY, for create_material_categories_354.mjs' reason: the
 // schema half has no SDK. lib/airtableOps.js cannot see these calls, so the run counts them.
@@ -225,6 +227,14 @@ async function main() {
     if (!nameField || nameField.id !== table.primaryFieldId) {
         log(`${TABLE_NAME}."${NAME_FIELD}" is not the primary field — stopping.`);
         return finish(air, 1, "the table is not the shape this expects");
+    }
+    // #514 MOVED THE LEVELS, AND THIS SCRIPT'S SPEC IS #507's. Its `Level 1` is a category in
+    // text where #514's is the type in a select, so a run would stop on the type, and before
+    // that would write #507's descriptions over #514's. The catalog's check is #514's script.
+    if (table.fields.some((f) => f.name === "Level 3")) {
+        log(`${TABLE_NAME} has #514's six levels — this script's spec is #507's three.`);
+        log("The catalog's check is scripts/import/classify_asset_categories_514.mjs; run that instead.");
+        return finish(air, 1, "refused: the catalog is #514's");
     }
 
     // --- the four fields --------------------------------------------------

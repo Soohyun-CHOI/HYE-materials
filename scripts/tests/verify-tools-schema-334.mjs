@@ -31,10 +31,11 @@
 // Part A is safe at any time. Parts B and C create records, cleaned up within the
 // run through scripts/tests/_fixtures.mjs. Cost is roughly 20 operations.
 //
-// `Asset Categories` IS THE CATALOG SINCE #507, so Part A reads its four fields and the class's
-// options against lib/assetCategory.js, and Part B writes its kind by those fields and
-// reads back the name the base's formula gave it — the one place `composeItemName`
-// is held against the live expression outside the creation script. Its kind was a
+// `Asset Categories` IS THE CATALOG SINCE #507, so Part A reads its fields — seven since
+// #514 — and the type's and the class's options against lib/assetCategory.js, and Part B
+// writes its kind by those fields and reads back the name the base's formula gave it — the
+// one place `composeItemName` is held against the live expression outside the catalog's
+// check, scripts/import/classify_asset_categories_514.mjs. Its kind was a
 // typed `Tool Name`, found by name, until then. This also named `Tool Log."Notes"`,
 // which #363 deleted, in Part A's list, the fixture tag and Part B's entry; a log row
 // is tagged by `Checked Out To` now, the text a `Checked out` row carries (#376), and
@@ -60,7 +61,7 @@ import {
     ASSET_STATUS,
     ASSET_STATUS_VALUES,
 } from "../../lib/assetStatus.js";
-import { ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, composeItemName } from "../../lib/assetCategory.js";
+import { ASSET_CATEGORY_FIELDS, ASSET_CLASS_VALUES, ASSET_TYPE_VALUES, composeItemName } from "../../lib/assetCategory.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 
@@ -102,8 +103,9 @@ const fixtures = createFixtures({
             name: "tools",
             table: TABLES.ASSET_CATEGORIES,
             label: "Tool",
-            // The field the kind is written by (#507); its formula name begins the same.
-            tagField: ASSET_CATEGORY_FIELDS.level2,
+            // The field the kind is named by (#507) — `Level 3` since #514 — which its
+            // formula name begins with.
+            tagField: ASSET_CATEGORY_FIELDS.level3,
             children: [{ link: "Assets", table: TABLES.ASSETS, label: "Tool Item" }],
         },
     ],
@@ -138,12 +140,16 @@ try {
         const field = (table, name) => (table?.fields || []).find((f) => f.name === name);
 
         const EXPECTED = {
-            // The catalog since #507: the name a formula over two of the four.
+            // The catalog since #507, in six levels and a class since #514: the name a
+            // formula over four of them, and the type a select as the class is.
             [TABLES.ASSET_CATEGORIES]: [
                 ["Item Name", "formula"],
-                [ASSET_CATEGORY_FIELDS.level1, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.level1, "singleSelect"],
                 [ASSET_CATEGORY_FIELDS.level2, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.level3, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.size, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.maker, "singleLineText"],
+                [ASSET_CATEGORY_FIELDS.partNumber, "singleLineText"],
                 [ASSET_CATEGORY_FIELDS.assetClass, "singleSelect"],
             ],
             [TABLES.ASSETS]: [
@@ -197,10 +203,14 @@ try {
         const strayEvent = liveEvent.filter((n) => !ASSET_EVENT_VALUES.includes(n));
         check("    choices on Status no code can write", strayStatus.join(", "), "");
         check("    choices on Event no code can write", strayEvent.join(", "), "");
-        // THE CLASS'S TWO (#507), against lib/assetCategory.js for the same reason.
+        // THE CLASS'S TWO (#507) AND THE TYPE'S (#514), against lib/assetCategory.js for the
+        // same reason.
         const classField = field(byName.get(TABLES.ASSET_CATEGORIES), ASSET_CATEGORY_FIELDS.assetClass);
         const liveClass = (classField?.options?.choices || []).map((c) => c.name);
         check("    Asset Categories.Class", liveClass.join(" | "), ASSET_CLASS_VALUES.join(" | "));
+        const typeField = field(byName.get(TABLES.ASSET_CATEGORIES), ASSET_CATEGORY_FIELDS.level1);
+        const liveType = (typeField?.options?.choices || []).map((c) => c.name);
+        check(`    Asset Categories."${ASSET_CATEGORY_FIELDS.level1}"`, liveType.join(" | "), ASSET_TYPE_VALUES.join(" | "));
 
         log();
         log("  the five inverses, checked on the far tables:");
@@ -248,9 +258,18 @@ try {
         incomplete = true;
     } else {
         const user = users[0];
-        // A catalog row, written by its four fields as the office types one (#507);
-        // `Item Name` is the base's to compute.
-        const kind = { level1: `${TAG} probe tools`, level2: `${TAG} probe drill`, size: "18V", assetClass: ASSET_CLASS_VALUES[1] };
+        // A catalog row, written by its fields as the office types one (#507), all six levels
+        // filled so the name carries its comma and both its halves (#514); `Item Name` is the base's to
+        // compute.
+        const kind = {
+            level1: ASSET_TYPE_VALUES[1],
+            level2: `${TAG} probe tools`,
+            level3: `${TAG} probe drill`,
+            size: "18V",
+            maker: "Probe Maker",
+            partNumber: "PD-18",
+            assetClass: ASSET_CLASS_VALUES[1],
+        };
         // `Asset ID` is written as a literal here rather than minted: #335 owns
         // the generator and does not exist yet, and the shape of a top-level ID is
         // that issue's subject. What this part is for is the CHILD id, which is
@@ -294,8 +313,8 @@ try {
         check("    itemName, as the formula names it", readCategory?.itemName, composeItemName(kind));
         check(
             "    its path and class, through the mapper",
-            `${readCategory?.level1} | ${readCategory?.level2} | ${readCategory?.size} | ${readCategory?.assetClass}`,
-            `${kind.level1} | ${kind.level2} | ${kind.size} | ${kind.assetClass}`
+            Object.keys(kind).map((key) => readCategory?.[key]).join(" | "),
+            Object.values(kind).join(" | ")
         );
         assert("    carries its Assets reverse-link", (readCategory?.assets || []).includes(itemRecord.id));
 

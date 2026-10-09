@@ -162,7 +162,7 @@ export function run({ check, assert, log }) {
             list.includes(ASSET_REGISTRATION_COPY.submit(null)) &&
             list.includes(ASSET_REGISTRATION_COPY.submit(1)) &&
             list.includes(ASSET_REGISTRATION_COPY.working) &&
-            list.includes(ASSET_REGISTRATION_COPY.changeTool)
+            list.includes(ASSET_REGISTRATION_COPY.changeName)
     );
     const landing = stringsForRoute("/asset-categories/[categoryRecordId]").strings.map((s) => s.text);
     assert("  and the pieces of a builder on the page a registration lands on", landing.some((t) => t.includes("couldn't be added")));

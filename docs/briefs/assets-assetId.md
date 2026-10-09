@@ -55,12 +55,16 @@ where the screen opens. An asset whose tool did not resolve is headed by its
 id. It was the `Asset ID` as the heading, and nothing else, until #463.
 
 **identity.** What the tool is (#507): its class and where it sits in the
-catalog, `Class B · DEMO Power Tools > DEMO Jigsaw > T-Shank` — under the id
-and the job at a desk, and under the name on a phone. It says what the name
-cannot: a name is the tool and its size with a space between, so it says
-neither where one ends and the other begins nor which category holds it. The
-class is information — `A` for a tool that matters more, usually a dearer one,
-`B` otherwise — and no control here reads it. Design is drawing the line; it is
+catalog, type first (#514), `Class A · Tool > DEMO Machining > DEMO Angle
+Grinder > 4-1/2" > DEMO Makita > GA4570` — under the id and the job at a desk,
+and under the name on a phone, where a long one runs to two or three lines. It
+says what the name cannot: a name is the tool's name and its size with a space
+between, then a comma and its maker, then its part number in parentheses,
+`DEMO Angle Grinder 4-1/2", DEMO Makita (GA4570)`, so it says neither where
+the name ends and the size begins nor which category or type holds it. The type and the class are information — the type `Equipment` or
+`Tool`, which changes nothing this screen offers, and the class `A` for a tool
+that matters more, usually a dearer one, `B` otherwise — and no control here
+reads either. Design is drawing the line; it is
 the record header's line under its title until then. A part the tool lacks is
 left out, and with neither there is no line.
 

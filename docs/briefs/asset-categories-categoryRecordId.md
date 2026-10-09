@@ -52,16 +52,21 @@ it — the shape the asset's screen takes with its printed id and the
 four document detail screens take with theirs.
 
 **identity.** Under the heading, what the tool is (#507): its class and where
-it sits in the catalog, `Class B · DEMO Power Tools > DEMO Jigsaw > T-Shank`.
-**It says what the name cannot**: a name is the tool and its size with a space
-between, `DEMO Jigsaw T-Shank`, so it says neither where the tool ends and the
-size begins nor which category holds it. The class is information — `A` for a
-tool that matters more, usually a dearer one, `B` otherwise — and nothing here
-acts on it. Design is drawing the line; it is the record header's line under
+it sits in the catalog, type first (#514), `Class B · Tool > DEMO Carpentry >
+DEMO Jigsaw > T-Shank`, and for a piece of equipment by a maker `Class A ·
+Equipment > DEMO Welding > DEMO Welding Machine > DEMO Miller > Millermatic
+255`. **It says what the name cannot**: a name is the tool's name and its size
+with a space between, then a comma and its maker, then its part number in
+parentheses, `DEMO Jigsaw T-Shank`, `DEMO Welding Machine, DEMO Miller
+(Millermatic 255)`, so it says neither where the name ends and the size begins
+nor which category or type holds it. The type and the class are
+information — the type `Equipment` or `Tool`, the class `A` for a tool that
+matters more, usually a dearer one, `B` otherwise — and nothing here acts on
+either. Design is drawing the line; it is the record header's line under
 its title (0n) until then. A part the tool lacks is left out, and with neither
 there is no line.
 
-**action.** A way back to `/asset-categories`: the breadcrumb's one level, `Asset Categories`
+**action.** A way back to `/asset-categories`: the breadcrumb's one level, `Tools & Equipment`
 behind a chevron (#460), the word the asset's screen opens its path with
 for the same trip.
 
@@ -71,7 +76,7 @@ for the same trip.
 registration as buying the first, and the dialog puts them under this tool,
 which it names under its title — so somebody who knows which tool they bought
 starts here rather than finding it in the catalog again: the dialog opens at
-its second step, the size already this tool's (#507). **It carries no count**:
+its second step, each level already this tool's (#507, #514). **It carries no count**:
 nothing on this screen knows how many were bought, so the dialog asks,
 starting where it always starts. **Nor does it carry the selection or the
 page**: the boxes are for printing, and it opens the same dialog from every
@@ -214,7 +219,7 @@ narrowed to (#509).
 **When a job narrows the list (#509):** the head's figure reads `N of M` — the
 document lists' words for the same thing — `M` being what the reader started
 from; the rows, the pager and the page box are that job's alone, and the
-breadcrumb's `Asset Categories` keeps the job. A job with none of this tool's items on it
+breadcrumb's `Tools & Equipment` keeps the job. A job with none of this tool's items on it
 draws the head and nothing under it, `0 of 91` and the choice saying it; Design
 is drawing what that state says. So does a tool whose items are all off the
 reader's jobs, before any job is chosen: `No items under this tool` would be

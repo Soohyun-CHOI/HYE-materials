@@ -8,15 +8,17 @@ import Dot from "@/app/components/Dot";
 import { onlyJob } from "@/lib/assetJob";
 import {
     ASSET_CATEGORY_COPY as CATALOG,
-    catalogCategories,
-    catalogSizes,
+    catalogLevelValues,
+    catalogRowsOf,
     findCatalogName,
-    onlySize,
+    pathOf,
     suggestCatalogNames,
+    walkDetails,
 } from "@/lib/assetCategory";
 import {
     MAX_ASSETS_PER_REGISTRATION,
     ASSET_REGISTRATION_COPY as COPY,
+    detailRefusals,
     openingCount,
     readQuantity,
     readRegistration,
@@ -28,31 +30,43 @@ import { registerAssetsAction } from "./actions";
  * (#456), and the control that opens it. It was the form at `/tools/new` from #338 to #456.
  *
  * TWO STEPS SINCE #507, BECAUSE A REGISTRATION PICKS A KIND FROM THE CATALOG. The first finds
- * the tool — a search over the catalog's tools, which the category narrows — and picking one
- * goes on to the second, which takes its size, the count and the job, says the class of the
- * kind they make, and submits. Design is drawing the two; until then each is the closest the
- * app draws: 0l's fields, the search being the one the tool's name was typed in, and the way
- * back the sign-in steps' `Change` (0o), on the line under the title beside what the first
- * step picked. Nothing here creates a kind: the name typed on this dialog from #338 was found
- * or created as it was written, and the office keeps the catalog in Airtable now.
+ * the name — a search over the catalog's names, which the type and the category narrow — and
+ * picking one goes on to the second, which takes the levels the catalog holds under that name
+ * (#514) — its size, maker and part number, each only where a row gives it one — the count and
+ * the job, says the class of the kind they make, and submits. Design is drawing the two; until
+ * then each is the closest the app draws: 0l's fields, the search being the one the tool's
+ * name was typed in, the two filters 0l's choice side by side as the quantity and the job
+ * stand, and the way back the sign-in steps' `Change` (0o), on the line under the title
+ * beside what the first step picked. Nothing here creates a kind: the name typed on this
+ * dialog from #338 was found or created as it was written, and the office keeps the catalog
+ * in Airtable now.
+ *
+ * THE SECOND STEP IS `walkDetails`' ANSWER, DRAWN. Which levels it asks, what each offers under
+ * the choices before it, which may be left empty — `No maker` first, and the level starting
+ * on it — and which row they make are `lib/assetCategory.js`'s, asked again on every render of
+ * what the reader chose; this holds the choices and nothing derived from them, so a choice a
+ * choice before it took away is read there as never made, and no effect has to clear it.
  *
  * WHERE FOCUS GOES BETWEEN THE TWO IS THE FRAME'S RULE AND NOT A RULE OF ITS OWN. Opening, the
  * caret is in the search, the frame's first field that takes typing. A step that goes takes
  * what held focus with it — the search, or `Change` — and the frame puts focus that falls in
- * an open dialog on the first thing its body holds that can take it (#469): the size, and back
- * on the first step the category. THE CATEGORY STANDS ABOVE THE SEARCH because the search
- * opens its list as it takes focus, which the dialog's opening gives it: the list drops over
- * whatever stands below, and the filter under it was covered before it could be reached —
- * seen at 1440 on the first walk, the list over the whole field.
+ * an open dialog on the first thing its body holds that can take it (#469): the first level
+ * the second step asks, or the count where it asks none, and back on the first step the type.
+ * THE FILTERS STAND ABOVE THE SEARCH because the search opens its list as it takes focus,
+ * which the dialog's opening gives it: the list drops over whatever stands below, and the
+ * filter under it was covered before it could be reached — seen at 1440 on #507's first
+ * walk, the list over the whole field.
  *
  * THREE OPENERS, AND EACH HANDS OVER WHAT THE ADDRESS USED TO CARRY. The category list opens
  * it on no kind, so the first step picks one; a kind's own page opens it on that kind; and
  * the offer a registration that fell short makes opens it on that kind with the count it did
- * not write. Opened on a kind, the dialog starts at its second step with the size already the
- * kind's and nothing to pick: the kind's name is the line under the title, the design's, and
- * there is no way back, since what is added goes under the kind that page is about — another
- * is picked from the list's opener (#449, #451, #456). Nothing is written to the address to
- * open it, and nothing about where it was opened from is said inside it.
+ * not write. Opened on a kind, the dialog starts at its second step with that kind's levels
+ * already chosen — the catalog it is handed is that row alone, so each level it asks has one
+ * value, already chosen (0l) — and nothing to pick: the kind's name is the line under the
+ * title, the design's, and there is no way back, since what is added goes under the kind that
+ * page is about — another is picked from the list's opener (#449, #451, #456, #514). Nothing
+ * is written to the address to open it, and nothing about where it was opened from is said
+ * inside it.
  *
  * THE OFFER'S OPENER STANDS IN A DIALOG OF ITS OWN SINCE #459, so it cannot be this
  * component: the offer puts itself away as the registration opens, and a control inside
@@ -83,8 +97,9 @@ import { registerAssetsAction } from "./actions";
  * keeps everything chosen and typed — the fields are this component's own state — and a
  * field's refusal goes as soon as that field is changed, where the one about the whole dialog
  * stays until the next press. The first step's one refusal is its own: Enter in the search,
- * with no suggestion under visual focus, takes the one tool the name names and refuses a name
- * that names none or more than one.
+ * with no suggestion under visual focus, takes the one name the search names and refuses a
+ * name that names none or more than one. The second step's are each level still to choose,
+ * `detailRefusals`', said under it beside the reading's.
  *
  * IT SUBMITS THROUGH `submit`, INSIDE A TRANSITION, which React follows with no reset of
  * the form (#449 read that in react-dom). The form carries no `action` prop: #449 kept one
@@ -98,7 +113,7 @@ import { registerAssetsAction } from "./actions";
  * `busy`: the commitment gives way to `Adding…` after 300ms, every other
  * control locks, and nothing is disabled, so focus stays where the press found it — and
  * stays there through a refusal, since the commitment can act again at once. The first step
- * has no commitment: picking a tool is how it goes on.
+ * has no commitment: picking a name is how it goes on.
  *
  * IT CLOSES WHEN THE PAGE IT WAS OPENED ON MOVES, which is how a registration that lands
  * on the same kind's page — the page it was opened from — takes the dialog away: it is
@@ -106,7 +121,7 @@ import { registerAssetsAction } from "./actions";
  * while it is open, because a modal dialog leaves the page behind it inert. Each opening
  * starts from what the opener hands over, and not from what the last one was left holding.
  */
-export default function RegistrationDialog({ opener, variant, canRegister, jobs, category: assetCategory = null, catalog = [], quantity }) {
+export default function RegistrationDialog({ opener, variant, canRegister, jobs, category = null, catalog = [], quantity }) {
     const registration = useRegistrationOpening();
 
     return (
@@ -120,7 +135,7 @@ export default function RegistrationDialog({ opener, variant, canRegister, jobs,
                     open={registration.open}
                     onClose={registration.close}
                     jobs={jobs}
-                    category={assetCategory}
+                    category={category}
                     catalog={catalog}
                     quantity={quantity}
                 />
@@ -187,20 +202,24 @@ function Stated({ label, children }) {
 /**
  * The dialog itself, opened by whatever holds its opening.
  *
- * `catalog` is the rows a registration may pick (`readCatalog`'s `offered`) — every one on
- * the list's dialog, and on a category's own page that category alone while the catalog offers it.
+ * `catalog` is the rows a registration may pick (`registrationCatalog`) — every one on the
+ * list's dialog, and on a category's own page that category alone while the catalog offers it.
  * `category` is the row a page opened it on, which skips the first step.
  */
-export function RegistrationForm({ open, onClose, jobs, category: assetCategory, catalog = [], quantity }) {
+export function RegistrationForm({ open, onClose, jobs, category, catalog = [], quantity }) {
     const [state, formAction, pending] = useActionState(registerAssetsAction, null);
-    // What the first step picked last: a name under its category, whose sizes the second
-    // offers. Opened on a category, nothing is picked and the row is the page's. `Change` goes back
-    // to the first step and keeps it, so a pick can tell the name it had from another.
+    // What the first step picked last: a name in its place, whose rows the second narrows
+    // between. Opened on a category, nothing is picked and the row is the page's. `Change` goes
+    // back to the first step and keeps it, so a pick can tell the name it had from another.
     const [picked, setPicked] = useState(null);
     const [choosing, setChoosing] = useState(true);
-    const [categoryKey, setCategoryKey] = useState("");
+    // The first step's two filters, each a level's key, an empty one no filter (#514).
+    const [filters, setFilters] = useState({ level1: "", level2: "" });
     const [typed, setTyped] = useState("");
-    const [categoryRecordId, setCategoryRecordId] = useState(assetCategory ? assetCategory.id : "");
+    // What the reader chose on the second step, level by level — a value's key, or "" for a
+    // level left empty — and nothing for a level not chosen, which starts where `walkDetails`
+    // starts it (#514).
+    const [chosen, setChosen] = useState({});
     const [count, setCount] = useState(() => String(openingCount(quantity)));
     // With one job it is already chosen, and with several nothing is (0l) — `onlyJob`, the
     // one spelling of "one assignment" the transition's dialog starts from too (#458).
@@ -218,21 +237,27 @@ export function RegistrationForm({ open, onClose, jobs, category: assetCategory,
         setEdited((was) => (was.has(field) ? was : new Set(was).add(field)));
     };
 
-    const step = assetCategory || (picked && !choosing) ? "size" : "tool";
-    const sizes = picked ? catalogSizes(catalog, picked.key) : [];
-    const chosen = assetCategory ?? sizes.find((candidate) => candidate.id === categoryRecordId) ?? null;
+    const step = category || (picked && !choosing) ? "details" : "name";
+    // The filters as they stand: a category the type chosen does not hold reads as none, so
+    // changing the type never leaves the search narrowed to nothing it can say.
+    const types = catalogLevelValues(catalog, "level1");
+    const categories = catalogLevelValues(catalog, "level2", { level1: filters.level1 });
+    const narrowing = { level1: filters.level1, level2: categories.some(({ key }) => key === filters.level2) ? filters.level2 : "" };
+    // The second step: the rows it narrows between — the page's row alone, opened on one — the
+    // levels it asks of them, and the row they make, which a page's row is from the start.
+    const details = walkDetails(category ? catalog : picked ? catalogRowsOf(catalog, picked.key) : [], chosen);
+    const made = category ?? details.category;
 
-    // A name picked starts its size where a choice starts (0l): the one size it is held in,
-    // already chosen, or none of several. Picking the name the second step already held keeps
-    // the size it was given; another name's sizes are another choice, so the one held goes.
-    // What it is handed is a catalog name either way: Enter's lookup returns one, and each of
-    // the search's suggestions is one, its label and category added for the list — so the
-    // second step can say the levels it was picked by.
+    // A name picked starts its levels afresh where they start (`walkDetails`), unless it is the
+    // name the second step already held, which keeps what was chosen there. What it is handed
+    // is a catalog name either way: Enter's lookup returns one, and each of the search's
+    // suggestions is one, its label and place added for the list — so the second step can say
+    // the levels it was picked by.
     const pick = (name) => {
-        if (name.key !== picked?.key) setCategoryRecordId(onlySize(catalogSizes(catalog, name.key))?.id ?? "");
+        if (name.key !== picked?.key) setChosen({});
         setPicked(name);
         setChoosing(false);
-        setTyped(name.level2);
+        setTyped(name.level3);
         setGuarded(null);
     };
     const back = () => {
@@ -243,12 +268,12 @@ export function RegistrationForm({ open, onClose, jobs, category: assetCategory,
     const submit = (event) => {
         event.preventDefault();
         setEdited(new Set());
-        if (step === "tool") {
-            // Enter in the search with no suggestion under visual focus: the one tool the
-            // name names, under the category chosen, or the first step's refusal.
-            const found = findCatalogName(catalog, { categoryKey, typed });
+        if (step === "name") {
+            // Enter in the search with no suggestion under visual focus: the one name the
+            // search names, under the filters chosen, or the first step's refusal.
+            const found = findCatalogName(catalog, { filters: narrowing, typed });
             if (found) pick(found);
-            else setGuarded({ fields: { tool: COPY.toolNoneChosen } });
+            else setGuarded({ fields: { level3: COPY.levelNoneChosen.level3 } });
             return;
         }
         const formData = new FormData(event.currentTarget);
@@ -258,7 +283,9 @@ export function RegistrationForm({ open, onClose, jobs, category: assetCategory,
             catalog
         );
         if (!reading.registration) {
-            setGuarded(reading);
+            // No row is made while a level is still to choose, and each such level is said
+            // under itself beside whatever else the reading refused.
+            setGuarded({ ...reading, fields: { ...reading.fields, ...detailRefusals(details.levels) } });
             return;
         }
         setGuarded(null);
@@ -266,21 +293,21 @@ export function RegistrationForm({ open, onClose, jobs, category: assetCategory,
     };
 
     // The line under the title: what the dialog is for while it picks, the kind it was opened
-    // on, or the tool the first step picked with the way back to it (#507).
-    const subtitle = assetCategory ? (
-        assetCategory.itemName
-    ) : step === "size" ? (
+    // on, or the name the first step picked, in its place, with the way back to it (#507, #514).
+    const subtitle = category ? (
+        category.itemName
+    ) : step === "details" ? (
         <>
-            {picked.level2}
+            {picked.level3}
             <Dot />
-            {picked.level1}
+            {pathOf({ level1: picked.level1, level2: picked.level2 })}
             <button
                 type="button"
                 aria-disabled={pending || undefined}
                 onClick={pending ? undefined : back}
                 className="ml-gap-lg font-semibold text-primary"
             >
-                {COPY.changeTool}
+                {COPY.changeName}
             </button>
         </>
     ) : (
@@ -290,29 +317,41 @@ export function RegistrationForm({ open, onClose, jobs, category: assetCategory,
     return (
         <DialogFrame open={open} onClose={onClose} busy={pending} title={COPY.heading} subtitle={subtitle} onSubmit={submit}>
             <DialogBody>
-                {step === "tool" ? (
+                {step === "name" ? (
                     <>
-                        <Field label={CATALOG.categoryLabel} labelAs="span">
-                            <Choice
-                                options={[
-                                    { value: "", label: CATALOG.allCategories },
-                                    ...catalogCategories(catalog).map((category) => ({ value: category.key, label: category.level1 })),
-                                ]}
-                                value={categoryKey}
-                                onChange={setCategoryKey}
-                            />
-                        </Field>
-                        <Field label={CATALOG.toolLabel} refusal={refusalFor("tool")}>
+                        <div className="grid grid-cols-2 gap-dialog-inline">
+                            <Field label={CATALOG.levelLabel.level1} labelAs="span">
+                                <Choice
+                                    options={[
+                                        { value: "", label: CATALOG.allOf.level1 },
+                                        ...types.map(({ key, value }) => ({ value: key, label: value })),
+                                    ]}
+                                    value={narrowing.level1}
+                                    onChange={(key) => setFilters((was) => ({ ...was, level1: key }))}
+                                />
+                            </Field>
+                            <Field label={CATALOG.levelLabel.level2} labelAs="span">
+                                <Choice
+                                    options={[
+                                        { value: "", label: CATALOG.allOf.level2 },
+                                        ...categories.map(({ key, value }) => ({ value: key, label: value })),
+                                    ]}
+                                    value={narrowing.level2}
+                                    onChange={(key) => setFilters((was) => ({ ...was, level2: key }))}
+                                />
+                            </Field>
+                        </div>
+                        <Field label={CATALOG.levelLabel.level3} refusal={refusalFor("level3")}>
                             <Combobox
                                 value={typed}
-                                onChange={edit("tool", setTyped)}
+                                onChange={edit("level3", setTyped)}
                                 onPick={pick}
-                                suggestions={suggestCatalogNames(catalog, { categoryKey, typed }).map((name) => ({
+                                suggestions={suggestCatalogNames(catalog, { filters: narrowing, typed }).map((name) => ({
                                     ...name,
-                                    label: name.level2,
-                                    detail: categoryKey ? undefined : name.level1,
+                                    label: name.level3,
+                                    detail: pathOf({ level1: narrowing.level1 ? "" : name.level1, level2: narrowing.level2 ? "" : name.level2 }) || undefined,
                                 }))}
-                                placeholder={CATALOG.toolUnchosen}
+                                placeholder={CATALOG.unchosen.level3}
                                 listOpen={listOpen}
                                 onListOpenChange={setListOpen}
                             />
@@ -320,20 +359,22 @@ export function RegistrationForm({ open, onClose, jobs, category: assetCategory,
                     </>
                 ) : (
                     <>
-                        {assetCategory ? (
-                            <input type="hidden" name="categoryRecordId" value={assetCategory.id} />
-                        ) : (
-                            <Field label={CATALOG.sizeLabel} labelAs="span" refusal={refusalFor("categoryRecordId")}>
-                                <Choice
-                                    name="categoryRecordId"
-                                    options={sizes.map((size) => ({ value: size.id, label: size.size }))}
-                                    value={categoryRecordId}
-                                    onChange={edit("categoryRecordId", setCategoryRecordId)}
-                                    placeholder={CATALOG.sizeUnchosen}
-                                />
-                            </Field>
-                        )}
-                        {chosen?.assetClass && <Stated label={CATALOG.classLabel}>{chosen.assetClass}</Stated>}
+                        <input type="hidden" name="categoryRecordId" value={made?.id ?? ""} />
+                        {details.levels
+                            .filter(({ asked }) => asked)
+                            .map(({ level, options, value }) => (
+                                // A level's refusal stands while it holds nothing: a choice before it
+                                // can leave it one value, already chosen, without the reader touching it.
+                                <Field key={level} label={CATALOG.levelLabel[level]} labelAs="span" refusal={value === null ? refusalFor(level) : undefined}>
+                                    <Choice
+                                        options={options}
+                                        value={value}
+                                        onChange={edit(level, (key) => setChosen((was) => ({ ...was, [level]: key })))}
+                                        placeholder={CATALOG.unchosen[level]}
+                                    />
+                                </Field>
+                            ))}
+                        {made?.assetClass && <Stated label={CATALOG.classLabel}>{made.assetClass}</Stated>}
                         <div className="grid grid-cols-[var(--width-number-input)_minmax(0,1fr)] gap-dialog-inline">
                             <Field
                                 label={COPY.quantityLabel}
@@ -365,7 +406,7 @@ export function RegistrationForm({ open, onClose, jobs, category: assetCategory,
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                {step === "size" && (
+                {step === "details" && (
                     <Button type="submit" busyLabel={COPY.working}>
                         {COPY.submit(readQuantity(count).count)}
                     </Button>

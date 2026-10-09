@@ -37,7 +37,7 @@ on whether there is a session.
   back to them, which matters because almost every screen behaves differently by
   role and nothing else says which one you are.
 - **action** — `New Purchase Request` as the filled primary button, then four
-  outlined links: `Material prices`, `Deliveries`, `Purchase orders`, `Asset Categories`.
+  outlined links: `Material prices`, `Deliveries`, `Purchase orders`, `Tools & Equipment`.
 - **action** — a sign-out control.
 
 **When not signed in:** the line `Not signed in.` and a single `Sign in` button.
@@ -53,7 +53,7 @@ before it renders.
 
 **The link labels are screen names and one of them disagrees with its
 destination.** `Purchase orders` here, `Purchase Orders` as that screen's own
-heading. `Material prices`, `Deliveries` and `Asset Categories` match theirs exactly.
+heading. `Material prices`, `Deliveries` and `Tools & Equipment` match theirs exactly.
 Whatever a redesign does with navigation, these labels and the headings they
 point at should be settled together — see the shared brief.
 
