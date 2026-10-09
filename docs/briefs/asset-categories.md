@@ -46,10 +46,13 @@ at the foot.
 
 ## What it always carries
 
-**identity.** The heading `Asset Categories`, which is the `Asset Categories` table's name — the
-same rule that makes the other list screens `Purchase Requests`,
-`Purchase Orders`, `Invoices` and `Deliveries`. The rail's section for this
-screen says the heading's own string, read from it (#460). Beside it on its
+**identity.** The heading `Tools & Equipment`, the axis's name on screen
+(#513): the office calls each thing it labels and tracks an asset, and the site
+calls the same things tools and equipment, so the screen says the site's words.
+It was `Tools`, the table's name, the rule that makes the other list screens
+`Purchase Requests`, `Purchase Orders`, `Invoices` and `Deliveries`, until the
+axis began holding equipment as well. The rail's section for this screen says
+the heading's own string, read from it (#460). Beside it on its
 line, how many tools there are, the figure alone — `17`, with `tools` said to
 assistive tech after it (1a, #505) — a count of the list, which says nothing
 about what any tool holds.
@@ -92,13 +95,17 @@ number, so `DEMO Circular Saw 7-1/4"` comes before `DEMO Circular Saw 10"`
 shows of how many, `1–17 of 17`, which page of how many, and a step each
 way that a page at its end draws and does not act. The name is the row's
 identity and the whole row is the way into that tool's own screen. A tool's
-name is its tool and its size, `DEMO Jigsaw T-Shank` (#507).
+name is its name and its size, then a comma and its maker, then its part
+number in parentheses — `DEMO Jigsaw T-Shank`, `DEMO Cordless Drill 18V, DEMO
+DeWalt (DCD791)` (#507, #514) — so the name is what tells two rows of one tool
+and size apart, and a design must give it the room.
 
-**evidence.** Beside each name, the tool's class and its category, the
-catalog's (#507) — `B`, `DEMO Power Tools` — between the name and the counts.
-The class is information: `A` for a tool that matters more, usually a dearer
-one, `B` otherwise, and nothing on the list acts on it. Design is drawing the
-two columns.
+**evidence.** Beside each name, the tool's class, its type and its category,
+the catalog's (#507, #514) — `B`, `Tool`, `DEMO Carpentry` — between the name
+and the counts. The type is `Equipment` or `Tool` and changes nothing a tool
+does; the class is `A` for a tool that matters more, usually a dearer one, `B`
+otherwise; nothing on the list acts on either. Design is drawing the three
+columns.
 
 **verdict.** Three counts on every row: how many of that tool are
 `In stock`, how many are `Out`, how many are `Retired`. This is what the
@@ -137,7 +144,7 @@ under it. Design is drawing what both of those say.
 **When a job narrows the list:** the head's figure reads `N of M`, the document
 lists' words for the same thing, `M` being what the reader started from. The
 pager's steps and every row's way into a tool keep the job; the rail's
-`Asset Categories` does not. A job in the address the reader may not narrow to is
+`Tools & Equipment` does not. A job in the address the reader may not narrow to is
 answered with their whole list, the choice reading `All jobs`.
 
 **A tool with nothing under it is on no list (#507)**: a row of the catalog
@@ -149,8 +156,8 @@ it stopped creating the tool.
 ## What must agree elsewhere
 
 **The heading and the link that leads here are the same word.** The root
-screen carries `Asset Categories` as its fifth link and this screen's heading is
-`Asset Categories`. That agreement is worth keeping — `Purchase orders` and
+screen carries `Tools & Equipment` as its fifth link and this screen's heading
+is `Tools & Equipment`. That agreement is worth keeping — `Purchase orders` and
 `Purchase Orders` are the pair on the same screen that does not have it,
 and the shared brief records the disagreement.
 

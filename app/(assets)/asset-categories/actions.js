@@ -76,7 +76,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * chose — on the page it was opened from, when it was opened on one. Until #507 the tool was
  * found by the name submitted, so two rows with one key could take a registration opened on
  * the other; a catalog row is named by its id here, and two rows naming one path are the
- * catalog's to repair, reported by `scripts/import/create_tool_catalog_507.mjs`.
+ * catalog's to repair, reported by `scripts/import/classify_asset_categories_514.mjs`.
  *
  * TWO WRITES IN SEQUENCE, AND SINCE #470 THAT IS CHOSEN RATHER THAN FORCED.
  * `createAssets` holds the day-prefix lock across its whole batch, and the log

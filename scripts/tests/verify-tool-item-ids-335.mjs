@@ -84,9 +84,10 @@ const fixtures = createFixtures({
             name: "tools",
             table: TABLES.ASSET_CATEGORIES,
             label: "Tool",
-            // The field the kind is written by since #507, when `Tool Name` became a
-            // formula over it; until then the kind was written by that name.
-            tagField: ASSET_CATEGORY_FIELDS.level2,
+            // The field the kind is named by since #507, when `Tool Name` became a
+            // formula over it — `Level 3` since #514; until #507 the kind was written by
+            // that name.
+            tagField: ASSET_CATEGORY_FIELDS.level3,
             children: [{ link: "Assets", table: TABLES.ASSETS, label: "Tool Item" }],
         },
     ],
@@ -108,8 +109,9 @@ try {
         log("SKIPPED — needs Job 26-DEMO-01.");
         incomplete = true;
     } else {
-        // A kind is written by its catalog fields since #507; nothing here reads its class.
-        const categoryRecord = await base(TABLES.ASSET_CATEGORIES).create({ [ASSET_CATEGORY_FIELDS.level2]: `${TAG} probe drill` });
+        // A kind is written by its catalog fields since #507 — its name alone, `Level 3` since
+        // #514; nothing here reads its other levels or its class.
+        const categoryRecord = await base(TABLES.ASSET_CATEGORIES).create({ [ASSET_CATEGORY_FIELDS.level3]: `${TAG} probe drill` });
         track("tools", categoryRecord.id);
 
         const register = async (count) => {
