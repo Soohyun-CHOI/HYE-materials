@@ -224,7 +224,7 @@ export function run({ check, assert, log }) {
     check("no string says `tool item`", strings.filter((s) => TOOL_ITEM_NOUN.test(s)).join(" | "), "");
     // THE DESIGN'S WORDS (1f, 1k, 1h), typed out here so a rewording reaches this file.
     check("the empty history", TOOL_ITEM_COPY.noHistory, "No history yet");
-    check("a code no tool carries, at a desk", `${TOOL_ITEM_COPY.notFoundHeading} | ${TOOL_ITEM_COPY.notFoundCode.before}HYE-TL-260909-099${TOOL_ITEM_COPY.notFoundCode.after}`, "Tool not found | No tool has the code HYE-TL-260909-099. Check it against the label.");
+    check("a code no tool carries, at a desk", `${TOOL_ITEM_COPY.notFoundHeading} | ${TOOL_ITEM_COPY.notFoundCode.before}HYE-AST-260909-099${TOOL_ITEM_COPY.notFoundCode.after}`, "Tool not found | No tool has the code HYE-AST-260909-099. Check it against the label.");
     check("  and after a scan", TOOL_ITEM_COPY.notFoundScanned, "No tool has this code. Check it against the label and scan again.");
     check("  with the way back", TOOL_ITEM_COPY.backToTools, "Back to Tools");
     check("the label's print size, in text", `${TOOL_ITEM_COPY.sizeLabel} | ${TOOL_ITEM_COPY.symbolLabel} ${TOOL_ITEM_COPY.symbolSize(9.57)}`, "Size | Symbol 9.57 mm");

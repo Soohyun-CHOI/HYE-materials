@@ -50,7 +50,7 @@
 import { listJsFiles, parseFile, parseSource, repoPath, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "No reference names a retired table or field (#280, #333)";
+export const title = "No reference names a retired table or field (#280, #333, #513)";
 
 /** Where a string reaches Airtable, and nothing else, over `app/` + `lib/`. */
 const SCANNED_DIRS = ["app", "lib"];
@@ -166,6 +166,24 @@ const RETIRED = {
     // they have gone. No successor name, like #334's three: the pairing is read off
     // `Invoice Items."PO"` and its reverse `Purchase Orders."Invoice Items"`.
     "Invoice-PO Link": "#492 — read `Invoice Items.\"PO\"`, or its reverse `Purchase Orders.\"Invoice Items\"`",
+    // #513 — THREE TABLES AND EVERY NAME THAT TRAVELED WITH THEM, the #333 shape
+    // three times over: each table's own name, its fields, and the reverse links it
+    // gave `Jobs` and `Users`. Two of the old names were BOTH a table and a reverse
+    // link (`Tool Items` on `Tools` and `Jobs`, `Tool Log` on `Tool Items`, `Jobs`
+    // and `Users`), so one entry here retires every position each of them held.
+    //
+    // `Tool` IS A PREFIX OF FIVE OF THESE, which is the `Line 1` trap again and why
+    // every entry is matched whole. It is also still a screen word — `Tool` heads a
+    // column and labels a field — and that is not a position this file reads: a copy
+    // string is a property's VALUE, and nothing here collects one.
+    Tools: "#513 — the table is `Asset Categories`",
+    "Tool Name": "#513 — the field is `Item Name`",
+    "Tool Items": "#513 — the table is `Assets`, and so are the links naming it on `Asset Categories` and `Jobs`",
+    "Tool Item ID": "#513 — the field is `Asset ID`",
+    Tool: "#513 — the `Assets` link is `Category`",
+    "Tool Log": "#513 — the table is `Asset Log`, and so are the links naming it on `Assets`, `Jobs` and `Users`",
+    "Tool Log ID": "#513 — the field is `Asset Log ID`",
+    "Tool Item": "#513 — the `Asset Log` link is `Asset`",
 };
 
 /**
@@ -251,11 +269,21 @@ export function tableConstantRefs(relPath) {
 /**
  * Every string in a position that ADDRESSES Airtable, with its file and line.
  *
- * FIVE POSITIONS, WHICH IS THE ENUMERATION `airtable-access.md` ALREADY MAKES: "the
- * only thing a rename breaks is a string literal in this repo, and those are
+ * FIVE POSITIONS, AND THEY ARE NOT QUITE THE ENUMERATION `airtable-access.md` MAKES:
+ * "the only thing a rename breaks is a string literal in this repo, and those are
  * enumerable: `record.get("...")`, a `filterByFormula` fragment, a `fields:`
- * projection, a `parentLinkFieldName`." This adds the sixth the base-name half
- * needs — a table argument — and drops nothing.
+ * projection, a `parentLinkFieldName`." This adds a table argument, which the
+ * base-name half needs, and it does NOT collect a `parentLinkFieldName` — this said it
+ * dropped nothing until #513 planted the old link name at both call sites in
+ * `lib/airtable/toolLog.js` and this file passed. `offline/id-sequence.mjs` is what
+ * fails there, since a link name no relation in `CHILD_KINDS` carries leaves a call
+ * site unregistered.
+ *
+ * NOR DOES IT COLLECT A KEY WRITTEN WITHOUT QUOTES, which is how a one-word field goes
+ * into a payload — `Job: [id]`, `Status: …`. #513 planted `Tool: [toolRecordId]` in
+ * `createToolItems` and nothing in this tier failed. Airtable refuses an unknown field
+ * on the write, so the symptom would be a refused registration rather than a quiet
+ * one; no such key has reached the base wrong.
  *
  *   1  `base(X)` / `findByRecordIds(X, …)` / `findChildRecords(X, …)` /
  *      `findByFieldValues(X, …)` / `getLinkedRecords(…, X, Y)` — a table.
@@ -476,6 +504,16 @@ export function run({ check, assert, log }) {
     for (const successor of ["First Name", "Last Name"]) {
         assert(
             `  and #381's successor ${JSON.stringify(successor)} is addressed in the tree`,
+            collected.some((c) => c.value === successor)
+        );
+    }
+    // #513's successors that only the tools axis reads. `Item Name` and `Category` are
+    // not here: `Material Categories`, `Materials` and `PR Items` address both already,
+    // so requiring either would be satisfied by the materials axis whatever this
+    // rename left behind.
+    for (const successor of ["Asset ID", "Asset Log ID", "Asset", "Assets", "Asset Log"]) {
+        assert(
+            `  and #513's successor ${JSON.stringify(successor)} is addressed in the tree`,
             collected.some((c) => c.value === successor)
         );
     }

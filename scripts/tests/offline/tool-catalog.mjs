@@ -93,16 +93,16 @@ const asideOf = (setAside) =>
     setAside.map(({ tool, reason, missing, of }) => `${tool.id}:${reason}:${reason === "incomplete" ? missing.join("+") : of.id}`).join(" ");
 
 /**
- * Every use of `TABLES.TOOLS` in a parsed file, by what is done with it: the method a
- * `base(…)` call is followed by, the function it is handed to, or the node it stands in
- * otherwise — which names a binding, so a table kept in a variable is reported rather than
- * followed.
+ * Every use of `TABLES.ASSET_CATEGORIES` in a parsed file, by what is done with it: the
+ * method a `base(…)` call is followed by, the function it is handed to, or the node it
+ * stands in otherwise — which names a binding, so a table kept in a variable is reported
+ * rather than followed.
  */
 function toolsTableUses({ ast }) {
     const parents = parentMap(ast);
     const uses = [];
     walk(ast, (n) => {
-        if (n.type !== "MemberExpression" || n.computed || n.object?.name !== "TABLES" || n.property?.name !== "TOOLS") return;
+        if (n.type !== "MemberExpression" || n.computed || n.object?.name !== "TABLES" || n.property?.name !== "ASSET_CATEGORIES") return;
         const parent = parents.get(n);
         if (parent?.type === "CallExpression" && parent.arguments.includes(n)) {
             if (parent.callee?.type === "Identifier" && parent.callee.name === "base") {
@@ -271,7 +271,7 @@ export function run({ check, assert, log }) {
     check(
         "  reading each catalog field by the module's name for it",
         got.sort().join(", "),
-        '"Tool Items", "Tool Name", TOOL_CATALOG_FIELDS.level1, TOOL_CATALOG_FIELDS.level2, TOOL_CATALOG_FIELDS.size, TOOL_CATALOG_FIELDS.toolClass'
+        '"Assets", "Item Name", TOOL_CATALOG_FIELDS.level1, TOOL_CATALOG_FIELDS.level2, TOOL_CATALOG_FIELDS.size, TOOL_CATALOG_FIELDS.toolClass'
     );
     check("  and spelling none of them", fieldLiterals(reader).join(", "), "");
     const script = parseFile(SCRIPT);
@@ -292,10 +292,10 @@ export function run({ check, assert, log }) {
     // The two readers above, on a planted file writing the table three ways and spelling two
     // fields: each write is reported, and so is each spelling.
     const planted = parseSource(
-        "await base(TABLES.TOOLS).create([{ fields: {} }]);\n" +
-            "await createRecords(TABLES.TOOLS, 'Tool Name', [], rowOf);\n" +
-            "const table = TABLES.TOOLS;\n" +
-            "const tools = await base(TABLES.TOOLS).select().all();\n" +
+        "await base(TABLES.ASSET_CATEGORIES).create([{ fields: {} }]);\n" +
+            "await createRecords(TABLES.ASSET_CATEGORIES, 'Item Name', [], rowOf);\n" +
+            "const table = TABLES.ASSET_CATEGORIES;\n" +
+            "const tools = await base(TABLES.ASSET_CATEGORIES).select().all();\n" +
             "record.get('Level 1');\n" +
             "const field = `Class`;\n",
         "<planted-writer>"

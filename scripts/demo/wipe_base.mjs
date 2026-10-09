@@ -122,9 +122,9 @@ const KEPT = [
     // in this directory, and every row was registered through the app. They also
     // sit on no screen the document demo shows, so clearing them would cost real
     // work to make a set of pages tidier that never render them.
-    TABLES.TOOLS,
-    TABLES.TOOL_ITEMS,
-    TABLES.TOOL_LOG,
+    TABLES.ASSET_CATEGORIES,
+    TABLES.ASSETS,
+    TABLES.ASSET_LOG,
 ];
 
 /**

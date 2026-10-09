@@ -1227,10 +1227,10 @@ export function run({ check, assert, log }) {
     log("a box selects one entry, the page box this page, and print acts on what one print takes:");
     // Printed ids typed out, three on this page and one that is not — which is the
     // shape every claim below is about, since a selection outlives a page turn.
-    const A = "HYE-TL-260909-001";
-    const B = "HYE-TL-260909-002";
-    const C = "HYE-TL-260909-003";
-    const ELSEWHERE = "HYE-TL-260910-001";
+    const A = "HYE-AST-260909-001";
+    const B = "HYE-AST-260909-002";
+    const C = "HYE-AST-260909-003";
+    const ELSEWHERE = "HYE-AST-260910-001";
     const thisPage = [A, B, C];
 
     // ASCENDING ID, WHATEVER ORDER THE BOXES WERE PRESSED IN — the order a run prints in,
@@ -1244,8 +1244,8 @@ export function run({ check, assert, log }) {
     // a sort of the strings would put `-1000` first.
     check(
         "a four-digit sequence follows a three-digit one",
-        toggleToolItem(["HYE-TL-260909-999"], "HYE-TL-260909-1000").join(),
-        "HYE-TL-260909-999,HYE-TL-260909-1000"
+        toggleToolItem(["HYE-AST-260909-999"], "HYE-AST-260909-1000").join(),
+        "HYE-AST-260909-999,HYE-AST-260909-1000"
     );
     check("  and a string that is no id goes last", toggleToolItem(["ABC"], A).join(), `${A},ABC`);
 
@@ -1271,7 +1271,7 @@ export function run({ check, assert, log }) {
     );
     // Two left over, arriving out of order as a hand-typed address can, so the order of
     // what is left is a fact this asserts rather than one a single survivor hides.
-    const LATER = "HYE-TL-260911-001";
+    const LATER = "HYE-AST-260911-001";
     check(
         "  and what it keeps is in ascending id",
         togglePage([LATER, A, B, C, ELSEWHERE], thisPage).join(),
@@ -1302,7 +1302,7 @@ export function run({ check, assert, log }) {
     // fixture that collapsed to fewer ids would otherwise ask about the wrong side of the
     // edge and pass, which is what #442 found a twelve-row fixture doing to a page size.
     const distinctIds = (n) =>
-        readToolItemIds(Array.from({ length: n }, (_, at) => `HYE-TL-260909-${String(at + 1).padStart(3, "0")}`));
+        readToolItemIds(Array.from({ length: n }, (_, at) => `HYE-AST-260909-${String(at + 1).padStart(3, "0")}`));
     const hundred = distinctIds(100);
     const hundredAndOne = distinctIds(101);
     check("a hundred distinct ids read as a hundred", hundred.length, 100);

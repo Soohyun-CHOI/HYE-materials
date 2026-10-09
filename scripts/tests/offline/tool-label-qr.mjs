@@ -73,8 +73,8 @@ const LEVELS = ["L", "M", "Q", "H"];
 
 /** A minted `Tool Item ID`, from the generator rather than a literal typed here. */
 function mintedId(sequence) {
-    const prefix = dailyIdPrefix(ID_KINDS.TOOL_ITEM, new Date(2026, 8, 9));
-    return formatSequentialId(prefix, sequence, { padLength: ID_KINDS.TOOL_ITEM.padLength });
+    const prefix = dailyIdPrefix(ID_KINDS.ASSET, new Date(2026, 8, 9));
+    return formatSequentialId(prefix, sequence, { padLength: ID_KINDS.ASSET.padLength });
 }
 
 /** RGBA at `scale` px per module, which is what jsQR takes. */
@@ -138,18 +138,19 @@ export async function run({ check, assert, log }) {
 
     const id = mintedId(4);
     const url = labelURL(PRODUCTION_ORIGIN, id);
-    check(`the minted id is ${id}`, id, "HYE-TL-260909-004");
+    check(`the minted id is ${id}`, id, "HYE-AST-260909-004");
     check("the label's URL", url, "HTTPS://APP.HYEUSA.COM/T/260909-004");
     check("  and it is 35 characters", url.length, 35);
-    // THE SEVEN THE FAMILY TOKEN USED TO SPEND (#411), reached a second way so the
-    // length above is not the only thing holding it: with the token the address was
-    // 42 characters at this host — 38 at `hyeusa.com`, where #411 measured it — the id
-    // it names still is 17, and what it ends with is that id's last ten.
-    check("  seven fewer than the 42 the token made it", 42 - url.length, 7);
-    assert("  ending in the id's own tail", url.endsWith(id.slice(7)) && id.slice(7) === "260909-004");
+    // THE EIGHT THE FAMILY TOKEN WOULD SPEND (#411, #513), reached a second way so the
+    // length above is not the only thing holding it: with the token the address would be
+    // 43 characters at this host — 42 while the token was `HYE-TL-`, and 38 at
+    // `hyeusa.com`, where #411 measured it — the id it names is 18, and what it ends with
+    // is that id's last ten.
+    check("  eight fewer than the 43 the token would make it", 43 - url.length, 8);
+    assert("  ending in the id's own tail", url.endsWith(id.slice(8)) && id.slice(8) === "260909-004");
     // `HYE` on its own is in `HYEUSA.COM`, so the token is what is barred rather
     // than its first three characters.
-    assert("  and carrying no part of the token", !url.includes("HYE-TL") && !url.includes("-TL-"));
+    assert("  and carrying no part of the token", !url.includes("HYE-AST") && !url.includes("-AST-"));
     assert("  the origin's own case does not survive", !url.includes("hyeusa"));
     check("a typed lowercase id reaches the same URL", labelURL(PRODUCTION_ORIGIN, id.toLowerCase()), url);
     check("a trailing slash on the origin does not double", labelURL(`${PRODUCTION_ORIGIN}/`, id), url);

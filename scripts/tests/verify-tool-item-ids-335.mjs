@@ -79,15 +79,15 @@ const log = (text = "") => console.log(text);
 const fixtures = createFixtures({
     tag: "V335",
     buckets: [
-        { name: "toolItems", table: TABLES.TOOL_ITEMS, label: "Tool Item" },
+        { name: "toolItems", table: TABLES.ASSETS, label: "Tool Item" },
         {
             name: "tools",
-            table: TABLES.TOOLS,
+            table: TABLES.ASSET_CATEGORIES,
             label: "Tool",
             // The field the kind is written by since #507, when `Tool Name` became a
             // formula over it; until then the kind was written by that name.
             tagField: TOOL_CATALOG_FIELDS.level2,
-            children: [{ link: "Tool Items", table: TABLES.TOOL_ITEMS, label: "Tool Item" }],
+            children: [{ link: "Assets", table: TABLES.ASSETS, label: "Tool Item" }],
         },
     ],
 });
@@ -109,7 +109,7 @@ try {
         incomplete = true;
     } else {
         // A kind is written by its catalog fields since #507; nothing here reads its class.
-        const toolRecord = await base(TABLES.TOOLS).create({ [TOOL_CATALOG_FIELDS.level2]: `${TAG} probe drill` });
+        const toolRecord = await base(TABLES.ASSET_CATEGORIES).create({ [TOOL_CATALOG_FIELDS.level2]: `${TAG} probe drill` });
         track("tools", toolRecord.id);
 
         const register = async (count) => {
@@ -122,7 +122,7 @@ try {
             return result;
         };
 
-        const todayPrefix = dailyIdPrefix(ID_KINDS.TOOL_ITEM, new Date());
+        const todayPrefix = dailyIdPrefix(ID_KINDS.ASSET, new Date());
 
         // ── Part A ──────────────────────────────────────────────────────────
         log("Part A — format, width and contiguity within one batch");
@@ -135,7 +135,7 @@ try {
         const aIds = a.created.map((t) => t.toolItemId);
         log(`    ${aIds.join(", ")}`);
         assert(
-            "  every id is HYE-TL-YYMMDD-### with today's prefix",
+            "  every id is HYE-AST-YYMMDD-### with today's prefix",
             aIds.every((id) => new RegExp(`^${todayPrefix}-\\d{3,}$`).test(id))
         );
         check("  the sequence is padded to three", aIds[0].slice(todayPrefix.length + 1).length, 3);
@@ -188,7 +188,7 @@ try {
         log("  MAX + 1 is documented against a gap in the MIDDLE. This is the top.");
         const highest = b.created[b.created.length - 1];
         log(`    deleting ${highest.toolItemId}, the highest id on this prefix`);
-        await base(TABLES.TOOL_ITEMS).destroy(highest.id);
+        await base(TABLES.ASSETS).destroy(highest.id);
         fixtures.untrack("toolItems", highest.id);
 
         const d = await register(1);

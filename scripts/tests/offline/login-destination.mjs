@@ -164,7 +164,7 @@ export function run({ check, assert, log }) {
     log("a destination is an address within this app, and nothing else:");
 
     const accepted = [
-        ["a scanned tool item", "/tool-items/HYE-TL-260909-004", "/tool-items/HYE-TL-260909-004"],
+        ["a scanned tool item", "/tool-items/HYE-AST-260909-004", "/tool-items/HYE-AST-260909-004"],
         ["a narrowed list, query and all", "/prs?job=rec1&mine=1", "/prs?job=rec1&mine=1"],
         ["a fragment is dropped", "/materials#row", "/materials"],
         ["dot segments collapse", "/a/../../b", "/b"],
@@ -197,8 +197,8 @@ export function run({ check, assert, log }) {
     check("  as does none at all", signInPath(undefined), SIGN_IN_PATH);
     assert(
         "an accepted one is carried, encoded",
-        signInPath("/tool-items/HYE-TL-260909-004") ===
-            `${SIGN_IN_PATH}?${DESTINATION_PARAM}=%2Ftool-items%2FHYE-TL-260909-004`
+        signInPath("/tool-items/HYE-AST-260909-004") ===
+            `${SIGN_IN_PATH}?${DESTINATION_PARAM}=%2Ftool-items%2FHYE-AST-260909-004`
     );
     assert(
         "the confirmation carries the token and the destination",

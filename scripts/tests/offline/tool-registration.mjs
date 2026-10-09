@@ -402,19 +402,19 @@ export async function run({ check, assert, log }) {
     check(
         "the unlogged ids read as the selection does, canonical and each once",
         readRegistrationAccount({
-            unlogged: ["hye-tl-260928-014", "HYE-TL-260928-014 ", "HYE-TL-260928-015"],
+            unlogged: ["hye-ast-260928-014", "HYE-AST-260928-014 ", "HYE-AST-260928-015"],
         }).unlogged.join(),
-        "HYE-TL-260928-014,HYE-TL-260928-015"
+        "HYE-AST-260928-014,HYE-AST-260928-015"
     );
-    check("  one as a string", readRegistrationAccount({ unlogged: "HYE-TL-260928-014" }).unlogged.join(), "HYE-TL-260928-014");
+    check("  one as a string", readRegistrationAccount({ unlogged: "HYE-AST-260928-014" }).unlogged.join(), "HYE-AST-260928-014");
     check("  and none as none", readRegistrationAccount({}).unlogged.length, 0);
     // THE WRITE AND THE READ AGREE: what `toolPath` puts on a landing is what this takes
     // off it, and the selection beside it comes through untouched.
     const landed = new URLSearchParams(
-        toolPath("recAbc", 2, ["HYE-TL-260928-014", "HYE-TL-260928-015"], {
+        toolPath("recAbc", 2, ["HYE-AST-260928-014", "HYE-AST-260928-015"], {
             asked: 5,
             unwritten: 3,
-            unlogged: ["HYE-TL-260928-015"],
+            unlogged: ["HYE-AST-260928-015"],
         }).split("?")[1]
     );
     const readBack = readRegistrationAccount({
@@ -425,9 +425,9 @@ export async function run({ check, assert, log }) {
     check(
         "  a landing toolPath writes reads back as the same account",
         `${readBack.asked} ${readBack.unwritten} ${readBack.unlogged.join()}`,
-        "5 3 HYE-TL-260928-015"
+        "5 3 HYE-AST-260928-015"
     );
-    check("  beside the same selection", landed.getAll("id").join(), "HYE-TL-260928-014,HYE-TL-260928-015");
+    check("  beside the same selection", landed.getAll("id").join(), "HYE-AST-260928-014,HYE-AST-260928-015");
 
     // ── 7b: which part of it is told, one at a time (#459) ───────────────────
     log("");
@@ -435,27 +435,27 @@ export async function run({ check, assert, log }) {
     // THE ACCOUNT IS WHAT THE PAGE READ AND THE ADDRESS IS AS IT STANDS NOW. Both parts
     // are asked of each: a part is told only while the page found it and its key is still
     // on the address, which each answer edits by deleting its own keys and no others.
-    const both = { asked: 5, unwritten: 2, unlogged: ["HYE-TL-260928-015"] };
+    const both = { asked: 5, unwritten: 2, unlogged: ["HYE-AST-260928-015"] };
     const shortfallOnly = { ...both, unlogged: [] };
     const unloggedOnly = { ...both, asked: 0, unwritten: 0 };
     const nothing = { asked: 0, unwritten: 0, unlogged: [] };
     const addressOf = (query) => new URLSearchParams(query);
-    const full = "id=HYE-TL-260928-014&asked=5&unwritten=2&unlogged=HYE-TL-260928-015";
+    const full = "id=HYE-AST-260928-014&asked=5&unwritten=2&unlogged=HYE-AST-260928-015";
     check("both on a landing: the notice first", accountToTell(both, addressOf(full)), "unlogged");
     check(
         "  and once `Got it` takes `unlogged` out, the fork",
-        accountToTell(both, addressOf("id=HYE-TL-260928-014&asked=5&unwritten=2")),
+        accountToTell(both, addressOf("id=HYE-AST-260928-014&asked=5&unwritten=2")),
         "shortfall"
     );
     check(
         "  and once `Not now` takes the fork's two out as well, nothing",
-        accountToTell(both, addressOf("id=HYE-TL-260928-014")),
+        accountToTell(both, addressOf("id=HYE-AST-260928-014")),
         null
     );
     // Each answer is independent: taking the fork's keys out first leaves the notice.
     check(
         "  the fork's keys gone and the notice's standing still tells the notice",
-        accountToTell(both, addressOf("id=HYE-TL-260928-014&unlogged=HYE-TL-260928-015")),
+        accountToTell(both, addressOf("id=HYE-AST-260928-014&unlogged=HYE-AST-260928-015")),
         "unlogged"
     );
     check("a shortfall alone is the fork", accountToTell(shortfallOnly, addressOf(full)), "shortfall");
@@ -711,7 +711,7 @@ export async function run({ check, assert, log }) {
     check(
         "createToolItems writes its tool items through createRecords",
         itemsWriter.itemsWrite,
-        'TABLES.TOOL_ITEMS, "Tool Item ID", toolItemIds'
+        'TABLES.ASSETS, "Asset ID", toolItemIds'
     );
     check("  awaited inside the day-prefix lock's callback", itemsWriter.itemsAwaited, true);
     check("  answering as created exactly what was written", itemsWriter.created, "written.map(({ record }) => recordToToolItem(record))");
@@ -719,9 +719,9 @@ export async function run({ check, assert, log }) {
     check(
         "createFirstToolLogEntries mints each first row with no read",
         logWriter.firstMint,
-        'TABLES.TOOL_ITEMS "Tool Log" toolItems.map((toolItem) => ({ prefix: toolItem.toolItemId, childRecordIds: toolItem.toolLog }))'
+        'TABLES.ASSETS "Asset Log" toolItems.map((toolItem) => ({ prefix: toolItem.toolItemId, childRecordIds: toolItem.toolLog }))'
     );
-    check("  writes the rows through createRecords", logWriter.logWrite, 'TABLES.TOOL_LOG, "Tool Log ID"');
+    check("  writes the rows through createRecords", logWriter.logWrite, 'TABLES.ASSET_LOG, "Asset Log ID"');
     check("  names as unlogged what did not land", logWriter.unlogged, "unwritten.map(({ toolItem }) => toolItem.toolItemId)");
     check("  writes the vocabulary's first event (#455)", logWriter.event, "TOOL_EVENT.CREATED");
     check("  and mints nothing one row at a time", logWriter.perRow, 0);
@@ -729,25 +729,25 @@ export async function run({ check, assert, log }) {
         parseSource(
             "export async function createToolItems({ count }) {\n" +
                 "  return generateNextToolItemIds(count, (toolItemIds) => {\n" +
-                "    createRecords(TABLES.TOOL_LOG, 'Tool Item ID', toolItemIds, rowOf);\n" +
+                "    createRecords(TABLES.ASSET_LOG, 'Asset ID', toolItemIds, rowOf);\n" +
                 "    return { created: toolItemIds };\n" +
                 "  });\n" +
                 "}\n" +
                 "export async function createFirstToolLogEntries({ toolItems }) {\n" +
                 "  entryFields({ event: 'Created' });\n" +
                 "  for (const toolItem of toolItems) await createToolLogEntry({ toolItem });\n" +
-                "  return generateFirstChildIds({ parentTableName: TABLES.TOOL_LOG, parentLinkFieldName: 'Tool Log', parents: [] }, async (ids) => {\n" +
-                "    const { written } = await createRecords(TABLES.TOOL_ITEMS, 'Tool Log ID', ids, rowOf);\n" +
+                "  return generateFirstChildIds({ parentTableName: TABLES.ASSET_LOG, parentLinkFieldName: 'Asset Log', parents: [] }, async (ids) => {\n" +
+                "    const { written } = await createRecords(TABLES.ASSETS, 'Asset Log ID', ids, rowOf);\n" +
                 "    return { unlogged: written.map(({ item }) => item) };\n" +
                 "  });\n" +
                 "}\n",
             "<planted-writers>"
         )
     );
-    check("  a write to another table is seen", plantedWriters.itemsWrite, "TABLES.TOOL_LOG, 'Tool Item ID', toolItemIds");
+    check("  a write to another table is seen", plantedWriters.itemsWrite, "TABLES.ASSET_LOG, 'Asset ID', toolItemIds");
     check("  a write the lock's callback does not wait for is seen", plantedWriters.itemsAwaited, false);
     check("  created answered as what was minted is seen", plantedWriters.created, "toolItemIds");
-    check("  a first row minted under another parent is seen", plantedWriters.firstMint, "TABLES.TOOL_LOG 'Tool Log' []");
+    check("  a first row minted under another parent is seen", plantedWriters.firstMint, "TABLES.ASSET_LOG 'Asset Log' []");
     check("  unlogged read off what was written is seen", plantedWriters.unlogged, "written.map(({ item }) => item)");
     check("  an event spelled as a string is seen", plantedWriters.event, "'Created'");
     check("  and a row minted one at a time is seen", plantedWriters.perRow, 1);
@@ -1127,22 +1127,22 @@ export async function run({ check, assert, log }) {
     // that wrote it.
     log("");
     log("a registration whose batch fails says how many were written, and which have no first row (#470):");
-    const FIRST_ROW = childKind("Tool Items", "Tool Log");
+    const FIRST_ROW = childKind("Assets", "Asset Log");
     const printed = (from, to) =>
-        Array.from({ length: to - from + 1 }, (_, i) => `HYE-TL-261001-${String(from + i).padStart(3, "0")}`).join(" ");
+        Array.from({ length: to - from + 1 }, (_, i) => `HYE-AST-261001-${String(from + i).padStart(3, "0")}`).join(" ");
     const register = async (count, { toolAnswer, logAnswer } = {}) => {
-        const toolBase = fakeBase({ idField: "Tool Item ID", answer: toolAnswer });
-        const tools = await createInBatches(formatSequentialIds("HYE-TL-261001", 1, count, { padLength: 3 }), {
-            idField: "Tool Item ID",
-            rowOf: (toolItemId) => ({ "Tool Item ID": toolItemId }),
+        const toolBase = fakeBase({ idField: "Asset ID", answer: toolAnswer });
+        const tools = await createInBatches(formatSequentialIds("HYE-AST-261001", 1, count, { padLength: 3 }), {
+            idField: "Asset ID",
+            rowOf: (toolItemId) => ({ "Asset ID": toolItemId }),
             create: toolBase.create,
             readBack: toolBase.readBack,
         });
         const created = tools.written.map(({ item }) => item);
-        const logBase = fakeBase({ idField: "Tool Log ID", answer: logAnswer });
+        const logBase = fakeBase({ idField: "Asset Log ID", answer: logAnswer });
         const logs = await createInBatches(created, {
-            idField: "Tool Log ID",
-            rowOf: (toolItemId) => ({ "Tool Log ID": nextChildId(FIRST_ROW, toolItemId, []) }),
+            idField: "Asset Log ID",
+            rowOf: (toolItemId) => ({ "Asset Log ID": nextChildId(FIRST_ROW, toolItemId, []) }),
             create: logBase.create,
             readBack: logBase.readBack,
         });
@@ -1177,7 +1177,7 @@ export async function run({ check, assert, log }) {
         const lost = await register(25, { toolAnswer: (n, rows) => (n === 1 ? { land: rows.length } : null) });
         check("its answer lost after the rows landed: the read-back selects twenty", lost.address.getAll("id").join(" "), printed(1, 20));
         check("  and the fork says five, and offers them", lost.said, "5 tools couldn't be added — The other 20 were added and are selected on this page. — Add 5 more");
-        check("  each of the twenty with its first row, minted with no read", `${lost.rows.length} ${lost.rows[0]} ${lost.rows[19]}`, "20 HYE-TL-261001-001-001 HYE-TL-261001-020-001");
+        check("  each of the twenty with its first row, minted with no read", `${lost.rows.length} ${lost.rows[0]} ${lost.rows[19]}`, "20 HYE-AST-261001-001-001 HYE-AST-261001-020-001");
     }
     {
         const unlogged = await register(12, { logAnswer: (n) => (n === 1 ? { land: 0 } : null) });

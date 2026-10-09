@@ -82,7 +82,7 @@ const GROUP_DIR = "app/(tools)";
 const RETIRED = ["/tools/tool/", "/tools/[toolItemId]", "/t/[toolItemId]", "/tools/new", "/tool-items/labels"];
 
 /** The token every `Tool Item ID` opens with, and what a label code drops (#411). */
-const TOOL_ITEM_TOKEN = "HYE-TL-";
+const TOOL_ITEM_TOKEN = "HYE-AST-";
 
 /** Every `.js` under app/, repo-relative and posix-separated. */
 function appFiles() {
@@ -173,12 +173,12 @@ export function run({ check, assert, log }) {
     check("one tool", toolPath("recAbc"), "/tools/recAbc");
     check("  a later page of it", toolPath("recAbc", 2), "/tools/recAbc?page=2");
     check("  and page 1 carries no parameter", toolPath("recAbc", 1), "/tools/recAbc");
-    check("one tool item", toolItemPath("HYE-TL-260909-004"), "/tool-items/HYE-TL-260909-004");
-    check("the label's own", labelPath("HYE-TL-260909-004"), "/t/260909-004");
+    check("one tool item", toolItemPath("HYE-AST-260909-004"), "/tool-items/HYE-AST-260909-004");
+    check("the label's own", labelPath("HYE-AST-260909-004"), "/t/260909-004");
     for (const [name, built] of [
         ["toolPath", toolPath("rec/A b")],
         ["toolItemPath", toolItemPath("HYE/A b")],
-        ["labelPath", labelPath("HYE-TL-A/B C")],
+        ["labelPath", labelPath("HYE-AST-A/B C")],
     ])
         assert(`  ${name} encodes its segment`, built.includes("%2F") && built.includes("%20"));
 
@@ -187,7 +187,7 @@ export function run({ check, assert, log }) {
     // rename of either.
     assert(
         "the label's path is shorter than the screen it opens",
-        labelPath("HYE-TL-260909-004").length < toolItemPath("HYE-TL-260909-004").length
+        labelPath("HYE-AST-260909-004").length < toolItemPath("HYE-AST-260909-004").length
     );
 
     // ── 2a: the selection rides in a tool's address as `id` (#443) ──────────
@@ -196,16 +196,16 @@ export function run({ check, assert, log }) {
     // Literal addresses rather than ones built from the module's own pieces, so a
     // change to the parameter's name, its order after `page` or its encoding fails
     // here rather than moving with the thing it is checked against.
-    const two = ["HYE-TL-260909-004", "HYE-TL-260909-007"];
+    const two = ["HYE-AST-260909-004", "HYE-AST-260909-007"];
     check(
         "a selection on the first page",
         toolPath("recAbc", 1, two),
-        "/tools/recAbc?id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+        "/tools/recAbc?id=HYE-AST-260909-004&id=HYE-AST-260909-007"
     );
     check(
         "  and on a later one, after the page",
         toolPath("recAbc", 2, two),
-        "/tools/recAbc?page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+        "/tools/recAbc?page=2&id=HYE-AST-260909-004&id=HYE-AST-260909-007"
     );
     check("  an empty selection carries nothing", toolPath("recAbc", 2, []), "/tools/recAbc?page=2");
     check("  nor on the first page", toolPath("recAbc", 1, []), "/tools/recAbc");
@@ -213,18 +213,18 @@ export function run({ check, assert, log }) {
     // blank dropped, each once, the first occurrence keeping its place — asserted on what
     // each reader really hands it: a Server Component's string, its array, nothing, and
     // `getAll`'s array. The labels' screen read its own address this way until #457.
-    check("one id as a string", readToolItemIds("hye-tl-260909-004").join(), "HYE-TL-260909-004");
+    check("one id as a string", readToolItemIds("hye-ast-260909-004").join(), "HYE-AST-260909-004");
     check("  none at all", readToolItemIds(undefined).length, 0);
     check("  an empty value", readToolItemIds(["", "  "]).length, 0);
     check(
         "  a repeat is dropped, spelled differently or not",
         readToolItemIds([
-            "HYE-TL-260909-007",
-            "hye-tl-260909-004",
-            " HYE-TL-260909-007 ",
-            "HYE-TL-260909-004",
+            "HYE-AST-260909-007",
+            "hye-ast-260909-004",
+            " HYE-AST-260909-007 ",
+            "HYE-AST-260909-004",
         ]).join(),
-        "HYE-TL-260909-007,HYE-TL-260909-004"
+        "HYE-AST-260909-007,HYE-AST-260909-004"
     );
     // IT DOES NOT ASK WHETHER A STRING IS A TOOL ITEM — the labels' read does, and
     // names what it cannot find — so a string of any shape comes back canonical.
@@ -241,7 +241,7 @@ export function run({ check, assert, log }) {
     // THE LIST HANDS THE LABELS' READ WHAT IT READ, AND THE READ READS IT AGAIN (#457),
     // so reading a reading must change nothing — a second reading that dropped a repeat
     // differently or re-cased an id would print a run the list did not show.
-    const listed = readToolItemIds(["hye-tl-260909-007", "HYE-TL-260909-004", "HYE-TL-260909-007"]);
+    const listed = readToolItemIds(["hye-ast-260909-007", "HYE-AST-260909-004", "HYE-AST-260909-007"]);
     check("  and reading what it read changes nothing", readToolItemIds(listed).join(), listed.join());
 
     // ── 2a″: how the labels name an id no tool item carries (#457) ──────────
@@ -249,9 +249,9 @@ export function run({ check, assert, log }) {
     log("an id the labels' read does not find is named by its code, or as it came:");
     // NOT `labelCodeFor`, WHICH THROWS ON A STRING THAT IS NOT A `Tool Item ID` — a
     // tripwire for a stored id, where these came off an address somebody may have typed.
-    check("one shaped like a Tool Item ID is named by its code", namedCode("HYE-TL-260909-098"), "260909-098");
-    check("  whatever its case", namedCode("hye-tl-260909-098"), "260909-098");
-    check("  and the code it gives is the one labelCodeFor makes", namedCode("HYE-TL-260909-098"), labelCodeFor("HYE-TL-260909-098"));
+    check("one shaped like a Tool Item ID is named by its code", namedCode("HYE-AST-260909-098"), "260909-098");
+    check("  whatever its case", namedCode("hye-ast-260909-098"), "260909-098");
+    check("  and the code it gives is the one labelCodeFor makes", namedCode("HYE-AST-260909-098"), labelCodeFor("HYE-AST-260909-098"));
     check("one that is not is named as it came, canonical", namedCode(" foo "), "FOO");
     check("  and a code typed on its own stays itself", namedCode("260909-098"), "260909-098");
     // ANTI-VACUITY: the throw this function steps around is real, so the two above are
@@ -275,20 +275,20 @@ export function run({ check, assert, log }) {
     // with neither.
     check(
         "a landing that fell short and left one unlogged",
-        toolPath("recAbc", 2, ["HYE-TL-260928-015"], { asked: 4, unwritten: 3, unlogged: ["HYE-TL-260928-015"] }),
-        "/tools/recAbc?page=2&id=HYE-TL-260928-015&asked=4&unwritten=3&unlogged=HYE-TL-260928-015"
+        toolPath("recAbc", 2, ["HYE-AST-260928-015"], { asked: 4, unwritten: 3, unlogged: ["HYE-AST-260928-015"] }),
+        "/tools/recAbc?page=2&id=HYE-AST-260928-015&asked=4&unwritten=3&unlogged=HYE-AST-260928-015"
     );
     check("  a shortfall of one is carried, with what was asked", toolPath("recAbc", 1, [], { asked: 2, unwritten: 1 }), "/tools/recAbc?asked=2&unwritten=1");
     check("  none is not, and neither is what was asked", toolPath("recAbc", 1, [], { asked: 5, unwritten: 0 }), "/tools/recAbc");
     check(
         "  every unlogged id is carried, in order",
         toolPath("recAbc", 1, [], { unlogged: two }),
-        "/tools/recAbc?unlogged=HYE-TL-260909-004&unlogged=HYE-TL-260909-007"
+        "/tools/recAbc?unlogged=HYE-AST-260909-004&unlogged=HYE-AST-260909-007"
     );
     check(
         "  and an empty account leaves the plain selection",
         toolPath("recAbc", 2, two, {}),
-        "/tools/recAbc?page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+        "/tools/recAbc?page=2&id=HYE-AST-260909-004&id=HYE-AST-260909-007"
     );
 
     // ── 2a‴: the job a list is narrowed to rides as `job` (#509) ────────────
@@ -300,7 +300,7 @@ export function run({ check, assert, log }) {
     check(
         "a tool's list narrowed, with a page and a selection",
         toolPath("recAbc", 2, two, { job: "recJob1" }),
-        "/tools/recAbc?job=recJob1&page=2&id=HYE-TL-260909-004&id=HYE-TL-260909-007"
+        "/tools/recAbc?job=recJob1&page=2&id=HYE-AST-260909-004&id=HYE-AST-260909-007"
     );
     check("  and with neither", toolPath("recAbc", 1, [], { job: "recJob1" }), "/tools/recAbc?job=recJob1");
     check("  a job of null carries nothing", toolPath("recAbc", 1, [], { job: null }), "/tools/recAbc");
@@ -321,31 +321,31 @@ export function run({ check, assert, log }) {
     log("");
     log("the label drops the family token and `/t/` puts it back:");
 
-    check("the code a label prints", labelCodeFor("HYE-TL-260909-004"), "260909-004");
-    check("  and the id it comes back as", toolItemIdFromLabelCode("260909-004"), "HYE-TL-260909-004");
+    check("the code a label prints", labelCodeFor("HYE-AST-260909-004"), "260909-004");
+    check("  and the id it comes back as", toolItemIdFromLabelCode("260909-004"), "HYE-AST-260909-004");
     // A ROUND TRIP ALONE PROVES NOTHING, WHICH IS THE TRAP THIS SECTION IS BUILT
     // AGAINST. With the token mutated to the empty string both halves become the
     // identity and every round trip in section 3 still passes — measured. So the
     // value pins above and the three claims here are what carry it: the code really
-    // is shorter, it really does not carry the token, and the token really is seven
+    // is shorter, it really does not carry the token, and the token really is eight
     // characters. That is #224's rule — a second path to the number has to be a
     // second path — with the literal typed out rather than read off the module.
-    check("the token is seven characters", TOOL_ITEM_TOKEN.length, 7);
+    check("the token is eight characters", TOOL_ITEM_TOKEN.length, 8);
     check(
         "  and the code is exactly that much shorter",
-        "HYE-TL-260909-004".length - labelCodeFor("HYE-TL-260909-004").length,
-        7
+        "HYE-AST-260909-004".length - labelCodeFor("HYE-AST-260909-004").length,
+        8
     );
     assert(
         "  the code carries no part of the token",
-        !labelCodeFor("HYE-TL-260909-004").includes(TOOL_ITEM_TOKEN) &&
-            !labelCodeFor("HYE-TL-260909-004").includes("HYE")
+        !labelCodeFor("HYE-AST-260909-004").includes(TOOL_ITEM_TOKEN) &&
+            !labelCodeFor("HYE-AST-260909-004").includes("HYE")
     );
     // A TYPED CODE REACHES THE CANONICAL ID, so the destination has nothing to
     // redirect and a scan stays at one hop — #348's rule, one transform further on.
     // Section 3 runs the same pair over ids the generator really mints.
-    check("a typed lowercase code", toolItemIdFromLabelCode("260909-004"), "HYE-TL-260909-004");
-    check("  with space around it", toolItemIdFromLabelCode("  260909-004 "), "HYE-TL-260909-004");
+    check("a typed lowercase code", toolItemIdFromLabelCode("260909-004"), "HYE-AST-260909-004");
+    check("  with space around it", toolItemIdFromLabelCode("  260909-004 "), "HYE-AST-260909-004");
 
     // THE OLD FORM IS NOT ACCEPTED, AND THAT IS A DECISION RATHER THAN AN OVERSIGHT.
     // Nothing links to `/t/`, every symbol is built at render time and no label has
@@ -355,7 +355,7 @@ export function run({ check, assert, log }) {
     // meets the axis's own `Tool not found`.
     assert(
         "a whole Tool Item ID is not silently accepted as a code",
-        toolItemIdFromLabelCode("HYE-TL-260909-004") === "HYE-TL-HYE-TL-260909-004"
+        toolItemIdFromLabelCode("HYE-AST-260909-004") === "HYE-AST-HYE-AST-260909-004"
     );
     // And a string that is not an id cannot become a label code at all.
     let refusedCode = null;
@@ -374,9 +374,9 @@ export function run({ check, assert, log }) {
     log("`/t/` can uppercase because a minted id is already uppercase:");
 
     // Straight from the generator, so this cannot drift from what the base holds.
-    const prefix = dailyIdPrefix(ID_KINDS.TOOL_ITEM, new Date(2026, 8, 9));
+    const prefix = dailyIdPrefix(ID_KINDS.ASSET, new Date(2026, 8, 9));
     const minted = [1, 9, 42, 999, 1000].map((seq) =>
-        formatSequentialId(prefix, seq, { padLength: ID_KINDS.TOOL_ITEM.padLength })
+        formatSequentialId(prefix, seq, { padLength: ID_KINDS.ASSET.padLength })
     );
     assert(`${minted.length} ids minted, first ${minted[0]}`, minted.length === 5);
     check(
@@ -388,15 +388,15 @@ export function run({ check, assert, log }) {
     // a fact about the generator rather than about a function that returns its input.
     assert(
         "  and the canonical form is not the identity",
-        canonicalToolItemId("hye-tl-260909-004") === "HYE-TL-260909-004"
+        canonicalToolItemId("hye-ast-260909-004") === "HYE-AST-260909-004"
     );
     check(
         "a typed lowercase id canonicalizes",
         canonicalToolItemId(minted[0].toLowerCase()),
         minted[0]
     );
-    check("  surrounding space goes", canonicalToolItemId("  HYE-TL-260909-004 "), "HYE-TL-260909-004");
-    check("  and it is idempotent", canonicalToolItemId(canonicalToolItemId("hye-tl-260909-004")), "HYE-TL-260909-004");
+    check("  surrounding space goes", canonicalToolItemId("  HYE-AST-260909-004 "), "HYE-AST-260909-004");
+    check("  and it is idempotent", canonicalToolItemId(canonicalToolItemId("hye-ast-260909-004")), "HYE-AST-260909-004");
 
     // AND THE SAME IDS SURVIVE THE PRINTED FORM (#411), which is what stops the pair
     // in section 2b being correct for one literal and wrong for a width the

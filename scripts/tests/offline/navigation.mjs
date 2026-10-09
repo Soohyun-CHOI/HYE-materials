@@ -288,7 +288,7 @@ export async function run({ check, assert, log }) {
         const mark = want ? `${want}:${route === href ? "page" : "true"}` : "";
         check(`  ${route}`, marksFor(addressOf(route)).join(" "), mark);
     }
-    check("  a query does not move the page", marksFor("/tools?page=2&id=HYE-TL-260909-001").join(" "), "tools:page");
+    check("  a query does not move the page", marksFor("/tools?page=2&id=HYE-AST-260909-001").join(" "), "tools:page");
     check("  a segment is matched whole", marksFor("/toolshed").join(" "), "");
     check("  nor a prefix of one", marksFor("/prs-archive/1").join(" "), "");
 

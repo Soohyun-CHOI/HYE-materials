@@ -129,10 +129,10 @@ function copyStrings() {
     ])
         out.push(...parts);
     out.push(TOOL_TRANSITION_COPY.movesJob({ from: JOB_B.jobCode, to: JOB_A.jobCode }));
-    out.push(TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-TL-261001-022" }));
+    out.push(TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-AST-261001-022" }));
     out.push(
         TOOL_TRANSITION_COPY.statusNotUpdated({
-            toolItemId: "HYE-TL-260909-004",
+            toolItemId: "HYE-AST-260909-004",
             event: TOOL_EVENT.CHECKED_OUT,
             status: TOOL_STATUS.IN_STOCK,
         })
@@ -672,11 +672,11 @@ export function run({ check, assert, log }) {
 
     // The failure sentence has to carry all three facts a person can act on.
     const half = TOOL_TRANSITION_COPY.statusNotUpdated({
-        toolItemId: "HYE-TL-260909-004",
+        toolItemId: "HYE-AST-260909-004",
         event: TOOL_EVENT.CHECKED_OUT,
         status: TOOL_STATUS.IN_STOCK,
     });
-    assert("a failed status write names the tool item", half.includes("HYE-TL-260909-004"));
+    assert("a failed status write names the tool item", half.includes("HYE-AST-260909-004"));
     assert("  says the event is on the record", half.includes(TOOL_EVENT.CHECKED_OUT) && half.includes("recorded"));
     assert("  says what everybody else will read", half.includes(TOOL_STATUS.IN_STOCK));
     assert("  and says pressing again fixes it", half.includes("Do it again"));
@@ -1353,12 +1353,12 @@ export function run({ check, assert, log }) {
     // names the record — 0l's Confirm and Tools 0a's sheet that confirms, the same
     // words at both widths — and a confirm that names what it retires.
     check("the opener names its object", TOOL_TRANSITION_COPY.retireOpener, "Retire this tool");
-    const heading = TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-TL-261001-022" });
+    const heading = TOOL_TRANSITION_COPY.retireHeading({ toolName: "DEMO Rotary Hammer", toolItemId: "HYE-AST-261001-022" });
     check("the title asks and names the tool", heading, "Retire DEMO Rotary Hammer?");
     check(
         "  and a tool item whose tool did not resolve is named by its id",
-        TOOL_TRANSITION_COPY.retireHeading({ toolName: undefined, toolItemId: "HYE-TL-261001-022" }),
-        "Retire HYE-TL-261001-022?"
+        TOOL_TRANSITION_COPY.retireHeading({ toolName: undefined, toolItemId: "HYE-AST-261001-022" }),
+        "Retire HYE-AST-261001-022?"
     );
     check("the confirm names what it retires", TOOL_TRANSITION_COPY.retireSubmit, "Retire tool");
     check("  and says the verb alone, -ing, while it is on its way (#469)", TOOL_TRANSITION_COPY.retireWorking, "Retiring…");

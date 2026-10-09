@@ -199,7 +199,7 @@ function plantedRun(sides, missing = []) {
     return {
         sideModules: SIDE_MODULES_TODAY,
         labels: sides.map((sideModules, at) => ({
-            toolItemId: `HYE-TL-260909-00${at + 1}`,
+            toolItemId: `HYE-AST-260909-00${at + 1}`,
             labelCode: `260909-00${at + 1}`,
             svg: "<svg/>",
             sideModules,

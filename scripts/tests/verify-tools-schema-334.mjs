@@ -90,21 +90,21 @@ function log(line = "") {
 const fixtures = createFixtures({
     tag: "V334",
     buckets: [
-        { name: "toolLog", table: TABLES.TOOL_LOG, label: "Tool Log row", tagField: "Checked Out To" },
+        { name: "toolLog", table: TABLES.ASSET_LOG, label: "Tool Log row", tagField: "Checked Out To" },
         {
             name: "toolItems",
-            table: TABLES.TOOL_ITEMS,
+            table: TABLES.ASSETS,
             label: "Tool Item",
-            tagField: "Tool Item ID",
-            children: [{ link: "Tool Log", table: TABLES.TOOL_LOG, label: "Tool Log row" }],
+            tagField: "Asset ID",
+            children: [{ link: "Asset Log", table: TABLES.ASSET_LOG, label: "Tool Log row" }],
         },
         {
             name: "tools",
-            table: TABLES.TOOLS,
+            table: TABLES.ASSET_CATEGORIES,
             label: "Tool",
             // The field the kind is written by (#507); its formula name begins the same.
             tagField: TOOL_CATALOG_FIELDS.level2,
-            children: [{ link: "Tool Items", table: TABLES.TOOL_ITEMS, label: "Tool Item" }],
+            children: [{ link: "Assets", table: TABLES.ASSETS, label: "Tool Item" }],
         },
     ],
 });
@@ -139,22 +139,22 @@ try {
 
         const EXPECTED = {
             // The catalog since #507: the name a formula over two of the four.
-            [TABLES.TOOLS]: [
-                ["Tool Name", "formula"],
+            [TABLES.ASSET_CATEGORIES]: [
+                ["Item Name", "formula"],
                 [TOOL_CATALOG_FIELDS.level1, "singleLineText"],
                 [TOOL_CATALOG_FIELDS.level2, "singleLineText"],
                 [TOOL_CATALOG_FIELDS.size, "singleLineText"],
                 [TOOL_CATALOG_FIELDS.toolClass, "singleSelect"],
             ],
-            [TABLES.TOOL_ITEMS]: [
-                ["Tool Item ID", "singleLineText"],
-                ["Tool", "multipleRecordLinks"],
+            [TABLES.ASSETS]: [
+                ["Asset ID", "singleLineText"],
+                ["Category", "multipleRecordLinks"],
                 ["Status", "singleSelect"],
                 ["Job", "multipleRecordLinks"],
             ],
-            [TABLES.TOOL_LOG]: [
-                ["Tool Log ID", "singleLineText"],
-                ["Tool Item", "multipleRecordLinks"],
+            [TABLES.ASSET_LOG]: [
+                ["Asset Log ID", "singleLineText"],
+                ["Asset", "multipleRecordLinks"],
                 ["Event", "singleSelect"],
                 ["Job", "multipleRecordLinks"],
                 ["Recorded By", "multipleRecordLinks"],
@@ -184,12 +184,12 @@ try {
         // writes from.
         log();
         log("  the option lists, against lib/toolStatus.js and lib/toolCatalog.js:");
-        const statusField = field(byName.get(TABLES.TOOL_ITEMS), "Status");
-        const eventField = field(byName.get(TABLES.TOOL_LOG), "Event");
+        const statusField = field(byName.get(TABLES.ASSETS), "Status");
+        const eventField = field(byName.get(TABLES.ASSET_LOG), "Event");
         const liveStatus = (statusField?.options?.choices || []).map((c) => c.name);
         const liveEvent = (eventField?.options?.choices || []).map((c) => c.name);
-        check("    Tool Items.Status", liveStatus.join(" | "), TOOL_STATUS_VALUES.join(" | "));
-        check("    Tool Log.Event", liveEvent.join(" | "), TOOL_EVENT_VALUES.join(" | "));
+        check("    Assets.Status", liveStatus.join(" | "), TOOL_STATUS_VALUES.join(" | "));
+        check("    Asset Log.Event", liveEvent.join(" | "), TOOL_EVENT_VALUES.join(" | "));
         // A choice added by hand is exactly what no file-only check can see, and it
         // is the whole reason this part exists — `DRUM` sat on `PR Items` held by no
         // record and creatable by no code path.
@@ -198,18 +198,18 @@ try {
         check("    choices on Status no code can write", strayStatus.join(", "), "");
         check("    choices on Event no code can write", strayEvent.join(", "), "");
         // THE CLASS'S TWO (#507), against lib/toolCatalog.js for the same reason.
-        const classField = field(byName.get(TABLES.TOOLS), TOOL_CATALOG_FIELDS.toolClass);
+        const classField = field(byName.get(TABLES.ASSET_CATEGORIES), TOOL_CATALOG_FIELDS.toolClass);
         const liveClass = (classField?.options?.choices || []).map((c) => c.name);
-        check("    Tools.Class", liveClass.join(" | "), TOOL_CLASS_VALUES.join(" | "));
+        check("    Asset Categories.Class", liveClass.join(" | "), TOOL_CLASS_VALUES.join(" | "));
 
         log();
         log("  the five inverses, checked on the far tables:");
         const INVERSES = [
-            [TABLES.TOOL_ITEMS, "Tool", TABLES.TOOLS, "Tool Items"],
-            [TABLES.TOOL_ITEMS, "Job", "Jobs", "Tool Items"],
-            [TABLES.TOOL_LOG, "Tool Item", TABLES.TOOL_ITEMS, "Tool Log"],
-            [TABLES.TOOL_LOG, "Job", "Jobs", "Tool Log"],
-            [TABLES.TOOL_LOG, "Recorded By", "Users", "Tool Log"],
+            [TABLES.ASSETS, "Category", TABLES.ASSET_CATEGORIES, "Assets"],
+            [TABLES.ASSETS, "Job", "Jobs", "Assets"],
+            [TABLES.ASSET_LOG, "Asset", TABLES.ASSETS, "Asset Log"],
+            [TABLES.ASSET_LOG, "Job", "Jobs", "Asset Log"],
+            [TABLES.ASSET_LOG, "Recorded By", "Users", "Asset Log"],
         ];
         const needsToggle = [];
         for (const [ourTable, ourField, farTable, farField] of INVERSES) {
@@ -257,14 +257,14 @@ try {
         // registered and minted below.
         const toolItemId = `${TAG}-001`;
 
-        const toolRecord = await base(TABLES.TOOLS).create(
+        const toolRecord = await base(TABLES.ASSET_CATEGORIES).create(
             Object.fromEntries(Object.entries(TOOL_CATALOG_FIELDS).map(([key, fieldName]) => [fieldName, kind[key]]))
         );
         track("tools", toolRecord.id);
 
-        const itemRecord = await base(TABLES.TOOL_ITEMS).create({
-            "Tool Item ID": toolItemId,
-            Tool: [toolRecord.id],
+        const itemRecord = await base(TABLES.ASSETS).create({
+            "Asset ID": toolItemId,
+            Category: [toolRecord.id],
             Status: TOOL_STATUS.IN_STOCK,
             Job: [job.id],
         });
@@ -286,7 +286,7 @@ try {
         track("toolLog", entry.id);
 
         log("  the child ID minted from the registry:");
-        check("    Tool Log ID", entry.toolLogId, `${toolItemId}-001`);
+        check("    Asset Log ID", entry.toolLogId, `${toolItemId}-001`);
 
         log("  the kind, read back by record id:");
         const [readTool] = await getToolsByRecordIds([toolRecord.id]);
@@ -297,7 +297,7 @@ try {
             `${readTool?.level1} | ${readTool?.level2} | ${readTool?.size} | ${readTool?.toolClass}`,
             `${kind.level1} | ${kind.level2} | ${kind.size} | ${kind.toolClass}`
         );
-        assert("    carries its Tool Items reverse-link", (readTool?.toolItems || []).includes(itemRecord.id));
+        assert("    carries its Assets reverse-link", (readTool?.toolItems || []).includes(itemRecord.id));
 
         log("  the tool item, read back by its printed id:");
         const readItem = await getToolItemByToolItemId(toolItemId);
@@ -305,7 +305,7 @@ try {
         check("    status", readItem?.status, TOOL_STATUS.IN_STOCK);
         check("    tool", (readItem?.tool || [])[0], toolRecord.id);
         check("    job", (readItem?.job || [])[0], job.id);
-        assert("    carries its Tool Log reverse-link", (readItem?.toolLog || []).includes(entry.id));
+        assert("    carries its Asset Log reverse-link", (readItem?.toolLog || []).includes(entry.id));
 
         log("  the log row, read back through the parent's reverse-link:");
         const history = await getToolLogByToolItem(itemRecord.id);
@@ -338,9 +338,9 @@ try {
         log("Part C — Event is written with no typecast, so a stray value fails");
         let refusal = null;
         try {
-            await base(TABLES.TOOL_LOG).create({
-                "Tool Log ID": `${toolItemId}-999`,
-                "Tool Item": [itemRecord.id],
+            await base(TABLES.ASSET_LOG).create({
+                "Asset Log ID": `${toolItemId}-999`,
+                "Asset": [itemRecord.id],
                 Event: "Marked Lost",
                 Job: [job.id],
                 "Checked Out To": `${TAG} should not exist`,
@@ -352,8 +352,8 @@ try {
             // If it somehow landed, it is a row on the shared base and must be
             // tracked so teardown takes it — a leak reported is recoverable, a leak
             // unnoticed is not.
-            const stray = await base(TABLES.TOOL_LOG)
-                .select({ filterByFormula: `{Tool Log ID} = "${toolItemId}-999"`, maxRecords: 1 })
+            const stray = await base(TABLES.ASSET_LOG)
+                .select({ filterByFormula: `{Asset Log ID} = "${toolItemId}-999"`, maxRecords: 1 })
                 .firstPage();
             if (stray.length > 0) track("toolLog", stray[0].id);
         }
