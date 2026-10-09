@@ -54,6 +54,16 @@ desk, set in the id face with the job after it, and in the top bar on a phone,
 where the screen opens. A tool item whose tool did not resolve is headed by its
 id. It was the `Tool Item ID` as the heading, and nothing else, until #463.
 
+**identity.** What the tool is (#507): its class and where it sits in the
+catalog, `Class B · DEMO Power Tools > DEMO Jigsaw > T-Shank` — under the id
+and the job at a desk, and under the name on a phone. It says what the name
+cannot: a name is the tool and its size with a space between, so it says
+neither where one ends and the other begins nor which category holds it. The
+class is information — `A` for a tool that matters more, usually a dearer one,
+`B` otherwise — and no control here reads it. Design is drawing the line; it is
+the record header's line under its title until then. A part the tool lacks is
+left out, and with neither there is no line.
+
 **The id is no longer the same string as the one on the sticker, and the
 confirmation still works (#411).** The label prints `260909-004` where the page
 reads `HYE-TL-260909-004`, so what a reader matches is the end of the id rather
@@ -496,8 +506,8 @@ true record of a tool changing site**, and a retirement always matching the row
 before it is what keeps that reading available.
 
 **The two tables are not interchangeable, and the screen names them the
-design's way (#455).** A `Tools` row is a tool — the kind, the name somebody
-typed once, which heads this page. A `Tool Items` row — this object, with this
+design's way (#455).** A `Tools` row is a tool — the kind, a row of the
+catalog the office keeps (#507), whose name heads this page. A `Tool Items` row — this object, with this
 printed id, which this brief calls a tool item — is a `tool` in every sentence
 about it: `Retire this tool`, `Tool not found`, `This tool was last scanned
 on …`. Six of one drill is one tool and six tools under it, counted as items on

@@ -31,6 +31,15 @@
 // Part A is safe at any time. Parts B and C create records, cleaned up within the
 // run through scripts/tests/_fixtures.mjs. Cost is roughly 20 operations.
 //
+// `Tools` IS THE CATALOG SINCE #507, so Part A reads its four fields and the class's
+// options against lib/toolCatalog.js, and Part B writes its kind by those fields and
+// reads back the name the base's formula gave it — the one place `composeToolName`
+// is held against the live expression outside the creation script. Its kind was a
+// typed `Tool Name`, found by name, until then. This also named `Tool Log."Notes"`,
+// which #363 deleted, in Part A's list, the fixture tag and Part B's entry; a log row
+// is tagged by `Checked Out To` now, the text a `Checked out` row carries (#376), and
+// corrected per #181 by #507.
+//
 // Run from the repo root:
 //   node --env-file=.env.local --experimental-loader ./scripts/esm-ext-loader.mjs \
 //     scripts/tests/verify-tools-schema-334.mjs
@@ -41,7 +50,7 @@
 import { TABLES, base } from "../../lib/airtable/client.js";
 import { getJobByCode } from "../../lib/airtable/jobs.js";
 import { getActiveUsers } from "../../lib/airtable/users.js";
-import { getToolByName } from "../../lib/airtable/tools.js";
+import { getToolsByRecordIds } from "../../lib/airtable/tools.js";
 import { getToolItemByToolItemId, getToolItemsByTool } from "../../lib/airtable/toolItems.js";
 import { createToolLogEntry, getToolLogByToolItem } from "../../lib/airtable/toolLog.js";
 import {
@@ -51,6 +60,7 @@ import {
     TOOL_STATUS,
     TOOL_STATUS_VALUES,
 } from "../../lib/toolStatus.js";
+import { TOOL_CATALOG_FIELDS, TOOL_CLASS_VALUES, composeToolName } from "../../lib/toolCatalog.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
 
@@ -80,7 +90,7 @@ function log(line = "") {
 const fixtures = createFixtures({
     tag: "V334",
     buckets: [
-        { name: "toolLog", table: TABLES.TOOL_LOG, label: "Tool Log row", tagField: "Notes" },
+        { name: "toolLog", table: TABLES.TOOL_LOG, label: "Tool Log row", tagField: "Checked Out To" },
         {
             name: "toolItems",
             table: TABLES.TOOL_ITEMS,
@@ -92,7 +102,8 @@ const fixtures = createFixtures({
             name: "tools",
             table: TABLES.TOOLS,
             label: "Tool",
-            tagField: "Tool Name",
+            // The field the kind is written by (#507); its formula name begins the same.
+            tagField: TOOL_CATALOG_FIELDS.level2,
             children: [{ link: "Tool Items", table: TABLES.TOOL_ITEMS, label: "Tool Item" }],
         },
     ],
@@ -127,7 +138,14 @@ try {
         const field = (table, name) => (table?.fields || []).find((f) => f.name === name);
 
         const EXPECTED = {
-            [TABLES.TOOLS]: [["Tool Name", "singleLineText"]],
+            // The catalog since #507: the name a formula over two of the four.
+            [TABLES.TOOLS]: [
+                ["Tool Name", "formula"],
+                [TOOL_CATALOG_FIELDS.level1, "singleLineText"],
+                [TOOL_CATALOG_FIELDS.level2, "singleLineText"],
+                [TOOL_CATALOG_FIELDS.size, "singleLineText"],
+                [TOOL_CATALOG_FIELDS.toolClass, "singleSelect"],
+            ],
             [TABLES.TOOL_ITEMS]: [
                 ["Tool Item ID", "singleLineText"],
                 ["Tool", "multipleRecordLinks"],
@@ -141,7 +159,7 @@ try {
                 ["Job", "multipleRecordLinks"],
                 ["Recorded By", "multipleRecordLinks"],
                 ["Event At", "dateTime"],
-                ["Notes", "multilineText"],
+                ["Checked Out To", "singleLineText"],
             ],
         };
 
@@ -165,7 +183,7 @@ try {
         // restates its subject asserts nothing, and the JS module is what the app
         // writes from.
         log();
-        log("  the two option lists, against lib/toolStatus.js:");
+        log("  the option lists, against lib/toolStatus.js and lib/toolCatalog.js:");
         const statusField = field(byName.get(TABLES.TOOL_ITEMS), "Status");
         const eventField = field(byName.get(TABLES.TOOL_LOG), "Event");
         const liveStatus = (statusField?.options?.choices || []).map((c) => c.name);
@@ -179,6 +197,10 @@ try {
         const strayEvent = liveEvent.filter((n) => !TOOL_EVENT_VALUES.includes(n));
         check("    choices on Status no code can write", strayStatus.join(", "), "");
         check("    choices on Event no code can write", strayEvent.join(", "), "");
+        // THE CLASS'S TWO (#507), against lib/toolCatalog.js for the same reason.
+        const classField = field(byName.get(TABLES.TOOLS), TOOL_CATALOG_FIELDS.toolClass);
+        const liveClass = (classField?.options?.choices || []).map((c) => c.name);
+        check("    Tools.Class", liveClass.join(" | "), TOOL_CLASS_VALUES.join(" | "));
 
         log();
         log("  the five inverses, checked on the far tables:");
@@ -226,14 +248,18 @@ try {
         incomplete = true;
     } else {
         const user = users[0];
-        const toolName = `${TAG} probe drill`;
+        // A catalog row, written by its four fields as the office types one (#507);
+        // `Tool Name` is the base's to compute.
+        const kind = { level1: `${TAG} probe tools`, level2: `${TAG} probe drill`, size: "18V", toolClass: TOOL_CLASS_VALUES[1] };
         // `Tool Item ID` is written as a literal here rather than minted: #335 owns
         // the generator and does not exist yet, and the shape of a top-level ID is
         // that issue's subject. What this part is for is the CHILD id, which is
         // registered and minted below.
         const toolItemId = `${TAG}-001`;
 
-        const toolRecord = await base(TABLES.TOOLS).create({ "Tool Name": toolName });
+        const toolRecord = await base(TABLES.TOOLS).create(
+            Object.fromEntries(Object.entries(TOOL_CATALOG_FIELDS).map(([key, fieldName]) => [fieldName, kind[key]]))
+        );
         track("tools", toolRecord.id);
 
         const itemRecord = await base(TABLES.TOOL_ITEMS).create({
@@ -255,16 +281,22 @@ try {
             event: TOOL_EVENT.CHECKED_OUT,
             jobRecordId: job.id,
             recordedByUserId: user.id,
-            notes: `${TAG} first event`,
+            checkedOutTo: `${TAG} first event`,
         });
         track("toolLog", entry.id);
 
         log("  the child ID minted from the registry:");
         check("    Tool Log ID", entry.toolLogId, `${toolItemId}-001`);
 
-        log("  the kind, read back by name:");
-        const readTool = await getToolByName(toolName);
-        check("    toolName", readTool?.toolName, toolName);
+        log("  the kind, read back by record id:");
+        const [readTool] = await getToolsByRecordIds([toolRecord.id]);
+        // The base's formula against lib/toolCatalog.js's rule, on a row this run wrote.
+        check("    toolName, as the formula names it", readTool?.toolName, composeToolName(kind));
+        check(
+            "    its path and class, through the mapper",
+            `${readTool?.level1} | ${readTool?.level2} | ${readTool?.size} | ${readTool?.toolClass}`,
+            `${kind.level1} | ${kind.level2} | ${kind.size} | ${kind.toolClass}`
+        );
         assert("    carries its Tool Items reverse-link", (readTool?.toolItems || []).includes(itemRecord.id));
 
         log("  the tool item, read back by its printed id:");
@@ -281,7 +313,7 @@ try {
         check("    event", history[0]?.event, TOOL_EVENT.CHECKED_OUT);
         check("    job", (history[0]?.job || [])[0], job.id);
         check("    recordedBy", (history[0]?.recordedBy || [])[0], user.id);
-        check("    notes", history[0]?.notes, `${TAG} first event`);
+        check("    checkedOutTo", history[0]?.checkedOutTo, `${TAG} first event`);
         assert("    eventAt is a timestamp", !Number.isNaN(Date.parse(history[0]?.eventAt)));
 
         // The `rowIds` path is what every screen will take, since a caller holding
@@ -311,7 +343,7 @@ try {
                 "Tool Item": [itemRecord.id],
                 Event: "Marked Lost",
                 Job: [job.id],
-                Notes: `${TAG} should not exist`,
+                "Checked Out To": `${TAG} should not exist`,
             });
         } catch (err) {
             refusal = err;

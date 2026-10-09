@@ -109,15 +109,16 @@ currently supported`), so it is a hand conversion in the UI that drops every
 stored value. That issue refused a formula primary for a person's name on exactly
 this ground.
 
-**SO THE UNIQUENESS RULE IS THE APP'S**, and it is `Tools."Tool Name"`'s, down to
-the lock key: `textMatchKey` folds case and internal whitespace,
+**SO THE UNIQUENESS RULE IS THE APP'S**, and it was `Tools."Tool Name"`'s until #507
+made that a formula over a catalog the office types, down to the lock key:
+`textMatchKey` folds case and internal whitespace,
 `getAddressByLabel` makes the matching `LOWER(TRIM(…))` comparison Airtable's
 case-SENSITIVE `=` cannot, and `createAddressIfLabelFree` holds the read and the
 write under one `withKeyLock`.
 
-- **IT REFUSES WHERE `upsertTool` FOLDS, AND THE DIFFERENCE IS WHAT ELSE IS
-  TYPED.** A tool name is the whole of that row's identity, so a second
-  submission under one name is the same tool. An address label arrives beside a
+- **IT REFUSES WHERE `upsertTool` FOLDED (#338 to #507), AND THE DIFFERENCE IS
+  WHAT ELSE IS TYPED.** A tool name was the whole of that row's identity, so a
+  second submission under one name was the same tool. An address label arrives beside a
   street, a city and a zip, so folding would silently discard the second person's
   street and leave them believing they had recorded it. The refusal names the
   address that exists, which is the thing they actually wanted.

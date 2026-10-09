@@ -15,6 +15,7 @@ import {
 } from "@/lib/toolListView";
 import { toolPath, toolsPath } from "@/lib/toolRoutes";
 import { TOOL_STATUS_VALUES } from "@/lib/toolStatus";
+import { TOOL_CATALOG_COPY, readCatalog } from "@/lib/toolCatalog";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems } from "@/lib/toolRegistration";
 import { withOpsLabel } from "@/lib/airtableOps";
 import { isSiteManager } from "@/lib/siteManager";
@@ -27,8 +28,12 @@ import RegistrationDialog from "./RegistrationDialog";
 // heading are both the table's name and must not drift apart.
 export const metadata = { title: COPY.heading };
 
-// 1a's columns: the name, then a count for each status at 96, right-aligned.
-const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
+// 1a's columns: the name, then a count for each status at 96, right-aligned — and since
+// #507 the kind's class and its category between them. The class takes a count's track, the
+// one narrow track 1a draws, and the category shares the room with the name, until Design
+// draws the two columns.
+const COLUMNS =
+    "grid-cols-[minmax(0,1fr)_var(--width-table-count)_minmax(0,1fr)_repeat(3,var(--width-table-count))]";
 
 /**
  * Every tool the company owns, with a count per status (#339).
@@ -49,17 +54,22 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  * it, which is where a reader's scope comes from (`toolListScope`), and it is the
  * choice the head narrows by. It was read for the registration dialog alone from #456,
  * and for a site manager alone from #506; the dialog takes the reader's own jobs from
- * the same read. The tools it suggests as a name is typed are every tool, each with its
- * whole count off the link array — a name is the company's, whatever scope this list
- * is in — so they cost nothing.
+ * the same read. The catalog the dialog picks a kind from is every row of the same read that
+ * a registration may pick (`readCatalog`, #507) — a kind is the company's, whatever scope
+ * this list is in — so it costs nothing.
  *
  * WHAT A READER STARTS FROM, AND WHAT A JOB NARROWS (#509). The office starts from every
- * tool, one with nothing under it included, since that is a registration the office puts
- * right; anybody else starts from the tools with a tool item on their jobs, counted over
- * those tool items alone. A job chosen in the head narrows either to that job's tool
- * items, and a tool with none of them is left off. The head then counts `N of M`, `M`
- * being where the reader started. `lib/toolListView.js:toolListScope` is the judgment,
- * and a tool's own page reads its rows by the same one.
+ * tool item and anybody else from the tool items on their jobs, and a tool with none of
+ * the reader's is left off — the office's included since #507, when a kind with nothing
+ * under it stopped being a registration the office puts right and became a catalog row
+ * nobody has bought yet. A job chosen in the head narrows either to that job's tool items,
+ * and a tool with none of them is left off. The head then counts `N of M`, `M` being where
+ * the reader started. `lib/toolListView.js:toolListScope` is the judgment, and a tool's own
+ * page reads its rows by the same one.
+ *
+ * EACH ROW SAYS ITS KIND'S CLASS AND CATEGORY (#507), off the row already read. A kind's name
+ * is its tool and its size, so the category is what the row says beside it; a kind the
+ * office left without one shows the cell empty, and no word stands in for it.
  *
  * A READER WHO IS NOT A SITE MANAGER READS THE SAME LIST WITH NO OPENER (#506), in the
  * head or under an empty list: adding tools is a site manager's, and the action behind
@@ -80,10 +90,10 @@ const COLUMNS = "grid-cols-[minmax(0,1fr)_repeat(3,var(--width-table-count))]";
  * `ListFrame.js` and `ListTable.js` for the parts. **It pages at 25 since that issue**,
  * 0b's page of rows, and paging costs nothing: every tool's counts need every tool item,
  * so the page reads them all whichever page it draws and slices what it built
- * (`pageOfTools`). The suggestions the registration offers are every tool, not the page's.
+ * (`pageOfTools`). The kinds the registration offers are the whole catalog, not the page's.
  *
  * TWO EMPTY STATES, AND ONE HAS NO WORDS YET. A list that starts from nothing — no tool
- * at all, or none on the reader's jobs — draws `No tools yet` and its sentence, with a
+ * with anything under it, or none on the reader's jobs — draws `No tools yet` and its sentence, with a
  * second opener under them, and no pager: there is nothing to page. A job chosen with
  * nothing on it draws nothing under the head, whose `0 of M` and choice say what
  * happened (#509); Design is drawing what it says.
@@ -123,12 +133,6 @@ async function renderToolsPage({ searchParams }) {
     // being where the reader started (#509).
     const count = narrowed ? FILTER_BAR_COPY.count(rows.length, total) : rows.length;
     const job = scope.job?.id ?? null;
-    // How many a tool has is its link array's length — the figure its own page heads
-    // its list with — and never a sum of statuses, so one word says one number on both.
-    const itemCount = Object.fromEntries(tools.map((tool) => [tool.id, tool.toolItems.length]));
-    // Every tool by name, as the list orders them, for the registration's suggestions below;
-    // its counts are over no tool items and nothing reads them.
-    const everyTool = summarizeTools(tools, []);
     // The head's choice, drawn when there is a job to choose (#509).
     const jobChoice =
         scope.jobs.length > 0 ? (
@@ -137,14 +141,21 @@ async function renderToolsPage({ searchParams }) {
 
     // The control that opens the registration dialog, carrying that dialog's own title so
     // the two cannot drift (#338). It is in the list's head rather than under it because a
-    // reader with no tools yet needs it most, and it opens on no tool (#456). What it suggests
-    // is every tool, whatever the scope (#509): a name is the company's, and one off the
-    // reader's jobs is still the one to add to.
+    // reader with no tools yet needs it most, and it opens on no kind (#456). What it picks
+    // from is the whole catalog, whatever the scope (#509, #507): a kind is the company's, and
+    // one off the reader's jobs, or with nothing under it yet, is still one to add to.
     const registration = {
         opener: TOOL_REGISTRATION_COPY.heading,
         canRegister: canRegisterToolItems(user, allJobs),
         jobs: assignedJobsFor(user, allJobs).map(({ id, jobCode }) => ({ id, jobCode })),
-        tools: everyTool.map((row) => ({ toolName: row.toolName, count: itemCount[row.id] })),
+        catalog: readCatalog(tools).offered.map(({ id, toolName, level1, level2, size, toolClass }) => ({
+            id,
+            toolName,
+            level1,
+            level2,
+            size,
+            toolClass,
+        })),
     };
 
     return (
@@ -184,6 +195,8 @@ async function renderToolsPage({ searchParams }) {
                 <div role="table" aria-label={COPY.heading}>
                     <div role="row" className={`${TABLE_HEAD} ${COLUMNS}`}>
                         <span role="columnheader">{COPY.toolLabel}</span>
+                        <span role="columnheader">{TOOL_CATALOG_COPY.classLabel}</span>
+                        <span role="columnheader">{TOOL_CATALOG_COPY.categoryLabel}</span>
                         {TOOL_STATUS_VALUES.map((status) => (
                             <span key={status} role="columnheader" className="text-right">
                                 {status}
@@ -196,6 +209,10 @@ async function renderToolsPage({ searchParams }) {
                                 <Link href={toolPath(row.id, 1, [], { job })} className={TABLE_ROW_LINK}>
                                     {row.toolName}
                                 </Link>
+                            </span>
+                            <span role="cell">{row.toolClass}</span>
+                            <span role="cell" className="min-w-0 truncate">
+                                {row.category}
                             </span>
                             {/* All three statuses on every row, a zero included: an absent
                                 one would read as "not known" where a `0` reads as "none",

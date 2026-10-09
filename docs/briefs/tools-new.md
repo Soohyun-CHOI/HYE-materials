@@ -11,58 +11,62 @@ used at a desk and does not support a phone's width (`_shared.md`).
 
 We bought some tools. Get them onto the system so each one can be labeled.
 
-This is the tools track's first write screen and the first screen in the app
-that creates a `Tools` row. **One submission does two things at once**, and a
-design that separates them would be separating something the site does in one
-motion: it names the KIND of tool (one `Tools` row) and it creates one tracked
-object per unit bought (one `Tool Items` row each, each with its own minted id).
+**It picks a kind from the catalog and creates one tracked object per unit
+bought (#507).** The office keeps the catalog of tools in Airtable — every kind
+the company buys, named by a category, a tool and a size, and marked with a
+class — and this dialog never adds to it: it picks one of its rows and creates
+one `Tool Items` row per unit, each with its own minted id. A kind missing from
+the catalog is the office's to add. It created the kind as well until #507,
+from a name typed here.
 
 **The two tables are not interchangeable, and the screen keeps them apart
-without a second noun (#455).** A `Tools` row is a **tool** — the kind, the name
-a person typed once, `Impact Driver`. A `Tool Items` row — the base's **tool
-item**, which is what this brief calls it — is one physical drill, the thing a
-QR label is stuck to, carrying an id that is printed. **On the screen both are
-`tool`, which is the design's word**: the name field names the kind, and
-`Add 5 tools` makes the units. The one sentence that names both at once, the
-preview below, counts the second in `items` — the word a tool's own screen
-counts them in — rather than a second `tool` meaning something else. Six of one
-drill is one tool and six tools added under it.
-**Never `tool item` on screen.**
+without a second noun (#455).** A `Tools` row is a **tool** — the kind, a row of
+the catalog, `DEMO Impact Driver 1/4" Hex`. A `Tool Items` row — the base's
+**tool item**, which is what this brief calls it — is one physical drill, the
+thing a QR label is stuck to, carrying an id that is printed. **On the screen
+both are `tool`, which is the design's word**: the search names the kind, and
+`Add 5 tools` makes the units. Six of one drill is one tool and six tools added
+under it. **Never `tool item` on screen.**
 
-**Typing the name of a tool the company already owns is the ordinary case, not
-an error.** Buying more of the same kind later adds tool items under the
-existing tool; a second tool with the same name is never created. Case, leading
-and trailing space and internal spacing are all ignored when deciding whether
-two typed names are the same tool, so `impact driver` and `Impact  Driver` reach
-the one that is already there.
+**Picking a tool the company already has is the ordinary case, and so is
+picking one nobody has bought yet**: both are rows of the catalog, and what is
+added goes under the row picked. Buying more of a kind later adds tool items
+under the same row.
 
 ## What it always carries
 
 **identity.** The heading, `Add tools` (#485) — the word `/tools` and a tool's
 own screen open it with, so the two cannot drift.
 
-**action.** Three controls, and the submit beside `Cancel`, which names what it
-will add by its count — `Add 1 tool`, `Add 5 tools` — and says `Add tools`
-while the count is one a submission would refuse (#469):
+**action.** Two steps, and the dialog shows one at a time (#507).
 
-- The tool's name, typed. Any name may be typed — the name is the identity,
-  and a person buying a kind nobody has registered has to be able to name it —
-  and part of one suggests up to five tools that already exist, each with how
-  many items it has (#456); picking one types its spelling.
-- How many, a whole number of at least 1, capped at 100 per submission.
-- The job. **Nobody types one anywhere on this axis.** Somebody on one job gets
-  that job without being asked; somebody on several picks from their own.
+- **The first finds the tool.** A choice of category over a search: the
+  category reads `All categories` until one is chosen — as the lists' choice of
+  job reads `All jobs` — then each category in the catalog. The search
+  lists the catalog's tools under the category chosen, five at most — the first
+  of them before anything is typed, and those whose name holds what is typed
+  after — each with its category beside it while no category is chosen. One tool name can stand
+  under two categories, and those are two tools. **Picking one goes on**; Enter
+  takes the one tool the search names.
+- **The second takes the rest.** The tool picked and its category on the line
+  under the title, and beside them `Change`, which goes back to the first step
+  with the tool still in the search — picking it again keeps the size chosen.
+  Then the size, among that tool's sizes: a tool held in one size has it
+  already chosen, one held in several has none chosen (0l). Then how many, a
+  whole number of at least 1, capped at 100 per submission. Then the job.
+  **Nobody types one anywhere on this axis.** Somebody on one job gets that job
+  without being asked; somebody on several picks from their own.
 
-**evidence.** Whether the typed name names a tool that already exists, stated
-under the name whenever no suggestions stand there, and in two voices — `Adds
-to Impact Driver, which already has 13 items`, and `Creates a new tool`. The
-count is every item the tool has, the figure its own screen heads its list
-with. **This is a
-preview and not the verdict**: it is decided against a list loaded when the page
-opened, and the write asks the base again. **While no name is typed, the line
-under the field says what a name does** —
-`Use an existing name to add to that tool.` (1b, #495) — and the preview and a
-refusal take its place.
+The submit stands on the second step alone, beside `Cancel`; the first goes on
+by a pick. It names what it will add by its count — `Add 1 tool`, `Add 5
+tools` — and says `Add tools` while the count is one a submission would refuse
+(#469).
+
+**evidence.** On the second step, the class of the kind the tool and the size
+make — `Class` over `B` — once the size is chosen. **It is stated, not asked**:
+the office sets it in the catalog, `A` for a tool that matters more, usually a
+dearer one, and `B` otherwise, and no act reads it. A design may not make it a
+choice here.
 
 ## What it carries only sometimes
 
@@ -92,10 +96,11 @@ and no other job is offered.
 **When it is opened on a tool (#449, #451, #456):** a tool's own screen opens it
 on that tool with its `Add tools`, and after a registration that fell short, its
 `Add 2 more` opens it on that tool with the count that was not written — the
-count those words name (#485). The tool is named on the line under the title
-and is not a field there, so what is added goes under the tool that screen is
-about; another tool is named from
-`/tools`. The count starts at the one handed over, and at 1 when none is — where
+count those words name (#485). **It opens at the second step with the size
+already the tool's (#507)**: the tool's name is the line under the title, there
+is no size to choose and no `Change`, so what is added goes under the tool that
+screen is about; another tool is picked from `/tools`. The class is stated as
+always. The count starts at the one handed over, and at 1 when none is — where
 it starts on `/tools` too — and is the reader's to change. **The dialog says
 nothing about why the count is filled**: a line saying so would be a second
 account of the registration that fell short, which the tool's screen already
@@ -130,32 +135,43 @@ color, because the press it is waiting on has happened.
 
 **When nothing was written:** one sentence on the line above the actions —
 `Couldn't add the tools. Try again.` The dialog stays, and **everything
-typed stays with it** — the name, the count and the job — because what the
-sentence asks for is the same submit again. The tool may exist by then, since a
-registration writes the tool before its tool items, and `/tools` and the tool's
-own screen already say so in their own words.
+chosen and typed stays with it** — the tool, the size, the count and the job —
+because what the sentence asks for is the same submit again.
+
+**When the catalog no longer offers the tool picked (#507):** the office has
+emptied one of its levels or its class, or a second row names the same path,
+since the page was drawn. The submission is refused whole, with one sentence on
+the line above the actions — `That tool isn't available any more.` — and the
+page is drawn again under the dialog, so the dialog's sizes and class are the
+catalog's as it now stands and the size can no longer be the one refused. The
+dialog stays open with everything else it held.
 
 **When a refusal fires:** a refusal about one field is said under that field,
-in the place its help or its note takes, and rings the field — an empty name
-(`Enter a tool name.`), a count that is not 1 to 100 (`Enter 1 to 100.`), one
-over the cap (`Max 100 at a time.`), and a job not chosen or not the reader's;
-the one about the whole dialog, nothing written, takes the line above the
-actions (0l, #456). A field's refusal goes when that field is changed. Every
-field keeps what was typed through any of them.
+in the place its help or its note takes, and rings the field — a search that
+names no one tool on Enter (`Choose a tool.`), no size chosen (`Choose a
+size.`), a count that is not 1 to 100 (`Enter 1 to 100.`), one over the cap
+(`Max 100 at a time.`), and a job not chosen or not the reader's; the one about
+the whole dialog — nothing written, or the tool no longer offered — takes the
+line above the actions (0l, #456). A field's refusal goes when that field is
+changed. Every field keeps what was chosen and typed through any of them.
 
 ## What must agree elsewhere
 
 **`Tools` and `Tool Items` are two tables, and the screens name them the
 design's way (#455).** A tool, and the tools under it — `items` where a tool's
-own screen counts them, and where this dialog does. The same words govern `/tools`, the tool's own screen
+own screen counts them. The same words govern `/tools`, the tool's own screen
 and the tool item's, so a word chosen here is chosen for all of them. **The act
-is `add` (#485)**, whether the name typed is a tool the company has or a new one
-— the line under the name says which — where it was `create` from #455; the
-code and these briefs call it registration, which is the code's word, and no
-string a tools screen renders may say that. `create` stays where it names
-something else, `Creates a new tool` under the name and the creation date where
-a registration lands, and in the sentence a tool's screen shows when nothing is
-under it, which #485 did not reach.
+is `add` (#485)**, where it was `create` from #455; the code and these briefs
+call it registration, which is the code's word, and no string a tools screen
+renders may say that. `create` stays where it names something else: the
+creation date where a registration lands.
+
+**The catalog's words are the same on every screen that shows them (#507):**
+`Category`, `Tool`, `Size` and `Class` here, the list's `Class` and `Category`
+columns, and the line under a tool's name on its own screen and on a tool
+item's — `Class B · DEMO Power Tools > DEMO Jigsaw > T-Shank`. A tool's name is
+its tool and its size, `DEMO Jigsaw T-Shank`, so the category is said beside a
+name and never inside one.
 
 **The heading is also the word on the controls that open this dialog** —
 `/tools`' and a tool's own screen's — and they come from one constant so they

@@ -48,6 +48,7 @@ import { getJobByCode } from "../../lib/airtable/jobs.js";
 import { createToolItems } from "../../lib/airtable/toolItems.js";
 import { ID_KINDS, dailyIdPrefix } from "../../lib/idSequence.js";
 import { TOOL_STATUS } from "../../lib/toolStatus.js";
+import { TOOL_CATALOG_FIELDS } from "../../lib/toolCatalog.js";
 import { resetOps, snapshot } from "../../lib/airtableOps.js";
 import { createFixtures } from "./_fixtures.mjs";
 import { printProvenance } from "./_provenance.mjs";
@@ -83,7 +84,9 @@ const fixtures = createFixtures({
             name: "tools",
             table: TABLES.TOOLS,
             label: "Tool",
-            tagField: "Tool Name",
+            // The field the kind is written by since #507, when `Tool Name` became a
+            // formula over it; until then the kind was written by that name.
+            tagField: TOOL_CATALOG_FIELDS.level2,
             children: [{ link: "Tool Items", table: TABLES.TOOL_ITEMS, label: "Tool Item" }],
         },
     ],
@@ -105,7 +108,8 @@ try {
         log("SKIPPED — needs Job 26-DEMO-01.");
         incomplete = true;
     } else {
-        const toolRecord = await base(TABLES.TOOLS).create({ "Tool Name": `${TAG} probe drill` });
+        // A kind is written by its catalog fields since #507; nothing here reads its class.
+        const toolRecord = await base(TABLES.TOOLS).create({ [TOOL_CATALOG_FIELDS.level2]: `${TAG} probe drill` });
         track("tools", toolRecord.id);
 
         const register = async (count) => {

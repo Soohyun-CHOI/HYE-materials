@@ -1,19 +1,25 @@
 "use client";
 
-import { Fragment, startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Choice, Combobox, Field, NoteEmphasis, NumberField } from "@/app/components/Controls";
+import { Button, Choice, Combobox, Field, NumberField } from "@/app/components/Controls";
 import { DialogActions, DialogBody, DialogFrame } from "@/app/components/DialogFrame";
+import Dot from "@/app/components/Dot";
 import { onlyJob } from "@/lib/toolJob";
-import { TOOL_LIST_COPY } from "@/lib/toolListView";
+import {
+    TOOL_CATALOG_COPY as CATALOG,
+    catalogCategories,
+    catalogSizes,
+    findCatalogName,
+    onlySize,
+    suggestCatalogNames,
+} from "@/lib/toolCatalog";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
     TOOL_REGISTRATION_COPY as COPY,
-    matchExistingTool,
     openingCount,
     readQuantity,
     readRegistration,
-    suggestTools,
 } from "@/lib/toolRegistration";
 import { registerToolItemsAction } from "./actions";
 
@@ -21,15 +27,32 @@ import { registerToolItemsAction } from "./actions";
  * The registration — adding tools to stock (#485) — as a dialog over the page that opens it
  * (#456), and the control that opens it. It was the form at `/tools/new` from #338 to #456.
  *
+ * TWO STEPS SINCE #507, BECAUSE A REGISTRATION PICKS A KIND FROM THE CATALOG. The first finds
+ * the tool — a search over the catalog's tools, which the category narrows — and picking one
+ * goes on to the second, which takes its size, the count and the job, says the class of the
+ * kind they make, and submits. Design is drawing the two; until then each is the closest the
+ * app draws: 0l's fields, the search being the one the tool's name was typed in, and the way
+ * back the sign-in steps' `Change` (0o), on the line under the title beside what the first
+ * step picked. Nothing here creates a kind: the name typed on this dialog from #338 was found
+ * or created as it was written, and the office keeps the catalog in Airtable now.
+ *
+ * WHERE FOCUS GOES BETWEEN THE TWO IS THE FRAME'S RULE AND NOT A RULE OF ITS OWN. Opening, the
+ * caret is in the search, the frame's first field that takes typing. A step that goes takes
+ * what held focus with it — the search, or `Change` — and the frame puts focus that falls in
+ * an open dialog on the first thing its body holds that can take it (#469): the size, and back
+ * on the first step the category. THE CATEGORY STANDS ABOVE THE SEARCH because the search
+ * opens its list as it takes focus, which the dialog's opening gives it: the list drops over
+ * whatever stands below, and the filter under it was covered before it could be reached —
+ * seen at 1440 on the first walk, the list over the whole field.
+ *
  * THREE OPENERS, AND EACH HANDS OVER WHAT THE ADDRESS USED TO CARRY. The tool list opens
- * it on no tool, so the name is typed; a tool's own page opens it on that tool; and the
- * offer a registration that fell short makes opens it on that tool with the count it did
- * not write. Opened on a tool, the tool is the line under the title rather than a field —
- * the design's — and it is submitted as it stands, so what was a name the reader could
- * change there (#449, #451) is the tool the page is about now; another tool is typed from
- * the list's opener. Nothing is written to the address to open it, and nothing about
- * where it was opened from is said inside it, which is what #449's and #321's rules came
- * to once there is no address: a reload shows the page as it was, closed.
+ * it on no kind, so the first step picks one; a kind's own page opens it on that kind; and
+ * the offer a registration that fell short makes opens it on that kind with the count it did
+ * not write. Opened on a kind, the dialog starts at its second step with the size already the
+ * kind's and nothing to pick: the kind's name is the line under the title, the design's, and
+ * there is no way back, since what is added goes under the kind that page is about — another
+ * is picked from the list's opener (#449, #451, #456). Nothing is written to the address to
+ * open it, and nothing about where it was opened from is said inside it.
  *
  * THE OFFER'S OPENER STANDS IN A DIALOG OF ITS OWN SINCE #459, so it cannot be this
  * component: the offer puts itself away as the registration opens, and a control inside
@@ -54,11 +77,14 @@ import { registerToolItemsAction } from "./actions";
  * them nowhere.
  *
  * WHAT A SUBMISSION MAY BE IS ASKED BEFORE IT IS SENT, and asked of the same function the
- * action asks, `readRegistration`: a refusal about a field is said under that field and
- * sends nothing, and only a submission it takes reaches the server. The action asks again
- * with a fresh read of the reader's jobs. A refusal keeps everything typed — the fields
- * are this component's own state — and a field's refusal goes as soon as that field is
- * changed, where the one about the whole dialog stays until the next press.
+ * action asks, `readRegistration`, against the same catalog rows: a refusal about a field is
+ * said under that field and sends nothing, and only a submission it takes reaches the server.
+ * The action asks again with a fresh read of the reader's jobs and of the catalog. A refusal
+ * keeps everything chosen and typed — the fields are this component's own state — and a
+ * field's refusal goes as soon as that field is changed, where the one about the whole dialog
+ * stays until the next press. The first step's one refusal is its own: Enter in the search,
+ * with no suggestion under visual focus, takes the one tool the name names and refuses a name
+ * that names none or more than one.
  *
  * IT SUBMITS THROUGH `submit`, INSIDE A TRANSITION, which React follows with no reset of
  * the form (#449 read that in react-dom). The form carries no `action` prop: #449 kept one
@@ -71,15 +97,16 @@ import { registerToolItemsAction } from "./actions";
  * over one it would refuse (1b). While the registration is on its way the frame is
  * `busy`: the commitment gives way to `Adding…` after 300ms, every other
  * control locks, and nothing is disabled, so focus stays where the press found it — and
- * stays there through a refusal, since the commitment can act again at once.
+ * stays there through a refusal, since the commitment can act again at once. The first step
+ * has no commitment: picking a tool is how it goes on.
  *
  * IT CLOSES WHEN THE PAGE IT WAS OPENED ON MOVES, which is how a registration that lands
- * on the same tool's page — the page it was opened from — takes the dialog away: it is
+ * on the same kind's page — the page it was opened from — takes the dialog away: it is
  * open only while the address is the one it was opened at. Nothing else moves the address
  * while it is open, because a modal dialog leaves the page behind it inert. Each opening
  * starts from what the opener hands over, and not from what the last one was left holding.
  */
-export default function RegistrationDialog({ opener, variant, canRegister, jobs, tool = null, quantity, tools = [] }) {
+export default function RegistrationDialog({ opener, variant, canRegister, jobs, tool = null, catalog = [], quantity }) {
     const registration = useRegistrationOpening();
 
     return (
@@ -94,8 +121,8 @@ export default function RegistrationDialog({ opener, variant, canRegister, jobs,
                     onClose={registration.close}
                     jobs={jobs}
                     tool={tool}
+                    catalog={catalog}
                     quantity={quantity}
-                    tools={tools}
                 />
             )}
         </>
@@ -143,19 +170,37 @@ export function RegistrationOpener({ variant = "filled", canRegister, onOpen, ch
     );
 }
 
-/** The note under a typed name: the preview, with the tool and its count in Ink. */
-function preview(existing) {
-    if (!existing) return COPY.newTool;
-    const parts = COPY.matchesExisting({ toolName: existing.toolName, items: TOOL_LIST_COPY.total(existing.count) });
-    return parts.map((part, index) =>
-        typeof part === "string" ? <Fragment key={index}>{part}</Fragment> : <NoteEmphasis key={index}>{part.emphasis}</NoteEmphasis>
+/**
+ * A fact the dialog says rather than asks — the class of the kind the two steps made (#507):
+ * a field's label over its value, the closest the app draws to a field with no control until
+ * Design draws the step.
+ */
+function Stated({ label, children }) {
+    return (
+        <div className="flex min-w-0 flex-col">
+            <span className="mb-gap text-body-sm font-medium text-foreground-default">{label}</span>
+            <span className="text-body text-foreground-default">{children}</span>
+        </div>
     );
 }
 
-/** The dialog itself, opened by whatever holds its opening. */
-export function RegistrationForm({ open, onClose, jobs, tool, quantity, tools = [] }) {
+/**
+ * The dialog itself, opened by whatever holds its opening.
+ *
+ * `catalog` is the rows a registration may pick (`readCatalog`'s `offered`) — every one on
+ * the list's dialog, and on a tool's own page that tool alone while the catalog offers it.
+ * `tool` is the row a page opened it on, which skips the first step.
+ */
+export function RegistrationForm({ open, onClose, jobs, tool, catalog = [], quantity }) {
     const [state, formAction, pending] = useActionState(registerToolItemsAction, null);
-    const [toolName, setToolName] = useState(tool ? tool.toolName : "");
+    // What the first step picked last: a name under its category, whose sizes the second
+    // offers. Opened on a tool, nothing is picked and the row is the page's. `Change` goes back
+    // to the first step and keeps it, so a pick can tell the name it had from another.
+    const [picked, setPicked] = useState(null);
+    const [choosing, setChoosing] = useState(true);
+    const [categoryKey, setCategoryKey] = useState("");
+    const [typed, setTyped] = useState("");
+    const [toolRecordId, setToolRecordId] = useState(tool ? tool.id : "");
     const [count, setCount] = useState(() => String(openingCount(quantity)));
     // With one job it is already chosen, and with several nothing is (0l) — `onlyJob`, the
     // one spelling of "one assignment" the transition's dialog starts from too (#458).
@@ -173,20 +218,45 @@ export function RegistrationForm({ open, onClose, jobs, tool, quantity, tools = 
         setEdited((was) => (was.has(field) ? was : new Set(was).add(field)));
     };
 
-    // The list's suggestions and the note under the name are the list's dialog only: a
-    // dialog opened on a tool has no name to type.
-    const suggestions = tool ? [] : suggestTools(toolName, tools);
-    const typed = toolName.trim();
-    const note = tool || !typed || (listOpen && suggestions.length > 0) ? null : preview(matchExistingTool(typed, tools));
+    const step = tool || (picked && !choosing) ? "size" : "tool";
+    const sizes = picked ? catalogSizes(catalog, picked.key) : [];
+    const chosen = tool ?? sizes.find((candidate) => candidate.id === toolRecordId) ?? null;
+
+    // A name picked starts its size where a choice starts (0l): the one size it is held in,
+    // already chosen, or none of several. Picking the name the second step already held keeps
+    // the size it was given; another name's sizes are another choice, so the one held goes.
+    // What it is handed is a catalog name either way: Enter's lookup returns one, and each of
+    // the search's suggestions is one, its label and category added for the list — so the
+    // second step can say the levels it was picked by.
+    const pick = (name) => {
+        if (name.key !== picked?.key) setToolRecordId(onlySize(catalogSizes(catalog, name.key))?.id ?? "");
+        setPicked(name);
+        setChoosing(false);
+        setTyped(name.level2);
+        setGuarded(null);
+    };
+    const back = () => {
+        setChoosing(true);
+        setGuarded(null);
+    };
 
     const submit = (event) => {
         event.preventDefault();
+        setEdited(new Set());
+        if (step === "tool") {
+            // Enter in the search with no suggestion under visual focus: the one tool the
+            // name names, under the category chosen, or the first step's refusal.
+            const found = findCatalogName(catalog, { categoryKey, typed });
+            if (found) pick(found);
+            else setGuarded({ fields: { tool: COPY.toolNoneChosen } });
+            return;
+        }
         const formData = new FormData(event.currentTarget);
         const reading = readRegistration(
-            { toolName: formData.get("toolName"), quantity: formData.get("quantity"), jobId: formData.get("jobId") },
-            jobs
+            { toolRecordId: formData.get("toolRecordId"), quantity: formData.get("quantity"), jobId: formData.get("jobId") },
+            jobs,
+            catalog
         );
-        setEdited(new Set());
         if (!reading.registration) {
             setGuarded(reading);
             return;
@@ -195,66 +265,111 @@ export function RegistrationForm({ open, onClose, jobs, tool, quantity, tools = 
         startTransition(() => formAction(formData));
     };
 
+    // The line under the title: what the dialog is for while it picks, the kind it was opened
+    // on, or the tool the first step picked with the way back to it (#507).
+    const subtitle = tool ? (
+        tool.toolName
+    ) : step === "size" ? (
+        <>
+            {picked.level2}
+            <Dot />
+            {picked.level1}
+            <button
+                type="button"
+                aria-disabled={pending || undefined}
+                onClick={pending ? undefined : back}
+                className="ml-gap-lg font-semibold text-primary"
+            >
+                {COPY.changeTool}
+            </button>
+        </>
+    ) : (
+        COPY.intro
+    );
+
     return (
-        <DialogFrame
-            open={open}
-            onClose={onClose}
-            busy={pending}
-            title={COPY.heading}
-            subtitle={tool ? tool.toolName : COPY.intro}
-            onSubmit={submit}
-        >
+        <DialogFrame open={open} onClose={onClose} busy={pending} title={COPY.heading} subtitle={subtitle} onSubmit={submit}>
             <DialogBody>
-                {tool ? (
-                    <input type="hidden" name="toolName" value={tool.toolName} />
+                {step === "tool" ? (
+                    <>
+                        <Field label={CATALOG.categoryLabel} labelAs="span">
+                            <Choice
+                                options={[
+                                    { value: "", label: CATALOG.allCategories },
+                                    ...catalogCategories(catalog).map((category) => ({ value: category.key, label: category.level1 })),
+                                ]}
+                                value={categoryKey}
+                                onChange={setCategoryKey}
+                            />
+                        </Field>
+                        <Field label={CATALOG.toolLabel} refusal={refusalFor("tool")}>
+                            <Combobox
+                                value={typed}
+                                onChange={edit("tool", setTyped)}
+                                onPick={pick}
+                                suggestions={suggestCatalogNames(catalog, { categoryKey, typed }).map((name) => ({
+                                    ...name,
+                                    label: name.level2,
+                                    detail: categoryKey ? undefined : name.level1,
+                                }))}
+                                placeholder={CATALOG.toolUnchosen}
+                                listOpen={listOpen}
+                                onListOpenChange={setListOpen}
+                            />
+                        </Field>
+                    </>
                 ) : (
-                    <Field label={COPY.nameLabel} help={COPY.nameHelp} note={note} refusal={refusalFor("toolName")} reserveMessage>
-                        <Combobox
-                            name="toolName"
-                            value={toolName}
-                            onChange={edit("toolName", setToolName)}
-                            suggestions={suggestions.map((suggestion) => ({
-                                label: suggestion.toolName,
-                                detail: TOOL_LIST_COPY.total(suggestion.count),
-                            }))}
-                            placeholder={COPY.namePlaceholder}
-                            listOpen={listOpen}
-                            onListOpenChange={setListOpen}
-                        />
-                    </Field>
+                    <>
+                        {tool ? (
+                            <input type="hidden" name="toolRecordId" value={tool.id} />
+                        ) : (
+                            <Field label={CATALOG.sizeLabel} labelAs="span" refusal={refusalFor("toolRecordId")}>
+                                <Choice
+                                    name="toolRecordId"
+                                    options={sizes.map((size) => ({ value: size.id, label: size.size }))}
+                                    value={toolRecordId}
+                                    onChange={edit("toolRecordId", setToolRecordId)}
+                                    placeholder={CATALOG.sizeUnchosen}
+                                />
+                            </Field>
+                        )}
+                        {chosen?.toolClass && <Stated label={CATALOG.classLabel}>{chosen.toolClass}</Stated>}
+                        <div className="grid grid-cols-[var(--width-number-input)_minmax(0,1fr)] gap-dialog-inline">
+                            <Field
+                                label={COPY.quantityLabel}
+                                help={COPY.quantityHelp(MAX_TOOL_ITEMS_PER_REGISTRATION)}
+                                refusal={refusalFor("quantity")}
+                            >
+                                <NumberField
+                                    name="quantity"
+                                    value={count}
+                                    onChange={edit("quantity", setCount)}
+                                    min={1}
+                                    max={MAX_TOOL_ITEMS_PER_REGISTRATION}
+                                />
+                            </Field>
+                            <Field label={COPY.jobLabel} labelAs="span" refusal={refusalFor("jobId")}>
+                                <Choice
+                                    name="jobId"
+                                    options={jobs.map((job) => ({ value: job.id, label: job.jobCode }))}
+                                    value={jobId}
+                                    onChange={edit("jobId", setJobId)}
+                                    placeholder={COPY.jobUnchosen}
+                                />
+                            </Field>
+                        </div>
+                    </>
                 )}
-                <div className="grid grid-cols-[var(--width-number-input)_minmax(0,1fr)] gap-dialog-inline">
-                    <Field
-                        label={COPY.quantityLabel}
-                        help={COPY.quantityHelp(MAX_TOOL_ITEMS_PER_REGISTRATION)}
-                        refusal={refusalFor("quantity")}
-                    >
-                        <NumberField
-                            name="quantity"
-                            value={count}
-                            onChange={edit("quantity", setCount)}
-                            min={1}
-                            max={MAX_TOOL_ITEMS_PER_REGISTRATION}
-                        />
-                    </Field>
-                    <Field label={COPY.jobLabel} labelAs="span" refusal={refusalFor("jobId")}>
-                        <Choice
-                            name="jobId"
-                            options={jobs.map((job) => ({ value: job.id, label: job.jobCode }))}
-                            value={jobId}
-                            onChange={edit("jobId", setJobId)}
-                            placeholder={COPY.jobUnchosen}
-                        />
-                    </Field>
-                </div>
             </DialogBody>
             <DialogActions refusal={said?.error}>
                 <Button variant="bordered" onClick={onClose}>
                     {COPY.cancel}
                 </Button>
-                <Button type="submit" busyLabel={COPY.working}>
-                    {COPY.submit(readQuantity(count).count)}
-                </Button>
+                {step === "size" && (
+                    <Button type="submit" busyLabel={COPY.working}>
+                        {COPY.submit(readQuantity(count).count)}
+                    </Button>
+                )}
             </DialogActions>
         </DialogFrame>
     );

@@ -523,8 +523,9 @@ function ClearButton({ onClear }) {
 }
 
 /**
- * Part of a note that names something the note is about — a tool, a count — in Ink
- * rather than the note's Ink 2 (1b's preview under a typed name).
+ * Part of a line that names something the line is about — a tool, a count, a class — in
+ * Ink against the line's own lighter ink: 1b's preview under a typed name until #507, and
+ * a tool's caption since (`ToolCaption`), its class and its path.
  */
 export function NoteEmphasis({ children }) {
     return <span className="text-foreground-default tabular-nums">{children}</span>;
@@ -886,8 +887,14 @@ export function Choice({ name, options, value, onChange, placeholder }) {
  * check-out's `Recently at this job` (#458), the same words as the name sheet a phone
  * types in — and a suggestion's `match` the part of it what is typed matched, set at 600
  * (#495). Inside a busy form it is read-only and its list does not show (#469).
+ *
+ * A SUGGESTION CAN BE A THING CHOSEN RATHER THAN WORDS TYPED (#507). With `onPick`, accepting
+ * one hands the caller the suggestion itself instead of typing its label: the registration's
+ * search picks a tool from the catalog, and one name can stand under two categories, so the
+ * label alone would not say which was meant. A suggestion's `key` is what tells two of one
+ * label apart in the list, and its label when it has none.
  */
-export function Combobox({ name, value, onChange, suggestions, heading, placeholder, listOpen, onListOpenChange }) {
+export function Combobox({ name, value, onChange, onPick, suggestions, heading, placeholder, listOpen, onListOpenChange }) {
     const field = useField();
     const formBusy = useContext(FormBusyContext);
     const listId = `${field.control}list`;
@@ -896,7 +903,8 @@ export function Combobox({ name, value, onChange, suggestions, heading, placehol
     const shown = listOpen && suggestions.length > 0 && !formBusy;
 
     const accept = (index) => {
-        onChange(suggestions[index].label);
+        if (onPick) onPick(suggestions[index]);
+        else onChange(suggestions[index].label);
         setActive(-1);
         onListOpenChange(false);
     };
@@ -959,7 +967,7 @@ export function Combobox({ name, value, onChange, suggestions, heading, placehol
                 labelId={field.labelId}
                 heading={heading}
                 options={suggestions.map((suggestion, index) => ({
-                    key: suggestion.label,
+                    key: suggestion.key ?? suggestion.label,
                     label: suggestion.label,
                     match: suggestion.match,
                     detail: suggestion.detail,

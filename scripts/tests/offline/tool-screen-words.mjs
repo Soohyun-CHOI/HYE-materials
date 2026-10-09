@@ -53,10 +53,11 @@ const CREATE = /creat/i;
  * difference is what keeps the list short: a string about something other than adding tools,
  * which stays, and one about adding tools that #485 did not reach, which is left for the
  * design and should leave this list when it is reworded. The one of the second kind, a tool's
- * empty list, left it in #495, when the design's final files said `adding` there.
+ * empty list, left it in #495, when the design's final files said `adding` there; and
+ * `Creates a new tool`, the preview's second voice under a typed name, left it in #507 with the
+ * typed name, since a registration picks a tool of the catalog and coins none.
  */
 const STILL_CREATE = new Map([
-    ["Creates a new tool", "the preview's second voice: the name typed coins a `Tools` row, which is not the act"],
     ["1 tool has no creation date", "the creation date, the moment the log's first row, `Created`, records"],
     ["tools have no creation date", "the creation date, in the notice's title for several"],
     [
@@ -137,21 +138,23 @@ export function run({ check, assert, log }) {
     // does not name is reported and one it names is not, and an entry nothing renders is.
     check(
         "  a planted screen's unnamed create is reported, and a named one is not",
-        unnamedCreate([{ text: "Create tools" }, { text: "Creates a new tool" }])
+        unnamedCreate([{ text: "Create tools" }, { text: "1 tool has no creation date" }])
             .map((s) => s.text)
             .join(" | "),
         "Create tools"
     );
     check(
         "  and every entry but the one a planted rendering says is reported stale",
-        staleEntries(new Set(["Creates a new tool"])).length,
+        staleEntries(new Set(["1 tool has no creation date"])).length,
         STILL_CREATE.size - 1
     );
     // The collector reaches the constant that says the verb most: "nothing says it" is
     // also what a collector reading nothing reports. The registration has no route of
     // its own since #456, so its words are the list's, reached through the dialog the
     // list imports. The submit is a builder since #469, naming its count, and the collector
-    // reads the words it is built of: the act alone, and the act with one.
+    // reads the words it is built of: the act alone, and the act with one. The way back from
+    // the dialog's second step is a word only the dialog says (#507), which is what shows the
+    // collector reached the dialog and not only the opener's word.
     const list = stringsForRoute("/tools").strings.map((s) => s.text);
     assert(
         "  the collector reaches the registration dialog's own words from the list",
@@ -159,7 +162,7 @@ export function run({ check, assert, log }) {
             list.includes(TOOL_REGISTRATION_COPY.submit(null)) &&
             list.includes(TOOL_REGISTRATION_COPY.submit(1)) &&
             list.includes(TOOL_REGISTRATION_COPY.working) &&
-            list.includes(TOOL_REGISTRATION_COPY.newTool)
+            list.includes(TOOL_REGISTRATION_COPY.changeTool)
     );
     const landing = stringsForRoute("/tools/[toolRecordId]").strings.map((s) => s.text);
     assert("  and the pieces of a builder on the page a registration lands on", landing.some((t) => t.includes("couldn't be added")));

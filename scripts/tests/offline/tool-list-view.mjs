@@ -590,10 +590,12 @@ export function run({ check, assert, log }) {
     // AND, SINCE #456, what the fork's opener needs of the reader: whether they may
     // register, asked once on this page, and the jobs the dialog offers — the same two the
     // page's own opener is handed, so the two openers cannot answer the reader differently.
+    // Since #507 the tool it opens on is the page's opener's too, and so is the catalog that
+    // admits it; what those two are is read off their declarations below, beside the openers.
     check(
-        "  the fork is handed the tool's name, that reading and the page's answer about the reader",
+        "  the fork is handed the page opener's tool and catalog, that reading and the page's answer about the reader",
         facts.fork,
-        "account: account, canRegister: canRegister, jobs: assignedJobs, toolName: tool.toolName"
+        "account: account, canRegister: canRegister, catalog: catalog, jobs: assignedJobs, tool: opened"
     );
     check("  and the notice the tool's name and the same reading", facts.notice, "account: account, toolName: tool.toolName");
     check("  which the page no longer lists itself", facts.mappedFromAddress, "");
@@ -609,7 +611,7 @@ export function run({ check, assert, log }) {
                 "  const sp = (await searchParams) ?? {};\n" +
                 "  const account = readRegistrationAccount({ unwritten: sp.unwritten });\n" +
                 "  return (<>\n" +
-                "    <RegistrationShortfall toolName={tool.id} account={sp} />\n" +
+                "    <RegistrationShortfall tool={tool.id} account={sp} />\n" +
                 "    <RegistrationUnlogged account={sp} />\n" +
                 "    <ul>{sp.unlogged.map((id) => <li key={id}>{id}</li>)}</ul>\n" +
                 "  </>);\n" +
@@ -618,7 +620,7 @@ export function run({ check, assert, log }) {
         ).ast
     );
     check("  a reader handed one key is seen so", plantedHandoff.accountFrom, "unwritten: sp.unwritten");
-    check("  a fork handed a record id and the address is seen so", plantedHandoff.fork, "account: sp, toolName: tool.id");
+    check("  a fork handed a record id and the address is seen so", plantedHandoff.fork, "account: sp, tool: tool.id");
     check("  a notice handed the address is seen so", plantedHandoff.notice, "account: sp");
     check("  the fork put first is seen", plantedHandoff.told, "RegistrationShortfall, RegistrationUnlogged");
     check("  and a list mapped off the address is seen so", plantedHandoff.mappedFromAddress, "sp.unlogged");
@@ -882,10 +884,12 @@ export function run({ check, assert, log }) {
         fork.gate,
         "canRegister: canRegister, onOpen: registration.start → COPY.registerOthers(account.unwritten)"
     );
+    // The tool and the catalog are the page's, handed through (#507): the dialog starts on the
+    // tool's second step, and the reading admits it only while that catalog offers it.
     check(
-        "  onto the registration form on this tool, with the count it was handed",
+        "  onto the registration form on this tool and its catalog, with the count it was handed",
         fork.opens,
-        "jobs: jobs, key: registration.opening, onClose: registration.close, open: registration.open, quantity: account.unwritten, tool: { toolName }"
+        "catalog: catalog, jobs: jobs, key: registration.opening, onClose: registration.close, open: registration.open, quantity: account.unwritten, tool: tool"
     );
     // ONE VALUE FOR THE WORDS AND THE FORM (#485): the answer names how many it will add, and
     // the dialog it opens starts at that count, so both are handed the same expression.
@@ -915,7 +919,7 @@ export function run({ check, assert, log }) {
                 "      <Button onClick={finish}>{COPY.doneRegistering}</Button>\n" +
                 "      <RegistrationOpener canRegister={true} onOpen={() => {}}>{COPY.registerOthers(account.asked)}</RegistrationOpener>\n" +
                 "    </DialogFrame>\n" +
-                "    <RegistrationForm open={true} onClose={finish} jobs={jobs} tool={{ toolName: toolRecordId }} quantity={requested} />\n" +
+                "    <RegistrationForm open={true} onClose={finish} jobs={jobs} tool={{ id: toolRecordId }} quantity={requested} />\n" +
                 "  </>);\n" +
                 "}\n",
             "<planted-fork>"
@@ -939,9 +943,9 @@ export function run({ check, assert, log }) {
         "canRegister: true, onOpen: ArrowFunctionExpression → COPY.registerOthers(account.asked)"
     );
     check(
-        "  a form opened on another record, another count and always is seen",
+        "  a form opened on a row of its own making with no catalog, another count and always is seen",
         plantedFork.opens,
-        "jobs: jobs, onClose: finish, open: true, quantity: requested, tool: { toolName: toolRecordId }"
+        "jobs: jobs, onClose: finish, open: true, quantity: requested, tool: { id: toolRecordId }"
     );
     check("  the words naming one count and the form handed another are seen", `${plantedFork.offers} | ${plantedFork.handed}`, "account.asked | requested");
     check(
@@ -1067,68 +1071,58 @@ export function run({ check, assert, log }) {
     const openers = dialogOpeners(parseFile(TOOL_SCREEN).ast);
     check("the tool's page opens the registration dialog from its head, and from an empty list", openers.length, 2);
     check(
-        "  on this tool, with no count, in the dialog's own title",
+        "  on this tool and its catalog, with no count, in the dialog's own title",
         openers[0]?.handed,
-        "canRegister: canRegister, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: { toolName: tool.toolName }"
+        "canRegister: canRegister, catalog: catalog, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: opened"
     );
     check("  asking the one predicate every opener asks", openers[0]?.asks, "canRegisterToolItems");
     check("  and under the reader being a site manager alone — not the list's, not a job (#506)", openers[0]?.under, "recorder");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${openers[1]?.handed} | ${openers[1]?.asks} | ${openers[1]?.under}`,
-        "canRegister: canRegister, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: { toolName: tool.toolName }, variant: bordered | canRegisterToolItems | page.total === 0, recorder"
+        "canRegister: canRegister, catalog: catalog, jobs: assignedJobs, opener: TOOL_REGISTRATION_COPY.heading, tool: opened, variant: bordered | canRegisterToolItems | page.total === 0, recorder"
+    );
+    // WHAT THE TOOL AND THE CATALOG ARE (#507), off their declarations, since `tool: opened`
+    // above reads alike whatever `opened` is: the row the page read, by the id the action
+    // admits and the class the second step says, and the catalog the reading admits it from —
+    // that one row, while the catalog offers it.
+    const handedOn = ({ ast, source }) => {
+        const declared = {};
+        walk(ast, (n) => {
+            if (n.type === "VariableDeclarator" && ["opened", "catalog"].includes(n.id?.name) && !(n.id.name in declared))
+                declared[n.id.name] = source.slice(n.init.start, n.init.end).replace(/\s+/g, " ");
+        });
+        return `${declared.opened ?? "none"} | ${declared.catalog ?? "none"}`;
+    };
+    check(
+        "  the tool is the row the page read, and the catalog that row while the catalog offers it",
+        handedOn(parseFile(TOOL_SCREEN)),
+        "{ id: tool.id, toolName: tool.toolName, toolClass: tool.toolClass } | readCatalog([tool]).offered.map(({ id, toolName, toolClass }) => ({ id, toolName, toolClass }))"
+    );
+    check(
+        "  and a page handing a row of its own making, and the whole table as its catalog, is seen (anti-vacuity)",
+        handedOn(parseSource("const opened = { id: sp.tool };\nconst catalog = tools;\n", "<planted-handed>")),
+        "{ id: sp.tool } | tools"
     );
     const listOpeners = dialogOpeners(parseFile(LIST_SCREEN).ast);
     check("the tool list opens it from its head, and from an empty list", listOpeners.length, 2);
+    // THE CATALOG IS THE WHOLE READ'S (#507), and never the scope's (#509): a kind is the
+    // company's, and one off the reader's jobs or with nothing under it is one to add to.
     check(
-        "  on no tool, in the same title, with every tool to suggest — whatever the list's scope (#509)",
+        "  on no tool, in the same title, with the whole catalog to pick from — whatever the list's scope (#509, #507)",
         listOpeners[0]?.handed,
-        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: everyTool.map(…)"
+        "canRegister: canRegisterToolItems(user, allJobs), catalog: readCatalog(tools).offered.map(…), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading"
     );
     check("  asking the same predicate", listOpeners[0]?.asks, "canRegisterToolItems");
     check("  and under the reader being a site manager alone too (#506)", listOpeners[0]?.under, "recorder");
     check(
         "  the empty list's the same opener, bordered, under the empty branch and the same reader",
         `${listOpeners[1]?.handed} | ${listOpeners[1]?.asks} | ${listOpeners[1]?.under}`,
-        "canRegister: canRegisterToolItems(user, allJobs), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, tools: everyTool.map(…), variant: bordered | canRegisterToolItems | rows.length === 0, !(narrowed), recorder"
+        "canRegister: canRegisterToolItems(user, allJobs), catalog: readCatalog(tools).offered.map(…), jobs: assignedJobsFor(user, allJobs).map(…), opener: TOOL_REGISTRATION_COPY.heading, variant: bordered | canRegisterToolItems | rows.length === 0, !(narrowed), recorder"
     );
-    // THE COUNT BESIDE A SUGGESTED TOOL IS ITS LINK ARRAY'S LENGTH (#456) — the figure its
-    // own page heads its list with — and never a sum of statuses, so one word says one
-    // number on both screens. Read off the object the list hands the dialog for each tool
-    // and off the binding that count comes from, since `rows.map(…)` above reads alike
-    // whatever the mapping counts.
-    const toolsHanded = (parsed) => {
-        let count = null;
-        let from = null;
-        walk(parsed.ast, (n) => {
-            if (n.type === "JSXOpeningElement" && n.name?.name === "RegistrationDialog") {
-                const raw = attributesOf(n, parsed.ast).find((a) => a.name === "tools")?.value;
-                const tools = raw?.type === "JSXExpressionContainer" ? raw.expression : raw;
-                const body = tools?.type === "CallExpression" ? tools.arguments[0]?.body : null;
-                const property = body?.type === "ObjectExpression" ? body.properties.find((p) => p.key?.name === "count") : null;
-                if (property) count = parsed.source.slice(property.value.start, property.value.end);
-            }
-            if (n.type === "VariableDeclarator" && n.id?.name === "itemCount")
-                from = parsed.source.slice(n.init.start, n.init.end).replace(/\s+/g, " ");
-        });
-        return `${count} from ${from}`;
-    };
-    check(
-        "  each suggested tool counted by its link array, as its own page counts it",
-        toolsHanded(parseFile(LIST_SCREEN)),
-        "itemCount[row.id] from Object.fromEntries(tools.map((tool) => [tool.id, tool.toolItems.length]))"
-    );
-    check(
-        "  and a count summed from the statuses is seen (anti-vacuity)",
-        toolsHanded(
-            parseSource(
-                "const itemCount = Object.fromEntries(rows.map((row) => [row.id, row.counts[0].count]));\n" +
-                    "const x = <RegistrationDialog tools={rows.map((row) => ({ toolName: row.toolName, count: row.counts[0].count + row.counts[1].count }))} />;\n",
-                "<planted-tools>"
-            )
-        ),
-        "row.counts[0].count + row.counts[1].count from Object.fromEntries(rows.map((row) => [row.id, row.counts[0].count]))"
-    );
+    // The count a suggested tool carried, its link array's length (#456), was held here until
+    // #507: a suggestion is a name of the catalog now, beside its category, and how many of a
+    // kind there are is its own page's figure alone.
     // ANTI-VACUITY: a planted page carrying an opener in the not-found return, one beside
     // the list only, and one for a reader on a job only is seen doing all three — and the
     // one beside the list is seen handing a record id and a count, saying another word and
@@ -1552,7 +1546,8 @@ export function run({ check, assert, log }) {
     check("  and one the rail's Panel does not cover", plantedStack.panel, false);
 
     // ONE LINE, AND THE FIGURE ALONE ON THE SCREEN (0n, #505). The head is the title and, 8 on
-    // along its baseline, the figure at Ink 3, its noun said to assistive tech alone; 32 above
+    // along its baseline, the figure at Ink 3, its noun said to assistive tech alone — and
+    // under that line a caption where a page hands one, which a tool's page does (#507); 32 above
     // it, or the breadcrumb bar's 14 where one stands over it, which the tool's page alone
     // says. The pager is 60, its rule counted in the 12 above its controls, and the rows end
     // on that. Under the pointer the bar's clear lifts its Ink 3 to Ink, and a breadcrumb
@@ -1566,7 +1561,12 @@ export function run({ check, assert, log }) {
             if (n.type === "VariableDeclarator" && n.id?.name === "LEVEL" && n.init?.type === "Literal") level = String(n.init.value);
         });
         return {
-            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${!/flex-col/.test(header)}`,
+            // The title's line, and under it a caption alone, drawn only where a page hands one
+            // (#507) — the control on the right kept centered on the title's line either way.
+            line: `${/<div className="flex min-w-0 items-baseline gap-list-count-inline">/.test(header)} ${/<div className="flex min-w-0 flex-col gap-title-stack">\s*<div className="flex min-w-0 items-baseline gap-list-count-inline">[\s\S]*?<\/p>\s*<\/div>\s*\{caption\}\s*<\/div>/.test(header)}`,
+            centered:
+                /caption \? "items-start" : "items-center"/.test(header) &&
+                /caption \? "-mt-\[calc\(\(var\(--height-control-lg\)-var\(--text-heading-lg--line-height\)\)\/2\)\]" : ""/.test(header),
             figure: /<p className="shrink-0 text-body tabular-nums text-foreground-subtle">\s*\{count\}\s*<span className="sr-only">\{` \$\{noun\}`\}<\/span>\s*<\/p>/.test(header),
             top: /underBreadcrumb \? "pt-breadcrumb-stack" : "pt-list-header-inset-top"/.test(header) && /pb-list-header-inset-bottom/.test(header),
             under: `${propSources(toolScreen, "ListHeader", "underBreadcrumb").join()}|${propSources(listFile, "ListHeader", "underBreadcrumb").join()}`,
@@ -1578,7 +1578,8 @@ export function run({ check, assert, log }) {
     };
     const crumbFile = parseFile("app/components/Breadcrumb.js");
     const head = headOf({ table, frame, crumb: crumbFile, toolScreen: parseFile(TOOL_SCREEN), listScreen });
-    check("a list's head is one line, the count on the title's baseline 8 on (#505)", head.line, "true true");
+    check("a list's head is one line, the count on the title's baseline 8 on (#505), a caption alone under it (#507)", head.line, "true true");
+    check("  its control centered on the title's line, a caption or not (#507)", head.centered, true);
     check("  the figure alone at Ink 3, its noun said to assistive tech alone", head.figure, true);
     check("  32 above it, or the breadcrumb's 14, and 18 under it", head.top, true);
     check("  the breadcrumb's on the tool's page and not on the list", head.under, "true|");
@@ -1602,6 +1603,7 @@ export function run({ check, assert, log }) {
         listScreen: parseSource("export default function Page() { return <ListHeader title={t} underBreadcrumb />; }", "<planted list>"),
     });
     check("  a two-line head is seen", plantedHead.line, "false false");
+    check("  a control left to the head's own centering is seen", plantedHead.centered, false);
     check("  a noun drawn beside the figure is seen", plantedHead.figure, false);
     check("  a head with neither top is seen", plantedHead.top, false);
     check("  the breadcrumb's top on the wrong screen is seen", plantedHead.under, "|true");
@@ -1626,22 +1628,24 @@ export function run({ check, assert, log }) {
     const named = (tools) => tools.map((tool) => tool.id).join(",");
     const jobsOf = (scope) => scope.jobs.map((job) => job.jobCode).join(",");
 
-    // THE OFFICE, ASSIGNED OR NOT, STARTS FROM EVERYTHING — every tool, the one with
-    // nothing under it included, since that is a registration the office puts right.
+    // THE OFFICE, ASSIGNED OR NOT, STARTS FROM EVERYTHING — every tool item, and so every
+    // tool with one. A tool with nothing under it was listed for the office until #507, as a
+    // registration the office puts right; it is a catalog row nobody has bought yet now, and
+    // left off for everybody.
     const whole = toolListScope(office, JOBS, undefined);
     check("the office may narrow to every job, one with nothing on it included", jobsOf(whole), "26-A,26-B,26-C");
     check("  starts from every tool item, its assignment notwithstanding", `${said(whole.start)} ${said(whole.shown)} ${whole.job}`, "every every null");
-    check("  and lists every tool, the one with no tool items included", named(toolsInScope(TOOLS, whole.shown)), "recGrinder,recDriver,recNothing");
+    check("  and lists every tool with a tool item, the one with none left off (#507)", named(toolsInScope(TOOLS, whole.shown)), "recGrinder,recDriver");
     // ANYBODY ELSE STARTS FROM THEIR JOBS' TOOL ITEMS, TOGETHER.
     const own = toolListScope(site, JOBS, undefined);
     check("anybody else may narrow to their own jobs, one with nothing on it included", jobsOf(own), "26-A,26-C");
     check("  starts from those jobs' tool items together", `${said(own.start)} | ${said(own.shown)}`, "i1,i2 | i1,i2");
     check("  and lists only the tools with one in it — no empty tool", named(toolsInScope(TOOLS, own.shown)), "recGrinder");
-    // A JOB NARROWS EITHER, AND THEN AN EMPTY TOOL IS LEFT OFF FOR THE OFFICE TOO.
+    // A JOB NARROWS EITHER, TO THE TOOLS WITH A TOOL ITEM THERE.
     const officeOnB = toolListScope(office, JOBS, "recJ2");
     check("the office narrowed to a job holds that job's tool items", `${officeOnB.job?.jobCode} ${said(officeOnB.shown)}`, "26-B i3,i4");
     check("  lists the tools with one there, the empty tool left off", named(toolsInScope(TOOLS, officeOnB.shown)), "recGrinder,recDriver");
-    check("  and counts out of every tool, the empty one included", toolsInScope(TOOLS, officeOnB.start).length, 3);
+    check("  and counts out of every tool with a tool item, the empty one left off (#507)", toolsInScope(TOOLS, officeOnB.start).length, 2);
     const onEmpty = toolListScope(office, JOBS, "recJ3");
     check("a job with nothing on it is chosen, and lists no tool", `${onEmpty.job?.jobCode} ${named(toolsInScope(TOOLS, onEmpty.shown))}|`, "26-C |");
     const siteOnC = toolListScope(site, JOBS, "recJ3");
@@ -1758,17 +1762,18 @@ export function run({ check, assert, log }) {
         "tool tools item items"
     );
     // THE TWO EMPTY STATES, which the sweep carried the verb and the noun into. The
-    // second names the tool and what is under it, so it says `its items` rather than a
-    // second `tool` meaning something else in one sentence.
+    // second's sentence, that an addition had stopped before saving any, went in #507: a
+    // tool with nothing under it is a catalog row nobody has bought yet, so its heading
+    // stands alone.
     check(
         "no tool at all, a heading and a sentence (1a)",
         `${TOOL_LIST_COPY.noToolsHeading} | ${TOOL_LIST_COPY.noTools}`,
         "No tools yet | Each tool shows here with how many are in stock, out and retired."
     );
     check(
-        "  and a tool with nothing under it (1d)",
-        `${TOOL_LIST_COPY.noToolItemsHeading} | ${TOOL_LIST_COPY.noToolItems}`,
-        "No items under this tool | If you were adding some, it stopped before any were saved."
+        "  and a tool with nothing under it, its heading alone (1d, #507)",
+        `${TOOL_LIST_COPY.noToolItemsHeading} | ${"noToolItems" in TOOL_LIST_COPY}`,
+        "No items under this tool | false"
     );
     check(
         "the pager's two figures, and its steps' names",

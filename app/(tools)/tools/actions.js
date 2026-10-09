@@ -1,11 +1,13 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, withSiteManagerAction } from "@/lib/authz";
 import { getAllJobs } from "@/lib/airtable/jobs";
-import { upsertTool } from "@/lib/airtable/tools";
+import { getAllTools } from "@/lib/airtable/tools";
 import { createToolItems } from "@/lib/airtable/toolItems";
 import { createFirstToolLogEntries } from "@/lib/airtable/toolLog";
+import { readCatalog } from "@/lib/toolCatalog";
 import { assignedJobsFor } from "@/lib/toolJob";
 import { TOOL_REGISTRATION_COPY, readRegistration } from "@/lib/toolRegistration";
 import { toolPath } from "@/lib/toolRoutes";
@@ -37,10 +39,21 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * this through `useActionState`, so a refusal lands in `state` and the dialog renders
  * it where it belongs: `{ fields }` names each refusal about one field under that field,
  * and `{ error }` is the one line above the actions that a refusal about the whole
- * registration takes — a reader on no job, and a batch that wrote nothing, which since
- * #449 is the only return that is not a check made before the writes. **What a
- * submission may be is `readRegistration`'s**, the same function the dialog asks before
- * it sends anything, so the two cannot refuse differently.
+ * registration takes — a reader on no job, a kind the catalog no longer offers (#507),
+ * and a batch that wrote nothing, which since #449 is the only return that is not a check
+ * made before the writes. **What a submission may be is `readRegistration`'s**, the same
+ * function the dialog asks before it sends anything, so the two cannot refuse differently.
+ *
+ * THE KIND IS PICKED, NOT TYPED, AND ONLY ONE THE CATALOG OFFERS IS TAKEN (#507). What
+ * arrives is a `Tools` record id, the row the dialog's two steps narrowed to — or the row a
+ * kind's page opened it on — and this asks `readRegistration` of it against the catalog as
+ * the base holds it now, `readCatalog`'s rows, which is the shape the dialog asked of the
+ * page's read. A row the office has since emptied, given a path another row names, or never
+ * had is refused above the actions, and the page is drawn again with the refusal
+ * (`refresh()`, #378), so the dialog's two steps offer what the catalog holds now while it
+ * keeps what was chosen. **Nothing here writes a `Tools` row**: a kind is the office's to
+ * add in Airtable, where the name typed on this dialog was found or created from #338
+ * (`upsertTool`, gone).
  *
  * WHAT IT WROTE IS SAID BY LANDING ON IT (#449). A registration that writes a tool
  * item redirects to its tool's page, on the list's first page, with every one it wrote
@@ -49,8 +62,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * many were asked for and not written — with how many were asked for beside it, since
  * the fork's title, `3 of 5 tools added` (#455, #485), needs both — and which of those
  * written have no `Created` row (`toolPath`'s fourth argument, read back by
- * `readRegistrationAccount`). The record id was in hand without a read: `upsertTool`
- * returns the row it found or made.
+ * `readRegistrationAccount`). The record id is the one the registration picked.
  *
  * THE FIRST PAGE, BECAUSE THE LIST READS NEWEST FIRST (#463). What a registration wrote
  * is the newest the tool holds, so it begins the list whatever the tool held before,
@@ -58,13 +70,13 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * first and the landing was the page holding the first tool item written, at the
  * position the row's `Tool Items` array had reached before this batch.
  *
- * THE TOOL IS FOUND BY THE NAME SUBMITTED, FROM EVERY OPENER. A tool's page and the offer
- * open the dialog on that tool and submit its name as a hidden field, and the list's
- * dialog submits what was typed; `upsertTool` finds or makes the row either way. So on a
- * base holding two `Tools` rows with one key — `withKeyLock`'s residual (#338) — a
- * registration opened on one of them lands under whichever row the lookup returns, which
- * need not be the page it was opened from. Nothing has observed it: the base's tools
- * carry distinct keys. The repair is #338's, merging the two rows by hand.
+ * THE KIND IS THE ROW SUBMITTED, FROM EVERY OPENER. A kind's page and the offer open the
+ * dialog on that kind and submit its record id as a hidden field, and the list's dialog
+ * submits the row its two steps picked, so what is added lands under the row the reader
+ * chose — on the page it was opened from, when it was opened on one. Until #507 the tool was
+ * found by the name submitted, so two rows with one key could take a registration opened on
+ * the other; a catalog row is named by its id here, and two rows naming one path are the
+ * catalog's to repair, reported by `scripts/import/create_tool_catalog_507.mjs`.
  *
  * TWO WRITES IN SEQUENCE, AND SINCE #470 THAT IS CHOSEN RATHER THAN FORCED.
  * `createToolItems` holds the day-prefix lock across its whole batch, and the log
@@ -89,9 +101,9 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * the same tool in another invocation, writing after this batch and before the landing
  * renders, puts its tool items above this one's, so some of what this one wrote can
  * stand on the next page; the selection is by id, so the selection bar still says how
- * many are not on this one. And a THROW — from `upsertTool`, or from the day-prefix
- * query `createToolItems` makes before its first create — reaches no line in the
- * dialog, as it reached none on the form before #449: it fails before anything this
+ * many are not on this one. And a THROW — from a read of the jobs or the catalog, or from
+ * the day-prefix query `createToolItems` makes before its first create — reaches no line in
+ * the dialog, as it reached none on the form before #449: it fails before anything this
  * action could word, where the refusal below is for a batch that ran and wrote none.
  */
 export const registerToolItemsAction = withSiteManagerAction(registerToolItemsHandler);
@@ -102,20 +114,26 @@ async function registerToolItemsHandler(prevState, formData) {
 
         // One list for however many jobs this person is on, which is the shape
         // `/deliveries` uses. The dialog's choice and this check read the same
-        // function, so a job the dialog could not offer cannot be admitted here.
-        const jobs = assignedJobsFor(user, await getAllJobs());
+        // function, so a job the dialog could not offer cannot be admitted here. The
+        // catalog beside it, read as the base holds it now (#507): the page's read is as old
+        // as the page, and a kind is admitted only if the catalog still offers it.
+        const [allJobs, tools] = await Promise.all([getAllJobs(), getAllTools()]);
         const reading = readRegistration(
             {
-                toolName: formData.get("toolName"),
+                toolRecordId: formData.get("toolRecordId"),
                 quantity: formData.get("quantity"),
                 jobId: formData.get("jobId"),
             },
-            jobs
+            assignedJobsFor(user, allJobs),
+            readCatalog(tools).offered
         );
-        if (!reading.registration) return reading;
-        const { toolName, count, job } = reading.registration;
-
-        const { tool } = await upsertTool({ toolName });
+        if (!reading.registration) {
+            // A kind the catalog no longer offers is the page out of date, so it is drawn
+            // again with the refusal (#378); every other refusal is the reader's to answer.
+            if (reading.stale) refresh();
+            return reading;
+        }
+        const { tool, count, job } = reading.registration;
 
         // `createToolItems` also hands back the failure that stopped it. The landing
         // needs only how many were not written, which is the count less what was: a
@@ -127,9 +145,9 @@ async function registerToolItemsHandler(prevState, formData) {
             count,
         });
 
-        // NOTHING WAS WRITTEN, SO THERE IS NOTHING TO LAND ON (#449). The tool exists —
-        // it was found or made above — but its page would show no selection and nothing
-        // to print, so the person stays in the dialog, told above its actions.
+        // NOTHING WAS WRITTEN, SO THERE IS NOTHING TO LAND ON (#449). The kind is the
+        // catalog's either way, but its page would show no selection and nothing to print,
+        // so the person stays in the dialog, told above its actions.
         if (created.length === 0) return { error: TOOL_REGISTRATION_COPY.noneWritten };
 
         // The `Created` row is this action's to write — `createToolItems`

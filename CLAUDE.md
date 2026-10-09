@@ -116,7 +116,8 @@ One module per rule, and **one rule, one implementation** — see below. Each en
 - `lib/materialsCache.js` — the three writes a generated PO makes to the item axis, and the per-entry best-effort loop.
 - `lib/toolStatus.js` — the tools track's two closed vocabularies and the three maps over them (#334, #335, #362, #363). No call site passes `createToolLogEntry` a string literal.
 - `lib/toolJob.js` — the job a `Tool Log` row is filed against (#363), the one assignment used without asking (#458), and the picker's words.
-- `lib/toolRegistration.js` — registering tool items (#338): the key, the ceiling, the suggestions, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
+- `lib/toolCatalog.js` — the catalog a tool is picked from (#507): its fields, the class, the name's formula, which rows a registration may pick and the walk to one, and the catalog's words. **No code writes a `Tools` row.**
+- `lib/toolRegistration.js` — registering tool items (#338): the ceiling, what the dialog opens with and may submit (#456), a landing's account (#449), and every word a registration says.
 - `lib/toolItemView.js` — what one tool item's page shows (#340), and every word it says.
 - `lib/toolRoutes.js` — every address on the tools axis (#348), and the code a label prints (#411). **That code and the printed path's segment are one string.**
 - `lib/toolLabelQR.js` — the QR symbol a tool label carries (#351).
