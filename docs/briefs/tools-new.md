@@ -49,9 +49,13 @@ own screen open it with, so the two cannot drift.
   chosen — as the lists' choice of job reads `All jobs` — and the categories
   offered are the type's. The search, `Name`, lists the catalog's names under
   what is chosen, five at most — the first of them before anything is typed,
-  and those whose name holds what is typed after — each with the type and the
-  category the choices leave open beside it, `Tool > DEMO Machining`. One name
-  can stand under two categories or two types, and those are two names.
+  and those whose name holds what is typed after: **the name typed in full
+  first, then names beginning with it, then names holding it elsewhere**, so
+  `wrench` offers `Wrench` before `Adjustable Monkey Wrench` (#517) — each
+  with the type and the category the choices leave open beside it, `Tool >
+  Gas Control`. One name can stand under two categories or two types, and
+  those are two names: the office's `Band Saw` is under `Equipment >
+  Machining` and `Tool > Power Tool`.
   **Picking one goes on**; Enter takes the one name the search names.
 - **The second takes the rest.** The name picked and its type and category on
   the line under the title, and beside them `Change`, which goes back to the
@@ -63,10 +67,14 @@ own screen open it with, so the two cannot drift.
   rows still standing under the earlier choices hold, so a maker chosen narrows
   the part numbers to that maker's. **A level may be left empty only where such
   a row leaves it empty**: then its first choice is `No maker` (`No size`, `No
-  part #`) and it starts there, so leaving it alone picks the row without a
-  maker; where no row leaves it empty there is no such choice, and one value is
-  already chosen while several start with none (0l). Then how many, a whole
-  number of at least 1, capped at 100 per submission. Then the job. **Nobody
+  part #`). **Every level is a choice 0l's way, `No maker` one of its
+  choices**: one choice is already chosen — `No maker` too, where it is all
+  the rows still standing allow — and several start with none, so leaving the
+  level alone picks nothing and the reader says which (#517). The office's
+  `Battery` is why: a DeWalt with no size beside two Milwaukees sized M12 and
+  M18, so a size started on `No size` would leave DeWalt the one maker, chosen,
+  for somebody adding a Milwaukee who never touched the size. Then how many, a
+  whole number of at least 1, capped at 100 per submission. Then the job. **Nobody
   types one anywhere on this axis.** Somebody on one job gets that job without
   being asked; somebody on several picks from their own.
 

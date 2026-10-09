@@ -29,6 +29,12 @@
 // IT NEEDS #514's SCHEMA. Run scripts/import/classify_asset_categories_514.mjs --apply
 // first; this stops on a base without `Level 3`, `Maker` and `Part Number`.
 //
+// #517 REMOVED THE DEMO CATALOG, every asset under it with it
+// (`remove_demo_catalog_517.mjs`), so on this base the eleven rows above are gone and a run
+// refuses before writing anything. `remove_demo_catalog_517.mjs --revert <its ledger>` brings
+// them back under new record ids, and this would then refuse those too: it finds the eleven by
+// the ids written above.
+//
 // IT TALKS TO THE REST API DIRECTLY, as the catalog's scripts in scripts/import/ do, and counts
 // its calls, which lib/airtableOps.js cannot see.
 //

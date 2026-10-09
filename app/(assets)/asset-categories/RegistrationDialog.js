@@ -43,9 +43,10 @@ import { registerAssetsAction } from "./actions";
  *
  * THE SECOND STEP IS `walkDetails`' ANSWER, DRAWN. Which levels it asks, what each offers under
  * the choices before it, which may be left empty — `No maker` first, and the level starting
- * on it — and which row they make are `lib/assetCategory.js`'s, asked again on every render of
- * what the reader chose; this holds the choices and nothing derived from them, so a choice a
- * choice before it took away is read there as never made, and no effect has to clear it.
+ * on it only where it is the one option (#517) — and which row they make are
+ * `lib/assetCategory.js`'s, asked again on every render of what the reader chose; this holds
+ * the choices and nothing derived from them, so a choice a choice before it took away is read
+ * there as never made, and no effect has to clear it.
  *
  * WHERE FOCUS GOES BETWEEN THE TWO IS THE FRAME'S RULE AND NOT A RULE OF ITS OWN. Opening, the
  * caret is in the search, the frame's first field that takes typing. A step that goes takes

@@ -1,24 +1,28 @@
 // The catalog a registration picks from (#507), in six levels since #514.
 //
 // WHAT THIS HOLDS. `lib/assetCategory.js` is the catalog's one implementation: its columns, the
-// type's and the class's values, the expression the base names a row with, which rows a
-// registration may pick, and the walk the registration's two steps narrow through. Each is
+// type's and the class's values, the expression the base names a row with, the key one path is
+// compared by, which rows a registration may pick, and the walk the registration's two steps
+// narrow through — every level 0l's choice since #517, the empty option one of them. Each is
 // pure and held here by value — the walk on a catalog typed the way an office types one by
 // hand, with a category in another case and spacing, a generic row beside rows by a maker,
 // equipment with no size, one name under two categories and under two types, every way a row
 // can be incomplete, a placeholder typed for an empty level, and a path named twice.
 //
-// AND THAT NOTHING WRITES AN `Asset Categories` ROW. The office fills the catalog in Airtable and a
+// AND THAT NOTHING UNDER `app/` OR `lib/` WRITES AN `Asset Categories` ROW. The office fills the
+// catalog in Airtable — its first rows loaded from its own list by a script (#517) — and a
 // registration picks a row, where until #507 it found or created one under a lock. No figure
 // on a screen says whether a write is gone, so every use of the table under `app/` and `lib/`
 // is read off the source, and each has to be a read.
 //
 // AND ONE SPELLING OF EACH FIELD. The reader in `lib/airtable/assetCategories.js`, the catalog's
-// script and the demo catalog's take the fields' names from `ASSET_CATEGORY_FIELDS`, and the
-// catalog's script the type's and the class's values, the expression and the catalog's reading
-// from the module too; a literal of one of the seven names in any of them fails, since a second
-// spelling is what a rename would miss. The one exception is read by value: the names #514's
-// two renames start FROM, which are #507's and are what a field holding them is renamed from.
+// script, the demo catalog's, the office catalog's load and the demo's removal (#517) take the
+// fields' names from `ASSET_CATEGORY_FIELDS`, and the catalog's script the type's and the
+// class's values, the expression and the catalog's reading from the module too, as the load
+// and the removal take the reading and the path's key; a literal of one of the seven names in
+// any of them fails, since a second spelling is what a rename would miss. The one exception is
+// read by value: the names #514's two renames start FROM, which are #507's and are what a field
+// holding them is renamed from.
 //
 // WHAT IT CANNOT SEE. Whether the base's `Item Name` computes what `composeItemName` says — a
 // formula is outside this tier (docs/notes/verification.md), and the catalog's script compares
@@ -42,6 +46,7 @@ import {
     ITEM_NAME_FORMULA,
     catalogLevelValues,
     catalogNames,
+    catalogPathKey,
     catalogRowsOf,
     compareCatalogText,
     composeItemName,
@@ -56,12 +61,17 @@ import {
 import { REPO_ROOT, listJsFiles, parentMap, parseFile, parseSource, repoPath, toPosix, walk } from "./_ast.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
-export const title = "The catalog an asset is chosen from, in six levels, and nothing writing a row of it (#507, #514)";
+export const title = "The catalog an asset is chosen from, in six levels, and nothing writing a row of it (#507, #514, #517)";
 
-/** The reader of the table, and the two scripts that write the catalog's schema and its demo rows. */
+/**
+ * The reader of the table; the two scripts that write the catalog's schema and its demo rows;
+ * and the two that load the office's rows and remove the demo's (#517).
+ */
 const READER = "lib/airtable/assetCategories.js";
 const SCRIPT = "scripts/import/classify_asset_categories_514.mjs";
 const SEED = "scripts/demo/seed_asset_catalog_514.mjs";
+const LOAD = "scripts/import/load_asset_catalog_517.mjs";
+const REMOVAL = "scripts/demo/remove_demo_catalog_517.mjs";
 
 /** A row as `recordToAssetCategory` returns it, named as the base would name it. */
 const row = (id, [level1, level2, level3, size, maker, partNumber], assetClass) => ({
@@ -273,6 +283,14 @@ export function run({ check, assert, log }) {
         asideOf(setAside),
         "notype:incomplete:level1 vehicle:incomplete:level1 nocat:incomplete:level2 noname:incomplete:level3 classC:incomplete:assetClass bare:incomplete:level1+level2+level3+assetClass na:placeholder:maker dash:placeholder:size none:placeholder:partNumber again:repeated:g45mk30"
     );
+    // THE KEY ONE PATH IS COMPARED BY (#517): what `readCatalog` offers one row of, and what the
+    // office catalog's load asks the base before it creates a row.
+    check(
+        "a path's key: all six levels as typed text is compared, an empty one kept in its place",
+        JSON.stringify([catalogPathKey(ROWS.find((r) => r.id === "again")), catalogPathKey(ROWS[0])]),
+        JSON.stringify(['tool\nmachining\nangle grinder\n4-1/2"\nmakita\nga4530', 'tool\nmachining\nangle grinder\n4-1/2"\n\n'])
+    );
+    check("  one key for a path typed in another case and spacing", catalogPathKey(ROWS.find((r) => r.id === "again")) === catalogPathKey(ROWS[1]), true);
     // AN INCOMPLETE OR PLACEHOLDER ROW NAMES NO PATH, so the whole row after it on the same path is the one offered.
     const na = ROWS.find((r) => r.id === "na");
     const completed = readCatalog([na, { ...na, id: "naFixed", maker: "Metabo" }, { ...na, id: "naEmpty", maker: "" }]);
@@ -351,6 +369,24 @@ export function run({ check, assert, log }) {
     check("  to nothing when the filters hold no such name", said(suggestCatalogNames(offered, { filters: { level2: "measuring" }, typed: "grinder" })), "");
     check("  a name typed in full is offered, since picking it goes on", said(suggestCatalogNames(offered, { typed: "drill press" })), "Drill Press (Equipment > Machining)");
     check("  and words in another order are not one name", said(suggestCatalogNames(offered, { typed: "press drill" })), "");
+    // THE NAME TYPED IN FULL, THEN THOSE BEGINNING WITH IT, THEN THOSE HOLDING IT (#517): the
+    // office's `Wrench` stood sixth among the names holding `wrench`, so the five left it off.
+    const wrenches = ["Adjustable Monkey Wrench", "Angle Head Open-End Wrench", "Hex Key Wrench Set", "Open-End Wrench", "Ratchet Wrench", "Wrench", "Wrench Set"].map((level3) => ({
+        level1: "Tool",
+        level2: "Wrench",
+        level3,
+    }));
+    check(
+        "  the name typed in full first, then a name beginning with it, then those holding it, each in the names' order",
+        said(suggestCatalogNames(wrenches, { typed: "WRENCH " })).replaceAll(" (Tool > Wrench)", ""),
+        "Wrench, Wrench Set, Adjustable Monkey Wrench, Angle Head Open-End Wrench, Hex Key Wrench Set"
+    );
+    check(
+        "  a part beginning names before one holding it elsewhere",
+        said(suggestCatalogNames(wrenches, { typed: "open" })).replaceAll(" (Tool > Wrench)", ""),
+        "Open-End Wrench, Angle Head Open-End Wrench"
+    );
+    check("  two names typed in full, in two places, in the names' order", said(suggestCatalogNames(twoPlaces, { typed: "level" })), "Level (Tool > Alpha), Level (Equipment > Zeta)");
     // ENTER IN THE SEARCH TAKES THE ONE NAME TYPED, or nothing.
     check("Enter takes the one name typed, in any case and spacing", findCatalogName(offered, { typed: "drill  PRESS" })?.key, "equipment\nmachining\ndrill press");
     check("  not a part of one", findCatalogName(offered, { typed: "Drill" }), null);
@@ -368,13 +404,14 @@ export function run({ check, assert, log }) {
     log("");
     log("the second step asks the levels the name's rows hold, narrowing as it goes:");
     const grinder = catalogRowsOf(offered, "tool\nmachining\nangle grinder");
-    // A LEVEL A ROW LEAVES EMPTY STARTS EMPTY, AND ONE NONE DOES IS 0l's CHOICE.
+    // EVERY LEVEL IS 0l's CHOICE, THE EMPTY OPTION ONE OF ITS OPTIONS (#517): beside a value it
+    // is chosen by the reader, and it is chosen already only where it is the one option.
     check(
-        "a size none leaves empty starts unchosen; a maker the generic row leaves empty starts there",
+        "a level offering the empty option beside values starts unchosen, as one of several does",
         walked(grinder, {}),
-        'size 4-1/2"/5" = ? · maker No maker/Bosch/Makita = No maker · partNumber No part # = No part # → no row'
+        'size 4-1/2"/5" = ? · maker No maker/Bosch/Makita = ? · partNumber No part #/GA4530/GA4570 = ? → no row'
     );
-    check("  a size chosen makes the generic row, every other level left empty", walked(grinder, { size: '4-1/2"' }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = No maker · partNumber No part # = No part # → g45');
+    check("  a size chosen leaves its makers, the empty one among them, to choose", walked(grinder, { size: '4-1/2"' }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = ? · partNumber No part #/GA4530/GA4570 = ? → no row');
     check("  a maker chosen narrows the part numbers to its own, none left empty", walked(grinder, { size: '4-1/2"', maker: "makita" }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = Makita · partNumber GA4530/GA4570 = ? → no row');
     check("  and one of them makes its row", walked(grinder, { size: '4-1/2"', maker: "makita", partNumber: "ga4570" }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = Makita · partNumber GA4530/GA4570 = GA4570 → g45mk70');
     check("  a maker with no part number leaves it empty, the one held read as never made", walked(grinder, { size: '4-1/2"', maker: "bosch", partNumber: "ga4570" }), 'size 4-1/2"/5" = 4-1/2" · maker No maker/Bosch/Makita = Bosch · partNumber No part # = No part # → g45bo');
@@ -386,8 +423,30 @@ export function run({ check, assert, log }) {
         "maker Lincoln/Miller = ? · partNumber Millermatic 255/POWER MIG 256 = ? → no row"
     );
     check("  whose one part number is then already chosen", walked(catalogRowsOf(offered, "equipment\nwelding\nwelding machine"), { maker: "miller" }), "maker Lincoln/Miller = Miller · partNumber Millermatic 255 = Millermatic 255 → weldMi");
-    check("equipment with a generic row starts on it", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), {}), "maker No maker/Jet = No maker · partNumber No part # = No part # → press");
-    check("  and takes its maker's row by its maker", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), { maker: "jet" }), "maker No maker/Jet = Jet · partNumber JDP-17 = JDP-17 → pressJet");
+    check("equipment with a generic row beside a maker's starts on neither", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), {}), "maker No maker/Jet = ? · partNumber No part #/JDP-17 = ? → no row");
+    check("  takes the generic row by the empty option", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), { maker: "" }), "maker No maker/Jet = No maker · partNumber No part # = No part # → press");
+    check("  and its maker's row by its maker", walked(catalogRowsOf(offered, "equipment\nmachining\ndrill press"), { maker: "jet" }), "maker No maker/Jet = Jet · partNumber JDP-17 = JDP-17 → pressJet");
+    // THE OFFICE'S BATTERY (#517): a DeWalt with no size beside two Milwaukees. Started on `No
+    // size`, the maker would be DeWalt alone and chosen, and a Milwaukee left unsized added as a
+    // DeWalt; it starts on nothing, and `No size` is a choice that then makes the DeWalt.
+    const battery = [
+        { id: "batDw", level3: "Battery", size: "", maker: "DeWalt", partNumber: "" },
+        { id: "batM12", level3: "Battery", size: "M12", maker: "Milwaukee", partNumber: "" },
+        { id: "batM18", level3: "Battery", size: "M18", maker: "Milwaukee", partNumber: "" },
+    ];
+    check("a size with no size beside two starts unchosen, and so does the maker under it", walked(battery, {}), "size No size/M12/M18 = ? · maker DeWalt/Milwaukee = ? → no row");
+    check("  `No size` chosen makes the one maker left already chosen", walked(battery, { size: "" }), "size No size/M12/M18 = No size · maker DeWalt = DeWalt → batDw");
+    check("  and a size makes its Milwaukee", walked(battery, { size: "m18" }), "size No size/M12/M18 = M18 · maker Milwaukee = Milwaukee → batM18");
+    // THE OFFICE'S WRENCH: one size of many by a maker. The maker waits for the size, and then
+    // is the one option the size leaves — empty for most, the maker for one.
+    const wrench = [
+        { id: "wr16", level3: "Wrench", size: "16 mm", maker: "", partNumber: "" },
+        { id: "wr17", level3: "Wrench", size: "17 mm", maker: "", partNumber: "" },
+        { id: "wrProto", level3: "Wrench", size: "13x14 mm", maker: "Proto", partNumber: "" },
+    ];
+    check("a maker one size of many has waits on the size", walked(wrench, {}), "size 13x14 mm/16 mm/17 mm = ? · maker No maker/Proto = ? → no row");
+    check("  a size with no maker leaves `No maker` the one option, chosen", walked(wrench, { size: "16 mm" }), "size 13x14 mm/16 mm/17 mm = 16 mm · maker No maker = No maker → wr16");
+    check("  and the size with one has that maker chosen", walked(wrench, { size: "13x14 mm" }), "size 13x14 mm/16 mm/17 mm = 13x14 mm · maker Proto = Proto → wrProto");
     check("a name with one row and no levels asks nothing and is that row", walked(catalogRowsOf(offered, "equipment\nsite services\nair compressor"), {}), " → air");
     check("a name with one size has it already chosen (0l)", walked(catalogRowsOf(offered, "tool\ncarpentry\njigsaw"), {}), "size T-Shank = T-Shank → jig");
     check("  and no rows ask nothing and make no row", walked([], {}), " → no row");
@@ -488,6 +547,19 @@ export function run({ check, assert, log }) {
     const seed = parseFile(SEED);
     check("the demo catalog's script takes the fields, the name's rule and the reading from the module", importedFromModule(seed), "ASSET_CATEGORY_FIELDS, composeItemName, readCatalog");
     check("  and spells none of the fields", `${fieldLiterals(seed).spelled}|${fieldLiterals(seed).renamedFrom}`, "|");
+    // THE OFFICE CATALOG'S LOAD AND THE DEMO'S REMOVAL (#517): each judges a row by the
+    // catalog's reading and a path by its key, and spells no field — the load's CSV header is one
+    // string, so the list's own `Size`, `Maker` and `Part Number` columns are not a second spelling.
+    const load = parseFile(LOAD);
+    check(
+        "the office catalog's load takes the fields, the path, the path's key, the name's rule and the reading from the module",
+        importedFromModule(load),
+        "ASSET_CATEGORY_FIELDS, ASSET_PATH_LEVELS, catalogPathKey, composeItemName, readCatalog"
+    );
+    check("  and the load spells none of the fields", `${fieldLiterals(load).spelled}|${fieldLiterals(load).renamedFrom}`, "|");
+    const removal = parseFile(REMOVAL);
+    check("the demo's removal takes the fields, the path's key and the reading from the module", importedFromModule(removal), "ASSET_CATEGORY_FIELDS, catalogPathKey, readCatalog");
+    check("  and the removal spells none of the fields", `${fieldLiterals(removal).spelled}|${fieldLiterals(removal).renamedFrom}`, "|");
 
     // ── anti-vacuity ──────────────────────────────────────────────────────────
     log("");

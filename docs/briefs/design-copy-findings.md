@@ -194,8 +194,9 @@ app already says until Design draws the dialog and the list.
 | `Class A · Tool > … > GA4570` | a kind's caption, the type first | #507's caption |
 
 **`No maker` is a value and not a placeholder**, which is why it is set in the
-field's ink and `Choose a maker` in the placeholder's: a level a row leaves
-empty starts on it, so a reader who leaves it alone has chosen the row without
-a maker and the field says so. One word per level rather than one for all:
-`None` is also what the catalog's check refuses as a value, and a screen saying
-it would read as asking the office to type it.
+field's ink and `Choose a maker` in the placeholder's: chosen — by the reader,
+or already, where it is the level's one choice — it says the row without a
+maker is the one being added. Beside a maker it is one of the choices, and the
+level starts on `Choose a maker` (#517). One word per level rather than one
+for all: `None` is also what the catalog's check refuses as a value, and a
+screen saying it would read as asking the office to type it.
