@@ -62,8 +62,8 @@ const INVENTORY_DIR = "docs/briefs/strings";
 
 /**
  * Every layout above a screen's own directory, which renders around it: the root
- * layout composes every tab title, and since #460 the tools layout draws the rail on
- * every tools screen. This was the root layout alone, which left the rail's words on
+ * layout composes every tab title, and since #460 the assets layout draws the rail on
+ * every asset screen. This was the root layout alone, which left the rail's words on
  * no screen's list.
  */
 function layoutsAbove(dir) {
@@ -108,9 +108,9 @@ export function listRoutes() {
  *
  * MAPPED BACK THROUGH THE FILES RATHER THAN REBUILT FROM THE ROUTE (#348). This
  * was `"app" + route`, which is exact only while every directory is a URL
- * segment — and a route group is a directory that is not. `app/(tools)/tools`
- * serves `/tools`, so the old form pointed at `app/tools`, which does not exist,
- * and every tools screen would have reported no strings at all. Deriving both
+ * segment — and a route group is a directory that is not. `app/(assets)/asset-categories`
+ * serves `/asset-categories`, so the old form pointed at `app/asset-categories`, which does not exist,
+ * and every asset screen would have reported no strings at all. Deriving both
  * directions from the same file list is what stops them disagreeing.
  */
 function routeDir(route) {

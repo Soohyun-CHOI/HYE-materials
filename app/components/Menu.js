@@ -176,7 +176,7 @@ export default function Menu({ id, anchorRef, shown, labelId, heading, options, 
  * 120ms. The head answers no pointer and is no item, so it describes the menu rather than
  * standing in it.
  *
- * `look="record"` IS THE TOOL ITEM PAGE'S `More actions` (#463, 1f and 1j): set against its
+ * `look="record"` IS THE ASSET PAGE'S `More actions` (#463, 1f and 1j): set against its
  * opener's right end, since the opener stands at the content's edge, and drawn two ways. At
  * a desk it is this frame with the dots' ink meeting its right edge and items at 13, the
  * Beside size 1f draws them at; below the phone's edge it is Tools 0a's Menu — 232 wide, 12

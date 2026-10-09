@@ -131,8 +131,8 @@ export function run({ check, log, assert }) {
     // months old, so counting it would be #164 with a worse input.
     check("Direct purchase", ID_KINDS.DIRECT_PURCHASE.idField, "Direct Purchase ID");
     // #335 — the sixth family, and the only one whose ID is PRINTED and stuck to a
-    // physical object. Two rows sharing it is two labels on two tools.
-    check("Tool item", ID_KINDS.ASSET.idField, "Asset ID");
+    // physical object. Two rows sharing it is two labels on two assets.
+    check("Asset", ID_KINDS.ASSET.idField, "Asset ID");
     // The defect as a property rather than as four equalities: whatever a kind
     // names, it must not be one of the fields a date lives in.
     const kinds = Object.entries(ID_KINDS);
@@ -145,7 +145,7 @@ export function run({ check, log, assert }) {
     // sharing a token would share a daily namespace and mint colliding sequences.
     const tokens = kinds.map(([, kind]) => kind.token);
     check("no two families share a token", new Set(tokens).size, tokens.length);
-    check("the tool item token", ID_KINDS.ASSET.token, "HYE-AST");
+    check("the asset token", ID_KINDS.ASSET.token, "HYE-AST");
     // #313 CLOSED THE ONE EXCEPTION, AND THIS IS THE STRONGER PIN THAT REPLACED IT.
     // While PO carried a four-digit year this counted families on each width, five
     // against one, which kept the split visible but left `yearDigits` sitting there
@@ -171,28 +171,28 @@ export function run({ check, log, assert }) {
     // ── the width is per family, and only one family declares one (#335) ────
     // The mechanism this rests on: `formatSequentialId` reads `padLength` through a
     // DEFAULT, so a family that declares none is untouched by the option existing.
-    // That is what let the tool item sequence widen without a line changing for the
+    // That is what let the asset sequence widen without a line changing for the
     // other five, and it is worth a check because the failure would be silent —
     // every document ID in the system quietly gaining a digit.
     log("");
     log("the sequence width is per family, and five families do not have one:");
     check("only one family declares a padLength",
         kinds.filter(([, k]) => k.padLength !== undefined).length, 1);
-    check("and it is the tool item", ID_KINDS.ASSET.padLength, 3);
+    check("and it is the asset", ID_KINDS.ASSET.padLength, 3);
     for (const [name, kind] of kinds) {
         if (kind.padLength !== undefined) continue;
         check(`  ${name} still pads to two`,
             formatSequentialId(dailyIdPrefix(kind, AUG_3), 7, { padLength: kind.padLength })
                 .slice(-3), "-07");
     }
-    check("the tool item pads to three",
+    check("the asset pads to three",
         formatSequentialId(dailyIdPrefix(ID_KINDS.ASSET, AUG_3), 7,
             { padLength: ID_KINDS.ASSET.padLength }), "HYE-AST-260803-007");
     check("and widens rather than wrapping past its pad",
         formatSequentialId("HYE-AST-260803", 1000, { padLength: 3 }), "HYE-AST-260803-1000");
 
     // ── a batch of consecutive ids (#335) ───────────────────────────────────
-    // One registration creates many tool items, so the ids have to run from the
+    // One registration creates many assets, so the ids have to run from the
     // sequence the query found without a gap and without overlapping the next
     // batch. The off-by-one is the whole content of formatSequentialIds and this is
     // where it is pinned.
@@ -397,22 +397,22 @@ export function run({ check, log, assert }) {
     }
 
     // #470: THE NEXT CHILD ID IS ONE COMPOSITION, asked with the siblings
-    // `generateChildId` read and with none by `generateFirstChildIds`, so a new tool
-    // item's unread first row and every later event share one sequence. Literals,
+    // `generateChildId` read and with none by `generateFirstChildIds`, so a new asset's
+    // unread first row and every later event share one sequence. Literals,
     // because an assertion written in terms of the composition holds for any wrong one.
     log("");
     log("the next child ID — one composition, for a parent read and for one just made (#470):");
-    const TOOL_LOG = childKind("Assets", "Asset Log");
+    const ASSET_LOG = childKind("Assets", "Asset Log");
     const QUOTATIONS = childKind("Purchase Requests", "Quotations");
-    check("a tool item with no history takes -001", nextChildId(TOOL_LOG, "HYE-AST-261001-005", []), "HYE-AST-261001-005-001");
+    check("an asset with no history takes -001", nextChildId(ASSET_LOG, "HYE-AST-261001-005", []), "HYE-AST-261001-005-001");
     check(
         "  and after two events, -003",
-        nextChildId(TOOL_LOG, "HYE-AST-261001-005", ["HYE-AST-261001-005-001", "HYE-AST-261001-005-002"]),
+        nextChildId(ASSET_LOG, "HYE-AST-261001-005", ["HYE-AST-261001-005-001", "HYE-AST-261001-005-002"]),
         "HYE-AST-261001-005-003"
     );
     check(
-        "  another tool item's rows are not its siblings",
-        nextChildId(TOOL_LOG, "HYE-AST-261001-005", ["HYE-AST-261001-004-007"]),
+        "  another asset's rows are not its siblings",
+        nextChildId(ASSET_LOG, "HYE-AST-261001-005", ["HYE-AST-261001-004-007"]),
         "HYE-AST-261001-005-001"
     );
     check("a quotation keeps its label", nextChildId(QUOTATIONS, "HYE-PR-260710-07", ["HYE-PR-260710-07-Q01"]), "HYE-PR-260710-07-Q02");
@@ -545,7 +545,7 @@ export function run({ check, log, assert }) {
         "generateNextInvoiceId",
         "generateNextDeliveryId",
         "generateNextDirectPurchaseId",
-        "generateNextToolItemIds",
+        "generateNextAssetIds",
     ];
     const delegating = [];
     walk(ids.ast, (node) => {

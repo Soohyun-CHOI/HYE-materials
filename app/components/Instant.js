@@ -39,9 +39,9 @@ import Space from "@/app/components/Space";
  * with 1.5 of room either side, and a time is set 9 past its date with no comma — 8
  * below the phone's edge — in tabular figures. The 9 is a `Space`, so the date and the
  * time copy and are read as two words. So the materials screens take it from
- * the same commit as the tools axis, which is the decision that issue recorded, and
+ * the same commit as the assets axis, which is the decision that issue recorded, and
  * this is the one component `offline/design-values.mjs` lets read the design's names
- * from a file the screens above the tools axis reach. Its ink is the line it stands in;
+ * from a file the screens above the assets axis reach. Its ink is the line it stands in;
  * a history draws it at Ink 2, a caption at whatever the caption is.
  *
  * `useReaderInstant` IS EXPORTED BECAUSE SOME INSTANTS ARE INSIDE A SENTENCE.
@@ -51,7 +51,7 @@ import Space from "@/app/components/Space";
  * notation with plain slashes, since a sentence is one string.
  *
  * A SENTENCE BUILT AS PARTS DRAWS ITS INSTANT HERE INSTEAD, `sentence` (#495). The
- * design's final files draw the moment inside the tool item page's stale-press sentence
+ * design's final files draw the moment inside the asset page's stale-press sentence
  * with its slashes dimmed, and the time a word's space past the date rather than the
  * 9 a date and its time stand apart at elsewhere, so that sentence hands this its moment
  * as a part and nothing else changes for any other screen.

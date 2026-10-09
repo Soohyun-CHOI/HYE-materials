@@ -507,7 +507,7 @@ export function run({ check, assert, log }) {
             collected.some((c) => c.value === successor)
         );
     }
-    // #513's successors that only the tools axis reads. `Item Name` and `Category` are
+    // #513's successors that only the assets axis reads. `Item Name` and `Category` are
     // not here: `Material Categories`, `Materials` and `PR Items` address both already,
     // so requiring either would be satisfied by the materials axis whatever this
     // rename left behind.

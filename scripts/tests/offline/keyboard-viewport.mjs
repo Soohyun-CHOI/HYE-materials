@@ -5,7 +5,7 @@
 // one that covers the page reports how far it covers, which the bar is lifted by. The first
 // takes the route asking for it — `viewport.interactiveWidget: "resizes-content"` — and from
 // #463 to #495 the bar's header said both screens drawing it asked while only the sign-in
-// steps did. Nothing failed: the tool item page simply asked for nothing, and the name sheet
+// steps did. Nothing failed: the asset page simply asked for nothing, and the name sheet
 // its foot bar opens could stand under a keyboard 1j draws it standing on. So every route
 // whose page reaches the bar has, in that page or a layout above it, a `viewport` export that
 // is `KEYBOARD_VIEWPORT` from `app/components/keyboardViewport.js` — the one value, so the two
@@ -108,9 +108,9 @@ export function run({ check, assert, log }) {
     check(
         "  the screens that draw it",
         pages.filter(reachesBar).join(" | "),
-        ["app/(tools)/tool-items/[toolItemId]/page.js", "app/login/confirm/page.js", "app/login/name/page.js", "app/login/page.js"].join(" | ")
+        ["app/(assets)/assets/[assetId]/page.js", "app/login/confirm/page.js", "app/login/name/page.js", "app/login/page.js"].join(" | ")
     );
-    check("  the route files that ask", [...asks].filter(([, a]) => a).map(([rel]) => rel).sort().join(" | "), "app/(tools)/tool-items/[toolItemId]/page.js | app/login/layout.js");
+    check("  the route files that ask", [...asks].filter(([, a]) => a).map(([rel]) => rel).sort().join(" | "), "app/(assets)/assets/[assetId]/page.js | app/login/layout.js");
     check("  and none that draws it asks for nothing", judge({ pages, reachesBar, asks }).join(" | "), "");
 
     // ── anti-vacuity ─────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ export function run({ check, assert, log }) {
         planted('import { KEYBOARD_VIEWPORT } from "@/app/components/keyboardViewport";\nexport const viewport = { ...KEYBOARD_VIEWPORT };\n'),
         false
     );
-    check("  and the layouts above a page reach the root", layoutsAbove("app/(tools)/tool-items/[toolItemId]/page.js").join(" | "), "app/(tools)/tool-items/[toolItemId]/layout.js | app/(tools)/tool-items/layout.js | app/(tools)/layout.js | app/layout.js");
+    check("  and the layouts above a page reach the root", layoutsAbove("app/(assets)/assets/[assetId]/page.js").join(" | "), "app/(assets)/assets/[assetId]/layout.js | app/(assets)/assets/layout.js | app/(assets)/layout.js | app/layout.js");
 }
 
 if (isMain(import.meta.url)) standalone(title, run);

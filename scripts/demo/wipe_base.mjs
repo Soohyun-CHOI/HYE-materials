@@ -118,7 +118,7 @@ const KEPT = [
     // reference data rather than demo data. Re-running the loader after a wipe
     // would also cost 78 write requests for rows that never changed.
     TABLES.MATERIAL_CATEGORIES,
-    // The tools axis (#334-#362). NOTHING REBUILDS THESE: there is no tools seed
+    // The assets axis (#334-#362). NOTHING REBUILDS THESE: there is no seed for them
     // in this directory, and every row was registered through the app. They also
     // sit on no screen the document demo shows, so clearing them would cost real
     // work to make a set of pages tidier that never render them.
@@ -131,8 +131,8 @@ const KEPT = [
  * Kept because something else keeps a link INTO them, rather than for their own
  * sake — listed apart so the distinction survives the next reader.
  *
- * `Tool Items."Job"` is required and app-enforced, and `Tool Log."Job"` is on
- * every row and never blank. Deleting Jobs while keeping tool items would leave
+ * `Assets."Job"` is required and app-enforced, and `Asset Log."Job"` is on
+ * every row and never blank. Deleting Jobs while keeping assets would leave
  * 18 rows whose required link points at nothing, which is a worse state than
  * either wiping both or keeping both. `Disciplines` follows its parent.
  *

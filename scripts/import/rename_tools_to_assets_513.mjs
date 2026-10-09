@@ -127,6 +127,7 @@ const DESCRIPTIONS = [
                 "Issue #334, renamed from Tool Items in #513 -- one asset, a tool or a piece of equipment: the thing a QR label is stuck to.",
             ],
             ["CACHES OF THE LAST Tool Log ROW", "CACHES OF THE LAST Asset Log ROW"],
+            ["lib/toolStatus.js:STATUS_AFTER_EVENT holds the first mapping", "lib/assetStatus.js:STATUS_AFTER_EVENT holds the first mapping"],
         ],
     },
     {
@@ -169,6 +170,7 @@ const DESCRIPTIONS = [
             ],
             ["A DERIVED CACHE OF Tool Log, WRITTEN BY THE APP", "A DERIVED CACHE OF Asset Log, WRITTEN BY THE APP"],
             ["in the same operation as the Tool Log row that moved it", "in the same operation as the Asset Log row that moved it"],
+            ["lib/toolStatus.js:STATUS_AFTER_EVENT holds the mapping;", "lib/assetStatus.js:STATUS_AFTER_EVENT holds the mapping;"],
         ],
     },
     {
@@ -184,6 +186,7 @@ const DESCRIPTIONS = [
                 "so the Tool Log row inherits where the tool item already was",
                 "so the Asset Log row inherits where the asset already was",
             ],
+            ["lib/toolTransition.js:readRetirement hands it to createToolLogEntry", "lib/assetTransition.js:readRetirement hands it to createAssetLogEntry"],
         ],
     },
     {
@@ -207,6 +210,7 @@ const DESCRIPTIONS = [
             ['registered as "Tool Items::Tool Log" in', 'registered as "Assets::Asset Log" in'],
             ["WHICH IS THE CHILD WIDTH AND NOT Tool Item ID's.", "WHICH IS THE CHILD WIDTH AND NOT Asset ID's."],
             ["Tool Item ID is the other kind of sequence", "Asset ID is the other kind of sequence"],
+            ["minted by lib/airtable/toolLog.js:createToolLogEntry.", "minted by lib/airtable/assetLog.js:createAssetLogEntry."],
         ],
     },
     {
@@ -218,6 +222,7 @@ const DESCRIPTIONS = [
                 "Issue #334, renamed from Tool Item in #513 -- the asset this happened to.",
             ],
             ['Its inverse, Tool Items."Tool Log", is what', 'Its inverse, Assets."Asset Log", is what'],
+            ["is what getToolLogByToolItem walks", "is what getAssetLogByAsset walks"],
         ],
     },
     {
@@ -230,6 +235,8 @@ const DESCRIPTIONS = [
                 "Created IS THE FIRST ROW OF EVERY ASSET'S HISTORY, and it exists because Assets carries no Created At.",
             ],
             ["answering when a tool item came into existence", "answering when an asset came into existence"],
+            ["and lib/airtable/toolLog.js:createToolLogEntry refuses a missing one", "and lib/airtable/assetLog.js:createAssetLogEntry refuses a missing one"],
+            ["lib/toolStatus.js:TOOL_EVENT is the source of truth", "lib/assetStatus.js:ASSET_EVENT is the source of truth"],
         ],
     },
     {
@@ -244,6 +251,7 @@ const DESCRIPTIONS = [
                 "HYE-TL-260909-004 -- HYE-AST-260909-004 since #513 -- was checked in on 26-DEMO-02",
             ],
             ['ITS OWN COPY, NOT A LOOKUP THROUGH Tool Items."Job".', 'ITS OWN COPY, NOT A LOOKUP THROUGH Assets."Job".'],
+            ["REQUIRED, and by the app: lib/airtable/toolLog.js:createToolLogEntry throws on a missing job rather than writing an empty link, the same guard createToolItems opens with.", "REQUIRED, and by the app: lib/airtable/assetLog.js:createAssetLogEntry throws on a missing job rather than writing an empty link, the same guard createAssets opens with."],
         ],
     },
     {

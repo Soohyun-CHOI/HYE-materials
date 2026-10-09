@@ -156,7 +156,7 @@ a dead end for the exact reader it was built for.
 **`Users."Assigned Jobs"` gates an act that makes a CLAIM, and attaching an address
 to a job makes none.** The base has two rules reading that field and both fit that
 description. `canAccessJobDeliveries` gates a delivery, which says material arrived
-on a job. `assignedJobsFor` gates a `Tool Log` row, and `lib/toolJob.js` says
+on a job. `assignedJobsFor` gates an `Asset Log` row, and `lib/assetJob.js` says
 outright that the job there is "the job the event HAPPENED on" — so an actor filing
 against a job they are not on is making a false statement about themselves, which
 is why that axis is narrower than the delivery one and has no office clause.
@@ -178,7 +178,7 @@ argument one level in.
   `naming.md`'s `canAccessJobDeliveries` row is about read the other way.** One
   implementation under a narrow name beats two only when it is the SAME question.
   That function's own module defines it as the tools axis's rule; a fourth caller
-  asking a different question would make the next reader of `lib/toolJob.js`
+  asking a different question would make the next reader of `lib/assetJob.js`
   believe an address is an event filed against a job.
 - **WHAT THE ASSIGNMENT DOES IS GROUP, and that much was worth fixing here.** The
   first cut sorted every job by code, so an employee on one job scrolled past the

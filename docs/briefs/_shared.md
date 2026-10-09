@@ -24,7 +24,7 @@ resembles what is there now has taken a resemblance for a requirement.
 
 **Three visual decisions are real, and they are the only three.** The app is
 light-only, and modal chrome had a single source — until #456 brought the
-design's own frame to the tools axis. Both were decided on their own
+design's own frame to the assets axis. Both were decided on their own
 terms with the reasoning recorded — #218 and #126 — and both are in
 "Constraints that already exist" at the foot of this document with what they
 rest on. **The third is the design's own**: the code a tool label prints is set
@@ -49,7 +49,7 @@ sits on the page, and whether a page is one column or two.
 
 What is amber today may be green; what has no shadow today may have one; what is
 a colored pill today may be a rule, an underline or a dot. Issue #462 names the
-values once, beginning with the ones the tools screens read; #258 is where the
+values once, beginning with the ones the asset screens read; #258 is where the
 screens above them come onto the names and the repeated shapes become
 primitives, and both draw that set from the design rather than from what the
 screens do today.
@@ -109,7 +109,7 @@ takes them away. They are not a layout to preserve.
 
    **A registration was a fifth, and it joined the rule rather than finding a
    better exception (#449).** The registration — the page `/tools/new` until
-   #456, a dialog over the page that opens it since — writes as many tool items
+   #456, a dialog over the page that opens it since — writes as many assets
    as were bought, so it has no one document to land on — and it lands on their TOOL, the
    screen that lists them, with every one it wrote selected. The selection is
    what it says about the act: it names each id, survives a reload, and is one
@@ -695,7 +695,7 @@ this document only writes down what is there.
 The purchase order list's own heading is `Purchase Orders` and the link to it
 from the root screen says `Purchase orders`. One screen, two casings. Every
 other list heading is `Title Case` except `Material prices`, which is sentence
-case. The rail the tools screens carry (#460) says the design's words,
+case. The rail the asset screens carry (#460) says the design's words,
 `Purchase requests` and `Purchase orders`, so the request list's heading
 disagrees with its section too.
 
@@ -721,12 +721,12 @@ office. Invoicing is Admin because invoicing is office work.
 | `/prs/new` | anyone signed in |
 | `/deliveries`, `/deliveries/[deliveryId]`, `/deliveries/[deliveryId]/edit`, `/deliveries/new` | anyone signed in, then Job assignment |
 | `/materials`, `/materials/[materialId]` | anyone signed in; document identifiers gated per row (#19) |
-| `/tools` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); adding tools from it is a site manager's (#506) |
-| the registration dialog, over `/tools` and `/tools/[toolRecordId]` (#456) | a site manager on either page (#506); only one assigned to a job can open it (#338) |
-| the labels' dialog, over `/tools/[toolRecordId]` and `/tool-items/[toolItemId]` (#457) | a site manager on either page (#506) |
-| `/tools/[toolRecordId]` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); selecting and printing labels, and adding tools, are a site manager's (#506) |
-| `/tool-items/[toolItemId]` | anyone signed in, with no Role and no Job gate (#337) — off the reader's jobs included (#509); checking out and in, retiring and printing are a site manager's (#506) |
-| `/t/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
+| `/asset-categories` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); adding tools from it is a site manager's (#506) |
+| the registration dialog, over `/asset-categories` and `/asset-categories/[categoryRecordId]` (#456) | a site manager on either page (#506); only one assigned to a job can open it (#338) |
+| the labels' dialog, over `/asset-categories/[categoryRecordId]` and `/assets/[assetId]` (#457) | a site manager on either page (#506) |
+| `/asset-categories/[categoryRecordId]` | anyone signed in, with no Role and no Job gate (#337); the list starts from the reader's jobs, every job's for an Admin (#509); selecting and printing labels, and adding tools, are a site manager's (#506) |
+| `/assets/[assetId]` | anyone signed in, with no Role and no Job gate (#337) — off the reader's jobs included (#509); checking out and in, retiring and printing are a site manager's (#506) |
+| `/l/[labelCode]` | anyone, signed in or not — it draws nothing and redirects (#348) |
 | `/invoices/new`, `/invoices/[invoiceId]/edit`, `/admin/**` | Admin only |
 
 `canViewPR`, in order, first match wins: a Draft is visible **only** to its
@@ -755,7 +755,7 @@ budget: its last column takes whatever the others leave.
 
 **What survives is smaller than a column and still real.** A single LINE can be
 absent: the invoice list's `New invoice` control is Admin-only, and since #506 every
-control on the tools screens that adds a tool, prints a label, checks one out or in or
+control on the asset screens that adds a tool, prints a label, checks one out or in or
 retires one is a site manager's — absent, not disabled, for anybody else, for the same
 reason `New invoice` is: it is a role, and a role is not something a reader asks for.
 **The other example this named is gone** — the purchase order detail's office-only
@@ -819,9 +819,9 @@ test one step further along, which is why the rule reads the way it does.
 
 **Modal styling had a single source until #456, and has two until #258.**
 `app/components/modalStyles.js` holds the backdrop and the card, imported at nine
-sites, and the screens above the tools axis keep it until #258. The tools axis
+sites, and the screens above the assets axis keep it until #258. The assets axis
 opens its dialogs in the design's own frame, `app/components/DialogFrame.js` —
-the registration first, and every one of them since #458 moved the tool item
+the registration first, and every one of them since #458 moved the asset
 page's two off the old one. It was the one shape in the app that was already a primitive
 rather than a per-page reassembly, and #258 is where the rest joins the design's.
 
@@ -829,7 +829,7 @@ rather than a per-page reassembly, and #258 is where the rest joins the design's
 DISTINCTION.** Anything opening over the page is supposed to close on `Escape`
 as well as by its opener and hand focus back to it. **The file viewer (#331)
 and the design's frame (#456) do** — the frame is the browser's own modal
-dialog, and the tool item page's retire dialog (#363) has opened in it since
+dialog, and the asset page's retire dialog (#363) has opened in it since
 #458 — and the rest close only by their own controls, so a reader who learns `Escape`
 on one meets a dead key on the next. Repairing the others was out of scope for
 every issue that got it right, so it is written down here instead of being
@@ -843,18 +843,18 @@ popup, a date picker. `scripts/tests/offline/no-dark-mode.mjs` keeps it that
 way, and that file's own header says to **delete it** when dark mode returns
 rather than widen it or add an exemption. A second appearance is not forbidden;
 it is deferred until every screen reads its look by name — #462 declares the
-names, and #258 brings the screens above the tools axis onto them.
+names, and #258 brings the screens above the assets axis onto them.
 
-**The tool item's screen and the two sign-in screens are used at a phone width
+**The asset's screen and the two sign-in screens are used at a phone width
 as well as at a monitor. Every other screen is used at a monitor**, the rest of
-the tools axis among them. A tool is entered and its labels printed at a desk,
+the assets axis among them. A tool is entered and its labels printed at a desk,
 so the tool list, the registration dialog, a tool's screen and the labels'
-dialog do not support a phone's width; a tool item is scanned on site, on a
+dialog do not support a phone's width; an asset is scanned on site, on a
 phone, possibly by someone wearing gloves (#336). **`/login` and
 `/login/confirm` joined that set in #373**, which is a consequence of the same
 scan rather than a second premise: a label followed while signed out lands on
 the sign-in screen, so both steps of signing in happen on the phone before the
-tool item is ever drawn.
+asset is ever drawn.
 
 **Those two, and the name step after them, are drawn at both widths, and #473 is
 where that was settled.** Each tools brief says which width it is drawn for; these
@@ -864,23 +864,23 @@ field and one button with nothing to fold, so neither width is the other folded
 down.
 
 **Both widths does not mean both first, and each tools brief now says which
-one it is drawn for (#348).** `/tools`, the registration dialog over it and
-`/tools/[toolRecordId]` are DESKTOP and nothing else: a site has laptops and
+one it is drawn for (#348).** `/asset-categories`, the registration dialog over it and
+`/asset-categories/[categoryRecordId]` are DESKTOP and nothing else: a site has laptops and
 monitors too, entering a name and a quantity is typing, and printing the
 labels that follow happens at whatever machine the printer is attached to.
-`/tool-items/[toolItemId]` is PHONE first, because a scan is what arrives
+`/assets/[assetId]` is PHONE first, because a scan is what arrives
 there, and the desktop still has to work for it — the priority says which
 width is drawn first and how the other folds out of it. **That
 premise was decided rather than drifted into, and this is the constraint with
 the most bearing on #258**: breakpoints, touch targets and a spacing scale drawn
 for a monitor and widened for a phone afterwards are decided twice, and drawn
 with the phone case beside them are decided once. Both cases are on the table
-now, which is why the tools layout landed before the tokens rather than after.
+now, which is why the assets layout landed before the tokens rather than after.
 
 **The two axes also differ in how many places a width lands, and #336 is why.**
-Every screen outside the tools axis declares its own container inside its own
+Every screen outside the assets axis declares its own container inside its own
 page — twenty of those twenty-four pages do, twenty-four declarations in all —
-so a width settled there is an edit per page. The tools screens hold one
+so a width settled there is an edit per page. The asset screens hold one
 container in the layout they share, so a width settled for that axis is one
 edit.
 
@@ -895,13 +895,13 @@ rather than a layout — so it is #258's to make.
 
 **The tools container holds the rail and nothing of a screen's own** (#460):
 a screen's measure, room and type are its own, read from the names the design's
-values are declared under. **Every tools screen is drawn the design's way since
-#463** — the tool item's as 0n's record page at a desk and 1j's app screen on a
+values are declared under. **Every asset screen is drawn the design's way since
+#463** — the asset's as 0n's record page at a desk and 1j's app screen on a
 phone, the tool list and a tool's screen as 1a and 1d's lists, which hold their
 head still and scroll their rows under it.
 
-**The navigation shell is the tools screens' alone (#460).** The design drew a
-rail with every section on it and a breadcrumb above a record; the tools screens
+**The navigation shell is the asset screens' alone (#460).** The design drew a
+rail with every section on it and a breadcrumb above a record; the asset screens
 carry both, and the screens above them carry neither until #258 gathers them
 into one layout. There the root screen carries five links because a new route
 is otherwise reachable only by typing its URL, and every "back" affordance is a

@@ -71,7 +71,7 @@ const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", ".."
 /**
  * The figures are typed out rather than derived from the file, so a change to
  * the tree changes them in the same commit — the rule
- * `offline/tool-label-page.mjs` sets for a value a check could otherwise
+ * `offline/asset-label-page.mjs` sets for a value a check could otherwise
  * restate from its own input and always agree with.
  */
 const ROWS = 777;

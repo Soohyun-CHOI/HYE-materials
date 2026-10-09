@@ -6,7 +6,7 @@
 // fails SILENTLY: a destination that stops being carried lands the reader on the
 // root screen, which is exactly where they landed before this issue, so nothing
 // renders wrong, nothing throws, and nobody finds out except the person holding a
-// phone in front of a tool. The second failure is louder in consequence and just
+// phone in front of an asset. The second failure is louder in consequence and just
 // as quiet in the tree — a destination that stops being judged is an open
 // redirect, and an open redirect looks like a working feature.
 //
@@ -164,7 +164,7 @@ export function run({ check, assert, log }) {
     log("a destination is an address within this app, and nothing else:");
 
     const accepted = [
-        ["a scanned tool item", "/tool-items/HYE-AST-260909-004", "/tool-items/HYE-AST-260909-004"],
+        ["a scanned asset", "/assets/HYE-AST-260909-004", "/assets/HYE-AST-260909-004"],
         ["a narrowed list, query and all", "/prs?job=rec1&mine=1", "/prs?job=rec1&mine=1"],
         ["a fragment is dropped", "/materials#row", "/materials"],
         ["dot segments collapse", "/a/../../b", "/b"],
@@ -197,13 +197,13 @@ export function run({ check, assert, log }) {
     check("  as does none at all", signInPath(undefined), SIGN_IN_PATH);
     assert(
         "an accepted one is carried, encoded",
-        signInPath("/tool-items/HYE-AST-260909-004") ===
-            `${SIGN_IN_PATH}?${DESTINATION_PARAM}=%2Ftool-items%2FHYE-AST-260909-004`
+        signInPath("/assets/HYE-AST-260909-004") ===
+            `${SIGN_IN_PATH}?${DESTINATION_PARAM}=%2Fassets%2FHYE-AST-260909-004`
     );
     assert(
         "the confirmation carries the token and the destination",
-        confirmPath({ token: "abc", destination: "/tool-items/X" }) ===
-            `${CONFIRM_PATH}?token=abc&${DESTINATION_PARAM}=%2Ftool-items%2FX`
+        confirmPath({ token: "abc", destination: "/assets/X" }) ===
+            `${CONFIRM_PATH}?token=abc&${DESTINATION_PARAM}=%2Fassets%2FX`
     );
     check("  a refusal with no token keeps it", confirmPath({ destination: "/prs" }), `${CONFIRM_PATH}?${DESTINATION_PARAM}=%2Fprs`);
     check("  and a bare confirmation stays bare", confirmPath({}), CONFIRM_PATH);
@@ -428,7 +428,7 @@ export function run({ check, assert, log }) {
         call.arguments[0]?.properties?.some((p) => p.key?.name === "confirmUrl")
     );
     assert("  and hands that URL to the mail's builder", handsOver);
-    const built = confirmPath({ token: "abc", destination: "/tool-items/X" });
+    const built = confirmPath({ token: "abc", destination: "/assets/X" });
     const html = SIGN_IN_COPY.mail.html({ email: "soo@portal.example.com", confirmUrl: `https://portal.example.com${built}`, code: "012345" });
     const hrefs = [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]);
     // The address is a `mailto:` link of its own since #495 (`lib/authTokenState.js`).
@@ -436,7 +436,7 @@ export function run({ check, assert, log }) {
     check(
         "  whose separator is escaped rather than in raw",
         hrefs.find((h) => !h.startsWith("mailto:")),
-        `https://portal.example.com${CONFIRM_PATH}?token=abc&amp;${DESTINATION_PARAM}=%2Ftool-items%2FX`
+        `https://portal.example.com${CONFIRM_PATH}?token=abc&amp;${DESTINATION_PARAM}=%2Fassets%2FX`
     );
 
     // ── 7: the two screens that hold it in between ──────────────────────────

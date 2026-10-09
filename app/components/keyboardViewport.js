@@ -6,7 +6,7 @@
  * (`BottomBar.js`).
  *
  * ONE VALUE FOR EVERY SCREEN THAT DRAWS `BottomBar` (#495), exported as `viewport` by the
- * route file above it: the sign-in steps' layout (#473) and the tool item page, whose foot
+ * route file above it: the sign-in steps' layout (#473) and the asset page, whose foot
  * bar opens 1j's name sheet onto the keyboard. The bar's own header said both screens asked
  * for it while only the sign-in steps did. `offline/keyboard-viewport.mjs` fails a route
  * whose screen draws the bar with no route file above it exporting this.

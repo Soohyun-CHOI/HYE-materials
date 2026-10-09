@@ -31,7 +31,7 @@ async function renderNewPRPage({ searchParams }) {
     // catalog, never the number of requests this base has seen.
     // #385 — ONE MORE LIST, AND IT IS THE WHOLE COST OF THE ADDRESS CONTROL.
     // `getAllAddresses` is the table in one query, bounded by this company's
-    // sites and its suppliers rather than by activity — the `Vendors` and `Tools`
+    // sites and its suppliers rather than by activity — the `Vendors` and `Asset Categories`
     // shape — so the picker's two groups and the job's own default both come out
     // of memory. The job's default itself costs nothing at all: `getAllJobs`
     // already carries `deliveryAddress` (#384). Measured on this render: 14

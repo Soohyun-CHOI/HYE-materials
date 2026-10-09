@@ -15,7 +15,7 @@
 //      `word`, and the toggle's name and tooltip the one `toggleWord`. Values could not
 //      hold this — two constants holding the same string pass a value check and drift
 //      apart the first time one of them is edited.
-//   4. ONLY THE TOOLS LAYOUT CALLS THE RAIL, AND ONLY THE TWO PAGES THE DESIGN DRAWS
+//   4. ONLY THE ASSETS LAYOUT CALLS THE RAIL, AND ONLY THE TWO PAGES THE DESIGN DRAWS
 //      ONE ON CALL THE BREADCRUMB. #258 moves the rail to the root layout, and this
 //      assertion moves with it in that commit.
 //   5. THE EDGES: the rail is not drawn below the phone's edge, never prints, stores
@@ -25,7 +25,7 @@
 //   6. THE ACCOUNT AT THE RAIL'S FOOT SAYS WHO IS READING, FROM THE PAGE'S OWN READ
 //      (#478). What it says, by value, for each kind of reader the base holds; its
 //      button's name and tooltip one expression, read off its AST as the icons' are;
-//      the tools layout handing it `takePageUser()` and reading no user of its own; and
+//      the assets layout handing it `takePageUser()` and reading no user of its own; and
 //      its one item posting where the root screen's `Sign out` posts.
 //
 // WHAT IT CANNOT SEE: anything rendered — a width, the Panel over the screen, the
@@ -39,8 +39,8 @@
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
 import { NAVIGATION_COPY, NAVIGATION_SECTIONS, accountOf, currentOf } from "../../../lib/navigation.js";
-import { TOOLS_PATH, TOOLS_ROUTES } from "../../../lib/toolRoutes.js";
-import { TOOL_LIST_COPY } from "../../../lib/toolListView.js";
+import { ASSET_CATEGORIES_PATH, ASSET_ROUTES } from "../../../lib/assetRoutes.js";
+import { ASSET_LIST_COPY } from "../../../lib/assetListView.js";
 import { listJsFiles, parseFile, parseSource, repoPath, toPosix, walk, REPO_ROOT } from "./_ast.mjs";
 import { isPageFile, routeTemplate } from "./_entrypoints.mjs";
 import { isMain, standalone } from "./_harness.mjs";
@@ -52,10 +52,10 @@ const RAIL = "app/components/Rail.js";
 const ACCOUNT = "app/components/RailAccount.js";
 const BREADCRUMB = "app/components/Breadcrumb.js";
 const ROOT_PAGE = "app/page.js";
-const TOOLS_LAYOUT = "app/(tools)/layout.js";
-const TOOL_PAGE = "app/(tools)/tools/[toolRecordId]/page.js";
-const TOOL_ITEM_PAGE = "app/(tools)/tool-items/[toolItemId]/page.js";
-const MORE_ACTIONS = "app/(tools)/tool-items/[toolItemId]/MoreActions.js";
+const ASSETS_LAYOUT = "app/(assets)/layout.js";
+const CATEGORY_PAGE = "app/(assets)/asset-categories/[categoryRecordId]/page.js";
+const ASSET_PAGE = "app/(assets)/assets/[assetId]/page.js";
+const MORE_ACTIONS = "app/(assets)/assets/[assetId]/MoreActions.js";
 
 /** The design's sections less `Office`: key, word, address, in its order. */
 const SECTIONS = [
@@ -63,7 +63,7 @@ const SECTIONS = [
     ["purchase-orders", "Purchase orders", "/pos"],
     ["invoices", "Invoices", "/invoices"],
     ["deliveries", "Deliveries", "/deliveries"],
-    ["tools", "Tools", "/tools"],
+    ["assets", "Tools & Equipment", "/asset-categories"],
     ["material-prices", "Material prices", "/materials"],
 ];
 
@@ -94,10 +94,10 @@ const SECTION_OF_ROUTE = {
     "/prs/[prId]": "purchase-requests",
     "/prs/new": "purchase-requests",
     // The address a label prints draws nothing and sits outside the rail's layout (#478).
-    "/t/[labelCode]": null,
-    "/tool-items/[toolItemId]": "tools",
-    "/tools": "tools",
-    "/tools/[toolRecordId]": "tools",
+    "/l/[labelCode]": null,
+    "/assets/[assetId]": "assets",
+    "/asset-categories": "assets",
+    "/asset-categories/[categoryRecordId]": "assets",
 };
 
 /** An address a route template answers: each dynamic segment given a plain value. */
@@ -253,20 +253,20 @@ export async function run({ check, assert, log }) {
     );
     check("  every word belongs to a section", Object.keys(NAVIGATION_COPY.sections).join(" "), SECTIONS.map(([k]) => k).join(" "));
     check("  no section says Office", JSON.stringify(NAVIGATION_COPY).includes("Office"), false);
-    check("  Tools says the list's own heading", NAVIGATION_COPY.sections.tools, TOOL_LIST_COPY.heading);
-    check("  and opens the list", NAVIGATION_SECTIONS.find((s) => s.key === "tools").href, TOOLS_PATH);
+    check("  Tools & Equipment says the list's own heading", NAVIGATION_COPY.sections.assets, ASSET_LIST_COPY.heading);
+    check("  and opens the list", NAVIGATION_SECTIONS.find((s) => s.key === "assets").href, ASSET_CATEGORIES_PATH);
     check(
-        "  and owns the first segment of every tools screen",
-        NAVIGATION_SECTIONS.find((s) => s.key === "tools").segments.join(" "),
-        "tools tool-items"
+        "  and owns the first segment of every asset screen",
+        NAVIGATION_SECTIONS.find((s) => s.key === "assets").segments.join(" "),
+        "asset-categories assets"
     );
     assert(
-        "  and TOOLS_ROUTES really starts with those, the printed address not among them",
-        TOOLS_ROUTES.some((r) => r.startsWith("/tool-items/")) && !TOOLS_ROUTES.some((r) => r.startsWith("/t/"))
+        "  and ASSET_ROUTES really starts with those, the printed address not among them",
+        ASSET_ROUTES.some((r) => r.startsWith("/assets/")) && !ASSET_ROUTES.some((r) => r.startsWith("/t/"))
     );
 
     const routes = servedRoutes();
-    assert(`  the app's routes were read (${routes.length})`, routes.length > 20 && routes.includes("/tools"));
+    assert(`  the app's routes were read (${routes.length})`, routes.length > 20 && routes.includes("/asset-categories"));
     for (const [, , href] of SECTIONS) assert(`  ${href} is a route the app serves`, routes.includes(href));
 
     log("");
@@ -288,7 +288,7 @@ export async function run({ check, assert, log }) {
         const mark = want ? `${want}:${route === href ? "page" : "true"}` : "";
         check(`  ${route}`, marksFor(addressOf(route)).join(" "), mark);
     }
-    check("  a query does not move the page", marksFor("/tools?page=2&id=HYE-AST-260909-001").join(" "), "tools:page");
+    check("  a query does not move the page", marksFor("/asset-categories?page=2&id=HYE-AST-260909-001").join(" "), "assets:page");
     check("  a segment is matched whole", marksFor("/toolshed").join(" "), "");
     check("  nor a prefix of one", marksFor("/prs-archive/1").join(" "), "");
 
@@ -325,20 +325,20 @@ export async function run({ check, assert, log }) {
 
     // ── 4: who calls the rail and the breadcrumb ─────────────────────────────
     log("");
-    log("only the tools layout calls the rail, and only the two pages the design draws one on call the breadcrumb:");
+    log("only the assets layout calls the rail, and only the two pages the design draws one on call the breadcrumb:");
     const appFiles = ["app", "components", "lib"].flatMap((d) => listJsFiles(repoPath(d))).map(repoRelative);
     const importers = (target) =>
         appFiles.filter((rel) => [...importedPairs(rel, parseFile(rel).ast)].some((p) => p.startsWith(`${target}::`))).sort();
-    check("  the rail's callers", importers(RAIL).join(" "), TOOLS_LAYOUT);
-    check("  the breadcrumb's callers", importers(BREADCRUMB).join(" "), [TOOL_ITEM_PAGE, TOOL_PAGE].sort().join(" "));
+    check("  the rail's callers", importers(RAIL).join(" "), ASSETS_LAYOUT);
+    check("  the breadcrumb's callers", importers(BREADCRUMB).join(" "), [ASSET_PAGE, CATEGORY_PAGE].sort().join(" "));
     assert("  and the walk finds a component's callers at all", importers("app/components/DialogFrame.js").length > 2);
 
-    // The tool item page ends its path on the code its label prints (1f).
+    // The asset page ends its path on the code its label prints (1f).
     let currentCall = null;
-    walk(parseFile(TOOL_ITEM_PAGE).ast, (n) => {
+    walk(parseFile(ASSET_PAGE).ast, (n) => {
         if (n.type === "JSXElement" && jsxName(n) === "Breadcrumb") currentCall = attrOf(n, "current")?.value?.expression;
     });
-    check("  the tool item's path ends on its label code", currentCall?.callee?.name ?? null, "labelCodeFor");
+    check("  the asset's path ends on its label code", currentCall?.callee?.name ?? null, "labelCodeFor");
 
     // ── 5: the edges ─────────────────────────────────────────────────────────
     log("");
@@ -479,10 +479,10 @@ export async function run({ check, assert, log }) {
 
     // The layout hands the rail the page's read and reads nobody itself.
     const layoutCalls = [];
-    walk(parseFile(TOOLS_LAYOUT).ast, (n) => {
+    walk(parseFile(ASSETS_LAYOUT).ast, (n) => {
         if (n.type === "CallExpression" && n.callee.type === "Identifier") layoutCalls.push(n.callee.name);
     });
-    check("  the tools layout takes the page's read", layoutCalls.filter((name) => name === "takePageUser").length, 1);
+    check("  the assets layout takes the page's read", layoutCalls.filter((name) => name === "takePageUser").length, 1);
     check(
         "  and calls no reader or gate of its own",
         layoutCalls.filter((name) => ["getActiveUser", "getCurrentUser", "requireUser", "requireAdmin"].includes(name)).join(" "),

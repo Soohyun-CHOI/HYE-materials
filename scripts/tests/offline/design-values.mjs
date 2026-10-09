@@ -1,5 +1,5 @@
 // The design's values: declared once, pinned by value, and read by name only
-// where the design's two axes — the tools screens and the sign-in screens — are the
+// where the design's two axes — the asset screens and the sign-in screens — are the
 // only callers (#462, #473).
 //
 // FOUR CLAIMS, AND THE ORDER IS THE ORDER THEY DEPEND ON EACH OTHER.
@@ -14,7 +14,7 @@
 //      grid — and the ones this repository adds: a length is rem, a whole number of
 //      the design's pixels over 16, outside the px kept by convention; no name
 //      carries a digit; and no name is a key Tailwind or the app already declares.
-//   3. A NAME IS READ ONLY BY A FILE THAT NOTHING OUTSIDE `app/(tools)/` AND
+//   3. A NAME IS READ ONLY BY A FILE THAT NOTHING OUTSIDE `app/(assets)/` AND
 //      `app/login/` CALLS — but for the date, which #463 had drawn on every screen
 //      and one component draws (`APP_WIDE`).
 //   4. EVERY NAME IS READ, OR WAITS ON AN ISSUE NAMED BESIDE IT — and a face that
@@ -51,7 +51,7 @@
 //   the next/font variable it resolves to. Both are asked of Tailwind as well.
 //
 // WHO READS IS WHO CALLS, NOT WHERE THE FILE SITS. #460's rail is written where any
-// screen could call it and only the tools layout does, so a rule about directories
+// screen could call it and only the assets layout does, so a rule about directories
 // would refuse it. The boundary is the import graph instead, walked from every
 // route file under `app/`: a file that only the route files of `DESIGN_AXES` reach
 // may read a name, a file that any other route file reaches may not — wherever it
@@ -69,7 +69,7 @@
 //   `DESIGN_AXES` gives way to every route file under `app/`, in the commit that does.
 //
 //   A FACE IS LOADED ON EACH AXIS THAT READS IT. The sign-in screens are outside the
-//   tools layout, so a face loaded there does not reach them; a face a file reads is
+//   assets layout, so a face loaded there does not reach them; a face a file reads is
 //   loaded, for every axis whose routes reach that file, by a call in a module that
 //   axis reaches and only the design's axes do — `app/faces/`, one module a face.
 //
@@ -108,21 +108,21 @@ export const title = "The design's values — declared once, read by name on the
 
 const DECLARATION = "app/designValues.css";
 const STYLESHEET = "app/globals.css";
-const TOOLS_DIR = "app/(tools)/";
+const ASSETS_DIR = "app/(assets)/";
 const SIGN_IN_DIR = "app/login/";
 
 /**
  * The screens the design is applied to before #258, each by the directory of its route
- * files: the tools axis (#462) and the sign-in steps (#473). #258 replaces this with
+ * files: the assets axis (#462) and the sign-in steps (#473). #258 replaces this with
  * every route file.
  */
-const DESIGN_AXES = [TOOLS_DIR, SIGN_IN_DIR];
+const DESIGN_AXES = [ASSETS_DIR, SIGN_IN_DIR];
 
 /**
  * THE ONE FILE A SCREEN ABOVE THE DESIGN'S AXES MAY REACH AND STILL READ A NAME, AND THE NAMES
  * IT MAY READ (#463). The date's notation — its dimmed slashes and the room before its time —
  * is drawn on every screen by that issue's decision, and `app/components/Instant.js` is the one
- * component that draws a date, on the materials screens as on the tools axis. So it reads the
+ * component that draws a date, on the materials screens as on the assets axis. So it reads the
  * four date names and nothing else, the check holds both halves, and an entry that no screen
  * above the axes reaches, or that reads none of its names, fails as stale. **#258 is what makes
  * it redundant**: the boundary becomes every route file, and this goes with it.
@@ -154,19 +154,19 @@ const TAILWIND_KEYFRAMES = ["spin", "ping", "pulse", "bounce"];
  * wash, which nothing draws since the files of 2026-10-01 put nothing behind a Panel.
  * #478 drew the account and declared its two again, and its menu and avatar read three
  * names marked for #463 first: the menu's two widths and Face hover.
- * #458 took its own out with the tool item page's dialogs and 1f's three sheets: they
+ * #458 took its own out with the asset page's dialogs and 1f's three sheets: they
  * read the sheets' names and the phone's type, fields and buttons, and seven of #463's
  * first — the sheet button, the sheet that confirms and Red's hover — and the foot bar
  * went to the issues that draw one: its room, its 50 button and the pill to #473, whose
  * step pages draw them now, and the pill's chevron side and a field's icon to #463's
- * tool item page. The foot bar's shadow was undeclared, since 0a now draws it none.
+ * asset page. The foot bar's shadow was undeclared, since 0a now draws it none.
  * #473 took its own out with the sign-in steps: they read five of the six names #458
  * marked for it — the foot bar's room above and below, its 50 button and the pill — and
  * three of #463's first, the Page title at both widths and a phone field's gap, and the
- * foot bar's 12 between its rows went to #463's tool item page, since no step page has
+ * foot bar's 12 between its rows went to #463's asset page, since no step page has
  * two. The steps declared their own names with them and read the account's avatar for an
  * address chip's.
- * #463 took its own out with the tool item page and the two lists, which read the eight
+ * #463 took its own out with the asset page and the two lists, which read the eight
  * names still marked for it — 0b's row, column head and bleed, a list head's 20 above it,
  * and the selection bar's four — and declared the lists' own with them, 1a and 1b's
  * figures where the spec states none, and 0j's Badge and 0e's Ink 5 for the checkbox.
@@ -300,7 +300,7 @@ const VALUES = [
     ["--tracking-id", "-0.02em", null],
     ["--tracking-brand", "-0.03em", null],
     // A date, on every screen (#463), and the one name group a file the screens above the
-    // tools axis reach may read — `APP_WIDE` below. From the drawings, not the spec.
+    // assets axis reach may read — `APP_WIDE` below. From the drawings, not the spec.
     ["--opacity-date-separator", "45%", null],
     ["--spacing-date-separator-inline", "1.5px", null],
     ["--spacing-date-time-inline", "0.5625rem", null],
@@ -443,7 +443,7 @@ const VALUES = [
     ["--animate-code-caret", "code-caret-blink 1s steps(1) infinite", null],
     // The resend control's spinner, whose words are Accent (#495).
     ["--color-code-resend-spinner-track", "color-mix(in oklab, currentColor 25%, transparent)", null],
-    // Tools 0a · App — #458's sheets and #473's step pages read theirs, and #463's tool item
+    // Tools 0a · App — #458's sheets and #473's step pages read theirs, and #463's asset
     // page the foot bar's 12 between its rows.
     ["--spacing-mobile-gutter", "1rem", null],
     ["--height-mobile-top-bar", "3.5rem", null],
@@ -520,7 +520,7 @@ const VALUES = [
     ["--spacing-mobile-log-gap", "0.75rem", null],
     ["--spacing-mobile-log-stack", "1.25rem", null],
     ["--size-mobile-log-icon", "0.875rem", null],
-    // 1j's history, 1k's notice and its screen for a code no tool carries (#463), from the
+    // 1j's history, 1k's notice and its screen for a code no asset carries (#463), from the
     // drawings, not the spec.
     ["--width-mobile-log-track", "0.75rem", null],
     ["--spacing-mobile-log-dot-inset-top", "0.5625rem", null],
@@ -587,7 +587,7 @@ const ROUTE_FILE = /^app\/(.*\/)?(page|layout|template|loading|error|not-found|d
 /** The design axis a route file is on, by its directory, or null for any other route. */
 const axisOf = (rel) => DESIGN_AXES.find((dir) => rel.startsWith(dir)) ?? null;
 const onDesignAxis = (rel) => axisOf(rel) !== null;
-const isToolsFile = (rel) => axisOf(rel) === TOOLS_DIR;
+const isAssetsFile = (rel) => axisOf(rel) === ASSETS_DIR;
 
 const withoutComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, "");
 
@@ -1032,19 +1032,19 @@ export async function run({ check, assert, log }) {
     }
     const routesByFile = routesReaching(graph);
     assert(`  parsed ${jsFiles.length} modules and ${otherStylesheets.length} stylesheets`, jsFiles.length > 150 && otherStylesheets.length >= 2);
-    assert("  the tools layout is a route file that reaches itself", routesByFile.get("app/(tools)/layout.js")?.has("app/(tools)/layout.js"));
+    assert("  the assets layout is a route file that reaches itself", routesByFile.get("app/(assets)/layout.js")?.has("app/(assets)/layout.js"));
     assert("  the root layout reaches app/globals.css", routesByFile.get(STYLESHEET)?.has("app/layout.js"));
     // The labels' stylesheet is reached through the dialog's import from both pages that
     // open it (#457), where it was the labels' page's own until then.
     assert(
         "  the labels' stylesheet is reached from both pages that open the dialog",
-        ["app/(tools)/tools/[toolRecordId]/page.js", "app/(tools)/tool-items/[toolItemId]/page.js"].every((route) =>
-            routesByFile.get("app/(tools)/tool-items/labels.css")?.has(route)
+        ["app/(assets)/asset-categories/[categoryRecordId]/page.js", "app/(assets)/assets/[assetId]/page.js"].every((route) =>
+            routesByFile.get("app/(assets)/assets/labels.css")?.has(route)
         )
     );
     assert("  a component shared by both axes is reached from each", (() => {
         const routes = [...(routesByFile.get("app/components/Instant.js") ?? [])];
-        return routes.some(isToolsFile) && routes.some((r) => !isToolsFile(r));
+        return routes.some(isAssetsFile) && routes.some((r) => !isAssetsFile(r));
     })());
     assert("  the labels' face loader is found, variable and all", loaders.some((l) => l.imported === "Inconsolata" && l.variable === "--font-label-code"));
     // #473 — the design's faces load in `app/faces/`, one module a face, and the first of
@@ -1056,12 +1056,12 @@ export async function run({ check, assert, log }) {
     );
     assert(
         "  which both axes' layouts reach",
-        ["app/(tools)/layout.js", "app/login/layout.js"].every((layout) => routesByFile.get("app/faces/ui.js")?.has(layout))
+        ["app/(assets)/layout.js", "app/login/layout.js"].every((layout) => routesByFile.get("app/faces/ui.js")?.has(layout))
     );
     assert("  the sign-in layout is a route file that reaches itself", routesByFile.get("app/login/layout.js")?.has("app/login/layout.js"));
     assert("  and the controls are reached from both axes and from no other", (() => {
         const routes = [...(routesByFile.get("app/components/Controls.js") ?? [])];
-        return routes.some(isToolsFile) && routes.some((r) => axisOf(r) === SIGN_IN_DIR) && routes.every(onDesignAxis);
+        return routes.some(isAssetsFile) && routes.some((r) => axisOf(r) === SIGN_IN_DIR) && routes.every(onDesignAxis);
     })());
 
     // ── 3 and 4: who reads, and every name read or waiting ───────────────────
@@ -1081,7 +1081,7 @@ export async function run({ check, assert, log }) {
     log("");
     log("the judgment fails each planted case and passes its repair:");
     const plantedName = "--height-control-lg";
-    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null, loaderRoutes = ["app/(tools)/layout.js"], appWide = {} }) =>
+    const plant = ({ file, routes, names = [plantedName], issue = 463, loaderFile = null, loaderRoutes = ["app/(assets)/layout.js"], appWide = {} }) =>
         judge({
             appWide,
             waiting: new Map(names.map((name) => [name, issue])),
@@ -1096,13 +1096,13 @@ export async function run({ check, assert, log }) {
         }).failures;
     const shared = "app/components/PlantedRail.js";
     assert(
-        "  a shared file only the tools layout calls reads, so a waiting name it reads is stale",
-        plant({ file: shared, routes: ["app/(tools)/layout.js"] }).some((f) => f.includes("still waits on #463"))
+        "  a shared file only the assets layout calls reads, so a waiting name it reads is stale",
+        plant({ file: shared, routes: ["app/(assets)/layout.js"] }).some((f) => f.includes("still waits on #463"))
     );
-    check("  and once the mark is gone it passes", plant({ file: shared, routes: ["app/(tools)/layout.js"], issue: null }).join(" | "), "");
+    check("  and once the mark is gone it passes", plant({ file: shared, routes: ["app/(assets)/layout.js"], issue: null }).join(" | "), "");
     assert(
         "  the same file called by a screen above the axis fails, wherever it lives",
-        plant({ file: shared, routes: ["app/(tools)/layout.js", "app/page.js"], issue: null }).some((f) => f.includes("app/page.js calls it"))
+        plant({ file: shared, routes: ["app/(assets)/layout.js", "app/page.js"], issue: null }).some((f) => f.includes("app/page.js calls it"))
     );
     assert(
         "  a file no route reaches reads nothing, so a name only it reads is unread",
@@ -1114,15 +1114,15 @@ export async function run({ check, assert, log }) {
     );
     assert(
         "  a face read with no loader on the axis fails",
-        plant({ file: shared, routes: ["app/(tools)/layout.js"], names: ["--font-ui"], issue: null }).some((f) => f.includes("loads Instrument_Sans"))
+        plant({ file: shared, routes: ["app/(assets)/layout.js"], names: ["--font-ui"], issue: null }).some((f) => f.includes("loads Instrument_Sans"))
     );
     check(
-        "  and its loader in a file only the tools axis reaches repairs it",
-        plant({ file: shared, routes: ["app/(tools)/layout.js"], names: ["--font-ui"], issue: null, loaderFile: "app/(tools)/layout.js" }).join(" | "),
+        "  and its loader in a file only the assets axis reaches repairs it",
+        plant({ file: shared, routes: ["app/(assets)/layout.js"], names: ["--font-ui"], issue: null, loaderFile: "app/(assets)/layout.js" }).join(" | "),
         ""
     );
     // #473 — the second axis, held the same three ways and one more: a face is loaded on
-    // each axis that reads it, so one loaded for the tools screens alone does not reach a
+    // each axis that reads it, so one loaded for the asset screens alone does not reach a
     // sign-in screen.
     check(
         "  a file only the sign-in screens call reads too",
@@ -1134,7 +1134,7 @@ export async function run({ check, assert, log }) {
         plant({ file: shared, routes: ["app/login/page.js", "app/prs/page.js"], issue: null }).some((f) => f.includes("app/prs/page.js calls it"))
     );
     assert(
-        "  a face the sign-in screens read, loaded only where the tools axis reaches, fails",
+        "  a face the sign-in screens read, loaded only where the assets axis reaches, fails",
         plant({ file: shared, routes: ["app/login/page.js"], names: ["--font-ui"], issue: null, loaderFile: "app/faces/ui.js" }).some((f) =>
             f.includes(`read on ${SIGN_IN_DIR}`)
         )
@@ -1143,11 +1143,11 @@ export async function run({ check, assert, log }) {
         "  and loaded where the sign-in layout reaches too, it passes",
         plant({
             file: shared,
-            routes: ["app/login/page.js", "app/(tools)/tools/page.js"],
+            routes: ["app/login/page.js", "app/(assets)/asset-categories/page.js"],
             names: ["--font-ui"],
             issue: null,
             loaderFile: "app/faces/ui.js",
-            loaderRoutes: ["app/(tools)/layout.js", "app/login/layout.js"],
+            loaderRoutes: ["app/(assets)/layout.js", "app/login/layout.js"],
         }).join(" | "),
         ""
     );
@@ -1170,7 +1170,7 @@ export async function run({ check, assert, log }) {
     const plantedDate = "app/components/PlantedDate.js";
     check(
         "  a file excepted for every screen reads its own names, called by a screen above the axes",
-        plant({ file: plantedDate, routes: ["app/(tools)/layout.js", "app/prs/page.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).join(" | "),
+        plant({ file: plantedDate, routes: ["app/(assets)/layout.js", "app/prs/page.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).join(" | "),
         ""
     );
     assert(
@@ -1181,7 +1181,7 @@ export async function run({ check, assert, log }) {
     );
     assert(
         "  an exception no screen above the axes reaches is stale",
-        plant({ file: plantedDate, routes: ["app/(tools)/layout.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
+        plant({ file: plantedDate, routes: ["app/(assets)/layout.js"], names: [dateName], issue: null, appWide: { [plantedDate]: [dateName] } }).some((f) =>
             f.includes("no screen above the axes reaches it")
         )
     );

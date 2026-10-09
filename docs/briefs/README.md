@@ -64,7 +64,7 @@ screen carries — the three admin create forms are short because a brief saying
 opens — an `Opens from:` line naming each page, in place of the `Route:` line —
 and keeps the name it had, which is where a reader will look for it.
 `tools-new.md` is the first: the registration was `/tools/new` and is a dialog
-over `/tools` and a tool's own screen now. The check holds such a brief to the
+over `/asset-categories` and a tool's own screen now. The check holds such a brief to the
 component that draws it rather than to a page.
 
 ## What a screen SAYS, beside what it carries

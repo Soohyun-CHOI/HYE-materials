@@ -632,7 +632,7 @@ export function run({ check, assert, log }) {
     // a new attachment field with a writer of its own.
     const newField = parseSource(
         "export async function recordPhoto(formData) {\n" +
-            '  await createToolPhoto({ toolItemId: "recX", photo: [{ url: formData.get("u") }] });\n' +
+            '  await createToolPhoto({ assetId: "recX", photo: [{ url: formData.get("u") }] });\n' +
             "}\n"
     );
     const newFieldArrays = urlArrays(newField.ast);

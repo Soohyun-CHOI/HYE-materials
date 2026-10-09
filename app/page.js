@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
 import { askForNameIfMissing } from "@/lib/authz";
 import { withOpsLabel } from "@/lib/airtableOps";
+import { ASSET_CATEGORIES_PATH } from "@/lib/assetRoutes";
+import { ASSET_LIST_COPY } from "@/lib/assetListView";
 
 // Labeled for #190 — see the note in app/prs/page.js for why the label is an
 // outer wrapper. This page is measured because it is the dev loop's entry point
@@ -38,7 +40,7 @@ async function renderHome() {
                         route was otherwise reachable only by typing the URL.
                         One link here rather than inventing a nav bar, which was
                         a separate decision: the design's rail, which only the
-                        tools screens carry until #258 (#460). */}
+                        asset screens carry until #258 (#460). */}
                     <Link
                         href="/materials"
                         className="rounded border border-zinc-300 px-4 py-2"
@@ -66,10 +68,10 @@ async function renderHome() {
                         URL, which is a poor thing to ask of the person holding
                         the phone. How that person gets here from a scan is #337. */}
                     <Link
-                        href="/tools"
+                        href={ASSET_CATEGORIES_PATH}
                         className="rounded border border-zinc-300 px-4 py-2"
                     >
-                        Tools
+                        {ASSET_LIST_COPY.heading}
                     </Link>
                     <form action="/api/auth/logout" method="POST">
                         <button

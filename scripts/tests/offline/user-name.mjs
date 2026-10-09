@@ -236,7 +236,7 @@ export function run({ check, assert, log }) {
     });
     assert("  and a planted literal is caught", probeHits.length === 1);
     check("the builder answers the step's own address", isNameStep(namePath(null)), true);
-    check("  and carries a destination through", namePath("/tools"), "/login/name?destination=%2Ftools");
+    check("  and carries a destination through", namePath("/asset-categories"), "/login/name?destination=%2Fasset-categories");
     check("  while refusing one that points out of the app", namePath("//evil.example"), "/login/name");
     check("  and the step is not a place to land", isNameStep("/login/name?destination=/prs"), true);
     check("  where an ordinary address is not", isNameStep("/prs"), false);

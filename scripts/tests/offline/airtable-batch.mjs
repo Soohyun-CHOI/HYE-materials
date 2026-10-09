@@ -7,7 +7,7 @@
 // sentence on a screen with nothing failing. And the failures are what the live base
 // cannot be made to produce on demand, so this tier is the only place they run: against
 // `_fakeBase.mjs`, whose every answer is chosen. What those answers do to a landing is
-// `offline/tool-registration.mjs`' section 9, against the same fake.
+// `offline/asset-registration.mjs`' section 9, against the same fake.
 //
 // WHAT IT CANNOT SEE. Whether Airtable behaves as the fake does: that a refused batch
 // writes nothing is measured on this base for a destroy (#191) and an update (#444)

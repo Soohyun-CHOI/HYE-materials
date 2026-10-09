@@ -82,7 +82,7 @@ export const title = "Every URL parameter is read by the screen it lands on, and
  * the screen holding it renders the same with it and without it. Run it through the
  * reload test the four groups above are sorted by and it is idempotent: reopening
  * `/login?destination=…` offers the same sign-in for the same address. It is clear
- * of #321 on the same distinction a tool's `id` is — `/tool-items/labels?id=` was, until
+ * of #321 on the same distinction a category's `id` is — `/tool-items/labels?id=` was, until
  * #457 — it says what the next act is FOR rather than that an act happened, so a copied
  * link is a good request to sign in and go there, never somebody else's confirmation.
  * And nothing on the screen says a word about it, which is why no sentence can outlive it.
@@ -143,19 +143,19 @@ const CARRIED = [
     { route: "/invoices", param: "mine", note: "#382 — `1` narrows to invoices this reader entered, off `Invoices.\"Recorded By\"`. The last of the four lists to get this axis, because it was the last document to hold an author; an invoice entered before that field existed is nobody's" },
     { route: "/invoices", param: "status", note: "#324 — the payment word, `Paid` or `Not paid`. Named for the column it narrows; `Overdue` is a qualifier on the second rather than a third option" },
     { route: "/materials", param: "q", note: "the search term, tokenized by lib/materialPriceView.js; an empty one is the unsearched screen rather than a filter matching everything" },
-    // #509 — THE TOOLS LISTS' JOB, THE DOCUMENT LISTS' NAME AND VALUE FOR THE SAME NARROWING,
-    // AND ONE OF THEM RATHER THAN SEVERAL. The server reads it, before any tool item: the
+    // #509 — THE ASSET LISTS' JOB, THE DOCUMENT LISTS' NAME AND VALUE FOR THE SAME NARROWING,
+    // AND ONE OF THEM RATHER THAN SEVERAL. The server reads it, before any asset: the
     // scope it narrows is what the page reads, so it divides the read as `page` does on a
-    // tool's own list. Absence is the reader's whole scope, as #324 settled for the bar.
+    // category's own list. Absence is the reader's whole scope, as #324 settled for the bar.
     {
-        route: "/tools",
+        route: "/asset-categories",
         param: "job",
-        note: "#509 — the job the tool list is narrowed to; one Job record id, taken only if it is among the jobs this reader may narrow to (`lib/toolListView.js:toolListScope`) and answered with the whole scope otherwise. Written by the head's choice and carried by the pager's steps and each row's link, through `toolsPath` and `toolPath`; the rail's link carries none",
+        note: "#509 — the job the category list is narrowed to; one Job record id, taken only if it is among the jobs this reader may narrow to (`lib/assetListView.js:assetListScope`) and answered with the whole scope otherwise. Written by the head's choice and carried by the pager's steps and each row's link, through `assetCategoriesPath` and `assetCategoryPath`; the rail's link carries none",
     },
     {
-        route: "/tools/[toolRecordId]",
+        route: "/asset-categories/[categoryRecordId]",
         param: "job",
-        note: "#509 — the same job, on one tool's list, read by the same judgment before the page is chosen. Written by the head's choice, which keeps the selection (`id`) and starts at the first page, and carried by every write the list makes — a box, a step — and by the row's link from `/tools`; a registration's landing carries none, since what it wrote is on the registrant's job and may be off the one chosen",
+        note: "#509 — the same job, on one category's list, read by the same judgment before the page is chosen. Written by the head's choice, which keeps the selection (`id`) and starts at the first page, and carried by every write the list makes — a box, a step — and by the row's link from `/asset-categories`; a registration's landing carries none, since what it wrote is on the registrant's job and may be off the one chosen",
     },
 
     // ── navigation: which record the form opens on ──────────────────────────
@@ -164,7 +164,7 @@ const CARRIED = [
     {
         route: "/addresses/new",
         param: "job",
-        note: "#384 — the Job CODE the address is being recorded for, which preselects the picker and lists the addresses that job already uses. A CODE and not a record id, because the code is the identifier every document list prints and a record id in a URL is the defect docs/notes/naming.md records against /tools/[toolRecordId]. Written by #385's request form, which is the screen that knows the job and finds the address missing. An unknown or absent code preselects nothing rather than refusing — the job is a convenience here and not the screen's subject",
+        note: "#384 — the Job CODE the address is being recorded for, which preselects the picker and lists the addresses that job already uses. A CODE and not a record id, because the code is the identifier every document list prints and a record id in a URL is the defect docs/notes/naming.md records against /asset-categories/[categoryRecordId]. Written by #385's request form, which is the screen that knows the job and finds the address missing. An unknown or absent code preselects nothing rather than refusing — the job is a convenience here and not the screen's subject",
     },
     {
         route: "/addresses/new",
@@ -194,14 +194,14 @@ const CARRIED = [
 
     // ── a slice: which page of a list too long to render at once ────────────
     {
-        route: "/tools/[toolRecordId]",
+        route: "/asset-categories/[categoryRecordId]",
         param: "page",
-        note: "#339 — which page of this tool's tool items, 1-based. Written by the two steps at the foot of the list and by `toolPath`; a value that is not a page resolves to one rather than rendering nothing",
+        note: "#339 — which page of this category's assets, 1-based. Written by the two steps at the foot of the list and by `assetCategoryPath`; a value that is not a page resolves to one rather than rendering nothing",
     },
     {
-        route: "/tools",
+        route: "/asset-categories",
         param: "page",
-        note: "#463 — which page of the tools, 1-based, 0b's 25 to a page. Written by the two steps at the foot of the list through `toolsPath`, absent on the first page; a value that is not a page resolves to one rather than rendering nothing, by the clamp the tool's own list uses (`pageOfTools`). It slices rows the page has built and divides no read",
+        note: "#463 — which page of the categories, 1-based, 0b's 25 to a page. Written by the two steps at the foot of the list through `assetCategoriesPath`, absent on the first page; a value that is not a page resolves to one rather than rendering nothing, by the clamp a category's own list uses (`pageOfAssetCategories`). It slices rows the page has built and divides no read",
     },
     // THE FOUR DOCUMENT LISTS TOOK THE SAME NAME IN #326, which is what the reservation
     // in `lib/listFilters.js` was holding it for. One note serves all four because the
@@ -233,9 +233,9 @@ const CARRIED = [
     // and no parameter came with the dialog: opening it writes nothing to the address
     // (#456's shape), since a copied link already names the run.
     {
-        route: "/tools/[toolRecordId]",
+        route: "/asset-categories/[categoryRecordId]",
         param: "id",
-        note: "#443 — which of this tool's tool items the list has selected for a label run; repeatable, a printed `Tool Item ID` each, the name and values `/tool-items/labels` took until #457, and the print control opens the labels' dialog on them unchanged. Written by `toolPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn — and by a registration's redirect, which lands with every tool item it wrote selected (#449); read off the address by the list with `useSearchParams().getAll`, and never by the page's server render, which is what keeps the page at four operations — the dialog's read is a request of its own",
+        note: "#443 — which of this category's assets the list has selected for a label run; repeatable, a printed `Asset ID` each, the name and values `/tool-items/labels` took until #457, and the print control opens the labels' dialog on them unchanged. Written by `assetCategoryPath` on every press of a box, through `history.replaceState` so a press costs no render, and on both steps so a selection outlives a page turn — and by a registration's redirect, which lands with every asset it wrote selected (#449); read off the address by the list with `useSearchParams().getAll`, and never by the page's server render, which is what keeps the page at four operations — the dialog's read is a request of its own",
     },
 
     // ── a one-time account of something the screen does not otherwise say ───
@@ -246,19 +246,19 @@ const CARRIED = [
     },
     { route: "/invoices/[invoiceId]", param: "tied", note: "#231 — `1` when a tie-break decided the pairing above; a bare flag, never a count" },
     {
-        route: "/tools/[toolRecordId]",
+        route: "/asset-categories/[categoryRecordId]",
         param: "unwritten",
-        note: "#449 — how many a registration was asked for and did not write, which offers to create the rest or stop. NOT a confirmation: what was written is the landing's own selection (`id`), and this is the one fact about the registration that list cannot show — `paired`'s shape, on the record a registration lands on. Written by `toolPath`'s fourth argument, which only the registration passes; a reload repeats it until `Not now` deletes it from the address, and every address the list itself writes carries the selection alone, so the reader's first press or step leaves it behind",
+        note: "#449 — how many a registration was asked for and did not write, which offers to create the rest or stop. NOT a confirmation: what was written is the landing's own selection (`id`), and this is the one fact about the registration that list cannot show — `paired`'s shape, on the record a registration lands on. Written by `assetCategoryPath`'s fourth argument, which only the registration passes; a reload repeats it until `Not now` deletes it from the address, and every address the list itself writes carries the selection alone, so the reader's first press or step leaves it behind",
     },
     {
-        route: "/tools/[toolRecordId]",
+        route: "/asset-categories/[categoryRecordId]",
         param: "asked",
         note: "#455 — how many that registration was asked for, beside `unwritten` and only with it, because the fork's title, `3 of 5 tools added`, needs both halves and the page may not count the selection (`id`) to find the first. Read as one pair with it — `1 ≤ unwritten < asked ≤ the ceiling` or neither — so a hand-edited address cannot make the sentence false. Written, repeated and deleted exactly as `unwritten` is",
     },
     {
-        route: "/tools/[toolRecordId]",
+        route: "/asset-categories/[categoryRecordId]",
         param: "unlogged",
-        note: "#449 — which tool items a registration wrote without their `Created` row; repeatable, printed ids read through `readToolItemIds`. Nothing is offered for them, because nothing repairs them; a reload repeats it until `Got it` deletes it from the address (#455), which takes the notice away and repairs nothing. Written and left behind exactly as `unwritten` is",
+        note: "#449 — which assets a registration wrote without their `Created` row; repeatable, printed ids read through `readAssetIds`. Nothing is offered for them, because nothing repairs them; a reload repeats it until `Got it` deletes it from the address (#455), which takes the notice away and repairs nothing. Written and left behind exactly as `unwritten` is",
     },
     {
         route: "/invoices/new",
@@ -326,10 +326,10 @@ function routeOfFile(rel) {
  * Module-level `const NAME = "...";` string values, for a path assembled from one.
  *
  * AN EXPORTED ONE COUNTS, AND IT DID NOT UNTIL #348. This walked `ast.body` for a
- * bare `VariableDeclaration`, so `export const TOOLS_PATH = "/tools"` was invisible
+ * bare `VariableDeclaration`, so `export const ASSET_CATEGORIES_PATH = "/asset-categories"` was invisible
  * and every path built from it starred out to `*` — which made the key beside it
  * unattributable and reported as read by no screen. The shape only appeared when
- * the tools axis put its addresses in a module of their own; a path constant is
+ * the assets axis put its addresses in a module of their own; a path constant is
  * exported precisely because more than one screen builds on it, so this is the
  * shape to expect rather than the exception.
  */
@@ -472,7 +472,7 @@ function writtenParameters(rel, ast, routes) {
                     else keys.forEach((k) => deferred.add(k));
                 }
             }
-            // `append` since #443: a repeated key is written that way, and a tool's
+            // `append` since #443: a repeated key is written that way, and a category's
             // selection is the first write to need it.
             if (
                 n.type === "CallExpression" &&
@@ -509,7 +509,7 @@ function writtenParameters(rel, ast, routes) {
  * FOUR SHAPES, ALL OF WHICH ARE IN USE. A destructured `await searchParams` names its
  * keys directly; a whole `sp` is read a property at a time; `useSearchParams()` on the
  * client reads through `.get()`, which is `/materials`'s search box — or `.getAll()`
- * for a repeated key, which is a tool's selection since #443; and a whole `sp` is
+ * for a repeated key, which is a category's selection since #443; and a whole `sp` is
  * HANDED to `parseFilters(route, sp, options)`, which is what the four document lists
  * do since #324.
  *
@@ -683,35 +683,35 @@ export function run({ check, assert, log }) {
     // module constant. Starred out, the key beside it has no route and reads as
     // written by nothing — which is a failure that names the wrong thing.
     const viaExportedConst = parseSource(
-        'export const TOOLS_PATH = "/tools";\n' +
-            "export function toolPath(id, page) {\n" +
-            "  const base = `${TOOLS_PATH}/${encodeURIComponent(id)}`;\n" +
+        'export const ASSET_CATEGORIES_PATH = "/asset-categories";\n' +
+            "export function assetCategoryPath(id, page) {\n" +
+            "  const base = `${ASSET_CATEGORIES_PATH}/${encodeURIComponent(id)}`;\n" +
             "  return page > 1 ? `${base}?page=${page}` : base;\n" +
             "}\n",
         "<exported-const>"
     );
     assert(
         "  and resolves an exported path constant, so its key lands on a route",
-        writtenParameters("lib/toolRoutes.js", viaExportedConst.ast, routes).some(
-            (w) => w.param === "page" && w.route === "/tools/[toolRecordId]"
+        writtenParameters("lib/assetRoutes.js", viaExportedConst.ast, routes).some(
+            (w) => w.param === "page" && w.route === "/asset-categories/[categoryRecordId]"
         )
     );
     // The fifth, and #443's: a REPEATED key, which `URLSearchParams` writes with
-    // `append`. Without this shape a tool's selection would be read by its list and
+    // `append`. Without this shape a category's selection would be read by its list and
     // written by nothing this file can see, so assertion 1 would hold it to nothing.
     const viaAppend = parseSource(
-        'export const TOOLS_PATH = "/tools";\n' +
-            "export function toolPath(id, selected) {\n" +
+        'export const ASSET_CATEGORIES_PATH = "/asset-categories";\n' +
+            "export function assetCategoryPath(id, selected) {\n" +
             "  const query = new URLSearchParams();\n" +
-            '  for (const toolItemId of selected) query.append("id", toolItemId);\n' +
-            "  return `${TOOLS_PATH}/${encodeURIComponent(id)}?${query}`;\n" +
+            '  for (const assetId of selected) query.append("id", assetId);\n' +
+            "  return `${ASSET_CATEGORIES_PATH}/${encodeURIComponent(id)}?${query}`;\n" +
             "}\n",
         "<appended-key>"
     );
     assert(
         "  and reads a key written with append, on the route it is written for",
-        writtenParameters("lib/toolRoutes.js", viaAppend.ast, routes).some(
-            (w) => w.param === "id" && w.route === "/tools/[toolRecordId]"
+        writtenParameters("lib/assetRoutes.js", viaAppend.ast, routes).some(
+            (w) => w.param === "id" && w.route === "/asset-categories/[categoryRecordId]"
         )
     );
 
@@ -760,10 +760,10 @@ export function run({ check, assert, log }) {
         wholeRead.includes("done") && wholeRead.includes("over")
     );
     // And the read #443 added: a repeated key off `useSearchParams()`, which `.get()`
-    // would answer with only the first value. The inventory row for a tool's selection
+    // would answer with only the first value. The inventory row for a category's selection
     // rests on this shape being seen.
     const repeatedRead = parseSource(
-        "function ToolItemList() {\n" +
+        "function AssetList() {\n" +
             "  const params = useSearchParams();\n" +
             '  const selection = params.getAll("id");\n' +
             "  return <div>{selection.length}</div>;\n" +

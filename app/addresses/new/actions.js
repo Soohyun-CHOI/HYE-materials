@@ -17,7 +17,7 @@ import { withOpsLabel } from "@/lib/airtableOps";
  * NOT WRAPPED, AND THE EXEMPTION'S REASON IS "SESSION AND NOTHING ELSE" RATHER
  * THAN AN AXIS. Every other `requireUser()` action on this base names a
  * per-record comparison that does the real authorizing — the delivery's job, the
- * request's requester, the tool item's job. There is none here and the exemption
+ * request's requester, the asset's job. There is none here and the exemption
  * says so instead of borrowing a reason: an address carries no owner, no money
  * and no authorization, so whoever may use this app may record one. What decides
  * it is the page's own argument — Admin means the office, and where material has

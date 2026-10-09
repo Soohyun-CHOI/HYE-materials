@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 /*
  * Tools 0a's Top bar — a phone screen's head, where a desk has the breadcrumb (#463). The
- * tool item page is the one screen drawn at a phone's width (1j, 1k), so it is the one
+ * asset page is the one screen drawn at a phone's width (1j, 1k), so it is the one
  * caller; the breadcrumb hides below the phone's edge on that page and this shows there
  * alone.
  *
@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
  * in the id face, and at the right end one 48 icon button whose 24 mark has its ink on the
  * 16 margin — `children` is that button. Every screen with a top bar passes its `More
  * actions`, since the menu ends on the account where nothing else is offered (#495).
- * `muted` sets the id in Ink 3, which 1k-c does for a code no tool carries.
+ * `muted` sets the id in Ink 3, which 1k-c does for a code no asset carries.
  *
  * STICKY AT THE TOP, DRAWING NO RULE (0a, 0k): white at 0.82 over a blur while the page runs
  * under it, fading out over the 24 below it, and nothing at all with the page at its top.

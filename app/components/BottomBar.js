@@ -4,12 +4,12 @@ import { useEffect, useRef, useState } from "react";
 
 /*
  * Tools 0a's Foot bar — where a phone screen's action stands, at the foot of the page —
- * written for the sign-in steps (#473) and shared with the tool item page since #463, whose
+ * written for the sign-in steps (#473) and shared with the asset page since #463, whose
  * check-out and check-in stand in one (1j).
  *
  * MOVED OUT OF `app/login/SignInParts.js` WHEN THE SECOND SCREEN CAME TO IT, which is the
  * move condition a shared part waits on: the bar's room, its soft edge and the way it rides
- * on the keyboard are one drawing on both, and a copy of it beside the tool item page would
+ * on the keyboard are one drawing on both, and a copy of it beside the asset page would
  * be two keyboards to keep in step. Both screens are on the design's axes, so it reads the
  * design's names (`offline/design-values.mjs`).
  */
@@ -67,7 +67,7 @@ function useRunsUnder(markRef, barRef) {
 }
 
 // The room a sign-in step's action takes under what is above it at a desk (0o), where the
-// bar is the next thing in the column; the tool item page's bar is a phone's alone.
+// bar is the next thing in the column; the asset page's bar is a phone's alone.
 const BAR_STACK = {
     header: "mt-sign-in-header-stack",
     form: "mt-sign-in-form-stack",
@@ -85,13 +85,13 @@ const BAR_STACK = {
  * fading in over the 24 above it. **It rides on the keyboard**, 12 below it rather than 20,
  * so a screen's action and its field are both in sight while somebody types: a browser that
  * shrinks the page for its keyboard keeps a sticky bar above it by itself — every screen that
- * draws this asks for that (`keyboardViewport.js`), the tool item page only since #495,
+ * draws this asks for that (`keyboardViewport.js`), the asset page only since #495,
  * though this said both did from #463 — and one that covers the page instead reports how far
  * it covers, which the bar is lifted by.
  *
  * `bleed` reaches the bar out over the gutter of a column that has one, which a sign-in
- * step's does; the tool item page holds no gutter of its own, so its bar takes the gutter as
- * its own room. `phoneOnly` is a bar a desk does not draw at all — the tool item page's, whose
+ * step's does; the asset page holds no gutter of its own, so its bar takes the gutter as
+ * its own room. `phoneOnly` is a bar a desk does not draw at all — the asset page's, whose
  * desk asks in its header instead — and is the bar's own class rather than a wrapper's, since
  * a wrapper would be what the sticky bar is held inside.
  */

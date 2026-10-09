@@ -5,8 +5,8 @@ import Icon from "./Icon";
 
 /*
  * The breadcrumb bar — 0m's Breadcrumb, the way back a screen offers above its title
- * (#460). A tool's page names the list it came from; a tool item's names where it sits
- * under its tool, ending on the code its label prints.
+ * (#460). A category's page names the list it came from; an asset's names where it sits
+ * under its category, ending on the code its label prints.
  *
  * ONE LEVEL IS A CHEVRON AND ITS NAME; MORE ARE A PATH SPLIT BY `/` (0m). A level is a
  * link at Ink 2 and 600, an Inline control whose side room is pulled back so its ink
@@ -19,10 +19,10 @@ import Icon from "./Icon";
  * IT HOLDS THE TOP OF THE COLUMN WHILE THE SCREEN RUNS UNDER IT (0k Sticky): white at
  * 0.82 over a blur, which over nothing is plain white. It draws no rule.
  *
- * WHICH SCREENS CARRY ONE IS THE DESIGN'S: a tool's page and a tool item's (1d, 1f, 1g),
- * and not the tool list, which is a section's top, nor a screen saying a record is not
- * there, which keeps its own way back (1h). **Below the phone's edge the tool item page
- * draws the phone's top bar in its place (1j, #463)** and passes `phone={false}`; a tool's
+ * WHICH SCREENS CARRY ONE IS THE DESIGN'S: a category's page and an asset's (1d, 1f, 1g),
+ * and not the category list, which is a section's top, nor a screen saying a record is not
+ * there, which keeps its own way back (1h). **Below the phone's edge the asset page
+ * draws the phone's top bar in its place (1j, #463)** and passes `phone={false}`; a category's
  * page, which the design draws at a desk alone, keeps it at every width.
  *
  * A level is `{ label, href }`, and `current` is the screen's own name when it ends a

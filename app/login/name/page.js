@@ -28,8 +28,8 @@ import NameForm from "./NameForm";
  * the documents already carrying the old one). Correcting a typo is an Airtable
  * edit until an issue decides that.
  *
- * IT CARRIES THE DESTINATION THROUGH, so a reader who was scanning a tool label
- * lands on the tool item rather than on the root screen. Judged here so a
+ * IT CARRIES THE DESTINATION THROUGH, so a reader who was scanning an asset's label
+ * lands on the asset rather than on the root screen. Judged here so a
  * refused value never reaches the form, and judged again in the action, which is
  * the call that protects anything — a Server Action is reachable directly.
  */

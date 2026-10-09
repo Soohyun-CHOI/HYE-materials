@@ -35,9 +35,9 @@ export const viewport = KEYBOARD_VIEWPORT;
  *
  * THE SIGN-IN SCREENS ARE THE SECOND SET THE DESIGN IS APPLIED TO, AND THIS IS WHAT LETS
  * THEM BE (#473). No screen here holds a width container or shares a component with the
- * screens above the tools axis, so a file only these steps and the tools screens reach may
+ * screens above the assets axis, so a file only these steps and the asset screens reach may
  * read the design's names until #258 — `offline/design-values.mjs` holds the boundary —
- * and this layout is above every step the way the tools layout is above that axis.
+ * and this layout is above every step the way the assets layout is above that axis.
  *
  * THE FACES ARE APPLIED HERE, the two the steps draw: Instrument Sans for every word and
  * Bricolage Grotesque for the wordmark, from `app/faces/`, where each face is loaded once

@@ -9,8 +9,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * nothing a column or a rail clips can clip it; hidden from assistive tech, which has each
  * target's name already.
  *
- * WRITTEN FOR THE RAIL (#460) AND MOVED HERE WHEN THE SECOND ICON BUTTON CAME (#463): the tool
- * item page's `More actions`, whose tooltip stands 6 above it, centered, where the rail's
+ * WRITTEN FOR THE RAIL (#460) AND MOVED HERE WHEN THE SECOND ICON BUTTON CAME (#463): the asset
+ * page's `More actions`, whose tooltip stands 6 above it, centered, where the rail's
  * stand 10 beside an icon. `placement` is which of the two; everything else is one drawing.
  * A target's name and its tooltip are one string — the rail's rule for every collapsed icon,
  * and `offline/navigation.mjs` reads it off the rail's call sites.

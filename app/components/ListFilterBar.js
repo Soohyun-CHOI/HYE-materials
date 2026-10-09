@@ -108,7 +108,7 @@ export function useListFilters({ route, initial, initialPage, rows }) {
         // it — so the first mount has nothing to sync. **Unless the page it asked for
         // is not the page it got (#326)**: a pasted `?page=99` has to come back as the
         // page actually on screen, or the address bar contradicts the screen for as
-        // long as the reader stays on it. That is the one thing the tools screen's own
+        // long as the reader stays on it. That is the one thing the asset screen's own
         // clamp does not do, and it is why this test is here rather than a bare return.
         if (firstRun.current) {
             firstRun.current = false;
@@ -156,11 +156,11 @@ export function useListFilters({ route, initial, initialPage, rows }) {
  * IT SAYS THE WORDS FROM THE MODULE AND HOLDS NONE OF ITS OWN. A string written into
  * this JSX is invisible to `scripts/screen-strings.mjs` and to every vocabulary check,
  * so it could not be swept when a word changes and Design could not reword it in one
- * place — which is the arrangement the tools axis made standing (#339) and the reason
+ * place — which is the arrangement the assets axis made standing (#339) and the reason
  * `offline/list-filters.mjs` holds this vocabulary by value.
  *
  * THE STEPS ARE BUTTONS RATHER THAN LINKS, WHICH IS WHAT THE CLIENT-SIDE SLICE MAKES
- * THEM. The tools screen's two steps are `<Link>`s because its page is resolved on the
+ * THEM. The asset screen's two steps are `<Link>`s because its page is resolved on the
  * server and a step is a different address to fetch. Here the rows are already in the
  * browser and the address is a mirror of state rather than the source of it, so a step
  * that navigated would re-fetch a page whose rows never left. They stay real controls

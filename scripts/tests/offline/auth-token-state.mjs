@@ -420,7 +420,7 @@ function runCode({ check, assert, log }) {
     assert("  carrying the lifetime from the constant", SIGN_IN_COPY.mail.preheader.includes(`${TOKEN_TTL_MINUTES} minutes`));
     const facts = {
         email: "soo+code471@hanyang.example",
-        confirmUrl: "https://portal.example.com/login/confirm?token=abc&destination=%2Ftool-items%2FX",
+        confirmUrl: "https://portal.example.com/login/confirm?token=abc&destination=%2Fassets%2FX",
         code: "012345",
     };
     const html = SIGN_IN_COPY.mail.html(facts);
@@ -428,7 +428,7 @@ function runCode({ check, assert, log }) {
     check(
         "it carries two links, the button's and the address's (#495)",
         [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1]).join(" | "),
-        "mailto:soo+code471@hanyang.example | https://portal.example.com/login/confirm?token=abc&amp;destination=%2Ftool-items%2FX"
+        "mailto:soo+code471@hanyang.example | https://portal.example.com/login/confirm?token=abc&amp;destination=%2Fassets%2FX"
     );
     assert("  with its separator escaped", html.includes("token=abc&amp;destination="));
     assert("it names the address it signs in", html.includes(">soo+code471@hanyang.example<"));
@@ -469,7 +469,7 @@ function runCode({ check, assert, log }) {
             SIGN_IN_TITLE,
             "",
             "Use this link to sign in as soo+code471@hanyang.example:",
-            "https://portal.example.com/login/confirm?token=abc&destination=%2Ftool-items%2FX",
+            "https://portal.example.com/login/confirm?token=abc&destination=%2Fassets%2FX",
             "",
             "Or enter this code on the sign-in page: 012345",
             "",
