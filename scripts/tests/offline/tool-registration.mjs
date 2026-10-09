@@ -1,14 +1,12 @@
 // Registering tool items — the pure half (#338).
 //
-// WHAT THIS FILE IS FOR. `lib/toolRegistration.js` holds one judgment that two
-// readers reach independently: the dialog previews whether a typed name names a
-// tool that already exists, and the action decides whether to create a second
-// `Tools` row. If those two ever disagree, the screen tells somebody they are
-// adding to an existing tool while the write coins a new one — and nothing
-// fails, because the two answers are never compared at runtime. So the key is
-// one function and this file pins it. **Since #456 the same holds for what a
-// submission may be**: the dialog refuses it before sending anything and the action
-// refuses it again, both through `readRegistration`, which is pinned here by value.
+// WHAT THIS FILE IS FOR. `lib/toolRegistration.js` holds judgments two readers reach
+// independently, and what a submission may be is the one this file pins: the dialog
+// refuses it before sending anything and the action refuses it again, both through
+// `readRegistration`, which is pinned here by value (#456). Until #507 it pinned a
+// second, the key a typed name was one tool under, which the dialog previewed and the
+// write found by; the typed name went with #507, and what a registration picks from is
+// `offline/tool-catalog.mjs`'s now, which holds the catalog's walk by value.
 //
 // THE JOB RULE IT USED TO PIN IS `offline/tool-job.mjs`'s SINCE #363, and so is
 // the deliberate disagreement with `lib/deliveryAccess.js:accessibleJobs`.
@@ -16,17 +14,12 @@
 // three write paths' rule rather than this screen's. What section 4 keeps is
 // `canRegisterToolItems`, which really is this dialog's own question.
 //
-// WHAT IT CANNOT SEE. Whether Airtable agrees. The lookup this key stands in for
-// is `LOWER(TRIM({Tool Name})) = LOWER(TRIM(…))`, and that comparison lives in a
-// credentialed module — this tier never loads `lib/airtable/`. #338 measured the
-// live behavior read-only (Airtable's `=` is CASE-SENSITIVE, and neither form
-// collapses an internal whitespace run) and that measurement is in
-// `docs/notes/tools.md` and in `getToolByName`'s own header. Nothing here can
-// re-measure it, and a green run is not evidence that the two halves match.
-//
-// It also cannot see rendering, which is this tier's standing limit: that the
-// preview, the suggestions and the dialog itself reach a browser at all is checked
-// with a real session and recorded in the pull request.
+// WHAT IT CANNOT SEE. Whether the catalog the action reads is the one the dialog was
+// handed, which is a fact about the base and its timing — the action reads it again, and
+// refuses a row the catalog no longer offers, and that it does both is read off the
+// source here. It also cannot see rendering, which is this tier's standing limit: that the
+// dialog's two steps reach a browser at all is checked with a real session and recorded in
+// the pull request.
 //
 // AND SINCE #449 IT HOLDS WHERE A REGISTRATION LANDS, in the same two halves. What
 // the dialog opens at and what a landing's account reads as are pure, held by value
@@ -66,22 +59,23 @@
 // what a failed batch leaves on its landing (section 9). That the fork hands the one value
 // to both is `offline/tool-list-view.mjs`'s, off the source.
 //
+// AND SINCE #507 THE DIALOG'S TWO STEPS: the first picks a name of the catalog and the
+// second its size, and a submission names the `Tools` row the two made — admitted only if
+// the catalog offers it. `readRegistration` is held by value on that row; the action
+// reading the catalog afresh, refusing what it no longer offers and drawing the page again
+// with the refusal, and the dialog's steps, are read off the source beside planted files.
+//
 // EXIT CODES, per docs/notes/verification.md: 0 all clear, 1 something failed.
 
-import { normalizeItemText } from "../../../lib/itemNaming.js";
 import {
     MAX_TOOL_ITEMS_PER_REGISTRATION,
-    MAX_TOOL_SUGGESTIONS,
     TOOL_REGISTRATION_COPY,
     accountToTell,
     canRegisterToolItems,
-    matchExistingTool,
     openingCount,
     readQuantity,
     readRegistration,
     readRegistrationAccount,
-    suggestTools,
-    toolNameKey,
 } from "../../../lib/toolRegistration.js";
 import { TOOL_JOB_COPY } from "../../../lib/toolJob.js";
 import { toolPath } from "../../../lib/toolRoutes.js";
@@ -92,7 +86,7 @@ import { fakeBase } from "./_fakeBase.mjs";
 import { isMain, standalone } from "./_harness.mjs";
 
 export const title =
-    "Registering tool items — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485)";
+    "Registering tool items — the pure half, where a registration lands, and what a failed batch makes of it (#338, #449, #455, #456, #459, #469, #470, #485, #507)";
 
 /** The action whose redirect section 8 reads, and the dialog whose submission it reads. */
 const ACTION = "app/(tools)/tools/actions.js";
@@ -101,16 +95,12 @@ const DIALOG = "app/(tools)/tools/RegistrationDialog.js";
 const TOOL_ITEMS = "lib/airtable/toolItems.js";
 const TOOL_LOG = "lib/airtable/toolLog.js";
 
-/** A builder's parts (#456) as the one string a reader sees. */
-const joined = (parts) => parts.map((part) => (typeof part === "string" ? part : part.emphasis)).join("");
-
 /** Every string the copy constant can produce, builders called with real input. */
 function copyStrings() {
     const out = [];
     for (const value of Object.values(TOOL_REGISTRATION_COPY)) {
         if (typeof value === "string") out.push(value);
     }
-    out.push(joined(TOOL_REGISTRATION_COPY.matchesExisting({ toolName: "Impact Driver", items: "13 items" })));
     out.push(TOOL_REGISTRATION_COPY.quantityHelp(100));
     out.push(TOOL_REGISTRATION_COPY.quantityInvalid(100), TOOL_REGISTRATION_COPY.quantityTooMany(100));
     out.push(TOOL_REGISTRATION_COPY.submit(null), TOOL_REGISTRATION_COPY.submit(1), TOOL_REGISTRATION_COPY.submit(5));
@@ -140,79 +130,11 @@ function nameOf(node) {
 const TOOL_ITEM_NOUN = /\btool items?\b/i;
 
 export async function run({ check, assert, log }) {
-    // ── 1: two spellings of one name are one key ────────────────────────────
-    log("one tool name, however it is typed:");
-    const canonical = toolNameKey("Impact Driver");
-    for (const [what, typed] of [
-        ["the same string", "Impact Driver"],
-        ["lowercased", "impact driver"],
-        ["uppercased", "IMPACT DRIVER"],
-        ["with outer space", "  Impact Driver  "],
-        ["with a doubled internal space", "Impact  Driver"],
-        ["with a tab inside", "Impact\tDriver"],
-        ["all four at once", "  impact \t driver "],
-    ])
-        check(`  ${what}`, toolNameKey(typed), canonical);
-
-    // The other half of #18's split, and the reason the key is not the stored
-    // value: case is fixed in the COMPARISON and never in what is written, because
-    // the stored string is the only copy of what somebody typed.
-    check(
-        "the stored value keeps its case",
-        normalizeItemText("  DeWalt  20V   SDS-Max "),
-        "DeWalt 20V SDS-Max"
-    );
-    assert(
-        "  so the key and the stored value are not the same string",
-        toolNameKey("DeWalt 20V") !== normalizeItemText("DeWalt 20V")
-    );
-
-    // ── 2: the preview finds what the write would find ──────────────────────
-    log("");
-    log("the dialog's preview and the write reach one verdict:");
-    const tools = [
-        { id: "recA", toolName: "Impact Driver" },
-        { id: "recB", toolName: "Angle Grinder" },
-    ];
-    check("a differently cased name matches", matchExistingTool("IMPACT driver", tools)?.id, "recA");
-    check("  and one with extra spacing", matchExistingTool(" Angle  Grinder ", tools)?.id, "recB");
-    check("a name nothing holds matches nothing", matchExistingTool("Rotary Hammer", tools), null);
-    check("an empty name matches nothing", matchExistingTool("   ", tools), null);
-    check("and no list matches nothing", matchExistingTool("Impact Driver", []), null);
-
-    // ── 2b: what a partly typed name suggests (#456) ────────────────────────
-    // THE DESIGN'S RULE, AT ITS EDGES: every tool whose name holds what is typed, on the
-    // write's own key, in the list's order, five at most — and none for a name typed in
-    // full, which the preview answers instead. The five is pinned first, because the
-    // edge below is its.
-    log("");
-    log("a partly typed name suggests the tools whose names hold it, five at most:");
-    check("the most a name suggests", MAX_TOOL_SUGGESTIONS, 5);
-    const shelf = [
-        { toolName: "Angle Grinder 4\"", count: 4 },
-        { toolName: "Band Saw", count: 2 },
-        { toolName: "Chop Saw, 14\"", count: 3 },
-        { toolName: "Core Drill", count: 2 },
-        { toolName: "Cordless Drill, DeWalt", count: 13 },
-        { toolName: "Magnetic Drill", count: 3 },
-        { toolName: "Pipe Cutter, Hydraulic", count: 2 },
-        { toolName: "Plasma Cutter", count: 1 },
-        { toolName: "Rotary Hammer Drill", count: 1 },
-        { toolName: "Torque Wrench", count: 7 },
-    ];
-    const names = (typed) => suggestTools(typed, shelf).map((tool) => tool.toolName).join(" | ");
-    check("a word inside names, in the list's order", names("saw"), "Band Saw | Chop Saw, 14\"");
-    check("  whatever its case and spacing", names("  CHOP   saw "), "Chop Saw, 14\"");
-    check(
-        "  and no more than five of the six it holds",
-        names("r"),
-        "Angle Grinder 4\" | Core Drill | Cordless Drill, DeWalt | Magnetic Drill | Pipe Cutter, Hydraulic"
-    );
-    check("a name typed in full suggests nothing", names("band saw"), "");
-    check("  nor does nothing typed", names("   "), "");
-    check("  nor a word no tool holds", names("chainsaw"), "");
-    // The count each suggestion says is its own, handed through untouched.
-    check("each suggestion keeps its count", suggestTools("cordless", shelf)[0]?.count, 13);
+    // ── 1, 2 and 2b went in #507 ────────────────────────────────────────────
+    // They held the key a typed name was one tool under, the preview that found by it and
+    // the suggestions a partly typed name made. A registration picks a row of the catalog
+    // now, and the walk it picks through — the categories, the names, the sizes, the five
+    // a search offers — is `offline/tool-catalog.mjs`'s.
 
     // ── 3: how many one submission may write ───────────────────────────────
     log("");
@@ -234,7 +156,7 @@ export async function run({ check, assert, log }) {
         "null Max 100 at a time."
     );
     // THE WAY OUT IS IN THE WORDS: the ceiling is on one submission, so the refusal says
-    // `at a time`, and the find-or-create path lands the rest under the same tool.
+    // `at a time`, and picking the same tool again lands the rest under it (#507).
     assert("the ceiling refusal says the rest can follow", TOOL_REGISTRATION_COPY.quantityTooMany(100).includes("at a time"));
 
     // ── 4: who may use this dialog at all ──────────────────────────────────
@@ -289,19 +211,23 @@ export async function run({ check, assert, log }) {
             .join(", "),
         ""
     );
+    // NOR FOR THE TYPED NAME (#507): its label, placeholder and help, the preview's two voices
+    // and its refusal went with the field, since a registration picks a tool of the catalog.
+    check(
+        "  nor for the typed name, the preview or its refusal (#507)",
+        ["nameLabel", "namePlaceholder", "nameHelp", "matchesExisting", "newTool", "nameMissing"]
+            .filter((key) => key in TOOL_REGISTRATION_COPY)
+            .join(", "),
+        ""
+    );
     // THE DESIGN'S WORDS, BY VALUE (#455, #456), AND THE ACT'S VERB `add` (#485). The title
     // is also the list's and a tool's page's opener, so the three are one string; the submit
     // names what it adds.
     check("the title, which both openers that begin a registration say", TOOL_REGISTRATION_COPY.heading, "Add tools");
-    check("  the line under it, opened on no tool", TOOL_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
-    check("  the name's label", TOOL_REGISTRATION_COPY.nameLabel, "Tool name");
-    check("  and its placeholder", TOOL_REGISTRATION_COPY.namePlaceholder, "e.g. Impact Driver, Milwaukee");
-    check("  and the line under it while nothing is typed (1b, #495)", TOOL_REGISTRATION_COPY.nameHelp, "Use an existing name to add to that tool.");
-    check(
-        "  which the name's field carries as its help, the preview and a refusal taking its place (#495)",
-        /<Field label=\{COPY\.nameLabel\} help=\{COPY\.nameHelp\} note=\{note\} refusal=\{refusalFor\("toolName"\)\} reserveMessage>/.test(parseFile(DIALOG).source),
-        true
-    );
+    check("  the line under it, while the dialog picks its tool", TOOL_REGISTRATION_COPY.intro, "Each one gets its own ID and label.");
+    // THE WAY BACK FROM THE SECOND STEP (#507), the sign-in steps' word for going back to the
+    // step that chose what a chip names.
+    check("  the way back to the first step", TOOL_REGISTRATION_COPY.changeTool, "Change");
     check("  the count's label", TOOL_REGISTRATION_COPY.quantityLabel, "Quantity");
     check("  and its help", TOOL_REGISTRATION_COPY.quantityHelp(100), "Up to 100");
     check("  the job's label", TOOL_REGISTRATION_COPY.jobLabel, "Job");
@@ -325,24 +251,12 @@ export async function run({ check, assert, log }) {
         check(why, TOOL_REGISTRATION_COPY.submit(readQuantity(raw).count), expected);
     check("  and while it is on its way, 0f's -ing word with no count", TOOL_REGISTRATION_COPY.working, "Adding…");
     check("  and the way out", TOOL_REGISTRATION_COPY.cancel, "Cancel");
-    // THE PREVIEW (#456): a tool that exists, with its count in the words its own page
-    // heads its list with, and a name that coins one.
-    check(
-        "the preview for a tool that exists",
-        joined(TOOL_REGISTRATION_COPY.matchesExisting({ toolName: "Impact Driver", items: "13 items" })),
-        "Adds to Impact Driver, which already has 13 items"
-    );
-    check(
-        "  with the tool and its count as the parts the note sets in Ink",
-        TOOL_REGISTRATION_COPY.matchesExisting({ toolName: "T", items: "N" })
-            .filter((part) => typeof part !== "string")
-            .map((part) => part.emphasis)
-            .join(", "),
-        "T, N"
-    );
-    check("  and for one that does not", TOOL_REGISTRATION_COPY.newTool, "Creates a new tool");
-    // EACH FIELD'S REFUSAL, AND THE ONE ABOUT THE WHOLE DIALOG (#456).
-    check("a name left empty", TOOL_REGISTRATION_COPY.nameMissing, "Enter a tool name.");
+    // EACH FIELD'S REFUSAL, AND THE ONE ABOUT THE WHOLE DIALOG (#456). The two a pick earns
+    // are `Choose a job.`'s shape (#507), and a tool the catalog no longer offers is the
+    // whole registration's.
+    check("a name in the search that names no one tool", TOOL_REGISTRATION_COPY.toolNoneChosen, "Choose a tool.");
+    check("  a size not chosen", TOOL_REGISTRATION_COPY.sizeNoneChosen, "Choose a size.");
+    check("  a tool the catalog no longer offers", TOOL_REGISTRATION_COPY.toolGone, "That tool isn't available any more.");
     check("  a count out of range", TOOL_REGISTRATION_COPY.quantityInvalid(100), "Enter 1 to 100.");
     check("  a count past the ceiling", TOOL_REGISTRATION_COPY.quantityTooMany(100), "Max 100 at a time.");
     check("  a job not chosen, the picker's own word", TOOL_REGISTRATION_COPY.jobNoneChosen, TOOL_JOB_COPY.noneChosen);
@@ -417,28 +331,45 @@ export async function run({ check, assert, log }) {
             expected
         );
 
-    const reading = (submitted, offered = jobs) => JSON.stringify(readRegistration(submitted, offered));
-    const good = { toolName: "  Impact Driver ", quantity: "5", jobId: "job2" };
+    // THE TOOL IS THE ROW THE TWO STEPS NARROWED TO (#507), admitted only if the catalog the
+    // reading is handed offers it — the page's catalog in the dialog, the base's as it is now
+    // in the action. Two rows here, so a submission naming either is seen to be told apart.
+    const catalog = [
+        { id: "recGrinder", toolName: "Angle Grinder 4-1/2\"", toolClass: "A" },
+        { id: "recDriver", toolName: "Impact Driver 1/4\" Hex", toolClass: "B" },
+    ];
+    const reading = (submitted, offered = jobs, picks = catalog) => JSON.stringify(readRegistration(submitted, offered, picks));
+    const good = { toolRecordId: "recDriver", quantity: "5", jobId: "job2" };
     check(
-        "a submission it takes is the trimmed name, the count and the job",
+        "a submission it takes is the row picked, the count and the job",
         reading(good),
-        JSON.stringify({ registration: { toolName: "Impact Driver", count: 5, job: jobs[1] } })
+        JSON.stringify({ registration: { tool: catalog[1], count: 5, job: jobs[1] } })
     );
     check("a reader on no job is refused the whole registration", reading(good, []), JSON.stringify({ error: TOOL_REGISTRATION_COPY.noJob }));
-    check("  a name of nothing under the name", reading({ ...good, toolName: "   " }), JSON.stringify({ fields: { toolName: "Enter a tool name." } }));
+    check("  no row picked under the size, where the dialog decides it", reading({ ...good, toolRecordId: "" }), JSON.stringify({ fields: { toolRecordId: "Choose a size." } }));
+    check(
+        "  a row the catalog does not offer the whole registration's, and the page is out of date",
+        reading({ ...good, toolRecordId: "recGone" }),
+        JSON.stringify({ error: "That tool isn't available any more.", stale: true })
+    );
+    check(
+        "  and so is a row an empty catalog cannot offer",
+        reading(good, jobs, []),
+        JSON.stringify({ error: "That tool isn't available any more.", stale: true })
+    );
     check("  a count past the ceiling under the count", reading({ ...good, quantity: "140" }), JSON.stringify({ fields: { quantity: "Max 100 at a time." } }));
     check("  no job chosen under the job", reading({ ...good, jobId: "" }), JSON.stringify({ fields: { jobId: TOOL_JOB_COPY.noneChosen } }));
     check("  a job not the reader's under the job", reading({ ...good, jobId: "job9" }), JSON.stringify({ fields: { jobId: TOOL_JOB_COPY.notYours } }));
     check(
         "  and every field at once, as the design draws them",
-        Object.keys(JSON.parse(reading({ toolName: "", quantity: "", jobId: "" })).fields).join(", "),
-        "toolName, quantity, jobId"
+        Object.keys(JSON.parse(reading({ toolRecordId: "", quantity: "", jobId: "" })).fields).join(", "),
+        "toolRecordId, quantity, jobId"
     );
     // WHAT A FORM HANDS OVER IS `FormData.get`'s: a missing key is null, never a crash.
     check(
         "  a field the form never sent reads as missing",
-        Object.keys(JSON.parse(reading({ toolName: null, quantity: null, jobId: null })).fields).join(", "),
-        "toolName, quantity, jobId"
+        Object.keys(JSON.parse(reading({ toolRecordId: null, quantity: null, jobId: null })).fields).join(", "),
+        "toolRecordId, quantity, jobId"
     );
 
     // ── 7: what a landing's account reads as (#449) ─────────────────────────
@@ -546,25 +477,46 @@ export async function run({ check, assert, log }) {
     // ── 8: where the action sends the person, and how the dialog submits (#449, #456) ─
     log("");
     log("a registration that wrote anything lands on its tool, and one that did not stays in the dialog:");
+    // An expression as the source states it, a call's arguments elided — `readCatalog(…).offered`.
+    const said = (node) => {
+        if (!node) return "none";
+        if (node.type === "Identifier") return node.name;
+        if (node.type === "MemberExpression" && !node.computed) return `${said(node.object)}.${node.property.name}`;
+        if (node.type === "CallExpression") return `${said(node.callee)}(…)`;
+        if (node.type === "AwaitExpression") return said(node.argument);
+        return node.type;
+    };
     const landingFacts = (ast) => {
         const facts = { found: false, redirects: 0, returns: [], toolFrom: null, unloggedFrom: null, readFrom: null };
         const action = resolveFunction(ast, "registerToolItemsAction");
         if (!action) return facts;
         facts.found = true;
         walk(action, (n) => {
-            // `const { tool } = await upsertTool(…)` — where the record id comes from.
+            // `const { tool, … } = reading.registration` — where the record id comes from: the
+            // row the reading admitted (#507), where `upsertTool` found or made one until then.
             if (n.type === "VariableDeclarator" && n.id?.type === "ObjectPattern") {
-                const init = n.init?.type === "AwaitExpression" ? n.init.argument : n.init;
-                if (n.id.properties.some((p) => p.key?.name === "tool")) facts.toolFrom = nameOf(init?.callee ?? {});
+                if (n.id.properties.some((p) => p.key?.name === "tool")) facts.toolFrom = said(n.init);
             }
-            // `const reading = readRegistration({ … }, jobs)` — what the submission is read by,
-            // and the list its job is admitted from.
+            // `const reading = readRegistration({ … }, jobs, catalog)` — what the submission is
+            // read by, the list its job is admitted from and the catalog its tool is (#507).
             if (n.type === "VariableDeclarator" && n.id?.name === "reading" && n.init?.type === "CallExpression")
-                facts.readFrom = `${nameOf(n.init.callee)}(…, ${nameOf(n.init.arguments[1] ?? {})})`;
-            if (n.type === "VariableDeclarator" && n.id?.name === "jobs" && n.init) {
-                const init = n.init.type === "AwaitExpression" ? n.init.argument : n.init;
-                if (init?.type === "CallExpression") facts.jobsFrom = nameOf(init.callee);
-            }
+                facts.readFrom = `${said(n.init.callee)}(…, ${said(n.init.arguments[1])}, ${said(n.init.arguments[2])})`;
+        });
+        // THE CATALOG IS READ AGAIN HERE (#507), and nothing writes a `Tools` row.
+        facts.catalogReads = callsTo(action, "getAllTools").length;
+        facts.toolWrites = callsTo(action, "upsertTool").length;
+        // EACH `refresh()` AND THE CONDITION IT STANDS UNDER (#507, #378): a tool the catalog no
+        // longer offers is the page out of date, and every other refusal is the reader's.
+        facts.refreshUnder = callsTo(action, "refresh")
+            .map((call) => {
+                let under = "nothing";
+                walk(action, (n) => {
+                    if (n.type === "IfStatement" && n.consequent.start <= call.start && call.end <= n.consequent.end) under = said(n.test);
+                });
+                return under;
+            })
+            .join(", ");
+        walk(action, (n) => {
             if (n.type === "ReturnStatement" && n.argument?.type === "ObjectExpression")
                 facts.returns.push(n.argument.properties.map((p) => p.key?.name).join("+"));
             if (n.type === "ReturnStatement" && n.argument?.type === "Identifier") facts.returns.push(n.argument.name);
@@ -636,13 +588,19 @@ export async function run({ check, assert, log }) {
     };
     const land = landingFacts(parseFile(ACTION).ast);
     assert(`${ACTION} declares registerToolItemsAction`, land.found);
-    check("it reads the submission through the dialog's own reading", land.readFrom, "readRegistration(…, jobs)");
-    check("  against the reader's own jobs", land.jobsFrom, "assignedJobsFor");
+    check(
+        "it reads the submission through the dialog's own reading, against the reader's own jobs and the catalog's offer (#507)",
+        land.readFrom,
+        "readRegistration(…, assignedJobsFor(…), readCatalog(…).offered)"
+    );
+    check("  the catalog read here, as the base holds it now", land.catalogReads, 1);
+    check("  writing no `Tools` row", land.toolWrites, 0);
+    check("  and drawing the page again only for a tool the catalog no longer offers (#378)", land.refreshUnder, "reading.stale");
     check("its log pass is handed what it created, the chosen job and the reader (#470)", land.logged, "created job.id user.id");
     check("  after the refusal of an empty batch and before the redirect", land.logBetween, true);
     check("it redirects once", land.redirects, 1);
     check("  to a tool's page", land.target, "toolPath");
-    check("  the tool upsertTool found or made", `${land.record} from ${land.toolFrom}`, "tool.id from upsertTool");
+    check("  the tool the reading admitted", `${land.record} from ${land.toolFrom}`, "tool.id from reading.registration");
     check("  on the list's first page, where what it wrote begins (#463)", land.page, "1");
     check("  selecting every tool item it created, by printed id", land.selected, "created → toolItem.toolItemId");
     check("  carrying as asked what the submission asked for (#455)", land.asked, "count");
@@ -659,14 +617,16 @@ export async function run({ check, assert, log }) {
     // off something other than the log pass, a log pass handed another list, job and
     // reader and run after the redirect, the redirect inside a try, the refusal after
     // it, the old account returned, and a submission read by a check of its own against
-    // every job on the base.
+    // every job on the base and no catalog — with no catalog read, a `Tools` row written
+    // and the page drawn again whatever the refusal (#507).
     const plantedLanding = landingFacts(
         parseSource(
             "export async function registerToolItemsAction(prevState, formData) {\n" +
                 "  return withOpsLabel('registerToolItemsAction', async () => {\n" +
                 "    const jobs = await getAllJobs();\n" +
+                "    refresh();\n" +
                 "    const reading = readQuantity(formData.get('quantity'), allJobs);\n" +
-                "    const { tool } = await getToolByName(toolName);\n" +
+                "    const { tool } = await upsertTool(toolName);\n" +
                 "    const { created } = await createToolItems({ toolRecordId: tool.id, jobRecordId: job.id, count });\n" +
                 "    const logged = [];\n" +
                 "    const { unlogged } = await readUnlogged(created);\n" +
@@ -681,11 +641,13 @@ export async function run({ check, assert, log }) {
             "<planted-landing>"
         ).ast
     );
-    check("  a submission read by another check, against another list, is seen", plantedLanding.readFrom, "readQuantity(…, allJobs)");
-    check("  a job list not narrowed to the reader is seen", plantedLanding.jobsFrom, "getAllJobs");
+    check("  a submission read by another check, against another list and no catalog, is seen", plantedLanding.readFrom, "readQuantity(…, allJobs, none)");
+    check("  a catalog not read is seen", plantedLanding.catalogReads, 0);
+    check("  a `Tools` row written is seen", plantedLanding.toolWrites, 1);
+    check("  a page drawn again whatever the refusal is seen", plantedLanding.refreshUnder, "nothing");
     check("  a log pass handed another list, job and reader is seen", plantedLanding.logged, "logged tool.id job.id");
     check("  a log pass after the redirect is seen", plantedLanding.logBetween, false);
-    check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.toolFrom}`, "job.id from getToolByName");
+    check("  a redirect to another record is seen", `${plantedLanding.record} from ${plantedLanding.toolFrom}`, "job.id from upsertTool(…)");
     check("  a page from another figure is seen", plantedLanding.page, "2");
     check("  a selection of anything but what was created is seen", plantedLanding.selected, "logged");
     check("  an asked figure that is what was created is seen", plantedLanding.asked, "created.length");
@@ -796,11 +758,14 @@ export async function run({ check, assert, log }) {
     // 19 does not reset — with no `action` prop anywhere, since a dialog is never open
     // before hydration. What it says is read off what the reading and the action answered,
     // as `fields` and `error`; its three fields start from what the opener handed over.
-    // Opened on a tool, the tool is the line under the title and its name goes as it
-    // stands; a tool's count is said in its own page's words; a reader who may not
-    // register meets a disabled opener with the reason; and it is open only while the
-    // address is the one it was opened at. Each is read as the expression that decides it,
-    // since naming the call or the prop would be satisfied by every wrong version of it.
+    // Opened on a tool, the tool is the line under the title and its row goes as it
+    // stands; a reader who may not register meets a disabled opener with the reason; and
+    // it is open only while the address is the one it was opened at. Since #507 it has two
+    // steps: the first's search offers the catalog's names and picks through `pick`, which
+    // starts the size where 0l starts a choice, and its Enter takes the one name typed or
+    // refuses; the line under the title carries the way back; and only the second step
+    // commits. Each is read as the expression that decides it, since naming the call or
+    // the prop would be satisfied by every wrong version of it.
     const dialogFacts = ({ ast, source }) => {
         const text = (node) => (node ? source.slice(node.start, node.end).replace(/\s+/g, " ") : "");
         const facts = {
@@ -814,9 +779,43 @@ export async function run({ check, assert, log }) {
             address: null,
             gate: null,
             nameField: [],
-            totals: [],
             commitment: null,
+            commitmentUnder: "nothing",
             disabledBySending: 0,
+            search: "none",
+            pickRule: "none",
+            firstStep: "none",
+            firstStepFields: "none",
+            back: "none",
+        };
+        // A variable's own expression, for an attribute that names one.
+        const declared = (name) => {
+            let init = null;
+            walk(ast, (n) => {
+                if (!init && n.type === "VariableDeclarator" && n.id?.name === name) init = n.init;
+            });
+            return init;
+        };
+        // What the line under the title says in each state (#507): the condition, and in a
+        // drawn branch the values it shows and the button it carries, by what the button does.
+        const summarize = (node) => {
+            if (!node) return "none";
+            if (node.type === "ConditionalExpression") return `${text(node.test)} ? ${summarize(node.consequent)} : ${summarize(node.alternate)}`;
+            if (node.type === "JSXFragment" || node.type === "JSXElement") {
+                const valued = new Set();
+                walk(node, (inner) => {
+                    if (inner.type === "JSXAttribute" && inner.value?.type === "JSXExpressionContainer") valued.add(inner.value);
+                });
+                const parts = [];
+                walk(node, (inner) => {
+                    if (inner.type === "JSXOpeningElement" && inner.name?.name === "button")
+                        parts.push(`button ${text(inner.attributes.find((a) => a.name?.name === "onClick")?.value?.expression)}`);
+                    if (inner.type === "JSXExpressionContainer" && !valued.has(inner) && inner.expression.type !== "JSXEmptyExpression")
+                        parts.push(text(inner.expression));
+                });
+                return `[${parts.join(", ")}]`;
+            }
+            return text(node);
         };
         walk(ast, (n) => {
             if (n.type === "JSXAttribute" && n.name?.name === "action") facts.actionProps++;
@@ -830,10 +829,61 @@ export async function run({ check, assert, log }) {
                 }
                 if (/\bpending\b/.test(text(attribute("disabled")?.value?.expression))) facts.disabledBySending++;
             }
+            // The commitment stands on the second step alone (#507): the first goes on by a pick.
+            if (n.type === "LogicalExpression" && n.operator === "&&") {
+                let submits = false;
+                walk(n.right, (inner) => {
+                    if (inner.type === "JSXOpeningElement" && inner.name?.name === "Button")
+                        submits ||= inner.attributes.some((a) => a.name?.name === "type" && a.value?.value === "submit");
+                });
+                if (submits) facts.commitmentUnder = text(n.left);
+            }
             if (n.type === "JSXOpeningElement" && n.name?.name === "DialogFrame") {
                 const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
                 facts.submitsThrough = nameOf(attribute("onSubmit") ?? {});
-                facts.subtitle = text(attribute("subtitle"));
+                const subtitle = attribute("subtitle");
+                facts.subtitle = summarize(subtitle?.type === "Identifier" ? declared(subtitle.name) : subtitle);
+            }
+            // The first step's search (#507): what a pick does, what it offers, and what each
+            // suggestion is — the catalog's name itself, so a pick hands `pick` the levels the
+            // second step says, as Enter's lookup does. A suggestion of the label alone left
+            // that line saying ` · ` on the first walk.
+            if (n.type === "JSXOpeningElement" && n.name?.name === "Combobox") {
+                const attribute = (name) => n.attributes.find((a) => a.name?.name === name)?.value?.expression;
+                const offered = attribute("suggestions");
+                const mapped = offered?.type === "CallExpression" && offered.callee?.property?.name === "map";
+                const source = mapped ? offered.callee.object : offered;
+                const body = mapped ? offered.arguments[0]?.body : null;
+                const each =
+                    body?.type === "ObjectExpression"
+                        ? body.properties.map((p) => (p.type === "SpreadElement" ? `...${text(p.argument)}` : `${p.key?.name}: ${text(p.value)}`)).join(", ")
+                        : "nothing";
+                facts.search = `picks through ${text(attribute("onPick")) || "nothing"} · offers ${text(source) || "nothing"} · each { ${each} }`;
+            }
+            // The first step's fields in reading order (#507): the filter above the search,
+            // since the search opens its list as the dialog's opening focuses it, over whatever
+            // stands below — the filter, on the first walk.
+            if (n.type === "ConditionalExpression" && text(n.test) === 'step === "tool"') {
+                const labels = [];
+                walk(n.consequent, (inner) => {
+                    if (inner.type === "JSXOpeningElement" && inner.name?.name === "Field")
+                        labels.push(text(inner.attributes.find((a) => a.name?.name === "label")?.value?.expression));
+                });
+                facts.firstStepFields = labels.join(", ");
+            }
+            // The way back (#507): what `Change` runs, which keeps the name picked.
+            if (n.type === "VariableDeclarator" && n.id?.name === "back" && /Function/.test(n.init?.type ?? "")) {
+                const calls = [];
+                walk(n.init, (inner) => {
+                    if (inner.type === "CallExpression") calls.push(text(inner));
+                });
+                facts.back = calls.join(" · ");
+            }
+            // A name picked, and the size it starts the second step on (#507).
+            if (n.type === "VariableDeclarator" && n.id?.name === "pick" && /Function/.test(n.init?.type ?? "")) {
+                walk(n.init, (inner) => {
+                    if (facts.pickRule === "none" && inner.type === "IfStatement") facts.pickRule = text(inner);
+                });
             }
             if (n.type === "MemberExpression" && !n.computed && n.object?.type === "Identifier" && n.object.name === "said")
                 facts.saidReads.add(n.property.name);
@@ -849,7 +899,7 @@ export async function run({ check, assert, log }) {
                 n.init.callee?.name === "useState"
             ) {
                 const field = n.id.elements[0]?.name;
-                if (["toolName", "count", "jobId"].includes(field)) {
+                if (["toolRecordId", "count", "jobId"].includes(field)) {
                     const first = n.init.arguments[0];
                     facts.starts[field] = text(first?.type === "ArrowFunctionExpression" ? first.body : first);
                 }
@@ -868,7 +918,8 @@ export async function run({ check, assert, log }) {
                         .map((a) => (a.value ? `${a.name?.name}: ${text(a.value.expression ?? a.value)}` : a.name?.name))
                         .join(", ")}`;
             }
-            // Where the name is asked for, and where it goes as it stands.
+            // Where the row is asked for, and where it goes as it stands (#507): a size chosen
+            // on the second step, or the row a page opened the dialog on, as a hidden field.
             if (n.type === "ConditionalExpression")
                 for (const [side, branch] of [
                     ["then", n.consequent],
@@ -877,11 +928,9 @@ export async function run({ check, assert, log }) {
                     walk(branch, (inner) => {
                         if (inner.type !== "JSXOpeningElement") return;
                         const value = (name) => inner.attributes.find((a) => a.name?.name === name)?.value?.value;
-                        if (value("name") === "toolName")
+                        if (value("name") === "toolRecordId")
                             facts.nameField.push(`${text(n.test)} ${side}: ${inner.name?.name}${value("type") ? ` ${value("type")}` : ""}`);
                     });
-            // A tool's count, in the words its own page heads its list with.
-            if (n.type === "CallExpression" && nameOf(n.callee) === "TOOL_LIST_COPY.total") facts.totals.push(text(n.arguments[0]));
         });
         // The submit handler: its first call after the default is prevented is the reading,
         // and the transition that sends the fields comes after a return on a refusal. It is
@@ -909,12 +958,21 @@ export async function run({ check, assert, log }) {
             facts.guardedFirst = `${calls.includes("event.preventDefault") ? "prevents the default" : "lets the default run"} · ${
                 read >= 0 && (sent < 0 || read < sent) && refusesBeforeSending ? "reads before sending" : "sends unread"
             } · ${dispatched ? "dispatches in a transition" : "dispatches nothing itself"}`;
+            // The first step's Enter (#507): what it looks up, what it does with what it finds,
+            // and the refusal it gives a name that names no one tool — and that it sends nothing.
+            walk(submit, (n) => {
+                if (n.type !== "IfStatement" || text(n.test) !== 'step === "tool"') return;
+                const inside = [];
+                walk(n.consequent, (inner) => {
+                    if (inner.type === "CallExpression") inside.push(text(inner));
+                });
+                facts.firstStep = inside.join(" · ");
+            });
         }
         return {
             ...facts,
             saidReads: [...facts.saidReads].sort().join(", "),
             nameField: facts.nameField.sort().join(" | "),
-            totals: facts.totals.sort().join(", "),
         };
     };
     const dialog = dialogFacts(parseFile(DIALOG));
@@ -930,12 +988,49 @@ export async function run({ check, assert, log }) {
     // assignment" the transition's dialog starts from too (`offline/tool-job.mjs`).
     check(
         "its fields start from what the opener handed over: the tool, the count, and the one job there is",
-        `${dialog.starts.toolName} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
-        'tool ? tool.toolName : "" | String(openingCount(quantity)) | onlyJob(jobs)?.id ?? ""'
+        `${dialog.starts.toolRecordId} | ${dialog.starts.count} | ${dialog.starts.jobId}`,
+        'tool ? tool.id : "" | String(openingCount(quantity)) | onlyJob(jobs)?.id ?? ""'
     );
-    check("opened on a tool, the tool is the line under the title", dialog.subtitle, "tool ? tool.toolName : COPY.intro");
-    check("  and its name goes as it stands, with no field to type it in", dialog.nameField, "tool else: Combobox | tool then: input hidden");
-    check("a tool's count, suggested or matched, is in its own page's words", dialog.totals, "existing.count, suggestion.count");
+    // THE LINE UNDER THE TITLE IN EACH STATE (#507): the tool a page opened it on; the name
+    // the first step picked, under its category, with the way back to that step — which
+    // acts on no press while the frame is busy, the frame's rule for what it holds (#469);
+    // and while it picks, what the dialog is for.
+    check(
+        "opened on a tool, the tool is the line under the title, and a picked name carries the way back",
+        dialog.subtitle,
+        'tool ? tool.toolName : step === "size" ? [picked.level2, picked.level1, button pending ? undefined : back, COPY.changeTool] : COPY.intro'
+    );
+    // THE WAY BACK KEEPS THE NAME PICKED (#507), so picking it again keeps its size — the
+    // rule `pick` reads below. It cleared the name on the first walk, and the same name came
+    // back with its size gone.
+    check("  and the way back goes to the first step and keeps the name picked", dialog.back, "setChoosing(true) · setGuarded(null)");
+    check(
+        "  the row is asked as a size on the second step alone, and a page's goes as it stands",
+        dialog.nameField,
+        'step === "tool" else: Choice | step === "tool" else: input hidden | tool else: Choice | tool then: input hidden'
+    );
+    // THE FIRST STEP (#507): a search over the catalog's names, the category narrowing it,
+    // picked through the one function that goes on to the second step; that function keeps
+    // the size held only for the name that held it, and starts another name's where 0l
+    // starts a choice; and Enter takes the one name the search names, or refuses with the
+    // field's own words, sending nothing.
+    check("the first step asks the category above the search, which opens its list over what is below", dialog.firstStepFields, "CATALOG.categoryLabel, CATALOG.toolLabel");
+    check(
+        "the first step's search picks through `pick`, over the catalog's names under the category, each the name itself",
+        dialog.search,
+        "picks through pick · offers suggestCatalogNames(catalog, { categoryKey, typed }) · each { ...name, label: name.level2, detail: categoryKey ? undefined : name.level1 }"
+    );
+    check(
+        "  a pick keeps the size only for the name already held, and starts another's at its one size",
+        dialog.pickRule,
+        'if (name.key !== picked?.key) setToolRecordId(onlySize(catalogSizes(catalog, name.key))?.id ?? "");'
+    );
+    check(
+        "  and its Enter takes the one name typed under the category, or refuses, and sends nothing",
+        dialog.firstStep,
+        "findCatalogName(catalog, { categoryKey, typed }) · pick(found) · setGuarded({ fields: { tool: COPY.toolNoneChosen } })"
+    );
+    check("  only the second step commits", dialog.commitmentUnder, 'step === "size"');
     check(
         "a reader who may not register meets the opener disabled, with why before it",
         dialog.gate,
@@ -960,8 +1055,11 @@ export async function run({ check, assert, log }) {
     check("  and no button of it is disabled while it sends", dialog.disabledBySending, 0);
     // ANTI-VACUITY: a planted dialog bound through `action`, sending before it reads,
     // reading the action's old account, starting its fields from literals, naming no tool,
-    // asking a name it was handed, counting in another figure, gating on something else and
-    // staying open over a moved address is seen doing each.
+    // asking a row it was handed, gating on something else and staying open over a moved
+    // address is seen doing each — and since #507 a search that picks nothing and offers
+    // labels alone, above the filter it covers, a pick that drops the size whatever it
+    // picked, a way back that drops the name, an Enter blind to the category that refuses
+    // nothing, and a commitment on both steps.
     const plantedDialog = dialogFacts(
         parseSource(
             "function RegistrationDialog({ canRegister }) {\n" +
@@ -971,13 +1069,18 @@ export async function run({ check, assert, log }) {
                 "}\n" +
                 "function RegistrationForm({ quantity }) {\n" +
                 "  const [state, formAction] = useActionState(registerToolItemsAction, null);\n" +
-                '  const [toolName] = useState("");\n' +
+                '  const [toolRecordId] = useState("");\n' +
                 '  const [count] = useState("1");\n' +
                 '  const [jobId] = useState("");\n' +
                 "  const said = state;\n" +
-                "  const submit = (event) => { startTransition(() => formAction(new FormData(event.currentTarget))); const reading = readRegistration({}, []); };\n" +
+                '  const pick = (name) => { setToolRecordId(""); setPicked(name); };\n' +
+                "  const back = () => { setPicked(null); };\n" +
+                "  const submit = (event) => { startTransition(() => formAction(new FormData(event.currentTarget))); const reading = readRegistration({}, []);" +
+                ' if (step === "tool") { const found = findCatalogName(catalog, { typed }); setPicked(found); } };\n' +
                 "  return <DialogFrame onSubmit={submit} subtitle={COPY.intro}><form action={formAction}>{said?.error}{said?.toolItemIds}" +
-                '{false ? <input type="hidden" name="toolName" /> : <Combobox name="toolName" suggestions={s.map((x) => ({ detail: String(x.count) }))} />}' +
+                '{step === "tool" ? <><Field label={CATALOG.toolLabel}><Combobox onChange={setTyped} suggestions={tools.map((x) => ({ label: x.toolName }))} /></Field>' +
+                "<Field label={CATALOG.categoryLabel}><Choice /></Field></> : null}" +
+                '{false ? <input type="hidden" name="toolRecordId" /> : <Choice name="toolRecordId" />}' +
                 '<Button type="submit" disabled={pending}>{COPY.submit(Number(count))}</Button>' +
                 "</form></DialogFrame>;\n" +
                 "}\n",
@@ -989,12 +1092,17 @@ export async function run({ check, assert, log }) {
     check("  an old account read is seen", plantedDialog.saidReads, "error, toolItemIds");
     check(
         "  fields started from literals are seen",
-        `${plantedDialog.starts.toolName} | ${plantedDialog.starts.count} | ${plantedDialog.starts.jobId}`,
+        `${plantedDialog.starts.toolRecordId} | ${plantedDialog.starts.count} | ${plantedDialog.starts.jobId}`,
         '"" | "1" | ""'
     );
-    check("  a line under the title that names no tool is seen", plantedDialog.subtitle, "COPY.intro");
-    check("  a name asked for whatever the dialog was opened on is seen", plantedDialog.nameField, "false else: Combobox | false then: input hidden");
-    check("  a count in another figure is seen", plantedDialog.totals, "");
+    check("  a line under the title that names no tool, and no way back, is seen", plantedDialog.subtitle, "COPY.intro");
+    check("  a row asked for whatever the dialog was opened on is seen", plantedDialog.nameField, "false else: Choice | false then: input hidden");
+    check("  a search that picks nothing, over every row, each its label alone, is seen", plantedDialog.search, "picks through nothing · offers tools · each { label: x.toolName }");
+    check("  a way back that drops the name picked is seen", plantedDialog.back, "setPicked(null)");
+    check("  a filter under the search's list is seen", plantedDialog.firstStepFields, "CATALOG.toolLabel, CATALOG.categoryLabel");
+    check("  a pick that drops the size whatever it picked is seen", plantedDialog.pickRule, "none");
+    check("  an Enter blind to the category that refuses nothing is seen", plantedDialog.firstStep, "findCatalogName(catalog, { typed }) · setPicked(found)");
+    check("  a commitment on both steps is seen", plantedDialog.commitmentUnder, "nothing");
     check("  a gate on something else, with no reason, is seen", plantedDialog.gate, "canRegister === false → Button disabled");
     check(
         "  and a dialog that stays open over a moved address is seen",
@@ -1099,24 +1207,16 @@ export async function run({ check, assert, log }) {
     // ── anti-vacuity ───────────────────────────────────────────────────────
     log("");
     log("anti-vacuity — this check is seen to be able to fail:");
-    // Most assertions above are equalities against a canonical value, and a key
-    // function that returned a constant would satisfy every one of them.
-    assert(
-        "the key tells two different tools apart",
-        toolNameKey("Impact Driver") !== toolNameKey("Angle Grinder")
-    );
-    assert(
-        "  and does not collapse a name that merely starts the same",
-        toolNameKey("Impact Driver") !== toolNameKey("Impact Driver XR")
-    );
-    assert("the key of nothing is empty", toolNameKey("   ") === "");
     // The refusal detector is seen to refuse and to admit, since "every bad value
     // is refused" is also what a function returning a refusal always would give.
     assert("a good quantity is NOT refused", readQuantity("7").refusal === null);
-    assert("  and a good submission is taken", Boolean(readRegistration(good, jobs).registration));
-    // The suggestions are seen to find something, since an empty answer is also what a
-    // filter keeping nothing returns for every name above that suggests none.
-    assert("a partly typed name finds a suggestion", suggestTools("drill", shelf).length > 0);
+    assert("  and a good submission is taken", Boolean(readRegistration(good, jobs, catalog).registration));
+    // The row taken is the one named, since a reading that took the catalog's first row
+    // would satisfy the submission above, which names its second.
+    assert(
+        "  each row of the catalog taken as itself",
+        catalog.every((row) => readRegistration({ ...good, toolRecordId: row.id }, jobs, catalog).registration?.tool === row)
+    );
     // The noun matcher is seen finding the replaced noun in either number and any case,
     // and passing the design's, since zero is also what a broken regex reports.
     assert("the noun matcher finds `tool items`", TOOL_ITEM_NOUN.test("Say how many tool items to register."));

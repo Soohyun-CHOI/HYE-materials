@@ -13,8 +13,8 @@ used at a desk and does not support a phone's width (`_shared.md`).
 
 Which units of this tool exist, and where is each of them?
 
-**One row per physical object.** A `Tools` row is a `tool` — the kind, the
-name somebody typed once — and each row here is one drill with one printed
+**One row per physical object.** A `Tools` row is a `tool` — the kind, a row
+of the catalog the office keeps (#507) — and each row here is one drill with one printed
 id stuck to it, a `Tool Items` row, which this brief calls a tool item.
 **The screen calls each one an `item`, the design's (#455)**: its head
 shows the figure alone, `13`, and says `13 items` to assistive tech (#505),
@@ -33,7 +33,7 @@ registering more of it (#451).
 
 **The address is a record id and cannot be read.** `Tools` mints no id, the
 way `Vendors` and `Materials` mint none, because nothing prints a tool and
-nobody quotes one; the name a person typed is the identity, and a name is
+nobody quotes one; its place in the catalog is its identity, and a name is
 not a path. So the URL carries Airtable's own record id and says nothing a
 reader recognizes, which is why the browser tab says only `Tool`.
 
@@ -51,6 +51,16 @@ it while anything is selected.
 it — the shape the tool item's screen takes with its printed id and the
 four document detail screens take with theirs.
 
+**identity.** Under the heading, what the tool is (#507): its class and where
+it sits in the catalog, `Class B · DEMO Power Tools > DEMO Jigsaw > T-Shank`.
+**It says what the name cannot**: a name is the tool and its size with a space
+between, `DEMO Jigsaw T-Shank`, so it says neither where the tool ends and the
+size begins nor which category holds it. The class is information — `A` for a
+tool that matters more, usually a dearer one, `B` otherwise — and nothing here
+acts on it. Design is drawing the line; it is the record header's line under
+its title (0n) until then. A part the tool lacks is left out, and with neither
+there is no line.
+
 **action.** A way back to `/tools`: the breadcrumb's one level, `Tools`
 behind a chevron (#460), the word the tool item's screen opens its path with
 for the same trip.
@@ -60,7 +70,8 @@ for the same trip.
 `Create more of this tool` from #451. Buying more of a tool the company already has is the same
 registration as buying the first, and the dialog puts them under this tool,
 which it names under its title — so somebody who knows which tool they bought
-starts here rather than typing its name again. **It carries no count**:
+starts here rather than finding it in the catalog again: the dialog opens at
+its second step, the size already this tool's (#507). **It carries no count**:
 nothing on this screen knows how many were bought, so the dialog asks,
 starting where it always starts. **Nor does it carry the selection or the
 page**: the boxes are for printing, and it opens the same dialog from every
@@ -240,22 +251,21 @@ at most (#457), and the label screen printed the first hundred of a longer
 run, so a press here would have printed less than it sent. It needs a tool
 with more than a hundred tool items, selected across pages.
 
-**When the tool has no tool items at all:** in place of the entries, a
-heading and a sentence, `No items under this tool` and
-`If you were adding some, it stopped before any were saved.`, and under them a
-second, bordered `Add tools` (1d, #463, #485). The sentence said `creating`
-until #495, which gave it the act's verb #485 gave the words its issue named.
-**This is reachable and is not an error state**, the same way the tool item screen's
-missing history is: nothing rolls back, and the row that stands is sound.
-The total, the page position, the boxes and the print control are absent
-with it; there is nothing to count, no page to be on and nothing to print.
-**The control that registers more of this tool stays, and this is where it
-matters most**: it is how the tool items a failed registration did not write
-get written, under the name that registration found or made. **For a reader
-who is not a site manager the heading stands alone (#506)**: the sentence
-speaks to whoever was adding, and the opener under it is theirs. Design is
-drawing what that reader's empty state says; until then it says nothing more
-than the heading, rather than a sentence nobody has written.
+**When the tool has no tool items at all:** in place of the entries, the
+heading `No items under this tool`, and under it a second, bordered
+`Add tools` (1d, #463, #485). **Since #507 this is a kind of the catalog
+nobody has bought yet**, which no list shows — the screen is reached by its
+address — and the heading stands alone: the sentence 1d draws under it,
+`If you were adding some, it stopped before any were saved.`, spoke of a
+registration that stopped between writing the tool and writing its items,
+which a registration no longer can, since it picks the tool rather than
+creating it. The total, the page position, the boxes and the print control
+are absent with it; there is nothing to count, no page to be on and nothing to
+print. **The control that registers more of this tool stays, and this is where
+it matters most**: it is how the kind's first tool items are added. **For a
+reader who is not a site manager the heading stands alone with nothing under
+it (#506)**: the opener is a site manager's. Design is drawing what this state
+says.
 
 **When the reader is not a site manager (#506):** the same screen, every fact
 on it, and none of the controls a site manager uses here — no `Add tools` in
@@ -366,7 +376,7 @@ under itself until then, where a reload lost them; it keeps no account of its
 own now and sends the reader here, where the list survives a reload.
 
 **A tool's name never appears as a path segment**, here or anywhere. The
-segment is Airtable's record id: `Tools` mints none, a typed name can hold
-any character, and a rename would move the address. This screen stood one
+segment is Airtable's record id: `Tools` mints none, a name can hold any
+character, and a rename would move the address. This screen stood one
 level deeper until #348, when the tool item's own address moved off the
 axis and freed the slot.

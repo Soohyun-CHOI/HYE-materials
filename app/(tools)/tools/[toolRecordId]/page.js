@@ -5,6 +5,7 @@ import { getToolsByRecordIds } from "@/lib/airtable/tools";
 import { assignedJobsFor } from "@/lib/toolJob";
 import { FILTER_BAR_COPY } from "@/lib/listFilters";
 import { TOOL_LIST_COPY as COPY, idsInScope, pageOfToolItems, toolListScope } from "@/lib/toolListView";
+import { readCatalog } from "@/lib/toolCatalog";
 import { TOOL_REGISTRATION_COPY, canRegisterToolItems, readRegistrationAccount } from "@/lib/toolRegistration";
 import { TOOLS_PATH, toolsPath } from "@/lib/toolRoutes";
 import { withOpsLabel } from "@/lib/airtableOps";
@@ -14,6 +15,7 @@ import { ButtonLink } from "@/app/components/Controls";
 import ListFrame from "@/app/components/ListFrame";
 import { ListHeader } from "@/app/components/ListTable";
 import RegistrationDialog from "../RegistrationDialog";
+import ToolCaption from "../../ToolCaption";
 import RegistrationShortfall from "./RegistrationShortfall";
 import RegistrationUnlogged from "./RegistrationUnlogged";
 import ToolJobChoice from "./ToolJobChoice";
@@ -90,13 +92,17 @@ export const metadata = { title: "Tool" };
  * address as it stands — so both are handed the whole account.
  *
  * AND IT IS WHERE A SITE MANAGER ADDS MORE OF THIS TOOL (#451). One control opens the
- * registration dialog on this tool and with no count — nothing here knows how many
- * were bought — and costs nothing: the name is on the row already read, and the reader
- * and the job list are what this page reads anyway. It is drawn for every tool this page
+ * registration dialog on this kind and with no count — nothing here knows how many
+ * were bought — and costs nothing: the kind is the row already read, and the reader
+ * and the job list are what this page reads anyway. It is drawn for every kind this page
  * finds, the one with nothing under it included — disabled, with the reason before it,
  * for a site manager on no job, as `/tools`' own control and the offer below are (#456).
- * `registerToolItemsAction`'s header records what finding the tool by its name rather
- * than its record id costs.
+ * The dialog starts at its second step on this kind (#507): the kind is submitted by its
+ * record id, and the dialog is handed the kind as the catalog it may pick from, which is
+ * none at all for a row the catalog no longer offers — its refusal is then the action's.
+ *
+ * WHAT THE KIND IS, IN THE CAPTION UNDER ITS NAME (#507): its class and where it sits in the
+ * catalog, off the row already read (`ToolCaption`).
  *
  * A READER WHO IS NOT A SITE MANAGER READS THIS PAGE WITHOUT WHAT A SITE MANAGER DOES ON
  * IT (#506): no opener, no box on a row or on the page and no selection bar — so no label
@@ -104,7 +110,9 @@ export const metadata = { title: "Tool" };
  * registration's account, which is told to whoever added. An empty tool keeps its heading
  * and drops the sentence under it, which speaks to the person who was adding. Every
  * question is `isSiteManager`, asked once here, the one the actions behind those controls
- * ask through `withSiteManagerAction`.
+ * ask through `withSiteManagerAction`. An empty kind's heading stands alone for everybody
+ * since #507, when the sentence that spoke to whoever was adding went with the failed
+ * registration it described.
  *
  * NO COUNT PER STATUS HERE, DELIBERATELY. That is the question one level up, and
  * answering it on this page would mean reading every tool item under the tool —
@@ -197,12 +205,17 @@ async function renderToolPage({ params, searchParams }) {
     // back keeps the job the list is narrowed to (#509), and the head's choice stands
     // before the opener, as on `/tools`.
     const top = <Breadcrumb levels={[{ label: COPY.heading, href: toolsPath(1, job) }]} />;
-    const registration = { opener: TOOL_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, tool: { toolName: tool.toolName } };
+    // The dialog on this kind (#507): the row as the page read it, and the catalog it may pick
+    // from, which is this row alone — none when the catalog no longer offers it.
+    const opened = { id: tool.id, toolName: tool.toolName, toolClass: tool.toolClass };
+    const catalog = readCatalog([tool]).offered.map(({ id, toolName, toolClass }) => ({ id, toolName, toolClass }));
+    const registration = { opener: TOOL_REGISTRATION_COPY.heading, canRegister, jobs: assignedJobs, tool: opened, catalog };
     const header = (
         <ListHeader
             title={tool.toolName}
             count={narrowed ? FILTER_BAR_COPY.count(page.total, total) : page.total}
             noun={COPY.itemNoun(page.total)}
+            caption={<ToolCaption tool={tool} className="text-body text-foreground-subtle" />}
             underBreadcrumb
         >
             {scope.jobs.length > 0 && (
@@ -228,16 +241,14 @@ async function renderToolPage({ params, searchParams }) {
             <ListFrame top={top} header={header}>
                 <div className="flex flex-col items-center pt-list-empty-state-inset-top text-center">
                     <h2 className="text-heading font-semibold">{COPY.noToolItemsHeading}</h2>
-                    {/* The sentence speaks to whoever was adding, and the opener under it is
-                        theirs, so both are a site manager's (#506); anybody else reads the
-                        heading alone. */}
+                    {/* The opener under the heading is a site manager's (#506). The sentence
+                        between them, which told whoever was adding that a registration had
+                        stopped before writing any, went in #507: a kind with nothing under it
+                        is a catalog row nobody has bought yet. */}
                     {recorder && (
-                        <>
-                            <p className="mt-gap max-w-empty-state text-body-sm text-pretty text-foreground-muted">{COPY.noToolItems}</p>
-                            <div className="mt-gap-lg">
-                                <RegistrationDialog {...registration} variant="bordered" />
-                            </div>
-                        </>
+                        <div className="mt-gap-lg">
+                            <RegistrationDialog {...registration} variant="bordered" />
+                        </div>
                     )}
                 </div>
             </ListFrame>
@@ -277,7 +288,7 @@ async function renderToolPage({ params, searchParams }) {
                 them reaches anybody else only as a copied link, and tells them nothing. */}
             {recorder && account.unlogged.length > 0 && <RegistrationUnlogged toolName={tool.toolName} account={account} />}
             {recorder && account.unwritten > 0 && (
-                <RegistrationShortfall toolName={tool.toolName} account={account} canRegister={canRegister} jobs={assignedJobs} />
+                <RegistrationShortfall tool={opened} catalog={catalog} account={account} canRegister={canRegister} jobs={assignedJobs} />
             )}
         </ToolItemList>
     );

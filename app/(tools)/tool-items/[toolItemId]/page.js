@@ -26,6 +26,7 @@ import { isSiteManager } from "@/lib/siteManager";
 import { actorName } from "@/lib/userName";
 import LabelsDialog, { LabelPreview } from "../LabelsDialog";
 import StatusMark from "../../StatusMark";
+import ToolCaption from "../../ToolCaption";
 import MoreActions from "./MoreActions";
 import ToolItemTransition from "./ToolItemTransition";
 import TransitionBar from "./TransitionBar";
@@ -136,7 +137,10 @@ const ID_IN_TEXT = "font-id leading-none tracking-id text-foreground-default";
  * TWO DRAWINGS OF ONE PAGE (#463). A desk draws 0n's record page under the breadcrumb:
  * a header holding the tool's name, its id and job, its status and the actions, the history
  * beside the record rail and its label (1f, 1g). A phone draws 1j: the top bar with the id
- * and `More actions`, the title block, the history, and the transition in a foot bar. What is
+ * and `More actions`, the title block, the history, and the transition in a foot bar. **The
+ * tool's class and path are a caption in the header at both widths since #507** — under the
+ * id and the job at a desk, which stay first under the name (#411), and under the name on a
+ * phone — off the tool row already read, so it costs nothing (`ToolCaption`). What is
  * one fact is one element — the heading, the status, an entry — set at each width's size;
  * what only one width draws is drawn there alone. Every word is a constant and every value a
  * name `app/designValues.css` declares, and the column the page sits in is the layout's
@@ -313,6 +317,7 @@ async function renderToolItemPage({ params }) {
                                         </>
                                     )}
                                 </p>
+                                {tool && <ToolCaption tool={tool} className="text-body text-foreground-subtle max-sm:text-mobile-body-sm" />}
                             </div>
                             {/* THE STATUS, AND THE VALUE ONLY ONE STATE HAS 14 AFTER IT (0n):
                                 who holds a tool that is out, and at a desk when a retired one

@@ -63,14 +63,15 @@ const TOOLS_ACTIONS = [
 /**
  * The controls a site manager alone uses, by the page that draws them, and how many times
  * each is drawn there. `flag` is what each must stand under: the page's `recorder`, or the
- * list's `selects` the page hands it. `text` names a sentence rather than an element.
+ * list's `selects` the page hands it. `text` names a sentence rather than an element — the
+ * empty tool's `COPY.noToolItems` was the one, a site manager's to read, until #507 took the
+ * sentence away with the failed registration it described.
  */
 const GATED = [
     { file: LIST, element: "RegistrationDialog", count: 2, flag: "recorder" },
     { file: TOOL, element: "RegistrationDialog", count: 2, flag: "recorder" },
     { file: TOOL, element: "RegistrationShortfall", count: 1, flag: "recorder" },
     { file: TOOL, element: "RegistrationUnlogged", count: 1, flag: "recorder" },
-    { file: TOOL, text: "COPY.noToolItems", count: 1, flag: "recorder" },
     { file: ITEM, element: "LabelsDialog", count: 1, flag: "recorder" },
     { file: TOOL_LIST, element: "Checkbox", count: 2, flag: "selects" },
     { file: TOOL_LIST, element: "SelectionBar", count: 1, flag: "selects" },

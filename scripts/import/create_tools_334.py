@@ -55,10 +55,22 @@ where adding one option and deleting the other would have emptied them.
 The same pass brought the rest of the spec back to what the base holds --
 `Notes`, deleted by hand in #363, is gone from it, so a run no longer
 reads it as missing and creates it again; `Checked Out To`, added in #376
-outside this script, is in it; and every description is the base's own.
+outside this script, is in it; and every description is the base's own,
+`Tools`' two excepted since #507 (below).
 #463 renamed three more options the same way, when the design set the
 tools screens' words in sentence case: `In Stock` became `In stock`, and
 `Checked Out` and `Checked In` became `Checked out` and `Checked in`.
+
+#507 MADE `Tools` THE CATALOG A TOOL IS CHOSEN FROM, AND ITS OWN SCRIPT OWNS
+WHAT CHANGED. `create_tool_catalog_507.mjs` added `Level 1`, `Level 2`,
+`Size` and `Class`, and `Tool Name` became a formula over two of them by a
+hand conversion, since no API creates a formula field or changes a type. So
+the spec below still CREATES the single line of text #334 made -- that
+script's hand step converts it -- and the verify step reads the four fields
+as that script's and `Tool Name` as the formula it became, rather than as
+fields unexpected and a type wrong. Their descriptions are that script's to
+write and to keep, so the ones below are the create payload's and nothing
+compares them with the base.
 
 THE COLOR RULE, stated so it can be checked rather than admired: walk
 Airtable's light palette in declaration order, and give the terminal
@@ -164,27 +176,24 @@ TOOLS = {
     "name": "Tools",
     # Created by Airtable when Tool Items."Tool" is made, not sent by us.
     "auto_inverses": ["Tool Items"],
+    # #507's, made and described by create_tool_catalog_507.mjs (the header).
+    "owned_elsewhere": ["Level 1", "Level 2", "Size", "Class"],
+    # The type a field here was converted to by hand after this created it (#507).
+    "converted": {"Tool Name": "formula"},
     "description": (
         "Issue #334 -- the KIND a tool is bought as, not the object on the shelf. "
-        "One row per kind; the physical units are Tool Items, one row each, "
-        "because a company buys six of the same drill and then tracks them one at "
-        "a time. Takes no minted ID, the way Vendors and Materials do not: nothing "
-        "prints a kind and nobody quotes one, so the typed name is the identity. "
-        "That uniqueness is app-enforced (Airtable has no unique constraint) -- "
-        "upsertTool finds or creates it under a lock, so a second kind "
-        "with the same name is never created."
+        "One row per kind; the physical units are Tool Items, one row each. Since "
+        "#507 the catalog a tool is chosen from: create_tool_catalog_507.mjs adds "
+        "its fields and writes this description."
     ),
     "fields": [
         {
             "name": "Tool Name",
             "type": "singleLineText",
             "description": (
-                "Issue #334 -- what a person calls this kind of tool, typed on the "
-                "registration form. The natural key: app-enforced unique, matched "
-                "case-insensitively through LOWER(TRIM(...)), because Airtable's = "
-                "on a text field is NOT (#338, measured), and because Impact "
-                "Driver and impact driver are one kind whose count must not split "
-                "in two."
+                "Issue #334 -- the kind's name. Typed on the registration form until "
+                "#507, which made it a formula over the catalog's fields: "
+                "create_tool_catalog_507.mjs converts it and writes this description."
             ),
         },
     ],
@@ -767,7 +776,8 @@ def verify(client, specs):
                 ) + "]"
             primary = "  (primary)" if field["id"] == table["primaryFieldId"] else ""
             known = (find_field({"fields": spec["fields"]}, field["name"])
-                     or field["name"] in spec.get("auto_inverses", []))
+                     or field["name"] in spec.get("auto_inverses", [])
+                     or field["name"] in spec.get("owned_elsewhere", []))
             print(f"   {' ' if known else '?'}{i + 1:>2}. {field['name']:<22} {field['type']}{extra}{primary}")
 
         # The spec, both directions.
@@ -776,9 +786,12 @@ def verify(client, specs):
             if live is None:
                 problems.append(f"{spec['name']}: missing field {wanted['name']}")
                 continue
-            if live["type"] != wanted["type"]:
+            # A field converted by hand after this created it is read as what it
+            # became (#507's `Tool Name`), and a type it was not created as is wrong.
+            want_type = spec.get("converted", {}).get(wanted["name"], wanted["type"])
+            if live["type"] != want_type:
                 problems.append(
-                    f"{spec['name']}.{wanted['name']} is {live['type']}, spec says {wanted['type']}"
+                    f"{spec['name']}.{wanted['name']} is {live['type']}, spec says {want_type}"
                 )
             if not (live.get("description") or "").strip():
                 problems.append(f"{spec['name']}.{wanted['name']} carries no description")
@@ -802,7 +815,12 @@ def verify(client, specs):
         # in the create payload because neither is ours to send, and both are
         # load-bearing: `Tool Items."Tool Log"` is the array getToolLogByToolItem
         # walks. So they are named here and their ABSENCE is the problem.
-        expected_names = {f["name"] for f in spec["fields"]} | set(spec.get("auto_inverses", []))
+        # And a field another script owns (#507) is that script's to check.
+        expected_names = (
+            {f["name"] for f in spec["fields"]}
+            | set(spec.get("auto_inverses", []))
+            | set(spec.get("owned_elsewhere", []))
+        )
         for name in spec.get("auto_inverses", []):
             if find_field(table, name) is None:
                 problems.append(f"{spec['name']}: no auto-created reverse link `{name}`")

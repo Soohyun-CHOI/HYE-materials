@@ -14,9 +14,9 @@ used at a desk and does not support a phone's width (`_shared.md`).
 How many of each kind of tool does the company have, and how many of them
 are out?
 
-**A `Tools` row is a tool — the kind of tool, the name somebody typed
-once — and a `Tool Items` row is one physical object carrying a printed
-id.** #338 settled the pair and this brief calls the second a `tool item`,
+**A `Tools` row is a tool — the kind of tool, a row of the catalog the
+office keeps (#507) — and a `Tool Items` row is one physical object carrying
+a printed id.** #338 settled the pair and this brief calls the second a `tool item`,
 which is the base's word for it. **The screens call it what the design
 does (#455)**: a `tool` in any sentence about one — `Add tools`,
 `Retire this tool` — and an `item` where a tool's own screen counts what is
@@ -57,8 +57,8 @@ about what any tool holds.
 **action.** The control that opens the registration dialog over this screen
 (#456), carrying that dialog's own heading as its word so the two cannot drift
 (#338) — `Add tools` (#485), where it was the design's `New tools` from #455,
-because most registrations add to a tool the company already has, and the line
-under a typed name says when one is new. Every other list screen in the
+because most registrations add to a tool the company already has, and since
+#507 every one adds to a tool of the catalog. Every other list screen in the
 app opens its create form the same way, as a screen of its own. It is above
 the list rather than inside it, because the reader with no tools at all is the
 one who needs it most. It is a site manager's: for one assigned to no job it is
@@ -76,19 +76,29 @@ first page. Design is drawing the control; it is the choice the registration
 dialog draws until then.
 
 **What a reader starts from is a fact the list carries, and a design may not
-make it a toggle (#509).** The office — `Is Admin` — starts from every tool,
-**a tool with nothing under it included**, since a registration that stopped
-before writing any leaves one and the office is who finds it. Anybody else
-starts from the tools with a tool item on their jobs, counted over those tool
-items, and a tool with none there is not on their list. A tool item off the
+make it a toggle (#509).** The office — `Is Admin` — starts from every tool
+with a tool item anywhere. Anybody else starts from the tools with a tool item
+on their jobs, counted over those tool items, and a tool with none there is not
+on their list. **A tool with nothing under it is on nobody's list (#507)**: it
+is a row of the catalog nobody has bought yet, which the office's list carried
+until then as a registration that had stopped before writing any. A tool item off the
 reader's jobs still opens from its label or a link; the list is what they are
 shown first, not what they may see.
 
-**evidence.** One row per tool, ordered by name, twenty-five to a page
+**evidence.** One row per tool, ordered by name — a run of digits read as a
+number, so `DEMO Circular Saw 7-1/4"` comes before `DEMO Circular Saw 10"`
+(#507) — twenty-five to a page
 (0b's page of rows, #463) with the pager under them: which rows the page
 shows of how many, `1–17 of 17`, which page of how many, and a step each
 way that a page at its end draws and does not act. The name is the row's
-identity and the whole row is the way into that tool's own screen.
+identity and the whole row is the way into that tool's own screen. A tool's
+name is its tool and its size, `DEMO Jigsaw T-Shank` (#507).
+
+**evidence.** Beside each name, the tool's class and its category, the
+catalog's (#507) — `B`, `DEMO Power Tools` — between the name and the counts.
+The class is information: `A` for a tool that matters more, usually a dearer
+one, `B` otherwise, and nothing on the list acts on it. Design is drawing the
+two columns.
 
 **verdict.** Three counts on every row: how many of that tool are
 `In stock`, how many are `Out`, how many are `Retired`. This is what the
@@ -130,11 +140,11 @@ pager's steps and every row's way into a tool keep the job; the rail's
 `Tools` does not. A job in the address the reader may not narrow to is
 answered with their whole list, the choice reading `All jobs`.
 
-**A tool with nothing under it** reads as a row whose three counts are all
-zero, on the office's list before a job narrows it, and on no other (#509). It is reachable and is not a display error: a registration writes
-the `Tools` row before it writes the tool items, and #338 rolls back
-neither, so a failure in between leaves the tool standing alone. The
-tool's own screen is where that is explained in words.
+**A tool with nothing under it is on no list (#507)**: a row of the catalog
+nobody has bought yet, whose own screen answers by address. It read as a row of
+three zeros on the office's list until then, left standing by a registration
+that had stopped between its two writes — which no registration can do since
+it stopped creating the tool.
 
 ## What must agree elsewhere
 
@@ -168,7 +178,7 @@ one.** It held the tool ITEM until #348, because a QR code encodes the
 whole address and its length decides the symbol's version; a route of its
 own carries that now, so the flat slot came free and one tool took it.
 **A tool's name never appears as a path segment** — the segment is
-Airtable's record id, since `Tools` mints none and a typed name is not a
+Airtable's record id, since `Tools` mints none and a name is not a
 path — which is also what kept a tool somebody names `new` from
 colliding with the registration form's route, until #456 made the form a
 dialog.

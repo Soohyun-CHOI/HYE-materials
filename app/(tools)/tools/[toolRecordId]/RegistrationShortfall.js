@@ -31,8 +31,9 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // failing. Read off the address, a new landing asks again because it carries the
 // question again.
 //
-// `Add 2 more` PUTS THE FORK AWAY AND OPENS THE REGISTRATION DIALOG ON THIS TOOL AT THE
-// COUNT IT NAMES, the count still the person's to change there — 1c's own answer, which
+// `Add 2 more` PUTS THE FORK AWAY AND OPENS THE REGISTRATION DIALOG ON THIS KIND AT THE
+// COUNT IT NAMES — at its second step, since #507, with nothing to pick — the count still
+// the person's to change there — 1c's own answer, which
 // closes the one before it opens the other rather than stacking them. The words and the
 // dialog are handed one value, `account.unwritten`, so they cannot name two numbers
 // (#485); it said `Create the rest` until then and named none. The
@@ -66,7 +67,7 @@ import { RegistrationForm, RegistrationOpener, useRegistrationOpening } from "..
 // EVERY WORD IS `TOOL_REGISTRATION_COPY`'s, this axis's rule since #338: they are a
 // registration's words wherever they are drawn, which is also why the fork is a file of
 // its own rather than part of the list.
-export default function RegistrationShortfall({ toolName, account, canRegister, jobs }) {
+export default function RegistrationShortfall({ tool, catalog, account, canRegister, jobs }) {
     const address = useSearchParams();
     const registration = useRegistrationOpening();
     const told = accountToTell(account, address) === "shortfall";
@@ -85,7 +86,7 @@ export default function RegistrationShortfall({ toolName, account, canRegister, 
                 onClose={notNow}
                 unprompted
                 title={COPY.shortfallHeading(account.unwritten)}
-                subtitle={toolName}
+                subtitle={tool.toolName}
             >
                 <DialogBody>
                     <DialogMessage>{COPY.shortfall(account.asked - account.unwritten)}</DialogMessage>
@@ -105,7 +106,8 @@ export default function RegistrationShortfall({ toolName, account, canRegister, 
                     open={registration.open}
                     onClose={registration.close}
                     jobs={jobs}
-                    tool={{ toolName }}
+                    tool={tool}
+                    catalog={catalog}
                     quantity={account.unwritten}
                 />
             )}
